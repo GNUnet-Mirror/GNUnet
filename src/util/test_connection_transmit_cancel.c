@@ -51,8 +51,7 @@ task_transmit_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   csock = GNUNET_CONNECTION_create_from_connect (cfg, "localhost", PORT);
   GNUNET_assert (csock != NULL);
-  th = GNUNET_CONNECTION_notify_transmit_ready (csock,
-                                                12,
+  th = GNUNET_CONNECTION_notify_transmit_ready (csock, 12,
                                                 GNUNET_TIME_UNIT_MINUTES,
                                                 &not_run, cls);
   GNUNET_assert (NULL != th);
@@ -74,8 +73,8 @@ check_transmit_cancel ()
 
   ok = 1;
   cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_CONFIGURATION_set_value_string (cfg,
-                                         "resolver", "HOSTNAME", "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
+                                         "localhost");
   GNUNET_SCHEDULER_run (&task_transmit_cancel, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;

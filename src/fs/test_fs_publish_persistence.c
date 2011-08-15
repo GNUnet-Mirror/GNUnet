@@ -106,10 +106,7 @@ restart_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   rtask = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_FS_stop (fs);
-  fs = GNUNET_FS_start (cfg,
-                        "test-fs-publish-persistence",
-                        &progress_cb,
-                        NULL,
+  fs = GNUNET_FS_start (cfg, "test-fs-publish-persistence", &progress_cb, NULL,
                         GNUNET_FS_FLAGS_PERSISTENCE, GNUNET_FS_OPTIONS_END);
 }
 
@@ -132,8 +129,9 @@ consider_restart (int ev)
     if (prev[i] == ev)
       return;
   prev[off++] = ev;
-  rtask = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_URGENT,
-                                              &restart_fs_task, NULL);
+  rtask =
+      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_URGENT,
+                                          &restart_fs_task, NULL);
 }
 
 
@@ -151,8 +149,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     printf ("Publish complete,  %llu kbps.\n",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration
-                                   (start).rel_value) / 1024));
+                                   GNUNET_TIME_absolute_get_duration (start).
+                                   rel_value) / 1024));
     if (0 == strcmp ("publish-context-dir", event->value.publish.cctx))
       GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
@@ -165,8 +163,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
             (unsigned long long) event->value.publish.completed,
             (unsigned long long) event->value.publish.size,
             event->value.publish.specifics.progress.depth,
-            (unsigned long long) event->value.publish.specifics.
-            progress.offset);
+            (unsigned long long) event->value.publish.specifics.progress.
+            offset);
 #endif
     break;
   case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
@@ -177,17 +175,15 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     if (NULL == publish)
     {
       GNUNET_assert (GNUNET_YES ==
-                     GNUNET_FS_file_information_is_directory (event->
-                                                              value.publish.
-                                                              fi));
+                     GNUNET_FS_file_information_is_directory (event->value.
+                                                              publish.fi));
       publish = event->value.publish.pc;
       return "publish-context-dir";
     }
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
     ret = event->value.publish.cctx;
-    fprintf (stderr,
-             "Error publishing file: %s\n",
+    fprintf (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     err = 1;
     GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
@@ -198,16 +194,16 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     ret = event->value.publish.cctx;
     if (0 == strcmp ("publish-context1", event->value.publish.cctx))
     {
-      GNUNET_assert (0 == strcmp ("publish-context-dir",
-                                  event->value.publish.pctx));
+      GNUNET_assert (0 ==
+                     strcmp ("publish-context-dir", event->value.publish.pctx));
       GNUNET_assert (FILESIZE == event->value.publish.size);
       GNUNET_assert (0 == event->value.publish.completed);
       GNUNET_assert (1 == event->value.publish.anonymity);
     }
     else if (0 == strcmp ("publish-context2", event->value.publish.cctx))
     {
-      GNUNET_assert (0 == strcmp ("publish-context-dir",
-                                  event->value.publish.pctx));
+      GNUNET_assert (0 ==
+                     strcmp ("publish-context-dir", event->value.publish.pctx));
       GNUNET_assert (FILESIZE == event->value.publish.size);
       GNUNET_assert (0 == event->value.publish.completed);
       GNUNET_assert (2 == event->value.publish.anonymity);
@@ -238,12 +234,13 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
@@ -259,8 +256,7 @@ stop_arm (struct PeerContext *p)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "ARM process %u stopped\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
                 GNUNET_OS_process_get_pid (p->arm_proc));
     GNUNET_OS_process_close (p->arm_proc);
     p->arm_proc = NULL;
@@ -271,9 +267,8 @@ stop_arm (struct PeerContext *p)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   const char *keywords[] = {
     "down_foo",
@@ -290,10 +285,7 @@ run (void *cls,
 
   cfg = c;
   setup_peer (&p1, "test_fs_publish_data.conf");
-  fs = GNUNET_FS_start (cfg,
-                        "test-fs-publish-persistence",
-                        &progress_cb,
-                        NULL,
+  fs = GNUNET_FS_start (cfg, "test-fs-publish-persistence", &progress_cb, NULL,
                         GNUNET_FS_FLAGS_PERSISTENCE, GNUNET_FS_OPTIONS_END);
   GNUNET_assert (NULL != fs);
   fn1 = GNUNET_DISK_mktemp ("gnunet-publish-test-dst");
@@ -301,9 +293,7 @@ run (void *cls,
   for (i = 0; i < FILESIZE; i++)
     buf[i] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 256);
   GNUNET_assert (FILESIZE ==
-                 GNUNET_DISK_fn_write (fn1,
-                                       buf,
-                                       FILESIZE,
+                 GNUNET_DISK_fn_write (fn1, buf, FILESIZE,
                                        GNUNET_DISK_PERM_USER_READ |
                                        GNUNET_DISK_PERM_USER_WRITE));
   GNUNET_free (buf);
@@ -313,9 +303,7 @@ run (void *cls,
   for (i = 0; i < FILESIZE; i++)
     buf[i] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 256);
   GNUNET_assert (FILESIZE ==
-                 GNUNET_DISK_fn_write (fn2,
-                                       buf,
-                                       FILESIZE,
+                 GNUNET_DISK_fn_write (fn2, buf, FILESIZE,
                                        GNUNET_DISK_PERM_USER_READ |
                                        GNUNET_DISK_PERM_USER_WRITE));
   GNUNET_free (buf);
@@ -326,32 +314,28 @@ run (void *cls,
   bo.anonymity_level = 1;
   bo.replication_level = 0;
   bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME);
-  fi1 = GNUNET_FS_file_information_create_from_file (fs,
-                                                     "publish-context1",
-                                                     fn1,
-                                                     kuri,
-                                                     meta, GNUNET_YES, &bo);
+  fi1 =
+      GNUNET_FS_file_information_create_from_file (fs, "publish-context1", fn1,
+                                                   kuri, meta, GNUNET_YES, &bo);
   GNUNET_assert (NULL != fi1);
   bo.anonymity_level = 2;
-  fi2 = GNUNET_FS_file_information_create_from_file (fs,
-                                                     "publish-context2",
-                                                     fn2,
-                                                     kuri,
-                                                     meta, GNUNET_YES, &bo);
+  fi2 =
+      GNUNET_FS_file_information_create_from_file (fs, "publish-context2", fn2,
+                                                   kuri, meta, GNUNET_YES, &bo);
   GNUNET_assert (NULL != fi2);
   bo.anonymity_level = 3;
-  fidir = GNUNET_FS_file_information_create_empty_directory (fs,
-                                                             "publish-context-dir",
-                                                             kuri, meta, &bo);
+  fidir =
+      GNUNET_FS_file_information_create_empty_directory (fs,
+                                                         "publish-context-dir",
+                                                         kuri, meta, &bo);
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi1));
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi2));
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fidir);
   start = GNUNET_TIME_absolute_get ();
-  GNUNET_FS_publish_start (fs,
-                           fidir,
-                           NULL, NULL, NULL, GNUNET_FS_PUBLISH_OPTION_NONE);
+  GNUNET_FS_publish_start (fs, fidir, NULL, NULL, NULL,
+                           GNUNET_FS_PUBLISH_OPTION_NONE);
   GNUNET_assert (publish != NULL);
 }
 
@@ -379,8 +363,8 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-fs-publish", "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
+                      "test-fs-publish", "nohelp", options, &run, NULL);
   stop_arm (&p1);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-publish/");
   if (fn1 != NULL)

@@ -108,44 +108,45 @@ GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData
   char *base;
   const char *ext;
 
-  ret = GNUNET_CONTAINER_meta_data_get_by_type (md,
-                                                EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
+  ret =
+      GNUNET_CONTAINER_meta_data_get_by_type (md,
+                                              EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
   if (ret != NULL)
     return ret;
   ext = NULL;
-  mime = GNUNET_CONTAINER_meta_data_get_by_type (md,
-                                                 EXTRACTOR_METATYPE_MIMETYPE);
+  mime =
+      GNUNET_CONTAINER_meta_data_get_by_type (md, EXTRACTOR_METATYPE_MIMETYPE);
   if (mime != NULL)
   {
     i = 0;
     while ((mimeMap[i][0] != NULL) && (0 != strcmp (mime, mimeMap[i][0])))
       i++;
     if (mimeMap[i][1] == NULL)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG |
-                  GNUNET_ERROR_TYPE_BULK,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                   _("Did not find mime type `%s' in extension list.\n"), mime);
     else
       ext = mimeMap[i][1];
     GNUNET_free (mime);
   }
-  base = GNUNET_CONTAINER_meta_data_get_first_by_types (md,
-                                                        EXTRACTOR_METATYPE_TITLE,
-                                                        EXTRACTOR_METATYPE_BOOK_TITLE,
-                                                        EXTRACTOR_METATYPE_ORIGINAL_TITLE,
-                                                        EXTRACTOR_METATYPE_PACKAGE_NAME,
-                                                        EXTRACTOR_METATYPE_URL,
-                                                        EXTRACTOR_METATYPE_URI,
-                                                        EXTRACTOR_METATYPE_DESCRIPTION,
-                                                        EXTRACTOR_METATYPE_ISRC,
-                                                        EXTRACTOR_METATYPE_JOURNAL_NAME,
-                                                        EXTRACTOR_METATYPE_AUTHOR_NAME,
-                                                        EXTRACTOR_METATYPE_SUBJECT,
-                                                        EXTRACTOR_METATYPE_ALBUM,
-                                                        EXTRACTOR_METATYPE_ARTIST,
-                                                        EXTRACTOR_METATYPE_KEYWORDS,
-                                                        EXTRACTOR_METATYPE_COMMENT,
-                                                        EXTRACTOR_METATYPE_UNKNOWN,
-                                                        -1);
+  base =
+      GNUNET_CONTAINER_meta_data_get_first_by_types (md,
+                                                     EXTRACTOR_METATYPE_TITLE,
+                                                     EXTRACTOR_METATYPE_BOOK_TITLE,
+                                                     EXTRACTOR_METATYPE_ORIGINAL_TITLE,
+                                                     EXTRACTOR_METATYPE_PACKAGE_NAME,
+                                                     EXTRACTOR_METATYPE_URL,
+                                                     EXTRACTOR_METATYPE_URI,
+                                                     EXTRACTOR_METATYPE_DESCRIPTION,
+                                                     EXTRACTOR_METATYPE_ISRC,
+                                                     EXTRACTOR_METATYPE_JOURNAL_NAME,
+                                                     EXTRACTOR_METATYPE_AUTHOR_NAME,
+                                                     EXTRACTOR_METATYPE_SUBJECT,
+                                                     EXTRACTOR_METATYPE_ALBUM,
+                                                     EXTRACTOR_METATYPE_ARTIST,
+                                                     EXTRACTOR_METATYPE_KEYWORDS,
+                                                     EXTRACTOR_METATYPE_COMMENT,
+                                                     EXTRACTOR_METATYPE_UNKNOWN,
+                                                     -1);
   if ((base == NULL) && (ext == NULL))
     return NULL;
   if (base == NULL)

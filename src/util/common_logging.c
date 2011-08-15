@@ -279,8 +279,8 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
  * @param msg the actual message
  */
 static void
-output_message (enum GNUNET_ErrorType kind,
-                const char *comp, const char *datestr, const char *msg)
+output_message (enum GNUNET_ErrorType kind, const char *comp,
+                const char *datestr, const char *msg)
 {
   struct CustomLogger *pos;
 
@@ -371,8 +371,8 @@ GNUNET_log_skip (unsigned int n, int check_reset)
  * @param va arguments to the format string "message"
  */
 static void
-mylog (enum GNUNET_ErrorType kind,
-       const char *comp, const char *message, va_list va)
+mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
+       va_list va)
 {
   char date[DATE_STR_SIZE];
   char date2[DATE_STR_SIZE];
@@ -419,9 +419,8 @@ mylog (enum GNUNET_ErrorType kind,
   }
   else
     strcpy (date, "localtime error");
-  if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
-      (last_bulk_time.abs_value != 0) &&
-      (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
+  if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) && (last_bulk_time.abs_value != 0)
+      && (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
   {
     last_bulk_repeat++;
     if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value >
@@ -469,8 +468,8 @@ GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...)
  * @param ... arguments for format string
  */
 void
-GNUNET_log_from (enum GNUNET_ErrorType kind,
-                 const char *comp, const char *message, ...)
+GNUNET_log_from (enum GNUNET_ErrorType kind, const char *comp,
+                 const char *message, ...)
 {
   va_list va;
   char comp_w_pid[128];
@@ -614,10 +613,7 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
     off = 0;
     if (un->sun_path[0] == '\0')
       off++;
-    snprintf (buf,
-              sizeof (buf),
-              "%s%.*s",
-              (off == 1) ? "@" : "",
+    snprintf (buf, sizeof (buf), "%s%.*s", (off == 1) ? "@" : "",
               (int) (addrlen - sizeof (sa_family_t) - 1 - off),
               &un->sun_path[off]);
     return buf;

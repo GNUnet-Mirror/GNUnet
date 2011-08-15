@@ -57,9 +57,8 @@ static struct GNUNET_GETOPT_CommandLineOption options4[] = {
  */
 
 static void
-runner (void *cls,
-        char *const *args,
-        const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+runner (void *cls, char *const *args, const char *cfgfile,
+        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ok = cls;
 
@@ -92,26 +91,18 @@ check ()
   };
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_PROGRAM_run (7,
-                                     argv,
-                                     "test_program",
-                                     "A test", options1, &runner, &ok));
+                 GNUNET_PROGRAM_run (7, argv, "test_program", "A test",
+                                     options1, &runner, &ok));
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_PROGRAM_run (7,
-                                     argv,
-                                     "test_program",
-                                     "A test", options2, &runner, &ok));
+                 GNUNET_PROGRAM_run (7, argv, "test_program", "A test",
+                                     options2, &runner, &ok));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_PROGRAM_run (7,
-                                     argv,
-                                     "test_program",
-                                     "A test", options3, &runner, &ok));
+                 GNUNET_PROGRAM_run (7, argv, "test_program", "A test",
+                                     options3, &runner, &ok));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_PROGRAM_run (7,
-                                     argv,
-                                     "test_program",
-                                     "A test", options4, &runner, &ok));
+                 GNUNET_PROGRAM_run (7, argv, "test_program", "A test",
+                                     options4, &runner, &ok));
 
   return ok;
 }

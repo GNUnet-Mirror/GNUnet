@@ -386,8 +386,7 @@ remove_from_address_list_by_source (struct GNUNET_NAT_Handle *h,
       continue;
     GNUNET_CONTAINER_DLL_remove (h->lal_head, h->lal_tail, pos);
     if (NULL != h->address_callback)
-      h->address_callback (h->callback_cls,
-                           GNUNET_NO,
+      h->address_callback (h->callback_cls, GNUNET_NO,
                            (const struct sockaddr *) &pos[1], pos->addrlen);
     GNUNET_free (pos);
   }
@@ -416,10 +415,10 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
   lal->source = src;
   GNUNET_CONTAINER_DLL_insert (h->lal_head, h->lal_tail, lal);
 #if DEBUG_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "nat",
-                   "Adding address `%s' from source %d\n",
-                   GNUNET_a2s (arg, arg_size), src);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
+                   "Adding address `%s' from source %d\n", GNUNET_a2s (arg,
+                                                                       arg_size),
+                   src);
 #endif
   if (NULL != h->address_callback)
     h->address_callback (h->callback_cls, GNUNET_YES, arg, arg_size);
@@ -438,8 +437,7 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
  * @param arg_size number of bytes in arg
  */
 static void
-add_to_address_list (struct GNUNET_NAT_Handle *h,
-                     enum LocalAddressSource src,
+add_to_address_list (struct GNUNET_NAT_Handle *h, enum LocalAddressSource src,
                      const struct sockaddr *arg, socklen_t arg_size)
 {
   struct sockaddr_in s4;
@@ -452,17 +450,13 @@ add_to_address_list (struct GNUNET_NAT_Handle *h,
     in4 = (const struct sockaddr_in *) arg;
     s4 = *in4;
     s4.sin_port = htons (h->adv_port);
-    add_to_address_list_as_is (h,
-                               src,
-                               (const struct sockaddr *) &s4,
+    add_to_address_list_as_is (h, src, (const struct sockaddr *) &s4,
                                sizeof (struct sockaddr_in));
     if (GNUNET_YES == h->enable_nat_server)
     {
       /* also add with PORT = 0 to indicate NAT server is enabled */
       s4.sin_port = htons (0);
-      add_to_address_list_as_is (h,
-                                 src,
-                                 (const struct sockaddr *) &s4,
+      add_to_address_list_as_is (h, src, (const struct sockaddr *) &s4,
                                  sizeof (struct sockaddr_in));
     }
   }
@@ -473,9 +467,7 @@ add_to_address_list (struct GNUNET_NAT_Handle *h,
       in6 = (const struct sockaddr_in6 *) arg;
       s6 = *in6;
       s6.sin6_port = htons (h->adv_port);
-      add_to_address_list_as_is (h,
-                                 src,
-                                 (const struct sockaddr *) &s6,
+      add_to_address_list_as_is (h, src, (const struct sockaddr *) &s6,
                                  sizeof (struct sockaddr_in6));
     }
   }
@@ -497,8 +489,8 @@ add_to_address_list (struct GNUNET_NAT_Handle *h,
  */
 static void
 add_ip_to_address_list (struct GNUNET_NAT_Handle *h,
-                        enum LocalAddressSource src,
-                        const void *addr, socklen_t addrlen)
+                        enum LocalAddressSource src, const void *addr,
+                        socklen_t addrlen)
 {
   struct sockaddr_in s4;
   const struct in_addr *in4;
@@ -515,17 +507,13 @@ add_ip_to_address_list (struct GNUNET_NAT_Handle *h,
     s4.sin_len = (u_char) sizeof (struct sockaddr_in);
 #endif
     s4.sin_addr = *in4;
-    add_to_address_list (h,
-                         src,
-                         (const struct sockaddr *) &s4,
+    add_to_address_list (h, src, (const struct sockaddr *) &s4,
                          sizeof (struct sockaddr_in));
     if (GNUNET_YES == h->enable_nat_server)
     {
       /* also add with PORT = 0 to indicate NAT server is enabled */
       s4.sin_port = htons (0);
-      add_to_address_list (h,
-                           src,
-                           (const struct sockaddr *) &s4,
+      add_to_address_list (h, src, (const struct sockaddr *) &s4,
                            sizeof (struct sockaddr_in));
 
     }
@@ -542,9 +530,7 @@ add_ip_to_address_list (struct GNUNET_NAT_Handle *h,
       s6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
 #endif
       s6.sin6_addr = *in6;
-      add_to_address_list (h,
-                           src,
-                           (const struct sockaddr *) &s6,
+      add_to_address_list (h, src, (const struct sockaddr *) &s6,
                            sizeof (struct sockaddr_in6));
     }
   }
@@ -562,8 +548,8 @@ add_ip_to_address_list (struct GNUNET_NAT_Handle *h,
  * @param cls the NAT handle
  * @param tc scheduler context
  */
-static void
-resolve_dns (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void resolve_dns (void *cls,
+                         const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -585,8 +571,8 @@ process_external_ip (void *cls, const struct sockaddr *addr, socklen_t addrlen)
     h->ext_dns = NULL;
     if (1 == inet_pton (AF_INET, h->external_address, &dummy))
       return;                   /* repated lookup pointless: was numeric! */
-    h->dns_task = GNUNET_SCHEDULER_add_delayed (h->dyndns_frequency,
-                                                &resolve_dns, h);
+    h->dns_task =
+        GNUNET_SCHEDULER_add_delayed (h->dyndns_frequency, &resolve_dns, h);
     return;
   }
   add_to_address_list (h, LAL_EXTERNAL_IP, addr, addrlen);
@@ -599,8 +585,8 @@ process_external_ip (void *cls, const struct sockaddr *addr, socklen_t addrlen)
  * @param cls the NAT handle
  * @param tc scheduler context
  */
-static void
-resolve_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void resolve_hostname (void *cls,
+                              const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -620,8 +606,9 @@ process_hostname_ip (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   if (addr == NULL)
   {
     h->hostname_dns = NULL;
-    h->hostname_task = GNUNET_SCHEDULER_add_delayed (h->hostname_dns_frequency,
-                                                     &resolve_hostname, h);
+    h->hostname_task =
+        GNUNET_SCHEDULER_add_delayed (h->hostname_dns_frequency,
+                                      &resolve_hostname, h);
     return;
   }
   add_to_address_list (h, LAL_HOSTNAME_DNS, addr, addrlen);
@@ -640,9 +627,7 @@ process_hostname_ip (void *cls, const struct sockaddr *addr, socklen_t addrlen)
  * @return GNUNET_OK to continue iterating
  */
 static int
-process_interfaces (void *cls,
-                    const char *name,
-                    int isDefault,
+process_interfaces (void *cls, const char *name, int isDefault,
                     const struct sockaddr *addr, socklen_t addrlen)
 {
   struct GNUNET_NAT_Handle *h = cls;
@@ -657,9 +642,8 @@ process_interfaces (void *cls,
     s4 = (struct sockaddr_in *) addr;
     ip = &s4->sin_addr;
     if (GNUNET_YES == h->use_localaddresses)
-      add_ip_to_address_list (h,
-                              LAL_INTERFACE_ADDRESS,
-                              &s4->sin_addr, sizeof (struct in_addr));
+      add_ip_to_address_list (h, LAL_INTERFACE_ADDRESS, &s4->sin_addr,
+                              sizeof (struct in_addr));
     break;
   case AF_INET6:
     s6 = (struct sockaddr_in6 *) addr;
@@ -670,24 +654,22 @@ process_interfaces (void *cls,
     }
     ip = &s6->sin6_addr;
     if (GNUNET_YES == h->use_localaddresses)
-      add_ip_to_address_list (h,
-                              LAL_INTERFACE_ADDRESS,
-                              &s6->sin6_addr, sizeof (struct in6_addr));
+      add_ip_to_address_list (h, LAL_INTERFACE_ADDRESS, &s6->sin6_addr,
+                              sizeof (struct in6_addr));
     break;
   default:
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  if ((h->internal_address == NULL) &&
-      (h->server_proc == NULL) &&
+  if ((h->internal_address == NULL) && (h->server_proc == NULL) &&
       (h->server_read_task == GNUNET_SCHEDULER_NO_TASK) &&
-      (GNUNET_YES == isDefault) &&
-      ((addr->sa_family == AF_INET) || (addr->sa_family == AF_INET6)))
+      (GNUNET_YES == isDefault) && ((addr->sa_family == AF_INET) ||
+                                    (addr->sa_family == AF_INET6)))
   {
     /* no internal address configured, but we found a "default"
      * interface, try using that as our 'internal' address */
-    h->internal_address = GNUNET_strdup (inet_ntop (addr->sa_family,
-                                                    ip, buf, sizeof (buf)));
+    h->internal_address =
+        GNUNET_strdup (inet_ntop (addr->sa_family, ip, buf, sizeof (buf)));
     start_gnunet_nat_server (h);
   }
   return GNUNET_OK;
@@ -736,13 +718,12 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   memset (mybuf, 0, sizeof (mybuf));
-  bytes = GNUNET_DISK_file_read (h->server_stdout_handle,
-                                 mybuf, sizeof (mybuf));
+  bytes =
+      GNUNET_DISK_file_read (h->server_stdout_handle, mybuf, sizeof (mybuf));
   if (bytes < 1)
   {
 #if DEBUG_NAT
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     "nat",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
                      "Finished reading from server stdout with code: %d\n",
                      bytes);
 #endif
@@ -787,13 +768,11 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sin_addr.sin_len = sizeof (sin_addr);
 #endif
-  if ((NULL == port_start) ||
-      (1 != sscanf (port_start, "%d", &port)) ||
+  if ((NULL == port_start) || (1 != sscanf (port_start, "%d", &port)) ||
       (-1 == inet_pton (AF_INET, mybuf, &sin_addr.sin_addr)))
   {
     /* should we restart gnunet-helper-nat-server? */
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-                     "nat",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
                      _
                      ("gnunet-helper-nat-server generated malformed address `%s'\n"),
                      mybuf);
@@ -805,16 +784,15 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   sin_addr.sin_port = htons ((uint16_t) port);
 #if DEBUG_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "nat",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
                    "gnunet-helper-nat-server read: %s:%d\n", mybuf, port);
 #endif
-  h->reversal_callback (h->callback_cls,
-                        (const struct sockaddr *) &sin_addr, sizeof (sin_addr));
+  h->reversal_callback (h->callback_cls, (const struct sockaddr *) &sin_addr,
+                        sizeof (sin_addr));
   h->server_read_task =
       GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      h->server_stdout_handle,
-                                      &nat_server_read, h);
+                                      h->server_stdout_handle, &nat_server_read,
+                                      h);
 }
 
 
@@ -827,28 +805,25 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
 {
-  if ((h->behind_nat == GNUNET_YES) &&
-      (h->enable_nat_server == GNUNET_YES) &&
+  if ((h->behind_nat == GNUNET_YES) && (h->enable_nat_server == GNUNET_YES) &&
       (h->internal_address != NULL) &&
-      (NULL != (h->server_stdout = GNUNET_DISK_pipe (GNUNET_YES,
-                                                     GNUNET_NO, GNUNET_YES))))
+      (NULL !=
+       (h->server_stdout =
+        GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES))))
   {
 #if DEBUG_NAT
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     "nat"
-                     "Starting %s at `%s'\n",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat" "Starting %s at `%s'\n",
                      "gnunet-helper-nat-server", h->internal_address);
 #endif
     /* Start the server process */
-    h->server_proc = GNUNET_OS_start_process (NULL,
-                                              h->server_stdout,
-                                              "gnunet-helper-nat-server",
-                                              "gnunet-helper-nat-server",
-                                              h->internal_address, NULL);
+    h->server_proc =
+        GNUNET_OS_start_process (NULL, h->server_stdout,
+                                 "gnunet-helper-nat-server",
+                                 "gnunet-helper-nat-server",
+                                 h->internal_address, NULL);
     if (h->server_proc == NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-                       "nat",
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
                        _("Failed to start %s\n"), "gnunet-helper-nat-server");
       GNUNET_DISK_pipe_close (h->server_stdout);
       h->server_stdout = NULL;
@@ -857,13 +832,12 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
     {
       /* Close the write end of the read pipe */
       GNUNET_DISK_pipe_close_end (h->server_stdout, GNUNET_DISK_PIPE_END_WRITE);
-      h->server_stdout_handle
-          = GNUNET_DISK_pipe_handle (h->server_stdout,
-                                     GNUNET_DISK_PIPE_END_READ);
-      h->server_read_task
-          = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                            h->server_stdout_handle,
-                                            &nat_server_read, h);
+      h->server_stdout_handle =
+          GNUNET_DISK_pipe_handle (h->server_stdout, GNUNET_DISK_PIPE_END_READ);
+      h->server_read_task =
+          GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                          h->server_stdout_handle,
+                                          &nat_server_read, h);
     }
   }
 }
@@ -883,8 +857,8 @@ list_interfaces (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   h->ifc_task = GNUNET_SCHEDULER_NO_TASK;
   remove_from_address_list_by_source (h, LAL_INTERFACE_ADDRESS);
   GNUNET_OS_network_interfaces_list (&process_interfaces, h);
-  h->ifc_task = GNUNET_SCHEDULER_add_delayed (h->ifc_scan_frequency,
-                                              &list_interfaces, h);
+  h->ifc_task =
+      GNUNET_SCHEDULER_add_delayed (h->ifc_scan_frequency, &list_interfaces, h);
 }
 
 
@@ -901,9 +875,9 @@ resolve_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   h->hostname_task = GNUNET_SCHEDULER_NO_TASK;
   remove_from_address_list_by_source (h, LAL_HOSTNAME_DNS);
-  h->hostname_dns = GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
-                                                      HOSTNAME_RESOLVE_TIMEOUT,
-                                                      &process_hostname_ip, h);
+  h->hostname_dns =
+      GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC, HOSTNAME_RESOLVE_TIMEOUT,
+                                        &process_hostname_ip, h);
 }
 
 
@@ -921,10 +895,10 @@ resolve_dns (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   h->dns_task = GNUNET_SCHEDULER_NO_TASK;
   remove_from_address_list_by_source (h, LAL_EXTERNAL_IP);
-  h->ext_dns = GNUNET_RESOLVER_ip_get (h->external_address,
-                                       AF_INET,
-                                       GNUNET_TIME_UNIT_MINUTES,
-                                       &process_external_ip, h);
+  h->ext_dns =
+      GNUNET_RESOLVER_ip_get (h->external_address, AF_INET,
+                              GNUNET_TIME_UNIT_MINUTES, &process_external_ip,
+                              h);
 }
 
 
@@ -938,8 +912,8 @@ resolve_dns (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param addrlen actual lenght of the address
  */
 static void
-upnp_add (void *cls,
-          int add_remove, const struct sockaddr *addr, socklen_t addrlen)
+upnp_add (void *cls, int add_remove, const struct sockaddr *addr,
+          socklen_t addrlen)
 {
   struct GNUNET_NAT_Handle *h = cls;
   struct LocalAddressList *pos;
@@ -955,13 +929,12 @@ upnp_add (void *cls,
   while (NULL != (pos = next))
   {
     next = pos->next;
-    if ((pos->source != LAL_UPNP) ||
-        (pos->addrlen != addrlen) || (0 != memcmp (&pos[1], addr, addrlen)))
+    if ((pos->source != LAL_UPNP) || (pos->addrlen != addrlen) ||
+        (0 != memcmp (&pos[1], addr, addrlen)))
       continue;
     GNUNET_CONTAINER_DLL_remove (h->lal_head, h->lal_tail, pos);
     if (NULL != h->address_callback)
-      h->address_callback (h->callback_cls,
-                           GNUNET_NO,
+      h->address_callback (h->callback_cls, GNUNET_NO,
                            (const struct sockaddr *) &pos[1], pos->addrlen);
     GNUNET_free (pos);
     return;                     /* only remove once */
@@ -1036,8 +1009,9 @@ add_from_bind (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_break (0);
         break;
       }
-      if (0 != memcmp (&((const struct sockaddr_in6 *) sa)->sin6_addr,
-                       &any, sizeof (struct in6_addr)))
+      if (0 !=
+          memcmp (&((const struct sockaddr_in6 *) sa)->sin6_addr, &any,
+                  sizeof (struct in6_addr)))
         add_to_address_list (h, LAL_BINDTO_ADDRESS, sa,
                              sizeof (struct sockaddr_in6));
       break;
@@ -1068,12 +1042,9 @@ add_from_bind (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return NULL on error, otherwise handle that can be used to unregister 
  */
 struct GNUNET_NAT_Handle *
-GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     int is_tcp,
-                     uint16_t adv_port,
-                     unsigned int num_addrs,
-                     const struct sockaddr **addrs,
-                     const socklen_t * addrlens,
+GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
+                     uint16_t adv_port, unsigned int num_addrs,
+                     const struct sockaddr **addrs, const socklen_t * addrlens,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
                      void *callback_cls)
@@ -1083,8 +1054,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   unsigned int i;
 
 #if DEBUG_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "nat",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
                    "Registered with NAT service at port %u with %u IP bound local addresses\n",
                    (unsigned int) adv_port, num_addrs);
 #endif
@@ -1114,16 +1084,14 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_have_value (cfg, "nat", "INTERNAL_ADDRESS"))
   {
-    (void) GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                  "nat",
+    (void) GNUNET_CONFIGURATION_get_value_string (cfg, "nat",
                                                   "INTERNAL_ADDRESS",
                                                   &h->internal_address);
   }
   if ((h->internal_address != NULL) &&
       (inet_pton (AF_INET, h->internal_address, &in_addr) != 1))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-                     "nat",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
                      _("Malformed %s `%s' given in configuration!\n"),
                      "INTERNAL_ADDRESS", h->internal_address);
     GNUNET_free (h->internal_address);
@@ -1133,57 +1101,45 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_have_value (cfg, "nat", "EXTERNAL_ADDRESS"))
   {
-    (void) GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                  "nat",
+    (void) GNUNET_CONFIGURATION_get_value_string (cfg, "nat",
                                                   "EXTERNAL_ADDRESS",
                                                   &h->external_address);
   }
   if ((h->external_address != NULL) &&
       (inet_pton (AF_INET, h->external_address, &in_addr) != 1))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-                     "nat",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
                      _("Malformed %s `%s' given in configuration!\n"),
                      "EXTERNAL_ADDRESS", h->external_address);
     GNUNET_free (h->external_address);
     h->external_address = NULL;
   }
-  h->behind_nat = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                        "nat", "BEHIND_NAT");
-  h->nat_punched = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                         "nat", "PUNCHED_NAT");
-  h->enable_nat_client = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                               "nat",
-                                                               "ENABLE_NAT_CLIENT");
-  h->enable_nat_server = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                               "nat",
-                                                               "ENABLE_NAT_SERVER");
-  h->enable_upnp = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                         "nat", "ENABLE_UPNP");
-  h->use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                                "nat",
-                                                                "USE_LOCALADDR");
-  h->use_hostname = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                          "nat",
-                                                          "USE_HOSTNAME");
-  h->disable_ipv6 = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                          "nat", "DISABLEV6");
+  h->behind_nat =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "BEHIND_NAT");
+  h->nat_punched =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "PUNCHED_NAT");
+  h->enable_nat_client =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "ENABLE_NAT_CLIENT");
+  h->enable_nat_server =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "ENABLE_NAT_SERVER");
+  h->enable_upnp =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "ENABLE_UPNP");
+  h->use_localaddresses =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "USE_LOCALADDR");
+  h->use_hostname =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "USE_HOSTNAME");
+  h->disable_ipv6 =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "DISABLEV6");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg,
-                                           "nat",
-                                           "DYNDNS_FREQUENCY",
+      GNUNET_CONFIGURATION_get_value_time (cfg, "nat", "DYNDNS_FREQUENCY",
                                            &h->dyndns_frequency))
     h->dyndns_frequency = DYNDNS_FREQUENCY;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg,
-                                           "nat",
-                                           "IFC_SCAN_FREQUENCY",
+      GNUNET_CONFIGURATION_get_value_time (cfg, "nat", "IFC_SCAN_FREQUENCY",
                                            &h->ifc_scan_frequency))
     h->ifc_scan_frequency = IFC_SCAN_FREQUENCY;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg,
-                                           "nat",
-                                           "HOSTNAME_DNS_FREQUENCY",
+      GNUNET_CONFIGURATION_get_value_time (cfg, "nat", "HOSTNAME_DNS_FREQUENCY",
                                            &h->hostname_dns_frequency))
     h->hostname_dns_frequency = HOSTNAME_DNS_FREQUENCY;
 
@@ -1191,8 +1147,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
     h->enable_nat_server = GNUNET_NO;
 
   /* Check if NAT was hole-punched */
-  if ((NULL != h->address_callback) &&
-      (h->external_address != NULL) && (h->nat_punched == GNUNET_YES))
+  if ((NULL != h->address_callback) && (h->external_address != NULL) &&
+      (h->nat_punched == GNUNET_YES))
   {
     h->dns_task = GNUNET_SCHEDULER_add_now (&resolve_dns, h);
     h->enable_nat_server = GNUNET_NO;
@@ -1200,8 +1156,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   /* Test for SUID binaries */
-  if ((h->behind_nat == GNUNET_YES) &&
-      (GNUNET_YES == h->enable_nat_server) &&
+  if ((h->behind_nat == GNUNET_YES) && (GNUNET_YES == h->enable_nat_server) &&
       (GNUNET_YES !=
        GNUNET_OS_check_helper_binary ("gnunet-helper-nat-server")))
   {
@@ -1313,8 +1268,7 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
   {
     GNUNET_CONTAINER_DLL_remove (h->lal_head, h->lal_tail, lal);
     if (NULL != h->address_callback)
-      h->address_callback (h->callback_cls,
-                           GNUNET_NO,
+      h->address_callback (h->callback_cls, GNUNET_NO,
                            (const struct sockaddr *) &lal[1], lal->addrlen);
     GNUNET_free (lal);
   }
@@ -1349,8 +1303,7 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
 
   if (h->internal_address == NULL)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-                     "nat",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
                      _
                      ("Internal IP address not known, cannot use ICMP NAT traversal method\n"));
     return;
@@ -1363,17 +1316,14 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
   }
   GNUNET_snprintf (port_as_string, sizeof (port_as_string), "%d", h->adv_port);
 #if DEBUG_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "nat",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
                    _("Running gnunet-helper-nat-client %s %s %u\n"),
                    h->internal_address, inet4, (unsigned int) h->adv_port);
 #endif
-  proc = GNUNET_OS_start_process (NULL,
-                                  NULL,
-                                  "gnunet-helper-nat-client",
-                                  "gnunet-helper-nat-client",
-                                  h->internal_address,
-                                  inet4, port_as_string, NULL);
+  proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-nat-client",
+                               "gnunet-helper-nat-client", h->internal_address,
+                               inet4, port_as_string, NULL);
   if (NULL == proc)
     return;
   /* we know that the gnunet-helper-nat-client will terminate virtually
@@ -1394,8 +1344,8 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
  *         GNUNET_SYSERR if the address is malformed
  */
 int
-GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
-                         const void *addr, socklen_t addrlen)
+GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h, const void *addr,
+                         socklen_t addrlen)
 {
   struct LocalAddressList *pos;
   const struct sockaddr_in *in4;

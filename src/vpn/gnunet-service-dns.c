@@ -146,11 +146,10 @@ hijack (void *cls
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", dnsoutport);
   snprintf (port_s, 6, "%d", dnsoutport);
-  if (NULL != (proc = GNUNET_OS_start_process (NULL,
-                                               NULL,
-                                               "gnunet-helper-hijack-dns",
-                                               "gnunet-hijack-dns",
-                                               port_s, virt_dns, NULL)))
+  if (NULL !=
+      (proc =
+       GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-hijack-dns",
+                                "gnunet-hijack-dns", port_s, virt_dns, NULL)))
     GNUNET_OS_process_close (proc);
   GNUNET_free (virt_dns);
 }
@@ -175,11 +174,11 @@ unhijack (unsigned short port)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "unHijacking, port is %d\n", port);
   snprintf (port_s, 6, "%d", port);
-  if (NULL != (proc = GNUNET_OS_start_process (NULL,
-                                               NULL,
-                                               "gnunet-helper-hijack-dns",
-                                               "gnunet-hijack-dns",
-                                               "-d", port_s, virt_dns, NULL)))
+  if (NULL !=
+      (proc =
+       GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-hijack-dns",
+                                "gnunet-hijack-dns", "-d", port_s, virt_dns,
+                                NULL)))
     GNUNET_OS_process_close (proc);
   GNUNET_free (virt_dns);
 }
@@ -204,8 +203,7 @@ send_answer (void *cls, size_t size, void *buf)
 
   /* When more data is to be sent, reschedule */
   if (head != NULL)
-    GNUNET_SERVER_notify_transmit_ready (cls,
-                                         ntohs (head->pkt.hdr.size),
+    GNUNET_SERVER_notify_transmit_ready (cls, ntohs (head->pkt.hdr.size),
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          &send_answer, cls);
 
@@ -371,19 +369,20 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   struct tunnel_cls *cls_ = (struct tunnel_cls *) cls;
 
-  cls_->tunnel = GNUNET_MESH_peer_request_connect_by_type (mesh_handle,
-                                                           GNUNET_TIME_UNIT_HOURS,
-                                                           GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
-                                                           mesh_connect,
-                                                           NULL, cls_);
+  cls_->tunnel =
+      GNUNET_MESH_peer_request_connect_by_type (mesh_handle,
+                                                GNUNET_TIME_UNIT_HOURS,
+                                                GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
+                                                mesh_connect, NULL, cls_);
 
   remote_pending[cls_->dns.s.id] = cls_;
 }
 
 static int
-receive_mesh_query (void *cls __attribute__ ((unused)),
-                    struct GNUNET_MESH_Tunnel *tunnel,
-                    void **ctx __attribute__ ((unused)),
+receive_mesh_query (void *cls
+                    __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                    void **ctx
+                    __attribute__ ((unused)),
                     const struct GNUNET_PeerIdentity *sender
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
@@ -404,8 +403,7 @@ receive_mesh_query (void *cls __attribute__ ((unused)),
   query_states[dns->s.id].tunnel = tunnel;
   query_states[dns->s.id].valid = GNUNET_YES;
 
-  GNUNET_NETWORK_socket_sendto (dnsout,
-                                dns,
+  GNUNET_NETWORK_socket_sendto (dnsout, dns,
                                 ntohs (message->size) -
                                 sizeof (struct GNUNET_MessageHeader),
                                 (struct sockaddr *) &dest, sizeof dest);
@@ -414,9 +412,10 @@ receive_mesh_query (void *cls __attribute__ ((unused)),
 }
 
 static int
-receive_mesh_answer (void *cls __attribute__ ((unused)),
-                     struct GNUNET_MESH_Tunnel *tunnel,
-                     void **ctx __attribute__ ((unused)),
+receive_mesh_answer (void *cls
+                     __attribute__ ((unused)),
+                     struct GNUNET_MESH_Tunnel *tunnel, void **ctx
+                     __attribute__ ((unused)),
                      const struct GNUNET_PeerIdentity *sender,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_TRANSPORT_ATS_Information *atsi
@@ -426,8 +425,8 @@ receive_mesh_answer (void *cls __attribute__ ((unused)),
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
 
   /* They sent us a packet we were not waiting for */
-  if (remote_pending[dns->s.id] == NULL
-      || remote_pending[dns->s.id]->tunnel != tunnel)
+  if (remote_pending[dns->s.id] == NULL ||
+      remote_pending[dns->s.id]->tunnel != tunnel)
     return GNUNET_OK;
 
   GNUNET_free (remote_pending[dns->s.id]);
@@ -526,8 +525,7 @@ receive_mesh_answer (void *cls __attribute__ ((unused)),
 
   GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
-  GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
-                                       len,
+  GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client, len,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        &send_answer,
                                        query_states[dns->s.id].client);
@@ -561,8 +559,8 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   size_t len = sizeof (struct answer_packet) - 1 + sizeof (struct dns_static) + 74      /* this is the length of a reverse ipv6-lookup */
       + sizeof (struct dns_query_line) + 2      /* To hold the pointer (as defined in RFC1035) to the name */
-      + sizeof (struct dns_record_line) - 1
-      - 2 /* We do not know the lenght of the answer yet */ ;
+      + sizeof (struct dns_record_line) - 1 -
+      2 /* We do not know the lenght of the answer yet */ ;
 
   struct answer_packet_list *answer =
       GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
@@ -619,8 +617,7 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
-  GNUNET_SERVER_notify_transmit_ready (query_states[id].client,
-                                       len,
+  GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        &send_answer, query_states[id].client);
 }
@@ -629,9 +626,9 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Receive a block from the dht.
  */
 static void
-receive_dht (void *cls,
-             struct GNUNET_TIME_Absolute exp __attribute__ ((unused)),
-             const GNUNET_HashCode * key __attribute__ ((unused)),
+receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
+             __attribute__ ((unused)), const GNUNET_HashCode * key
+             __attribute__ ((unused)),
              const struct GNUNET_PeerIdentity *const *get_path
              __attribute__ ((unused)),
              const struct GNUNET_PeerIdentity *const *put_path
@@ -654,8 +651,7 @@ receive_dht (void *cls,
   const struct GNUNET_DNS_Record *rec = data;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got block of size %d, peer: %08x, desc: %08x\n",
-              size,
+              "Got block of size %d, peer: %08x, desc: %08x\n", size,
               *((unsigned int *) &rec->peer),
               *((unsigned int *) &rec->service_descriptor));
 
@@ -676,8 +672,8 @@ receive_dht (void *cls,
 
   memcpy (&answer->pkt.service_descr.service_descriptor,
           &rec->service_descriptor, sizeof (GNUNET_HashCode));
-  memcpy (&answer->pkt.service_descr.service_type,
-          &rec->service_type, sizeof (answer->pkt.service_descr.service_type));
+  memcpy (&answer->pkt.service_descr.service_type, &rec->service_type,
+          sizeof (answer->pkt.service_descr.service_type));
   memcpy (&answer->pkt.service_descr.ports, &rec->ports,
           sizeof (answer->pkt.service_descr.ports));
 
@@ -730,8 +726,7 @@ receive_dht (void *cls,
 
   GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
-  GNUNET_SERVER_notify_transmit_ready (query_states[id].client,
-                                       len,
+  GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        &send_answer, query_states[id].client);
 
@@ -742,8 +737,8 @@ receive_dht (void *cls,
  * This receives a GNUNET_MESSAGE_TYPE_REHIJACK and rehijacks the DNS
  */
 static void
-rehijack (void *cls __attribute__ ((unused)),
-          struct GNUNET_SERVER_Client *client,
+rehijack (void *cls
+          __attribute__ ((unused)), struct GNUNET_SERVER_Client *client,
           const struct GNUNET_MessageHeader *message __attribute__ ((unused)))
 {
   unhijack (dnsoutport);
@@ -756,8 +751,8 @@ rehijack (void *cls __attribute__ ((unused)),
  * This receives the dns-payload from the daemon-vpn and sends it on over the udp-socket
  */
 static void
-receive_query (void *cls __attribute__ ((unused)),
-               struct GNUNET_SERVER_Client *client,
+receive_query (void *cls
+               __attribute__ ((unused)), struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   struct query_packet *pkt = (struct query_packet *) message;
@@ -788,21 +783,18 @@ receive_query (void *cls __attribute__ ((unused)),
     GNUNET_CRYPTO_hash (pdns->queries[0]->name, pdns->queries[0]->namelen,
                         &key);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Getting with key %08x, len is %d\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting with key %08x, len is %d\n",
                 *((unsigned int *) &key), pdns->queries[0]->namelen);
 
     struct receive_dht_cls *cls =
         GNUNET_malloc (sizeof (struct receive_dht_cls));
     cls->id = dns->s.id;
 
-    cls->handle = GNUNET_DHT_get_start (dht,
-                                        GNUNET_TIME_UNIT_MINUTES,
-                                        GNUNET_BLOCK_TYPE_DNS,
-                                        &key,
-                                        DEFAULT_GET_REPLICATION,
-                                        GNUNET_DHT_RO_NONE,
-                                        NULL, 0, NULL, 0, receive_dht, cls);
+    cls->handle =
+        GNUNET_DHT_get_start (dht, GNUNET_TIME_UNIT_MINUTES,
+                              GNUNET_BLOCK_TYPE_DNS, &key,
+                              DEFAULT_GET_REPLICATION, GNUNET_DHT_RO_NONE, NULL,
+                              0, NULL, 0, receive_dht, cls);
 
     goto outfree;
   }
@@ -881,8 +873,8 @@ receive_query (void *cls __attribute__ ((unused)),
 
   if (1 != inet_pton (AF_INET, virt_dns, &virt_dns_bytes))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error parsing 'VIRTDNS': %s; %m!\n", virt_dns);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing 'VIRTDNS': %s; %m!\n",
+                virt_dns);
     exit (1);
   }
 
@@ -923,8 +915,7 @@ receive_query (void *cls __attribute__ ((unused)),
   dest.sin_port = htons (53);
   dest.sin_addr.s_addr = pkt->orig_to;
 
-  GNUNET_NETWORK_socket_sendto (dnsout,
-                                dns,
+  GNUNET_NETWORK_socket_sendto (dnsout, dns,
                                 ntohs (pkt->hdr.size) -
                                 sizeof (struct query_packet) + 1,
                                 (struct sockaddr *) &dest, sizeof dest);
@@ -963,8 +954,9 @@ open_port ()
   /* Read the port we bound to */
   socklen_t addrlen = sizeof (struct sockaddr_in);
 
-  err = getsockname (GNUNET_NETWORK_get_fd (dnsout),
-                     (struct sockaddr *) &addr, &addrlen);
+  err =
+      getsockname (GNUNET_NETWORK_get_fd (dnsout), (struct sockaddr *) &addr,
+                   &addrlen);
 
   dnsoutport = htons (addr.sin_port);
 
@@ -1010,9 +1002,7 @@ read_response (void *cls
     unsigned char buf[len];
     struct dns_pkt *dns = (struct dns_pkt *) buf;
 
-    r = GNUNET_NETWORK_socket_recvfrom (dnsout,
-                                        buf,
-                                        sizeof (buf),
+    r = GNUNET_NETWORK_socket_recvfrom (dnsout, buf, sizeof (buf),
                                         (struct sockaddr *) &addr, &addrlen);
 
     if (r < 0)
@@ -1093,16 +1083,15 @@ read_response (void *cls
 
         GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
-        GNUNET_SERVER_notify_transmit_ready (query_states
-                                             [dns->s.id].client, len,
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
+        GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
+                                             len, GNUNET_TIME_UNIT_FOREVER_REL,
                                              &send_answer,
                                              query_states[dns->s.id].client);
       }
     }
   }
-  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                 dnsout, &read_response, NULL);
+  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout,
+                                 &read_response, NULL);
 }
 
 
@@ -1113,7 +1102,8 @@ read_response (void *cls
  * @param tc unused
  */
 static void
-cleanup_task (void *cls __attribute__ ((unused)),
+cleanup_task (void *cls
+              __attribute__ ((unused)),
               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
@@ -1236,23 +1226,18 @@ publish_name (const char *name, uint64_t ports, uint32_t service_type,
                                         (GNUNET_TIME_UNIT_HOURS, 2));
 
   /* Sign the block */
-  if (GNUNET_OK != GNUNET_CRYPTO_rsa_sign (my_private_key,
-                                           &data.purpose, &data.signature))
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_rsa_sign (my_private_key, &data.purpose, &data.signature))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not sign DNS_Record\n");
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Putting with key %08x, size = %d\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Putting with key %08x, size = %d\n",
               *((unsigned int *) &data.service_descriptor), size);
 
-  GNUNET_DHT_put (dht,
-                  &data.service_descriptor,
-                  DEFAULT_PUT_REPLICATION,
-                  GNUNET_DHT_RO_NONE,
-                  GNUNET_BLOCK_TYPE_DNS,
-                  size,
+  GNUNET_DHT_put (dht, &data.service_descriptor, DEFAULT_PUT_REPLICATION,
+                  GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_DNS, size,
                   (char *) &data,
                   GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS),
                   GNUNET_TIME_UNIT_MINUTES, NULL, NULL);
@@ -1276,14 +1261,14 @@ publish_iterate (void *cls __attribute__ ((unused)), const char *section)
   char *udp_redirects, *tcp_redirects, *alternative_names, *alternative_name,
       *keyfile;
 
-  GNUNET_CONFIGURATION_get_value_string (cfg, section,
-                                         "UDP_REDIRECTS", &udp_redirects);
+  GNUNET_CONFIGURATION_get_value_string (cfg, section, "UDP_REDIRECTS",
+                                         &udp_redirects);
   GNUNET_CONFIGURATION_get_value_string (cfg, section, "TCP_REDIRECTS",
                                          &tcp_redirects);
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD",
-                                                            "HOSTKEY",
-                                                            &keyfile))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
+                                               &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not read keyfile-value\n");
     if (keyfile != NULL)
@@ -1310,8 +1295,7 @@ publish_iterate (void *cls __attribute__ ((unused)), const char *section)
 
   publish_name (section, ports, service_type, my_private_key);
 
-  GNUNET_CONFIGURATION_get_value_string (cfg, section,
-                                         "ALTERNATIVE_NAMES",
+  GNUNET_CONFIGURATION_get_value_string (cfg, section, "ALTERNATIVE_NAMES",
                                          &alternative_names);
   for (alternative_name = strtok (alternative_names, " ");
        alternative_name != NULL; alternative_name = strtok (NULL, " "))
@@ -1335,7 +1319,8 @@ publish_iterate (void *cls __attribute__ ((unused)), const char *section)
  * Publish a DNS-record in the DHT.
  */
 static void
-publish_names (void *cls __attribute__ ((unused)),
+publish_names (void *cls
+               __attribute__ ((unused)),
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -1352,8 +1337,7 @@ publish_names (void *cls __attribute__ ((unused)),
  * @param cfg_ configuration to use
  */
 static void
-run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
+run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -1401,8 +1385,8 @@ run (void *cls,
   GNUNET_SCHEDULER_add_now (publish_names, NULL);
 
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleanup_task, cls);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
+                                cls);
 }
 
 /**
@@ -1416,8 +1400,6 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv,
-                              "dns",
-                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+          GNUNET_SERVICE_run (argc, argv, "dns", GNUNET_SERVICE_OPTION_NONE,
+                              &run, NULL)) ? 0 : 1;
 }

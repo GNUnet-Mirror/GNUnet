@@ -112,8 +112,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     if (verbose)
     {
       s = GNUNET_STRINGS_relative_time_to_string (info->value.publish.eta);
-      fprintf (stdout,
-               _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
+      fprintf (stdout, _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
                info->value.publish.filename,
                (unsigned long long) info->value.publish.completed,
                (unsigned long long) info->value.publish.size, s);
@@ -121,23 +120,21 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     }
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
-    fprintf (stderr,
-             _("Error publishing: %s.\n"),
+    fprintf (stderr, _("Error publishing: %s.\n"),
              info->value.publish.specifics.error.message);
     if (kill_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (kill_task);
       kill_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    GNUNET_SCHEDULER_add_continuation (&do_stop_task,
-                                       NULL,
+    GNUNET_SCHEDULER_add_continuation (&do_stop_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
-    fprintf (stdout,
-             _("Publishing `%s' done.\n"), info->value.publish.filename);
-    s = GNUNET_FS_uri_to_string (info->value.publish.specifics.
-                                 completed.chk_uri);
+    fprintf (stdout, _("Publishing `%s' done.\n"),
+             info->value.publish.filename);
+    s = GNUNET_FS_uri_to_string (info->value.publish.specifics.completed.
+                                 chk_uri);
     fprintf (stdout, _("URI is `%s'.\n"), s);
     GNUNET_free (s);
     if (info->value.publish.pctx == NULL)
@@ -147,8 +144,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
         GNUNET_SCHEDULER_cancel (kill_task);
         kill_task = GNUNET_SCHEDULER_NO_TASK;
       }
-      GNUNET_SCHEDULER_add_continuation (&do_stop_task,
-                                         NULL,
+      GNUNET_SCHEDULER_add_continuation (&do_stop_task, NULL,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     }
     break;
@@ -177,11 +173,9 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
  * @return always 0
  */
 static int
-meta_printer (void *cls,
-              const char *plugin_name,
-              enum EXTRACTOR_MetaType type,
-              enum EXTRACTOR_MetaFormat format,
-              const char *data_mime_type, const char *data, size_t data_size)
+meta_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
+              enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
+              const char *data, size_t data_size)
 {
   if ((format != EXTRACTOR_METAFORMAT_UTF8) &&
       (format != EXTRACTOR_METAFORMAT_C_STRING))
@@ -228,13 +222,11 @@ keyword_printer (void *cls, const char *keyword, int is_mandatory)
  *         to abort the iteration
  */
 static int
-publish_inspector (void *cls,
-                   struct GNUNET_FS_FileInformation *fi,
-                   uint64_t length,
-                   struct GNUNET_CONTAINER_MetaData *m,
+publish_inspector (void *cls, struct GNUNET_FS_FileInformation *fi,
+                   uint64_t length, struct GNUNET_CONTAINER_MetaData *m,
                    struct GNUNET_FS_Uri **uri,
-                   struct GNUNET_FS_BlockOptions *bo,
-                   int *do_index, void **client_info)
+                   struct GNUNET_FS_BlockOptions *bo, int *do_index,
+                   void **client_info)
 {
   char *fn;
   char *fs;
@@ -286,8 +278,8 @@ publish_inspector (void *cls,
 
 
 static void
-uri_sks_continuation (void *cls,
-                      const struct GNUNET_FS_Uri *ksk_uri, const char *emsg)
+uri_sks_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
+                      const char *emsg)
 {
   if (emsg != NULL)
   {
@@ -302,8 +294,8 @@ uri_sks_continuation (void *cls,
 
 
 static void
-uri_ksk_continuation (void *cls,
-                      const struct GNUNET_FS_Uri *ksk_uri, const char *emsg)
+uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
+                      const char *emsg)
 {
   struct GNUNET_FS_Namespace *ns;
 
@@ -322,13 +314,7 @@ uri_ksk_continuation (void *cls,
     }
     else
     {
-      GNUNET_FS_publish_sks (ctx,
-                             ns,
-                             this_id,
-                             next_id,
-                             meta,
-                             uri,
-                             &bo,
+      GNUNET_FS_publish_sks (ctx, ns, this_id, next_id, meta, uri, &bo,
                              GNUNET_FS_PUBLISH_OPTION_NONE,
                              uri_sks_continuation, NULL);
       GNUNET_assert (GNUNET_OK == GNUNET_FS_namespace_delete (ns, GNUNET_NO));
@@ -351,9 +337,8 @@ uri_ksk_continuation (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_FS_FileInformation *fi;
   struct GNUNET_FS_Namespace *namespace;
@@ -370,8 +355,8 @@ run (void *cls,
     ret = -1;
     return;
   }
-  if (((uri_string == NULL) || (extract_only))
-      && ((args[0] == NULL) || (args[1] != NULL)))
+  if (((uri_string == NULL) || (extract_only)) &&
+      ((args[0] == NULL) || (args[1] != NULL)))
   {
     printf (_("You must specify one and only one filename for insertion.\n"));
     ret = -1;
@@ -387,8 +372,7 @@ run (void *cls,
   {
     if (NULL == this_id)
     {
-      fprintf (stderr,
-               _("Option `%s' is required when using option `%s'.\n"),
+      fprintf (stderr, _("Option `%s' is required when using option `%s'.\n"),
                "-t", "-P");
       ret = -1;
       return;
@@ -398,26 +382,23 @@ run (void *cls,
   {                             /* ordinary insertion checks */
     if (NULL != next_id)
     {
-      fprintf (stderr,
-               _("Option `%s' makes no sense without option `%s'.\n"),
+      fprintf (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
                "-N", "-P");
       ret = -1;
       return;
     }
     if (NULL != this_id)
     {
-      fprintf (stderr,
-               _("Option `%s' makes no sense without option `%s'.\n"),
+      fprintf (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
                "-t", "-P");
       ret = -1;
       return;
     }
   }
   cfg = c;
-  ctx = GNUNET_FS_start (cfg,
-                         "gnunet-publish",
-                         &progress_cb,
-                         NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
+  ctx =
+      GNUNET_FS_start (cfg, "gnunet-publish", &progress_cb, NULL,
+                       GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
   {
     fprintf (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
@@ -450,13 +431,9 @@ run (void *cls,
       ret = 1;
       return;
     }
-    GNUNET_FS_publish_ksk (ctx,
-                           topKeywords,
-                           meta,
-                           uri,
-                           &bo,
-                           GNUNET_FS_PUBLISH_OPTION_NONE,
-                           &uri_ksk_continuation, NULL);
+    GNUNET_FS_publish_ksk (ctx, topKeywords, meta, uri, &bo,
+                           GNUNET_FS_PUBLISH_OPTION_NONE, &uri_ksk_continuation,
+                           NULL);
     if (namespace != NULL)
       GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     return;
@@ -484,12 +461,9 @@ run (void *cls,
   }
   else if (S_ISDIR (sbuf.st_mode))
   {
-    fi = GNUNET_FS_file_information_create_from_directory (ctx,
-                                                           NULL,
-                                                           args[0],
+    fi = GNUNET_FS_file_information_create_from_directory (ctx, NULL, args[0],
                                                            &GNUNET_FS_directory_scanner_default,
-                                                           plugins,
-                                                           !do_insert,
+                                                           plugins, !do_insert,
                                                            &bo, &emsg);
   }
   else
@@ -498,11 +472,9 @@ run (void *cls,
       meta = GNUNET_CONTAINER_meta_data_create ();
     GNUNET_FS_meta_data_extract_from_file (meta, args[0], plugins);
     keywords = GNUNET_FS_uri_ksk_create_from_meta_data (meta);
-    fi = GNUNET_FS_file_information_create_from_file (ctx,
-                                                      NULL,
-                                                      args[0],
-                                                      keywords,
-                                                      NULL, !do_insert, &bo);
+    fi = GNUNET_FS_file_information_create_from_file (ctx, NULL, args[0],
+                                                      keywords, NULL,
+                                                      !do_insert, &bo);
     GNUNET_break (fi != NULL);
     GNUNET_FS_uri_destroy (keywords);
   }
@@ -526,14 +498,10 @@ run (void *cls,
     GNUNET_FS_stop (ctx);
     return;
   }
-  pc = GNUNET_FS_publish_start (ctx,
-                                fi,
-                                namespace,
-                                this_id,
-                                next_id,
-                                (do_simulate)
-                                ? GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY
-                                : GNUNET_FS_PUBLISH_OPTION_NONE);
+  pc = GNUNET_FS_publish_start (ctx, fi, namespace, this_id, next_id,
+                                (do_simulate) ?
+                                GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY :
+                                GNUNET_FS_PUBLISH_OPTION_NONE);
   if (NULL == pc)
   {
     fprintf (stderr, _("Could not start publishing.\n"));
@@ -541,8 +509,9 @@ run (void *cls,
     ret = 1;
     return;
   }
-  kill_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                            &do_stop_task, NULL);
+  kill_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
+                                    NULL);
 }
 
 

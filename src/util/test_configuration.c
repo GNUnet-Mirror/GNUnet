@@ -75,8 +75,8 @@ initDiffsCBData (struct DiffsCBData *cbData)
  * and comparing configuration
 */
 static void
-diffsCallBack (void *cls,
-               const char *section, const char *option, const char *value)
+diffsCallBack (void *cls, const char *section, const char *option,
+               const char *value)
 {
   struct DiffsCBData *cbData = cls;
   int cbOption = cbData->callBackOption;
@@ -90,15 +90,15 @@ diffsCallBack (void *cls,
     {
       GNUNET_CONFIGURATION_set_value_string (cbData->cfg, section, option,
                                              "new-value");
-      GNUNET_CONFIGURATION_set_value_string (cbData->cfgDiffs, section,
-                                             option, "new-value");
+      GNUNET_CONFIGURATION_set_value_string (cbData->cfgDiffs, section, option,
+                                             "new-value");
     }
     break;
   case EDIT_ALL:
     GNUNET_CONFIGURATION_set_value_string (cbData->cfg, section, option,
                                            "new-value");
-    GNUNET_CONFIGURATION_set_value_string (cbData->cfgDiffs, section,
-                                           option, "new-value");
+    GNUNET_CONFIGURATION_set_value_string (cbData->cfgDiffs, section, option,
+                                           "new-value");
     break;
   case ADD_NEW_ENTRY:
   {
@@ -107,8 +107,8 @@ diffsCallBack (void *cls,
     if (hit == 0)
     {
       hit = 1;
-      GNUNET_CONFIGURATION_set_value_string (cbData->cfg, section,
-                                             "new-key", "new-value");
+      GNUNET_CONFIGURATION_set_value_string (cbData->cfg, section, "new-key",
+                                             "new-value");
       GNUNET_CONFIGURATION_set_value_string (cbData->cfgDiffs, section,
                                              "new-key", "new-value");
     }
@@ -183,8 +183,8 @@ editConfiguration (struct GNUNET_CONFIGURATION_Handle *cfg, int option)
       GNUNET_asprintf (&key, "key%d", i);
       GNUNET_CONFIGURATION_set_value_string (cfg, "new-section", key,
                                              "new-value");
-      GNUNET_CONFIGURATION_set_value_string (diffsCB.cfgDiffs,
-                                             "new-section", key, "new-value");
+      GNUNET_CONFIGURATION_set_value_string (diffsCB.cfgDiffs, "new-section",
+                                             key, "new-value");
       GNUNET_free (key);
     }
     break;
@@ -282,8 +282,8 @@ testConfig ()
     return 2;
   }
   GNUNET_free (c);
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg,
-                                                          "test", "five", &l))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "test", "five", &l))
   {
     GNUNET_break (0);
     return 3;
@@ -364,9 +364,9 @@ testConfigFilenames ()
   int idx;
 
   idx = 0;
-  if (3 != GNUNET_CONFIGURATION_iterate_value_filenames (cfg,
-                                                         "FILENAMES",
-                                                         "test", &check, &idx))
+  if (3 !=
+      GNUNET_CONFIGURATION_iterate_value_filenames (cfg, "FILENAMES", "test",
+                                                    &check, &idx))
   {
     GNUNET_break (0);
     return 8;
@@ -374,60 +374,54 @@ testConfigFilenames ()
   if (idx != 3)
     return 16;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_remove_value_filename (cfg,
-                                                  "FILENAMES",
-                                                  "test", "/File Name"))
+      GNUNET_CONFIGURATION_remove_value_filename (cfg, "FILENAMES", "test",
+                                                  "/File Name"))
   {
     GNUNET_break (0);
     return 24;
   }
 
   if (GNUNET_NO !=
-      GNUNET_CONFIGURATION_remove_value_filename (cfg,
-                                                  "FILENAMES",
-                                                  "test", "/File Name"))
+      GNUNET_CONFIGURATION_remove_value_filename (cfg, "FILENAMES", "test",
+                                                  "/File Name"))
   {
     GNUNET_break (0);
     return 32;
   }
   if (GNUNET_NO !=
-      GNUNET_CONFIGURATION_remove_value_filename (cfg,
-                                                  "FILENAMES", "test", "Stuff"))
+      GNUNET_CONFIGURATION_remove_value_filename (cfg, "FILENAMES", "test",
+                                                  "Stuff"))
   {
     GNUNET_break (0);
     return 40;
   }
 
   if (GNUNET_NO !=
-      GNUNET_CONFIGURATION_append_value_filename (cfg,
-                                                  "FILENAMES",
-                                                  "test", "/Hello"))
+      GNUNET_CONFIGURATION_append_value_filename (cfg, "FILENAMES", "test",
+                                                  "/Hello"))
   {
     GNUNET_break (0);
     return 48;
   }
   if (GNUNET_NO !=
-      GNUNET_CONFIGURATION_append_value_filename (cfg,
-                                                  "FILENAMES",
-                                                  "test", "/World"))
+      GNUNET_CONFIGURATION_append_value_filename (cfg, "FILENAMES", "test",
+                                                  "/World"))
   {
     GNUNET_break (0);
     return 56;
   }
 
   if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_append_value_filename (cfg,
-                                                  "FILENAMES",
-                                                  "test", "/File 1"))
+      GNUNET_CONFIGURATION_append_value_filename (cfg, "FILENAMES", "test",
+                                                  "/File 1"))
   {
     GNUNET_break (0);
     return 64;
   }
 
   if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_append_value_filename (cfg,
-                                                  "FILENAMES",
-                                                  "test", "/File 2"))
+      GNUNET_CONFIGURATION_append_value_filename (cfg, "FILENAMES", "test",
+                                                  "/File 2"))
   {
     GNUNET_break (0);
     return 72;
@@ -437,9 +431,9 @@ testConfigFilenames ()
   want[1] = "/World";
   want[2] = "/File 1";
   want[3] = "/File 2";
-  if (4 != GNUNET_CONFIGURATION_iterate_value_filenames (cfg,
-                                                         "FILENAMES",
-                                                         "test", &check, &idx))
+  if (4 !=
+      GNUNET_CONFIGURATION_iterate_value_filenames (cfg, "FILENAMES", "test",
+                                                    &check, &idx))
   {
     GNUNET_break (0);
     return 80;

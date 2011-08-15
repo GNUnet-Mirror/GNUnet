@@ -162,24 +162,16 @@ static int
 iopen ()
 {
 #define PINIT(a) (GNUNET_OK != (prepared_statement_create(a)))
-  if (PINIT (INSERT_QUERIES_STMT) ||
-      PINIT (INSERT_ROUTES_STMT) ||
-      PINIT (INSERT_ROUND_STMT) ||
-      PINIT (INSERT_ROUND_DETAILS_STMT) ||
-      PINIT (INSERT_TRIALS_STMT) ||
-      PINIT (SET_MALICIOUS_STMT) ||
-      PINIT (INSERT_GENERIC_STAT_STMT) ||
-      PINIT (INSERT_STAT_STMT) ||
-      PINIT (INSERT_NODES_STMT) ||
-      PINIT (INSERT_DHTKEY_STMT) ||
-      PINIT (UPDATE_TRIALS_STMT) ||
-      PINIT (GET_DHTKEYUID_STMT) ||
-      PINIT (GET_NODEUID_STMT) ||
-      PINIT (UPDATE_CONNECTIONS_STMT) ||
-      PINIT (INSERT_TOPOLOGY_STMT) ||
-      PINIT (EXTEND_TOPOLOGY_STMT) ||
-      PINIT (UPDATE_TOPOLOGY_STMT) ||
-      PINIT (GET_TRIAL_STMT) || PINIT (GET_TOPOLOGY_STMT))
+  if (PINIT (INSERT_QUERIES_STMT) || PINIT (INSERT_ROUTES_STMT) ||
+      PINIT (INSERT_ROUND_STMT) || PINIT (INSERT_ROUND_DETAILS_STMT) ||
+      PINIT (INSERT_TRIALS_STMT) || PINIT (SET_MALICIOUS_STMT) ||
+      PINIT (INSERT_GENERIC_STAT_STMT) || PINIT (INSERT_STAT_STMT) ||
+      PINIT (INSERT_NODES_STMT) || PINIT (INSERT_DHTKEY_STMT) ||
+      PINIT (UPDATE_TRIALS_STMT) || PINIT (GET_DHTKEYUID_STMT) ||
+      PINIT (GET_NODEUID_STMT) || PINIT (UPDATE_CONNECTIONS_STMT) ||
+      PINIT (INSERT_TOPOLOGY_STMT) || PINIT (EXTEND_TOPOLOGY_STMT) ||
+      PINIT (UPDATE_TOPOLOGY_STMT) || PINIT (GET_TRIAL_STMT) ||
+      PINIT (GET_TOPOLOGY_STMT))
   {
     return GNUNET_SYSERR;
   }
@@ -325,8 +317,10 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first,
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf (outfile, "execute extend_topology using "
-                 "@temp_first_node, @temp_second_node;\n");
+  ret =
+      fprintf (outfile,
+               "execute extend_topology using "
+               "@temp_first_node, @temp_second_node;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -376,13 +370,13 @@ add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 
   if (ret < 0)
     return GNUNET_SYSERR;
-  ret = fprintf (outfile, "execute insert_trial using "
-                 "@date, @oid, @num, @topology, @t_p, @t_pr,"
-                 " @bl, @connect, @c_t_o,"
-                 "@c_t_o_m, @puts, @gets,"
-                 "@concurrent, @settle, @rounds,"
-                 "@m_gets, @m_puts, @m_drops,"
-                 "@m_g_f, @m_p_f, @s_c, @s_f," "@s_k, @g_s, @message;\n");
+  ret =
+      fprintf (outfile,
+               "execute insert_trial using "
+               "@date, @oid, @num, @topology, @t_p, @t_pr,"
+               " @bl, @connect, @c_t_o," "@c_t_o_m, @puts, @gets,"
+               "@concurrent, @settle, @rounds," "@m_gets, @m_puts, @m_drops,"
+               "@m_g_f, @m_p_f, @s_c, @s_f," "@s_k, @g_s, @message;\n");
   if (ret < 0)
     return GNUNET_SYSERR;
   ret = fprintf (outfile, "execute select_trial;\n");
@@ -404,8 +398,8 @@ add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_generic_stat (const struct GNUNET_PeerIdentity *peer,
-                  const char *name, const char *section, uint64_t value)
+add_generic_stat (const struct GNUNET_PeerIdentity *peer, const char *name,
+                  const char *section, uint64_t value)
 {
   int ret;
 
@@ -466,10 +460,10 @@ int
 add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
           unsigned int route_forwards, unsigned int result_requests,
           unsigned int client_requests, unsigned int result_forwards,
-          unsigned int gets, unsigned int puts,
-          unsigned int data_inserts, unsigned int find_peer_requests,
-          unsigned int find_peers_started, unsigned int gets_started,
-          unsigned int puts_started, unsigned int find_peer_responses_received,
+          unsigned int gets, unsigned int puts, unsigned int data_inserts,
+          unsigned int find_peer_requests, unsigned int find_peers_started,
+          unsigned int gets_started, unsigned int puts_started,
+          unsigned int find_peer_responses_received,
           unsigned int get_responses_received,
           unsigned int find_peer_responses_sent,
           unsigned int get_responses_sent)
@@ -489,25 +483,27 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf (outfile, "set @r_r = %u, @r_f = %u, @res_r = %u, @c_r = %u, "
-                 "@res_f = %u, @gets = %u, @puts = %u, @d_i = %u, "
-                 "@f_p_r = %u, @f_p_s = %u, @g_s = %u, @p_s = %u, "
-                 "@f_p_r_r = %u, @g_r_r = %u, @f_p_r_s = %u, @g_r_s = %u;\n",
-                 route_requests, route_forwards, result_requests,
-                 client_requests, result_forwards, gets, puts,
-                 data_inserts, find_peer_requests, find_peers_started,
-                 gets_started, puts_started, find_peer_responses_received,
-                 get_responses_received, find_peer_responses_sent,
-                 get_responses_sent);
+  ret =
+      fprintf (outfile,
+               "set @r_r = %u, @r_f = %u, @res_r = %u, @c_r = %u, "
+               "@res_f = %u, @gets = %u, @puts = %u, @d_i = %u, "
+               "@f_p_r = %u, @f_p_s = %u, @g_s = %u, @p_s = %u, "
+               "@f_p_r_r = %u, @g_r_r = %u, @f_p_r_s = %u, @g_r_s = %u;\n",
+               route_requests, route_forwards, result_requests, client_requests,
+               result_forwards, gets, puts, data_inserts, find_peer_requests,
+               find_peers_started, gets_started, puts_started,
+               find_peer_responses_received, get_responses_received,
+               find_peer_responses_sent, get_responses_sent);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf (outfile, "execute insert_stat using "
-                 "@temp_trial, @temp_node, @r_r, @r_f, @res_r, @c_r, "
-                 "@res_f, @gets, @puts, @d_i, "
-                 "@f_p_r, @f_p_s, @g_s, @p_s, "
-                 "@f_p_r_r, @g_r_r, @f_p_r_s, @g_r_s;\n");
+  ret =
+      fprintf (outfile,
+               "execute insert_stat using "
+               "@temp_trial, @temp_node, @r_r, @r_f, @res_r, @c_r, "
+               "@res_f, @gets, @puts, @d_i, " "@f_p_r, @f_p_s, @g_s, @p_s, "
+               "@f_p_r_r, @g_r_r, @f_p_r_s, @g_r_s;\n");
   if (ret < 0)
     return GNUNET_SYSERR;
   return GNUNET_OK;
@@ -784,9 +780,8 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
  */
 int
 add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
-           unsigned int type, unsigned int hops,
-           int succeeded, const struct GNUNET_PeerIdentity *node,
-           const GNUNET_HashCode * key,
+           unsigned int type, unsigned int hops, int succeeded,
+           const struct GNUNET_PeerIdentity *node, const GNUNET_HashCode * key,
            const struct GNUNET_PeerIdentity *from_node,
            const struct GNUNET_PeerIdentity *to_node)
 {
@@ -882,15 +877,15 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MySQL (DUMP) DHT Logger: initializing\n");
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                          "MYSQLDUMP", "PATH",
-                                                          &outfile_path))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (plugin->cfg, "MYSQLDUMP", "PATH",
+                                             &outfile_path))
   {
     outfile_path = GNUNET_strdup ("");
   }
 
-  GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d", outfile_path, "mysqldump", getpid ());
+  GNUNET_asprintf (&outfile_name, "%s%s-%d", outfile_path, "mysqldump",
+                   getpid ());
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 

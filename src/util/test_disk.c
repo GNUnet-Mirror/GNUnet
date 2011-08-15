@@ -37,8 +37,7 @@ testReadWrite ()
   int ret;
 
   if (strlen (TESTSTRING) !=
-      GNUNET_DISK_fn_write (".testfile", TESTSTRING,
-                            strlen (TESTSTRING),
+      GNUNET_DISK_fn_write (".testfile", TESTSTRING, strlen (TESTSTRING),
                             GNUNET_DISK_PERM_USER_READ |
                             GNUNET_DISK_PERM_USER_WRITE))
     return 1;
@@ -53,9 +52,8 @@ testReadWrite ()
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
   {
-    fprintf (stderr,
-             "Error in testReadWrite: *%s* != *%s* for file %s\n",
-             tmp, TESTSTRING, ".testfile");
+    fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
+             TESTSTRING, ".testfile");
     return 1;
   }
   GNUNET_DISK_file_copy (".testfile", ".testfile2");
@@ -63,16 +61,15 @@ testReadWrite ()
   ret = GNUNET_DISK_fn_read (".testfile2", tmp, sizeof (tmp) - 1);
   if (ret < 0)
   {
-    fprintf (stderr,
-             "Error reading file `%s' in testReadWrite\n", ".testfile2");
+    fprintf (stderr, "Error reading file `%s' in testReadWrite\n",
+             ".testfile2");
     return 1;
   }
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
   {
-    fprintf (stderr,
-             "Error in testReadWrite: *%s* != *%s* for file %s\n",
-             tmp, TESTSTRING, ".testfile2");
+    fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
+             TESTSTRING, ".testfile2");
     return 1;
   }
 
@@ -91,8 +88,9 @@ testOpenClose ()
   uint64_t size;
   long avail;
 
-  fh = GNUNET_DISK_file_open (".testfile", GNUNET_DISK_OPEN_READWRITE
-                              | GNUNET_DISK_OPEN_CREATE,
+  fh = GNUNET_DISK_file_open (".testfile",
+                              GNUNET_DISK_OPEN_READWRITE |
+                              GNUNET_DISK_OPEN_CREATE,
                               GNUNET_DISK_PERM_USER_READ |
                               GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
@@ -108,8 +106,9 @@ testOpenClose ()
   GNUNET_log_skip (1, GNUNET_NO);
   avail = GNUNET_DISK_get_blocks_available (".testfile");
   GNUNET_log_skip (0, GNUNET_NO);
-  fh = GNUNET_DISK_file_open (".testfile", GNUNET_DISK_OPEN_READWRITE
-                              | GNUNET_DISK_OPEN_CREATE,
+  fh = GNUNET_DISK_file_open (".testfile",
+                              GNUNET_DISK_OPEN_READWRITE |
+                              GNUNET_DISK_OPEN_CREATE,
                               GNUNET_DISK_PERM_USER_WRITE |
                               GNUNET_DISK_PERM_USER_READ);
   GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
@@ -156,8 +155,7 @@ testDirScan ()
 }
 
 static void
-iter_callback (void *cls,
-               struct GNUNET_DISK_DirectoryIterator *di,
+iter_callback (void *cls, struct GNUNET_DISK_DirectoryIterator *di,
                const char *filename, const char *dirname)
 {
   int *i = cls;

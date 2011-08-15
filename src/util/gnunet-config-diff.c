@@ -14,8 +14,7 @@ main (int argc, char **argv)
   }
   i1 = GNUNET_CONFIGURATION_create ();
   i2 = GNUNET_CONFIGURATION_create ();
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_load (i1, argv[1])) ||
+  if ((GNUNET_OK != GNUNET_CONFIGURATION_load (i1, argv[1])) ||
       (GNUNET_OK != GNUNET_CONFIGURATION_load (i2, argv[2])))
     return 1;
   if (GNUNET_OK != GNUNET_CONFIGURATION_write_diffs (i1, i2, argv[2]))

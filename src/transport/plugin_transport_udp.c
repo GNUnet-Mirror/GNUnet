@@ -350,8 +350,8 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
  * @return the number of bytes written
  */
 static ssize_t
-udp_send (struct Plugin *plugin,
-          const struct sockaddr *sa, const struct GNUNET_MessageHeader *msg)
+udp_send (struct Plugin *plugin, const struct sockaddr *sa,
+          const struct GNUNET_MessageHeader *msg)
 {
   ssize_t sent;
   size_t slen;
@@ -362,18 +362,14 @@ udp_send (struct Plugin *plugin,
     if (NULL == plugin->sockv4)
       return 0;
     sent =
-        GNUNET_NETWORK_socket_sendto (plugin->sockv4,
-                                      msg,
-                                      ntohs (msg->size),
+        GNUNET_NETWORK_socket_sendto (plugin->sockv4, msg, ntohs (msg->size),
                                       sa, slen = sizeof (struct sockaddr_in));
     break;
   case AF_INET6:
     if (NULL == plugin->sockv6)
       return 0;
     sent =
-        GNUNET_NETWORK_socket_sendto (plugin->sockv6,
-                                      msg,
-                                      ntohs (msg->size),
+        GNUNET_NETWORK_socket_sendto (plugin->sockv6, msg, ntohs (msg->size),
                                       sa, slen = sizeof (struct sockaddr_in6));
     break;
   default:
@@ -385,8 +381,7 @@ udp_send (struct Plugin *plugin,
 #if DEBUG_UDP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "UDP transmited %u-byte message to %s (%d: %s)\n",
-              (unsigned int) ntohs (msg->size),
-              GNUNET_a2s (sa, slen),
+              (unsigned int) ntohs (msg->size), GNUNET_a2s (sa, slen),
               (int) sent, (sent < 0) ? STRERROR (errno) : "ok");
 #endif
   return sent;
@@ -437,16 +432,10 @@ send_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
  *         still be transmitted later!)
  */
 static ssize_t
-udp_plugin_send (void *cls,
-                 const struct GNUNET_PeerIdentity *target,
-                 const char *msgbuf,
-                 size_t msgbuf_size,
-                 unsigned int priority,
-                 struct GNUNET_TIME_Relative timeout,
-                 struct Session *session,
-                 const void *addr,
-                 size_t addrlen,
-                 int force_address,
+udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
+                 const char *msgbuf, size_t msgbuf_size, unsigned int priority,
+                 struct GNUNET_TIME_Relative timeout, struct Session *session,
+                 const void *addr, size_t addrlen, int force_address,
                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Plugin *plugin = cls;
@@ -534,13 +523,12 @@ udp_plugin_send (void *cls,
                                                       &target->hashPubKey,
                                                       peer_session,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    peer_session->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats,
-                                                         UDP_MTU,
-                                                         &plugin->tracker,
-                                                         plugin->last_expected_delay,
-                                                         &udp->header,
-                                                         &send_fragment,
-                                                         peer_session);
+    peer_session->frag =
+        GNUNET_FRAGMENT_context_create (plugin->env->stats, UDP_MTU,
+                                        &plugin->tracker,
+                                        plugin->last_expected_delay,
+                                        &udp->header, &send_fragment,
+                                        peer_session);
   }
   return mlen;
 }
@@ -577,8 +565,7 @@ struct SourceInformation
  * @param hdr the actual message
  */
 static void
-process_inbound_tokenized_messages (void *cls,
-                                    void *client,
+process_inbound_tokenized_messages (void *cls, void *client,
                                     const struct GNUNET_MessageHeader *hdr)
 {
   struct Plugin *plugin = cls;
@@ -591,8 +578,8 @@ process_inbound_tokenized_messages (void *cls,
   distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
   distance[1].value = htonl (0);
 
-  plugin->env->receive (plugin->env->cls,
-                        &si->sender, hdr, distance, 2, NULL, si->arg, si->args);
+  plugin->env->receive (plugin->env->cls, &si->sender, hdr, distance, 2, NULL,
+                        si->arg, si->args);
 }
 
 
@@ -605,8 +592,7 @@ process_inbound_tokenized_messages (void *cls,
  * @param sender_addr_len number of bytes in sender_addr
  */
 static void
-process_udp_message (struct Plugin *plugin,
-                     const struct UDPMessage *msg,
+process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
                      const struct sockaddr *sender_addr,
                      socklen_t sender_addr_len)
 {
@@ -650,21 +636,18 @@ process_udp_message (struct Plugin *plugin,
     return;
   }
 #if DEBUG_UDP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "udp",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
                    "Received message with %u bytes from peer `%s' at `%s'\n",
                    (unsigned int) ntohs (msg->header.size),
-                   GNUNET_i2s (&msg->sender),
-                   GNUNET_a2s (sender_addr, sender_addr_len));
+                   GNUNET_i2s (&msg->sender), GNUNET_a2s (sender_addr,
+                                                          sender_addr_len));
 #endif
 
   /* iterate over all embedded messages */
   si.sender = msg->sender;
   si.arg = arg;
   si.args = args;
-  GNUNET_SERVER_mst_receive (plugin->mst,
-                             &si,
-                             (const char *) &msg[1],
+  GNUNET_SERVER_mst_receive (plugin->mst, &si, (const char *) &msg[1],
                              ntohs (msg->header.size) -
                              sizeof (struct UDPMessage), GNUNET_YES, GNUNET_NO);
 }
@@ -691,8 +674,7 @@ fragment_msg_proc (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_break (0);
     return;
   }
-  process_udp_message (rc->plugin,
-                       (const struct UDPMessage *) msg,
+  process_udp_message (rc->plugin, (const struct UDPMessage *) msg,
                        rc->src_addr, rc->addr_len);
 }
 
@@ -713,13 +695,11 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   struct UDPMessage *udp;
 
 #if DEBUG_UDP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "udp",
-                   "Sending ACK to `%s'\n",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp", "Sending ACK to `%s'\n",
                    GNUNET_a2s (rc->src_addr,
-                               (rc->src_addr->sa_family == AF_INET)
-                               ? sizeof (struct sockaddr_in)
-                               : sizeof (struct sockaddr_in6)));
+                               (rc->src_addr->sa_family ==
+                                AF_INET) ? sizeof (struct sockaddr_in) :
+                               sizeof (struct sockaddr_in6)));
 #endif
   udp = (struct UDPMessage *) buf;
   udp->header.size = htons ((uint16_t) msize);
@@ -764,8 +744,7 @@ struct FindReceiveContext
  *         GNUNET_NO if not.
  */
 static int
-find_receive_context (void *cls,
-                      struct GNUNET_CONTAINER_HeapNode *node,
+find_receive_context (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
                       void *element, GNUNET_CONTAINER_HeapCostType cost)
 {
   struct FindReceiveContext *frc = cls;
@@ -804,8 +783,9 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
 
   fromlen = sizeof (addr);
   memset (&addr, 0, sizeof (addr));
-  ret = GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof (buf),
-                                        (struct sockaddr *) &addr, &fromlen);
+  ret =
+      GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof (buf),
+                                      (struct sockaddr *) &addr, &fromlen);
   if (ret < sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
@@ -813,8 +793,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   }
 #if DEBUG_UDP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "UDP received %u-byte message from `%s'\n",
-              (unsigned int) ret,
+              "UDP received %u-byte message from `%s'\n", (unsigned int) ret,
               GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
 #endif
   msg = (const struct GNUNET_MessageHeader *) buf;
@@ -831,8 +810,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
       GNUNET_break_op (0);
       return;
     }
-    process_udp_message (plugin,
-                         (const struct UDPMessage *) msg,
+    process_udp_message (plugin, (const struct UDPMessage *) msg,
                          (const struct sockaddr *) addr, fromlen);
     return;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_ACK:
@@ -857,8 +835,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
 #if DEBUG_UDP
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "UDP processes %u-byte acknowledgement from `%s' at `%s'\n",
-                (unsigned int) ntohs (msg->size),
-                GNUNET_i2s (&udp->sender),
+                (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp->sender),
                 GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
 #endif
 
@@ -875,8 +852,8 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
       return;
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
-                                                         &udp->
-                                                         sender.hashPubKey,
+                                                         &udp->sender.
+                                                         hashPubKey,
                                                          peer_session));
     plugin->last_expected_delay =
         GNUNET_FRAGMENT_context_destroy (peer_session->frag);
@@ -887,8 +864,8 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     frc.rc = NULL;
     frc.addr = (const struct sockaddr *) addr;
     frc.addr_len = fromlen;
-    GNUNET_CONTAINER_heap_iterate (plugin->defrags,
-                                   &find_receive_context, &frc);
+    GNUNET_CONTAINER_heap_iterate (plugin->defrags, &find_receive_context,
+                                   &frc);
     now = GNUNET_TIME_absolute_get ();
     rc = frc.rc;
     if (rc == NULL)
@@ -899,16 +876,14 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
       rc->src_addr = (const struct sockaddr *) &rc[1];
       rc->addr_len = fromlen;
       rc->plugin = plugin;
-      rc->defrag = GNUNET_DEFRAGMENT_context_create (plugin->env->stats,
-                                                     UDP_MTU,
-                                                     UDP_MAX_MESSAGES_IN_DEFRAG,
-                                                     rc,
-                                                     &fragment_msg_proc,
-                                                     &ack_proc);
-      rc->hnode = GNUNET_CONTAINER_heap_insert (plugin->defrags,
-                                                rc,
-                                                (GNUNET_CONTAINER_HeapCostType)
-                                                now.abs_value);
+      rc->defrag =
+          GNUNET_DEFRAGMENT_context_create (plugin->env->stats, UDP_MTU,
+                                            UDP_MAX_MESSAGES_IN_DEFRAG, rc,
+                                            &fragment_msg_proc, &ack_proc);
+      rc->hnode =
+          GNUNET_CONTAINER_heap_insert (plugin->defrags, rc,
+                                        (GNUNET_CONTAINER_HeapCostType) now.
+                                        abs_value);
     }
 #if DEBUG_UDP
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -920,10 +895,9 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     if (GNUNET_OK == GNUNET_DEFRAGMENT_process_fragment (rc->defrag, msg))
     {
       /* keep this 'rc' from expiring */
-      GNUNET_CONTAINER_heap_update_cost (plugin->defrags,
-                                         rc->hnode,
-                                         (GNUNET_CONTAINER_HeapCostType)
-                                         now.abs_value);
+      GNUNET_CONTAINER_heap_update_cost (plugin->defrags, rc->hnode,
+                                         (GNUNET_CONTAINER_HeapCostType) now.
+                                         abs_value);
     }
     if (GNUNET_CONTAINER_heap_get_size (plugin->defrags) >
         UDP_MAX_SENDER_ADDRESSES_WITH_DEFRAG)
@@ -1026,8 +1000,8 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
     if (GNUNET_OK != check_port (plugin, ntohs (v4->u4_port)))
       return GNUNET_SYSERR;
     if (GNUNET_OK !=
-        GNUNET_NAT_test_address (plugin->nat,
-                                 &v4->ipv4_addr, sizeof (struct in_addr)))
+        GNUNET_NAT_test_address (plugin->nat, &v4->ipv4_addr,
+                                 sizeof (struct in_addr)))
       return GNUNET_SYSERR;
   }
   else
@@ -1041,8 +1015,8 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
     if (GNUNET_OK != check_port (plugin, ntohs (v6->u6_port)))
       return GNUNET_SYSERR;
     if (GNUNET_OK !=
-        GNUNET_NAT_test_address (plugin->nat,
-                                 &v6->ipv6_addr, sizeof (struct in6_addr)))
+        GNUNET_NAT_test_address (plugin->nat, &v6->ipv6_addr,
+                                 sizeof (struct in6_addr)))
       return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -1161,10 +1135,8 @@ append_port (void *cls, const char *hostname)
  * @param asc_cls closure for asc
  */
 static void
-udp_plugin_address_pretty_printer (void *cls,
-                                   const char *type,
-                                   const void *addr,
-                                   size_t addrlen,
+udp_plugin_address_pretty_printer (void *cls, const char *type,
+                                   const void *addr, size_t addrlen,
                                    int numeric,
                                    struct GNUNET_TIME_Relative timeout,
                                    GNUNET_TRANSPORT_AddressStringCallback asc,
@@ -1232,8 +1204,7 @@ udp_plugin_address_pretty_printer (void *cls,
  * @param addrlen actual lenght of the address
  */
 static void
-udp_nat_port_map_callback (void *cls,
-                           int add_remove,
+udp_nat_port_map_callback (void *cls, int add_remove,
                            const struct sockaddr *addr, socklen_t addrlen)
 {
   struct Plugin *plugin = cls;
@@ -1254,8 +1225,7 @@ udp_nat_port_map_callback (void *cls,
     break;
   case AF_INET6:
     GNUNET_assert (addrlen == sizeof (struct sockaddr_in6));
-    memcpy (&u6.ipv6_addr,
-            &((struct sockaddr_in6 *) addr)->sin6_addr,
+    memcpy (&u6.ipv6_addr, &((struct sockaddr_in6 *) addr)->sin6_addr,
             sizeof (struct in6_addr));
     u6.u6_port = ((struct sockaddr_in6 *) addr)->sin6_port;
     arg = &u6;
@@ -1296,24 +1266,22 @@ libgnunet_plugin_transport_udp_init (void *cls)
   unsigned long long udp_max_bps;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                             "transport-udp", "PORT", &port))
+      GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp", "PORT",
+                                             &port))
     port = 2086;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                             "transport-udp",
+      GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp",
                                              "MAX_BPS", &udp_max_bps))
     udp_max_bps = 1024 * 1024 * 50;     /* 50 MB/s == infinity for practical purposes */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                             "transport-udp",
+      GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp",
                                              "ADVERTISED_PORT", &aport))
     aport = port;
   if (port > 65535)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Given `%s' option is out of range: %llu > %u\n"),
-                "PORT", port, 65535);
+                _("Given `%s' option is out of range: %llu > %u\n"), "PORT",
+                port, 65535);
     return NULL;
   }
   memset (&serverAddrv6, 0, sizeof (serverAddrv6));
@@ -1336,10 +1304,9 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->address_to_string = &udp_address_to_string;
   api->check_address = &udp_plugin_check_address;
 
-  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (env->cfg,
-                                                           "transport-udp",
-                                                           "BINDTO",
-                                                           &plugin->bind4_address))
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_string (env->cfg, "transport-udp",
+                                             "BINDTO", &plugin->bind4_address))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Binding udp plugin to specific address: `%s'\n",
@@ -1353,19 +1320,18 @@ libgnunet_plugin_transport_udp_init (void *cls)
     }
   }
 
-  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (env->cfg,
-                                                           "transport-udp",
-                                                           "BINDTO6",
-                                                           &plugin->bind6_address))
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_string (env->cfg, "transport-udp",
+                                             "BINDTO6", &plugin->bind6_address))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Binding udp plugin to specific address: `%s'\n",
                 plugin->bind6_address);
-    if (1 != inet_pton (AF_INET6,
-                        plugin->bind6_address, &serverAddrv6.sin6_addr))
+    if (1 !=
+        inet_pton (AF_INET6, plugin->bind6_address, &serverAddrv6.sin6_addr))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Invalid IPv6 address: `%s'\n"), plugin->bind6_address);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Invalid IPv6 address: `%s'\n"),
+                  plugin->bind6_address);
       GNUNET_free_non_null (plugin->bind4_address);
       GNUNET_free (plugin->bind6_address);
       GNUNET_free (plugin);
@@ -1381,8 +1347,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                             * 2);
   sockets_created = 0;
   if ((GNUNET_YES !=
-       GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
-                                             "nat", "DISABLEV6")))
+       GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg, "nat",
+                                             "DISABLEV6")))
   {
     plugin->sockv6 = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_DGRAM, 0);
     if (NULL == plugin->sockv6)
@@ -1400,12 +1366,12 @@ libgnunet_plugin_transport_udp_init (void *cls)
       addrlen = sizeof (serverAddrv6);
       serverAddr = (struct sockaddr *) &serverAddrv6;
 #if DEBUG_UDP
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Binding to IPv6 port %d\n", ntohs (serverAddrv6.sin6_port));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv6 port %d\n",
+                  ntohs (serverAddrv6.sin6_port));
 #endif
       tries = 0;
-      while (GNUNET_NETWORK_socket_bind (plugin->sockv6,
-                                         serverAddr, addrlen) != GNUNET_OK)
+      while (GNUNET_NETWORK_socket_bind (plugin->sockv6, serverAddr, addrlen) !=
+             GNUNET_OK)
       {
         serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);        /* Find a good, non-root port */
 #if DEBUG_UDP
@@ -1430,8 +1396,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     }
   }
 
-  plugin->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages,
-                                          plugin);
+  plugin->mst =
+      GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, plugin);
   plugin->sockv4 = GNUNET_NETWORK_socket_create (PF_INET, SOCK_DGRAM, 0);
   if (NULL == plugin->sockv4)
   {
@@ -1448,8 +1414,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     addrlen = sizeof (serverAddrv4);
     serverAddr = (struct sockaddr *) &serverAddrv4;
 #if DEBUG_UDP
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Binding to IPv4 port %d\n", ntohs (serverAddrv4.sin_port));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv4 port %d\n",
+                ntohs (serverAddrv4.sin_port));
 #endif
     tries = 0;
     while (GNUNET_NETWORK_socket_bind (plugin->sockv4, serverAddr, addrlen) !=
@@ -1491,12 +1457,10 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                    NULL, &udp_plugin_select, plugin);
   if (sockets_created == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UDP sockets\n"));
-  plugin->nat = GNUNET_NAT_register (env->cfg,
-                                     GNUNET_NO,
-                                     port,
-                                     sockets_created,
-                                     (const struct sockaddr **) addrs, addrlens,
-                                     &udp_nat_port_map_callback, NULL, plugin);
+  plugin->nat =
+      GNUNET_NAT_register (env->cfg, GNUNET_NO, port, sockets_created,
+                           (const struct sockaddr **) addrs, addrlens,
+                           &udp_nat_port_map_callback, NULL, plugin);
   return api;
 }
 
@@ -1534,8 +1498,8 @@ libgnunet_plugin_transport_udp_done (void *cls)
   struct ReceiveContext *rc;
 
   /* FIXME: clean up heap and hashmap */
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions,
-                                         &destroy_session, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions, &destroy_session,
+                                         NULL);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
   plugin->sessions = NULL;
   while (NULL != (rc = GNUNET_CONTAINER_heap_remove_root (plugin->defrags)))

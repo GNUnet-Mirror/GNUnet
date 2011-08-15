@@ -171,8 +171,8 @@ call_connect_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-core_startup (void *cls,
-              struct GNUNET_CORE_Handle *core __attribute__ ((unused)),
+core_startup (void *cls, struct GNUNET_CORE_Handle *core
+              __attribute__ ((unused)),
               const struct GNUNET_PeerIdentity *my_identity,
               const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey
               __attribute__ ((unused)))
@@ -215,8 +215,7 @@ send_hello_message (void *cls, size_t size, void *buf)
  *
  */
 static void
-core_connect (void *cls,
-              const struct GNUNET_PeerIdentity *peer,
+core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct GNUNET_MESH_Handle *handle = cls;
@@ -225,11 +224,8 @@ core_connect (void *cls,
               "Core tells us we are connected to peer %s\n", GNUNET_i2s (peer));
 
   /* Send a hello to this peer */
-  GNUNET_CORE_notify_transmit_ready (handle->core,
-                                     GNUNET_NO,
-                                     42,
-                                     GNUNET_TIME_UNIT_SECONDS,
-                                     peer,
+  GNUNET_CORE_notify_transmit_ready (handle->core, GNUNET_NO, 42,
+                                     GNUNET_TIME_UNIT_SECONDS, peer,
                                      sizeof (struct GNUNET_MessageHeader) +
                                      handle->hello_message_size,
                                      &send_hello_message, cls);
@@ -347,8 +343,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * This is a hello-message, containing the application-types the other peer can receive
  */
 static int
-receive_hello (void *cls,
-               const struct GNUNET_PeerIdentity *other,
+receive_hello (void *cls, const struct GNUNET_PeerIdentity *other,
                const struct GNUNET_MessageHeader *message,
                const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
@@ -434,8 +429,7 @@ receive_hello (void *cls,
  * Receive a message from core.
  */
 static int
-core_receive (void *cls,
-              const struct GNUNET_PeerIdentity *other,
+core_receive (void *cls, const struct GNUNET_PeerIdentity *other,
               const struct GNUNET_MessageHeader *message,
               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
@@ -448,9 +442,9 @@ core_receive (void *cls,
 
   for (handler = handle->handlers; handler->callback != NULL; handler++)
   {
-    if ((ntohs (rmessage->type) == handler->type)
-        && ((handler->expected_size == 0)
-            || (handler->expected_size == ntohs (rmessage->size))))
+    if ((ntohs (rmessage->type) == handler->type) &&
+        ((handler->expected_size == 0) ||
+         (handler->expected_size == ntohs (rmessage->size))))
     {
       break;
     }
@@ -474,10 +468,10 @@ core_receive (void *cls,
     if (tunnel->tunnel.id.id == tmessage->id.id &&
         (0 ==
          memcmp (&tmessage->id.initiator, &tunnel->tunnel.id.initiator,
-                 sizeof (struct GNUNET_PeerIdentity)))
-        && (0 ==
-            memcmp (&tmessage->id.target, &tunnel->tunnel.id.target,
-                    sizeof (struct GNUNET_PeerIdentity))))
+                 sizeof (struct GNUNET_PeerIdentity))) &&
+        (0 ==
+         memcmp (&tmessage->id.target, &tunnel->tunnel.id.target,
+                 sizeof (struct GNUNET_PeerIdentity))))
       break;
     tunnel = tunnel->next;
   }
@@ -507,8 +501,8 @@ core_receive (void *cls,
                 "Inbound message from peer %s; type %d.\n", GNUNET_i2s (other),
                 ntohs (rmessage->type));
 
-  return handler->callback (handle->cls, &tunnel->tunnel,
-                            &tunnel->tunnel.ctx, other, rmessage, atsi);
+  return handler->callback (handle->cls, &tunnel->tunnel, &tunnel->tunnel.ctx,
+                            other, rmessage, atsi);
 }
 
 struct GNUNET_MESH_Tunnel *
@@ -691,19 +685,13 @@ core_notify (void *cls, size_t size, void *buf)
  *         memory); if NULL is returned, "notify" will NOT be called.
  */
 struct GNUNET_MESH_TransmitHandle *
-GNUNET_MESH_notify_transmit_ready (struct
-                                   GNUNET_MESH_Tunnel
-                                   *tunnel,
-                                   int cork,
+GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
                                    uint32_t priority,
-                                   struct
-                                   GNUNET_TIME_Relative
-                                   maxdelay,
+                                   struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target
-                                   __attribute__ ((unused)),
-                                   size_t notify_size,
-                                   GNUNET_CONNECTION_TransmitReadyNotify
-                                   notify, void *notify_cls)
+                                   __attribute__ ((unused)), size_t notify_size,
+                                   GNUNET_CONNECTION_TransmitReadyNotify notify,
+                                   void *notify_cls)
 {
   if (NULL != tunnel->notify_handle)
   {
@@ -718,7 +706,8 @@ GNUNET_MESH_notify_transmit_ready (struct
   cls->notify = notify;
   cls->tunnel = tunnel;
 
-  tunnel->notify_handle = (struct GNUNET_MESH_TransmitHandle *)
+  tunnel->notify_handle =
+      (struct GNUNET_MESH_TransmitHandle *)
       GNUNET_CORE_notify_transmit_ready (tunnel->handle->core, cork, priority,
                                          maxdelay, &tunnel->peer,
                                          notify_size +
@@ -806,11 +795,8 @@ build_hello_message (struct GNUNET_MESH_Handle *handle,
 
 
 struct GNUNET_MESH_Handle *
-GNUNET_MESH_connect (const struct
-                     GNUNET_CONFIGURATION_Handle
-                     *cfg, void *cls,
-                     GNUNET_MESH_TunnelEndHandler
-                     cleaner,
+GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
+                     GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,
                      const GNUNET_MESH_ApplicationType *stypes)
 {
@@ -845,15 +831,10 @@ GNUNET_MESH_connect (const struct
     {NULL, 0, 0}
   };
 
-  ret->core = GNUNET_CORE_connect (cfg,
-                                   42,
-                                   ret,
-                                   &core_startup,
-                                   &core_connect,
-                                   &core_disconnect,
-                                   NULL,
-                                   NULL,
-                                   GNUNET_NO, NULL, GNUNET_NO, core_handlers);
+  ret->core =
+      GNUNET_CORE_connect (cfg, 42, ret, &core_startup, &core_connect,
+                           &core_disconnect, NULL, NULL, GNUNET_NO, NULL,
+                           GNUNET_NO, core_handlers);
   return ret;
 }
 

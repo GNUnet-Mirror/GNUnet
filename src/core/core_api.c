@@ -404,8 +404,8 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_YES (continue)
  */
 static int
-disconnect_and_free_peer_entry (void *cls,
-                                const GNUNET_HashCode * key, void *value)
+disconnect_and_free_peer_entry (void *cls, const GNUNET_HashCode * key,
+                                void *value)
 {
   static struct GNUNET_BANDWIDTH_Value32NBO zero;
   struct GNUNET_CORE_Handle *h = cls;
@@ -485,8 +485,8 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   }
   h->currently_down = GNUNET_YES;
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
-  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
-                                                    &reconnect_task, h);
+  h->reconnect_task =
+      GNUNET_SCHEDULER_add_delayed (h->retry_backoff, &reconnect_task, h);
   while (NULL != (cm = h->control_pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
@@ -502,8 +502,8 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   while (NULL != (pr = h->ready_peer_head))
     GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
   GNUNET_assert (h->control_pending_head == NULL);
-  h->retry_backoff = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
-                                               h->retry_backoff);
+  h->retry_backoff =
+      GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS, h->retry_backoff);
   h->retry_backoff = GNUNET_TIME_relative_multiply (h->retry_backoff, 2);
 }
 
@@ -515,8 +515,8 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
  * @param h core handle
  * @param ignore_currently_down transmit message even if not initialized?
  */
-static void
-trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down);
+static void trigger_next_request (struct GNUNET_CORE_Handle *h,
+                                  int ignore_currently_down);
 
 
 /**
@@ -526,8 +526,9 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down);
  * @param cls the transmit handle of the request that timed out
  * @param tc context, can be NULL (!)
  */
-static void
-transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void transmission_timeout (void *cls,
+                                  const struct GNUNET_SCHEDULER_TaskContext
+                                  *tc);
 
 
 /**
@@ -702,8 +703,9 @@ transmit_message (void *cls, size_t size, void *buf)
     sm->peer = pr->peer;
     sm->cork = htonl ((uint32_t) th->cork);
     sm->reserved = htonl (0);
-    ret = th->get_message (th->get_message_cls,
-                           size - sizeof (struct SendMessage), &sm[1]);
+    ret =
+        th->get_message (th->get_message_cls,
+                         size - sizeof (struct SendMessage), &sm[1]);
 
 #if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -774,8 +776,8 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
   }
   if (h->control_pending_head != NULL)
     msize =
-        ntohs (((struct GNUNET_MessageHeader *) &h->
-                control_pending_head[1])->size);
+        ntohs (((struct GNUNET_MessageHeader *) &h->control_pending_head[1])->
+               size);
   else if (h->ready_peer_head != NULL)
     msize =
         h->ready_peer_head->pending_head->msize + sizeof (struct SendMessage);
@@ -787,11 +789,10 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
 #endif
     return;                     /* no pending message */
   }
-  h->cth = GNUNET_CLIENT_notify_transmit_ready (h->client,
-                                                msize,
-                                                GNUNET_TIME_UNIT_FOREVER_REL,
-                                                GNUNET_NO,
-                                                &transmit_message, h);
+  h->cth =
+      GNUNET_CLIENT_notify_transmit_ready (h->client, msize,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_NO, &transmit_message, h);
 }
 
 
@@ -857,8 +858,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     h->retry_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
     GNUNET_CRYPTO_hash (&m->publicKey,
-                        sizeof (struct
-                                GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                         &h->me.hashPubKey);
     if (NULL != (init = h->init))
     {
@@ -886,8 +886,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     pr->ch = h;
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_put (h->peers,
-                                                      &h->me.hashPubKey,
-                                                      pr,
+                                                      &h->me.hashPubKey, pr,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
     if (NULL != h->connects)
       h->connects (h->cls, &h->me, NULL);
@@ -934,8 +933,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     pr->ch = h;
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_put (h->peers,
-                                                      &cnm->peer.hashPubKey,
-                                                      pr,
+                                                      &cnm->peer.hashPubKey, pr,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
     if (NULL != h->connects)
       h->connects (h->cls, &cnm->peer, &cnm->ats);
@@ -967,8 +965,8 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       reconnect_later (h);
       return;
     }
-    trigger = ((pr->prev != NULL) ||
-               (pr->next != NULL) || (h->ready_peer_head == pr));
+    trigger = ((pr->prev != NULL) || (pr->next != NULL) ||
+               (h->ready_peer_head == pr));
     disconnect_and_free_peer_entry (h, &dnm->peer.hashPubKey, pr);
     if (trigger)
       trigger_next_request (h, GNUNET_NO);
@@ -1015,9 +1013,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       reconnect_later (h);
       return;
     }
-    h->status_events (h->cls,
-                      &psnm->peer,
-                      psnm->bandwidth_in,
+    h->status_events (h->cls, &psnm->peer, psnm->bandwidth_in,
                       psnm->bandwidth_out,
                       GNUNET_TIME_absolute_ntoh (psnm->timeout), &psnm->ats);
     break;
@@ -1056,7 +1052,8 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
     if ((GNUNET_NO == h->inbound_hdr_only) &&
-        (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage) +
+        (msize !=
+         ntohs (em->size) + sizeof (struct NotifyTrafficMessage) +
          +ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)))
     {
       GNUNET_break (0);
@@ -1124,8 +1121,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                 GNUNET_i2s (&ntm->peer));
 #endif
     if ((GNUNET_NO == h->outbound_hdr_only) &&
-        (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage)
-         + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)))
+        (msize !=
+         ntohs (em->size) + sizeof (struct NotifyTrafficMessage) +
+         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)))
     {
       GNUNET_break (0);
       reconnect_later (h);
@@ -1221,10 +1219,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_free_non_null (pr->pcic_ptr);
     pr->pcic_ptr = NULL;
     if (pcic != NULL)
-      pcic (pr->pcic_cls,
-            &pr->peer,
-            cim->bw_out,
-            ntohl (cim->reserved_amount),
+      pcic (pr->pcic_cls, &pr->peer, cim->bw_out, ntohl (cim->reserved_amount),
             GNUNET_TIME_relative_ntoh (cim->reserve_delay),
             GNUNET_ntohll (cim->preference));
     break;
@@ -1232,8 +1227,8 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     reconnect_later (h);
     return;
   }
-  GNUNET_CLIENT_receive (h->client,
-                         &main_notify_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (h->client, &main_notify_handler, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -1261,8 +1256,8 @@ init_done_task (void *cls, int success)
       reconnect_later (h);
     return;
   }
-  GNUNET_CLIENT_receive (h->client,
-                         &main_notify_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (h->client, &main_notify_handler, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -1321,8 +1316,8 @@ reconnect (struct GNUNET_CORE_Handle *h)
   ts = (uint16_t *) & init[1];
   for (hpos = 0; hpos < h->hcnt; hpos++)
     ts[hpos] = htons (h->handlers[hpos].type);
-  GNUNET_CONTAINER_DLL_insert (h->control_pending_head,
-                               h->control_pending_tail, cm);
+  GNUNET_CONTAINER_DLL_insert (h->control_pending_head, h->control_pending_tail,
+                               cm);
   trigger_next_request (h, GNUNET_YES);
 }
 
@@ -1354,8 +1349,7 @@ reconnect (struct GNUNET_CORE_Handle *h)
  */
 struct GNUNET_CORE_Handle *
 GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     unsigned int queue_size,
-                     void *cls,
+                     unsigned int queue_size, void *cls,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
@@ -1485,8 +1479,7 @@ run_request_next_transmission (void *cls,
  *         memory); if NULL is returned, "notify" will NOT be called.
  */
 struct GNUNET_CORE_TransmitHandle *
-GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
-                                   int cork,
+GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
                                    uint32_t priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,
@@ -1562,8 +1555,8 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   /* Order entries by deadline, but SKIP 'HEAD' if
    * we're in the 'ready_peer_*' DLL */
   pos = pr->pending_head;
-  if ((pr->prev != NULL) ||
-      (pr->next != NULL) || (pr == handle->ready_peer_head))
+  if ((pr->prev != NULL) || (pr->next != NULL) ||
+      (pr == handle->ready_peer_head))
   {
     GNUNET_assert (pos != NULL);
     pos = pos->next;            /* skip head */
@@ -1576,17 +1569,16 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
     prev = pos;
     pos = pos->next;
   }
-  GNUNET_CONTAINER_DLL_insert_after (pr->pending_head,
-                                     pr->pending_tail, prev, th);
+  GNUNET_CONTAINER_DLL_insert_after (pr->pending_head, pr->pending_tail, prev,
+                                     th);
   pr->queue_size++;
   /* was the request queue previously empty? */
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission request added to queue\n");
 #endif
-  if ((pr->pending_head == th) &&
-      (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK) &&
-      (pr->next == NULL) &&
-      (pr->prev == NULL) && (handle->ready_peer_head != pr))
+  if ((pr->pending_head == th) && (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK) &&
+      (pr->next == NULL) && (pr->prev == NULL) &&
+      (handle->ready_peer_head != pr))
     pr->ntr_task =
         GNUNET_SCHEDULER_add_now (&run_request_next_transmission, pr);
   return th;
@@ -1760,8 +1752,8 @@ GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A CHANGE PREFERENCE request was cancelled!\n");
 #endif
-  GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-                               h->control_pending_tail, cm);
+  GNUNET_CONTAINER_DLL_remove (h->control_pending_head, h->control_pending_tail,
+                               cm);
   GNUNET_free (cm);
   GNUNET_free (req);
 }
@@ -1834,8 +1826,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
                                     const struct GNUNET_PeerIdentity *peer,
                                     struct GNUNET_TIME_Relative timeout,
                                     struct GNUNET_BANDWIDTH_Value32NBO bw_out,
-                                    int32_t amount,
-                                    uint64_t preference,
+                                    int32_t amount, uint64_t preference,
                                     GNUNET_CORE_PeerConfigurationInfoCallback
                                     info, void *info_cls)
 {

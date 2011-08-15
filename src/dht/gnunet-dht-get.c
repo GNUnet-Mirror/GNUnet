@@ -117,15 +117,14 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param data pointer to the result data
  */
 void
-get_result_iterator (void *cls,
-                     struct GNUNET_TIME_Absolute exp,
+get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *const *get_path,
                      const struct GNUNET_PeerIdentity *const *put_path,
                      enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
-  fprintf (stdout, "Result %d, type %d:\n%.*s\n",
-           result_count, type, (unsigned int) size, (char *) data);
+  fprintf (stdout, "Result %d, type %d:\n%.*s\n", result_count, type,
+           (unsigned int) size, (char *) data);
   result_count++;
 }
 
@@ -139,9 +138,8 @@ get_result_iterator (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode key;
@@ -181,14 +179,10 @@ run (void *cls,
     fprintf (stderr, "Issuing GET request for %s!\n", query_key);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                 (absolute_timeout), &cleanup_task, NULL);
-  get_handle = GNUNET_DHT_get_start (dht_handle,
-                                     timeout,
-                                     query_type,
-                                     &key,
-                                     DEFAULT_GET_REPLICATION,
-                                     GNUNET_DHT_RO_NONE,
-                                     NULL, 0,
-                                     NULL, 0, &get_result_iterator, NULL);
+  get_handle =
+      GNUNET_DHT_get_start (dht_handle, timeout, query_type, &key,
+                            DEFAULT_GET_REPLICATION, GNUNET_DHT_RO_NONE, NULL,
+                            0, NULL, 0, &get_result_iterator, NULL);
 
 }
 
@@ -224,9 +218,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-dht-get",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-dht-get",
                               gettext_noop
                               ("Issue a GET request to the GNUnet DHT, prints results."),
                               options, &run, NULL)) ? ret : 1;

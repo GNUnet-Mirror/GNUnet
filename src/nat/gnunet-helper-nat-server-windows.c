@@ -272,8 +272,8 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.checksum = 0;
   ip_pkt.src_ip = my_ip->s_addr;
   ip_pkt.dst_ip = dummy.s_addr;
-  ip_pkt.checksum = htons (calc_checksum ((uint16_t *) & ip_pkt,
-                                          sizeof (struct ip_header)));
+  ip_pkt.checksum =
+      htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
   memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
@@ -281,16 +281,17 @@ send_icmp_echo (const struct in_addr *my_ip)
   icmp_echo.code = 0;
   icmp_echo.reserved = 0;
   icmp_echo.checksum = 0;
-  icmp_echo.checksum = htons (calc_checksum ((uint16_t *) & icmp_echo,
-                                             sizeof (struct icmp_echo_header)));
+  icmp_echo.checksum =
+      htons (calc_checksum
+             ((uint16_t *) & icmp_echo, sizeof (struct icmp_echo_header)));
   memcpy (&packet[off], &icmp_echo, sizeof (struct icmp_echo_header));
   off += sizeof (struct icmp_echo_header);
 
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
   dst.sin_addr = dummy;
-  err = sendto (rawsock,
-                packet, off, 0, (struct sockaddr *) &dst, sizeof (dst));
+  err =
+      sendto (rawsock, packet, off, 0, (struct sockaddr *) &dst, sizeof (dst));
   if (err < 0)
   {
 #if VERBOSE
@@ -383,9 +384,10 @@ process_icmp_response ()
   switch (ip_pkt.proto)
   {
   case IPPROTO_ICMP:
-    if (have != (sizeof (struct ip_header) * 2 +
-                 sizeof (struct icmp_ttl_exceeded_header) +
-                 sizeof (struct icmp_echo_header)))
+    if (have !=
+        (sizeof (struct ip_header) * 2 +
+         sizeof (struct icmp_ttl_exceeded_header) +
+         sizeof (struct icmp_echo_header)))
     {
       /* malformed */
       return;
@@ -395,9 +397,9 @@ process_icmp_response ()
     port = (uint16_t) ntohl (icmp_echo.reserved);
     break;
   case IPPROTO_UDP:
-    if (have != (sizeof (struct ip_header) * 2 +
-                 sizeof (struct icmp_ttl_exceeded_header) +
-                 sizeof (struct udp_header)))
+    if (have !=
+        (sizeof (struct ip_header) * 2 +
+         sizeof (struct icmp_ttl_exceeded_header) + sizeof (struct udp_header)))
     {
       /* malformed */
       return;
@@ -412,8 +414,8 @@ process_icmp_response ()
   }
 
   ssize = sizeof (buf);
-  WSAAddressToString ((LPSOCKADDR) & source_ip,
-                      sizeof (source_ip), NULL, buf, &ssize);
+  WSAAddressToString ((LPSOCKADDR) & source_ip, sizeof (source_ip), NULL, buf,
+                      &ssize);
   if (port == 0)
     fprintf (stdout, "%s\n", buf);
   else
@@ -460,16 +462,17 @@ make_raw_socket ()
     return INVALID_SOCKET;
   }
 
-  if (0 != setsockopt (rawsock,
-                       SOL_SOCKET, SO_BROADCAST, (char *) &bOptVal, bOptLen))
+  if (0 !=
+      setsockopt (rawsock, SOL_SOCKET, SO_BROADCAST, (char *) &bOptVal,
+                  bOptLen))
   {
-    fprintf (stderr,
-             "Error setting SO_BROADCAST to ON: %s\n", strerror (errno));
+    fprintf (stderr, "Error setting SO_BROADCAST to ON: %s\n",
+             strerror (errno));
     closesocket (rawsock);
     return INVALID_SOCKET;
   }
-  if (0 != setsockopt (rawsock,
-                       IPPROTO_IP, IP_HDRINCL, (char *) &bOptVal, bOptLen))
+  if (0 !=
+      setsockopt (rawsock, IPPROTO_IP, IP_HDRINCL, (char *) &bOptVal, bOptLen))
   {
     fprintf (stderr, "Error setting IP_HDRINCL to ON: %s\n", strerror (errno));
     closesocket (rawsock);
@@ -503,9 +506,8 @@ make_udp_socket (const struct in_addr *my_ip)
   addr.sin_port = htons (NAT_TRAV_PORT);
   if (0 != bind (ret, (struct sockaddr *) &addr, sizeof (addr)))
   {
-    fprintf (stderr,
-             "Error binding UDP socket to port %u: %s\n",
-             NAT_TRAV_PORT, strerror (errno));
+    fprintf (stderr, "Error binding UDP socket to port %u: %s\n", NAT_TRAV_PORT,
+             strerror (errno));
     /* likely problematic, but not certain, try to continue */
   }
   return ret;
@@ -530,9 +532,8 @@ main (int argc, char *const *argv)
   }
   if (1 != inet_pton (AF_INET, argv[1], &external))
   {
-    fprintf (stderr,
-             "Error parsing IPv4 address: %s, error %s\n",
-             argv[1], strerror (errno));
+    fprintf (stderr, "Error parsing IPv4 address: %s, error %s\n", argv[1],
+             strerror (errno));
     return 1;
   }
   if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))

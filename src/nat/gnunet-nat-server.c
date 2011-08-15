@@ -148,13 +148,11 @@ try_send_tcp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
   sa.sin_addr.s_addr = dst_ipv4;
   sa.sin_port = htons (dport);
 #if DEBUG_NAT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending TCP message to `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending TCP message to `%s'\n",
               GNUNET_a2s ((struct sockaddr *) &sa, sizeof (sa)));
 #endif
   if ((GNUNET_OK !=
-       GNUNET_NETWORK_socket_connect (s,
-                                      (const struct sockaddr *) &sa,
+       GNUNET_NETWORK_socket_connect (s, (const struct sockaddr *) &sa,
                                       sizeof (sa))) && (errno != EINPROGRESS))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "connect");
@@ -196,14 +194,12 @@ try_send_udp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
   sa.sin_addr.s_addr = dst_ipv4;
   sa.sin_port = htons (dport);
 #if DEBUG_NAT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending UDP packet to `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending UDP packet to `%s'\n",
               GNUNET_a2s ((struct sockaddr *) &sa, sizeof (sa)));
 #endif
-  if (-1 == GNUNET_NETWORK_socket_sendto (s,
-                                          &data, sizeof (data),
-                                          (const struct sockaddr *) &sa,
-                                          sizeof (sa)))
+  if (-1 ==
+      GNUNET_NETWORK_socket_sendto (s, &data, sizeof (data),
+                                    (const struct sockaddr *) &sa, sizeof (sa)))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "sendto");
   GNUNET_NETWORK_socket_close (s);
 }
@@ -218,8 +214,7 @@ try_send_udp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
  * @param msg message with details about what to test
  */
 static void
-test (void *cls,
-      struct GNUNET_SERVER_Client *client,
+test (void *cls, struct GNUNET_SERVER_Client *client,
       const struct GNUNET_MessageHeader *msg)
 {
   const struct GNUNET_NAT_TestMessage *tm;
@@ -263,9 +258,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&test, NULL, GNUNET_MESSAGE_TYPE_NAT_TEST,
@@ -288,8 +282,8 @@ run (void *cls,
   };
 
   cfg = c;
-  if ((args[0] == NULL) ||
-      (1 != SSCANF (args[0], "%u", &port)) || (0 == port) || (65536 <= port))
+  if ((args[0] == NULL) || (1 != SSCANF (args[0], "%u", &port)) || (0 == port)
+      || (65536 <= port))
   {
     fprintf (stderr,
              _
@@ -307,12 +301,12 @@ run (void *cls,
   in4.sin_len = sizeof (in4);
   in6.sin6_len = sizeof (in6);
 #endif
-  server = GNUNET_SERVER_create (NULL, NULL,
-                                 (struct sockaddr * const *) sa,
-                                 slen, GNUNET_TIME_UNIT_SECONDS, GNUNET_YES);
+  server =
+      GNUNET_SERVER_create (NULL, NULL, (struct sockaddr * const *) sa, slen,
+                            GNUNET_TIME_UNIT_SECONDS, GNUNET_YES);
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
 }
 
 
@@ -331,10 +325,9 @@ main (int argc, char *const argv[])
   };
 
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv,
-                          "gnunet-nat-server [options] PORT",
-                          _("GNUnet NAT traversal test helper daemon"),
-                          options, &run, NULL))
+      GNUNET_PROGRAM_run (argc, argv, "gnunet-nat-server [options] PORT",
+                          _("GNUnet NAT traversal test helper daemon"), options,
+                          &run, NULL))
     return 1;
   return 0;
 }

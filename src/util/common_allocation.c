@@ -255,9 +255,7 @@ GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
  * @param linenumber where in the code was the call to GNUNET_array_grow
  */
 void
-GNUNET_xgrow_ (void **old,
-               size_t elementSize,
-               unsigned int *oldCount,
+GNUNET_xgrow_ (void **old, size_t elementSize, unsigned int *oldCount,
                unsigned int newCount, const char *filename, int linenumber)
 {
   void *tmp;

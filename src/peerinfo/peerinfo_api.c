@@ -240,8 +240,9 @@ reconnect (struct GNUNET_PEERINFO_Handle *h)
   h->client = GNUNET_CLIENT_connect ("peerinfo", h->cfg);
   if (NULL == h->client)
   {
-    h->r_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                              &reconnect_task, h);
+    h->r_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect_task,
+                                      h);
     return;
   }
   trigger_transmit (h);
@@ -283,8 +284,8 @@ do_transmit (void *cls, size_t size, void *buf)
   memcpy (buf, &tqe[1], ret);
 #if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting request of size %u to `%s' service.\n",
-              ret, "PEERINFO");
+              "Transmitting request of size %u to `%s' service.\n", ret,
+              "PEERINFO");
 #endif
   GNUNET_CONTAINER_DLL_remove (h->tq_head, h->tq_tail, tqe);
   if (tqe->cont != NULL)
@@ -318,11 +319,11 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
     reconnect (h);
     return;
   }
-  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
-                                               tqe->size,
-                                               GNUNET_TIME_absolute_get_remaining
-                                               (tqe->timeout), GNUNET_YES,
-                                               &do_transmit, h);
+  h->th =
+      GNUNET_CLIENT_notify_transmit_ready (h->client, tqe->size,
+                                           GNUNET_TIME_absolute_get_remaining
+                                           (tqe->timeout), GNUNET_YES,
+                                           &do_transmit, h);
 }
 
 
@@ -487,9 +488,8 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   ic->h->in_receive = GNUNET_YES;
   if (ic->callback != NULL)
     ic->callback (ic->callback_cls, &im->peer, hello, NULL);
-  GNUNET_CLIENT_receive (ic->h->client,
-                         &peerinfo_handler,
-                         ic, GNUNET_TIME_absolute_get_remaining (ic->timeout));
+  GNUNET_CLIENT_receive (ic->h->client, &peerinfo_handler, ic,
+                         GNUNET_TIME_absolute_get_remaining (ic->timeout));
 }
 
 
@@ -527,9 +527,8 @@ iterator_start_receive (void *cls, int transmit_success)
   ic->h->in_receive = GNUNET_YES;
   ic->in_receive = GNUNET_YES;
   ic->tqe = NULL;
-  GNUNET_CLIENT_receive (ic->h->client,
-                         &peerinfo_handler,
-                         ic, GNUNET_TIME_absolute_get_remaining (ic->timeout));
+  GNUNET_CLIENT_receive (ic->h->client, &peerinfo_handler, ic,
+                         GNUNET_TIME_absolute_get_remaining (ic->timeout));
 }
 
 
@@ -549,8 +548,7 @@ signal_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (ic->h->tq_head, ic->h->tq_tail, ic->tqe);
   else
     reconnect (ic->h);
-  ic->callback (ic->callback_cls,
-                NULL, NULL,
+  ic->callback (ic->callback_cls, NULL, NULL,
                 _
                 ("Timeout transmitting iteration request to `PEERINFO' service.\n"));
   ic->callback = NULL;
@@ -592,8 +590,9 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Requesting list of peers from PEERINFO service\n");
 #endif
-    tqe = GNUNET_malloc (sizeof (struct TransmissionQueueEntry) +
-                         sizeof (struct GNUNET_MessageHeader));
+    tqe =
+        GNUNET_malloc (sizeof (struct TransmissionQueueEntry) +
+                       sizeof (struct GNUNET_MessageHeader));
     tqe->size = sizeof (struct GNUNET_MessageHeader);
     lapm = (struct GNUNET_MessageHeader *) &tqe[1];
     lapm->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -606,8 +605,9 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
                 "Requesting information on peer `%4s' from PEERINFO service\n",
                 GNUNET_i2s (peer));
 #endif
-    tqe = GNUNET_malloc (sizeof (struct TransmissionQueueEntry) +
-                         sizeof (struct ListPeerMessage));
+    tqe =
+        GNUNET_malloc (sizeof (struct TransmissionQueueEntry) +
+                       sizeof (struct ListPeerMessage));
     tqe->size = sizeof (struct ListPeerMessage);
     lpm = (struct ListPeerMessage *) &tqe[1];
     lpm->header.size = htons (sizeof (struct ListPeerMessage));
@@ -620,8 +620,8 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
   ic->callback = callback;
   ic->callback_cls = callback_cls;
   ic->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  ic->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
-                                                   &signal_timeout, ic);
+  ic->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (timeout, &signal_timeout, ic);
   tqe->timeout = ic->timeout;
   tqe->cont = &iterator_start_receive;
   tqe->cont_cls = ic;

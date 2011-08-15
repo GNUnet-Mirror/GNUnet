@@ -97,8 +97,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   /* expect more replies */
-  GNUNET_CLIENT_receive (alucb->client,
-                         &address_response_processor, alucb,
+  GNUNET_CLIENT_receive (alucb->client, &address_response_processor, alucb,
                          GNUNET_TIME_absolute_get_remaining (alucb->timeout));
   alucb->cb (alucb->cb_cls, address);
 }
@@ -119,10 +118,8 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
  */
 void
 GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const char *address,
-                                 size_t addressLen,
-                                 int numeric,
-                                 const char *nameTrans,
+                                 const char *address, size_t addressLen,
+                                 int numeric, const char *nameTrans,
                                  struct GNUNET_TIME_Relative timeout,
                                  GNUNET_TRANSPORT_AddressLookUpCallback aluc,
                                  void *aluc_cls)
@@ -163,10 +160,8 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   aluCB->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   aluCB->client = client;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CLIENT_transmit_and_get_response (client,
-                                                          &msg->header,
-                                                          timeout,
-                                                          GNUNET_YES,
+                 GNUNET_CLIENT_transmit_and_get_response (client, &msg->header,
+                                                          timeout, GNUNET_YES,
                                                           &address_response_processor,
                                                           aluCB));
   GNUNET_free (msg);

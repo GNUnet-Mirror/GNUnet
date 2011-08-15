@@ -94,9 +94,10 @@ testWeakKey ()
   weak_key.crc32 =
       htonl (GNUNET_CRYPTO_crc32_n (&weak_key, GNUNET_CRYPTO_AES_KEY_LENGTH));
 
-  size = GNUNET_CRYPTO_aes_encrypt (WEAK_KEY_TESTSTRING,
-                                    strlen (WEAK_KEY_TESTSTRING) + 1,
-                                    &weak_key, &INITVALUE, result);
+  size =
+      GNUNET_CRYPTO_aes_encrypt (WEAK_KEY_TESTSTRING,
+                                 strlen (WEAK_KEY_TESTSTRING) + 1, &weak_key,
+                                 &INITVALUE, result);
 
   if (size == -1)
   {
@@ -139,8 +140,8 @@ getWeakKeys ()
     /*printf("Got to run number %d.\n", number_of_runs); */
     GNUNET_CRYPTO_aes_create_session_key (&sessionkey);
 
-    rc = gcry_cipher_open (&handle,
-                           GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CFB, 0);
+    rc = gcry_cipher_open (&handle, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CFB,
+                           0);
 
     if (rc)
     {
@@ -188,8 +189,8 @@ main (int argc, char *argv[])
     }
     else
     {
-      printf ("\n%d weak keys found in %d runs.\n",
-              weak_keys, MAX_WEAK_KEY_TRIALS);
+      printf ("\n%d weak keys found in %d runs.\n", weak_keys,
+              MAX_WEAK_KEY_TRIALS);
     }
   }
 

@@ -99,8 +99,7 @@ internal_notify (const GNUNET_HashCode * id,
  */
 int
 GNUNET_PSEUDONYM_discovery_callback_register (const struct
-                                              GNUNET_CONFIGURATION_Handle
-                                              *cfg,
+                                              GNUNET_CONFIGURATION_Handle *cfg,
                                               GNUNET_PSEUDONYM_Iterator
                                               iterator, void *closure)
 {
@@ -155,16 +154,14 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
  * @return filename of the pseudonym (if psid != NULL) or directory with the data (if psid == NULL)
  */
 static char *
-get_data_filename (const struct GNUNET_CONFIGURATION_Handle
-                   *cfg, const char *prefix, const GNUNET_HashCode * psid)
+get_data_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                   const char *prefix, const GNUNET_HashCode * psid)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
   if (psid != NULL)
     GNUNET_CRYPTO_hash_to_enc (psid, &enc);
-  return GNUNET_DISK_get_home_filename (cfg,
-                                        GNUNET_CLIENT_SERVICE_NAME,
-                                        prefix,
+  return GNUNET_DISK_get_home_filename (cfg, GNUNET_CLIENT_SERVICE_NAME, prefix,
                                         (psid ==
                                          NULL) ? NULL : (const char *) &enc,
                                         NULL);
@@ -228,8 +225,8 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 static int
 read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
            const GNUNET_HashCode * nsid,
-           struct GNUNET_CONTAINER_MetaData **meta,
-           int32_t * ranking, char **ns_name)
+           struct GNUNET_CONTAINER_MetaData **meta, int32_t * ranking,
+           char **ns_name)
 {
   char *fn;
   char *emsg;
@@ -309,16 +306,17 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (GNUNET_OK == read_info (cfg, nsid, &meta, rank, &name))
   {
     if ((meta != NULL) && (name == NULL))
-      name = GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
-                                                            EXTRACTOR_METATYPE_TITLE,
-                                                            EXTRACTOR_METATYPE_FILENAME,
-                                                            EXTRACTOR_METATYPE_DESCRIPTION,
-                                                            EXTRACTOR_METATYPE_SUBJECT,
-                                                            EXTRACTOR_METATYPE_PUBLISHER,
-                                                            EXTRACTOR_METATYPE_AUTHOR_NAME,
-                                                            EXTRACTOR_METATYPE_COMMENT,
-                                                            EXTRACTOR_METATYPE_SUMMARY,
-                                                            -1);
+      name =
+          GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
+                                                         EXTRACTOR_METATYPE_TITLE,
+                                                         EXTRACTOR_METATYPE_FILENAME,
+                                                         EXTRACTOR_METATYPE_DESCRIPTION,
+                                                         EXTRACTOR_METATYPE_SUBJECT,
+                                                         EXTRACTOR_METATYPE_PUBLISHER,
+                                                         EXTRACTOR_METATYPE_AUTHOR_NAME,
+                                                         EXTRACTOR_METATYPE_COMMENT,
+                                                         EXTRACTOR_METATYPE_SUMMARY,
+                                                         -1);
     if (meta != NULL)
     {
       GNUNET_CONTAINER_meta_data_destroy (meta);
@@ -334,15 +332,16 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
   len = 0;
   if (0 == STAT (fn, &sbuf))
     GNUNET_DISK_file_size (fn, &len, GNUNET_YES);
-  fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_CREATE
-                              | GNUNET_DISK_OPEN_READWRITE,
+  fh = GNUNET_DISK_file_open (fn,
+                              GNUNET_DISK_OPEN_CREATE |
+                              GNUNET_DISK_OPEN_READWRITE,
                               GNUNET_DISK_PERM_USER_READ |
                               GNUNET_DISK_PERM_USER_WRITE);
   i = 0;
   idx = -1;
   while ((len >= sizeof (GNUNET_HashCode)) &&
-         (sizeof (GNUNET_HashCode)
-          == GNUNET_DISK_file_read (fh, &nh, sizeof (GNUNET_HashCode))))
+         (sizeof (GNUNET_HashCode) ==
+          GNUNET_DISK_file_read (fh, &nh, sizeof (GNUNET_HashCode))))
   {
     if (0 == memcmp (&nh, nsid, sizeof (GNUNET_HashCode)))
     {
@@ -407,8 +406,9 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (fn);
     return GNUNET_SYSERR;
   }
-  fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_CREATE
-                              | GNUNET_DISK_OPEN_READWRITE,
+  fh = GNUNET_DISK_file_open (fn,
+                              GNUNET_DISK_OPEN_CREATE |
+                              GNUNET_DISK_OPEN_READWRITE,
                               GNUNET_DISK_PERM_USER_READ |
                               GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_free (fn);

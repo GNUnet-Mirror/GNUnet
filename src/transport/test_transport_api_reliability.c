@@ -114,8 +114,8 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
-  fprintf (stderr,
-           "\nThroughput was %llu kb/s\n", total_bytes * 1000 / 1024 / delta);
+  fprintf (stderr, "\nThroughput was %llu kb/s\n",
+           total_bytes * 1000 / 1024 / delta);
   //GNUNET_asprintf(&value_name, "reliable_%s", test_name);
   //GAUGER ("TRANSPORT", value_name, (int)(total_bytes * 1000 / 1024 /delta), "kb/s");
   //GNUNET_free(value_name);
@@ -161,8 +161,7 @@ get_size (unsigned int iter)
 
 
 static void
-notify_receive (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
@@ -204,8 +203,8 @@ notify_receive (void *cls,
   if (0 != memcmp (cbuf, &hdr[1], s - sizeof (struct TestMessage)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected message %u with bits %u, but body did not match\n",
-                n, (unsigned char) n);
+                "Expected message %u with bits %u, but body did not match\n", n,
+                (unsigned char) n);
     if (die_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (die_task);
     test_failed = GNUNET_YES;
@@ -215,8 +214,7 @@ notify_receive (void *cls,
 #if VERBOSE
   if (ntohl (hdr->num) % 5000 == 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Got message %u of size %u\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got message %u of size %u\n",
                 ntohl (hdr->num), ntohs (message->size));
   }
 #endif
@@ -271,8 +269,8 @@ notify_ready (void *cls, size_t size, void *buf)
 #if VERBOSE
     if (n % 5000 == 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending message %u of size %u\n", n, s);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending message %u of size %u\n", n,
+                  s);
     }
 #endif
     n++;
@@ -284,10 +282,9 @@ notify_ready (void *cls, size_t size, void *buf)
   if (n < TOTAL_MSGS)
   {
     if (th == NULL)
-      th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th,
-                                                   &p1->id,
-                                                   s, 0, TIMEOUT,
-                                                   &notify_ready, NULL);
+      th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, s, 0,
+                                                   TIMEOUT, &notify_ready,
+                                                   NULL);
     msg_scheduled = n;
   }
   if (n % 5000 == 0)
@@ -305,19 +302,17 @@ notify_ready (void *cls, size_t size, void *buf)
 
 
 static void
-notify_connect (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
+              GNUNET_i2s (peer), cls);
 
   if (cls == p1)
   {
-    GNUNET_TRANSPORT_set_quota (p1->th,
-                                &p2->id,
+    GNUNET_TRANSPORT_set_quota (p1->th, &p2->id,
                                 GNUNET_BANDWIDTH_value_init (1024 * 1024 *
                                                              1024),
                                 GNUNET_BANDWIDTH_value_init (1024 * 1024 *
@@ -325,8 +320,7 @@ notify_connect (void *cls,
   }
   else if (cls == p2)
   {
-    GNUNET_TRANSPORT_set_quota (p2->th,
-                                &p1->id,
+    GNUNET_TRANSPORT_set_quota (p2->th, &p1->id,
                                 GNUNET_BANDWIDTH_value_init (1024 * 1024 *
                                                              1024),
                                 GNUNET_BANDWIDTH_value_init (1024 * 1024 *
@@ -338,18 +332,16 @@ notify_connect (void *cls,
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected (%p)!\n", GNUNET_i2s (peer), cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' disconnected (%p)!\n",
+              GNUNET_i2s (peer), cls);
 }
 
 static void
 sendtask ()
 {
   start_time = GNUNET_TIME_absolute_get ();
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th,
-                                               &p1->id,
-                                               get_size (0), 0, TIMEOUT,
-                                               &notify_ready, NULL);
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, get_size (0), 0,
+                                               TIMEOUT, &notify_ready, NULL);
 }
 
 static void
@@ -357,8 +349,8 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   char *p1_c = strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n",
-              p1_c, GNUNET_i2s (&p2->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n", p1_c,
+              GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
   // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
@@ -366,20 +358,17 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 }
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p1,
-                                            &notify_receive,
-                                            &notify_connect,
-                                            &notify_disconnect, NULL);
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2,
-                                            &notify_receive,
-                                            &notify_connect,
-                                            &notify_disconnect, NULL);
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p1, &notify_receive,
+                                            &notify_connect, &notify_disconnect,
+                                            NULL);
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2, &notify_receive,
+                                            &notify_connect, &notify_disconnect,
+                                            NULL);
 
   GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
 }
@@ -403,8 +392,8 @@ check ()
   setTransportOptions ("test_transport_api_data.conf");
 #endif
   ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-transport-api", "nohelp", options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-transport-api", "nohelp", options, &run, &ok);
 
   return ok;
 }
@@ -494,8 +483,8 @@ check_gnunet_nat_binary (char *binary)
   }
   if (0 != STAT (p, &statbuf))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("stat (%s) failed: %s\n"), p, STRERROR (errno));
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("stat (%s) failed: %s\n"), p,
+                STRERROR (errno));
     GNUNET_free (p);
     return GNUNET_SYSERR;
   }

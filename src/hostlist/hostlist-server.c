@@ -123,15 +123,15 @@ finish_response (struct HostSet *results)
               "Creating hostlist response with %u bytes\n",
               (unsigned int) results->size);
 #endif
-  response = MHD_create_response_from_data (results->size,
-                                            results->data, MHD_YES, MHD_NO);
+  response =
+      MHD_create_response_from_data (results->size, results->data, MHD_YES,
+                                     MHD_NO);
   if ((daemon_handle_v4 == NULL) && (daemon_handle_v6 == NULL))
   {
     MHD_destroy_response (response);
     response = NULL;
   }
-  GNUNET_STATISTICS_set (stats,
-                         gettext_noop ("bytes in hostlist"),
+  GNUNET_STATISTICS_set (stats, gettext_noop ("bytes in hostlist"),
                          results->size, GNUNET_YES);
   GNUNET_free (results);
 }
@@ -148,18 +148,17 @@ finish_response (struct HostSet *results)
  * @return  GNUNET_SYSERR to stop iterating (unless expiration has occured)
  */
 static int
-check_has_addr (void *cls,
-                const char *tname,
-                struct GNUNET_TIME_Absolute expiration,
-                const void *addr, uint16_t addrlen)
+check_has_addr (void *cls, const char *tname,
+                struct GNUNET_TIME_Absolute expiration, const void *addr,
+                uint16_t addrlen)
 {
   int *arg = cls;
 
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
   {
     GNUNET_STATISTICS_update (stats,
-                              gettext_noop ("expired addresses encountered"),
-                              1, GNUNET_YES);
+                              gettext_noop ("expired addresses encountered"), 1,
+                              GNUNET_YES);
     return GNUNET_YES;          /* ignore this address */
   }
   *arg = GNUNET_YES;
@@ -172,8 +171,7 @@ check_has_addr (void *cls,
  * hostlist response construction.
  */
 static void
-host_processor (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+host_processor (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
   struct HostSet *results = cls;
@@ -229,8 +227,8 @@ host_processor (void *cls,
   }
 #if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Adding peer `%s' to hostlist (%u bytes)\n",
-              GNUNET_i2s (peer), (unsigned int) s);
+              "Adding peer `%s' to hostlist (%u bytes)\n", GNUNET_i2s (peer),
+              (unsigned int) s);
 #endif
   GNUNET_array_grow (results->data, results->size, old + s);
   memcpy (&results->data[old], hello, s);
@@ -242,8 +240,8 @@ host_processor (void *cls,
  * Hostlist access policy (very permissive, allows everything).
  */
 static int
-accept_policy_callback (void *cls,
-                        const struct sockaddr *addr, socklen_t addrlen)
+accept_policy_callback (void *cls, const struct sockaddr *addr,
+                        socklen_t addrlen)
 {
   if (NULL == response)
   {
@@ -261,12 +259,9 @@ accept_policy_callback (void *cls,
  * Main request handler.
  */
 static int
-access_handler_callback (void *cls,
-                         struct MHD_Connection *connection,
-                         const char *url,
-                         const char *method,
-                         const char *version,
-                         const char *upload_data,
+access_handler_callback (void *cls, struct MHD_Connection *connection,
+                         const char *url, const char *method,
+                         const char *version, const char *upload_data,
                          size_t * upload_data_size, void **con_cls)
 {
   static int dummy;
@@ -312,8 +307,7 @@ access_handler_callback (void *cls,
     return MHD_NO;              /* internal error, no response yet */
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received request for our hostlist\n"));
-  GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("hostlist requests processed"),
+  GNUNET_STATISTICS_update (stats, gettext_noop ("hostlist requests processed"),
                             1, GNUNET_YES);
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
@@ -353,11 +347,11 @@ adv_transmit_ready (void *cls, size_t size, void *buf)
               "Sent advertisement message: Copied %u bytes into buffer!\n",
               (unsigned int) transmission_size);
   hostlist_adv_count++;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " # Sent advertisement message: %u\n", hostlist_adv_count);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " # Sent advertisement message: %u\n",
+              hostlist_adv_count);
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# hostlist advertisements send"),
-                            1, GNUNET_NO);
+                            gettext_noop ("# hostlist advertisements send"), 1,
+                            GNUNET_NO);
   return transmission_size;
 }
 
@@ -370,9 +364,7 @@ adv_transmit_ready (void *cls, size_t size, void *buf)
  * @param atsi performance data
  */
 static void
-connect_handler (void *cls,
-                 const struct
-                 GNUNET_PeerIdentity *peer,
+connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   size_t size;
@@ -397,13 +389,10 @@ connect_handler (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asked core to transmit advertisement message with a size of %u bytes to peer `%s'\n",
               size, GNUNET_i2s (peer));
-  if (NULL == GNUNET_CORE_notify_transmit_ready (core,
-                                                 GNUNET_YES,
-                                                 0,
-                                                 GNUNET_ADV_TIMEOUT,
-                                                 peer,
-                                                 size,
-                                                 &adv_transmit_ready, NULL))
+  if (NULL ==
+      GNUNET_CORE_notify_transmit_ready (core, GNUNET_YES, 0,
+                                         GNUNET_ADV_TIMEOUT, peer, size,
+                                         &adv_transmit_ready, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Advertisement message could not be queued by core\n"));
@@ -433,8 +422,7 @@ disconnect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param err_msg NULL if successful, otherwise contains error message
  */
 static void
-process_notify (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+process_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
   struct HostSet *results;
@@ -451,18 +439,17 @@ process_notify (void *cls,
   }
   results = GNUNET_malloc (sizeof (struct HostSet));
   GNUNET_assert (peerinfo != NULL);
-  pitr = GNUNET_PEERINFO_iterate (peerinfo,
-                                  NULL,
-                                  GNUNET_TIME_UNIT_MINUTES,
-                                  &host_processor, results);
+  pitr =
+      GNUNET_PEERINFO_iterate (peerinfo, NULL, GNUNET_TIME_UNIT_MINUTES,
+                               &host_processor, results);
 }
 
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
  */
-static GNUNET_SCHEDULER_TaskIdentifier
-prepare_daemon (struct MHD_Daemon *daemon_handle);
+static GNUNET_SCHEDULER_TaskIdentifier prepare_daemon (struct MHD_Daemon
+                                                       *daemon_handle);
 
 
 /**
@@ -524,9 +511,10 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
-  ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                     GNUNET_SCHEDULER_NO_TASK,
-                                     tv, wrs, wws, &run_daemon, daemon_handle);
+  ret =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                   GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
+                                   &run_daemon, daemon_handle);
   GNUNET_NETWORK_fdset_destroy (wrs);
   GNUNET_NETWORK_fdset_destroy (wws);
   GNUNET_NETWORK_fdset_destroy (wes);
@@ -568,9 +556,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                 _("Could not access PEERINFO service.  Exiting.\n"));
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg,
-                                                          "HOSTLIST",
-                                                          "HTTPPORT", &port))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "HOSTLIST", "HTTPPORT",
+                                             &port))
     return GNUNET_SYSERR;
   if ((port == 0) || (port > UINT16_MAX))
   {
@@ -579,14 +567,13 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
     return GNUNET_SYSERR;
   }
 
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                              "HOSTLIST",
-                                                              "EXTERNAL_DNS_NAME",
-                                                              &hostname))
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST",
+                                             "EXTERNAL_DNS_NAME", &hostname))
     hostname = GNUNET_RESOLVER_local_fqdn_get ();
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Hostlist service starts on %s:%llu\n"), hostname, port);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Hostlist service starts on %s:%llu\n"),
+              hostname, port);
   if (NULL != hostname)
   {
     size = strlen (hostname);
@@ -596,8 +583,8 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
     }
     else
     {
-      GNUNET_asprintf (&hostlist_uri,
-                       "http://%s:%u/", hostname, (unsigned int) port);
+      GNUNET_asprintf (&hostlist_uri, "http://%s:%u/", hostname,
+                       (unsigned int) port);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Address to obtain hostlist: `%s'\n"), hostlist_uri);
     }
@@ -607,12 +594,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 #if DEBUG_HOSTLIST_SERVER
                                        | MHD_USE_DEBUG
 #endif
-                                       ,
-                                       (unsigned short) port,
-                                       &accept_policy_callback,
-                                       NULL,
-                                       &access_handler_callback,
-                                       NULL,
+                                       , (unsigned short) port,
+                                       &accept_policy_callback, NULL,
+                                       &access_handler_callback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT,
                                        (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT,
@@ -625,12 +609,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 #if DEBUG_HOSTLIST_SERVER
                                        | MHD_USE_DEBUG
 #endif
-                                       ,
-                                       (unsigned short) port,
-                                       &accept_policy_callback,
-                                       NULL,
-                                       &access_handler_callback,
-                                       NULL,
+                                       , (unsigned short) port,
+                                       &accept_policy_callback, NULL,
+                                       &access_handler_callback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT,
                                        (unsigned int) 16,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT,

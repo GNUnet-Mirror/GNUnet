@@ -61,9 +61,7 @@ struct Plugin
  * @return GNUNET_OK if the result is acceptable
  */
 static int
-check_result (struct Plugin *plugin,
-              PGresult * ret,
-              int expected_status,
+check_result (struct Plugin *plugin, PGresult * ret, int expected_status,
               const char *command, const char *args, int line)
 {
   if (ret == NULL)
@@ -78,9 +76,8 @@ check_result (struct Plugin *plugin,
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                      "datastore-postgres",
-                     _("`%s:%s' failed at %s:%d with error: %s"),
-                     command, args, __FILE__, line,
-                     PQerrorMessage (plugin->dbh));
+                     _("`%s:%s' failed at %s:%d with error: %s"), command, args,
+                     __FILE__, line, PQerrorMessage (plugin->dbh));
     PQclear (ret);
     return GNUNET_SYSERR;
   }
@@ -97,8 +94,8 @@ pq_exec (struct Plugin *plugin, const char *sql, int line)
   PGresult *ret;
 
   ret = PQexec (plugin->dbh, sql);
-  if (GNUNET_OK != check_result (plugin,
-                                 ret, PGRES_COMMAND_OK, "PQexec", sql, line))
+  if (GNUNET_OK !=
+      check_result (plugin, ret, PGRES_COMMAND_OK, "PQexec", sql, line))
     return GNUNET_SYSERR;
   PQclear (ret);
   return GNUNET_OK;
@@ -109,8 +106,8 @@ pq_exec (struct Plugin *plugin, const char *sql, int line)
  * Prepare SQL statement.
  */
 static int
-pq_prepare (struct Plugin *plugin,
-            const char *name, const char *sql, int nparms, int line)
+pq_prepare (struct Plugin *plugin, const char *name, const char *sql,
+            int nparms, int line)
 {
   PGresult *ret;
 
@@ -136,8 +133,8 @@ init_connection (struct Plugin *plugin)
   /* Open database and precompile statements */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-                                             "datacache-postgres",
-                                             "CONFIG", &conninfo))
+                                             "datacache-postgres", "CONFIG",
+                                             &conninfo))
     conninfo = NULL;
   plugin->dbh = PQconnectdb (conninfo == NULL ? "" : conninfo);
   GNUNET_free_non_null (conninfo);
@@ -148,28 +145,27 @@ init_connection (struct Plugin *plugin)
   }
   if (PQstatus (plugin->dbh) != CONNECTION_OK)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                     "datacache-postgres",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "datacache-postgres",
                      _("Unable to initialize Postgres: %s"),
                      PQerrorMessage (plugin->dbh));
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
   }
-  ret = PQexec (plugin->dbh,
-                "CREATE TEMPORARY TABLE gn090dc ("
-                "  type INTEGER NOT NULL DEFAULT 0,"
-                "  discard_time BIGINT NOT NULL DEFAULT 0,"
-                "  key BYTEA NOT NULL DEFAULT '',"
-                "  value BYTEA NOT NULL DEFAULT '')" "WITH OIDS");
+  ret =
+      PQexec (plugin->dbh,
+              "CREATE TEMPORARY TABLE gn090dc ("
+              "  type INTEGER NOT NULL DEFAULT 0,"
+              "  discard_time BIGINT NOT NULL DEFAULT 0,"
+              "  key BYTEA NOT NULL DEFAULT '',"
+              "  value BYTEA NOT NULL DEFAULT '')" "WITH OIDS");
   if ((ret == NULL) || ((PQresultStatus (ret) != PGRES_COMMAND_OK) && (0 != strcmp ("42P07",    /* duplicate table */
                                                                                     PQresultErrorField
                                                                                     (ret,
                                                                                      PG_DIAG_SQLSTATE)))))
   {
-    (void) check_result (plugin,
-                         ret, PGRES_COMMAND_OK, "CREATE TABLE", "gn090dc",
-                         __LINE__);
+    (void) check_result (plugin, ret, PGRES_COMMAND_OK, "CREATE TABLE",
+                         "gn090dc", __LINE__);
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
@@ -190,11 +186,12 @@ init_connection (struct Plugin *plugin)
   }
   PQclear (ret);
 #if 1
-  ret = PQexec (plugin->dbh,
-                "ALTER TABLE gn090dc ALTER value SET STORAGE EXTERNAL");
+  ret =
+      PQexec (plugin->dbh,
+              "ALTER TABLE gn090dc ALTER value SET STORAGE EXTERNAL");
   if (GNUNET_OK !=
-      check_result (plugin,
-                    ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090dc", __LINE__))
+      check_result (plugin, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090dc",
+                    __LINE__))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -203,8 +200,8 @@ init_connection (struct Plugin *plugin)
   PQclear (ret);
   ret = PQexec (plugin->dbh, "ALTER TABLE gn090dc ALTER key SET STORAGE PLAIN");
   if (GNUNET_OK !=
-      check_result (plugin,
-                    ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090dc", __LINE__))
+      check_result (plugin, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090dc",
+                    __LINE__))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -213,35 +210,22 @@ init_connection (struct Plugin *plugin)
   PQclear (ret);
 #endif
   if ((GNUNET_OK !=
-       pq_prepare (plugin,
-                   "getkt",
+       pq_prepare (plugin, "getkt",
                    "SELECT discard_time,type,value FROM gn090dc "
-                   "WHERE key=$1 AND type=$2 ",
-                   2,
-                   __LINE__)) ||
+                   "WHERE key=$1 AND type=$2 ", 2, __LINE__)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin,
-                   "getk",
+       pq_prepare (plugin, "getk",
                    "SELECT discard_time,type,value FROM gn090dc "
-                   "WHERE key=$1",
-                   1,
-                   __LINE__)) ||
+                   "WHERE key=$1", 1, __LINE__)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin,
-                   "getm",
+       pq_prepare (plugin, "getm",
                    "SELECT length(value),oid,key FROM gn090dc "
-                   "ORDER BY discard_time ASC LIMIT 1",
-                   0,
+                   "ORDER BY discard_time ASC LIMIT 1", 0, __LINE__)) ||
+      (GNUNET_OK !=
+       pq_prepare (plugin, "delrow", "DELETE FROM gn090dc WHERE oid=$1", 1,
                    __LINE__)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin,
-                   "delrow",
-                   "DELETE FROM gn090dc WHERE oid=$1",
-                   1,
-                   __LINE__)) ||
-      (GNUNET_OK !=
-       pq_prepare (plugin,
-                   "put",
+       pq_prepare (plugin, "put",
                    "INSERT INTO gn090dc (type, discard_time, key, value) "
                    "VALUES ($1, $2, $3, $4)", 4, __LINE__)))
   {
@@ -268,12 +252,11 @@ delete_by_rowid (struct Plugin *plugin, uint32_t rowid)
   const int paramFormats[] = { 1 };
   PGresult *ret;
 
-  ret = PQexecPrepared (plugin->dbh,
-                        "delrow",
-                        1, paramValues, paramLengths, paramFormats, 1);
+  ret =
+      PQexecPrepared (plugin->dbh, "delrow", 1, paramValues, paramLengths,
+                      paramFormats, 1);
   if (GNUNET_OK !=
-      check_result (plugin,
-                    ret, PGRES_COMMAND_OK, "PQexecPrepared", "delrow",
+      check_result (plugin, ret, PGRES_COMMAND_OK, "PQexecPrepared", "delrow",
                     __LINE__))
   {
     return GNUNET_SYSERR;
@@ -295,11 +278,8 @@ delete_by_rowid (struct Plugin *plugin, uint32_t rowid)
  * @return 0 on error, number of bytes used otherwise
  */
 static size_t
-postgres_plugin_put (void *cls,
-                     const GNUNET_HashCode * key,
-                     size_t size,
-                     const char *data,
-                     enum GNUNET_BLOCK_Type type,
+postgres_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
+                     const char *data, enum GNUNET_BLOCK_Type type,
                      struct GNUNET_TIME_Absolute discard_time)
 {
   struct Plugin *plugin = cls;
@@ -321,11 +301,12 @@ postgres_plugin_put (void *cls,
   };
   const int paramFormats[] = { 1, 1, 1, 1 };
 
-  ret = PQexecPrepared (plugin->dbh,
-                        "put", 4, paramValues, paramLengths, paramFormats, 1);
-  if (GNUNET_OK != check_result (plugin, ret,
-                                 PGRES_COMMAND_OK,
-                                 "PQexecPrepared", "put", __LINE__))
+  ret =
+      PQexecPrepared (plugin->dbh, "put", 4, paramValues, paramLengths,
+                      paramFormats, 1);
+  if (GNUNET_OK !=
+      check_result (plugin, ret, PGRES_COMMAND_OK, "PQexecPrepared", "put",
+                    __LINE__))
     return GNUNET_SYSERR;
   PQclear (ret);
   return size + OVERHEAD;
@@ -344,8 +325,7 @@ postgres_plugin_put (void *cls,
  * @return the number of results found
  */
 static unsigned int
-postgres_plugin_get (void *cls,
-                     const GNUNET_HashCode * key,
+postgres_plugin_get (void *cls, const GNUNET_HashCode * key,
                      enum GNUNET_BLOCK_Type type,
                      GNUNET_DATACACHE_Iterator iter, void *iter_cls)
 {
@@ -368,19 +348,16 @@ postgres_plugin_get (void *cls,
   PGresult *res;
 
   cnt = 0;
-  res = PQexecPrepared (plugin->dbh,
-                        (type == 0) ? "getk" : "getkt",
-                        (type == 0) ? 1 : 2,
-                        paramValues, paramLengths, paramFormats, 1);
-  if (GNUNET_OK != check_result (plugin,
-                                 res,
-                                 PGRES_TUPLES_OK,
-                                 "PQexecPrepared",
-                                 (type == 0) ? "getk" : "getkt", __LINE__))
+  res =
+      PQexecPrepared (plugin->dbh, (type == 0) ? "getk" : "getkt",
+                      (type == 0) ? 1 : 2, paramValues, paramLengths,
+                      paramFormats, 1);
+  if (GNUNET_OK !=
+      check_result (plugin, res, PGRES_TUPLES_OK, "PQexecPrepared",
+                    (type == 0) ? "getk" : "getkt", __LINE__))
   {
 #if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     "datacache-postgres",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
                      "Ending iteration (postgres error)\n");
 #endif
     return 0;
@@ -390,8 +367,7 @@ postgres_plugin_get (void *cls,
   {
     /* no result */
 #if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     "datacache-postgres",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
                      "Ending iteration (no more results)\n");
 #endif
     PQclear (res);
@@ -402,8 +378,7 @@ postgres_plugin_get (void *cls,
     PQclear (res);
     return cnt;
   }
-  if ((3 != PQnfields (res)) ||
-      (sizeof (uint64_t) != PQfsize (res, 0)) ||
+  if ((3 != PQnfields (res)) || (sizeof (uint64_t) != PQfsize (res, 0)) ||
       (sizeof (uint32_t) != PQfsize (res, 1)))
   {
     GNUNET_break (0);
@@ -417,19 +392,16 @@ postgres_plugin_get (void *cls,
     type = ntohl (*(uint32_t *) PQgetvalue (res, i, 1));
     size = PQgetlength (res, i, 2);
 #if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     "datacache-postgres",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
                      "Found result of size %u bytes and type %u in database\n",
                      (unsigned int) size, (unsigned int) type);
 #endif
     if (GNUNET_SYSERR ==
-        iter (iter_cls,
-              expiration_time,
-              key, size, PQgetvalue (res, i, 2), (enum GNUNET_BLOCK_Type) type))
+        iter (iter_cls, expiration_time, key, size, PQgetvalue (res, i, 2),
+              (enum GNUNET_BLOCK_Type) type))
     {
 #if DEBUG_POSTGRES
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "datacache-postgres",
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
                        "Ending iteration (client error)\n");
 #endif
       PQclear (res);
@@ -458,14 +430,12 @@ postgres_plugin_del (void *cls)
   PGresult *res;
 
   res = PQexecPrepared (plugin->dbh, "getm", 0, NULL, NULL, NULL, 1);
-  if (GNUNET_OK != check_result (plugin,
-                                 res,
-                                 PGRES_TUPLES_OK,
-                                 "PQexecPrepared", "getm", __LINE__))
+  if (GNUNET_OK !=
+      check_result (plugin, res, PGRES_TUPLES_OK, "PQexecPrepared", "getm",
+                    __LINE__))
   {
 #if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     "datacache-postgres",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
                      "Ending iteration (postgres error)\n");
 #endif
     return 0;
@@ -474,15 +444,13 @@ postgres_plugin_del (void *cls)
   {
     /* no result */
 #if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     "datacache-postgres",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
                      "Ending iteration (no more results)\n");
 #endif
     PQclear (res);
     return GNUNET_SYSERR;
   }
-  if ((3 != PQnfields (res)) ||
-      (sizeof (size) != PQfsize (res, 0)) ||
+  if ((3 != PQnfields (res)) || (sizeof (size) != PQfsize (res, 0)) ||
       (sizeof (oid) != PQfsize (res, 1)) ||
       (sizeof (GNUNET_HashCode) != PQgetlength (res, 0, 2)))
   {
@@ -528,8 +496,8 @@ libgnunet_plugin_datacache_postgres_init (void *cls)
   api->get = &postgres_plugin_get;
   api->put = &postgres_plugin_put;
   api->del = &postgres_plugin_del;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-                   "datacache-postgres", _("Postgres datacache running\n"));
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "datacache-postgres",
+                   _("Postgres datacache running\n"));
   return api;
 }
 

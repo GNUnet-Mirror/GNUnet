@@ -177,14 +177,14 @@ confirm_cb (void *cls, int success)
     break;
   case GNUNET_SYSERR:
     if (quiet != GNUNET_YES)
-      fprintf (stdout,
-               _("Some error communicating with service `%s'.\n"), service);
+      fprintf (stdout, _("Some error communicating with service `%s'.\n"),
+               service);
     ret = 1;
     break;
   }
 
-  GNUNET_SCHEDULER_add_continuation (&cps_loop,
-                                     NULL, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_continuation (&cps_loop, NULL,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -210,8 +210,8 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (quiet != GNUNET_YES)
       fprintf (stdout, _("Service `%s' is not running.\n"), service);
   }
-  GNUNET_SCHEDULER_add_continuation (&cps_loop,
-                                     NULL, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_continuation (&cps_loop, NULL,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -224,9 +224,8 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
   config_file = cfgfile;
@@ -247,8 +246,8 @@ run (void *cls,
     ret = 1;
     return;
   }
-  GNUNET_SCHEDULER_add_continuation (&cps_loop,
-                                     NULL, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_continuation (&cps_loop, NULL,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 /**
@@ -306,8 +305,9 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_ARM_stop_service (h, "arm",
                                  (0 ==
-                                  timeout.rel_value) ? STOP_TIMEOUT_ARM :
-                                 timeout, &confirm_cb, "arm");
+                                  timeout.
+                                  rel_value) ? STOP_TIMEOUT_ARM : timeout,
+                                 &confirm_cb, "arm");
         return;
       }
       break;
@@ -336,8 +336,9 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_CLIENT_service_test (test, cfg,
                                     (0 ==
-                                     timeout.rel_value) ? TEST_TIMEOUT :
-                                    timeout, &confirm_task, test);
+                                     timeout.
+                                     rel_value) ? TEST_TIMEOUT : timeout,
+                                    &confirm_task, test);
         return;
       }
       break;
@@ -412,12 +413,11 @@ main (int argc, char *const *argv)
   if (temp_timeout_ms > 0)
     timeout.rel_value = temp_timeout_ms;
 
-  if (GNUNET_OK == GNUNET_PROGRAM_run (argc,
-                                       argv,
-                                       "gnunet-arm",
-                                       gettext_noop
-                                       ("Control services and the Automated Restart Manager (ARM)"),
-                                       options, &run, NULL))
+  if (GNUNET_OK ==
+      GNUNET_PROGRAM_run (argc, argv, "gnunet-arm",
+                          gettext_noop
+                          ("Control services and the Automated Restart Manager (ARM)"),
+                          options, &run, NULL))
   {
     return ret;
   }

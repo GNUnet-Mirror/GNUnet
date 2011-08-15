@@ -215,15 +215,15 @@ evaluate_measurements ()
   stddev[0] = 0.0;
   for (c = 0; c < c_new; c++)
   {
-    stddev[0] += (results_new[c].duration - average[0]) *
-        (results_new[c].duration - average[0]);
+    stddev[0] +=
+        (results_new[c].duration - average[0]) * (results_new[c].duration -
+                                                  average[0]);
   }
   stddev[0] /= c_new;
   stddev[0] = sqrt (stddev[0]);
   if (!machine_parsable)
-    fprintf (stderr,
-             "new, %i measurements, average: %f stddev: %f\n",
-             c_new, average[0], stddev[0]);
+    fprintf (stderr, "new, %i measurements, average: %f stddev: %f\n", c_new,
+             average[0], stddev[0]);
 
   average[1] = 0.0;
   for (c = 0; c < c_modified; c++)
@@ -235,14 +235,14 @@ evaluate_measurements ()
   stddev[1] = 0.0;
   for (c = 0; c < c_modified; c++)
   {
-    stddev[1] += (results_modified[c].duration - average[1]) *
-        (results_modified[c].duration - average[1]);
+    stddev[1] +=
+        (results_modified[c].duration -
+         average[1]) * (results_modified[c].duration - average[1]);
   }
   stddev[1] /= c_modified;
   stddev[1] = sqrt (stddev[1]);
   if (!machine_parsable)
-    fprintf (stderr,
-             "modified, %i measurements, average: %f stddev: %f\n",
+    fprintf (stderr, "modified, %i measurements, average: %f stddev: %f\n",
              c_modified, average[1], stddev[1]);
 
   average[2] = 0.0;
@@ -254,35 +254,31 @@ evaluate_measurements ()
   stddev[2] = 0.0;
   for (c = 0; c < c_unmodified; c++)
   {
-    stddev[2] += (results_unmodified[c].duration - average[2]) *
-        (results_unmodified[c].duration - average[2]);
+    stddev[2] +=
+        (results_unmodified[c].duration -
+         average[2]) * (results_unmodified[c].duration - average[2]);
   }
   stddev[2] /= c_unmodified;
   stddev[2] = sqrt (stddev[2]);
 
   if (!machine_parsable)
-    fprintf (stderr,
-             "unmodified, %i measurements, average: %f stddev: %f\n",
+    fprintf (stderr, "unmodified, %i measurements, average: %f stddev: %f\n",
              c_unmodified, average[2], stddev[2]);
 
   if (machine_parsable)
     fprintf (stderr,
-             "peers,%i,mechs,%llu,"
-             "new,%i,%f,%f,"
-             "mod,%i,%f,%f,"
-             "unmod,%i,%f,%f\n",
-             peers - 1, (unsigned long long) results_unmodified[0].mechs,
-             c_new, average[0], stddev[0],
-             c_modified, average[1], stddev[1],
+             "peers,%i,mechs,%llu," "new,%i,%f,%f," "mod,%i,%f,%f,"
+             "unmod,%i,%f,%f\n", peers - 1,
+             (unsigned long long) results_unmodified[0].mechs, c_new,
+             average[0], stddev[0], c_modified, average[1], stddev[1],
              c_unmodified, average[2], stddev[2]);
   shutdown_peers ();
 }
 
 
 static int
-stats_cb (void *cls,
-          const char *subsystem,
-          const char *name, uint64_t value, int is_persistent)
+stats_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
+          int is_persistent)
 {
   static int printed = GNUNET_NO;
 
@@ -330,8 +326,8 @@ stats_cb (void *cls,
     s_state = NULL;
   }
 
-  if ((measurement_started == GNUNET_NO) &&
-      (0 == strcmp (name, "ATS peers")) && (value == peers - 1))
+  if ((measurement_started == GNUNET_NO) && (0 == strcmp (name, "ATS peers")) &&
+      (value == peers - 1))
   {
     measurement_started = GNUNET_YES;
     count = 1;
@@ -396,12 +392,11 @@ stats_cb (void *cls,
         }
         count++;
 #if VERBOSE
-        fprintf (stderr,
-                 "(new: %i / modified: %i / unmodified: %i) of %i \n",
+        fprintf (stderr, "(new: %i / modified: %i / unmodified: %i) of %i \n",
                  c_new, c_modified, c_unmodified, MEASUREMENTS);
 #endif
-        if ((c_modified >= MEASUREMENTS) &&
-            (c_new >= MEASUREMENTS) && (c_unmodified >= MEASUREMENTS))
+        if ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) &&
+            (c_unmodified >= MEASUREMENTS))
         {
 #if !VERBOSE
           if (!machine_parsable)
@@ -430,32 +425,32 @@ stats_cb (void *cls,
     {
       current.solution = value;
       if (printed == GNUNET_NO)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n",
-                    count, name, value);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name,
+                    value);
     }
 
     if (0 == strcmp (name, "ATS peers"))
     {
       current.peers = value;
       if (printed == GNUNET_NO)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n",
-                    count, name, value);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name,
+                    value);
     }
 
     if (0 == strcmp (name, "ATS mechanisms"))
     {
       current.mechs = value;
       if (printed == GNUNET_NO)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n",
-                    count, name, value);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name,
+                    value);
     }
 
     if (0 == strcmp (name, "ATS duration"))
     {
       current.duration = value;
       if (printed == GNUNET_NO)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n",
-                    count, name, value);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name,
+                    value);
     }
     if (0 == strcmp (name, "ATS state"))
     {
@@ -485,8 +480,8 @@ stats_cb (void *cls,
         break;
       }
       if (printed == GNUNET_NO)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "[%i] ATS state: %s\n", count, cont);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS state: %s\n", count,
+                    cont);
     }
   }
   return GNUNET_OK;
@@ -500,16 +495,21 @@ stats_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
-  s_time = GNUNET_STATISTICS_get (stats, "transport", "ATS timestamp",
-                                  TIMEOUT, NULL, &stats_cb, NULL);
-  s_solution = GNUNET_STATISTICS_get (stats, "transport", "ATS solution",
-                                      TIMEOUT, NULL, &stats_cb, NULL);
-  s_duration = GNUNET_STATISTICS_get (stats, "transport", "ATS duration",
-                                      TIMEOUT, NULL, &stats_cb, NULL);
-  s_peers = GNUNET_STATISTICS_get (stats, "transport", "ATS peers",
-                                   TIMEOUT, NULL, &stats_cb, NULL);
-  s_mechs = GNUNET_STATISTICS_get (stats, "transport", "ATS mechanisms",
-                                   TIMEOUT, NULL, &stats_cb, NULL);
+  s_time =
+      GNUNET_STATISTICS_get (stats, "transport", "ATS timestamp", TIMEOUT, NULL,
+                             &stats_cb, NULL);
+  s_solution =
+      GNUNET_STATISTICS_get (stats, "transport", "ATS solution", TIMEOUT, NULL,
+                             &stats_cb, NULL);
+  s_duration =
+      GNUNET_STATISTICS_get (stats, "transport", "ATS duration", TIMEOUT, NULL,
+                             &stats_cb, NULL);
+  s_peers =
+      GNUNET_STATISTICS_get (stats, "transport", "ATS peers", TIMEOUT, NULL,
+                             &stats_cb, NULL);
+  s_mechs =
+      GNUNET_STATISTICS_get (stats, "transport", "ATS mechanisms", TIMEOUT,
+                             NULL, &stats_cb, NULL);
   s_invalid =
       GNUNET_STATISTICS_get (stats, "transport", "ATS invalid solutions",
                              TIMEOUT, NULL, &stats_cb, NULL);
@@ -592,8 +592,7 @@ send_task_f (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   if (send_msg == GNUNET_YES)
-    t = GNUNET_TRANSPORT_notify_transmit_ready (th,
-                                                &master_deamon->id,
+    t = GNUNET_TRANSPORT_notify_transmit_ready (th, &master_deamon->id,
                                                 sizeof (struct TestMessage), 0,
                                                 SEND_TIMEOUT,
                                                 &send_dummy_data_task, NULL);
@@ -605,8 +604,7 @@ send_task_f (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-notify_connect (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
@@ -633,10 +631,8 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 }
 
 static void
-daemon_connect_cb (void *cls,
-                   const struct GNUNET_PeerIdentity *first,
-                   const struct GNUNET_PeerIdentity *second,
-                   uint32_t distance,
+daemon_connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
+                   const struct GNUNET_PeerIdentity *second, uint32_t distance,
                    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
                    const struct GNUNET_CONFIGURATION_Handle *second_cfg,
                    struct GNUNET_TESTING_Daemon *first_daemon,
@@ -647,20 +643,16 @@ daemon_connect_cb (void *cls,
   char *secondc = strdup (GNUNET_i2s (second));
 
   connected++;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connected peers `%s'<->`%s' (%i/%i)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peers `%s'<->`%s' (%i/%i)\n",
               firstc, secondc, connected, peers - 1);
   GNUNET_free (firstc);
   GNUNET_free (secondc);
 
-  if (((first_daemon == ping_deamon) ||
-       (second_daemon == ping_deamon)) &&
+  if (((first_daemon == ping_deamon) || (second_daemon == ping_deamon)) &&
       (master_deamon != NULL) && (ping_deamon != NULL))
   {
-    th = GNUNET_TRANSPORT_connect (ping_deamon->cfg,
-                                   &ping_deamon->id,
-                                   NULL, NULL,
-                                   &notify_connect, &notify_disconnect);
+    th = GNUNET_TRANSPORT_connect (ping_deamon->cfg, &ping_deamon->id, NULL,
+                                   NULL, &notify_connect, &notify_disconnect);
     force_q_updates = GNUNET_YES;
     send_msg = GNUNET_YES;
   }
@@ -669,8 +661,7 @@ daemon_connect_cb (void *cls,
 
 
 static void
-daemon_start_cb (void *cls,
-                 const struct GNUNET_PeerIdentity *id,
+daemon_start_cb (void *cls, const struct GNUNET_PeerIdentity *id,
                  const struct GNUNET_CONFIGURATION_Handle *cfg,
                  struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
@@ -693,8 +684,8 @@ daemon_start_cb (void *cls,
 
   if (master_deamon == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Master peer `%s' '%s'\n", GNUNET_i2s (id), d->cfgfile);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Master peer `%s' '%s'\n",
+                GNUNET_i2s (id), d->cfgfile);
     master_deamon = d;
     stats = GNUNET_STATISTICS_create ("transport", master_deamon->cfg);
     GNUNET_assert (stats != NULL);
@@ -702,13 +693,10 @@ daemon_start_cb (void *cls,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Connecting peer `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer `%s'\n",
                 GNUNET_i2s (id), GNUNET_i2s (&master_deamon->id));
-    GNUNET_TESTING_daemons_connect (d,
-                                    master_deamon,
-                                    TIMEOUT,
-                                    0, GNUNET_YES, &daemon_connect_cb, NULL);
+    GNUNET_TESTING_daemons_connect (d, master_deamon, TIMEOUT, 0, GNUNET_YES,
+                                    &daemon_connect_cb, NULL);
   }
 
   if (peers_left == 0)
@@ -716,8 +704,8 @@ daemon_start_cb (void *cls,
     if (ping_deamon == NULL)
     {
       ping_deamon = d;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Ping peer `%s' '%s'\n", GNUNET_i2s (id), d->cfgfile);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ping peer `%s' '%s'\n",
+                  GNUNET_i2s (id), d->cfgfile);
     }
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started successfully!\n");
@@ -735,9 +723,8 @@ daemon_start_cb (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ok = 1;
   measurement_started = GNUNET_NO;
@@ -748,9 +735,8 @@ run (void *cls,
   pg = GNUNET_TESTING_daemons_start (cfg, peers_left,   /* Total number of peers */
                                      peers_left,        /* Number of outstanding connections */
                                      peers_left,        /* Number of parallel ssh connections, or peers being started at once */
-                                     TIMEOUT,
-                                     NULL, NULL,
-                                     &daemon_start_cb, NULL, NULL, NULL, NULL);
+                                     TIMEOUT, NULL, NULL, &daemon_start_cb,
+                                     NULL, NULL, NULL, NULL);
   GNUNET_assert (pg != NULL);
 }
 
@@ -769,9 +755,9 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test_transport_ats_multiple_peers", "nohelp",
-                      options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test_transport_ats_multiple_peers", "nohelp", options,
+                      &run, &ok);
   return ok;
 }
 

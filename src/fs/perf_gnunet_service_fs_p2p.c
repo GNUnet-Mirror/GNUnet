@@ -115,15 +115,13 @@ static struct StatValues stats[] = {
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
 static int
-print_stat (void *cls,
-            const char *subsystem,
-            const char *name, uint64_t value, int is_persistent)
+print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
+            int is_persistent)
 {
   struct StatMaster *sm = cls;
 
-  fprintf (stderr,
-           "Peer %2u: %12s/%50s = %12llu\n",
-           sm->daemon, subsystem, name, (unsigned long long) value);
+  fprintf (stderr, "Peer %2u: %12s/%50s = %12llu\n", sm->daemon, subsystem,
+           name, (unsigned long long) value);
   return GNUNET_OK;
 }
 
@@ -164,8 +162,8 @@ stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #else
                            stats[sm->value].subsystem, stats[sm->value].name,
 #endif
-                           GNUNET_TIME_UNIT_FOREVER_REL,
-                           &get_done, &print_stat, sm);
+                           GNUNET_TIME_UNIT_FOREVER_REL, &get_done, &print_stat,
+                           sm);
     return;
   }
   GNUNET_STATISTICS_destroy (sm->stat, GNUNET_NO);
@@ -177,9 +175,10 @@ stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_add_now (&do_stop, NULL);
     return;
   }
-  sm->stat = GNUNET_STATISTICS_create ("<driver>",
-                                       GNUNET_FS_TEST_get_configuration
-                                       (daemons, sm->daemon));
+  sm->stat =
+      GNUNET_STATISTICS_create ("<driver>",
+                                GNUNET_FS_TEST_get_configuration (daemons,
+                                                                  sm->daemon));
   GNUNET_SCHEDULER_add_now (&stat_run, sm);
 }
 
@@ -201,13 +200,14 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                         1000LL / del.rel_value);
     fprintf (stdout, "Download speed was %s/s\n", fancy);
     GNUNET_free (fancy);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Finished download, shutting down\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished download, shutting down\n",
                 (unsigned long long) FILESIZE);
     sm = GNUNET_malloc (sizeof (struct StatMaster));
-    sm->stat = GNUNET_STATISTICS_create ("<driver>",
-                                         GNUNET_FS_TEST_get_configuration
-                                         (daemons, sm->daemon));
+    sm->stat =
+        GNUNET_STATISTICS_create ("<driver>",
+                                  GNUNET_FS_TEST_get_configuration (daemons,
+                                                                    sm->
+                                                                    daemon));
     GNUNET_SCHEDULER_add_now (&stat_run, sm);
   }
   else
@@ -233,16 +233,15 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri)
     ok = 1;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Downloading %llu bytes\n", (unsigned long long) FILESIZE);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Downloading %llu bytes\n",
+              (unsigned long long) FILESIZE);
   start_time = GNUNET_TIME_absolute_get ();
   if (NULL != strstr (progname, "dht"))
     anonymity = 0;
   else
     anonymity = 1;
-  GNUNET_FS_TEST_download (daemons[0],
-                           TIMEOUT,
-                           anonymity, SEED, uri, VERBOSE, &do_report, NULL);
+  GNUNET_FS_TEST_download (daemons[0], TIMEOUT, anonymity, SEED, uri, VERBOSE,
+                           &do_report, NULL);
 }
 
 
@@ -259,8 +258,8 @@ do_publish (void *cls, const char *emsg)
     ok = 1;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Publishing %llu bytes\n", (unsigned long long) FILESIZE);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
+              (unsigned long long) FILESIZE);
   if (NULL != strstr (progname, "index"))
     do_index = GNUNET_YES;
   else
@@ -270,11 +269,9 @@ do_publish (void *cls, const char *emsg)
   else
     anonymity = 1;
 
-  GNUNET_FS_TEST_publish (daemons[NUM_DAEMONS - 1],
-                          TIMEOUT,
-                          anonymity,
-                          do_index, FILESIZE, SEED,
-                          VERBOSE, &do_download, NULL);
+  GNUNET_FS_TEST_publish (daemons[NUM_DAEMONS - 1], TIMEOUT, anonymity,
+                          do_index, FILESIZE, SEED, VERBOSE, &do_download,
+                          NULL);
 }
 
 
@@ -287,27 +284,22 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemons started, will now try to connect them\n");
   pg = GNUNET_FS_TEST_get_group (daemons);
-  GNUNET_break ((NUM_DAEMONS - 1) * 2
-                == (GNUNET_TESTING_create_topology (pg,
-                                                    GNUNET_TESTING_TOPOLOGY_LINE,
-                                                    GNUNET_TESTING_TOPOLOGY_NONE,
-                                                    NULL)));
-  GNUNET_TESTING_connect_topology (pg,
-                                   GNUNET_TESTING_TOPOLOGY_LINE,
-                                   GNUNET_TESTING_TOPOLOGY_OPTION_NONE,
-                                   0.0,
+  GNUNET_break ((NUM_DAEMONS - 1) * 2 ==
+                (GNUNET_TESTING_create_topology
+                 (pg, GNUNET_TESTING_TOPOLOGY_LINE,
+                  GNUNET_TESTING_TOPOLOGY_NONE, NULL)));
+  GNUNET_TESTING_connect_topology (pg, GNUNET_TESTING_TOPOLOGY_LINE,
+                                   GNUNET_TESTING_TOPOLOGY_OPTION_NONE, 0.0,
                                    TIMEOUT, NUM_DAEMONS, &do_publish, NULL);
 }
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_FS_TEST_daemons_start ("fs_test_lib_data.conf",
-                                TIMEOUT,
-                                NUM_DAEMONS, daemons, &do_connect, NULL);
+  GNUNET_FS_TEST_daemons_start ("fs_test_lib_data.conf", TIMEOUT, NUM_DAEMONS,
+                                daemons, &do_connect, NULL);
 }
 
 
@@ -335,9 +327,9 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "perf-gnunet-service-fs-p2p-index",
-                      "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
+                      "perf-gnunet-service-fs-p2p-index", "nohelp", options,
+                      &run, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }

@@ -38,8 +38,7 @@ makeName (unsigned int i)
   char *fn;
 
   fn = GNUNET_malloc (strlen ("/tmp/gnunet-fsui-searchranktest/FSUITEST") + 14);
-  GNUNET_snprintf (fn,
-                   strlen ("/tmp/gnunet-fsui-searchranktest/FSUITEST") + 14,
+  GNUNET_snprintf (fn, strlen ("/tmp/gnunet-fsui-searchranktest/FSUITEST") + 14,
                    "/tmp/gnunet-fsui-searchranktest/FSUITEST%u", i);
   GNUNET_disk_directory_create_for_file (NULL, fn);
   return fn;
@@ -159,22 +158,21 @@ main (int argc, char *argv[])
   GNUNET_thread_sleep (5 * GNUNET_CRON_SECONDS);        /* give apps time to start */
   /* ACTUAL TEST CODE */
 #endif
-  ctx = GNUNET_FSUI_start (NULL,
-                           cfg, "fsuisearchranktest", 32, GNUNET_YES,
-                           &eventCallback, NULL);
+  ctx =
+      GNUNET_FSUI_start (NULL, cfg, "fsuisearchranktest", 32, GNUNET_YES,
+                         &eventCallback, NULL);
   CHECK (ctx != NULL);
   /* upload */
   fn = makeName (42);
-  GNUNET_disk_file_write (NULL,
-                          fn, "foo bar test!", strlen ("foo bar test!"), "600");
+  GNUNET_disk_file_write (NULL, fn, "foo bar test!", strlen ("foo bar test!"),
+                          "600");
   meta = GNUNET_meta_data_create ();
   kuri =
       GNUNET_ECRS_keyword_command_line_to_uri (NULL, 2,
                                                (const char **) keywords);
   waitForEvent = GNUNET_FSUI_upload_completed;
   upload =
-      GNUNET_FSUI_upload_start (ctx,
-                                fn,
+      GNUNET_FSUI_upload_start (ctx, fn,
                                 (GNUNET_FSUI_DirectoryScanCallback) &
                                 GNUNET_disk_directory_scan, NULL, 0, 0,
                                 GNUNET_YES, GNUNET_NO, GNUNET_NO,
@@ -191,8 +189,8 @@ main (int argc, char *argv[])
     prog++;
     if (prog == 10000)
     {
-      fprintf (stderr,
-               "Upload failed to complete -- last event: %u\n", lastEvent);
+      fprintf (stderr, "Upload failed to complete -- last event: %u\n",
+               lastEvent);
     }
     CHECK (prog < 10000);
     GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
@@ -211,9 +209,8 @@ main (int argc, char *argv[])
   CHECK (NULL != search);
   GNUNET_FSUI_search_pause (search);
   GNUNET_FSUI_search_restart (search);
-  while ((uri == NULL) &&
-         (availability < 3) &&
-         (rank != 2) && (GNUNET_shutdown_test () != GNUNET_YES))
+  while ((uri == NULL) && (availability < 3) && (rank != 2) &&
+         (GNUNET_shutdown_test () != GNUNET_YES))
   {
     prog++;
     CHECK (prog < 10000);

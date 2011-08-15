@@ -181,8 +181,8 @@ load (struct GNUNET_SERVER_Handle *server)
   char *buf;
   struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
-  fn = GNUNET_DISK_get_home_filename (cfg,
-                                      "statistics", "statistics.data", NULL);
+  fn = GNUNET_DISK_get_home_filename (cfg, "statistics", "statistics.data",
+                                      NULL);
   if (fn == NULL)
     return;
   if ((0 != stat (fn, &sb)) || (sb.st_size == 0))
@@ -209,10 +209,8 @@ load (struct GNUNET_SERVER_Handle *server)
               (unsigned long long) sb.st_size, fn);
   mst = GNUNET_SERVER_mst_create (&inject_message, server);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_SERVER_mst_receive (mst,
-                                           NULL,
-                                           buf,
-                                           sb.st_size, GNUNET_YES, GNUNET_NO));
+                GNUNET_SERVER_mst_receive (mst, NULL, buf, sb.st_size,
+                                           GNUNET_YES, GNUNET_NO));
   GNUNET_SERVER_mst_destroy (mst);
   GNUNET_break (GNUNET_OK == GNUNET_DISK_file_unmap (mh));
   GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
@@ -232,12 +230,12 @@ save ()
   unsigned long long total;
 
   fh = NULL;
-  fn = GNUNET_DISK_get_home_filename (cfg,
-                                      "statistics", "statistics.data", NULL);
+  fn = GNUNET_DISK_get_home_filename (cfg, "statistics", "statistics.data",
+                                      NULL);
   if (fn != NULL)
-    fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_WRITE
-                                | GNUNET_DISK_OPEN_CREATE |
-                                GNUNET_DISK_OPEN_TRUNCATE,
+    fh = GNUNET_DISK_file_open (fn,
+                                GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE
+                                | GNUNET_DISK_OPEN_TRUNCATE,
                                 GNUNET_DISK_PERM_USER_READ |
                                 GNUNET_DISK_PERM_USER_WRITE);
   total = 0;
@@ -292,13 +290,13 @@ transmit (struct GNUNET_SERVER_Client *client, const struct StatsEntry *e)
     m->uid |= htonl (GNUNET_STATISTICS_PERSIST_BIT);
   m->value = GNUNET_htonll (e->value);
   size -= sizeof (struct GNUNET_STATISTICS_ReplyMessage);
-  GNUNET_assert (size == GNUNET_STRINGS_buffer_fill ((char *) &m[1],
-                                                     size,
-                                                     2, e->service, e->name));
+  GNUNET_assert (size ==
+                 GNUNET_STRINGS_buffer_fill ((char *) &m[1], size, 2,
+                                             e->service, e->name));
 #if DEBUG_STATISTICS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting value for `%s:%s' (%d): %llu\n",
-              e->service, e->name, e->persistent, e->value);
+              "Transmitting value for `%s:%s' (%d): %llu\n", e->service,
+              e->name, e->persistent, e->value);
 #endif
   GNUNET_SERVER_notification_context_unicast (nc, client, &m->header,
                                               GNUNET_NO);
@@ -312,9 +310,8 @@ transmit (struct GNUNET_SERVER_Client *client, const struct StatsEntry *e)
 static int
 matches (const struct StatsEntry *e, const char *service, const char *name)
 {
-  return ((0 == strlen (service)) ||
-          (0 == strcmp (service, e->service)))
-      && ((0 == strlen (name)) || (0 == strcmp (name, e->name)));
+  return ((0 == strlen (service)) || (0 == strcmp (service, e->service))) &&
+      ((0 == strlen (name)) || (0 == strcmp (name, e->name)));
 }
 
 
@@ -350,8 +347,7 @@ make_client_entry (struct GNUNET_SERVER_Client *client)
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static void
-handle_get (void *cls,
-            struct GNUNET_SERVER_Client *client,
+handle_get (void *cls, struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MessageHeader end;
@@ -363,8 +359,9 @@ handle_get (void *cls,
   if (client != NULL)
     make_client_entry (client);
   size = ntohs (message->size) - sizeof (struct GNUNET_MessageHeader);
-  if (size != GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
-                                              size, 2, &service, &name))
+  if (size !=
+      GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1], size, 2,
+                                      &service, &name))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -407,9 +404,8 @@ notify_change (struct StatsEntry *se)
       wvm.wid = htonl (pos->wid);
       wvm.reserved = htonl (0);
       wvm.value = GNUNET_htonll (se->value);
-      GNUNET_SERVER_notification_context_unicast (nc,
-                                                  pos->client,
-                                                  &wvm.header, GNUNET_NO);
+      GNUNET_SERVER_notification_context_unicast (nc, pos->client, &wvm.header,
+                                                  GNUNET_NO);
       pos->last_value = se->value;
     }
     pos = pos->next;
@@ -424,8 +420,7 @@ notify_change (struct StatsEntry *se)
  * @param message the actual message
  */
 static void
-handle_set (void *cls,
-            struct GNUNET_SERVER_Client *client,
+handle_set (void *cls, struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   char *service;
@@ -452,8 +447,9 @@ handle_set (void *cls,
   size = msize - sizeof (struct GNUNET_STATISTICS_SetMessage);
   msg = (const struct GNUNET_STATISTICS_SetMessage *) message;
 
-  if (size != GNUNET_STRINGS_buffer_tokenize ((const char *) &msg[1],
-                                              size, 2, &service, &name))
+  if (size !=
+      GNUNET_STRINGS_buffer_tokenize ((const char *) &msg[1], size, 2, &service,
+                                      &name))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -504,8 +500,8 @@ handle_set (void *cls,
       }
 #if DEBUG_STATISTICS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Statistic `%s:%s' updated to value %llu.\n",
-                  service, name, pos->value);
+                  "Statistic `%s:%s' updated to value %llu.\n", service, name,
+                  pos->value);
 #endif
       if (changed)
         notify_change (pos);
@@ -530,8 +526,8 @@ handle_set (void *cls,
   start = pos;
 #if DEBUG_STATISTICS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "New statistic on `%s:%s' with value %llu created.\n",
-              service, name, pos->value);
+              "New statistic on `%s:%s' with value %llu created.\n", service,
+              name, pos->value);
 #endif
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -545,8 +541,7 @@ handle_set (void *cls,
  * @param message the actual message
  */
 static void
-handle_watch (void *cls,
-              struct GNUNET_SERVER_Client *client,
+handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
   char *service;
@@ -567,8 +562,9 @@ handle_watch (void *cls,
     return;
   }
   size = msize - sizeof (struct GNUNET_MessageHeader);
-  if (size != GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
-                                              size, 2, &service, &name))
+  if (size !=
+      GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1], size, 2,
+                                      &service, &name))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -576,8 +572,8 @@ handle_watch (void *cls,
   }
 #if DEBUG_STATISTICS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received request to watch statistic on `%s:%s'\n",
-              service, name);
+              "Received request to watch statistic on `%s:%s'\n", service,
+              name);
 #endif
   pos = start;
   while (pos != NULL)
@@ -588,8 +584,9 @@ handle_watch (void *cls,
   }
   if (pos == NULL)
   {
-    pos = GNUNET_malloc (sizeof (struct StatsEntry) +
-                         sizeof (struct GNUNET_STATISTICS_SetMessage) + size);
+    pos =
+        GNUNET_malloc (sizeof (struct StatsEntry) +
+                       sizeof (struct GNUNET_STATISTICS_SetMessage) + size);
     pos->next = start;
     pos->uid = uidgen++;
     pos->msg = (void *) &pos[1];
@@ -702,8 +699,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @param c configuration to use
  */
 static void
-run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
+run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -717,8 +713,8 @@ run (void *cls,
   nc = GNUNET_SERVER_notification_context_create (server, 16);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   load (server);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
 }
 
 
@@ -733,9 +729,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv,
-                              "statistics",
+          GNUNET_SERVICE_run (argc, argv, "statistics",
                               GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
 }
 

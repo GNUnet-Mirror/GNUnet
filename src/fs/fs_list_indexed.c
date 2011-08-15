@@ -98,8 +98,7 @@ handle_index_info (void *cls, const struct GNUNET_MessageHeader *msg)
   if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END)
   {
     /* normal end-of-list */
-    GNUNET_SCHEDULER_add_continuation (gic->cont,
-                                       gic->cont_cls,
+    GNUNET_SCHEDULER_add_continuation (gic->cont, gic->cont_cls,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
     GNUNET_free (gic);
@@ -125,17 +124,15 @@ handle_index_info (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   if (GNUNET_OK != gic->iterator (gic->iterator_cls, filename, &iim->file_id))
   {
-    GNUNET_SCHEDULER_add_continuation (gic->cont,
-                                       gic->cont_cls,
+    GNUNET_SCHEDULER_add_continuation (gic->cont, gic->cont_cls,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
     GNUNET_free (gic);
     return;
   }
   /* get more */
-  GNUNET_CLIENT_receive (gic->client,
-                         &handle_index_info,
-                         gic, GNUNET_CONSTANTS_SERVICE_TIMEOUT);
+  GNUNET_CLIENT_receive (gic->client, &handle_index_info, gic,
+                         GNUNET_CONSTANTS_SERVICE_TIMEOUT);
 }
 
 
@@ -153,8 +150,8 @@ handle_index_info (void *cls, const struct GNUNET_MessageHeader *msg)
 void
 GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
                              GNUNET_FS_IndexedFileProcessor iterator,
-                             void *iterator_cls,
-                             GNUNET_SCHEDULER_Task cont, void *cont_cls)
+                             void *iterator_cls, GNUNET_SCHEDULER_Task cont,
+                             void *cont_cls)
 {
   struct GNUNET_CLIENT_Connection *client;
   struct GetIndexedContext *gic;
@@ -165,8 +162,7 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Failed to not connect to `%s' service.\n"), "fs");
-    GNUNET_SCHEDULER_add_continuation (cont,
-                                       cont_cls,
+    GNUNET_SCHEDULER_add_continuation (cont, cont_cls,
                                        GNUNET_SCHEDULER_REASON_TIMEOUT);
     return;
   }
@@ -181,8 +177,7 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   msg.type = htons (GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CLIENT_transmit_and_get_response (client,
-                                                          &msg,
+                 GNUNET_CLIENT_transmit_and_get_response (client, &msg,
                                                           GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                                                           GNUNET_YES,
                                                           &handle_index_info,

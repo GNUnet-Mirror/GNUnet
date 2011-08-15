@@ -104,8 +104,8 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL == nc->client)
   {
     /* ugh */
-    nc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                             &reconnect, nc);
+    nc->task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect, nc);
     return;
   }
   request_notifications (nc);
@@ -176,9 +176,8 @@ process_notification (void *cls, const struct GNUNET_MessageHeader *msg)
 static void
 receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc)
 {
-  GNUNET_CLIENT_receive (nc->client,
-                         &process_notification,
-                         nc, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (nc->client, &process_notification, nc,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -223,12 +222,12 @@ static void
 request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc)
 {
   GNUNET_assert (NULL == nc->init);
-  nc->init = GNUNET_CLIENT_notify_transmit_ready (nc->client,
-                                                  sizeof (struct
-                                                          GNUNET_MessageHeader),
-                                                  GNUNET_TIME_UNIT_FOREVER_REL,
-                                                  GNUNET_YES,
-                                                  &transmit_notify_request, nc);
+  nc->init =
+      GNUNET_CLIENT_notify_transmit_ready (nc->client,
+                                           sizeof (struct GNUNET_MessageHeader),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_YES, &transmit_notify_request,
+                                           nc);
 }
 
 

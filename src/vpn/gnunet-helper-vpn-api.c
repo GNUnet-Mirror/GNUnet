@@ -74,8 +74,9 @@ helper_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
     stop_helper (handle);
 
     /* Restart the helper */
-    shs_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                             handle->restart_task, handle);
+    shs_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                      handle->restart_task, handle);
     return;
   }
 
@@ -86,8 +87,9 @@ helper_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
     stop_helper (handle);
 
     /* Restart the helper */
-    shs_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                             handle->restart_task, handle);
+    shs_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                      handle->restart_task, handle);
     return;
 
   }
@@ -104,12 +106,9 @@ cleanup_helper (struct GNUNET_VPN_HELPER_Handle *handle)
 }
 
 struct GNUNET_VPN_HELPER_Handle *
-start_helper (const char *ifname,
-              const char *ipv6addr,
-              const char *ipv6prefix,
-              const char *ipv4addr,
-              const char *ipv4mask, const char *process_name,
-              GNUNET_SCHEDULER_Task restart_task,
+start_helper (const char *ifname, const char *ipv6addr, const char *ipv6prefix,
+              const char *ipv4addr, const char *ipv4mask,
+              const char *process_name, GNUNET_SCHEDULER_Task restart_task,
               GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls)
 {
   struct GNUNET_VPN_HELPER_Handle *handle =

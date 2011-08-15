@@ -51,8 +51,8 @@ parse_dns_name (char *d, const unsigned char *src, unsigned short idx)
  */
 static unsigned short
 parse_dns_record (unsigned char *data,  /*{{{ */
-                  struct dns_record **dst,
-                  unsigned short count, unsigned short idx)
+                  struct dns_record **dst, unsigned short count,
+                  unsigned short idx)
 {
   int i;
   unsigned short _idx;

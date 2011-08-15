@@ -63,14 +63,11 @@ static int persistent;
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
 static int
-printer (void *cls,
-         const char *subsystem,
-         const char *name, uint64_t value, int is_persistent)
+printer (void *cls, const char *subsystem, const char *name, uint64_t value,
+         int is_persistent)
 {
-  FPRINTF (stdout,
-           "%s%-12s %-50s: %16llu\n",
-           is_persistent ? "!" : " ", subsystem, _(name),
-           (unsigned long long) value);
+  FPRINTF (stdout, "%s%-12s %-50s: %16llu\n", is_persistent ? "!" : " ",
+           subsystem, _(name), (unsigned long long) value);
   return GNUNET_OK;
 }
 
@@ -106,17 +103,16 @@ cleanup (void *cls, int success)
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_STATISTICS_Handle *h;
   unsigned long long val;
 
   if (args[0] != NULL)
   {
-    if ((1 != SSCANF (args[0], "%llu", &val)) ||
-        (subsystem == NULL) || (name == NULL))
+    if ((1 != SSCANF (args[0], "%llu", &val)) || (subsystem == NULL) ||
+        (name == NULL))
     {
       FPRINTF (stderr, _("Invalid argument `%s'\n"), args[0]);
       ret = 1;
@@ -138,9 +134,9 @@ run (void *cls,
     ret = 1;
     return;
   }
-  if (NULL == GNUNET_STATISTICS_get (h,
-                                     subsystem, name, GET_TIMEOUT, &cleanup,
-                                     &printer, h))
+  if (NULL ==
+      GNUNET_STATISTICS_get (h, subsystem, name, GET_TIMEOUT, &cleanup,
+                             &printer, h))
     cleanup (h, GNUNET_SYSERR);
 }
 
@@ -167,9 +163,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-statistics [options [value]]",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-statistics [options [value]]",
                               gettext_noop
                               ("Print statistics about GNUnet operations."),
                               options, &run, NULL)) ? ret : 1;

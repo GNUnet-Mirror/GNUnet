@@ -141,8 +141,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                   "Received confirmation for service shutdown.\n");
 #endif
       shutdown_ctx->confirmed = GNUNET_YES;
-      GNUNET_CLIENT_receive (shutdown_ctx->sock,
-                             &service_shutdown_handler,
+      GNUNET_CLIENT_receive (shutdown_ctx->sock, &service_shutdown_handler,
                              shutdown_ctx, GNUNET_TIME_UNIT_FOREVER_REL);
       break;
     default:                   /* Fall through */
@@ -206,9 +205,8 @@ write_shutdown (void *cls, size_t size, void *buf)
     return 0;                   /* client disconnected */
   }
 
-  GNUNET_CLIENT_receive (shutdown_ctx->sock,
-                         &service_shutdown_handler, shutdown_ctx,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (shutdown_ctx->sock, &service_shutdown_handler,
+                         shutdown_ctx, GNUNET_TIME_UNIT_FOREVER_REL);
   shutdown_ctx->cancel_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (shutdown_ctx->timeout),
@@ -246,11 +244,9 @@ arm_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
   shutdown_ctx->sock = sock;
   shutdown_ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_CLIENT_notify_transmit_ready (sock,
-                                       sizeof (struct
-                                               GNUNET_MessageHeader),
-                                       timeout,
-                                       GNUNET_YES,
-                                       &write_shutdown, shutdown_ctx);
+                                       sizeof (struct GNUNET_MessageHeader),
+                                       timeout, GNUNET_YES, &write_shutdown,
+                                       shutdown_ctx);
 }
 
 
@@ -378,16 +374,16 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "gnunet-service-arm");
 #endif
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (pos->h->cfg,
-                                             "arm", "PREFIX", &loprefix))
+      GNUNET_CONFIGURATION_get_value_string (pos->h->cfg, "arm", "PREFIX",
+                                             &loprefix))
     loprefix = GNUNET_strdup ("");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (pos->h->cfg,
-                                             "arm", "OPTIONS", &lopostfix))
+      GNUNET_CONFIGURATION_get_value_string (pos->h->cfg, "arm", "OPTIONS",
+                                             &lopostfix))
     lopostfix = GNUNET_strdup ("");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (pos->h->cfg,
-                                             "arm", "BINARY", &binary))
+      GNUNET_CONFIGURATION_get_value_string (pos->h->cfg, "arm", "BINARY",
+                                             &binary))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _
@@ -401,8 +397,8 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (pos->h->cfg,
-                                               "arm", "CONFIG", &config))
+      GNUNET_CONFIGURATION_get_value_filename (pos->h->cfg, "arm", "CONFIG",
+                                               &config))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _
@@ -519,10 +515,9 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param type type of the request
  */
 static void
-change_service (struct GNUNET_ARM_Handle *h,
-                const char *service_name,
-                struct GNUNET_TIME_Relative timeout,
-                GNUNET_ARM_Callback cb, void *cb_cls, uint16_t type)
+change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
+                struct GNUNET_TIME_Relative timeout, GNUNET_ARM_Callback cb,
+                void *cb_cls, uint16_t type)
 {
   struct RequestContext *sctx;
   size_t slen;
@@ -539,9 +534,10 @@ change_service (struct GNUNET_ARM_Handle *h,
   }
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              (type == GNUNET_MESSAGE_TYPE_ARM_START)
-              ? _("Requesting start of service `%s'.\n")
-              : _("Requesting termination of service `%s'.\n"), service_name);
+              (type ==
+               GNUNET_MESSAGE_TYPE_ARM_START) ?
+              _("Requesting start of service `%s'.\n") :
+              _("Requesting termination of service `%s'.\n"), service_name);
 #endif
   sctx = GNUNET_malloc (sizeof (struct RequestContext) + slen);
   sctx->h = h;
@@ -555,15 +551,14 @@ change_service (struct GNUNET_ARM_Handle *h,
   msg->type = htons (sctx->type);
   memcpy (&msg[1], service_name, slen);
   if (GNUNET_OK !=
-      GNUNET_CLIENT_transmit_and_get_response (sctx->h->client,
-                                               msg,
+      GNUNET_CLIENT_transmit_and_get_response (sctx->h->client, msg,
                                                GNUNET_TIME_absolute_get_remaining
                                                (sctx->timeout), GNUNET_YES,
                                                &handle_response, sctx))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                (type == GNUNET_MESSAGE_TYPE_ARM_START)
-                ?
+                (type ==
+                 GNUNET_MESSAGE_TYPE_ARM_START) ?
                 _
                 ("Error while trying to transmit request to start `%s' to ARM\n")
                 :
@@ -590,8 +585,7 @@ change_service (struct GNUNET_ARM_Handle *h,
  * @param cb_cls closure for callback
  */
 void
-GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
-                          const char *service_name,
+GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h, const char *service_name,
                           struct GNUNET_TIME_Relative timeout,
                           GNUNET_ARM_Callback cb, void *cb_cls)
 {
@@ -616,8 +610,8 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
     sctx->cls = cb_cls;
     sctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
     memcpy (&sctx[1], service_name, slen);
-    GNUNET_CLIENT_service_test ("arm",
-                                h->cfg, timeout, &arm_service_report, sctx);
+    GNUNET_CLIENT_service_test ("arm", h->cfg, timeout, &arm_service_report,
+                                sctx);
     return;
   }
   if (h->client == NULL)
@@ -670,8 +664,7 @@ arm_shutdown_callback (void *cls, int reason)
  * @param cb_cls closure for callback
  */
 void
-GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
-                         const char *service_name,
+GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h, const char *service_name,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_ARM_Callback cb, void *cb_cls)
 {

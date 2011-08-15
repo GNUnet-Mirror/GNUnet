@@ -237,8 +237,8 @@ test_find_peer_processor (void *cls, const struct GNUNET_HELLO_Message *hello)
  * @param cls closure
  * @param tc context information (why was this task triggered now?)
  */
-void
-retry_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+void retry_find_peer_stop (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Retry the find_peer task on timeout.
@@ -330,8 +330,7 @@ test_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   retry_context.next_timeout = BASE_TIMEOUT;
   retry_context.peer_ctx = peer;
 
-  peer->find_peer_handle
-      =
+  peer->find_peer_handle =
       GNUNET_DHT_find_peer_start (peer->dht_handle, retry_context.next_timeout,
                                   &hash, GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                                   &test_find_peer_processor, &retry_context);
@@ -374,8 +373,7 @@ test_get_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 void
-test_get_iterator (void *cls,
-                   struct GNUNET_TIME_Absolute exp,
+test_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                    const GNUNET_HashCode * key,
                    const struct GNUNET_PeerIdentity *const *get_path,
                    const struct GNUNET_PeerIdentity *const *put_path,
@@ -409,13 +407,10 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   retry_context.next_timeout = BASE_TIMEOUT;
 
   peer->get_handle =
-      GNUNET_DHT_get_start (peer->dht_handle,
-                            TOTAL_TIMEOUT,
-                            GNUNET_BLOCK_TYPE_TEST,
-                            &hash,
-                            DEFAULT_GET_REPLICATION,
-                            GNUNET_DHT_RO_NONE,
-                            NULL, 0, NULL, 0, &test_get_iterator, NULL);
+      GNUNET_DHT_get_start (peer->dht_handle, TOTAL_TIMEOUT,
+                            GNUNET_BLOCK_TYPE_TEST, &hash,
+                            DEFAULT_GET_REPLICATION, GNUNET_DHT_RO_NONE, NULL,
+                            0, NULL, 0, &test_get_iterator, NULL);
 
   if (peer->get_handle == NULL)
   {
@@ -450,11 +445,8 @@ test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_put (peer->dht_handle, &hash,
-                  DEFAULT_PUT_REPLICATION,
-                  GNUNET_DHT_RO_NONE,
-                  GNUNET_BLOCK_TYPE_TEST,
-                  data_size, data,
+  GNUNET_DHT_put (peer->dht_handle, &hash, DEFAULT_PUT_REPLICATION,
+                  GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_TEST, data_size, data,
                   GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT),
                   TOTAL_TIMEOUT, &test_get, &p1);
   GNUNET_free (data);
@@ -465,28 +457,29 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE_ARM
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 
 }
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
 
-  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                           (GNUNET_TIME_UNIT_MINUTES, 1),
-                                           &end_badly, NULL);
+  die_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MINUTES, 1), &end_badly,
+                                    NULL);
 
   setup_peer (&p1, "test_dht_api_peer1.conf");
 
@@ -512,8 +505,8 @@ check ()
   };
 
   ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-dht-api", "nohelp", options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-dht-api", "nohelp", options, &run, &ok);
   stop_arm (&p1);
   return ok;
 }

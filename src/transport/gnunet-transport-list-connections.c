@@ -72,9 +72,8 @@ process_address (void *cls, const char *address)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
 
   cfg = c;
@@ -84,8 +83,7 @@ run (void *cls,
     return;
   }
 
-  GNUNET_TRANSPORT_address_iterate (cfg,
-                                    GNUNET_TIME_UNIT_MINUTES,
+  GNUNET_TRANSPORT_address_iterate (cfg, GNUNET_TIME_UNIT_MINUTES,
                                     &process_address, NULL);
 }
 
@@ -107,9 +105,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-list-connections",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-list-connections",
                               gettext_noop
                               ("Print information about connected peers."),
                               options, &run, NULL)) ? 0 : 1;

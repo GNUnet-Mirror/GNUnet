@@ -56,14 +56,12 @@
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_fs_evaluate (void *cls,
-                          enum GNUNET_BLOCK_Type type,
+block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                           const GNUNET_HashCode * query,
                           struct GNUNET_CONTAINER_BloomFilter **bf,
-                          int32_t bf_mutator,
-                          const void *xquery,
-                          size_t xquery_size,
-                          const void *reply_block, size_t reply_block_size)
+                          int32_t bf_mutator, const void *xquery,
+                          size_t xquery_size, const void *reply_block,
+                          size_t reply_block_size)
 {
   const struct SBlock *sb;
   GNUNET_HashCode chash;
@@ -125,8 +123,7 @@ block_plugin_fs_evaluate (void *cls,
                         &sh);
     if (0 != memcmp (nsid, &sh, sizeof (GNUNET_HashCode)))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-                       "block-fs",
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "block-fs",
                        _
                        ("Reply mismatched in terms of namespace.  Discarded.\n"));
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
@@ -162,10 +159,9 @@ block_plugin_fs_evaluate (void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_fs_get_key (void *cls,
-                         enum GNUNET_BLOCK_Type type,
-                         const void *block,
-                         size_t block_size, GNUNET_HashCode * key)
+block_plugin_fs_get_key (void *cls, enum GNUNET_BLOCK_Type type,
+                         const void *block, size_t block_size,
+                         GNUNET_HashCode * key)
 {
   const struct KBlock *kb;
   const struct SBlock *sb;
@@ -185,9 +181,9 @@ block_plugin_fs_get_key (void *cls,
     }
     kb = block;
     if (block_size - sizeof (struct KBlock) !=
-        ntohl (kb->purpose.size)
-        - sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)
-        - sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))
+        ntohl (kb->purpose.size) -
+        sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) -
+        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))
     {
       GNUNET_break_op (0);
       return GNUNET_NO;
@@ -236,9 +232,9 @@ block_plugin_fs_get_key (void *cls,
     }
     nb = block;
     if (block_size - sizeof (struct NBlock) !=
-        ntohl (nb->ns_purpose.size)
-        - sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)
-        - sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))
+        ntohl (nb->ns_purpose.size) -
+        sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) -
+        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))
     {
       GNUNET_break_op (0);
       return GNUNET_NO;
@@ -252,16 +248,16 @@ block_plugin_fs_get_key (void *cls,
     }
     if (GNUNET_OK !=
         GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG,
-                                  &nb->ksk_purpose,
-                                  &nb->ksk_signature, &nb->keyspace))
+                                  &nb->ksk_purpose, &nb->ksk_signature,
+                                  &nb->keyspace))
     {
       GNUNET_break_op (0);
       return GNUNET_NO;
     }
     if (GNUNET_OK !=
         GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK,
-                                  &nb->ns_purpose,
-                                  &nb->ns_signature, &nb->subspace))
+                                  &nb->ns_purpose, &nb->ns_signature,
+                                  &nb->subspace))
     {
       GNUNET_break_op (0);
       return GNUNET_NO;

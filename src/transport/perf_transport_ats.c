@@ -170,8 +170,8 @@ bench_simplex_no_optimization (char *file, int executions)
     exec_time[c] = GNUNET_TIME_absolute_get_difference (start, end).rel_value;
 
     sim_no_opt_avg += exec_time[c];
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Simplex iterations %i: %llu \n", c, exec_time[c]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Simplex iterations %i: %llu \n", c,
+                exec_time[c]);
   }
 
   glp_delete_prob (prob);
@@ -328,8 +328,7 @@ main (int argc, char *argv[])
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "MLP optimization average per address: %f\n",
               ((double) mlp_with_opt_avg / EXECS) / 400);
-  GAUGER ("TRANSPORT",
-          "GLPK MLP 100 peers 400 addresses with optimization",
+  GAUGER ("TRANSPORT", "GLPK MLP 100 peers 400 addresses with optimization",
           ((double) mlp_with_opt_avg / EXECS) / 400, "ms/address");
   (void) CLOSE (nullfd);
   return ret;

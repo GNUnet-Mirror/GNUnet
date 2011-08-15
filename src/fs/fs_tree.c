@@ -221,8 +221,8 @@ GNUNET_FS_tree_compute_iblock_size (unsigned int depth, uint64_t end_offset)
  * @return number of bytes stored in this node
  */
 size_t
-GNUNET_FS_tree_calculate_block_size (uint64_t fsize,
-                                     uint64_t offset, unsigned int depth)
+GNUNET_FS_tree_calculate_block_size (uint64_t fsize, uint64_t offset,
+                                     unsigned int depth)
 {
   size_t ret;
   uint64_t rsize;
@@ -268,10 +268,8 @@ GNUNET_FS_tree_calculate_block_size (uint64_t fsize,
  * @param cont function to call when done
  */
 struct GNUNET_FS_TreeEncoder *
-GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h,
-                               uint64_t size,
-                               void *cls,
-                               GNUNET_FS_DataReader reader,
+GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
+                               void *cls, GNUNET_FS_DataReader reader,
                                GNUNET_FS_TreeBlockProcessor proc,
                                GNUNET_FS_TreeProgressCallback progress,
                                GNUNET_SCHEDULER_Task cont)
@@ -287,8 +285,9 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h,
   te->progress = progress;
   te->cont = cont;
   te->chk_tree_depth = GNUNET_FS_compute_depth (size);
-  te->chk_tree = GNUNET_malloc (te->chk_tree_depth *
-                                CHK_PER_INODE * sizeof (struct ContentHashKey));
+  te->chk_tree =
+      GNUNET_malloc (te->chk_tree_depth * CHK_PER_INODE *
+                     sizeof (struct ContentHashKey));
   return te;
 }
 
@@ -343,8 +342,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
   {
     off = CHK_PER_INODE * (te->chk_tree_depth - 1);
 #if DEBUG_TREE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "TE done, reading CHK `%s' from %u\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TE done, reading CHK `%s' from %u\n",
                 GNUNET_h2s (&te->chk_tree[off].query), off);
 #endif
     te->uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
@@ -362,8 +360,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
     if (pt_size !=
         te->reader (te->cls, te->publish_offset, pt_size, iob, &te->emsg))
     {
-      GNUNET_SCHEDULER_add_continuation (te->cont,
-                                         te->cls,
+      GNUNET_SCHEDULER_add_continuation (te->cont, te->cls,
                                          GNUNET_SCHEDULER_REASON_TIMEOUT);
       te->in_next = GNUNET_NO;
       return;
@@ -372,16 +369,17 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
   }
   else
   {
-    pt_size = GNUNET_FS_tree_compute_iblock_size (te->current_depth,
-                                                  te->publish_offset);
+    pt_size =
+        GNUNET_FS_tree_compute_iblock_size (te->current_depth,
+                                            te->publish_offset);
     pt_block = &te->chk_tree[(te->current_depth - 1) * CHK_PER_INODE];
   }
   off = compute_chk_offset (te->current_depth, te->publish_offset);
 #if DEBUG_TREE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "TE is at offset %llu and depth %u with block size %u and target-CHK-offset %u\n",
-              (unsigned long long) te->publish_offset,
-              te->current_depth, (unsigned int) pt_size, (unsigned int) off);
+              (unsigned long long) te->publish_offset, te->current_depth,
+              (unsigned int) pt_size, (unsigned int) off);
 #endif
   mychk = &te->chk_tree[te->current_depth * CHK_PER_INODE + off];
   GNUNET_CRYPTO_hash (pt_block, pt_size, &mychk->key);
@@ -395,16 +393,14 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
               te->current_depth * CHK_PER_INODE + off);
 #endif
   if (NULL != te->proc)
-    te->proc (te->cls,
-              mychk,
-              te->publish_offset,
-              te->current_depth,
-              (0 == te->current_depth)
-              ? GNUNET_BLOCK_TYPE_FS_DBLOCK
-              : GNUNET_BLOCK_TYPE_FS_IBLOCK, enc, pt_size);
+    te->proc (te->cls, mychk, te->publish_offset, te->current_depth,
+              (0 ==
+               te->
+               current_depth) ? GNUNET_BLOCK_TYPE_FS_DBLOCK :
+              GNUNET_BLOCK_TYPE_FS_IBLOCK, enc, pt_size);
   if (NULL != te->progress)
-    te->progress (te->cls,
-                  te->publish_offset, pt_block, pt_size, te->current_depth);
+    te->progress (te->cls, te->publish_offset, pt_block, pt_size,
+                  te->current_depth);
   if (0 == te->current_depth)
   {
     te->publish_offset += pt_size;

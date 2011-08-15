@@ -66,12 +66,13 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
@@ -87,8 +88,7 @@ stop_arm (struct PeerContext *p)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "ARM process %u stopped\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
                 GNUNET_OS_process_get_pid (p->arm_proc));
     GNUNET_OS_process_close (p->arm_proc);
     p->arm_proc = NULL;
@@ -155,8 +155,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
   case GNUNET_FS_STATUS_SEARCH_RESULT:
     if (sks_search == event->value.search.sc)
     {
-      if (!GNUNET_FS_uri_test_equal (sks_expect_uri,
-                                     event->value.search.specifics.result.uri))
+      if (!GNUNET_FS_uri_test_equal
+          (sks_expect_uri, event->value.search.specifics.result.uri))
       {
         fprintf (stderr, "Wrong result for sks search!\n");
         err = 1;
@@ -167,14 +167,13 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     }
     else if (ksk_search == event->value.search.sc)
     {
-      if (!GNUNET_FS_uri_test_equal (ksk_expect_uri,
-                                     event->value.search.specifics.result.uri))
+      if (!GNUNET_FS_uri_test_equal
+          (ksk_expect_uri, event->value.search.specifics.result.uri))
       {
         fprintf (stderr, "Wrong result for ksk search!\n");
         err = 1;
       }
-      GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task,
-                                         NULL,
+      GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task, NULL,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     }
     else
@@ -184,16 +183,13 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     }
     break;
   case GNUNET_FS_STATUS_SEARCH_ERROR:
-    fprintf (stderr,
-             "Error searching file: %s\n",
+    fprintf (stderr, "Error searching file: %s\n",
              event->value.search.specifics.error.message);
     if (sks_search == event->value.search.sc)
-      GNUNET_SCHEDULER_add_continuation (&abort_sks_search_task,
-                                         NULL,
+      GNUNET_SCHEDULER_add_continuation (&abort_sks_search_task, NULL,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     else if (ksk_search == event->value.search.sc)
-      GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task,
-                                         NULL,
+      GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task, NULL,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     else
       GNUNET_break (0);
@@ -365,15 +361,12 @@ testNamespace ()
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   setup_peer (&p1, "test_fs_namespace_data.conf");
-  fs = GNUNET_FS_start (cfg,
-                        "test-fs-namespace",
-                        &progress_cb,
-                        NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
+  fs = GNUNET_FS_start (cfg, "test-fs-namespace", &progress_cb, NULL,
+                        GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   testNamespace ();
 }
 
@@ -401,9 +394,8 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-fs-namespace",
-                      "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
+                      "test-fs-namespace", "nohelp", options, &run, NULL);
   stop_arm (&p1);
   if (GNUNET_YES != update_started)
   {

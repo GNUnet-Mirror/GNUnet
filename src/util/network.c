@@ -212,8 +212,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
     int gsn = getsockname (desc->fd, &name, &namelen);
 
     if (gsn == 0)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Accepting connection on `%s'\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Accepting connection on `%s'\n",
                   GNUNET_a2s (&name, namelen));
   }
 #endif
@@ -357,8 +356,8 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
     const struct sockaddr_un *un = (const struct sockaddr_un *) desc->addr;
 
     if (0 != unlink (un->sun_path))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                "unlink", un->sun_path);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink",
+                                un->sun_path);
   }
 #endif
 #endif
@@ -480,8 +479,8 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
  * @param desc socket
  */
 ssize_t
-GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
-                                       * desc)
+GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle *
+                                       desc)
 {
   int error;
 
@@ -645,9 +644,8 @@ GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
-GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd,
-                                  int level, int option_name,
-                                  const void *option_value,
+GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd, int level,
+                                  int option_name, const void *option_value,
                                   socklen_t option_len)
 {
   int ret;
@@ -945,8 +943,8 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
 {
 #ifdef MINGW
   GNUNET_CONTAINER_slist_add (fds->handles,
-                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-                              h, sizeof (struct GNUNET_DISK_FileHandle));
+                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, h,
+                              sizeof (struct GNUNET_DISK_FileHandle));
 
 #else
   int fd;
@@ -1569,10 +1567,9 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                     "send to the socket %d returned %d (%u)\n", i, status,
                     error);
 #endif
-        if (status == 0
-            || (error != WSAEWOULDBLOCK && error != WSAENOTCONN)
-            || (status == -1 && gso_result == 0 && error == WSAENOTCONN &&
-                so_error == WSAECONNREFUSED))
+        if (status == 0 || (error != WSAEWOULDBLOCK && error != WSAENOTCONN) ||
+            (status == -1 && gso_result == 0 && error == WSAENOTCONN &&
+             so_error == WSAECONNREFUSED))
         {
           FD_SET (wfds->sds.fd_array[i], &awrite);
           retcode += 1;

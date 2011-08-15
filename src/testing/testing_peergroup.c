@@ -203,8 +203,8 @@ update_meter (struct ProgressMeter *meter)
         fprintf (stdout, "%sProgress: [0%%", meter->startup_string);
       }
       else
-        fprintf (stdout, "%d%%", (int) (((float) meter->completed
-                                         / meter->total) * 100));
+        fprintf (stdout, "%d%%",
+                 (int) (((float) meter->completed / meter->total) * 100));
     }
     else if (meter->completed % meter->dotnum == 0)
       fprintf (stdout, ".");
@@ -304,8 +304,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * failure (peers failed to connect).
  */
 static void
-internal_topology_callback (void *cls,
-                            const struct GNUNET_PeerIdentity *first,
+internal_topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                             const struct GNUNET_PeerIdentity *second,
                             uint32_t distance,
                             const struct GNUNET_CONFIGURATION_Handle *first_cfg,
@@ -332,9 +331,9 @@ internal_topology_callback (void *cls,
 #endif
 
 #if TIMING
-  if (GNUNET_TIME_absolute_get_difference (connect_last_time,
-                                           GNUNET_TIME_absolute_get
-                                           ()).rel_value >
+  if (GNUNET_TIME_absolute_get_difference
+      (connect_last_time,
+       GNUNET_TIME_absolute_get ()).rel_value >
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
                                      CONN_UPDATE_DURATION).rel_value)
   {
@@ -345,14 +344,14 @@ internal_topology_callback (void *cls,
     new_failed_connections = failed_connections - previous_failed_connections;
 
     /* Get duration in seconds */
-    duration
-        = GNUNET_TIME_absolute_get_difference (connect_last_time,
-                                               GNUNET_TIME_absolute_get
-                                               ()).rel_value / 1000;
+    duration =
+        GNUNET_TIME_absolute_get_difference (connect_last_time,
+                                             GNUNET_TIME_absolute_get ()).
+        rel_value / 1000;
     total_duration =
         GNUNET_TIME_absolute_get_difference (connect_start_time,
-                                             GNUNET_TIME_absolute_get
-                                             ()).rel_value / 1000;
+                                             GNUNET_TIME_absolute_get ()).
+        rel_value / 1000;
 
     failed_conns_per_sec_recent = (double) new_failed_connections / duration;
     failed_conns_per_sec_total = (double) failed_connections / total_duration;
@@ -360,9 +359,8 @@ internal_topology_callback (void *cls,
     conns_per_sec_total = (double) total_connections / total_duration;
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Recent: %.2f/s, Total: %.2f/s, Recent failed: %.2f/s, total failed %.2f/s\n",
-                conns_per_sec_recent, CONN_UPDATE_DURATION,
-                conns_per_sec_total, failed_conns_per_sec_recent,
-                failed_conns_per_sec_total);
+                conns_per_sec_recent, CONN_UPDATE_DURATION, conns_per_sec_total,
+                failed_conns_per_sec_recent, failed_conns_per_sec_total);
     connect_last_time = GNUNET_TIME_absolute_get ();
     previous_connections = total_connections;
     previous_failed_connections = failed_connections;
@@ -410,11 +408,9 @@ internal_topology_callback (void *cls,
 
   GNUNET_assert (pg_start_ctx->connect_meter != NULL);
   if (pg_start_ctx->connect_cb != NULL)
-    pg_start_ctx->connect_cb (pg_start_ctx->cls, first,
-                              second,
-                              distance,
-                              first_cfg,
-                              second_cfg, first_daemon, second_daemon, emsg);
+    pg_start_ctx->connect_cb (pg_start_ctx->cls, first, second, distance,
+                              first_cfg, second_cfg, first_daemon,
+                              second_daemon, emsg);
   if (GNUNET_YES == update_meter (pg_start_ctx->connect_meter))
   {
 #if VERBOSE
@@ -424,10 +420,10 @@ internal_topology_callback (void *cls,
 #endif
 
 #if TIMING
-    total_duration
-        = GNUNET_TIME_absolute_get_difference (connect_start_time,
-                                               GNUNET_TIME_absolute_get
-                                               ()).rel_value / 1000;
+    total_duration =
+        GNUNET_TIME_absolute_get_difference (connect_start_time,
+                                             GNUNET_TIME_absolute_get ()).
+        rel_value / 1000;
     failed_conns_per_sec_total = (double) failed_connections / total_duration;
     conns_per_sec_total = (double) total_connections / total_duration;
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -494,20 +490,21 @@ internal_peers_started_callback (void *cls,
     if ((pg_start_ctx->pg != NULL) && (pg_start_ctx->peers_left == 0))
     {
       pg_start_ctx->connect_start_time = GNUNET_TIME_absolute_get ();
-      pg_start_ctx->expected_connections
-          = GNUNET_TESTING_connect_topology (pg_start_ctx->pg,
-                                             pg_start_ctx->connect_topology,
-                                             pg_start_ctx->connect_topology_option,
-                                             pg_start_ctx->connect_topology_option_modifier,
-                                             DEFAULT_CONNECT_TIMEOUT,
-                                             pg_start_ctx->connect_attempts,
-                                             NULL, NULL);
+      pg_start_ctx->expected_connections =
+          GNUNET_TESTING_connect_topology (pg_start_ctx->pg,
+                                           pg_start_ctx->connect_topology,
+                                           pg_start_ctx->
+                                           connect_topology_option,
+                                           pg_start_ctx->
+                                           connect_topology_option_modifier,
+                                           DEFAULT_CONNECT_TIMEOUT,
+                                           pg_start_ctx->connect_attempts, NULL,
+                                           NULL);
 
-      pg_start_ctx->connect_meter
-          = create_meter (pg_start_ctx->expected_connections,
-                          "Peer connection ", pg_start_ctx->verbose);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Have %d expected connections\n",
+      pg_start_ctx->connect_meter =
+          create_meter (pg_start_ctx->expected_connections, "Peer connection ",
+                        pg_start_ctx->verbose);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Have %d expected connections\n",
                   pg_start_ctx->expected_connections);
     }
 
@@ -553,8 +550,8 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostkey (%d/%d) created for peer `%s'\n",
-              num_peers - peers_left, num_peers, GNUNET_i2s (id));
+              "Hostkey (%d/%d) created for peer `%s'\n", num_peers - peers_left,
+              num_peers, GNUNET_i2s (id));
 #endif
 
   pg_start_ctx->peers_left--;
@@ -583,13 +580,13 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
     else
     {
       GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
-      pg_start_ctx->die_task = GNUNET_SCHEDULER_add_now (&end_badly,
-                                                         "from create topology (bad return)");
+      pg_start_ctx->die_task =
+          GNUNET_SCHEDULER_add_now (&end_badly,
+                                    "from create topology (bad return)");
     }
 
     GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
-    pg_start_ctx->die_task
-        =
+    pg_start_ctx->die_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                       (pg_start_ctx->timeout), &end_badly,
                                       "from continue startup (timeout)");
@@ -608,8 +605,7 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
  * @param emsg error message (NULL on success)
  */
 void
-write_topology_cb (void *cls,
-                   const struct GNUNET_PeerIdentity *first,
+write_topology_cb (void *cls, const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second, const char *emsg)
 {
   struct TopologyOutputContext *topo_ctx;
@@ -727,9 +723,9 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   pg_start_ctx = GNUNET_malloc (sizeof (struct PeerGroupStartupContext));
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
-                                                          "connect_attempts",
-                                                          &pg_start_ctx->connect_attempts))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_attempts",
+                                             &pg_start_ctx->connect_attempts))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
                 "testing", "connect_attempts");
@@ -737,10 +733,11 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   }
 
-  if (GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
-                                                "max_outstanding_connections",
-                                                &pg_start_ctx->max_concurrent_connections))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
+                                             "max_outstanding_connections",
+                                             &pg_start_ctx->
+                                             max_concurrent_connections))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
                 "testing", "max_outstanding_connections");
@@ -748,9 +745,10 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   }
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
-                                                          "max_concurrent_ssh",
-                                                          &pg_start_ctx->max_concurrent_ssh))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
+                                             "max_concurrent_ssh",
+                                             &pg_start_ctx->max_concurrent_ssh))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
                 "testing", "max_concurrent_ssh");
@@ -769,9 +767,10 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   }
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
-                                                          "peergroup_timeout",
-                                                          &temp_config_number))
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
+                                             "peergroup_timeout",
+                                             &temp_config_number))
     pg_start_ctx->timeout =
         GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
                                           (GNUNET_TIME_UNIT_SECONDS,
@@ -787,11 +786,11 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   /* Read topology related options from the configuration file */
   temp_str = NULL;
-  if ((GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
-                                                            "topology",
-                                                            &temp_str))
-      && (GNUNET_NO ==
-          GNUNET_TESTING_topology_get (&pg_start_ctx->topology, temp_str)))
+  if ((GNUNET_YES ==
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "topology",
+                                              &temp_str)) &&
+      (GNUNET_NO ==
+       GNUNET_TESTING_topology_get (&pg_start_ctx->topology, temp_str)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Invalid topology `%s' given for section %s option %s\n",
@@ -821,9 +820,9 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (temp_str);
   }
 
-  if (GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "percentage",
-                                                &temp_str))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "percentage",
+                                             &temp_str))
     pg_start_ctx->topology_percentage = 0.5;
   else
   {
@@ -831,9 +830,9 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (temp_str);
   }
 
-  if (GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "probability",
-                                                &temp_str))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "probability",
+                                             &temp_str))
     pg_start_ctx->topology_probability = 0.5;
   else
   {
@@ -841,13 +840,11 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (temp_str);
   }
 
-  if ((GNUNET_YES
-       == GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
-                                                 "connect_topology",
-                                                 &temp_str))
-      && (GNUNET_NO ==
-          GNUNET_TESTING_topology_get (&pg_start_ctx->connect_topology,
-                                       temp_str)))
+  if ((GNUNET_YES ==
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                              "connect_topology", &temp_str)) &&
+      (GNUNET_NO ==
+       GNUNET_TESTING_topology_get (&pg_start_ctx->connect_topology, temp_str)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Invalid connect topology `%s' given for section %s option %s\n",
@@ -855,14 +852,13 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   GNUNET_free_non_null (temp_str);
 
-  if ((GNUNET_YES
-       == GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
-                                                 "connect_topology_option",
-                                                 &temp_str))
-      && (GNUNET_NO
-          ==
-          GNUNET_TESTING_topology_option_get
-          (&pg_start_ctx->connect_topology_option, temp_str)))
+  if ((GNUNET_YES ==
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                              "connect_topology_option",
+                                              &temp_str)) &&
+      (GNUNET_NO ==
+       GNUNET_TESTING_topology_option_get (&pg_start_ctx->
+                                           connect_topology_option, temp_str)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Invalid connect topology option `%s' given for section %s option %s\n",
@@ -871,14 +867,13 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   GNUNET_free_non_null (temp_str);
 
-  if (GNUNET_YES
-      == GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                "testing",
-                                                "connect_topology_option_modifier",
-                                                &temp_str))
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                             "connect_topology_option_modifier",
+                                             &temp_str))
   {
-    if (sscanf (temp_str, "%lf",
-                &pg_start_ctx->connect_topology_option_modifier) != 1)
+    if (sscanf
+        (temp_str, "%lf", &pg_start_ctx->connect_topology_option_modifier) != 1)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
@@ -891,17 +886,17 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (temp_str);
   }
 
-  if (GNUNET_YES
-      != GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
-                                                "blacklist_transports",
-                                                &pg_start_ctx->restrict_transports))
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                             "blacklist_transports",
+                                             &pg_start_ctx->
+                                             restrict_transports))
     pg_start_ctx->restrict_transports = NULL;
 
   pg_start_ctx->restrict_topology = GNUNET_TESTING_TOPOLOGY_NONE;
-  if ((GNUNET_YES
-       == GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
-                                                 "blacklist_topology",
-                                                 &temp_str))
+  if ((GNUNET_YES ==
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                              "blacklist_topology", &temp_str))
       && (GNUNET_NO ==
           GNUNET_TESTING_topology_get (&pg_start_ctx->restrict_topology,
                                        temp_str)))
@@ -928,23 +923,21 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     pg_start_ctx->verbose);
   /* Make compilers happy */
   reset_meter (pg_start_ctx->peer_start_meter);
-  pg_start_ctx->die_task
-      =
+  pg_start_ctx->die_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (pg_start_ctx->timeout), &end_badly,
                                     "didn't generate all hostkeys within allowed startup time!");
 
-  pg_start_ctx->pg
-      = GNUNET_TESTING_daemons_start (pg_start_ctx->cfg,
-                                      pg_start_ctx->peers_left,
-                                      pg_start_ctx->max_concurrent_connections,
-                                      pg_start_ctx->max_concurrent_ssh,
-                                      GNUNET_TIME_absolute_get_remaining
-                                      (pg_start_ctx->timeout),
-                                      &internal_hostkey_callback, pg_start_ctx,
-                                      &internal_peers_started_callback,
-                                      pg_start_ctx, &internal_topology_callback,
-                                      pg_start_ctx, pg_start_ctx->hostnames);
+  pg_start_ctx->pg =
+      GNUNET_TESTING_daemons_start (pg_start_ctx->cfg, pg_start_ctx->peers_left,
+                                    pg_start_ctx->max_concurrent_connections,
+                                    pg_start_ctx->max_concurrent_ssh,
+                                    GNUNET_TIME_absolute_get_remaining
+                                    (pg_start_ctx->timeout),
+                                    &internal_hostkey_callback, pg_start_ctx,
+                                    &internal_peers_started_callback,
+                                    pg_start_ctx, &internal_topology_callback,
+                                    pg_start_ctx, pg_start_ctx->hostnames);
 
   return pg_start_ctx->pg;
 }

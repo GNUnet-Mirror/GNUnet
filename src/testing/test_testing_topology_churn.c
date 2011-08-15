@@ -198,8 +198,7 @@ churn_peers_off ()
 }
 
 static void
-peers_started_callback (void *cls,
-                        const struct GNUNET_PeerIdentity *id,
+peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
                         const struct GNUNET_CONFIGURATION_Handle *cfg,
                         struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
@@ -224,10 +223,10 @@ peers_started_callback (void *cls,
     GNUNET_SCHEDULER_cancel (die_task);
     /* Set up task in case topology creation doesn't finish
      * within a reasonable amount of time */
-    die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                             (GNUNET_TIME_UNIT_MINUTES, 5),
-                                             &end_badly,
-                                             "from peers_started_callback");
+    die_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_MINUTES, 5), &end_badly,
+                                      "from peers_started_callback");
     churn_peers_off ();
     ok = 0;
   }
@@ -235,9 +234,8 @@ peers_started_callback (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ok = 1;
 
@@ -274,18 +272,15 @@ run (void *cls,
 
 
   /* Set up a task to end testing if peer start fails */
-  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                           (GNUNET_TIME_UNIT_MINUTES, 5),
-                                           &end_badly,
-                                           "didn't start all daemons in reasonable amount of time!!!");
+  die_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MINUTES, 5), &end_badly,
+                                    "didn't start all daemons in reasonable amount of time!!!");
 
-  pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left,
-                                     peers_left,
-                                     peers_left,
+  pg = GNUNET_TESTING_daemons_start (cfg, peers_left, peers_left, peers_left,
                                      TIMEOUT, NULL, NULL,
-                                     &peers_started_callback, NULL, NULL,
-                                     NULL, NULL);
+                                     &peers_started_callback, NULL, NULL, NULL,
+                                     NULL);
 
 }
 
@@ -305,9 +300,10 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  ret = GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                            argv, "test-testing-topology-churn", "nohelp",
-                            options, &run, &ok);
+  ret =
+      GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                          "test-testing-topology-churn", "nohelp", options,
+                          &run, &ok);
   if (ret != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

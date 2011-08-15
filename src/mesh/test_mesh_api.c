@@ -51,9 +51,7 @@ GNUNET_SCHEDULER_TaskIdentifier test_task;
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-callback (void *cls,
-          struct GNUNET_MESH_Tunnel *tunnel,
-          void **tunnel_ctx,
+callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
           const struct GNUNET_PeerIdentity *sender,
           const struct GNUNET_MessageHeader *message,
           const struct GNUNET_TRANSPORT_ATS_Information *atsi)
@@ -125,16 +123,16 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  arm_pid = GNUNET_OS_start_process (NULL, NULL,
-                                     "gnunet-service-arm", "gnunet-service-arm",
+  arm_pid =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE_ARM
-                                     "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                     "-c", "test_mesh.conf", NULL);
+                               "-c", "test_mesh.conf", NULL);
 
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -170,14 +168,14 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1,
-                            argv2, "test-mesh-api", "nohelp",
-                            options, &run, NULL);
+  ret =
+      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+                          "test-mesh-api", "nohelp", options, &run, NULL);
 
   if (GNUNET_OK != ret)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "run failed with error code %d\n", ret);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "run failed with error code %d\n",
+                ret);
     return 1;
   }
   if (GNUNET_SYSERR == result)

@@ -149,14 +149,10 @@ static void test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static int
-iterate_zeros (void *cls,
-               const GNUNET_HashCode * key,
-               uint32_t size,
-               const void *data,
-               enum GNUNET_BLOCK_Type type,
-               uint32_t priority,
-               uint32_t anonymity,
-               struct GNUNET_TIME_Absolute expiration, uint64_t uid)
+iterate_zeros (void *cls, const GNUNET_HashCode * key, uint32_t size,
+               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
+               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+               uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   int i;
@@ -187,8 +183,7 @@ iterate_zeros (void *cls,
             (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
             bc, crc->cnt);
     if (crc->cnt > 0)
-      GAUGER (category,
-              "Select random zero-anonymity item",
+      GAUGER (category, "Select random zero-anonymity item",
               (crc->end.abs_value - crc->start.abs_value) / crc->cnt,
               "ms/item");
     memset (hits, 0, sizeof (hits));
@@ -202,13 +197,9 @@ iterate_zeros (void *cls,
 
 
 static int
-expiration_get (void *cls,
-                const GNUNET_HashCode * key,
-                uint32_t size,
-                const void *data,
-                enum GNUNET_BLOCK_Type type,
-                uint32_t priority,
-                uint32_t anonymity,
+expiration_get (void *cls, const GNUNET_HashCode * key, uint32_t size,
+                const void *data, enum GNUNET_BLOCK_Type type,
+                uint32_t priority, uint32_t anonymity,
                 struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -234,8 +225,7 @@ expiration_get (void *cls,
             (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
             bc, (unsigned int) PUT_10);
     if (crc->cnt > 0)
-      GAUGER (category,
-              "Selecting and deleting by expiration",
+      GAUGER (category, "Selecting and deleting by expiration",
               (crc->end.abs_value - crc->start.abs_value) / crc->cnt,
               "ms/item");
     memset (hits, 0, sizeof (hits));
@@ -252,13 +242,9 @@ expiration_get (void *cls,
 
 
 static int
-replication_get (void *cls,
-                 const GNUNET_HashCode * key,
-                 uint32_t size,
-                 const void *data,
-                 enum GNUNET_BLOCK_Type type,
-                 uint32_t priority,
-                 uint32_t anonymity,
+replication_get (void *cls, const GNUNET_HashCode * key, uint32_t size,
+                 const void *data, enum GNUNET_BLOCK_Type type,
+                 uint32_t priority, uint32_t anonymity,
                  struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -285,8 +271,7 @@ replication_get (void *cls,
             (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
             bc, (unsigned int) PUT_10);
     if (crc->cnt > 0)
-      GAUGER (category,
-              "Selecting random item for replication",
+      GAUGER (category, "Selecting random item for replication",
               (crc->end.abs_value - crc->start.abs_value) / crc->cnt,
               "ms/item");
     memset (hits, 0, sizeof (hits));
@@ -316,12 +301,12 @@ unload_plugin (struct GNUNET_DATASTORE_PluginFunctions *api,
   char *libname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "DATASTORE", "DATABASE", &name))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "DATASTORE", "DATABASE",
+                                             &name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No `%s' specified for `%s' in configuration!\n"),
-                "DATABASE", "DATASTORE");
+                _("No `%s' specified for `%s' in configuration!\n"), "DATABASE",
+                "DATASTORE");
     return;
   }
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
@@ -375,13 +360,11 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       putValue (crc->api, j, crc->i);
     crc->end = GNUNET_TIME_absolute_get ();
     {
-      printf ("%s took %llu ms for %llu items\n",
-              "Storing an item",
+      printf ("%s took %llu ms for %llu items\n", "Storing an item",
               (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
               PUT_10);
       if (PUT_10 > 0)
-        GAUGER (category,
-                "Storing an item",
+        GAUGER (category, "Storing an item",
                 (crc->end.abs_value - crc->start.abs_value) / PUT_10,
                 "ms/item");
     }
@@ -394,8 +377,8 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     crc->api->get_replication (crc->api->cls, &replication_get, crc);
     break;
   case RP_ZA_GET:
-    crc->api->get_zero_anonymity (crc->api->cls,
-                                  crc->offset++, 1, &iterate_zeros, crc);
+    crc->api->get_zero_anonymity (crc->api->cls, crc->offset++, 1,
+                                  &iterate_zeros, crc);
     break;
   case RP_EXP_GET:
     crc->api->get_expiration (crc->api->cls, &expiration_get, crc);
@@ -422,19 +405,19 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   char *libname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "DATASTORE", "DATABASE", &name))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "DATASTORE", "DATABASE",
+                                             &name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No `%s' specified for `%s' in configuration!\n"),
-                "DATABASE", "DATASTORE");
+                _("No `%s' specified for `%s' in configuration!\n"), "DATABASE",
+                "DATASTORE");
     return NULL;
   }
   env.cfg = cfg;
   env.duc = &disk_utilization_change_cb;
   env.cls = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading `%s' datastore plugin\n"), name);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' datastore plugin\n"),
+              name);
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
   if (NULL == (ret = GNUNET_PLUGIN_load (libname, &env)))
   {
@@ -448,9 +431,8 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct CpsRunContext *crc;
@@ -490,12 +472,10 @@ check ()
   };
 
   GNUNET_snprintf (category, sizeof (category), "DATASTORE-%s", plugin_name);
-  GNUNET_snprintf (cfg_name,
-                   sizeof (cfg_name),
+  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
                    "perf_plugin_datastore_data_%s.conf", plugin_name);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "perf-plugin-datastore", "nohelp",
-                      options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "perf-plugin-datastore", "nohelp", options, &run, NULL);
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %u\n", ok);
   return ok;
@@ -519,9 +499,8 @@ main (int argc, char *argv[])
   else
     pos = (char *) plugin_name;
 
-  GNUNET_snprintf (dir_name,
-                   sizeof (dir_name),
-                   "/tmp/perf-gnunet-datastore-%s", plugin_name);
+  GNUNET_snprintf (dir_name, sizeof (dir_name), "/tmp/perf-gnunet-datastore-%s",
+                   plugin_name);
   GNUNET_DISK_directory_remove (dir_name);
   GNUNET_log_setup ("perf-plugin-datastore",
 #if VERBOSE

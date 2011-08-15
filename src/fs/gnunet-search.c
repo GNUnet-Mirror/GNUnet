@@ -70,11 +70,9 @@ static int local_only;
  * @return 0 to continue extracting, 1 to abort
  */
 static int
-item_printer (void *cls,
-              const char *plugin_name,
-              enum EXTRACTOR_MetaType type,
-              enum EXTRACTOR_MetaFormat format,
-              const char *data_mime_type, const char *data, size_t data_size)
+item_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
+              enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
+              const char *data, size_t data_size)
 {
   if ((format != EXTRACTOR_METAFORMAT_UTF8) &&
       (format != EXTRACTOR_METAFORMAT_C_STRING))
@@ -105,9 +103,7 @@ clean_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   if (dsize !=
-      GNUNET_DISK_fn_write (output_filename,
-                            ddata,
-                            dsize,
+      GNUNET_DISK_fn_write (output_filename, ddata, dsize,
                             GNUNET_DISK_PERM_USER_READ |
                             GNUNET_DISK_PERM_USER_WRITE))
   {
@@ -154,8 +150,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     uri = GNUNET_FS_uri_to_string (info->value.search.specifics.result.uri);
     printf ("#%u:\n", cnt++);
     filename =
-        GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.
-                                                specifics.result.meta,
+        GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.specifics.
+                                                result.meta,
                                                 EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
     if (filename != NULL)
     {
@@ -166,8 +162,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     else
       printf ("gnunet-download %s\n", uri);
     if (verbose)
-      GNUNET_CONTAINER_meta_data_iterate (info->value.search.specifics.
-                                          result.meta, &item_printer, NULL);
+      GNUNET_CONTAINER_meta_data_iterate (info->value.search.specifics.result.
+                                          meta, &item_printer, NULL);
     printf ("\n");
     fflush (stdout);
     GNUNET_free_non_null (filename);
@@ -182,14 +178,12 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     /* ignore */
     break;
   case GNUNET_FS_STATUS_SEARCH_ERROR:
-    fprintf (stderr,
-             _("Error searching: %s.\n"),
+    fprintf (stderr, _("Error searching: %s.\n"),
              info->value.search.specifics.error.message);
     GNUNET_SCHEDULER_shutdown ();
     break;
   case GNUNET_FS_STATUS_SEARCH_STOPPED:
-    GNUNET_SCHEDULER_add_continuation (&clean_task,
-                                       NULL,
+    GNUNET_SCHEDULER_add_continuation (&clean_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   default:
@@ -220,9 +214,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_FS_Uri *uri;
   unsigned int argc;
@@ -240,10 +233,9 @@ run (void *cls,
     return;
   }
   cfg = c;
-  ctx = GNUNET_FS_start (cfg,
-                         "gnunet-search",
-                         &progress_cb,
-                         NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
+  ctx =
+      GNUNET_FS_start (cfg, "gnunet-search", &progress_cb, NULL,
+                       GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
   {
     fprintf (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
@@ -272,8 +264,8 @@ run (void *cls,
   }
   else
   {
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  &shutdown_task, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                  NULL);
   }
 }
 
@@ -311,9 +303,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-search [OPTIONS] KEYWORD",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-search [OPTIONS] KEYWORD",
                               gettext_noop
                               ("Search GNUnet for files that were published on GNUnet"),
                               options, &run, NULL)) ? ret : 1;

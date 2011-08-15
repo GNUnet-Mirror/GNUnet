@@ -332,8 +332,7 @@ port_in_ports (uint64_t ports, uint16_t port)
 }
 
 void
-send_pkt_to_peer (void *cls,
-                  const struct GNUNET_PeerIdentity *peer,
+send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
                   const struct GNUNET_TRANSPORT_ATS_Information *atsi
                   __attribute__ ((unused)))
 {
@@ -429,8 +428,8 @@ new_ip6addr_remote (unsigned char *buf, unsigned char *addr, char addrlen)
   unsigned long long ipv6prefix;
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
-                                                        "IPV6ADDR", &ipv6addr));
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV6ADDR",
+                                                        &ipv6addr));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg, "vpn",
                                                         "IPV6PREFIX",
@@ -458,11 +457,11 @@ new_ip4addr_remote (unsigned char *buf, unsigned char *addr, char addrlen)
   char *ipv4mask;
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
-                                                        "IPV4ADDR", &ipv4addr));
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV4ADDR",
+                                                        &ipv4addr));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
-                                                        "IPV4MASK", &ipv4mask));
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV4MASK",
+                                                        &ipv4mask));
   uint32_t mask;
 
   inet_pton (AF_INET, ipv4addr, buf);
@@ -568,9 +567,9 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_CONTAINER_multihashmap_put (hashmap, &key, value,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
-      value->heap_node = GNUNET_CONTAINER_heap_insert (heap, value,
-                                                       GNUNET_TIME_absolute_get
-                                                       ().abs_value);
+      value->heap_node =
+          GNUNET_CONTAINER_heap_insert (heap, value,
+                                        GNUNET_TIME_absolute_get ().abs_value);
       if (GNUNET_CONTAINER_heap_get_size (heap) > max_mappings)
         GNUNET_SCHEDULER_add_now (collect_mappings, NULL);
     }
@@ -696,9 +695,9 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_CONTAINER_multihashmap_put (hashmap, &key, value,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-      value->heap_node = GNUNET_CONTAINER_heap_insert (heap, value,
-                                                       GNUNET_TIME_absolute_get
-                                                       ().abs_value);
+      value->heap_node =
+          GNUNET_CONTAINER_heap_insert (heap, value,
+                                        GNUNET_TIME_absolute_get ().abs_value);
       if (GNUNET_CONTAINER_heap_get_size (heap) > max_mappings)
         GNUNET_SCHEDULER_add_now (collect_mappings, NULL);
     }
@@ -722,8 +721,8 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     unsigned char *c = ((unsigned char *) pkt) + ntohs (pkt->addroffset);
 
     new_ip4addr_remote (c, pkt->addr, pkt->addrsize);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New mapping to %d.%d.%d.%d\n",
-                c[0], c[1], c[2], c[3]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New mapping to %d.%d.%d.%d\n", c[0],
+                c[1], c[2], c[3]);
     unsigned char *k = (unsigned char *) &key;
 
     /*
@@ -755,9 +754,9 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_CONTAINER_multihashmap_put (hashmap, &key, value,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-      value->heap_node = GNUNET_CONTAINER_heap_insert (heap, value,
-                                                       GNUNET_TIME_absolute_get
-                                                       ().abs_value);
+      value->heap_node =
+          GNUNET_CONTAINER_heap_insert (heap, value,
+                                        GNUNET_TIME_absolute_get ().abs_value);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Mapping is saved in the hashmap with key %08x.\n",
                   *((uint32_t *) (&key)));
@@ -860,7 +859,8 @@ add_additional_port (struct map_entry *me, uint16_t port)
 static int
 receive_udp_back (void *cls
                   __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
-                  void **tunnel_ctx __attribute__ ((unused)),
+                  void **tunnel_ctx
+                  __attribute__ ((unused)),
                   const struct GNUNET_PeerIdentity *sender
                   __attribute__ ((unused)),
                   const struct GNUNET_MessageHeader *message,
@@ -931,8 +931,8 @@ receive_udp_back (void *cls
     GNUNET_assert (me != NULL);
     if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK)
     {
-      GNUNET_assert (me->desc.
-                     service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP));
+      GNUNET_assert (me->
+                     desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP));
       if (!port_in_ports (me->desc.ports, pkt6->udp_hdr.spt) &&
           !testBit (me->additional_ports, ntohs (pkt6->udp_hdr.spt)))
       {
@@ -1109,8 +1109,8 @@ receive_tcp_back (void *cls
 
     GNUNET_assert (me != NULL);
     if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK)
-      GNUNET_assert (me->desc.
-                     service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP));
+      GNUNET_assert (me->
+                     desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP));
 
     pkt6->tcp_hdr.crc = 0;
     uint32_t sum = 0;
@@ -1228,10 +1228,8 @@ receive_tcp_back (void *cls
  * @param cfg_ configuration
  */
 static void
-run (void *cls,
-     char *const *args __attribute__ ((unused)),
-     const char *cfgfilep __attribute__ ((unused)),
-     const struct GNUNET_CONFIGURATION_Handle *cfg_)
+run (void *cls, char *const *args __attribute__ ((unused)), const char *cfgfilep
+     __attribute__ ((unused)), const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   static const struct GNUNET_MESH_MessageHandler handlers[] = {
     {receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK, 0},
@@ -1274,10 +1272,7 @@ main (int argc, char *const *argv)
   };
 
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "vpn",
-                              gettext_noop ("help text"),
+          GNUNET_PROGRAM_run (argc, argv, "vpn", gettext_noop ("help text"),
                               options, &run, NULL)) ? ret : 1;
 }
 

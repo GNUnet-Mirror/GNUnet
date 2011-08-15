@@ -102,8 +102,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
   char *pos;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-                                             "TRANSPORT",
+      GNUNET_CONFIGURATION_get_value_number (GST_cfg, "TRANSPORT",
                                              "NEIGHBOUR_LIMIT", &tneigh))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -111,15 +110,15 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (GST_cfg,
-                                             "TRANSPORT", "PLUGINS", &plugs))
+      GNUNET_CONFIGURATION_get_value_string (GST_cfg, "TRANSPORT", "PLUGINS",
+                                             &plugs))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Starting transport plugins `%s'\n"), plugs);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting transport plugins `%s'\n"),
+              plugs);
   for (pos = strtok (plugs, " "); pos != NULL; pos = strtok (NULL, " "))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Loading `%s' transport plugin\n"), pos);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' transport plugin\n"),
+                pos);
     GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", pos);
     plug = GNUNET_malloc (sizeof (struct TransportPlugin));
     plug->short_name = GNUNET_strdup (pos);

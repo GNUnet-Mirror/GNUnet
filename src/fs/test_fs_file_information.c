@@ -50,11 +50,8 @@
 
 
 static int
-mycleaner (void *cls,
-           struct GNUNET_FS_FileInformation *fi,
-           uint64_t length,
-           struct GNUNET_CONTAINER_MetaData *meta,
-           struct GNUNET_FS_Uri **uri,
+mycleaner (void *cls, struct GNUNET_FS_FileInformation *fi, uint64_t length,
+           struct GNUNET_CONTAINER_MetaData *meta, struct GNUNET_FS_Uri **uri,
            struct GNUNET_FS_BlockOptions *bo, int *do_index, void **client_info)
 {
   return GNUNET_OK;
@@ -62,9 +59,8 @@ mycleaner (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const char *keywords[] = {
     "down_foo",
@@ -89,9 +85,7 @@ run (void *cls,
   for (i = 0; i < FILESIZE; i++)
     buf[i] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 256);
   GNUNET_assert (FILESIZE ==
-                 GNUNET_DISK_fn_write (fn1,
-                                       buf,
-                                       FILESIZE,
+                 GNUNET_DISK_fn_write (fn1, buf, FILESIZE,
                                        GNUNET_DISK_PERM_USER_READ |
                                        GNUNET_DISK_PERM_USER_WRITE));
   GNUNET_free (buf);
@@ -101,9 +95,7 @@ run (void *cls,
   for (i = 0; i < FILESIZE; i++)
     buf[i] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 256);
   GNUNET_assert (FILESIZE ==
-                 GNUNET_DISK_fn_write (fn2,
-                                       buf,
-                                       FILESIZE,
+                 GNUNET_DISK_fn_write (fn2, buf, FILESIZE,
                                        GNUNET_DISK_PERM_USER_READ |
                                        GNUNET_DISK_PERM_USER_WRITE));
   GNUNET_free (buf);
@@ -114,21 +106,22 @@ run (void *cls,
   bo.anonymity_level = 1;
   bo.replication_level = 0;
   bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME);
-  fi1 = GNUNET_FS_file_information_create_from_file (fs,
-                                                     "file_information-context1",
-                                                     fn1,
-                                                     kuri,
-                                                     meta, GNUNET_YES, &bo);
+  fi1 =
+      GNUNET_FS_file_information_create_from_file (fs,
+                                                   "file_information-context1",
+                                                   fn1, kuri, meta, GNUNET_YES,
+                                                   &bo);
   GNUNET_assert (fi1 != NULL);
-  fi2 = GNUNET_FS_file_information_create_from_file (fs,
-                                                     "file_information-context2",
-                                                     fn2,
-                                                     kuri,
-                                                     meta, GNUNET_YES, &bo);
+  fi2 =
+      GNUNET_FS_file_information_create_from_file (fs,
+                                                   "file_information-context2",
+                                                   fn2, kuri, meta, GNUNET_YES,
+                                                   &bo);
   GNUNET_assert (fi2 != NULL);
-  fidir = GNUNET_FS_file_information_create_empty_directory (fs,
-                                                             "file_information-context-dir",
-                                                             kuri, meta, &bo);
+  fidir =
+      GNUNET_FS_file_information_create_empty_directory (fs,
+                                                         "file_information-context-dir",
+                                                         kuri, meta, &bo);
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi1));
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi2));
   GNUNET_FS_uri_destroy (kuri);
@@ -165,9 +158,10 @@ testThumbnail ()
   ex = EXTRACTOR_plugin_add_config (ex, "mime",
                                     EXTRACTOR_OPTION_DEFAULT_POLICY);
   m = GNUNET_CONTAINER_meta_data_create ();
-  if (3 != GNUNET_FS_meta_data_extract_from_file (m,
-                                                  "test_fs_file_information_meta_data_image.jpg",
-                                                  ex))
+  if (3 !=
+      GNUNET_FS_meta_data_extract_from_file (m,
+                                             "test_fs_file_information_meta_data_image.jpg",
+                                             ex))
   {
     GNUNET_break (0);
     EXTRACTOR_plugin_remove_all (ex);
@@ -187,8 +181,9 @@ testThumbnail ()
   }
   GNUNET_free (thumb);
   GNUNET_CONTAINER_meta_data_add_publication_date (d);
-  date = GNUNET_CONTAINER_meta_data_get_by_type (d,
-                                                 EXTRACTOR_METATYPE_PUBLICATION_DATE);
+  date =
+      GNUNET_CONTAINER_meta_data_get_by_type (d,
+                                              EXTRACTOR_METATYPE_PUBLICATION_DATE);
   if (date == NULL)
   {
     GNUNET_break (0);
@@ -227,9 +222,9 @@ main (int argc, char *argv[])
                     NULL);
   if (0 != testThumbnail ())
     return 1;
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-fs-file_information",
-                      "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
+                      "test-fs-file_information", "nohelp", options, &run,
+                      NULL);
   return 0;
 }
 

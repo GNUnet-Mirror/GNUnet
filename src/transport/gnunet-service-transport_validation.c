@@ -361,13 +361,11 @@ find_validation_entry (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
   ve->addr = (void *) &ve[1];
   ve->public_key = *public_key;
   ve->pid = *neighbour;
-  ve->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-                                            UINT32_MAX);
+  ve->challenge =
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   memcpy (&ve[1], addr, addrlen);
   ve->addrlen = addrlen;
-  GNUNET_CONTAINER_multihashmap_put (validation_map,
-                                     &neighbour->hashPubKey,
-                                     ve,
+  GNUNET_CONTAINER_multihashmap_put (validation_map, &neighbour->hashPubKey, ve,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return ve;
 }
@@ -385,10 +383,9 @@ find_validation_entry (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
  * @return GNUNET_OK (keep the address)
  */
 static int
-add_valid_address (void *cls,
-                   const char *tname,
-                   struct GNUNET_TIME_Absolute expiration,
-                   const void *addr, uint16_t addrlen)
+add_valid_address (void *cls, const char *tname,
+                   struct GNUNET_TIME_Absolute expiration, const void *addr,
+                   uint16_t addrlen)
 {
   const struct GNUNET_HELLO_Message *hello = cls;
   struct ValidationEntry *ve;
@@ -397,8 +394,7 @@ add_valid_address (void *cls,
 
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
     return GNUNET_OK;           /* expired */
-  if ((GNUNET_OK !=
-       GNUNET_HELLO_get_id (hello, &pid)) ||
+  if ((GNUNET_OK != GNUNET_HELLO_get_id (hello, &pid)) ||
       (GNUNET_OK != GNUNET_HELLO_get_key (hello, &public_key)))
   {
     GNUNET_break (0);
@@ -406,10 +402,8 @@ add_valid_address (void *cls,
   }
   ve = find_validation_entry (&public_key, &pid, tname, addr, addrlen);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until, expiration);
-  GNUNET_ATS_address_update (GST_ats,
-                             &pid,
-                             ve->valid_until,
-                             tname, NULL, addr, addrlen, NULL, 0);
+  GNUNET_ATS_address_update (GST_ats, &pid, ve->valid_until, tname, NULL, addr,
+                             addrlen, NULL, 0);
   return GNUNET_OK;
 }
 
@@ -423,8 +417,7 @@ add_valid_address (void *cls,
  * @param error message
  */
 static void
-process_peerinfo_hello (void *cls,
-                        const struct GNUNET_PeerIdentity *peer,
+process_peerinfo_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
                         const struct GNUNET_HELLO_Message *hello,
                         const char *err_msg)
 {
@@ -432,8 +425,7 @@ process_peerinfo_hello (void *cls,
   if (NULL == hello)
     return;
   GNUNET_assert (NULL ==
-                 GNUNET_HELLO_iterate_addresses (hello,
-                                                 GNUNET_NO,
+                 GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO,
                                                  &add_valid_address,
                                                  (void *) hello));
 }
@@ -517,8 +509,8 @@ timeout_hello_validation (void *cls,
 
   ve->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# address records discarded"),
-                            1, GNUNET_NO);
+                            gettext_noop ("# address records discarded"), 1,
+                            GNUNET_NO);
   cleanup_validation_entry (NULL, &ve->pid.hashPubKey, ve);
 }
 
@@ -553,14 +545,9 @@ multicast_pong (void *cls,
   papi = GST_plugins_find (plugin_name);
   if (papi == NULL)
     return;
-  (void) papi->send (papi->cls,
-                     target,
-                     (const char *) pong,
-                     ntohs (pong->header.size),
-                     PONG_PRIORITY,
-                     HELLO_REVALIDATION_START_TIME,
-                     NULL,
-                     plugin_address,
+  (void) papi->send (papi->cls, target, (const char *) pong,
+                     ntohs (pong->header.size), PONG_PRIORITY,
+                     HELLO_REVALIDATION_START_TIME, NULL, plugin_address,
                      plugin_address_len, GNUNET_YES, NULL, NULL);
 }
 
@@ -579,8 +566,7 @@ multicast_pong (void *cls,
 void
 GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                             const struct GNUNET_MessageHeader *hdr,
-                            const char *plugin_name,
-                            struct Session *session,
+                            const char *plugin_name, struct Session *session,
                             const void *sender_address,
                             size_t sender_address_len)
 {
@@ -601,15 +587,16 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     return;
   }
   ping = (const struct TransportPingMessage *) hdr;
-  if (0 != memcmp (&ping->target,
-                   &GST_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 !=
+      memcmp (&ping->target, &GST_my_identity,
+              sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
     return;
   }
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# PING messages received"),
-                            1, GNUNET_NO);
+                            gettext_noop ("# PING messages received"), 1,
+                            GNUNET_NO);
   addr = (const char *) &ping[1];
   alen = ntohs (hdr->size) - sizeof (struct TransportPingMessage);
   /* peer wants to confirm that this is one of our addresses, this is what is
@@ -641,8 +628,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
   pong->purpose.size =
       htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
-             sizeof (uint32_t) +
-             sizeof (struct GNUNET_TIME_AbsoluteNBO) + alen + slen);
+             sizeof (uint32_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+             alen + slen);
   pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN);
   pong->challenge = ping->challenge;
   pong->addrlen = htonl (alen + slen);
@@ -659,8 +646,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
     pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_rsa_sign (GST_my_private_key,
-                                           &pong->purpose, sig_cache));
+                   GNUNET_CRYPTO_rsa_sign (GST_my_private_key, &pong->purpose,
+                                           sig_cache));
   }
   else
   {
@@ -674,15 +661,11 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   if (papi == NULL)
     ret = -1;
   else
-    ret = papi->send (papi->cls,
-                      sender,
-                      (const char *) pong,
-                      ntohs (pong->header.size),
-                      PONG_PRIORITY,
-                      HELLO_REVALIDATION_START_TIME,
-                      session,
-                      sender_address,
-                      sender_address_len, GNUNET_SYSERR, NULL, NULL);
+    ret =
+        papi->send (papi->cls, sender, (const char *) pong,
+                    ntohs (pong->header.size), PONG_PRIORITY,
+                    HELLO_REVALIDATION_START_TIME, session, sender_address,
+                    sender_address_len, GNUNET_SYSERR, NULL, NULL);
   if (ret != -1)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -733,8 +716,8 @@ struct ValidateAddressContext
  * @param result GNUNET_OK if the connection is allowed, GNUNET_NO if not
  */
 static void
-transmit_ping_if_allowed (void *cls,
-                          const struct GNUNET_PeerIdentity *pid, int result)
+transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
+                          int result)
 {
   struct ValidationEntry *ve = cls;
   struct TransportPingMessage ping;
@@ -746,8 +729,8 @@ transmit_ping_if_allowed (void *cls,
   uint16_t hsize;
 
   ve->bc = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting plain PING to `%s'\n", GNUNET_i2s (pid));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting plain PING to `%s'\n",
+              GNUNET_i2s (pid));
   ping.header.size = htons (sizeof (struct TransportPingMessage));
   ping.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   ping.challenge = htonl (ve->challenge);
@@ -780,13 +763,10 @@ transmit_ping_if_allowed (void *cls,
     if (papi == NULL)
       ret = -1;
     else
-      ret = papi->send (papi->cls,
-                        pid,
-                        message_buf,
-                        tsize,
-                        PING_PRIORITY,
-                        HELLO_REVALIDATION_START_TIME, NULL /* no session */ ,
-                        ve->addr, ve->addrlen, GNUNET_YES, NULL, NULL);
+      ret =
+          papi->send (papi->cls, pid, message_buf, tsize, PING_PRIORITY,
+                      HELLO_REVALIDATION_START_TIME, NULL /* no session */ ,
+                      ve->addr, ve->addrlen, GNUNET_YES, NULL, NULL);
   }
   if (-1 != ret)
   {
@@ -811,10 +791,9 @@ transmit_ping_if_allowed (void *cls,
  * @return GNUNET_OK (keep the address)
  */
 static int
-validate_address (void *cls,
-                  const char *tname,
-                  struct GNUNET_TIME_Absolute expiration,
-                  const void *addr, uint16_t addrlen)
+validate_address (void *cls, const char *tname,
+                  struct GNUNET_TIME_Absolute expiration, const void *addr,
+                  uint16_t addrlen)
 {
   const struct ValidateAddressContext *vac = cls;
   const struct GNUNET_PeerIdentity *pid = &vac->pid;
@@ -861,18 +840,17 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (delay.rel_value > 0)
   {
     /* should wait a bit longer */
-    ve->timeout_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                     &revalidate_address, ve);
+    ve->timeout_task =
+        GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
     return;
   }
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# address revalidations started"),
-                            1, GNUNET_NO);
+                            gettext_noop ("# address revalidations started"), 1,
+                            GNUNET_NO);
   vac.pid = ve->pid;
   vac.public_key = ve->public_key;
-  validate_address (&vac,
-                    ve->transport_name,
-                    ve->valid_until, ve->addr, (uint16_t) ve->addrlen);
+  validate_address (&vac, ve->transport_name, ve->valid_until, ve->addr,
+                    (uint16_t) ve->addrlen);
 }
 
 
@@ -888,8 +866,7 @@ add_valid_peer_address (void *cls, size_t max, void *buf)
 {
   struct ValidationEntry *ve = cls;
 
-  return GNUNET_HELLO_add_address (ve->transport_name,
-                                   ve->valid_until,
+  return GNUNET_HELLO_add_address (ve->transport_name, ve->valid_until,
                                    ve->addr, ve->addrlen, buf, max);
 }
 
@@ -921,8 +898,8 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     return;
   }
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# PONG messages received"),
-                            1, GNUNET_NO);
+                            gettext_noop ("# PONG messages received"), 1,
+                            GNUNET_NO);
   pong = (const struct TransportPongMessage *) hdr;
   addr = (const char *) &pong[1];
   alen = ntohs (hdr->size) - sizeof (struct TransportPongMessage);
@@ -962,8 +939,8 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   }
   if (GNUNET_OK !=
       GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-                                &pong->purpose,
-                                &pong->signature, &ve->public_key))
+                                &pong->purpose, &pong->signature,
+                                &ve->public_key))
   {
     GNUNET_break_op (0);
     return;
@@ -983,9 +960,10 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 
   /* randomly delay by up to 1h to avoid synchronous validations */
   rdelay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 60 * 60);
-  delay = GNUNET_TIME_relative_add (HELLO_REVALIDATION_START_TIME,
-                                    GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, rdelay));
+  delay =
+      GNUNET_TIME_relative_add (HELLO_REVALIDATION_START_TIME,
+                                GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, rdelay));
   ve->timeout_task =
       GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
 }
@@ -1004,8 +982,7 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
       (const struct GNUNET_HELLO_Message *) hello;
   struct ValidateAddressContext vac;
 
-  if ((GNUNET_OK !=
-       GNUNET_HELLO_get_id (hm, &vac.pid)) ||
+  if ((GNUNET_OK != GNUNET_HELLO_get_id (hm, &vac.pid)) ||
       (GNUNET_OK != GNUNET_HELLO_get_key (hm, &vac.public_key)))
   {
     /* malformed HELLO */
@@ -1013,8 +990,7 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
     return;
   }
   GNUNET_assert (NULL ==
-                 GNUNET_HELLO_iterate_addresses (hm,
-                                                 GNUNET_NO,
+                 GNUNET_HELLO_iterate_addresses (hm, GNUNET_NO,
                                                  &validate_address, &vac));
 }
 
@@ -1051,10 +1027,7 @@ iterate_addresses (void *cls, const GNUNET_HashCode * key, void *value)
   struct IteratorContext *ic = cls;
   struct ValidationEntry *ve = value;
 
-  ic->cb (ic->cb_cls,
-          &ve->public_key,
-          &ve->pid,
-          ve->valid_until,
+  ic->cb (ic->cb_cls, &ve->public_key, &ve->pid, ve->valid_until,
           ve->validation_block, ve->transport_name, ve->addr, ve->addrlen);
   return GNUNET_OK;
 }

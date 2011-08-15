@@ -89,20 +89,16 @@ static int ok;
  * Initialize Environment for this plugin
  */
 static void
-receive (void *cls,
-         const struct GNUNET_PeerIdentity *peer,
-         const struct GNUNET_MessageHeader *message,
-         uint32_t distance,
+receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+         const struct GNUNET_MessageHeader *message, uint32_t distance,
          const char *sender_address, size_t sender_address_len)
 {
   /* do nothing */
 }
 
 void
-notify_address (void *cls,
-                const char *name,
-                const void *addr,
-                size_t addrlen, struct GNUNET_TIME_Relative expires)
+notify_address (void *cls, const char *name, const void *addr, size_t addrlen,
+                struct GNUNET_TIME_Relative expires)
 {
 }
 
@@ -168,9 +164,8 @@ setup_plugin_environment ()
  * @param c configuration to use
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   unsigned long long tneigh;
   char *keyfile;
@@ -179,14 +174,11 @@ run (void *cls,
   cfg = c;
   /* parse configuration */
   if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (c,
-                                              "TRANSPORT",
-                                              "NEIGHBOUR_LIMIT",
+       GNUNET_CONFIGURATION_get_value_number (c, "TRANSPORT", "NEIGHBOUR_LIMIT",
                                               &tneigh)) ||
       (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_filename (c,
-                                                "GNUNETD",
-                                                "HOSTKEY", &keyfile)))
+       GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
+                                                &keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
@@ -205,8 +197,8 @@ run (void *cls,
     return;
   }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key,
-                      sizeof (my_public_key), &my_identity.hashPubKey);
+  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
+                      &my_identity.hashPubKey);
 
   /* load plugins... */
   setup_plugin_environment ();
@@ -261,11 +253,10 @@ main (int argc, char *const *argv)
 #endif
                     NULL);
   ok = 1;                       /* set to fail */
-  ret = (GNUNET_OK ==
-         GNUNET_PROGRAM_run (5,
-                             argv_prog,
-                             "test-plugin-transport",
-                             "testcase", options, &run, NULL)) ? ok : 1;
+  ret =
+      (GNUNET_OK ==
+       GNUNET_PROGRAM_run (5, argv_prog, "test-plugin-transport", "testcase",
+                           options, &run, NULL)) ? ok : 1;
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport");
   return ret;
 }

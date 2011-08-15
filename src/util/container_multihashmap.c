@@ -230,9 +230,8 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
  *  is not in the map
  */
 int
-GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap
-                                      *map, const GNUNET_HashCode * key,
-                                      void *value)
+GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap *map,
+                                      const GNUNET_HashCode * key, void *value)
 {
   struct MapEntry *e;
   struct MapEntry *p;
@@ -348,8 +347,7 @@ GNUNET_CONTAINER_multihashmap_contains (const struct
 int
 GNUNET_CONTAINER_multihashmap_contains_value (const struct
                                               GNUNET_CONTAINER_MultiHashMap
-                                              *map,
-                                              const GNUNET_HashCode * key,
+                                              *map, const GNUNET_HashCode * key,
                                               const void *value)
 {
   struct MapEntry *e;
@@ -416,8 +414,7 @@ grow (struct GNUNET_CONTAINER_MultiHashMap *map)
  */
 int
 GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
-                                   const GNUNET_HashCode * key,
-                                   void *value,
+                                   const GNUNET_HashCode * key, void *value,
                                    enum GNUNET_CONTAINER_MultiHashMapOption opt)
 {
   struct MapEntry *e;
@@ -467,10 +464,10 @@ GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
  */
 int
 GNUNET_CONTAINER_multihashmap_get_multiple (const struct
-                                            GNUNET_CONTAINER_MultiHashMap
-                                            *map, const GNUNET_HashCode * key,
-                                            GNUNET_CONTAINER_HashMapIterator
-                                            it, void *it_cls)
+                                            GNUNET_CONTAINER_MultiHashMap *map,
+                                            const GNUNET_HashCode * key,
+                                            GNUNET_CONTAINER_HashMapIterator it,
+                                            void *it_cls)
 {
   int count;
   struct MapEntry *e;

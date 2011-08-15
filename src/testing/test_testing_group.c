@@ -65,8 +65,7 @@ shutdown_callback (void *cls, const char *emsg)
 
 
 static void
-my_cb (void *cls,
-       const struct GNUNET_PeerIdentity *id,
+my_cb (void *cls, const struct GNUNET_PeerIdentity *id,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
@@ -105,9 +104,8 @@ my_cb (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ok = 1;
 #if VERBOSE
@@ -117,9 +115,8 @@ run (void *cls,
   pg = GNUNET_TESTING_daemons_start (cfg, peers_left,   /* Total number of peers */
                                      peers_left,        /* Number of outstanding connections */
                                      peers_left,        /* Number of parallel ssh connections, or peers being started at once */
-                                     TIMEOUT,
-                                     NULL, NULL,
-                                     &my_cb, NULL, NULL, NULL, NULL);
+                                     TIMEOUT, NULL, NULL, &my_cb, NULL, NULL,
+                                     NULL, NULL);
   GNUNET_assert (pg != NULL);
 }
 
@@ -137,8 +134,8 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-testing-group", "nohelp", options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-testing-group", "nohelp", options, &run, &ok);
   return ok;
 }
 

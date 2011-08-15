@@ -115,8 +115,7 @@ end_badly ()
 
 
 static void
-notify_receive (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
@@ -164,30 +163,27 @@ notify_ready (void *cls, size_t size, void *buf)
 
 
 static void
-notify_connect (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
+              GNUNET_i2s (peer), cls);
 }
 
 
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected (%p)!\n", GNUNET_i2s (peer), cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' disconnected (%p)!\n",
+              GNUNET_i2s (peer), cls);
 }
 
 static void
 sendtask ()
 {
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th,
-                                               &p2->id,
-                                               256, 0, TIMEOUT, &notify_ready,
-                                               &p1);
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0, TIMEOUT,
+                                               &notify_ready, &p1);
 }
 
 static void
@@ -195,8 +191,8 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   char *p1_c = strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n",
-              p1_c, GNUNET_i2s (&p2->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n", p1_c,
+              GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
   // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
@@ -204,20 +200,17 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 }
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p1,
-                                            &notify_receive,
-                                            &notify_connect,
-                                            &notify_disconnect, NULL);
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2,
-                                            &notify_receive,
-                                            &notify_connect,
-                                            &notify_disconnect, NULL);
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p1, &notify_receive,
+                                            &notify_connect, &notify_disconnect,
+                                            NULL);
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2, &notify_receive,
+                                            &notify_connect, &notify_disconnect,
+                                            NULL);
 
   GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
 }
@@ -241,8 +234,8 @@ check ()
   setTransportOptions ("test_transport_api_data.conf");
 #endif
   ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-transport-api", "nohelp", options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-transport-api", "nohelp", options, &run, &ok);
 
   return ok;
 }
@@ -332,8 +325,8 @@ check_gnunet_nat_binary (char *binary)
   }
   if (0 != STAT (p, &statbuf))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("stat (%s) failed: %s\n"), p, STRERROR (errno));
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("stat (%s) failed: %s\n"), p,
+                STRERROR (errno));
     GNUNET_free (p);
     return GNUNET_SYSERR;
   }

@@ -304,8 +304,8 @@ static void schedule_transmission (struct GNUNET_TRANSPORT_Handle *h);
  *
  * @param h transport service to reconnect
  */
-static void
-disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h);
+static void disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle
+                                               *h);
 
 
 /**
@@ -335,8 +335,8 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
   struct Neighbour *n;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Creating entry for neighbour `%4s'.\n", GNUNET_i2s (pid));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating entry for neighbour `%4s'.\n",
+              GNUNET_i2s (pid));
 #endif
   n = GNUNET_malloc (sizeof (struct Neighbour));
   n->id = *pid;
@@ -347,8 +347,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
                                  MAX_BANDWIDTH_CARRY_S);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (h->neighbours,
-                                                    &pid->hashPubKey,
-                                                    n,
+                                                    &pid->hashPubKey, n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return n;
 }
@@ -375,8 +374,8 @@ neighbour_delete (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_assert (NULL == n->th);
   GNUNET_assert (NULL == n->hn);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (handle->neighbours,
-                                                       key, n));
+                 GNUNET_CONTAINER_multihashmap_remove (handle->neighbours, key,
+                                                       n));
   GNUNET_free (n);
   return GNUNET_YES;
 }
@@ -414,8 +413,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     disconnect_and_schedule_reconnect (h);
     return;
   }
-  GNUNET_CLIENT_receive (h->client,
-                         &demultiplexer, h, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (h->client, &demultiplexer, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   size = ntohs (msg->size);
   switch (ntohs (msg->type))
   {
@@ -428,8 +427,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Receiving (my own) `%s' message, I am `%4s'.\n",
-                "HELLO", GNUNET_i2s (&me));
+                "Receiving (my own) `%s' message, I am `%4s'.\n", "HELLO",
+                GNUNET_i2s (&me));
 #endif
     GNUNET_free_non_null (h->my_hello);
     h->my_hello = NULL;
@@ -465,8 +464,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
 #if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Receiving `%s' message for `%4s'.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving `%s' message for `%4s'.\n",
                 "CONNECT", GNUNET_i2s (&cim->id));
 #endif
     n = neighbour_find (h, &cim->id);
@@ -488,8 +486,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     dim = (const struct DisconnectInfoMessage *) msg;
     GNUNET_break (ntohl (dim->reserved) == 0);
 #if DEBUG_TRANSPORT_DISCONNECT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Receiving `%s' message for `%4s'.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving `%s' message for `%4s'.\n",
                 "DISCONNECT", GNUNET_i2s (&dim->peer));
 #endif
     n = neighbour_find (h, &dim->peer);
@@ -551,8 +548,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received message of type %u from `%4s'.\n",
-                ntohs (imm->type), GNUNET_i2s (&im->peer));
+                "Received message of type %u from `%4s'.\n", ntohs (imm->type),
+                GNUNET_i2s (&im->peer));
 #endif
     n = neighbour_find (h, &im->peer);
     if (n == NULL)
@@ -565,8 +562,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Received unexpected message of type %u in %s:%u\n"),
+                _("Received unexpected message of type %u in %s:%u\n"),
                 ntohs (msg->type), __FILE__, __LINE__);
     GNUNET_break (0);
     break;
@@ -663,17 +659,17 @@ transport_notify_ready (void *cls, size_t size, void *buf)
     th = n->th;
     if (th->notify_size + sizeof (struct OutboundMessage) > size)
       break;                    /* does not fit */
-    if (GNUNET_BANDWIDTH_tracker_get_delay
-        (&n->out_tracker, th->notify_size).rel_value > 0)
+    if (GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, th->notify_size).
+        rel_value > 0)
       break;                    /* too early */
     GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
     n->hn = NULL;
     n->th = NULL;
     n->is_ready = GNUNET_NO;
     GNUNET_assert (size >= sizeof (struct OutboundMessage));
-    mret = th->notify (th->notify_cls,
-                       size - sizeof (struct OutboundMessage),
-                       &cbuf[ret + sizeof (struct OutboundMessage)]);
+    mret =
+        th->notify (th->notify_cls, size - sizeof (struct OutboundMessage),
+                    &cbuf[ret + sizeof (struct OutboundMessage)]);
     GNUNET_assert (mret <= size - sizeof (struct OutboundMessage));
     if (mret != 0)
     {
@@ -756,11 +752,10 @@ schedule_transmission_task (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Calling notify_transmit_ready\n");
 #endif
   h->cth =
-      GNUNET_CLIENT_notify_transmit_ready (h->client,
-                                           size,
+      GNUNET_CLIENT_notify_transmit_ready (h->client, size,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO,
-                                           &transport_notify_ready, h);
+                                           GNUNET_NO, &transport_notify_ready,
+                                           h);
   GNUNET_assert (NULL != h->cth);
 }
 
@@ -794,8 +789,8 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scheduling next transmission to service in %llu ms\n",
               (unsigned long long) delay.rel_value);
-  h->quota_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                &schedule_transmission_task, h);
+  h->quota_task =
+      GNUNET_SCHEDULER_add_delayed (delay, &schedule_transmission_task, h);
 }
 
 
@@ -809,8 +804,7 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
  * @param notify_cls closure for notify
  */
 static void
-schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
-                           size_t size,
+schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h, size_t size,
                            GNUNET_CONNECTION_TransmitReadyNotify notify,
                            void *notify_cls)
 {
@@ -861,8 +855,8 @@ send_start (void *cls, size_t size, void *buf)
   s.do_check = htonl (h->check_self);
   s.self = h->self;
   memcpy (buf, &s, sizeof (struct StartMessage));
-  GNUNET_CLIENT_receive (h->client,
-                         &demultiplexer, h, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (h->client, &demultiplexer, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   return sizeof (struct StartMessage);
 }
 
@@ -936,8 +930,8 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
               "Scheduling task to reconnect to transport service in %llu ms.\n",
               h->reconnect_delay.rel_value);
 #endif
-  h->reconnect_task
-      = GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
+  h->reconnect_task =
+      GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
   if (h->reconnect_delay.rel_value == 0)
   {
     h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -945,8 +939,8 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
   else
   {
     h->reconnect_delay = GNUNET_TIME_relative_multiply (h->reconnect_delay, 2);
-    h->reconnect_delay = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
-                                                   h->reconnect_delay);
+    h->reconnect_delay =
+        GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS, h->reconnect_delay);
   }
 }
 
@@ -990,8 +984,8 @@ send_set_quota (void *cls, size_t size, void *buf)
   }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting `%s' request with respect to `%4s'.\n",
-              "SET_QUOTA", GNUNET_i2s (&sqc->target));
+              "Transmitting `%s' request with respect to `%4s'.\n", "SET_QUOTA",
+              GNUNET_i2s (&sqc->target));
 #endif
   GNUNET_assert (size >= sizeof (struct QuotaSetMessage));
   msg.header.size = htons (sizeof (struct QuotaSetMessage));
@@ -1038,8 +1032,7 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
                 (unsigned int) n->out_tracker.available_bytes_per_s__,
                 (unsigned int) ntohl (quota_out.value__), GNUNET_i2s (target));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Quota remains at %u for peer `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Quota remains at %u for peer `%s'\n",
                 (unsigned int) n->out_tracker.available_bytes_per_s__,
                 GNUNET_i2s (target));
 #endif
@@ -1047,8 +1040,7 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
   sqc = GNUNET_malloc (sizeof (struct SetQuotaContext));
   sqc->target = *target;
   sqc->quota_in = quota_in;
-  schedule_control_transmit (handle,
-                             sizeof (struct QuotaSetMessage),
+  schedule_control_transmit (handle, sizeof (struct QuotaSetMessage),
                              &send_set_quota, sqc);
 }
 
@@ -1257,8 +1249,7 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
  */
 struct GNUNET_TRANSPORT_Handle *
 GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const struct GNUNET_PeerIdentity *self,
-                          void *cls,
+                          const struct GNUNET_PeerIdentity *self, void *cls,
                           GNUNET_TRANSPORT_ReceiveCallback rec,
                           GNUNET_TRANSPORT_NotifyConnect nc,
                           GNUNET_TRANSPORT_NotifyDisconnect nd)

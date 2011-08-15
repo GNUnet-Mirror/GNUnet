@@ -211,8 +211,8 @@ static size_t transmit_pending (void *cls, size_t size, void *buf);
  * a demultiplexer which handles numerous message types
  *
  */
-static void
-service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg);
+static void service_message_handler (void *cls,
+                                     const struct GNUNET_MessageHeader *msg);
 
 
 
@@ -238,9 +238,8 @@ try_connect (struct GNUNET_DHT_Handle *handle)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting to process replies from DHT\n");
 #endif
-  GNUNET_CLIENT_receive (handle->client,
-                         &service_message_handler,
-                         handle, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   return GNUNET_YES;
 }
 
@@ -262,8 +261,8 @@ add_request_to_pending (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (GNUNET_NO == rh->message->in_pending_queue)
   {
-    GNUNET_CONTAINER_DLL_insert (handle->pending_head,
-                                 handle->pending_tail, rh->message);
+    GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                                 rh->message);
     rh->message->in_pending_queue = GNUNET_YES;
   }
   return GNUNET_YES;
@@ -321,9 +320,8 @@ do_disconnect (struct GNUNET_DHT_Handle *handle)
   GNUNET_assert (handle->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
   handle->client = NULL;
-  handle->reconnect_task = GNUNET_SCHEDULER_add_delayed (handle->retry_time,
-                                                         &try_reconnect,
-                                                         handle);
+  handle->reconnect_task =
+      GNUNET_SCHEDULER_add_delayed (handle->retry_time, &try_reconnect, handle);
 }
 
 
@@ -344,11 +342,12 @@ process_pending_messages (struct GNUNET_DHT_Handle *handle)
     return;
   if (NULL == (head = handle->pending_head))
     return;
-  handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                                    ntohs (head->msg->size),
-                                                    GNUNET_TIME_UNIT_FOREVER_REL,
-                                                    GNUNET_YES,
-                                                    &transmit_pending, handle);
+  handle->th =
+      GNUNET_CLIENT_notify_transmit_ready (handle->client,
+                                           ntohs (head->msg->size),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_YES, &transmit_pending,
+                                           handle);
   if (NULL == handle->th)
   {
     do_disconnect (handle);
@@ -385,8 +384,8 @@ transmit_pending (void *cls, size_t size, void *buf)
     return 0;
   }
   memcpy (buf, head->msg, tsize);
-  GNUNET_CONTAINER_DLL_remove (handle->pending_head,
-                               handle->pending_tail, head);
+  GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
+                               head);
   if (head->timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (head->timeout_task);
@@ -394,8 +393,7 @@ transmit_pending (void *cls, size_t size, void *buf)
   }
   if (NULL != head->cont)
   {
-    GNUNET_SCHEDULER_add_continuation (head->cont,
-                                       head->cont_cls,
+    GNUNET_SCHEDULER_add_continuation (head->cont, head->cont_cls,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     head->cont = NULL;
     head->cont_cls = NULL;
@@ -514,13 +512,12 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
               GNUNET_h2s (&dht_msg->key),
               GNUNET_CONTAINER_multihashmap_size (handle->active_requests));
   GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
-                                              &dht_msg->key,
-                                              &process_reply, (void *) dht_msg);
+                                              &dht_msg->key, &process_reply,
+                                              (void *) dht_msg);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Continuing to process replies from DHT\n");
-  GNUNET_CLIENT_receive (handle->client,
-                         &service_message_handler,
-                         handle, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
 
 }
 
@@ -574,14 +571,13 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
   }
   while (NULL != (pm = handle->pending_head))
   {
-    GNUNET_CONTAINER_DLL_remove (handle->pending_head,
-                                 handle->pending_tail, pm);
+    GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
+                                 pm);
     GNUNET_assert (GNUNET_YES == pm->free_on_send);
     if (GNUNET_SCHEDULER_NO_TASK != pm->timeout_task)
       GNUNET_SCHEDULER_cancel (pm->timeout_task);
     if (NULL != pm->cont)
-      GNUNET_SCHEDULER_add_continuation (pm->cont,
-                                         pm->cont_cls,
+      GNUNET_SCHEDULER_add_continuation (pm->cont, pm->cont_cls,
                                          GNUNET_SCHEDULER_REASON_TIMEOUT);
     pm->in_pending_queue = GNUNET_NO;
     GNUNET_free (pm);
@@ -622,8 +618,8 @@ timeout_route_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   handle = pending->handle;
-  GNUNET_CONTAINER_DLL_remove (handle->pending_head,
-                               handle->pending_tail, pending);
+  GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
+                               pending);
   if (pending->cont != NULL)
     pending->cont (pending->cont_cls, tc);
   GNUNET_free (pending);
@@ -658,8 +654,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
                         enum GNUNET_DHT_RouteOption options,
                         const struct GNUNET_MessageHeader *enc,
                         struct GNUNET_TIME_Relative timeout,
-                        GNUNET_DHT_ReplyProcessor iter,
-                        void *iter_cls,
+                        GNUNET_DHT_ReplyProcessor iter, void *iter_cls,
                         GNUNET_SCHEDULER_Task cont, void *cont_cls)
 {
   struct PendingMessage *pending;
@@ -702,8 +697,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
     route_handle->dht_handle = handle;
     route_handle->uid = handle->uid_gen;
     route_handle->message = pending;
-    GNUNET_CONTAINER_multihashmap_put (handle->active_requests,
-                                       key,
+    GNUNET_CONTAINER_multihashmap_put (handle->active_requests, key,
                                        route_handle,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   }
@@ -711,12 +705,11 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   {
     route_handle = NULL;
     pending->free_on_send = GNUNET_YES;
-    pending->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
-                                                          &timeout_route_request,
-                                                          pending);
+    pending->timeout_task =
+        GNUNET_SCHEDULER_add_delayed (timeout, &timeout_route_request, pending);
   }
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head,
-                               handle->pending_tail, pending);
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                               pending);
   pending->in_pending_queue = GNUNET_YES;
   process_pending_messages (handle);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -755,21 +748,23 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
     pending->handle = handle;
     pending->free_on_send = GNUNET_YES;
     pending->in_pending_queue = GNUNET_YES;
-    GNUNET_CONTAINER_DLL_insert (handle->pending_head,
-                                 handle->pending_tail, pending);
+    GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                                 pending);
     process_pending_messages (handle);
   }
   else
   {
     /* simply remove pending request from message queue before
      * transmission, no need to transmit STOP request! */
-    GNUNET_CONTAINER_DLL_remove (handle->pending_head,
-                                 handle->pending_tail, route_handle->message);
+    GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
+                                 route_handle->message);
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove
-                 (route_handle->dht_handle->active_requests, &route_handle->key,
-                  route_handle));
+                 GNUNET_CONTAINER_multihashmap_remove (route_handle->
+                                                       dht_handle->
+                                                       active_requests,
+                                                       &route_handle->key,
+                                                       route_handle));
   GNUNET_free (route_handle->message);
   GNUNET_free (route_handle);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DHT route stop request processed\n");
@@ -790,16 +785,16 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
  * @param cont_cls closure for cont
  */
 static void
-send_control_message (struct GNUNET_DHT_Handle *handle,
-                      uint16_t command,
-                      uint16_t variable,
-                      GNUNET_SCHEDULER_Task cont, void *cont_cls)
+send_control_message (struct GNUNET_DHT_Handle *handle, uint16_t command,
+                      uint16_t variable, GNUNET_SCHEDULER_Task cont,
+                      void *cont_cls)
 {
   struct GNUNET_DHT_ControlMessage *msg;
   struct PendingMessage *pending;
 
-  pending = GNUNET_malloc (sizeof (struct PendingMessage) +
-                           sizeof (struct GNUNET_DHT_ControlMessage));
+  pending =
+      GNUNET_malloc (sizeof (struct PendingMessage) +
+                     sizeof (struct GNUNET_DHT_ControlMessage));
   msg = (struct GNUNET_DHT_ControlMessage *) &pending[1];
   pending->msg = &msg->header;
   msg->header.size = htons (sizeof (struct GNUNET_DHT_ControlMessage));
@@ -810,8 +805,8 @@ send_control_message (struct GNUNET_DHT_Handle *handle,
   pending->cont = cont;
   pending->cont_cls = cont_cls;
   pending->in_pending_queue = GNUNET_YES;
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head,
-                               handle->pending_tail, pending);
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                               pending);
   process_pending_messages (handle);
 }
 
@@ -831,8 +826,8 @@ void
 GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
                        GNUNET_SCHEDULER_Task cont, void *cont_cls)
 {
-  send_control_message (handle,
-                        GNUNET_MESSAGE_TYPE_DHT_FIND_PEER, 0, cont, cont_cls);
+  send_control_message (handle, GNUNET_MESSAGE_TYPE_DHT_FIND_PEER, 0, cont,
+                        cont_cls);
 }
 
 
@@ -858,8 +853,7 @@ GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
     GNUNET_break (0);
     return;
   }
-  send_control_message (handle,
-                        GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET,
+  send_control_message (handle, GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET,
                         frequency.rel_value, cont, cont_cls);
 }
 
@@ -883,8 +877,7 @@ GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
     return;
   }
 
-  send_control_message (handle,
-                        GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT,
+  send_control_message (handle, GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT,
                         frequency.rel_value, cont, cont_cls);
 }
 
@@ -902,9 +895,8 @@ void
 GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle,
                                   GNUNET_SCHEDULER_Task cont, void *cont_cls)
 {
-  send_control_message (handle,
-                        GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP, 0,
-                        cont, cont_cls);
+  send_control_message (handle, GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP, 0, cont,
+                        cont_cls);
 }
 
 #endif

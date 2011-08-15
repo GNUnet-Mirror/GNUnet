@@ -166,9 +166,8 @@ OUTER:
  * @return GNUNET_OK 
  */
 int
-GNUNET_GETOPT_increment_value (struct
-                               GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-                               void *scls, const char *option,
+GNUNET_GETOPT_increment_value (struct GNUNET_GETOPT_CommandLineProcessorContext
+                               *ctx, void *scls, const char *option,
                                const char *value)
 {
   int *val = scls;
@@ -218,9 +217,8 @@ GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * @return GNUNET_OK 
  */
 int
-GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext
-                          *ctx, void *scls, const char *option,
-                          const char *value)
+GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                          void *scls, const char *option, const char *value)
 {
   char **val = scls;
 
@@ -246,9 +244,8 @@ GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @return GNUNET_OK if parsing the value worked
  */
 int
-GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext
-                         *ctx, void *scls, const char *option,
-                         const char *value)
+GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                         void *scls, const char *option, const char *value)
 {
   unsigned long long *val = scls;
 

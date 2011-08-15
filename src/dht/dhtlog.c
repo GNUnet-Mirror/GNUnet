@@ -50,11 +50,11 @@ GNUNET_DHTLOG_connect (const struct GNUNET_CONFIGURATION_Handle *c)
   plugin = GNUNET_malloc (sizeof (struct GNUNET_DHTLOG_Plugin));
   plugin->cfg = c;
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (c,
-                                             "DHTLOG", "PLUGIN", &plugin_name))
+      GNUNET_CONFIGURATION_get_value_string (c, "DHTLOG", "PLUGIN",
+                                             &plugin_name))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Loading `%s' dhtlog plugin\n"), plugin_name);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' dhtlog plugin\n"),
+                plugin_name);
     GNUNET_asprintf (&libname, "libgnunet_plugin_dhtlog_%s", plugin_name);
     GNUNET_PLUGIN_load (libname, plugin);
   }

@@ -71,8 +71,8 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
     ul = UINT32_MAX - (UINT32_MAX % i);
     do
     {
-      gcry_randomize ((unsigned char *) &ret,
-                      sizeof (uint32_t), GCRY_STRONG_RANDOM);
+      gcry_randomize ((unsigned char *) &ret, sizeof (uint32_t),
+                      GCRY_STRONG_RANDOM);
     }
     while (ret >= ul);
     return ret % i;
@@ -147,8 +147,8 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
     ul = UINT64_MAX - (UINT64_MAX % max);
     do
     {
-      gcry_randomize ((unsigned char *) &ret,
-                      sizeof (uint64_t), GCRY_STRONG_RANDOM);
+      gcry_randomize ((unsigned char *) &ret, sizeof (uint64_t),
+                      GCRY_STRONG_RANDOM);
     }
     while (ret >= ul);
     return ret % max;
@@ -195,8 +195,8 @@ static struct GNUNET_OS_Process *genproc;
  * blocked gathering entropy.
  */
 static void
-entropy_generator (void *cls,
-                   const char *what, int printchar, int current, int total)
+entropy_generator (void *cls, const char *what, int printchar, int current,
+                   int total)
 {
   unsigned long code;
   enum GNUNET_OS_ProcessStatusType type;
@@ -234,11 +234,10 @@ entropy_generator (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Starting `%s' process to generate entropy\n"), "find");
-  genproc = GNUNET_OS_start_process (NULL, NULL, "sh",
-                                     "sh",
-                                     "-c",
-                                     "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
-                                     NULL);
+  genproc =
+      GNUNET_OS_start_process (NULL, NULL, "sh", "sh", "-c",
+                               "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
+                               NULL);
 }
 
 

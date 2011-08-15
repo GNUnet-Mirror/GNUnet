@@ -29,8 +29,7 @@
 #include "gnunet_container_lib.h"
 
 static int
-iterator_callback (void *cls,
-                   struct GNUNET_CONTAINER_HeapNode *node,
+iterator_callback (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
                    void *element, GNUNET_CONTAINER_HeapCostType cost)
 {
   return GNUNET_OK;

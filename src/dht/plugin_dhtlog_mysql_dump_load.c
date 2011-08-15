@@ -222,31 +222,33 @@ add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf (outfile, "INSERT INTO trials "
-                 "(starttime, other_trial_identifier, numnodes, topology,"
-                 "blacklist_topology, connect_topology, connect_topology_option,"
-                 "connect_topology_option_modifier, topology_percentage, topology_probability,"
-                 "puts, gets, "
-                 "concurrent, settle_time, num_rounds, malicious_getters,"
-                 "malicious_putters, malicious_droppers, malicious_get_frequency,"
-                 "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "
-                 "gets_succeeded, message) "
-                 "VALUES (\"%s\", %u, %u, %u, %u, %u, %u, %f, %f, %f, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, \"%s\");\n",
-                 get_sql_time (), trial_info->other_identifier,
-                 trial_info->num_nodes, trial_info->topology,
-                 trial_info->blacklist_topology, trial_info->connect_topology,
-                 trial_info->connect_topology_option,
-                 trial_info->connect_topology_option_modifier,
-                 trial_info->topology_percentage,
-                 trial_info->topology_probability, trial_info->puts,
-                 trial_info->gets, trial_info->concurrent,
-                 trial_info->settle_time, trial_info->num_rounds,
-                 trial_info->malicious_getters, trial_info->malicious_putters,
-                 trial_info->malicious_droppers,
-                 trial_info->malicious_get_frequency,
-                 trial_info->malicious_put_frequency, trial_info->stop_closest,
-                 trial_info->stop_found, trial_info->strict_kademlia,
-                 trial_info->gets_succeeded, trial_info->message);
+  ret =
+      fprintf (outfile,
+               "INSERT INTO trials "
+               "(starttime, other_trial_identifier, numnodes, topology,"
+               "blacklist_topology, connect_topology, connect_topology_option,"
+               "connect_topology_option_modifier, topology_percentage, topology_probability,"
+               "puts, gets, "
+               "concurrent, settle_time, num_rounds, malicious_getters,"
+               "malicious_putters, malicious_droppers, malicious_get_frequency,"
+               "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "
+               "gets_succeeded, message) "
+               "VALUES (\"%s\", %u, %u, %u, %u, %u, %u, %f, %f, %f, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, \"%s\");\n",
+               get_sql_time (), trial_info->other_identifier,
+               trial_info->num_nodes, trial_info->topology,
+               trial_info->blacklist_topology, trial_info->connect_topology,
+               trial_info->connect_topology_option,
+               trial_info->connect_topology_option_modifier,
+               trial_info->topology_percentage,
+               trial_info->topology_probability, trial_info->puts,
+               trial_info->gets, trial_info->concurrent,
+               trial_info->settle_time, trial_info->num_rounds,
+               trial_info->malicious_getters, trial_info->malicious_putters,
+               trial_info->malicious_droppers,
+               trial_info->malicious_get_frequency,
+               trial_info->malicious_put_frequency, trial_info->stop_closest,
+               trial_info->stop_found, trial_info->strict_kademlia,
+               trial_info->gets_succeeded, trial_info->message);
 
   if (ret < 0)
     return GNUNET_SYSERR;
@@ -273,8 +275,8 @@ add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_generic_stat (const struct GNUNET_PeerIdentity *peer,
-                  const char *name, const char *section, uint64_t value)
+add_generic_stat (const struct GNUNET_PeerIdentity *peer, const char *name,
+                  const char *section, uint64_t value)
 {
   if (outfile == NULL)
     return GNUNET_SYSERR;
@@ -315,10 +317,10 @@ int
 add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
           unsigned int route_forwards, unsigned int result_requests,
           unsigned int client_requests, unsigned int result_forwards,
-          unsigned int gets, unsigned int puts,
-          unsigned int data_inserts, unsigned int find_peer_requests,
-          unsigned int find_peers_started, unsigned int gets_started,
-          unsigned int puts_started, unsigned int find_peer_responses_received,
+          unsigned int gets, unsigned int puts, unsigned int data_inserts,
+          unsigned int find_peer_requests, unsigned int find_peers_started,
+          unsigned int gets_started, unsigned int puts_started,
+          unsigned int find_peer_responses_received,
           unsigned int get_responses_received,
           unsigned int find_peer_responses_sent,
           unsigned int get_responses_sent)
@@ -568,9 +570,8 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
  */
 int
 add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
-           unsigned int type, unsigned int hops,
-           int succeeded, const struct GNUNET_PeerIdentity *node,
-           const GNUNET_HashCode * key,
+           unsigned int type, unsigned int hops, int succeeded,
+           const struct GNUNET_PeerIdentity *node, const GNUNET_HashCode * key,
            const struct GNUNET_PeerIdentity *from_node,
            const struct GNUNET_PeerIdentity *to_node)
 {
@@ -636,15 +637,15 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MySQL (DUMP) DHT Logger: initializing\n");
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                          "MYSQLDUMP", "PATH",
-                                                          &outfile_path))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (plugin->cfg, "MYSQLDUMP", "PATH",
+                                             &outfile_path))
   {
     outfile_path = GNUNET_strdup ("");
   }
 
-  GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d", outfile_path, "mysqldump", getpid ());
+  GNUNET_asprintf (&outfile_name, "%s%s-%d", outfile_path, "mysqldump",
+                   getpid ());
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
@@ -674,8 +675,8 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void *cls)
   }
 
   GNUNET_free (outfile_name);
-  GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d", outfile_path, "mysqldump_nodes", getpid ());
+  GNUNET_asprintf (&outfile_name, "%s%s-%d", outfile_path, "mysqldump_nodes",
+                   getpid ());
   GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
@@ -705,8 +706,8 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void *cls)
   }
 
   GNUNET_free (outfile_name);
-  GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d", outfile_path, "mysqldump_routes", getpid ());
+  GNUNET_asprintf (&outfile_name, "%s%s-%d", outfile_path, "mysqldump_routes",
+                   getpid ());
 
   GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
@@ -737,8 +738,8 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void *cls)
   }
 
   GNUNET_free (outfile_name);
-  GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d", outfile_path, "mysqldump_queries", getpid ());
+  GNUNET_asprintf (&outfile_name, "%s%s-%d", outfile_path, "mysqldump_queries",
+                   getpid ());
 
   GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
@@ -769,8 +770,8 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void *cls)
   }
 
   GNUNET_free (outfile_name);
-  GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d", outfile_path, "mysqldump_stats", getpid ());
+  GNUNET_asprintf (&outfile_name, "%s%s-%d", outfile_path, "mysqldump_stats",
+                   getpid ());
 
   GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
@@ -801,9 +802,8 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void *cls)
   }
 
   GNUNET_free (outfile_name);
-  GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d",
-                   outfile_path, "mysqldump_generic_stats", getpid ());
+  GNUNET_asprintf (&outfile_name, "%s%s-%d", outfile_path,
+                   "mysqldump_generic_stats", getpid ());
   GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
@@ -833,8 +833,8 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void *cls)
   }
 
   GNUNET_free (outfile_name);
-  GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d", outfile_path, "mysqldump_dhtkey", getpid ());
+  GNUNET_asprintf (&outfile_name, "%s%s-%d", outfile_path, "mysqldump_dhtkey",
+                   getpid ());
   GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
@@ -864,9 +864,8 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void *cls)
   }
 
   GNUNET_free (outfile_name);
-  GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d",
-                   outfile_path, "mysqldump_extended_topology", getpid ());
+  GNUNET_asprintf (&outfile_name, "%s%s-%d", outfile_path,
+                   "mysqldump_extended_topology", getpid ());
   GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 

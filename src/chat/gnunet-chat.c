@@ -107,12 +107,10 @@ join_cb (void *cls)
  *         accept (but user is away), GNUNET_SYSERR to signal denied delivery
  */
 static int
-receive_cb (void *cls,
-            struct GNUNET_CHAT_Room *room,
+receive_cb (void *cls, struct GNUNET_CHAT_Room *room,
             const GNUNET_HashCode * sender,
             const struct GNUNET_CONTAINER_MetaData *member_info,
-            const char *message,
-            struct GNUNET_TIME_Absolute timestamp,
+            const char *message, struct GNUNET_TIME_Absolute timestamp,
             enum GNUNET_CHAT_MsgOptions options)
 {
   char *nick;
@@ -183,8 +181,7 @@ receive_cb (void *cls,
  *         confirmations from anyone for this message
  */
 static int
-confirmation_cb (void *cls,
-                 struct GNUNET_CHAT_Room *room,
+confirmation_cb (void *cls, struct GNUNET_CHAT_Room *room,
                  uint32_t orig_seq_number,
                  struct GNUNET_TIME_Absolute timestamp,
                  const GNUNET_HashCode * receiver)
@@ -208,8 +205,7 @@ confirmation_cb (void *cls,
  * @return GNUNET_OK
  */
 static int
-member_list_cb (void *cls,
-                const struct GNUNET_CONTAINER_MetaData *member_info,
+member_list_cb (void *cls, const struct GNUNET_CONTAINER_MetaData *member_info,
                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *member_id,
                 enum GNUNET_CHAT_MsgOptions options)
 {
@@ -222,8 +218,10 @@ member_list_cb (void *cls,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &id);
   nick = GNUNET_PSEUDONYM_id_to_name (cfg, &id);
-  fprintf (stdout, member_info != NULL
-           ? _("`%s' entered the room\n") : _("`%s' left the room\n"), nick);
+  fprintf (stdout,
+           member_info !=
+           NULL ? _("`%s' entered the room\n") : _("`%s' left the room\n"),
+           nick);
   GNUNET_free (nick);
   if (NULL != member_info)
   {
@@ -240,10 +238,9 @@ member_list_cb (void *cls,
     prev = NULL;
     pos = users;
     while ((NULL != pos) &&
-           (0 != memcmp (&pos->pkey,
-                         member_id,
-                         sizeof (struct
-                                 GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))))
+           (0 !=
+            memcmp (&pos->pkey, member_id,
+                    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))))
     {
       prev = pos;
       pos = pos->next;
@@ -277,15 +274,10 @@ do_join (const char *arg, const void *xtra)
   free_user_list ();
   GNUNET_free (room_name);
   room_name = GNUNET_strdup (arg);
-  room = GNUNET_CHAT_join_room (cfg,
-                                nickname,
-                                meta,
-                                room_name,
-                                -1,
-                                &join_cb, NULL,
-                                &receive_cb, NULL,
-                                &member_list_cb, NULL,
-                                &confirmation_cb, NULL, &me);
+  room =
+      GNUNET_CHAT_join_room (cfg, nickname, meta, room_name, -1, &join_cb, NULL,
+                             &receive_cb, NULL, &member_list_cb, NULL,
+                             &confirmation_cb, NULL, &me);
   if (NULL == room)
   {
     fprintf (stdout, _("Could not change username\n"));
@@ -311,21 +303,13 @@ do_nick (const char *msg, const void *xtra)
   GNUNET_CONTAINER_meta_data_destroy (meta);
   nickname = GNUNET_strdup (msg);
   meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (meta,
-                                     "<gnunet>",
-                                     EXTRACTOR_METATYPE_TITLE,
-                                     EXTRACTOR_METAFORMAT_UTF8,
-                                     "text/plain",
+  GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>", EXTRACTOR_METATYPE_TITLE,
+                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                      nickname, strlen (nickname) + 1);
-  room = GNUNET_CHAT_join_room (cfg,
-                                nickname,
-                                meta,
-                                room_name,
-                                -1,
-                                &join_cb, NULL,
-                                &receive_cb, NULL,
-                                &member_list_cb, NULL,
-                                &confirmation_cb, NULL, &me);
+  room =
+      GNUNET_CHAT_join_room (cfg, nickname, meta, room_name, -1, &join_cb, NULL,
+                             &receive_cb, NULL, &member_list_cb, NULL,
+                             &confirmation_cb, NULL, &me);
   if (NULL == room)
   {
     fprintf (stdout, _("Could not change username\n"));
@@ -411,8 +395,8 @@ do_send_pm (const char *msg, const void *xtra)
     GNUNET_free (user);
     return GNUNET_OK;
   }
-  GNUNET_CHAT_send_message (room,
-                            msg, GNUNET_CHAT_MSG_PRIVATE, &pos->pkey, &seq);
+  GNUNET_CHAT_send_message (room, msg, GNUNET_CHAT_MSG_PRIVATE, &pos->pkey,
+                            &seq);
   GNUNET_free (user);
   return GNUNET_OK;
 }
@@ -423,8 +407,8 @@ do_send_sig (const char *msg, const void *xtra)
 {
   uint32_t seq;
 
-  GNUNET_CHAT_send_message (room,
-                            msg, GNUNET_CHAT_MSG_AUTHENTICATED, NULL, &seq);
+  GNUNET_CHAT_send_message (room, msg, GNUNET_CHAT_MSG_AUTHENTICATED, NULL,
+                            &seq);
   return GNUNET_OK;
 }
 
@@ -434,8 +418,8 @@ do_send_ack (const char *msg, const void *xtra)
 {
   uint32_t seq;
 
-  GNUNET_CHAT_send_message (room,
-                            msg, GNUNET_CHAT_MSG_ACKNOWLEDGED, NULL, &seq);
+  GNUNET_CHAT_send_message (room, msg, GNUNET_CHAT_MSG_ACKNOWLEDGED, NULL,
+                            &seq);
   return GNUNET_OK;
 }
 
@@ -520,8 +504,8 @@ do_help (const char *args, const void *xtra)
   int i;
 
   i = 0;
-  while ((NULL != args) &&
-         (0 != strlen (args)) && (commands[i].Action != &do_help))
+  while ((NULL != args) && (0 != strlen (args)) &&
+         (commands[i].Action != &do_help))
   {
     if (0 == strncasecmp (&args[1], &commands[i].command[1], strlen (args) - 1))
     {
@@ -577,8 +561,9 @@ handle_command (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     goto next;
   i = 0;
   while ((NULL != commands[i].command) &&
-         (0 != strncasecmp (commands[i].command,
-                            message, strlen (commands[i].command))))
+         (0 !=
+          strncasecmp (commands[i].command, message,
+                       strlen (commands[i].command))))
     i++;
   if (GNUNET_OK !=
       commands[i].Action (&message[strlen (commands[i].command)], NULL))
@@ -606,9 +591,8 @@ out:
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GNUNET_HashCode me;
   char *my_name;
@@ -624,21 +608,13 @@ run (void *cls,
   if (NULL == room_name)
     room_name = GNUNET_strdup ("gnunet");
   meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (meta,
-                                     "<gnunet>",
-                                     EXTRACTOR_METATYPE_TITLE,
-                                     EXTRACTOR_METAFORMAT_UTF8,
-                                     "text/plain",
+  GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>", EXTRACTOR_METATYPE_TITLE,
+                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                      nickname, strlen (nickname) + 1);
-  room = GNUNET_CHAT_join_room (cfg,
-                                nickname,
-                                meta,
-                                room_name,
-                                -1,
-                                &join_cb, NULL,
-                                &receive_cb, NULL,
-                                &member_list_cb, NULL,
-                                &confirmation_cb, NULL, &me);
+  room =
+      GNUNET_CHAT_join_room (cfg, nickname, meta, room_name, -1, &join_cb, NULL,
+                             &receive_cb, NULL, &member_list_cb, NULL,
+                             &confirmation_cb, NULL, &me);
   if (NULL == room)
   {
     fprintf (stderr, _("Failed to join room `%s'\n"), room_name);
@@ -655,8 +631,8 @@ run (void *cls,
   handle_cmd_task =
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_UI,
                                           &handle_command, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_stop_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
+                                NULL);
 }
 
 
@@ -688,11 +664,9 @@ main (int argc, char *const *argv)
   fcntl (0, F_SETFL, flags);
 #endif
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-chat",
-                              gettext_noop ("Join a chat on GNUnet."),
-                              options, &run, NULL)) ? ret : 1;
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-chat",
+                              gettext_noop ("Join a chat on GNUnet."), options,
+                              &run, NULL)) ? ret : 1;
 }
 
 /* end of gnunet-chat.c */

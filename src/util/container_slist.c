@@ -107,8 +107,8 @@ struct GNUNET_CONTAINER_SList_Iterator
  * @return a new element
  */
 static struct GNUNET_CONTAINER_SList_Elem *
-create_elem (enum GNUNET_CONTAINER_SListDisposition disp,
-             const void *buf, size_t len)
+create_elem (enum GNUNET_CONTAINER_SListDisposition disp, const void *buf,
+             size_t len)
 {
   struct GNUNET_CONTAINER_SList_Elem *e;
 
@@ -186,8 +186,9 @@ GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst,
 {
   struct GNUNET_CONTAINER_SList_Iterator *i;
 
-  for (i = GNUNET_CONTAINER_slist_begin (src); GNUNET_CONTAINER_slist_end (i) !=
-       GNUNET_YES; GNUNET_CONTAINER_slist_next (i))
+  for (i = GNUNET_CONTAINER_slist_begin (src);
+       GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
+       GNUNET_CONTAINER_slist_next (i))
 
   {
     GNUNET_CONTAINER_slist_add (dst,

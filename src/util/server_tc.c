@@ -103,13 +103,13 @@ transmit_response (void *cls, size_t size, void *buf)
   }
   else
   {
-    if (NULL == GNUNET_SERVER_notify_transmit_ready (tc->client,
-                                                     GNUNET_MIN
-                                                     (MIN_BLOCK_SIZE,
-                                                      tc->total - tc->off),
-                                                     GNUNET_TIME_absolute_get_remaining
-                                                     (tc->timeout),
-                                                     &transmit_response, tc))
+    if (NULL ==
+        GNUNET_SERVER_notify_transmit_ready (tc->client,
+                                             GNUNET_MIN (MIN_BLOCK_SIZE,
+                                                         tc->total - tc->off),
+                                             GNUNET_TIME_absolute_get_remaining
+                                             (tc->timeout), &transmit_response,
+                                             tc))
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);

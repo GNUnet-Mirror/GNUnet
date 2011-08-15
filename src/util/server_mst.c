@@ -119,9 +119,8 @@ GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
  */
 int
 GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
-                           void *client_identity,
-                           const char *buf,
-                           size_t size, int purge, int one_shot)
+                           void *client_identity, const char *buf, size_t size,
+                           int purge, int one_shot)
 {
   const struct GNUNET_MessageHeader *hdr;
   size_t delta;

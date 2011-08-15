@@ -207,9 +207,9 @@ static unsigned long long plan_count;
  * @param cls the 'struct GSF_ConnectedPeer' for transmission
  * @param tc scheduler context
  */
-static void
-schedule_peer_transmission (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void schedule_peer_transmission (void *cls,
+                                        const struct
+                                        GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -230,8 +230,9 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
   prd = GSF_pending_request_get_data_ (rp->prl_head->pr);
   // FIXME: calculate 'rp->priority'!  
   if (rp->transmission_counter < 32)
-    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                           1LL << rp->transmission_counter);
+    delay =
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                       1LL << rp->transmission_counter);
   else
     delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, UINT_MAX);
   rp->earliest_transmission = GNUNET_TIME_relative_to_absolute (delay);
@@ -242,13 +243,13 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
 #endif
 
   GNUNET_assert (rp->hn == NULL);
-  if (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value
-      == 0)
+  if (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).
+      rel_value == 0)
     rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap, rp, rp->priority);
   else
-    rp->hn = GNUNET_CONTAINER_heap_insert (pp->delay_heap,
-                                           rp,
-                                           rp->earliest_transmission.abs_value);
+    rp->hn =
+        GNUNET_CONTAINER_heap_insert (pp->delay_heap, rp,
+                                      rp->earliest_transmission.abs_value);
   if (GNUNET_SCHEDULER_NO_TASK != pp->task)
     GNUNET_SCHEDULER_cancel (pp->task);
   pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
@@ -358,8 +359,8 @@ schedule_peer_transmission (void *cls,
   }
   /* move ready requests to priority queue */
   while ((NULL != (rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap))) &&
-         (GNUNET_TIME_absolute_get_remaining
-          (rp->earliest_transmission).rel_value == 0))
+         (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).
+          rel_value == 0))
   {
     GNUNET_assert (rp == GNUNET_CONTAINER_heap_remove_root (pp->delay_heap));
     rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap, rp, rp->priority);
@@ -371,17 +372,17 @@ schedule_peer_transmission (void *cls,
     if (NULL == rp)
     {
 #if DEBUG_FS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "No active requests for plan %p.\n", pp);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No active requests for plan %p.\n",
+                  pp);
 #endif
       return;                   /* both queues empty */
     }
 #if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sleeping for %llu ms before retrying requests on plan %p.\n",
-                (unsigned long long)
-                GNUNET_TIME_absolute_get_remaining
-                (rp->earliest_transmission).rel_value, pp);
+                (unsigned long long) GNUNET_TIME_absolute_get_remaining (rp->
+                                                                         earliest_transmission).
+                rel_value, pp);
 #endif
     pp->task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
@@ -396,11 +397,10 @@ schedule_peer_transmission (void *cls,
 #endif
   GNUNET_assert (NULL != rp);
   msize = GSF_pending_request_get_message_ (get_latest (rp), 0, NULL);
-  pp->pth = GSF_peer_transmit_ (pp->cp,
-                                GNUNET_YES,
-                                rp->priority,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
-                                msize, &transmit_message_callback, pp);
+  pp->pth =
+      GSF_peer_transmit_ (pp->cp, GNUNET_YES, rp->priority,
+                          GNUNET_TIME_UNIT_FOREVER_REL, msize,
+                          &transmit_message_callback, pp);
   GNUNET_assert (NULL != pp->pth);
 }
 
@@ -430,9 +430,8 @@ struct MergeContext
  *         GNUNET_NO if not (merge success)
  */
 static int
-merge_pr (void *cls,
-          struct GNUNET_CONTAINER_HeapNode *node,
-          void *element, GNUNET_CONTAINER_HeapCostType cost)
+merge_pr (void *cls, struct GNUNET_CONTAINER_HeapNode *node, void *element,
+          GNUNET_CONTAINER_HeapCostType cost)
 {
   struct MergeContext *mpr = cls;
   struct GSF_RequestPlan *rp = element;
@@ -455,14 +454,13 @@ merge_pr (void *cls,
   GNUNET_CONTAINER_DLL_insert (prd->rpr_head, prd->rpr_tail, rpr);
   GNUNET_CONTAINER_DLL_insert (rp->prl_head, rp->prl_tail, prl);
   mpr->merged = GNUNET_YES;
-  GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# requests merged"), 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# requests merged"), 1,
+                            GNUNET_NO);
   latest = get_latest (rp);
   if (GSF_pending_request_get_data_ (latest)->ttl.abs_value <
       prd->ttl.abs_value)
   {
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop ("# requests refreshed"),
+    GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# requests refreshed"),
                               1, GNUNET_NO);
     rp->transmission_counter = 0;       /* reset */
   }
@@ -498,9 +496,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
     pp->delay_heap =
         GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
     pp->cp = cp;
-    GNUNET_CONTAINER_multihashmap_put (plans,
-                                       &id.hashPubKey,
-                                       pp,
+    GNUNET_CONTAINER_multihashmap_put (plans, &id.hashPubKey, pp,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
   mpc.merged = GNUNET_NO;
@@ -512,9 +508,8 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   if (mpc.merged != GNUNET_NO)
     return;
   plan_count++;
-  GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# query plan entries"),
-                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# query plan entries"), 1,
+                            GNUNET_NO);
   prd = GSF_pending_request_get_data_ (pr);
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -554,8 +549,8 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   if (NULL == pp)
     return;                     /* nothing was ever planned for this peer */
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (plans,
-                                                       &id.hashPubKey, pp));
+                 GNUNET_CONTAINER_multihashmap_remove (plans, &id.hashPubKey,
+                                                       pp));
   if (NULL != pp->pth)
     GSF_peer_transmit_cancel_ (pp->pth);
   if (GNUNET_SCHEDULER_NO_TASK != pp->task)
@@ -588,8 +583,7 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
     }
     GNUNET_free (rp);
   }
-  GNUNET_STATISTICS_set (GSF_stats,
-                         gettext_noop ("# query plan entries"),
+  GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# query plan entries"),
                          plan_count, GNUNET_NO);
 
   GNUNET_CONTAINER_heap_destroy (pp->delay_heap);
@@ -625,8 +619,7 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
       GNUNET_free (rp);
     }
   }
-  GNUNET_STATISTICS_set (GSF_stats,
-                         gettext_noop ("# query plan entries"),
+  GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# query plan entries"),
                          plan_count, GNUNET_NO);
 }
 

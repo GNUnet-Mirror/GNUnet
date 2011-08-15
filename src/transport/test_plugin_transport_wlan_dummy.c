@@ -72,8 +72,9 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   char *to_radiotap;
   char *to_start;
 
-  sendsize = ntohs (hdr->size) - sizeof (struct Radiotap_Send)
-      + sizeof (struct Radiotap_rx);
+  sendsize =
+      ntohs (hdr->size) - sizeof (struct Radiotap_Send) +
+      sizeof (struct Radiotap_rx);
 
   if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs (hdr->type))
   {
@@ -335,9 +336,9 @@ testmode (int argc, char *argv[])
 
     if (FD_ISSET (STDOUT_FILENO, &wfds))
     {
-      ret = write (STDOUT_FILENO,
-                   write_std.buf + write_std.pos,
-                   write_std.size - write_std.pos);
+      ret =
+          write (STDOUT_FILENO, write_std.buf + write_std.pos,
+                 write_std.size - write_std.pos);
       if (0 > ret)
       {
         closeprog = 1;
@@ -358,9 +359,9 @@ testmode (int argc, char *argv[])
 
     if (FD_ISSET (fdpout, &wfds))
     {
-      ret = write (fdpout,
-                   write_pout.buf + write_pout.pos,
-                   write_pout.size - write_pout.pos);
+      ret =
+          write (fdpout, write_pout.buf + write_pout.pos,
+                 write_pout.size - write_pout.pos);
 
       if (0 > ret)
       {
@@ -453,9 +454,8 @@ main (int argc, char *argv[])
     fprintf (stderr,
              "This program must be started with the operating mode as argument.\n");
     fprintf (stderr,
-             "Usage: options\n"
-             "options:\n"
-             "1 = first loopback file\n" "2 = second loopback file\n" "\n");
+             "Usage: options\n" "options:\n" "1 = first loopback file\n"
+             "2 = second loopback file\n" "\n");
     return 1;
   }
   if (strstr (argv[1], "1") || strstr (argv[1], "2"))

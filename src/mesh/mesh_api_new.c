@@ -239,18 +239,20 @@ send_connect_packet (void *cls, size_t size, void *buf)
 
   for (napps = 0, apps = NULL; napps < h->n_applications; napps++)
   {
-    apps = GNUNET_realloc (apps,
-                           sizeof (GNUNET_MESH_ApplicationType) * (napps + 1));
+    apps =
+        GNUNET_realloc (apps,
+                        sizeof (GNUNET_MESH_ApplicationType) * (napps + 1));
     apps[napps] = h->applications[napps];
   }
 
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_ClientConnect) +
-                            sizeof (uint16_t) * ntypes +
-                            sizeof (GNUNET_MESH_ApplicationType) * napps);
+  msg->header.size =
+      htons (sizeof (struct GNUNET_MESH_ClientConnect) +
+             sizeof (uint16_t) * ntypes +
+             sizeof (GNUNET_MESH_ApplicationType) * napps);
 
   memcpy (&msg[1], types, sizeof (uint16_t) * ntypes);
-  memcpy (&msg[1] + sizeof (uint16_t) * ntypes,
-          apps, sizeof (GNUNET_MESH_ApplicationType) * napps);
+  memcpy (&msg[1] + sizeof (uint16_t) * ntypes, apps,
+          sizeof (GNUNET_MESH_ApplicationType) * napps);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sent %lu bytes long message %d types and %d apps\n",
               ntohs (msg->header.size), ntypes, napps);
@@ -303,8 +305,8 @@ send_tunnel_create_packet (void *cls, size_t size, void *buf)
   msg->header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
   msg->tunnel_id = htonl (t->tid);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sent %lu bytes long message\n", ntohs (msg->header.size));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %lu bytes long message\n",
+              ntohs (msg->header.size));
 
   return ntohs (msg->header.size);
 }
@@ -502,8 +504,8 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received a message from mesh\n");
-  GNUNET_CLIENT_receive (h->client,
-                         &msg_received, h, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (h->client, &msg_received, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   return;
 }
 
@@ -527,8 +529,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
  *         NULL on error (in this case, init is never called)
  */
 struct GNUNET_MESH_Handle *
-GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     void *cls,
+GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,
                      const GNUNET_MESH_ApplicationType *stypes)
@@ -540,8 +541,8 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   h->cleaner = cleaner;
   h->client = GNUNET_CLIENT_connect ("mesh", cfg);
-  GNUNET_CLIENT_receive (h->client,
-                         &msg_received, h, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (h->client, &msg_received, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   if (h->client == NULL)
   {
     GNUNET_free (h);
@@ -560,12 +561,11 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   size += h->n_handlers * sizeof (uint16_t);
   size += h->n_applications * sizeof (GNUNET_MESH_ApplicationType);
 
-  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
-                                               size,
-                                               GNUNET_TIME_UNIT_FOREVER_REL,
-                                               GNUNET_YES,
-                                               &send_connect_packet,
-                                               (void *) h);
+  h->th =
+      GNUNET_CLIENT_notify_transmit_ready (h->client, size,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_YES, &send_connect_packet,
+                                           (void *) h);
 
   return h;
 }
@@ -602,8 +602,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
  */
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
-                           GNUNET_MESH_TunnelConnectHandler
-                           connect_handler,
+                           GNUNET_MESH_TunnelConnectHandler connect_handler,
                            GNUNET_MESH_TunnelDisconnectHandler
                            disconnect_handler, void *handler_cls)
 {
@@ -619,13 +618,14 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   tunnel->tid = h->next_tid++;
   h->next_tid |= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK;      // keep in range
 
-  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
-                                               sizeof (struct
-                                                       GNUNET_MESH_TunnelMessage),
-                                               GNUNET_TIME_UNIT_FOREVER_REL,
-                                               GNUNET_YES,
-                                               &send_tunnel_create_packet,
-                                               (void *) tunnel);
+  h->th =
+      GNUNET_CLIENT_notify_transmit_ready (h->client,
+                                           sizeof (struct
+                                                   GNUNET_MESH_TunnelMessage),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_YES,
+                                           &send_tunnel_create_packet,
+                                           (void *) tunnel);
 
   return tunnel;
 }
@@ -714,14 +714,13 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
  *         memory); if NULL is returned, "notify" will NOT be called.
  */
 struct GNUNET_MESH_TransmitHandle *
-GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel,
-                                   int cork,
+GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
                                    uint32_t priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,
                                    size_t notify_size,
-                                   GNUNET_CONNECTION_TransmitReadyNotify
-                                   notify, void *notify_cls)
+                                   GNUNET_CONNECTION_TransmitReadyNotify notify,
+                                   void *notify_cls)
 {
   struct GNUNET_MESH_TransmitHandle *handle;
 

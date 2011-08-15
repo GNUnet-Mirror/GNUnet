@@ -183,9 +183,8 @@ proc_frac (void *cls, const struct GNUNET_MessageHeader *hdr)
  * Main function run with scheduler.
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   unsigned int i;
   struct GNUNET_MessageHeader *msg;
@@ -202,10 +201,9 @@ run (void *cls,
     msg->size =
         htons (sizeof (struct GNUNET_MessageHeader) + (17 * i) % (32 * 1024));
     frags[i] = GNUNET_FRAGMENT_context_create (NULL /* no stats */ ,
-                                               MTU,
-                                               &trackers[i],
-                                               GNUNET_TIME_UNIT_SECONDS,
-                                               msg, &proc_frac, &frags[i]);
+                                               MTU, &trackers[i],
+                                               GNUNET_TIME_UNIT_SECONDS, msg,
+                                               &proc_frac, &frags[i]);
   }
 }
 

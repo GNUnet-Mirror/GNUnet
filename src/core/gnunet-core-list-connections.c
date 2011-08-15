@@ -135,8 +135,7 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
     pc = GNUNET_malloc (sizeof (struct PrintContext));
     pc->peer = *peer;
-    GNUNET_TRANSPORT_peer_address_lookup (cfg, peer,
-                                          GNUNET_TIME_UNIT_MINUTES,
+    GNUNET_TRANSPORT_peer_address_lookup (cfg, peer, GNUNET_TIME_UNIT_MINUTES,
                                           &process_resolved_address, pc);
   }
 #if VERBOSE
@@ -157,9 +156,8 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
 
   cfg = c;
@@ -191,9 +189,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-list-connections",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-list-connections",
                               gettext_noop
                               ("Print information about connected peers."),
                               options, &run, NULL)) ? 0 : 1;

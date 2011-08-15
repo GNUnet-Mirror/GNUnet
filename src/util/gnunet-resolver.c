@@ -50,9 +50,8 @@ printer (void *cls, const struct sockaddr *addr, socklen_t addrlen)
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   if (args[0] == NULL)
     return;
@@ -73,11 +72,8 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-resolver [hostname]",
-                              gettext_noop
-                              ("Test GNUnet DNS resolver code."),
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-resolver [hostname]",
+                              gettext_noop ("Test GNUnet DNS resolver code."),
                               options, &run, NULL)) ? 0 : 1;
 }
 

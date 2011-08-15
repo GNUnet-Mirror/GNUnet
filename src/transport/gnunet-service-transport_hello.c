@@ -141,10 +141,10 @@ address_generator (void *cls, size_t max, void *buf)
 
   if (NULL == gc->addr_pos)
     return 0;
-  ret = GNUNET_HELLO_add_address (gc->addr_pos->plugin_name,
-                                  gc->expiration,
-                                  &gc->addr_pos[1],
-                                  gc->addr_pos->addrlen, buf, max);
+  ret =
+      GNUNET_HELLO_add_address (gc->addr_pos->plugin_name, gc->expiration,
+                                &gc->addr_pos[1], gc->addr_pos->addrlen, buf,
+                                max);
   gc->addr_pos = gc->addr_pos->next;
   return ret;
 }
@@ -173,15 +173,14 @@ refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "Refreshed my `%s', new size is %d\n", "HELLO",
               GNUNET_HELLO_size (our_hello));
 #endif
-  GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# refreshed my HELLO"),
-                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# refreshed my HELLO"), 1,
+                            GNUNET_NO);
   if (NULL != hello_cb)
     hello_cb (hello_cb_cls, GST_hello_get ());
   GNUNET_PEERINFO_add_peer (GST_peerinfo, our_hello);
-  hello_task
-      = GNUNET_SCHEDULER_add_delayed (HELLO_REFRESH_PERIOD,
-                                      &refresh_hello_task, NULL);
+  hello_task =
+      GNUNET_SCHEDULER_add_delayed (HELLO_REFRESH_PERIOD, &refresh_hello_task,
+                                    NULL);
 
 }
 
@@ -257,8 +256,7 @@ GST_hello_get ()
  * @param plugin_address_len number of bytes in plugin_address
  */
 void
-GST_hello_modify_addresses (int addremove,
-                            const char *plugin_name,
+GST_hello_modify_addresses (int addremove, const char *plugin_name,
                             const void *plugin_address,
                             size_t plugin_address_len)
 {
@@ -266,9 +264,9 @@ GST_hello_modify_addresses (int addremove,
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              (add_remove == GNUNET_YES)
-              ? "Adding `%s':%s to the set of our addresses\n"
-              : "Removing `%s':%s from the set of our addresses\n",
+              (add_remove ==
+               GNUNET_YES) ? "Adding `%s':%s to the set of our addresses\n" :
+              "Removing `%s':%s from the set of our addresses\n",
               GST_plugins_a2s (plugin_name, addr, addrlen), p->short_name);
 #endif
   GNUNET_assert (plugin_address != NULL);
@@ -311,8 +309,7 @@ GST_hello_modify_addresses (int addremove,
  *         GNUNET_NO if not
  */
 int
-GST_hello_test_address (const char *plugin_name,
-                        const void *plugin_address,
+GST_hello_test_address (const char *plugin_name, const void *plugin_address,
                         size_t plugin_address_len,
                         struct GNUNET_CRYPTO_RsaSignature **sig,
                         struct GNUNET_TIME_Absolute **sig_expiration)

@@ -33,8 +33,8 @@ main (int argc, char *argv[])
   CHECK (1);
   CHECK (0x12345678);
   CHECK (123456789012345LL);
-  if ((0x1234567890ABCDEFLL !=
-       GNUNET_htonll (0xEFCDAB9078563412LL)) && 42 != htonl (42))
+  if ((0x1234567890ABCDEFLL != GNUNET_htonll (0xEFCDAB9078563412LL)) &&
+      42 != htonl (42))
     return 1;
   return 0;
 }

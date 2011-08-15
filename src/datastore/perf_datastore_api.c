@@ -104,8 +104,8 @@ struct CpsRunContext
 
 
 
-static void
-run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void run_continuation (void *cls,
+                              const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 
@@ -138,8 +138,8 @@ check_success (void *cls, int success, const char *msg)
     else
       crc->phase = RP_CUT;
   }
-  GNUNET_SCHEDULER_add_continuation (&run_continuation,
-                                     crc, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -172,14 +172,10 @@ remove_next (void *cls, int success, const char *msg)
 
 
 static void
-delete_value (void *cls,
-              const GNUNET_HashCode * key,
-              size_t size,
-              const void *data,
-              enum GNUNET_BLOCK_Type type,
-              uint32_t priority,
-              uint32_t anonymity,
-              struct GNUNET_TIME_Absolute expiration, uint64_t uid)
+delete_value (void *cls, const GNUNET_HashCode * key, size_t size,
+              const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
+              uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+              uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
 
@@ -191,11 +187,8 @@ delete_value (void *cls,
   if (stored_bytes < MAX_SIZE)
     crc->phase = RP_PUT;
   GNUNET_assert (NULL !=
-                 GNUNET_DATASTORE_remove (datastore,
-                                          key,
-                                          size,
-                                          data,
-                                          1, 1, TIMEOUT, &remove_next, crc));
+                 GNUNET_DATASTORE_remove (datastore, key, size, data, 1, 1,
+                                          TIMEOUT, &remove_next, crc));
 }
 
 
@@ -228,12 +221,7 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       memset (data, i - 255, size / 2);
     data[0] = k;
     GNUNET_assert (NULL !=
-                   GNUNET_DATASTORE_put (datastore,
-                                         0,
-                                         &key,
-                                         size,
-                                         data,
-                                         i + 1,
+                   GNUNET_DATASTORE_put (datastore, 0, &key, size, data, i + 1,
                                          GNUNET_CRYPTO_random_u32
                                          (GNUNET_CRYPTO_QUALITY_WEAK, 100), i,
                                          0,
@@ -247,9 +235,9 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   case RP_CUT:
     /* trim down below MAX_SIZE again */
     GNUNET_assert (NULL !=
-                   GNUNET_DATASTORE_get_for_replication (datastore,
-                                                         1, 1, TIMEOUT,
-                                                         &delete_value, crc));
+                   GNUNET_DATASTORE_get_for_replication (datastore, 1, 1,
+                                                         TIMEOUT, &delete_value,
+                                                         crc));
     break;
   case RP_REPORT:
     printf (
@@ -263,15 +251,13 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   (start_time).rel_value));
     crc->phase = RP_PUT;
     crc->j = 0;
-    GNUNET_SCHEDULER_add_continuation (&run_continuation,
-                                       crc,
+    GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case RP_DONE:
     GNUNET_snprintf (gstr, sizeof (gstr), "DATASTORE-%s", plugin_name);
     if ((crc->i == ITERATIONS) && (stored_ops > 0))
-      GAUGER (gstr,
-              "PUT operation duration",
+      GAUGER (gstr, "PUT operation duration",
               GNUNET_TIME_absolute_get_duration (start_time).rel_value /
               stored_ops, "ms/operation");
     GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
@@ -302,15 +288,14 @@ run_tests (void *cls, int success, const char *msg)
     GNUNET_free (crc);
     return;
   }
-  GNUNET_SCHEDULER_add_continuation (&run_continuation,
-                                     crc, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct CpsRunContext *crc;
   static GNUNET_HashCode zkey;
@@ -321,10 +306,8 @@ run (void *cls,
   crc->cfg = cfg;
   crc->phase = RP_PUT;
   if (NULL ==
-      GNUNET_DATASTORE_put (datastore, 0,
-                            &zkey, 4, "TEST",
-                            GNUNET_BLOCK_TYPE_TEST,
-                            0, 0, 0,
+      GNUNET_DATASTORE_put (datastore, 0, &zkey, 4, "TEST",
+                            GNUNET_BLOCK_TYPE_TEST, 0, 0, 0,
                             GNUNET_TIME_relative_to_absolute
                             (GNUNET_TIME_UNIT_SECONDS), 0, 1,
                             GNUNET_TIME_UNIT_MINUTES, &run_tests, crc))
@@ -355,19 +338,18 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_snprintf (cfg_name,
-                   sizeof (cfg_name),
+  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
                    "test_datastore_api_data_%s.conf", plugin_name);
-  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                  "gnunet-service-arm",
+  proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE
-                                  "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                  "-c", cfg_name, NULL);
+                               "-c", cfg_name, NULL);
   GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "perf-datastore-api", "nohelp",
-                      options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "perf-datastore-api", "nohelp", options, &run, NULL);
   sleep (1);                    /* give datastore chance to process 'DROP' */
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
@@ -398,9 +380,8 @@ main (int argc, char *argv[])
   else
     pos = (char *) plugin_name;
 
-  GNUNET_snprintf (dir_name,
-                   sizeof (dir_name),
-                   "/tmp/test-gnunet-datastore-%s", plugin_name);
+  GNUNET_snprintf (dir_name, sizeof (dir_name), "/tmp/test-gnunet-datastore-%s",
+                   plugin_name);
   GNUNET_DISK_directory_remove (dir_name);
   GNUNET_log_setup ("perf-datastore-api",
 #if VERBOSE

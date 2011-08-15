@@ -55,13 +55,13 @@
  * believes to be valid for the transport.
  */
 static void
-addr_callback (void *cls, int add_remove,
-               const struct sockaddr *addr, socklen_t addrlen)
+addr_callback (void *cls, int add_remove, const struct sockaddr *addr,
+               socklen_t addrlen)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Address changed: %s `%s' (%u bytes)\n",
-              add_remove == GNUNET_YES ? "added" : "removed",
-              GNUNET_a2s (addr, addrlen), (unsigned int) addrlen);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Address changed: %s `%s' (%u bytes)\n",
+              add_remove == GNUNET_YES ? "added" : "removed", GNUNET_a2s (addr,
+                                                                          addrlen),
+              (unsigned int) addrlen);
 }
 
 
@@ -97,9 +97,8 @@ struct addr_cls
  * @return GNUNET_OK to continue iterating
  */
 static int
-process_if (void *cls,
-            const char *name,
-            int isDefault, const struct sockaddr *addr, socklen_t addrlen)
+process_if (void *cls, const char *name, int isDefault,
+            const struct sockaddr *addr, socklen_t addrlen)
 {
   struct addr_cls *data = cls;
 
@@ -119,9 +118,8 @@ process_if (void *cls,
  * Main function run with scheduler.
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAT_Handle *nat;
   struct addr_cls data;
@@ -147,9 +145,7 @@ run (void *cls,
               GNUNET_a2s (addr, data.addrlen));
 
   nat = GNUNET_NAT_register (cfg, GNUNET_YES /* tcp */ ,
-                             2086,
-                             1,
-                             (const struct sockaddr **) &addr,
+                             2086, 1, (const struct sockaddr **) &addr,
                              &data.addrlen, &addr_callback, NULL, NULL);
   GNUNET_free (addr);
   GNUNET_SCHEDULER_add_delayed (TIMEOUT, &stop, nat);

@@ -140,42 +140,42 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
             (unsigned long long) event->value.publish.completed,
             (unsigned long long) event->value.publish.size,
             event->value.publish.specifics.progress.depth,
-            (unsigned long long) event->value.publish.specifics.
-            progress.offset);
+            (unsigned long long) event->value.publish.specifics.progress.
+            offset);
 #endif
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     printf ("Publishing complete, %llu kb/s.\n",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration
-                                   (start).rel_value) / 1024LL));
+                                   GNUNET_TIME_absolute_get_duration (start).
+                                   rel_value) / 1024LL));
     GAUGER ("FS", "Publishing speed (insertion)",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration
-                                   (start).rel_value) / 1024LL), "kb/s");
+                                   GNUNET_TIME_absolute_get_duration (start).
+                                   rel_value) / 1024LL), "kb/s");
     fn = GNUNET_DISK_mktemp ("gnunet-download-test-dst");
     start = GNUNET_TIME_absolute_get ();
-    download = GNUNET_FS_download_start (fs,
-                                         event->value.publish.
-                                         specifics.completed.chk_uri, NULL, fn,
-                                         NULL, 0, FILESIZE, 1,
-                                         GNUNET_FS_DOWNLOAD_OPTION_NONE,
-                                         "download", NULL);
+    download =
+        GNUNET_FS_download_start (fs,
+                                  event->value.publish.specifics.completed.
+                                  chk_uri, NULL, fn, NULL, 0, FILESIZE, 1,
+                                  GNUNET_FS_DOWNLOAD_OPTION_NONE, "download",
+                                  NULL);
     GNUNET_assert (download != NULL);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
     printf ("Download complete,  %llu kb/s.\n",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration
-                                   (start).rel_value) / 1024LL));
+                                   GNUNET_TIME_absolute_get_duration (start).
+                                   rel_value) / 1024LL));
     GAUGER ("FS", "Local download speed (inserted)",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration
-                                   (start).rel_value) / 1024LL), "kb/s");
+                                   GNUNET_TIME_absolute_get_duration (start).
+                                   rel_value) / 1024LL), "kb/s");
     GNUNET_SCHEDULER_add_now (&abort_download_task, NULL);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
@@ -185,22 +185,19 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
             (unsigned long long) event->value.download.completed,
             (unsigned long long) event->value.download.size,
             event->value.download.specifics.progress.depth,
-            (unsigned long long) event->value.download.specifics.
-            progress.offset);
+            (unsigned long long) event->value.download.specifics.progress.
+            offset);
 #endif
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
-    fprintf (stderr,
-             "Error publishing file: %s\n",
+    fprintf (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     GNUNET_break (0);
-    GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
-                                       NULL,
+    GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
-    fprintf (stderr,
-             "Error downloading file: %s\n",
+    fprintf (stderr, "Error downloading file: %s\n",
              event->value.download.specifics.error.message);
     GNUNET_SCHEDULER_add_now (&abort_download_task, NULL);
     break;
@@ -231,8 +228,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
     GNUNET_assert (download == event->value.download.dc);
-    GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
-                                       NULL,
+    GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   default:
@@ -248,12 +244,13 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
@@ -269,8 +266,7 @@ stop_arm (struct PeerContext *p)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "ARM process %u stopped\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
                 GNUNET_OS_process_get_pid (p->arm_proc));
     GNUNET_OS_process_close (p->arm_proc);
     p->arm_proc = NULL;
@@ -281,9 +277,8 @@ stop_arm (struct PeerContext *p)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const char *keywords[] = {
     "down_foo",
@@ -297,10 +292,8 @@ run (void *cls,
   struct GNUNET_FS_BlockOptions bo;
 
   setup_peer (&p1, "test_fs_download_data.conf");
-  fs = GNUNET_FS_start (cfg,
-                        "test-fs-download",
-                        &progress_cb,
-                        NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
+  fs = GNUNET_FS_start (cfg, "test-fs-download", &progress_cb, NULL,
+                        GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   GNUNET_assert (NULL != fs);
   buf = GNUNET_malloc (FILESIZE);
   for (i = 0; i < FILESIZE; i++)
@@ -311,21 +304,18 @@ run (void *cls,
   bo.anonymity_level = 1;
   bo.replication_level = 0;
   bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME);
-  fi = GNUNET_FS_file_information_create_from_data (fs,
-                                                    "publish-context",
-                                                    FILESIZE,
-                                                    buf,
-                                                    kuri, meta, GNUNET_NO, &bo);
+  fi = GNUNET_FS_file_information_create_from_data (fs, "publish-context",
+                                                    FILESIZE, buf, kuri, meta,
+                                                    GNUNET_NO, &bo);
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fi);
-  timeout_kill = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                               &timeout_kill_task, NULL);
+  timeout_kill =
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_kill_task, NULL);
   start = GNUNET_TIME_absolute_get ();
-  publish = GNUNET_FS_publish_start (fs,
-                                     fi,
-                                     NULL, NULL, NULL,
-                                     GNUNET_FS_PUBLISH_OPTION_NONE);
+  publish =
+      GNUNET_FS_publish_start (fs, fi, NULL, NULL, NULL,
+                               GNUNET_FS_PUBLISH_OPTION_NONE);
   GNUNET_assert (publish != NULL);
 }
 
@@ -353,8 +343,8 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-fs-download", "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
+                      "test-fs-download", "nohelp", options, &run, NULL);
   stop_arm (&p1);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-download/");
   return err;

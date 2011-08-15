@@ -80,8 +80,7 @@ clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-notify_connect_complete (void *cls,
-                         const struct GNUNET_PeerIdentity *first,
+notify_connect_complete (void *cls, const struct GNUNET_PeerIdentity *first,
                          const struct GNUNET_PeerIdentity *second,
                          unsigned int distance,
                          const struct GNUNET_CONFIGURATION_Handle *first_cfg,
@@ -108,8 +107,7 @@ notify_connect_complete (void *cls,
 
 
 static void
-my_cb (void *cls,
-       const struct GNUNET_PeerIdentity *id,
+my_cb (void *cls, const struct GNUNET_PeerIdentity *id,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
@@ -134,22 +132,17 @@ my_cb (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ok = 1;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
 #endif
   peers_left = NUM_PEERS;
-  pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left,
-                                     peers_left,
-                                     peers_left,
-                                     TIMEOUT,
-                                     NULL, NULL,
-                                     &my_cb, NULL, NULL, NULL, NULL);
+  pg = GNUNET_TESTING_daemons_start (cfg, peers_left, peers_left, peers_left,
+                                     TIMEOUT, NULL, NULL, &my_cb, NULL, NULL,
+                                     NULL, NULL);
   GNUNET_assert (pg != NULL);
 }
 
@@ -169,9 +162,9 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-gnunet-daemon-topology", "nohelp",
-                      options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-gnunet-daemon-topology", "nohelp", options, &run,
+                      &ok);
   return ok;
 }
 

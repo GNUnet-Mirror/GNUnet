@@ -252,8 +252,8 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.checksum = 0;
   ip_pkt.src_ip = my_ip->s_addr;
   ip_pkt.dst_ip = dummy.s_addr;
-  ip_pkt.checksum = htons (calc_checksum ((uint16_t *) & ip_pkt,
-                                          sizeof (struct ip_header)));
+  ip_pkt.checksum =
+      htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
   memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
@@ -261,8 +261,9 @@ send_icmp_echo (const struct in_addr *my_ip)
   icmp_echo.code = 0;
   icmp_echo.checksum = 0;
   icmp_echo.reserved = 0;
-  icmp_echo.checksum = htons (calc_checksum ((uint16_t *) & icmp_echo,
-                                             sizeof (struct icmp_echo_header)));
+  icmp_echo.checksum =
+      htons (calc_checksum
+             ((uint16_t *) & icmp_echo, sizeof (struct icmp_echo_header)));
   memcpy (&packet[off], &icmp_echo, sizeof (struct icmp_echo_header));
   off += sizeof (struct icmp_echo_header);
 
@@ -272,8 +273,8 @@ send_icmp_echo (const struct in_addr *my_ip)
   dst.sin_len = sizeof (struct sockaddr_in);
 #endif
   dst.sin_addr = dummy;
-  err = sendto (rawsock,
-                packet, off, 0, (struct sockaddr *) &dst, sizeof (dst));
+  err =
+      sendto (rawsock, packet, off, 0, (struct sockaddr *) &dst, sizeof (dst));
   if (err < 0)
   {
 #if VERBOSE
@@ -368,9 +369,10 @@ process_icmp_response ()
   switch (ip_pkt.proto)
   {
   case IPPROTO_ICMP:
-    if (have != (sizeof (struct ip_header) * 2 +
-                 sizeof (struct icmp_ttl_exceeded_header) +
-                 sizeof (struct icmp_echo_header)))
+    if (have !=
+        (sizeof (struct ip_header) * 2 +
+         sizeof (struct icmp_ttl_exceeded_header) +
+         sizeof (struct icmp_echo_header)))
     {
       /* malformed */
       return;
@@ -380,9 +382,9 @@ process_icmp_response ()
     port = (uint16_t) ntohl (icmp_echo.reserved);
     break;
   case IPPROTO_UDP:
-    if (have != (sizeof (struct ip_header) * 2 +
-                 sizeof (struct icmp_ttl_exceeded_header) +
-                 sizeof (struct udp_header)))
+    if (have !=
+        (sizeof (struct ip_header) * 2 +
+         sizeof (struct icmp_ttl_exceeded_header) + sizeof (struct udp_header)))
     {
       /* malformed */
       return;
@@ -397,13 +399,12 @@ process_icmp_response ()
   }
 
   if (port == 0)
-    fprintf (stdout,
-             "%s\n", inet_ntop (AF_INET, &source_ip, buf, sizeof (buf)));
+    fprintf (stdout, "%s\n",
+             inet_ntop (AF_INET, &source_ip, buf, sizeof (buf)));
   else
-    fprintf (stdout,
-             "%s:%u\n",
-             inet_ntop (AF_INET,
-                        &source_ip, buf, sizeof (buf)), (unsigned int) port);
+    fprintf (stdout, "%s:%u\n",
+             inet_ntop (AF_INET, &source_ip, buf, sizeof (buf)),
+             (unsigned int) port);
   fflush (stdout);
 }
 
@@ -426,9 +427,8 @@ make_icmp_socket ()
   }
   if (ret >= FD_SETSIZE)
   {
-    fprintf (stderr,
-             "Socket number too large (%d > %u)\n",
-             ret, (unsigned int) FD_SETSIZE);
+    fprintf (stderr, "Socket number too large (%d > %u)\n", ret,
+             (unsigned int) FD_SETSIZE);
     close (ret);
     return -1;
   }
@@ -453,15 +453,15 @@ make_raw_socket ()
     fprintf (stderr, "Error opening RAW socket: %s\n", strerror (errno));
     return -1;
   }
-  if (-1 == setsockopt (ret,
-                        SOL_SOCKET, SO_BROADCAST, (char *) &one, sizeof (one)))
+  if (-1 ==
+      setsockopt (ret, SOL_SOCKET, SO_BROADCAST, (char *) &one, sizeof (one)))
   {
     fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
     close (ret);
     return -1;
   }
-  if (-1 == setsockopt (ret,
-                        IPPROTO_IP, IP_HDRINCL, (char *) &one, sizeof (one)))
+  if (-1 ==
+      setsockopt (ret, IPPROTO_IP, IP_HDRINCL, (char *) &one, sizeof (one)))
   {
     fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
     close (ret);
@@ -499,9 +499,8 @@ make_udp_socket (const struct in_addr *my_ip)
 
   if (0 != bind (ret, &addr, sizeof (addr)))
   {
-    fprintf (stderr,
-             "Error binding UDP socket to port %u: %s\n",
-             NAT_TRAV_PORT, strerror (errno));
+    fprintf (stderr, "Error binding UDP socket to port %u: %s\n", NAT_TRAV_PORT,
+             strerror (errno));
     /* likely problematic, but not certain, try to continue */
   }
   return ret;

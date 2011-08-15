@@ -135,10 +135,8 @@ check_crc_buf_osdep (unsigned char *buf, int len)
 
   crc = calc_crc_osdep (buf, len);
   buf += len;
-  return (((crc) & 0xFF) == buf[0] && ((crc >> 8) & 0xFF) == buf[1] && ((crc
-                                                                         >> 16)
-                                                                        & 0xFF)
-          == buf[2] && ((crc >> 24) & 0xFF) == buf[3]);
+  return (((crc) & 0xFF) == buf[0] && ((crc >> 8) & 0xFF) == buf[1] &&
+          ((crc >> 16) & 0xFF) == buf[2] && ((crc >> 24) & 0xFF) == buf[3]);
 }
 
 
@@ -387,8 +385,7 @@ openraw (struct Hardware_Infos *dev)
   sll.sll_protocol = htons (ETH_P_ALL);
   if (-1 == ioctl (dev->fd_raw, SIOCGIFHWADDR, &ifr))
   {
-    fprintf (stderr,
-             "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
+    fprintf (stderr, "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
              IFNAMSIZ, dev->iface, strerror (errno));
     return 1;
   }
@@ -408,8 +405,7 @@ openraw (struct Hardware_Infos *dev)
        (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL)) ||
       (wrq.u.mode != IW_MODE_MONITOR))
   {
-    fprintf (stderr,
-             "Error: interface `%.*s' is not in monitor mode\n",
+    fprintf (stderr, "Error: interface `%.*s' is not in monitor mode\n",
              IFNAMSIZ, dev->iface);
     return 1;
   }
@@ -432,9 +428,8 @@ openraw (struct Hardware_Infos *dev)
   /* bind the raw socket to the interface */
   if (-1 == bind (dev->fd_raw, (struct sockaddr *) &sll, sizeof (sll)))
   {
-    fprintf (stderr,
-             "Failed to bind interface `%.*s': %s\n",
-             IFNAMSIZ, dev->iface, strerror (errno));
+    fprintf (stderr, "Failed to bind interface `%.*s': %s\n", IFNAMSIZ,
+             dev->iface, strerror (errno));
     return 1;
   }
 
@@ -453,8 +448,7 @@ openraw (struct Hardware_Infos *dev)
       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) &&
       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL))
   {
-    fprintf (stderr,
-             "Unsupported hardware link type %d on interface `%.*s'\n",
+    fprintf (stderr, "Unsupported hardware link type %d on interface `%.*s'\n",
              ifr.ifr_hwaddr.sa_family, IFNAMSIZ, dev->iface);
     return 1;
   }
@@ -467,8 +461,7 @@ openraw (struct Hardware_Infos *dev)
       setsockopt (dev->fd_raw, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
                   sizeof (mr)))
   {
-    fprintf (stderr,
-             "Failed to enable promiscuous mode on interface `%.*s'\n",
+    fprintf (stderr, "Failed to enable promiscuous mode on interface `%.*s'\n",
              IFNAMSIZ, dev->iface);
     return 1;
   }
@@ -494,17 +487,16 @@ wlaninit (struct Hardware_Infos *dev, const char *iface)
   }
   if (dev->fd_raw >= FD_SETSIZE)
   {
-    fprintf (stderr,
-             "File descriptor too large for select (%d > %d)\n",
+    fprintf (stderr, "File descriptor too large for select (%d > %d)\n",
              dev->fd_raw, FD_SETSIZE);
     close (dev->fd_raw);
     return 1;
   }
 
   /* mac80211 stack detection */
-  ret = snprintf (strbuf,
-                  sizeof (strbuf),
-                  "/sys/class/net/%s/phy80211/subsystem", iface);
+  ret =
+      snprintf (strbuf, sizeof (strbuf), "/sys/class/net/%s/phy80211/subsystem",
+                iface);
   if ((ret < 0) || (ret >= sizeof (strbuf)) || (0 != stat (strbuf, &sbuf)))
   {
     fprintf (stderr, "Did not find 802.11 interface `%s'. Exiting.\n", iface);
@@ -634,8 +626,7 @@ maketest (unsigned char *buf, struct Hardware_Infos *dev)
   static int first = 0;
 
   const int rate = 11000000;
-  static const char
-      txt[] =
+  static const char txt[] =
       "Hallo1Hallo2 Hallo3 Hallo4...998877665544332211Hallo1Hallo2 Hallo3 Hallo4...998877665544332211";
 
   unsigned char u8aRadiotap[] = { 0x00, 0x00,   // <-- radiotap version
@@ -686,14 +677,14 @@ maketest (unsigned char *buf, struct Hardware_Infos *dev)
   }
 
   tmp16 = (uint16_t *) u8aIeeeHeader.i_dur;
-  *tmp16
-      =
+  *tmp16 =
       (uint16_t)
       htole16 ((sizeof (txt) +
                 sizeof (struct ieee80211_frame) * 1000000) / rate + 290);
   tmp16 = (uint16_t *) u8aIeeeHeader.i_seq;
-  *tmp16 = (*tmp16 & IEEE80211_SEQ_FRAG_MASK) | (htole16 (seqenz)
-                                                 << IEEE80211_SEQ_SEQ_SHIFT);
+  *tmp16 =
+      (*tmp16 & IEEE80211_SEQ_FRAG_MASK) | (htole16 (seqenz) <<
+                                            IEEE80211_SEQ_SEQ_SHIFT);
   seqenz++;
 
   memcpy (buf, u8aRadiotap, sizeof (u8aRadiotap));
@@ -795,9 +786,9 @@ hardwaremode (int argc, char *argv[])
 
     if (FD_ISSET (STDOUT_FILENO, &wfds))
     {
-      ret = write (STDOUT_FILENO,
-                   write_std.buf + write_std.pos,
-                   write_std.size - write_std.pos);
+      ret =
+          write (STDOUT_FILENO, write_std.buf + write_std.pos,
+                 write_std.size - write_std.pos);
       if (0 > ret)
       {
         fprintf (stderr, "Failed to write to STDOUT: %s\n", strerror (errno));
@@ -824,9 +815,8 @@ hardwaremode (int argc, char *argv[])
       dev.write_pout.pos += ret;
       if ((dev.write_pout.pos != dev.write_pout.size) && (ret != 0))
       {
-        fprintf (stderr,
-                 "Line %u: Write error, partial send: %u/%u\n", __LINE__,
-                 dev.write_pout.pos, dev.write_pout.size);
+        fprintf (stderr, "Line %u: Write error, partial send: %u/%u\n",
+                 __LINE__, dev.write_pout.pos, dev.write_pout.size);
         break;
       }
       if (dev.write_pout.pos == dev.write_pout.size)
@@ -849,8 +839,8 @@ hardwaremode (int argc, char *argv[])
         /* stop reading... */
         stdin_open = 0;
       }
-      GNUNET_SERVER_mst_receive (stdin_mst, NULL,
-                                 readbuf, ret, GNUNET_NO, GNUNET_NO);
+      GNUNET_SERVER_mst_receive (stdin_mst, NULL, readbuf, ret, GNUNET_NO,
+                                 GNUNET_NO);
     }
 
     if (FD_ISSET (dev.fd_raw, &rfds))
@@ -862,10 +852,10 @@ hardwaremode (int argc, char *argv[])
       header = (struct GNUNET_MessageHeader *) write_std.buf;
       rxinfo = (struct Radiotap_rx *) &header[1];
       datastart = (struct ieee80211_frame *) &rxinfo[1];
-      ret = linux_read (&dev,
-                        (unsigned char *) datastart,
-                        sizeof (write_std.buf) - sizeof (struct Radiotap_rx) -
-                        sizeof (struct GNUNET_MessageHeader), rxinfo);
+      ret =
+          linux_read (&dev, (unsigned char *) datastart,
+                      sizeof (write_std.buf) - sizeof (struct Radiotap_rx) -
+                      sizeof (struct GNUNET_MessageHeader), rxinfo);
       if (0 > ret)
       {
         fprintf (stderr, "Read error from raw socket: %s\n", strerror (errno));

@@ -67,9 +67,9 @@ open_listen_socket ()
   if (GNUNET_NETWORK_socket_setsockopt
       (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "setsockopt");
-  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (desc,
-                                               (const struct sockaddr *) &sa,
-                                               sizeof (sa)))
+  if (GNUNET_OK !=
+      GNUNET_NETWORK_socket_bind (desc, (const struct sockaddr *) &sa,
+                                  sizeof (sa)))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "bind");
@@ -81,9 +81,7 @@ open_listen_socket ()
 
 
 static void
-receive_check (void *cls,
-               const void *buf,
-               size_t available,
+receive_check (void *cls, const void *buf, size_t available,
                const struct sockaddr *addr, socklen_t addrlen, int errCode)
 {
   int *ok = cls;
@@ -93,11 +91,10 @@ receive_check (void *cls,
     sofar += available;
   if (sofar < 12)
   {
-    GNUNET_CONNECTION_receive (asock,
-                               1024,
+    GNUNET_CONNECTION_receive (asock, 1024,
                                GNUNET_TIME_relative_multiply
-                               (GNUNET_TIME_UNIT_SECONDS, 5),
-                               &receive_check, cls);
+                               (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
+                               cls);
   }
   else
   {
@@ -132,8 +129,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (0 == memcmp (&expect, v4, alen));
   GNUNET_free (addr);
   GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
-  GNUNET_CONNECTION_receive (asock,
-                             1024,
+  GNUNET_CONNECTION_receive (asock, 1024,
                              GNUNET_TIME_relative_multiply
                              (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
                              cls);
@@ -162,18 +158,18 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   v4.sin_family = AF_INET;
   v4.sin_port = htons (PORT);
   v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
-  csock = GNUNET_CONNECTION_create_from_sockaddr (AF_INET,
-                                                  (const struct sockaddr
-                                                   *) &v4, sizeof (v4));
+  csock =
+      GNUNET_CONNECTION_create_from_sockaddr (AF_INET,
+                                              (const struct sockaddr *) &v4,
+                                              sizeof (v4));
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
-                 GNUNET_CONNECTION_notify_transmit_ready (csock,
-                                                          12,
+                 GNUNET_CONNECTION_notify_transmit_ready (csock, 12,
                                                           GNUNET_TIME_UNIT_SECONDS,
                                                           &make_hello, NULL));
   GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
-  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                 ls, &run_accept, cls);
+  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, ls, &run_accept,
+                                 cls);
 }
 
 

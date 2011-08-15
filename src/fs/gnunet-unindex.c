@@ -86,16 +86,14 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     if (verbose)
     {
       s = GNUNET_STRINGS_relative_time_to_string (info->value.unindex.eta);
-      fprintf (stdout,
-               _("Unindexing at %llu/%llu (%s remaining)\n"),
+      fprintf (stdout, _("Unindexing at %llu/%llu (%s remaining)\n"),
                (unsigned long long) info->value.unindex.completed,
                (unsigned long long) info->value.unindex.size, s);
       GNUNET_free (s);
     }
     break;
   case GNUNET_FS_STATUS_UNINDEX_ERROR:
-    fprintf (stderr,
-             _("Error unindexing: %s.\n"),
+    fprintf (stderr, _("Error unindexing: %s.\n"),
              info->value.unindex.specifics.error.message);
     GNUNET_SCHEDULER_shutdown ();
     break;
@@ -104,8 +102,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     GNUNET_SCHEDULER_shutdown ();
     break;
   case GNUNET_FS_STATUS_UNINDEX_STOPPED:
-    GNUNET_SCHEDULER_add_continuation (&cleanup_task,
-                                       NULL,
+    GNUNET_SCHEDULER_add_continuation (&cleanup_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   default:
@@ -125,9 +122,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   /* check arguments */
   if ((args[0] == NULL) || (args[1] != NULL))
@@ -137,10 +133,9 @@ run (void *cls,
     return;
   }
   cfg = c;
-  ctx = GNUNET_FS_start (cfg,
-                         "gnunet-unindex",
-                         &progress_cb,
-                         NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
+  ctx =
+      GNUNET_FS_start (cfg, "gnunet-unindex", &progress_cb, NULL,
+                       GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
   {
     fprintf (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
@@ -154,8 +149,8 @@ run (void *cls,
     GNUNET_FS_stop (ctx);
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
 }
 
 
@@ -176,9 +171,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-unindex [OPTIONS] FILENAME",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-unindex [OPTIONS] FILENAME",
                               gettext_noop
                               ("Unindex a file that was previously indexed with gnunet-publish."),
                               options, &run, NULL)) ? ret : 1;

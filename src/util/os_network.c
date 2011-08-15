@@ -131,15 +131,12 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
 
         /* Set entry */
         memset (bPhysAddr, 0, MAXLEN_PHYSADDR);
-        memcpy (bPhysAddr,
-                pTable->table[dwIfIdx].bPhysAddr,
+        memcpy (bPhysAddr, pTable->table[dwIfIdx].bPhysAddr,
                 pTable->table[dwIfIdx].dwPhysAddrLen);
 
         snprintf (szEntry, 1000, "%s (%s - %I64u)",
-                  pszIfName ? pszIfName : (char *)
-                  pTable->table[dwIfIdx].bDescr, inet_ntop (AF_INET,
-                                                            &dwIP, dst,
-                                                            INET_ADDRSTRLEN),
+                  pszIfName ? pszIfName : (char *) pTable->table[dwIfIdx].
+                  bDescr, inet_ntop (AF_INET, &dwIP, dst, INET_ADDRSTRLEN),
                   *((unsigned long long *) bPhysAddr));
         szEntry[1000] = 0;
 
@@ -153,8 +150,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
         sa.sin_addr.S_un.S_addr = dwIP;
 
         if (GNUNET_OK !=
-            proc (proc_cls,
-                  szEntry,
+            proc (proc_cls, szEntry,
                   pTable->table[dwIfIdx].dwIndex == dwExternalNIC,
                   (const struct sockaddr *) &sa, sizeof (sa)))
           break;
@@ -176,8 +172,8 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
   {
     for (ifa_ptr = ifa_first; ifa_ptr != NULL; ifa_ptr = ifa_ptr->ifa_next)
     {
-      if (ifa_ptr->ifa_name != NULL &&
-          ifa_ptr->ifa_addr != NULL && (ifa_ptr->ifa_flags & IFF_UP) != 0)
+      if (ifa_ptr->ifa_name != NULL && ifa_ptr->ifa_addr != NULL &&
+          (ifa_ptr->ifa_flags & IFF_UP) != 0)
       {
         if ((ifa_ptr->ifa_addr->sa_family != AF_INET) &&
             (ifa_ptr->ifa_addr->sa_family != AF_INET6))
@@ -186,11 +182,10 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
           alen = sizeof (struct sockaddr_in);
         else
           alen = sizeof (struct sockaddr_in6);
-        if (GNUNET_OK != proc (proc_cls,
-                               ifa_ptr->ifa_name,
-                               0 == strcmp (ifa_ptr->ifa_name,
-                                            GNUNET_DEFAULT_INTERFACE),
-                               ifa_ptr->ifa_addr, alen))
+        if (GNUNET_OK !=
+            proc (proc_cls, ifa_ptr->ifa_name,
+                  0 == strcmp (ifa_ptr->ifa_name, GNUNET_DEFAULT_INTERFACE),
+                  ifa_ptr->ifa_addr, alen))
           break;
       }
     }
@@ -261,9 +256,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
 #endif
         a4.sin_addr = v4;
         if (GNUNET_OK !=
-            proc (proc_cls,
-                  ifc,
-                  0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
+            proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
                   (const struct sockaddr *) &a4, sizeof (a4)))
           break;
         continue;
@@ -278,9 +271,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
 #endif
         a6.sin6_addr = v6;
         if (GNUNET_OK !=
-            proc (proc_cls,
-                  ifc,
-                  0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
+            proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
                   (const struct sockaddr *) &a6, sizeof (a6)))
           break;
         continue;

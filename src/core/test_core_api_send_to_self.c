@@ -79,8 +79,8 @@ cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tskctx)
   if (GNUNET_OS_process_wait (arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ARM process %u stopped\n", GNUNET_OS_process_get_pid (arm_proc));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
+              GNUNET_OS_process_get_pid (arm_proc));
   GNUNET_OS_process_close (arm_proc);
   arm_proc = NULL;
 
@@ -143,10 +143,8 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Connected to myself; sending message!\n");
-    GNUNET_CORE_notify_transmit_ready (core,
-                                       GNUNET_YES,
-                                       0, GNUNET_TIME_UNIT_FOREVER_REL,
-                                       peer,
+    GNUNET_CORE_notify_transmit_ready (core, GNUNET_YES, 0,
+                                       GNUNET_TIME_UNIT_FOREVER_REL, peer,
                                        sizeof (struct GNUNET_MessageHeader),
                                        send_message, NULL);
   }
@@ -162,9 +160,8 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const static struct GNUNET_CORE_MessageHandler handlers[] = {
     {&receive, GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP, 0},
@@ -173,23 +170,21 @@ run (void *cls,
 
   core_cfg = GNUNET_CONFIGURATION_create ();
 
-  arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                      "gnunet-service-arm",
+  arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE
-                                      "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                      "-c", "test_core_api_peer1.conf", NULL);
+                               "-c", "test_core_api_peer1.conf", NULL);
 
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_load (core_cfg,
                                             "test_core_api_peer1.conf"));
 
-  core = GNUNET_CORE_connect (core_cfg,
-                              42,
-                              NULL,
-                              &init,
-                              &connect_cb,
-                              NULL, NULL, NULL, 0, NULL, 0, handlers);
+  core =
+      GNUNET_CORE_connect (core_cfg, 42, NULL, &init, &connect_cb, NULL, NULL,
+                           NULL, 0, NULL, 0, handlers);
 
   die_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -217,11 +212,10 @@ check ()
   ret = 1;
 
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                              argv,
+          GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
                               "test_core_api_send_to_self",
-                              gettext_noop ("help text"),
-                              options, &run, NULL)) ? ret : 1;
+                              gettext_noop ("help text"), options, &run,
+                              NULL)) ? ret : 1;
 }
 
 /**

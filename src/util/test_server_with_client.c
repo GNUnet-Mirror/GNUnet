@@ -57,8 +57,7 @@ send_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-recv_cb (void *cls,
-         struct GNUNET_SERVER_Client *argclient,
+recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
          const struct GNUNET_MessageHeader *message)
 {
   void *addr;
@@ -169,13 +168,10 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
-  server = GNUNET_SERVER_create (NULL,
-                                 NULL,
-                                 sap,
-                                 slens,
-                                 GNUNET_TIME_relative_multiply
-                                 (GNUNET_TIME_UNIT_MILLISECONDS, 250),
-                                 GNUNET_NO);
+  server =
+      GNUNET_SERVER_create (NULL, NULL, sap, slens,
+                            GNUNET_TIME_relative_multiply
+                            (GNUNET_TIME_UNIT_MILLISECONDS, 250), GNUNET_NO);
   GNUNET_assert (server != NULL);
   handlers[0].callback_cls = cls;
   GNUNET_SERVER_add_handlers (server, handlers);
@@ -187,8 +183,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                          "localhost");
   client = GNUNET_CLIENT_connect ("test", cfg);
   GNUNET_assert (client != NULL);
-  GNUNET_CLIENT_notify_transmit_ready (client,
-                                       256,
+  GNUNET_CLIENT_notify_transmit_ready (client, 256,
                                        GNUNET_TIME_relative_multiply
                                        (GNUNET_TIME_UNIT_MILLISECONDS, 250),
                                        GNUNET_NO, &notify_ready, NULL);

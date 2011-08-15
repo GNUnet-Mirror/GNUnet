@@ -105,8 +105,8 @@ env_delete_notify (void *cls, const GNUNET_HashCode * key, size_t size)
   GNUNET_assert (h->utilization >= size);
   h->utilization -= size;
   GNUNET_CONTAINER_bloomfilter_remove (h->filter, key);
-  GNUNET_STATISTICS_update (h->stats,
-                            gettext_noop ("# bytes stored"), -size, GNUNET_NO);
+  GNUNET_STATISTICS_update (h->stats, gettext_noop ("# bytes stored"), -size,
+                            GNUNET_NO);
 }
 
 
@@ -131,16 +131,16 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_CONFIGURATION_get_value_number (cfg, section, "QUOTA", &quota))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No `%s' specified for `%s' in configuration!\n"),
-                "QUOTA", section);
+                _("No `%s' specified for `%s' in configuration!\n"), "QUOTA",
+                section);
     return NULL;
   }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, section, "DATABASE", &name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No `%s' specified for `%s' in configuration!\n"),
-                "DATABASE", section);
+                _("No `%s' specified for `%s' in configuration!\n"), "DATABASE",
+                section);
     return NULL;
   }
   bf_size = quota / 32;         /* 8 bit per entry, 1 bit per 32 kb in DB */
@@ -164,8 +164,8 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->env.cls = ret;
   ret->env.delete_notify = &env_delete_notify;
   ret->env.quota = quota;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading `%s' datacache plugin\n"), name);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' datacache plugin\n"),
+              name);
   GNUNET_asprintf (&libname, "libgnunet_plugin_datacache_%s", name);
   ret->short_name = name;
   ret->lib_name = libname;
@@ -199,8 +199,8 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
   if (h->bloom_name != NULL)
   {
     if (0 != UNLINK (h->bloom_name))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                "unlink", h->bloom_name);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink",
+                                h->bloom_name);
     GNUNET_free (h->bloom_name);
   }
   GNUNET_STATISTICS_destroy (h->stats, GNUNET_NO);
@@ -221,10 +221,8 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
  */
 int
 GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
-                      const GNUNET_HashCode * key,
-                      size_t size,
-                      const char *data,
-                      enum GNUNET_BLOCK_Type type,
+                      const GNUNET_HashCode * key, size_t size,
+                      const char *data, enum GNUNET_BLOCK_Type type,
                       struct GNUNET_TIME_Absolute discard_time)
 {
   uint32_t used;
@@ -235,8 +233,8 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_STATISTICS_update (h->stats,
-                            gettext_noop ("# bytes stored"), size, GNUNET_NO);
+  GNUNET_STATISTICS_update (h->stats, gettext_noop ("# bytes stored"), size,
+                            GNUNET_NO);
   GNUNET_CONTAINER_bloomfilter_add (h->filter, key);
   while (h->utilization + used > h->env.quota)
     GNUNET_assert (GNUNET_OK == h->api->del (h->api->cls));
@@ -258,12 +256,11 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
  */
 unsigned int
 GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
-                      const GNUNET_HashCode * key,
-                      enum GNUNET_BLOCK_Type type,
+                      const GNUNET_HashCode * key, enum GNUNET_BLOCK_Type type,
                       GNUNET_DATACACHE_Iterator iter, void *iter_cls)
 {
-  GNUNET_STATISTICS_update (h->stats,
-                            gettext_noop ("# requests received"), 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (h->stats, gettext_noop ("# requests received"), 1,
+                            GNUNET_NO);
   if (GNUNET_OK != GNUNET_CONTAINER_bloomfilter_test (h->filter, key))
   {
     GNUNET_STATISTICS_update (h->stats,

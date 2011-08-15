@@ -101,9 +101,9 @@ arm_notify (void *cls, int success)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to resolve our own hostname!\n");
   /* connect to the resolver service */
-  if (NULL == GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
-                                                TIMEOUT,
-                                                &hostNameResolveCB, NULL))
+  if (NULL ==
+      GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC, TIMEOUT, &hostNameResolveCB,
+                                        NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable initiate connection to resolver service\n");
@@ -116,9 +116,8 @@ arm_notify (void *cls, int success)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
 #if START_ARM
@@ -146,8 +145,7 @@ check ()
   };
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                                     argv,
-                                     "test-gnunet-service-manager",
+                                     argv, "test-gnunet-service-manager",
                                      "nohelp", options, &run, NULL));
 }
 
@@ -159,8 +157,8 @@ main (int argc, char *argv[])
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
-                         GNUNET_ERROR_TYPE_BULK, "gethostname");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                         "gethostname");
     fprintf (stderr,
              "Failed to determine my own hostname, testcase not run.\n");
     return 0;

@@ -128,8 +128,7 @@ struct GNUNET_HOSTLIST_ADV_Message
 static struct GNUNET_PeerIdentity me;
 
 static void
-core_init (void *cls,
-           struct GNUNET_CORE_Handle *server,
+core_init (void *cls, struct GNUNET_CORE_Handle *server,
            const struct GNUNET_PeerIdentity *my_identity,
            const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
@@ -140,8 +139,7 @@ core_init (void *cls,
  * Core handler for p2p hostlist advertisements
  */
 static int
-advertisement_handler (void *cls,
-                       const struct GNUNET_PeerIdentity *peer,
+advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message,
                        const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
@@ -158,9 +156,7 @@ advertisement_handler (void *cls,
  * @param atsi performance data
  */
 static void
-connect_handler (void *cls,
-                 const struct
-                 GNUNET_PeerIdentity *peer,
+connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
@@ -236,9 +232,8 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_CORE_MessageHandler learn_handlers[] = {
     {&advertisement_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
@@ -263,20 +258,16 @@ run (void *cls,
 
   stats = GNUNET_STATISTICS_create ("hostlist", cfg);
 
-  core = GNUNET_CORE_connect (cfg,
-                              1,
-                              NULL,
-                              &core_init,
-                              &connect_handler, &disconnect_handler, NULL,
-                              NULL, GNUNET_NO,
-                              NULL, GNUNET_NO,
-                              learning ? learn_handlers : no_learn_handlers);
+  core =
+      GNUNET_CORE_connect (cfg, 1, NULL, &core_init, &connect_handler,
+                           &disconnect_handler, NULL, NULL, GNUNET_NO, NULL,
+                           GNUNET_NO,
+                           learning ? learn_handlers : no_learn_handlers);
 
   if (bootstrapping)
   {
-    GNUNET_HOSTLIST_client_start (cfg, stats,
-                                  &client_ch, &client_dh, &client_adv_handler,
-                                  learning);
+    GNUNET_HOSTLIST_client_start (cfg, stats, &client_ch, &client_dh,
+                                  &client_adv_handler, learning);
   }
 
 #if HAVE_MHD
@@ -286,8 +277,8 @@ run (void *cls,
                                   advertising);
   }
 #endif
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleaning_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleaning_task,
+                                NULL);
 
   if (NULL == core)
   {
@@ -333,12 +324,11 @@ main (int argc, char *const *argv)
   int ret;
 
   GNUNET_log_setup ("hostlist", "WARNING", NULL);
-  ret = (GNUNET_OK ==
-         GNUNET_PROGRAM_run (argc,
-                             argv,
-                             "hostlist",
-                             _("GNUnet hostlist server and client"),
-                             options, &run, NULL)) ? 0 : 1;
+  ret =
+      (GNUNET_OK ==
+       GNUNET_PROGRAM_run (argc, argv, "hostlist",
+                           _("GNUnet hostlist server and client"), options,
+                           &run, NULL)) ? 0 : 1;
 
   return ret;
 }

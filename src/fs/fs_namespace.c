@@ -45,8 +45,8 @@ get_namespace_directory (struct GNUNET_FS_Handle *h)
   char *dn;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (h->cfg,
-                                               "FS", "IDENTITY_DIR", &dn))
+      GNUNET_CONFIGURATION_get_value_filename (h->cfg, "FS", "IDENTITY_DIR",
+                                               &dn))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Configuration fails to specify `%s' in section `%s'\n"),
@@ -71,8 +71,8 @@ get_update_information_directory (struct GNUNET_FS_Namespace *ns)
   char *ret;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (ns->h->cfg,
-                                               "FS", "UPDATE_DIR", &dn))
+      GNUNET_CONFIGURATION_get_value_filename (ns->h->cfg, "FS", "UPDATE_DIR",
+                                               &dn))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Configuration fails to specify `%s' in section `%s'\n"),
@@ -114,12 +114,9 @@ write_update_information_graph (struct GNUNET_FS_Namespace *ns)
   {
     n = ns->update_nodes[i];
     uris = GNUNET_FS_uri_to_string (n->uri);
-    if ((GNUNET_OK !=
-         GNUNET_BIO_write_string (wh, n->id)) ||
-        (GNUNET_OK !=
-         GNUNET_BIO_write_meta_data (wh, n->md)) ||
-        (GNUNET_OK !=
-         GNUNET_BIO_write_string (wh, n->update)) ||
+    if ((GNUNET_OK != GNUNET_BIO_write_string (wh, n->id)) ||
+        (GNUNET_OK != GNUNET_BIO_write_meta_data (wh, n->md)) ||
+        (GNUNET_OK != GNUNET_BIO_write_string (wh, n->update)) ||
         (GNUNET_OK != GNUNET_BIO_write_string (wh, uris)))
     {
       GNUNET_free (uris);
@@ -129,8 +126,8 @@ write_update_information_graph (struct GNUNET_FS_Namespace *ns)
   }
 END:
   if (GNUNET_OK != GNUNET_BIO_write_close (wh))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to write `%s': %s\n"), STRERROR (errno));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to write `%s': %s\n"),
+                STRERROR (errno));
   GNUNET_free (fn);
 }
 
@@ -185,10 +182,8 @@ read_update_information_graph (struct GNUNET_FS_Namespace *ns)
   for (i = 0; i < count; i++)
   {
     n = GNUNET_malloc (sizeof (struct NamespaceUpdateNode));
-    if ((GNUNET_OK !=
-         GNUNET_BIO_read_string (rh, "identifier", &n->id, 1024)) ||
-        (GNUNET_OK !=
-         GNUNET_BIO_read_meta_data (rh, "meta", &n->md)) ||
+    if ((GNUNET_OK != GNUNET_BIO_read_string (rh, "identifier", &n->id, 1024))
+        || (GNUNET_OK != GNUNET_BIO_read_meta_data (rh, "meta", &n->md)) ||
         (GNUNET_OK !=
          GNUNET_BIO_read_string (rh, "update-id", &n->update, 1024)) ||
         (GNUNET_OK != GNUNET_BIO_read_string (rh, "uri", &uris, 1024 * 2)))
@@ -320,8 +315,7 @@ advertisement_cont (void *cls, int success, const char *msg)
   if (GNUNET_OK != success)
   {
     /* error! */
-    GNUNET_SCHEDULER_add_continuation (&do_disconnect,
-                                       ac->dsh,
+    GNUNET_SCHEDULER_add_continuation (&do_disconnect, ac->dsh,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     if (msg == NULL)
     {
@@ -340,8 +334,7 @@ advertisement_cont (void *cls, int success, const char *msg)
   if (ac->pos == ac->ksk_uri->data.ksk.keywordCount)
   {
     /* done! */
-    GNUNET_SCHEDULER_add_continuation (&do_disconnect,
-                                       ac->dsh,
+    GNUNET_SCHEDULER_add_continuation (&do_disconnect, ac->dsh,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     if (ac->cont != NULL)
       ac->cont (ac->cont_cls, ac->ksk_uri, NULL);
@@ -359,8 +352,7 @@ advertisement_cont (void *cls, int success, const char *msg)
   GNUNET_CRYPTO_hash_to_aes_key (&key, &skey, &iv);
   GNUNET_CRYPTO_aes_encrypt (ac->pt, ac->pt_size, &skey, &iv, &ac->nb[1]);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CRYPTO_rsa_sign (ac->ns->key,
-                                        &ac->nb->ns_purpose,
+                GNUNET_CRYPTO_rsa_sign (ac->ns->key, &ac->nb->ns_purpose,
                                         &ac->nb->ns_signature));
   pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&key);
   GNUNET_assert (pk != NULL);
@@ -369,22 +361,16 @@ advertisement_cont (void *cls, int success, const char *msg)
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &query);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CRYPTO_rsa_sign (pk,
-                                        &ac->nb->ksk_purpose,
+                GNUNET_CRYPTO_rsa_sign (pk, &ac->nb->ksk_purpose,
                                         &ac->nb->ksk_signature));
   GNUNET_CRYPTO_rsa_key_free (pk);
   GNUNET_DATASTORE_put (ac->dsh, 0 /* no reservation */ ,
-                        &query,
-                        ac->pt_size + sizeof (struct NBlock),
-                        ac->nb,
-                        GNUNET_BLOCK_TYPE_FS_NBLOCK,
-                        ac->bo.content_priority,
-                        ac->bo.anonymity_level,
-                        ac->bo.replication_level,
-                        ac->bo.expiration_time,
-                        -2, 1,
-                        GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-                        &advertisement_cont, ac);
+                        &query, ac->pt_size + sizeof (struct NBlock), ac->nb,
+                        GNUNET_BLOCK_TYPE_FS_NBLOCK, ac->bo.content_priority,
+                        ac->bo.anonymity_level, ac->bo.replication_level,
+                        ac->bo.expiration_time, -2, 1,
+                        GNUNET_CONSTANTS_SERVICE_TIMEOUT, &advertisement_cont,
+                        ac);
 }
 
 
@@ -437,10 +423,9 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
   pt = GNUNET_malloc (mdsize + reslen);
   memcpy (pt, rootEntry, reslen);
   mdst = &pt[reslen];
-  mdsize = GNUNET_CONTAINER_meta_data_serialize (meta,
-                                                 &mdst,
-                                                 mdsize,
-                                                 GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
+  mdsize =
+      GNUNET_CONTAINER_meta_data_serialize (meta, &mdst, mdsize,
+                                            GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
   if (mdsize == -1)
   {
     GNUNET_break (0);
@@ -451,11 +436,10 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
   size = mdsize + sizeof (struct NBlock) + reslen;
   nb = GNUNET_malloc (size);
   GNUNET_CRYPTO_rsa_key_get_public (namespace->key, &nb->subspace);
-  nb->ns_purpose.size = htonl (mdsize + reslen +
-                               sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)
-                               +
-                               sizeof (struct
-                                       GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  nb->ns_purpose.size =
+      htonl (mdsize + reslen +
+             sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+             sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   nb->ns_purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK);
   nb->ksk_purpose.size =
       htonl (size - sizeof (struct GNUNET_CRYPTO_RsaSignature));
@@ -541,8 +525,8 @@ GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *namespace, int freeze)
   if (freeze)
   {
     if (0 != UNLINK (namespace->filename))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                                "unlink", namespace->filename);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "unlink",
+                                namespace->filename);
   }
   if (0 == namespace->rc)
   {
@@ -558,8 +542,8 @@ GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *namespace, int freeze)
       GNUNET_free (nsn->update);
       GNUNET_free (nsn);
     }
-    GNUNET_array_grow (namespace->update_nodes,
-                       namespace->update_node_count, 0);
+    GNUNET_array_grow (namespace->update_nodes, namespace->update_node_count,
+                       0);
     if (namespace->update_map != NULL)
       GNUNET_CONTAINER_multihashmap_destroy (namespace->update_map);
     GNUNET_free (namespace);
@@ -733,8 +717,7 @@ sb_put_cont (void *cls, int success, const char *msg)
       if (psc->namespace->update_map != NULL)
       {
         GNUNET_CRYPTO_hash (psc->nsn->id, strlen (psc->nsn->id), &hc);
-        GNUNET_CONTAINER_multihashmap_put (psc->namespace->update_map,
-                                           &hc,
+        GNUNET_CONTAINER_multihashmap_put (psc->namespace->update_map, &hc,
                                            psc->nsn,
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       }
@@ -775,8 +758,7 @@ sb_put_cont (void *cls, int success, const char *msg)
 void
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
                        struct GNUNET_FS_Namespace *namespace,
-                       const char *identifier,
-                       const char *update,
+                       const char *identifier, const char *update,
                        const struct GNUNET_CONTAINER_MetaData *meta,
                        const struct GNUNET_FS_Uri *uri,
                        const struct GNUNET_FS_BlockOptions *bo,
@@ -829,10 +811,9 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   memcpy (dest, uris, slen);
   GNUNET_free (uris);
   dest += slen;
-  mdsize = GNUNET_CONTAINER_meta_data_serialize (mmeta,
-                                                 &dest,
-                                                 mdsize,
-                                                 GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
+  mdsize =
+      GNUNET_CONTAINER_meta_data_serialize (mmeta, &dest, mdsize,
+                                            GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
   GNUNET_CONTAINER_meta_data_destroy (mmeta);
   if (mdsize == -1)
   {
@@ -852,19 +833,18 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &sks_uri->data.sks.namespace);
   sks_uri->data.sks.identifier = GNUNET_strdup (identifier);
-  GNUNET_CRYPTO_hash_xor (&id,
-                          &sks_uri->data.sks.namespace, &sb_enc->identifier);
+  GNUNET_CRYPTO_hash_xor (&id, &sks_uri->data.sks.namespace,
+                          &sb_enc->identifier);
   GNUNET_CRYPTO_hash_to_aes_key (&key, &sk, &iv);
-  GNUNET_CRYPTO_aes_encrypt (&sb[1],
-                             size - sizeof (struct SBlock),
-                             &sk, &iv, &sb_enc[1]);
+  GNUNET_CRYPTO_aes_encrypt (&sb[1], size - sizeof (struct SBlock), &sk, &iv,
+                             &sb_enc[1]);
   sb_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK);
-  sb_enc->purpose.size = htonl (slen + mdsize + nidlen
-                                + sizeof (struct SBlock)
-                                - sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  sb_enc->purpose.size =
+      htonl (slen + mdsize + nidlen + sizeof (struct SBlock) -
+             sizeof (struct GNUNET_CRYPTO_RsaSignature));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_sign (namespace->key,
-                                         &sb_enc->purpose, &sb_enc->signature));
+                 GNUNET_CRYPTO_rsa_sign (namespace->key, &sb_enc->purpose,
+                                         &sb_enc->signature));
   psc = GNUNET_malloc (sizeof (struct PublishSksContext));
   psc->uri = sks_uri;
   psc->cont = cont;
@@ -895,17 +875,10 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
     psc->nsn->md = GNUNET_CONTAINER_meta_data_duplicate (meta);
     psc->nsn->uri = GNUNET_FS_uri_dup (uri);
   }
-  GNUNET_DATASTORE_put (psc->dsh,
-                        0,
-                        &sb_enc->identifier,
-                        size,
-                        sb_enc,
-                        GNUNET_BLOCK_TYPE_FS_SBLOCK,
-                        bo->content_priority,
-                        bo->anonymity_level,
-                        bo->replication_level,
-                        bo->expiration_time,
-                        -2, 1,
+  GNUNET_DATASTORE_put (psc->dsh, 0, &sb_enc->identifier, size, sb_enc,
+                        GNUNET_BLOCK_TYPE_FS_SBLOCK, bo->content_priority,
+                        bo->anonymity_level, bo->replication_level,
+                        bo->expiration_time, -2, 1,
                         GNUNET_CONSTANTS_SERVICE_TIMEOUT, &sb_put_cont, psc);
   GNUNET_free (sb);
   GNUNET_free (sb_enc);
@@ -1030,8 +1003,8 @@ find_trees (void *cls, const GNUNET_HashCode * key, void *value)
     nsn->tree_id = UINT_MAX;    /* mark as undef */
     /* trace */
     GNUNET_CRYPTO_hash (nsn->update, strlen (nsn->update), &hc);
-    GNUNET_CONTAINER_multihashmap_get_multiple (fc->namespace->update_map,
-                                                &hc, &find_trees, fc);
+    GNUNET_CONTAINER_multihashmap_get_multiple (fc->namespace->update_map, &hc,
+                                                &find_trees, fc);
   }
   return GNUNET_YES;
 }
@@ -1093,9 +1066,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     {
       nsn = namespace->update_nodes[i];
       GNUNET_CRYPTO_hash (nsn->id, strlen (nsn->id), &hc);
-      GNUNET_CONTAINER_multihashmap_put (namespace->update_map,
-                                         &hc,
-                                         nsn,
+      GNUNET_CONTAINER_multihashmap_put (namespace->update_map, &hc, nsn,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
   }
@@ -1104,8 +1075,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     GNUNET_CRYPTO_hash (next_id, strlen (next_id), &hc);
     pc.ip = ip;
     pc.ip_cls = ip_cls;
-    GNUNET_CONTAINER_multihashmap_get_multiple (namespace->update_map,
-                                                &hc, &process_update_node, &pc);
+    GNUNET_CONTAINER_multihashmap_get_multiple (namespace->update_map, &hc,
+                                                &process_update_node, &pc);
     return;
   }
 #if DEBUG_NAMESPACE
@@ -1123,8 +1094,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     if (nsn->nug == nug)
     {
 #if DEBUG_NAMESPACE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "TREE of node `%s' is %u\n", nsn->id, nsn->nug);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TREE of node `%s' is %u\n", nsn->id,
+                  nsn->nug);
 #endif
       continue;                 /* already placed in TREE */
     }
@@ -1133,8 +1104,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     fc.id = UINT_MAX;
     fc.nug = nug;
     fc.namespace = namespace;
-    GNUNET_CONTAINER_multihashmap_get_multiple (namespace->update_map,
-                                                &hc, &find_trees, &fc);
+    GNUNET_CONTAINER_multihashmap_get_multiple (namespace->update_map, &hc,
+                                                &find_trees, &fc);
     if (fc.id == UINT_MAX)
     {
       /* start new TREE */
@@ -1154,16 +1125,16 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
       }
 #if DEBUG_NAMESPACE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Starting new TREE %u with node `%s'\n",
-                  nsn->tree_id, nsn->id);
+                  "Starting new TREE %u with node `%s'\n", nsn->tree_id,
+                  nsn->id);
 #endif
       /* put all nodes with same identifier into this TREE */
       GNUNET_CRYPTO_hash (nsn->id, strlen (nsn->id), &hc);
       fc.id = nsn->tree_id;
       fc.nug = nug;
       fc.namespace = namespace;
-      GNUNET_CONTAINER_multihashmap_get_multiple (namespace->update_map,
-                                                  &hc, &find_trees, &fc);
+      GNUNET_CONTAINER_multihashmap_get_multiple (namespace->update_map, &hc,
+                                                  &find_trees, &fc);
     }
     else
     {
@@ -1172,8 +1143,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
       nsn->tree_id = fc.id;
     }
 #if DEBUG_NAMESPACE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "TREE of node `%s' is %u\n", nsn->id, fc.id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TREE of node `%s' is %u\n", nsn->id,
+                fc.id);
 #endif
   }
   for (i = 0; i < fc.tree_array_size; i++)
@@ -1182,8 +1153,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     if (NULL != nsn)
     {
 #if DEBUG_NAMESPACE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Root of TREE %u is node `%s'\n", i, nsn->id);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Root of TREE %u is node `%s'\n", i,
+                  nsn->id);
 #endif
 
       ip (ip_cls, nsn->id, nsn->uri, nsn->md, nsn->update);

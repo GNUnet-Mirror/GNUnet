@@ -113,8 +113,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-my_connect_complete (void *cls,
-                     const struct GNUNET_PeerIdentity *first,
+my_connect_complete (void *cls, const struct GNUNET_PeerIdentity *first,
                      const struct GNUNET_PeerIdentity *second,
                      unsigned int distance,
                      const struct GNUNET_CONFIGURATION_Handle *first_cfg,
@@ -134,32 +133,29 @@ my_connect_complete (void *cls,
 
 
 static void
-my_cb2 (void *cls,
-        const struct GNUNET_PeerIdentity *id,
+my_cb2 (void *cls, const struct GNUNET_PeerIdentity *id,
         const struct GNUNET_CONFIGURATION_Handle *cfg,
         struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   GNUNET_assert (id != NULL);
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Daemon `%s' started.\n", GNUNET_i2s (id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon `%s' started.\n",
+              GNUNET_i2s (id));
 #endif
-  GNUNET_TESTING_daemons_connect (d1, d2,
-                                  TIMEOUT, CONNECT_ATTEMPTS,
-                                  GNUNET_YES, &my_connect_complete, NULL);
+  GNUNET_TESTING_daemons_connect (d1, d2, TIMEOUT, CONNECT_ATTEMPTS, GNUNET_YES,
+                                  &my_connect_complete, NULL);
 }
 
 
 static void
-my_cb1 (void *cls,
-        const struct GNUNET_PeerIdentity *id,
+my_cb1 (void *cls, const struct GNUNET_PeerIdentity *id,
         const struct GNUNET_CONFIGURATION_Handle *cfg,
         struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   GNUNET_assert (id != NULL);
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Daemon `%s' started.\n", GNUNET_i2s (id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon `%s' started.\n",
+              GNUNET_i2s (id));
 #endif
   d2 = GNUNET_TESTING_daemon_start (c2, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL,
                                     NULL, NULL, &my_cb2, NULL);
@@ -168,9 +164,8 @@ my_cb1 (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ok = 1;
 #if VERBOSE
@@ -206,9 +201,8 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-testing-reconnect", "nohelp",
-                      options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-testing-reconnect", "nohelp", options, &run, &ok);
   return ok;
 }
 

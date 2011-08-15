@@ -161,8 +161,8 @@ static struct GNUNET_CONTAINER_MultiHashMap *blacklist;
  * @param cls the 'struct BlacklistCheck*'
  * @param tc unused
  */
-static void
-do_blacklist_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void do_blacklist_check (void *cls,
+                                const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -227,8 +227,7 @@ read_blacklist_file ()
   char *transport_name;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (GST_cfg,
-                                               "TRANSPORT",
+      GNUNET_CONFIGURATION_get_value_filename (GST_cfg, "TRANSPORT",
                                                "BLACKLIST_FILE", &fn))
   {
 #if DEBUG_TRANSPORT
@@ -252,8 +251,8 @@ read_blacklist_file ()
   if (frstat.st_size == 0)
   {
 #if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklist file `%s' is empty.\n"), fn);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Blacklist file `%s' is empty.\n"),
+                fn);
 #endif
     GNUNET_free (fn);
     return;
@@ -278,8 +277,7 @@ read_blacklist_file ()
           frstat.st_size - sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)))
   {
     colon_pos = pos;
-    while ((colon_pos < frstat.st_size) &&
-           (data[colon_pos] != ':') &&
+    while ((colon_pos < frstat.st_size) && (data[colon_pos] != ':') &&
            (!isspace ((unsigned char) data[colon_pos])))
       colon_pos++;
     if (colon_pos >= frstat.st_size)
@@ -330,8 +328,8 @@ read_blacklist_file ()
 #endif
     memcpy (&enc, &data[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
     if (!isspace
-        ((unsigned char)
-         enc.encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
+        ((unsigned char) enc.
+         encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
@@ -354,8 +352,8 @@ read_blacklist_file ()
     }
     else
     {
-      if (0 != memcmp (&pid,
-                       &GST_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 !=
+          memcmp (&pid, &GST_my_identity, sizeof (struct GNUNET_PeerIdentity)))
       {
         entries_found++;
         GST_blacklist_add_peer (&pid, transport_name);
@@ -372,8 +370,7 @@ read_blacklist_file ()
     while ((pos < frstat.st_size) && isspace ((unsigned char) data[pos]))
       pos++;
   }
-  GNUNET_STATISTICS_update (GST_stats,
-                            "# Transport entries blacklisted",
+  GNUNET_STATISTICS_update (GST_stats, "# Transport entries blacklisted",
                             entries_found, GNUNET_NO);
   GNUNET_free (data);
   GNUNET_free (fn);
@@ -389,8 +386,8 @@ void
 GST_blacklist_start (struct GNUNET_SERVER_Handle *server)
 {
   read_blacklist_file ();
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &client_disconnect_notification, NULL);
+  GNUNET_SERVER_disconnect_notify (server, &client_disconnect_notification,
+                                   NULL);
 }
 
 
@@ -420,8 +417,8 @@ GST_blacklist_stop ()
 {
   if (NULL != blacklist)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (blacklist,
-                                           &free_blacklist_entry, NULL);
+    GNUNET_CONTAINER_multihashmap_iterate (blacklist, &free_blacklist_entry,
+                                           NULL);
     GNUNET_CONTAINER_multihashmap_destroy (blacklist);
     blacklist = NULL;
   }
@@ -498,12 +495,11 @@ do_blacklist_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((bl->bc != NULL) || (bl->waiting_for_reply != GNUNET_NO))
     return;                     /* someone else busy with this client */
   bl->bc = bc;
-  bc->th = GNUNET_SERVER_notify_transmit_ready (bl->client,
-                                                sizeof (struct
-                                                        BlacklistMessage),
-                                                GNUNET_TIME_UNIT_FOREVER_REL,
-                                                &transmit_blacklist_message,
-                                                bc);
+  bc->th =
+      GNUNET_SERVER_notify_transmit_ready (bl->client,
+                                           sizeof (struct BlacklistMessage),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           &transmit_blacklist_message, bc);
 }
 
 
@@ -517,14 +513,14 @@ do_blacklist_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *                GNUNET_NO if we must shutdown the connection
  */
 static void
-confirm_or_drop_neighbour (void *cls,
-                           const struct GNUNET_PeerIdentity *peer, int allowed)
+confirm_or_drop_neighbour (void *cls, const struct GNUNET_PeerIdentity *peer,
+                           int allowed)
 {
   if (GNUNET_OK == allowed)
     return;                     /* we're done */
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# disconnects due to blacklist"),
-                            1, GNUNET_NO);
+                            gettext_noop ("# disconnects due to blacklist"), 1,
+                            GNUNET_NO);
   GST_neighbours_force_disconnect (peer);
 }
 
@@ -556,8 +552,7 @@ struct TestConnectionContext
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
-test_connection_ok (void *cls,
-                    const struct GNUNET_PeerIdentity *neighbour,
+test_connection_ok (void *cls, const struct GNUNET_PeerIdentity *neighbour,
                     const struct GNUNET_TRANSPORT_ATS_Information *ats,
                     uint32_t ats_count)
 {
@@ -591,8 +586,7 @@ test_connection_ok (void *cls,
  * @param message the blacklist-init message that was sent
  */
 void
-GST_blacklist_handle_init (void *cls,
-                           struct GNUNET_SERVER_Client *client,
+GST_blacklist_handle_init (void *cls, struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message)
 {
   struct Blacklisters *bl;
@@ -629,8 +623,7 @@ GST_blacklist_handle_init (void *cls,
  * @param message the blacklist-init message that was sent
  */
 void
-GST_blacklist_handle_reply (void *cls,
-                            struct GNUNET_SERVER_Client *client,
+GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct BlacklistMessage *msg =
@@ -752,8 +745,7 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
 
   if ((blacklist != NULL) &&
       (GNUNET_SYSERR ==
-       GNUNET_CONTAINER_multihashmap_get_multiple (blacklist,
-                                                   &peer->hashPubKey,
+       GNUNET_CONTAINER_multihashmap_get_multiple (blacklist, &peer->hashPubKey,
                                                    &test_blacklisted,
                                                    (void *) transport_name)))
   {

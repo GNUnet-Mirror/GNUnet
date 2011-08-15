@@ -86,15 +86,14 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   char *p1_c = strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers connected: %s <-> %s\n",
-              p1_c, GNUNET_i2s (&p2->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers connected: %s <-> %s\n", p1_c,
+              GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
   end ();
 }
 
 static void
-notify_connect (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
@@ -111,8 +110,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 }
 
 static void
-notify_receive (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
@@ -122,22 +120,19 @@ notify_receive (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &end_badly, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting peer\n");
   p1 = GNUNET_TRANSPORT_TESTING_start_peer ("test_transport_api_tcp_peer1.conf",
-                                            &notify_receive,
-                                            &notify_connect,
+                                            &notify_receive, &notify_connect,
                                             &notify_disconnect, p1);
 
   p2 = GNUNET_TRANSPORT_TESTING_start_peer ("test_transport_api_tcp_peer2.conf",
-                                            &notify_receive,
-                                            &notify_connect,
+                                            &notify_receive, &notify_connect,
                                             &notify_disconnect, p2);
 
   if (p1 != NULL)
@@ -185,9 +180,8 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_PROGRAM_run ((sizeof (argv_1) / sizeof (char *)) - 1,
-                      argv_1, "test_transport_testing", "nohelp",
-                      options, &run, &ret);
+  GNUNET_PROGRAM_run ((sizeof (argv_1) / sizeof (char *)) - 1, argv_1,
+                      "test_transport_testing", "nohelp", options, &run, &ret);
 
   return ret;
 }

@@ -45,9 +45,7 @@ static struct GNUNET_PEERINFO_Handle *h;
 static unsigned int retries;
 
 static int
-check_it (void *cls,
-          const char *tname,
-          struct GNUNET_TIME_Absolute expiration,
+check_it (void *cls, const char *tname, struct GNUNET_TIME_Absolute expiration,
           const void *addr, uint16_t addrlen)
 {
   unsigned int *agc = cls;
@@ -70,10 +68,11 @@ address_generator (void *cls, size_t max, void *buf)
 
   if (0 == *agc)
     return 0;
-  ret = GNUNET_HELLO_add_address ("peerinfotest",
-                                  GNUNET_TIME_relative_to_absolute
-                                  (GNUNET_TIME_UNIT_HOURS), "Address", *agc,
-                                  buf, max);
+  ret =
+      GNUNET_HELLO_add_address ("peerinfotest",
+                                GNUNET_TIME_relative_to_absolute
+                                (GNUNET_TIME_UNIT_HOURS), "Address", *agc, buf,
+                                max);
   (*agc)--;
   return ret;
 }
@@ -98,8 +97,7 @@ add_peer ()
 
 
 static void
-process (void *cls,
-         const struct GNUNET_PeerIdentity *peer,
+process (void *cls, const struct GNUNET_PeerIdentity *peer,
          const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
   int *ok = cls;
@@ -119,11 +117,10 @@ process (void *cls,
       /* try again */
       retries++;
       add_peer ();
-      ic = GNUNET_PEERINFO_iterate (h,
-                                    NULL,
+      ic = GNUNET_PEERINFO_iterate (h, NULL,
                                     GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 15),
-                                    &process, cls);
+                                    (GNUNET_TIME_UNIT_SECONDS, 15), &process,
+                                    cls);
       return;
     }
     GNUNET_assert (peer == NULL);
@@ -145,16 +142,14 @@ process (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
   h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (h != NULL);
   add_peer ();
-  ic = GNUNET_PEERINFO_iterate (h,
-                                NULL,
+  ic = GNUNET_PEERINFO_iterate (h, NULL,
                                 GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
 }
@@ -177,15 +172,16 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-peerinfo",
-                                  "gnunet-service-peerinfo",
+  proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-peerinfo",
+                               "gnunet-service-peerinfo",
 #if DEBUG_PEERINFO
-                                  "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                  "-c", "test_peerinfo_api_data.conf", NULL);
+                               "-c", "test_peerinfo_api_data.conf", NULL);
   GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-peerinfo-api", "nohelp", options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-peerinfo-api", "nohelp", options, &run, &ok);
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");

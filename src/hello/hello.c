@@ -77,8 +77,8 @@ struct GNUNET_HELLO_Message
 size_t
 GNUNET_HELLO_add_address (const char *tname,
                           struct GNUNET_TIME_Absolute expiration,
-                          const void *addr,
-                          uint16_t addr_len, char *target, size_t max)
+                          const void *addr, uint16_t addr_len, char *target,
+                          size_t max)
 {
   uint16_t alen;
   size_t slen;
@@ -245,9 +245,9 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
     memcpy (&expire,
             &inptr[esize - alen - sizeof (struct GNUNET_TIME_AbsoluteNBO)],
             sizeof (struct GNUNET_TIME_AbsoluteNBO));
-    iret = it (it_cls,
-               inptr,
-               GNUNET_TIME_absolute_ntoh (expire), &inptr[esize - alen], alen);
+    iret =
+        it (it_cls, inptr, GNUNET_TIME_absolute_ntoh (expire),
+            &inptr[esize - alen], alen);
     if (iret == GNUNET_SYSERR)
     {
       if (ret != NULL)
@@ -280,15 +280,13 @@ struct ExpireContext
 
 
 static int
-get_match_exp (void *cls,
-               const char *tname,
-               struct GNUNET_TIME_Absolute expiration,
-               const void *addr, uint16_t addrlen)
+get_match_exp (void *cls, const char *tname,
+               struct GNUNET_TIME_Absolute expiration, const void *addr,
+               uint16_t addrlen)
 {
   struct ExpireContext *ec = cls;
 
-  if ((addrlen == ec->addrlen) &&
-      (0 == memcmp (addr, ec->addr, addrlen)) &&
+  if ((addrlen == ec->addrlen) && (0 == memcmp (addr, ec->addr, addrlen)) &&
       (0 == strcmp (tname, ec->tname)))
   {
     ec->found = GNUNET_YES;
@@ -313,10 +311,9 @@ struct MergeContext
 
 
 static int
-copy_latest (void *cls,
-             const char *tname,
-             struct GNUNET_TIME_Absolute expiration,
-             const void *addr, uint16_t addrlen)
+copy_latest (void *cls, const char *tname,
+             struct GNUNET_TIME_Absolute expiration, const void *addr,
+             uint16_t addrlen)
 {
   struct MergeContext *mc = cls;
   struct ExpireContext ec;
@@ -331,11 +328,9 @@ copy_latest (void *cls,
       ((ec.expiration.abs_value == expiration.abs_value) &&
        (mc->take_equal == GNUNET_YES)))
   {
-    mc->ret += GNUNET_HELLO_add_address (tname,
-                                         expiration,
-                                         addr,
-                                         addrlen,
-                                         &mc->buf[mc->ret], mc->max - mc->ret);
+    mc->ret +=
+        GNUNET_HELLO_add_address (tname, expiration, addr, addrlen,
+                                  &mc->buf[mc->ret], mc->max - mc->ret);
   }
   return GNUNET_OK;
 }
@@ -394,10 +389,9 @@ struct DeltaContext
 
 
 static int
-delta_match (void *cls,
-             const char *tname,
-             struct GNUNET_TIME_Absolute expiration,
-             const void *addr, uint16_t addrlen)
+delta_match (void *cls, const char *tname,
+             struct GNUNET_TIME_Absolute expiration, const void *addr,
+             uint16_t addrlen)
 {
   struct DeltaContext *dc = cls;
   int ret;
@@ -407,8 +401,8 @@ delta_match (void *cls,
   ec.addrlen = addrlen;
   ec.found = GNUNET_NO;
   ec.tname = tname;
-  GNUNET_HELLO_iterate_addresses (dc->old_hello,
-                                  GNUNET_NO, &get_match_exp, &ec);
+  GNUNET_HELLO_iterate_addresses (dc->old_hello, GNUNET_NO, &get_match_exp,
+                                  &ec);
   if ((ec.found == GNUNET_YES) &&
       ((ec.expiration.abs_value > expiration.abs_value) ||
        (ec.expiration.abs_value >= dc->expiration_limit.abs_value)))
@@ -553,18 +547,16 @@ struct EqualsContext
 
 
 static int
-find_other_matching (void *cls,
-                     const char *tname,
-                     struct GNUNET_TIME_Absolute expiration,
-                     const void *addr, uint16_t addrlen)
+find_other_matching (void *cls, const char *tname,
+                     struct GNUNET_TIME_Absolute expiration, const void *addr,
+                     uint16_t addrlen)
 {
   struct EqualsContext *ec = cls;
 
   if (expiration.abs_value < ec->expiration_limit.abs_value)
     return GNUNET_YES;
-  if ((addrlen == ec->addrlen) &&
-      (0 == strcmp (tname,
-                    ec->tname)) && (0 == memcmp (addr, ec->addr, addrlen)))
+  if ((addrlen == ec->addrlen) && (0 == strcmp (tname, ec->tname)) &&
+      (0 == memcmp (addr, ec->addr, addrlen)))
   {
     ec->found = GNUNET_YES;
     if (expiration.abs_value < ec->expiration.abs_value)
@@ -576,10 +568,9 @@ find_other_matching (void *cls,
 
 
 static int
-find_matching (void *cls,
-               const char *tname,
-               struct GNUNET_TIME_Absolute expiration,
-               const void *addr, uint16_t addrlen)
+find_matching (void *cls, const char *tname,
+               struct GNUNET_TIME_Absolute expiration, const void *addr,
+               uint16_t addrlen)
 {
   struct EqualsContext *ec = cls;
 
@@ -616,16 +607,15 @@ find_matching (void *cls,
  *         do not match at all
  */
 struct GNUNET_TIME_Absolute
-GNUNET_HELLO_equals (const struct
-                     GNUNET_HELLO_Message *h1,
-                     const struct
-                     GNUNET_HELLO_Message *h2, struct GNUNET_TIME_Absolute now)
+GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
+                     const struct GNUNET_HELLO_Message *h2,
+                     struct GNUNET_TIME_Absolute now)
 {
   struct EqualsContext ec;
 
-  if (0 != memcmp (&h1->publicKey,
-                   &h2->publicKey,
-                   sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+  if (0 !=
+      memcmp (&h1->publicKey, &h2->publicKey,
+              sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
     return GNUNET_TIME_UNIT_ZERO_ABS;
   ec.expiration_limit = now;
   ec.result = GNUNET_TIME_UNIT_FOREVER_ABS;

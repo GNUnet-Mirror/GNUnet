@@ -58,12 +58,12 @@ main (int argc, char *argv[])
   start = GNUNET_TIME_absolute_get ();
   perfHash ();
   printf ("Hash perf took %llu ms\n",
-          (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).rel_value);
+          (unsigned long long) GNUNET_TIME_absolute_get_duration (start).
+          rel_value);
   GAUGER ("UTIL", "Cryptographic hashing",
           1024 * 64 * 1024 / (1 +
-                              GNUNET_TIME_absolute_get_duration
-                              (start).rel_value), "kb/s");
+                              GNUNET_TIME_absolute_get_duration (start).
+                              rel_value), "kb/s");
   return 0;
 }
 

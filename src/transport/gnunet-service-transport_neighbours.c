@@ -246,8 +246,8 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
  * @param cls the 'struct NeighbourMapEntry'
  * @param tc scheduler context
  */
-static void
-transmission_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void transmission_task (void *cls,
+                               const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -318,15 +318,11 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
   n->is_active = mq;
   mq->n = n;
-  ret = papi->send (papi->cls,
-                    &n->id,
-                    mq->message_buf,
-                    mq->message_buf_size,
-                    0 /* priority -- remove from plugin API? */ ,
-                    timeout,
-                    n->session,
-                    n->addr,
-                    n->addrlen, GNUNET_YES, &transmit_send_continuation, mq);
+  ret =
+      papi->send (papi->cls, &n->id, mq->message_buf, mq->message_buf_size,
+                  0 /* priority -- remove from plugin API? */ ,
+                  timeout, n->session, n->addr, n->addrlen, GNUNET_YES,
+                  &transmit_send_continuation, mq);
   if (ret == -1)
   {
     /* failure, but 'send' would not call continuation in this case,
@@ -361,8 +357,7 @@ transmission_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param disconnect_cb function to call if we disconnect from a peer
  */
 void
-GST_neighbours_start (void *cls,
-                      GNUNET_TRANSPORT_NotifyConnect connect_cb,
+GST_neighbours_start (void *cls, GNUNET_TRANSPORT_NotifyConnect connect_cb,
                       GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb)
 {
   callback_cls = cls;
@@ -466,8 +461,7 @@ disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
   struct NeighbourMapEntry *n = value;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Disconnecting peer `%4s', %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting peer `%4s', %s\n",
               GNUNET_i2s (&n->id), "SHUTDOWN_TASK");
 #endif
   disconnect_neighbour (n);
@@ -481,8 +475,8 @@ disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
 void
 GST_neighbours_stop ()
 {
-  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
-                                         &disconnect_all_neighbours, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours, &disconnect_all_neighbours,
+                                         NULL);
   GNUNET_CONTAINER_multihashmap_destroy (neighbours);
   neighbours = NULL;
   callback_cls = NULL;
@@ -506,10 +500,8 @@ GST_neighbours_stop ()
  */
 void
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
-                                  const char *plugin_name,
-                                  const void *address,
-                                  size_t address_len,
-                                  struct Session *session,
+                                  const char *plugin_name, const void *address,
+                                  size_t address_len, struct Session *session,
                                   const struct GNUNET_TRANSPORT_ATS_Information
                                   *ats, uint32_t ats_count)
 {
@@ -528,8 +520,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   n->addrlen = address_len;
   n->session = session;
   GNUNET_array_grow (n->ats, n->ats_count, ats_count);
-  memcpy (n->ats,
-          ats, ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  memcpy (n->ats, ats,
+          ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
   GNUNET_free_non_null (n->plugin_name);
   n->plugin_name = GNUNET_strdup (plugin_name);
   GNUNET_SCHEDULER_cancel (n->timeout_task);
@@ -538,9 +530,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                     &neighbour_timeout_task, n);
   connect_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   connect_msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  GST_neighbours_send (peer,
-                       &connect_msg,
-                       sizeof (connect_msg),
+  GST_neighbours_send (peer, &connect_msg, sizeof (connect_msg),
                        GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
 }
 
@@ -558,10 +548,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
  * @param ats_count number of performance records in 'ats'
  */
 static void
-try_connect_using_address (void *cls,
-                           const struct GNUNET_PeerIdentity *target,
-                           const char *plugin_name,
-                           const void *plugin_address,
+try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
+                           const char *plugin_name, const void *plugin_address,
                            size_t plugin_address_len,
                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth,
                            const struct GNUNET_TRANSPORT_ATS_Information *ats,
@@ -570,9 +558,7 @@ try_connect_using_address (void *cls,
   struct NeighbourMapEntry *n = cls;
 
   n->asc = NULL;
-  GST_neighbours_switch_to_address (target,
-                                    plugin_name,
-                                    plugin_address,
+  GST_neighbours_switch_to_address (target, plugin_name, plugin_address,
                                     plugin_address_len, NULL, ats, ats_count);
   if (GNUNET_YES == n->is_connected)
     return;
@@ -591,9 +577,9 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 {
   struct NeighbourMapEntry *n;
 
-  GNUNET_assert (0 != memcmp (target,
-                              &GST_my_identity,
-                              sizeof (struct GNUNET_PeerIdentity)));
+  GNUNET_assert (0 !=
+                 memcmp (target, &GST_my_identity,
+                         sizeof (struct GNUNET_PeerIdentity)));
   n = lookup_neighbour (target);
   if ((NULL != n) && (GNUNET_YES == n->is_connected))
     return;                     /* already connected */
@@ -614,8 +600,9 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   }
   if (n->asc != NULL)
     return;                     /* already trying */
-  n->asc = GNUNET_ATS_suggest_address (GST_ats,
-                                       target, &try_connect_using_address, n);
+  n->asc =
+      GNUNET_ATS_suggest_address (GST_ats, target, &try_connect_using_address,
+                                  n);
 }
 
 
@@ -684,10 +671,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  * @param cont_cls closure for 'cont'
  */
 void
-GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
-                     const void *msg,
-                     size_t msg_size,
-                     struct GNUNET_TIME_Relative timeout,
+GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
+                     size_t msg_size, struct GNUNET_TIME_Relative timeout,
                      GST_NeighbourSendContinuation cont, void *cont_cls)
 {
   struct NeighbourMapEntry *n;
@@ -785,8 +770,8 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Throttling read (%llu bytes excess at %u b/s), waiting %llu ms before reading more.\n",
-                (unsigned long long) n->
-                in_tracker.consumption_since_last_update__,
+                (unsigned long long) n->in_tracker.
+                consumption_since_last_update__,
                 (unsigned int) n->in_tracker.available_bytes_per_s__,
                 (unsigned long long) ret.rel_value);
 #endif
@@ -850,13 +835,12 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
   if (0 != ntohl (quota.value__))
     return;
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Disconnecting peer `%4s' due to `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting peer `%4s' due to `%s'\n",
               GNUNET_i2s (&n->id), "SET_QUOTA");
 #endif
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# disconnects due to quota of 0"),
-                            1, GNUNET_NO);
+                            gettext_noop ("# disconnects due to quota of 0"), 1,
+                            GNUNET_NO);
   disconnect_neighbour (n);
 }
 
@@ -939,13 +923,11 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
     disconnect_msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
     papi = GST_plugins_find (n->plugin_name);
     if (papi != NULL)
-      papi->send (papi->cls,
-                  target,
-                  (const void *) &disconnect_msg,
+      papi->send (papi->cls, target, (const void *) &disconnect_msg,
                   sizeof (struct GNUNET_MessageHeader),
                   UINT32_MAX /* priority */ ,
-                  GNUNET_TIME_UNIT_FOREVER_REL,
-                  n->session, n->addr, n->addrlen, GNUNET_YES, NULL, NULL);
+                  GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->addr, n->addrlen,
+                  GNUNET_YES, NULL, NULL);
   }
   disconnect_neighbour (n);
 }

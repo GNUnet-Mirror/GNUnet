@@ -227,8 +227,8 @@ transmit_message (void *cls, size_t buf_size, void *buf)
   memcpy (buf, msg, msize);
   GNUNET_free (msg);
 #if DEBUG_FS_MIGRATION
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Pushing %u bytes to another peer\n", msize);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Pushing %u bytes to another peer\n",
+              msize);
 #endif
   find_content (peer);
   return msize;
@@ -285,8 +285,8 @@ transmit_content (struct MigrationReadyPeer *peer,
               "Asking for transmission of %u bytes for migration\n", msize);
 #endif
   peer->th = GSF_peer_transmit_ (peer->peer, GNUNET_NO, 0 /* priority */ ,
-                                 GNUNET_TIME_UNIT_FOREVER_REL,
-                                 msize, &transmit_message, peer);
+                                 GNUNET_TIME_UNIT_FOREVER_REL, msize,
+                                 &transmit_message, peer);
   return ret;
 }
 
@@ -421,9 +421,9 @@ find_content (struct MigrationReadyPeer *mrp)
  * @param cls unused
  * @param tc scheduler context (also unused)
  */
-static void
-gather_migration_blocks (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void gather_migration_blocks (void *cls,
+                                     const struct GNUNET_SCHEDULER_TaskContext
+                                     *tc);
 
 
 /**
@@ -450,8 +450,8 @@ consider_gathering ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scheduling gathering task (queue size: %u)\n", mig_size);
 #endif
-  mig_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                           &gather_migration_blocks, NULL);
+  mig_task =
+      GNUNET_SCHEDULER_add_delayed (delay, &gather_migration_blocks, NULL);
 }
 
 
@@ -470,13 +470,9 @@ consider_gathering ()
  *        maybe 0 if no unique identifier is available
  */
 static void
-process_migration_content (void *cls,
-                           const GNUNET_HashCode * key,
-                           size_t size,
-                           const void *data,
-                           enum GNUNET_BLOCK_Type type,
-                           uint32_t priority,
-                           uint32_t anonymity,
+process_migration_content (void *cls, const GNUNET_HashCode * key, size_t size,
+                           const void *data, enum GNUNET_BLOCK_Type type,
+                           uint32_t priority, uint32_t anonymity,
                            struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct MigrationReadyBlock *mb;
@@ -501,9 +497,8 @@ process_migration_content (void *cls,
   if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
   {
     if (GNUNET_OK !=
-        GNUNET_FS_handle_on_demand_block (key, size, data,
-                                          type, priority, anonymity,
-                                          expiration, uid,
+        GNUNET_FS_handle_on_demand_block (key, size, data, type, priority,
+                                          anonymity, expiration, uid,
                                           &process_migration_content, NULL))
       consider_gathering ();
     return;
@@ -560,11 +555,10 @@ gather_migration_blocks (void *cls,
                 "Asking datastore for content for replication (queue size: %u)\n",
                 mig_size);
 #endif
-    mig_qe = GNUNET_DATASTORE_get_for_replication (GSF_dsh,
-                                                   0, UINT_MAX,
-                                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                                   &process_migration_content,
-                                                   NULL);
+    mig_qe =
+        GNUNET_DATASTORE_get_for_replication (GSF_dsh, 0, UINT_MAX,
+                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                              &process_migration_content, NULL);
     if (NULL == mig_qe)
       consider_gathering ();
   }
@@ -632,15 +626,13 @@ GSF_push_stop_ (struct GSF_ConnectedPeer *peer)
 void
 GSF_push_init_ ()
 {
-  enabled = GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg,
-                                                  "FS", "CONTENT_PUSHING");
+  enabled =
+      GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg, "FS", "CONTENT_PUSHING");
   if (GNUNET_YES != enabled)
     return;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (GSF_cfg,
-                                           "fs",
-                                           "MIN_MIGRATION_DELAY",
+      GNUNET_CONFIGURATION_get_value_time (GSF_cfg, "fs", "MIN_MIGRATION_DELAY",
                                            &min_migration_delay))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

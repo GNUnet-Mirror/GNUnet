@@ -72,8 +72,8 @@ struct GNUNET_BLOCK_Context
  * @param hc where to store the result.
  */
 void
-GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in,
-                          uint32_t mingle_number, GNUNET_HashCode * hc)
+GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in, uint32_t mingle_number,
+                          GNUNET_HashCode * hc)
 {
   GNUNET_HashCode m;
 
@@ -105,8 +105,8 @@ GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg)
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "block", "PLUGINS", &plugs))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Loading block plugins `%s'\n"), plugs);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading block plugins `%s'\n"),
+                plugs);
     pos = strtok (plugs, " ");
     while (pos != NULL)
     {
@@ -212,18 +212,16 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
                        enum GNUNET_BLOCK_Type type,
                        const GNUNET_HashCode * query,
                        struct GNUNET_CONTAINER_BloomFilter **bf,
-                       int32_t bf_mutator,
-                       const void *xquery,
-                       size_t xquery_size,
-                       const void *reply_block, size_t reply_block_size)
+                       int32_t bf_mutator, const void *xquery,
+                       size_t xquery_size, const void *reply_block,
+                       size_t reply_block_size)
 {
   struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin (ctx, type);
 
   if (plugin == NULL)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  return plugin->evaluate (plugin->cls,
-                           type, query, bf, bf_mutator,
-                           xquery, xquery_size, reply_block, reply_block_size);
+  return plugin->evaluate (plugin->cls, type, query, bf, bf_mutator, xquery,
+                           xquery_size, reply_block, reply_block_size);
 }
 
 
@@ -240,8 +238,7 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  */
 int
 GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
-                      enum GNUNET_BLOCK_Type type,
-                      const void *block,
+                      enum GNUNET_BLOCK_Type type, const void *block,
                       size_t block_size, GNUNET_HashCode * key)
 {
   struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin (ctx, type);

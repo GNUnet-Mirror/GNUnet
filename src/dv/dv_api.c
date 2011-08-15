@@ -282,15 +282,13 @@ process_pending_message (struct GNUNET_DV_Handle *handle)
   handle->current->next = NULL;
 
   if (NULL ==
-      (handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                                         ntohs
-                                                         (handle->current->
-                                                          msg->header.size),
-                                                         handle->current->
-                                                         msg->timeout,
-                                                         GNUNET_YES,
-                                                         &transmit_pending,
-                                                         handle)))
+      (handle->th =
+       GNUNET_CLIENT_notify_transmit_ready (handle->client,
+                                            ntohs (handle->current->msg->header.
+                                                   size),
+                                            handle->current->msg->timeout,
+                                            GNUNET_YES, &transmit_pending,
+                                            handle)))
   {
 #if DEBUG_DV
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -397,12 +395,10 @@ handle_message_receipt (void *cls, const struct GNUNET_MessageHeader *msg)
                 ntohl (received_msg->distance));
 #endif
 
-    handle->receive_handler (handle->receive_cls,
-                             &received_msg->sender,
-                             packed_msg,
-                             packed_msg_len,
-                             ntohl (received_msg->distance),
-                             sender_address, sender_address_len);
+    handle->receive_handler (handle->receive_cls, &received_msg->sender,
+                             packed_msg, packed_msg_len,
+                             ntohl (received_msg->distance), sender_address,
+                             sender_address_len);
 
     GNUNET_free (sender_address);
     break;
@@ -431,9 +427,8 @@ handle_message_receipt (void *cls, const struct GNUNET_MessageHeader *msg)
   default:
     break;
   }
-  GNUNET_CLIENT_receive (handle->client,
-                         &handle_message_receipt,
-                         handle, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (handle->client, &handle_message_receipt, handle,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 /**
@@ -454,14 +449,11 @@ handle_message_receipt (void *cls, const struct GNUNET_MessageHeader *msg)
  */
 int
 GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
-                const struct GNUNET_PeerIdentity *target,
-                const char *msgbuf,
-                size_t msgbuf_size,
-                unsigned int priority,
-                struct GNUNET_TIME_Relative timeout,
-                const void *addr,
-                size_t addrlen,
-                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+                const struct GNUNET_PeerIdentity *target, const char *msgbuf,
+                size_t msgbuf_size, unsigned int priority,
+                struct GNUNET_TIME_Relative timeout, const void *addr,
+                size_t addrlen, GNUNET_TRANSPORT_TransmitContinuation cont,
+                void *cont_cls)
 {
   struct GNUNET_DV_SendMessage *msg;
   struct SendCallbackContext *send_ctx;
@@ -537,9 +529,8 @@ transmit_start (void *cls, size_t size, void *buf)
     memcpy (buf, start_context->message, tsize);
     GNUNET_free (start_context->message);
     GNUNET_free (start_context);
-    GNUNET_CLIENT_receive (handle->client,
-                           &handle_message_receipt,
-                           handle, GNUNET_TIME_UNIT_FOREVER_REL);
+    GNUNET_CLIENT_receive (handle->client, &handle_message_receipt, handle,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
 
 
     return tsize;

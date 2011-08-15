@@ -39,22 +39,21 @@ testSymcipher ()
   char res[100];
 
   GNUNET_CRYPTO_aes_create_session_key (&key);
-  size = GNUNET_CRYPTO_aes_encrypt (TESTSTRING,
-                                    strlen (TESTSTRING) + 1,
-                                    &key,
-                                    (const struct
-                                     GNUNET_CRYPTO_AesInitializationVector *)
-                                    INITVALUE, result);
+  size =
+      GNUNET_CRYPTO_aes_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &key,
+                                 (const struct
+                                  GNUNET_CRYPTO_AesInitializationVector *)
+                                 INITVALUE, result);
   if (size == -1)
   {
     printf ("symciphertest failed: encryptBlock returned %d\n", size);
     return 1;
   }
-  size = GNUNET_CRYPTO_aes_decrypt (result, size,
-                                    &key,
-                                    (const struct
-                                     GNUNET_CRYPTO_AesInitializationVector *)
-                                    INITVALUE, res);
+  size =
+      GNUNET_CRYPTO_aes_decrypt (result, size, &key,
+                                 (const struct
+                                  GNUNET_CRYPTO_AesInitializationVector *)
+                                 INITVALUE, res);
   if (strlen (TESTSTRING) + 1 != size)
   {
     printf ("symciphertest failed: decryptBlock returned %d\n", size);
@@ -101,17 +100,15 @@ verifyCrypto ()
 
   if (ntohl (key.crc32) != (unsigned int) 38125195LL)
   {
-    printf ("Static key has different CRC: %u - %u\n",
-            ntohl (key.crc32), key.crc32);
+    printf ("Static key has different CRC: %u - %u\n", ntohl (key.crc32),
+            key.crc32);
 
     ret = 1;
     goto error;
   }
 
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
-      GNUNET_CRYPTO_aes_encrypt (plain,
-                                 GNUNET_CRYPTO_AES_KEY_LENGTH,
-                                 &key,
+      GNUNET_CRYPTO_aes_encrypt (plain, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
                                  (const struct
                                   GNUNET_CRYPTO_AesInitializationVector *)
                                  "testtesttesttest", result))
@@ -131,9 +128,7 @@ verifyCrypto ()
   res = GNUNET_malloc (GNUNET_CRYPTO_AES_KEY_LENGTH);
 
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
-      GNUNET_CRYPTO_aes_decrypt (result,
-                                 GNUNET_CRYPTO_AES_KEY_LENGTH,
-                                 &key,
+      GNUNET_CRYPTO_aes_decrypt (result, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
                                  (const struct
                                   GNUNET_CRYPTO_AesInitializationVector *)
                                  "testtesttesttest", res))

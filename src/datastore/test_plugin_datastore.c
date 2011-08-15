@@ -118,9 +118,8 @@ put_value (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
   msg = NULL;
   prio = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
 #if VERBOSE
-  fprintf (stderr,
-           "putting type %u, anon %u under key %s\n",
-           i + 1, i, GNUNET_h2s (&key));
+  fprintf (stderr, "putting type %u, anon %u under key %s\n", i + 1, i,
+           GNUNET_h2s (&key));
 #endif
   if (GNUNET_OK != api->put (api->cls, &key, size, value, i + 1 /* type */ ,
                              prio, i /* anonymity */ ,
@@ -149,13 +148,9 @@ static uint64_t guid;
 
 
 static int
-iterate_one_shot (void *cls,
-                  const GNUNET_HashCode * key,
-                  uint32_t size,
-                  const void *data,
-                  enum GNUNET_BLOCK_Type type,
-                  uint32_t priority,
-                  uint32_t anonymity,
+iterate_one_shot (void *cls, const GNUNET_HashCode * key, uint32_t size,
+                  const void *data, enum GNUNET_BLOCK_Type type,
+                  uint32_t priority, uint32_t anonymity,
                   struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -166,8 +161,8 @@ iterate_one_shot (void *cls,
 #if VERBOSE
   fprintf (stderr,
            "Found result type=%u, priority=%u, size=%u, expire=%llu, key %s\n",
-           type, priority, size,
-           (unsigned long long) expiration.abs_value, GNUNET_h2s (key));
+           type, priority, size, (unsigned long long) expiration.abs_value,
+           GNUNET_h2s (key));
 #endif
   GNUNET_SCHEDULER_add_now (&test, crc);
   return GNUNET_OK;
@@ -189,12 +184,12 @@ unload_plugin (struct GNUNET_DATASTORE_PluginFunctions *api,
   char *libname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "DATASTORE", "DATABASE", &name))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "DATASTORE", "DATABASE",
+                                             &name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No `%s' specified for `%s' in configuration!\n"),
-                "DATABASE", "DATASTORE");
+                _("No `%s' specified for `%s' in configuration!\n"), "DATABASE",
+                "DATASTORE");
     return;
   }
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
@@ -265,15 +260,13 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       break;
     }
     gen_key (5, &key);
-    crc->api->get_key (crc->api->cls,
-                       crc->offset++,
-                       &key, NULL,
+    crc->api->get_key (crc->api->cls, crc->offset++, &key, NULL,
                        GNUNET_BLOCK_TYPE_ANY, &iterate_one_shot, crc);
     break;
   case RP_UPDATE:
     GNUNET_assert (GNUNET_OK ==
-                   crc->api->update (crc->api->cls,
-                                     guid, 1, GNUNET_TIME_UNIT_ZERO_ABS, NULL));
+                   crc->api->update (crc->api->cls, guid, 1,
+                                     GNUNET_TIME_UNIT_ZERO_ABS, NULL));
     crc->phase++;
     GNUNET_SCHEDULER_add_now (&test, crc);
     break;
@@ -314,19 +307,19 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   char *libname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "DATASTORE", "DATABASE", &name))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "DATASTORE", "DATABASE",
+                                             &name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No `%s' specified for `%s' in configuration!\n"),
-                "DATABASE", "DATASTORE");
+                _("No `%s' specified for `%s' in configuration!\n"), "DATABASE",
+                "DATASTORE");
     return NULL;
   }
   env.cfg = cfg;
   env.duc = &disk_utilization_change_cb;
   env.cls = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading `%s' datastore plugin\n"), name);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' datastore plugin\n"),
+              name);
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
   if (NULL == (ret = GNUNET_PLUGIN_load (libname, &env)))
   {
@@ -340,9 +333,8 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct CpsRunContext *crc;
@@ -380,12 +372,10 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_snprintf (cfg_name,
-                   sizeof (cfg_name),
+  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
                    "test_plugin_datastore_data_%s.conf", plugin_name);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-plugin-datastore", "nohelp",
-                      options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-plugin-datastore", "nohelp", options, &run, NULL);
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %u\n", ok);
   return ok;
@@ -409,8 +399,7 @@ main (int argc, char *argv[])
   else
     pos = (char *) plugin_name;
 
-  GNUNET_snprintf (dir_name,
-                   sizeof (dir_name),
+  GNUNET_snprintf (dir_name, sizeof (dir_name),
                    "/tmp/test-gnunet-datastore-plugin-%s", plugin_name);
   GNUNET_DISK_directory_remove (dir_name);
   GNUNET_log_setup ("test-plugin-datastore",

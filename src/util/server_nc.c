@@ -323,10 +323,10 @@ transmit_message (void *cls, size_t size, void *buf)
                 "Have %u messages left in NC queue, will try transmission again\n",
                 cl->num_pending);
 #endif
-    cl->th = GNUNET_SERVER_notify_transmit_ready (cl->client,
-                                                  ntohs (pml->msg->size),
-                                                  GNUNET_TIME_UNIT_FOREVER_REL,
-                                                  &transmit_message, cl);
+    cl->th =
+        GNUNET_SERVER_notify_transmit_ready (cl->client, ntohs (pml->msg->size),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             &transmit_message, cl);
   }
   else
     GNUNET_assert (cl->num_pending == 0);
@@ -344,8 +344,8 @@ transmit_message (void *cls, size_t size, void *buf)
  */
 static void
 do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
-            struct ClientList *client,
-            const struct GNUNET_MessageHeader *msg, int can_drop)
+            struct ClientList *client, const struct GNUNET_MessageHeader *msg,
+            int can_drop)
 {
   struct PendingMessageList *pml;
   uint16_t size;
@@ -354,8 +354,8 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Dropping message of type %u and size %u due to full queue (%u entries)\n",
-                ntohs (msg->type),
-                ntohs (msg->size), (unsigned int) nc->queue_length);
+                ntohs (msg->type), ntohs (msg->size),
+                (unsigned int) nc->queue_length);
     return;                     /* drop! */
   }
   if (client->num_pending > nc->queue_length)
@@ -371,21 +371,20 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
 #if DEBUG_SERVER_NC
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding message of type %u and size %u to pending queue (which has %u entries)\n",
-              ntohs (msg->type),
-              ntohs (msg->size), (unsigned int) nc->queue_length);
+              ntohs (msg->type), ntohs (msg->size),
+              (unsigned int) nc->queue_length);
 #endif
   memcpy (&pml[1], msg, size);
   /* append */
-  GNUNET_CONTAINER_DLL_insert_tail (client->pending_head,
-                                    client->pending_tail, pml);
+  GNUNET_CONTAINER_DLL_insert_tail (client->pending_head, client->pending_tail,
+                                    pml);
   if (client->th == NULL)
-    client->th = GNUNET_SERVER_notify_transmit_ready (client->client,
-                                                      ntohs
-                                                      (client->pending_head->
-                                                       msg->size),
-                                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                                      &transmit_message,
-                                                      client);
+    client->th =
+        GNUNET_SERVER_notify_transmit_ready (client->client,
+                                             ntohs (client->pending_head->msg->
+                                                    size),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             &transmit_message, client);
 }
 
 

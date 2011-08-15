@@ -60,8 +60,7 @@ finish_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-recv_fin_cb (void *cls,
-             struct GNUNET_SERVER_Client *client,
+recv_fin_cb (void *cls, struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ok == 5);
@@ -98,8 +97,7 @@ reply_msg (void *cls, size_t size, void *buf)
 
 
 static void
-recv_cb (void *cls,
-         struct GNUNET_SERVER_Client *client,
+recv_cb (void *cls, struct GNUNET_SERVER_Client *client,
          const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ok == 2);
@@ -111,8 +109,8 @@ recv_cb (void *cls,
   GNUNET_assert (NULL !=
                  GNUNET_SERVER_notify_transmit_ready (client,
                                                       ntohs (message->size),
-                                                      TIMEOUT,
-                                                      &reply_msg, NULL));
+                                                      TIMEOUT, &reply_msg,
+                                                      NULL));
 }
 
 

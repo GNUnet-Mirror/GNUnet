@@ -46,8 +46,7 @@ main (int argc, char *argv[])
   GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 0);
 
   for (i = 0; i < 100; i++)
-    GNUNET_CONTAINER_slist_add (l,
-                                GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+    GNUNET_CONTAINER_slist_add (l, GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
                                 &i, sizeof (i));
   GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 100);
 
@@ -105,8 +104,7 @@ main (int argc, char *argv[])
   GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 0);
 
   for (i = 0; i < 100; i++)
-    GNUNET_CONTAINER_slist_add (l,
-                                GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+    GNUNET_CONTAINER_slist_add (l, GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
                                 &i, sizeof (i));
   /*check slist_append */
   GNUNET_CONTAINER_slist_append (l, l);
@@ -145,8 +143,7 @@ main (int argc, char *argv[])
   {
     ip = GNUNET_malloc (sizeof (int));
     *ip = i;
-    GNUNET_CONTAINER_slist_add (l,
-                                GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC,
+    GNUNET_CONTAINER_slist_add (l, GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC,
                                 ip, sizeof (int));
   }
   //creat_add

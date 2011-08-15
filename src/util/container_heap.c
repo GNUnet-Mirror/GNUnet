@@ -218,11 +218,11 @@ node_iterator (const struct GNUNET_CONTAINER_Heap *heap,
 {
   if (node == NULL)
     return GNUNET_YES;
-  if (GNUNET_YES != node_iterator (heap,
-                                   node->left_child, iterator, iterator_cls))
+  if (GNUNET_YES !=
+      node_iterator (heap, node->left_child, iterator, iterator_cls))
     return GNUNET_NO;
-  if (GNUNET_YES != node_iterator (heap,
-                                   node->right_child, iterator, iterator_cls))
+  if (GNUNET_YES !=
+      node_iterator (heap, node->right_child, iterator, iterator_cls))
     return GNUNET_NO;
   return iterator (iterator_cls, node, node->element, node->cost);
 }
@@ -267,9 +267,10 @@ GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *heap)
   if (pos == NULL)
     pos = heap->root;
   element = pos->element;
-  heap->walk_pos
-      = (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 2))
-      ? pos->right_child : pos->left_child;
+  heap->walk_pos =
+      (0 ==
+       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                 2)) ? pos->right_child : pos->left_child;
   return element;
 }
 
@@ -290,8 +291,12 @@ insert_node (struct GNUNET_CONTAINER_Heap *heap,
   struct GNUNET_CONTAINER_HeapNode *parent;
 
   GNUNET_assert (node->parent == NULL);
-  while ((heap->order == GNUNET_CONTAINER_HEAP_ORDER_MAX)
-         ? (pos->cost >= node->cost) : (pos->cost <= node->cost))
+  while ((heap->order == GNUNET_CONTAINER_HEAP_ORDER_MAX) ? (pos->cost >=
+                                                             node->
+                                                             cost) : (pos->
+                                                                      cost <=
+                                                                      node->
+                                                                      cost))
   {
     /* node is descendent of pos */
     pos->tree_size += (1 + node->tree_size);
@@ -343,8 +348,8 @@ insert_node (struct GNUNET_CONTAINER_Heap *heap,
  * @return node for the new element
  */
 struct GNUNET_CONTAINER_HeapNode *
-GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
-                              void *element, GNUNET_CONTAINER_HeapCostType cost)
+GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap, void *element,
+                              GNUNET_CONTAINER_HeapCostType cost)
 {
   struct GNUNET_CONTAINER_HeapNode *node;
 
@@ -399,8 +404,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap)
   }
   GNUNET_free (root);
 #if DEBUG
-  GNUNET_assert (((heap->size == 0) &&
-                  (heap->root == NULL)) ||
+  GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 1));
   CHECK (heap->root);
 #endif
@@ -502,8 +506,7 @@ GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node)
   GNUNET_free (node);
 #if DEBUG
   CHECK (heap->root);
-  GNUNET_assert (((heap->size == 0) &&
-                  (heap->root == NULL)) ||
+  GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 1));
 #endif
   return ret;
@@ -523,16 +526,14 @@ GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
                                    GNUNET_CONTAINER_HeapCostType new_cost)
 {
 #if DEBUG
-  GNUNET_assert (((heap->size == 0) &&
-                  (heap->root == NULL)) ||
+  GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 1));
   CHECK (heap->root);
 #endif
   remove_node (node);
 #if DEBUG
   CHECK (heap->root);
-  GNUNET_assert (((heap->size == 1) &&
-                  (heap->root == NULL)) ||
+  GNUNET_assert (((heap->size == 1) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 2));
 #endif
   node->cost = new_cost;
@@ -542,8 +543,7 @@ GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
     insert_node (heap, heap->root, node);
 #if DEBUG
   CHECK (heap->root);
-  GNUNET_assert (((heap->size == 0) &&
-                  (heap->root == NULL)) ||
+  GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 1));
 #endif
 }

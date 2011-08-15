@@ -94,10 +94,7 @@ static void
 restart_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_FS_stop (fs);
-  fs = GNUNET_FS_start (cfg,
-                        "test-fs-search-persistence",
-                        &progress_cb,
-                        NULL,
+  fs = GNUNET_FS_start (cfg, "test-fs-search-persistence", &progress_cb, NULL,
                         GNUNET_FS_FLAGS_PERSISTENCE, GNUNET_FS_OPTIONS_END);
 }
 
@@ -143,15 +140,15 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
             (unsigned long long) event->value.publish.completed,
             (unsigned long long) event->value.publish.size,
             event->value.publish.specifics.progress.depth,
-            (unsigned long long) event->value.publish.specifics.
-            progress.offset);
+            (unsigned long long) event->value.publish.specifics.progress.
+            offset);
 #endif
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     kuri = GNUNET_FS_uri_ksk_create_from_args (1, keywords);
     start = GNUNET_TIME_absolute_get ();
-    GNUNET_FS_search_start (fs,
-                            kuri, 1, GNUNET_FS_SEARCH_OPTION_NONE, "search");
+    GNUNET_FS_search_start (fs, kuri, 1, GNUNET_FS_SEARCH_OPTION_NONE,
+                            "search");
     GNUNET_FS_uri_destroy (kuri);
     GNUNET_assert (search != NULL);
     break;
@@ -169,25 +166,20 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 #if VERBOSE
     printf ("Search complete.\n");
 #endif
-    GNUNET_SCHEDULER_add_continuation (&abort_search_task,
-                                       NULL,
+    GNUNET_SCHEDULER_add_continuation (&abort_search_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
-    fprintf (stderr,
-             "Error publishing file: %s\n",
+    fprintf (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     GNUNET_break (0);
-    GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
-                                       NULL,
+    GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_SEARCH_ERROR:
-    fprintf (stderr,
-             "Error searching file: %s\n",
+    fprintf (stderr, "Error searching file: %s\n",
              event->value.search.specifics.error.message);
-    GNUNET_SCHEDULER_add_continuation (&abort_search_task,
-                                       NULL,
+    GNUNET_SCHEDULER_add_continuation (&abort_search_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_SEARCH_SUSPEND:
@@ -226,8 +218,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     break;
   case GNUNET_FS_STATUS_SEARCH_STOPPED:
     GNUNET_assert (search == event->value.search.sc);
-    GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
-                                       NULL,
+    GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     search = NULL;
     break;
@@ -244,12 +235,13 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
@@ -265,8 +257,7 @@ stop_arm (struct PeerContext *p)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "ARM process %u stopped\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
                 GNUNET_OS_process_get_pid (p->arm_proc));
     GNUNET_OS_process_close (p->arm_proc);
     p->arm_proc = NULL;
@@ -277,9 +268,8 @@ stop_arm (struct PeerContext *p)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   const char *keywords[] = {
     "down_foo",
@@ -294,10 +284,7 @@ run (void *cls,
 
   cfg = c;
   setup_peer (&p1, "test_fs_search_data.conf");
-  fs = GNUNET_FS_start (cfg,
-                        "test-fs-search-persistence",
-                        &progress_cb,
-                        NULL,
+  fs = GNUNET_FS_start (cfg, "test-fs-search-persistence", &progress_cb, NULL,
                         GNUNET_FS_FLAGS_PERSISTENCE, GNUNET_FS_OPTIONS_END);
   GNUNET_assert (NULL != fs);
   buf = GNUNET_malloc (FILESIZE);
@@ -309,19 +296,16 @@ run (void *cls,
   bo.anonymity_level = 1;
   bo.replication_level = 0;
   bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME);
-  fi = GNUNET_FS_file_information_create_from_data (fs,
-                                                    "publish-context",
-                                                    FILESIZE,
-                                                    buf,
-                                                    kuri, meta, GNUNET_NO, &bo);
+  fi = GNUNET_FS_file_information_create_from_data (fs, "publish-context",
+                                                    FILESIZE, buf, kuri, meta,
+                                                    GNUNET_NO, &bo);
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fi);
   start = GNUNET_TIME_absolute_get ();
-  publish = GNUNET_FS_publish_start (fs,
-                                     fi,
-                                     NULL, NULL, NULL,
-                                     GNUNET_FS_PUBLISH_OPTION_NONE);
+  publish =
+      GNUNET_FS_publish_start (fs, fi, NULL, NULL, NULL,
+                               GNUNET_FS_PUBLISH_OPTION_NONE);
   GNUNET_assert (publish != NULL);
 }
 
@@ -350,9 +334,9 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-fs-search-persistence",
-                      "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
+                      "test-fs-search-persistence", "nohelp", options, &run,
+                      NULL);
   stop_arm (&p1);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-search/");
   return 0;

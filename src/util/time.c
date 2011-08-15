@@ -145,9 +145,8 @@ GNUNET_TIME_relative_to_absolute (struct GNUNET_TIME_Relative rel)
  * @return timestamp that is smaller
  */
 struct GNUNET_TIME_Relative
-GNUNET_TIME_relative_min (struct
-                          GNUNET_TIME_Relative
-                          t1, struct GNUNET_TIME_Relative t2)
+GNUNET_TIME_relative_min (struct GNUNET_TIME_Relative t1,
+                          struct GNUNET_TIME_Relative t2)
 {
   return (t1.rel_value < t2.rel_value) ? t1 : t2;
 }
@@ -161,9 +160,8 @@ GNUNET_TIME_relative_min (struct
  * @return timestamp that is larger
  */
 struct GNUNET_TIME_Relative
-GNUNET_TIME_relative_max (struct
-                          GNUNET_TIME_Relative
-                          t1, struct GNUNET_TIME_Relative t2)
+GNUNET_TIME_relative_max (struct GNUNET_TIME_Relative t1,
+                          struct GNUNET_TIME_Relative t2)
 {
   return (t1.rel_value > t2.rel_value) ? t1 : t2;
 }
@@ -178,9 +176,8 @@ GNUNET_TIME_relative_max (struct
  * @return timestamp that is smaller
  */
 struct GNUNET_TIME_Absolute
-GNUNET_TIME_absolute_min (struct
-                          GNUNET_TIME_Absolute
-                          t1, struct GNUNET_TIME_Absolute t2)
+GNUNET_TIME_absolute_min (struct GNUNET_TIME_Absolute t1,
+                          struct GNUNET_TIME_Absolute t2)
 {
   return (t1.abs_value < t2.abs_value) ? t1 : t2;
 }
@@ -194,9 +191,8 @@ GNUNET_TIME_absolute_min (struct
  * @return timestamp that is smaller
  */
 struct GNUNET_TIME_Absolute
-GNUNET_TIME_absolute_max (struct
-                          GNUNET_TIME_Absolute
-                          t1, struct GNUNET_TIME_Absolute t2)
+GNUNET_TIME_absolute_max (struct GNUNET_TIME_Absolute t1,
+                          struct GNUNET_TIME_Absolute t2)
 {
   return (t1.abs_value > t2.abs_value) ? t1 : t2;
 }
@@ -298,9 +294,8 @@ GNUNET_TIME_absolute_add (struct GNUNET_TIME_Absolute start,
  * @return ZERO if start <= duration, or FOREVER if start time is FOREVER; start-duration otherwise
  */
 struct GNUNET_TIME_Absolute
-GNUNET_TIME_absolute_subtract (struct
-                               GNUNET_TIME_Absolute
-                               start, struct GNUNET_TIME_Relative duration)
+GNUNET_TIME_absolute_subtract (struct GNUNET_TIME_Absolute start,
+                               struct GNUNET_TIME_Relative duration)
 {
   struct GNUNET_TIME_Absolute ret;
 
@@ -368,8 +363,8 @@ GNUNET_TIME_relative_divide (struct GNUNET_TIME_Relative rel,
  *        assuming it continues at the same speed
  */
 struct GNUNET_TIME_Relative
-GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start,
-                           uint64_t finished, uint64_t total)
+GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start, uint64_t finished,
+                           uint64_t total)
 {
   struct GNUNET_TIME_Relative dur;
   double exp;

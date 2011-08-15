@@ -120,7 +120,8 @@ send_query (void *cls __attribute__ ((unused)), size_t size, void *buf)
  * Connect to the service-dns
  */
 void
-connect_to_service_dns (void *cls __attribute__ ((unused)),
+connect_to_service_dns (void *cls
+                        __attribute__ ((unused)),
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   conn_task = GNUNET_SCHEDULER_NO_TASK;
@@ -167,8 +168,9 @@ dns_answer_handler (void *cls
   {
     GNUNET_CLIENT_disconnect (dns_connection, GNUNET_NO);
     dns_connection = NULL;
-    conn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                              &connect_to_service_dns, NULL);
+    conn_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                      &connect_to_service_dns, NULL);
     return;
   }
 

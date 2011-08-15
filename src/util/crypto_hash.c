@@ -175,8 +175,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 struct GNUNET_CRYPTO_FileHashContext *
 GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
-                         const char *filename,
-                         size_t blocksize,
+                         const char *filename, size_t blocksize,
                          GNUNET_CRYPTO_HashCompletedCallback callback,
                          void *callback_cls)
 {
@@ -202,17 +201,17 @@ GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
     GNUNET_free (fhc);
     return NULL;
   }
-  fhc->fh = GNUNET_DISK_file_open (filename,
-                                   GNUNET_DISK_OPEN_READ,
-                                   GNUNET_DISK_PERM_NONE);
+  fhc->fh =
+      GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+                             GNUNET_DISK_PERM_NONE);
   if (!fhc->fh)
   {
     GNUNET_free (fhc->filename);
     GNUNET_free (fhc);
     return NULL;
   }
-  fhc->task
-      = GNUNET_SCHEDULER_add_with_priority (priority, &file_hash_task, fhc);
+  fhc->task =
+      GNUNET_SCHEDULER_add_with_priority (priority, &file_hash_task, fhc);
   return fhc;
 }
 
@@ -390,8 +389,8 @@ GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
 
 
 void
-GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a,
-                        const GNUNET_HashCode * b, GNUNET_HashCode * result)
+GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a, const GNUNET_HashCode * b,
+                        GNUNET_HashCode * result)
 {
   int i;
 
@@ -542,12 +541,11 @@ GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
 void
 GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
                                  const struct GNUNET_CRYPTO_AesSessionKey *rkey,
-                                 const void *salt,
-                                 size_t salt_len, va_list argp)
+                                 const void *salt, size_t salt_len,
+                                 va_list argp)
 {
-  GNUNET_CRYPTO_kdf_v (key->key,
-                       sizeof (key->key),
-                       salt, salt_len, rkey->key, sizeof (rkey->key), argp);
+  GNUNET_CRYPTO_kdf_v (key->key, sizeof (key->key), salt, salt_len, rkey->key,
+                       sizeof (rkey->key), argp);
 }
 
 
@@ -561,15 +559,14 @@ GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
  */
 void
 GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
-                    const void *plaintext,
-                    size_t plaintext_len, GNUNET_HashCode * hmac)
+                    const void *plaintext, size_t plaintext_len,
+                    GNUNET_HashCode * hmac)
 {
   gcry_md_hd_t md;
   const unsigned char *mc;
 
-  GNUNET_assert (GPG_ERR_NO_ERROR == gcry_md_open (&md,
-                                                   GCRY_MD_SHA512,
-                                                   GCRY_MD_FLAG_HMAC));
+  GNUNET_assert (GPG_ERR_NO_ERROR ==
+                 gcry_md_open (&md, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC));
   gcry_md_setkey (md, key->key, sizeof (key->key));
   gcry_md_write (md, plaintext, plaintext_len);
   mc = gcry_md_read (md, GCRY_MD_SHA512);

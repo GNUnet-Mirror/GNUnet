@@ -47,14 +47,12 @@
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_dns_evaluate (void *cls,
-                           enum GNUNET_BLOCK_Type type,
+block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                            const GNUNET_HashCode * query,
                            struct GNUNET_CONTAINER_BloomFilter **bf,
-                           int32_t bf_mutator,
-                           const void *xquery,
-                           size_t xquery_size,
-                           const void *reply_block, size_t reply_block_size)
+                           int32_t bf_mutator, const void *xquery,
+                           size_t xquery_size, const void *reply_block,
+                           size_t reply_block_size)
 {
   switch (type)
   {
@@ -123,10 +121,9 @@ block_plugin_dns_evaluate (void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_dns_get_key (void *cls,
-                          enum GNUNET_BLOCK_Type type,
-                          const void *block,
-                          size_t block_size, GNUNET_HashCode * key)
+block_plugin_dns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
+                          const void *block, size_t block_size,
+                          GNUNET_HashCode * key)
 {
   if (type != GNUNET_BLOCK_TYPE_DNS)
     return GNUNET_SYSERR;

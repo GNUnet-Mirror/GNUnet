@@ -216,18 +216,16 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
     ar->bandwidth = sbc->bw;
     sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                         (const struct GNUNET_PeerIdentity *) key,
-                        ar->plugin_name,
-                        ar->session,
-                        ar->plugin_addr, ar->plugin_addr_len, ar->bandwidth);
+                        ar->plugin_name, ar->session, ar->plugin_addr,
+                        ar->plugin_addr_len, ar->bandwidth);
   }
   else if (ntohl (ar->bandwidth.value__) > 0)
   {
     ar->bandwidth = GNUNET_BANDWIDTH_value_init (0);
     sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                         (const struct GNUNET_PeerIdentity *) key,
-                        ar->plugin_name,
-                        ar->session,
-                        ar->plugin_addr, ar->plugin_addr_len, ar->bandwidth);
+                        ar->plugin_name, ar->session, ar->plugin_addr,
+                        ar->plugin_addr_len, ar->bandwidth);
   }
   return GNUNET_YES;
 }
@@ -286,13 +284,10 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
   struct AllocationRecord *ar = value;
 
   /* trivial strategy: pick first available address... */
-  asc->cb (asc->cb_cls,
-           &asc->target,
-           ar->plugin_name,
-           ar->plugin_addr,
+  asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
            ar->plugin_addr_len,
-           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32),
-           ar->ats, ar->ats_count);
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32), ar->ats,
+           ar->ats_count);
   asc->cb = NULL;
   return GNUNET_NO;
 }
@@ -320,17 +315,14 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
   asc->cb_cls = cb_cls;
   asc->atc = atc;
   asc->target = *peer;
-  GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers,
-                                              &peer->hashPubKey,
+  GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers, &peer->hashPubKey,
                                               &suggest_address, asc);
   if (NULL == asc->cb)
   {
     GNUNET_free (asc);
     return NULL;
   }
-  GNUNET_CONTAINER_multihashmap_put (atc->notify_map,
-                                     &peer->hashPubKey,
-                                     asc,
+  GNUNET_CONTAINER_multihashmap_put (atc->notify_map, &peer->hashPubKey, asc,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return asc;
 }
@@ -372,9 +364,8 @@ GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   atc->alloc_cb = alloc_cb;
   atc->alloc_cb_cls = alloc_cb_cls;
   atc->peers = GNUNET_CONTAINER_multihashmap_create (256);
-  GNUNET_CONFIGURATION_get_value_number (cfg,
-                                         "core",
-                                         "TOTAL_QUOTA_OUT", &atc->total_bps);
+  GNUNET_CONFIGURATION_get_value_number (cfg, "core", "TOTAL_QUOTA_OUT",
+                                         &atc->total_bps);
   return atc;
 }
 
@@ -412,8 +403,8 @@ GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc)
     GNUNET_SCHEDULER_cancel (atc->ba_task);
     atc->ba_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
-                                         &destroy_allocation_record, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &destroy_allocation_record,
+                                         NULL);
   GNUNET_CONTAINER_multihashmap_destroy (atc->peers);
   GNUNET_assert (GNUNET_CONTAINER_multihashmap_size (atc->notify_map) == 0);
   GNUNET_CONTAINER_multihashmap_destroy (atc->notify_map);
@@ -461,8 +452,9 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
   if ((arnew->session == arold->session) ||
       ((arold->session == NULL) &&
        (arold->plugin_addr_len == arnew->plugin_addr_len) &&
-       (0 == memcmp (arold->plugin_addr,
-                     arnew->plugin_addr, arnew->plugin_addr_len))))
+       (0 ==
+        memcmp (arold->plugin_addr, arnew->plugin_addr,
+                arnew->plugin_addr_len))))
   {
     change = GNUNET_NO;
     /* records match */
@@ -497,10 +489,8 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
  * @param ats_count number of performance records in 'ats'
  */
 static struct AllocationRecord *
-create_allocation_record (const char *plugin_name,
-                          struct Session *session,
-                          const void *plugin_addr,
-                          size_t plugin_addr_len,
+create_allocation_record (const char *plugin_name, struct Session *session,
+                          const void *plugin_addr, size_t plugin_addr_len,
                           const struct GNUNET_TRANSPORT_ATS_Information *ats,
                           uint32_t ats_count)
 {
@@ -513,8 +503,8 @@ create_allocation_record (const char *plugin_name,
   ar->session = session;
   ar->plugin_addr_len = plugin_addr_len;
   GNUNET_array_grow (ar->ats, ar->ats_count, ats_count);
-  memcpy (ar->ats,
-          ats, ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  memcpy (ar->ats, ats,
+          ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
   return ar;
 }
 
@@ -559,21 +549,18 @@ disconnect_peer (void *cls, const GNUNET_HashCode * key, void *value)
 void
 GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
                          const struct GNUNET_PeerIdentity *peer,
-                         const char *plugin_name,
-                         struct Session *session,
-                         const void *plugin_addr,
-                         size_t plugin_addr_len,
+                         const char *plugin_name, struct Session *session,
+                         const void *plugin_addr, size_t plugin_addr_len,
                          const struct GNUNET_TRANSPORT_ATS_Information *ats,
                          uint32_t ats_count)
 {
   struct AllocationRecord *ar;
   struct UpdateSessionContext usc;
 
-  (void) GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
-                                                &disconnect_peer, atc);
-  ar = create_allocation_record (plugin_name,
-                                 session,
-                                 plugin_addr, plugin_addr_len, ats, ats_count);
+  (void) GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &disconnect_peer,
+                                                atc);
+  ar = create_allocation_record (plugin_name, session, plugin_addr,
+                                 plugin_addr_len, ats, ats_count);
   ar->connected = GNUNET_YES;
   usc.atc = atc;
   usc.arnew = ar;
@@ -585,8 +572,7 @@ GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (atc->peers,
-                                                    &peer->hashPubKey,
-                                                    ar,
+                                                    &peer->hashPubKey, ar,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 }
 
@@ -646,8 +632,8 @@ destroy_session (void *cls, const GNUNET_HashCode * key, void *value)
   if (ar->plugin_addr != NULL)
     return GNUNET_OK;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_remove (sdc->atc->peers,
-                                                       key, ar));
+                 GNUNET_CONTAINER_multihashmap_remove (sdc->atc->peers, key,
+                                                       ar));
   if (GNUNET_YES == ar->connected) ;
   {
     /* FIXME: is this supposed to be allowed? What to do then? */
@@ -674,8 +660,8 @@ GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
 
   sdc.atc = atc;
   sdc.session = session;
-  (void) GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
-                                                &destroy_session, &sdc);
+  (void) GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &destroy_session,
+                                                &sdc);
 }
 
 
@@ -693,13 +679,10 @@ notify_valid (void *cls, const GNUNET_HashCode * key, void *value)
   struct AllocationRecord *ar = cls;
   struct GNUNET_ATS_SuggestionContext *asc = value;
 
-  asc->cb (asc->cb_cls,
-           &asc->target,
-           ar->plugin_name,
-           ar->plugin_addr,
+  asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
            ar->plugin_addr_len,
-           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32),
-           ar->ats, ar->ats_count);
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32), ar->ats,
+           ar->ats_count);
   GNUNET_ATS_suggest_address_cancel (asc);
   return GNUNET_OK;
 }
@@ -727,19 +710,16 @@ void
 GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
                            const struct GNUNET_PeerIdentity *peer,
                            struct GNUNET_TIME_Absolute valid_until,
-                           const char *plugin_name,
-                           struct Session *session,
-                           const void *plugin_addr,
-                           size_t plugin_addr_len,
+                           const char *plugin_name, struct Session *session,
+                           const void *plugin_addr, size_t plugin_addr_len,
                            const struct GNUNET_TRANSPORT_ATS_Information *ats,
                            uint32_t ats_count)
 {
   struct AllocationRecord *ar;
   struct UpdateSessionContext usc;
 
-  ar = create_allocation_record (plugin_name,
-                                 session,
-                                 plugin_addr, plugin_addr_len, ats, ats_count);
+  ar = create_allocation_record (plugin_name, session, plugin_addr,
+                                 plugin_addr_len, ats, ats_count);
   usc.atc = atc;
   usc.arnew = ar;
   if (GNUNET_SYSERR ==
@@ -750,12 +730,11 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (atc->peers,
-                                                    &peer->hashPubKey,
-                                                    ar,
+                                                    &peer->hashPubKey, ar,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   GNUNET_CONTAINER_multihashmap_get_multiple (atc->notify_map,
-                                              &peer->hashPubKey,
-                                              &notify_valid, ar);
+                                              &peer->hashPubKey, &notify_valid,
+                                              ar);
 }
 
 /* end of file gnunet-service-transport_ats.c */

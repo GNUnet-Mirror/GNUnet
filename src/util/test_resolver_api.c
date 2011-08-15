@@ -65,16 +65,16 @@ check_localhost_num (void *cls, const char *hostname)
   if (0 == strcmp (hostname, "127.0.0.1"))
   {
 #if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received correct hostname `%s'.\n", hostname);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct hostname `%s'.\n",
+                hostname);
 #endif
     (*ok) &= ~4;
   }
   else
   {
 #if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received invalid hostname `%s'.\n", hostname);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received invalid hostname `%s'.\n",
+                hostname);
 #endif
     GNUNET_break (0);
   }
@@ -91,8 +91,8 @@ check_localhost (void *cls, const char *hostname)
   if (0 == strcmp (hostname, "localhost"))
   {
 #if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received correct hostname `%s'.\n", hostname);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct hostname `%s'.\n",
+                hostname);
 #endif
     (*ok) &= ~2;
   }
@@ -139,20 +139,20 @@ check_local_fqdn (void *cls, const char *gnunet_fqdn)
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
-                         GNUNET_ERROR_TYPE_BULK, "gethostname");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                         "gethostname");
     return;
   }
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Resolving our FQDN `%s'\n"), hostname);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our FQDN `%s'\n"),
+              hostname);
 #endif
   host = gethostbyname (hostname);
   if (NULL == host)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not resolve our FQDN : %s %u\n"),
-                hstrerror (h_errno), h_errno);
+                _("Could not resolve our FQDN : %s %u\n"), hstrerror (h_errno),
+                h_errno);
     return;
   }
 
@@ -224,8 +224,8 @@ check_rootserver_name (void *cls, const char *hostname)
 }
 
 static void
-run (void *cls, char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ok = cls;
   struct sockaddr_in sa;
@@ -283,8 +283,9 @@ run (void *cls, char *const *args,
   }
 
   /* Comparing to resolved address to the address the root name server should have */
-  if (strcmp (inet_ntoa (*(struct in_addr *) rootserver->h_addr_list[0]),
-              ROOTSERVER_IP) != 0)
+  if (strcmp
+      (inet_ntoa (*(struct in_addr *) rootserver->h_addr_list[0]),
+       ROOTSERVER_IP) != 0)
   {
 #if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -318,8 +319,8 @@ run (void *cls, char *const *args,
     GNUNET_break (0);
   }
 
-  rootserver
-      = gethostbyaddr (&rootserver_addr, sizeof (rootserver_addr), AF_INET);
+  rootserver =
+      gethostbyaddr (&rootserver_addr, sizeof (rootserver_addr), AF_INET);
   if (rootserver == NULL)
   {
     /* Error: resolving IP addresses does not work */

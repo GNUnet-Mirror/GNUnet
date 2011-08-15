@@ -125,8 +125,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 
-  proc = GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
-                                  "test_gnunet_echo_hello", "-", NULL);
+  proc =
+      GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
+                               "test_gnunet_echo_hello", "-", NULL);
   GNUNET_free (fn);
 
   /* Close the write end of the read pipe */

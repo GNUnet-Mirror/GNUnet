@@ -42,9 +42,8 @@ static int ret;
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   /* main code here */
 }
@@ -65,11 +64,9 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-template",
-                              gettext_noop ("help text"),
-                              options, &run, NULL)) ? ret : 1;
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-template",
+                              gettext_noop ("help text"), options, &run,
+                              NULL)) ? ret : 1;
 }
 
 /* end of gnunet-template.c */

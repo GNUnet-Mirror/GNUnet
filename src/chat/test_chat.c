@@ -118,12 +118,13 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
@@ -137,8 +138,7 @@ stop_arm (struct PeerContext *p)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ARM process %u stopped\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_close (p->arm_proc);
   p->arm_proc = NULL;
@@ -196,8 +196,7 @@ join_cb (void *cls)
 
 
 static int
-member_list_cb (void *cls,
-                const struct GNUNET_CONTAINER_MetaData *member_info,
+member_list_cb (void *cls, const struct GNUNET_CONTAINER_MetaData *member_info,
                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *member_id,
                 enum GNUNET_CHAT_MsgOptions options)
 {
@@ -205,24 +204,19 @@ member_list_cb (void *cls,
   GNUNET_HashCode sender;
 
 #if VERBOSE
-  printf ("%s - told that %s has %s\n",
-          want->me,
-          member_info == NULL ? NULL
-          : GNUNET_CONTAINER_meta_data_get_by_type (member_info,
-                                                    EXTRACTOR_METATYPE_TITLE),
+  printf ("%s - told that %s has %s\n", want->me,
+          member_info ==
+          NULL ? NULL : GNUNET_CONTAINER_meta_data_get_by_type (member_info,
+                                                                EXTRACTOR_METATYPE_TITLE),
           member_info == NULL ? "left" : "joined");
 #endif
   GNUNET_CRYPTO_hash (member_id,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &sender);
-  if ((0 == memcmp (&sender, want->sender,
-                    sizeof (GNUNET_HashCode))) &&
-      (((member_info == NULL) &&
-        (want->meta == NULL)) ||
-       ((member_info != NULL) &&
-        (want->meta != NULL) &&
-        (GNUNET_CONTAINER_meta_data_test_equal (member_info,
-                                                want->meta)))) &&
+  if ((0 == memcmp (&sender, want->sender, sizeof (GNUNET_HashCode))) &&
+      (((member_info == NULL) && (want->meta == NULL)) ||
+       ((member_info != NULL) && (want->meta != NULL) &&
+        (GNUNET_CONTAINER_meta_data_test_equal (member_info, want->meta)))) &&
       (options == want->opt))
   {
     if (NULL != want->next_task)
@@ -239,29 +233,24 @@ member_list_cb (void *cls,
 
 
 static int
-receive_cb (void *cls,
-            struct GNUNET_CHAT_Room *room,
+receive_cb (void *cls, struct GNUNET_CHAT_Room *room,
             const GNUNET_HashCode * sender,
-            const struct GNUNET_CONTAINER_MetaData *meta,
-            const char *message,
+            const struct GNUNET_CONTAINER_MetaData *meta, const char *message,
             struct GNUNET_TIME_Absolute timestamp,
             enum GNUNET_CHAT_MsgOptions options)
 {
   struct Wanted *want = cls;
 
 #if VERBOSE
-  printf ("%s - told that %s said %s\n",
-          want->me,
-          meta == NULL ? NULL
-          : GNUNET_CONTAINER_meta_data_get_by_type (meta,
-                                                    EXTRACTOR_METATYPE_TITLE),
+  printf ("%s - told that %s said %s\n", want->me,
+          meta == NULL ? NULL : GNUNET_CONTAINER_meta_data_get_by_type (meta,
+                                                                        EXTRACTOR_METATYPE_TITLE),
           message);
 #endif
   if ((0 == strcmp (message, want->msg)) &&
       (((sender == NULL) && (want->sender == NULL)) ||
        ((sender != NULL) && (want->sender != NULL) &&
-        (0 == memcmp (sender, want->sender,
-                      sizeof (GNUNET_HashCode))))) &&
+        (0 == memcmp (sender, want->sender, sizeof (GNUNET_HashCode))))) &&
       (GNUNET_CONTAINER_meta_data_test_equal (meta, want->meta)) &&
       (options == want->opt) &&
       /* Not == since the library sets the actual timestamp, so it may be
@@ -283,8 +272,7 @@ receive_cb (void *cls,
 
 
 static int
-confirmation_cb (void *cls,
-                 struct GNUNET_CHAT_Room *room,
+confirmation_cb (void *cls, struct GNUNET_CHAT_Room *room,
                  uint32_t orig_seq_number,
                  struct GNUNET_TIME_Absolute timestamp,
                  const GNUNET_HashCode * receiver)
@@ -292,14 +280,12 @@ confirmation_cb (void *cls,
   struct Wanted *want = cls;
 
 #if VERBOSE
-  printf ("%s - told that %s acknowledged message #%d\n",
-          want->me,
+  printf ("%s - told that %s acknowledged message #%d\n", want->me,
           GNUNET_CONTAINER_meta_data_get_by_type (want->meta,
                                                   EXTRACTOR_METATYPE_TITLE),
           orig_seq_number);
 #endif
-  if ((0 == memcmp (receiver, want->sender,
-                    sizeof (GNUNET_HashCode))) &&
+  if ((0 == memcmp (receiver, want->sender, sizeof (GNUNET_HashCode))) &&
       (orig_seq_number == want->sequence_number) &&
       (timestamp.abs_value >= want->timestamp.abs_value))
   {
@@ -390,9 +376,8 @@ send_to_alice (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   alice_wanted.timestamp = GNUNET_TIME_absolute_get ();
   alice_wanted.next_task = &disconnect_bob;
   alice_wanted.next_task_cls = NULL;
-  GNUNET_CHAT_send_message (bob_room,
-                            "Hi Alice!",
-                            GNUNET_CHAT_MSG_OPTION_NONE, NULL, NULL);
+  GNUNET_CHAT_send_message (bob_room, "Hi Alice!", GNUNET_CHAT_MSG_OPTION_NONE,
+                            NULL, NULL);
 }
 
 
@@ -476,11 +461,9 @@ join_bob_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   bob_wanted.next_task_cls = NULL;
   is_ready = GNUNET_NO;
   bob_room =
-      GNUNET_CHAT_join_room (is_p2p ? p2.cfg : p1.cfg, "bob", bob_meta,
-                             "test", -1,
-                             &join_cb, &bob_wanted,
-                             &receive_cb, &bob_wanted,
-                             &member_list_cb, &bob_wanted,
+      GNUNET_CHAT_join_room (is_p2p ? p2.cfg : p1.cfg, "bob", bob_meta, "test",
+                             -1, &join_cb, &bob_wanted, &receive_cb,
+                             &bob_wanted, &member_list_cb, &bob_wanted,
                              &confirmation_cb, &bob_wanted, &bob);
   if (NULL == bob_room)
   {
@@ -502,12 +485,10 @@ join_alice_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   alice_wanted.next_task = &join_bob_task;
   alice_wanted.next_task_cls = NULL;
   alice_room =
-      GNUNET_CHAT_join_room (p1.cfg, "alice", alice_meta,
-                             "test", -1,
-                             &join_cb, &alice_wanted,
-                             &receive_cb, &alice_wanted,
-                             &member_list_cb, &alice_wanted,
-                             &confirmation_cb, &alice_wanted, &alice);
+      GNUNET_CHAT_join_room (p1.cfg, "alice", alice_meta, "test", -1, &join_cb,
+                             &alice_wanted, &receive_cb, &alice_wanted,
+                             &member_list_cb, &alice_wanted, &confirmation_cb,
+                             &alice_wanted, &alice);
   if (NULL == alice_room)
   {
     GNUNET_SCHEDULER_cancel (kill_task);
@@ -518,9 +499,8 @@ join_alice_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   if (is_p2p)
   {
@@ -535,18 +515,15 @@ run (void *cls,
   alice_wanted.me = "Alice";
   bob_wanted.me = "Bob";
   alice_meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (alice_meta,
-                                     "<gnunet>",
+  GNUNET_CONTAINER_meta_data_insert (alice_meta, "<gnunet>",
                                      EXTRACTOR_METATYPE_TITLE,
-                                     EXTRACTOR_METAFORMAT_UTF8,
-                                     "text/plain",
+                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                      "Alice", strlen ("Alice") + 1);
   bob_meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (bob_meta,
-                                     "<gnunet>",
+  GNUNET_CONTAINER_meta_data_insert (bob_meta, "<gnunet>",
                                      EXTRACTOR_METATYPE_TITLE,
-                                     EXTRACTOR_METAFORMAT_UTF8,
-                                     "text/plain", "Bob", strlen ("Bob") + 1);
+                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
+                                     "Bob", strlen ("Bob") + 1);
   kill_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_kill, NULL);
   GNUNET_SCHEDULER_add_now (&join_alice_task, NULL);
 }
@@ -591,8 +568,8 @@ main (int argc, char *argv[])
   {
     is_auth = GNUNET_YES;
   }
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-chat", "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
+                      "test-chat", "nohelp", options, &run, NULL);
   stop_arm (&p1);
   GNUNET_CONTAINER_meta_data_destroy (alice_meta);
   GNUNET_CONTAINER_meta_data_destroy (bob_meta);

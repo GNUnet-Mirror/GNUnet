@@ -63,9 +63,8 @@ normal_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static int
-watch_1 (void *cls,
-         const char *subsystem,
-         const char *name, uint64_t value, int is_persistent)
+watch_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
+         int is_persistent)
 {
   GNUNET_assert (value == 42);
   GNUNET_assert (0 == strcmp (name, "test-1"));
@@ -80,9 +79,8 @@ watch_1 (void *cls,
 
 
 static int
-watch_2 (void *cls,
-         const char *subsystem,
-         const char *name, uint64_t value, int is_persistent)
+watch_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
+         int is_persistent)
 {
   GNUNET_assert (value == 43);
   GNUNET_assert (0 == strcmp (name, "test-2"));
@@ -97,24 +95,22 @@ watch_2 (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   h = GNUNET_STATISTICS_create ("dummy", cfg);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_STATISTICS_watch (h,
-                                          "test-statistics-api-watch",
+                 GNUNET_STATISTICS_watch (h, "test-statistics-api-watch",
                                           "test-1", &watch_1, NULL));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_STATISTICS_watch (h,
-                                          "test-statistics-api-watch",
+                 GNUNET_STATISTICS_watch (h, "test-statistics-api-watch",
                                           "test-2", &watch_2, NULL));
   h2 = GNUNET_STATISTICS_create ("test-statistics-api-watch", cfg);
   GNUNET_STATISTICS_set (h2, "test-1", 42, GNUNET_NO);
   GNUNET_STATISTICS_set (h2, "test-2", 43, GNUNET_NO);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                                &force_shutdown, NULL);
+  shutdown_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &force_shutdown,
+                                    NULL);
 }
 
 
@@ -132,17 +128,18 @@ check ()
 #if START_SERVICE
   struct GNUNET_OS_Process *proc;
 
-  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
-                                  "gnunet-service-statistics",
+  proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
+                               "gnunet-service-statistics",
 #if VERBOSE
-                                  "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                  "-c", "test_statistics_api_data.conf", NULL);
+                               "-c", "test_statistics_api_data.conf", NULL);
 #endif
   GNUNET_assert (NULL != proc);
   ok = 3;
-  GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp",
-                      options, &run, NULL);
+  GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp", options, &run,
+                      NULL);
 #if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {

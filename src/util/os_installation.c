@@ -57,9 +57,9 @@ get_path_from_proc_maps ()
     return NULL;
   while (NULL != fgets (line, sizeof (line), f))
   {
-    if ((1 == sscanf (line,
-                      "%*x-%*x %*c%*c%*c%*c %*x %*2u:%*2u %*u%*[ ]%s",
-                      dir)) && (NULL != (lgu = strstr (dir, "libgnunetutil"))))
+    if ((1 ==
+         sscanf (line, "%*x-%*x %*c%*c%*c%*c %*x %*2u:%*2u %*u%*[ ]%s", dir)) &&
+        (NULL != (lgu = strstr (dir, "libgnunetutil"))))
     {
       lgu[0] = '\0';
       fclose (f);
@@ -476,8 +476,8 @@ GNUNET_OS_check_helper_binary (const char *binary)
   }
   if (0 != STAT (p, &statbuf))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("stat (%s) failed: %s\n"), p, STRERROR (errno));
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("stat (%s) failed: %s\n"), p,
+                STRERROR (errno));
     GNUNET_free (p);
     return GNUNET_SYSERR;
   }

@@ -151,18 +151,14 @@ struct Plugin
  *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-template_plugin_send (void *cls,
-                      const struct GNUNET_PeerIdentity *target,
-                      const char *msgbuf,
-                      size_t msgbuf_size,
+template_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
+                      const char *msgbuf, size_t msgbuf_size,
                       unsigned int priority,
                       struct GNUNET_TIME_Relative timeout,
-                      struct Session *session,
-                      const void *addr,
-                      size_t addrlen,
+                      struct Session *session, const void *addr, size_t addrlen,
                       int force_address,
-                      GNUNET_TRANSPORT_TransmitContinuation
-                      cont, void *cont_cls)
+                      GNUNET_TRANSPORT_TransmitContinuation cont,
+                      void *cont_cls)
 {
   int bytes_sent = 0;
 
@@ -203,10 +199,8 @@ template_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
  * @param asc_cls closure for asc
  */
 static void
-template_plugin_address_pretty_printer (void *cls,
-                                        const char *type,
-                                        const void *addr,
-                                        size_t addrlen,
+template_plugin_address_pretty_printer (void *cls, const char *type,
+                                        const void *addr, size_t addrlen,
                                         int numeric,
                                         struct GNUNET_TIME_Relative timeout,
                                         GNUNET_TRANSPORT_AddressStringCallback

@@ -96,8 +96,8 @@ GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count, ...)
  *         in the buffer, or 0 on error.
  */
 unsigned int
-GNUNET_STRINGS_buffer_tokenize (const char *buffer,
-                                size_t size, unsigned int count, ...)
+GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
+                                unsigned int count, ...)
 {
   unsigned int start;
   unsigned int needed;
@@ -314,8 +314,7 @@ GNUNET_STRINGS_filename_expand (const char *fil)
   }
   n = strlen (fm) + 1 + strlen (fil_ptr) + 1;
   buffer = GNUNET_malloc (n);
-  GNUNET_snprintf (buffer, n, "%s%s%s",
-                   fm,
+  GNUNET_snprintf (buffer, n, "%s%s%s", fm,
                    (fm[strlen (fm) - 1] ==
                     DIR_SEPARATOR) ? "" : DIR_SEPARATOR_STR, fil_ptr);
   GNUNET_free (fm);

@@ -356,8 +356,8 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc, int reason)
  * @param cls callback data,   struct ForwardedConnection for the communication between client and service
  * @param tc context 
  */
-static void
-receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void receiveFromClient (void *cls,
+                               const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -366,15 +366,15 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param cls callback data, struct ForwardedConnection for the communication between client and service
  * @param tc scheduler context
  */
-static void
-receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void receiveFromService (void *cls,
+                                const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
  *
  */
-static void
-start_forwarding (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void start_forwarding (void *cls,
+                              const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 
@@ -391,13 +391,13 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ssize_t numberOfBytesSent;
 
   fc->service_to_client_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->write_ready,
-                                                fc->armClientSocket))
+  if (GNUNET_YES !=
+      GNUNET_NETWORK_fdset_isset (tc->write_ready, fc->armClientSocket))
   {
     fc->service_to_client_task =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        fc->armClientSocket,
-                                        &forwardToClient, fc);
+                                        fc->armClientSocket, &forwardToClient,
+                                        fc);
     return;
   }
   /* Forwarding service response to client */
@@ -415,8 +415,8 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 #if DEBUG_SERVICE_MANAGER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Forwarded %d bytes to client\n", numberOfBytesSent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Forwarded %d bytes to client\n",
+              numberOfBytesSent);
 #endif
   if (numberOfBytesSent < fc->service_to_client_bufferDataLength)
   {
@@ -424,14 +424,14 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fc->service_to_client_bufferDataLength -= numberOfBytesSent;
     fc->service_to_client_task =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        fc->armClientSocket,
-                                        &forwardToClient, fc);
+                                        fc->armClientSocket, &forwardToClient,
+                                        fc);
     return;
   }
   fc->service_to_client_task =
       GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                     fc->armServiceSocket,
-                                     &receiveFromService, fc);
+                                     fc->armServiceSocket, &receiveFromService,
+                                     fc);
 }
 
 
@@ -454,8 +454,8 @@ receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     closeClientAndServiceSockets (fc, REASON_ERROR);
     return;
   }
-  if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->read_ready,
-                                                fc->armServiceSocket))
+  if (GNUNET_YES !=
+      GNUNET_NETWORK_fdset_isset (tc->read_ready, fc->armServiceSocket))
   {
     fc->service_to_client_task =
         GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -497,12 +497,12 @@ receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_a2s (fc->listen_info->service_addr,
                               fc->listen_info->service_addr_len),
                   (unsigned long long) GNUNET_TIME_relative_min (fc->back_off,
-                                                                 rem).rel_value);
+                                                                 rem).
+                  rel_value);
 #endif
       rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
-      fc->start_task
-          =
+      fc->start_task =
           GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_min
                                         (fc->back_off, rem), &start_forwarding,
                                         fc);
@@ -520,14 +520,13 @@ receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   fc->first_write_done = GNUNET_YES;
 #if DEBUG_SERVICE_MANAGER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received %d bytes for client\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %d bytes for client\n",
               fc->service_to_client_bufferDataLength);
 #endif
   fc->service_to_client_task =
       GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      fc->armClientSocket,
-                                      &forwardToClient, fc);
+                                      fc->armClientSocket, &forwardToClient,
+                                      fc);
 }
 
 
@@ -551,13 +550,13 @@ forwardToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     closeClientAndServiceSockets (fc, REASON_ERROR);
     return;
   }
-  if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->write_ready,
-                                                fc->armServiceSocket))
+  if (GNUNET_YES !=
+      GNUNET_NETWORK_fdset_isset (tc->write_ready, fc->armServiceSocket))
   {
     fc->client_to_service_task =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        fc->armServiceSocket,
-                                        &forwardToService, fc);
+                                        fc->armServiceSocket, &forwardToService,
+                                        fc);
     return;
   }
   numberOfBytesSent =
@@ -585,12 +584,12 @@ forwardToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_a2s (fc->listen_info->service_addr,
                               fc->listen_info->service_addr_len),
                   (unsigned long long) GNUNET_TIME_relative_min (fc->back_off,
-                                                                 rem).rel_value);
+                                                                 rem).
+                  rel_value);
 #endif
       rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
-      fc->start_task
-          =
+      fc->start_task =
           GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_min
                                         (fc->back_off, rem), &start_forwarding,
                                         fc);
@@ -606,8 +605,8 @@ forwardToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 #if DEBUG_SERVICE_MANAGER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Forwarded %d bytes to service\n", numberOfBytesSent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Forwarded %d bytes to service\n",
+              numberOfBytesSent);
 #endif
   fc->first_write_done = GNUNET_YES;
   if (numberOfBytesSent < fc->client_to_service_bufferDataLength)
@@ -616,14 +615,14 @@ forwardToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fc->client_to_service_bufferDataLength -= numberOfBytesSent;
     fc->client_to_service_task =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        fc->armServiceSocket,
-                                        &forwardToService, fc);
+                                        fc->armServiceSocket, &forwardToService,
+                                        fc);
     return;
   }
   fc->client_to_service_task =
       GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                     fc->armClientSocket,
-                                     &receiveFromClient, fc);
+                                     fc->armClientSocket, &receiveFromClient,
+                                     fc);
 }
 
 
@@ -639,13 +638,13 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ForwardedConnection *fc = cls;
 
   fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_YES != GNUNET_NETWORK_fdset_isset (tc->read_ready,
-                                                fc->armClientSocket))
+  if (GNUNET_YES !=
+      GNUNET_NETWORK_fdset_isset (tc->read_ready, fc->armClientSocket))
   {
     fc->client_to_service_task =
         GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                       fc->armClientSocket,
-                                       &receiveFromClient, fc);
+                                       fc->armClientSocket, &receiveFromClient,
+                                       fc);
     return;
   }
   fc->client_to_service_bufferPos = fc->client_to_service_buffer;
@@ -665,23 +664,22 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     else
     {
 #if DEBUG_SERVICE_MANAGER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Error receiving from client: %s\n", STRERROR (errno));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error receiving from client: %s\n",
+                  STRERROR (errno));
 #endif
     }
     closeClientAndServiceSockets (fc, REASON_CLIENT_TO_SERVICE);
     return;
   }
 #if DEBUG_SERVICE_MANAGER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received %d bytes for service\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %d bytes for service\n",
               fc->client_to_service_bufferDataLength);
 #endif
   if (fc->armServiceSocket != NULL)
     fc->client_to_service_task =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        fc->armServiceSocket,
-                                        &forwardToService, fc);
+                                        fc->armServiceSocket, &forwardToService,
+                                        fc);
   else
     /* We have not added any task with fc as a closure, so we're
      * dropping our reference to fc
@@ -742,8 +740,8 @@ fc_acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     else
       fc->service_to_client_task =
           GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                          fc->armClientSocket,
-                                          &forwardToClient, fc);
+                                          fc->armClientSocket, &forwardToClient,
+                                          fc);
     fc->reference_count += 1;
   }
   GNUNET_free (sli);
@@ -751,9 +749,8 @@ fc_acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static struct ServiceListeningInfo *
-service_try_to_connect (const struct sockaddr *addr,
-                        int pf,
-                        socklen_t addrlen, struct ForwardedConnection *fc)
+service_try_to_connect (const struct sockaddr *addr, int pf, socklen_t addrlen,
+                        struct ForwardedConnection *fc)
 {
   struct GNUNET_NETWORK_Handle *sock;
   struct ServiceListeningInfo *serviceListeningInfo;
@@ -839,8 +836,8 @@ start_forwarding (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       target_ipv4.sin_port = v4->sin_port;
       v4 = &target_ipv4;
     }
-    sc = service_try_to_connect ((const struct sockaddr *) v4,
-                                 PF_INET, sizeof (struct sockaddr_in), fc);
+    sc = service_try_to_connect ((const struct sockaddr *) v4, PF_INET,
+                                 sizeof (struct sockaddr_in), fc);
     break;
   case AF_INET6:
     v6 = (struct sockaddr_in6 *) fc->listen_info->service_addr;
@@ -855,12 +852,11 @@ start_forwarding (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       target_ipv6.sin6_port = v6->sin6_port;
       v6 = &target_ipv6;
     }
-    sc = service_try_to_connect ((const struct sockaddr *) v6,
-                                 PF_INET6, sizeof (struct sockaddr_in6), fc);
+    sc = service_try_to_connect ((const struct sockaddr *) v6, PF_INET6,
+                                 sizeof (struct sockaddr_in6), fc);
     break;
   case AF_UNIX:
-    sc = service_try_to_connect (fc->listen_info->service_addr,
-                                 PF_UNIX,
+    sc = service_try_to_connect (fc->listen_info->service_addr, PF_UNIX,
                                  fc->listen_info->service_addr_len, fc);
     break;
   default:
@@ -917,8 +913,8 @@ stop_listening (const char *serviceName)
  * @param cls callback data, struct ServiceListeningInfo describing a listen socket
  * @param tc context 
  */
-static void
-acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void acceptConnection (void *cls,
+                              const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
@@ -952,18 +948,18 @@ accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
     return;
   }
   GNUNET_break (GNUNET_OK ==
-                GNUNET_NETWORK_socket_close
-                (serviceListeningInfo->listeningSocket));
+                GNUNET_NETWORK_socket_close (serviceListeningInfo->
+                                             listeningSocket));
   start_service (NULL, serviceListeningInfo->serviceName, NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Service `%s' started\n"), fc->listen_info->serviceName);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' started\n"),
+              fc->listen_info->serviceName);
   fc->timeout =
       GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_SERVICE_TIMEOUT);
   fc->back_off = GNUNET_TIME_UNIT_MILLISECONDS;
   fc->client_to_service_task =
       GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                     fc->armClientSocket,
-                                     &receiveFromClient, fc);
+                                     fc->armClientSocket, &receiveFromClient,
+                                     fc);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
   /* We're creating another chain of tasks for this fc that
    * will have its own reference to it.
@@ -997,12 +993,12 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                serviceListeningInfoList_tail, sli);
 #ifndef MINGW
   use_lsocks = GNUNET_NO;
-  if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg,
-                                                     sli->serviceName,
-                                                     "DISABLE_SOCKET_FORWARDING"))
-    use_lsocks = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                       sli->serviceName,
-                                                       "DISABLE_SOCKET_FORWARDING");
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_have_value (cfg, sli->serviceName,
+                                       "DISABLE_SOCKET_FORWARDING"))
+    use_lsocks =
+        GNUNET_CONFIGURATION_get_value_yesno (cfg, sli->serviceName,
+                                              "DISABLE_SOCKET_FORWARDING");
 #else
   use_lsocks = GNUNET_YES;
 #endif
@@ -1100,8 +1096,8 @@ createListeningSocket (struct sockaddr *sa, socklen_t addr_len,
                          "setsockopt");
 #endif
 
-  if (GNUNET_NETWORK_socket_bind
-      (sock, (const struct sockaddr *) sa, addr_len) != GNUNET_OK)
+  if (GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) sa, addr_len)
+      != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _
@@ -1145,8 +1141,8 @@ createListeningSocket (struct sockaddr *sa, socklen_t addr_len,
  * @param value the option's value
  */
 static void
-checkPortNumberCB (void *cls,
-                   const char *section, const char *option, const char *value)
+checkPortNumberCB (void *cls, const char *section, const char *option,
+                   const char *value)
 {
   struct sockaddr **addrs;
   socklen_t *addr_lens;
@@ -1158,8 +1154,9 @@ checkPortNumberCB (void *cls,
       (strcasecmp (value, "YES") != 0) ||
       (isInDefaultList (section) == GNUNET_YES))
     return;
-  if (0 >= (ret = GNUNET_SERVICE_get_server_addresses (section, cfg, &addrs,
-                                                       &addr_lens)))
+  if (0 >=
+      (ret =
+       GNUNET_SERVICE_get_server_addresses (section, cfg, &addrs, &addr_lens)))
     return;
   /* this will free (or capture) addrs[i] */
   for (i = 0; i < ret; i++)

@@ -75,9 +75,7 @@ open_listen_socket ()
 }
 
 static void
-receive_check (void *cls,
-               const void *buf,
-               size_t available,
+receive_check (void *cls, const void *buf, size_t available,
                const struct sockaddr *addr, socklen_t addrlen, int errCode)
 {
   int *ok = cls;
@@ -93,11 +91,10 @@ receive_check (void *cls,
 #if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive needs more data\n");
 #endif
-    GNUNET_CONNECTION_receive (asock,
-                               1024,
+    GNUNET_CONNECTION_receive (asock, 1024,
                                GNUNET_TIME_relative_multiply
-                               (GNUNET_TIME_UNIT_SECONDS, 5),
-                               &receive_check, cls);
+                               (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
+                               cls);
   }
   else
   {
@@ -127,8 +124,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test asks to receive on accepted socket\n");
 #endif
-  GNUNET_CONNECTION_receive (asock,
-                             1024,
+  GNUNET_CONNECTION_receive (asock, 1024,
                              GNUNET_TIME_relative_multiply
                              (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
                              cls);
@@ -162,15 +158,14 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test asks for write notification\n");
 #endif
   GNUNET_assert (NULL !=
-                 GNUNET_CONNECTION_notify_transmit_ready (csock,
-                                                          12,
+                 GNUNET_CONNECTION_notify_transmit_ready (csock, 12,
                                                           GNUNET_TIME_UNIT_SECONDS,
                                                           &make_hello, NULL));
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test prepares to accept\n");
 #endif
-  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                 ls, &run_accept, cls);
+  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, ls, &run_accept,
+                                 cls);
 }
 
 
@@ -185,8 +180,8 @@ check ()
 
   ok = 1;
   cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_CONFIGURATION_set_value_string (cfg,
-                                         "resolver", "HOSTNAME", "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
+                                         "localhost");
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;

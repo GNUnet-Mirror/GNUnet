@@ -86,9 +86,9 @@ static struct PutOperator operators[] = {
  * @param cls type of blocks to gather
  * @param tc scheduler context (unused)
  */
-static void
-gather_dht_put_blocks (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void gather_dht_put_blocks (void *cls,
+                                   const struct GNUNET_SCHEDULER_TaskContext
+                                   *tc);
 
 
 /**
@@ -108,8 +108,9 @@ delay_dht_put_blocks (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   if (po->zero_anonymity_count_estimate > 0)
   {
-    delay = GNUNET_TIME_relative_divide (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
-                                         po->zero_anonymity_count_estimate);
+    delay =
+        GNUNET_TIME_relative_divide (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
+                                     po->zero_anonymity_count_estimate);
     delay = GNUNET_TIME_relative_min (delay, MAX_DHT_PUT_FREQ);
   }
   else
@@ -118,8 +119,8 @@ delay_dht_put_blocks (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
      * (hopefully) appear */
     delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5);
   }
-  po->dht_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                               &gather_dht_put_blocks, po);
+  po->dht_task =
+      GNUNET_SCHEDULER_add_delayed (delay, &gather_dht_put_blocks, po);
 }
 
 
@@ -138,13 +139,9 @@ delay_dht_put_blocks (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *        maybe 0 if no unique identifier is available
  */
 static void
-process_dht_put_content (void *cls,
-                         const GNUNET_HashCode * key,
-                         size_t size,
-                         const void *data,
-                         enum GNUNET_BLOCK_Type type,
-                         uint32_t priority,
-                         uint32_t anonymity,
+process_dht_put_content (void *cls, const GNUNET_HashCode * key, size_t size,
+                         const void *data, enum GNUNET_BLOCK_Type type,
+                         uint32_t priority, uint32_t anonymity,
                          struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct PutOperator *po = cls;
@@ -157,22 +154,16 @@ process_dht_put_content (void *cls,
     po->dht_task = GNUNET_SCHEDULER_add_now (&delay_dht_put_blocks, po);
     return;
   }
-  po->zero_anonymity_count_estimate = GNUNET_MAX (po->current_offset,
-                                                  po->zero_anonymity_count_estimate);
+  po->zero_anonymity_count_estimate =
+      GNUNET_MAX (po->current_offset, po->zero_anonymity_count_estimate);
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Retrieved block `%s' of type %u for DHT PUT\n",
-              GNUNET_h2s (key), type);
+              "Retrieved block `%s' of type %u for DHT PUT\n", GNUNET_h2s (key),
+              type);
 #endif
-  GNUNET_DHT_put (GSF_dht,
-                  key,
-                  DEFAULT_PUT_REPLICATION,
-                  GNUNET_DHT_RO_NONE,
-                  type,
-                  size,
-                  data,
-                  expiration,
-                  GNUNET_TIME_UNIT_FOREVER_REL, &delay_dht_put_blocks, po);
+  GNUNET_DHT_put (GSF_dht, key, DEFAULT_PUT_REPLICATION, GNUNET_DHT_RO_NONE,
+                  type, size, data, expiration, GNUNET_TIME_UNIT_FOREVER_REL,
+                  &delay_dht_put_blocks, po);
 }
 
 
@@ -190,13 +181,12 @@ gather_dht_put_blocks (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   po->dht_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  po->dht_qe = GNUNET_DATASTORE_get_zero_anonymity (GSF_dsh,
-                                                    po->current_offset++,
-                                                    0, UINT_MAX,
-                                                    GNUNET_TIME_UNIT_FOREVER_REL,
-                                                    po->dht_put_type,
-                                                    &process_dht_put_content,
-                                                    po);
+  po->dht_qe =
+      GNUNET_DATASTORE_get_zero_anonymity (GSF_dsh, po->current_offset++, 0,
+                                           UINT_MAX,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           po->dht_put_type,
+                                           &process_dht_put_content, po);
   if (NULL == po->dht_qe)
     po->dht_task = GNUNET_SCHEDULER_add_now (&delay_dht_put_blocks, po);
 }

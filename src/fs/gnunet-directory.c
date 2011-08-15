@@ -40,11 +40,9 @@ static int ret;
  * @return always 0 (to continue iterating)
  */
 static int
-item_printer (void *cls,
-              const char *plugin_name,
-              enum EXTRACTOR_MetaType type,
-              enum EXTRACTOR_MetaFormat format,
-              const char *data_mime_type, const char *data, size_t data_size)
+item_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
+              enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
+              const char *data, size_t data_size)
 {
   if (type == EXTRACTOR_METATYPE_GNUNET_FULL_DATA)
   {
@@ -81,17 +79,16 @@ item_printer (void *cls,
  * @param data data available for the file (length bytes)
  */
 static void
-print_entry (void *cls,
-             const char *filename,
-             const struct GNUNET_FS_Uri *uri,
-             const struct GNUNET_CONTAINER_MetaData *meta,
-             size_t length, const void *data)
+print_entry (void *cls, const char *filename, const struct GNUNET_FS_Uri *uri,
+             const struct GNUNET_CONTAINER_MetaData *meta, size_t length,
+             const void *data)
 {
   char *string;
   char *name;
 
-  name = GNUNET_CONTAINER_meta_data_get_by_type (meta,
-                                                 EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
+  name =
+      GNUNET_CONTAINER_meta_data_get_by_type (meta,
+                                              EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
   if (uri == NULL)
   {
     printf (_("Directory `%s' meta data:\n"), name);
@@ -119,9 +116,8 @@ print_entry (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DISK_MapHandle *map;
   struct GNUNET_DISK_FileHandle *h;
@@ -140,16 +136,14 @@ run (void *cls,
   i = 0;
   while (NULL != (filename = args[i++]))
   {
-    if ((GNUNET_OK !=
-         GNUNET_DISK_file_size (filename,
-                                &size,
-                                GNUNET_YES)) ||
-        (NULL == (h = GNUNET_DISK_file_open (filename,
-                                             GNUNET_DISK_OPEN_READ,
-                                             GNUNET_DISK_PERM_NONE))))
+    if ((GNUNET_OK != GNUNET_DISK_file_size (filename, &size, GNUNET_YES)) ||
+        (NULL ==
+         (h =
+          GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+                                 GNUNET_DISK_PERM_NONE))))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to read directory `%s'\n"), filename);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to read directory `%s'\n"),
+                  filename);
       ret = 1;
       continue;
     }
@@ -177,9 +171,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-directory [OPTIONS] FILENAME",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-directory [OPTIONS] FILENAME",
                               gettext_noop
                               ("Display contents of a GNUnet directory"),
                               options, &run, NULL)) ? ret : 1;

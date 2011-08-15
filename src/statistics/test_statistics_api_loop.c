@@ -36,9 +36,8 @@
 #define ROUNDS (1024 * 1024)
 
 static int
-check_1 (void *cls,
-         const char *subsystem,
-         const char *name, uint64_t value, int is_persistent)
+check_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
+         int is_persistent)
 {
   GNUNET_assert (0 == strcmp (name, "test-0"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api-loop"));
@@ -59,9 +58,8 @@ next (void *cls, int success)
 }
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int i;
   char name[128];
@@ -98,16 +96,17 @@ check ()
 #if START_SERVICE
   struct GNUNET_OS_Process *proc;
 
-  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
-                                  "gnunet-service-statistics",
+  proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
+                               "gnunet-service-statistics",
 #if DEBUG_STATISTICS
-                                  "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                  "-c", "test_statistics_api_data.conf", NULL);
+                               "-c", "test_statistics_api_data.conf", NULL);
 #endif
   GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp",
-                      options, &run, &ok);
+  GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp", options, &run,
+                      &ok);
 #if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {

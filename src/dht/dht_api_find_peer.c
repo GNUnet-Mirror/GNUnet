@@ -71,8 +71,7 @@ struct GNUNET_DHT_FindPeerHandle
  * @param reply response
  */
 static void
-find_peer_reply_iterator (void *cls,
-                          const GNUNET_HashCode * key,
+find_peer_reply_iterator (void *cls, const GNUNET_HashCode * key,
                           const struct GNUNET_PeerIdentity *const
                           *outgoing_path,
                           const struct GNUNET_MessageHeader *reply)
@@ -127,12 +126,9 @@ GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
       htons (sizeof (struct GNUNET_DHT_FindPeerMessage));
   find_peer_msg.header.type = htons (GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
   find_peer_handle->route_handle =
-      GNUNET_DHT_route_start (handle, key,
-                              0, options,
-                              &find_peer_msg.header,
-                              timeout,
-                              &find_peer_reply_iterator, find_peer_handle,
-                              NULL, NULL);
+      GNUNET_DHT_route_start (handle, key, 0, options, &find_peer_msg.header,
+                              timeout, &find_peer_reply_iterator,
+                              find_peer_handle, NULL, NULL);
   GNUNET_break (find_peer_handle->route_handle != NULL);
   return find_peer_handle;
 }

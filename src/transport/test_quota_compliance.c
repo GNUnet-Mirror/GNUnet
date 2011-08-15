@@ -232,8 +232,7 @@ get_size ()
 }
 
 static void
-notify_receive_new (void *cls,
-                    const struct GNUNET_PeerIdentity *peer,
+notify_receive_new (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_TRANSPORT_ATS_Information *ats,
                     uint32_t ats_count)
@@ -250,8 +249,7 @@ notify_receive_new (void *cls,
 #if DEBUG_MEASUREMENT
   if (ntohl (hdr->num) % 5000 == 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Got message %u of size %u\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got message %u of size %u\n",
                 ntohl (hdr->num), ntohs (message->size));
   }
 #endif
@@ -309,11 +307,9 @@ notify_ready (void *cls, size_t size, void *buf)
       break;                    /* sometimes pack buffer full, sometimes not */
   }
   while (size - ret >= s);
-  transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
-                                                            &p1.id,
-                                                            s, 0, SEND_TIMEOUT,
-                                                            &notify_ready,
-                                                            NULL);
+  transmit_handle =
+      GNUNET_TRANSPORT_notify_transmit_ready (p2.th, &p1.id, s, 0, SEND_TIMEOUT,
+                                              &notify_ready, NULL);
   total_bytes_sent += s;
   return ret;
 }
@@ -348,9 +344,9 @@ measurement_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   measurement_running = GNUNET_NO;
-  struct GNUNET_TIME_Relative duration
-      = GNUNET_TIME_absolute_get_difference (start_time,
-                                             GNUNET_TIME_absolute_get ());
+  struct GNUNET_TIME_Relative duration =
+      GNUNET_TIME_absolute_get_difference (start_time,
+                                           GNUNET_TIME_absolute_get ());
 
 
   if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
@@ -435,10 +431,8 @@ measurement_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "\nQuota compliance ok: \n"
-                "Quota allowed: %10llu kB/s\n"
-                "Throughput   : %10llu kB/s\n",
-                (quota_allowed / (1024)),
+                "\nQuota compliance ok: \n" "Quota allowed: %10llu kB/s\n"
+                "Throughput   : %10llu kB/s\n", (quota_allowed / (1024)),
                 (total_bytes_sent / (duration.rel_value / 1000) / 1024));
     if (failed_measurement_counter < 2)
       failed_measurement_counter++;
@@ -509,12 +503,10 @@ measure (unsigned long long quota_p1, unsigned long long quota_p2)
                 current_quota_p2 / 1024);
 
 #endif
-  GNUNET_TRANSPORT_set_quota (p1.th,
-                              &p2.id,
+  GNUNET_TRANSPORT_set_quota (p1.th, &p2.id,
                               GNUNET_BANDWIDTH_value_init (current_quota_p1),
                               GNUNET_BANDWIDTH_value_init (current_quota_p1));
-  GNUNET_TRANSPORT_set_quota (p2.th,
-                              &p1.id,
+  GNUNET_TRANSPORT_set_quota (p2.th, &p1.id,
                               GNUNET_BANDWIDTH_value_init (current_quota_p2),
                               GNUNET_BANDWIDTH_value_init (current_quota_p2));
   GNUNET_SCHEDULER_cancel (die_task);
@@ -535,12 +527,10 @@ measure (unsigned long long quota_p1, unsigned long long quota_p2)
 
   if (transmit_handle != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (transmit_handle);
-  transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
-                                                            &p1.id,
-                                                            get_size (), 0,
-                                                            SEND_TIMEOUT,
-                                                            &notify_ready,
-                                                            NULL);
+  transmit_handle =
+      GNUNET_TRANSPORT_notify_transmit_ready (p2.th, &p1.id, get_size (), 0,
+                                              SEND_TIMEOUT, &notify_ready,
+                                              NULL);
 }
 
 
@@ -584,8 +574,7 @@ exchange_hello (void *cls, const struct GNUNET_MessageHeader *message)
 
 
 static void
-notify_connect (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
@@ -593,15 +582,15 @@ notify_connect (void *cls,
   if (cls == &p1)
   {
 #if DEBUG_CONNECTIONS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer 1 `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 `%4s' connected to us (%p)!\n",
+                GNUNET_i2s (peer), cls);
 #endif
   }
   else
   {
 #if DEBUG_CONNECTIONS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer 2 `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 2 `%4s' connected to us (%p)!\n",
+                GNUNET_i2s (peer), cls);
 #endif
   }
   if (connected == 2)
@@ -636,8 +625,8 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   }
   connected--;
 #if DEBUG_CONNECTIONS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected (%p)!\n", GNUNET_i2s (peer), cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' disconnected (%p)!\n",
+              GNUNET_i2s (peer), cls);
 #endif
 }
 
@@ -655,19 +644,18 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   }
 
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
-                                         "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE_ARM
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
 
-  p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL,
-                                    p,
-                                    &notify_receive_new,
-                                    &notify_connect, &notify_disconnect);
+  p->th =
+      GNUNET_TRANSPORT_connect (p->cfg, NULL, p, &notify_receive_new,
+                                &notify_connect, &notify_disconnect);
   GNUNET_assert (p->th != NULL);
 }
 
@@ -680,15 +668,15 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   GNUNET_TRANSPORT_try_connect (p2.th, &p1.id);
   GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
-  tct = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                      &try_connect, NULL);
+  tct =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
+                                    NULL);
 }
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
@@ -924,8 +912,8 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
   ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv1) / sizeof (char *)) - 1,
-                      argv1, logger, "nohelp", options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv1) / sizeof (char *)) - 1, argv1, logger,
+                      "nohelp", options, &run, &ok);
   ret = ok;
   stop_arm (&p1);
   stop_arm (&p2);

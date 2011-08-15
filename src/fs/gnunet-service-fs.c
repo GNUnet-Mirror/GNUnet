@@ -166,8 +166,9 @@ age_cover_counters (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GSF_cover_content_count = (GSF_cover_content_count * 15) / 16;
   GSF_cover_query_count = (GSF_cover_query_count * 15) / 16;
-  cover_age_task = GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY,
-                                                 &age_cover_counters, NULL);
+  cover_age_task =
+      GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY, &age_cover_counters,
+                                    NULL);
 }
 
 
@@ -223,8 +224,7 @@ GSF_test_get_load_too_high_ (uint32_t priority)
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_p2p_put (void *cls,
-                const struct GNUNET_PeerIdentity *other,
+handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
@@ -273,8 +273,7 @@ consider_request_for_forwarding (void *cls,
  * @param result final datastore lookup result
  */
 static void
-consider_forwarding (void *cls,
-                     struct GSF_PendingRequest *pr,
+consider_forwarding (void *cls, struct GSF_PendingRequest *pr,
                      enum GNUNET_BLOCK_EvaluationResult result)
 {
   if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
@@ -295,8 +294,7 @@ consider_forwarding (void *cls,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_p2p_get (void *cls,
-                const struct GNUNET_PeerIdentity *other,
+handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
@@ -321,8 +319,7 @@ handle_p2p_get (void *cls,
  * @param result final datastore lookup result
  */
 static void
-start_p2p_processing (void *cls,
-                      struct GSF_PendingRequest *pr,
+start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
                       enum GNUNET_BLOCK_EvaluationResult result)
 {
   struct GNUNET_SERVER_Client *client = cls;
@@ -355,8 +352,7 @@ start_p2p_processing (void *cls,
  * @param message the actual message
  */
 static void
-handle_start_search (void *cls,
-                     struct GNUNET_SERVER_Client *client,
+handle_start_search (void *cls, struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *message)
 {
   struct GSF_PendingRequest *pr;
@@ -424,8 +420,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_YES to continue to iterate
  */
 static int
-consider_peer_for_forwarding (void *cls,
-                              const GNUNET_HashCode * key,
+consider_peer_for_forwarding (void *cls, const GNUNET_HashCode * key,
                               struct GSF_PendingRequest *pr)
 {
   struct GSF_ConnectedPeer *cp = cls;
@@ -443,8 +438,7 @@ consider_peer_for_forwarding (void *cls,
  * @param atsi performance information
  */
 static void
-peer_connect_handler (void *cls,
-                      const struct GNUNET_PeerIdentity *peer,
+peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct GSF_ConnectedPeer *cp;
@@ -471,11 +465,10 @@ peer_connect_handler (void *cls,
  * @param publicKey public key of this peer, NULL if we failed
  */
 static void
-peer_init_handler (void *cls,
-                   struct GNUNET_CORE_Handle *server,
+peer_init_handler (void *cls, struct GNUNET_CORE_Handle *server,
                    const struct GNUNET_PeerIdentity *my_identity,
-                   const struct
-                   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                   *publicKey)
 {
   my_id = *my_identity;
 }
@@ -515,12 +508,10 @@ main_init (struct GNUNET_SERVER_Handle *server,
   };
 
   GSF_core = GNUNET_CORE_connect (GSF_cfg, 2,   /* larger? */
-                                  NULL,
-                                  &peer_init_handler,
+                                  NULL, &peer_init_handler,
                                   &peer_connect_handler,
                                   &GSF_peer_disconnect_handler_,
-                                  &GSF_peer_status_handler_,
-                                  NULL, GNUNET_NO,
+                                  &GSF_peer_status_handler_, NULL, GNUNET_NO,
                                   NULL, GNUNET_NO, p2p_handlers);
   if (NULL == GSF_core)
   {
@@ -528,14 +519,15 @@ main_init (struct GNUNET_SERVER_Handle *server,
                 _("Failed to connect to `%s' service.\n"), "core");
     return GNUNET_SYSERR;
   }
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &GSF_client_disconnect_handler_, NULL);
+  GNUNET_SERVER_disconnect_notify (server, &GSF_client_disconnect_handler_,
+                                   NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
-  cover_age_task = GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY,
-                                                 &age_cover_counters, NULL);
+  cover_age_task =
+      GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY, &age_cover_counters,
+                                    NULL);
   datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
   return GNUNET_OK;
 }
 
@@ -548,8 +540,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
  * @param cfg configuration to use
  */
 static void
-run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
+run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GSF_cfg = cfg;
@@ -594,10 +585,8 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv,
-                              "fs",
-                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+          GNUNET_SERVICE_run (argc, argv, "fs", GNUNET_SERVICE_OPTION_NONE,
+                              &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-fs.c */

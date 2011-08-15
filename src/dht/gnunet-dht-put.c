@@ -105,9 +105,8 @@ message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
   struct GNUNET_TIME_Absolute expiration;
@@ -147,9 +146,9 @@ run (void *cls,
   if (verbose)
     fprintf (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
              query_key, data);
-  GNUNET_DHT_put (dht_handle, &key, DEFAULT_PUT_REPLICATION,
-                  GNUNET_DHT_RO_NONE, query_type, strlen (data), data,
-                  expiration, timeout, &message_sent_cont, NULL);
+  GNUNET_DHT_put (dht_handle, &key, DEFAULT_PUT_REPLICATION, GNUNET_DHT_RO_NONE,
+                  query_type, strlen (data), data, expiration, timeout,
+                  &message_sent_cont, NULL);
 
 }
 
@@ -191,9 +190,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-dht-put",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-dht-put",
                               gettext_noop
                               ("Issue a PUT request to the GNUnet DHT insert DATA under KEY."),
                               options, &run, NULL)) ? ret : 1;

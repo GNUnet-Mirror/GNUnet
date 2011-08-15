@@ -145,11 +145,8 @@ struct Plugin
  * Handler for messages received from the DV service.
  */
 void
-handle_dv_message_received (void *cls,
-                            struct GNUNET_PeerIdentity *sender,
-                            char *msg,
-                            size_t msg_len,
-                            uint32_t distance,
+handle_dv_message_received (void *cls, struct GNUNET_PeerIdentity *sender,
+                            char *msg, size_t msg_len, uint32_t distance,
                             char *sender_address, size_t sender_address_len)
 {
   struct Plugin *plugin = cls;
@@ -158,8 +155,7 @@ handle_dv_message_received (void *cls,
   char *my_id;
 
   my_id = GNUNET_strdup (GNUNET_i2s (plugin->env->my_identity));
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "plugin_transport_dv",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "plugin_transport_dv",
                    _("%s Received message from %s of type %d, distance %u!\n"),
                    my_id, GNUNET_i2s (sender),
                    ntohs (((struct GNUNET_MessageHeader *) msg)->type),
@@ -173,8 +169,7 @@ handle_dv_message_received (void *cls,
   ats[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
   ats[1].value = htonl (0);
 
-  plugin->env->receive (plugin->env->cls,
-                        sender,
+  plugin->env->receive (plugin->env->cls, sender,
                         (struct GNUNET_MessageHeader *) msg,
                         (const struct GNUNET_TRANSPORT_ATS_Information *) &ats,
                         2, NULL, sender_address, sender_address_len);
@@ -214,26 +209,18 @@ handle_dv_message_received (void *cls,
  *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-dv_plugin_send (void *cls,
-                const struct GNUNET_PeerIdentity *target,
-                const char *msgbuf,
-                size_t msgbuf_size,
-                unsigned int priority,
-                struct GNUNET_TIME_Relative timeout,
-                struct Session *session,
-                const void *addr,
-                size_t addrlen,
-                int force_address,
+dv_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
+                const char *msgbuf, size_t msgbuf_size, unsigned int priority,
+                struct GNUNET_TIME_Relative timeout, struct Session *session,
+                const void *addr, size_t addrlen, int force_address,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   int ret = 0;
   struct Plugin *plugin = cls;
 
-  ret = GNUNET_DV_send (plugin->dv_handle,
-                        target,
-                        msgbuf,
-                        msgbuf_size,
-                        priority, timeout, addr, addrlen, cont, cont_cls);
+  ret =
+      GNUNET_DV_send (plugin->dv_handle, target, msgbuf, msgbuf_size, priority,
+                      timeout, addr, addrlen, cont, cont_cls);
   return ret;
 }
 
@@ -270,14 +257,11 @@ dv_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
  * @param asc_cls closure for asc
  */
 static void
-dv_plugin_address_pretty_printer (void *cls,
-                                  const char *type,
-                                  const void *addr,
-                                  size_t addrlen,
-                                  int numeric,
+dv_plugin_address_pretty_printer (void *cls, const char *type, const void *addr,
+                                  size_t addrlen, int numeric,
                                   struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_TRANSPORT_AddressStringCallback
-                                  asc, void *asc_cls)
+                                  GNUNET_TRANSPORT_AddressStringCallback asc,
+                                  void *asc_cls)
 {
   char *dest_peer;
   char *via_peer;
@@ -337,8 +321,8 @@ address_to_string (void *cls, const void *addr, size_t addrlen)
     peer_hash.encoding[4] = '\0';
     GNUNET_CRYPTO_hash_to_enc (&via->hashPubKey, &via_hash);
     via_hash.encoding[4] = '\0';
-    GNUNET_snprintf (return_buffer,
-                     sizeof (return_buffer), "%s:%s", &peer_hash, &via_hash);
+    GNUNET_snprintf (return_buffer, sizeof (return_buffer), "%s:%s", &peer_hash,
+                     &via_hash);
   }
   else
     return NULL;

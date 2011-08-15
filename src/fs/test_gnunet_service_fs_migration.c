@@ -69,8 +69,7 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                         1000LL / del.rel_value);
     fprintf (stdout, "Download speed was %s/s\n", fancy);
     GNUNET_free (fancy);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Finished download, shutting down\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished download, shutting down\n",
                 (unsigned long long) FILESIZE);
   }
   else
@@ -90,17 +89,17 @@ do_download (void *cls, const char *emsg)
   if (emsg != NULL)
   {
     GNUNET_FS_TEST_daemons_stop (2, daemons);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Failed to stop source daemon: %s\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to stop source daemon: %s\n",
+                emsg);
     GNUNET_FS_uri_destroy (uri);
     ok = 1;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Downloading %llu bytes\n", (unsigned long long) FILESIZE);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Downloading %llu bytes\n",
+              (unsigned long long) FILESIZE);
   start_time = GNUNET_TIME_absolute_get ();
-  GNUNET_FS_TEST_download (daemons[0],
-                           TIMEOUT, 1, SEED, uri, VERBOSE, &do_stop, NULL);
+  GNUNET_FS_TEST_download (daemons[0], TIMEOUT, 1, SEED, uri, VERBOSE, &do_stop,
+                           NULL);
   GNUNET_FS_uri_destroy (uri);
 }
 
@@ -147,11 +146,9 @@ do_publish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     ok = 1;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Publishing %llu bytes\n", (unsigned long long) FILESIZE);
-  GNUNET_FS_TEST_publish (daemons[1],
-                          TIMEOUT,
-                          1, GNUNET_NO, FILESIZE, SEED,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
+              (unsigned long long) FILESIZE);
+  GNUNET_FS_TEST_publish (daemons[1], TIMEOUT, 1, GNUNET_NO, FILESIZE, SEED,
                           VERBOSE, &do_wait, NULL);
 }
 
@@ -168,15 +165,14 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemons started, will now try to connect them\n");
-  GNUNET_FS_TEST_daemons_connect (daemons[0],
-                                  daemons[1], TIMEOUT, &do_publish, NULL);
+  GNUNET_FS_TEST_daemons_connect (daemons[0], daemons[1], TIMEOUT, &do_publish,
+                                  NULL);
 }
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_FS_TEST_daemons_start ("test_gnunet_service_fs_migration_data.conf",
                                 TIMEOUT, 2, daemons, &do_connect, NULL);
@@ -207,9 +203,9 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-gnunet-service-fs-migration",
-                      "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
+                      "test-gnunet-service-fs-migration", "nohelp", options,
+                      &run, NULL);
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-service-fs-migration/");
   return ok;
 }

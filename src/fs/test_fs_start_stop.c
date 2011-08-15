@@ -56,12 +56,13 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
@@ -77,8 +78,7 @@ stop_arm (struct PeerContext *p)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "ARM process %u stopped\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
                 GNUNET_OS_process_get_pid (p->arm_proc));
     GNUNET_OS_process_close (p->arm_proc);
     p->arm_proc = NULL;
@@ -89,17 +89,14 @@ stop_arm (struct PeerContext *p)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_FS_Handle *fs;
 
   setup_peer (&p1, "test_fs_data.conf");
-  fs = GNUNET_FS_start (cfg,
-                        "test-fs-start-stop",
-                        &progress_cb,
-                        NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
+  fs = GNUNET_FS_start (cfg, "test-fs-start-stop", &progress_cb, NULL,
+                        GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   GNUNET_assert (NULL != fs);
   GNUNET_FS_stop (fs);
 }
@@ -128,9 +125,8 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-fs-start-stop",
-                      "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
+                      "test-fs-start-stop", "nohelp", options, &run, NULL);
   stop_arm (&p1);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs/");
   return 0;

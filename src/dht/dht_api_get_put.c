@@ -52,16 +52,13 @@
  * @return GNUNET_YES if put message is queued for transmission
  */
 void
-GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
-                const GNUNET_HashCode * key,
+GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, const GNUNET_HashCode * key,
                 uint32_t desired_replication_level,
                 enum GNUNET_DHT_RouteOption options,
-                enum GNUNET_BLOCK_Type type,
-                size_t size,
-                const char *data,
+                enum GNUNET_BLOCK_Type type, size_t size, const char *data,
                 struct GNUNET_TIME_Absolute exp,
-                struct GNUNET_TIME_Relative timeout,
-                GNUNET_SCHEDULER_Task cont, void *cont_cls)
+                struct GNUNET_TIME_Relative timeout, GNUNET_SCHEDULER_Task cont,
+                void *cont_cls)
 {
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   struct GNUNET_DHT_PutMessage *put_msg;
@@ -82,11 +79,9 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
               (unsigned int) (sizeof (struct GNUNET_DHT_PutMessage) + size),
               "PUT", type);
   GNUNET_break (NULL ==
-                GNUNET_DHT_route_start (handle,
-                                        key,
-                                        desired_replication_level, options,
-                                        &put_msg->header,
-                                        timeout, NULL, NULL, cont, cont_cls));
+                GNUNET_DHT_route_start (handle, key, desired_replication_level,
+                                        options, &put_msg->header, timeout,
+                                        NULL, NULL, cont, cont_cls));
 }
 
 
@@ -126,8 +121,7 @@ struct GNUNET_DHT_GetHandle
  * @param reply response
  */
 static void
-get_reply_iterator (void *cls,
-                    const GNUNET_HashCode * key,
+get_reply_iterator (void *cls, const GNUNET_HashCode * key,
                     const struct GNUNET_PeerIdentity *const *outgoing_path,
                     const struct GNUNET_MessageHeader *reply)
 {
@@ -177,10 +171,9 @@ get_reply_iterator (void *cls,
 
   payload = ntohs (reply->size) - sizeof (struct GNUNET_DHT_GetResultMessage);
   get_handle->iter (get_handle->iter_cls,
-                    GNUNET_TIME_absolute_ntoh (result->expiration),
-                    key,
-                    outgoing_path,
-                    put_path, ntohs (result->type), payload, &result[1]);
+                    GNUNET_TIME_absolute_ntoh (result->expiration), key,
+                    outgoing_path, put_path, ntohs (result->type), payload,
+                    &result[1]);
   GNUNET_free_non_null (put_path);
 }
 
@@ -209,15 +202,13 @@ get_reply_iterator (void *cls,
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
-                      enum GNUNET_BLOCK_Type type,
-                      const GNUNET_HashCode * key,
+                      enum GNUNET_BLOCK_Type type, const GNUNET_HashCode * key,
                       uint32_t desired_replication_level,
                       enum GNUNET_DHT_RouteOption options,
                       const struct GNUNET_CONTAINER_BloomFilter *bf,
-                      int32_t bf_mutator,
-                      const void *xquery,
-                      size_t xquery_size,
-                      GNUNET_DHT_GetIterator iter, void *iter_cls)
+                      int32_t bf_mutator, const void *xquery,
+                      size_t xquery_size, GNUNET_DHT_GetIterator iter,
+                      void *iter_cls)
 {
   struct GNUNET_DHT_GetHandle *get_handle;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
@@ -237,8 +228,8 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   get_handle->iter_cls = iter_cls;
   get_msg = (struct GNUNET_DHT_GetMessage *) buf;
   get_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET);
-  get_msg->header.size = htons (sizeof (struct GNUNET_DHT_GetMessage) +
-                                xquery_size + bf_size);
+  get_msg->header.size =
+      htons (sizeof (struct GNUNET_DHT_GetMessage) + xquery_size + bf_size);
   get_msg->type = htonl ((uint32_t) type);
   get_msg->bf_mutator = bf_mutator;
   get_msg->xquery_size = htons ((uint16_t) xquery_size);

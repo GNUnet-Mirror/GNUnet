@@ -40,8 +40,8 @@ makeName (unsigned int i)
   fn = GNUNET_malloc (strlen ("/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST") +
                       14);
   GNUNET_snprintf (fn,
-                   strlen ("/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST") +
-                   14, "/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST%u", i);
+                   strlen ("/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST") + 14,
+                   "/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST%u", i);
   GNUNET_disk_directory_create_for_file (NULL, fn);
   return fn;
 }
@@ -143,9 +143,8 @@ main (int argc, char *argv[])
                            &eventCallback, NULL);
   CHECK (ctx != NULL);
   filename = makeName (42);
-  GNUNET_disk_file_write (NULL,
-                          filename,
-                          "foo bar test!", strlen ("foo bar test!"), "600");
+  GNUNET_disk_file_write (NULL, filename, "foo bar test!",
+                          strlen ("foo bar test!"), "600");
   meta = GNUNET_meta_data_create ();
   kuri =
       GNUNET_ECRS_keyword_command_line_to_uri (NULL, 2,
@@ -153,11 +152,9 @@ main (int argc, char *argv[])
   /* upload */
   upload = GNUNET_FSUI_upload_start (ctx, filename, (GNUNET_FSUI_DirectoryScanCallback) & GNUNET_disk_directory_scan, NULL, 0,  /* anonymity */
                                      0, /* priority */
-                                     GNUNET_YES,
-                                     GNUNET_NO,
-                                     GNUNET_NO,
-                                     GNUNET_get_time () +
-                                     5 * GNUNET_CRON_HOURS, meta, kuri, kuri);
+                                     GNUNET_YES, GNUNET_NO, GNUNET_NO,
+                                     GNUNET_get_time () + 5 * GNUNET_CRON_HOURS,
+                                     meta, kuri, kuri);
   CHECK (upload != NULL);
   GNUNET_ECRS_uri_destroy (kuri);
   GNUNET_meta_data_destroy (meta);
@@ -190,11 +187,9 @@ main (int argc, char *argv[])
 
   /* download */
   fn = makeName (43);
-  download = GNUNET_FSUI_download_start (ctx,
-                                         0,
-                                         GNUNET_NO,
-                                         search_uri,
-                                         search_meta, fn, NULL, NULL);
+  download =
+      GNUNET_FSUI_download_start (ctx, 0, GNUNET_NO, search_uri, search_meta,
+                                  fn, NULL, NULL);
   GNUNET_free (fn);
   prog = 0;
   while (lastEvent != GNUNET_FSUI_download_completed)

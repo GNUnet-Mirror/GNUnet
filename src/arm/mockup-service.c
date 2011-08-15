@@ -61,8 +61,7 @@ transmit_shutdown_ack (void *cls, size_t size, void *buf)
  * @param message the actual message
  */
 static void
-handle_shutdown (void *cls,
-                 struct GNUNET_SERVER_Client *client,
+handle_shutdown (void *cls, struct GNUNET_SERVER_Client *client,
                  const struct GNUNET_MessageHeader *message)
 {
   GNUNET_SERVER_client_keep (client);
@@ -79,8 +78,7 @@ handle_shutdown (void *cls,
 
 
 static void
-run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
+run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -99,10 +97,9 @@ main (int argc, char *const *argv)
 {
   int ret;
 
-  ret = (GNUNET_OK ==
-         GNUNET_SERVICE_run (argc,
-                             argv,
-                             "do-nothing", GNUNET_SERVICE_OPTION_NONE,
-                             &run, NULL)) ? 0 : 1;
+  ret =
+      (GNUNET_OK ==
+       GNUNET_SERVICE_run (argc, argv, "do-nothing", GNUNET_SERVICE_OPTION_NONE,
+                           &run, NULL)) ? 0 : 1;
   return ret;
 }

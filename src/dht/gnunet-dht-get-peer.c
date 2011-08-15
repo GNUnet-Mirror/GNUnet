@@ -126,9 +126,8 @@ find_peer_processor (void *cls, const struct GNUNET_HELLO_Message *hello)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode key;
@@ -164,11 +163,9 @@ run (void *cls,
   if (verbose)
     fprintf (stderr, "Issuing FIND PEER request for %s!\n", query_key);
 
-  find_peer_handle = GNUNET_DHT_find_peer_start (dht_handle,
-                                                 timeout,
-                                                 &key,
-                                                 GNUNET_DHT_RO_NONE,
-                                                 &find_peer_processor, NULL);
+  find_peer_handle =
+      GNUNET_DHT_find_peer_start (dht_handle, timeout, &key, GNUNET_DHT_RO_NONE,
+                                  &find_peer_processor, NULL);
   if (NULL == find_peer_handle)
   {
     GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
@@ -207,9 +204,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-dht-get-peer",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-dht-get-peer",
                               gettext_noop
                               ("Issue a GET PEER request to the GNUnet DHT, print results."),
                               options, &run, NULL)) ? ret : 1;

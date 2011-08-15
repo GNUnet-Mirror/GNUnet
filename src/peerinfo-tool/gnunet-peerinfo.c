@@ -87,8 +87,8 @@ process_resolved_address (void *cls, const char *address)
       dump_pc (pc);
     return;
   }
-  GNUNET_array_append (pc->address_list,
-                       pc->num_addresses, GNUNET_strdup (address));
+  GNUNET_array_append (pc->address_list, pc->num_addresses,
+                       GNUNET_strdup (address));
 }
 
 
@@ -103,10 +103,9 @@ process_resolved_address (void *cls, const char *address)
  * @return GNUNET_OK to keep the address and continue
  */
 static int
-count_address (void *cls,
-               const char *tname,
-               struct GNUNET_TIME_Absolute expiration,
-               const void *addr, uint16_t addrlen)
+count_address (void *cls, const char *tname,
+               struct GNUNET_TIME_Absolute expiration, const void *addr,
+               uint16_t addrlen)
 {
   struct PrintContext *pc = cls;
 
@@ -126,18 +125,13 @@ count_address (void *cls,
  * @return GNUNET_OK to keep the address and continue
  */
 static int
-print_address (void *cls,
-               const char *tname,
-               struct GNUNET_TIME_Absolute expiration,
-               const void *addr, uint16_t addrlen)
+print_address (void *cls, const char *tname,
+               struct GNUNET_TIME_Absolute expiration, const void *addr,
+               uint16_t addrlen)
 {
   struct PrintContext *pc = cls;
 
-  GNUNET_TRANSPORT_address_lookup (cfg,
-                                   addr,
-                                   addrlen,
-                                   no_resolve,
-                                   tname,
+  GNUNET_TRANSPORT_address_lookup (cfg, addr, addrlen, no_resolve, tname,
                                    GNUNET_TIME_relative_multiply
                                    (GNUNET_TIME_UNIT_SECONDS, 10),
                                    &process_resolved_address, pc);
@@ -151,8 +145,7 @@ print_address (void *cls,
  * Could of course do more (e.g. resolve via DNS).
  */
 static void
-print_peer_info (void *cls,
-                 const struct GNUNET_PeerIdentity *peer,
+print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
@@ -192,9 +185,8 @@ print_peer_info (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *priv;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
@@ -216,20 +208,18 @@ run (void *cls,
       fprintf (stderr, _("Could not access PEERINFO service.  Exiting.\n"));
       return;
     }
-    GNUNET_PEERINFO_iterate (peerinfo,
-                             NULL,
+    GNUNET_PEERINFO_iterate (peerinfo, NULL,
                              GNUNET_TIME_relative_multiply
-                             (GNUNET_TIME_UNIT_SECONDS, 5),
-                             &print_peer_info, NULL);
+                             (GNUNET_TIME_UNIT_SECONDS, 5), &print_peer_info,
+                             NULL);
   }
   else
   {
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                 "GNUNETD", "HOSTKEY", &fn))
+        GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
+                                                 &fn))
     {
-      fprintf (stderr,
-               _("Could not find option `%s:%s' in configuration.\n"),
+      fprintf (stderr, _("Could not find option `%s:%s' in configuration.\n"),
                "GNUNETD", "HOSTKEYFILE");
       return;
     }
@@ -276,9 +266,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-peerinfo",
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-peerinfo",
                               gettext_noop ("Print information about peers."),
                               options, &run, NULL)) ? 0 : 1;
 }

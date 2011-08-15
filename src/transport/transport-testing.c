@@ -41,14 +41,13 @@ struct ConnectingContext
   int p2_c;
 };
 
-static void
-exchange_hello_last (void *cb_cls, const struct GNUNET_MessageHeader *message);
-static void
-exchange_hello (void *cb_cls, const struct GNUNET_MessageHeader *message);
+static void exchange_hello_last (void *cb_cls,
+                                 const struct GNUNET_MessageHeader *message);
+static void exchange_hello (void *cb_cls,
+                            const struct GNUNET_MessageHeader *message);
 
 static void
-notify_connect_internal (void *cls,
-                         const struct GNUNET_PeerIdentity *peer,
+notify_connect_internal (void *cls, const struct GNUNET_PeerIdentity *peer,
                          const struct GNUNET_TRANSPORT_ATS_Information *ats,
                          uint32_t ats_count)
 {
@@ -93,8 +92,7 @@ notify_connect_internal (void *cls,
 }
 
 static void
-notify_connect (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
@@ -118,8 +116,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 }
 
 static void
-notify_receive (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
@@ -188,8 +185,8 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TRANSPORT_try_connect (cc->th_p1, &p2->id);
   GNUNET_TRANSPORT_try_connect (cc->th_p2, &p1->id);
 
-  cc->tct = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                          &try_connect, cc);
+  cc->tct =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect, cc);
 }
 
 
@@ -218,14 +215,15 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char *cfgname,
                                            &p->servicehome);
   if (NULL != p->servicehome)
     GNUNET_DISK_directory_remove (p->servicehome);
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                         "gnunet-service-arm", "-c", cfgname,
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm", "-c", cfgname,
 #if VERBOSE_PEERS
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #else
-                                         "-L", "ERROR",
+                               "-L", "ERROR",
 #endif
-                                         NULL);
+                               NULL);
   p->nc = nc;
   p->nd = nd;
   p->rec = rec;
@@ -234,10 +232,9 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char *cfgname,
   else
     p->cb_cls = p;
 
-  p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL,
-                                    p,
-                                    &notify_receive,
-                                    &notify_connect, &notify_disconnect);
+  p->th =
+      GNUNET_TRANSPORT_connect (p->cfg, NULL, p, &notify_receive,
+                                &notify_connect, &notify_disconnect);
   GNUNET_assert (p->th != NULL);
   return p;
 }
@@ -296,13 +293,13 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
   cc->cb = cb;
   cc->cb_cls = cb_cls;
 
-  cc->th_p1 = GNUNET_TRANSPORT_connect (cc->p1->cfg, NULL,
-                                        cc,
-                                        NULL, &notify_connect_internal, NULL);
+  cc->th_p1 =
+      GNUNET_TRANSPORT_connect (cc->p1->cfg, NULL, cc, NULL,
+                                &notify_connect_internal, NULL);
 
-  cc->th_p2 = GNUNET_TRANSPORT_connect (cc->p2->cfg, NULL,
-                                        cc,
-                                        NULL, &notify_connect_internal, NULL);
+  cc->th_p2 =
+      GNUNET_TRANSPORT_connect (cc->p2->cfg, NULL, cc, NULL,
+                                &notify_connect_internal, NULL);
 
   GNUNET_assert (cc->th_p1 != NULL);
   GNUNET_assert (cc->th_p2 != NULL);

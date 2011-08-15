@@ -62,14 +62,14 @@ ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator *iterator,
   iterator->max_length = le16_to_cpu (radiotap_header->it_len);
   iterator->arg_index = 0;
   iterator->bitmap_shifter = le32_to_cpu (radiotap_header->it_present);
-  iterator->arg = ((u8 *) radiotap_header) +
-      sizeof (struct ieee80211_radiotap_header);
+  iterator->arg =
+      ((u8 *) radiotap_header) + sizeof (struct ieee80211_radiotap_header);
   iterator->this_arg = 0;
 
   /* find payload start allowing for extended bitmap(s) */
 
-  if (unlikely (iterator->bitmap_shifter &
-                IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK))
+  if (unlikely
+      (iterator->bitmap_shifter & IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK))
   {
     while (le32_to_cpu (*((u32 *) iterator->arg)) &
            IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK)
@@ -190,13 +190,14 @@ ieee80211_radiotap_iterator_next (struct ieee80211_radiotap_iterator *iterator)
      * kind of boundary.
      */
 
-    if ((((void *) iterator->arg) - ((void *) iterator->rtheader)) &
-        ((rt_sizes[iterator->arg_index] >> 4) - 1))
+    if ((((void *) iterator->arg) -
+         ((void *) iterator->
+          rtheader)) & ((rt_sizes[iterator->arg_index] >> 4) - 1))
       iterator->arg_index +=
           (rt_sizes[iterator->arg_index] >> 4) -
           ((((void *) iterator->arg) -
-            ((void *) iterator->rtheader)) &
-           ((rt_sizes[iterator->arg_index] >> 4) - 1));
+            ((void *) iterator->
+             rtheader)) & ((rt_sizes[iterator->arg_index] >> 4) - 1));
 
     /*
      * this is what we will return to user, but we need to

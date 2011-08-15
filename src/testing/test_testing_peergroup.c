@@ -99,9 +99,8 @@ my_cb (void *cls, const char *emsg)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CONFIGURATION_Handle *testing_cfg;
 
@@ -114,9 +113,8 @@ run (void *cls,
                                          "use_progressbars", "YES");
 #endif
   peers_left = NUM_PEERS;
-  pg = GNUNET_TESTING_peergroup_start (testing_cfg,
-                                       peers_left,
-                                       TIMEOUT, NULL, &my_cb, NULL, NULL);
+  pg = GNUNET_TESTING_peergroup_start (testing_cfg, peers_left, TIMEOUT, NULL,
+                                       &my_cb, NULL, NULL);
   GNUNET_assert (pg != NULL);
 }
 
@@ -134,9 +132,8 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-testing-peergroup", "nohelp",
-                      options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-testing-peergroup", "nohelp", options, &run, &ok);
   return ok;
 }
 

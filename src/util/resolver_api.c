@@ -191,17 +191,16 @@ check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
   v6.sin6_len = sizeof (v6);
 #endif
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "resolver", "HOSTNAME", &hostname))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "resolver", "HOSTNAME",
+                                             &hostname))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Must specify `%s' for `%s' in configuration!\n"),
-                "HOSTNAME", "resolver");
+                _("Must specify `%s' for `%s' in configuration!\n"), "HOSTNAME",
+                "resolver");
     GNUNET_assert (0);
   }
-  if ((1 != inet_pton (AF_INET,
-                       hostname,
-                       &v4)) || (1 != inet_pton (AF_INET6, hostname, &v6)))
+  if ((1 != inet_pton (AF_INET, hostname, &v4)) ||
+      (1 != inet_pton (AF_INET6, hostname, &v6)))
   {
     GNUNET_free (hostname);
     return;
@@ -288,9 +287,8 @@ no_resolve (const struct sockaddr *sa, socklen_t salen)
     if (salen != sizeof (struct sockaddr_in))
       return NULL;
     if (NULL ==
-        inet_ntop (AF_INET,
-                   &((struct sockaddr_in *) sa)->sin_addr,
-                   inet4, INET_ADDRSTRLEN))
+        inet_ntop (AF_INET, &((struct sockaddr_in *) sa)->sin_addr, inet4,
+                   INET_ADDRSTRLEN))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
       return NULL;
@@ -301,9 +299,8 @@ no_resolve (const struct sockaddr *sa, socklen_t salen)
     if (salen != sizeof (struct sockaddr_in6))
       return NULL;
     if (NULL ==
-        inet_ntop (AF_INET6,
-                   &((struct sockaddr_in6 *) sa)->sin6_addr,
-                   inet6, INET6_ADDRSTRLEN))
+        inet_ntop (AF_INET6, &((struct sockaddr_in6 *) sa)->sin6_addr, inet6,
+                   INET6_ADDRSTRLEN))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
       return NULL;
@@ -427,15 +424,13 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 #if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Resolver returns `%s' for IP `%s'.\n"),
-                hostname, GNUNET_a2s ((const void *) &rh[1], rh->data_len));
+                _("Resolver returns `%s' for IP `%s'.\n"), hostname,
+                GNUNET_a2s ((const void *) &rh[1], rh->data_len));
 #endif
     if (rh->was_transmitted != GNUNET_SYSERR)
       rh->name_callback (rh->cls, hostname);
     rh->received_response = GNUNET_YES;
-    GNUNET_CLIENT_receive (client,
-                           &handle_response,
-                           rh,
+    GNUNET_CLIENT_receive (client, &handle_response, rh,
                            GNUNET_TIME_absolute_get_remaining (rh->timeout));
   }
   /* return lookup results to caller */
@@ -459,16 +454,13 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       char *ips = no_resolve (sa, salen);
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Resolver returns `%s' for `%s'.\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Resolver returns `%s' for `%s'.\n",
                   ips, (const char *) &rh[1]);
       GNUNET_free (ips);
     }
 #endif
     rh->addr_callback (rh->cls, sa, salen);
-    GNUNET_CLIENT_receive (client,
-                           &handle_response,
-                           rh,
+    GNUNET_CLIENT_receive (client, &handle_response, rh,
                            GNUNET_TIME_absolute_get_remaining (rh->timeout));
   }
 }
@@ -610,8 +602,9 @@ process_requests ()
   {
     /* nothing to do, release socket really soon if there is nothing
      * else happening... */
-    s_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-                                           &shutdown_task, NULL);
+    s_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+                                      &shutdown_task, NULL);
     return;
   }
   if (GNUNET_YES == rh->was_transmitted)
@@ -628,8 +621,7 @@ process_requests ()
               "Transmitting DNS resolution request to DNS service\n");
 #endif
   if (GNUNET_OK !=
-      GNUNET_CLIENT_transmit_and_get_response (client,
-                                               &msg->header,
+      GNUNET_CLIENT_transmit_and_get_response (client, &msg->header,
                                                GNUNET_TIME_absolute_get_remaining
                                                (rh->timeout), GNUNET_YES,
                                                &handle_response, rh))
@@ -726,8 +718,7 @@ reconnect ()
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_ip_get (const char *hostname,
-                        int domain,
+GNUNET_RESOLVER_ip_get (const char *hostname, int domain,
                         struct GNUNET_TIME_Relative timeout,
                         GNUNET_RESOLVER_AddressCallback callback,
                         void *callback_cls)
@@ -754,13 +745,9 @@ GNUNET_RESOLVER_ip_get (const char *hostname,
   rh->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   rh->direction = GNUNET_NO;
   /* first, check if this is a numeric address */
-  if (((1 == inet_pton (AF_INET,
-                        hostname,
-                        &v4)) &&
+  if (((1 == inet_pton (AF_INET, hostname, &v4)) &&
        ((domain == AF_INET) || (domain == AF_UNSPEC))) ||
-      ((1 == inet_pton (AF_INET6,
-                        hostname,
-                        &v6)) &&
+      ((1 == inet_pton (AF_INET6, hostname, &v6)) &&
        ((domain == AF_INET6) || (domain == AF_UNSPEC))))
   {
     rh->task = GNUNET_SCHEDULER_add_now (&numeric_resolution, rh);
@@ -826,8 +813,7 @@ numeric_reverse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return handle that can be used to cancel the request
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
-                              socklen_t salen,
+GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa, socklen_t salen,
                               int do_resolve,
                               struct GNUNET_TIME_Relative timeout,
                               GNUNET_RESOLVER_HostnameCallback callback,
@@ -881,19 +867,19 @@ GNUNET_RESOLVER_local_fqdn_get ()
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
-                         GNUNET_ERROR_TYPE_BULK, "gethostname");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                         "gethostname");
     return NULL;
   }
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Resolving our FQDN `%s'\n"), hostname);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our FQDN `%s'\n"),
+              hostname);
 #endif
   host = gethostbyname (hostname);
   if (NULL == host)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not resolve our FQDN : %s\n"), hstrerror (h_errno));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not resolve our FQDN : %s\n"),
+                hstrerror (h_errno));
     return NULL;
   }
   return GNUNET_strdup (host->h_name);
@@ -919,13 +905,13 @@ GNUNET_RESOLVER_hostname_resolve (int domain,
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR |
-                         GNUNET_ERROR_TYPE_BULK, "gethostname");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                         "gethostname");
     return NULL;
   }
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Resolving our hostname `%s'\n"), hostname);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our hostname `%s'\n"),
+              hostname);
 #endif
   return GNUNET_RESOLVER_ip_get (hostname, domain, timeout, callback, cls);
 }

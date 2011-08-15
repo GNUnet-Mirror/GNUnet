@@ -110,8 +110,7 @@ peer_address_response_processor (void *cls,
     return;
   }
   /* expect more replies */
-  GNUNET_CLIENT_receive (alucb->client,
-                         &peer_address_response_processor, alucb,
+  GNUNET_CLIENT_receive (alucb->client, &peer_address_response_processor, alucb,
                          GNUNET_TIME_absolute_get_remaining (alucb->timeout));
   alucb->cb (alucb->cb_cls, address);
 }
@@ -155,10 +154,8 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
   peer_address_lookup_cb->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   peer_address_lookup_cb->client = client;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CLIENT_transmit_and_get_response (client,
-                                                          &msg.header,
-                                                          timeout,
-                                                          GNUNET_YES,
+                 GNUNET_CLIENT_transmit_and_get_response (client, &msg.header,
+                                                          timeout, GNUNET_YES,
                                                           &peer_address_response_processor,
                                                           peer_address_lookup_cb));
 }

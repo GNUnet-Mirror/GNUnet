@@ -71,13 +71,9 @@ template_plugin_estimate_size (void *cls)
  * @return GNUNET_OK on success
  */
 static int
-template_plugin_put (void *cls,
-                     const GNUNET_HashCode * key,
-                     uint32_t size,
-                     const void *data,
-                     enum GNUNET_BLOCK_Type type,
-                     uint32_t priority,
-                     uint32_t anonymity,
+template_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
+                     const void *data, enum GNUNET_BLOCK_Type type,
+                     uint32_t priority, uint32_t anonymity,
                      uint32_t replication,
                      struct GNUNET_TIME_Absolute expiration, char **msg)
 {
@@ -106,12 +102,11 @@ template_plugin_put (void *cls,
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_key (void *cls,
-                         uint64_t offset,
+template_plugin_get_key (void *cls, uint64_t offset,
                          const GNUNET_HashCode * key,
                          const GNUNET_HashCode * vhash,
-                         enum GNUNET_BLOCK_Type type,
-                         PluginDatumProcessor proc, void *proc_cls)
+                         enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
+                         void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -130,8 +125,8 @@ template_plugin_get_key (void *cls,
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_replication (void *cls,
-                                 PluginDatumProcessor proc, void *proc_cls)
+template_plugin_get_replication (void *cls, PluginDatumProcessor proc,
+                                 void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -146,8 +141,8 @@ template_plugin_get_replication (void *cls,
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_expiration (void *cls,
-                                PluginDatumProcessor proc, void *proc_cls)
+template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
+                                void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -177,9 +172,7 @@ template_plugin_get_expiration (void *cls,
  * @return GNUNET_OK on success
  */
 static int
-template_plugin_update (void *cls,
-                        uint64_t uid,
-                        int delta,
+template_plugin_update (void *cls, uint64_t uid, int delta,
                         struct GNUNET_TIME_Absolute expire, char **msg)
 {
   GNUNET_break (0);
@@ -201,8 +194,7 @@ template_plugin_update (void *cls,
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_zero_anonymity (void *cls,
-                                    uint64_t offset,
+template_plugin_get_zero_anonymity (void *cls, uint64_t offset,
                                     enum GNUNET_BLOCK_Type type,
                                     PluginDatumProcessor proc, void *proc_cls)
 {
@@ -245,8 +237,8 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->get_expiration = &template_plugin_get_expiration;
   api->get_zero_anonymity = &template_plugin_get_zero_anonymity;
   api->drop = &template_plugin_drop;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-                   "template", _("Template database running\n"));
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "template",
+                   _("Template database running\n"));
   return api;
 }
 

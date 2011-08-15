@@ -127,8 +127,8 @@ main (int argc, char *argv[])
 
   if (ok2 != 200)
   {
-    printf ("Got %d elements out of 200 "
-            "expected after initialization.\n", ok2);
+    printf ("Got %d elements out of 200 " "expected after initialization.\n",
+            ok2);
     GNUNET_CONTAINER_bloomfilter_free (bf);
     GNUNET_CONTAINER_bloomfilter_free (bfi);
     return -1;

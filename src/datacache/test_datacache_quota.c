@@ -44,9 +44,8 @@ static const char *plugin_name;
  * some of the data from the last iteration is still there.
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DATACACHE_Handle *h;
   GNUNET_HashCode k;
@@ -140,14 +139,12 @@ main (int argc, char *argv[])
   else
     pos = (char *) plugin_name;
 
-  GNUNET_snprintf (cfg_name,
-                   sizeof (cfg_name),
-                   "test_datacache_data_%s.conf", plugin_name);
+  GNUNET_snprintf (cfg_name, sizeof (cfg_name), "test_datacache_data_%s.conf",
+                   plugin_name);
   if (pos != plugin_name)
     pos[0] = '.';
-  GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1,
-                      xargv, "test-datacache-quota", "nohelp",
-                      options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
+                      "test-datacache-quota", "nohelp", options, &run, NULL);
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %d\n", ok);
   return ok;

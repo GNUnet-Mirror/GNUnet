@@ -105,9 +105,7 @@ ns_printer (void *cls, const char *name, const GNUNET_HashCode * id)
 
 
 static int
-pseudo_printer (void *cls,
-                const GNUNET_HashCode *
-                pseudonym,
+pseudo_printer (void *cls, const GNUNET_HashCode * pseudonym,
                 const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
   char *id;
@@ -150,8 +148,8 @@ post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
       set++;
     if (*set != ':')
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Invalid argument `%s'\n"), rating_change);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Invalid argument `%s'\n"),
+                  rating_change);
     }
     else
     {
@@ -164,8 +162,8 @@ post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Namespace `%s' unknown.\n"), rating_change);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Namespace `%s' unknown.\n"),
+                    rating_change);
       }
     }
     GNUNET_free (rating_change);
@@ -192,17 +190,14 @@ post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *emsg;
 
   cfg = c;
-  h = GNUNET_FS_start (cfg,
-                       "gnunet-pseudonym",
-                       &progress_cb,
-                       NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
+  h = GNUNET_FS_start (cfg, "gnunet-pseudonym", &progress_cb, NULL,
+                       GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL != delete_ns)
   {
     ns = GNUNET_FS_namespace_create (h, delete_ns);
@@ -234,13 +229,9 @@ run (void *cls,
           ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/namespace", &emsg);
           GNUNET_assert (NULL == emsg);
         }
-        GNUNET_FS_namespace_advertise (h,
-                                       ksk_uri,
-                                       ns,
-                                       adv_metadata,
-                                       &bo,
-                                       root_identifier,
-                                       &post_advertising, NULL);
+        GNUNET_FS_namespace_advertise (h, ksk_uri, ns, adv_metadata, &bo,
+                                       root_identifier, &post_advertising,
+                                       NULL);
         return;
       }
       else
@@ -284,9 +275,8 @@ main (int argc, char *const *argv)
      gettext_noop ("delete namespace NAME "),
      1, &GNUNET_GETOPT_set_string, &delete_ns},
     {'k', "keyword", "VALUE",
-     gettext_noop
-     ("add an additional keyword for the advertisment"
-      " (this option can be specified multiple times)"),
+     gettext_noop ("add an additional keyword for the advertisment"
+                   " (this option can be specified multiple times)"),
      1, &GNUNET_FS_getopt_set_keywords, &ksk_uri},
     {'m', "meta", "TYPE:VALUE",
      gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),

@@ -419,18 +419,16 @@ find_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *peer)
 }
 
 /* Forward Declaration */
-static ssize_t
-unix_real_send (void *cls,
-                struct RetrySendContext *incoming_retry_context,
-                struct GNUNET_NETWORK_Handle *send_handle,
-                const struct GNUNET_PeerIdentity *target,
-                const char *msgbuf,
-                size_t msgbuf_size,
-                unsigned int priority,
-                struct GNUNET_TIME_Relative timeout,
-                const void *addr,
-                size_t addrlen,
-                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
+static ssize_t unix_real_send (void *cls,
+                               struct RetrySendContext *incoming_retry_context,
+                               struct GNUNET_NETWORK_Handle *send_handle,
+                               const struct GNUNET_PeerIdentity *target,
+                               const char *msgbuf, size_t msgbuf_size,
+                               unsigned int priority,
+                               struct GNUNET_TIME_Relative timeout,
+                               const void *addr, size_t addrlen,
+                               GNUNET_TRANSPORT_TransmitContinuation cont,
+                               void *cont_cls);
 
 /**
  * Retry sending a message.
@@ -451,16 +449,12 @@ retry_send_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 
-  unix_real_send (retry_ctx->plugin,
-                  retry_ctx,
-                  retry_ctx->send_handle,
-                  &retry_ctx->target,
-                  retry_ctx->msg,
-                  retry_ctx->msg_size,
+  unix_real_send (retry_ctx->plugin, retry_ctx, retry_ctx->send_handle,
+                  &retry_ctx->target, retry_ctx->msg, retry_ctx->msg_size,
                   retry_ctx->priority,
                   GNUNET_TIME_absolute_get_remaining (retry_ctx->timeout),
-                  retry_ctx->addr,
-                  retry_ctx->addrlen, retry_ctx->cont, retry_ctx->cont_cls);
+                  retry_ctx->addr, retry_ctx->addrlen, retry_ctx->cont,
+                  retry_ctx->cont_cls);
   return;
 }
 
@@ -487,17 +481,13 @@ retry_send_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return the number of bytes written, -1 on errors
  */
 static ssize_t
-unix_real_send (void *cls,
-                struct RetrySendContext *incoming_retry_context,
+unix_real_send (void *cls, struct RetrySendContext *incoming_retry_context,
                 struct GNUNET_NETWORK_Handle *send_handle,
-                const struct GNUNET_PeerIdentity *target,
-                const char *msgbuf,
-                size_t msgbuf_size,
-                unsigned int priority,
-                struct GNUNET_TIME_Relative timeout,
-                const void *addr,
-                size_t addrlen,
-                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+                const struct GNUNET_PeerIdentity *target, const char *msgbuf,
+                size_t msgbuf_size, unsigned int priority,
+                struct GNUNET_TIME_Relative timeout, const void *addr,
+                size_t addrlen, GNUNET_TRANSPORT_TransmitContinuation cont,
+                void *cont_cls)
 {
   struct Plugin *plugin = cls;
   struct UNIXMessage *message;
@@ -635,9 +625,8 @@ unix_real_send (void *cls,
 #if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "UNIX transmit %u-byte message to %s (%d: %s)\n",
-              (unsigned int) ssize,
-              GNUNET_a2s (sb, sbs),
-              (int) sent, (sent < 0) ? STRERROR (errno) : "ok");
+              (unsigned int) ssize, GNUNET_a2s (sb, sbs), (int) sent,
+              (sent < 0) ? STRERROR (errno) : "ok");
 #endif
   if (cont != NULL)
   {
@@ -689,16 +678,10 @@ unix_real_send (void *cls,
  *         still be transmitted later!)
  */
 static ssize_t
-unix_plugin_send (void *cls,
-                  const struct GNUNET_PeerIdentity *target,
-                  const char *msgbuf,
-                  size_t msgbuf_size,
-                  unsigned int priority,
-                  struct GNUNET_TIME_Relative timeout,
-                  struct Session *session,
-                  const void *addr,
-                  size_t addrlen,
-                  int force_address,
+unix_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
+                  const char *msgbuf, size_t msgbuf_size, unsigned int priority,
+                  struct GNUNET_TIME_Relative timeout, struct Session *session,
+                  const void *addr, size_t addrlen, int force_address,
                   GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Plugin *plugin = cls;
@@ -712,12 +695,10 @@ unix_plugin_send (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asked to send message to `%s'\n",
               (char *) addr);
 #endif
-  sent = unix_real_send (cls,
-                         NULL,
-                         plugin->unix_sock.desc,
-                         target,
-                         msgbuf, msgbuf_size,
-                         priority, timeout, addr, addrlen, cont, cont_cls);
+  sent =
+      unix_real_send (cls, NULL, plugin->unix_sock.desc, target, msgbuf,
+                      msgbuf_size, priority, timeout, addr, addrlen, cont,
+                      cont_cls);
 #if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", sent,
               (char *) addr);
@@ -738,8 +719,7 @@ unix_plugin_send (void *cls,
  * @param fromlen the length of the address
  */
 static void
-unix_demultiplexer (struct Plugin *plugin,
-                    struct GNUNET_PeerIdentity *sender,
+unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
                     const struct GNUNET_MessageHeader *currhdr,
                     const struct sockaddr_un *un, size_t fromlen)
 {
@@ -909,8 +889,8 @@ unix_transport_server_start (void *cls)
     return GNUNET_SYSERR;
   }
 #if DEBUG_UNIX
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "unix", "Bound to `%s'\n", &un.sun_path[0]);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "unix", "Bound to `%s'\n",
+                   &un.sun_path[0]);
 #endif
   plugin->rs = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_zero (plugin->rs);
@@ -990,10 +970,8 @@ append_port (void *cls, const char *hostname)
  * @param asc_cls closure for asc
  */
 static void
-unix_plugin_address_pretty_printer (void *cls,
-                                    const char *type,
-                                    const void *addr,
-                                    size_t addrlen,
+unix_plugin_address_pretty_printer (void *cls, const char *type,
+                                    const void *addr, size_t addrlen,
                                     int numeric,
                                     struct GNUNET_TIME_Relative timeout,
                                     GNUNET_TRANSPORT_AddressStringCallback asc,
@@ -1075,8 +1053,7 @@ address_notification (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
 
-  plugin->env->notify_address (plugin->env->cls,
-                               GNUNET_YES,
+  plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
                                plugin->unix_socket_path,
                                strlen (plugin->unix_socket_path) + 1);
 }
@@ -1095,14 +1072,14 @@ libgnunet_plugin_transport_unix_init (void *cls)
   int sockets_created;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                             "transport-unix", "PORT", &port))
+      GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-unix", "PORT",
+                                             &port))
     port = UNIX_NAT_DEFAULT_PORT;
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->port = port;
   plugin->env = env;
-  GNUNET_asprintf (&plugin->unix_socket_path,
-                   "/tmp/unix-plugin-sock.%d", plugin->port);
+  GNUNET_asprintf (&plugin->unix_socket_path, "/tmp/unix-plugin-sock.%d",
+                   plugin->port);
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;

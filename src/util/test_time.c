@@ -108,8 +108,8 @@ check ()
   GNUNET_assert (GNUNET_TIME_absolute_get_difference (future, now).rel_value ==
                  0);
 
-  GNUNET_assert (GNUNET_TIME_absolute_get_difference (zero, forever).rel_value
-                 == forever.abs_value);
+  GNUNET_assert (GNUNET_TIME_absolute_get_difference (zero, forever).
+                 rel_value == forever.abs_value);
 
   past.abs_value = now.abs_value - 1000000;
   rel = GNUNET_TIME_absolute_get_duration (future);
@@ -153,7 +153,8 @@ check ()
 
   GNUNET_assert (forever.abs_value ==
                  GNUNET_TIME_absolute_subtract (forever,
-                                                GNUNET_TIME_UNIT_MINUTES).abs_value);
+                                                GNUNET_TIME_UNIT_MINUTES).
+                 abs_value);
   /*check absolute subtract */
   now.abs_value = 50000;
   rel.rel_value = 100000;

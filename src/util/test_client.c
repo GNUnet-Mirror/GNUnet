@@ -70,8 +70,7 @@ copy_msg (void *cls, size_t size, void *buf)
  * Callback that just bounces the message back to the sender.
  */
 static void
-echo_cb (void *cls,
-         struct GNUNET_SERVER_Client *client,
+echo_cb (void *cls, struct GNUNET_SERVER_Client *client,
          const struct GNUNET_MessageHeader *message)
 {
   struct CopyContext *cc;
@@ -148,13 +147,10 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
-  server = GNUNET_SERVER_create (NULL,
-                                 NULL,
-                                 sap,
-                                 slens,
-                                 GNUNET_TIME_relative_multiply
-                                 (GNUNET_TIME_UNIT_MILLISECONDS, 10000),
-                                 GNUNET_NO);
+  server =
+      GNUNET_SERVER_create (NULL, NULL, sap, slens,
+                            GNUNET_TIME_relative_multiply
+                            (GNUNET_TIME_UNIT_MILLISECONDS, 10000), GNUNET_NO);
   GNUNET_assert (server != NULL);
   handlers[0].callback_cls = cls;
   handlers[1].callback_cls = cls;
@@ -166,8 +162,8 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                       sizeof (struct
                                                               GNUNET_MessageHeader),
                                                       GNUNET_TIME_UNIT_SECONDS,
-                                                      GNUNET_NO,
-                                                      &make_msg, NULL));
+                                                      GNUNET_NO, &make_msg,
+                                                      NULL));
   GNUNET_CLIENT_receive (client, &recv_bounce, cls,
                          GNUNET_TIME_relative_multiply
                          (GNUNET_TIME_UNIT_MILLISECONDS, 10000));
@@ -186,8 +182,8 @@ check ()
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_number (cfg, MYNAME, "PORT", PORT);
   GNUNET_CONFIGURATION_set_value_string (cfg, MYNAME, "HOSTNAME", "localhost");
-  GNUNET_CONFIGURATION_set_value_string (cfg,
-                                         "resolver", "HOSTNAME", "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
+                                         "localhost");
   ok = 1;
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);

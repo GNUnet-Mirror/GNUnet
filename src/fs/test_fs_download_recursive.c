@@ -50,9 +50,9 @@ makeName (unsigned int i)
                       ("/tmp/gnunet-fsui-recursive_download_test/FSUITEST") +
                       15);
   GNUNET_snprintf (fn,
-                   strlen
-                   ("/tmp/gnunet-fsui-recursive_download_test/FSUITEST") + 15,
-                   "/tmp/gnunet-fsui-recursive_download_test/FSUITEST%u/", i);
+                   strlen ("/tmp/gnunet-fsui-recursive_download_test/FSUITEST")
+                   + 15, "/tmp/gnunet-fsui-recursive_download_test/FSUITEST%u/",
+                   i);
   return fn;
 }
 
@@ -142,8 +142,9 @@ checkHierarchy (unsigned int i, const char *tree)
     GNUNET_free (fn);
     return GNUNET_SYSERR;
   }
-  res = ((makeHierarchyHelper (fn, tree, 0, 1) == -1) ?
-         GNUNET_SYSERR : GNUNET_OK);
+  res =
+      ((makeHierarchyHelper (fn, tree, 0, 1) ==
+        -1) ? GNUNET_SYSERR : GNUNET_OK);
   GNUNET_free (fn);
   return res;
 }
@@ -287,9 +288,9 @@ main (int argc, char *argv[])
   GNUNET_thread_sleep (5 * GNUNET_CRON_SECONDS);        /* give apps time to start */
   /* ACTUAL TEST CODE */
 #endif
-  ctx = GNUNET_FSUI_start (NULL,
-                           cfg, "fsuirecursive_download_test", 32, GNUNET_YES,
-                           &eventCallback, NULL);
+  ctx =
+      GNUNET_FSUI_start (NULL, cfg, "fsuirecursive_download_test", 32,
+                         GNUNET_YES, &eventCallback, NULL);
   CHECK (ctx != NULL);
   fn = makeHierarchy (42, DIRECTORY_TREE_SPEC);
   meta = GNUNET_meta_data_create ();
@@ -298,13 +299,13 @@ main (int argc, char *argv[])
                                                (const char **) keywords);
   fprintf (stderr, "Uploading...\n");
   waitForEvent = GNUNET_FSUI_upload_completed;
-  upload = GNUNET_FSUI_upload_start (ctx,
-                                     fn,
-                                     (GNUNET_FSUI_DirectoryScanCallback) &
-                                     GNUNET_disk_directory_scan, NULL, 0, 0,
-                                     GNUNET_YES, GNUNET_NO, GNUNET_NO,
-                                     GNUNET_get_time () +
-                                     5 * GNUNET_CRON_HOURS, meta, kuri, kuri);
+  upload =
+      GNUNET_FSUI_upload_start (ctx, fn,
+                                (GNUNET_FSUI_DirectoryScanCallback) &
+                                GNUNET_disk_directory_scan, NULL, 0, 0,
+                                GNUNET_YES, GNUNET_NO, GNUNET_NO,
+                                GNUNET_get_time () + 5 * GNUNET_CRON_HOURS,
+                                meta, kuri, kuri);
   CHECK (upload != NULL);
   GNUNET_ECRS_uri_destroy (kuri);
   kuri = NULL;
@@ -324,10 +325,9 @@ main (int argc, char *argv[])
   fprintf (stderr, "Downloading...\n");
   waitForEvent = GNUNET_FSUI_download_completed;
   fn43 = makeName (43);
-  download = GNUNET_FSUI_download_start (ctx,
-                                         0,
-                                         GNUNET_YES,
-                                         upURI, meta, fn43, NULL, NULL);
+  download =
+      GNUNET_FSUI_download_start (ctx, 0, GNUNET_YES, upURI, meta, fn43, NULL,
+                                  NULL);
   CHECK (download != NULL);
   GNUNET_free (fn43);
   fn43 = NULL;

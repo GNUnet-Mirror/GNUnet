@@ -100,8 +100,9 @@ GNInitWinEnv ()
   /* Function to get CPU usage under Win NT */
   if (hNTDLL)
   {
-    GNNtQuerySystemInformation = (TNtQuerySystemInformation)
-        GetProcAddress (hNTDLL, "NtQuerySystemInformation");
+    GNNtQuerySystemInformation =
+        (TNtQuerySystemInformation) GetProcAddress (hNTDLL,
+                                                    "NtQuerySystemInformation");
   }
   else
   {
@@ -113,13 +114,13 @@ GNInitWinEnv ()
   if (hIphlpapi)
   {
     GNGetIfEntry = (TGetIfEntry) GetProcAddress (hIphlpapi, "GetIfEntry");
-    GNGetIpAddrTable = (TGetIpAddrTable) GetProcAddress (hIphlpapi,
-                                                         "GetIpAddrTable");
+    GNGetIpAddrTable =
+        (TGetIpAddrTable) GetProcAddress (hIphlpapi, "GetIpAddrTable");
     GNGetIfTable = (TGetIfTable) GetProcAddress (hIphlpapi, "GetIfTable");
-    GNGetBestInterface = (TGetBestInterface) GetProcAddress (hIphlpapi,
-                                                             "GetBestInterface");
-    GGetAdaptersInfo = (TGetAdaptersInfo) GetProcAddress (hIphlpapi,
-                                                          "GetAdaptersInfo");
+    GNGetBestInterface =
+        (TGetBestInterface) GetProcAddress (hIphlpapi, "GetBestInterface");
+    GGetAdaptersInfo =
+        (TGetAdaptersInfo) GetProcAddress (hIphlpapi, "GetAdaptersInfo");
   }
   else
   {
@@ -134,51 +135,57 @@ GNInitWinEnv ()
   hAdvapi = LoadLibrary ("advapi32.dll");
   if (hAdvapi)
   {
-    GNOpenSCManager = (TOpenSCManager)
-        GetProcAddress (hAdvapi, "OpenSCManagerA");
-    GNCreateService = (TCreateService)
-        GetProcAddress (hAdvapi, "CreateServiceA");
-    GNCloseServiceHandle = (TCloseServiceHandle)
-        GetProcAddress (hAdvapi, "CloseServiceHandle");
-    GNDeleteService = (TDeleteService)
-        GetProcAddress (hAdvapi, "DeleteService");
-    GNRegisterServiceCtrlHandler = (TRegisterServiceCtrlHandler)
-        GetProcAddress (hAdvapi, "RegisterServiceCtrlHandlerA");
-    GNSetServiceStatus = (TSetServiceStatus)
-        GetProcAddress (hAdvapi, "SetServiceStatus");
-    GNStartServiceCtrlDispatcher = (TStartServiceCtrlDispatcher)
-        GetProcAddress (hAdvapi, "StartServiceCtrlDispatcherA");
-    GNControlService = (TControlService)
-        GetProcAddress (hAdvapi, "ControlService");
+    GNOpenSCManager =
+        (TOpenSCManager) GetProcAddress (hAdvapi, "OpenSCManagerA");
+    GNCreateService =
+        (TCreateService) GetProcAddress (hAdvapi, "CreateServiceA");
+    GNCloseServiceHandle =
+        (TCloseServiceHandle) GetProcAddress (hAdvapi, "CloseServiceHandle");
+    GNDeleteService =
+        (TDeleteService) GetProcAddress (hAdvapi, "DeleteService");
+    GNRegisterServiceCtrlHandler =
+        (TRegisterServiceCtrlHandler) GetProcAddress (hAdvapi,
+                                                      "RegisterServiceCtrlHandlerA");
+    GNSetServiceStatus =
+        (TSetServiceStatus) GetProcAddress (hAdvapi, "SetServiceStatus");
+    GNStartServiceCtrlDispatcher =
+        (TStartServiceCtrlDispatcher) GetProcAddress (hAdvapi,
+                                                      "StartServiceCtrlDispatcherA");
+    GNControlService =
+        (TControlService) GetProcAddress (hAdvapi, "ControlService");
     GNOpenService = (TOpenService) GetProcAddress (hAdvapi, "OpenServiceA");
 
-    GNLsaOpenPolicy = (TLsaOpenPolicy)
-        GetProcAddress (hAdvapi, "LsaOpenPolicy");
-    GNLsaAddAccountRights = (TLsaAddAccountRights)
-        GetProcAddress (hAdvapi, "LsaAddAccountRights");
-    GNLsaRemoveAccountRights = (TLsaRemoveAccountRights)
-        GetProcAddress (hAdvapi, "LsaRemoveAccountRights");
+    GNLsaOpenPolicy =
+        (TLsaOpenPolicy) GetProcAddress (hAdvapi, "LsaOpenPolicy");
+    GNLsaAddAccountRights =
+        (TLsaAddAccountRights) GetProcAddress (hAdvapi, "LsaAddAccountRights");
+    GNLsaRemoveAccountRights =
+        (TLsaRemoveAccountRights) GetProcAddress (hAdvapi,
+                                                  "LsaRemoveAccountRights");
     GNLsaClose = (TLsaClose) GetProcAddress (hAdvapi, "LsaClose");
-    GNLookupAccountName = (TLookupAccountName)
-        GetProcAddress (hAdvapi, "LookupAccountNameA");
+    GNLookupAccountName =
+        (TLookupAccountName) GetProcAddress (hAdvapi, "LookupAccountNameA");
 
-    GNGetFileSecurity = (TGetFileSecurity)
-        GetProcAddress (hAdvapi, "GetFileSecurityA");
-    GNInitializeSecurityDescriptor = (TInitializeSecurityDescriptor)
-        GetProcAddress (hAdvapi, "InitializeSecurityDescriptor");
-    GNGetSecurityDescriptorDacl = (TGetSecurityDescriptorDacl)
-        GetProcAddress (hAdvapi, "GetSecurityDescriptorDacl");
-    GNGetAclInformation = (TGetAclInformation)
-        GetProcAddress (hAdvapi, "GetAclInformation");
-    GNInitializeAcl = (TInitializeAcl)
-        GetProcAddress (hAdvapi, "InitializeAcl");
+    GNGetFileSecurity =
+        (TGetFileSecurity) GetProcAddress (hAdvapi, "GetFileSecurityA");
+    GNInitializeSecurityDescriptor =
+        (TInitializeSecurityDescriptor) GetProcAddress (hAdvapi,
+                                                        "InitializeSecurityDescriptor");
+    GNGetSecurityDescriptorDacl =
+        (TGetSecurityDescriptorDacl) GetProcAddress (hAdvapi,
+                                                     "GetSecurityDescriptorDacl");
+    GNGetAclInformation =
+        (TGetAclInformation) GetProcAddress (hAdvapi, "GetAclInformation");
+    GNInitializeAcl =
+        (TInitializeAcl) GetProcAddress (hAdvapi, "InitializeAcl");
     GNGetAce = (TGetAce) GetProcAddress (hAdvapi, "GetAce");
     GNEqualSid = (TEqualSid) GetProcAddress (hAdvapi, "EqualSid");
     GNAddAce = (TAddAce) GetProcAddress (hAdvapi, "AddAce");
-    GNAddAccessAllowedAce = (TAddAccessAllowedAce)
-        GetProcAddress (hAdvapi, "AddAccessAllowedAce");
-    GNSetNamedSecurityInfo = (TSetNamedSecurityInfo)
-        GetProcAddress (hAdvapi, "SetNamedSecurityInfoA");
+    GNAddAccessAllowedAce =
+        (TAddAccessAllowedAce) GetProcAddress (hAdvapi, "AddAccessAllowedAce");
+    GNSetNamedSecurityInfo =
+        (TSetNamedSecurityInfo) GetProcAddress (hAdvapi,
+                                                "SetNamedSecurityInfoA");
   }
   else
   {
@@ -215,8 +222,8 @@ GNInitWinEnv ()
   if (hNetapi)
   {
     GNNetUserAdd = (TNetUserAdd) GetProcAddress (hNetapi, "NetUserAdd");
-    GNNetUserSetInfo = (TNetUserSetInfo)
-        GetProcAddress (hNetapi, "NetUserSetInfo");
+    GNNetUserSetInfo =
+        (TNetUserSetInfo) GetProcAddress (hNetapi, "NetUserSetInfo");
   }
   else
   {

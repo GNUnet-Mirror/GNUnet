@@ -46,13 +46,13 @@
  * believes to be valid for the transport.
  */
 static void
-addr_callback (void *cls, int add_remove,
-               const struct sockaddr *addr, socklen_t addrlen)
+addr_callback (void *cls, int add_remove, const struct sockaddr *addr,
+               socklen_t addrlen)
 {
-  fprintf (stderr,
-           "Address changed: %s `%s' (%u bytes)\n",
-           add_remove == GNUNET_YES ? "added" : "removed",
-           GNUNET_a2s (addr, addrlen), (unsigned int) addrlen);
+  fprintf (stderr, "Address changed: %s `%s' (%u bytes)\n",
+           add_remove == GNUNET_YES ? "added" : "removed", GNUNET_a2s (addr,
+                                                                       addrlen),
+           (unsigned int) addrlen);
 }
 
 
@@ -74,9 +74,8 @@ stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Main function run with scheduler.
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAT_MiniHandle *mini;
 

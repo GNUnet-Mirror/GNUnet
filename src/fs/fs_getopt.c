@@ -154,9 +154,7 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
         (tmp[strlen (typename)] == ':') &&
         (0 == strncmp (typename, tmp, strlen (typename))))
     {
-      GNUNET_CONTAINER_meta_data_insert (meta,
-                                         "<gnunet>",
-                                         type,
+      GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>", type,
                                          EXTRACTOR_METAFORMAT_UTF8,
                                          "text/plain",
                                          &tmp[strlen (typename) + 1],
@@ -170,9 +168,7 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
         (tmp[strlen (typename_i18n)] == ':') &&
         (0 == strncmp (typename_i18n, tmp, strlen (typename_i18n))))
     {
-      GNUNET_CONTAINER_meta_data_insert (meta,
-                                         "<gnunet>",
-                                         type,
+      GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>", type,
                                          EXTRACTOR_METAFORMAT_UTF8,
                                          "text/plain",
                                          &tmp[strlen (typename_i18n) + 1],
@@ -186,11 +182,10 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
   }
   if (tmp != NULL)
   {
-    GNUNET_CONTAINER_meta_data_insert (meta,
-                                       "<gnunet>",
+    GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>",
                                        EXTRACTOR_METATYPE_UNKNOWN,
-                                       EXTRACTOR_METAFORMAT_UTF8,
-                                       "text/plain", tmp, strlen (tmp) + 1);
+                                       EXTRACTOR_METAFORMAT_UTF8, "text/plain",
+                                       tmp, strlen (tmp) + 1);
     GNUNET_free (tmp);
     printf (_
             ("Unknown metadata type in metadata option `%s'.  Using metadata type `unknown' instead.\n"),

@@ -88,8 +88,7 @@ end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  */
 static void
-check_nse_message (void *cls,
-                   struct GNUNET_TIME_Absolute timestamp,
+check_nse_message (void *cls, struct GNUNET_TIME_Absolute timestamp,
                    double estimate, double std_dev)
 {
   int *ok = cls;
@@ -110,13 +109,13 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
-                                         "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE_ARM
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 
@@ -125,13 +124,13 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                           (GNUNET_TIME_UNIT_MINUTES, 1),
-                                           &end_test, NULL);
+  die_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MINUTES, 1), &end_test,
+                                    NULL);
 
   setup_peer (&p1, cfgfile);
   h = GNUNET_NSE_connect (cfg, &check_nse_message, cls);

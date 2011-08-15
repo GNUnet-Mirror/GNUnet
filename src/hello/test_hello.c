@@ -41,19 +41,18 @@ my_addr_gen (void *cls, size_t max, void *buf)
 #endif
   if (0 == *i)
     return 0;
-  ret = GNUNET_HELLO_add_address ("test",
-                                  GNUNET_TIME_absolute_get (),
-                                  "address_information", *i, buf, max);
+  ret =
+      GNUNET_HELLO_add_address ("test", GNUNET_TIME_absolute_get (),
+                                "address_information", *i, buf, max);
   (*i)--;
   return ret;
 }
 
 
 static int
-check_addr (void *cls,
-            const char *tname,
-            struct GNUNET_TIME_Absolute expiration,
-            const void *addr, uint16_t addrlen)
+check_addr (void *cls, const char *tname,
+            struct GNUNET_TIME_Absolute expiration, const void *addr,
+            uint16_t addrlen)
 {
   unsigned int *i = cls;
 
@@ -71,10 +70,9 @@ check_addr (void *cls,
 
 
 static int
-remove_some (void *cls,
-             const char *tname,
-             struct GNUNET_TIME_Absolute expiration,
-             const void *addr, uint16_t addrlen)
+remove_some (void *cls, const char *tname,
+             struct GNUNET_TIME_Absolute expiration, const void *addr,
+             uint16_t addrlen)
 {
   unsigned int *i = cls;
 
@@ -118,8 +116,8 @@ main (int argc, char *argv[])
   fprintf (stderr, "Testing address iteration (empty set)...\n");
 #endif
   GNUNET_assert (NULL ==
-                 GNUNET_HELLO_iterate_addresses (msg1,
-                                                 GNUNET_NO, &check_addr, &i));
+                 GNUNET_HELLO_iterate_addresses (msg1, GNUNET_NO, &check_addr,
+                                                 &i));
 
 #if VERBOSE
   fprintf (stderr, "Testing HELLO creation (with one address)...\n");
@@ -134,8 +132,8 @@ main (int argc, char *argv[])
 #endif
   i = 1;
   GNUNET_assert (NULL ==
-                 GNUNET_HELLO_iterate_addresses (msg2,
-                                                 GNUNET_NO, &check_addr, &i));
+                 GNUNET_HELLO_iterate_addresses (msg2, GNUNET_NO, &check_addr,
+                                                 &i));
   GNUNET_assert (i == 0);
 
 #if VERBOSE
@@ -158,8 +156,8 @@ main (int argc, char *argv[])
 #endif
   i = 3;
   GNUNET_assert (NULL ==
-                 GNUNET_HELLO_iterate_addresses (msg3,
-                                                 GNUNET_NO, &check_addr, &i));
+                 GNUNET_HELLO_iterate_addresses (msg3, GNUNET_NO, &check_addr,
+                                                 &i));
   GNUNET_assert (i == 0);
 
 #if VERBOSE
@@ -170,8 +168,8 @@ main (int argc, char *argv[])
 
   i = 3;
   GNUNET_assert (NULL ==
-                 GNUNET_HELLO_iterate_addresses (msg1,
-                                                 GNUNET_NO, &check_addr, &i));
+                 GNUNET_HELLO_iterate_addresses (msg1, GNUNET_NO, &check_addr,
+                                                 &i));
   GNUNET_assert (i == 0);
   GNUNET_free (msg1);
 
@@ -184,8 +182,8 @@ main (int argc, char *argv[])
   GNUNET_assert (i == 0);
   i = 1;
   GNUNET_assert (NULL ==
-                 GNUNET_HELLO_iterate_addresses (msg1,
-                                                 GNUNET_NO, &check_addr, &i));
+                 GNUNET_HELLO_iterate_addresses (msg1, GNUNET_NO, &check_addr,
+                                                 &i));
   GNUNET_assert (i == 0);
   GNUNET_free (msg1);
 
@@ -193,8 +191,8 @@ main (int argc, char *argv[])
   fprintf (stderr, "Testing delta address iteration...\n");
 #endif
   i = 2;
-  GNUNET_HELLO_iterate_new_addresses (msg3,
-                                      msg2, startup_time, &check_addr, &i);
+  GNUNET_HELLO_iterate_new_addresses (msg3, msg2, startup_time, &check_addr,
+                                      &i);
   GNUNET_assert (i == 0);
   GNUNET_free (msg2);
   GNUNET_free (msg3);

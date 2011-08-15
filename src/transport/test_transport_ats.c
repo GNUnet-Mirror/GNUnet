@@ -55,8 +55,8 @@ struct TransportConfiguration
 
 
 static void
-create_ats_information (struct ATS_peer **p, int *c_p,
-                        struct ATS_mechanism **m, int *c_m)
+create_ats_information (struct ATS_peer **p, int *c_p, struct ATS_mechanism **m,
+                        int *c_m)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS needs addresses\n");
 
@@ -73,8 +73,8 @@ run_ats ()
   int ret = 0;
 
   ats_calculate_bandwidth_distribution (ats);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Running ATS: %s \n", (ret == 0) ? "SUCCESSFUL" : "FAILED");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running ATS: %s \n",
+              (ret == 0) ? "SUCCESSFUL" : "FAILED");
   return ret;
 }
 
@@ -84,12 +84,13 @@ init_ats ()
 {
   int ret = 0;
 
-  ats = ats_init (1.0, 1.0, 1.0, 50000, 5, 10, ATS_MAX_EXEC_DURATION,
-                  create_ats_information, ats_result_cb);
+  ats =
+      ats_init (1.0, 1.0, 1.0, 50000, 5, 10, ATS_MAX_EXEC_DURATION,
+                create_ats_information, ats_result_cb);
   //GNUNET_assert (ats != NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Initializing ATS: %s \n", (ret == 0) ? "SUCCESSFUL" : "FAILED");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Initializing ATS: %s \n",
+              (ret == 0) ? "SUCCESSFUL" : "FAILED");
   return ret;
 }
 
@@ -101,8 +102,8 @@ shutdown_ats ()
 
   ats_delete_problem (ats);
   ats_shutdown (ats);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Shutdown ATS: %s \n", (ret == 0) ? "SUCCESSFUL" : "FAILED");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Shutdown ATS: %s \n",
+              (ret == 0) ? "SUCCESSFUL" : "FAILED");
   return ret;
 }
 
@@ -123,16 +124,16 @@ dummy ()
 
 
 static void
-iterate_peer_values (void *cls,
-                     const char *section, const char *option, const char *value)
+iterate_peer_values (void *cls, const char *section, const char *option,
+                     const char *value)
 {
   if (strcmp (option, "f") == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s %s\n", option, value);
 }
 
 static void
-iterate_mech_values (void *cls,
-                     const char *section, const char *option, const char *value)
+iterate_mech_values (void *cls, const char *section, const char *option,
+                     const char *value)
 {
   if (strcmp (option, "f") == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s %s\n", option, value);

@@ -399,8 +399,8 @@ shutdown_clean ()
 
   /* Evaluate results  */
   fail = 0;
-  if ((fail_notify_address == GNUNET_YES) ||
-      (fail_pretty_printer == GNUNET_YES) || (fail_addr_to_str == GNUNET_YES))
+  if ((fail_notify_address == GNUNET_YES) || (fail_pretty_printer == GNUNET_YES)
+      || (fail_addr_to_str == GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Phase 0: Test plugin functions failed\n");
@@ -530,15 +530,14 @@ static void run_connection_tests (int phase, void *cls);
 static struct GNUNET_TIME_Relative
 receive (void *cls, const struct GNUNET_PeerIdentity *peer,
          const struct GNUNET_MessageHeader *message,
-         const struct GNUNET_TRANSPORT_ATS_Information *ats,
-         uint32_t ats_count,
-         struct Session *session,
-         const char *sender_address, uint16_t sender_address_len)
+         const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count,
+         struct Session *session, const char *sender_address,
+         uint16_t sender_address_len)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Testcase recieved new message from peer `%s' with type %u and length %u, session %X\n",
-              GNUNET_i2s (peer),
-              ntohs (message->type), ntohs (message->size), session);
+              GNUNET_i2s (peer), ntohs (message->type), ntohs (message->size),
+              session);
 
   if ((ntohs (message->type) >= 10) && (ntohs (message->type) < 20))
   {
@@ -689,9 +688,8 @@ send_execute (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
             GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                         _("curl failed for `%s' at %s:%d: `%s'\n"),
-                        "curl_multi_perform",
-                        __FILE__,
-                        __LINE__, curl_easy_strerror (msg->data.result));
+                        "curl_multi_perform", __FILE__, __LINE__,
+                        curl_easy_strerror (msg->data.result));
             /* sending msg failed */
             curl_easy_cleanup (curl_handle);
             curl_handle = NULL;
@@ -792,8 +790,7 @@ send_prepare (struct HTTP_Transfer *result)
   mret = curl_multi_fdset (multi_handle, &rs, &ws, &es, &max);
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("%s failed at %s:%d: `%s'\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
                 "curl_multi_fdset", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
     return -1;
@@ -801,8 +798,7 @@ send_prepare (struct HTTP_Transfer *result)
   mret = curl_multi_timeout (multi_handle, &to);
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("%s failed at %s:%d: `%s'\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
                 "curl_multi_timeout", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
     return -1;
@@ -918,13 +914,12 @@ notify_address (void *cls, int add_remove, const void *addr, size_t addrlen)
 }
 
 static void
-plugin_env_session_end (void *cls,
-                        const struct GNUNET_PeerIdentity *peer,
+plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
                         struct Session *session)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Pluging tells me: session %X to peer `%s' ended\n",
-              session, GNUNET_i2s (peer));
+              "Pluging tells me: session %X to peer `%s' ended\n", session,
+              GNUNET_i2s (peer));
 }
 
 
@@ -967,8 +962,8 @@ pretty_printer_cb (void *cls, const char *address)
 {
   if (NULL == address)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Plugin returned pretty address: `%s'\n", address);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Plugin returned pretty address: `%s'\n",
+              address);
   fail_pretty_printer_count++;
 }
 
@@ -999,8 +994,8 @@ run_connection_tests (int phase, void *cls)
       /* Connecting to peer without identification */
       const char *ident = "";
 
-      GNUNET_asprintf (&host_str,
-                       "%s://%s/%s", PROTOCOL_PREFIX, test_addr, ident);
+      GNUNET_asprintf (&host_str, "%s://%s/%s", PROTOCOL_PREFIX, test_addr,
+                       ident);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Connecting to peer without any peer identification.\n"));
       test_no_ident.test_executed = GNUNET_YES;
@@ -1013,8 +1008,8 @@ run_connection_tests (int phase, void *cls)
       const char *ident = "AAAAAAAAAA";
 
       /* Connecting to peer with too short identification */
-      GNUNET_asprintf (&host_str,
-                       "%s://%s/%s", PROTOCOL_PREFIX, test_addr, ident);
+      GNUNET_asprintf (&host_str, "%s://%s/%s", PROTOCOL_PREFIX, test_addr,
+                       ident);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _
                   ("Connecting to peer with too short peer identification.\n"));
@@ -1044,9 +1039,8 @@ run_connection_tests (int phase, void *cls)
       struct GNUNET_CRYPTO_HashAsciiEncoded ident;
 
       GNUNET_CRYPTO_hash_to_enc (&my_identity.hashPubKey, &ident);
-      GNUNET_asprintf (&host_str,
-                       "%s://%s/%s%s",
-                       PROTOCOL_PREFIX, test_addr, (char *) &ident, ";0");
+      GNUNET_asprintf (&host_str, "%s://%s/%s%s", PROTOCOL_PREFIX, test_addr,
+                       (char *) &ident, ";0");
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Connecting to peer with valid peer identification.\n"));
       test_valid_ident.test_executed = GNUNET_YES;
@@ -1083,8 +1077,8 @@ run_connection_tests (int phase, void *cls)
                    INET_ADDRSTRLEN);
         port = ntohs (((struct IPv4HttpAddress *) tmp_addr->addr)->u_port);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Sending message to addres no. %u: `%s':%u\n",
-                    count, address, port);
+                    "Sending message to addres no. %u: `%s':%u\n", count,
+                    address, port);
       }
       if (tmp_addr->addrlen == (sizeof (struct IPv6HttpAddress)))
       {
@@ -1092,19 +1086,15 @@ run_connection_tests (int phase, void *cls)
                    INET6_ADDRSTRLEN);
         port = ntohs (((struct IPv6HttpAddress *) tmp_addr->addr)->u6_port);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Sending message to addres no. %u: `%s':%u\n",
-                    count, address, port);
+                    "Sending message to addres no. %u: `%s':%u\n", count,
+                    address, port);
       }
       msg.type = htons (type);
       memcpy (tmp, &msg, sizeof (struct GNUNET_MessageHeader));
-      api->send (api->cls,
-                 &my_identity,
-                 tmp, sizeof (struct GNUNET_MessageHeader),
-                 0, TIMEOUT,
-                 NULL,
-                 tmp_addr->addr, tmp_addr->addrlen,
-                 GNUNET_YES,
-                 &task_send_cont, &fail_msgs_transmited_to_local_addrs);
+      api->send (api->cls, &my_identity, tmp,
+                 sizeof (struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,
+                 tmp_addr->addr, tmp_addr->addrlen, GNUNET_YES, &task_send_cont,
+                 &fail_msgs_transmited_to_local_addrs);
       tmp_addr = tmp_addr->next;
       count++;
       type++;
@@ -1123,26 +1113,19 @@ run_connection_tests (int phase, void *cls)
     size = sizeof (struct GNUNET_MessageHeader);
     msg->size = htons (size);
     msg->type = htons (20);
-    api->send (api->cls,
-               &my_identity,
-               (const char *) msg, size,
-               0, TIMEOUT, NULL, NULL, 0, GNUNET_NO, &task_send_cont, NULL);
+    api->send (api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT,
+               NULL, NULL, 0, GNUNET_NO, &task_send_cont, NULL);
 
     msg->type = htons (21);
-    api->send (api->cls,
-               &my_identity,
-               (const char *) msg, size,
-               0, TIMEOUT, NULL, NULL, 0, GNUNET_SYSERR, &task_send_cont, NULL);
+    api->send (api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT,
+               NULL, NULL, 0, GNUNET_SYSERR, &task_send_cont, NULL);
 
     /* answer on session */
     size = sizeof (struct GNUNET_MessageHeader);
     msg->size = htons (size);
     msg->type = htons (22);
-    api->send (api->cls,
-               &my_identity,
-               (const char *) msg, size,
-               0, TIMEOUT, session, NULL, 0, GNUNET_SYSERR,
-               &task_send_cont, NULL);
+    api->send (api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT,
+               session, NULL, 0, GNUNET_SYSERR, &task_send_cont, NULL);
     GNUNET_free (msg);
 
     /* answer on session with big message not fitting in mhd send buffer */
@@ -1150,10 +1133,8 @@ run_connection_tests (int phase, void *cls)
     msg = GNUNET_malloc (size);
     msg->size = htons (size);
     msg->type = htons (23);
-    api->send (api->cls,
-               &my_identity,
-               (const char *) msg, size,
-               0, TIMEOUT, session, NULL, 0, GNUNET_NO, &task_send_cont, NULL);
+    api->send (api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT,
+               session, NULL, 0, GNUNET_NO, &task_send_cont, NULL);
     GNUNET_free (msg);
     return;
   }
@@ -1178,12 +1159,10 @@ run_connection_tests (int phase, void *cls)
 
     msg2->size = htons (2 * sizeof (struct GNUNET_MessageHeader));
     msg2->type = htons (31);
-    api->send (api->cls,
-               &my_identity,
-               (const char *) msg, 4 * sizeof (struct GNUNET_MessageHeader),
-               0, TIMEOUT, NULL,
-               addr_head->addr, addr_head->addrlen,
-               GNUNET_NO, &task_send_cont, &fail_multiple_msgs_in_transmission);
+    api->send (api->cls, &my_identity, (const char *) msg,
+               4 * sizeof (struct GNUNET_MessageHeader), 0, TIMEOUT, NULL,
+               addr_head->addr, addr_head->addrlen, GNUNET_NO, &task_send_cont,
+               &fail_multiple_msgs_in_transmission);
     GNUNET_free (msg);
     /* send a message with size GNUNET_SERVER_MAX_MESSAGE_SIZE-1  */
 
@@ -1191,12 +1170,9 @@ run_connection_tests (int phase, void *cls)
     msg = GNUNET_malloc (size);
     msg->size = htons (size);
     msg->type = htons (32);
-    api->send (api->cls,
-               &my_identity,
-               (const char *) msg, size,
-               0, TIMEOUT, NULL,
-               addr_head->addr, addr_head->addrlen,
-               GNUNET_NO, &task_send_cont, &fail_msg_transmited_max_size);
+    api->send (api->cls, &my_identity, (const char *) msg, size, 0, TIMEOUT,
+               NULL, addr_head->addr, addr_head->addrlen, GNUNET_NO,
+               &task_send_cont, &fail_msg_transmited_max_size);
     GNUNET_free (msg);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No more tests to run\n");
   }
@@ -1210,9 +1186,8 @@ run_connection_tests (int phase, void *cls)
  * @param c configuration to use
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *libname;
 
@@ -1244,14 +1219,11 @@ run (void *cls,
                                            &servicehome);
 
   if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (c,
-                                              "TRANSPORT",
-                                              "NEIGHBOUR_LIMIT",
+       GNUNET_CONFIGURATION_get_value_number (c, "TRANSPORT", "NEIGHBOUR_LIMIT",
                                               &tneigh)) ||
       (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_filename (c,
-                                                "GNUNETD",
-                                                "HOSTKEY", &keyfile)))
+       GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
+                                                &keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
@@ -1262,14 +1234,11 @@ run (void *cls,
   }
 
   if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (cfg,
-                                              "transport-http",
-                                              "PORT",
-                                              &port)) ||
-      (port > 65535) || (port == 0))
+       GNUNET_CONFIGURATION_get_value_number (cfg, "transport-http", "PORT",
+                                              &port)) || (port > 65535) ||
+      (port == 0))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                     "http",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "http",
                      _
                      ("Require valid port number for transport plugin `%s' in configuration!\n"),
                      "transport-http");
@@ -1297,8 +1266,8 @@ run (void *cls,
   /* load plugins... */
   setup_plugin_environment ();
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_http");
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading HTTP transport plugin `%s'\n"), libname);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin `%s'\n"),
+              libname);
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)
@@ -1322,9 +1291,9 @@ run (void *cls,
   cur = addr_head;
   while (cur != NULL)
   {
-    api->address_pretty_printer (api->cls, "http",
-                                 cur->addr, cur->addrlen, GNUNET_NO,
-                                 TEST_TIMEOUT, &pretty_printer_cb, NULL);
+    api->address_pretty_printer (api->cls, "http", cur->addr, cur->addrlen,
+                                 GNUNET_NO, TEST_TIMEOUT, &pretty_printer_cb,
+                                 NULL);
     addr_str = api->address_to_string (api->cls, cur->addr, cur->addrlen);
     suggest_res = api->check_address (api->cls, cur->addr, cur->addrlen);
 
@@ -1444,12 +1413,11 @@ main (int argc, char *const *argv)
   GNUNET_DISK_directory_remove (servicehome);
   GNUNET_CONFIGURATION_destroy (cfg);
 
-  ret = (GNUNET_OK ==
-         GNUNET_PROGRAM_run (5,
-                             argv_prog,
-                             "test_gnunet_transport_plugin_http",
-                             "testcase", options, &run,
-                             NULL)) ? GNUNET_NO : GNUNET_YES;
+  ret =
+      (GNUNET_OK ==
+       GNUNET_PROGRAM_run (5, argv_prog, "test_gnunet_transport_plugin_http",
+                           "testcase", options, &run,
+                           NULL)) ? GNUNET_NO : GNUNET_YES;
 
   if (servicehome != NULL)
   {

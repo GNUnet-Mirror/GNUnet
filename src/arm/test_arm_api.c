@@ -114,9 +114,8 @@ arm_notify (void *cls, int success)
 
 
 static void
-task (void *cls,
-      char *const *args,
-      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+task (void *cls, char *const *args, const char *cfgfile,
+      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
   arm = GNUNET_ARM_connect (cfg, NULL);
@@ -145,9 +144,8 @@ check ()
   };
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                                     argv,
-                                     "test-arm-api",
-                                     "nohelp", options, &task, NULL));
+                                     argv, "test-arm-api", "nohelp", options,
+                                     &task, NULL));
   return ok;
 }
 

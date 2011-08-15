@@ -34,12 +34,10 @@
 #define START_SERVICE GNUNET_YES
 
 static int
-check_1 (void *cls,
-         const char *subsystem,
-         const char *name, uint64_t value, int is_persistent)
+check_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
+         int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received value %llu for `%s:%s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received value %llu for `%s:%s\n",
               (unsigned long long) value, subsystem, name);
   GNUNET_assert (0 == strcmp (name, "test-1"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api"));
@@ -49,12 +47,10 @@ check_1 (void *cls,
 }
 
 static int
-check_2 (void *cls,
-         const char *subsystem,
-         const char *name, uint64_t value, int is_persistent)
+check_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
+         int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received value %llu for `%s:%s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received value %llu for `%s:%s\n",
               (unsigned long long) value, subsystem, name);
   GNUNET_assert (0 == strcmp (name, "test-2"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api"));
@@ -64,12 +60,10 @@ check_2 (void *cls,
 }
 
 static int
-check_3 (void *cls,
-         const char *subsystem,
-         const char *name, uint64_t value, int is_persistent)
+check_3 (void *cls, const char *subsystem, const char *name, uint64_t value,
+         int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received value %llu for `%s:%s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received value %llu for `%s:%s\n",
               (unsigned long long) value, subsystem, name);
   GNUNET_assert (0 == strcmp (name, "test-3"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api"));
@@ -102,9 +96,8 @@ next (void *cls, int success)
 }
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   h = GNUNET_STATISTICS_create ("test-statistics-api", cfg);
   GNUNET_STATISTICS_set (h, "test-1", 1, GNUNET_NO);
@@ -119,9 +112,8 @@ run (void *cls,
 }
 
 static void
-run_more (void *cls,
-          char *const *args,
-          const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run_more (void *cls, char *const *args, const char *cfgfile,
+          const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   h = GNUNET_STATISTICS_create ("test-statistics-api", cfg);
   GNUNET_break (NULL !=
@@ -151,16 +143,17 @@ check ()
 #if START_SERVICE
   struct GNUNET_OS_Process *proc;
 
-  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
-                                  "gnunet-service-statistics",
+  proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
+                               "gnunet-service-statistics",
 #if DEBUG_STATISTICS
-                                  "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                  "-c", "test_statistics_api_data.conf", NULL);
+                               "-c", "test_statistics_api_data.conf", NULL);
 #endif
   GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp",
-                      options, &run, &ok);
+  GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp", options, &run,
+                      &ok);
 #if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
@@ -176,15 +169,16 @@ check ()
   ok = 1;
 #if START_SERVICE
   /* restart to check persistence! */
-  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
-                                  "gnunet-service-statistics",
+  proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
+                               "gnunet-service-statistics",
 #if DEBUG_STATISTICS
-                                  "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                  "-c", "test_statistics_api_data.conf", NULL);
+                               "-c", "test_statistics_api_data.conf", NULL);
 #endif
-  GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp",
-                      options, &run_more, &ok);
+  GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp", options,
+                      &run_more, &ok);
 #if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {

@@ -72,8 +72,7 @@ shutdown_callback (void *cls, const char *emsg)
 
 
 static void
-my_cb (void *cls,
-       const struct GNUNET_PeerIdentity *id,
+my_cb (void *cls, const struct GNUNET_PeerIdentity *id,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
@@ -98,9 +97,8 @@ my_cb (void *cls,
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_TESTING_Host *hosts;
   struct GNUNET_TESTING_Host *hostpos;
@@ -133,8 +131,9 @@ run (void *cls,
   if (hostfile != NULL)
   {
     if (GNUNET_OK != GNUNET_DISK_file_test (hostfile))
-      GNUNET_DISK_fn_write (hostfile, NULL, 0, GNUNET_DISK_PERM_USER_READ
-                            | GNUNET_DISK_PERM_USER_WRITE);
+      GNUNET_DISK_fn_write (hostfile, NULL, 0,
+                            GNUNET_DISK_PERM_USER_READ |
+                            GNUNET_DISK_PERM_USER_WRITE);
     if ((0 != STAT (hostfile, &frstat)) || (frstat.st_size == 0))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -202,9 +201,8 @@ run (void *cls,
   pg = GNUNET_TESTING_daemons_start (cfg, peers_left,   /* Total number of peers */
                                      peers_left,        /* Number of outstanding connections */
                                      peers_left,        /* Number of parallel ssh connections, or peers being started at once */
-                                     TIMEOUT,
-                                     NULL,
-                                     NULL, &my_cb, NULL, NULL, NULL, hosts);
+                                     TIMEOUT, NULL, NULL, &my_cb, NULL, NULL,
+                                     NULL, hosts);
   hostpos = hosts;
   while (hostpos != NULL)
   {
@@ -233,8 +231,8 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-testing-group", "nohelp", options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-testing-group", "nohelp", options, &run, &ok);
   return ok;
 }
 

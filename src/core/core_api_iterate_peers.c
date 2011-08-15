@@ -114,10 +114,9 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   /* Normal case */
   if (request_context->peer_cb != NULL)
-    request_context->peer_cb (request_context->cb_cls,
-                              &connect_message->peer, &connect_message->ats);
-  GNUNET_CLIENT_receive (request_context->client,
-                         &receive_info,
+    request_context->peer_cb (request_context->cb_cls, &connect_message->peer,
+                              &connect_message->ats);
+  GNUNET_CLIENT_receive (request_context->client, &receive_info,
                          request_context, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -194,16 +193,13 @@ GNUNET_CORE_is_peer_connected (const struct GNUNET_CONFIGURATION_Handle *cfg,
   request_context->cb_cls = cb_cls;
   request_context->peer = peer;
 
-  request_context->th = GNUNET_CLIENT_notify_transmit_ready (client,
-                                                             sizeof (struct
-                                                                     GNUNET_MessageHeader)
-                                                             +
-                                                             sizeof (struct
-                                                                     GNUNET_PeerIdentity),
-                                                             GNUNET_TIME_relative_get_forever
-                                                             (), GNUNET_YES,
-                                                             &transmit_request,
-                                                             peer);
+  request_context->th =
+      GNUNET_CLIENT_notify_transmit_ready (client,
+                                           sizeof (struct GNUNET_MessageHeader)
+                                           +
+                                           sizeof (struct GNUNET_PeerIdentity),
+                                           GNUNET_TIME_relative_get_forever (),
+                                           GNUNET_YES, &transmit_request, peer);
   GNUNET_assert (request_context->th != NULL);
   GNUNET_CLIENT_receive (client, &receive_info, request_context,
                          GNUNET_TIME_relative_get_forever ());
@@ -238,13 +234,11 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
   request_context->peer_cb = peer_cb;
   request_context->cb_cls = cb_cls;
 
-  request_context->th = GNUNET_CLIENT_notify_transmit_ready (client,
-                                                             sizeof (struct
-                                                                     GNUNET_MessageHeader),
-                                                             GNUNET_TIME_relative_get_forever
-                                                             (), GNUNET_YES,
-                                                             &transmit_request,
-                                                             NULL);
+  request_context->th =
+      GNUNET_CLIENT_notify_transmit_ready (client,
+                                           sizeof (struct GNUNET_MessageHeader),
+                                           GNUNET_TIME_relative_get_forever (),
+                                           GNUNET_YES, &transmit_request, NULL);
 
   GNUNET_CLIENT_receive (client, &receive_info, request_context,
                          GNUNET_TIME_relative_get_forever ());

@@ -397,8 +397,8 @@ gen_prime (gcry_mpi_t * ptest, unsigned int nbits, GNUNET_HashCode * hc)
  * @param hc the HC to use for PRNG (modified!)
  */
 static void
-generate_kblock_key (KBlock_secret_key *sk,
-                     unsigned int nbits, GNUNET_HashCode * hc)
+generate_kblock_key (KBlock_secret_key *sk, unsigned int nbits,
+                     GNUNET_HashCode * hc)
 {
   gcry_mpi_t t1, t2;
   gcry_mpi_t phi;               /* helper: (p-1)(q-1) */
@@ -569,10 +569,9 @@ ksk_decode_key (const struct KskRsaPrivateKeyBinaryEncoded *encoding)
 
   pos = 0;
   size = ntohs (encoding->sizen);
-  rc = gcry_mpi_scan (&n,
-                      GCRYMPI_FMT_USG,
-                      &((const unsigned char *) (&encoding[1]))[pos],
-                      size, &size);
+  rc = gcry_mpi_scan (&n, GCRYMPI_FMT_USG,
+                      &((const unsigned char *) (&encoding[1]))[pos], size,
+                      &size);
   pos += ntohs (encoding->sizen);
   if (rc)
   {
@@ -580,10 +579,9 @@ ksk_decode_key (const struct KskRsaPrivateKeyBinaryEncoded *encoding)
     return NULL;
   }
   size = ntohs (encoding->sizee);
-  rc = gcry_mpi_scan (&e,
-                      GCRYMPI_FMT_USG,
-                      &((const unsigned char *) (&encoding[1]))[pos],
-                      size, &size);
+  rc = gcry_mpi_scan (&e, GCRYMPI_FMT_USG,
+                      &((const unsigned char *) (&encoding[1]))[pos], size,
+                      &size);
   pos += ntohs (encoding->sizee);
   if (rc)
   {
@@ -592,10 +590,9 @@ ksk_decode_key (const struct KskRsaPrivateKeyBinaryEncoded *encoding)
     return NULL;
   }
   size = ntohs (encoding->sized);
-  rc = gcry_mpi_scan (&d,
-                      GCRYMPI_FMT_USG,
-                      &((const unsigned char *) (&encoding[1]))[pos],
-                      size, &size);
+  rc = gcry_mpi_scan (&d, GCRYMPI_FMT_USG,
+                      &((const unsigned char *) (&encoding[1]))[pos], size,
+                      &size);
   pos += ntohs (encoding->sized);
   if (rc)
   {
@@ -608,10 +605,9 @@ ksk_decode_key (const struct KskRsaPrivateKeyBinaryEncoded *encoding)
   size = ntohs (encoding->sizep);
   if (size > 0)
   {
-    rc = gcry_mpi_scan (&q,
-                        GCRYMPI_FMT_USG,
-                        &((const unsigned char *) (&encoding[1]))[pos],
-                        size, &size);
+    rc = gcry_mpi_scan (&q, GCRYMPI_FMT_USG,
+                        &((const unsigned char *) (&encoding[1]))[pos], size,
+                        &size);
     pos += ntohs (encoding->sizep);
     if (rc)
     {
@@ -627,10 +623,9 @@ ksk_decode_key (const struct KskRsaPrivateKeyBinaryEncoded *encoding)
   size = ntohs (encoding->sizeq);
   if (size > 0)
   {
-    rc = gcry_mpi_scan (&p,
-                        GCRYMPI_FMT_USG,
-                        &((const unsigned char *) (&encoding[1]))[pos],
-                        size, &size);
+    rc = gcry_mpi_scan (&p, GCRYMPI_FMT_USG,
+                        &((const unsigned char *) (&encoding[1]))[pos], size,
+                        &size);
     pos += ntohs (encoding->sizeq);
     if (rc)
     {
@@ -652,10 +647,9 @@ ksk_decode_key (const struct KskRsaPrivateKeyBinaryEncoded *encoding)
       pos;
   if (size > 0)
   {
-    rc = gcry_mpi_scan (&u,
-                        GCRYMPI_FMT_USG,
-                        &((const unsigned char *) (&encoding[1]))[pos],
-                        size, &size);
+    rc = gcry_mpi_scan (&u, GCRYMPI_FMT_USG,
+                        &((const unsigned char *) (&encoding[1]))[pos], size,
+                        &size);
     if (rc)
     {
       LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);

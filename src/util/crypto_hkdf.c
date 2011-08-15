@@ -71,8 +71,8 @@
  * @return HMAC, freed by caller via gcry_md_close/_reset
  */
 static const void *
-doHMAC (gcry_md_hd_t mac,
-        const void *key, size_t key_len, const void *buf, size_t buf_len)
+doHMAC (gcry_md_hd_t mac, const void *key, size_t key_len, const void *buf,
+        size_t buf_len)
 {
   gcry_md_setkey (mac, key, key_len);
   gcry_md_write (mac, buf, buf_len);
@@ -91,9 +91,8 @@ doHMAC (gcry_md_hd_t mac,
  * @return GNUNET_YES on success
  */
 static int
-getPRK (gcry_md_hd_t mac,
-        const void *xts, size_t xts_len,
-        const void *skm, size_t skm_len, void *prk)
+getPRK (gcry_md_hd_t mac, const void *xts, size_t xts_len, const void *skm,
+        size_t skm_len, void *prk)
 {
   const void *ret;
 
@@ -136,10 +135,9 @@ dump (const char *src, const void *p, unsigned int l)
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
-                      int xtr_algo, int prf_algo,
-                      const void *xts, size_t xts_len,
-                      const void *skm, size_t skm_len, va_list argp)
+GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
+                      const void *xts, size_t xts_len, const void *skm,
+                      size_t skm_len, va_list argp)
 {
   const void *hc;
   unsigned long i, t, d;
@@ -280,17 +278,17 @@ hkdf_ok:
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_hkdf (void *result, size_t out_len,
-                    int xtr_algo, int prf_algo,
-                    const void *xts, size_t xts_len,
-                    const void *skm, size_t skm_len, ...)
+GNUNET_CRYPTO_hkdf (void *result, size_t out_len, int xtr_algo, int prf_algo,
+                    const void *xts, size_t xts_len, const void *skm,
+                    size_t skm_len, ...)
 {
   va_list argp;
   int ret;
 
   va_start (argp, skm_len);
-  ret = GNUNET_CRYPTO_hkdf_v (result, out_len, xtr_algo, prf_algo, xts,
-                              xts_len, skm, skm_len, argp);
+  ret =
+      GNUNET_CRYPTO_hkdf_v (result, out_len, xtr_algo, prf_algo, xts, xts_len,
+                            skm, skm_len, argp);
   va_end (argp);
 
   return ret;

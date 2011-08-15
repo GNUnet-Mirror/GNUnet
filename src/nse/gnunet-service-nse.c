@@ -315,8 +315,10 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   sumweight = 0.0;
   for (i = 0; i < estimate_count; i++)
   {
-    val = htonl (size_estimate_messages[(estimate_index - i + HISTORY_SIZE)
-                                        % HISTORY_SIZE].matching_bits);
+    val =
+        htonl (size_estimate_messages
+               [(estimate_index - i +
+                 HISTORY_SIZE) % HISTORY_SIZE].matching_bits);
     weight = 1;                 /* was: estimate_count + 1 - i; */
 
     temp = weight + sumweight;
@@ -338,8 +340,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   em->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   em->size_estimate = mean - 1.0 / 3.0;
   em->std_deviation = std_dev;
-  GNUNET_STATISTICS_set (stats,
-                         "# nodes in the network (estimate)",
+  GNUNET_STATISTICS_set (stats, "# nodes in the network (estimate)",
                          (uint64_t) pow (2, mean - 1.0 / 3.0), GNUNET_NO);
 }
 
@@ -385,8 +386,7 @@ get_matching_bits_delay (uint32_t matching_bits)
   // f is frequency (gnunet_nse_interval)
   // x is matching_bits
   // p' is current_size_estimate
-  return ((double) gnunet_nse_interval.rel_value / (double) 2.0)
-      -
+  return ((double) gnunet_nse_interval.rel_value / (double) 2.0) -
       ((gnunet_nse_interval.rel_value / M_PI) *
        atan (matching_bits - current_size_estimate));
 }
@@ -406,12 +406,12 @@ get_delay_randomization (uint32_t matching_bits)
 
   if (matching_bits == 0)
     return GNUNET_TIME_UNIT_ZERO;
-  ret.rel_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                            (uint32_t) (get_matching_bits_delay
-                                                        (matching_bits -
-                                                         1) /
-                                                        (double) (hop_count_max
-                                                                  + 1)));
+  ret.rel_value =
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                (uint32_t) (get_matching_bits_delay
+                                            (matching_bits -
+                                             1) / (double) (hop_count_max +
+                                                            1)));
   return ret;
 #else
   return GNUNET_TIME_UNIT_ZERO;
@@ -432,8 +432,8 @@ get_matching_bits (struct GNUNET_TIME_Absolute timestamp,
 {
   GNUNET_HashCode timestamp_hash;
 
-  GNUNET_CRYPTO_hash (&timestamp.abs_value,
-                      sizeof (timestamp.abs_value), &timestamp_hash);
+  GNUNET_CRYPTO_hash (&timestamp.abs_value, sizeof (timestamp.abs_value),
+                      &timestamp_hash);
   return GNUNET_CRYPTO_hash_matching_bits (&timestamp_hash, &id->hashPubKey);
 }
 
@@ -498,8 +498,8 @@ get_transmit_delay (int round_offset)
  * @param cls the 'struct NSEPeerEntry'
  * @param tc scheduler context
  */
-static void
-transmit_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void transmit_task (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -545,17 +545,15 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "In round %llu, sending to `%s' estimate with %u bits\n",
               (unsigned long long)
-              GNUNET_TIME_absolute_ntoh (size_estimate_messages[idx].
-                                         timestamp).abs_value,
-              GNUNET_i2s (&peer_entry->id),
+              GNUNET_TIME_absolute_ntoh (size_estimate_messages[idx].timestamp).
+              abs_value, GNUNET_i2s (&peer_entry->id),
               (unsigned int) ntohl (size_estimate_messages[idx].matching_bits));
 #endif
   if (ntohl (size_estimate_messages[idx].hop_count) == 0)
     GNUNET_STATISTICS_update (stats, "# flood messages started", 1, GNUNET_NO);
-  GNUNET_STATISTICS_update (stats,
-                            "# flood messages transmitted", 1, GNUNET_NO);
-  memcpy (buf,
-          &size_estimate_messages[idx],
+  GNUNET_STATISTICS_update (stats, "# flood messages transmitted", 1,
+                            GNUNET_NO);
+  memcpy (buf, &size_estimate_messages[idx],
           sizeof (struct GNUNET_NSE_FloodMessage));
   GNUNET_STATISTICS_update (stats, "# flood messages sent", 1, GNUNET_NO);
   return sizeof (struct GNUNET_NSE_FloodMessage);
@@ -575,15 +573,13 @@ transmit_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL == peer_entry->th);
-  peer_entry->th
-      = GNUNET_CORE_notify_transmit_ready (coreAPI,
-                                           GNUNET_NO,
-                                           NSE_PRIORITY,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           &peer_entry->id,
-                                           sizeof (struct
-                                                   GNUNET_NSE_FloodMessage),
-                                           &transmit_ready, peer_entry);
+  peer_entry->th =
+      GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_NO, NSE_PRIORITY,
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         &peer_entry->id,
+                                         sizeof (struct
+                                                 GNUNET_NSE_FloodMessage),
+                                         &transmit_ready, peer_entry);
 }
 
 
@@ -622,10 +618,10 @@ setup_flood_message (unsigned int slot, struct GNUNET_TIME_Absolute ts)
   fm->header.type = htons (GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD);
   fm->hop_count = htonl (0);
   fm->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_NSE_SEND);
-  fm->purpose.size = htonl (sizeof (struct GNUNET_NSE_FloodMessage)
-                            - sizeof (struct GNUNET_MessageHeader)
-                            - sizeof (uint32_t)
-                            - sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  fm->purpose.size =
+      htonl (sizeof (struct GNUNET_NSE_FloodMessage) -
+             sizeof (struct GNUNET_MessageHeader) - sizeof (uint32_t) -
+             sizeof (struct GNUNET_CRYPTO_RsaSignature));
   fm->matching_bits = htonl (matching_bits);
   fm->timestamp = GNUNET_TIME_absolute_hton (ts);
   fm->pkey = my_public_key;
@@ -684,13 +680,13 @@ update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != offset.rel_value)
   {
     /* somehow run early, delay more */
-    flood_task
-        = GNUNET_SCHEDULER_add_delayed (offset, &update_flood_message, NULL);
+    flood_task =
+        GNUNET_SCHEDULER_add_delayed (offset, &update_flood_message, NULL);
     return;
   }
   current_timestamp = next_timestamp;
-  next_timestamp = GNUNET_TIME_absolute_add (current_timestamp,
-                                             gnunet_nse_interval);
+  next_timestamp =
+      GNUNET_TIME_absolute_add (current_timestamp, gnunet_nse_interval);
   estimate_index = (estimate_index + 1) % HISTORY_SIZE;
   if (estimate_count < HISTORY_SIZE)
     estimate_count++;
@@ -699,16 +695,16 @@ update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     /* we received a message for this round way early, use it! */
     size_estimate_messages[estimate_index] = next_message;
-    size_estimate_messages[estimate_index].hop_count
-        = htonl (1 + ntohl (next_message.hop_count));
+    size_estimate_messages[estimate_index].hop_count =
+        htonl (1 + ntohl (next_message.hop_count));
   }
   else
     setup_flood_message (estimate_index, current_timestamp);
   next_message.matching_bits = htonl (0);       /* reset for 'next' round */
   hop_count_max = 0;
   for (i = 0; i < HISTORY_SIZE; i++)
-    hop_count_max = GNUNET_MAX (ntohl (size_estimate_messages[i].hop_count),
-                                hop_count_max);
+    hop_count_max =
+        GNUNET_MAX (ntohl (size_estimate_messages[i].hop_count), hop_count_max);
   GNUNET_CONTAINER_multihashmap_iterate (peers, &schedule_current_round, NULL);
   flood_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
@@ -753,8 +749,8 @@ check_proof_of_work (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
   GNUNET_HashCode result;
 
   memcpy (buf, &val, sizeof (val));
-  memcpy (&buf[sizeof (val)],
-          pkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  memcpy (&buf[sizeof (val)], pkey,
+          sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   GNUNET_CRYPTO_hash (buf, sizeof (buf), &result);
   return (count_leading_zeroes (&result) >=
           nse_work_required) ? GNUNET_YES : GNUNET_NO;
@@ -773,9 +769,7 @@ write_proof ()
       GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "PROOFFILE", &proof))
     return;
   if (sizeof (my_proof) !=
-      GNUNET_DISK_fn_write (proof,
-                            &my_proof,
-                            sizeof (my_proof),
+      GNUNET_DISK_fn_write (proof, &my_proof, sizeof (my_proof),
                             GNUNET_DISK_PERM_USER_READ |
                             GNUNET_DISK_PERM_USER_WRITE))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", proof);
@@ -801,8 +795,7 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
 
   proof_task = GNUNET_SCHEDULER_NO_TASK;
-  memcpy (&buf[sizeof (uint64_t)],
-          &my_public_key,
+  memcpy (&buf[sizeof (uint64_t)], &my_public_key,
           sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   i = 0;
   counter = my_proof;
@@ -814,8 +807,7 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       my_proof = counter;
 #if DEBUG_NSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Proof of work found: %llu!\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Proof of work found: %llu!\n",
                   (unsigned long long) GNUNET_ntohll (counter));
 #endif
       for (i = 0; i < HISTORY_SIZE; i++)
@@ -835,8 +827,7 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (my_proof / (100 * ROUND_SIZE) < counter / (100 * ROUND_SIZE))
   {
 #if DEBUG_NSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Testing proofs currently at %llu\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing proofs currently at %llu\n",
                 (unsigned long long) counter);
 #endif
     /* remember progress every 100 rounds */
@@ -847,8 +838,8 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     my_proof = counter;
   }
-  proof_task = GNUNET_SCHEDULER_add_delayed (proof_find_delay,
-                                             &find_proof, NULL);
+  proof_task =
+      GNUNET_SCHEDULER_add_delayed (proof_find_delay, &find_proof, NULL);
 }
 
 
@@ -869,10 +860,9 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
       check_proof_of_work (&incoming_flood->pkey,
                            incoming_flood->proof_of_work))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Proof of work invalid: %llu!\n"),
-                (unsigned long long)
-                GNUNET_ntohll (incoming_flood->proof_of_work));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Proof of work invalid: %llu!\n"),
+                (unsigned long long) GNUNET_ntohll (incoming_flood->
+                                                    proof_of_work));
     GNUNET_break_op (0);
     return GNUNET_NO;
   }
@@ -923,9 +913,8 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
     peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
   }
   delay = get_transmit_delay (0);
-  peer_entry->transmit_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                            &transmit_task,
-                                                            peer_entry);
+  peer_entry->transmit_task =
+      GNUNET_SCHEDULER_add_delayed (delay, &transmit_task, peer_entry);
   return GNUNET_OK;
 }
 
@@ -940,8 +929,7 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
  *
  */
 static int
-handle_p2p_size_estimate (void *cls,
-                          const struct GNUNET_PeerIdentity *peer,
+handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
                           const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
@@ -971,9 +959,9 @@ handle_p2p_size_estimate (void *cls,
     GNUNET_snprintf (pred, sizeof (pred), "%s", GNUNET_i2s (peer));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Flood at %llu from `%s' via `%s' at `%s' with bits %u\n",
-                (unsigned long long)
-                GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp).abs_value,
-                origin, pred, GNUNET_i2s (&my_identity),
+                (unsigned long long) GNUNET_TIME_absolute_ntoh (incoming_flood->
+                                                                timestamp).
+                abs_value, origin, pred, GNUNET_i2s (&my_identity),
                 (unsigned int) matching_bits);
   }
 #endif
@@ -1015,8 +1003,8 @@ handle_p2p_size_estimate (void *cls,
   if (0 == (memcmp (peer, &my_identity, sizeof (struct GNUNET_PeerIdentity))))
   {
     /* send to self, update our own estimate IF this also comes from us! */
-    if (0 == memcmp (&incoming_flood->pkey,
-                     &my_public_key, sizeof (my_public_key)))
+    if (0 ==
+        memcmp (&incoming_flood->pkey, &my_public_key, sizeof (my_public_key)))
       update_network_size_estimate ();
     return GNUNET_OK;
   }
@@ -1057,8 +1045,8 @@ handle_p2p_size_estimate (void *cls,
     {
       if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
-      peer_entry->transmit_task = GNUNET_SCHEDULER_add_now (&transmit_task,
-                                                            peer_entry);
+      peer_entry->transmit_task =
+          GNUNET_SCHEDULER_add_now (&transmit_task, peer_entry);
     }
     /* Not closer than our most recent message, no need to do work here */
     GNUNET_STATISTICS_update (stats,
@@ -1081,8 +1069,8 @@ handle_p2p_size_estimate (void *cls,
   update_network_size_estimate ();
 
   /* flood to rest */
-  GNUNET_CONTAINER_multihashmap_iterate (peers,
-                                         &update_flood_times, peer_entry);
+  GNUNET_CONTAINER_multihashmap_iterate (peers, &update_flood_times,
+                                         peer_entry);
   return GNUNET_OK;
 }
 
@@ -1102,14 +1090,12 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct NSEPeerEntry *peer_entry;
 
 #if DEBUG_NSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%s' connected to us\n", GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected to us\n",
+              GNUNET_i2s (peer));
 #endif
   peer_entry = GNUNET_malloc (sizeof (struct NSEPeerEntry));
   peer_entry->id = *peer;
-  GNUNET_CONTAINER_multihashmap_put (peers,
-                                     &peer->hashPubKey,
-                                     peer_entry,
+  GNUNET_CONTAINER_multihashmap_put (peers, &peer->hashPubKey, peer_entry,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   peer_entry->transmit_task =
       GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task,
@@ -1129,8 +1115,8 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct NSEPeerEntry *pos;
 
 #if DEBUG_NSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%s' disconnected from us\n", GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' disconnected from us\n",
+              GNUNET_i2s (peer));
 #endif
   pos = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
   if (NULL == pos)
@@ -1139,8 +1125,8 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     return;
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (peers,
-                                                       &peer->hashPubKey, pos));
+                 GNUNET_CONTAINER_multihashmap_remove (peers, &peer->hashPubKey,
+                                                       pos));
   if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
   if (pos->th != NULL)
@@ -1251,8 +1237,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   }
   estimate_index = HISTORY_SIZE - 1;
   estimate_count = 2;
-  flood_task
-      =
+  flood_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (next_timestamp), &update_flood_message,
                                     NULL);
@@ -1286,16 +1271,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   cfg = c;
 
   if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_time (cfg,
-                                            "NSE", "INTERVAL",
+       GNUNET_CONFIGURATION_get_value_time (cfg, "NSE", "INTERVAL",
                                             &gnunet_nse_interval)) ||
       (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_time (cfg,
-                                            "NSE", "WORKDELAY",
+       GNUNET_CONFIGURATION_get_value_time (cfg, "NSE", "WORKDELAY",
                                             &proof_find_delay)) ||
       (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (cfg,
-                                              "NSE", "WORKBITS",
+       GNUNET_CONFIGURATION_get_value_number (cfg, "NSE", "WORKBITS",
                                               &nse_work_required)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1314,8 +1296,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               "GNUNETD", "HOSTKEY", &keyfile))
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
+                                               &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
@@ -1374,8 +1356,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                  NULL,  /* Don't want notified about all outbound messages */
                                  GNUNET_NO,     /* For header only outbound notification */
                                  core_handlers);        /* Register these handlers */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
 #if ENABLE_HISTOGRAM
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "HISTOGRAM", &proof))
@@ -1403,10 +1385,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 int
 main (int argc, char *const *argv)
 {
-  return (GNUNET_OK == GNUNET_SERVICE_run (argc, argv,
-                                           "nse",
-                                           GNUNET_SERVICE_OPTION_NONE, &run,
-                                           NULL)) ? 0 : 1;
+  return (GNUNET_OK ==
+          GNUNET_SERVICE_run (argc, argv, "nse", GNUNET_SERVICE_OPTION_NONE,
+                              &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-nse.c */

@@ -124,9 +124,7 @@ cmd_sorter (__const void *a1, __const void *a2)
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
-GNUNET_PROGRAM_run (int argc,
-                    char *const *argv,
-                    const char *binaryName,
+GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
                     const char *binaryHelp,
                     const struct GNUNET_GETOPT_CommandLineOption *options,
                     GNUNET_PROGRAM_Main task, void *task_cls)
@@ -217,13 +215,10 @@ GNUNET_PROGRAM_run (int argc,
   lpfx = GNUNET_strdup (binaryName);
   if (NULL != (spc = strstr (lpfx, " ")))
     *spc = '\0';
-  if ((-1 == (ret = GNUNET_GETOPT_run (binaryName,
-                                       allopts,
-                                       (unsigned int) argc, argv))) ||
-      ((GNUNET_OK !=
-        GNUNET_log_setup (lpfx,
-                          loglev,
-                          logfile)) ||
+  if ((-1 ==
+       (ret =
+        GNUNET_GETOPT_run (binaryName, allopts, (unsigned int) argc, argv))) ||
+      ((GNUNET_OK != GNUNET_log_setup (lpfx, loglev, logfile)) ||
        (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cc.cfgfile))))
   {
     GNUNET_CONFIGURATION_destroy (cfg);

@@ -81,8 +81,8 @@ init_tun (char *dev)
 
   if (-1 == (fd = open ("/dev/net/tun", O_RDWR)))
   {
-    fprintf (stderr,
-             "Error opening `%s': %s\n", "/dev/net/tun", strerror (errno));
+    fprintf (stderr, "Error opening `%s': %s\n", "/dev/net/tun",
+             strerror (errno));
     return -1;
   }
 
@@ -100,9 +100,8 @@ init_tun (char *dev)
 
   if (-1 == ioctl (fd, TUNSETIFF, (void *) &ifr))
   {
-    fprintf (stderr,
-             "Error with ioctl on `%s': %s\n",
-             "/dev/net/tun", strerror (errno));
+    fprintf (stderr, "Error with ioctl on `%s': %s\n", "/dev/net/tun",
+             strerror (errno));
     close (fd);
     return -1;
   }
@@ -132,8 +131,8 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   memset (&sa6, 0, sizeof (struct sockaddr_in6));
   if (1 != inet_pton (AF_INET6, address, sa6.sin6_addr.s6_addr))
   {
-    fprintf (stderr,
-             "Failed to parse address `%s': %s\n", address, strerror (errno));
+    fprintf (stderr, "Failed to parse address `%s': %s\n", address,
+             strerror (errno));
     exit (1);
   }
 
@@ -165,8 +164,8 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
    */
   if (-1 == ioctl (fd, SIOCSIFADDR, &ifr6))
   {
-    fprintf (stderr,
-             "ioctl failed at line %d: %s\n", __LINE__, strerror (errno));
+    fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
+             strerror (errno));
     exit (1);
   }
 
@@ -175,8 +174,8 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
    */
   if (-1 == ioctl (fd, SIOCGIFFLAGS, &ifr))
   {
-    fprintf (stderr,
-             "ioctl failed at line %d: %s\n", __LINE__, strerror (errno));
+    fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
+             strerror (errno));
     exit (1);
   }
 
@@ -186,8 +185,8 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   if (-1 == ioctl (fd, SIOCSIFFLAGS, &ifr))
   {
-    fprintf (stderr,
-             "ioctl failed at line %d: %s\n", __LINE__, strerror (errno));
+    fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
+             strerror (errno));
     exit (1);
   }
 
@@ -224,8 +223,8 @@ set_address4 (const char *dev, const char *address, const char *mask)
    */
   if (1 != inet_pton (AF_INET, address, &addr->sin_addr.s_addr))
   {
-    fprintf (stderr,
-             "Failed to parse address `%s': %s\n", address, strerror (errno));
+    fprintf (stderr, "Failed to parse address `%s': %s\n", address,
+             strerror (errno));
     exit (1);
   }
 
@@ -253,8 +252,8 @@ set_address4 (const char *dev, const char *address, const char *mask)
   addr = (struct sockaddr_in *) &(ifr.ifr_netmask);
   if (1 != inet_pton (AF_INET, mask, &addr->sin_addr.s_addr))
   {
-    fprintf (stderr,
-             "Failed to parse address `%s': %s\n", mask, strerror (errno));
+    fprintf (stderr, "Failed to parse address `%s': %s\n", mask,
+             strerror (errno));
     exit (1);
   }
 
@@ -263,8 +262,8 @@ set_address4 (const char *dev, const char *address, const char *mask)
    */
   if (-1 == ioctl (fd, SIOCSIFNETMASK, &ifr))
   {
-    fprintf (stderr,
-             "ioctl failed at line %d: %s\n", __LINE__, strerror (errno));
+    fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
+             strerror (errno));
     exit (1);
   }
 
@@ -273,8 +272,8 @@ set_address4 (const char *dev, const char *address, const char *mask)
    */
   if (-1 == ioctl (fd, SIOCGIFFLAGS, &ifr))
   {
-    fprintf (stderr,
-             "ioctl failed at line %d: %s\n", __LINE__, strerror (errno));
+    fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
+             strerror (errno));
     exit (1);
   }
 
@@ -284,8 +283,8 @@ set_address4 (const char *dev, const char *address, const char *mask)
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   if (-1 == ioctl (fd, SIOCSIFFLAGS, &ifr))
   {
-    fprintf (stderr,
-             "ioctl failed at line %d: %s\n", __LINE__, strerror (errno));
+    fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
+             strerror (errno));
     exit (1);
   }
 
@@ -545,8 +544,8 @@ main (int argc, char **argv)
   if (0 != setresuid (uid, uid, uid))
     fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
   if (SIG_ERR == signal (SIGPIPE, SIG_IGN))
-    fprintf (stderr,
-             "Failed to protect against SIGPIPE: %s\n", strerror (errno));
+    fprintf (stderr, "Failed to protect against SIGPIPE: %s\n",
+             strerror (errno));
   run (fd_tun);
   close (fd_tun);
   return 0;

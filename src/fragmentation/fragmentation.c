@@ -176,16 +176,15 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fh->fragment_id = htonl (fc->fragment_id);
   fh->total_size = fc->msg->size;       /* already in big-endian */
   fh->offset = htons ((fc->mtu - sizeof (struct FragmentHeader)) * bit);
-  memcpy (&fh[1],
-          &mbuf[bit * (fc->mtu - sizeof (struct FragmentHeader))],
+  memcpy (&fh[1], &mbuf[bit * (fc->mtu - sizeof (struct FragmentHeader))],
           fsize - sizeof (struct FragmentHeader));
   if (NULL != fc->tracker)
     GNUNET_BANDWIDTH_tracker_consume (fc->tracker, fsize);
-  GNUNET_STATISTICS_update (fc->stats,
-                            _("# fragments transmitted"), 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (fc->stats, _("# fragments transmitted"), 1,
+                            GNUNET_NO);
   if (0 != fc->last_round.abs_value)
-    GNUNET_STATISTICS_update (fc->stats,
-                              _("# fragments retransmitted"), 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (fc->stats, _("# fragments retransmitted"), 1,
+                              GNUNET_NO);
 
   /* select next message to calculate delay */
   bit = fc->next_transmission;
@@ -201,8 +200,9 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (wrap)
   {
     /* full round transmitted wait 2x delay for ACK before going again */
-    delay = GNUNET_TIME_relative_max (GNUNET_TIME_relative_multiply (delay, 2),
-                                      fc->delay);
+    delay =
+        GNUNET_TIME_relative_max (GNUNET_TIME_relative_multiply (delay, 2),
+                                  fc->delay);
     /* never use zero, need some time for ACK always */
     delay = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS, delay);
     fc->last_round = GNUNET_TIME_absolute_get ();
@@ -248,8 +248,7 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   GNUNET_STATISTICS_update (stats, _("# messages fragmented"), 1, GNUNET_NO);
   GNUNET_assert (mtu >= 1024 + sizeof (struct FragmentHeader));
   size = ntohs (msg->size);
-  GNUNET_STATISTICS_update (stats,
-                            _("# total size of fragmented messages"),
+  GNUNET_STATISTICS_update (stats, _("# total size of fragmented messages"),
                             size, GNUNET_NO);
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   fc = GNUNET_malloc (sizeof (struct GNUNET_FRAGMENT_Context) + size);
@@ -260,8 +259,8 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   fc->msg = (const struct GNUNET_MessageHeader *) &fc[1];
   fc->proc = proc;
   fc->proc_cls = proc_cls;
-  fc->fragment_id = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                              UINT32_MAX);
+  fc->fragment_id =
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
   memcpy (&fc[1], msg, size);
   bits =
       (size + mtu - sizeof (struct FragmentHeader) - 1) / (mtu -
@@ -333,14 +332,14 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     fc->delay.rel_value = (ndelay.rel_value + 3 * fc->delay.rel_value) / 4;
   }
   GNUNET_STATISTICS_update (fc->stats,
-                            _("# fragment acknowledgements received"),
-                            1, GNUNET_NO);
+                            _("# fragment acknowledgements received"), 1,
+                            GNUNET_NO);
   if (abits != (fc->acks & abits))
   {
     /* ID collission or message reordering, count! This should be rare! */
     GNUNET_STATISTICS_update (fc->stats,
-                              _("# bits removed from fragmentation ACKs"),
-                              1, GNUNET_NO);
+                              _("# bits removed from fragmentation ACKs"), 1,
+                              GNUNET_NO);
   }
   fc->acks = abits & fc->acks_mask;
   if (0 != fc->acks)
@@ -363,8 +362,8 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
 
   /* all done */
   GNUNET_STATISTICS_update (fc->stats,
-                            _("# fragmentation transmissions completed"),
-                            1, GNUNET_NO);
+                            _("# fragmentation transmissions completed"), 1,
+                            GNUNET_NO);
   if (fc->task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (fc->task);

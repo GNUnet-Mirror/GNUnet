@@ -195,9 +195,8 @@ test (struct GNUNET_DHTLOG_Handle *api)
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DHTLOG_Handle *api;
 
@@ -229,8 +228,8 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-dhtlog-api", "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-dhtlog-api", "nohelp", options, &run, NULL);
   if (ok != 0)
     fprintf (stderr, "Test failed with error code: %d\n", ok);
   return ok;

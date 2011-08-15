@@ -522,8 +522,7 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
  * Receive packets from the helper-process
  */
 static void
-message_token (void *cls __attribute__ ((unused)),
-               void *client
+message_token (void *cls __attribute__ ((unused)), void *client
                __attribute__ ((unused)),
                const struct GNUNET_MessageHeader *message)
 {
@@ -612,8 +611,8 @@ read_service_conf (void *cls __attribute__ ((unused)), const char *section)
                                                      "TCP_REDIRECTS", &cpy)))
       goto next;
 
-    for (redirect = strtok (cpy, " "); redirect != NULL; redirect = strtok
-         (NULL, " "))
+    for (redirect = strtok (cpy, " "); redirect != NULL;
+         redirect = strtok (NULL, " "))
     {
       if (NULL == (hostname = strstr (redirect, ":")))
       {
@@ -654,8 +653,7 @@ read_service_conf (void *cls __attribute__ ((unused)), const char *section)
         char *ip4addr;
 
         GNUNET_assert (GNUNET_OK ==
-                       GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                              "exit",
+                       GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
                                                               "IPV4ADDR",
                                                               &ip4addr));
         GNUNET_assert (1 == inet_pton (AF_INET, ip4addr, serv->v4.ip4address));
@@ -668,8 +666,7 @@ read_service_conf (void *cls __attribute__ ((unused)), const char *section)
         char *ip6addr;
 
         GNUNET_assert (GNUNET_OK ==
-                       GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                              "exit",
+                       GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
                                                               "IPV6ADDR",
                                                               &ip6addr));
         GNUNET_assert (1 == inet_pton (AF_INET6, ip6addr, serv->v6.ip6address));
@@ -774,13 +771,10 @@ start_helper_and_schedule (void *cls,
    * When the helper dies, this function will be called again with the
    * helper_handle as cls.
    */
-  helper_handle = start_helper (ifname,
-                                ipv6addr,
-                                ipv6prefix,
-                                ipv4addr,
-                                ipv4mask,
-                                "exit-gnunet",
-                                start_helper_and_schedule, message_token, NULL);
+  helper_handle =
+      start_helper (ifname, ipv6addr, ipv6prefix, ipv4addr, ipv4mask,
+                    "exit-gnunet", start_helper_and_schedule, message_token,
+                    NULL);
 
   GNUNET_free (ipv6addr);
   GNUNET_free (ipv6prefix);
@@ -822,11 +816,11 @@ prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
   char *ipv4mask;
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
-                                                        "IPV4ADDR", &ipv4addr));
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
+                                                        &ipv4addr));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
-                                                        "IPV4MASK", &ipv4mask));
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
+                                                        &ipv4mask));
   inet_pton (AF_INET, ipv4addr, &tmp);
   inet_pton (AF_INET, ipv4mask, &tmp2);
   GNUNET_free (ipv4addr);
@@ -910,8 +904,8 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
   unsigned long long ipv6prefix;
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
-                                                        "IPV6ADDR", &ipv6addr));
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
+                                                        &ipv6addr));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg, "exit",
                                                         "IPV6PREFIX",
@@ -987,9 +981,10 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
  * The messages are one GNUNET_HashCode for the service followed by a struct tcp_pkt
  */
 static int
-receive_tcp_service (void *cls __attribute__ ((unused)),
-                     struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx __attribute__ ((unused)),
+receive_tcp_service (void *cls
+                     __attribute__ ((unused)),
+                     struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx
+                     __attribute__ ((unused)),
                      const struct GNUNET_PeerIdentity *sender
                      __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
@@ -999,9 +994,9 @@ receive_tcp_service (void *cls __attribute__ ((unused)),
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
-  unsigned int pkt_len = ntohs (message->size) - sizeof (struct
-                                                         GNUNET_MessageHeader)
-      - sizeof (GNUNET_HashCode);
+  unsigned int pkt_len =
+      ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
+      sizeof (GNUNET_HashCode);
 
   /** Get the configuration from the services-hashmap.
    *
@@ -1018,8 +1013,8 @@ receive_tcp_service (void *cls __attribute__ ((unused)),
 
   if (NULL == serv)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "No service found for TCP dpt %d!\n", *tcp_desc);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "No service found for TCP dpt %d!\n",
+                *tcp_desc);
     return GNUNET_YES;
   }
 
@@ -1045,7 +1040,8 @@ receive_tcp_service (void *cls __attribute__ ((unused)),
   state->hashmap = tcp_connections;
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
 
-  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
+  len =
+      sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
       sizeof (struct ip6_hdr) + pkt_len;
   buf = alloca (len);
 
@@ -1055,13 +1051,13 @@ receive_tcp_service (void *cls __attribute__ ((unused)),
   {
   case 4:
     prepare_ipv4_packet (len, pkt_len, pkt, 0x06,       /* TCP */
-                         &serv->v4.ip4address,
-                         tunnel, state, (struct ip_pkt *) buf);
+                         &serv->v4.ip4address, tunnel, state,
+                         (struct ip_pkt *) buf);
     break;
   case 6:
     prepare_ipv6_packet (len, pkt_len, pkt, 0x06,       /* TCP */
-                         &serv->v6.ip6address,
-                         tunnel, state, (struct ip6_pkt *) buf);
+                         &serv->v6.ip6address, tunnel, state,
+                         (struct ip6_pkt *) buf);
 
     break;
   default:
@@ -1094,9 +1090,10 @@ receive_tcp_service (void *cls __attribute__ ((unused)),
 }
 
 static int
-receive_tcp_remote (void *cls __attribute__ ((unused)),
-                    struct GNUNET_MESH_Tunnel *tunnel,
-                    void **tunnel_ctx __attribute__ ((unused)),
+receive_tcp_remote (void *cls
+                    __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                    void **tunnel_ctx
+                    __attribute__ ((unused)),
                     const struct GNUNET_PeerIdentity *sender
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
@@ -1120,7 +1117,8 @@ receive_tcp_remote (void *cls __attribute__ ((unused)),
   state->hashmap = tcp_connections;
   memcpy (&state->remote, s, sizeof (struct remote_addr));
 
-  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
+  len =
+      sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
       sizeof (struct ip6_hdr) + pkt_len;
   buf = alloca (len);
 
@@ -1169,9 +1167,10 @@ receive_tcp_remote (void *cls __attribute__ ((unused)),
 }
 
 static int
-receive_udp_remote (void *cls __attribute__ ((unused)),
-                    struct GNUNET_MESH_Tunnel *tunnel,
-                    void **tunnel_ctx __attribute__ ((unused)),
+receive_udp_remote (void *cls
+                    __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                    void **tunnel_ctx
+                    __attribute__ ((unused)),
                     const struct GNUNET_PeerIdentity *sender
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
@@ -1185,8 +1184,7 @@ receive_udp_remote (void *cls __attribute__ ((unused)),
   size_t len;
 
   GNUNET_assert (ntohs (pkt->len) ==
-                 ntohs (message->size) -
-                 sizeof (struct GNUNET_MessageHeader) -
+                 ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
                  sizeof (GNUNET_HashCode));
 
   /* Prepare the state.
@@ -1201,7 +1199,8 @@ receive_udp_remote (void *cls __attribute__ ((unused)),
   state->type = REMOTE;
   memcpy (&state->remote, s, sizeof (struct remote_addr));
 
-  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
+  len =
+      sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
       sizeof (struct ip6_hdr) + ntohs (pkt->len);
   buf = alloca (len);
 
@@ -1249,9 +1248,10 @@ receive_udp_remote (void *cls __attribute__ ((unused)),
  * The messages are one GNUNET_HashCode for the service, followed by a struct udp_pkt
  */
 static int
-receive_udp_service (void *cls __attribute__ ((unused)),
-                     struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx __attribute__ ((unused)),
+receive_udp_service (void *cls
+                     __attribute__ ((unused)),
+                     struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx
+                     __attribute__ ((unused)),
                      const struct GNUNET_PeerIdentity *sender
                      __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
@@ -1262,8 +1262,7 @@ receive_udp_service (void *cls __attribute__ ((unused)),
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
 
   GNUNET_assert (ntohs (pkt->len) ==
-                 ntohs (message->size) -
-                 sizeof (struct GNUNET_MessageHeader) -
+                 ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
                  sizeof (GNUNET_HashCode));
 
   /* Get the configuration from the hashmap */
@@ -1277,8 +1276,8 @@ receive_udp_service (void *cls __attribute__ ((unused)),
 
   if (NULL == serv)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "No service found for UDP dpt %d!\n", *udp_desc);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "No service found for UDP dpt %d!\n",
+                *udp_desc);
     return GNUNET_YES;
   }
 
@@ -1304,7 +1303,8 @@ receive_udp_service (void *cls __attribute__ ((unused)),
   state->hashmap = udp_connections;
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
 
-  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
+  len =
+      sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
       sizeof (struct ip6_hdr) + ntohs (pkt->len);
   buf = alloca (len);
 
@@ -1314,13 +1314,13 @@ receive_udp_service (void *cls __attribute__ ((unused)),
   {
   case 4:
     prepare_ipv4_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
-                         &serv->v4.ip4address,
-                         tunnel, state, (struct ip_pkt *) buf);
+                         &serv->v4.ip4address, tunnel, state,
+                         (struct ip_pkt *) buf);
     break;
   case 6:
     prepare_ipv6_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
-                         &serv->v6.ip6address,
-                         tunnel, state, (struct ip6_pkt *) buf);
+                         &serv->v6.ip6address, tunnel, state,
+                         (struct ip6_pkt *) buf);
 
     break;
   default:
@@ -1410,9 +1410,7 @@ connect_to_mesh ()
  * @param cfg_ configuration
  */
 static void
-run (void *cls,
-     char *const *args __attribute__ ((unused)),
-     const char *cfgfile
+run (void *cls, char *const *args __attribute__ ((unused)), const char *cfgfile
      __attribute__ ((unused)), const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   cfg = cfg_;
@@ -1454,10 +1452,7 @@ main (int argc, char *const *argv)
   };
 
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "exit",
-                              gettext_noop ("help text"),
+          GNUNET_PROGRAM_run (argc, argv, "exit", gettext_noop ("help text"),
                               options, &run, NULL)) ? ret : 1;
 }
 

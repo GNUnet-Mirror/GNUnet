@@ -41,9 +41,9 @@
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_kdf_v (void *result, size_t out_len,
-                     const void *xts, size_t xts_len, const void *skm,
-                     size_t skm_len, va_list argp)
+GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
+                     size_t xts_len, const void *skm, size_t skm_len,
+                     va_list argp)
 {
   /*
    * "Finally, we point out to a particularly advantageous instantiation using
@@ -73,9 +73,8 @@ GNUNET_CRYPTO_kdf_v (void *result, size_t out_len,
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_kdf (void *result, size_t out_len,
-                   const void *xts, size_t xts_len, const void *skm,
-                   size_t skm_len, ...)
+GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
+                   size_t xts_len, const void *skm, size_t skm_len, ...)
 {
   va_list argp;
   int ret;

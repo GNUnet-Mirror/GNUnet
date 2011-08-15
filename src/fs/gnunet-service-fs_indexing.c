@@ -126,9 +126,7 @@ write_index_list ()
   while (pos != NULL)
   {
     if ((GNUNET_OK !=
-         GNUNET_BIO_write (wh,
-                           &pos->file_id,
-                           sizeof (GNUNET_HashCode))) ||
+         GNUNET_BIO_write (wh, &pos->file_id, sizeof (GNUNET_HashCode))) ||
         (GNUNET_OK != GNUNET_BIO_write_string (wh, pos->filename)))
       break;
     pos = pos->next;
@@ -181,14 +179,11 @@ read_index_list ()
     return;
   }
   while ((GNUNET_OK ==
-          GNUNET_BIO_read (rh,
-                           "Hash of indexed file",
-                           &hc,
+          GNUNET_BIO_read (rh, "Hash of indexed file", &hc,
                            sizeof (GNUNET_HashCode))) &&
          (GNUNET_OK ==
-          GNUNET_BIO_read_string (rh,
-                                  "Name of indexed file",
-                                  &fname, 1024 * 16)) && (fname != NULL))
+          GNUNET_BIO_read_string (rh, "Name of indexed file", &fname,
+                                  1024 * 16)) && (fname != NULL))
   {
     slen = strlen (fname) + 1;
     pos = GNUNET_malloc (sizeof (struct IndexInfo) + slen);
@@ -196,9 +191,7 @@ read_index_list ()
     pos->filename = (const char *) &pos[1];
     memcpy (&pos[1], fname, slen);
     if (GNUNET_SYSERR ==
-        GNUNET_CONTAINER_multihashmap_put (ifm,
-                                           &hc,
-                                           (void *) pos->filename,
+        GNUNET_CONTAINER_multihashmap_put (ifm, &hc, (void *) pos->filename,
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
       GNUNET_free (pos);
@@ -226,8 +219,7 @@ static void
 signal_index_ok (struct IndexInfo *ii)
 {
   if (GNUNET_SYSERR ==
-      GNUNET_CONTAINER_multihashmap_put (ifm,
-                                         &ii->file_id,
+      GNUNET_CONTAINER_multihashmap_put (ifm, &ii->file_id,
                                          (void *) ii->filename,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
@@ -236,7 +228,8 @@ signal_index_ok (struct IndexInfo *ii)
                 ("Index request received for file `%s' is already indexed as `%s'.  Permitting anyway.\n"),
                 ii->filename,
                 (const char *) GNUNET_CONTAINER_multihashmap_get (ifm,
-                                                                  &ii->file_id));
+                                                                  &ii->
+                                                                  file_id));
     GNUNET_SERVER_transmit_context_append_data (ii->tc, NULL, 0,
                                                 GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK);
     GNUNET_SERVER_transmit_context_run (ii->tc, GNUNET_TIME_UNIT_MINUTES);
@@ -246,8 +239,7 @@ signal_index_ok (struct IndexInfo *ii)
   ii->next = indexed_files;
   indexed_files = ii;
   write_index_list ();
-  GNUNET_SERVER_transmit_context_append_data (ii->tc,
-                                              NULL, 0,
+  GNUNET_SERVER_transmit_context_append_data (ii->tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK);
   GNUNET_SERVER_transmit_context_run (ii->tc, GNUNET_TIME_UNIT_MINUTES);
   ii->tc = NULL;
@@ -275,11 +267,10 @@ hash_for_index_val (void *cls, const GNUNET_HashCode * res)
                 ("Hash mismatch trying to index file `%s' which has hash `%s'\n"),
                 ii->filename, GNUNET_h2s (res));
 #if DEBUG_FS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Wanted `%s'\n", GNUNET_h2s (&ii->file_id));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Wanted `%s'\n",
+                GNUNET_h2s (&ii->file_id));
 #endif
-    GNUNET_SERVER_transmit_context_append_data (ii->tc,
-                                                NULL, 0,
+    GNUNET_SERVER_transmit_context_append_data (ii->tc, NULL, 0,
                                                 GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED);
     GNUNET_SERVER_transmit_context_run (ii->tc, GNUNET_TIME_UNIT_MINUTES);
     GNUNET_free (ii);
@@ -297,8 +288,7 @@ hash_for_index_val (void *cls, const GNUNET_HashCode * res)
  * @param message the actual message
  */
 void
-GNUNET_FS_handle_index_start (void *cls,
-                              struct GNUNET_SERVER_Client *client,
+GNUNET_FS_handle_index_start (void *cls, struct GNUNET_SERVER_Client *client,
                               const struct GNUNET_MessageHeader *message)
 {
   const struct IndexStartMessage *ism;
@@ -341,19 +331,15 @@ GNUNET_FS_handle_index_start (void *cls,
   memcpy (&ii[1], fn, slen);
   ii->file_id = ism->file_id;
 #if DEBUG_FS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message for file `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for file `%s'\n",
               "START_INDEX", ii->filename);
 #endif
 
   ii->tc = GNUNET_SERVER_transmit_context_create (client);
   mydev = 0;
   myino = 0;
-  if (((dev != 0) ||
-       (ino != 0)) &&
-      (GNUNET_OK == GNUNET_DISK_file_get_identifiers (fn,
-                                                      &mydev,
-                                                      &myino)) &&
+  if (((dev != 0) || (ino != 0)) &&
+      (GNUNET_OK == GNUNET_DISK_file_get_identifiers (fn, &mydev, &myino)) &&
       ((dev == mydev) && (ino == myino)))
   {
     /* fast validation OK! */
@@ -364,15 +350,13 @@ GNUNET_FS_handle_index_start (void *cls,
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Mismatch in file identifiers (%llu != %llu or %u != %u), need to hash.\n",
-              (unsigned long long) ino,
-              (unsigned long long) myino,
+              (unsigned long long) ino, (unsigned long long) myino,
               (unsigned int) dev, (unsigned int) mydev);
 #endif
   /* slow validation, need to hash full file (again) */
-  ii->fhc = GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                     fn,
-                                     HASHING_BLOCKSIZE,
-                                     &hash_for_index_val, ii);
+  ii->fhc =
+      GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_IDLE, fn,
+                               HASHING_BLOCKSIZE, &hash_for_index_val, ii);
   if (ii->fhc == NULL)
     hash_for_index_val (ii, NULL);
   GNUNET_free (fn);
@@ -387,8 +371,7 @@ GNUNET_FS_handle_index_start (void *cls,
  * @param message the actual message
  */
 void
-GNUNET_FS_handle_index_list_get (void *cls,
-                                 struct GNUNET_SERVER_Client *client,
+GNUNET_FS_handle_index_list_get (void *cls, struct GNUNET_SERVER_Client *client,
                                  const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVER_TransmitContext *tc;
@@ -419,8 +402,7 @@ GNUNET_FS_handle_index_list_get (void *cls,
     GNUNET_SERVER_transmit_context_append_message (tc, &iim->header);
     pos = pos->next;
   }
-  GNUNET_SERVER_transmit_context_append_data (tc,
-                                              NULL, 0,
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_MINUTES);
 }
@@ -434,8 +416,7 @@ GNUNET_FS_handle_index_list_get (void *cls,
  * @param message the actual message
  */
 void
-GNUNET_FS_handle_unindex (void *cls,
-                          struct GNUNET_SERVER_Client *client,
+GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
   const struct UnindexMessage *um;
@@ -465,10 +446,9 @@ GNUNET_FS_handle_unindex (void *cls,
       else
         prev->next = next;
       GNUNET_break (GNUNET_OK ==
-                    GNUNET_CONTAINER_multihashmap_remove (ifm,
-                                                          &pos->file_id,
-                                                          (void *)
-                                                          pos->filename));
+                    GNUNET_CONTAINER_multihashmap_remove (ifm, &pos->file_id,
+                                                          (void *) pos->
+                                                          filename));
       GNUNET_free (pos);
       found = GNUNET_YES;
     }
@@ -486,8 +466,7 @@ GNUNET_FS_handle_unindex (void *cls,
   if (GNUNET_YES == found)
     write_index_list ();
   tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_SERVER_transmit_context_append_data (tc,
-                                              NULL, 0,
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_MINUTES);
 }
@@ -530,14 +509,11 @@ remove_cont (void *cls, int success, const char *msg)
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
-                                  uint32_t size,
-                                  const void *data,
-                                  enum GNUNET_BLOCK_Type type,
-                                  uint32_t priority,
-                                  uint32_t anonymity,
-                                  struct GNUNET_TIME_Absolute
-                                  expiration, uint64_t uid,
+GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key, uint32_t size,
+                                  const void *data, enum GNUNET_BLOCK_Type type,
+                                  uint32_t priority, uint32_t anonymity,
+                                  struct GNUNET_TIME_Absolute expiration,
+                                  uint64_t uid,
                                   GNUNET_DATASTORE_DatumProcessor cont,
                                   void *cont_cls)
 {
@@ -556,11 +532,7 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
   if (size != sizeof (struct OnDemandBlock))
   {
     GNUNET_break (0);
-    GNUNET_DATASTORE_remove (dsh,
-                             key,
-                             size,
-                             data,
-                             -1, -1,
+    GNUNET_DATASTORE_remove (dsh, key, size, data, -1, -1,
                              GNUNET_TIME_UNIT_FOREVER_REL, &remove_cont, NULL);
     return GNUNET_SYSERR;
   }
@@ -569,13 +541,11 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
   fn = (const char *) GNUNET_CONTAINER_multihashmap_get (ifm, &odb->file_id);
   fh = NULL;
   if ((NULL == fn) ||
-      (NULL == (fh = GNUNET_DISK_file_open (fn,
-                                            GNUNET_DISK_OPEN_READ,
-                                            GNUNET_DISK_PERM_NONE))) ||
-      (off !=
-       GNUNET_DISK_file_seek (fh,
-                              off,
-                              GNUNET_DISK_SEEK_SET)) ||
+      (NULL ==
+       (fh =
+        GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ,
+                               GNUNET_DISK_PERM_NONE))) ||
+      (off != GNUNET_DISK_file_seek (fh, off, GNUNET_DISK_SEEK_SET)) ||
       (-1 == (nsize = GNUNET_DISK_file_read (fh, ndata, sizeof (ndata)))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -585,11 +555,7 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
                 (fn == NULL) ? _("not indexed") : STRERROR (errno));
     if (fh != NULL)
       GNUNET_DISK_file_close (fh);
-    GNUNET_DATASTORE_remove (dsh,
-                             key,
-                             size,
-                             data,
-                             -1, -1,
+    GNUNET_DATASTORE_remove (dsh, key, size, data, -1, -1,
                              GNUNET_TIME_UNIT_FOREVER_REL, &remove_cont, NULL);
     return GNUNET_SYSERR;
   }
@@ -601,13 +567,9 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
   if (0 != memcmp (&query, key, sizeof (GNUNET_HashCode)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Indexed file `%s' changed at offset %llu\n"),
-                fn, (unsigned long long) off);
-    GNUNET_DATASTORE_remove (dsh,
-                             key,
-                             size,
-                             data,
-                             -1, -1,
+                _("Indexed file `%s' changed at offset %llu\n"), fn,
+                (unsigned long long) off);
+    GNUNET_DATASTORE_remove (dsh, key, size, data, -1, -1,
                              GNUNET_TIME_UNIT_FOREVER_REL, &remove_cont, NULL);
     return GNUNET_SYSERR;
   }
@@ -615,11 +577,8 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "On-demand encoded block for query `%s'\n", GNUNET_h2s (key));
 #endif
-  cont (cont_cls,
-        key,
-        nsize,
-        edata,
-        GNUNET_BLOCK_TYPE_FS_DBLOCK, priority, anonymity, expiration, uid);
+  cont (cont_cls, key, nsize, edata, GNUNET_BLOCK_TYPE_FS_DBLOCK, priority,
+        anonymity, expiration, uid);
   return GNUNET_OK;
 }
 

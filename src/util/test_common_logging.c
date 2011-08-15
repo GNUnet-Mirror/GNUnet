@@ -27,8 +27,8 @@
 #include "gnunet_common.h"
 
 static void
-my_log (void *ctx, enum GNUNET_ErrorType kind,
-        const char *component, const char *date, const char *msg)
+my_log (void *ctx, enum GNUNET_ErrorType kind, const char *component,
+        const char *date, const char *msg)
 {
   unsigned int *c = ctx;
 

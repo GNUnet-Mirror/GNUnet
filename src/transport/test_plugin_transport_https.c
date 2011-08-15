@@ -559,10 +559,9 @@ static void run_connection_tests (int phase, void *cls);
 static struct GNUNET_TIME_Relative
 receive (void *cls, const struct GNUNET_PeerIdentity *peer,
          const struct GNUNET_MessageHeader *message,
-         const struct GNUNET_TRANSPORT_ATS_Information *ats,
-         uint32_t ats_count,
-         struct Session *session,
-         const char *sender_address, uint16_t sender_address_len)
+         const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count,
+         struct Session *session, const char *sender_address,
+         uint16_t sender_address_len)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Testcase recieved new message from peer `%s' with type %u and length %u, session %X\n",
@@ -723,9 +722,8 @@ send_execute (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
             GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                         _("curl failed for `%s' at %s:%d: `%s'\n"),
-                        "curl_multi_perform",
-                        __FILE__,
-                        __LINE__, curl_easy_strerror (msg->data.result));
+                        "curl_multi_perform", __FILE__, __LINE__,
+                        curl_easy_strerror (msg->data.result));
             /* sending msg failed */
             curl_easy_cleanup (curl_handle);
             curl_handle = NULL;
@@ -826,8 +824,7 @@ send_prepare (struct HTTP_Transfer *result)
   mret = curl_multi_fdset (multi_handle, &rs, &ws, &es, &max);
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("%s failed at %s:%d: `%s'\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
                 "curl_multi_fdset", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
     return -1;
@@ -835,8 +832,7 @@ send_prepare (struct HTTP_Transfer *result)
   mret = curl_multi_timeout (multi_handle, &to);
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("%s failed at %s:%d: `%s'\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
                 "curl_multi_timeout", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
     return -1;
@@ -955,8 +951,7 @@ notify_address (void *cls, int add_remove, const void *addr, size_t addrlen)
 }
 
 static void
-plugin_env_session_end (void *cls,
-                        const struct GNUNET_PeerIdentity *peer,
+plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
                         struct Session *session)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1230,9 +1225,8 @@ run_connection_tests (int phase, void *cls)
  * @param c configuration to use
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *libname;
 
@@ -1264,14 +1258,11 @@ run (void *cls,
 
 
   if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (c,
-                                              "TRANSPORT",
-                                              "NEIGHBOUR_LIMIT",
+       GNUNET_CONFIGURATION_get_value_number (c, "TRANSPORT", "NEIGHBOUR_LIMIT",
                                               &tneigh)) ||
       (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_filename (c,
-                                                "GNUNETD",
-                                                "HOSTKEY", &keyfile)))
+       GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
+                                                &keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
@@ -1282,14 +1273,11 @@ run (void *cls,
   }
 
   if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (cfg,
-                                              "transport-https",
-                                              "PORT",
-                                              &port)) ||
-      (port > 65535) || (port == 0))
+       GNUNET_CONFIGURATION_get_value_number (cfg, "transport-https", "PORT",
+                                              &port)) || (port > 65535) ||
+      (port == 0))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                     "https",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "https",
                      _
                      ("Require valid port number for transport plugin `%s' in configuration!\n"),
                      "transport-http");
@@ -1298,9 +1286,8 @@ run (void *cls,
   /* Get private key file from config */
   if (GNUNET_CONFIGURATION_have_value (cfg, "transport-https", "KEY_FILE"))
   {
-    GNUNET_CONFIGURATION_get_value_string (cfg,
-                                           "transport-https",
-                                           "KEY_FILE", &key_file);
+    GNUNET_CONFIGURATION_get_value_string (cfg, "transport-https", "KEY_FILE",
+                                           &key_file);
   }
   if (key_file == NULL)
     GNUNET_asprintf (&key_file, "https.key");
@@ -1319,9 +1306,8 @@ run (void *cls,
   /* Get private key file from config */
   if (GNUNET_CONFIGURATION_have_value (cfg, "transport-https", "CERT_FILE"))
   {
-    GNUNET_CONFIGURATION_get_value_string (cfg,
-                                           "transport-https",
-                                           "CERT_FILE", &cert_file);
+    GNUNET_CONFIGURATION_get_value_string (cfg, "transport-https", "CERT_FILE",
+                                           &cert_file);
   }
   if (cert_file == NULL)
     GNUNET_asprintf (&cert_file, "https.cert");
@@ -1511,12 +1497,11 @@ main (int argc, char *const *argv)
   GNUNET_DISK_directory_remove (servicehome);
   GNUNET_CONFIGURATION_destroy (cfg);
 
-  ret = (GNUNET_OK ==
-         GNUNET_PROGRAM_run (5,
-                             argv_prog,
-                             "test_gnunet_transport_plugin.https",
-                             "testcase", options, &run,
-                             NULL)) ? GNUNET_NO : GNUNET_YES;
+  ret =
+      (GNUNET_OK ==
+       GNUNET_PROGRAM_run (5, argv_prog, "test_gnunet_transport_plugin.https",
+                           "testcase", options, &run,
+                           NULL)) ? GNUNET_NO : GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("\ndelete\n\n"));
   if (servicehome != NULL)
   {

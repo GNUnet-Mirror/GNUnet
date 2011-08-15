@@ -193,8 +193,8 @@ end ()
   GAUGER ("TRANSPORT", value_name, (int) (total_bytes * 1000 / 1024 / delta),
           "kb/s");
   GNUNET_free (value_name);
-  fprintf (stderr,
-           "\nThroughput was %llu kb/s\n", total_bytes * 1000 / 1024 / delta);
+  fprintf (stderr, "\nThroughput was %llu kb/s\n",
+           total_bytes * 1000 / 1024 / delta);
   ok = result;
 
 }
@@ -231,8 +231,8 @@ end_unreliably ()
               "Transports disconnected, returning success!\n");
 #endif
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
-  fprintf (stderr,
-           "\nThroughput was %llu kb/s\n", total_bytes * 1000 / 1024 / delta);
+  fprintf (stderr, "\nThroughput was %llu kb/s\n",
+           total_bytes * 1000 / 1024 / delta);
   GNUNET_asprintf (&value_name, "unreliable_%s", test_name);
   GAUGER ("TRANSPORT", value_name, (int) (total_bytes * 1000 / 1024 / delta),
           "kb/s");
@@ -355,8 +355,7 @@ get_size (unsigned int iter)
 
 
 static void
-notify_receive (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
@@ -401,8 +400,7 @@ notify_receive (void *cls,
 #if VERBOSE
   if (ntohl (hdr->num) % 5 == 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Got message %u of size %u\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got message %u of size %u\n",
                 ntohl (hdr->num), ntohs (message->size));
   }
 #endif
@@ -456,8 +454,8 @@ notify_ready (void *cls, size_t size, void *buf)
 #if VERBOSE
     if (n % 5000 == 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending message %u of size %u\n", n, s);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending message %u of size %u\n", n,
+                  s);
     }
 #endif
     n++;
@@ -468,10 +466,9 @@ notify_ready (void *cls, size_t size, void *buf)
   while (size - ret >= s);
   if (n < TOTAL_MSGS)
   {
-    th_p2 = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
-                                                    &p1.id,
-                                                    s, 0, TIMEOUT,
-                                                    &notify_ready, NULL);
+    th_p2 =
+        GNUNET_TRANSPORT_notify_transmit_ready (p2.th, &p1.id, s, 0, TIMEOUT,
+                                                &notify_ready, NULL);
     msg_scheduled = n;
   }
   else
@@ -500,8 +497,8 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   connected--;
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected (%p)!\n", GNUNET_i2s (peer), cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' disconnected (%p)!\n",
+              GNUNET_i2s (peer), cls);
 #endif
   if (th_p2 != NULL)
   {
@@ -513,17 +510,15 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-notify_connect (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
+              GNUNET_i2s (peer), cls);
   if (cls == &p1)
   {
-    GNUNET_TRANSPORT_set_quota (p1.th,
-                                &p2.id,
+    GNUNET_TRANSPORT_set_quota (p1.th, &p2.id,
                                 GNUNET_BANDWIDTH_value_init (1024 * 1024 *
                                                              1024),
                                 GNUNET_BANDWIDTH_value_init (1024 * 1024 *
@@ -533,8 +528,7 @@ notify_connect (void *cls,
   }
   else
   {
-    GNUNET_TRANSPORT_set_quota (p2.th,
-                                &p1.id,
+    GNUNET_TRANSPORT_set_quota (p2.th, &p1.id,
                                 GNUNET_BANDWIDTH_value_init (1024 * 1024 *
                                                              1024),
                                 GNUNET_BANDWIDTH_value_init (1024 * 1024 *
@@ -564,10 +558,8 @@ notify_connect (void *cls,
     }
 
     die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-    GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
-                                            &p1.id,
-                                            get_size (0), 0, TIMEOUT,
-                                            &notify_ready, NULL);
+    GNUNET_TRANSPORT_notify_transmit_ready (p2.th, &p1.id, get_size (0), 0,
+                                            TIMEOUT, &notify_ready, NULL);
 
   }
 }
@@ -583,8 +575,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   if (GNUNET_CONFIGURATION_have_value (p->cfg, "PATHS", "SERVICEHOME"))
   {
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (p->cfg,
-                                                          "PATHS",
+                   GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS",
                                                           "SERVICEHOME",
                                                           &p->servicehome));
     GNUNET_DISK_directory_remove (p->servicehome);
@@ -592,19 +583,18 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
-                                         "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE_ARM
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
 
-  p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL,
-                                    p,
-                                    &notify_receive,
-                                    &notify_connect, &notify_disconnect);
+  p->th =
+      GNUNET_TRANSPORT_connect (p->cfg, NULL, p, &notify_receive,
+                                &notify_connect, &notify_disconnect);
   GNUNET_assert (p->th != NULL);
 }
 
@@ -694,8 +684,8 @@ check_gnunet_nat_binary (char *binary)
   }
   if (0 != STAT (p, &statbuf))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("stat (%s) failed: %s\n"), p, STRERROR (errno));
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("stat (%s) failed: %s\n"), p,
+                STRERROR (errno));
     GNUNET_free (p);
     return GNUNET_SYSERR;
   }
@@ -727,16 +717,16 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking peers to connect...\n");
   GNUNET_TRANSPORT_try_connect (p2.th, &p1.id);
   GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
-  tct = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                      &try_connect, NULL);
+  tct =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
+                                    NULL);
 }
 
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   if (is_tcp)
@@ -814,9 +804,9 @@ check ()
     return 0;
   }
 
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-transport-api-unreliability", "nohelp",
-                      options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-transport-api-unreliability", "nohelp", options,
+                      &run, &ok);
   stop_arm (&p1);
   stop_arm (&p2);
 

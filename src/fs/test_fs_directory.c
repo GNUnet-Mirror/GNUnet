@@ -41,11 +41,9 @@ struct PCLS
 };
 
 static void
-processor (void *cls,
-           const char *filename,
-           const struct GNUNET_FS_Uri *uri,
-           const struct GNUNET_CONTAINER_MetaData *md,
-           size_t length, const void *data)
+processor (void *cls, const char *filename, const struct GNUNET_FS_Uri *uri,
+           const struct GNUNET_CONTAINER_MetaData *md, size_t length,
+           const void *data)
 {
   struct PCLS *p = cls;
   int i;
@@ -54,8 +52,7 @@ processor (void *cls,
     return;                     /* ignore directory's meta data */
   for (i = 0; i < p->max; i++)
   {
-    if (GNUNET_CONTAINER_meta_data_test_equal (p->md[i],
-                                               md) &&
+    if (GNUNET_CONTAINER_meta_data_test_equal (p->md[i], md) &&
         GNUNET_FS_uri_test_equal (p->uri[i], uri))
     {
       p->pos++;
@@ -88,17 +85,12 @@ testDirectory (unsigned int i)
   uris = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri *) * i);
   mds = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_MetaData *) * i);
   meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_CONTAINER_meta_data_insert (meta,
-                                     "<test>",
-                                     EXTRACTOR_METATYPE_TITLE,
-                                     EXTRACTOR_METAFORMAT_UTF8,
-                                     "text/plain",
+  GNUNET_CONTAINER_meta_data_insert (meta, "<test>", EXTRACTOR_METATYPE_TITLE,
+                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                      "A title", strlen ("A title") + 1);
-  GNUNET_CONTAINER_meta_data_insert (meta,
-                                     "<test>",
+  GNUNET_CONTAINER_meta_data_insert (meta, "<test>",
                                      EXTRACTOR_METATYPE_AUTHOR_NAME,
-                                     EXTRACTOR_METAFORMAT_UTF8,
-                                     "text/plain",
+                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                      "An author", strlen ("An author") + 1);
   for (p = 0; p < i; p++)
   {
@@ -106,14 +98,12 @@ testDirectory (unsigned int i)
     for (q = 0; q <= p; q++)
     {
       GNUNET_snprintf (txt, sizeof (txt), "%u -- %u\n", p, q);
-      GNUNET_CONTAINER_meta_data_insert (mds[p],
-                                         "<test>",
+      GNUNET_CONTAINER_meta_data_insert (mds[p], "<test>",
                                          q % EXTRACTOR_metatype_get_max (),
                                          EXTRACTOR_METAFORMAT_UTF8,
                                          "text/plain", txt, strlen (txt) + 1);
     }
-    GNUNET_snprintf (uri,
-                     sizeof (uri),
+    GNUNET_snprintf (uri, sizeof (uri),
                      "gnunet://fs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.%u",
                      p);
     emsg = NULL;

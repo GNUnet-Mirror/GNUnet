@@ -165,13 +165,12 @@ end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-notify_connect (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
+              GNUNET_i2s (peer), cls);
   if (cls == &p1)
   {
     GNUNET_assert (ok >= 2);
@@ -182,8 +181,8 @@ notify_connect (void *cls,
     if (GNUNET_SCHEDULER_NO_TASK != tct)
       GNUNET_SCHEDULER_cancel (tct);
     tct = GNUNET_SCHEDULER_NO_TASK;
-    die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_TRANSMIT,
-                                             &end_normally, NULL);
+    die_task =
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT_TRANSMIT, &end_normally, NULL);
   }
 }
 
@@ -196,8 +195,8 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected (%p)!\n", GNUNET_i2s (peer), cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' disconnected (%p)!\n",
+              GNUNET_i2s (peer), cls);
 }
 
 
@@ -210,24 +209,24 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   if (GNUNET_CONFIGURATION_have_value (p->cfg, "PATHS", "SERVICEHOME"))
   {
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (p->cfg,
-                                                          "PATHS",
+                   GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS",
                                                           "SERVICEHOME",
                                                           &p->servicehome));
     GNUNET_DISK_directory_remove (p->servicehome);
   }
 
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                         "gnunet-service-arm",
+  p->arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE_ARM
-                                         "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                                         "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 #endif
-  p->th = GNUNET_TRANSPORT_connect (p->cfg,
-                                    NULL, p,
-                                    NULL, &notify_connect, &notify_disconnect);
+  p->th =
+      GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, &notify_connect,
+                                &notify_disconnect);
   GNUNET_assert (p->th != NULL);
 }
 
@@ -239,15 +238,15 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* FIXME: 'pX.id' may still be all-zeros here... */
   GNUNET_TRANSPORT_try_connect (p2.th, &p1.id);
   GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
-  tct = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                      &try_connect, NULL);
+  tct =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
+                                    NULL);
 }
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
@@ -284,8 +283,8 @@ check ()
   setTransportOptions ("test_transport_api_data.conf");
 #endif
   ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-transport-api", "nohelp", options, &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-transport-api", "nohelp", options, &run, &ok);
   stop_arm (&p1);
   stop_arm (&p2);
 

@@ -60,19 +60,20 @@ parent_control_handler (void *cls,
   int sig;
 
 #if DEBUG_OS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s' invoked because of %d\n", __FUNCTION__, tc->reason);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n",
+              __FUNCTION__, tc->reason);
 #endif
-  if (tc->reason & (GNUNET_SCHEDULER_REASON_SHUTDOWN |
-                    GNUNET_SCHEDULER_REASON_TIMEOUT |
-                    GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  if (tc->
+      reason & (GNUNET_SCHEDULER_REASON_SHUTDOWN |
+                GNUNET_SCHEDULER_REASON_TIMEOUT |
+                GNUNET_SCHEDULER_REASON_PREREQ_DONE))
   {
     GNUNET_DISK_npipe_close (control_pipe);
   }
   else
   {
-    if (GNUNET_DISK_file_read (control_pipe,
-                               &sig, sizeof (sig)) != sizeof (sig))
+    if (GNUNET_DISK_file_read (control_pipe, &sig, sizeof (sig)) !=
+        sizeof (sig))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
       GNUNET_DISK_npipe_close (control_pipe);
@@ -80,12 +81,12 @@ parent_control_handler (void *cls,
     else
     {
 #if DEBUG_OS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Got control code %d from parent\n", sig);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got control code %d from parent\n",
+                  sig);
 #endif
       GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      control_pipe,
-                                      &parent_control_handler, control_pipe);
+                                      control_pipe, &parent_control_handler,
+                                      control_pipe);
       raise (sig);
     }
   }
@@ -111,10 +112,10 @@ GNUNET_OS_install_parent_control_handler (void *cls,
                 GNUNET_OS_CONTROL_PIPE, env_buf);
     return;
   }
-  control_pipe = GNUNET_DISK_npipe_open (env_buf,
-                                         GNUNET_DISK_OPEN_READ,
-                                         GNUNET_DISK_PERM_USER_READ |
-                                         GNUNET_DISK_PERM_USER_WRITE);
+  control_pipe =
+      GNUNET_DISK_npipe_open (env_buf, GNUNET_DISK_OPEN_READ,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE);
   if (control_pipe == NULL)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "open", env_buf);
@@ -125,8 +126,7 @@ GNUNET_OS_install_parent_control_handler (void *cls,
               "Adding parent control handler pipe `%s' to the scheduler\n",
               env_buf);
 #endif
-  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  control_pipe,
+  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, control_pipe,
                                   &parent_control_handler, control_pipe);
 }
 
@@ -219,13 +219,14 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
      */
     while (1)
     {
-      ret = GNUNET_NETWORK_socket_select (rfds, NULL, efds,
-                                          GNUNET_TIME_relative_multiply
-                                          (GNUNET_TIME_relative_get_unit (),
-                                           5000));
+      ret =
+          GNUNET_NETWORK_socket_select (rfds, NULL, efds,
+                                        GNUNET_TIME_relative_multiply
+                                        (GNUNET_TIME_relative_get_unit (),
+                                         5000));
 
-      if (ret < 1 || GNUNET_NETWORK_fdset_handle_isset (efds,
-                                                        proc->control_pipe))
+      if (ret < 1 ||
+          GNUNET_NETWORK_fdset_handle_isset (efds, proc->control_pipe))
       {
         /* Just to be sure */
         PLIBC_KILL (proc->pid, sig);
@@ -234,8 +235,8 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
       }
       else
       {
-        if (GNUNET_DISK_file_read (proc->control_pipe, &ret,
-                                   sizeof (ret)) != GNUNET_OK)
+        if (GNUNET_DISK_file_read (proc->control_pipe, &ret, sizeof (ret)) !=
+            GNUNET_OK)
           res = PLIBC_KILL (proc->pid, sig);
 
         /* Child signaled shutdown is in progress */
@@ -394,8 +395,8 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
     errno = 0;
     if ((delta != 0) && (rprio == nice (delta)) && (errno != 0))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |
-                           GNUNET_ERROR_TYPE_BULK, "nice");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+                           "nice");
       return GNUNET_SYSERR;
     }
   }
@@ -403,8 +404,8 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
   {
     if (0 != setpriority (PRIO_PROCESS, pid, rprio))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |
-                           GNUNET_ERROR_TYPE_BULK, "setpriority");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+                           "setpriority");
       return GNUNET_SYSERR;
     }
   }
@@ -552,10 +553,10 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   int fd_stdin_write;
 
 #if ENABLE_WINDOWS_WORKAROUNDS
-  control_pipe = GNUNET_DISK_npipe_create (&childpipename,
-                                           GNUNET_DISK_OPEN_WRITE,
-                                           GNUNET_DISK_PERM_USER_READ |
-                                           GNUNET_DISK_PERM_USER_WRITE);
+  control_pipe =
+      GNUNET_DISK_npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
+                                GNUNET_DISK_PERM_USER_READ |
+                                GNUNET_DISK_PERM_USER_WRITE);
   if (control_pipe == NULL)
     return NULL;
 #endif
@@ -776,10 +777,10 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
     start.hStdOutput = stdout_handle;
   }
 
-  control_pipe = GNUNET_DISK_npipe_create (&childpipename,
-                                           GNUNET_DISK_OPEN_WRITE,
-                                           GNUNET_DISK_PERM_USER_READ |
-                                           GNUNET_DISK_PERM_USER_WRITE);
+  control_pipe =
+      GNUNET_DISK_npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
+                                GNUNET_DISK_PERM_USER_READ |
+                                GNUNET_DISK_PERM_USER_WRITE);
   if (control_pipe == NULL)
   {
     GNUNET_free (cmd);
@@ -865,8 +866,8 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  * @return process ID of the new process, -1 on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_v (const int *lsocks,
-                           const char *filename, char *const argv[])
+GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
+                           char *const argv[])
 {
 #if ENABLE_WINDOWS_WORKAROUNDS
   struct GNUNET_DISK_FileHandle *control_pipe = NULL;
@@ -887,10 +888,10 @@ GNUNET_OS_start_process_v (const int *lsocks,
   unsigned int ls;
 
 #if ENABLE_WINDOWS_WORKAROUNDS
-  control_pipe = GNUNET_DISK_npipe_create (&childpipename,
-                                           GNUNET_DISK_OPEN_WRITE,
-                                           GNUNET_DISK_PERM_USER_READ |
-                                           GNUNET_DISK_PERM_USER_WRITE);
+  control_pipe =
+      GNUNET_DISK_npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
+                                GNUNET_DISK_PERM_USER_READ |
+                                GNUNET_DISK_PERM_USER_WRITE);
   if (control_pipe == NULL)
     return NULL;
 #endif
@@ -1121,10 +1122,10 @@ GNUNET_OS_start_process_v (const int *lsocks,
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
 
-  control_pipe = GNUNET_DISK_npipe_create (&childpipename,
-                                           GNUNET_DISK_OPEN_WRITE,
-                                           GNUNET_DISK_PERM_USER_READ |
-                                           GNUNET_DISK_PERM_USER_WRITE);
+  control_pipe =
+      GNUNET_DISK_npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
+                                GNUNET_DISK_PERM_USER_READ |
+                                GNUNET_DISK_PERM_USER_WRITE);
   if (control_pipe == NULL)
   {
     GNUNET_free (cmd);
@@ -1414,9 +1415,9 @@ cmd_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     proc (cmd->proc_cls, NULL);
     return;
   }
-  ret = GNUNET_DISK_file_read (cmd->r,
-                               &cmd->buf[cmd->off],
-                               sizeof (cmd->buf) - cmd->off);
+  ret =
+      GNUNET_DISK_file_read (cmd->r, &cmd->buf[cmd->off],
+                             sizeof (cmd->buf) - cmd->off);
   if (ret <= 0)
   {
     if ((cmd->off > 0) && (cmd->off < sizeof (cmd->buf)))
@@ -1457,10 +1458,9 @@ cmd_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return NULL on error
  */
 struct GNUNET_OS_CommandHandle *
-GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
-                       void *proc_cls,
-                       struct GNUNET_TIME_Relative timeout,
-                       const char *binary, ...)
+GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
+                       struct GNUNET_TIME_Relative timeout, const char *binary,
+                       ...)
 {
   struct GNUNET_OS_CommandHandle *cmd;
   struct GNUNET_OS_Process *eip;
