@@ -38,33 +38,35 @@ extern GNUNET_SCHEDULER_TaskIdentifier shs_task;
 /**
  * Start the helper-process
  */
-void start_helper_and_schedule(void *cls,
-			       const struct GNUNET_SCHEDULER_TaskContext *tc);
+void start_helper_and_schedule (void *cls,
+                                const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Restart the helper-process
  */
-void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx);
+void restart_helper (void *cls,
+                     const struct GNUNET_SCHEDULER_TaskContext *tskctx);
 
 /**
  * Read from the helper-process
  */
-void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
+void helper_read (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tsdkctx);
 
 /**
  * Send an dns-answer-packet to the helper
  */
-void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
+void helper_write (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tsdkctx);
 
 /**
  * Receive packets from the helper-process
  */
-void message_token(void *cls,
-		   void *client,
-		   const struct GNUNET_MessageHeader *message);
+void message_token (void *cls,
+                    void *client, const struct GNUNET_MessageHeader *message);
 
-void write_to_helper(void* buf, size_t len);
+void write_to_helper (void *buf, size_t len);
 
-void schedule_helper_write(struct GNUNET_TIME_Relative, void* cls);
+void schedule_helper_write (struct GNUNET_TIME_Relative, void *cls);
 
 #endif /* end of include guard: GNUNET-DAEMON-VPN-HELPER_H */

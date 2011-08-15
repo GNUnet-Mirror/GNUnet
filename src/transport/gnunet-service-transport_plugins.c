@@ -90,10 +90,10 @@ static struct TransportPlugin *plugins_tail;
  * @param traffic_cb function to call for flow control
  * @param session_end_cb function to call when a session was terminated
  */
-void 
+void
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
-		  GNUNET_TRANSPORT_AddressNotification address_cb,
-		  GNUNET_TRANSPORT_SessionEnd session_end_cb)
+                  GNUNET_TRANSPORT_AddressNotification address_cb,
+                  GNUNET_TRANSPORT_SessionEnd session_end_cb)
 {
   struct TransportPlugin *plug;
   unsigned long long tneigh;
@@ -103,57 +103,48 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-					     "TRANSPORT",
-					     "NEIGHBOUR_LIMIT",
-					     &tneigh))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Transport service is lacking NEIGHBOUR_LIMIT option.\n"));
-      return;
-    }
+                                             "TRANSPORT",
+                                             "NEIGHBOUR_LIMIT", &tneigh))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Transport service is lacking NEIGHBOUR_LIMIT option.\n"));
+    return;
+  }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (GST_cfg,
                                              "TRANSPORT", "PLUGINS", &plugs))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Starting transport plugins `%s'\n"),
-	      plugs);
+              _("Starting transport plugins `%s'\n"), plugs);
   for (pos = strtok (plugs, " "); pos != NULL; pos = strtok (NULL, " "))
-    {	  
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Loading `%s' transport plugin\n"), pos);
-      GNUNET_asprintf (&libname, 
-		       "libgnunet_plugin_transport_%s",
-		       pos);
-      plug = GNUNET_malloc (sizeof (struct TransportPlugin));
-      plug->short_name = GNUNET_strdup (pos);
-      plug->lib_name = libname;
-      plug->env.cfg = GST_cfg;
-      plug->env.my_identity = &GST_my_identity;
-      plug->env.get_our_hello = &GST_hello_get;
-      plug->env.cls = plug->short_name;
-      plug->env.receive = recv_cb;
-      plug->env.notify_address = address_cb;
-      plug->env.session_end = session_end_cb;
-      plug->env.max_connections = tneigh;
-      plug->env.stats = GST_stats;
-      GNUNET_CONTAINER_DLL_insert (plugins_head,
-				   plugins_tail,
-				   plug);
-      plug->api = GNUNET_PLUGIN_load (libname, &plug->env);
-      if (plug->api == NULL)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Failed to load transport plugin for `%s'\n"), 
-		      pos);
-	  GNUNET_CONTAINER_DLL_remove (plugins_head,
-				       plugins_tail,
-				       plug);
-	  GNUNET_free (plug->short_name);
-	  GNUNET_free (plug->lib_name);
-	  GNUNET_free (plug);
-	}
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Loading `%s' transport plugin\n"), pos);
+    GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", pos);
+    plug = GNUNET_malloc (sizeof (struct TransportPlugin));
+    plug->short_name = GNUNET_strdup (pos);
+    plug->lib_name = libname;
+    plug->env.cfg = GST_cfg;
+    plug->env.my_identity = &GST_my_identity;
+    plug->env.get_our_hello = &GST_hello_get;
+    plug->env.cls = plug->short_name;
+    plug->env.receive = recv_cb;
+    plug->env.notify_address = address_cb;
+    plug->env.session_end = session_end_cb;
+    plug->env.max_connections = tneigh;
+    plug->env.stats = GST_stats;
+    GNUNET_CONTAINER_DLL_insert (plugins_head, plugins_tail, plug);
+    plug->api = GNUNET_PLUGIN_load (libname, &plug->env);
+    if (plug->api == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to load transport plugin for `%s'\n"), pos);
+      GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
+      GNUNET_free (plug->short_name);
+      GNUNET_free (plug->lib_name);
+      GNUNET_free (plug);
     }
+  }
   GNUNET_free (plugs);
 }
 
@@ -167,15 +158,13 @@ GST_plugins_unload ()
   struct TransportPlugin *plug;
 
   while (NULL != (plug = plugins_head))
-    {
-      GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
-      GNUNET_free (plug->lib_name);
-      GNUNET_free (plug->short_name);
-      GNUNET_CONTAINER_DLL_remove (plugins_head,
-				   plugins_tail,
-				   plug);
-      GNUNET_free (plug);
-    }
+  {
+    GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
+    GNUNET_free (plug->lib_name);
+    GNUNET_free (plug->short_name);
+    GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
+    GNUNET_free (plug);
+  }
 }
 
 
@@ -208,20 +197,16 @@ GST_plugins_find (const char *name)
  * @return statically allocated (!) human-readable address
  */
 const char *
-GST_plugins_a2s (const char *name,
-		 const void *addr,
-		 size_t addrlen)
+GST_plugins_a2s (const char *name, const void *addr, size_t addrlen)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api;
 
   if (name == NULL)
     return NULL;
   api = GST_plugins_find (name);
-  if ( (api == NULL) || (addrlen == 0) || (addr == NULL) )
+  if ((api == NULL) || (addrlen == 0) || (addr == NULL))
     return NULL;
-  return api->address_to_string (NULL,
-				 addr,
-				 addrlen);
+  return api->address_to_string (NULL, addr, addrlen);
 }
 
 

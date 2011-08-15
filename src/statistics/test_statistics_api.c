@@ -39,10 +39,8 @@ check_1 (void *cls,
          const char *name, uint64_t value, int is_persistent)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received value %llu for `%s:%s\n",
-	      (unsigned long long) value,
-	      subsystem,
-	      name);
+              "Received value %llu for `%s:%s\n",
+              (unsigned long long) value, subsystem, name);
   GNUNET_assert (0 == strcmp (name, "test-1"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api"));
   GNUNET_assert (value == 1);
@@ -56,10 +54,8 @@ check_2 (void *cls,
          const char *name, uint64_t value, int is_persistent)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received value %llu for `%s:%s\n",
-	      (unsigned long long) value,
-	      subsystem,
-	      name);
+              "Received value %llu for `%s:%s\n",
+              (unsigned long long) value, subsystem, name);
   GNUNET_assert (0 == strcmp (name, "test-2"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api"));
   GNUNET_assert (value == 2);
@@ -73,10 +69,8 @@ check_3 (void *cls,
          const char *name, uint64_t value, int is_persistent)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received value %llu for `%s:%s\n",
-	      (unsigned long long) value,
-	      subsystem,
-	      name);
+              "Received value %llu for `%s:%s\n",
+              (unsigned long long) value, subsystem, name);
   GNUNET_assert (0 == strcmp (name, "test-3"));
   GNUNET_assert (0 == strcmp (subsystem, "test-statistics-api"));
   GNUNET_assert (value == 3);
@@ -100,54 +94,54 @@ static void
 next (void *cls, int success)
 {
   GNUNET_assert (success == GNUNET_OK);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Issuing GET request\n");	      
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Issuing GET request\n");
   GNUNET_break (NULL !=
-		GNUNET_STATISTICS_get (h, NULL, "test-2",
-				       GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, cls));
+                GNUNET_STATISTICS_get (h, NULL, "test-2",
+                                       GNUNET_TIME_UNIT_SECONDS, &next_fin,
+                                       &check_2, cls));
 }
 
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   h = GNUNET_STATISTICS_create ("test-statistics-api", cfg);
   GNUNET_STATISTICS_set (h, "test-1", 1, GNUNET_NO);
   GNUNET_STATISTICS_set (h, "test-2", 2, GNUNET_NO);
   GNUNET_STATISTICS_set (h, "test-3", 2, GNUNET_NO);
   GNUNET_STATISTICS_update (h, "test-3", 1, GNUNET_YES);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Issuing GET request\n");	      
-  GNUNET_break (NULL != 
-		GNUNET_STATISTICS_get (h, NULL, "test-1",
-				       GNUNET_TIME_UNIT_SECONDS, &next, &check_1, cls));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Issuing GET request\n");
+  GNUNET_break (NULL !=
+                GNUNET_STATISTICS_get (h, NULL, "test-1",
+                                       GNUNET_TIME_UNIT_SECONDS, &next,
+                                       &check_1, cls));
 }
 
 static void
 run_more (void *cls,
           char *const *args,
-          const char *cfgfile,
-	  const struct GNUNET_CONFIGURATION_Handle *cfg)
+          const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   h = GNUNET_STATISTICS_create ("test-statistics-api", cfg);
   GNUNET_break (NULL !=
-		GNUNET_STATISTICS_get (h, NULL, "test-3",
-				       GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_3, cls));
+                GNUNET_STATISTICS_get (h, NULL, "test-3",
+                                       GNUNET_TIME_UNIT_SECONDS, &next_fin,
+                                       &check_3, cls));
 }
 
 static int
 check ()
 {
   int ok = 1;
+
   char *const argv[] = { "test-statistics-api",
     "-c",
     "test_statistics_api_data.conf",
 #if DEBUG_STATISTICS
-			 "-L", "DEBUG",
+    "-L", "DEBUG",
 #else
-			 "-L", "WARNING",
+    "-L", "WARNING",
 #endif
     NULL
   };
@@ -156,22 +150,23 @@ check ()
   };
 #if START_SERVICE
   struct GNUNET_OS_Process *proc;
+
   proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
-                                 "gnunet-service-statistics",
+                                  "gnunet-service-statistics",
 #if DEBUG_STATISTICS
-                                 "-L", "DEBUG",
+                                  "-L", "DEBUG",
 #endif
-                                 "-c", "test_statistics_api_data.conf", NULL);
+                                  "-c", "test_statistics_api_data.conf", NULL);
 #endif
   GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp",
                       options, &run, &ok);
 #if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      ok = 1;
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    ok = 1;
+  }
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_close (proc);
   proc = NULL;
@@ -182,20 +177,20 @@ check ()
 #if START_SERVICE
   /* restart to check persistence! */
   proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
-                                 "gnunet-service-statistics",
+                                  "gnunet-service-statistics",
 #if DEBUG_STATISTICS
-                                 "-L", "DEBUG",
+                                  "-L", "DEBUG",
 #endif
-                                 "-c", "test_statistics_api_data.conf", NULL);
+                                  "-c", "test_statistics_api_data.conf", NULL);
 #endif
   GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp",
                       options, &run_more, &ok);
 #if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      ok = 1;
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    ok = 1;
+  }
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_close (proc);
   proc = NULL;
@@ -208,13 +203,13 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test_statistics_api", 
+  GNUNET_log_setup ("test_statistics_api",
 #if DEBUG_STATISTICS
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING",
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   ret = check ();
 
   return ret;

@@ -49,19 +49,19 @@ struct GNUNET_MESH_ManipulatePath
      * Size: sizeof(struct GNUNET_MESH_ManipulatePath) +
      *       path_length * sizeof (struct GNUNET_PeerIdentity)
      */
-    struct GNUNET_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
     /**
      * Global id of the tunnel this path belongs to,
      * unique in conjunction with the origin.
      */
-    uint32_t                    tid GNUNET_PACKED;
+  uint32_t tid GNUNET_PACKED;
 
     /**
      * path_length structs defining the *whole* path from the origin [0] to the
      * final destination [path_length-1].
      */
-    /* struct GNUNET_PeerIdentity peers[path_length]; */
+  /* struct GNUNET_PeerIdentity peers[path_length]; */
 };
 
 /**
@@ -72,17 +72,17 @@ struct GNUNET_MESH_Multicast
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_MULTICAST
      */
-    struct GNUNET_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
     /**
      * TID of the tunnel
      */
-    uint32_t                    tid GNUNET_PACKED;
+  uint32_t tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
-    struct GNUNET_PeerIdentity  oid;
+  struct GNUNET_PeerIdentity oid;
 
     /**
      * Payload follows
@@ -98,22 +98,22 @@ struct GNUNET_MESH_Unicast
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_UNICAST
      */
-    struct GNUNET_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
     /**
      * TID of the tunnel
      */
-    uint32_t                    tid GNUNET_PACKED;
+  uint32_t tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
-    struct GNUNET_PeerIdentity  oid;
+  struct GNUNET_PeerIdentity oid;
 
     /**
      * Destination.
      */
-    struct GNUNET_PeerIdentity  destination;
+  struct GNUNET_PeerIdentity destination;
 
     /**
      * Payload follows
@@ -129,22 +129,22 @@ struct GNUNET_MESH_ToOrigin
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN
      */
-    struct GNUNET_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
     /**
      * TID of the tunnel
      */
-    uint32_t                    tid GNUNET_PACKED;
+  uint32_t tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
-    struct GNUNET_PeerIdentity  oid;
+  struct GNUNET_PeerIdentity oid;
 
     /**
      * Sender of the message.
      */
-    struct GNUNET_PeerIdentity  sender;
+  struct GNUNET_PeerIdentity sender;
 
     /**
      * Payload follows
@@ -160,24 +160,24 @@ struct GNUNET_MESH_PathACK
     /**
      * Type: GNUNET_MESSAGE_TYPE_PATH_ACK
      */
-    struct GNUNET_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
     /**
      * TID of the tunnel
      */
-    uint32_t                    tid GNUNET_PACKED;
+  uint32_t tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
-    struct GNUNET_PeerIdentity  oid;
+  struct GNUNET_PeerIdentity oid;
 
     /**
      * ID of the endpoint
      */
-    struct GNUNET_PeerIdentity  peer_id;
+  struct GNUNET_PeerIdentity peer_id;
 
-    /* TODO: signature */
+  /* TODO: signature */
 };
 
 
@@ -189,22 +189,22 @@ struct GNUNET_MESH_SpeedNotify
     /**
      * Type: GNUNET_MESSAGE_TYPE_DATA_SPEED_NOTIFY
      */
-    struct GNUNET_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
     /**
      * TID of the tunnel
      */
-    uint32_t                    tid GNUNET_PACKED;
+  uint32_t tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
-    struct GNUNET_PeerIdentity  oid;
+  struct GNUNET_PeerIdentity oid;
 
     /**
      * Slowest link down the path (above minimum speed requirement).
      */
-    uint32_t                    speed_min;
+  uint32_t speed_min;
 
 };
 

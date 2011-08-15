@@ -48,20 +48,19 @@ void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
 #endif
-      if (ok == 0)
-        ok = 666;
-    }
+    if (ok == 0)
+      ok = 666;
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All peers successfully shut down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
 #endif
-    }
+  }
 }
 
 
@@ -72,36 +71,36 @@ my_cb (void *cls,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   if (id == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Start callback called with error (too long starting peers), aborting test!\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
-      failed_peers++;
-      if (failed_peers == peers_left)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Too many peers failed, ending test!\n");
-          ok = 1;
-          GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-        }
-      return;
-    }
-
-  peers_left--;
-  if (peers_left == 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All peers started successfully, ending test!\n");
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-      ok = 0;
-    }
-  else if (failed_peers == peers_left)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Start callback called with error (too long starting peers), aborting test!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
+    failed_peers++;
+    if (failed_peers == peers_left)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Too many peers failed, ending test!\n");
       ok = 1;
       GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     }
+    return;
+  }
+
+  peers_left--;
+  if (peers_left == 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "All peers started successfully, ending test!\n");
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+    ok = 0;
+  }
+  else if (failed_peers == peers_left)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Too many peers failed, ending test!\n");
+    ok = 1;
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+  }
 }
 
 
@@ -115,10 +114,9 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
 #endif
   peers_left = NUM_PEERS;
-  pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left, /* Total number of peers */
-                                     peers_left, /* Number of outstanding connections */
-                                     peers_left, /* Number of parallel ssh connections, or peers being started at once */
+  pg = GNUNET_TESTING_daemons_start (cfg, peers_left,   /* Total number of peers */
+                                     peers_left,        /* Number of outstanding connections */
+                                     peers_left,        /* Number of parallel ssh connections, or peers being started at once */
                                      TIMEOUT,
                                      NULL, NULL,
                                      &my_cb, NULL, NULL, NULL, NULL);
@@ -140,8 +138,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-testing-group", "nohelp",
-                      options, &run, &ok);
+                      argv, "test-testing-group", "nohelp", options, &run, &ok);
   return ok;
 }
 

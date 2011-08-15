@@ -42,6 +42,7 @@ check ()
   struct GNUNET_TIME_Relative relUnit;
   struct GNUNET_TIME_RelativeNBO reln;
   unsigned int i;
+
   forever = GNUNET_TIME_absolute_get_forever ();
   relForever = GNUNET_TIME_relative_get_forever ();
   relUnit = GNUNET_TIME_relative_get_unit ();
@@ -59,9 +60,10 @@ check ()
     rel = GNUNET_TIME_relative_multiply (rel, 2);
   GNUNET_log_skip (0, GNUNET_NO);
   GNUNET_assert (rel.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value);
-  /*check zero*/
+  /*check zero */
   rel.rel_value = (UINT64_MAX) - 1024;
-  GNUNET_assert (GNUNET_TIME_relative_get_zero ().rel_value == GNUNET_TIME_relative_multiply (rel,0).rel_value);
+  GNUNET_assert (GNUNET_TIME_relative_get_zero ().rel_value ==
+                 GNUNET_TIME_relative_multiply (rel, 0).rel_value);
 
   /* test infinity-check for relative to absolute */
   GNUNET_log_skip (1, GNUNET_NO);
@@ -69,14 +71,14 @@ check ()
   GNUNET_assert (last.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value);
   GNUNET_log_skip (0, GNUNET_YES);
 
-  /*check relative to absolute*/
+  /*check relative to absolute */
   rel.rel_value = 0;
   GNUNET_assert (GNUNET_TIME_absolute_get ().abs_value ==
-		 GNUNET_TIME_relative_to_absolute(rel).abs_value);
-  /*check forever*/
+                 GNUNET_TIME_relative_to_absolute (rel).abs_value);
+  /*check forever */
   rel.rel_value = UINT64_MAX;
   GNUNET_assert (GNUNET_TIME_absolute_get_forever ().abs_value ==
-		 GNUNET_TIME_relative_to_absolute(rel).abs_value);
+                 GNUNET_TIME_relative_to_absolute (rel).abs_value);
   /* check overflow for r2a */
   rel.rel_value = (UINT64_MAX) - 1024;
   GNUNET_log_skip (1, GNUNET_NO);
@@ -106,8 +108,8 @@ check ()
   GNUNET_assert (GNUNET_TIME_absolute_get_difference (future, now).rel_value ==
                  0);
 
-  GNUNET_assert (GNUNET_TIME_absolute_get_difference (zero, forever).rel_value ==
-                 forever.abs_value);
+  GNUNET_assert (GNUNET_TIME_absolute_get_difference (zero, forever).rel_value
+                 == forever.abs_value);
 
   past.abs_value = now.abs_value - 1000000;
   rel = GNUNET_TIME_absolute_get_duration (future);
@@ -125,7 +127,7 @@ check ()
   GNUNET_assert (rel.rel_value <= 1000000);
   forever = GNUNET_TIME_absolute_get_forever ();
   GNUNET_assert (GNUNET_TIME_relative_get_forever ().rel_value ==
-		 GNUNET_TIME_absolute_get_remaining (forever).rel_value);
+                 GNUNET_TIME_absolute_get_remaining (forever).rel_value);
 
   /* check endianess */
   reln = GNUNET_TIME_relative_hton (rel);
@@ -150,77 +152,80 @@ check ()
   GNUNET_assert (future.abs_value == now.abs_value);
 
   GNUNET_assert (forever.abs_value ==
-		 GNUNET_TIME_absolute_subtract (forever,
-						GNUNET_TIME_UNIT_MINUTES).abs_value);
-  /*check absolute subtract*/
-  now.abs_value= 50000;
+                 GNUNET_TIME_absolute_subtract (forever,
+                                                GNUNET_TIME_UNIT_MINUTES).abs_value);
+  /*check absolute subtract */
+  now.abs_value = 50000;
   rel.rel_value = 100000;
-  GNUNET_assert (GNUNET_TIME_UNIT_ZERO_ABS.abs_value == 
-		 (GNUNET_TIME_absolute_subtract(now,rel)).abs_value);
+  GNUNET_assert (GNUNET_TIME_UNIT_ZERO_ABS.abs_value ==
+                 (GNUNET_TIME_absolute_subtract (now, rel)).abs_value);
   rel.rel_value = 10000;
-  GNUNET_assert (40000 == 
-		 (GNUNET_TIME_absolute_subtract(now,rel)).abs_value);
+  GNUNET_assert (40000 == (GNUNET_TIME_absolute_subtract (now, rel)).abs_value);
 
-  /*check relative divide*/
-  GNUNET_assert(GNUNET_TIME_UNIT_FOREVER_REL.rel_value == 
-		(GNUNET_TIME_relative_divide (rel,0)).rel_value);
-  
+  /*check relative divide */
+  GNUNET_assert (GNUNET_TIME_UNIT_FOREVER_REL.rel_value ==
+                 (GNUNET_TIME_relative_divide (rel, 0)).rel_value);
+
   rel = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_assert(GNUNET_TIME_UNIT_FOREVER_REL.rel_value == 
-		(GNUNET_TIME_relative_divide (rel,2)).rel_value);
-  
-  rel = GNUNET_TIME_relative_divide (relUnit,2);
-  GNUNET_assert(rel.rel_value == relUnit.rel_value / 2);
-  
+  GNUNET_assert (GNUNET_TIME_UNIT_FOREVER_REL.rel_value ==
+                 (GNUNET_TIME_relative_divide (rel, 2)).rel_value);
 
-  /* check Return absolute time of 0ms*/
+  rel = GNUNET_TIME_relative_divide (relUnit, 2);
+  GNUNET_assert (rel.rel_value == relUnit.rel_value / 2);
+
+
+  /* check Return absolute time of 0ms */
   zero = GNUNET_TIME_absolute_get_zero ();
 
   /* check GNUNET_TIME_calculate_eta */
   last.abs_value = GNUNET_TIME_absolute_get ().abs_value - 1024;
   forever = GNUNET_TIME_absolute_get_forever ();
   forever.abs_value = forever.abs_value - 1024;
-  GNUNET_assert(GNUNET_TIME_absolute_get_zero ().abs_value == 
-		GNUNET_TIME_calculate_eta (forever, 50000, 100000).rel_value);
+  GNUNET_assert (GNUNET_TIME_absolute_get_zero ().abs_value ==
+                 GNUNET_TIME_calculate_eta (forever, 50000, 100000).rel_value);
   /* check zero */
   GNUNET_log_skip (1, GNUNET_NO);
-  GNUNET_assert(GNUNET_TIME_UNIT_ZERO.rel_value ==
-		(GNUNET_TIME_calculate_eta (last, 60000, 50000)).rel_value);
+  GNUNET_assert (GNUNET_TIME_UNIT_ZERO.rel_value ==
+                 (GNUNET_TIME_calculate_eta (last, 60000, 50000)).rel_value);
   GNUNET_log_skip (0, GNUNET_YES);
-  /*check forever*/
-  GNUNET_assert(GNUNET_TIME_UNIT_FOREVER_REL.rel_value ==
-		(GNUNET_TIME_calculate_eta (last, 0, 50000)).rel_value);
+  /*check forever */
+  GNUNET_assert (GNUNET_TIME_UNIT_FOREVER_REL.rel_value ==
+                 (GNUNET_TIME_calculate_eta (last, 0, 50000)).rel_value);
 
-  /*check relative subtract*/
+  /*check relative subtract */
   now = GNUNET_TIME_absolute_get ();
   rel.rel_value = now.abs_value;
   relForever.rel_value = rel.rel_value + 1024;
-  GNUNET_assert(1024  ==
-		GNUNET_TIME_relative_subtract(relForever,rel).rel_value);
-  /*check zero*/
-  GNUNET_assert(GNUNET_TIME_relative_get_zero ().rel_value  ==
-		GNUNET_TIME_relative_subtract(rel,relForever).rel_value);
-  /*check forever*/
+  GNUNET_assert (1024 ==
+                 GNUNET_TIME_relative_subtract (relForever, rel).rel_value);
+  /*check zero */
+  GNUNET_assert (GNUNET_TIME_relative_get_zero ().rel_value ==
+                 GNUNET_TIME_relative_subtract (rel, relForever).rel_value);
+  /*check forever */
   rel.rel_value = UINT64_MAX;
-  GNUNET_assert(GNUNET_TIME_relative_get_forever ().rel_value  ==
-		GNUNET_TIME_relative_subtract(rel,relForever).rel_value);
+  GNUNET_assert (GNUNET_TIME_relative_get_forever ().rel_value ==
+                 GNUNET_TIME_relative_subtract (rel, relForever).rel_value);
 
-  /*check GNUNET_TIME_relative_min*/
+  /*check GNUNET_TIME_relative_min */
   now = GNUNET_TIME_absolute_get ();
   rel.rel_value = now.abs_value;
   relForever.rel_value = rel.rel_value - 1024;
-  GNUNET_assert(relForever.rel_value == GNUNET_TIME_relative_min(rel,relForever).rel_value);
+  GNUNET_assert (relForever.rel_value ==
+                 GNUNET_TIME_relative_min (rel, relForever).rel_value);
 
   /*check GNUNET_TIME_relative_max */
-  GNUNET_assert(rel.rel_value == GNUNET_TIME_relative_max(rel,relForever).rel_value);
-  
-  /*check GNUNET_TIME_absolute_min*/
+  GNUNET_assert (rel.rel_value ==
+                 GNUNET_TIME_relative_max (rel, relForever).rel_value);
+
+  /*check GNUNET_TIME_absolute_min */
   now = GNUNET_TIME_absolute_get ();
   last.abs_value = now.abs_value - 1024;
-  GNUNET_assert(last.abs_value == GNUNET_TIME_absolute_min(now,last).abs_value);
+  GNUNET_assert (last.abs_value ==
+                 GNUNET_TIME_absolute_min (now, last).abs_value);
 
-  /*check  GNUNET_TIME_absolute_max*/
-  GNUNET_assert(now.abs_value == GNUNET_TIME_absolute_max(now,last).abs_value);
+  /*check  GNUNET_TIME_absolute_max */
+  GNUNET_assert (now.abs_value ==
+                 GNUNET_TIME_absolute_max (now, last).abs_value);
 
   return 0;
 }

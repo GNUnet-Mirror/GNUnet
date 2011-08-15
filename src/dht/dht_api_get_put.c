@@ -55,41 +55,38 @@ void
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const GNUNET_HashCode * key,
                 uint32_t desired_replication_level,
-		enum GNUNET_DHT_RouteOption options,
+                enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type,
                 size_t size,
                 const char *data,
                 struct GNUNET_TIME_Absolute exp,
                 struct GNUNET_TIME_Relative timeout,
-		GNUNET_SCHEDULER_Task cont,
-		void *cont_cls)
+                GNUNET_SCHEDULER_Task cont, void *cont_cls)
 {
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   struct GNUNET_DHT_PutMessage *put_msg;
 
   if (size >= sizeof (buf) - sizeof (struct GNUNET_DHT_PutMessage))
-    {
-      GNUNET_break (0);
-      return;
-    }
-  put_msg = (struct GNUNET_DHT_PutMessage*) buf;
+  {
+    GNUNET_break (0);
+    return;
+  }
+  put_msg = (struct GNUNET_DHT_PutMessage *) buf;
   put_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_PUT);
   put_msg->header.size = htons (sizeof (struct GNUNET_DHT_PutMessage) + size);
-  put_msg->type = htonl ((uint32_t)type);
+  put_msg->type = htonl ((uint32_t) type);
   put_msg->expiration = GNUNET_TIME_absolute_hton (exp);
   memcpy (&put_msg[1], data, size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting route for %u byte `%s' message of type %u \n",
-	      (unsigned int) (sizeof (struct GNUNET_DHT_PutMessage) + size),
-	      "PUT", type);
+              "Starting route for %u byte `%s' message of type %u \n",
+              (unsigned int) (sizeof (struct GNUNET_DHT_PutMessage) + size),
+              "PUT", type);
   GNUNET_break (NULL ==
-		GNUNET_DHT_route_start (handle, 
-					key, 
-					desired_replication_level, options,
-					&put_msg->header, 
-					timeout, 
-					NULL, NULL,
-					cont, cont_cls));
+                GNUNET_DHT_route_start (handle,
+                                        key,
+                                        desired_replication_level, options,
+                                        &put_msg->header,
+                                        timeout, NULL, NULL, cont, cont_cls));
 }
 
 
@@ -129,10 +126,10 @@ struct GNUNET_DHT_GetHandle
  * @param reply response
  */
 static void
-get_reply_iterator (void *cls, 
-		    const GNUNET_HashCode *key,
-		    const struct GNUNET_PeerIdentity * const *outgoing_path,
-		    const struct GNUNET_MessageHeader *reply)
+get_reply_iterator (void *cls,
+                    const GNUNET_HashCode * key,
+                    const struct GNUNET_PeerIdentity *const *outgoing_path,
+                    const struct GNUNET_MessageHeader *reply)
 {
   struct GNUNET_DHT_GetHandle *get_handle = cls;
   const struct GNUNET_DHT_GetResultMessage *result;
@@ -145,44 +142,46 @@ get_reply_iterator (void *cls,
   uint16_t data_size;
 
   if (ntohs (reply->type) != GNUNET_MESSAGE_TYPE_DHT_GET_RESULT)
-    {
-      GNUNET_break (0);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   GNUNET_assert (ntohs (reply->size) >=
                  sizeof (struct GNUNET_DHT_GetResultMessage));
   result = (const struct GNUNET_DHT_GetResultMessage *) reply;
 
   put_path = NULL;
-  put_path_length = ntohs(result->put_path_length);
+  put_path_length = ntohs (result->put_path_length);
   if (put_path_length > 0)
+  {
+    data_size =
+        ntohs (result->header.size) -
+        (put_path_length * sizeof (struct GNUNET_PeerIdentity)) -
+        sizeof (struct GNUNET_DHT_GetResultMessage);
+    path_offset = (char *) &result[1];
+    //GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "In get_reply_iterator, result->header.size is %d, put_path_length %d, offset is %d, data_size is %d\n", ntohs(result->header.size), put_path_length, ntohs(result->header.size) - (put_path_length * sizeof(struct GNUNET_PeerIdentity)), data_size);
+    path_offset += data_size;
+    pos = (const struct GNUNET_PeerIdentity *) path_offset;
+    //GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Found put peer %s\n", GNUNET_i2s((const struct GNUNET_PeerIdentity *)path_offset));
+    put_path =
+        GNUNET_malloc ((put_path_length +
+                        1) * sizeof (struct GNUNET_PeerIdentity *));
+    for (i = 0; i < put_path_length; i++)
     {
-      data_size = ntohs(result->header.size) - (put_path_length * sizeof(struct GNUNET_PeerIdentity)) - sizeof(struct GNUNET_DHT_GetResultMessage);
-      path_offset = (char *)&result[1];
-      //GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "In get_reply_iterator, result->header.size is %d, put_path_length %d, offset is %d, data_size is %d\n", ntohs(result->header.size), put_path_length, ntohs(result->header.size) - (put_path_length * sizeof(struct GNUNET_PeerIdentity)), data_size);
-      path_offset += data_size;
-      pos = (const struct GNUNET_PeerIdentity *)path_offset;
-      //GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Found put peer %s\n", GNUNET_i2s((const struct GNUNET_PeerIdentity *)path_offset));
-      put_path = GNUNET_malloc ((put_path_length + 1) * sizeof (struct GNUNET_PeerIdentity*));
-      for (i = 0; i < put_path_length; i++)
-        {
-          put_path[i] = pos;
-          pos++;
-        }
-      put_path[put_path_length] = NULL;
+      put_path[i] = pos;
+      pos++;
     }
+    put_path[put_path_length] = NULL;
+  }
 
-  payload = ntohs (reply->size) - sizeof(struct GNUNET_DHT_GetResultMessage);
+  payload = ntohs (reply->size) - sizeof (struct GNUNET_DHT_GetResultMessage);
   get_handle->iter (get_handle->iter_cls,
-		    GNUNET_TIME_absolute_ntoh (result->expiration),
-		    key,
-		    outgoing_path,
-		    put_path,
-		    ntohs (result->type), 
-		    payload,
-		    &result[1]);
-  GNUNET_free_non_null(put_path);
+                    GNUNET_TIME_absolute_ntoh (result->expiration),
+                    key,
+                    outgoing_path,
+                    put_path, ntohs (result->type), payload, &result[1]);
+  GNUNET_free_non_null (put_path);
 }
 
 
@@ -213,61 +212,55 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       enum GNUNET_BLOCK_Type type,
                       const GNUNET_HashCode * key,
                       uint32_t desired_replication_level,
-		      enum GNUNET_DHT_RouteOption options,
-		      const struct GNUNET_CONTAINER_BloomFilter *bf,
-		      int32_t bf_mutator,
-		      const void *xquery,
-		      size_t xquery_size,
-                      GNUNET_DHT_GetIterator iter,
-                      void *iter_cls)
+                      enum GNUNET_DHT_RouteOption options,
+                      const struct GNUNET_CONTAINER_BloomFilter *bf,
+                      int32_t bf_mutator,
+                      const void *xquery,
+                      size_t xquery_size,
+                      GNUNET_DHT_GetIterator iter, void *iter_cls)
 {
   struct GNUNET_DHT_GetHandle *get_handle;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   struct GNUNET_DHT_GetMessage *get_msg;
   size_t bf_size;
-    
+
   bf_size = GNUNET_CONTAINER_bloomfilter_get_size (bf);
-  if ( (sizeof (buf) <= 
-	sizeof (struct GNUNET_DHT_GetMessage) + xquery_size + bf_size) ||
-       (sizeof (buf) <= bf_size))
-    {
-      GNUNET_break (0);
-      return NULL;
-    } 
+  if ((sizeof (buf) <=
+       sizeof (struct GNUNET_DHT_GetMessage) + xquery_size + bf_size) ||
+      (sizeof (buf) <= bf_size))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   get_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_GetHandle));
   get_handle->iter = iter;
   get_handle->iter_cls = iter_cls;
-  get_msg = (struct GNUNET_DHT_GetMessage*) buf;
+  get_msg = (struct GNUNET_DHT_GetMessage *) buf;
   get_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET);
-  get_msg->header.size = htons (sizeof (struct GNUNET_DHT_GetMessage) + 
-				xquery_size + 
-				bf_size);
+  get_msg->header.size = htons (sizeof (struct GNUNET_DHT_GetMessage) +
+                                xquery_size + bf_size);
   get_msg->type = htonl ((uint32_t) type);
   get_msg->bf_mutator = bf_mutator;
   get_msg->xquery_size = htons ((uint16_t) xquery_size);
   get_msg->bf_size = htons (bf_size);
   if (xquery != NULL)
-    memcpy (&buf[sizeof(struct GNUNET_DHT_GetMessage)],
-	    xquery,
-	    xquery_size);
+    memcpy (&buf[sizeof (struct GNUNET_DHT_GetMessage)], xquery, xquery_size);
   else
     GNUNET_assert (xquery_size == 0);
   (void) GNUNET_CONTAINER_bloomfilter_get_raw_data (bf,
-						    &buf[sizeof(struct GNUNET_DHT_GetMessage) + xquery_size],
-						    bf_size);  
+                                                    &buf[sizeof
+                                                         (struct
+                                                          GNUNET_DHT_GetMessage)
+                                                         + xquery_size],
+                                                    bf_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting route for %u byte `%s' message\n",
-	      (unsigned int) (sizeof (struct GNUNET_DHT_GetMessage) + xquery_size + bf_size) ,
-	      "GET");
+              "Starting route for %u byte `%s' message\n",
+              (unsigned int) (sizeof (struct GNUNET_DHT_GetMessage) +
+                              xquery_size + bf_size), "GET");
   get_handle->route_handle =
-    GNUNET_DHT_route_start (handle,
-			    key, 
-			    desired_replication_level,
-			    options,
-			    &get_msg->header, 
-			    timeout,
-                            &get_reply_iterator, get_handle,
-			    NULL, NULL);
+      GNUNET_DHT_route_start (handle, key, desired_replication_level, options,
+                              &get_msg->header, timeout, &get_reply_iterator,
+                              get_handle, NULL, NULL);
   GNUNET_break (NULL != get_handle->route_handle);
   return get_handle;
 }

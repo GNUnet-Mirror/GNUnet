@@ -51,25 +51,21 @@ get_path_from_proc_maps ()
   FILE *f;
   char *lgu;
 
-  GNUNET_snprintf (fn,
-		   sizeof(fn), 
-		   "/proc/%u/maps", 
-		   getpid ());
+  GNUNET_snprintf (fn, sizeof (fn), "/proc/%u/maps", getpid ());
   f = fopen (fn, "r");
   if (f == NULL)
     return NULL;
-  while (NULL != fgets (line, sizeof(line), f))
+  while (NULL != fgets (line, sizeof (line), f))
+  {
+    if ((1 == sscanf (line,
+                      "%*x-%*x %*c%*c%*c%*c %*x %*2u:%*2u %*u%*[ ]%s",
+                      dir)) && (NULL != (lgu = strstr (dir, "libgnunetutil"))))
     {
-      if ((1 == sscanf (line,
-			"%*x-%*x %*c%*c%*c%*c %*x %*2u:%*2u %*u%*[ ]%s",
-			dir)) &&
-	  (NULL != (lgu = strstr (dir, "libgnunetutil"))))
-	{
-	  lgu[0] = '\0';
-	  fclose (f);
-	  return GNUNET_strdup (dir);
-	}
+      lgu[0] = '\0';
+      fclose (f);
+      return GNUNET_strdup (dir);
     }
+  }
   fclose (f);
   return NULL;
 }
@@ -84,23 +80,22 @@ get_path_from_proc_exe ()
   char lnk[1024];
   ssize_t size;
 
-  GNUNET_snprintf (fn, 
-		   sizeof(fn), "/proc/%u/exe", getpid ());
-  size = readlink (fn, lnk, sizeof (lnk)-1);
+  GNUNET_snprintf (fn, sizeof (fn), "/proc/%u/exe", getpid ());
+  size = readlink (fn, lnk, sizeof (lnk) - 1);
   if (size <= 0)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "readlink", fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "readlink", fn);
+    return NULL;
+  }
   GNUNET_assert (size < sizeof (lnk));
   lnk[size] = '\0';
   while ((lnk[size] != '/') && (size > 0))
     size--;
   if ((size < 4) || (lnk[size - 4] != '/'))
-    {
-      /* not installed in "/bin/" -- binary path probably useless */
-      return NULL;
-    }
+  {
+    /* not installed in "/bin/" -- binary path probably useless */
+    return NULL;
+  }
   lnk[size] = '\0';
   return GNUNET_strdup (lnk);
 }
@@ -116,7 +111,7 @@ get_path_from_module_filename ()
   char path[4097];
   char *idx;
 
-  GetModuleFileName (NULL, path, sizeof(path)-1);
+  GetModuleFileName (NULL, path, sizeof (path) - 1);
   idx = path + strlen (path);
   while ((idx > path) && (*idx != '\\') && (*idx != '/'))
     idx--;
@@ -139,7 +134,7 @@ get_path_from_NSGetExecutablePath ()
 
   path = NULL;
   func =
-    (MyNSGetExecutablePathProto) dlsym (RTLD_DEFAULT, "_NSGetExecutablePath");
+      (MyNSGetExecutablePathProto) dlsym (RTLD_DEFAULT, "_NSGetExecutablePath");
   if (!func)
     return NULL;
   path = &zero;
@@ -151,10 +146,10 @@ get_path_from_NSGetExecutablePath ()
   path = GNUNET_malloc (len);
   ret = func (path, &len);
   if (ret != 0)
-    {
-      GNUNET_free (path);
-      return NULL;
-    }
+  {
+    GNUNET_free (path);
+    return NULL;
+  }
   len = strlen (path);
   while ((path[len] != '/') && (len > 0))
     len--;
@@ -173,22 +168,22 @@ get_path_from_dyld_image ()
   p = NULL;
   c = _dyld_image_count ();
   for (i = 0; i < c; i++)
+  {
+    if (_dyld_get_image_header (i) == &_mh_dylib_header)
     {
-      if (_dyld_get_image_header (i) == &_mh_dylib_header)
-        {
-          path = _dyld_get_image_name (i);
-          if (path != NULL && strlen (path) > 0)
-            {
-              p = strdup (path);
-              s = p + strlen (p);
-              while ((s > p) && (*s != '/'))
-                s--;
-              s++;
-              *s = '\0';
-            }
-          break;
-        }
+      path = _dyld_get_image_name (i);
+      if (path != NULL && strlen (path) > 0)
+      {
+        p = strdup (path);
+        s = p + strlen (p);
+        while ((s > p) && (*s != '/'))
+          s--;
+        s++;
+        *s = '\0';
+      }
+      break;
     }
+  }
   return p;
 }
 #endif
@@ -214,28 +209,28 @@ get_path_from_PATH (const char *binary)
     return NULL;
   path = GNUNET_strdup (p);     /* because we write on it */
   buf = GNUNET_malloc (strlen (path) + 20);
-  pos = path;  
+  pos = path;
   while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
-    {
-      *end = '\0';
-      sprintf (buf, "%s/%s", pos, binary);
-      if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
-        {
-          pos = GNUNET_strdup (pos);
-          GNUNET_free (buf);
-          GNUNET_free (path);
-          return pos;
-        }
-      pos = end + 1;
-    }
-  sprintf (buf, "%s/%s", pos, binary);
-  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+  {
+    *end = '\0';
+    sprintf (buf, "%s/%s", pos, binary);
+    if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
     {
       pos = GNUNET_strdup (pos);
       GNUNET_free (buf);
       GNUNET_free (path);
       return pos;
     }
+    pos = end + 1;
+  }
+  sprintf (buf, "%s/%s", pos, binary);
+  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+  {
+    pos = GNUNET_strdup (pos);
+    GNUNET_free (buf);
+    GNUNET_free (path);
+    return pos;
+  }
   GNUNET_free (buf);
   GNUNET_free (path);
   return NULL;
@@ -294,8 +289,7 @@ os_get_gnunet_path ()
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               _
               ("Could not determine installation path for %s.  Set `%s' environment variable.\n"),
-	      "GNUnet",
-              "GNUNET_PREFIX");
+              "GNUnet", "GNUNET_PREFIX");
   return NULL;
 }
 
@@ -361,11 +355,11 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
 
   n = strlen (execpath);
   if (n == 0)
-    {
-      /* should never happen, but better safe than sorry */
-      GNUNET_free (execpath);
-      return NULL;
-    }
+  {
+    /* should never happen, but better safe than sorry */
+    GNUNET_free (execpath);
+    return NULL;
+  }
   /* remove filename itself */
   while ((n > 1) && (execpath[n - 1] == DIR_SEPARATOR))
     execpath[--n] = '\0';
@@ -374,62 +368,59 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
   if ((n > 5) &&
       ((0 == strcasecmp (&execpath[n - 5], "lib32")) ||
        (0 == strcasecmp (&execpath[n - 5], "lib64"))))
+  {
+    if (dirkind != GNUNET_OS_IPK_LIBDIR)
     {
-      if (dirkind != GNUNET_OS_IPK_LIBDIR)
-        {
-          /* strip '/lib32' or '/lib64' */
-          execpath[n - 5] = '\0';
-          n -= 5;
-        }
-      else
-        isbasedir = 0;
+      /* strip '/lib32' or '/lib64' */
+      execpath[n - 5] = '\0';
+      n -= 5;
     }
+    else
+      isbasedir = 0;
+  }
   else if ((n > 3) &&
            ((0 == strcasecmp (&execpath[n - 3], "bin")) ||
             (0 == strcasecmp (&execpath[n - 3], "lib"))))
-    {
-      /* strip '/bin' or '/lib' */
-      execpath[n - 3] = '\0';
-      n -= 3;
-    }
+  {
+    /* strip '/bin' or '/lib' */
+    execpath[n - 3] = '\0';
+    n -= 3;
+  }
   /* in case this was a directory named foo-bin, remove "foo-" */
   while ((n > 1) && (execpath[n - 1] == DIR_SEPARATOR))
     execpath[--n] = '\0';
   switch (dirkind)
-    {
-    case GNUNET_OS_IPK_PREFIX:
-    case GNUNET_OS_IPK_SELF_PREFIX:
-      dirname = DIR_SEPARATOR_STR;
-      break;
-    case GNUNET_OS_IPK_BINDIR:
-      dirname = DIR_SEPARATOR_STR "bin" DIR_SEPARATOR_STR;
-      break;
-    case GNUNET_OS_IPK_LIBDIR:
-      if (isbasedir)
-        dirname =
-          DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR "gnunet"
-          DIR_SEPARATOR_STR;
-      else
-        dirname = DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
-      break;
-    case GNUNET_OS_IPK_DATADIR:
+  {
+  case GNUNET_OS_IPK_PREFIX:
+  case GNUNET_OS_IPK_SELF_PREFIX:
+    dirname = DIR_SEPARATOR_STR;
+    break;
+  case GNUNET_OS_IPK_BINDIR:
+    dirname = DIR_SEPARATOR_STR "bin" DIR_SEPARATOR_STR;
+    break;
+  case GNUNET_OS_IPK_LIBDIR:
+    if (isbasedir)
       dirname =
-        DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "gnunet"
-        DIR_SEPARATOR_STR;
-      break;
-    case GNUNET_OS_IPK_LOCALEDIR:
-      dirname =
-        DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "locale"
-        DIR_SEPARATOR_STR;
-      break;
-    case GNUNET_OS_IPK_ICONDIR:
-      dirname =
+          DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
+    else
+      dirname = DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
+    break;
+  case GNUNET_OS_IPK_DATADIR:
+    dirname =
+        DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
+    break;
+  case GNUNET_OS_IPK_LOCALEDIR:
+    dirname =
+        DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "locale" DIR_SEPARATOR_STR;
+    break;
+  case GNUNET_OS_IPK_ICONDIR:
+    dirname =
         DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "icons" DIR_SEPARATOR_STR;
-      break;
-    default:
-      GNUNET_free (execpath);
-      return NULL;
-    }
+    break;
+  default:
+    GNUNET_free (execpath);
+    return NULL;
+  }
   tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
   sprintf (tmp, "%s%s", execpath, dirname);
   GNUNET_free (execpath);
@@ -454,6 +445,7 @@ GNUNET_OS_check_helper_binary (const char *binary)
   struct stat statbuf;
   char *p;
   char *pf;
+
 #ifdef MINGW
   SOCKET rawsock;
   char *binaryexe;
@@ -461,61 +453,59 @@ GNUNET_OS_check_helper_binary (const char *binary)
   GNUNET_asprintf (&binaryexe, "%s.exe", binary);
   p = get_path_from_PATH (binaryexe);
   if (p != NULL)
-    {
-      GNUNET_asprintf (&pf, "%s/%s", p, binaryexe);
-      GNUNET_free (p);
-      p = pf;
-    }
+  {
+    GNUNET_asprintf (&pf, "%s/%s", p, binaryexe);
+    GNUNET_free (p);
+    p = pf;
+  }
   free (binaryexe);
 #else
   p = get_path_from_PATH (binary);
   if (p != NULL)
-    {
-      GNUNET_asprintf (&pf, "%s/%s", p, binary);
-      GNUNET_free (p);
-      p = pf;
-    }
+  {
+    GNUNET_asprintf (&pf, "%s/%s", p, binary);
+    GNUNET_free (p);
+    p = pf;
+  }
 #endif
   if (p == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Could not find binary `%s' in PATH!\n"),
-		  binary);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Could not find binary `%s' in PATH!\n"), binary);
+    return GNUNET_SYSERR;
+  }
   if (0 != STAT (p, &statbuf))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
-		  _("stat (%s) failed: %s\n"), 
-		  p,
-		  STRERROR (errno));
-      GNUNET_free (p);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("stat (%s) failed: %s\n"), p, STRERROR (errno));
+    GNUNET_free (p);
+    return GNUNET_SYSERR;
+  }
 #ifndef MINGW
-  if ( (0 != (statbuf.st_mode & S_ISUID)) &&
-       (statbuf.st_uid == 0) )
-    {
-      GNUNET_free (p);
-      return GNUNET_YES;
-    }
+  if ((0 != (statbuf.st_mode & S_ISUID)) && (statbuf.st_uid == 0))
+  {
+    GNUNET_free (p);
+    return GNUNET_YES;
+  }
   if (0 == ACCESS (p, X_OK))
-    {
-      GNUNET_free (p);
-      return GNUNET_NO;
-    }
+  {
+    GNUNET_free (p);
+    return GNUNET_NO;
+  }
   GNUNET_free (p);
   return GNUNET_SYSERR;
 #else
   GNUNET_free (p);
   rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if (INVALID_SOCKET == rawsock)
-    {
-      DWORD err = GetLastError ();
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		  "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n", err);
-      return GNUNET_NO; /* not running as administrator */
-    }
+  {
+    DWORD err = GetLastError ();
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n",
+                err);
+    return GNUNET_NO;           /* not running as administrator */
+  }
   closesocket (rawsock);
   return GNUNET_YES;
 #endif

@@ -144,38 +144,40 @@ struct Plugin
 /**
  * Handler for messages received from the DV service.
  */
-void handle_dv_message_received (void *cls,
-                                 struct GNUNET_PeerIdentity *sender,
-                                 char *msg,
-                                 size_t msg_len,
-                                 uint32_t distance,
-                                 char *sender_address,
-                                 size_t sender_address_len)
+void
+handle_dv_message_received (void *cls,
+                            struct GNUNET_PeerIdentity *sender,
+                            char *msg,
+                            size_t msg_len,
+                            uint32_t distance,
+                            char *sender_address, size_t sender_address_len)
 {
   struct Plugin *plugin = cls;
+
 #if DEBUG_DV_MESSAGES
   char *my_id;
-  my_id = GNUNET_strdup(GNUNET_i2s(plugin->env->my_identity));
+
+  my_id = GNUNET_strdup (GNUNET_i2s (plugin->env->my_identity));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "plugin_transport_dv",
                    _("%s Received message from %s of type %d, distance %u!\n"),
-                   my_id, GNUNET_i2s(sender), ntohs(((struct GNUNET_MessageHeader *)msg)->type), distance);
-  GNUNET_free_non_null(my_id);
+                   my_id, GNUNET_i2s (sender),
+                   ntohs (((struct GNUNET_MessageHeader *) msg)->type),
+                   distance);
+  GNUNET_free_non_null (my_id);
 #endif
   struct GNUNET_TRANSPORT_ATS_Information ats[2];
+
   ats[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (distance);
   ats[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
   ats[1].value = htonl (0);
 
-  plugin->env->receive(plugin->env->cls,
-                       sender,
-                       (struct GNUNET_MessageHeader *)msg,
-                       (const struct GNUNET_TRANSPORT_ATS_Information *) &ats,
-                       2,
-                       NULL,
-                       sender_address,
-                       sender_address_len);
+  plugin->env->receive (plugin->env->cls,
+                        sender,
+                        (struct GNUNET_MessageHeader *) msg,
+                        (const struct GNUNET_TRANSPORT_ATS_Information *) &ats,
+                        2, NULL, sender_address, sender_address_len);
 
 }
 
@@ -218,26 +220,20 @@ dv_plugin_send (void *cls,
                 size_t msgbuf_size,
                 unsigned int priority,
                 struct GNUNET_TIME_Relative timeout,
-		struct Session *session,
+                struct Session *session,
                 const void *addr,
                 size_t addrlen,
                 int force_address,
-                GNUNET_TRANSPORT_TransmitContinuation
-                cont, void *cont_cls)
+                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   int ret = 0;
   struct Plugin *plugin = cls;
 
-  ret = GNUNET_DV_send(plugin->dv_handle,
-                       target,
-                       msgbuf,
-                       msgbuf_size,
-                       priority,
-                       timeout,
-                       addr,
-                       addrlen,
-                       cont,
-                       cont_cls);
+  ret = GNUNET_DV_send (plugin->dv_handle,
+                        target,
+                        msgbuf,
+                        msgbuf_size,
+                        priority, timeout, addr, addrlen, cont, cont_cls);
   return ret;
 }
 
@@ -252,8 +248,7 @@ dv_plugin_send (void *cls,
  * @param target peer from which to disconnect
  */
 static void
-dv_plugin_disconnect (void *cls,
-                      const struct GNUNET_PeerIdentity *target)
+dv_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
   // TODO: Add message type to send to dv service to "disconnect" a peer
@@ -287,23 +282,28 @@ dv_plugin_address_pretty_printer (void *cls,
   char *dest_peer;
   char *via_peer;
   char *print_string;
-  char *addr_buf = (char *)addr;
+  char *addr_buf = (char *) addr;
 
-  if (addrlen != sizeof(struct GNUNET_PeerIdentity) * 2)
-    {
-      asc (asc_cls, NULL);
-    }
+  if (addrlen != sizeof (struct GNUNET_PeerIdentity) * 2)
+  {
+    asc (asc_cls, NULL);
+  }
   else
-    {
-      dest_peer = GNUNET_strdup(GNUNET_i2s((struct GNUNET_PeerIdentity *)addr));
-      via_peer = GNUNET_strdup(GNUNET_i2s((struct GNUNET_PeerIdentity *)&addr_buf[sizeof(struct GNUNET_PeerIdentity)]));
-      GNUNET_asprintf(&print_string, "DV Peer `%s' via peer`%s'", dest_peer, via_peer);
-      asc (asc_cls, print_string);
-      asc (asc_cls, NULL);
-      GNUNET_free(via_peer);
-      GNUNET_free(dest_peer);
-      GNUNET_free(print_string);
-    }
+  {
+    dest_peer =
+        GNUNET_strdup (GNUNET_i2s ((struct GNUNET_PeerIdentity *) addr));
+    via_peer =
+        GNUNET_strdup (GNUNET_i2s
+                       ((struct GNUNET_PeerIdentity *)
+                        &addr_buf[sizeof (struct GNUNET_PeerIdentity)]));
+    GNUNET_asprintf (&print_string, "DV Peer `%s' via peer`%s'", dest_peer,
+                     via_peer);
+    asc (asc_cls, print_string);
+    asc (asc_cls, NULL);
+    GNUNET_free (via_peer);
+    GNUNET_free (dest_peer);
+    GNUNET_free (print_string);
+  }
 }
 
 /**
@@ -315,9 +315,8 @@ dv_plugin_address_pretty_printer (void *cls,
  *
  * @return string representing the DV address
  */
-static const char *address_to_string (void *cls,
-                                       const void *addr,
-                                       size_t addrlen)
+static const char *
+address_to_string (void *cls, const void *addr, size_t addrlen)
 {
   static char return_buffer[2 * 4 + 2]; // Two four character peer identity prefixes a ':' and '\0'
 
@@ -325,23 +324,22 @@ static const char *address_to_string (void *cls,
   struct GNUNET_CRYPTO_HashAsciiEncoded via_hash;
   struct GNUNET_PeerIdentity *peer;
   struct GNUNET_PeerIdentity *via;
-  char *addr_buf = (char *)addr;
+  char *addr_buf = (char *) addr;
 
-  if (addrlen == (2 * sizeof(struct GNUNET_PeerIdentity)))
-    {
-      peer = (struct GNUNET_PeerIdentity *)addr_buf;
-      via = (struct GNUNET_PeerIdentity *)&addr_buf[sizeof(struct GNUNET_PeerIdentity)];
+  if (addrlen == (2 * sizeof (struct GNUNET_PeerIdentity)))
+  {
+    peer = (struct GNUNET_PeerIdentity *) addr_buf;
+    via =
+        (struct GNUNET_PeerIdentity *)
+        &addr_buf[sizeof (struct GNUNET_PeerIdentity)];
 
-      GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &peer_hash);
-      peer_hash.encoding[4] = '\0';
-      GNUNET_CRYPTO_hash_to_enc (&via->hashPubKey, &via_hash);
-      via_hash.encoding[4] = '\0';
-      GNUNET_snprintf (return_buffer,
-                       sizeof (return_buffer),
-                       "%s:%s",
-                       &peer_hash,
-                       &via_hash);
-    }
+    GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &peer_hash);
+    peer_hash.encoding[4] = '\0';
+    GNUNET_CRYPTO_hash_to_enc (&via->hashPubKey, &via_hash);
+    via_hash.encoding[4] = '\0';
+    GNUNET_snprintf (return_buffer,
+                     sizeof (return_buffer), "%s:%s", &peer_hash, &via_hash);
+  }
   else
     return NULL;
 
@@ -365,17 +363,23 @@ static const char *address_to_string (void *cls,
  *
  */
 static int
-dv_plugin_check_address (void *cls,
-                         const void *addr, size_t addrlen)
+dv_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 {
   struct Plugin *plugin = cls;
+
   /* Verify that the first peer of this address matches our peer id! */
-  if ((addrlen != (2 * sizeof(struct GNUNET_PeerIdentity))) || (0 != memcmp(addr, plugin->env->my_identity, sizeof(struct GNUNET_PeerIdentity))))
+  if ((addrlen != (2 * sizeof (struct GNUNET_PeerIdentity))) ||
+      (0 !=
+       memcmp (addr, plugin->env->my_identity,
+               sizeof (struct GNUNET_PeerIdentity))))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Address not correct size or identity doesn't match ours!\n", GNUNET_i2s(plugin->env->my_identity));
-    if (addrlen == (2 * sizeof(struct GNUNET_PeerIdentity)))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s: Address not correct size or identity doesn't match ours!\n",
+                GNUNET_i2s (plugin->env->my_identity));
+    if (addrlen == (2 * sizeof (struct GNUNET_PeerIdentity)))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer in address is %s\n", GNUNET_i2s(addr));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer in address is %s\n",
+                  GNUNET_i2s (addr));
     }
     return GNUNET_SYSERR;
   }
@@ -396,11 +400,12 @@ libgnunet_plugin_transport_dv_init (void *cls)
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
 
-  plugin->dv_handle = GNUNET_DV_connect(env->cfg, &handle_dv_message_received, plugin);
+  plugin->dv_handle =
+      GNUNET_DV_connect (env->cfg, &handle_dv_message_received, plugin);
 
   if (plugin->dv_handle == NULL)
   {
-    GNUNET_free(plugin);
+    GNUNET_free (plugin);
     return NULL;
   }
 
@@ -425,7 +430,7 @@ libgnunet_plugin_transport_dv_done (void *cls)
   struct Plugin *plugin = api->cls;
 
   if (plugin->dv_handle != NULL)
-    GNUNET_DV_disconnect(plugin->dv_handle);
+    GNUNET_DV_disconnect (plugin->dv_handle);
 
   GNUNET_free (plugin);
   GNUNET_free (api);

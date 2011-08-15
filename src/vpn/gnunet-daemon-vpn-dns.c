@@ -52,56 +52,67 @@ struct answer_packet_list *answer_proc_tail;
  * {{{
  */
 size_t
-send_query(void* cls __attribute__((unused)), size_t size, void* buf) {
-    size_t len;
+send_query (void *cls __attribute__ ((unused)), size_t size, void *buf)
+{
+  size_t len;
+
+  /*
+   * Send the rehijack-message
+   */
+  if (restart_hijack == 1)
+  {
+    restart_hijack = 0;
     /*
-     * Send the rehijack-message
+     * The message is just a header
      */
-    if (restart_hijack == 1)
-      {
-	restart_hijack = 0;
-	/*
-	 * The message is just a header
-	 */
-	GNUNET_assert(sizeof(struct GNUNET_MessageHeader) <= size);
-	struct GNUNET_MessageHeader* hdr = buf;
-	len = sizeof(struct GNUNET_MessageHeader);
-	hdr->size = htons(len);
-	hdr->type = htons(GNUNET_MESSAGE_TYPE_REHIJACK);
-      }
-    else if (head != NULL)
-      {
-	struct query_packet_list* query = head;
-	len = ntohs(query->pkt.hdr.size);
+    GNUNET_assert (sizeof (struct GNUNET_MessageHeader) <= size);
+    struct GNUNET_MessageHeader *hdr = buf;
 
-	GNUNET_assert(len <= size);
+    len = sizeof (struct GNUNET_MessageHeader);
+    hdr->size = htons (len);
+    hdr->type = htons (GNUNET_MESSAGE_TYPE_REHIJACK);
+  }
+  else if (head != NULL)
+  {
+    struct query_packet_list *query = head;
 
-	memcpy(buf, &query->pkt.hdr, len);
+    len = ntohs (query->pkt.hdr.size);
 
-	GNUNET_CONTAINER_DLL_remove (head, tail, query);
+    GNUNET_assert (len <= size);
 
-	GNUNET_free(query);
-      }
-    else
-      {
-	GNUNET_break(0);
-	len = 0;
-      }
+    memcpy (buf, &query->pkt.hdr, len);
 
-    /*
-     * Check whether more data is to be sent
-     */
-    if (head != NULL)
-      {
-	GNUNET_CLIENT_notify_transmit_ready(dns_connection, ntohs(head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
-      }
-    else if (restart_hijack == 1)
-      {
-	GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
-      }
+    GNUNET_CONTAINER_DLL_remove (head, tail, query);
 
-    return len;
+    GNUNET_free (query);
+  }
+  else
+  {
+    GNUNET_break (0);
+    len = 0;
+  }
+
+  /*
+   * Check whether more data is to be sent
+   */
+  if (head != NULL)
+  {
+    GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+                                         ntohs (head->pkt.hdr.size),
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         GNUNET_YES, &send_query, NULL);
+  }
+  else if (restart_hijack == 1)
+  {
+    GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+                                         sizeof (struct GNUNET_MessageHeader),
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         GNUNET_YES, &send_query, NULL);
+  }
+
+  return len;
 }
+
 /* }}} */
 
 
@@ -109,33 +120,37 @@ send_query(void* cls __attribute__((unused)), size_t size, void* buf) {
  * Connect to the service-dns
  */
 void
-connect_to_service_dns (void *cls __attribute__((unused)),
-			const struct GNUNET_SCHEDULER_TaskContext *tc) {
-    conn_task = GNUNET_SCHEDULER_NO_TASK;
-    if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-      return;
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting to service-dns\n");
-    GNUNET_assert (dns_connection == NULL);
-    dns_connection = GNUNET_CLIENT_connect ("dns", cfg);
-    /* This would most likely be a misconfiguration */
-    GNUNET_assert(NULL != dns_connection);
-    GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+connect_to_service_dns (void *cls __attribute__ ((unused)),
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  conn_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to service-dns\n");
+  GNUNET_assert (dns_connection == NULL);
+  dns_connection = GNUNET_CLIENT_connect ("dns", cfg);
+  /* This would most likely be a misconfiguration */
+  GNUNET_assert (NULL != dns_connection);
+  GNUNET_CLIENT_receive (dns_connection, &dns_answer_handler, NULL,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
 
-    /* We might not yet be connected. Yay, mps. */
-    if (NULL == dns_connection) return;
+  /* We might not yet be connected. Yay, mps. */
+  if (NULL == dns_connection)
+    return;
 
-    /* If a packet is already in the list, schedule to send it */
-    if (head != NULL)
-      GNUNET_CLIENT_notify_transmit_ready(dns_connection,
-					  ntohs(head->pkt.hdr.size),
-					  GNUNET_TIME_UNIT_FOREVER_REL,
-					  GNUNET_YES,
-					  &send_query,
-					  NULL);
-    else if (restart_hijack == 1)
-      {
-	GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
-      }
+  /* If a packet is already in the list, schedule to send it */
+  if (head != NULL)
+    GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+                                         ntohs (head->pkt.hdr.size),
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         GNUNET_YES, &send_query, NULL);
+  else if (restart_hijack == 1)
+  {
+    GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+                                         sizeof (struct GNUNET_MessageHeader),
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         GNUNET_YES, &send_query, NULL);
+  }
 }
 
 /**
@@ -143,33 +158,34 @@ connect_to_service_dns (void *cls __attribute__((unused)),
  * handle it
  */
 void
-dns_answer_handler(void* cls __attribute__((unused)), const struct GNUNET_MessageHeader *msg) {
-    /* the service disconnected, reconnect after short wait */
-    if (msg == NULL)
-      {
-	GNUNET_CLIENT_disconnect(dns_connection, GNUNET_NO);
-	dns_connection = NULL;
-	conn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-						  &connect_to_service_dns,
-						  NULL);
-	return;
-      }
+dns_answer_handler (void *cls
+                    __attribute__ ((unused)),
+                    const struct GNUNET_MessageHeader *msg)
+{
+  /* the service disconnected, reconnect after short wait */
+  if (msg == NULL)
+  {
+    GNUNET_CLIENT_disconnect (dns_connection, GNUNET_NO);
+    dns_connection = NULL;
+    conn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                              &connect_to_service_dns, NULL);
+    return;
+  }
 
-    /* the service did something strange, reconnect immediately */
-    if (msg->type != htons(GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS))
-      {
-	GNUNET_break (0);
-	GNUNET_CLIENT_disconnect(dns_connection, GNUNET_NO);
-	dns_connection = NULL;
-	conn_task = GNUNET_SCHEDULER_add_now (&connect_to_service_dns,
-					      NULL);
-	return;
-      }
-    void *pkt = GNUNET_malloc(ntohs(msg->size));
+  /* the service did something strange, reconnect immediately */
+  if (msg->type != htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS))
+  {
+    GNUNET_break (0);
+    GNUNET_CLIENT_disconnect (dns_connection, GNUNET_NO);
+    dns_connection = NULL;
+    conn_task = GNUNET_SCHEDULER_add_now (&connect_to_service_dns, NULL);
+    return;
+  }
+  void *pkt = GNUNET_malloc (ntohs (msg->size));
 
-    memcpy(pkt, msg, ntohs(msg->size));
+  memcpy (pkt, msg, ntohs (msg->size));
 
-    GNUNET_SCHEDULER_add_now(process_answer, pkt);
-    GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_SCHEDULER_add_now (process_answer, pkt);
+  GNUNET_CLIENT_receive (dns_connection, &dns_answer_handler, NULL,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
-

@@ -77,7 +77,8 @@
 /**
  * Message for a client to register to the service
  */
-struct GNUNET_MESH_ClientConnect {
+struct GNUNET_MESH_ClientConnect
+{
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT
      *
@@ -85,11 +86,11 @@ struct GNUNET_MESH_ClientConnect {
      *       sizeof(uint16_t) * types +
      *       sizeof(MESH_ApplicationType) * applications
      */
-    struct GNUNET_MessageHeader header;
-    uint16_t                    types           GNUNET_PACKED;
-    uint16_t                    applications    GNUNET_PACKED;
-    /* uint16_t                 list_types[types]           */
-    /* uint16_t                 list_apps[applications]     */
+  struct GNUNET_MessageHeader header;
+  uint16_t types GNUNET_PACKED;
+  uint16_t applications GNUNET_PACKED;
+  /* uint16_t                 list_types[types]           */
+  /* uint16_t                 list_apps[applications]     */
 };
 
 
@@ -103,18 +104,19 @@ typedef uint32_t MESH_TunnelNumber;
 /**
  * Message for a client to create and destroy tunnels.
  */
-struct GNUNET_MESH_TunnelMessage {
+struct GNUNET_MESH_TunnelMessage
+{
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[CREATE|DESTROY]
      *
      * Size: sizeof(struct GNUNET_MESH_TunnelMessage)
      */
-    struct GNUNET_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
     /**
      * ID of a tunnel controlled by this client.
      */
-    MESH_TunnelNumber           tunnel_id GNUNET_PACKED;
+  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 };
 
 /**
@@ -125,7 +127,8 @@ struct GNUNET_MESH_TunnelMessage {
  *   -- unrequested (new incoming tunnels)
  * - notify the client that peers have disconnected
  */
-struct GNUNET_MESH_PeerControl {
+struct GNUNET_MESH_PeerControl
+{
 
   /**
    * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_[ADD|DEL]
@@ -135,38 +138,39 @@ struct GNUNET_MESH_PeerControl {
    * 
    * Size: sizeof(struct GNUNET_MESH_PeerControl) 
    */
-  struct GNUNET_MessageHeader   header;
+  struct GNUNET_MessageHeader header;
 
   /**
    * ID of a tunnel controlled by this client.
    */
-   MESH_TunnelNumber            tunnel_id GNUNET_PACKED;
-  
+  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+
   /**
    * Peer to connect/disconnect.
    */
-  struct GNUNET_PeerIdentity    peer;
+  struct GNUNET_PeerIdentity peer;
 };
 
 
 /**
  * Message for connecting to peers offering a certain service.
  */
-struct GNUNET_MESH_ConnectPeerByType {
+struct GNUNET_MESH_ConnectPeerByType
+{
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE
      */
-    struct GNUNET_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
   /**
    * ID of a tunnel controlled by this client.
    */
-   MESH_TunnelNumber            tunnel_id GNUNET_PACKED;
- 
+  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+
   /**
    * Type specification 
    */
-    GNUNET_MESH_ApplicationType type GNUNET_PACKED;
+  GNUNET_MESH_ApplicationType type GNUNET_PACKED;
 };
 
 #endif

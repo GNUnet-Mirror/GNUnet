@@ -39,17 +39,17 @@ test (enum GNUNET_CRYPTO_Quality mode)
   for (i = 0; i < 1024; i++)
     GNUNET_break (1024 > (buf[i] = GNUNET_CRYPTO_random_u32 (mode, 1024)));
   for (i = 0; i < 10; i++)
+  {
+    b2 = GNUNET_CRYPTO_random_permute (mode, 1024);
+    if (0 == memcmp (b2, buf, sizeof (buf)))
     {
-      b2 = GNUNET_CRYPTO_random_permute (mode, 1024);
-      if (0 == memcmp (b2, buf, sizeof (buf)))
-        {
-          fprintf (stderr, "!");
-          GNUNET_free (b2);
-          continue;
-        }
+      fprintf (stderr, "!");
       GNUNET_free (b2);
-      break;
+      continue;
     }
+    GNUNET_free (b2);
+    break;
+  }
   if (i == 10)
     return 1;                   /* virtually impossible... */
 

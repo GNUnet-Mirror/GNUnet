@@ -63,34 +63,35 @@ get_size (int i)
 static const void *
 get_data (int i)
 {
-  static char buf[60000]; 
+  static char buf[60000];
+
   memset (buf, i, 8 * i);
   return buf;
 }
 
 
 static int
-get_type(int i)
+get_type (int i)
 {
-  return i+1;
-}
-
-
-static int 
-get_priority (int i)
-{
-  return i+1;
+  return i + 1;
 }
 
 
 static int
-get_anonymity(int i)
+get_priority (int i)
+{
+  return i + 1;
+}
+
+
+static int
+get_anonymity (int i)
 {
   return i;
 }
 
 
-static struct GNUNET_TIME_Absolute 
+static struct GNUNET_TIME_Absolute
 get_expiration (int i)
 {
   struct GNUNET_TIME_Absolute av;
@@ -100,22 +101,22 @@ get_expiration (int i)
 }
 
 enum RunPhase
-  {
-    RP_DONE = 0,
-    RP_PUT = 1,
-    RP_GET = 2,
-    RP_DEL = 3,
-    RP_DO_DEL = 4,
-    RP_DELVALIDATE = 5,
-    RP_RESERVE = 6,
-    RP_PUT_MULTIPLE = 7,
-    RP_PUT_MULTIPLE_NEXT = 8,
-    RP_GET_MULTIPLE = 9,
-    RP_GET_MULTIPLE_NEXT = 10,
-    RP_UPDATE = 11,
-    RP_UPDATE_VALIDATE = 12,
-    RP_ERROR
-  };
+{
+  RP_DONE = 0,
+  RP_PUT = 1,
+  RP_GET = 2,
+  RP_DEL = 3,
+  RP_DO_DEL = 4,
+  RP_DELVALIDATE = 5,
+  RP_RESERVE = 6,
+  RP_PUT_MULTIPLE = 7,
+  RP_PUT_MULTIPLE_NEXT = 8,
+  RP_GET_MULTIPLE = 9,
+  RP_GET_MULTIPLE_NEXT = 10,
+  RP_UPDATE = 11,
+  RP_UPDATE_VALIDATE = 12,
+  RP_ERROR
+};
 
 
 struct CpsRunContext
@@ -134,62 +135,52 @@ struct CpsRunContext
 
 
 static void
-run_continuation (void *cls,
-		  const struct GNUNET_SCHEDULER_TaskContext *tc);
+run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
-check_success (void *cls,
-	       int success,
-	       const char *msg)
+check_success (void *cls, int success, const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
   if (GNUNET_OK != success)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Operation %d/%d not successfull: `%s'\n", 
-		  crc->phase,
-		  crc->i,
-		  msg);
-      crc->phase = RP_ERROR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Operation %d/%d not successfull: `%s'\n",
+                crc->phase, crc->i, msg);
+    crc->phase = RP_ERROR;
+  }
   GNUNET_free_non_null (crc->data);
   crc->data = NULL;
   GNUNET_SCHEDULER_add_continuation (&run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     crc, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
 static void
-get_reserved (void *cls,
-	      int success,
-	      const char *msg)
+get_reserved (void *cls, int success, const char *msg)
 {
   struct CpsRunContext *crc = cls;
+
   if (0 >= success)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Error obtaining reservation: `%s'\n", 
-		msg);
+                "Error obtaining reservation: `%s'\n", msg);
   GNUNET_assert (0 < success);
   crc->rid = success;
   GNUNET_SCHEDULER_add_continuation (&run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     crc, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
-static void 
+static void
 check_value (void *cls,
-	     const GNUNET_HashCode * key,
-	     size_t size,
-	     const void *data,
-	     enum GNUNET_BLOCK_Type type,
-	     uint32_t priority,
-	     uint32_t anonymity,
-	     struct GNUNET_TIME_Absolute expiration, 
-	     uint64_t uid)
+             const GNUNET_HashCode * key,
+             size_t size,
+             const void *data,
+             enum GNUNET_BLOCK_Type type,
+             uint32_t priority,
+             uint32_t anonymity,
+             struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   int i;
@@ -197,46 +188,42 @@ check_value (void *cls,
   i = crc->i;
 #if 0
   fprintf (stderr,
-	   "Check value got `%s' of size %u, type %d, expire %llu\n",
-	   GNUNET_h2s (key),
-	   (unsigned int) size,
-	   type,
-	   (unsigned long long) expiration.abs_value);
+           "Check value got `%s' of size %u, type %d, expire %llu\n",
+           GNUNET_h2s (key),
+           (unsigned int) size,
+           type, (unsigned long long) expiration.abs_value);
   fprintf (stderr,
-	   "Check value iteration %d wants size %u, type %d, expire %llu\n",
-	   i,
-	   (unsigned int) get_size (i),
-	   get_type (i),
-	   (unsigned long long) get_expiration(i).abs_value);
+           "Check value iteration %d wants size %u, type %d, expire %llu\n",
+           i,
+           (unsigned int) get_size (i),
+           get_type (i), (unsigned long long) get_expiration (i).abs_value);
 #endif
   GNUNET_assert (size == get_size (i));
-  GNUNET_assert (0 == memcmp (data, get_data(i), size));
+  GNUNET_assert (0 == memcmp (data, get_data (i), size));
   GNUNET_assert (type == get_type (i));
   GNUNET_assert (priority == get_priority (i));
-  GNUNET_assert (anonymity == get_anonymity(i));
-  GNUNET_assert (expiration.abs_value == get_expiration(i).abs_value);
+  GNUNET_assert (anonymity == get_anonymity (i));
+  GNUNET_assert (expiration.abs_value == get_expiration (i).abs_value);
   crc->offset++;
   if (crc->i == 0)
-    {
-      crc->phase = RP_DEL;
-      crc->i = ITERATIONS;
-    } 
+  {
+    crc->phase = RP_DEL;
+    crc->i = ITERATIONS;
+  }
   GNUNET_SCHEDULER_add_continuation (&run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     crc, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
-static void 
+static void
 delete_value (void *cls,
-	      const GNUNET_HashCode *key,
-	      size_t size,
-	      const void *data,
-	      enum GNUNET_BLOCK_Type type,
-	      uint32_t priority,
-	      uint32_t anonymity,
-	      struct GNUNET_TIME_Absolute
-	      expiration, uint64_t uid)
+              const GNUNET_HashCode * key,
+              size_t size,
+              const void *data,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t priority,
+              uint32_t anonymity,
+              struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
 
@@ -248,21 +235,19 @@ delete_value (void *cls,
   memcpy (crc->data, data, size);
   crc->phase = RP_DO_DEL;
   GNUNET_SCHEDULER_add_continuation (&run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     crc, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
-static void 
+static void
 check_nothing (void *cls,
-	       const GNUNET_HashCode *key,
-	       size_t size,
-	       const void *data,
-	       enum GNUNET_BLOCK_Type type,
-	       uint32_t priority,
-	       uint32_t anonymity,
-	       struct GNUNET_TIME_Absolute
-	       expiration, uint64_t uid)
+               const GNUNET_HashCode * key,
+               size_t size,
+               const void *data,
+               enum GNUNET_BLOCK_Type type,
+               uint32_t priority,
+               uint32_t anonymity,
+               struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
 
@@ -270,352 +255,310 @@ check_nothing (void *cls,
   if (crc->i == 0)
     crc->phase = RP_RESERVE;
   GNUNET_SCHEDULER_add_continuation (&run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     crc, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
-static void 
+static void
 check_multiple (void *cls,
-		const GNUNET_HashCode * key,
-		size_t size,
-		const void *data,
-		enum GNUNET_BLOCK_Type type,
-		uint32_t priority,
-		uint32_t anonymity,
-		struct GNUNET_TIME_Absolute
-		expiration, uint64_t uid)
+                const GNUNET_HashCode * key,
+                size_t size,
+                const void *data,
+                enum GNUNET_BLOCK_Type type,
+                uint32_t priority,
+                uint32_t anonymity,
+                struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
 
   GNUNET_assert (key != NULL);
   switch (crc->phase)
-    {
-    case RP_GET_MULTIPLE:
-      crc->phase = RP_GET_MULTIPLE_NEXT;
-      crc->first_uid = uid;
-      crc->offset++;
-      break;
-    case RP_GET_MULTIPLE_NEXT:
-      GNUNET_assert (uid != crc->first_uid);
-      crc->phase = RP_UPDATE;
-      break;
-    default:
-      GNUNET_break (0);
-      crc->phase = RP_ERROR;
-      break;
-    }
+  {
+  case RP_GET_MULTIPLE:
+    crc->phase = RP_GET_MULTIPLE_NEXT;
+    crc->first_uid = uid;
+    crc->offset++;
+    break;
+  case RP_GET_MULTIPLE_NEXT:
+    GNUNET_assert (uid != crc->first_uid);
+    crc->phase = RP_UPDATE;
+    break;
+  default:
+    GNUNET_break (0);
+    crc->phase = RP_ERROR;
+    break;
+  }
   if (priority == get_priority (42))
     crc->uid = uid;
   GNUNET_SCHEDULER_add_continuation (&run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     crc, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
-static void 
+static void
 check_update (void *cls,
-	      const GNUNET_HashCode * key,
-	      size_t size,
-	      const void *data,
-	      enum GNUNET_BLOCK_Type type,
-	      uint32_t priority,
-	      uint32_t anonymity,
-	      struct GNUNET_TIME_Absolute
-	      expiration, uint64_t uid)
+              const GNUNET_HashCode * key,
+              size_t size,
+              const void *data,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t priority,
+              uint32_t anonymity,
+              struct GNUNET_TIME_Absolute expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
 
   GNUNET_assert (key != NULL);
-  if ( (anonymity == get_anonymity (42)) &&
-       (size == get_size (42)) &&
-       (priority == get_priority (42) + 100) )
-    crc->phase = RP_DONE;    
+  if ((anonymity == get_anonymity (42)) &&
+      (size == get_size (42)) && (priority == get_priority (42) + 100))
+    crc->phase = RP_DONE;
   else
-    {
-      GNUNET_assert (size == get_size (43));
-      crc->offset++;
-    }
+  {
+    GNUNET_assert (size == get_size (43));
+    crc->offset++;
+  }
   GNUNET_SCHEDULER_add_continuation (&run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     crc, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
 static void
-run_continuation (void *cls,
-		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CpsRunContext *crc = cls;
+
   ok = (int) crc->phase;
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Test in phase %u\n", crc->phase);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test in phase %u\n", crc->phase);
 #endif
   switch (crc->phase)
+  {
+  case RP_PUT:
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n", "PUT", crc->i);
+#endif
+    GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
+    GNUNET_DATASTORE_put (datastore,
+                          0,
+                          &crc->key,
+                          get_size (crc->i),
+                          get_data (crc->i),
+                          get_type (crc->i),
+                          get_priority (crc->i),
+                          get_anonymity (crc->i),
+                          0,
+                          get_expiration (crc->i),
+                          1, 1, TIMEOUT, &check_success, crc);
+    crc->i++;
+    if (crc->i == ITERATIONS)
+      crc->phase = RP_GET;
+    break;
+  case RP_GET:
+    crc->i--;
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n", "GET", crc->i);
+#endif
+    GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
+    GNUNET_DATASTORE_get_key (datastore,
+                              crc->offset,
+                              &crc->key,
+                              get_type (crc->i),
+                              1, 1, TIMEOUT, &check_value, crc);
+    break;
+  case RP_DEL:
+    crc->i--;
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n", "DEL", crc->i);
+#endif
+    crc->data = NULL;
+    GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
+    GNUNET_assert (NULL !=
+                   GNUNET_DATASTORE_get_key (datastore,
+                                             crc->offset,
+                                             &crc->key,
+                                             get_type (crc->i),
+                                             1, 1, TIMEOUT,
+                                             &delete_value, crc));
+    break;
+  case RP_DO_DEL:
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n", "DO_DEL", crc->i);
+#endif
+    if (crc->i == 0)
     {
-    case RP_PUT:
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Executing `%s' number %u\n",
-		  "PUT",
-		  crc->i);
-#endif
-      GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_DATASTORE_put (datastore,
-			    0,
-			    &crc->key,
-			    get_size (crc->i),
-			    get_data (crc->i),
-			    get_type (crc->i),
-			    get_priority (crc->i),
-			    get_anonymity (crc->i),
-			    0,
-			    get_expiration (crc->i),
-			    1, 1, TIMEOUT,
-			    &check_success,
-			    crc);
-      crc->i++;
-      if (crc->i == ITERATIONS)
-	crc->phase = RP_GET;
-      break;
-    case RP_GET:
-      crc->i--;
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Executing `%s' number %u\n",
-		  "GET",
-		  crc->i);
-#endif
-      GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_DATASTORE_get_key (datastore, 
-				crc->offset,
-				&crc->key,
-				get_type (crc->i),
-				1, 1, TIMEOUT,
-				&check_value,
-				crc);
-      break;
-    case RP_DEL:
-      crc->i--;
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Executing `%s' number %u\n",
-		  "DEL",
-		  crc->i);
-#endif
-      crc->data = NULL;
-      GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_assert (NULL !=
-		     GNUNET_DATASTORE_get_key (datastore, 
-					       crc->offset,
-					       &crc->key,
-					       get_type (crc->i),
-					       1, 1, TIMEOUT,
-					       &delete_value,
-					       crc));
-      break;
-    case RP_DO_DEL:
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Executing `%s' number %u\n",
-		  "DO_DEL",
-		  crc->i);
-#endif
-      if (crc->i == 0)
-	{
-	  crc->i = ITERATIONS;	 
-	  crc->phase = RP_DELVALIDATE;
-	}      
-      else
-	{
-	  crc->phase = RP_DEL;
-	}
-      GNUNET_assert (NULL !=
-		     GNUNET_DATASTORE_remove (datastore,
-					      &crc->key,
-					      crc->size,
-					      crc->data,
-					      1, 1, TIMEOUT,
-					      &check_success,
-					      crc));
-      break;   
-    case RP_DELVALIDATE:
-      crc->i--;
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Executing `%s' number %u\n",
-		  "DEL-VALIDATE",
-		  crc->i);
-#endif
-      GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_assert (NULL != 
-		     GNUNET_DATASTORE_get_key (datastore, 
-					       crc->offset,
-					       &crc->key,
-					       get_type (crc->i),
-					       1, 1, TIMEOUT,
-					       &check_nothing,
-					       crc));
-      break;
-    case RP_RESERVE:
-      crc->phase = RP_PUT_MULTIPLE;
-      GNUNET_DATASTORE_reserve (datastore,
-				128*1024,
-				2,
-				1, 1, TIMEOUT,
-				&get_reserved,
-				crc);
-      break;
-    case RP_PUT_MULTIPLE:
-      crc->phase = RP_PUT_MULTIPLE_NEXT;
-      GNUNET_DATASTORE_put (datastore,
-			    crc->rid,
-			    &crc->key,
-			    get_size (42),
-			    get_data (42),
-			    get_type (42),
-			    get_priority (42),
-			    get_anonymity (42),
-			    0,
-			    get_expiration (42),
-			    1, 1, TIMEOUT,
-			    &check_success,
-			    crc);
-      break;
-    case RP_PUT_MULTIPLE_NEXT:
-      crc->phase = RP_GET_MULTIPLE;
-      GNUNET_DATASTORE_put (datastore,
-			    crc->rid,
-			    &crc->key,
-			    get_size (43),
-			    get_data (43),
-			    get_type (42),
-			    get_priority (43),
-			    get_anonymity (43),
-			    0,
-			    get_expiration (43),
-			    1, 1, TIMEOUT,
-			    &check_success,
-			    crc);
-      break;
-    case RP_GET_MULTIPLE:
-      GNUNET_assert (NULL !=
-		     GNUNET_DATASTORE_get_key (datastore,
-					       crc->offset,
-					       &crc->key, 
-					       get_type (42),
-					       1, 1, TIMEOUT,
-					       &check_multiple,
-					       crc));
-      break;
-    case RP_GET_MULTIPLE_NEXT:
-      GNUNET_assert (NULL !=
-		     GNUNET_DATASTORE_get_key (datastore,
-					       crc->offset,
-					       &crc->key, 
-					       get_type (42),
-					       1, 1, TIMEOUT,
-					       &check_multiple,
-					       crc));
-      break;
-    case RP_UPDATE:
-      GNUNET_assert (crc->uid > 0);
-      crc->phase = RP_UPDATE_VALIDATE;
-      GNUNET_DATASTORE_update (datastore,
-			       crc->uid,
-			       100,
-			       get_expiration (42),
-			       1, 1, TIMEOUT,
-			       &check_success,
-			       crc);
-      break;
-    case RP_UPDATE_VALIDATE:
-      GNUNET_assert (NULL !=
-		     GNUNET_DATASTORE_get_key (datastore,
-					       crc->offset,
-					       &crc->key, 
-					       get_type (42),
-					       1, 1, TIMEOUT,
-					       &check_update,
-					       crc));
-      break;
-    case RP_DONE:
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Finished, disconnecting\n");
-#endif
-      GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
-      GNUNET_free (crc);
-      ok = 0;
-      break;
-    case RP_ERROR:
-      GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
-      GNUNET_free (crc);
-      ok = 43;
-      break;
+      crc->i = ITERATIONS;
+      crc->phase = RP_DELVALIDATE;
     }
+    else
+    {
+      crc->phase = RP_DEL;
+    }
+    GNUNET_assert (NULL !=
+                   GNUNET_DATASTORE_remove (datastore,
+                                            &crc->key,
+                                            crc->size,
+                                            crc->data,
+                                            1, 1, TIMEOUT,
+                                            &check_success, crc));
+    break;
+  case RP_DELVALIDATE:
+    crc->i--;
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n", "DEL-VALIDATE", crc->i);
+#endif
+    GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
+    GNUNET_assert (NULL !=
+                   GNUNET_DATASTORE_get_key (datastore,
+                                             crc->offset,
+                                             &crc->key,
+                                             get_type (crc->i),
+                                             1, 1, TIMEOUT,
+                                             &check_nothing, crc));
+    break;
+  case RP_RESERVE:
+    crc->phase = RP_PUT_MULTIPLE;
+    GNUNET_DATASTORE_reserve (datastore,
+                              128 * 1024, 2, 1, 1, TIMEOUT, &get_reserved, crc);
+    break;
+  case RP_PUT_MULTIPLE:
+    crc->phase = RP_PUT_MULTIPLE_NEXT;
+    GNUNET_DATASTORE_put (datastore,
+                          crc->rid,
+                          &crc->key,
+                          get_size (42),
+                          get_data (42),
+                          get_type (42),
+                          get_priority (42),
+                          get_anonymity (42),
+                          0,
+                          get_expiration (42),
+                          1, 1, TIMEOUT, &check_success, crc);
+    break;
+  case RP_PUT_MULTIPLE_NEXT:
+    crc->phase = RP_GET_MULTIPLE;
+    GNUNET_DATASTORE_put (datastore,
+                          crc->rid,
+                          &crc->key,
+                          get_size (43),
+                          get_data (43),
+                          get_type (42),
+                          get_priority (43),
+                          get_anonymity (43),
+                          0,
+                          get_expiration (43),
+                          1, 1, TIMEOUT, &check_success, crc);
+    break;
+  case RP_GET_MULTIPLE:
+    GNUNET_assert (NULL !=
+                   GNUNET_DATASTORE_get_key (datastore,
+                                             crc->offset,
+                                             &crc->key,
+                                             get_type (42),
+                                             1, 1, TIMEOUT,
+                                             &check_multiple, crc));
+    break;
+  case RP_GET_MULTIPLE_NEXT:
+    GNUNET_assert (NULL !=
+                   GNUNET_DATASTORE_get_key (datastore,
+                                             crc->offset,
+                                             &crc->key,
+                                             get_type (42),
+                                             1, 1, TIMEOUT,
+                                             &check_multiple, crc));
+    break;
+  case RP_UPDATE:
+    GNUNET_assert (crc->uid > 0);
+    crc->phase = RP_UPDATE_VALIDATE;
+    GNUNET_DATASTORE_update (datastore,
+                             crc->uid,
+                             100,
+                             get_expiration (42),
+                             1, 1, TIMEOUT, &check_success, crc);
+    break;
+  case RP_UPDATE_VALIDATE:
+    GNUNET_assert (NULL !=
+                   GNUNET_DATASTORE_get_key (datastore,
+                                             crc->offset,
+                                             &crc->key,
+                                             get_type (42),
+                                             1, 1, TIMEOUT,
+                                             &check_update, crc));
+    break;
+  case RP_DONE:
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished, disconnecting\n");
+#endif
+    GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+    GNUNET_free (crc);
+    ok = 0;
+    break;
+  case RP_ERROR:
+    GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+    GNUNET_free (crc);
+    ok = 43;
+    break;
+  }
 }
 
 
 static void
-run_tests (void *cls,
-	   int32_t success,
-	   const char *msg)
+run_tests (void *cls, int32_t success, const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
   switch (success)
-    {
-    case GNUNET_YES:
-      GNUNET_SCHEDULER_add_continuation (&run_continuation,
-					 crc,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      return;
-    case GNUNET_NO:
-      fprintf (stderr,
-	       "Test 'put' operation failed, key already exists (!?)\n");
-      GNUNET_free (crc);
-      return;
-    case GNUNET_SYSERR:
-      fprintf (stderr,
-	       "Test 'put' operation failed with error `%s' database likely not setup, skipping test.\n",
-	       msg);
-      GNUNET_free (crc);
-      return;
-    default:
-      GNUNET_assert (0);
-    }
+  {
+  case GNUNET_YES:
+    GNUNET_SCHEDULER_add_continuation (&run_continuation,
+                                       crc,
+                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    return;
+  case GNUNET_NO:
+    fprintf (stderr, "Test 'put' operation failed, key already exists (!?)\n");
+    GNUNET_free (crc);
+    return;
+  case GNUNET_SYSERR:
+    fprintf (stderr,
+             "Test 'put' operation failed with error `%s' database likely not setup, skipping test.\n",
+             msg);
+    GNUNET_free (crc);
+    return;
+  default:
+    GNUNET_assert (0);
+  }
 }
 
 
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct CpsRunContext *crc;
   static GNUNET_HashCode zkey;
 
-  crc = GNUNET_malloc(sizeof(struct CpsRunContext));
+  crc = GNUNET_malloc (sizeof (struct CpsRunContext));
   crc->cfg = cfg;
   crc->phase = RP_PUT;
   now = GNUNET_TIME_absolute_get ();
   datastore = GNUNET_DATASTORE_connect (cfg);
   if (NULL ==
       GNUNET_DATASTORE_put (datastore, 0,
-			    &zkey, 4, "TEST",
-			    GNUNET_BLOCK_TYPE_TEST,
-			    0, 0, 0, GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS),
-			    0, 1, GNUNET_TIME_UNIT_MINUTES,
-			    &run_tests, crc))
-    {
-      fprintf (stderr,
-	       "Test 'put' operation failed.\n");
-      ok = 1;
-      GNUNET_free (crc);
-    }
+                            &zkey, 4, "TEST",
+                            GNUNET_BLOCK_TYPE_TEST,
+                            0, 0, 0,
+                            GNUNET_TIME_relative_to_absolute
+                            (GNUNET_TIME_UNIT_SECONDS), 0, 1,
+                            GNUNET_TIME_UNIT_MINUTES, &run_tests, crc))
+  {
+    fprintf (stderr, "Test 'put' operation failed.\n");
+    ok = 1;
+    GNUNET_free (crc);
+  }
 }
 
 
@@ -623,6 +566,7 @@ static int
 check ()
 {
   char cfg_name[128];
+
 #if START_DATASTORE
   struct GNUNET_OS_Process *proc;
 #endif
@@ -639,28 +583,27 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_snprintf (cfg_name,
-		   sizeof (cfg_name),
-		   "test_datastore_api_data_%s.conf",
-		   plugin_name);
+                   sizeof (cfg_name),
+                   "test_datastore_api_data_%s.conf", plugin_name);
 #if START_DATASTORE
   proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                 "gnunet-service-arm",
+                                  "gnunet-service-arm",
 #if VERBOSE
-                                 "-L", "DEBUG",
+                                  "-L", "DEBUG",
 #endif
-                                 "-c", cfg_name, NULL);
+                                  "-c", cfg_name, NULL);
 #endif
   GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-datastore-api", "nohelp",
                       options, &run, NULL);
 #if START_DATASTORE
-  sleep (1); /* give datastore chance to receive 'DROP' request */
+  sleep (1);                    /* give datastore chance to receive 'DROP' request */
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      ok = 1;
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    ok = 1;
+  }
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_close (proc);
   proc = NULL;
@@ -680,17 +623,16 @@ main (int argc, char *argv[])
   sleep (1);
   /* determine name of plugin to use */
   plugin_name = argv[0];
-  while (NULL != (pos = strstr(plugin_name, "_")))
-    plugin_name = pos+1;
-  if (NULL != (pos = strstr(plugin_name, ".")))
+  while (NULL != (pos = strstr (plugin_name, "_")))
+    plugin_name = pos + 1;
+  if (NULL != (pos = strstr (plugin_name, ".")))
     pos[0] = 0;
   else
     pos = (char *) plugin_name;
 
   GNUNET_snprintf (dir_name,
-		   sizeof (dir_name),
-		   "/tmp/test-gnunet-datastore-%s",
-		   plugin_name);
+                   sizeof (dir_name),
+                   "/tmp/test-gnunet-datastore-%s", plugin_name);
   GNUNET_DISK_directory_remove (dir_name);
   GNUNET_log_setup ("test-datastore-api",
 #if VERBOSE

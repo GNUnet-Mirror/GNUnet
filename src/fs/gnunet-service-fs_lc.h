@@ -36,8 +36,8 @@
  * @param client handle of the client
  * @return handle to local client entry
  */
-struct GSF_LocalClient *
-GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client);
+struct GSF_LocalClient *GSF_local_client_lookup_ (struct GNUNET_SERVER_Client
+                                                  *client);
 
 
 /**
@@ -50,9 +50,12 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client);
  * @param message the actual message
  * @return pending request handle for the request, NULL on error
  */
-struct GSF_PendingRequest *
-GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
-					const struct GNUNET_MessageHeader *message);
+struct GSF_PendingRequest *GSF_local_client_start_search_handler_ (struct
+                                                                   GNUNET_SERVER_Client
+                                                                   *client,
+                                                                   const struct
+                                                                   GNUNET_MessageHeader
+                                                                   *message);
 
 
 /**
@@ -65,7 +68,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
  */
 void
 GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
-			    const struct GNUNET_MessageHeader *msg);
+                            const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -75,8 +78,7 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
  * @param client handle of the client
  */
 void
-GSF_client_disconnect_handler_ (void *cls,
-				struct GNUNET_SERVER_Client *client);
+GSF_client_disconnect_handler_ (void *cls, struct GNUNET_SERVER_Client *client);
 
 
 #endif

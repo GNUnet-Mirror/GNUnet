@@ -53,12 +53,12 @@ static struct GNUNET_CONTAINER_MetaData *adv_metadata;
 /**
  * Our block options (-p, -r, -a).
  */
-static struct GNUNET_FS_BlockOptions bo = { { 0LL  }, 1, 365, 1 };
+static struct GNUNET_FS_BlockOptions bo = { {0LL}, 1, 365, 1 };
 
 /**
  * -q option given.
  */
-static int no_remote_printing; 
+static int no_remote_printing;
 
 /**
  * -r option.
@@ -87,53 +87,39 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static int ret;
 
-static void* 
-progress_cb (void *cls,
-	     const struct GNUNET_FS_ProgressInfo *info)
+static void *
+progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 {
   return NULL;
 }
 
 
 static void
-ns_printer (void *cls,
-	    const char *name,
-	    const GNUNET_HashCode *id)
+ns_printer (void *cls, const char *name, const GNUNET_HashCode * id)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
   GNUNET_CRYPTO_hash_to_enc (id, &enc);
-  fprintf (stdout, 
-	   "%s (%s)\n",
-	   name,
-	   (const char*) &enc);
+  fprintf (stdout, "%s (%s)\n", name, (const char *) &enc);
 }
 
 
 static int
 pseudo_printer (void *cls,
-		const GNUNET_HashCode *
-		pseudonym,
-		const struct
-		GNUNET_CONTAINER_MetaData * md,
-		int rating)
+                const GNUNET_HashCode *
+                pseudonym,
+                const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
   char *id;
 
-  id = GNUNET_PSEUDONYM_id_to_name (cfg,
-				    pseudonym);
+  id = GNUNET_PSEUDONYM_id_to_name (cfg, pseudonym);
   if (id == NULL)
-    {
-      GNUNET_break (0);
-      return GNUNET_OK;
-    }
-  fprintf (stdout, 
-	   "%s (%d):\n",
-	   id,
-	   rating);
-  GNUNET_CONTAINER_meta_data_iterate (md,
-				      &EXTRACTOR_meta_data_print, 
-				      stdout);
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+  fprintf (stdout, "%s (%d):\n", id, rating);
+  GNUNET_CONTAINER_meta_data_iterate (md, &EXTRACTOR_meta_data_print, stdout);
   fprintf (stdout, "\n");
   GNUNET_free (id);
   return GNUNET_OK;
@@ -141,73 +127,58 @@ pseudo_printer (void *cls,
 
 
 static void
-post_advertising (void *cls,
-		  const struct GNUNET_FS_Uri *uri,
-		  const char *emsg)
+post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
   GNUNET_HashCode nsid;
   char *set;
   int delta;
 
   if (emsg != NULL)
-    {
-      fprintf (stderr, "%s", emsg);
-      ret = 1;
-    }
+  {
+    fprintf (stderr, "%s", emsg);
+    ret = 1;
+  }
   if (ns != NULL)
-    {
-      if (GNUNET_OK !=
-	  GNUNET_FS_namespace_delete (ns,
-				      GNUNET_NO))
-	ret = 1;
-    }
+  {
+    if (GNUNET_OK != GNUNET_FS_namespace_delete (ns, GNUNET_NO))
+      ret = 1;
+  }
   if (NULL != rating_change)
+  {
+    set = rating_change;
+    while ((*set != '\0') && (*set != ':'))
+      set++;
+    if (*set != ':')
     {
-      set = rating_change;
-      while ((*set != '\0') && (*set != ':'))
-        set++;
-      if (*set != ':')
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Invalid argument `%s'\n"),
-		      rating_change);
-	}
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Invalid argument `%s'\n"), rating_change);
+    }
+    else
+    {
+      *set = '\0';
+      delta = strtol (&set[1], NULL,    /* no error handling yet */
+                      10);
+      if (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, rating_change, &nsid))
+      {
+        (void) GNUNET_PSEUDONYM_rank (cfg, &nsid, delta);
+      }
       else
-	{
-	  *set = '\0';
-	  delta = strtol (&set[1], NULL, /* no error handling yet */
-                          10);
-	  if (GNUNET_OK ==
-	      GNUNET_PSEUDONYM_name_to_id (cfg,
-					   rating_change,
-					   &nsid))
-	    {
-	      (void) GNUNET_PSEUDONYM_rank (cfg,
-					    &nsid,
-					    delta);	      
-	    }
-	  else
-	    {
-	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			  _("Namespace `%s' unknown.\n"),
-			  rating_change);
-	    }
-	}
-      GNUNET_free (rating_change);
-      rating_change = NULL;
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Namespace `%s' unknown.\n"), rating_change);
+      }
     }
+    GNUNET_free (rating_change);
+    rating_change = NULL;
+  }
   if (0 != print_local_only)
-    {
-      GNUNET_FS_namespace_list (h,
-				&ns_printer, 
-				NULL);
-    }  
+  {
+    GNUNET_FS_namespace_list (h, &ns_printer, NULL);
+  }
   else if (0 == no_remote_printing)
-    {
-      GNUNET_PSEUDONYM_list_all (cfg,
-				 &pseudo_printer,
-				 NULL);
-    }
+  {
+    GNUNET_PSEUDONYM_list_all (cfg, &pseudo_printer, NULL);
+  }
   GNUNET_FS_stop (h);
 }
 
@@ -223,76 +194,70 @@ post_advertising (void *cls,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *emsg;
 
   cfg = c;
   h = GNUNET_FS_start (cfg,
-		       "gnunet-pseudonym",
-		       &progress_cb,
-		       NULL,
-		       GNUNET_FS_FLAGS_NONE,
-		       GNUNET_FS_OPTIONS_END);
+                       "gnunet-pseudonym",
+                       &progress_cb,
+                       NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL != delete_ns)
+  {
+    ns = GNUNET_FS_namespace_create (h, delete_ns);
+    if (ns == NULL)
     {
-      ns = GNUNET_FS_namespace_create (h, delete_ns);
-      if (ns == NULL)
-	{
-	  ret = 1;
-	}
-      else
-	{
-	  if (GNUNET_OK !=
-	      GNUNET_FS_namespace_delete (ns,
-					  GNUNET_YES))
-	    ret = 1;
-	  ns = NULL;
-	}
+      ret = 1;
     }
+    else
+    {
+      if (GNUNET_OK != GNUNET_FS_namespace_delete (ns, GNUNET_YES))
+        ret = 1;
+      ns = NULL;
+    }
+  }
   if (NULL != create_ns)
+  {
+    ns = GNUNET_FS_namespace_create (h, create_ns);
+    if (ns == NULL)
     {
-      ns = GNUNET_FS_namespace_create (h, create_ns);
-      if (ns == NULL)
-	{
-	  ret = 1;
-	}
-      else
-	{
-	  if (NULL != root_identifier)
-	    {
-	      if (ksk_uri == NULL)
-		{
-		  emsg = NULL;
-		  ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/namespace", &emsg);
-		  GNUNET_assert (NULL == emsg);
-		}
-	      GNUNET_FS_namespace_advertise (h,
-					     ksk_uri,
-					     ns,
-					     adv_metadata,
-					     &bo,
-					     root_identifier,
-					     &post_advertising,
-					     NULL);
-	      return;
-	    }
-	  else
-	    {
-	      if (ksk_uri != NULL)
-		fprintf (stderr, _("Option `%s' ignored\n"), "-k");   
-	    }
-	}
+      ret = 1;
     }
-  else
+    else
     {
-      if (root_identifier != NULL) 
-	fprintf (stderr, _("Option `%s' ignored\n"), "-r");
-      if (ksk_uri != NULL)
-	fprintf (stderr, _("Option `%s' ignored\n"), "-k");   
-    }    
-    
+      if (NULL != root_identifier)
+      {
+        if (ksk_uri == NULL)
+        {
+          emsg = NULL;
+          ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/namespace", &emsg);
+          GNUNET_assert (NULL == emsg);
+        }
+        GNUNET_FS_namespace_advertise (h,
+                                       ksk_uri,
+                                       ns,
+                                       adv_metadata,
+                                       &bo,
+                                       root_identifier,
+                                       &post_advertising, NULL);
+        return;
+      }
+      else
+      {
+        if (ksk_uri != NULL)
+          fprintf (stderr, _("Option `%s' ignored\n"), "-k");
+      }
+    }
+  }
+  else
+  {
+    if (root_identifier != NULL)
+      fprintf (stderr, _("Option `%s' ignored\n"), "-r");
+    if (ksk_uri != NULL)
+      fprintf (stderr, _("Option `%s' ignored\n"), "-k");
+  }
+
   post_advertising (NULL, NULL, NULL);
 }
 
@@ -313,12 +278,10 @@ main (int argc, char *const *argv)
      gettext_noop ("set the desired LEVEL of sender-anonymity"),
      1, &GNUNET_GETOPT_set_uint, &bo.anonymity_level},
     {'C', "create", "NAME",
-     gettext_noop
-     ("create or advertise namespace NAME"),
+     gettext_noop ("create or advertise namespace NAME"),
      1, &GNUNET_GETOPT_set_string, &create_ns},
     {'D', "delete", "NAME",
-     gettext_noop
-     ("delete namespace NAME "),
+     gettext_noop ("delete namespace NAME "),
      1, &GNUNET_GETOPT_set_string, &delete_ns},
     {'k', "keyword", "VALUE",
      gettext_noop
@@ -341,22 +304,18 @@ main (int argc, char *const *argv)
      gettext_noop ("set the desired replication LEVEL"),
      1, &GNUNET_GETOPT_set_uint, &bo.replication_level},
     {'R', "root", "ID",
-     gettext_noop
-     ("specify ID of the root of the namespace"),
+     gettext_noop ("specify ID of the root of the namespace"),
      1, &GNUNET_GETOPT_set_string, &root_identifier},
     {'s', "set-rating", "ID:VALUE",
-     gettext_noop
-     ("change rating of namespace ID by VALUE"),
+     gettext_noop ("change rating of namespace ID by VALUE"),
      1, &GNUNET_GETOPT_set_string, &rating_change},
     GNUNET_GETOPT_OPTION_END
   };
-  bo.expiration_time = GNUNET_FS_year_to_time (GNUNET_FS_get_current_year () + 2);
+  bo.expiration_time =
+      GNUNET_FS_year_to_time (GNUNET_FS_get_current_year () + 2);
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-pseudonym [OPTIONS]",
-                              gettext_noop
-                              ("Manage GNUnet pseudonyms."),
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-pseudonym [OPTIONS]",
+                              gettext_noop ("Manage GNUnet pseudonyms."),
                               options, &run, NULL)) ? ret : 1;
 }
 

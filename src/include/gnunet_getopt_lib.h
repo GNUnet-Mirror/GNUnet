@@ -86,11 +86,11 @@ struct GNUNET_GETOPT_CommandLineProcessorContext
  * @return GNUNET_OK to continue processing other options, GNUNET_SYSERR to abort
  */
 typedef
-  int (*GNUNET_GETOPT_CommandLineOptionProcessor) (struct
-                                                   GNUNET_GETOPT_CommandLineProcessorContext
-                                                   * ctx, void *scls,
-                                                   const char *option,
-                                                   const char *value);
+    int (*GNUNET_GETOPT_CommandLineOptionProcessor) (struct
+                                                     GNUNET_GETOPT_CommandLineProcessorContext
+                                                     * ctx, void *scls,
+                                                     const char *option,
+                                                     const char *value);
 
 /**
  * @brief Definition of a command line option.

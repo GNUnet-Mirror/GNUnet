@@ -54,9 +54,10 @@ struct GNUNET_PEERINFO_Handle;
  * @return NULL on error (configuration related, actual connection
  *         etablishment may happen asynchronously).
  */
-struct GNUNET_PEERINFO_Handle *
-GNUNET_PEERINFO_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
-			 
+struct GNUNET_PEERINFO_Handle *GNUNET_PEERINFO_connect (const struct
+                                                        GNUNET_CONFIGURATION_Handle
+                                                        *cfg);
+
 
 
 /**
@@ -68,8 +69,7 @@ GNUNET_PEERINFO_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  *
  * @param h handle to disconnect
  */
-void
-GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
+void GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
 
 
 /**
@@ -85,7 +85,7 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
  */
 void
 GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
-			  const struct GNUNET_HELLO_Message *hello);
+                          const struct GNUNET_HELLO_Message *hello);
 
 
 /**
@@ -98,10 +98,10 @@ GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
  * @param error message
  */
 typedef void
-  (*GNUNET_PEERINFO_Processor) (void *cls,
-                                const struct GNUNET_PeerIdentity * peer,
-                                const struct GNUNET_HELLO_Message * hello,
-                                const char * err_msg);
+    (*GNUNET_PEERINFO_Processor) (void *cls,
+                                  const struct GNUNET_PeerIdentity * peer,
+                                  const struct GNUNET_HELLO_Message * hello,
+                                  const char *err_msg);
 
 
 /**
@@ -127,12 +127,19 @@ struct GNUNET_PEERINFO_IteratorContext;
  * @return NULL on error (in this case, 'callback' is never called!), 
  *         otherwise an iterator context
  */
-struct GNUNET_PEERINFO_IteratorContext *
-GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
-			 const struct GNUNET_PeerIdentity *peer,
-			 struct GNUNET_TIME_Relative timeout,
-			 GNUNET_PEERINFO_Processor callback,
-			 void *callback_cls);
+struct GNUNET_PEERINFO_IteratorContext *GNUNET_PEERINFO_iterate (struct
+                                                                 GNUNET_PEERINFO_Handle
+                                                                 *h,
+                                                                 const struct
+                                                                 GNUNET_PeerIdentity
+                                                                 *peer,
+                                                                 struct
+                                                                 GNUNET_TIME_Relative
+                                                                 timeout,
+                                                                 GNUNET_PEERINFO_Processor
+                                                                 callback,
+                                                                 void
+                                                                 *callback_cls);
 
 
 
@@ -164,10 +171,13 @@ struct GNUNET_PEERINFO_NotifyContext;
  * @param callback_cls closure for callback
  * @return NULL on error
  */
-struct GNUNET_PEERINFO_NotifyContext *
-GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			GNUNET_PEERINFO_Processor callback,
-			void *callback_cls);
+struct GNUNET_PEERINFO_NotifyContext *GNUNET_PEERINFO_notify (const struct
+                                                              GNUNET_CONFIGURATION_Handle
+                                                              *cfg,
+                                                              GNUNET_PEERINFO_Processor
+                                                              callback,
+                                                              void
+                                                              *callback_cls);
 
 
 /**
@@ -175,8 +185,7 @@ GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param nc context to stop notifying
  */
-void
-GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc);
+void GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

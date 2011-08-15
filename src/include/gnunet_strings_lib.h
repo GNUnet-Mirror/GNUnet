@@ -105,8 +105,7 @@ char *GNUNET_STRINGS_filename_expand (const char *fil);
  *         (or number of bytes that would have been written)
  */
 size_t GNUNET_STRINGS_buffer_fill (char *buffer,
-				   size_t size,
-				   unsigned int count, ...);
+                                   size_t size, unsigned int count, ...);
 
 
 /**

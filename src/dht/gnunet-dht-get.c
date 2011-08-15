@@ -82,10 +82,10 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (dht_handle != NULL)
-    {
-      GNUNET_DHT_disconnect (dht_handle);
-      dht_handle = NULL;
-    }
+  {
+    GNUNET_DHT_disconnect (dht_handle);
+    dht_handle = NULL;
+  }
 }
 
 
@@ -93,10 +93,10 @@ static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (get_handle != NULL)
-    {
-      GNUNET_DHT_get_stop (get_handle);
-      get_handle = NULL;
-    }
+  {
+    GNUNET_DHT_get_stop (get_handle);
+    get_handle = NULL;
+  }
   GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -120,16 +120,12 @@ void
 get_result_iterator (void *cls,
                      struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
-		     const struct GNUNET_PeerIdentity * const *get_path,
-		     const struct GNUNET_PeerIdentity * const *put_path,
-                     enum GNUNET_BLOCK_Type type,
-		     size_t size, 
-		     const void *data)
+                     const struct GNUNET_PeerIdentity *const *get_path,
+                     const struct GNUNET_PeerIdentity *const *put_path,
+                     enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
   fprintf (stdout, "Result %d, type %d:\n%.*s\n",
-	   result_count, type, 
-	   (unsigned int) size,
-           (char *) data);
+           result_count, type, (unsigned int) size, (char *) data);
   result_count++;
 }
 
@@ -149,50 +145,50 @@ run (void *cls,
 {
   struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode key;
+
   cfg = c;
 
   if (query_key == NULL)
-    {
-      if (verbose)
-        fprintf (stderr, "Must provide key for DHT GET!\n");
-      ret = 1;
-      return;
-    }
+  {
+    if (verbose)
+      fprintf (stderr, "Must provide key for DHT GET!\n");
+    ret = 1;
+    return;
+  }
 
   dht_handle = GNUNET_DHT_connect (cfg, 1);
 
   if (dht_handle == NULL)
-    {
-      if (verbose)
-        fprintf (stderr, "Couldn't connect to DHT service!\n");
-      ret = 1;
-      return;
-    }
+  {
+    if (verbose)
+      fprintf (stderr, "Couldn't connect to DHT service!\n");
+    ret = 1;
+    return;
+  }
   else if (verbose)
     fprintf (stderr, "Connected to DHT service!\n");
 
-  if (query_type == GNUNET_BLOCK_TYPE_ANY) /* Type of data not set */
+  if (query_type == GNUNET_BLOCK_TYPE_ANY)      /* Type of data not set */
     query_type = GNUNET_BLOCK_TYPE_TEST;
 
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
 
   timeout =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
   absolute_timeout = GNUNET_TIME_relative_to_absolute (timeout);
 
   if (verbose)
     fprintf (stderr, "Issuing GET request for %s!\n", query_key);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-				(absolute_timeout), &cleanup_task, NULL);
+                                (absolute_timeout), &cleanup_task, NULL);
   get_handle = GNUNET_DHT_get_start (dht_handle,
-				     timeout, 
-				     query_type, 
-				     &key,
-				     DEFAULT_GET_REPLICATION,
-				     GNUNET_DHT_RO_NONE,
-				     NULL, 0,
-				     NULL, 0,
-				     &get_result_iterator, NULL);
+                                     timeout,
+                                     query_type,
+                                     &key,
+                                     DEFAULT_GET_REPLICATION,
+                                     GNUNET_DHT_RO_NONE,
+                                     NULL, 0,
+                                     NULL, 0, &get_result_iterator, NULL);
 
 }
 

@@ -91,18 +91,16 @@
  */
 int
 GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
-			      struct GNUNET_STATISTICS_Handle *st,
-			      GNUNET_CORE_ConnectEventHandler *ch,
-			      GNUNET_CORE_DisconnectEventHandler *dh,
-			      GNUNET_CORE_MessageCallback *msgh,
-			      int learn);
+                              struct GNUNET_STATISTICS_Handle *st,
+                              GNUNET_CORE_ConnectEventHandler *ch,
+                              GNUNET_CORE_DisconnectEventHandler *dh,
+                              GNUNET_CORE_MessageCallback *msgh, int learn);
 
 
 /**
  * Stop downloading hostlists from hostlist servers as necessary.
  */
-void
-GNUNET_HOSTLIST_client_stop (void);
+void GNUNET_HOSTLIST_client_stop (void);
 
 
 #endif

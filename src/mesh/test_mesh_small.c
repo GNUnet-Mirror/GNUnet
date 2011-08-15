@@ -138,38 +138,36 @@ static void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
 #endif
-      if (ok == 0)
-        ok = 666;
-    }
+    if (ok == 0)
+      ok = 666;
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All peers successfully shut down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
 #endif
-      ok = 0;
-    }
+    ok = 0;
+  }
 }
 
 
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 //   struct NSEPeer *pos;
 #if VERBOSE
-  fprintf(stderr, "Ending test.\n");
+  fprintf (stderr, "Ending test.\n");
 #endif
 
   if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel(disconnect_task);
-      disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 //   while (NULL != (pos = peer_head))
 //     {
 //       if (pos->nse_handle != NULL)
@@ -179,28 +177,27 @@ shutdown_task (void *cls,
 //     }
 
   if (data_file != NULL)
-    GNUNET_DISK_file_close(data_file);
+    GNUNET_DISK_file_close (data_file);
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
 
 
 static void
-connect_mesh_service (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 //   struct NSEPeer *current_peer;
   unsigned int i;
 
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Connecting to mesh service of peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to mesh service of peers\n");
 #endif
   for (i = 0; i < num_peers; i++)
-    {
+  {
 //       if ((connection_limit > 0) && (i % (num_peers / connection_limit) != 0))
-        continue;
+    continue;
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test_mesh_small: connecting to mesh service of peer %d\n", i);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "test_mesh_small: connecting to mesh service of peer %d\n", i);
 #endif
 /*      current_peer = GNUNET_malloc(sizeof(struct NSEPeer));
       current_peer->daemon = GNUNET_TESTING_daemon_get(pg, i);
@@ -212,13 +209,12 @@ connect_mesh_service (void *cls,
           GNUNET_assert(current_peer->nse_handle != NULL);
         }
       GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, current_peer);*/
-    }
+  }
 }
 
 
 static void
-churn_peers (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc);
+churn_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -228,31 +224,30 @@ churn_peers (void *cls,
  * @param success GNUNET_OK if statistics were
  *        successfully obtained, GNUNET_SYSERR if not.
  */
-static void 
+static void
 stats_finished_callback (void *cls, int success)
 {
   struct StatsContext *stats_context = cls;
   char *buf;
   int buf_len;
 
-  if ( (GNUNET_OK == success) && 
-       (data_file != NULL) )
+  if ((GNUNET_OK == success) && (data_file != NULL))
+  {
+    /* Stats lookup successful, write out data */
+    buf = NULL;
+    buf_len = GNUNET_asprintf (&buf,
+                               "TOTAL_MESH_BYTES: %u\n",
+                               stats_context->total_mesh_bytes);
+    if (buf_len > 0)
     {
-      /* Stats lookup successful, write out data */
-      buf = NULL;
-      buf_len = GNUNET_asprintf(&buf,
-				"TOTAL_MESH_BYTES: %u\n", 
-				stats_context->total_mesh_bytes);
-      if (buf_len > 0)
-        {
-          GNUNET_DISK_file_write(data_file, buf, buf_len);
-        }
-      GNUNET_free_non_null(buf);
+      GNUNET_DISK_file_write (data_file, buf, buf_len);
     }
+    GNUNET_free_non_null (buf);
+  }
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == shutdown_handle);
-  shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
-  GNUNET_free(stats_context);
+  shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+  GNUNET_free (stats_context);
 }
 
 
@@ -267,33 +262,30 @@ stats_finished_callback (void *cls, int success)
  * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
-static int 
+static int
 statistics_iterator (void *cls,
-		     const struct GNUNET_PeerIdentity *peer,
-		     const char *subsystem,
-		     const char *name,
-		     uint64_t value,
-		     int is_persistent)
+                     const struct GNUNET_PeerIdentity *peer,
+                     const char *subsystem,
+                     const char *name, uint64_t value, int is_persistent)
 {
   struct StatsContext *stats_context = cls;
+
 // 
 //   if ( (0 == strstr(subsystem, "nse")) && 
 //        (0 == strstr(name, "# flood messages received")) )
-    stats_context->total_mesh_bytes += 1; //value;
+  stats_context->total_mesh_bytes += 1; //value;
   return GNUNET_OK;
 }
 
 
 static void
-disconnect_mesh_peers (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 //   struct NSEPeer *pos;
   char *buf;
   struct StatsContext *stats_context;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "disconnecting mesh service of peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnecting mesh service of peers\n");
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
 //   pos = peer_head;
 //   while (NULL != (pos = peer_head))
@@ -307,29 +299,26 @@ disconnect_mesh_peers (void *cls,
 //       GNUNET_free(pos);
 //     }
 
-  GNUNET_asprintf(&buf, 
-		  "round%llu", 
-		  current_round);
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (testing_cfg, 
-							  "test_mesh_small",
-							  buf, 
-							  &peers_next_round))
-    {
-      current_round++;
-      GNUNET_assert(churn_task == GNUNET_SCHEDULER_NO_TASK);
-      churn_task = GNUNET_SCHEDULER_add_now(&churn_peers, NULL);
-    }
-  else /* No more rounds, let's shut it down! */
-    {
-      stats_context = GNUNET_malloc(sizeof(struct StatsContext));
-      GNUNET_SCHEDULER_cancel(shutdown_handle);
-      shutdown_handle = GNUNET_SCHEDULER_NO_TASK;
-      GNUNET_TESTING_get_statistics(pg, 
-				    &stats_finished_callback, 
-				    &statistics_iterator, 
-				    stats_context);
-    }
-  GNUNET_free(buf);
+  GNUNET_asprintf (&buf, "round%llu", current_round);
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (testing_cfg,
+                                                          "test_mesh_small",
+                                                          buf,
+                                                          &peers_next_round))
+  {
+    current_round++;
+    GNUNET_assert (churn_task == GNUNET_SCHEDULER_NO_TASK);
+    churn_task = GNUNET_SCHEDULER_add_now (&churn_peers, NULL);
+  }
+  else                          /* No more rounds, let's shut it down! */
+  {
+    stats_context = GNUNET_malloc (sizeof (struct StatsContext));
+    GNUNET_SCHEDULER_cancel (shutdown_handle);
+    shutdown_handle = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_TESTING_get_statistics (pg,
+                                   &stats_finished_callback,
+                                   &statistics_iterator, stats_context);
+  }
+  GNUNET_free (buf);
 }
 
 
@@ -339,12 +328,12 @@ disconnect_mesh_peers (void *cls,
  * @param cls unused
  * @param emsg NULL on success
  */
-static void 
+static void
 topology_output_callback (void *cls, const char *emsg)
 {
-  disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, 
-						 &disconnect_mesh_peers, NULL);
-  GNUNET_SCHEDULER_add_now(&connect_mesh_service, NULL);
+  disconnect_task = GNUNET_SCHEDULER_add_delayed (wait_time,
+                                                  &disconnect_mesh_peers, NULL);
+  GNUNET_SCHEDULER_add_now (&connect_mesh_service, NULL);
 }
 
 
@@ -359,121 +348,108 @@ churn_callback (void *cls, const char *emsg)
 {
   char *temp_output_file;
 
-  if (emsg == NULL) /* Everything is okay! */
-    {
-      peers_running = peers_next_round;
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Round %llu, churn finished successfully.\n",
-		  current_round);
-      GNUNET_assert(disconnect_task == GNUNET_SCHEDULER_NO_TASK);
-      GNUNET_asprintf(&temp_output_file, 
-		      "%s_%llu.dot",
-		      topology_file, 
-		      current_round);
-      GNUNET_TESTING_peergroup_topology_to_file(pg,
-                                                temp_output_file,
-                                                &topology_output_callback,
-                                                NULL);
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-		 "Writing topology to file %s\n",
-		 temp_output_file);
-      GNUNET_free(temp_output_file);
-    }
+  if (emsg == NULL)             /* Everything is okay! */
+  {
+    peers_running = peers_next_round;
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Round %llu, churn finished successfully.\n", current_round);
+    GNUNET_assert (disconnect_task == GNUNET_SCHEDULER_NO_TASK);
+    GNUNET_asprintf (&temp_output_file,
+                     "%s_%llu.dot", topology_file, current_round);
+    GNUNET_TESTING_peergroup_topology_to_file (pg,
+                                               temp_output_file,
+                                               &topology_output_callback, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Writing topology to file %s\n", temp_output_file);
+    GNUNET_free (temp_output_file);
+  }
   else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Round %llu, churn FAILED!!\n",
-		  current_round);
-      GNUNET_SCHEDULER_cancel(shutdown_handle);
-      shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Round %llu, churn FAILED!!\n", current_round);
+    GNUNET_SCHEDULER_cancel (shutdown_handle);
+    shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+  }
 }
 
 
 static void
-churn_peers (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+churn_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   /* peers_running = GNUNET_TESTING_daemons_running(pg); */
   churn_task = GNUNET_SCHEDULER_NO_TASK;
   if (peers_next_round == peers_running)
-    {
-      /* Nothing to do... */
-      GNUNET_SCHEDULER_add_now(&connect_mesh_service, NULL);
-      GNUNET_assert(disconnect_task == GNUNET_SCHEDULER_NO_TASK);
-      disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, 
-						     &disconnect_mesh_peers, NULL);
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-		 "Round %lu, doing nothing!\n", 
-		 current_round);
-    }
+  {
+    /* Nothing to do... */
+    GNUNET_SCHEDULER_add_now (&connect_mesh_service, NULL);
+    GNUNET_assert (disconnect_task == GNUNET_SCHEDULER_NO_TASK);
+    disconnect_task = GNUNET_SCHEDULER_add_delayed (wait_time,
+                                                    &disconnect_mesh_peers,
+                                                    NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Round %lu, doing nothing!\n",
+                current_round);
+  }
   else
+  {
+    if (peers_next_round > num_peers)
     {
-      if (peers_next_round > num_peers)
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_ERROR, 
-		     "Asked to turn on more peers than we have!!\n");
-          GNUNET_SCHEDULER_cancel(shutdown_handle);
-          GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
-        }
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Round %llu, turning off %llu peers, turning on %llu peers!\n",
-                  current_round,
-                  (peers_running > peers_next_round) 
-		  ? peers_running - peers_next_round 
-		  : 0,
-                  (peers_next_round > peers_running) 
-		  ? peers_next_round - peers_running 
-		  : 0);
-      GNUNET_TESTING_daemons_churn (pg, "nse",
-                                    (peers_running > peers_next_round) 
-				    ? peers_running - peers_next_round
-				    : 0,
-                                    (peers_next_round > peers_running) 
-				    ? peers_next_round - peers_running
-				    : 0, 
-				    wait_time,
-				    &churn_callback, NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Asked to turn on more peers than we have!!\n");
+      GNUNET_SCHEDULER_cancel (shutdown_handle);
+      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Round %llu, turning off %llu peers, turning on %llu peers!\n",
+                current_round,
+                (peers_running > peers_next_round)
+                ? peers_running - peers_next_round
+                : 0,
+                (peers_next_round > peers_running)
+                ? peers_next_round - peers_running : 0);
+    GNUNET_TESTING_daemons_churn (pg, "nse",
+                                  (peers_running > peers_next_round)
+                                  ? peers_running - peers_next_round
+                                  : 0,
+                                  (peers_next_round > peers_running)
+                                  ? peers_next_round - peers_running
+                                  : 0, wait_time, &churn_callback, NULL);
+  }
 }
 
 
 static void
-my_cb (void *cls,
-       const char *emsg)
+my_cb (void *cls, const char *emsg)
 {
   char *buf;
   int buf_len;
+
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Peergroup callback called with error, aborting test!\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
-      ok = 1;
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peergroup callback called with error, aborting test!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
+    ok = 1;
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+    return;
+  }
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer Group started successfully!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer Group started successfully!\n");
 #endif
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-	      "Have %u connections\n",
-	      total_connections);
+              "Have %u connections\n", total_connections);
   if (data_file != NULL)
-    {
-      buf = NULL;
-      buf_len = GNUNET_asprintf(&buf, 
-				"CONNECTIONS_0: %u\n",
-				total_connections);
-      if (buf_len > 0)
-        GNUNET_DISK_file_write(data_file, buf, buf_len);
-      GNUNET_free (buf);
-    }
-  peers_running = GNUNET_TESTING_daemons_running(pg);
+  {
+    buf = NULL;
+    buf_len = GNUNET_asprintf (&buf, "CONNECTIONS_0: %u\n", total_connections);
+    if (buf_len > 0)
+      GNUNET_DISK_file_write (data_file, buf, buf_len);
+    GNUNET_free (buf);
+  }
+  peers_running = GNUNET_TESTING_daemons_running (pg);
 
-  GNUNET_SCHEDULER_add_now(&connect_mesh_service, NULL);
-  disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, &disconnect_mesh_peers, NULL);
+  GNUNET_SCHEDULER_add_now (&connect_mesh_service, NULL);
+  disconnect_task =
+      GNUNET_SCHEDULER_add_delayed (wait_time, &disconnect_mesh_peers, NULL);
 
 }
 
@@ -492,16 +468,15 @@ my_cb (void *cls,
  * @param second_daemon handle for the second daemon
  * @param emsg error message (NULL on success)
  */
-static void 
+static void
 connect_cb (void *cls,
-	    const struct GNUNET_PeerIdentity *first,
-	    const struct GNUNET_PeerIdentity *second,
-	    uint32_t distance,
-	    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-	    const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-	    struct GNUNET_TESTING_Daemon *first_daemon,
-	    struct GNUNET_TESTING_Daemon *second_daemon,
-	    const char *emsg)
+            const struct GNUNET_PeerIdentity *first,
+            const struct GNUNET_PeerIdentity *second,
+            uint32_t distance,
+            const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+            const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+            struct GNUNET_TESTING_Daemon *first_daemon,
+            struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
 {
   if (emsg == NULL)
     total_connections++;
@@ -513,96 +488,95 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char                          *temp_str;
-  unsigned long long            temp_wait;
-  struct GNUNET_TESTING_Host    *hosts;
+  char *temp_str;
+  unsigned long long temp_wait;
+  struct GNUNET_TESTING_Host *hosts;
 
   ok = 1;
-  testing_cfg = (struct GNUNET_CONFIGURATION_Handle *)cfg; // GNUNET_CONFIGURATION_create();
+  testing_cfg = (struct GNUNET_CONFIGURATION_Handle *) cfg;     // GNUNET_CONFIGURATION_create();
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
   GNUNET_CONFIGURATION_set_value_string (testing_cfg,
-					 "testing",
-					 "use_progressbars",
-					 "YES");
+                                         "testing", "use_progressbars", "YES");
 #endif
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (testing_cfg, 
-							  "testing",
-							  "num_peers", &num_peers))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Option TESTING:NUM_PEERS is required!\n");
-      return;
-    }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (testing_cfg,
+                                                          "testing",
+                                                          "num_peers",
+                                                          &num_peers))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Option TESTING:NUM_PEERS is required!\n");
+    return;
+  }
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (testing_cfg, 
-							  "test_mesh_small",
-							  "wait_time",
-							  &temp_wait))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, 
-		 "Option nsetest_mesh_small:wait_time is required!\n");
-      return;
-    }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (testing_cfg,
+                                                          "test_mesh_small",
+                                                          "wait_time",
+                                                          &temp_wait))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Option nsetest_mesh_small:wait_time is required!\n");
+    return;
+  }
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg, 
-							  "testing", "topology_output_file", 
-							  &topology_file))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, 
-		 "Option test_mesh_small:topology_output_file is required!\n");
-      return;
-    }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg,
+                                                          "testing",
+                                                          "topology_output_file",
+                                                          &topology_file))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Option test_mesh_small:topology_output_file is required!\n");
+    return;
+  }
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg, 
-							  "test_mesh_small", "data_output_file",
-							  &data_filename))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, 
-		 "Option test_mesh_small:data_output_file is required!\n");
-      return;
-    }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg,
+                                                          "test_mesh_small",
+                                                          "data_output_file",
+                                                          &data_filename))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Option test_mesh_small:data_output_file is required!\n");
+    return;
+  }
 
   data_file = GNUNET_DISK_file_open (data_filename,
-				     GNUNET_DISK_OPEN_READWRITE
-				     | GNUNET_DISK_OPEN_CREATE,
-				     GNUNET_DISK_PERM_USER_READ |
-				     GNUNET_DISK_PERM_USER_WRITE);
+                                     GNUNET_DISK_OPEN_READWRITE
+                                     | GNUNET_DISK_OPEN_CREATE,
+                                     GNUNET_DISK_PERM_USER_READ |
+                                     GNUNET_DISK_PERM_USER_WRITE);
   if (data_file == NULL)
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
-	       "Failed to open %s for output!\n",
-	       data_filename);
-  GNUNET_free(data_filename);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to open %s for output!\n", data_filename);
+  GNUNET_free (data_filename);
 
-  wait_time = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, temp_wait);
+  wait_time =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_wait);
 
-  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string(cfg,
-							  "test_mesh_small", 
-							  "output_file",
-							  &temp_str))
-    {
-      output_file = GNUNET_DISK_file_open (temp_str, GNUNET_DISK_OPEN_READWRITE
-                                                      | GNUNET_DISK_OPEN_CREATE,
-                                                      GNUNET_DISK_PERM_USER_READ |
-                                                      GNUNET_DISK_PERM_USER_WRITE);
-      if (output_file == NULL)
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
-		   "Failed to open %s for output!\n",
-		   temp_str);
-    }
-  GNUNET_free_non_null(temp_str);
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                           "test_mesh_small",
+                                                           "output_file",
+                                                           &temp_str))
+  {
+    output_file = GNUNET_DISK_file_open (temp_str, GNUNET_DISK_OPEN_READWRITE
+                                         | GNUNET_DISK_OPEN_CREATE,
+                                         GNUNET_DISK_PERM_USER_READ |
+                                         GNUNET_DISK_PERM_USER_WRITE);
+    if (output_file == NULL)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Failed to open %s for output!\n", temp_str);
+  }
+  GNUNET_free_non_null (temp_str);
 
   hosts = GNUNET_TESTING_hosts_load (testing_cfg);
 
-  pg = GNUNET_TESTING_peergroup_start(testing_cfg,
-                                      num_peers,
-                                      TIMEOUT,
-                                      &connect_cb,
-                                      &my_cb, NULL,
-                                      hosts);
+  pg = GNUNET_TESTING_peergroup_start (testing_cfg,
+                                       num_peers,
+                                       TIMEOUT,
+                                       &connect_cb, &my_cb, NULL, hosts);
   GNUNET_assert (pg != NULL);
-  shutdown_handle = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_get_forever(),
-						  &shutdown_task,
-						  NULL);
+  shutdown_handle =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_get_forever (),
+                                    &shutdown_task, NULL);
 }
 
 
@@ -629,10 +603,9 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   GNUNET_PROGRAM_run (argc,
-                      argv, "test_mesh_small", 
-		      gettext_noop ("Test mesh in a small network."),
-                      options, 
-		      &run, NULL);
+                      argv, "test_mesh_small",
+                      gettext_noop ("Test mesh in a small network."),
+                      options, &run, NULL);
 #if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/test_mesh_small");
 #endif

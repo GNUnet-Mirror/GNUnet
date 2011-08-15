@@ -55,15 +55,16 @@ void *
 GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber)
 {
   void *ret;
+
   /* As a security precaution, we generally do not allow very large
-     allocations using the default 'GNUNET_malloc' macro */
+   * allocations using the default 'GNUNET_malloc' macro */
   GNUNET_assert_at (size <= GNUNET_MAX_MALLOC_CHECKED, filename, linenumber);
   ret = GNUNET_xmalloc_unchecked_ (size, filename, linenumber);
   if (ret == NULL)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
-      abort ();
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
+    abort ();
+  }
   return ret;
 }
 
@@ -79,11 +80,14 @@ GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber)
  * @param linenumber line where this call is being made (for debugging)
  * @return allocated memory, never NULL
  */
-void *GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename, int linenumber)
+void *
+GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
+                 int linenumber)
 {
   void *ret;
+
   /* As a security precaution, we generally do not allow very large
-     allocations here */
+   * allocations here */
   GNUNET_assert_at (size <= GNUNET_MAX_MALLOC_CHECKED, filename, linenumber);
 #ifdef W32_MEM_LIMIT
   size += sizeof (size_t);
@@ -93,10 +97,10 @@ void *GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename, int l
   GNUNET_assert_at (size < INT_MAX, filename, linenumber);
   ret = malloc (size);
   if (ret == NULL)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
-      abort ();
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
+    abort ();
+  }
 #ifdef W32_MEM_LIMIT
   *((size_t *) ret) = size;
   ret = &((size_t *) ret)[1];
@@ -155,9 +159,7 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
  * @return pointer to size bytes of memory
  */
 void *
-GNUNET_xrealloc_ (void *ptr,
-                  size_t n,
-                  const char *filename, int linenumber)
+GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber)
 {
 #ifdef W32_MEM_LIMIT
   n += sizeof (size_t);
@@ -165,11 +167,11 @@ GNUNET_xrealloc_ (void *ptr,
   mem_used = mem_used - *((size_t *) ptr) + n;
 #endif
   ptr = realloc (ptr, n);
-  if ( (NULL == ptr) && (n > 0) )
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "realloc");
-      abort ();
-    }
+  if ((NULL == ptr) && (n > 0))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "realloc");
+    abort ();
+  }
 #ifdef W32_MEM_LIMIT
   ptr = &((size_t *) ptr)[1];
 #endif
@@ -226,12 +228,13 @@ GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber)
  * @return strndup(str,len)
  */
 char *
-GNUNET_xstrndup_ (const char *str, size_t len, const char *filename, int linenumber)
+GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
+                  int linenumber)
 {
   char *res;
 
   GNUNET_assert_at (str != NULL, filename, linenumber);
-  len = GNUNET_MIN(len,strlen(str));
+  len = GNUNET_MIN (len, strlen (str));
   res = GNUNET_xmalloc_ (len + 1, filename, linenumber);
   memcpy (res, str, len);
   res[len] = '\0';
@@ -263,22 +266,22 @@ GNUNET_xgrow_ (void **old,
   GNUNET_assert_at (INT_MAX / elementSize > newCount, filename, linenumber);
   size = newCount * elementSize;
   if (size == 0)
-    {
-      tmp = NULL;
-    }
+  {
+    tmp = NULL;
+  }
   else
-    {
-      tmp = GNUNET_xmalloc_ (size, filename, linenumber);
-      memset (tmp, 0, size);    /* client code should not rely on this, though... */
-      if (*oldCount > newCount)
-        *oldCount = newCount;   /* shrink is also allowed! */
-      memcpy (tmp, *old, elementSize * (*oldCount));
-    }
+  {
+    tmp = GNUNET_xmalloc_ (size, filename, linenumber);
+    memset (tmp, 0, size);      /* client code should not rely on this, though... */
+    if (*oldCount > newCount)
+      *oldCount = newCount;     /* shrink is also allowed! */
+    memcpy (tmp, *old, elementSize * (*oldCount));
+  }
 
   if (*old != NULL)
-    {
-      GNUNET_xfree_ (*old, filename, linenumber);
-    }
+  {
+    GNUNET_xfree_ (*old, filename, linenumber);
+  }
   *old = tmp;
   *oldCount = newCount;
 }

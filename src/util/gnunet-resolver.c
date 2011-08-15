@@ -33,15 +33,11 @@
  * Callback function to display address.
  */
 static void
-printer (void *cls,
-	 const struct sockaddr * addr,
-	 socklen_t addrlen)
+printer (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 {
   if (addr == NULL)
     return;
-  FPRINTF (stdout,
-           "%s\n",
-           GNUNET_a2s (addr, addrlen));
+  FPRINTF (stdout, "%s\n", GNUNET_a2s (addr, addrlen));
 }
 
 
@@ -56,16 +52,11 @@ printer (void *cls,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   if (args[0] == NULL)
     return;
-  GNUNET_RESOLVER_ip_get (args[0],
-			  AF_UNSPEC,
-			  GET_TIMEOUT,
-			  &printer,
-			  NULL);
+  GNUNET_RESOLVER_ip_get (args[0], AF_UNSPEC, GET_TIMEOUT, &printer, NULL);
 }
 
 /**

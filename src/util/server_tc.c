@@ -79,14 +79,15 @@ transmit_response (void *cls, size_t size, void *buf)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   size_t msize;
+
   if (buf == NULL)
-    {
-      GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
-      GNUNET_SERVER_client_drop (tc->client);
-      GNUNET_free_non_null (tc->buf);
-      GNUNET_free (tc);
-      return 0;
-    }
+  {
+    GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
+    GNUNET_SERVER_client_drop (tc->client);
+    GNUNET_free_non_null (tc->buf);
+    GNUNET_free (tc);
+    return 0;
+  }
   if (tc->total - tc->off > size)
     msize = size;
   else
@@ -94,30 +95,29 @@ transmit_response (void *cls, size_t size, void *buf)
   memcpy (buf, &tc->buf[tc->off], msize);
   tc->off += msize;
   if (tc->total == tc->off)
+  {
+    GNUNET_SERVER_receive_done (tc->client, GNUNET_OK);
+    GNUNET_SERVER_client_drop (tc->client);
+    GNUNET_free_non_null (tc->buf);
+    GNUNET_free (tc);
+  }
+  else
+  {
+    if (NULL == GNUNET_SERVER_notify_transmit_ready (tc->client,
+                                                     GNUNET_MIN
+                                                     (MIN_BLOCK_SIZE,
+                                                      tc->total - tc->off),
+                                                     GNUNET_TIME_absolute_get_remaining
+                                                     (tc->timeout),
+                                                     &transmit_response, tc))
     {
-      GNUNET_SERVER_receive_done (tc->client, GNUNET_OK);
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
       GNUNET_SERVER_client_drop (tc->client);
       GNUNET_free_non_null (tc->buf);
       GNUNET_free (tc);
     }
-  else
-    {
-      if (NULL == GNUNET_SERVER_notify_transmit_ready (tc->client,
-                                                       GNUNET_MIN
-                                                       (MIN_BLOCK_SIZE,
-                                                        tc->total - tc->off),
-                                                       GNUNET_TIME_absolute_get_remaining
-                                                       (tc->timeout),
-                                                       &transmit_response,
-                                                       tc))
-        {
-          GNUNET_break (0);
-          GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
-	  GNUNET_SERVER_client_drop (tc->client);
-          GNUNET_free_non_null (tc->buf);
-          GNUNET_free (tc);
-        }
-    }
+  }
   return msize;
 }
 
@@ -154,8 +154,8 @@ GNUNET_SERVER_transmit_context_create (struct GNUNET_SERVER_Client *client)
  */
 void
 GNUNET_SERVER_transmit_context_append_data (struct GNUNET_SERVER_TransmitContext
-					    *tc, const void *data, size_t length,
-					    uint16_t type)
+                                            *tc, const void *data,
+                                            size_t length, uint16_t type)
 {
   struct GNUNET_MessageHeader *msg;
   size_t size;
@@ -181,8 +181,11 @@ GNUNET_SERVER_transmit_context_append_data (struct GNUNET_SERVER_TransmitContext
  * @param msg message to append
  */
 void
-GNUNET_SERVER_transmit_context_append_message(struct GNUNET_SERVER_TransmitContext
-					      *tc, const struct GNUNET_MessageHeader *msg)
+GNUNET_SERVER_transmit_context_append_message (struct
+                                               GNUNET_SERVER_TransmitContext
+                                               *tc,
+                                               const struct GNUNET_MessageHeader
+                                               *msg)
 {
   struct GNUNET_MessageHeader *m;
   uint16_t size;
@@ -214,13 +217,13 @@ GNUNET_SERVER_transmit_context_run (struct GNUNET_SERVER_TransmitContext *tc,
                                            GNUNET_MIN (MIN_BLOCK_SIZE,
                                                        tc->total), timeout,
                                            &transmit_response, tc))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
-      GNUNET_SERVER_client_drop (tc->client);
-      GNUNET_free_non_null (tc->buf);
-      GNUNET_free (tc);
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
+    GNUNET_SERVER_client_drop (tc->client);
+    GNUNET_free_non_null (tc->buf);
+    GNUNET_free (tc);
+  }
 }
 
 /* end of server_tc.c */

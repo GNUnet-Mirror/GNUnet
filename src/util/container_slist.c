@@ -113,16 +113,16 @@ create_elem (enum GNUNET_CONTAINER_SListDisposition disp,
   struct GNUNET_CONTAINER_SList_Elem *e;
 
   if (disp == GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT)
-    {
-      e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem) + len);
-      memcpy (&e[1], buf, len);
-      e->elem = (void *) &e[1];
-    }
+  {
+    e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem) + len);
+    memcpy (&e[1], buf, len);
+    e->elem = (void *) &e[1];
+  }
   else
-    {
-      e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem));
-      e->elem = (void *) buf;
-    }
+  {
+    e = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Elem));
+    e->elem = (void *) buf;
+  }
   e->disp = disp;
   e->len = len;
   return e;
@@ -146,7 +146,8 @@ GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
   e = create_elem (disp, buf, len);
   e->next = l->head;
   l->head = e;
-  if (l->tail == NULL) l->tail = e;
+  if (l->tail == NULL)
+    l->tail = e;
   l->length++;
 }
 
@@ -159,8 +160,8 @@ GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
  */
 void
 GNUNET_CONTAINER_slist_add_end (struct GNUNET_CONTAINER_SList *l,
-                            enum GNUNET_CONTAINER_SListDisposition disp,
-                            const void *buf, size_t len)
+                                enum GNUNET_CONTAINER_SListDisposition disp,
+                                const void *buf, size_t len)
 {
   struct GNUNET_CONTAINER_SList_Elem *e;
 
@@ -180,19 +181,22 @@ GNUNET_CONTAINER_slist_add_end (struct GNUNET_CONTAINER_SList *l,
  * @param src source
  */
 void
-GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst, struct GNUNET_CONTAINER_SList *src)
+GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst,
+                               struct GNUNET_CONTAINER_SList *src)
 {
   struct GNUNET_CONTAINER_SList_Iterator *i;
 
   for (i = GNUNET_CONTAINER_slist_begin (src); GNUNET_CONTAINER_slist_end (i) !=
-      GNUNET_YES; GNUNET_CONTAINER_slist_next (i))
+       GNUNET_YES; GNUNET_CONTAINER_slist_next (i))
 
-    {
-      GNUNET_CONTAINER_slist_add (dst,
-          (i->elem->disp == GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC) ? GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC
-              : GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, i->elem->elem,
-          i->elem->len);
-    }
+  {
+    GNUNET_CONTAINER_slist_add (dst,
+                                (i->elem->disp ==
+                                 GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC) ?
+                                GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC :
+                                GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                                i->elem->elem, i->elem->len);
+  }
   GNUNET_CONTAINER_slist_iter_destroy (i);
 }
 
@@ -249,13 +253,13 @@ GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l)
 
   e = l->head;
   while (e != NULL)
-    {
-      n = e->next;
-      if (e->disp == GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC)
-        GNUNET_free (e->elem);
-      GNUNET_free (e);
-      e = n;
-    }
+  {
+    n = e->next;
+    if (e->disp == GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC)
+      GNUNET_free (e->elem);
+    GNUNET_free (e);
+    e = n;
+  }
   l->head = NULL;
   l->tail = NULL;
   l->length = 0;
@@ -394,8 +398,7 @@ GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator *i,
  * @param i iterator
  */
 void
-GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator
-                                     *i)
+GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator *i)
 {
   GNUNET_free (i);
 }

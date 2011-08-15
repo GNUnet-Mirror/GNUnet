@@ -37,9 +37,9 @@ struct Plugin
 {
   /**
    * Name of the shared library.
-   */ 
+   */
   char *library_name;
-  
+
   /**
    * Plugin API.
    */
@@ -59,7 +59,7 @@ struct GNUNET_BLOCK_Context
 
   /**
    * Our configuration.
-   */ 
+   */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
@@ -73,14 +73,11 @@ struct GNUNET_BLOCK_Context
  */
 void
 GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in,
-			  uint32_t mingle_number, 
-			  GNUNET_HashCode * hc)
+                          uint32_t mingle_number, GNUNET_HashCode * hc)
 {
   GNUNET_HashCode m;
 
-  GNUNET_CRYPTO_hash (&mingle_number, 
-		      sizeof (uint32_t), 
-		      &m);
+  GNUNET_CRYPTO_hash (&mingle_number, sizeof (uint32_t), &m);
   GNUNET_CRYPTO_hash_xor (&m, in, hc);
 }
 
@@ -106,39 +103,33 @@ GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg)
   ctx->cfg = cfg;
   num_plugins = 0;
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "block", "PLUGINS", &plugs))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "block", "PLUGINS", &plugs))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Loading block plugins `%s'\n"), plugs);
+    pos = strtok (plugs, " ");
+    while (pos != NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Loading block plugins `%s'\n"), plugs);
-      pos = strtok (plugs, " ");
-      while (pos != NULL)
-        {
-	  GNUNET_asprintf (&libname, "libgnunet_plugin_block_%s", pos);
-	  api = GNUNET_PLUGIN_load (libname, NULL);
-	  if (api == NULL)
-	    {
-	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			  _("Failed to load block plugin `%s'\n"),
-			  pos);
-	      GNUNET_free (libname);
-	    }
-	  else
-	    {
-	      plugin = GNUNET_malloc (sizeof (struct Plugin));
-	      plugin->api = api;
-	      plugin->library_name = libname;
-	      GNUNET_array_append (ctx->plugins,
-				   num_plugins,
-				   plugin);
-	    }
-          pos = strtok (NULL, " ");
-        }
-      GNUNET_free (plugs);
+      GNUNET_asprintf (&libname, "libgnunet_plugin_block_%s", pos);
+      api = GNUNET_PLUGIN_load (libname, NULL);
+      if (api == NULL)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Failed to load block plugin `%s'\n"), pos);
+        GNUNET_free (libname);
+      }
+      else
+      {
+        plugin = GNUNET_malloc (sizeof (struct Plugin));
+        plugin->api = api;
+        plugin->library_name = libname;
+        GNUNET_array_append (ctx->plugins, num_plugins, plugin);
+      }
+      pos = strtok (NULL, " ");
     }
-  GNUNET_array_append (ctx->plugins,
-		       num_plugins,
-		       NULL);
+    GNUNET_free (plugs);
+  }
+  GNUNET_array_append (ctx->plugins, num_plugins, NULL);
   return ctx;
 }
 
@@ -156,14 +147,13 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx)
 
   i = 0;
   while (NULL != (plugin = ctx->plugins[i]))
-    {
-      GNUNET_break (NULL == 
-		    GNUNET_PLUGIN_unload (plugin->library_name,
-					  plugin->api));
-      GNUNET_free (plugin->library_name);
-      GNUNET_free (plugin);
-      i++;
-    }
+  {
+    GNUNET_break (NULL ==
+                  GNUNET_PLUGIN_unload (plugin->library_name, plugin->api));
+    GNUNET_free (plugin->library_name);
+    GNUNET_free (plugin);
+    i++;
+  }
   GNUNET_free (ctx->plugins);
   GNUNET_free (ctx);
 }
@@ -177,8 +167,7 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx)
  * @return NULL if no matching plugin exists
  */
 static struct GNUNET_BLOCK_PluginFunctions *
-find_plugin (struct GNUNET_BLOCK_Context *ctx,
-	     enum GNUNET_BLOCK_Type type)
+find_plugin (struct GNUNET_BLOCK_Context *ctx, enum GNUNET_BLOCK_Type type)
 {
   struct Plugin *plugin;
   unsigned int i;
@@ -186,16 +175,16 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx,
 
   i = 0;
   while (NULL != (plugin = ctx->plugins[i]))
+  {
+    j = 0;
+    while (0 != (plugin->api->types[j]))
     {
-      j = 0;
-      while (0 != (plugin->api->types[j]))
-	{
-	  if (type == plugin->api->types[j])
-	    return plugin->api;
-	  j++;
-	}
-      i++;
+      if (type == plugin->api->types[j])
+        return plugin->api;
+      j++;
     }
+    i++;
+  }
   return NULL;
 }
 
@@ -220,22 +209,21 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx,
  */
 enum GNUNET_BLOCK_EvaluationResult
 GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
-		       enum GNUNET_BLOCK_Type type,
-		       const GNUNET_HashCode *query,
-		       struct GNUNET_CONTAINER_BloomFilter **bf,
-		       int32_t bf_mutator,
-		       const void *xquery,
-		       size_t xquery_size,
-		       const void *reply_block,
-		       size_t reply_block_size)
+                       enum GNUNET_BLOCK_Type type,
+                       const GNUNET_HashCode * query,
+                       struct GNUNET_CONTAINER_BloomFilter **bf,
+                       int32_t bf_mutator,
+                       const void *xquery,
+                       size_t xquery_size,
+                       const void *reply_block, size_t reply_block_size)
 {
   struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin (ctx, type);
 
   if (plugin == NULL)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   return plugin->evaluate (plugin->cls,
-			   type, query, bf, bf_mutator,
-			   xquery, xquery_size, reply_block, reply_block_size);
+                           type, query, bf, bf_mutator,
+                           xquery, xquery_size, reply_block, reply_block_size);
 }
 
 
@@ -252,17 +240,15 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  */
 int
 GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
-		      enum GNUNET_BLOCK_Type type,
-		      const void *block,
-		      size_t block_size,
-		      GNUNET_HashCode *key)
+                      enum GNUNET_BLOCK_Type type,
+                      const void *block,
+                      size_t block_size, GNUNET_HashCode * key)
 {
   struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin (ctx, type);
 
   if (plugin == NULL)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  return plugin->get_key (plugin->cls,
-			  type, block, block_size, key);
+  return plugin->get_key (plugin->cls, type, block, block_size, key);
 }
 
 

@@ -55,11 +55,10 @@ struct GNUNET_FS_TestDaemon;
  */
 void
 GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
-			      struct GNUNET_TIME_Relative timeout,
-			      unsigned int total,
-			      struct GNUNET_FS_TestDaemon **daemons,
-			      GNUNET_SCHEDULER_Task cont,
-			      void *cont_cls);
+                              struct GNUNET_TIME_Relative timeout,
+                              unsigned int total,
+                              struct GNUNET_FS_TestDaemon **daemons,
+                              GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -74,10 +73,9 @@ GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
  */
 void
 GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
-				struct GNUNET_FS_TestDaemon *daemon2,
-				struct GNUNET_TIME_Relative timeout,
-				GNUNET_SCHEDULER_Task cont,
-				void *cont_cls);
+                                struct GNUNET_FS_TestDaemon *daemon2,
+                                struct GNUNET_TIME_Relative timeout,
+                                GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -86,8 +84,9 @@ GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
  * @param daemons array with the daemons (must contain at least one)
  * @return peer group
  */
-struct GNUNET_TESTING_PeerGroup *
-GNUNET_FS_TEST_get_group (struct GNUNET_FS_TestDaemon **daemons);
+struct GNUNET_TESTING_PeerGroup *GNUNET_FS_TEST_get_group (struct
+                                                           GNUNET_FS_TestDaemon
+                                                           **daemons);
 
 
 
@@ -98,9 +97,9 @@ GNUNET_FS_TEST_get_group (struct GNUNET_FS_TestDaemon **daemons);
  * @param off which configuration to get
  * @return peer configuration
  */
-const struct GNUNET_CONFIGURATION_Handle *
-GNUNET_FS_TEST_get_configuration (struct GNUNET_FS_TestDaemon **daemons,
-				  unsigned int off);
+const struct GNUNET_CONFIGURATION_Handle
+    *GNUNET_FS_TEST_get_configuration (struct GNUNET_FS_TestDaemon **daemons,
+                                       unsigned int off);
 
 /**
  * Stop daemons used for testing.
@@ -110,7 +109,7 @@ GNUNET_FS_TEST_get_configuration (struct GNUNET_FS_TestDaemon **daemons,
  */
 void
 GNUNET_FS_TEST_daemons_stop (unsigned int total,
-			     struct GNUNET_FS_TestDaemon **daemons);
+                             struct GNUNET_FS_TestDaemon **daemons);
 
 
 /**
@@ -119,9 +118,9 @@ GNUNET_FS_TEST_daemons_stop (unsigned int total,
  * @param cls closure (user defined)
  * @param uri a URI, NULL for errors
  */
-typedef void 
-(*GNUNET_FS_TEST_UriContinuation)(void *cls,
-				  const struct GNUNET_FS_Uri *uri);
+typedef void
+    (*GNUNET_FS_TEST_UriContinuation) (void *cls,
+                                       const struct GNUNET_FS_Uri * uri);
 
 
 /**
@@ -141,14 +140,13 @@ typedef void
  */
 void
 GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
-			struct GNUNET_TIME_Relative timeout,
-			uint32_t anonymity,
-			int do_index,
-			uint64_t size,
-			uint32_t seed,
-			unsigned int verbose,
-			GNUNET_FS_TEST_UriContinuation cont,
-			void *cont_cls);
+                        struct GNUNET_TIME_Relative timeout,
+                        uint32_t anonymity,
+                        int do_index,
+                        uint64_t size,
+                        uint32_t seed,
+                        unsigned int verbose,
+                        GNUNET_FS_TEST_UriContinuation cont, void *cont_cls);
 
 
 /**
@@ -166,13 +164,12 @@ GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
  */
 void
 GNUNET_FS_TEST_download (struct GNUNET_FS_TestDaemon *daemon,
-			 struct GNUNET_TIME_Relative timeout,
-			 uint32_t anonymity,
-			 uint32_t seed,
-			 const struct GNUNET_FS_Uri *uri,
-			 unsigned int verbose,
-			 GNUNET_SCHEDULER_Task cont,
-			 void *cont_cls);
+                         struct GNUNET_TIME_Relative timeout,
+                         uint32_t anonymity,
+                         uint32_t seed,
+                         const struct GNUNET_FS_Uri *uri,
+                         unsigned int verbose,
+                         GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 

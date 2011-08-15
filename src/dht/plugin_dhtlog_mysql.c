@@ -188,11 +188,10 @@ run_statement (const char *statement)
 {
   mysql_query (conn, statement);
   if (mysql_error (conn)[0])
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                 "mysql_query");
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "mysql_query");
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -253,46 +252,46 @@ itable ()
     return GNUNET_SYSERR;
 
   if (MRUNS ("CREATE TABLE IF NOT EXISTS `trials` ("
-              "`trialuid` int(10) unsigned NOT NULL auto_increment,"
-              "`other_trial_identifier` int(10) unsigned NOT NULL default '0',"
-              "`numnodes` int(10) unsigned NOT NULL,"
-              "`topology` int(10) NOT NULL,"
-              "`blacklist_topology` int(11) NOT NULL,"
-              "`connect_topology` int(11) NOT NULL,"
-              "`connect_topology_option` int(11) NOT NULL,"
-              "`topology_percentage` float NOT NULL,"
-              "`topology_probability` float NOT NULL,"
-              "`connect_topology_option_modifier` float NOT NULL,"
-              "`starttime` datetime NOT NULL,"
-              "`endtime` datetime NOT NULL,"
-              "`puts` int(10) unsigned NOT NULL,"
-              "`gets` int(10) unsigned NOT NULL,"
-              "`concurrent` int(10) unsigned NOT NULL,"
-              "`settle_time` int(10) unsigned NOT NULL,"
-              "`totalConnections` int(10) unsigned NOT NULL,"
-              "`message` text NOT NULL,"
-              "`num_rounds` int(10) unsigned NOT NULL,"
-              "`malicious_getters` int(10) unsigned NOT NULL,"
-              "`malicious_putters` int(10) unsigned NOT NULL,"
-              "`malicious_droppers` int(10) unsigned NOT NULL,"
-              "`topology_modifier` double NOT NULL,"
-              "`malicious_get_frequency` int(10) unsigned NOT NULL,"
-              "`malicious_put_frequency` int(10) unsigned NOT NULL,"
-              "`stop_closest` int(10) unsigned NOT NULL,"
-              "`stop_found` int(10) unsigned NOT NULL,"
-              "`strict_kademlia` int(10) unsigned NOT NULL,"
-              "`gets_succeeded` int(10) unsigned NOT NULL,"
-              "PRIMARY KEY  (`trialuid`),"
-              "UNIQUE KEY `trialuid` (`trialuid`)"
-              ") ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
+             "`trialuid` int(10) unsigned NOT NULL auto_increment,"
+             "`other_trial_identifier` int(10) unsigned NOT NULL default '0',"
+             "`numnodes` int(10) unsigned NOT NULL,"
+             "`topology` int(10) NOT NULL,"
+             "`blacklist_topology` int(11) NOT NULL,"
+             "`connect_topology` int(11) NOT NULL,"
+             "`connect_topology_option` int(11) NOT NULL,"
+             "`topology_percentage` float NOT NULL,"
+             "`topology_probability` float NOT NULL,"
+             "`connect_topology_option_modifier` float NOT NULL,"
+             "`starttime` datetime NOT NULL,"
+             "`endtime` datetime NOT NULL,"
+             "`puts` int(10) unsigned NOT NULL,"
+             "`gets` int(10) unsigned NOT NULL,"
+             "`concurrent` int(10) unsigned NOT NULL,"
+             "`settle_time` int(10) unsigned NOT NULL,"
+             "`totalConnections` int(10) unsigned NOT NULL,"
+             "`message` text NOT NULL,"
+             "`num_rounds` int(10) unsigned NOT NULL,"
+             "`malicious_getters` int(10) unsigned NOT NULL,"
+             "`malicious_putters` int(10) unsigned NOT NULL,"
+             "`malicious_droppers` int(10) unsigned NOT NULL,"
+             "`topology_modifier` double NOT NULL,"
+             "`malicious_get_frequency` int(10) unsigned NOT NULL,"
+             "`malicious_put_frequency` int(10) unsigned NOT NULL,"
+             "`stop_closest` int(10) unsigned NOT NULL,"
+             "`stop_found` int(10) unsigned NOT NULL,"
+             "`strict_kademlia` int(10) unsigned NOT NULL,"
+             "`gets_succeeded` int(10) unsigned NOT NULL,"
+             "PRIMARY KEY  (`trialuid`),"
+             "UNIQUE KEY `trialuid` (`trialuid`)"
+             ") ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
     return GNUNET_SYSERR;
 
   if (MRUNS ("CREATE TABLE IF NOT EXISTS `topology` ("
-              "`topology_uid` int(10) unsigned NOT NULL AUTO_INCREMENT,"
-              "`trialuid` int(10) unsigned NOT NULL,"
-              "`date` datetime NOT NULL,"
-              "`connections` int(10) unsigned NOT NULL,"
-              "PRIMARY KEY (`topology_uid`)) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
+             "`topology_uid` int(10) unsigned NOT NULL AUTO_INCREMENT,"
+             "`trialuid` int(10) unsigned NOT NULL,"
+             "`date` datetime NOT NULL,"
+             "`connections` int(10) unsigned NOT NULL,"
+             "PRIMARY KEY (`topology_uid`)) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
     return GNUNET_SYSERR;
 
   if (MRUNS ("CREATE TABLE IF NOT EXISTS `extended_topology` ("
@@ -305,27 +304,27 @@ itable ()
     return GNUNET_SYSERR;
 
   if (MRUNS ("CREATE TABLE IF NOT EXISTS `node_statistics` ("
-              "`stat_uid` int(10) unsigned NOT NULL AUTO_INCREMENT,"
-              "`trialuid` int(10) unsigned NOT NULL,"
-              "`nodeuid` int(10) unsigned NOT NULL,"
-              "`route_requests` int(10) unsigned NOT NULL,"
-              "`route_forwards` int(10) unsigned NOT NULL,"
-              "`result_requests` int(10) unsigned NOT NULL,"
-              "`client_results` int(10) unsigned NOT NULL,"
-              "`result_forwards` int(10) unsigned NOT NULL,"
-              "`gets` int(10) unsigned NOT NULL,"
-              "`puts` int(10) unsigned NOT NULL,"
-              "`data_inserts` int(10) unsigned NOT NULL,"
-              "`find_peer_requests` int(10) unsigned NOT NULL,"
-              "`find_peers_started` int(10) unsigned NOT NULL,"
-              "`gets_started` int(10) unsigned NOT NULL,"
-              "`puts_started` int(10) unsigned NOT NULL,"
-              "`find_peer_responses_received` int(10) unsigned NOT NULL,"
-              "`get_responses_received` int(10) unsigned NOT NULL,"
-              "`find_peer_responses_sent` int(10) unsigned NOT NULL,"
-              "`get_responses_sent` int(10) unsigned NOT NULL,"
+             "`stat_uid` int(10) unsigned NOT NULL AUTO_INCREMENT,"
+             "`trialuid` int(10) unsigned NOT NULL,"
+             "`nodeuid` int(10) unsigned NOT NULL,"
+             "`route_requests` int(10) unsigned NOT NULL,"
+             "`route_forwards` int(10) unsigned NOT NULL,"
+             "`result_requests` int(10) unsigned NOT NULL,"
+             "`client_results` int(10) unsigned NOT NULL,"
+             "`result_forwards` int(10) unsigned NOT NULL,"
+             "`gets` int(10) unsigned NOT NULL,"
+             "`puts` int(10) unsigned NOT NULL,"
+             "`data_inserts` int(10) unsigned NOT NULL,"
+             "`find_peer_requests` int(10) unsigned NOT NULL,"
+             "`find_peers_started` int(10) unsigned NOT NULL,"
+             "`gets_started` int(10) unsigned NOT NULL,"
+             "`puts_started` int(10) unsigned NOT NULL,"
+             "`find_peer_responses_received` int(10) unsigned NOT NULL,"
+             "`get_responses_received` int(10) unsigned NOT NULL,"
+             "`find_peer_responses_sent` int(10) unsigned NOT NULL,"
+             "`get_responses_sent` int(10) unsigned NOT NULL,"
              "PRIMARY KEY (`stat_uid`)"
-            ") ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;"))
+             ") ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;"))
     return GNUNET_SYSERR;
 
   if (MRUNS ("SET AUTOCOMMIT = 1"))
@@ -359,15 +358,15 @@ void
 prepared_statement_close (struct StatementHandle *s)
 {
   if (s == NULL)
-    {
-      return;
-    }
+  {
+    return;
+  }
 
-  GNUNET_free_non_null(s->query);
+  GNUNET_free_non_null (s->query);
 
   if (s->valid == GNUNET_YES)
-    mysql_stmt_close(s->statement);
-  GNUNET_free(s);
+    mysql_stmt_close (s->statement);
+  GNUNET_free (s);
 }
 
 /*
@@ -390,61 +389,65 @@ iopen (struct GNUNET_DHTLOG_Plugin *plugin)
     return GNUNET_SYSERR;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                         "MYSQL", "DATABASE",
-                                                         &database))
-    {
-      database = GNUNET_strdup("gnunet");
-    }
+                                                          "MYSQL", "DATABASE",
+                                                          &database))
+  {
+    database = GNUNET_strdup ("gnunet");
+  }
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                          "MYSQL", "USER", &user))
-    {
-      user = GNUNET_strdup("dht");
-    }
+                                                          "MYSQL", "USER",
+                                                          &user))
+  {
+    user = GNUNET_strdup ("dht");
+  }
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                          "MYSQL", "PASSWORD", &password))
-    {
-      password = GNUNET_strdup("dhttest**");
-    }
+                                                          "MYSQL", "PASSWORD",
+                                                          &password))
+  {
+    password = GNUNET_strdup ("dhttest**");
+  }
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                          "MYSQL", "SERVER", &server))
-    {
-      server = GNUNET_strdup("localhost");
-    }
+                                                          "MYSQL", "SERVER",
+                                                          &server))
+  {
+    server = GNUNET_strdup ("localhost");
+  }
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (plugin->cfg,
-                                                          "MYSQL", "MYSQL_PORT", &port))
-    {
-      port = 0;
-    }
+                                                          "MYSQL", "MYSQL_PORT",
+                                                          &port))
+  {
+    port = 0;
+  }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to mysql with: user %s, pass %s, server %s, database %s, port %d\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connecting to mysql with: user %s, pass %s, server %s, database %s, port %d\n",
               user, password, server, database, port);
 
   reconnect = 0;
-  timeout = 60; /* in seconds */
+  timeout = 60;                 /* in seconds */
   mysql_options (conn, MYSQL_OPT_RECONNECT, &reconnect);
-  mysql_options (conn,
-                 MYSQL_OPT_CONNECT_TIMEOUT, (const void *) &timeout);
-  mysql_options(conn, MYSQL_SET_CHARSET_NAME, "UTF8");
+  mysql_options (conn, MYSQL_OPT_CONNECT_TIMEOUT, (const void *) &timeout);
+  mysql_options (conn, MYSQL_SET_CHARSET_NAME, "UTF8");
   mysql_options (conn, MYSQL_OPT_READ_TIMEOUT, (const void *) &timeout);
   mysql_options (conn, MYSQL_OPT_WRITE_TIMEOUT, (const void *) &timeout);
   mysql_real_connect (conn, server, user, password,
-                      database, (unsigned int) port, NULL, CLIENT_IGNORE_SIGPIPE);
+                      database, (unsigned int) port, NULL,
+                      CLIENT_IGNORE_SIGPIPE);
 
-  GNUNET_free_non_null(server);
-  GNUNET_free_non_null(password);
-  GNUNET_free_non_null(user);
-  GNUNET_free_non_null(database);
+  GNUNET_free_non_null (server);
+  GNUNET_free_non_null (password);
+  GNUNET_free_non_null (user);
+  GNUNET_free_non_null (database);
 
   if (mysql_error (conn)[0])
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                 "mysql_real_connect");
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "mysql_real_connect");
+    return GNUNET_SYSERR;
+  }
 
 #if OLD
   db = GNUNET_MYSQL_database_open (coreAPI->ectx, coreAPI->cfg);
@@ -473,10 +476,10 @@ iopen (struct GNUNET_DHTLOG_Plugin *plugin)
       PINIT (insert_topology, INSERT_TOPOLOGY_STMT) ||
       PINIT (update_topology, UPDATE_TOPOLOGY_STMT) ||
       PINIT (extend_topology, EXTEND_TOPOLOGY_STMT) ||
-      PINIT (update_node_malicious, SET_MALICIOUS_STMT) )
-    {
-      return GNUNET_SYSERR;
-    }
+      PINIT (update_node_malicious, SET_MALICIOUS_STMT))
+  {
+    return GNUNET_SYSERR;
+  }
 #undef PINIT
 
   return ret;
@@ -504,13 +507,13 @@ prepare_statement (struct StatementHandle *ret)
     return GNUNET_SYSERR;
 
   if (mysql_stmt_prepare (ret->statement, ret->query, strlen (ret->query)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                 "mysql_stmt_prepare `%s', %s", ret->query, mysql_error(conn));
-      mysql_stmt_close (ret->statement);
-      ret->statement = NULL;
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "mysql_stmt_prepare `%s', %s", ret->query, mysql_error (conn));
+    mysql_stmt_close (ret->statement);
+    ret->statement = NULL;
+    return GNUNET_SYSERR;
+  }
   ret->valid = GNUNET_YES;
   return GNUNET_OK;
 }
@@ -533,67 +536,71 @@ init_params (struct StatementHandle *s, va_list ap)
 
   pc = mysql_stmt_param_count (s->statement);
   if (pc > MAX_PARAM)
-    {
-      /* increase internal constant! */
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
+  {
+    /* increase internal constant! */
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   memset (qbind, 0, sizeof (qbind));
   off = 0;
   ft = 0;
   while ((pc > 0) && (-1 != (ft = va_arg (ap, enum enum_field_types))))
+  {
+    qbind[off].buffer_type = ft;
+    switch (ft)
     {
-      qbind[off].buffer_type = ft;
-      switch (ft)
-        {
-        case MYSQL_TYPE_FLOAT:
-          qbind[off].buffer = va_arg (ap, float *);
-          break;
-        case MYSQL_TYPE_LONGLONG:
-          qbind[off].buffer = va_arg (ap, unsigned long long *);
-          qbind[off].is_unsigned = va_arg (ap, int);
-          break;
-        case MYSQL_TYPE_LONG:
-          qbind[off].buffer = va_arg (ap, unsigned int *);
-          qbind[off].is_unsigned = va_arg (ap, int);
-          break;
-        case MYSQL_TYPE_VAR_STRING:
-        case MYSQL_TYPE_STRING:
-        case MYSQL_TYPE_BLOB:
-          qbind[off].buffer = va_arg (ap, void *);
-          qbind[off].buffer_length = va_arg (ap, unsigned long);
-          qbind[off].length = va_arg (ap, unsigned long *);
-          break;
-        default:
-          /* unsupported type */
-          GNUNET_break (0);
-          return GNUNET_SYSERR;
-        }
-      pc--;
-      off++;
-    }
-  if (!((pc == 0) && (ft != -1) && (va_arg (ap, int) == -1)))
-    {
+    case MYSQL_TYPE_FLOAT:
+      qbind[off].buffer = va_arg (ap, float *);
+
+      break;
+    case MYSQL_TYPE_LONGLONG:
+      qbind[off].buffer = va_arg (ap, unsigned long long *);
+      qbind[off].is_unsigned = va_arg (ap, int);
+
+      break;
+    case MYSQL_TYPE_LONG:
+      qbind[off].buffer = va_arg (ap, unsigned int *);
+      qbind[off].is_unsigned = va_arg (ap, int);
+
+      break;
+    case MYSQL_TYPE_VAR_STRING:
+    case MYSQL_TYPE_STRING:
+    case MYSQL_TYPE_BLOB:
+      qbind[off].buffer = va_arg (ap, void *);
+      qbind[off].buffer_length = va_arg (ap, unsigned long);
+      qbind[off].length = va_arg (ap, unsigned long *);
+
+      break;
+    default:
+      /* unsupported type */
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
+    pc--;
+    off++;
+  }
+  if (!((pc == 0) && (ft != -1) && (va_arg (ap, int) == -1)))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   if (mysql_stmt_bind_param (s->statement, qbind))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("`%s' failed at %s:%d with error: %s\n"),
-                  "mysql_stmt_bind_param",
-                   __FILE__, __LINE__, mysql_stmt_error (s->statement));
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("`%s' failed at %s:%d with error: %s\n"),
+                "mysql_stmt_bind_param",
+                __FILE__, __LINE__, mysql_stmt_error (s->statement));
+    return GNUNET_SYSERR;
+  }
 
   if (mysql_stmt_execute (s->statement))
-    {
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-               _("`%s' failed at %s:%d with error: %s\n"),
-               "mysql_stmt_execute",
-               __FILE__, __LINE__, mysql_stmt_error (s->statement));
-      return GNUNET_SYSERR;
-    }
+                _("`%s' failed at %s:%d with error: %s\n"),
+                "mysql_stmt_execute",
+                __FILE__, __LINE__, mysql_stmt_error (s->statement));
+    return GNUNET_SYSERR;
+  }
 
   return GNUNET_OK;
 }
@@ -619,8 +626,7 @@ prepared_statement_run_select (struct StatementHandle *s,
                                unsigned int result_size,
                                MYSQL_BIND * results,
                                GNUNET_MysqlDataProcessor
-                               processor, void *processor_cls,
-                               ...)
+                               processor, void *processor_cls, ...)
 {
   va_list ap;
   int ret;
@@ -628,52 +634,52 @@ prepared_statement_run_select (struct StatementHandle *s,
   int total;
 
   if (GNUNET_OK != prepare_statement (s))
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   va_start (ap, processor_cls);
   if (GNUNET_OK != init_params (s, ap))
-    {
-      GNUNET_break (0);
-      va_end (ap);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    va_end (ap);
+    return GNUNET_SYSERR;
+  }
   va_end (ap);
   rsize = mysql_stmt_field_count (s->statement);
   if (rsize > result_size)
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   if (mysql_stmt_bind_result (s->statement, results))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("`%s' failed at %s:%d with error: %s\n"),
-                  "mysql_stmt_bind_result",
-                  __FILE__, __LINE__, mysql_stmt_error (s->statement));
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("`%s' failed at %s:%d with error: %s\n"),
+                "mysql_stmt_bind_result",
+                __FILE__, __LINE__, mysql_stmt_error (s->statement));
+    return GNUNET_SYSERR;
+  }
 
   total = 0;
   while (1)
+  {
+    ret = mysql_stmt_fetch (s->statement);
+    if (ret == MYSQL_NO_DATA)
+      break;
+    if (ret != 0)
     {
-      ret = mysql_stmt_fetch (s->statement);
-      if (ret == MYSQL_NO_DATA)
-        break;
-      if (ret != 0)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                       _("`%s' failed at %s:%d with error: %s\n"),
-                       "mysql_stmt_fetch",
-                       __FILE__, __LINE__, mysql_stmt_error (s->statement));
-          return GNUNET_SYSERR;
-        }
-      if (processor != NULL)
-        if (GNUNET_OK != processor (processor_cls, rsize, results))
-          break;
-      total++;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("`%s' failed at %s:%d with error: %s\n"),
+                  "mysql_stmt_fetch",
+                  __FILE__, __LINE__, mysql_stmt_error (s->statement));
+      return GNUNET_SYSERR;
     }
+    if (processor != NULL)
+      if (GNUNET_OK != processor (processor_cls, rsize, results))
+        break;
+    total++;
+  }
   mysql_stmt_reset (s->statement);
   return total;
 }
@@ -695,23 +701,22 @@ get_node_uid (unsigned long long *nodeuid, const GNUNET_HashCode * peerHash)
   p_len = strlen ((char *) &encPeer);
 
   if (1 != prepared_statement_run_select (get_nodeuid,
-                                                              1,
-                                                              rbind,
-                                                              return_ok,
-                                                              NULL,
-                                                              MYSQL_TYPE_LONGLONG,
-                                                              &current_trial,
-                                                              GNUNET_YES,
-                                                              MYSQL_TYPE_VAR_STRING,
-                                                              &encPeer,
-                                                              max_varchar_len,
-                                                              &p_len, -1))
-    {
+                                          1,
+                                          rbind,
+                                          return_ok,
+                                          NULL,
+                                          MYSQL_TYPE_LONGLONG,
+                                          &current_trial,
+                                          GNUNET_YES,
+                                          MYSQL_TYPE_VAR_STRING,
+                                          &encPeer,
+                                          max_varchar_len, &p_len, -1))
+  {
 #if DEBUG_DHTLOG
-      fprintf (stderr, "FAILED\n");
+    fprintf (stderr, "FAILED\n");
 #endif
-      return GNUNET_SYSERR;
-    }
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -727,12 +732,10 @@ get_current_trial (unsigned long long *trialuid)
 
   if ((GNUNET_OK !=
        prepared_statement_run_select (get_trial,
-                                      1,
-                                      rbind,
-                                      return_ok, NULL, -1)))
-    {
-      return GNUNET_SYSERR;
-    }
+                                      1, rbind, return_ok, NULL, -1)))
+  {
+    return GNUNET_SYSERR;
+  }
 
   return GNUNET_OK;
 }
@@ -749,12 +752,10 @@ get_current_topology (unsigned long long *topologyuid)
 
   if ((GNUNET_OK !=
        prepared_statement_run_select (get_topology,
-                                      1,
-                                      rbind,
-                                      return_ok, NULL, -1)))
-    {
-      return GNUNET_SYSERR;
-    }
+                                      1, rbind, return_ok, NULL, -1)))
+  {
+    return GNUNET_SYSERR;
+  }
 
   return GNUNET_OK;
 }
@@ -765,6 +766,7 @@ get_dhtkey_uid (unsigned long long *dhtkeyuid, const GNUNET_HashCode * key)
   MYSQL_BIND rbind[1];
   struct GNUNET_CRYPTO_HashAsciiEncoded encKey;
   unsigned long long k_len;
+
   memset (rbind, 0, sizeof (rbind));
   rbind[0].buffer_type = MYSQL_TYPE_LONG;
   rbind[0].is_unsigned = 1;
@@ -772,7 +774,9 @@ get_dhtkey_uid (unsigned long long *dhtkeyuid, const GNUNET_HashCode * key)
   GNUNET_CRYPTO_hash_to_enc (key, &encKey);
   k_len = strlen ((char *) &encKey);
 #if DEBUG_DHTLOG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Searching for dhtkey `%s' in trial %llu\n", GNUNET_h2s(key), current_trial);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Searching for dhtkey `%s' in trial %llu\n", GNUNET_h2s (key),
+              current_trial);
 #endif
   if ((GNUNET_OK !=
        prepared_statement_run_select (get_dhtkeyuid,
@@ -784,11 +788,10 @@ get_dhtkey_uid (unsigned long long *dhtkeyuid, const GNUNET_HashCode * key)
                                       max_varchar_len,
                                       &k_len,
                                       MYSQL_TYPE_LONGLONG,
-                                      &current_trial,
-                                      GNUNET_YES, -1)))
-    {
-      return GNUNET_SYSERR;
-    }
+                                      &current_trial, GNUNET_YES, -1)))
+  {
+    return GNUNET_SYSERR;
+  }
 
   return GNUNET_OK;
 }
@@ -813,22 +816,22 @@ prepared_statement_run (struct StatementHandle *s,
   va_list ap;
   int affected;
 
-  if (GNUNET_OK != prepare_statement(s))
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_assert(s->valid == GNUNET_YES);
+  if (GNUNET_OK != prepare_statement (s))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_assert (s->valid == GNUNET_YES);
   if (s->statement == NULL)
     return GNUNET_SYSERR;
 
   va_start (ap, insert_id);
 
   if (GNUNET_OK != init_params (s, ap))
-    {
-      va_end (ap);
-      return GNUNET_SYSERR;
-    }
+  {
+    va_end (ap);
+    return GNUNET_SYSERR;
+  }
 
   va_end (ap);
   affected = mysql_stmt_affected_rows (s->statement);
@@ -846,53 +849,73 @@ prepared_statement_run (struct StatementHandle *s,
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
+int
+add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 {
   MYSQL_STMT *stmt;
   int ret;
   unsigned long long m_len;
+
   m_len = strlen (trial_info->message);
 
-  stmt = mysql_stmt_init(conn);
+  stmt = mysql_stmt_init (conn);
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_trial, &current_trial,
-                                     MYSQL_TYPE_LONG, &trial_info->other_identifier, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->num_nodes, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->topology, GNUNET_YES,
-                                     MYSQL_TYPE_FLOAT, &trial_info->topology_percentage,
-                                     MYSQL_TYPE_FLOAT, &trial_info->topology_probability,
-                                     MYSQL_TYPE_LONG, &trial_info->blacklist_topology, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->connect_topology, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->connect_topology_option, GNUNET_YES,
-                                     MYSQL_TYPE_FLOAT, &trial_info->connect_topology_option_modifier,
-                                     MYSQL_TYPE_LONG, &trial_info->puts, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->gets, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->concurrent, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->settle_time, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->num_rounds, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->malicious_getters, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->malicious_putters, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->malicious_droppers, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->malicious_get_frequency, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->malicious_put_frequency, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->stop_closest, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->stop_found, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->strict_kademlia, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &trial_info->gets_succeeded, GNUNET_YES,
-                                     MYSQL_TYPE_BLOB, trial_info->message, max_varchar_len +
-                                     max_varchar_len, &m_len,
-                                      -1)))
+                                     MYSQL_TYPE_LONG,
+                                     &trial_info->other_identifier, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &trial_info->num_nodes,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &trial_info->topology, GNUNET_YES,
+                                     MYSQL_TYPE_FLOAT,
+                                     &trial_info->topology_percentage,
+                                     MYSQL_TYPE_FLOAT,
+                                     &trial_info->topology_probability,
+                                     MYSQL_TYPE_LONG,
+                                     &trial_info->blacklist_topology,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &trial_info->connect_topology, GNUNET_YES,
+                                     MYSQL_TYPE_LONG,
+                                     &trial_info->connect_topology_option,
+                                     GNUNET_YES, MYSQL_TYPE_FLOAT,
+                                     &trial_info->connect_topology_option_modifier,
+                                     MYSQL_TYPE_LONG, &trial_info->puts,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &trial_info->gets, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &trial_info->concurrent,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &trial_info->settle_time, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &trial_info->num_rounds,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &trial_info->malicious_getters, GNUNET_YES,
+                                     MYSQL_TYPE_LONG,
+                                     &trial_info->malicious_putters, GNUNET_YES,
+                                     MYSQL_TYPE_LONG,
+                                     &trial_info->malicious_droppers,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &trial_info->malicious_get_frequency,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &trial_info->malicious_put_frequency,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &trial_info->stop_closest, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &trial_info->stop_found,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &trial_info->strict_kademlia, GNUNET_YES,
+                                     MYSQL_TYPE_LONG,
+                                     &trial_info->gets_succeeded, GNUNET_YES,
+                                     MYSQL_TYPE_BLOB, trial_info->message,
+                                     max_varchar_len + max_varchar_len, &m_len,
+                                     -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          mysql_stmt_close(stmt);
-          return GNUNET_SYSERR;
-        }
+      mysql_stmt_close (stmt);
+      return GNUNET_SYSERR;
     }
+  }
 
   get_current_trial (&current_trial);
 
-  mysql_stmt_close(stmt);
+  mysql_stmt_close (stmt);
   return GNUNET_OK;
 }
 
@@ -904,19 +927,20 @@ int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_round (unsigned int round_type, unsigned int round_count)
+int
+add_round (unsigned int round_type, unsigned int round_count)
 {
 
   MYSQL_STMT *stmt;
   int ret;
 
-  stmt = mysql_stmt_init(conn);
+  stmt = mysql_stmt_init (conn);
   ret = prepared_statement_run (insert_round,
                                 NULL,
                                 MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
                                 MYSQL_TYPE_LONG, &round_type, GNUNET_YES,
                                 MYSQL_TYPE_LONG, &round_count, GNUNET_YES, -1);
-  mysql_stmt_close(stmt);
+  mysql_stmt_close (stmt);
   if (ret != GNUNET_OK)
     return GNUNET_SYSERR;
   return ret;
@@ -933,22 +957,24 @@ int add_round (unsigned int round_type, unsigned int round_count)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_round_details (unsigned int round_type, unsigned int round_count,
-                       unsigned int num_messages, unsigned int num_messages_succeeded)
+int
+add_round_details (unsigned int round_type, unsigned int round_count,
+                   unsigned int num_messages,
+                   unsigned int num_messages_succeeded)
 {
   MYSQL_STMT *stmt;
   int ret;
 
-  stmt = mysql_stmt_init(conn);
+  stmt = mysql_stmt_init (conn);
   ret = prepared_statement_run (insert_round_details,
                                 NULL,
                                 MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
                                 MYSQL_TYPE_LONG, &round_type, GNUNET_YES,
                                 MYSQL_TYPE_LONG, &round_count, GNUNET_YES,
                                 MYSQL_TYPE_LONG, &num_messages, GNUNET_YES,
-                                MYSQL_TYPE_LONG, &num_messages_succeeded, GNUNET_YES,
-                                -1);
-  mysql_stmt_close(stmt);
+                                MYSQL_TYPE_LONG, &num_messages_succeeded,
+                                GNUNET_YES, -1);
+  mysql_stmt_close (stmt);
   if (ret != GNUNET_OK)
     return GNUNET_SYSERR;
   return ret;
@@ -985,53 +1011,61 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
           unsigned int data_inserts, unsigned int find_peer_requests,
           unsigned int find_peers_started, unsigned int gets_started,
           unsigned int puts_started, unsigned int find_peer_responses_received,
-          unsigned int get_responses_received, unsigned int find_peer_responses_sent,
+          unsigned int get_responses_received,
+          unsigned int find_peer_responses_sent,
           unsigned int get_responses_sent)
 {
   MYSQL_STMT *stmt;
   int ret;
   unsigned long long peer_uid;
   unsigned long long return_uid;
+
   if (peer == NULL)
     return GNUNET_SYSERR;
 
   if (GNUNET_OK != get_node_uid (&peer_uid, &peer->hashPubKey))
-    {
-      return GNUNET_SYSERR;
-    }
+  {
+    return GNUNET_SYSERR;
+  }
 
-  stmt = mysql_stmt_init(conn);
+  stmt = mysql_stmt_init (conn);
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_stat,
                                      &return_uid,
-                                     MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
-                                     MYSQL_TYPE_LONGLONG, &peer_uid, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &route_requests, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &route_forwards, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &result_requests, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &client_requests, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &result_forwards, GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG, &current_trial,
+                                     GNUNET_YES, MYSQL_TYPE_LONGLONG, &peer_uid,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &route_requests, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &route_forwards,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &result_requests, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &client_requests,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &result_forwards, GNUNET_YES,
                                      MYSQL_TYPE_LONG, &gets, GNUNET_YES,
                                      MYSQL_TYPE_LONG, &puts, GNUNET_YES,
                                      MYSQL_TYPE_LONG, &data_inserts, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &find_peer_requests, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &find_peers_started, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &find_peer_requests,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &find_peers_started, GNUNET_YES,
                                      MYSQL_TYPE_LONG, &gets_started, GNUNET_YES,
                                      MYSQL_TYPE_LONG, &puts_started, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &find_peer_responses_received, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &get_responses_received, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &find_peer_responses_sent, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &get_responses_sent, GNUNET_YES,
-                                     -1)))
+                                     MYSQL_TYPE_LONG,
+                                     &find_peer_responses_received, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &get_responses_received,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &find_peer_responses_sent, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &get_responses_sent,
+                                     GNUNET_YES, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          mysql_stmt_close(stmt);
-          return GNUNET_SYSERR;
-        }
+      mysql_stmt_close (stmt);
+      return GNUNET_SYSERR;
     }
+  }
 
-  mysql_stmt_close(stmt);
+  mysql_stmt_close (stmt);
   return GNUNET_OK;
 }
 
@@ -1047,39 +1081,41 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
  */
 int
 add_generic_stat (const struct GNUNET_PeerIdentity *peer,
-                  const char *name,
-                  const char *section, uint64_t value)
+                  const char *name, const char *section, uint64_t value)
 {
   unsigned long long peer_uid;
   unsigned long long section_len;
   unsigned long long name_len;
   int ret;
+
   if (peer == NULL)
     return GNUNET_SYSERR;
 
   if (GNUNET_OK != get_node_uid (&peer_uid, &peer->hashPubKey))
-    {
-      return GNUNET_SYSERR;
-    }
+  {
+    return GNUNET_SYSERR;
+  }
 
-  section_len = strlen(section);
-  name_len = strlen(name);
+  section_len = strlen (section);
+  name_len = strlen (name);
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_generic_stat,
                                      NULL,
-                                     MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
-                                     MYSQL_TYPE_LONGLONG, &peer_uid, GNUNET_YES,
-                                     MYSQL_TYPE_VAR_STRING, &section, max_varchar_len, &section_len,
-                                     MYSQL_TYPE_VAR_STRING, &name, max_varchar_len, &name_len,
+                                     MYSQL_TYPE_LONGLONG, &current_trial,
+                                     GNUNET_YES, MYSQL_TYPE_LONGLONG, &peer_uid,
+                                     GNUNET_YES, MYSQL_TYPE_VAR_STRING,
+                                     &section, max_varchar_len, &section_len,
+                                     MYSQL_TYPE_VAR_STRING, &name,
+                                     max_varchar_len, &name_len,
                                      MYSQL_TYPE_LONGLONG, &value, GNUNET_YES,
                                      -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   return GNUNET_OK;
 }
 
@@ -1101,23 +1137,24 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
   unsigned long long k_len;
   unsigned long long h_len;
   unsigned long long curr_dhtkeyuid;
+
   GNUNET_CRYPTO_hash_to_enc (dhtkey, &encKey);
   k_len = strlen ((char *) &encKey);
   h_len = sizeof (GNUNET_HashCode);
   curr_dhtkeyuid = 0;
-  ret = get_dhtkey_uid(&curr_dhtkeyuid, dhtkey);
-  if (curr_dhtkeyuid != 0) /* dhtkey already exists */
-    {
-      if (dhtkeyuid != NULL)
-        *dhtkeyuid = curr_dhtkeyuid;
-      return GNUNET_OK;
-    }
+  ret = get_dhtkey_uid (&curr_dhtkeyuid, dhtkey);
+  if (curr_dhtkeyuid != 0)      /* dhtkey already exists */
+  {
+    if (dhtkeyuid != NULL)
+      *dhtkeyuid = curr_dhtkeyuid;
+    return GNUNET_OK;
+  }
   else if (ret == GNUNET_SYSERR)
-    {
+  {
 #if DEBUG_DHTLOG
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Failed to get dhtkeyuid!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to get dhtkeyuid!\n");
 #endif
-    }
+  }
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_dhtkey,
@@ -1131,14 +1168,13 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
                                      GNUNET_YES,
                                      MYSQL_TYPE_BLOB,
                                      dhtkey,
-                                     sizeof (GNUNET_HashCode),
-                                     &h_len, -1)))
+                                     sizeof (GNUNET_HashCode), &h_len, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
 
   return GNUNET_OK;
 }
@@ -1154,7 +1190,7 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
+add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity *node)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded encPeer;
   unsigned long p_len;
@@ -1170,16 +1206,17 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_node,
                                      nodeuid,
-                                     MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
-                                     MYSQL_TYPE_VAR_STRING, &encPeer, max_varchar_len, &p_len,
-                                     MYSQL_TYPE_BLOB, &node->hashPubKey, sizeof (GNUNET_HashCode),
-                                     &h_len, -1)))
+                                     MYSQL_TYPE_LONGLONG, &current_trial,
+                                     GNUNET_YES, MYSQL_TYPE_VAR_STRING,
+                                     &encPeer, max_varchar_len, &p_len,
+                                     MYSQL_TYPE_BLOB, &node->hashPubKey,
+                                     sizeof (GNUNET_HashCode), &h_len, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   return GNUNET_OK;
 }
 
@@ -1197,16 +1234,16 @@ update_trials (unsigned int gets_succeeded)
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (update_trial,
-                                    NULL,
-                                    MYSQL_TYPE_LONG, &gets_succeeded, GNUNET_YES,
-                                    MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
-                                    -1)))
+                                     NULL,
+                                     MYSQL_TYPE_LONG, &gets_succeeded,
+                                     GNUNET_YES, MYSQL_TYPE_LONGLONG,
+                                     &current_trial, GNUNET_YES, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   if (ret > 0)
     return GNUNET_OK;
   else
@@ -1222,27 +1259,28 @@ update_trials (unsigned int gets_succeeded)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
-int set_malicious (struct GNUNET_PeerIdentity *peer)
+int
+set_malicious (struct GNUNET_PeerIdentity *peer)
 {
   unsigned long long p_len;
   int ret;
   char *temp_str;
 
-  temp_str = GNUNET_strdup(GNUNET_h2s_full(&peer->hashPubKey));
-  p_len = strlen(temp_str);
+  temp_str = GNUNET_strdup (GNUNET_h2s_full (&peer->hashPubKey));
+  p_len = strlen (temp_str);
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (update_node_malicious,
-                                    NULL,
-                                    MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
-                                    MYSQL_TYPE_VAR_STRING, temp_str, max_varchar_len, &p_len,
-                                    -1)))
+                                     NULL,
+                                     MYSQL_TYPE_LONGLONG, &current_trial,
+                                     GNUNET_YES, MYSQL_TYPE_VAR_STRING,
+                                     temp_str, max_varchar_len, &p_len, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   return GNUNET_OK;
 }
 
@@ -1261,18 +1299,18 @@ add_connections (unsigned int totalConnections)
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (update_connection,
-                                                  NULL,
-                                                  MYSQL_TYPE_LONG,
-                                                  &totalConnections,
-                                                  GNUNET_YES,
-                                                  MYSQL_TYPE_LONGLONG,
-                                                  &current_trial, GNUNET_YES, -1)))
+                                     NULL,
+                                     MYSQL_TYPE_LONG,
+                                     &totalConnections,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &current_trial, GNUNET_YES, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   if (ret > 0)
     return GNUNET_OK;
   else
@@ -1295,65 +1333,66 @@ add_connections (unsigned int totalConnections)
 int
 add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
            unsigned int type, unsigned int hops, int succeeded,
-           const struct GNUNET_PeerIdentity * node, const GNUNET_HashCode * key)
+           const struct GNUNET_PeerIdentity *node, const GNUNET_HashCode * key)
 {
   int ret;
   unsigned long long peer_uid, key_uid;
+
   peer_uid = 0;
   key_uid = 0;
 
   if ((node != NULL)
       && (GNUNET_OK == get_node_uid (&peer_uid, &node->hashPubKey)))
-    {
+  {
 
-    }
+  }
   else
-    {
-      return GNUNET_SYSERR;
-    }
+  {
+    return GNUNET_SYSERR;
+  }
 
   if ((key != NULL) && (GNUNET_OK == get_dhtkey_uid (&key_uid, key)))
-    {
+  {
 
-    }
+  }
   else if ((key != NULL) && (key->bits[(512 / 8 / sizeof (unsigned int)) - 1] == 42))   /* Malicious marker */
-    {
-      key_uid = 0;
-    }
+  {
+    key_uid = 0;
+  }
   else
-    {
-      return GNUNET_SYSERR;
-    }
+  {
+    return GNUNET_SYSERR;
+  }
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_query,
-                                                  sqlqueryuid,
-                                                  MYSQL_TYPE_LONGLONG,
-                                                  &current_trial,
-                                                  GNUNET_YES,
-                                                  MYSQL_TYPE_LONG,
-                                                  &type,
-                                                  GNUNET_NO,
-                                                  MYSQL_TYPE_LONG,
-                                                  &hops,
-                                                  GNUNET_YES,
-                                                  MYSQL_TYPE_LONGLONG,
-                                                  &key_uid,
-                                                  GNUNET_YES,
-                                                  MYSQL_TYPE_LONGLONG,
-                                                  &queryid,
-                                                  GNUNET_YES,
-                                                  MYSQL_TYPE_LONG,
-                                                  &succeeded,
-                                                  GNUNET_NO,
-                                                  MYSQL_TYPE_LONGLONG,
-                                                  &peer_uid, GNUNET_YES, -1)))
+                                     sqlqueryuid,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &current_trial,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONG,
+                                     &type,
+                                     GNUNET_NO,
+                                     MYSQL_TYPE_LONG,
+                                     &hops,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &key_uid,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &queryid,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONG,
+                                     &succeeded,
+                                     GNUNET_NO,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &peer_uid, GNUNET_YES, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   if (ret > 0)
     return GNUNET_OK;
   else
@@ -1378,9 +1417,10 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
 int
 add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
            unsigned int type, unsigned int hops,
-           int succeeded, const struct GNUNET_PeerIdentity * node,
-           const GNUNET_HashCode * key, const struct GNUNET_PeerIdentity * from_node,
-           const struct GNUNET_PeerIdentity * to_node)
+           int succeeded, const struct GNUNET_PeerIdentity *node,
+           const GNUNET_HashCode * key,
+           const struct GNUNET_PeerIdentity *from_node,
+           const struct GNUNET_PeerIdentity *to_node)
 {
   unsigned long long peer_uid = 0;
   unsigned long long key_uid = 0;
@@ -1397,60 +1437,60 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
     to_uid = 0;
 
   if ((node != NULL))
+  {
+    if (1 != get_node_uid (&peer_uid, &node->hashPubKey))
     {
-      if (1 != get_node_uid (&peer_uid, &node->hashPubKey))
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   else
     return GNUNET_SYSERR;
 
   if ((key != NULL))
+  {
+    if (1 != get_dhtkey_uid (&key_uid, key))
     {
-      if (1 != get_dhtkey_uid (&key_uid, key))
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   else
     return GNUNET_SYSERR;
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_route,
-                                    sqlqueryuid,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &current_trial,
-                                    GNUNET_YES,
-                                    MYSQL_TYPE_LONG,
-                                    &type,
-                                    GNUNET_NO,
-                                    MYSQL_TYPE_LONG,
-                                    &hops,
-                                    GNUNET_YES,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &key_uid,
-                                    GNUNET_YES,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &queryid,
-                                    GNUNET_YES,
-                                    MYSQL_TYPE_LONG,
-                                    &succeeded,
-                                    GNUNET_NO,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &peer_uid,
-                                    GNUNET_YES,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &from_uid,
-                                    GNUNET_YES,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &to_uid, GNUNET_YES, -1)))
+                                     sqlqueryuid,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &current_trial,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONG,
+                                     &type,
+                                     GNUNET_NO,
+                                     MYSQL_TYPE_LONG,
+                                     &hops,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &key_uid,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &queryid,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONG,
+                                     &succeeded,
+                                     GNUNET_NO,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &peer_uid,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &from_uid,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &to_uid, GNUNET_YES, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   if (ret > 0)
     return GNUNET_OK;
   else
@@ -1470,7 +1510,7 @@ update_current_topology (unsigned int connections)
   int ret;
   unsigned long long topologyuid;
 
-  get_current_topology(&topologyuid);
+  get_current_topology (&topologyuid);
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (update_topology,
@@ -1480,12 +1520,12 @@ update_current_topology (unsigned int connections)
                                      GNUNET_YES,
                                      MYSQL_TYPE_LONGLONG,
                                      &topologyuid, GNUNET_YES, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   if (ret > 0)
     return GNUNET_OK;
   return GNUNET_SYSERR;
@@ -1507,15 +1547,15 @@ add_topology (int num_connections)
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_topology,
                                      NULL,
-                                     MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
-                                     MYSQL_TYPE_LONG, &num_connections, GNUNET_YES,
-                                     -1)))
+                                     MYSQL_TYPE_LONGLONG, &current_trial,
+                                     GNUNET_YES, MYSQL_TYPE_LONG,
+                                     &num_connections, GNUNET_YES, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   if (ret > 0)
     return GNUNET_OK;
   return GNUNET_SYSERR;
@@ -1530,18 +1570,19 @@ add_topology (int num_connections)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNUNET_PeerIdentity *second)
+add_extended_topology (const struct GNUNET_PeerIdentity *first,
+                       const struct GNUNET_PeerIdentity *second)
 {
   int ret;
   unsigned long long first_uid;
   unsigned long long second_uid;
   unsigned long long topologyuid;
 
-  if (GNUNET_OK != get_current_topology(&topologyuid))
+  if (GNUNET_OK != get_current_topology (&topologyuid))
     return GNUNET_SYSERR;
-  if (GNUNET_OK != get_node_uid(&first_uid, &first->hashPubKey))
+  if (GNUNET_OK != get_node_uid (&first_uid, &first->hashPubKey))
     return GNUNET_SYSERR;
-  if (GNUNET_OK != get_node_uid(&second_uid, &second->hashPubKey))
+  if (GNUNET_OK != get_node_uid (&second_uid, &second->hashPubKey))
     return GNUNET_SYSERR;
 
   if (GNUNET_OK !=
@@ -1554,14 +1595,13 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
                                      &first_uid,
                                      GNUNET_YES,
                                      MYSQL_TYPE_LONGLONG,
-                                     &second_uid,
-                                     GNUNET_YES,-1)))
+                                     &second_uid, GNUNET_YES, -1)))
+  {
+    if (ret == GNUNET_SYSERR)
     {
-      if (ret == GNUNET_SYSERR)
-        {
-          return GNUNET_SYSERR;
-        }
+      return GNUNET_SYSERR;
     }
+  }
   if (ret > 0)
     return GNUNET_OK;
   return GNUNET_SYSERR;
@@ -1576,25 +1616,27 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
  * @return the handle to the server, or NULL on error
  */
 void *
-libgnunet_plugin_dhtlog_mysql_init (void * cls)
+libgnunet_plugin_dhtlog_mysql_init (void *cls)
 {
   struct GNUNET_DHTLOG_Plugin *plugin = cls;
 
   cfg = plugin->cfg;
   max_varchar_len = 255;
 #if DEBUG_DHTLOG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MySQL DHT Logger: initializing database\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MySQL DHT Logger: initializing database\n");
 #endif
 
   if (iopen (plugin) != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Failed to initialize MySQL database connection for dhtlog.\n"));
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _
+                ("Failed to initialize MySQL database connection for dhtlog.\n"));
+    return NULL;
+  }
 
-  GNUNET_assert(plugin->dhtlog_api == NULL);
-  plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
+  GNUNET_assert (plugin->dhtlog_api == NULL);
+  plugin->dhtlog_api = GNUNET_malloc (sizeof (struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_stat = &add_stat;
   plugin->dhtlog_api->insert_round = &add_round;
@@ -1619,36 +1661,35 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
  * Shutdown the plugin.
  */
 void *
-libgnunet_plugin_dhtlog_mysql_done (void * cls)
+libgnunet_plugin_dhtlog_mysql_done (void *cls)
 {
   struct GNUNET_DHTLOG_Handle *dhtlog_api = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MySQL DHT Logger: database shutdown\n");
-  GNUNET_assert(dhtlog_api != NULL);
-  prepared_statement_close(insert_query);
-  prepared_statement_close(insert_route);
-  prepared_statement_close(insert_trial);
-  prepared_statement_close(insert_round);
-  prepared_statement_close(insert_round_details);
-  prepared_statement_close(insert_node);
-  prepared_statement_close(insert_dhtkey);
-  prepared_statement_close(update_trial);
-  prepared_statement_close(get_dhtkeyuid);
-  prepared_statement_close(get_nodeuid);
-  prepared_statement_close(update_connection);
-  prepared_statement_close(get_trial);
-  prepared_statement_close(get_topology);
-  prepared_statement_close(insert_topology);
-  prepared_statement_close(update_topology);
-  prepared_statement_close(extend_topology);
-  prepared_statement_close(update_node_malicious);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MySQL DHT Logger: database shutdown\n");
+  GNUNET_assert (dhtlog_api != NULL);
+  prepared_statement_close (insert_query);
+  prepared_statement_close (insert_route);
+  prepared_statement_close (insert_trial);
+  prepared_statement_close (insert_round);
+  prepared_statement_close (insert_round_details);
+  prepared_statement_close (insert_node);
+  prepared_statement_close (insert_dhtkey);
+  prepared_statement_close (update_trial);
+  prepared_statement_close (get_dhtkeyuid);
+  prepared_statement_close (get_nodeuid);
+  prepared_statement_close (update_connection);
+  prepared_statement_close (get_trial);
+  prepared_statement_close (get_topology);
+  prepared_statement_close (insert_topology);
+  prepared_statement_close (update_topology);
+  prepared_statement_close (extend_topology);
+  prepared_statement_close (update_node_malicious);
 
   if (conn != NULL)
     mysql_close (conn);
   conn = NULL;
-  mysql_library_end();
-  GNUNET_free(dhtlog_api);
+  mysql_library_end ();
+  GNUNET_free (dhtlog_api);
   return NULL;
 }
 

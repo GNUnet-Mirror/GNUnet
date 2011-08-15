@@ -57,18 +57,14 @@ dump_pc (struct PrintContext *pc)
   unsigned int i;
 
   GNUNET_CRYPTO_hash_to_enc (&pc->peer.hashPubKey, &enc);
-  printf (_("Peer `%s'\n"), 
-	  (const char *) &enc);
-  for (i=0;i<pc->num_addresses;i++)
-    {
-      printf ("\t%s\n",
-	      pc->address_list[i]);
-      GNUNET_free (pc->address_list[i]);
-    }
+  printf (_("Peer `%s'\n"), (const char *) &enc);
+  for (i = 0; i < pc->num_addresses; i++)
+  {
+    printf ("\t%s\n", pc->address_list[i]);
+    GNUNET_free (pc->address_list[i]);
+  }
   printf ("\n");
-  GNUNET_array_grow (pc->address_list,
-		     pc->num_addresses,
-		     0);
+  GNUNET_array_grow (pc->address_list, pc->num_addresses, 0);
   GNUNET_free (pc);
 }
 
@@ -80,21 +76,19 @@ dump_pc (struct PrintContext *pc)
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 static void
-process_resolved_address (void *cls,
-			  const char *address)
+process_resolved_address (void *cls, const char *address)
 {
   struct PrintContext *pc = cls;
 
   if (address == NULL)
-    {
-      pc->off--;
-      if (pc->off == 0)
-	dump_pc (pc);
-      return;
-    }
+  {
+    pc->off--;
+    if (pc->off == 0)
+      dump_pc (pc);
+    return;
+  }
   GNUNET_array_append (pc->address_list,
-		       pc->num_addresses,
-		       GNUNET_strdup (address));
+                       pc->num_addresses, GNUNET_strdup (address));
 }
 
 
@@ -110,11 +104,12 @@ process_resolved_address (void *cls,
  */
 static int
 count_address (void *cls,
-	       const char *tname,
-	       struct GNUNET_TIME_Absolute expiration,
-	       const void *addr, uint16_t addrlen)
+               const char *tname,
+               struct GNUNET_TIME_Absolute expiration,
+               const void *addr, uint16_t addrlen)
 {
   struct PrintContext *pc = cls;
+
   pc->off++;
   return GNUNET_OK;
 }
@@ -132,19 +127,20 @@ count_address (void *cls,
  */
 static int
 print_address (void *cls,
-	       const char *tname,
-	       struct GNUNET_TIME_Absolute expiration,
-	       const void *addr, uint16_t addrlen)
+               const char *tname,
+               struct GNUNET_TIME_Absolute expiration,
+               const void *addr, uint16_t addrlen)
 {
   struct PrintContext *pc = cls;
+
   GNUNET_TRANSPORT_address_lookup (cfg,
-				   addr,
-				   addrlen,
-				   no_resolve,
-				   tname,
-				   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-				   &process_resolved_address,
-				   pc);
+                                   addr,
+                                   addrlen,
+                                   no_resolve,
+                                   tname,
+                                   GNUNET_TIME_relative_multiply
+                                   (GNUNET_TIME_UNIT_SECONDS, 10),
+                                   &process_resolved_address, pc);
   return GNUNET_OK;
 }
 
@@ -157,32 +153,32 @@ print_address (void *cls,
 static void
 print_peer_info (void *cls,
                  const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_HELLO_Message *hello,
-                 const char * err_msg)
+                 const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   struct PrintContext *pc;
 
-  if (peer == NULL)    
-    {
-      if (err_msg != NULL) fprintf (stderr,_("Error in communication with PEERINFO service\n"));
-      GNUNET_PEERINFO_disconnect (peerinfo);
-      return;    
-    }
+  if (peer == NULL)
+  {
+    if (err_msg != NULL)
+      fprintf (stderr, _("Error in communication with PEERINFO service\n"));
+    GNUNET_PEERINFO_disconnect (peerinfo);
+    return;
+  }
   if (be_quiet)
-    {
-      GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
-      printf ("%s\n", (const char *) &enc);
-      return;
-    }
+  {
+    GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
+    printf ("%s\n", (const char *) &enc);
+    return;
+  }
   pc = GNUNET_malloc (sizeof (struct PrintContext));
-  pc->peer = *peer;  
+  pc->peer = *peer;
   GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_address, pc);
   if (0 == pc->off)
-    {
-      dump_pc (pc);
-      return;
-    }
+  {
+    dump_pc (pc);
+    return;
+  }
   GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &print_address, pc);
 }
 
@@ -198,8 +194,7 @@ print_peer_info (void *cls,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile, 
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *priv;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
@@ -209,57 +204,52 @@ run (void *cls,
 
   cfg = c;
   if (args[0] != NULL)
+  {
+    fprintf (stderr, _("Invalid command line argument `%s'\n"), args[0]);
+    return;
+  }
+  if (get_self != GNUNET_YES)
+  {
+    peerinfo = GNUNET_PEERINFO_connect (cfg);
+    if (peerinfo == NULL)
+    {
+      fprintf (stderr, _("Could not access PEERINFO service.  Exiting.\n"));
+      return;
+    }
+    GNUNET_PEERINFO_iterate (peerinfo,
+                             NULL,
+                             GNUNET_TIME_relative_multiply
+                             (GNUNET_TIME_UNIT_SECONDS, 5),
+                             &print_peer_info, NULL);
+  }
+  else
+  {
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                 "GNUNETD", "HOSTKEY", &fn))
     {
       fprintf (stderr,
-	       _("Invalid command line argument `%s'\n"),
-	       args[0]);
-      return;    
+               _("Could not find option `%s:%s' in configuration.\n"),
+               "GNUNETD", "HOSTKEYFILE");
+      return;
     }
-  if (get_self != GNUNET_YES)
+    priv = GNUNET_CRYPTO_rsa_key_create_from_file (fn);
+    if (priv == NULL)
     {
-      peerinfo = GNUNET_PEERINFO_connect (cfg);
-      if (peerinfo == NULL)
-	{
-	  fprintf (stderr,
-		   _("Could not access PEERINFO service.  Exiting.\n"));
-	  return;
-	}
-      GNUNET_PEERINFO_iterate (peerinfo,
-				      NULL,
-				      GNUNET_TIME_relative_multiply
-				      (GNUNET_TIME_UNIT_SECONDS, 5),
-				      &print_peer_info, NULL);
-    }
-  else
-    {
-      if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                   "GNUNETD",
-                                                   "HOSTKEY", &fn))
-	{
-          fprintf (stderr, 
-		   _("Could not find option `%s:%s' in configuration.\n"), 
-		   "GNUNETD",
-		   "HOSTKEYFILE");
-	  return;
-	}
-      priv = GNUNET_CRYPTO_rsa_key_create_from_file (fn);
-      if (priv == NULL)
-        {
-          fprintf (stderr, _("Loading hostkey from `%s' failed.\n"), fn);
-          GNUNET_free (fn);
-          return;
-        }
+      fprintf (stderr, _("Loading hostkey from `%s' failed.\n"), fn);
       GNUNET_free (fn);
-      GNUNET_CRYPTO_rsa_key_get_public (priv, &pub);
-      GNUNET_CRYPTO_rsa_key_free (priv);
-      GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-      GNUNET_CRYPTO_hash_to_enc (&pid.hashPubKey, &enc);
-      if (be_quiet)
-        printf ("%s\n", (char *) &enc);
-      else
-        printf (_("I am peer `%s'.\n"), (const char *) &enc);
+      return;
     }
+    GNUNET_free (fn);
+    GNUNET_CRYPTO_rsa_key_get_public (priv, &pub);
+    GNUNET_CRYPTO_rsa_key_free (priv);
+    GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
+    GNUNET_CRYPTO_hash_to_enc (&pid.hashPubKey, &enc);
+    if (be_quiet)
+      printf ("%s\n", (char *) &enc);
+    else
+      printf (_("I am peer `%s'.\n"), (const char *) &enc);
+  }
 }
 
 

@@ -67,11 +67,11 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                        "gnunet-service-arm",
+                                         "gnunet-service-arm",
 #if VERBOSE
-                                        "-L", "DEBUG",
+                                         "-L", "DEBUG",
 #endif
-                                        "-c", cfgname, NULL);
+                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
@@ -82,68 +82,64 @@ stop_arm (struct PeerContext *p)
 {
 #if START_ARM
   if (NULL != p->arm_proc)
-    {
-      if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
-	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      if (GNUNET_OS_process_wait(p->arm_proc) != GNUNET_OK)
-	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "ARM process %u stopped\n", GNUNET_OS_process_get_pid (p->arm_proc));
-      GNUNET_OS_process_close (p->arm_proc);
-      p->arm_proc = NULL;
-    }
+  {
+    if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "ARM process %u stopped\n",
+                GNUNET_OS_process_get_pid (p->arm_proc));
+    GNUNET_OS_process_close (p->arm_proc);
+    p->arm_proc = NULL;
+  }
 #endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
 
 static void
-abort_ksk_search_task (void *cls,
-		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_ksk_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (ksk_search != NULL)
+  {
+    GNUNET_FS_search_stop (ksk_search);
+    ksk_search = NULL;
+    if (sks_search == NULL)
     {
-      GNUNET_FS_search_stop (ksk_search);
-      ksk_search = NULL;
-      if (sks_search == NULL)
-	{
-	  GNUNET_FS_stop (fs);
-	  if (GNUNET_SCHEDULER_NO_TASK  != kill_task)
-	    GNUNET_SCHEDULER_cancel (kill_task);
-	}
+      GNUNET_FS_stop (fs);
+      if (GNUNET_SCHEDULER_NO_TASK != kill_task)
+        GNUNET_SCHEDULER_cancel (kill_task);
     }
+  }
 }
 
 
 static void
-abort_sks_search_task (void *cls,
-		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_sks_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_Namespace *ns;
 
   if (sks_search == NULL)
     return;
-  GNUNET_FS_search_stop (sks_search); 
+  GNUNET_FS_search_stop (sks_search);
   sks_search = NULL;
-  ns = GNUNET_FS_namespace_create (fs,
-				   "testNamespace");
+  ns = GNUNET_FS_namespace_create (fs, "testNamespace");
   GNUNET_assert (NULL != ns);
   GNUNET_assert (GNUNET_OK == GNUNET_FS_namespace_delete (ns, GNUNET_YES));
   if (ksk_search == NULL)
-    {
-      GNUNET_FS_stop (fs);
-      if (GNUNET_SCHEDULER_NO_TASK  != kill_task)
-	GNUNET_SCHEDULER_cancel (kill_task);
-    }    
+  {
+    GNUNET_FS_stop (fs);
+    if (GNUNET_SCHEDULER_NO_TASK != kill_task)
+      GNUNET_SCHEDULER_cancel (kill_task);
+  }
 }
 
 
 static void
-do_timeout (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  fprintf (stderr,
-	   "Operation timed out\n");
+  fprintf (stderr, "Operation timed out\n");
   kill_task = GNUNET_SCHEDULER_NO_TASK;
   abort_sks_search_task (NULL, tc);
   abort_ksk_search_task (NULL, tc);
@@ -152,134 +148,121 @@ do_timeout (void *cls,
 
 
 static void *
-progress_cb (void *cls, 
-	     const struct GNUNET_FS_ProgressInfo *event)
+progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 {
   switch (event->status)
+  {
+  case GNUNET_FS_STATUS_SEARCH_RESULT:
+    if (sks_search == event->value.search.sc)
     {
-    case GNUNET_FS_STATUS_SEARCH_RESULT:
-      if (sks_search == event->value.search.sc)
-	{
-	  if (! GNUNET_FS_uri_test_equal (sks_expect_uri,
-					  event->value.search.specifics.result.uri))
-	    {
-	      fprintf (stderr,
-		       "Wrong result for sks search!\n");
-	      err = 1;
-	    }
-	  /* give system 1ms to initiate update search! */
-	  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-					&abort_sks_search_task,
-					NULL);
-	}
-      else if (ksk_search == event->value.search.sc)
-	{
-	  if (! GNUNET_FS_uri_test_equal (ksk_expect_uri,
-					  event->value.search.specifics.result.uri))
-	    {
-	      fprintf (stderr,
-		       "Wrong result for ksk search!\n");
-	      err = 1;
-	    }
-	  GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task,
-					     NULL,
-					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-	}
-      else 
-	{
-	  fprintf (stderr,
-		   "Unexpected search result received!\n");
-	  GNUNET_break (0);
-	}
-      break;
-    case GNUNET_FS_STATUS_SEARCH_ERROR:
-      fprintf (stderr,
-	       "Error searching file: %s\n",
-	       event->value.search.specifics.error.message);
-      if (sks_search == event->value.search.sc)
-	GNUNET_SCHEDULER_add_continuation (&abort_sks_search_task,
-					   NULL,
-					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      else if (ksk_search == event->value.search.sc)
-	GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task,
-					   NULL,
-					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      else
-	GNUNET_break (0);
-      break;
-    case GNUNET_FS_STATUS_SEARCH_START:
-      GNUNET_assert ( (NULL == event->value.search.cctx) ||
-		      (0 == strcmp ("sks_search", event->value.search.cctx)) ||
-		      (0 == strcmp ("ksk_search", event->value.search.cctx)));
-      if (NULL == event->value.search.cctx)
-	{
-	  GNUNET_assert (0 == strcmp ("sks_search", event->value.search.pctx));
-	  update_started = GNUNET_YES;
-	}
-      GNUNET_assert (1 == event->value.search.anonymity);
-      break;
-    case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
-      return NULL;
-    case GNUNET_FS_STATUS_SEARCH_STOPPED:
-      return NULL;
-    default:
-      fprintf (stderr,
-	       "Unexpected event: %d\n", 
-	       event->status);
-      break;
+      if (!GNUNET_FS_uri_test_equal (sks_expect_uri,
+                                     event->value.search.specifics.result.uri))
+      {
+        fprintf (stderr, "Wrong result for sks search!\n");
+        err = 1;
+      }
+      /* give system 1ms to initiate update search! */
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+                                    &abort_sks_search_task, NULL);
     }
+    else if (ksk_search == event->value.search.sc)
+    {
+      if (!GNUNET_FS_uri_test_equal (ksk_expect_uri,
+                                     event->value.search.specifics.result.uri))
+      {
+        fprintf (stderr, "Wrong result for ksk search!\n");
+        err = 1;
+      }
+      GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task,
+                                         NULL,
+                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    }
+    else
+    {
+      fprintf (stderr, "Unexpected search result received!\n");
+      GNUNET_break (0);
+    }
+    break;
+  case GNUNET_FS_STATUS_SEARCH_ERROR:
+    fprintf (stderr,
+             "Error searching file: %s\n",
+             event->value.search.specifics.error.message);
+    if (sks_search == event->value.search.sc)
+      GNUNET_SCHEDULER_add_continuation (&abort_sks_search_task,
+                                         NULL,
+                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    else if (ksk_search == event->value.search.sc)
+      GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task,
+                                         NULL,
+                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    else
+      GNUNET_break (0);
+    break;
+  case GNUNET_FS_STATUS_SEARCH_START:
+    GNUNET_assert ((NULL == event->value.search.cctx) ||
+                   (0 == strcmp ("sks_search", event->value.search.cctx)) ||
+                   (0 == strcmp ("ksk_search", event->value.search.cctx)));
+    if (NULL == event->value.search.cctx)
+    {
+      GNUNET_assert (0 == strcmp ("sks_search", event->value.search.pctx));
+      update_started = GNUNET_YES;
+    }
+    GNUNET_assert (1 == event->value.search.anonymity);
+    break;
+  case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
+    return NULL;
+  case GNUNET_FS_STATUS_SEARCH_STOPPED:
+    return NULL;
+  default:
+    fprintf (stderr, "Unexpected event: %d\n", event->status);
+    break;
+  }
   return event->value.search.cctx;
 }
 
 
 static void
-publish_cont (void *cls,
-	      const struct GNUNET_FS_Uri *ksk_uri,
-	      const char *emsg)
+publish_cont (void *cls, const struct GNUNET_FS_Uri *ksk_uri, const char *emsg)
 {
   char *msg;
   struct GNUNET_FS_Uri *sks_uri;
   char sbuf[1024];
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
-  
+
   if (NULL != emsg)
-    {
-      fprintf (stderr, "Error publishing: %s\n", emsg);
-      err = 1;
-      GNUNET_FS_stop (fs);
-      return;
-    }  
-  GNUNET_CRYPTO_hash_to_enc (&nsid,
-			     &enc);
-  GNUNET_snprintf (sbuf,
-		   sizeof (sbuf),
-		   "gnunet://fs/sks/%s/this",
-		   &enc);
+  {
+    fprintf (stderr, "Error publishing: %s\n", emsg);
+    err = 1;
+    GNUNET_FS_stop (fs);
+    return;
+  }
+  GNUNET_CRYPTO_hash_to_enc (&nsid, &enc);
+  GNUNET_snprintf (sbuf, sizeof (sbuf), "gnunet://fs/sks/%s/this", &enc);
   sks_uri = GNUNET_FS_uri_parse (sbuf, &msg);
   if (msg != NULL)
-    {
-      fprintf (stderr, "failed to parse URI `%s': %s\n",
-	       sbuf,
-	       msg);
-      err = 1;
-      GNUNET_FS_stop (fs);
-      GNUNET_free (msg);
-      return;
-    }
-  ksk_search = GNUNET_FS_search_start (fs, ksk_uri, 1, GNUNET_FS_SEARCH_OPTION_NONE, "ksk_search");
-  sks_search = GNUNET_FS_search_start (fs, sks_uri, 1, GNUNET_FS_SEARCH_OPTION_NONE, "sks_search");
+  {
+    fprintf (stderr, "failed to parse URI `%s': %s\n", sbuf, msg);
+    err = 1;
+    GNUNET_FS_stop (fs);
+    GNUNET_free (msg);
+    return;
+  }
+  ksk_search =
+      GNUNET_FS_search_start (fs, ksk_uri, 1, GNUNET_FS_SEARCH_OPTION_NONE,
+                              "ksk_search");
+  sks_search =
+      GNUNET_FS_search_start (fs, sks_uri, 1, GNUNET_FS_SEARCH_OPTION_NONE,
+                              "sks_search");
   GNUNET_FS_uri_destroy (sks_uri);
 }
 
 
 static void
-sks_cont (void *cls,
-	  const struct GNUNET_FS_Uri *uri,
-	  const char *emsg)
+sks_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Uri *ksk_uri;
-  char * msg;
+  char *msg;
   struct GNUNET_FS_BlockOptions bo;
 
   meta = GNUNET_CONTAINER_meta_data_create ();
@@ -290,38 +273,30 @@ sks_cont (void *cls,
   bo.content_priority = 1;
   bo.anonymity_level = 1;
   bo.replication_level = 0;
-  bo.expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
-  GNUNET_FS_publish_ksk (fs,
-			 ksk_uri,
-			 meta,
-			 uri,
-			 &bo,
-			 GNUNET_FS_PUBLISH_OPTION_NONE,
-			 &publish_cont,
-			 NULL);
+  bo.expiration_time =
+      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
+  GNUNET_FS_publish_ksk (fs, ksk_uri, meta, uri, &bo,
+                         GNUNET_FS_PUBLISH_OPTION_NONE, &publish_cont, NULL);
   GNUNET_FS_uri_destroy (ksk_uri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
 }
 
 
 static void
-adv_cont (void *cls,
-	  const struct GNUNET_FS_Uri *uri,
-	  const char *emsg)
+adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Namespace *ns;
   struct GNUNET_FS_BlockOptions bo;
 
   if (NULL != emsg)
-    {
-      fprintf (stderr, "Error publishing: %s\n", emsg);
-      err = 1;
-      GNUNET_FS_stop (fs);
-      return;
-    }
-  ns = GNUNET_FS_namespace_create (fs,
-				   "testNamespace");
+  {
+    fprintf (stderr, "Error publishing: %s\n", emsg);
+    err = 1;
+    GNUNET_FS_stop (fs);
+    return;
+  }
+  ns = GNUNET_FS_namespace_create (fs, "testNamespace");
   GNUNET_assert (NULL != ns);
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_assert (NULL == emsg);
@@ -329,31 +304,21 @@ adv_cont (void *cls,
   bo.content_priority = 1;
   bo.anonymity_level = 1;
   bo.replication_level = 0;
-  bo.expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
-  GNUNET_FS_publish_sks (fs,
-			 ns,
-			 "this",
-			 "next",
-			 meta,
-			 uri, /* FIXME: this is non-sense (use CHK URI!?) */
-			 &bo,
-			 GNUNET_FS_PUBLISH_OPTION_NONE,
-			 &sks_cont,
-			 NULL);
+  bo.expiration_time =
+      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
+  GNUNET_FS_publish_sks (fs, ns, "this", "next", meta, uri,     /* FIXME: this is non-sense (use CHK URI!?) */
+                         &bo, GNUNET_FS_PUBLISH_OPTION_NONE, &sks_cont, NULL);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_FS_namespace_delete (ns, GNUNET_NO);
 }
 
 
 static void
-ns_iterator (void *cls,
-	     const char *name,
-	     const GNUNET_HashCode *id)
+ns_iterator (void *cls, const char *name, const GNUNET_HashCode * id)
 {
   int *ok = cls;
 
-  if (0 != strcmp (name,
-		   "testNamespace"))
+  if (0 != strcmp (name, "testNamespace"))
     return;
   *ok = GNUNET_YES;
   nsid = *id;
@@ -369,35 +334,30 @@ testNamespace ()
   struct GNUNET_FS_Uri *ksk_uri;
   int ok;
 
-  ns = GNUNET_FS_namespace_create (fs,
-				   "testNamespace");
+  ns = GNUNET_FS_namespace_create (fs, "testNamespace");
   GNUNET_assert (NULL != ns);
   ok = GNUNET_NO;
   GNUNET_FS_namespace_list (fs, &ns_iterator, &ok);
   if (GNUNET_NO == ok)
-    {
-      fprintf (stderr, "namespace_list failed to find namespace!\n");
-      GNUNET_FS_namespace_delete (ns, GNUNET_YES);
-      GNUNET_FS_stop (fs);
-      err = 1;
-      return;
-    }
+  {
+    fprintf (stderr, "namespace_list failed to find namespace!\n");
+    GNUNET_FS_namespace_delete (ns, GNUNET_YES);
+    GNUNET_FS_stop (fs);
+    err = 1;
+    return;
+  }
   meta = GNUNET_CONTAINER_meta_data_create ();
   ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/testnsa", NULL);
   bo.content_priority = 1;
   bo.anonymity_level = 1;
   bo.replication_level = 0;
-  bo.expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
-  GNUNET_FS_namespace_advertise (fs,
-				 ksk_uri,
-				 ns,
-				 meta,
-				 &bo,
-				 "root",
-				 &adv_cont, NULL);
-  kill_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-					    &do_timeout,
-					    NULL);
+  bo.expiration_time =
+      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
+  GNUNET_FS_namespace_advertise (fs, ksk_uri, ns, meta, &bo, "root", &adv_cont,
+                                 NULL);
+  kill_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &do_timeout,
+                                    NULL);
   GNUNET_FS_uri_destroy (ksk_uri);
   GNUNET_FS_namespace_delete (ns, GNUNET_NO);
   GNUNET_CONTAINER_meta_data_destroy (meta);
@@ -407,16 +367,13 @@ testNamespace ()
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   setup_peer (&p1, "test_fs_namespace_data.conf");
   fs = GNUNET_FS_start (cfg,
-			"test-fs-namespace",
-			&progress_cb,
-			NULL,
-			GNUNET_FS_FLAGS_NONE,
-			GNUNET_FS_OPTIONS_END);
+                        "test-fs-namespace",
+                        &progress_cb,
+                        NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   testNamespace ();
 }
 
@@ -424,7 +381,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  char *const argvx[] = { 
+  char *const argvx[] = {
     "test-fs-namespace",
     "-c",
     "test_fs_namespace_data.conf",
@@ -437,23 +394,22 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_log_setup ("test_fs_namespace", 
+  GNUNET_log_setup ("test_fs_namespace",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING",
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
                       argvx, "test-fs-namespace",
-		      "nohelp", options, &run, NULL);
+                      "nohelp", options, &run, NULL);
   stop_arm (&p1);
   if (GNUNET_YES != update_started)
-    {
-      fprintf (stderr,
-	       "Update search never started!\n");
-      err = 1;
-    }
+  {
+    fprintf (stderr, "Update search never started!\n");
+    err = 1;
+  }
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-namespace/");
   return err;
 }

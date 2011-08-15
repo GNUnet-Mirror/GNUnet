@@ -71,9 +71,8 @@
  * @return HMAC, freed by caller via gcry_md_close/_reset
  */
 static const void *
-doHMAC (gcry_md_hd_t mac, 
-	const void *key, size_t key_len,
-	const void *buf, size_t buf_len)
+doHMAC (gcry_md_hd_t mac,
+        const void *key, size_t key_len, const void *buf, size_t buf_len)
 {
   gcry_md_setkey (mac, key, key_len);
   gcry_md_write (mac, buf, buf_len);
@@ -92,38 +91,33 @@ doHMAC (gcry_md_hd_t mac,
  * @return GNUNET_YES on success
  */
 static int
-getPRK (gcry_md_hd_t mac, 
-	const void *xts, size_t xts_len,
-	const void *skm, size_t skm_len,
-	void *prk)
+getPRK (gcry_md_hd_t mac,
+        const void *xts, size_t xts_len,
+        const void *skm, size_t skm_len, void *prk)
 {
   const void *ret;
 
   ret = doHMAC (mac, xts, xts_len, skm, skm_len);
   if (ret == NULL)
     return GNUNET_SYSERR;
-  memcpy (prk,
-	  ret,
-	  gcry_md_get_algo_dlen (gcry_md_get_algo (mac)));
+  memcpy (prk, ret, gcry_md_get_algo_dlen (gcry_md_get_algo (mac)));
 
   return GNUNET_YES;
 }
 
 
 #if DEBUG_HKDF
-static void 
-dump(const char *src, 
-     const void *p, 
-     unsigned int l)
+static void
+dump (const char *src, const void *p, unsigned int l)
 {
   unsigned int i;
 
-  printf("\n%s: ", src);
+  printf ("\n%s: ", src);
   for (i = 0; i < l; i++)
-    {
-      printf("%2x", (int) ((const unsigned char *) p)[i]);
-    }
-  printf("\n");
+  {
+    printf ("%2x", (int) ((const unsigned char *) p)[i]);
+  }
+  printf ("\n");
 }
 #endif
 
@@ -143,10 +137,9 @@ dump(const char *src,
  */
 int
 GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
-		      int xtr_algo, int prf_algo, 
-		      const void *xts, size_t xts_len,
-		      const void *skm, size_t skm_len,
-		      va_list argp)
+                      int xtr_algo, int prf_algo,
+                      const void *xts, size_t xts_len,
+                      const void *skm, size_t skm_len, va_list argp)
 {
   const void *hc;
   unsigned long i, t, d;
@@ -161,10 +154,10 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
   if (k == 0)
     return GNUNET_SYSERR;
 
-  if (gcry_md_open(&xtr, xtr_algo, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
+  if (gcry_md_open (&xtr, xtr_algo, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
     return GNUNET_SYSERR;
 
-  if (gcry_md_open(&prf, prf_algo, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
+  if (gcry_md_open (&prf, prf_algo, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
   {
     gcry_md_close (xtr);
     return GNUNET_SYSERR;
@@ -174,15 +167,15 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
 
   ctx_len = 0;
   while (NULL != va_arg (args, void *))
-    ctx_len += va_arg (args, size_t);
-  va_end(args);
+         ctx_len += va_arg (args, size_t);
+
+  va_end (args);
 
   memset (result, 0, out_len);
-  if (getPRK (xtr, xts, xts_len, skm, skm_len, prk)
-      != GNUNET_YES)
+  if (getPRK (xtr, xts, xts_len, skm, skm_len, prk) != GNUNET_YES)
     goto hkdf_error;
 #if DEBUG_HKDF
-  dump("PRK", prk, xtr_len);
+  dump ("PRK", prk, xtr_len);
 #endif
 
   t = out_len / k;
@@ -190,46 +183,44 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
 
   /* K(1) */
   {
-  size_t plain_len = k + ctx_len + 1;
-  char plain[plain_len];
-      const void *ctx;
-      char *dst;
+    size_t plain_len = k + ctx_len + 1;
+    char plain[plain_len];
+    const void *ctx;
+    char *dst;
 
-      dst = plain + k;
-      va_copy (args, argp);
-      while ((ctx = va_arg (args, void *)))
-        {
-          size_t len;
+    dst = plain + k;
+    va_copy (args, argp);
+    while ((ctx = va_arg (args, void *)))
+    {
+      size_t len;
 
-          len = va_arg (args, size_t);
-          memcpy (dst, ctx, len);
-          dst += len;
-        }
-      va_end (args);
+      len = va_arg (args, size_t);
+      memcpy (dst, ctx, len);
+      dst += len;
+    }
+    va_end (args);
 
-  if (t > 0)
+    if (t > 0)
     {
       memset (plain + k + ctx_len, 1, 1);
 #if DEBUG_HKDF
-      dump("K(1)", plain, plain_len);
+      dump ("K(1)", plain, plain_len);
 #endif
-      hc = doHMAC (prf, 
-		   prk,
-		   xtr_len, &plain[k], ctx_len + 1);
+      hc = doHMAC (prf, prk, xtr_len, &plain[k], ctx_len + 1);
       if (hc == NULL)
         goto hkdf_error;
       memcpy (result, hc, k);
       result += k;
     }
 
-  /* K(i+1) */
-  for (i = 1; i < t; i++)
+    /* K(i+1) */
+    for (i = 1; i < t; i++)
     {
       memcpy (plain, result - k, k);
       memset (plain + k + ctx_len, i + 1, 1);
       gcry_md_reset (prf);
 #if DEBUG_HKDF
-      dump("K(i+1)", plain, plain_len);
+      dump ("K(i+1)", plain, plain_len);
 #endif
       hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
@@ -238,18 +229,18 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
       result += k;
     }
 
-  /* K(t):d */
-  if (d > 0)
+    /* K(t):d */
+    if (d > 0)
     {
       if (t > 0)
-        {
-          memcpy (plain, result - k, k);
-          i++;
-        }
+      {
+        memcpy (plain, result - k, k);
+        i++;
+      }
       memset (plain + k + ctx_len, i, 1);
       gcry_md_reset (prf);
 #if DEBUG_HKDF
-      dump("K(t):d", plain, plain_len);
+      dump ("K(t):d", plain, plain_len);
 #endif
       if (t > 0)
         hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
@@ -260,11 +251,11 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
       memcpy (result, hc, d);
     }
 #if DEBUG_HKDF
-  dump("result", result - k, out_len);
+    dump ("result", result - k, out_len);
 #endif
 
-  ret = GNUNET_YES;
-  goto hkdf_ok;
+    ret = GNUNET_YES;
+    goto hkdf_ok;
   }
 hkdf_error:
   ret = GNUNET_SYSERR;
@@ -290,18 +281,17 @@ hkdf_ok:
  */
 int
 GNUNET_CRYPTO_hkdf (void *result, size_t out_len,
-		    int xtr_algo, int prf_algo, 
-		    const void *xts, size_t xts_len,
-		    const void *skm, size_t skm_len, 
-		    ...)
+                    int xtr_algo, int prf_algo,
+                    const void *xts, size_t xts_len,
+                    const void *skm, size_t skm_len, ...)
 {
   va_list argp;
   int ret;
 
-  va_start(argp, skm_len);
+  va_start (argp, skm_len);
   ret = GNUNET_CRYPTO_hkdf_v (result, out_len, xtr_algo, prf_algo, xts,
-      xts_len, skm, skm_len, argp);
-  va_end(argp);
+                              xts_len, skm, skm_len, argp);
+  va_end (argp);
 
   return ret;
 }

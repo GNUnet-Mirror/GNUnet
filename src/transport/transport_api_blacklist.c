@@ -42,7 +42,7 @@ struct GNUNET_TRANSPORT_Blacklist
   /**
    * Connection to transport service.
    */
-  struct GNUNET_CLIENT_Connection * client;
+  struct GNUNET_CLIENT_Connection *client;
 
   /**
    * Configuration to use.
@@ -78,8 +78,7 @@ struct GNUNET_TRANSPORT_Blacklist
  *
  * @param br overall handle
  */
-static void
-reconnect (struct GNUNET_TRANSPORT_Blacklist *br);
+static void reconnect (struct GNUNET_TRANSPORT_Blacklist *br);
 
 
 /**
@@ -87,8 +86,7 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br);
  *
  * @param br our overall context
  */
-static void
-reply (struct GNUNET_TRANSPORT_Blacklist *br);
+static void reply (struct GNUNET_TRANSPORT_Blacklist *br);
 
 
 /**
@@ -98,19 +96,18 @@ reply (struct GNUNET_TRANSPORT_Blacklist *br);
  * @param msg query
  */
 static void
-query_handler (void *cls,
-	       const struct GNUNET_MessageHeader *msg)
+query_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
   const struct BlacklistMessage *bm;
 
-  if ( (ntohs(msg->size) != sizeof (struct BlacklistMessage)) ||
-       (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY) )
-    {
-      reconnect (br);
-      return;
-    }
-  bm = (const struct BlacklistMessage *)msg;
+  if ((ntohs (msg->size) != sizeof (struct BlacklistMessage)) ||
+      (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY))
+  {
+    reconnect (br);
+    return;
+  }
+  bm = (const struct BlacklistMessage *) msg;
   GNUNET_break (0 == ntohl (bm->is_allowed));
   br->peer = bm->peer;
   reply (br);
@@ -126,9 +123,7 @@ static void
 receive (struct GNUNET_TRANSPORT_Blacklist *br)
 {
   GNUNET_CLIENT_receive (br->client,
-			 &query_handler,
-			 br,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
+                         &query_handler, br, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -141,17 +136,16 @@ receive (struct GNUNET_TRANSPORT_Blacklist *br)
  * @return number of bytes written to buf
  */
 static size_t
-transmit_blacklist_init (void *cls,
-			 size_t size, void *buf)
+transmit_blacklist_init (void *cls, size_t size, void *buf)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
   struct GNUNET_MessageHeader req;
 
   if (buf == NULL)
-    {
-      reconnect (br);
-      return 0;
-    }
+  {
+    reconnect (br);
+    return 0;
+  }
   req.size = htons (sizeof (struct GNUNET_MessageHeader));
   req.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT);
   memcpy (buf, &req, sizeof (req));
@@ -170,15 +164,14 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
 {
   if (br->client != NULL)
     GNUNET_CLIENT_disconnect (br->client, GNUNET_NO);
-  br->client = GNUNET_CLIENT_connect ("transport",
-				      br->cfg);
+  br->client = GNUNET_CLIENT_connect ("transport", br->cfg);
   GNUNET_assert (br->client != NULL);
   br->th = GNUNET_CLIENT_notify_transmit_ready (br->client,
-						sizeof (struct GNUNET_MessageHeader),
-						GNUNET_TIME_UNIT_FOREVER_REL,
-						GNUNET_YES,
-						&transmit_blacklist_init,
-						br);
+                                                sizeof (struct
+                                                        GNUNET_MessageHeader),
+                                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                                GNUNET_YES,
+                                                &transmit_blacklist_init, br);
 }
 
 
@@ -191,17 +184,16 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
  * @return number of bytes written to buf
  */
 static size_t
-transmit_blacklist_reply (void *cls,
-			  size_t size, void *buf)
+transmit_blacklist_reply (void *cls, size_t size, void *buf)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
   struct BlacklistMessage req;
 
   if (buf == NULL)
-    {
-      reconnect (br);
-      return 0;
-    }
+  {
+    reconnect (br);
+    return 0;
+  }
   req.header.size = htons (sizeof (req));
   req.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY);
   req.is_allowed = htonl (br->cb (br->cb_cls, &br->peer));
@@ -221,16 +213,16 @@ static void
 reply (struct GNUNET_TRANSPORT_Blacklist *br)
 {
   br->th = GNUNET_CLIENT_notify_transmit_ready (br->client,
-						sizeof (struct BlacklistMessage),
-						GNUNET_TIME_UNIT_FOREVER_REL,
-						GNUNET_NO,
-						&transmit_blacklist_reply,
-						br);
+                                                sizeof (struct
+                                                        BlacklistMessage),
+                                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                                GNUNET_NO,
+                                                &transmit_blacklist_reply, br);
   if (br->th == NULL)
-    {
-      reconnect (br);
-      return;
-    }
+  {
+    reconnect (br);
+    return;
+  }
 }
 
 
@@ -250,10 +242,9 @@ reply (struct GNUNET_TRANSPORT_Blacklist *br)
  */
 struct GNUNET_TRANSPORT_Blacklist *
 GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			    GNUNET_TRANSPORT_BlacklistCallback cb,
-			    void *cb_cls)
+                            GNUNET_TRANSPORT_BlacklistCallback cb, void *cb_cls)
 {
-  struct GNUNET_CLIENT_Connection * client;
+  struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_TRANSPORT_Blacklist *ret;
 
   client = GNUNET_CLIENT_connect ("transport", cfg);
@@ -263,11 +254,11 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->client = client;
   ret->cfg = cfg;
   ret->th = GNUNET_CLIENT_notify_transmit_ready (client,
-						 sizeof (struct GNUNET_MessageHeader),
-						 GNUNET_TIME_UNIT_FOREVER_REL,
-						 GNUNET_YES,
-						 &transmit_blacklist_init,
-						 ret);
+                                                 sizeof (struct
+                                                         GNUNET_MessageHeader),
+                                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                                 GNUNET_YES,
+                                                 &transmit_blacklist_init, ret);
   return ret;
 }
 

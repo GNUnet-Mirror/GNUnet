@@ -79,8 +79,7 @@ echo_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Receiving message from client, bouncing back\n");
-  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
-                 ntohs (message->size));
+  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size));
   cc = GNUNET_malloc (sizeof (struct CopyContext));
   cc->client = client;
   cpy = GNUNET_malloc (ntohs (message->size));
@@ -107,12 +106,10 @@ recv_bounce (void *cls, const struct GNUNET_MessageHeader *got)
   struct GNUNET_MessageHeader msg;
 
   GNUNET_assert (got != NULL);  /* timeout */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Receiving bounce, checking content\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving bounce, checking content\n");
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_assert (0 ==
-                 memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
+  GNUNET_assert (0 == memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
   GNUNET_CLIENT_disconnect (client, GNUNET_YES);
   client = NULL;
   GNUNET_SERVER_destroy (server);
@@ -125,6 +122,7 @@ static size_t
 make_msg (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg = buf;
+
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (MY_TYPE);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -137,10 +135,10 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in sa;
-  struct sockaddr * sap[2];
+  struct sockaddr *sap[2];
   socklen_t slens[2];
 
-  sap[0] = (struct sockaddr*) &sa;
+  sap[0] = (struct sockaddr *) &sa;
   slens[0] = sizeof (sa);
   sap[1] = NULL;
   slens[1] = 0;
@@ -153,7 +151,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   server = GNUNET_SERVER_create (NULL,
                                  NULL,
                                  sap,
-				 slens,
+                                 slens,
                                  GNUNET_TIME_relative_multiply
                                  (GNUNET_TIME_UNIT_MILLISECONDS, 10000),
                                  GNUNET_NO);
@@ -187,8 +185,7 @@ check ()
 
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_number (cfg, MYNAME, "PORT", PORT);
-  GNUNET_CONFIGURATION_set_value_string (cfg,
-                                         MYNAME, "HOSTNAME", "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, MYNAME, "HOSTNAME", "localhost");
   GNUNET_CONFIGURATION_set_value_string (cfg,
                                          "resolver", "HOSTNAME", "localhost");
   ok = 1;

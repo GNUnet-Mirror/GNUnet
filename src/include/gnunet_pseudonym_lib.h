@@ -64,7 +64,7 @@ typedef int (*GNUNET_PSEUDONYM_Iterator) (void *cls,
  * @return new rating of the namespace
  */
 int GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const GNUNET_HashCode *nsid, int delta);
+                           const GNUNET_HashCode * nsid, int delta);
 
 /**
  * Add a pseudonym to the set of known pseudonyms.
@@ -76,7 +76,7 @@ int GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param meta metadata for the pseudonym
  */
 void GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const GNUNET_HashCode *id,
+                           const GNUNET_HashCode * id,
                            const struct GNUNET_CONTAINER_MetaData *meta);
 
 
@@ -114,8 +114,8 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
  *
  * @return NULL on failure (should never happen)
  */
-char *GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   const GNUNET_HashCode * pseudo);
+char *GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle
+                                   *cfg, const GNUNET_HashCode * pseudo);
 
 /**
  * Get the pseudonym ID belonging to the given human readable name.

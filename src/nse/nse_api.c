@@ -86,8 +86,7 @@ struct GNUNET_NSE_Handle
  * @param tc scheduler context
  */
 static void
-reconnect (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc);
+reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -97,38 +96,33 @@ reconnect (void *cls,
  * @param cls closure
  * @param msg message received, NULL on timeout or fatal error
  */
-static void 
-message_handler (void *cls,
-		 const struct GNUNET_MessageHeader * msg)
+static void
+message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_NSE_Handle *h = cls;
   const struct GNUNET_NSE_ClientMessage *client_msg;
 
   if (msg == NULL)
-    {
-      /* Error, timeout, death */
-      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
-      h->client = NULL;
-      h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
-							&reconnect,
-							h);
-      return;
-    }
-  if ( (ntohs (msg->size) != sizeof(struct GNUNET_NSE_ClientMessage)) || 
-       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_NSE_ESTIMATE) )
-    {
-      GNUNET_break (0);
-      return;
-    }
-  client_msg = (const struct GNUNET_NSE_ClientMessage *)msg;
-  h->recv_cb (h->recv_cb_cls, 
-              GNUNET_TIME_absolute_ntoh(client_msg->timestamp),
-	      client_msg->size_estimate,
-              client_msg->std_deviation);
+  {
+    /* Error, timeout, death */
+    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    h->client = NULL;
+    h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
+                                                      &reconnect, h);
+    return;
+  }
+  if ((ntohs (msg->size) != sizeof (struct GNUNET_NSE_ClientMessage)) ||
+      (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_NSE_ESTIMATE))
+  {
+    GNUNET_break (0);
+    return;
+  }
+  client_msg = (const struct GNUNET_NSE_ClientMessage *) msg;
+  h->recv_cb (h->recv_cb_cls,
+              GNUNET_TIME_absolute_ntoh (client_msg->timestamp),
+              client_msg->size_estimate, client_msg->std_deviation);
   GNUNET_CLIENT_receive (h->client,
-                         &message_handler,
-			 h, 
-			 GNUNET_TIME_UNIT_FOREVER_REL);
+                         &message_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -144,15 +138,15 @@ reschedule_connect (struct GNUNET_NSE_Handle *h)
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
 
   if (NULL != h->th)
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
-      h->th = NULL;
-    }
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
+  }
   if (NULL != h->client)
-    {
-      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
-      h->client = NULL;
-    }
+  {
+    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    h->client = NULL;
+  }
 
 #if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -160,18 +154,17 @@ reschedule_connect (struct GNUNET_NSE_Handle *h)
               h->reconnect_delay.rel_value);
 #endif
   h->reconnect_task
-    = GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
-                                    &reconnect, h);
+      = GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
   if (h->reconnect_delay.rel_value == 0)
-    {
-      h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
-    }
+  {
+    h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
+  }
   else
-    {
-      h->reconnect_delay = GNUNET_TIME_relative_multiply (h->reconnect_delay, 2);
-      h->reconnect_delay = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
-                                                     h->reconnect_delay);
-    }
+  {
+    h->reconnect_delay = GNUNET_TIME_relative_multiply (h->reconnect_delay, 2);
+    h->reconnect_delay = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
+                                                   h->reconnect_delay);
+  }
 }
 
 
@@ -191,23 +184,21 @@ send_start (void *cls, size_t size, void *buf)
 
   h->th = NULL;
   if (buf == NULL)
-    {
-      /* Connect error... */
+  {
+    /* Connect error... */
 #if DEBUG_NSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Shutdown while trying to transmit `%s' request.\n",
-                  "START");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Shutdown while trying to transmit `%s' request.\n", "START");
 #endif
-      reschedule_connect(h);
-      return 0;
-    }
+    reschedule_connect (h);
+    return 0;
+  }
 #if DEBUG_NSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting `%s' request.\n", "START");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting `%s' request.\n", "START");
 #endif
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
 
-  msg = (struct GNUNET_MessageHeader *)buf;
+  msg = (struct GNUNET_MessageHeader *) buf;
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (GNUNET_MESSAGE_TYPE_NSE_START);
   GNUNET_CLIENT_receive (h->client,
@@ -223,17 +214,16 @@ send_start (void *cls, size_t size, void *buf)
  * @param tc scheduler context
  */
 static void
-reconnect (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NSE_Handle *h = cls;
 
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    {
-      /* shutdown, just give up */
-      return;
-    }
+  {
+    /* shutdown, just give up */
+    return;
+  }
 #if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connecting to network size estimation service.\n");
@@ -243,13 +233,11 @@ reconnect (void *cls,
   GNUNET_assert (h->client != NULL);
 
   h->th =
-    GNUNET_CLIENT_notify_transmit_ready (h->client,
-                                         sizeof(struct GNUNET_MessageHeader),
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         GNUNET_NO,
-                                         &send_start,
-                                         h);
-  GNUNET_assert(h->th != NULL);
+      GNUNET_CLIENT_notify_transmit_ready (h->client,
+                                           sizeof (struct GNUNET_MessageHeader),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_NO, &send_start, h);
+  GNUNET_assert (h->th != NULL);
 }
 
 
@@ -287,23 +275,23 @@ GNUNET_NSE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h)
 {
-  GNUNET_assert(h != NULL);
+  GNUNET_assert (h != NULL);
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel(h->reconnect_task);
-      h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (h->reconnect_task);
+    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (h->th != NULL)
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel(h->th);
-      h->th = NULL;
-    }
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
+  }
   if (h->client != NULL)
-    {
-      GNUNET_CLIENT_disconnect(h->client, GNUNET_NO);
-      h->client = NULL;
-    }
-  GNUNET_free(h);
+  {
+    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    h->client = NULL;
+  }
+  GNUNET_free (h);
 }
 
 /* end of nse_api.c */

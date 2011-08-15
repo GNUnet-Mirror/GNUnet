@@ -116,7 +116,7 @@ struct PeerRecord
    * SendMessageRequest ID generator for this peer.
    */
   uint16_t smr_id_gen;
-  
+
 };
 
 
@@ -143,7 +143,7 @@ struct ControlMessage
    * Function to run after transmission failed/succeeded.
    */
   GNUNET_CORE_ControlContinuation cont;
-  
+
   /**
    * Closure for 'cont'.
    */
@@ -190,9 +190,9 @@ struct GNUNET_CORE_Handle
 
   /**
    * Function to call whenever we're notified about a peer changing status.
-   */  
+   */
   GNUNET_CORE_PeerStatusEventHandler status_events;
-  
+
   /**
    * Function to call whenever we receive an inbound message.
    */
@@ -371,8 +371,7 @@ struct GNUNET_CORE_TransmitHandle
  *
  * @param h our handle to the core service
  */
-static void
-reconnect (struct GNUNET_CORE_Handle *h);
+static void reconnect (struct GNUNET_CORE_Handle *h);
 
 
 /**
@@ -382,15 +381,14 @@ reconnect (struct GNUNET_CORE_Handle *h);
  * @param tc task context
  */
 static void
-reconnect_task (void *cls, 
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CORE_Handle *h = cls;
 
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Connecting to CORE service after delay\n");
+              "Connecting to CORE service after delay\n");
 #endif
   reconnect (h);
 }
@@ -407,8 +405,7 @@ reconnect_task (void *cls,
  */
 static int
 disconnect_and_free_peer_entry (void *cls,
-				const GNUNET_HashCode *key,
-				void *value)
+                                const GNUNET_HashCode * key, void *value)
 {
   static struct GNUNET_BANDWIDTH_Value32NBO zero;
   struct GNUNET_CORE_Handle *h = cls;
@@ -418,61 +415,47 @@ disconnect_and_free_peer_entry (void *cls,
   void *pcic_cls;
 
   if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (pr->timeout_task);
-      pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (pr->timeout_task);
+    pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (pr->ntr_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (pr->ntr_task);
-      pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-  if ( (pr->prev != NULL) ||
-       (pr->next != NULL) ||
-       (h->ready_peer_head == pr) )
-    GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
-				 h->ready_peer_tail,
-				 pr);
+  {
+    GNUNET_SCHEDULER_cancel (pr->ntr_task);
+    pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if ((pr->prev != NULL) || (pr->next != NULL) || (h->ready_peer_head == pr))
+    GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
   if (h->disconnects != NULL)
-    h->disconnects (h->cls,
-		    &pr->peer);
+    h->disconnects (h->cls, &pr->peer);
   /* all requests should have been cancelled, clean up anyway, just in case */
   GNUNET_break (pr->queue_size == 0);
   if (NULL != (pcic = pr->pcic))
-    {
-      GNUNET_break (0);
-      pcic_cls = pr->pcic_cls;
-      GNUNET_CORE_peer_change_preference_cancel (pr->pcic_ptr);
-      pcic (pcic_cls,
-	    &pr->peer,
-	    zero,
-	    0, 
-	    GNUNET_TIME_UNIT_FOREVER_REL,
-	    0);
-    }
+  {
+    GNUNET_break (0);
+    pcic_cls = pr->pcic_cls;
+    GNUNET_CORE_peer_change_preference_cancel (pr->pcic_ptr);
+    pcic (pcic_cls, &pr->peer, zero, 0, GNUNET_TIME_UNIT_FOREVER_REL, 0);
+  }
   while (NULL != (th = pr->pending_head))
-    {
-      GNUNET_break (0);
-      GNUNET_CONTAINER_DLL_remove (pr->pending_head,
-				   pr->pending_tail,
-				   th);
-      pr->queue_size--;
-      if (th->cm != NULL)
-	th->cm->th = NULL;
-      GNUNET_free (th);
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_CONTAINER_DLL_remove (pr->pending_head, pr->pending_tail, th);
+    pr->queue_size--;
+    if (th->cm != NULL)
+      th->cm->th = NULL;
+    GNUNET_free (th);
+  }
   /* done with 'voluntary' cleanups, now on to normal freeing */
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (h->peers,
-						       key,
-						       pr));
+                 GNUNET_CONTAINER_multihashmap_remove (h->peers, key, pr));
   GNUNET_assert (pr->pending_head == NULL);
   GNUNET_assert (pr->pending_tail == NULL);
   GNUNET_assert (pr->ch = h);
   GNUNET_assert (pr->queue_size == 0);
   GNUNET_assert (pr->timeout_task == GNUNET_SCHEDULER_NO_TASK);
   GNUNET_assert (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK);
-  GNUNET_free (pr);  
+  GNUNET_free (pr);
   return GNUNET_YES;
 }
 
@@ -491,41 +474,36 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
 
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   if (NULL != h->cth)
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
-      h->cth = NULL;
-    }
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
+    h->cth = NULL;
+  }
   if (h->client != NULL)
-    {
-      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
-      h->client = NULL;
-    }
+  {
+    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    h->client = NULL;
+  }
   h->currently_down = GNUNET_YES;
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
-						    &reconnect_task,
-						    h);
+                                                    &reconnect_task, h);
   while (NULL != (cm = h->control_pending_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-				   h->control_pending_tail,
-				   cm);
-      if (cm->th != NULL)
-	cm->th->cm = NULL; 
-      if (cm->cont != NULL)
-	cm->cont (cm->cont_cls, GNUNET_NO);
-      GNUNET_free (cm);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+                                 h->control_pending_tail, cm);
+    if (cm->th != NULL)
+      cm->th->cm = NULL;
+    if (cm->cont != NULL)
+      cm->cont (cm->cont_cls, GNUNET_NO);
+    GNUNET_free (cm);
+  }
   GNUNET_CONTAINER_multihashmap_iterate (h->peers,
-					 &disconnect_and_free_peer_entry,
-					 h);
-  while (NULL != (pr = h->ready_peer_head))    
-    GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
-				 h->ready_peer_tail,
-				 pr);
+                                         &disconnect_and_free_peer_entry, h);
+  while (NULL != (pr = h->ready_peer_head))
+    GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
   GNUNET_assert (h->control_pending_head == NULL);
   h->retry_backoff = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
-					       h->retry_backoff);
+                                               h->retry_backoff);
   h->retry_backoff = GNUNET_TIME_relative_multiply (h->retry_backoff, 2);
 }
 
@@ -538,8 +516,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
  * @param ignore_currently_down transmit message even if not initialized?
  */
 static void
-trigger_next_request (struct GNUNET_CORE_Handle *h,
-		      int ignore_currently_down);
+trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down);
 
 
 /**
@@ -550,8 +527,7 @@ trigger_next_request (struct GNUNET_CORE_Handle *h,
  * @param tc context, can be NULL (!)
  */
 static void
-transmission_timeout (void *cls, 
-		      const struct GNUNET_SCHEDULER_TaskContext *tc);
+transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -569,27 +545,27 @@ request_next_transmission (struct PeerRecord *pr)
   struct GNUNET_CORE_TransmitHandle *th;
 
   if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (pr->timeout_task);
-      pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (pr->timeout_task);
+    pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL == (th = pr->pending_head))
-    {
-      trigger_next_request (h, GNUNET_NO);
-      return;
-    }
+  {
+    trigger_next_request (h, GNUNET_NO);
+    return;
+  }
   if (th->cm != NULL)
-    return; /* already done */
+    return;                     /* already done */
   GNUNET_assert (pr->prev == NULL);
   GNUNET_assert (pr->next == NULL);
-  pr->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (th->timeout),
-						   &transmission_timeout,
-						   pr);
-  cm = GNUNET_malloc (sizeof (struct ControlMessage) + 
-		      sizeof (struct SendMessageRequest));
+  pr->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
+                                    (th->timeout), &transmission_timeout, pr);
+  cm = GNUNET_malloc (sizeof (struct ControlMessage) +
+                      sizeof (struct SendMessageRequest));
   th->cm = cm;
   cm->th = th;
-  smr = (struct SendMessageRequest*) &cm[1];
+  smr = (struct SendMessageRequest *) &cm[1];
   smr->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST);
   smr->header.size = htons (sizeof (struct SendMessageRequest));
   smr->priority = htonl (th->priority);
@@ -599,12 +575,11 @@ request_next_transmission (struct PeerRecord *pr)
   smr->size = htons (th->msize);
   smr->smr_id = htons (th->smr_id = pr->smr_id_gen++);
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
-				    h->control_pending_tail,
-				    cm);
+                                    h->control_pending_tail, cm);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Adding SEND REQUEST for peer `%s' to message queue\n",
-	      GNUNET_i2s (&pr->peer));
+              "Adding SEND REQUEST for peer `%s' to message queue\n",
+              GNUNET_i2s (&pr->peer));
 #endif
   trigger_next_request (h, GNUNET_NO);
 }
@@ -618,33 +593,26 @@ request_next_transmission (struct PeerRecord *pr)
  * @param tc context, can be NULL (!)
  */
 static void
-transmission_timeout (void *cls, 
-		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerRecord *pr = cls;
   struct GNUNET_CORE_Handle *h = pr->ch;
   struct GNUNET_CORE_TransmitHandle *th;
-  
+
   pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   th = pr->pending_head;
-  GNUNET_CONTAINER_DLL_remove (pr->pending_head,
-                               pr->pending_tail,
-                               th);
+  GNUNET_CONTAINER_DLL_remove (pr->pending_head, pr->pending_tail, th);
   pr->queue_size--;
-  if ( (pr->prev != NULL) ||
-       (pr->next != NULL) ||
-       (pr == h->ready_peer_head) )
-    {
-      /* the request that was 'approved' by core was
-	 canceled before it could be transmitted; remove
-	 us from the 'ready' list */
-      GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
-				   h->ready_peer_tail,
-				   pr);
-    }
+  if ((pr->prev != NULL) || (pr->next != NULL) || (pr == h->ready_peer_head))
+  {
+    /* the request that was 'approved' by core was
+     * canceled before it could be transmitted; remove
+     * us from the 'ready' list */
+    GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
+  }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Signalling timeout of request for transmission to CORE service\n");
+              "Signalling timeout of request for transmission to CORE service\n");
 #endif
   request_next_transmission (pr);
   GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
@@ -656,9 +624,7 @@ transmission_timeout (void *cls,
  * Transmit the next message to the core service.
  */
 static size_t
-transmit_message (void *cls,
-		  size_t size, 
-		  void *buf)
+transmit_message (void *cls, size_t size, void *buf)
 {
   struct GNUNET_CORE_Handle *h = cls;
   struct ControlMessage *cm;
@@ -672,117 +638,108 @@ transmit_message (void *cls,
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->cth = NULL;
   if (buf == NULL)
-    {
+  {
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmission failed, initiating reconnect\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmission failed, initiating reconnect\n");
 #endif
-      reconnect_later (h);
-      return 0;
-    }
+    reconnect_later (h);
+    return 0;
+  }
   /* first check for control messages */
   if (NULL != (cm = h->control_pending_head))
+  {
+    hdr = (const struct GNUNET_MessageHeader *) &cm[1];
+    msize = ntohs (hdr->size);
+    if (size < msize)
     {
-      hdr = (const struct GNUNET_MessageHeader*) &cm[1];
-      msize = ntohs (hdr->size);
-      if (size < msize)
-	{
-	  trigger_next_request (h, GNUNET_NO);
-	  return 0;
-	}
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmitting control message with %u bytes of type %u to core.\n",
-		  (unsigned int) msize,
-		  (unsigned int) ntohs (hdr->type));
-#endif
-      memcpy (buf, hdr, msize);
-      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-				   h->control_pending_tail,
-				   cm);     
-      if (cm->th != NULL)
-	cm->th->cm = NULL;
-      if (NULL != cm->cont)
-	cm->cont (cm->cont_cls, GNUNET_OK);
-      GNUNET_free (cm);
       trigger_next_request (h, GNUNET_NO);
-      return msize;
+      return 0;
     }
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmitting control message with %u bytes of type %u to core.\n",
+                (unsigned int) msize, (unsigned int) ntohs (hdr->type));
+#endif
+    memcpy (buf, hdr, msize);
+    GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+                                 h->control_pending_tail, cm);
+    if (cm->th != NULL)
+      cm->th->cm = NULL;
+    if (NULL != cm->cont)
+      cm->cont (cm->cont_cls, GNUNET_OK);
+    GNUNET_free (cm);
+    trigger_next_request (h, GNUNET_NO);
+    return msize;
+  }
   /* now check for 'ready' P2P messages */
   if (NULL != (pr = h->ready_peer_head))
+  {
+    GNUNET_assert (pr->pending_head != NULL);
+    th = pr->pending_head;
+    if (size < th->msize + sizeof (struct SendMessage))
     {
-      GNUNET_assert (pr->pending_head != NULL);
-      th = pr->pending_head;
-      if (size < th->msize + sizeof (struct SendMessage))
-	{
-	  trigger_next_request (h, GNUNET_NO);
-	  return 0;
-	}
-      GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
-				   h->ready_peer_tail,
-				   pr);
-      GNUNET_CONTAINER_DLL_remove (pr->pending_head,
-				   pr->pending_tail,
-				   th);
-      pr->queue_size--;
-      if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-	{
-	  GNUNET_SCHEDULER_cancel (pr->timeout_task);
-	  pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-	}
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmitting SEND request to `%s' with %u bytes.\n",
-		  GNUNET_i2s (&pr->peer),
-		  (unsigned int) th->msize);
-#endif
-      sm = (struct SendMessage *) buf;
-      sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
-      sm->priority = htonl (th->priority);
-      sm->deadline = GNUNET_TIME_absolute_hton (th->timeout);
-      sm->peer = pr->peer;
-      sm->cork = htonl ((uint32_t) th->cork);
-      sm->reserved = htonl (0);
-      ret = th->get_message (th->get_message_cls,
-			     size - sizeof (struct SendMessage),
-			     &sm[1]);
- 
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmitting SEND request to `%s' yielded %u bytes.\n",
-		  GNUNET_i2s (&pr->peer),
-		  ret);
-#endif
-      GNUNET_free (th);
-     if (0 == ret)
-	{
-#if DEBUG_CORE
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Size of clients message to peer %s is 0!\n",
-		      GNUNET_i2s(&pr->peer));
-#endif
-	  /* client decided to send nothing! */
-	  request_next_transmission (pr);
-   	  return 0;	  
-	}
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Produced SEND message to core with %u bytes payload\n",
-		  (unsigned int) ret);
-#endif
-      GNUNET_assert (ret >= sizeof (struct GNUNET_MessageHeader));
-      if (ret + sizeof (struct SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-	{
-	  GNUNET_break (0);
-	  request_next_transmission (pr);
-   	  return 0;
-	}
-      ret += sizeof (struct SendMessage);
-      sm->header.size = htons (ret);
-      GNUNET_assert (ret <= size);
-      request_next_transmission (pr);
-      return ret;
+      trigger_next_request (h, GNUNET_NO);
+      return 0;
     }
+    GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
+    GNUNET_CONTAINER_DLL_remove (pr->pending_head, pr->pending_tail, th);
+    pr->queue_size--;
+    if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (pr->timeout_task);
+      pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmitting SEND request to `%s' with %u bytes.\n",
+                GNUNET_i2s (&pr->peer), (unsigned int) th->msize);
+#endif
+    sm = (struct SendMessage *) buf;
+    sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
+    sm->priority = htonl (th->priority);
+    sm->deadline = GNUNET_TIME_absolute_hton (th->timeout);
+    sm->peer = pr->peer;
+    sm->cork = htonl ((uint32_t) th->cork);
+    sm->reserved = htonl (0);
+    ret = th->get_message (th->get_message_cls,
+                           size - sizeof (struct SendMessage), &sm[1]);
+
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmitting SEND request to `%s' yielded %u bytes.\n",
+                GNUNET_i2s (&pr->peer), ret);
+#endif
+    GNUNET_free (th);
+    if (0 == ret)
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Size of clients message to peer %s is 0!\n",
+                  GNUNET_i2s (&pr->peer));
+#endif
+      /* client decided to send nothing! */
+      request_next_transmission (pr);
+      return 0;
+    }
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Produced SEND message to core with %u bytes payload\n",
+                (unsigned int) ret);
+#endif
+    GNUNET_assert (ret >= sizeof (struct GNUNET_MessageHeader));
+    if (ret + sizeof (struct SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break (0);
+      request_next_transmission (pr);
+      return 0;
+    }
+    ret += sizeof (struct SendMessage);
+    sm->header.size = htons (ret);
+    GNUNET_assert (ret <= size);
+    request_next_transmission (pr);
+    return ret;
+  }
   return 0;
 }
 
@@ -795,45 +752,46 @@ transmit_message (void *cls,
  * @param ignore_currently_down transmit message even if not initialized?
  */
 static void
-trigger_next_request (struct GNUNET_CORE_Handle *h,
-		      int ignore_currently_down)
+trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
 {
   uint16_t msize;
 
-  if ( (GNUNET_YES == h->currently_down) &&
-       (ignore_currently_down == GNUNET_NO) )
-    {
+  if ((GNUNET_YES == h->currently_down) && (ignore_currently_down == GNUNET_NO))
+  {
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Core connection down, not processing queue\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Core connection down, not processing queue\n");
 #endif
-      return;
-    }
+    return;
+  }
   if (NULL != h->cth)
-    {
+  {
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Request pending, not processing queue\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Request pending, not processing queue\n");
 #endif
-      return;
-    }
+    return;
+  }
   if (h->control_pending_head != NULL)
-    msize = ntohs (((struct GNUNET_MessageHeader*) &h->control_pending_head[1])->size);    
-  else if (h->ready_peer_head != NULL) 
-    msize = h->ready_peer_head->pending_head->msize + sizeof (struct SendMessage);    
+    msize =
+        ntohs (((struct GNUNET_MessageHeader *) &h->
+                control_pending_head[1])->size);
+  else if (h->ready_peer_head != NULL)
+    msize =
+        h->ready_peer_head->pending_head->msize + sizeof (struct SendMessage);
   else
-    {
+  {
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Request queue empty, not processing queue\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Request queue empty, not processing queue\n");
 #endif
-      return; /* no pending message */
-    }
+    return;                     /* no pending message */
+  }
   h->cth = GNUNET_CLIENT_notify_transmit_ready (h->client,
-						msize,
-						GNUNET_TIME_UNIT_FOREVER_REL,
-						GNUNET_NO,
-						&transmit_message, h);
+                                                msize,
+                                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                                GNUNET_NO,
+                                                &transmit_message, h);
 }
 
 
@@ -844,8 +802,7 @@ trigger_next_request (struct GNUNET_CORE_Handle *h,
  * @param msg the message received from the core service
  */
 static void
-main_notify_handler (void *cls, 
-		     const struct GNUNET_MessageHeader *msg)
+main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CORE_Handle *h = cls;
   const struct InitReplyMessage *m;
@@ -868,13 +825,13 @@ main_notify_handler (void *cls,
   uint32_t ats_count;
 
   if (msg == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _
-                  ("Client was disconnected from core service, trying to reconnect.\n"));
-      reconnect_later (h);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _
+                ("Client was disconnected from core service, trying to reconnect.\n"));
+    reconnect_later (h);
+    return;
+  }
   msize = ntohs (msg->size);
 #if DEBUG_CORE > 2
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -882,425 +839,401 @@ main_notify_handler (void *cls,
               ntohs (msg->type), msize);
 #endif
   switch (ntohs (msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY:
+    if (ntohs (msg->size) != sizeof (struct InitReplyMessage))
     {
-    case GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY:
-      if (ntohs (msg->size) != sizeof (struct InitReplyMessage))
-	{
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-      m = (const struct InitReplyMessage *) msg;
-      GNUNET_break (0 == ntohl (m->reserved));
-      /* start our message processing loop */
-      if (GNUNET_YES == h->currently_down)
-	{
-	  h->currently_down = GNUNET_NO;
-	  trigger_next_request (h, GNUNET_NO);
-	}
-      h->retry_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-      GNUNET_CRYPTO_hash (&m->publicKey,
-			  sizeof (struct
-				  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-			  &h->me.hashPubKey);
-      if (NULL != (init = h->init))
-	{
-	  /* mark so we don't call init on reconnect */
-	  h->init = NULL;
-#if DEBUG_CORE
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Connected to core service of peer `%s'.\n",
-		      GNUNET_i2s (&h->me));
-#endif
-	  init (h->cls, h, &h->me, &m->publicKey);
-	}
-      else
-	{
-#if DEBUG_CORE
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Successfully reconnected to core service.\n");
-#endif
-	}
-      /* fake 'connect to self' */
-      pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
-					      &h->me.hashPubKey);
-      GNUNET_assert (pr == NULL);
-      pr = GNUNET_malloc (sizeof (struct PeerRecord));
-      pr->peer = h->me;
-      pr->ch = h;
-      GNUNET_assert (GNUNET_YES ==
-		     GNUNET_CONTAINER_multihashmap_put (h->peers,
-							&h->me.hashPubKey,
-							pr,
-							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-      if (NULL != h->connects)
-	h->connects (h->cls,
-		     &h->me,
-		     NULL);
-      break;
-    case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT:
-      if (msize < sizeof (struct ConnectNotifyMessage))
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      cnm = (const struct ConnectNotifyMessage *) msg;
-      ats_count = ntohl (cnm->ats_count);
-      if ( (msize != sizeof (struct ConnectNotifyMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
-	   (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR != ntohl ((&cnm->ats)[ats_count].type)) )
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received notification about connection from `%s'.\n",
-		  GNUNET_i2s (&cnm->peer));
-#endif
-      if (0 == memcmp (&h->me,
-		       &cnm->peer,
-		       sizeof (struct GNUNET_PeerIdentity)))
-	{
-	  /* connect to self!? */
-	  GNUNET_break (0);
-	  return;
-	}
-      pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
-					      &cnm->peer.hashPubKey);
-      if (pr != NULL)
-	{
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-      pr = GNUNET_malloc (sizeof (struct PeerRecord));
-      pr->peer = cnm->peer;
-      pr->ch = h;
-      GNUNET_assert (GNUNET_YES ==
-		     GNUNET_CONTAINER_multihashmap_put (h->peers,
-							&cnm->peer.hashPubKey,
-							pr,
-							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-      if (NULL != h->connects)
-	h->connects (h->cls,
-		     &cnm->peer,
-		     &cnm->ats);
-      break;
-    case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT:
-      if (msize != sizeof (struct DisconnectNotifyMessage))
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      dnm = (const struct DisconnectNotifyMessage *) msg;
-      if (0 == memcmp (&h->me,
-		       &dnm->peer,
-		       sizeof (struct GNUNET_PeerIdentity)))
-	{
-	  /* connection to self!? */
-	  GNUNET_break (0);
-	  return;
-	}
-      GNUNET_break (0 == ntohl (dnm->reserved));
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received notification about disconnect from `%s'.\n",
-		  GNUNET_i2s (&dnm->peer));
-#endif
-      pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
-					      &dnm->peer.hashPubKey);
-      if (pr == NULL)
-	{
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-      trigger = ( (pr->prev != NULL) ||
-		  (pr->next != NULL) ||
-		  (h->ready_peer_head == pr) );
-      disconnect_and_free_peer_entry (h, &dnm->peer.hashPubKey, pr);
-      if (trigger)
-	trigger_next_request (h, GNUNET_NO);
-      break;
-    case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_STATUS_CHANGE:
-      if (NULL == h->status_events)
-        {
-          GNUNET_break (0);
-	  return;
-        }
-      if (msize < sizeof (struct PeerStatusNotifyMessage))
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      psnm = (const struct PeerStatusNotifyMessage *) msg;
-      if (0 == memcmp (&h->me,
-		       &psnm->peer,
-		       sizeof (struct GNUNET_PeerIdentity)))
-	{
-	  /* self-change!? */
-	  GNUNET_break (0);
-	  return;
-	}
-      ats_count = ntohl (psnm->ats_count);
-      if ( (msize != sizeof (struct PeerStatusNotifyMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
-	   (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR != ntohl ((&psnm->ats)[ats_count].type)) )
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-#if DEBUG_CORE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received notification about status change by `%s'.\n",
-		  GNUNET_i2s (&psnm->peer));
-#endif
-      pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
-					      &psnm->peer.hashPubKey);
-      if (pr == NULL)
-	{
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-      h->status_events (h->cls,
-			&psnm->peer,
-			psnm->bandwidth_in,
-			psnm->bandwidth_out,
-			GNUNET_TIME_absolute_ntoh (psnm->timeout),
-			&psnm->ats);
-      break;
-    case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND:
-      if (msize < sizeof (struct NotifyTrafficMessage))
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      ntm = (const struct NotifyTrafficMessage *) msg;
-
-      ats_count = ntohl (ntm->ats_count);
-      if ( (msize < sizeof (struct NotifyTrafficMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)
-	    + sizeof (struct GNUNET_MessageHeader)) ||
-	   (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR != ntohl ((&ntm->ats)[ats_count].type)) )
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      em = (const struct GNUNET_MessageHeader *) &(&ntm->ats)[ats_count+1];
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received message of type %u and size %u from peer `%4s'\n",
-                  ntohs (em->type), 
-		  ntohs (em->size),
-		  GNUNET_i2s (&ntm->peer));
-#endif
-      pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
-					      &ntm->peer.hashPubKey);
-      if (pr == NULL)
-	{
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-      if ((GNUNET_NO == h->inbound_hdr_only) &&
-          (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage) + 
-	   + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) )
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      et = ntohs (em->type);
-      for (hpos = 0; hpos < h->hcnt; hpos++)
-        {
-          mh = &h->handlers[hpos];
-          if (mh->type != et)
-            continue;
-          if ((mh->expected_size != ntohs (em->size)) &&
-              (mh->expected_size != 0))
-            {
-              GNUNET_break (0);
-              continue;
-            }
-          if (GNUNET_OK !=
-              h->handlers[hpos].callback (h->cls, &ntm->peer, em,
-					  &ntm->ats))
-            {
-              /* error in processing, do not process other messages! */
-              break;
-            }
-        }
-      if (NULL != h->inbound_notify)
-        h->inbound_notify (h->cls, &ntm->peer, em,
-			   &ntm->ats);
-      break;
-    case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND:
-      if (msize < sizeof (struct NotifyTrafficMessage))
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      ntm = (const struct NotifyTrafficMessage *) msg;
-      if (0 == memcmp (&h->me,
-		       &ntm->peer,
-		       sizeof (struct GNUNET_PeerIdentity)))
-	{
-	  /* self-change!? */
-	  GNUNET_break (0);
-	  return;
-	}
-      ats_count = ntohl (ntm->ats_count);
-      if ( (msize < sizeof (struct NotifyTrafficMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)
-	    + sizeof (struct GNUNET_MessageHeader)) ||
-	   (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR != ntohl ((&ntm->ats)[ats_count].type)) )
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      em = (const struct GNUNET_MessageHeader *) &(&ntm->ats)[ats_count+1];
-      pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
-					      &ntm->peer.hashPubKey);
-      if (pr == NULL)
-	{
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received notification about transmission to `%s'.\n",
-		  GNUNET_i2s (&ntm->peer));
-#endif
-      if ((GNUNET_NO == h->outbound_hdr_only) &&
-          (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage) 
-	   + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) )
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      if (NULL == h->outbound_notify)
-        {
-          GNUNET_break (0);
-          break;
-        }
-      h->outbound_notify (h->cls, &ntm->peer, em,
-			  &ntm->ats);
-      break;
-    case GNUNET_MESSAGE_TYPE_CORE_SEND_READY:
-      if (msize != sizeof (struct SendMessageReady))
-        {
-          GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-        }
-      smr = (const struct SendMessageReady *) msg;
-      pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
-					      &smr->peer.hashPubKey);
-      if (pr == NULL)
-	{
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received notification about transmission readiness to `%s'.\n",
-		  GNUNET_i2s (&smr->peer));
-#endif
-      if (pr->pending_head == NULL)
-        {
-	  /* request must have been cancelled between the original request
-	     and the response from core, ignore core's readiness */
-          break;
-        }
-
-      th = pr->pending_head;
-      if (ntohs (smr->smr_id) != th->smr_id)
-	{
-	  /* READY message is for expired or cancelled message,
-	     ignore! (we should have already sent another request) */
-	  break;
-	}
-      if ( (pr->prev != NULL) ||
-	   (pr->next != NULL) ||
-	   (h->ready_peer_head == pr) )
-	{
-	  /* we should not already be on the ready list... */
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-      GNUNET_CONTAINER_DLL_insert (h->ready_peer_head,
-				   h->ready_peer_tail,
-				   pr);
-      trigger_next_request (h, GNUNET_NO);
-      break;
-    case GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO:
-      if (ntohs (msg->size) != sizeof (struct ConfigurationInfoMessage))
-	{
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-      cim = (const struct ConfigurationInfoMessage*) msg;
-      if (0 == memcmp (&h->me,
-		       &cim->peer,
-		       sizeof (struct GNUNET_PeerIdentity)))
-	{
-	  /* self-change!? */
-	  GNUNET_break (0);
-	  return;
-	}
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received notification about configuration update for `%s' with RIM %u.\n",
-		  GNUNET_i2s (&cim->peer),
-		  (unsigned int) ntohl (cim->rim_id));
-#endif
-      pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
-					      &cim->peer.hashPubKey);
-      if (pr == NULL)
-	{
-	  GNUNET_break (0);
-	  reconnect_later (h);
-	  return;
-	}
-      if (pr->rim_id != ntohl (cim->rim_id))
-	{
-#if DEBUG_CORE
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Reservation ID mismatch in notification...\n");
-#endif
-	  break;
-	}
-      pcic = pr->pcic;
-      pr->pcic = NULL;
-      GNUNET_free_non_null (pr->pcic_ptr);
-      pr->pcic_ptr = NULL;
-      if (pcic != NULL)
-	pcic (pr->pcic_cls,
-	      &pr->peer,
-	      cim->bw_out,
-	      ntohl (cim->reserved_amount),
-	      GNUNET_TIME_relative_ntoh (cim->reserve_delay),
-	      GNUNET_ntohll (cim->preference));
-      break;
-    default:
+      GNUNET_break (0);
       reconnect_later (h);
       return;
     }
+    m = (const struct InitReplyMessage *) msg;
+    GNUNET_break (0 == ntohl (m->reserved));
+    /* start our message processing loop */
+    if (GNUNET_YES == h->currently_down)
+    {
+      h->currently_down = GNUNET_NO;
+      trigger_next_request (h, GNUNET_NO);
+    }
+    h->retry_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+    GNUNET_CRYPTO_hash (&m->publicKey,
+                        sizeof (struct
+                                GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                        &h->me.hashPubKey);
+    if (NULL != (init = h->init))
+    {
+      /* mark so we don't call init on reconnect */
+      h->init = NULL;
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Connected to core service of peer `%s'.\n",
+                  GNUNET_i2s (&h->me));
+#endif
+      init (h->cls, h, &h->me, &m->publicKey);
+    }
+    else
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Successfully reconnected to core service.\n");
+#endif
+    }
+    /* fake 'connect to self' */
+    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &h->me.hashPubKey);
+    GNUNET_assert (pr == NULL);
+    pr = GNUNET_malloc (sizeof (struct PeerRecord));
+    pr->peer = h->me;
+    pr->ch = h;
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multihashmap_put (h->peers,
+                                                      &h->me.hashPubKey,
+                                                      pr,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+    if (NULL != h->connects)
+      h->connects (h->cls, &h->me, NULL);
+    break;
+  case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT:
+    if (msize < sizeof (struct ConnectNotifyMessage))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    cnm = (const struct ConnectNotifyMessage *) msg;
+    ats_count = ntohl (cnm->ats_count);
+    if ((msize !=
+         sizeof (struct ConnectNotifyMessage) +
+         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
+        (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR !=
+         ntohl ((&cnm->ats)[ats_count].type)))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received notification about connection from `%s'.\n",
+                GNUNET_i2s (&cnm->peer));
+#endif
+    if (0 == memcmp (&h->me, &cnm->peer, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* connect to self!? */
+      GNUNET_break (0);
+      return;
+    }
+    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &cnm->peer.hashPubKey);
+    if (pr != NULL)
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    pr = GNUNET_malloc (sizeof (struct PeerRecord));
+    pr->peer = cnm->peer;
+    pr->ch = h;
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multihashmap_put (h->peers,
+                                                      &cnm->peer.hashPubKey,
+                                                      pr,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+    if (NULL != h->connects)
+      h->connects (h->cls, &cnm->peer, &cnm->ats);
+    break;
+  case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT:
+    if (msize != sizeof (struct DisconnectNotifyMessage))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    dnm = (const struct DisconnectNotifyMessage *) msg;
+    if (0 == memcmp (&h->me, &dnm->peer, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* connection to self!? */
+      GNUNET_break (0);
+      return;
+    }
+    GNUNET_break (0 == ntohl (dnm->reserved));
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received notification about disconnect from `%s'.\n",
+                GNUNET_i2s (&dnm->peer));
+#endif
+    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &dnm->peer.hashPubKey);
+    if (pr == NULL)
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    trigger = ((pr->prev != NULL) ||
+               (pr->next != NULL) || (h->ready_peer_head == pr));
+    disconnect_and_free_peer_entry (h, &dnm->peer.hashPubKey, pr);
+    if (trigger)
+      trigger_next_request (h, GNUNET_NO);
+    break;
+  case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_STATUS_CHANGE:
+    if (NULL == h->status_events)
+    {
+      GNUNET_break (0);
+      return;
+    }
+    if (msize < sizeof (struct PeerStatusNotifyMessage))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    psnm = (const struct PeerStatusNotifyMessage *) msg;
+    if (0 == memcmp (&h->me, &psnm->peer, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* self-change!? */
+      GNUNET_break (0);
+      return;
+    }
+    ats_count = ntohl (psnm->ats_count);
+    if ((msize !=
+         sizeof (struct PeerStatusNotifyMessage) +
+         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
+        (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR !=
+         ntohl ((&psnm->ats)[ats_count].type)))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+#if DEBUG_CORE > 1
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received notification about status change by `%s'.\n",
+                GNUNET_i2s (&psnm->peer));
+#endif
+    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &psnm->peer.hashPubKey);
+    if (pr == NULL)
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    h->status_events (h->cls,
+                      &psnm->peer,
+                      psnm->bandwidth_in,
+                      psnm->bandwidth_out,
+                      GNUNET_TIME_absolute_ntoh (psnm->timeout), &psnm->ats);
+    break;
+  case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND:
+    if (msize < sizeof (struct NotifyTrafficMessage))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    ntm = (const struct NotifyTrafficMessage *) msg;
+
+    ats_count = ntohl (ntm->ats_count);
+    if ((msize <
+         sizeof (struct NotifyTrafficMessage) +
+         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+         sizeof (struct GNUNET_MessageHeader)) ||
+        (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR !=
+         ntohl ((&ntm->ats)[ats_count].type)))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    em = (const struct GNUNET_MessageHeader *) &(&ntm->ats)[ats_count + 1];
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received message of type %u and size %u from peer `%4s'\n",
+                ntohs (em->type), ntohs (em->size), GNUNET_i2s (&ntm->peer));
+#endif
+    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &ntm->peer.hashPubKey);
+    if (pr == NULL)
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    if ((GNUNET_NO == h->inbound_hdr_only) &&
+        (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage) +
+         +ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    et = ntohs (em->type);
+    for (hpos = 0; hpos < h->hcnt; hpos++)
+    {
+      mh = &h->handlers[hpos];
+      if (mh->type != et)
+        continue;
+      if ((mh->expected_size != ntohs (em->size)) && (mh->expected_size != 0))
+      {
+        GNUNET_break (0);
+        continue;
+      }
+      if (GNUNET_OK !=
+          h->handlers[hpos].callback (h->cls, &ntm->peer, em, &ntm->ats))
+      {
+        /* error in processing, do not process other messages! */
+        break;
+      }
+    }
+    if (NULL != h->inbound_notify)
+      h->inbound_notify (h->cls, &ntm->peer, em, &ntm->ats);
+    break;
+  case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND:
+    if (msize < sizeof (struct NotifyTrafficMessage))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    ntm = (const struct NotifyTrafficMessage *) msg;
+    if (0 == memcmp (&h->me, &ntm->peer, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* self-change!? */
+      GNUNET_break (0);
+      return;
+    }
+    ats_count = ntohl (ntm->ats_count);
+    if ((msize <
+         sizeof (struct NotifyTrafficMessage) +
+         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+         sizeof (struct GNUNET_MessageHeader)) ||
+        (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR !=
+         ntohl ((&ntm->ats)[ats_count].type)))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    em = (const struct GNUNET_MessageHeader *) &(&ntm->ats)[ats_count + 1];
+    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &ntm->peer.hashPubKey);
+    if (pr == NULL)
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received notification about transmission to `%s'.\n",
+                GNUNET_i2s (&ntm->peer));
+#endif
+    if ((GNUNET_NO == h->outbound_hdr_only) &&
+        (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage)
+         + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    if (NULL == h->outbound_notify)
+    {
+      GNUNET_break (0);
+      break;
+    }
+    h->outbound_notify (h->cls, &ntm->peer, em, &ntm->ats);
+    break;
+  case GNUNET_MESSAGE_TYPE_CORE_SEND_READY:
+    if (msize != sizeof (struct SendMessageReady))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    smr = (const struct SendMessageReady *) msg;
+    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &smr->peer.hashPubKey);
+    if (pr == NULL)
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received notification about transmission readiness to `%s'.\n",
+                GNUNET_i2s (&smr->peer));
+#endif
+    if (pr->pending_head == NULL)
+    {
+      /* request must have been cancelled between the original request
+       * and the response from core, ignore core's readiness */
+      break;
+    }
+
+    th = pr->pending_head;
+    if (ntohs (smr->smr_id) != th->smr_id)
+    {
+      /* READY message is for expired or cancelled message,
+       * ignore! (we should have already sent another request) */
+      break;
+    }
+    if ((pr->prev != NULL) || (pr->next != NULL) || (h->ready_peer_head == pr))
+    {
+      /* we should not already be on the ready list... */
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    GNUNET_CONTAINER_DLL_insert (h->ready_peer_head, h->ready_peer_tail, pr);
+    trigger_next_request (h, GNUNET_NO);
+    break;
+  case GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO:
+    if (ntohs (msg->size) != sizeof (struct ConfigurationInfoMessage))
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    cim = (const struct ConfigurationInfoMessage *) msg;
+    if (0 == memcmp (&h->me, &cim->peer, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* self-change!? */
+      GNUNET_break (0);
+      return;
+    }
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received notification about configuration update for `%s' with RIM %u.\n",
+                GNUNET_i2s (&cim->peer), (unsigned int) ntohl (cim->rim_id));
+#endif
+    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &cim->peer.hashPubKey);
+    if (pr == NULL)
+    {
+      GNUNET_break (0);
+      reconnect_later (h);
+      return;
+    }
+    if (pr->rim_id != ntohl (cim->rim_id))
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Reservation ID mismatch in notification...\n");
+#endif
+      break;
+    }
+    pcic = pr->pcic;
+    pr->pcic = NULL;
+    GNUNET_free_non_null (pr->pcic_ptr);
+    pr->pcic_ptr = NULL;
+    if (pcic != NULL)
+      pcic (pr->pcic_cls,
+            &pr->peer,
+            cim->bw_out,
+            ntohl (cim->reserved_amount),
+            GNUNET_TIME_relative_ntoh (cim->reserve_delay),
+            GNUNET_ntohll (cim->preference));
+    break;
+  default:
+    reconnect_later (h);
+    return;
+  }
   GNUNET_CLIENT_receive (h->client,
-			 &main_notify_handler, h, 
-			 GNUNET_TIME_UNIT_FOREVER_REL);
+                         &main_notify_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -1312,27 +1245,24 @@ main_notify_handler (void *cls,
  * @param success were we successful
  */
 static void
-init_done_task (void *cls, 
-		int success)
+init_done_task (void *cls, int success)
 {
   struct GNUNET_CORE_Handle *h = cls;
 
   if (success == GNUNET_SYSERR)
-    return; /* shutdown */
+    return;                     /* shutdown */
   if (success == GNUNET_NO)
-    {
+  {
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Failed to exchange INIT with core, retrying\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to exchange INIT with core, retrying\n");
 #endif
-      if (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK)
-	reconnect_later (h);
-      return;
-    }
+    if (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK)
+      reconnect_later (h);
+    return;
+  }
   GNUNET_CLIENT_receive (h->client,
-                         &main_notify_handler, 
-			 h, 
-			 GNUNET_TIME_UNIT_FOREVER_REL);
+                         &main_notify_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -1353,49 +1283,46 @@ reconnect (struct GNUNET_CORE_Handle *h)
   unsigned int hpos;
 
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Reconnecting to CORE service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting to CORE service\n");
 #endif
   GNUNET_assert (h->client == NULL);
   GNUNET_assert (h->currently_down == GNUNET_YES);
   h->client = GNUNET_CLIENT_connect ("core", h->cfg);
   if (h->client == NULL)
-    {
-      reconnect_later (h);
-      return;
-    }
+  {
+    reconnect_later (h);
+    return;
+  }
   msize = h->hcnt * sizeof (uint16_t) + sizeof (struct InitMessage);
-  cm = GNUNET_malloc (sizeof (struct ControlMessage) +
-		      msize);
+  cm = GNUNET_malloc (sizeof (struct ControlMessage) + msize);
   cm->cont = &init_done_task;
   cm->cont_cls = h;
-  init = (struct InitMessage*) &cm[1];
+  init = (struct InitMessage *) &cm[1];
   init->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT);
   init->header.size = htons (msize);
   opt = GNUNET_CORE_OPTION_SEND_CONNECT | GNUNET_CORE_OPTION_SEND_DISCONNECT;
   if (h->status_events != NULL)
     opt |= GNUNET_CORE_OPTION_SEND_STATUS_CHANGE;
   if (h->inbound_notify != NULL)
-    {
-      if (h->inbound_hdr_only)
-        opt |= GNUNET_CORE_OPTION_SEND_HDR_INBOUND;
-      else
-        opt |= GNUNET_CORE_OPTION_SEND_FULL_INBOUND;
-    }
+  {
+    if (h->inbound_hdr_only)
+      opt |= GNUNET_CORE_OPTION_SEND_HDR_INBOUND;
+    else
+      opt |= GNUNET_CORE_OPTION_SEND_FULL_INBOUND;
+  }
   if (h->outbound_notify != NULL)
-    {
-      if (h->outbound_hdr_only)
-        opt |= GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND;
-      else
-        opt |= GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND;
-    }
+  {
+    if (h->outbound_hdr_only)
+      opt |= GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND;
+    else
+      opt |= GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND;
+  }
   init->options = htonl (opt);
-  ts = (uint16_t *) &init[1];
+  ts = (uint16_t *) & init[1];
   for (hpos = 0; hpos < h->hcnt; hpos++)
     ts[hpos] = htons (h->handlers[hpos].type);
   GNUNET_CONTAINER_DLL_insert (h->control_pending_head,
-			       h->control_pending_tail,
-			       cm);
+                               h->control_pending_tail, cm);
   trigger_next_request (h, GNUNET_YES);
 }
 
@@ -1427,12 +1354,12 @@ reconnect (struct GNUNET_CORE_Handle *h)
  */
 struct GNUNET_CORE_Handle *
 GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		     unsigned int queue_size,
+                     unsigned int queue_size,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
-		     GNUNET_CORE_PeerStatusEventHandler status_events,
+                     GNUNET_CORE_PeerStatusEventHandler status_events,
                      GNUNET_CORE_MessageCallback inbound_notify,
                      int inbound_hdr_only,
                      GNUNET_CORE_MessageCallback outbound_notify,
@@ -1464,8 +1391,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                  (GNUNET_SERVER_MAX_MESSAGE_SIZE -
                   sizeof (struct InitMessage)) / sizeof (uint16_t));
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Connecting to CORE service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CORE service\n");
 #endif
   reconnect (h);
   return h;
@@ -1483,40 +1409,38 @@ void
 GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 {
   struct ControlMessage *cm;
-  
+
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Disconnecting from CORE service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from CORE service\n");
 #endif
   if (handle->cth != NULL)
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (handle->cth);
-      handle->cth = NULL;
-    }
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (handle->cth);
+    handle->cth = NULL;
+  }
   while (NULL != (cm = handle->control_pending_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (handle->control_pending_head,
-				   handle->control_pending_tail,
-				   cm);
-      if (cm->th != NULL)
-	cm->th->cm = NULL;
-      if (cm->cont != NULL)
-	cm->cont (cm->cont_cls, GNUNET_SYSERR);
-      GNUNET_free (cm);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (handle->control_pending_head,
+                                 handle->control_pending_tail, cm);
+    if (cm->th != NULL)
+      cm->th->cm = NULL;
+    if (cm->cont != NULL)
+      cm->cont (cm->cont_cls, GNUNET_SYSERR);
+    GNUNET_free (cm);
+  }
   if (handle->client != NULL)
-    {
-      GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
-      handle->client = NULL;
-    }
+  {
+    GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
+    handle->client = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_iterate (handle->peers,
-					 &disconnect_and_free_peer_entry,
-					 handle);
+                                         &disconnect_and_free_peer_entry,
+                                         handle);
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (handle->reconnect_task);
-      handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (handle->reconnect_task);
+    handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_CONTAINER_multihashmap_destroy (handle->peers);
   handle->peers = NULL;
   GNUNET_break (handle->ready_peer_head == NULL);
@@ -1532,7 +1456,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
  */
 static void
 run_request_next_transmission (void *cls,
-			       const struct GNUNET_SCHEDULER_TaskContext *tc)
+                               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerRecord *pr = cls;
 
@@ -1562,7 +1486,7 @@ run_request_next_transmission (void *cls,
  */
 struct GNUNET_CORE_TransmitHandle *
 GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
-				   int cork,
+                                   int cork,
                                    uint32_t priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,
@@ -1576,22 +1500,21 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   struct GNUNET_CORE_TransmitHandle *prev;
   struct GNUNET_CORE_TransmitHandle *minp;
 
-  pr = GNUNET_CONTAINER_multihashmap_get (handle->peers,
-					  &target->hashPubKey);
+  pr = GNUNET_CONTAINER_multihashmap_get (handle->peers, &target->hashPubKey);
   if (NULL == pr)
-    {
-      /* attempt to send to peer that is not connected */
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 "Attempting to send to peer `%s' from peer `%s', but not connected!\n",
-                 GNUNET_i2s(target), GNUNET_h2s(&handle->me.hashPubKey));
-      GNUNET_break (0);
-      return NULL;
-    }
+  {
+    /* attempt to send to peer that is not connected */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Attempting to send to peer `%s' from peer `%s', but not connected!\n",
+                GNUNET_i2s (target), GNUNET_h2s (&handle->me.hashPubKey));
+    GNUNET_break (0);
+    return NULL;
+  }
   GNUNET_assert (notify_size + sizeof (struct SendMessage) <
                  GNUNET_SERVER_MAX_MESSAGE_SIZE);
   th = GNUNET_malloc (sizeof (struct GNUNET_CORE_TransmitHandle));
   th->peer = pr;
-  GNUNET_assert(NULL != notify);
+  GNUNET_assert (NULL != notify);
   th->get_message = notify;
   th->get_message_cls = notify_cls;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
@@ -1600,81 +1523,72 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   th->cork = cork;
   /* bound queue size */
   if (pr->queue_size == handle->queue_size)
+  {
+    /* find lowest-priority entry, but skip the head of the list */
+    minp = pr->pending_head->next;
+    prev = minp;
+    while (prev != NULL)
     {
-      /* find lowest-priority entry, but skip the head of the list */
-      minp = pr->pending_head->next;
-      prev = minp;
-      while (prev != NULL)
-	{
-	  if (prev->priority < minp->priority)
-	    minp = prev;
-	  prev = prev->next;
-	}
-      if (minp == NULL) 
-	{
-	  GNUNET_break (handle->queue_size != 0);
-	  GNUNET_break (pr->queue_size == 1);
-	  GNUNET_free(th);
-#if DEBUG_CORE
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Dropping transmission request: cannot drop queue head and limit is one\n");
-#endif
-	  return NULL;
-	}
-      if (priority <= minp->priority)
-	{
-#if DEBUG_CORE
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Dropping transmission request: priority too low\n");
-#endif
-	  GNUNET_free(th);
-	  return NULL; /* priority too low */
-	}
-      GNUNET_CONTAINER_DLL_remove (pr->pending_head,
-				   pr->pending_tail,
-				   minp);
-      pr->queue_size--;
-      GNUNET_assert (0 ==
-		     minp->get_message (minp->get_message_cls,
-					0, NULL));
-      GNUNET_free (minp);
+      if (prev->priority < minp->priority)
+        minp = prev;
+      prev = prev->next;
     }
+    if (minp == NULL)
+    {
+      GNUNET_break (handle->queue_size != 0);
+      GNUNET_break (pr->queue_size == 1);
+      GNUNET_free (th);
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Dropping transmission request: cannot drop queue head and limit is one\n");
+#endif
+      return NULL;
+    }
+    if (priority <= minp->priority)
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Dropping transmission request: priority too low\n");
+#endif
+      GNUNET_free (th);
+      return NULL;              /* priority too low */
+    }
+    GNUNET_CONTAINER_DLL_remove (pr->pending_head, pr->pending_tail, minp);
+    pr->queue_size--;
+    GNUNET_assert (0 == minp->get_message (minp->get_message_cls, 0, NULL));
+    GNUNET_free (minp);
+  }
 
   /* Order entries by deadline, but SKIP 'HEAD' if
-     we're in the 'ready_peer_*' DLL */
+   * we're in the 'ready_peer_*' DLL */
   pos = pr->pending_head;
-  if ( (pr->prev != NULL) ||
-       (pr->next != NULL) ||
-       (pr == handle->ready_peer_head) )
-    {
-      GNUNET_assert (pos != NULL);
-      pos = pos->next; /* skip head */
-    }
+  if ((pr->prev != NULL) ||
+      (pr->next != NULL) || (pr == handle->ready_peer_head))
+  {
+    GNUNET_assert (pos != NULL);
+    pos = pos->next;            /* skip head */
+  }
 
   /* insertion sort */
   prev = pos;
-  while ( (pos != NULL) &&
-	  (pos->timeout.abs_value < th->timeout.abs_value) )	  
-    {
-      prev = pos;
-      pos = pos->next;
-    }
+  while ((pos != NULL) && (pos->timeout.abs_value < th->timeout.abs_value))
+  {
+    prev = pos;
+    pos = pos->next;
+  }
   GNUNET_CONTAINER_DLL_insert_after (pr->pending_head,
-				     pr->pending_tail,
-				     prev,
-				     th);
+                                     pr->pending_tail, prev, th);
   pr->queue_size++;
   /* was the request queue previously empty? */
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmission request added to queue\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission request added to queue\n");
 #endif
-  if ( (pr->pending_head == th)  &&
-       (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK) &&
-       (pr->next == NULL) &&
-       (pr->prev == NULL) &&
-       (handle->ready_peer_head != pr) )
-    pr->ntr_task = GNUNET_SCHEDULER_add_now (&run_request_next_transmission, pr);
+  if ((pr->pending_head == th) &&
+      (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK) &&
+      (pr->next == NULL) &&
+      (pr->prev == NULL) && (handle->ready_peer_head != pr))
+    pr->ntr_task =
+        GNUNET_SCHEDULER_add_now (&run_request_next_transmission, pr);
   return th;
 }
 
@@ -1685,42 +1599,34 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
  * @param th handle that was returned by "notify_transmit_ready".
  */
 void
-GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
-                                          *th)
+GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
 {
   struct PeerRecord *pr = th->peer;
   struct GNUNET_CORE_Handle *h = pr->ch;
   int was_head;
 
   was_head = (pr->pending_head == th);
-  GNUNET_CONTAINER_DLL_remove (pr->pending_head,
-			       pr->pending_tail,
-			       th);    
+  GNUNET_CONTAINER_DLL_remove (pr->pending_head, pr->pending_tail, th);
   pr->queue_size--;
   if (th->cm != NULL)
-    {
-      /* we're currently in the control queue, remove */
-      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-				   h->control_pending_tail,
-				   th->cm);
-      GNUNET_free (th->cm);      
-    }
+  {
+    /* we're currently in the control queue, remove */
+    GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+                                 h->control_pending_tail, th->cm);
+    GNUNET_free (th->cm);
+  }
   GNUNET_free (th);
   if (was_head)
+  {
+    if ((pr->prev != NULL) || (pr->next != NULL) || (pr == h->ready_peer_head))
     {
-      if ( (pr->prev != NULL) ||
-	   (pr->next != NULL) ||
-	   (pr == h->ready_peer_head) )
-	{
-	  /* the request that was 'approved' by core was
-	     canceled before it could be transmitted; remove
-	     us from the 'ready' list */
-	  GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
-				       h->ready_peer_tail,
-				       pr);
-	}
-      request_next_transmission (pr);
+      /* the request that was 'approved' by core was
+       * canceled before it could be transmitted; remove
+       * us from the 'ready' list */
+      GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
     }
+    request_next_transmission (pr);
+  }
 }
 
 
@@ -1766,13 +1672,12 @@ struct GNUNET_CORE_PeerRequestHandle
  * @param success was the request transmitted?
  */
 static void
-peer_request_connect_cont (void *cls,
-			   int success)
+peer_request_connect_cont (void *cls, int success)
 {
   struct GNUNET_CORE_PeerRequestHandle *ret = cls;
-  
+
   if (ret->cont != NULL)
-    ret->cont (ret->cont_cls, success);    
+    ret->cont (ret->cont_cls, success);
   GNUNET_free (ret);
 }
 
@@ -1798,34 +1703,31 @@ peer_request_connect_cont (void *cls,
  */
 struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
-				  const struct GNUNET_PeerIdentity * peer,
-				  GNUNET_CORE_ControlContinuation cont,
-				  void *cont_cls)
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  GNUNET_CORE_ControlContinuation cont,
+                                  void *cont_cls)
 {
   struct GNUNET_CORE_PeerRequestHandle *ret;
   struct ControlMessage *cm;
   struct ConnectMessage *msg;
 
-  if (NULL != GNUNET_CONTAINER_multihashmap_get (h->peers,
-						 &peer->hashPubKey))
-    {
+  if (NULL != GNUNET_CONTAINER_multihashmap_get (h->peers, &peer->hashPubKey))
+  {
 #if DEBUG_CORE
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
-		 "Peers are already connected!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers are already connected!\n");
 #endif
-      return NULL;
-    }
-  
-  cm = GNUNET_malloc (sizeof (struct ControlMessage) + 
-		      sizeof (struct ConnectMessage));
-  msg = (struct ConnectMessage*) &cm[1];
+    return NULL;
+  }
+
+  cm = GNUNET_malloc (sizeof (struct ControlMessage) +
+                      sizeof (struct ConnectMessage));
+  msg = (struct ConnectMessage *) &cm[1];
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT);
   msg->header.size = htons (sizeof (struct ConnectMessage));
   msg->reserved = htonl (0);
   msg->peer = *peer;
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
-				    h->control_pending_tail,
-				    cm);
+                                    h->control_pending_tail, cm);
   ret = GNUNET_malloc (sizeof (struct GNUNET_CORE_PeerRequestHandle));
   ret->h = h;
   ret->cm = cm;
@@ -1834,8 +1736,7 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   cm->cont = &peer_request_connect_cont;
   cm->cont_cls = ret;
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Queueing REQUEST_CONNECT request\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Queueing REQUEST_CONNECT request\n");
 #endif
   trigger_next_request (h, GNUNET_NO);
   return ret;
@@ -1849,18 +1750,18 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
  * @param req request handle that was returned for the original request
  */
 void
-GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *req)
+GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle
+                                         *req)
 {
   struct GNUNET_CORE_Handle *h = req->h;
   struct ControlMessage *cm = req->cm;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "A CHANGE PREFERENCE request was cancelled!\n");
+              "A CHANGE PREFERENCE request was cancelled!\n");
 #endif
   GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-			       h->control_pending_tail,
-			       cm);
+                               h->control_pending_tail, cm);
   GNUNET_free (cm);
   GNUNET_free (req);
 }
@@ -1869,9 +1770,9 @@ GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *r
 /* ****************** GNUNET_CORE_peer_change_preference ******************** */
 
 
-struct GNUNET_CORE_InformationRequestContext 
+struct GNUNET_CORE_InformationRequestContext
 {
-  
+
   /**
    * Our connection to the service.
    */
@@ -1879,7 +1780,7 @@ struct GNUNET_CORE_InformationRequestContext
 
   /**
    * Link to control message, NULL if CM was sent.
-   */ 
+   */
   struct ControlMessage *cm;
 
   /**
@@ -1896,8 +1797,7 @@ struct GNUNET_CORE_InformationRequestContext
  * @param success were we successful?
  */
 static void
-change_preference_send_continuation (void *cls,
-				     int success)
+change_preference_send_continuation (void *cls, int success)
 {
   struct GNUNET_CORE_InformationRequestContext *irc = cls;
 
@@ -1931,61 +1831,58 @@ change_preference_send_continuation (void *cls,
  */
 struct GNUNET_CORE_InformationRequestContext *
 GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
-				    const struct GNUNET_PeerIdentity *peer,
-				    struct GNUNET_TIME_Relative timeout,
-				    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
-				    int32_t amount,
-				    uint64_t preference,
-				    GNUNET_CORE_PeerConfigurationInfoCallback info,
-				    void *info_cls)
+                                    const struct GNUNET_PeerIdentity *peer,
+                                    struct GNUNET_TIME_Relative timeout,
+                                    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
+                                    int32_t amount,
+                                    uint64_t preference,
+                                    GNUNET_CORE_PeerConfigurationInfoCallback
+                                    info, void *info_cls)
 {
   struct GNUNET_CORE_InformationRequestContext *irc;
   struct PeerRecord *pr;
   struct RequestInfoMessage *rim;
   struct ControlMessage *cm;
 
-  pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
-					  &peer->hashPubKey);
+  pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &peer->hashPubKey);
   if (NULL == pr)
-    {
-      /* attempt to change preference on peer that is not connected */
-      GNUNET_assert (0);
-      return NULL;
-    }
+  {
+    /* attempt to change preference on peer that is not connected */
+    GNUNET_assert (0);
+    return NULL;
+  }
   if (pr->pcic != NULL)
-    {
-      /* second change before first one is done */
-      GNUNET_break (0);
-      return NULL;
-    }
+  {
+    /* second change before first one is done */
+    GNUNET_break (0);
+    return NULL;
+  }
   irc = GNUNET_malloc (sizeof (struct GNUNET_CORE_InformationRequestContext));
   irc->h = h;
   irc->pr = pr;
   cm = GNUNET_malloc (sizeof (struct ControlMessage) +
-		      sizeof (struct RequestInfoMessage));
+                      sizeof (struct RequestInfoMessage));
   cm->cont = &change_preference_send_continuation;
   cm->cont_cls = irc;
   irc->cm = cm;
-  rim = (struct RequestInfoMessage*) &cm[1];
+  rim = (struct RequestInfoMessage *) &cm[1];
   rim->header.size = htons (sizeof (struct RequestInfoMessage));
   rim->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO);
   rim->rim_id = htonl (pr->rim_id = h->rim_id_gen++);
   rim->limit_outbound = bw_out;
   rim->reserve_inbound = htonl (amount);
-  rim->preference_change = GNUNET_htonll(preference);
+  rim->preference_change = GNUNET_htonll (preference);
   rim->peer = *peer;
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Queueing CHANGE PREFERENCE request for peer `%s' with RIM %u\n",
-	      GNUNET_i2s (peer),
-	      (unsigned int) pr->rim_id);
+              "Queueing CHANGE PREFERENCE request for peer `%s' with RIM %u\n",
+              GNUNET_i2s (peer), (unsigned int) pr->rim_id);
 #endif
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
-				    h->control_pending_tail,
-				    cm); 
+                                    h->control_pending_tail, cm);
   pr->pcic = info;
   pr->pcic_cls = info_cls;
-  pr->pcic_ptr = irc; /* for free'ing irc */
+  pr->pcic_ptr = irc;           /* for free'ing irc */
   if (NULL != h->client)
     trigger_next_request (h, GNUNET_NO);
   return irc;
@@ -2004,19 +1901,20 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
  * @param irc context returned by the original GNUNET_CORE_peer_get_info call
  */
 void
-GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequestContext *irc)
+GNUNET_CORE_peer_change_preference_cancel (struct
+                                           GNUNET_CORE_InformationRequestContext
+                                           *irc)
 {
   struct GNUNET_CORE_Handle *h = irc->h;
   struct PeerRecord *pr = irc->pr;
 
   GNUNET_assert (pr->pcic_ptr == irc);
   if (irc->cm != NULL)
-    {
-      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-				   h->control_pending_tail,
-				   irc->cm);
-      GNUNET_free (irc->cm);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+                                 h->control_pending_tail, irc->cm);
+    GNUNET_free (irc->cm);
+  }
   pr->pcic = NULL;
   pr->pcic_cls = NULL;
   pr->pcic_ptr = NULL;

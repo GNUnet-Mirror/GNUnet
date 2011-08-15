@@ -107,13 +107,13 @@ GNUNET_CONTAINER_multihashmap_destroy (struct GNUNET_CONTAINER_MultiHashMap
   struct MapEntry *e;
 
   for (i = 0; i < map->map_length; i++)
+  {
+    while (NULL != (e = map->map[i]))
     {
-      while (NULL != (e = map->map[i]))
-        {
-          map->map[i] = e->next;
-          GNUNET_free (e);
-        }
+      map->map[i] = e->next;
+      GNUNET_free (e);
     }
+  }
   GNUNET_free (map->map);
   GNUNET_free (map);
 }
@@ -130,7 +130,7 @@ static unsigned int
 idx_of (const struct GNUNET_CONTAINER_MultiHashMap *m,
         const GNUNET_HashCode * key)
 {
-  GNUNET_assert (m!=NULL);
+  GNUNET_assert (m != NULL);
   return (*(unsigned int *) key) % m->map_length;
 }
 
@@ -167,11 +167,11 @@ GNUNET_CONTAINER_multihashmap_get (const struct GNUNET_CONTAINER_MultiHashMap
 
   e = map->map[idx_of (map, key)];
   while (e != NULL)
-    {
-      if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
-        return e->value;
-      e = e->next;
-    }
+  {
+    if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
+      return e->value;
+    e = e->next;
+  }
   return NULL;
 }
 
@@ -198,22 +198,22 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
   GNUNET_HashCode kc;
 
   count = 0;
-  GNUNET_assert(map != NULL);
+  GNUNET_assert (map != NULL);
   for (i = 0; i < map->map_length; i++)
+  {
+    n = map->map[i];
+    while (NULL != (e = n))
     {
-      n = map->map[i];
-      while (NULL != (e = n))
-        {
-	  n = e->next;
-          if (NULL != it)
-	    {
-	      kc = e->key;
-	      if (GNUNET_OK != it (it_cls, &kc, e->value))
-		return GNUNET_SYSERR;
-	    }
-          count++;
-        }
+      n = e->next;
+      if (NULL != it)
+      {
+        kc = e->key;
+        if (GNUNET_OK != it (it_cls, &kc, e->value))
+          return GNUNET_SYSERR;
+      }
+      count++;
     }
+  }
   return count;
 }
 
@@ -242,21 +242,21 @@ GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap
   p = NULL;
   e = map->map[i];
   while (e != NULL)
+  {
+    if ((0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode))) &&
+        (value == e->value))
     {
-      if ((0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode))) &&
-          (value == e->value))
-        {
-          if (p == NULL)
-            map->map[i] = e->next;
-          else
-            p->next = e->next;
-          GNUNET_free (e);
-          map->size--;
-          return GNUNET_YES;
-        }
-      p = e;
-      e = e->next;
+      if (p == NULL)
+        map->map[i] = e->next;
+      else
+        p->next = e->next;
+      GNUNET_free (e);
+      map->size--;
+      return GNUNET_YES;
     }
+    p = e;
+    e = e->next;
+  }
   return GNUNET_NO;
 }
 
@@ -283,27 +283,27 @@ GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap
   p = NULL;
   e = map->map[i];
   while (e != NULL)
+  {
+    if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
     {
-      if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
-        {
-          if (p == NULL)
-            map->map[i] = e->next;
-          else
-            p->next = e->next;
-          GNUNET_free (e);
-          map->size--;
-          if (p == NULL)
-            e = map->map[i];
-          else
-            e = p->next;
-          ret++;
-        }
+      if (p == NULL)
+        map->map[i] = e->next;
       else
-        {
-          p = e;
-          e = e->next;
-        }
+        p->next = e->next;
+      GNUNET_free (e);
+      map->size--;
+      if (p == NULL)
+        e = map->map[i];
+      else
+        e = p->next;
+      ret++;
     }
+    else
+    {
+      p = e;
+      e = e->next;
+    }
+  }
   return ret;
 }
 
@@ -326,11 +326,11 @@ GNUNET_CONTAINER_multihashmap_contains (const struct
 
   e = map->map[idx_of (map, key)];
   while (e != NULL)
-    {
-      if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
-        return GNUNET_YES;
-      e = e->next;
-    }
+  {
+    if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
+      return GNUNET_YES;
+    e = e->next;
+  }
   return GNUNET_NO;
 }
 
@@ -345,22 +345,23 @@ GNUNET_CONTAINER_multihashmap_contains (const struct
  * @return GNUNET_YES if such a value exists,
  *         GNUNET_NO if not
  */
-int GNUNET_CONTAINER_multihashmap_contains_value (const struct
-						  GNUNET_CONTAINER_MultiHashMap
-						  *map,
-						  const GNUNET_HashCode * key,
-						  const void *value)
+int
+GNUNET_CONTAINER_multihashmap_contains_value (const struct
+                                              GNUNET_CONTAINER_MultiHashMap
+                                              *map,
+                                              const GNUNET_HashCode * key,
+                                              const void *value)
 {
   struct MapEntry *e;
 
   e = map->map[idx_of (map, key)];
   while (e != NULL)
-    {
-      if ( (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode))) &&
-	   (e->value == value) )
-        return GNUNET_YES;
-      e = e->next;
-    }
+  {
+    if ((0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode))) &&
+        (e->value == value))
+      return GNUNET_YES;
+    e = e->next;
+  }
   return GNUNET_NO;
 }
 
@@ -388,15 +389,15 @@ grow (struct GNUNET_CONTAINER_MultiHashMap *map)
   map->map_length = new_len;
   map->map = new_map;
   for (i = 0; i < old_len; i++)
+  {
+    while (NULL != (e = old_map[i]))
     {
-      while (NULL != (e = old_map[i]))
-        {
-          old_map[i] = e->next;
-          idx = idx_of (map, &e->key);
-          e->next = new_map[idx];
-          new_map[idx] = e;
-        }
+      old_map[i] = e->next;
+      idx = idx_of (map, &e->key);
+      e->next = new_map[idx];
+      new_map[idx] = e;
     }
+  }
   GNUNET_free (old_map);
 }
 
@@ -417,8 +418,7 @@ int
 GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
                                    const GNUNET_HashCode * key,
                                    void *value,
-                                   enum GNUNET_CONTAINER_MultiHashMapOption
-                                   opt)
+                                   enum GNUNET_CONTAINER_MultiHashMapOption opt)
 {
   struct MapEntry *e;
   unsigned int i;
@@ -426,25 +426,25 @@ GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
   i = idx_of (map, key);
   if ((opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE) &&
       (opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+  {
+    e = map->map[i];
+    while (e != NULL)
     {
-      e = map->map[i];
-      while (e != NULL)
-        {
-          if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
-            {
-              if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
-                return GNUNET_SYSERR;
-              e->value = value;
-              return GNUNET_NO;
-            }
-          e = e->next;
-        }
+      if (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
+      {
+        if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
+          return GNUNET_SYSERR;
+        e->value = value;
+        return GNUNET_NO;
+      }
+      e = e->next;
     }
+  }
   if (map->size / 3 >= map->map_length / 4)
-    {
-      grow (map);
-      i = idx_of (map, key);
-    }
+  {
+    grow (map);
+    i = idx_of (map, key);
+  }
   e = GNUNET_malloc (sizeof (struct MapEntry));
   e->key = *key;
   e->value = value;
@@ -479,14 +479,14 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   count = 0;
   n = map->map[idx_of (map, key)];
   while (NULL != (e = n))
-    {
-      n = e->next;
-      if (0 != memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
-	continue;
-      if ((it != NULL) && (GNUNET_OK != it (it_cls, key, e->value)))
-	return GNUNET_SYSERR;
-      count++;
-    }
+  {
+    n = e->next;
+    if (0 != memcmp (key, &e->key, sizeof (GNUNET_HashCode)))
+      continue;
+    if ((it != NULL) && (GNUNET_OK != it (it_cls, key, e->value)))
+      return GNUNET_SYSERR;
+    count++;
+  }
   return count;
 }
 

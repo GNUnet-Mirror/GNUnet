@@ -76,8 +76,7 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-do_stop (void *cls,
-	 const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_SERVICE_stop (sctx);
 }
@@ -143,8 +142,7 @@ check ()
                  GNUNET_SERVICE_run (5,
                                      argv,
                                      "test_service",
-                                     GNUNET_SERVICE_OPTION_NONE,
-                                     &runner, &ok));
+                                     GNUNET_SERVICE_OPTION_NONE, &runner, &ok));
   GNUNET_assert (0 == ok);
   return ok;
 }
@@ -217,8 +215,8 @@ start_stop_main (void *cls,
                  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ret = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting service using start method\n");
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting service using start method\n");
   sctx = GNUNET_SERVICE_start ("test_service", cfg);
   GNUNET_assert (NULL != sctx);
   runner (cls, GNUNET_SERVICE_get_server (sctx), cfg);
@@ -245,6 +243,7 @@ check_start_stop ()
     GNUNET_GETOPT_OPTION_END
   };
   int ret = 1;
+
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_PROGRAM_run (5,
                                      argv,
@@ -278,22 +277,22 @@ main (int argc, char *argv[])
   s = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
 #endif
   if (NULL == s)
+  {
+    if ((errno == ENOBUFS) ||
+        (errno == ENOMEM) || (errno == ENFILE) || (errno == EACCES))
     {
-      if ((errno == ENOBUFS) ||
-          (errno == ENOMEM) || (errno == ENFILE) || (errno == EACCES))
-        {
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
-          return 1;
-        }
-      fprintf (stderr,
-               "IPv6 support seems to not be available (%s), not testing it!\n",
-               strerror (errno));
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+      return 1;
     }
+    fprintf (stderr,
+             "IPv6 support seems to not be available (%s), not testing it!\n",
+             strerror (errno));
+  }
   else
-    {
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
-      ret += check6 ();
-    }
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
+    ret += check6 ();
+  }
   ret += check_start_stop ();
 
   return ret;

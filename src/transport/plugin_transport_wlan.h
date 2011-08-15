@@ -72,41 +72,39 @@ struct WlanHeader
 
 /* Wlan IEEE80211 header default */
 //Informations (in German) http://www.umtslink.at/content/WLAN_macheader-196.html
-static const uint8_t u8aIeeeHeader[] =
-  { 0x08, 0x01, // Frame Control 0x08= 00001000 -> | b1,2 = 0 -> Version 0;
-      //      b3,4 = 10 -> Data; b5-8 = 0 -> Normal Data
-      //	0x01 = 00000001 -> | b1 = 1 to DS; b2 = 0 not from DS;
-      0x00, 0x00, // Duration/ID
-      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // mac1 - in this case receiver
-      0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac2 - in this case sender
-      0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3 - in this case bssid
-      0x10, 0x86, //Sequence Control
-    };
+static const uint8_t u8aIeeeHeader[] = { 0x08, 0x01,    // Frame Control 0x08= 00001000 -> | b1,2 = 0 -> Version 0;
+  //      b3,4 = 10 -> Data; b5-8 = 0 -> Normal Data
+  //        0x01 = 00000001 -> | b1 = 1 to DS; b2 = 0 not from DS;
+  0x00, 0x00,                   // Duration/ID
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,   // mac1 - in this case receiver
+  0x13, 0x22, 0x33, 0x44, 0x55, 0x66,   // mac2 - in this case sender
+  0x13, 0x22, 0x33, 0x44, 0x55, 0x66,   // mac3 - in this case bssid
+  0x10, 0x86,                   //Sequence Control
+};
 
 // gnunet bssid
-static const struct MacAddress mac_bssid =
-  {
-    { 0x13, 0x22, 0x33, 0x44, 0x55, 0x66 } };
+static const struct MacAddress mac_bssid = {
+  {0x13, 0x22, 0x33, 0x44, 0x55, 0x66}
+};
 
 // broadcast mac
-static const struct MacAddress bc_all_mac =
-  {
-    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static const struct MacAddress bc_all_mac = {
+  {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+};
 
 /* this is the template radiotap header we send packets out with */
 
-static const uint8_t u8aRadiotapHeader[] =
-  { 0x00, 0x00, // <-- radiotap version
-      0x19, 0x00, // <- radiotap header length
-      0x6f, 0x08, 0x00, 0x00, // <-- bitmap
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // <-- timestamp
-      0x00, // <-- flags (Offset +0x10)
-      0x6c, // <-- rate (0ffset +0x11)
-      0x71, 0x09, 0xc0, 0x00, // <-- channel
-      0xde, // <-- antsignal
-      0x00, // <-- antnoise
-      0x01, // <-- antenna
-    };
+static const uint8_t u8aRadiotapHeader[] = { 0x00, 0x00,        // <-- radiotap version
+  0x19, 0x00,                   // <- radiotap header length
+  0x6f, 0x08, 0x00, 0x00,       // <-- bitmap
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,       // <-- timestamp
+  0x00,                         // <-- flags (Offset +0x10)
+  0x6c,                         // <-- rate (0ffset +0x11)
+  0x71, 0x09, 0xc0, 0x00,       // <-- channel
+  0xde,                         // <-- antsignal
+  0x00,                         // <-- antnoise
+  0x01,                         // <-- antenna
+};
 
 struct Radiotap_Send
 {

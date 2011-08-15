@@ -31,7 +31,7 @@
 /**
  * Context for all functions in this plugin.
  */
-struct Plugin 
+struct Plugin
 {
   /**
    * Our execution environment.
@@ -51,13 +51,13 @@ struct Plugin
  * @param discard_time when to discard the value in any case
  * @return 0 on error, number of bytes used otherwise
  */
-static size_t 
+static size_t
 template_plugin_put (void *cls,
-		     const GNUNET_HashCode * key,
-		     size_t size,
-		     const char *data,
-		     enum GNUNET_BLOCK_Type type,
-		     struct GNUNET_TIME_Absolute discard_time)
+                     const GNUNET_HashCode * key,
+                     size_t size,
+                     const char *data,
+                     enum GNUNET_BLOCK_Type type,
+                     struct GNUNET_TIME_Absolute discard_time)
 {
   GNUNET_break (0);
   return 0;
@@ -75,12 +75,11 @@ template_plugin_put (void *cls,
  * @param iter_cls closure for iter
  * @return the number of results found
  */
-static unsigned int 
+static unsigned int
 template_plugin_get (void *cls,
-		     const GNUNET_HashCode * key,
-		     enum GNUNET_BLOCK_Type type,
-		     GNUNET_DATACACHE_Iterator iter,
-		     void *iter_cls)
+                     const GNUNET_HashCode * key,
+                     enum GNUNET_BLOCK_Type type,
+                     GNUNET_DATACACHE_Iterator iter, void *iter_cls)
 {
   GNUNET_break (0);
   return 0;
@@ -93,8 +92,8 @@ template_plugin_get (void *cls,
  * 
  * @param cls closure (our "struct Plugin")
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */ 
-static int 
+ */
+static int
 template_plugin_del (void *cls)
 {
   GNUNET_break (0);
@@ -148,4 +147,3 @@ libgnunet_plugin_datacache_template_done (void *cls)
 
 
 /* end of plugin_datacache_template.c */
-

@@ -52,22 +52,19 @@
  * @return always 0 to continue extracting
  */
 static int
-add_to_md(void *cls,
-	  const char *plugin_name,
-	  enum EXTRACTOR_MetaType type,
-	  enum EXTRACTOR_MetaFormat format,
-	  const char *data_mime_type,
-	  const char *data,
-	  size_t data_len)
+add_to_md (void *cls,
+           const char *plugin_name,
+           enum EXTRACTOR_MetaType type,
+           enum EXTRACTOR_MetaFormat format,
+           const char *data_mime_type, const char *data, size_t data_len)
 {
   struct GNUNET_CONTAINER_MetaData *md = cls;
+
   (void) GNUNET_CONTAINER_meta_data_insert (md,
-					    plugin_name,
-					    type,
-					    format,
-					    data_mime_type,
-					    data,
-					    data_len);
+                                            plugin_name,
+                                            type,
+                                            format,
+                                            data_mime_type, data, data_len);
   return 0;
 }
 
@@ -80,9 +77,8 @@ add_to_md(void *cls,
  */
 int
 GNUNET_FS_meta_data_extract_from_file (struct GNUNET_CONTAINER_MetaData
-				       *md, const char *filename,
-				       struct EXTRACTOR_PluginList *
-				       extractors)
+                                       *md, const char *filename,
+                                       struct EXTRACTOR_PluginList *extractors)
 {
   int old;
 
@@ -92,11 +88,7 @@ GNUNET_FS_meta_data_extract_from_file (struct GNUNET_CONTAINER_MetaData
     return 0;
   old = GNUNET_CONTAINER_meta_data_iterate (md, NULL, NULL);
   GNUNET_assert (old >= 0);
-  EXTRACTOR_extract (extractors, 
-		     filename,
-		     NULL, 0,
-		     &add_to_md,
-		     md);
+  EXTRACTOR_extract (extractors, filename, NULL, 0, &add_to_md, md);
   return (GNUNET_CONTAINER_meta_data_iterate (md, NULL, NULL) - old);
 }
 
@@ -137,44 +129,44 @@ GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s)
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
-					     void *client_info,
-					     const char *filename,
-					     const struct GNUNET_FS_Uri *keywords,
-					     const struct GNUNET_CONTAINER_MetaData *meta,
-					     int do_index,
-					     const struct GNUNET_FS_BlockOptions *bo)
+                                             void *client_info,
+                                             const char *filename,
+                                             const struct GNUNET_FS_Uri
+                                             *keywords,
+                                             const struct
+                                             GNUNET_CONTAINER_MetaData *meta,
+                                             int do_index,
+                                             const struct GNUNET_FS_BlockOptions
+                                             *bo)
 {
   struct FileInfo *fi;
   struct stat sbuf;
   struct GNUNET_FS_FileInformation *ret;
   const char *fn;
   const char *ss;
+
 #if WINDOWS
   char fn_conv[MAX_PATH];
 #endif
 
   if (0 != STAT (filename, &sbuf))
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-				"stat",
-				filename);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "stat", filename);
+    return NULL;
+  }
   fi = GNUNET_FS_make_file_reader_context_ (filename);
   if (fi == NULL)
-    {
-      GNUNET_break (0);
-      return NULL;
-    }
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   ret = GNUNET_FS_file_information_create_from_reader (h,
-						       client_info,
-						       sbuf.st_size,
-						       &GNUNET_FS_data_reader_file_,
-						       fi,
-						       keywords,
-						       meta,
-						       do_index,
-						       bo);
+                                                       client_info,
+                                                       sbuf.st_size,
+                                                       &GNUNET_FS_data_reader_file_,
+                                                       fi,
+                                                       keywords,
+                                                       meta, do_index, bo);
   if (ret == NULL)
     return NULL;
   ret->h = h;
@@ -185,16 +177,13 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
   plibc_conv_to_win_path (filename, fn_conv);
   fn = fn_conv;
 #endif
-  while (NULL != (ss = strstr (fn,
-			       DIR_SEPARATOR_STR)))
+  while (NULL != (ss = strstr (fn, DIR_SEPARATOR_STR)))
     fn = ss + 1;
   GNUNET_CONTAINER_meta_data_insert (ret->meta,
-				     "<gnunet>",
-				     EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
-				     EXTRACTOR_METAFORMAT_C_STRING,
-				     "text/plain",
-				     fn,
-				     strlen (fn) + 1);
+                                     "<gnunet>",
+                                     EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
+                                     EXTRACTOR_METAFORMAT_C_STRING,
+                                     "text/plain", fn, strlen (fn) + 1);
   return ret;
 }
 
@@ -217,28 +206,29 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
-					     void *client_info,
-					     uint64_t length,
-					     void *data,
-					     const struct GNUNET_FS_Uri *keywords,
-					     const struct GNUNET_CONTAINER_MetaData *meta,
-					     int do_index,
-					     const struct GNUNET_FS_BlockOptions *bo)
+                                             void *client_info,
+                                             uint64_t length,
+                                             void *data,
+                                             const struct GNUNET_FS_Uri
+                                             *keywords,
+                                             const struct
+                                             GNUNET_CONTAINER_MetaData *meta,
+                                             int do_index,
+                                             const struct GNUNET_FS_BlockOptions
+                                             *bo)
 {
-  if (GNUNET_YES == do_index)        
-    {
-      GNUNET_break (0);
-      return NULL;
-    }
+  if (GNUNET_YES == do_index)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   return GNUNET_FS_file_information_create_from_reader (h,
-							client_info,
-							length,
-							&GNUNET_FS_data_reader_copy_,
-							data,
-							keywords,
-							meta,
-							do_index,
-							bo);
+                                                        client_info,
+                                                        length,
+                                                        &GNUNET_FS_data_reader_copy_,
+                                                        data,
+                                                        keywords,
+                                                        meta, do_index, bo);
 }
 
 
@@ -260,31 +250,33 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
-					       void *client_info,
-					       uint64_t length,
-					       GNUNET_FS_DataReader reader,
-					       void *reader_cls,
-					       const struct GNUNET_FS_Uri *keywords,
-					       const struct GNUNET_CONTAINER_MetaData *meta,
-					       int do_index,
-					       const struct GNUNET_FS_BlockOptions *bo)
+                                               void *client_info,
+                                               uint64_t length,
+                                               GNUNET_FS_DataReader reader,
+                                               void *reader_cls,
+                                               const struct GNUNET_FS_Uri
+                                               *keywords,
+                                               const struct
+                                               GNUNET_CONTAINER_MetaData *meta,
+                                               int do_index,
+                                               const struct
+                                               GNUNET_FS_BlockOptions *bo)
 {
   struct GNUNET_FS_FileInformation *ret;
 
-  if ( (GNUNET_YES == do_index) &&
-       (reader != &GNUNET_FS_data_reader_file_) )
-    {
-      GNUNET_break (0);
-      return NULL;
-    }
+  if ((GNUNET_YES == do_index) && (reader != &GNUNET_FS_data_reader_file_))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
   ret->h = h;
-  ret->client_info = client_info;  
+  ret->client_info = client_info;
   ret->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   if (ret->meta == NULL)
     ret->meta = GNUNET_CONTAINER_meta_data_create ();
   ret->keywords = (keywords == NULL) ? NULL : GNUNET_FS_uri_dup (keywords);
-  ret->data.file.reader = reader; 
+  ret->data.file.reader = reader;
   ret->data.file.reader_cls = reader_cls;
   ret->data.file.do_index = do_index;
   ret->data.file.file_size = length;
@@ -296,7 +288,7 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
 /**
  * Closure for "dir_scan_cb".
  */
-struct DirScanCls 
+struct DirScanCls
 {
   /**
    * Metadata extractors to use.
@@ -305,14 +297,14 @@ struct DirScanCls
 
   /**
    * Master context.
-   */ 
+   */
   struct GNUNET_FS_Handle *h;
 
   /**
    * Function to call on each directory entry.
    */
   GNUNET_FS_FileProcessor proc;
-  
+
   /**
    * Closure for proc.
    */
@@ -331,7 +323,7 @@ struct DirScanCls
   /**
    * Set to an error message (if any).
    */
-  char *emsg; 
+  char *emsg;
 
   /**
    * Block options.
@@ -340,7 +332,7 @@ struct DirScanCls
 
   /**
    * Should files be indexed?
-   */ 
+   */
   int do_index;
 
 };
@@ -354,10 +346,9 @@ struct DirScanCls
  * @return GNUNET_OK on success, GNUNET_SYSERR to abort
  */
 static int
-dir_scan_cb (void *cls,
-	     const char *filename)
+dir_scan_cb (void *cls, const char *filename)
 {
-  struct DirScanCls *dsc = cls;  
+  struct DirScanCls *dsc = cls;
   struct stat sbuf;
   struct GNUNET_FS_FileInformation *fi;
   struct GNUNET_FS_Uri *ksk_uri;
@@ -365,52 +356,44 @@ dir_scan_cb (void *cls,
   struct GNUNET_CONTAINER_MetaData *meta;
 
   if (0 != STAT (filename, &sbuf))
+  {
+    GNUNET_asprintf (&dsc->emsg,
+                     _("`%s' failed on file `%s': %s"),
+                     "stat", filename, STRERROR (errno));
+    return GNUNET_SYSERR;
+  }
+  if (S_ISDIR (sbuf.st_mode))
+  {
+    fi = GNUNET_FS_file_information_create_from_directory (dsc->h,
+                                                           NULL,
+                                                           filename,
+                                                           dsc->scanner,
+                                                           dsc->scanner_cls,
+                                                           dsc->do_index,
+                                                           dsc->bo, &dsc->emsg);
+    if (NULL == fi)
     {
-      GNUNET_asprintf (&dsc->emsg,
-		       _("`%s' failed on file `%s': %s"),
-		       "stat",
-		       filename,
-		       STRERROR (errno));
+      GNUNET_assert (NULL != dsc->emsg);
       return GNUNET_SYSERR;
     }
-  if (S_ISDIR (sbuf.st_mode))
-    {
-      fi = GNUNET_FS_file_information_create_from_directory (dsc->h,
-							     NULL,
-							     filename,
-							     dsc->scanner,
-							     dsc->scanner_cls,
-							     dsc->do_index,
-							     dsc->bo,
-							     &dsc->emsg);
-      if (NULL == fi)
-	{
-	  GNUNET_assert (NULL != dsc->emsg);
-	  return GNUNET_SYSERR;
-	}
-    }
+  }
   else
-    {
-      meta = GNUNET_CONTAINER_meta_data_create ();
-      GNUNET_FS_meta_data_extract_from_file (meta,
-					     filename,
-					     dsc->extractors);
-      keywords = GNUNET_FS_uri_ksk_create_from_meta_data (meta);
-      ksk_uri = GNUNET_FS_uri_ksk_canonicalize (keywords);
-      fi = GNUNET_FS_file_information_create_from_file (dsc->h,
-							NULL,
-							filename,
-							ksk_uri,
-							meta,
-							dsc->do_index,
-							dsc->bo);
-      GNUNET_CONTAINER_meta_data_destroy (meta);
-      GNUNET_FS_uri_destroy (keywords);
-      GNUNET_FS_uri_destroy (ksk_uri);
-    }
-  dsc->proc (dsc->proc_cls,
-	     filename,
-	     fi);
+  {
+    meta = GNUNET_CONTAINER_meta_data_create ();
+    GNUNET_FS_meta_data_extract_from_file (meta, filename, dsc->extractors);
+    keywords = GNUNET_FS_uri_ksk_create_from_meta_data (meta);
+    ksk_uri = GNUNET_FS_uri_ksk_canonicalize (keywords);
+    fi = GNUNET_FS_file_information_create_from_file (dsc->h,
+                                                      NULL,
+                                                      filename,
+                                                      ksk_uri,
+                                                      meta,
+                                                      dsc->do_index, dsc->bo);
+    GNUNET_CONTAINER_meta_data_destroy (meta);
+    GNUNET_FS_uri_destroy (keywords);
+    GNUNET_FS_uri_destroy (ksk_uri);
+  }
+  dsc->proc (dsc->proc_cls, filename, fi);
   return GNUNET_OK;
 }
 
@@ -438,13 +421,12 @@ dir_scan_cb (void *cls,
  */
 int
 GNUNET_FS_directory_scanner_default (void *cls,
-				     struct GNUNET_FS_Handle *h,
-				     const char *dirname,
-				     int do_index,
-				     const struct GNUNET_FS_BlockOptions *bo,
-				     GNUNET_FS_FileProcessor proc,
-				     void *proc_cls,
-				     char **emsg)
+                                     struct GNUNET_FS_Handle *h,
+                                     const char *dirname,
+                                     int do_index,
+                                     const struct GNUNET_FS_BlockOptions *bo,
+                                     GNUNET_FS_FileProcessor proc,
+                                     void *proc_cls, char **emsg)
 {
   struct EXTRACTOR_PluginList *ex = cls;
   struct DirScanCls dsc;
@@ -457,14 +439,12 @@ GNUNET_FS_directory_scanner_default (void *cls,
   dsc.scanner_cls = cls;
   dsc.do_index = do_index;
   dsc.bo = bo;
-  if (-1 == GNUNET_DISK_directory_scan (dirname,
-					&dir_scan_cb,
-					&dsc))
-    {
-      GNUNET_assert (NULL != dsc.emsg);
-      *emsg = dsc.emsg;
-      return GNUNET_SYSERR;
-    }
+  if (-1 == GNUNET_DISK_directory_scan (dirname, &dir_scan_cb, &dsc))
+  {
+    GNUNET_assert (NULL != dsc.emsg);
+    *emsg = dsc.emsg;
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -491,9 +471,7 @@ struct EntryProcCls
  * @param fi information for publishing the file
  */
 static void
-dirproc (void *cls,
-	 const char *filename,
-	 struct GNUNET_FS_FileInformation *fi)
+dirproc (void *cls, const char *filename, struct GNUNET_FS_FileInformation *fi)
 {
   struct EntryProcCls *dc = cls;
 
@@ -526,13 +504,14 @@ dirproc (void *cls,
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
-						  void *client_info,
-						  const char *filename,
-						  GNUNET_FS_DirectoryScanner scanner,
-						  void *scanner_cls,
-						  int do_index,
-						  const struct GNUNET_FS_BlockOptions *bo,
-						  char **emsg)
+                                                  void *client_info,
+                                                  const char *filename,
+                                                  GNUNET_FS_DirectoryScanner
+                                                  scanner, void *scanner_cls,
+                                                  int do_index,
+                                                  const struct
+                                                  GNUNET_FS_BlockOptions *bo,
+                                                  char **emsg)
 {
   struct GNUNET_FS_FileInformation *ret;
   struct EntryProcCls dc;
@@ -545,43 +524,28 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
   dc.entries = NULL;
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_FS_meta_data_make_directory (meta);
-  scanner (scanner_cls,
-	   h,
-	   filename,
-	   do_index,
-	   bo,
-	   &dirproc,
-	   &dc,
-	   emsg);
-  ksk = NULL; // FIXME...
+  scanner (scanner_cls, h, filename, do_index, bo, &dirproc, &dc, emsg);
+  ksk = NULL;                   // FIXME...
   // FIXME: create meta!
   ret = GNUNET_FS_file_information_create_empty_directory (h,
-							   client_info,
-							   ksk,
-							   meta,
-							   bo);
+                                                           client_info,
+                                                           ksk, meta, bo);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   ret->data.dir.entries = dc.entries;
   while (dc.entries != NULL)
-    {
-      dc.entries->dir = ret;
-      dc.entries = dc.entries->next;
-    }
+  {
+    dc.entries->dir = ret;
+    dc.entries = dc.entries->next;
+  }
   fn = filename;
-  while ( (NULL != (ss = strstr (fn,
-				 DIR_SEPARATOR_STR))) &&
-	  (strlen (ss) > 1) )
+  while ((NULL != (ss = strstr (fn, DIR_SEPARATOR_STR))) && (strlen (ss) > 1))
     fn = ss + 1;
-  GNUNET_asprintf (&dn,
-		   "%s/", 
-		   fn);
+  GNUNET_asprintf (&dn, "%s/", fn);
   GNUNET_CONTAINER_meta_data_insert (ret->meta,
-				     "<gnunet>",
-				     EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
-				     EXTRACTOR_METAFORMAT_C_STRING,
-				     "text/plain",
-				     dn,
-				     strlen (dn) + 1);
+                                     "<gnunet>",
+                                     EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
+                                     EXTRACTOR_METAFORMAT_C_STRING,
+                                     "text/plain", dn, strlen (dn) + 1);
   GNUNET_free (dn);
   ret->filename = GNUNET_strdup (filename);
   return ret;
@@ -595,7 +559,8 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
  * @return GNUNET_YES if so, GNUNET_NO if not
  */
 int
-GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation *ent)
+GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation
+                                         *ent)
 {
   return ent->is_directory;
 }
@@ -617,10 +582,14 @@ GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation 
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
-						   void *client_info,
-						   const struct GNUNET_FS_Uri *keywords,
-						   const struct GNUNET_CONTAINER_MetaData *meta,
-						   const struct GNUNET_FS_BlockOptions *bo)
+                                                   void *client_info,
+                                                   const struct GNUNET_FS_Uri
+                                                   *keywords,
+                                                   const struct
+                                                   GNUNET_CONTAINER_MetaData
+                                                   *meta,
+                                                   const struct
+                                                   GNUNET_FS_BlockOptions *bo)
 {
   struct GNUNET_FS_FileInformation *ret;
 
@@ -648,15 +617,13 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
  */
 int
 GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
-				struct GNUNET_FS_FileInformation *ent)
+                                struct GNUNET_FS_FileInformation *ent)
 {
-  if ( (ent->dir != NULL) ||
-       (ent->next != NULL) ||
-       (! dir->is_directory) )
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
+  if ((ent->dir != NULL) || (ent->next != NULL) || (!dir->is_directory))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   ent->dir = dir;
   ent->next = dir->data.dir.entries;
   dir->data.dir.entries = ent;
@@ -681,41 +648,37 @@ GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
  */
 void
 GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
-				    GNUNET_FS_FileInformationProcessor proc,
-				    void *proc_cls)
+                                    GNUNET_FS_FileInformationProcessor proc,
+                                    void *proc_cls)
 {
   struct GNUNET_FS_FileInformation *pos;
   int no;
 
   no = GNUNET_NO;
   if (GNUNET_OK !=
-      proc (proc_cls, 
-	    dir,
-	    (dir->is_directory) ? dir->data.dir.dir_size : dir->data.file.file_size,
-	    dir->meta,
-	    &dir->keywords,
-	    &dir->bo,
-	    (dir->is_directory) ? &no : &dir->data.file.do_index,
-	    &dir->client_info))
+      proc (proc_cls,
+            dir,
+            (dir->is_directory) ? dir->data.dir.dir_size : dir->data.
+            file.file_size, dir->meta, &dir->keywords, &dir->bo,
+            (dir->is_directory) ? &no : &dir->data.file.do_index,
+            &dir->client_info))
     return;
-  if (! dir->is_directory)
+  if (!dir->is_directory)
     return;
   pos = dir->data.dir.entries;
   while (pos != NULL)
-    {
-      no = GNUNET_NO;
-      if (GNUNET_OK != 
-	  proc (proc_cls, 
-		pos,
-		(pos->is_directory) ? pos->data.dir.dir_size : pos->data.file.file_size,
-		pos->meta,
-		&pos->keywords,
-		&pos->bo,
-		(dir->is_directory) ? &no : &dir->data.file.do_index,
-		&pos->client_info))
-	break;
-      pos = pos->next;
-    }
+  {
+    no = GNUNET_NO;
+    if (GNUNET_OK !=
+        proc (proc_cls,
+              pos,
+              (pos->is_directory) ? pos->data.dir.dir_size : pos->data.
+              file.file_size, pos->meta, &pos->keywords, &pos->bo,
+              (dir->is_directory) ? &no : &dir->data.file.do_index,
+              &pos->client_info))
+      break;
+    pos = pos->next;
+  }
 }
 
 
@@ -731,70 +694,60 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
  */
 void
 GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
-				    GNUNET_FS_FileInformationProcessor cleaner,
-				    void *cleaner_cls)
+                                    GNUNET_FS_FileInformationProcessor cleaner,
+                                    void *cleaner_cls)
 {
   struct GNUNET_FS_FileInformation *pos;
   int no;
 
   no = GNUNET_NO;
   if (fi->is_directory)
+  {
+    /* clean up directory */
+    while (NULL != (pos = fi->data.dir.entries))
     {
-      /* clean up directory */
-      while (NULL != (pos = fi->data.dir.entries))
-	{
-	  fi->data.dir.entries = pos->next;
-	  GNUNET_FS_file_information_destroy (pos, cleaner, cleaner_cls);
-	}
-      /* clean up client-info */
-      if (NULL != cleaner)
-	cleaner (cleaner_cls, 
-		 fi,
-		 fi->data.dir.dir_size,
-		 fi->meta,
-		 &fi->keywords,
-		 &fi->bo,
-		 &no,
-		 &fi->client_info);
-      GNUNET_free_non_null (fi->data.dir.dir_data);
+      fi->data.dir.entries = pos->next;
+      GNUNET_FS_file_information_destroy (pos, cleaner, cleaner_cls);
     }
+    /* clean up client-info */
+    if (NULL != cleaner)
+      cleaner (cleaner_cls,
+               fi,
+               fi->data.dir.dir_size,
+               fi->meta, &fi->keywords, &fi->bo, &no, &fi->client_info);
+    GNUNET_free_non_null (fi->data.dir.dir_data);
+  }
   else
-    {
-      /* call clean-up function of the reader */
-      if (fi->data.file.reader != NULL)
-	fi->data.file.reader (fi->data.file.reader_cls, 0, 0, 
-			      NULL, NULL);
-      /* clean up client-info */
-      if (NULL != cleaner)
-	cleaner (cleaner_cls, 
-		 fi,
-		 fi->data.file.file_size,
-		 fi->meta,
-		 &fi->keywords,
-		 &fi->bo,
-		 &fi->data.file.do_index,
-		 &fi->client_info);
-    }
+  {
+    /* call clean-up function of the reader */
+    if (fi->data.file.reader != NULL)
+      fi->data.file.reader (fi->data.file.reader_cls, 0, 0, NULL, NULL);
+    /* clean up client-info */
+    if (NULL != cleaner)
+      cleaner (cleaner_cls,
+               fi,
+               fi->data.file.file_size,
+               fi->meta,
+               &fi->keywords,
+               &fi->bo, &fi->data.file.do_index, &fi->client_info);
+  }
   GNUNET_free_non_null (fi->filename);
   GNUNET_free_non_null (fi->emsg);
   GNUNET_free_non_null (fi->chk_uri);
   /* clean up serialization */
-  if ( (NULL != fi->serialization) &&
-       (0 != UNLINK (fi->serialization)) )
+  if ((NULL != fi->serialization) && (0 != UNLINK (fi->serialization)))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-			      "unlink",
-			      fi->serialization);
+                              "unlink", fi->serialization);
   if (NULL != fi->keywords)
     GNUNET_FS_uri_destroy (fi->keywords);
   if (NULL != fi->meta)
     GNUNET_CONTAINER_meta_data_destroy (fi->meta);
   GNUNET_free_non_null (fi->serialization);
   if (fi->te != NULL)
-    {
-      GNUNET_FS_tree_encoder_finish (fi->te,
-				     NULL, NULL);
-      fi->te = NULL;
-    }
+  {
+    GNUNET_FS_tree_encoder_finish (fi->te, NULL, NULL);
+    fi->te = NULL;
+  }
   GNUNET_free (fi);
 }
 

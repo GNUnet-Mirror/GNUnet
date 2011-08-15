@@ -62,8 +62,7 @@ struct GNUNET_CONTAINER_BloomFilter;
  * @return GNUNET_YES if next was updated
  *         GNUNET_NO if there are no more entries
  */
-typedef int (*GNUNET_HashCodeIterator) (void *cls,
-					GNUNET_HashCode * next);
+typedef int (*GNUNET_HashCodeIterator) (void *cls, GNUNET_HashCode * next);
 
 
 /**
@@ -76,15 +75,13 @@ typedef int (*GNUNET_HashCodeIterator) (void *cls,
  *        element (number of bits set per element in the set)
  * @return the bloomfilter
  */
-struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_load (const
-				   char
-				   *filename,
-				   size_t
-				   size,
-				   unsigned
-				   int
-				   k);
+struct GNUNET_CONTAINER_BloomFilter *GNUNET_CONTAINER_bloomfilter_load (const
+                                                                        char
+                                                                        *filename,
+                                                                        size_t
+                                                                        size,
+                                                                        unsigned
+                                                                        int k);
 
 
 /**
@@ -100,15 +97,13 @@ GNUNET_CONTAINER_bloomfilter_load (const
  *        element (number of bits set per element in the set)
  * @return the bloomfilter
  */
-struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_init (const
-				   char
-				   *data,
-				   size_t
-				   size,
-				   unsigned
-				   int
-				   k);
+struct GNUNET_CONTAINER_BloomFilter *GNUNET_CONTAINER_bloomfilter_init (const
+                                                                        char
+                                                                        *data,
+                                                                        size_t
+                                                                        size,
+                                                                        unsigned
+                                                                        int k);
 
 
 /**
@@ -121,8 +116,7 @@ GNUNET_CONTAINER_bloomfilter_init (const
  */
 int GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct
                                                GNUNET_CONTAINER_BloomFilter
-                                               *bf, char *data,
-                                               size_t size);
+                                               *bf, char *data, size_t size);
 
 
 /**
@@ -159,8 +153,10 @@ void GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter
  * @param bf the filter
  * @return copy of bf
  */
-struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_copy (const struct GNUNET_CONTAINER_BloomFilter *bf);
+struct GNUNET_CONTAINER_BloomFilter *GNUNET_CONTAINER_bloomfilter_copy (const
+                                                                        struct
+                                                                        GNUNET_CONTAINER_BloomFilter
+                                                                        *bf);
 
 
 
@@ -180,9 +176,20 @@ void GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter
  * @param bf the filter
  * @return number of bytes used for the data of the bloom filter
  */
-size_t 
+size_t
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 GNUNET_CONTAINER_bloomfilter_get_size (const struct GNUNET_CONTAINER_BloomFilter
-				       *bf);
+                                       *bf);
 
 
 /**
@@ -218,8 +225,8 @@ int GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
  */
 int
 GNUNET_CONTAINER_bloomfilter_or2 (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                  const struct GNUNET_CONTAINER_BloomFilter *to_or,
-                                  size_t size);
+                                  const struct GNUNET_CONTAINER_BloomFilter
+                                  *to_or, size_t size);
 
 /**
  * Resize a bloom filter.  Note that this operation
@@ -250,8 +257,7 @@ struct GNUNET_CONTAINER_MetaData;
  * 
  * @return empty meta-data container
  */
-struct GNUNET_CONTAINER_MetaData *
-GNUNET_CONTAINER_meta_data_create (void);
+struct GNUNET_CONTAINER_MetaData *GNUNET_CONTAINER_meta_data_create (void);
 
 /**
  * Duplicate a MetaData token.
@@ -259,17 +265,17 @@ GNUNET_CONTAINER_meta_data_create (void);
  * @param md what to duplicate
  * @return duplicate meta-data container
  */
-struct GNUNET_CONTAINER_MetaData *
-GNUNET_CONTAINER_meta_data_duplicate (const struct 
-				      GNUNET_CONTAINER_MetaData *md);
+struct GNUNET_CONTAINER_MetaData *GNUNET_CONTAINER_meta_data_duplicate (const
+                                                                        struct
+                                                                        GNUNET_CONTAINER_MetaData
+                                                                        *md);
 
 /**
  * Free meta data.
  *
  * @param md what to free
  */
-void 
-GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md);
+void GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md);
 
 /**
  * Test if two MDs are equal. We consider them equal if
@@ -281,11 +287,11 @@ GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md);
  * @param md2 other value to check
  * @return GNUNET_YES if they are equal
  */
-int 
+int
 GNUNET_CONTAINER_meta_data_test_equal (const struct
-				       GNUNET_CONTAINER_MetaData *md1,
-				       const struct
-				       GNUNET_CONTAINER_MetaData *md2);
+                                       GNUNET_CONTAINER_MetaData *md1,
+                                       const struct
+                                       GNUNET_CONTAINER_MetaData *md2);
 
 
 /**
@@ -305,14 +311,13 @@ GNUNET_CONTAINER_meta_data_test_equal (const struct
  * @return GNUNET_OK on success, GNUNET_SYSERR if this entry already exists
  *         data_mime_type and plugin_name are not considered for "exists" checks
  */
-int 
+int
 GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
-				   const char *plugin_name,
-				   enum EXTRACTOR_MetaType type,
-				   enum EXTRACTOR_MetaFormat format,
-				   const char *data_mime_type,
-				   const char *data,
-				   size_t data_len);
+                                   const char *plugin_name,
+                                   enum EXTRACTOR_MetaType type,
+                                   enum EXTRACTOR_MetaFormat format,
+                                   const char *data_mime_type,
+                                   const char *data, size_t data_len);
 
 
 /**
@@ -322,9 +327,9 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
  * @param md metadata to extend
  * @param in metadata to merge
  */
-void 
+void
 GNUNET_CONTAINER_meta_data_merge (struct GNUNET_CONTAINER_MetaData *md,
-				  const struct GNUNET_CONTAINER_MetaData *in);
+                                  const struct GNUNET_CONTAINER_MetaData *in);
 
 
 /**
@@ -337,11 +342,10 @@ GNUNET_CONTAINER_meta_data_merge (struct GNUNET_CONTAINER_MetaData *md,
  * @param data_len number of bytes in data
  * @return GNUNET_OK on success, GNUNET_SYSERR if the item does not exist in md
  */
-int 
+int
 GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
-				   enum EXTRACTOR_MetaType type,
-				   const char *data,
-				   size_t data_len);
+                                   enum EXTRACTOR_MetaType type,
+                                   const char *data, size_t data_len);
 
 
 /**
@@ -349,8 +353,7 @@ GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
  *
  * @param md metadata to manipulate
  */
-void 
-GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md);
+void GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md);
 
 
 /**
@@ -359,10 +362,9 @@ GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md);
  *
  * @param md metadata to modify
  */
-void 
+void
 GNUNET_CONTAINER_meta_data_add_publication_date (struct
-						 GNUNET_CONTAINER_MetaData
-						 *md);
+                                                 GNUNET_CONTAINER_MetaData *md);
 
 
 /**
@@ -374,9 +376,9 @@ GNUNET_CONTAINER_meta_data_add_publication_date (struct
  * @return number of entries
  */
 int GNUNET_CONTAINER_meta_data_iterate (const struct
-					GNUNET_CONTAINER_MetaData *md,
-					EXTRACTOR_MetaDataProcessor
-					iter, void *iter_cls);
+                                        GNUNET_CONTAINER_MetaData *md,
+                                        EXTRACTOR_MetaDataProcessor
+                                        iter, void *iter_cls);
 
 /**
  * Get the first MD entry of the given type.  Caller
@@ -388,10 +390,9 @@ int GNUNET_CONTAINER_meta_data_iterate (const struct
  * @param type type to look for
  * @return NULL if no entry was found
  */
-char *
-GNUNET_CONTAINER_meta_data_get_by_type (const struct
-					GNUNET_CONTAINER_MetaData *md,
-					enum EXTRACTOR_MetaType type);
+char *GNUNET_CONTAINER_meta_data_get_by_type (const struct
+                                              GNUNET_CONTAINER_MetaData *md,
+                                              enum EXTRACTOR_MetaType type);
 
 
 /**
@@ -405,10 +406,9 @@ GNUNET_CONTAINER_meta_data_get_by_type (const struct
  * @return NULL if we do not have any such entry,
  *  otherwise client is responsible for freeing the value!
  */
-char *
-GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
-					       GNUNET_CONTAINER_MetaData
-					       *md, ...);
+char *GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
+                                                     GNUNET_CONTAINER_MetaData
+                                                     *md, ...);
 
 /**
  * Get a thumbnail from the meta-data (if present).  Only matches meta
@@ -419,10 +419,10 @@ GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
  *        freed by the caller!
  * @return number of bytes in thumbnail, 0 if not available
  */
-size_t 
+size_t
 GNUNET_CONTAINER_meta_data_get_thumbnail (const struct
-					  GNUNET_CONTAINER_MetaData
-					  *md, unsigned char **thumb);
+                                          GNUNET_CONTAINER_MetaData
+                                          *md, unsigned char **thumb);
 
 
 
@@ -463,14 +463,33 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
  *         -1 on error (typically: not enough
  *         space)
  */
-ssize_t 
+ssize_t
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 GNUNET_CONTAINER_meta_data_serialize (const struct
-				      GNUNET_CONTAINER_MetaData *md,
-				      char **target, 
-				      size_t max,
-				      enum
-				      GNUNET_CONTAINER_MetaDataSerializationOptions
-				      opt);
+                                      GNUNET_CONTAINER_MetaData *md,
+                                      char **target,
+                                      size_t max,
+                                      enum
+                                      GNUNET_CONTAINER_MetaDataSerializationOptions
+                                      opt);
 
 
 /**
@@ -479,10 +498,28 @@ GNUNET_CONTAINER_meta_data_serialize (const struct
  * @param md metadata to inspect
  * @return number of bytes needed for serialization, -1 on error
  */
-ssize_t 
+ssize_t
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
-						GNUNET_CONTAINER_MetaData
-						*md);
+                                                GNUNET_CONTAINER_MetaData *md);
 
 
 /**
@@ -493,9 +530,11 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
  * @return MD on success, NULL on error (i.e.
  *         bad format)
  */
-struct GNUNET_CONTAINER_MetaData *
-GNUNET_CONTAINER_meta_data_deserialize (const char *input,
-					size_t size);
+struct GNUNET_CONTAINER_MetaData *GNUNET_CONTAINER_meta_data_deserialize (const
+                                                                          char
+                                                                          *input,
+                                                                          size_t
+                                                                          size);
 
 
 /* ******************************* HashMap **************************** */
@@ -561,7 +600,7 @@ typedef int (*GNUNET_CONTAINER_HashMapIterator) (void *cls,
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiHashMap
-  *GNUNET_CONTAINER_multihashmap_create (unsigned int len);
+    *GNUNET_CONTAINER_multihashmap_create (unsigned int len);
 
 
 /**
@@ -571,8 +610,7 @@ struct GNUNET_CONTAINER_MultiHashMap
  * @param map the map
  */
 void GNUNET_CONTAINER_multihashmap_destroy (struct
-                                            GNUNET_CONTAINER_MultiHashMap
-                                            *map);
+                                            GNUNET_CONTAINER_MultiHashMap *map);
 
 
 /**
@@ -630,8 +668,7 @@ int GNUNET_CONTAINER_multihashmap_remove_all (struct
  */
 int GNUNET_CONTAINER_multihashmap_contains (const struct
                                             GNUNET_CONTAINER_MultiHashMap
-                                            *map,
-                                            const GNUNET_HashCode * key);
+                                            *map, const GNUNET_HashCode * key);
 
 
 /**
@@ -645,10 +682,10 @@ int GNUNET_CONTAINER_multihashmap_contains (const struct
  *         GNUNET_NO if not
  */
 int GNUNET_CONTAINER_multihashmap_contains_value (const struct
-						  GNUNET_CONTAINER_MultiHashMap
-						  *map,
-						  const GNUNET_HashCode * key,
-						  const void *value);
+                                                  GNUNET_CONTAINER_MultiHashMap
+                                                  *map,
+                                                  const GNUNET_HashCode * key,
+                                                  const void *value);
 
 
 /**
@@ -667,8 +704,7 @@ int GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap
                                        *map, const GNUNET_HashCode * key,
                                        void *value,
                                        enum
-                                       GNUNET_CONTAINER_MultiHashMapOption
-                                       opt);
+                                       GNUNET_CONTAINER_MultiHashMapOption opt);
 
 /**
  * Get the number of key-value pairs in the map.
@@ -886,8 +922,9 @@ struct GNUNET_CONTAINER_HeapNode;
  * @param order how should the heap be sorted?
  * @return handle to the heap
  */
-struct GNUNET_CONTAINER_Heap *
-GNUNET_CONTAINER_heap_create (enum GNUNET_CONTAINER_HeapOrder order);
+struct GNUNET_CONTAINER_Heap *GNUNET_CONTAINER_heap_create (enum
+                                                            GNUNET_CONTAINER_HeapOrder
+                                                            order);
 
 
 /**
@@ -905,8 +942,7 @@ void GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *heap);
  * @param heap heap to inspect
  * @return NULL if heap is empty
  */
-void *
-GNUNET_CONTAINER_heap_peek (const struct GNUNET_CONTAINER_Heap *heap);
+void *GNUNET_CONTAINER_heap_peek (const struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
@@ -926,7 +962,8 @@ GNUNET_CONTAINER_heap_get_size (const struct GNUNET_CONTAINER_Heap *heap);
  * @return cost of the node
  */
 GNUNET_CONTAINER_HeapCostType
-GNUNET_CONTAINER_heap_node_get_cost (const struct GNUNET_CONTAINER_HeapNode *node);
+GNUNET_CONTAINER_heap_node_get_cost (const struct GNUNET_CONTAINER_HeapNode
+                                     *node);
 
 /**
  * Iterator for heap
@@ -939,9 +976,10 @@ GNUNET_CONTAINER_heap_node_get_cost (const struct GNUNET_CONTAINER_HeapNode *nod
  *         GNUNET_NO if not.
  */
 typedef int (*GNUNET_CONTAINER_HeapIterator) (void *cls,
-					      struct GNUNET_CONTAINER_HeapNode *node,
-					      void *element,
-                                              GNUNET_CONTAINER_HeapCostType cost);
+                                              struct GNUNET_CONTAINER_HeapNode *
+                                              node, void *element,
+                                              GNUNET_CONTAINER_HeapCostType
+                                              cost);
 
 
 /**
@@ -953,8 +991,8 @@ typedef int (*GNUNET_CONTAINER_HeapIterator) (void *cls,
  */
 void
 GNUNET_CONTAINER_heap_iterate (const struct GNUNET_CONTAINER_Heap *heap,
-			       GNUNET_CONTAINER_HeapIterator iterator,
-			       void *iterator_cls);
+                               GNUNET_CONTAINER_HeapIterator iterator,
+                               void *iterator_cls);
 
 
 /**
@@ -969,9 +1007,8 @@ GNUNET_CONTAINER_heap_iterate (const struct GNUNET_CONTAINER_Heap *heap,
  *         NULL if the heap is empty.
  *
  */
-void *
-GNUNET_CONTAINER_heap_get_random (struct GNUNET_CONTAINER_Heap *heap, 
-				  uint32_t max);
+void *GNUNET_CONTAINER_heap_get_random (struct GNUNET_CONTAINER_Heap *heap,
+                                        uint32_t max);
 
 
 /**
@@ -985,8 +1022,7 @@ GNUNET_CONTAINER_heap_get_random (struct GNUNET_CONTAINER_Heap *heap,
  * @return data stored at the next random node in the walk;
  *         NULL if the tree is empty.
  */
-void *
-GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *heap);
+void *GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
@@ -997,10 +1033,12 @@ GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *heap);
  * @param cost cost for the element
  * @return node for the new element
  */
-struct GNUNET_CONTAINER_HeapNode *
-GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
-                              void *element,
-			      GNUNET_CONTAINER_HeapCostType cost);
+struct GNUNET_CONTAINER_HeapNode *GNUNET_CONTAINER_heap_insert (struct
+                                                                GNUNET_CONTAINER_Heap
+                                                                *heap,
+                                                                void *element,
+                                                                GNUNET_CONTAINER_HeapCostType
+                                                                cost);
 
 
 /**
@@ -1009,8 +1047,7 @@ GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
  * @param heap heap to modify
  * @return element data stored at the root node
  */
-void *
-GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
+void *GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
@@ -1019,8 +1056,8 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
  * @param node node to remove
  * @return element data stored at the node, NULL if heap is empty
  */
-void *
-GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node);
+void *GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode
+                                         *node);
 
 
 /**
@@ -1032,8 +1069,8 @@ GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node);
  */
 void
 GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
-                                   struct GNUNET_CONTAINER_HeapNode *node, 
-				   GNUNET_CONTAINER_HeapCostType new_cost);
+                                   struct GNUNET_CONTAINER_HeapNode *node,
+                                   GNUNET_CONTAINER_HeapCostType new_cost);
 
 
 /* ******************** Singly linked list *************** */
@@ -1041,24 +1078,24 @@ GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
 /**
  * Possible ways for how data stored in the linked list
  * might be allocated.
- */ 
+ */
 enum GNUNET_CONTAINER_SListDisposition
-  {
+{
     /**
      * Single-linked list must copy the buffer.
      */
-    GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT = 0,
+  GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT = 0,
 
     /**
      * Data is static, no need to copy or free.
      */
-    GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC = 2,
+  GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC = 2,
 
     /**
      * Data is dynamic, do not copy but free when done.
      */
-    GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC = 4
-  };
+  GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC = 4
+};
 
 
 
@@ -1080,9 +1117,9 @@ struct GNUNET_CONTAINER_SList_Iterator;
  * @param buf payload buffer
  * @param len length of the buffer
  */
-void GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l, 
-				 enum GNUNET_CONTAINER_SListDisposition disp,
-				 const void *buf, size_t len);
+void GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
+                                 enum GNUNET_CONTAINER_SListDisposition disp,
+                                 const void *buf, size_t len);
 
 
 /**
@@ -1093,8 +1130,8 @@ void GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
  * @param len length of the buffer
  */
 void GNUNET_CONTAINER_slist_add_end (struct GNUNET_CONTAINER_SList *l,
-				 enum GNUNET_CONTAINER_SListDisposition disp,
-				 const void *buf, size_t len);
+                                     enum GNUNET_CONTAINER_SListDisposition
+                                     disp, const void *buf, size_t len);
 
 
 /**
@@ -1103,7 +1140,8 @@ void GNUNET_CONTAINER_slist_add_end (struct GNUNET_CONTAINER_SList *l,
  * @param src source
  */
 void
-GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst, struct GNUNET_CONTAINER_SList *src);
+GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst,
+                               struct GNUNET_CONTAINER_SList *src);
 
 
 /**
@@ -1126,8 +1164,9 @@ void GNUNET_CONTAINER_slist_destroy (struct GNUNET_CONTAINER_SList *l);
  * @param l list
  * @return iterator pointing to the beginning, free using "GNUNET_free"
  */
-struct GNUNET_CONTAINER_SList_Iterator *
-GNUNET_CONTAINER_slist_begin(struct GNUNET_CONTAINER_SList *l);
+struct GNUNET_CONTAINER_SList_Iterator *GNUNET_CONTAINER_slist_begin (struct
+                                                                      GNUNET_CONTAINER_SList
+                                                                      *l);
 
 
 /**
@@ -1144,7 +1183,8 @@ void GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l);
  * @param buf payload buffer to find
  * @param len length of the payload (number of bytes in buf)
  */
-int GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l, const void *buf, size_t len);
+int GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l,
+                                     const void *buf, size_t len);
 
 
 /**
@@ -1169,10 +1209,10 @@ void GNUNET_CONTAINER_slist_erase (struct GNUNET_CONTAINER_SList_Iterator *i);
  * @param buf payload buffer
  * @param len length of the payload
  */
-void GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator *before,
-				    enum GNUNET_CONTAINER_SListDisposition disp,
-				    const void *buf, 
-				    size_t len);
+void GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator
+                                    *before,
+                                    enum GNUNET_CONTAINER_SListDisposition disp,
+                                    const void *buf, size_t len);
 
 
 /**
@@ -1199,16 +1239,16 @@ int GNUNET_CONTAINER_slist_end (struct GNUNET_CONTAINER_SList_Iterator *i);
  * @param len set to the payload length
  * @return payload
  */
-void *
-GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator *i, 
-			    size_t *len);
+void *GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator
+                                  *i, size_t * len);
 
 
 /**
  * Release an iterator
  * @param i iterator
  */
-void GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator *i);
+void GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator
+                                          *i);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

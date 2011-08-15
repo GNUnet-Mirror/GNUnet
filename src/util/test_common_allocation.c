@@ -38,19 +38,19 @@ check ()
   /* GNUNET_malloc/GNUNET_free test */
   k = 352;                      /* random start value */
   for (i = 1; i < MAX_TESTVAL; i++)
-    {
-      ptrs[i] = GNUNET_malloc (i);
-      for (j = 0; j < i; j++)
-        ptrs[i][j] = k++;
-    }
+  {
+    ptrs[i] = GNUNET_malloc (i);
+    for (j = 0; j < i; j++)
+      ptrs[i][j] = k++;
+  }
 
   for (i = MAX_TESTVAL - 1; i >= 1; i--)
-    {
-      for (j = i - 1; j >= 0; j--)
-        if (ptrs[i][j] != (char) --k)
-          return 1;
-      GNUNET_free (ptrs[i]);
-    }
+  {
+    for (j = i - 1; j >= 0; j--)
+      if (ptrs[i][j] != (char) --k)
+        return 1;
+    GNUNET_free (ptrs[i]);
+  }
 
   /* GNUNET_free_non_null test */
   GNUNET_free_non_null (NULL);

@@ -167,8 +167,7 @@ extern int GSF_enable_randomized_delays;
  *         GNUNET_NO to process normally (load normal)
  *         GNUNET_SYSERR to process for free (load low)
  */
-int
-GSF_test_get_load_too_high_ (uint32_t priority);
+int GSF_test_get_load_too_high_ (uint32_t priority);
 
 
 /**
@@ -177,8 +176,7 @@ GSF_test_get_load_too_high_ (uint32_t priority);
  *
  * @param start time when the datastore request was issued
  */
-void
-GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start);
+void GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start);
 
 
 

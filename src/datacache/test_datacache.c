@@ -40,22 +40,20 @@ static const char *plugin_name;
 
 static int
 checkIt (void *cls,
-	 struct GNUNET_TIME_Absolute exp,
-	 const GNUNET_HashCode * key,
-         size_t size, 
-	 const char *data, 
-	 enum GNUNET_BLOCK_Type type)
+         struct GNUNET_TIME_Absolute exp,
+         const GNUNET_HashCode * key,
+         size_t size, const char *data, enum GNUNET_BLOCK_Type type)
 {
   if (size != sizeof (GNUNET_HashCode))
-    {
-      printf ("ERROR: Invalid size\n");
-      ok = 2;
-    }
+  {
+    printf ("ERROR: Invalid size\n");
+    ok = 2;
+  }
   if (0 != memcmp (data, cls, size))
-    {
-      printf ("ERROR: Invalid data\n");
-      ok = 3;
-    }
+  {
+    printf ("ERROR: Invalid data\n");
+    ok = 3;
+  }
   return GNUNET_OK;
 }
 
@@ -63,8 +61,7 @@ checkIt (void *cls,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DATACACHE_Handle *h;
   GNUNET_HashCode k;
@@ -73,39 +70,35 @@ run (void *cls,
   unsigned int i;
 
   ok = 0;
-  h = GNUNET_DATACACHE_create (cfg,
-			       "testcache");
+  h = GNUNET_DATACACHE_create (cfg, "testcache");
   if (h == NULL)
-    {
-      fprintf (stderr,
-	       "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
-      return;
-    }
+  {
+    fprintf (stderr,
+             "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+    return;
+  }
   exp = GNUNET_TIME_absolute_get ();
   exp.abs_value += 5 * 60 * 1000;
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 100; i++)
-    {
-      GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
-      ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h,
-						 &k,
-						 sizeof (GNUNET_HashCode),
-						 (const char *) &n,
-						 1+i%16,
-						 exp));
-      k = n;
-    }
+  {
+    GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+    ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h,
+                                               &k,
+                                               sizeof (GNUNET_HashCode),
+                                               (const char *) &n,
+                                               1 + i % 16, exp));
+    k = n;
+  }
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 100; i++)
-    {
-      GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
-      ASSERT (1 == 
-	      GNUNET_DATACACHE_get (h, &k, 1+i%16,
-				    &checkIt, &n));
-      k = n;
-    }
+  {
+    GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+    ASSERT (1 == GNUNET_DATACACHE_get (h, &k, 1 + i % 16, &checkIt, &n));
+    k = n;
+  }
 
-  memset(&k, 42, sizeof(GNUNET_HashCode));
+  memset (&k, 42, sizeof (GNUNET_HashCode));
   GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
   ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h,
                                              &k,
@@ -113,9 +106,7 @@ run (void *cls,
                                              (const char *) &n,
                                              792,
                                              GNUNET_TIME_UNIT_FOREVER_ABS));
-  ASSERT (0 !=
-          GNUNET_DATACACHE_get (h, &k, 792,
-                                &checkIt, &n));
+  ASSERT (0 != GNUNET_DATACACHE_get (h, &k, 792, &checkIt, &n));
 
   GNUNET_DATACACHE_destroy (h);
   ASSERT (ok == 0);
@@ -132,7 +123,8 @@ main (int argc, char *argv[])
 {
   char *pos;
   char cfg_name[128];
-  char *const xargv[] = { 
+
+  char *const xargv[] = {
     "test-datacache",
     "-c",
     cfg_name,
@@ -154,22 +146,20 @@ main (int argc, char *argv[])
                     NULL);
   /* determine name of plugin to use */
   plugin_name = argv[0];
-  while (NULL != (pos = strstr(plugin_name, "_")))
-    plugin_name = pos+1;
-  if (NULL != (pos = strstr(plugin_name, ".")))
+  while (NULL != (pos = strstr (plugin_name, "_")))
+    plugin_name = pos + 1;
+  if (NULL != (pos = strstr (plugin_name, ".")))
     pos[0] = 0;
   else
     pos = (char *) plugin_name;
-  
+
   GNUNET_snprintf (cfg_name,
-		   sizeof (cfg_name),
-		   "test_datacache_data_%s.conf",
-		   plugin_name);
+                   sizeof (cfg_name),
+                   "test_datacache_data_%s.conf", plugin_name);
   if (pos != plugin_name)
     pos[0] = '.';
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1,
-                      xargv, "test-datacache", "nohelp",
-                      options, &run, NULL);
+                      xargv, "test-datacache", "nohelp", options, &run, NULL);
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %d\n", ok);
   return ok;

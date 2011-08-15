@@ -68,15 +68,13 @@ stop_arm (struct PeerContext *p)
  * @param tc context information (why was this task triggered now)
  */
 static void
-end_test (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext * tc)
+end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (h != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Disconnecting from NSE service.\n");
-      GNUNET_NSE_disconnect (h);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from NSE service.\n");
+    GNUNET_NSE_disconnect (h);
+  }
 }
 
 /**
@@ -90,20 +88,20 @@ end_test (void *cls,
  *
  */
 static void
-check_nse_message (void *cls, 
-		   struct GNUNET_TIME_Absolute timestamp,
-		   double estimate, double std_dev)
+check_nse_message (void *cls,
+                   struct GNUNET_TIME_Absolute timestamp,
+                   double estimate, double std_dev)
 {
   int *ok = cls;
 
   fprintf (stderr,
-	   "Received NSE message, estimate %f, standard deviation %f.\n",
-	   estimate, std_dev);
+           "Received NSE message, estimate %f, standard deviation %f.\n",
+           estimate, std_dev);
   /* Fantastic check below. Expect NaN, the only thing not equal to itself. */
   (*ok) = 0;
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(die_task);
-  die_task = GNUNET_SCHEDULER_add_now(&end_test, NULL);
+    GNUNET_SCHEDULER_cancel (die_task);
+  die_task = GNUNET_SCHEDULER_add_now (&end_test, NULL);
 }
 
 
@@ -113,12 +111,12 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
-					 "gnunet-service-arm",
-                                        "gnunet-service-arm",
+                                         "gnunet-service-arm",
+                                         "gnunet-service-arm",
 #if VERBOSE_ARM
-                                        "-L", "DEBUG",
+                                         "-L", "DEBUG",
 #endif
-                                        "-c", cfgname, NULL);
+                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 
@@ -129,8 +127,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                            (GNUNET_TIME_UNIT_MINUTES, 1),
@@ -138,8 +135,7 @@ run (void *cls,
 
   setup_peer (&p1, cfgfile);
   h = GNUNET_NSE_connect (cfg, &check_nse_message, cls);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connecting to NSE service.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to NSE service.\n");
   GNUNET_assert (h != NULL);
 }
 
@@ -148,13 +144,14 @@ static int
 check ()
 {
   int ok = 1;
+
   char *const argv[] = { "test-nse-api",
     "-c",
     "test_nse.conf",
 #if DEBUG_NSE
-                         "-L", "DEBUG",
+    "-L", "DEBUG",
 #else
-                         "-L", "WARNING",
+    "-L", "WARNING",
 #endif
     NULL
   };
@@ -162,10 +159,8 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_PROGRAM_run (5, argv, "test-nse-api", "nohelp",
-                      options, &run, &ok);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Stopping arm.\n");
+  GNUNET_PROGRAM_run (5, argv, "test-nse-api", "nohelp", options, &run, &ok);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping arm.\n");
   stop_arm (&p1);
   return ok;
 }

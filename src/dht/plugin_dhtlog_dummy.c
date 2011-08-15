@@ -39,7 +39,8 @@
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
+int
+add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 {
   return GNUNET_OK;
 }
@@ -52,7 +53,8 @@ int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_round (unsigned int round_type, unsigned int round_count)
+int
+add_round (unsigned int round_type, unsigned int round_count)
 {
   return GNUNET_OK;
 }
@@ -68,8 +70,10 @@ int add_round (unsigned int round_type, unsigned int round_count)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_round_details (unsigned int round_type, unsigned int round_count,
-                       unsigned int num_messages, unsigned int num_messages_succeded)
+int
+add_round_details (unsigned int round_type, unsigned int round_count,
+                   unsigned int num_messages,
+                   unsigned int num_messages_succeded)
 {
   return GNUNET_OK;
 }
@@ -100,7 +104,7 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
+add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity *node)
 {
   *nodeuid = 1337;
   return GNUNET_OK;
@@ -132,8 +136,7 @@ update_trials (unsigned int gets_succeeded)
  */
 int
 add_generic_stat (const struct GNUNET_PeerIdentity *peer,
-                  const char *name,
-                  const char *section, uint64_t value)
+                  const char *name, const char *section, uint64_t value)
 {
   return GNUNET_OK;
 }
@@ -167,7 +170,7 @@ add_connections (unsigned int totalConnections)
 int
 add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
            unsigned int type, unsigned int hops, int succeeded,
-           const struct GNUNET_PeerIdentity * node, const GNUNET_HashCode * key)
+           const struct GNUNET_PeerIdentity *node, const GNUNET_HashCode * key)
 {
   *sqlqueryuid = 17;
   return GNUNET_OK;
@@ -191,9 +194,10 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
 int
 add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
            unsigned int type, unsigned int hops,
-           int succeeded, const struct GNUNET_PeerIdentity * node,
-           const GNUNET_HashCode * key, const struct GNUNET_PeerIdentity * from_node,
-           const struct GNUNET_PeerIdentity * to_node)
+           int succeeded, const struct GNUNET_PeerIdentity *node,
+           const GNUNET_HashCode * key,
+           const struct GNUNET_PeerIdentity *from_node,
+           const struct GNUNET_PeerIdentity *to_node)
 {
   *sqlqueryuid = 18;
   return GNUNET_OK;
@@ -222,7 +226,8 @@ add_topology (int num_connections)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNUNET_PeerIdentity *second)
+add_extended_topology (const struct GNUNET_PeerIdentity *first,
+                       const struct GNUNET_PeerIdentity *second)
 {
   return GNUNET_OK;
 }
@@ -278,15 +283,15 @@ set_malicious (struct GNUNET_PeerIdentity *peer)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int insert_stat
-   (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
-    unsigned int route_forwards, unsigned int result_requests,
-    unsigned int client_requests, unsigned int result_forwards,
-    unsigned int gets, unsigned int puts,
-    unsigned int data_inserts, unsigned int find_peer_requests,
-    unsigned int find_peers_started, unsigned int gets_started,
-    unsigned int puts_started, unsigned int find_peer_responses_received,
-    unsigned int get_responses_received, unsigned int find_peer_responses_sent,
-    unsigned int get_responses_sent)
+    (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
+     unsigned int route_forwards, unsigned int result_requests,
+     unsigned int client_requests, unsigned int result_forwards,
+     unsigned int gets, unsigned int puts,
+     unsigned int data_inserts, unsigned int find_peer_requests,
+     unsigned int find_peers_started, unsigned int gets_started,
+     unsigned int puts_started, unsigned int find_peer_responses_received,
+     unsigned int get_responses_received, unsigned int find_peer_responses_sent,
+     unsigned int get_responses_sent)
 {
   return GNUNET_OK;
 }
@@ -299,14 +304,15 @@ int insert_stat
  * @return the handle to the server, or NULL on error
  */
 void *
-libgnunet_plugin_dhtlog_dummy_init (void * cls)
+libgnunet_plugin_dhtlog_dummy_init (void *cls)
 {
   struct GNUNET_DHTLOG_Plugin *plugin = cls;
+
 #if DEBUG_DHTLOG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DUMMY DHT Logger: initializing.\n");
 #endif
-  GNUNET_assert(plugin->dhtlog_api == NULL);
-  plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
+  GNUNET_assert (plugin->dhtlog_api == NULL);
+  plugin->dhtlog_api = GNUNET_malloc (sizeof (struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->add_generic_stat = &add_generic_stat;
   plugin->dhtlog_api->insert_round = &add_round;
   plugin->dhtlog_api->insert_round_details = &add_round_details;
@@ -329,11 +335,10 @@ libgnunet_plugin_dhtlog_dummy_init (void * cls)
  * Shutdown the plugin.
  */
 void *
-libgnunet_plugin_dhtlog_dummy_done (void * cls)
+libgnunet_plugin_dhtlog_dummy_done (void *cls)
 {
 #if DEBUG_DHTLOG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "DUMMY DHT Logger: shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DUMMY DHT Logger: shutdown\n");
 #endif
   return NULL;
 }

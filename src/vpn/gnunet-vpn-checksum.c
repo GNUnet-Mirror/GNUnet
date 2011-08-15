@@ -26,26 +26,32 @@
 
 #include "gnunet-vpn-checksum.h"
 
-uint32_t calculate_checksum_update(uint32_t sum, uint16_t *hdr, short len) {
-    for(; len >= 2; len -= 2)
-      sum += *(hdr++);
-    if (len == 1)
-      sum += *((unsigned char*)hdr);
-    return sum;
+uint32_t
+calculate_checksum_update (uint32_t sum, uint16_t * hdr, short len)
+{
+  for (; len >= 2; len -= 2)
+    sum += *(hdr++);
+  if (len == 1)
+    sum += *((unsigned char *) hdr);
+  return sum;
 }
 
-uint16_t calculate_checksum_end(uint32_t sum) {
-    while (sum >> 16)
-      sum = (sum >> 16) + (sum & 0xFFFF);
+uint16_t
+calculate_checksum_end (uint32_t sum)
+{
+  while (sum >> 16)
+    sum = (sum >> 16) + (sum & 0xFFFF);
 
-    return ~sum;
+  return ~sum;
 }
 
 /**
  * Calculate the checksum of an IPv4-Header
  */
 uint16_t
-calculate_ip_checksum(uint16_t* hdr, short len) {
-    uint32_t sum = calculate_checksum_update(0, hdr, len);
-    return calculate_checksum_end(sum);
+calculate_ip_checksum (uint16_t * hdr, short len)
+{
+  uint32_t sum = calculate_checksum_update (0, hdr, len);
+
+  return calculate_checksum_end (sum);
 }

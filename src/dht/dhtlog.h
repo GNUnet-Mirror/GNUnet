@@ -178,7 +178,7 @@ struct GNUNET_DHTLOG_Handle
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-  int (*insert_trial) (struct GNUNET_DHTLOG_TrialInfo *trial_info);
+  int (*insert_trial) (struct GNUNET_DHTLOG_TrialInfo * trial_info);
 
   /*
    * Inserts the specified stats into the dhttests.node_statistics table
@@ -204,15 +204,15 @@ struct GNUNET_DHTLOG_Handle
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
   int (*insert_stat)
-     (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
-      unsigned int route_forwards, unsigned int result_requests,
-      unsigned int client_requests, unsigned int result_forwards,
-      unsigned int gets, unsigned int puts,
-      unsigned int data_inserts, unsigned int find_peer_requests,
-      unsigned int find_peers_started, unsigned int gets_started,
-      unsigned int puts_started, unsigned int find_peer_responses_received,
-      unsigned int get_responses_received, unsigned int find_peer_responses_sent,
-      unsigned int get_responses_sent);
+      (const struct GNUNET_PeerIdentity * peer, unsigned int route_requests,
+       unsigned int route_forwards, unsigned int result_requests,
+       unsigned int client_requests, unsigned int result_forwards,
+       unsigned int gets, unsigned int puts,
+       unsigned int data_inserts, unsigned int find_peer_requests,
+       unsigned int find_peers_started, unsigned int gets_started,
+       unsigned int puts_started, unsigned int find_peer_responses_received,
+       unsigned int get_responses_received,
+       unsigned int find_peer_responses_sent, unsigned int get_responses_sent);
 
   /*
    * Update dhttests.trials table with current server time as end time
@@ -231,7 +231,7 @@ struct GNUNET_DHTLOG_Handle
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
    */
-  int (*set_malicious) (struct GNUNET_PeerIdentity *peer);
+  int (*set_malicious) (struct GNUNET_PeerIdentity * peer);
 
   /*
    * Records the current topology (number of connections, time, trial)
@@ -250,7 +250,8 @@ struct GNUNET_DHTLOG_Handle
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-  int (*insert_extended_topology) (const struct GNUNET_PeerIdentity *first, const struct GNUNET_PeerIdentity *second);
+  int (*insert_extended_topology) (const struct GNUNET_PeerIdentity * first,
+                                   const struct GNUNET_PeerIdentity * second);
 
   /*
    * Inserts the specified stats into the dhttests.generic_stats table
@@ -262,10 +263,9 @@ struct GNUNET_DHTLOG_Handle
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-  int
-  (*add_generic_stat) (const struct GNUNET_PeerIdentity *peer,
-                       const char *name,
-                       const char *section, uint64_t value);
+  int (*add_generic_stat) (const struct GNUNET_PeerIdentity * peer,
+                           const char *name,
+                           const char *section, uint64_t value);
 
   /*
    * Inserts the specified round into the dhttests.rounds table
@@ -288,8 +288,10 @@ struct GNUNET_DHTLOG_Handle
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-  int (*insert_round_details) (unsigned int round_type, unsigned int round_count,
-                               unsigned int num_messages, unsigned int num_messages_succeeded);
+  int (*insert_round_details) (unsigned int round_type,
+                               unsigned int round_count,
+                               unsigned int num_messages,
+                               unsigned int num_messages_succeeded);
 
   /*
    * Update dhttests.trials table with total connections information
@@ -371,14 +373,14 @@ struct GNUNET_DHTLOG_Plugin
  *
  * @param c a configuration to use
  */
-struct GNUNET_DHTLOG_Handle *
-GNUNET_DHTLOG_connect (const struct GNUNET_CONFIGURATION_Handle *c);
+struct GNUNET_DHTLOG_Handle *GNUNET_DHTLOG_connect (const struct
+                                                    GNUNET_CONFIGURATION_Handle
+                                                    *c);
 
 /**
  * Shutdown the module.
  */
-void
-GNUNET_DHTLOG_disconnect (struct GNUNET_DHTLOG_Handle *api);
+void GNUNET_DHTLOG_disconnect (struct GNUNET_DHTLOG_Handle *api);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

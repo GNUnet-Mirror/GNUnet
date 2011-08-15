@@ -84,10 +84,10 @@ remove_some (void *cls,
 #endif
   GNUNET_assert (addrlen > 0);
   if (*i & (1 << (addrlen - 1)))
-    {
-      *i -= (1 << (addrlen - 1));
-      return GNUNET_NO;
-    }
+  {
+    *i -= (1 << (addrlen - 1));
+    return GNUNET_NO;
+  }
   return GNUNET_OK;
 }
 

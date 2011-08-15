@@ -43,15 +43,13 @@ not_run (void *cls, size_t size, void *buf)
 
 
 static void
-task_transmit_cancel (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+task_transmit_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
   struct GNUNET_CONNECTION_TransmitHandle *th;
   struct GNUNET_CONNECTION_Handle *csock;
 
-  csock = GNUNET_CONNECTION_create_from_connect (cfg,
-                                                 "localhost", PORT);
+  csock = GNUNET_CONNECTION_create_from_connect (cfg, "localhost", PORT);
   GNUNET_assert (csock != NULL);
   th = GNUNET_CONNECTION_notify_transmit_ready (csock,
                                                 12,

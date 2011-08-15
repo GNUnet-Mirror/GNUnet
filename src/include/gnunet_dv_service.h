@@ -76,8 +76,7 @@ int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
                     struct GNUNET_TIME_Relative timeout,
                     const void *addr,
                     size_t addrlen,
-                    GNUNET_TRANSPORT_TransmitContinuation
-                    cont, void *cont_cls);
+                    GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
 
 
 

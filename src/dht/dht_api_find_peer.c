@@ -71,28 +71,29 @@ struct GNUNET_DHT_FindPeerHandle
  * @param reply response
  */
 static void
-find_peer_reply_iterator (void *cls, 
-			  const GNUNET_HashCode *key,
-			  const struct GNUNET_PeerIdentity * const *outgoing_path,
-			  const struct GNUNET_MessageHeader *reply)
+find_peer_reply_iterator (void *cls,
+                          const GNUNET_HashCode * key,
+                          const struct GNUNET_PeerIdentity *const
+                          *outgoing_path,
+                          const struct GNUNET_MessageHeader *reply)
 {
   struct GNUNET_DHT_FindPeerHandle *find_peer_handle = cls;
   const struct GNUNET_MessageHeader *hello;
 
   if (ntohs (reply->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT)
-    {
-      GNUNET_break (0);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    return;
+  }
   GNUNET_assert (ntohs (reply->size) >= sizeof (struct GNUNET_MessageHeader));
-  hello = (const struct GNUNET_MessageHeader *)&reply[1];
-  if (ntohs(hello->type) != GNUNET_MESSAGE_TYPE_HELLO)
-    {
-      GNUNET_break (0);
-      return;
-    }
+  hello = (const struct GNUNET_MessageHeader *) &reply[1];
+  if (ntohs (hello->type) != GNUNET_MESSAGE_TYPE_HELLO)
+  {
+    GNUNET_break (0);
+    return;
+  }
   find_peer_handle->proc (find_peer_handle->proc_cls,
-			  (const struct GNUNET_HELLO_Message *)hello);
+                          (const struct GNUNET_HELLO_Message *) hello);
 }
 
 
@@ -112,27 +113,26 @@ find_peer_reply_iterator (void *cls,
 struct GNUNET_DHT_FindPeerHandle *
 GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
                             struct GNUNET_TIME_Relative timeout,
-                            const GNUNET_HashCode *key,
+                            const GNUNET_HashCode * key,
                             enum GNUNET_DHT_RouteOption options,
-                            GNUNET_DHT_FindPeerProcessor proc,
-                            void *proc_cls)
+                            GNUNET_DHT_FindPeerProcessor proc, void *proc_cls)
 {
   struct GNUNET_DHT_FindPeerHandle *find_peer_handle;
   struct GNUNET_DHT_FindPeerMessage find_peer_msg;
 
-  find_peer_handle =
-    GNUNET_malloc (sizeof (struct GNUNET_DHT_FindPeerHandle));
+  find_peer_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_FindPeerHandle));
   find_peer_handle->proc = proc;
   find_peer_handle->proc_cls = proc_cls;
-  find_peer_msg.header.size = htons(sizeof(struct GNUNET_DHT_FindPeerMessage));
-  find_peer_msg.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
+  find_peer_msg.header.size =
+      htons (sizeof (struct GNUNET_DHT_FindPeerMessage));
+  find_peer_msg.header.type = htons (GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
   find_peer_handle->route_handle =
-    GNUNET_DHT_route_start (handle, key, 
-			    0, options,
-			    &find_peer_msg.header,
-                            timeout, 
-			    &find_peer_reply_iterator, find_peer_handle,
-			    NULL, NULL);
+      GNUNET_DHT_route_start (handle, key,
+                              0, options,
+                              &find_peer_msg.header,
+                              timeout,
+                              &find_peer_reply_iterator, find_peer_handle,
+                              NULL, NULL);
   GNUNET_break (find_peer_handle->route_handle != NULL);
   return find_peer_handle;
 }

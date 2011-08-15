@@ -41,6 +41,7 @@ test_normal_rw ()
   struct GNUNET_BIO_ReadHandle *fileR;
   struct GNUNET_CONTAINER_MetaData *metaDataW;
   struct GNUNET_CONTAINER_MetaData *metaDataR;
+
   metaDataW = GNUNET_CONTAINER_meta_data_create ();
   metaDataR = NULL;
   GNUNET_CONTAINER_meta_data_add_publication_date (metaDataW);
@@ -65,8 +66,7 @@ test_normal_rw ()
                  GNUNET_BIO_read_meta_data (fileR, "Read meta error",
                                             &metaDataR));
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_meta_data_test_equal (metaDataR,
-                                                        metaDataW));
+                 GNUNET_CONTAINER_meta_data_test_equal (metaDataR, metaDataW));
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_read_int64 (fileR, &testNum));
   GNUNET_BIO_read_close (fileR, &msg);
   GNUNET_CONTAINER_meta_data_destroy (metaDataW);
@@ -173,8 +173,8 @@ test_bigmeta_rw ()
   meta[sizeof (meta) - 1] = '\0';
   fileW = GNUNET_BIO_write_open (fileName);
   GNUNET_assert (NULL != fileW);
-  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_int32 (fileW, sizeof(meta)));
-  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write (fileW, meta, sizeof(meta)));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_int32 (fileW, sizeof (meta)));
+  GNUNET_assert (GNUNET_OK == GNUNET_BIO_write (fileW, meta, sizeof (meta)));
   GNUNET_assert (GNUNET_OK == GNUNET_BIO_write_close (fileW));
 
   fileR = GNUNET_BIO_read_open (fileName);
@@ -203,7 +203,8 @@ test_directory_r ()
   fileR = GNUNET_BIO_read_open ("/dev");
   GNUNET_assert (NULL != fileR);
   GNUNET_assert (GNUNET_SYSERR ==
-                 GNUNET_BIO_read (fileR, "Read error", readResult, sizeof(readResult)));
+                 GNUNET_BIO_read (fileR, "Read error", readResult,
+                                  sizeof (readResult)));
   msg = NULL;
   GNUNET_BIO_read_close (fileR, &msg);
   GNUNET_free (msg);
@@ -215,12 +216,12 @@ static int
 test_nullfile_rw ()
 {
   static char fileNameNO[102401];
-  struct GNUNET_BIO_WriteHandle  *fileWNO;
+  struct GNUNET_BIO_WriteHandle *fileWNO;
   struct GNUNET_BIO_ReadHandle *fileRNO;
 
   memset (fileNameNO, 'a', sizeof (fileNameNO));
   fileNameNO[sizeof (fileNameNO) - 1] = '\0';
-  
+
   GNUNET_log_skip (1, GNUNET_NO);
   fileWNO = GNUNET_BIO_write_open (fileNameNO);
   GNUNET_log_skip (0, GNUNET_YES);
@@ -237,7 +238,7 @@ test_nullfile_rw ()
 static int
 test_fullfile_rw ()
 {
-#ifdef LINUX 
+#ifdef LINUX
   /* /dev/full only seems to exist on Linux */
   char *msg;
   int64_t testNum;
@@ -266,7 +267,8 @@ test_fullfile_rw ()
   fileR = GNUNET_BIO_read_open ("/dev/null");
   GNUNET_assert (NULL != fileR);
   GNUNET_assert (GNUNET_SYSERR ==
-                 GNUNET_BIO_read (fileR, "Read error", readResult, sizeof(readResult)));
+                 GNUNET_BIO_read (fileR, "Read error", readResult,
+                                  sizeof (readResult)));
   readResultString = NULL;
   GNUNET_assert (GNUNET_SYSERR ==
                  GNUNET_BIO_read_string (fileR, "Read string error",

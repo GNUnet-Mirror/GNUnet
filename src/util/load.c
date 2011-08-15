@@ -31,7 +31,7 @@
 /**
  * Values we track for load calculations.
  */
-struct GNUNET_LOAD_Value 
+struct GNUNET_LOAD_Value
 {
 
   /**
@@ -41,7 +41,7 @@ struct GNUNET_LOAD_Value
 
   /**
    * Last time this load value was updated by an event.
-   */ 
+   */
   struct GNUNET_TIME_Absolute last_update;
 
   /**
@@ -50,19 +50,19 @@ struct GNUNET_LOAD_Value
    * first 4 billion requests).
    */
   uint64_t cummulative_delay;
-  
+
   /**
    * Sum of squares of all datastore delays ever observed (in ms).   Note that
    * delays above 64k ms are excluded (to avoid overflow within
    * first 4 billion requests).
    */
   uint64_t cummulative_squared_delay;
-  
+
   /**
    * Total number of requests included in the cummulative datastore delay values.
    */
   uint64_t cummulative_request_count;
-  
+
   /**
    * Current running average datastore delay.  Its relation to the
    * average datastore delay and it std. dev. (as calcualted from the
@@ -92,23 +92,23 @@ internal_update (struct GNUNET_LOAD_Value *load)
   if (delta.rel_value < load->autodecline.rel_value)
     return;
   if (load->autodecline.rel_value == 0)
-    {
-      load->runavg_delay = 0.0;
-      load->load = 0;
-      return;
-    }
+  {
+    load->runavg_delay = 0.0;
+    load->load = 0;
+    return;
+  }
   n = delta.rel_value / load->autodecline.rel_value;
   if (n > 16)
-    {
-      load->runavg_delay = 0.0;
-      load->load = 0;
-      return;
-    }
+  {
+    load->runavg_delay = 0.0;
+    load->load = 0;
+    return;
+  }
   while (n > 0)
-    {
-      n--;
-      load->runavg_delay = (load->runavg_delay * 7.0) / 8.0;
-    }  
+  {
+    n--;
+    load->runavg_delay = (load->runavg_delay * 7.0) / 8.0;
+  }
 }
 
 
@@ -140,10 +140,10 @@ GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline)
  */
 void
 GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
-			       struct GNUNET_TIME_Relative autodecline)
+                               struct GNUNET_TIME_Relative autodecline)
 {
   internal_update (load);
-  load->autodecline = autodecline;  
+  load->autodecline = autodecline;
 }
 
 
@@ -164,25 +164,27 @@ calculate_load (struct GNUNET_LOAD_Value *load)
   if (load->cummulative_request_count <= 1)
     return;
   /* calcuate std dev of latency; we have for n values of "i" that:
-     
-     avg = (sum val_i) / n
-     stddev = (sum (val_i - avg)^2) / (n-1)
-     = (sum (val_i^2 - 2 avg val_i + avg^2) / (n-1)
-     = (sum (val_i^2) - 2 avg sum (val_i) + n * avg^2) / (n-1)
-  */
+   * 
+   * avg = (sum val_i) / n
+   * stddev = (sum (val_i - avg)^2) / (n-1)
+   * = (sum (val_i^2 - 2 avg val_i + avg^2) / (n-1)
+   * = (sum (val_i^2) - 2 avg sum (val_i) + n * avg^2) / (n-1)
+   */
   sum_val_i = (double) load->cummulative_delay;
   n = ((double) load->cummulative_request_count);
   nm1 = n - 1.0;
   avgdel = sum_val_i / n;
-  stddev = (((double) load->cummulative_squared_delay) - 2.0 * avgdel * sum_val_i + n * avgdel * avgdel) / nm1; 
+  stddev =
+      (((double) load->cummulative_squared_delay) - 2.0 * avgdel * sum_val_i +
+       n * avgdel * avgdel) / nm1;
   if (stddev <= 0)
-    stddev = 0.01; /* must have been rounding error or zero; prevent division by zero */
+    stddev = 0.01;              /* must have been rounding error or zero; prevent division by zero */
   /* now calculate load based on how far out we are from
-     std dev; or if we are below average, simply assume load zero */
+   * std dev; or if we are below average, simply assume load zero */
   if (load->runavg_delay < avgdel)
     load->load = 0.0;
   else
-    load->load = (load->runavg_delay - avgdel) / stddev;      
+    load->load = (load->runavg_delay - avgdel) / stddev;
 }
 
 
@@ -232,22 +234,21 @@ GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load)
  * @param data latest measurement value (for example, delay)
  */
 void
-GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load,
-		    uint64_t data)
+GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data)
 {
   uint32_t dv;
 
   internal_update (load);
   load->last_update = GNUNET_TIME_absolute_get ();
   if (data > 64 * 1024)
-    {
-      /* very large */
-      load->load = 100.0;
-      return;
-    }
+  {
+    /* very large */
+    load->load = 100.0;
+    return;
+  }
   dv = (uint32_t) data;
   load->cummulative_delay += dv;
-  load->cummulative_squared_delay += dv * dv; 
+  load->cummulative_squared_delay += dv * dv;
   load->cummulative_request_count++;
   load->runavg_delay = ((load->runavg_delay * 7.0) + dv) / 8.0;
 }

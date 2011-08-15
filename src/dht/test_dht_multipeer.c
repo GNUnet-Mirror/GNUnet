@@ -217,11 +217,12 @@ static char *blacklist_transports;
 
 static enum GNUNET_TESTING_Topology topology;
 
-static enum GNUNET_TESTING_Topology blacklist_topology = GNUNET_TESTING_TOPOLOGY_NONE; /* Don't do any blacklisting */
+static enum GNUNET_TESTING_Topology blacklist_topology = GNUNET_TESTING_TOPOLOGY_NONE;  /* Don't do any blacklisting */
 
 static enum GNUNET_TESTING_Topology connection_topology = GNUNET_TESTING_TOPOLOGY_NONE; /* NONE actually means connect all allowed peers */
 
-static enum GNUNET_TESTING_TopologyOption connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL;
+static enum GNUNET_TESTING_TopologyOption connect_topology_option =
+    GNUNET_TESTING_TOPOLOGY_OPTION_ALL;
 
 static double connect_topology_option_modifier = 0.0;
 
@@ -231,25 +232,26 @@ static int ok;
 /**
  * Check whether peers successfully shut down.
  */
-void shutdown_callback (void *cls,
-                        const char *emsg)
+void
+shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      if (ok == 0)
-        ok = 2;
-    }
+  {
+    if (ok == 0)
+      ok = 2;
+  }
 }
 
 /**
  * Task to release DHT handles for PUT
  */
 static void
-put_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+put_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestPutContext *test_put = cls;
+
   test_put->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_DHT_disconnect(test_put->dht_handle);
+  GNUNET_DHT_disconnect (test_put->dht_handle);
   test_put->dht_handle = NULL;
 }
 
@@ -258,31 +260,31 @@ put_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * testcase.
  */
 static void
-finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (pg != NULL);
   struct TestPutContext *test_put = all_puts;
   struct TestGetContext *test_get = all_gets;
 
   while (test_put != NULL)
-    {
-      if (test_put->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(test_put->disconnect_task);
-      if (test_put->dht_handle != NULL)
-        GNUNET_DHT_disconnect(test_put->dht_handle);
-      test_put = test_put->next;
-    }
+  {
+    if (test_put->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (test_put->disconnect_task);
+    if (test_put->dht_handle != NULL)
+      GNUNET_DHT_disconnect (test_put->dht_handle);
+    test_put = test_put->next;
+  }
 
   while (test_get != NULL)
-    {
-      if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(test_get->disconnect_task);
-      if (test_get->get_handle != NULL)
-        GNUNET_DHT_get_stop(test_get->get_handle);
-      if (test_get->dht_handle != NULL)
-        GNUNET_DHT_disconnect(test_get->dht_handle);
-      test_get = test_get->next;
-    }
+  {
+    if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (test_get->disconnect_task);
+    if (test_get->get_handle != NULL)
+      GNUNET_DHT_get_stop (test_get->get_handle);
+    if (test_get->dht_handle != NULL)
+      GNUNET_DHT_disconnect (test_get->dht_handle);
+    test_get = test_get->next;
+  }
 
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
   ok = 0;
@@ -295,32 +297,33 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * test.
  */
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failing test with error: `%s'!\n", (char *)cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failing test with error: `%s'!\n",
+              (char *) cls);
 
   struct TestPutContext *test_put = all_puts;
   struct TestGetContext *test_get = all_gets;
 
   while (test_put != NULL)
-    {
-      if (test_put->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(test_put->disconnect_task);
-      if (test_put->dht_handle != NULL)
-        GNUNET_DHT_disconnect(test_put->dht_handle);
-      test_put = test_put->next;
-    }
+  {
+    if (test_put->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (test_put->disconnect_task);
+    if (test_put->dht_handle != NULL)
+      GNUNET_DHT_disconnect (test_put->dht_handle);
+    test_put = test_put->next;
+  }
 
   while (test_get != NULL)
-    {
-      if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(test_get->disconnect_task);
-      if (test_get->get_handle != NULL)
-        GNUNET_DHT_get_stop(test_get->get_handle);
-      if (test_get->dht_handle != NULL)
-        GNUNET_DHT_disconnect(test_get->dht_handle);
-      test_get = test_get->next;
-    }
+  {
+    if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (test_get->disconnect_task);
+    if (test_get->get_handle != NULL)
+      GNUNET_DHT_get_stop (test_get->get_handle);
+    if (test_get->dht_handle != NULL)
+      GNUNET_DHT_disconnect (test_get->dht_handle);
+    test_get = test_get->next;
+  }
 
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
   ok = 1;
@@ -330,47 +333,51 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * Task to release DHT handle associated with GET request.
  */
 static void
-get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestGetContext *test_get = cls;
-  outstanding_gets--; /* GET is really finished */
-  GNUNET_DHT_disconnect(test_get->dht_handle);
+
+  outstanding_gets--;           /* GET is really finished */
+  GNUNET_DHT_disconnect (test_get->dht_handle);
   test_get->dht_handle = NULL;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%d gets succeeded, %d gets failed!\n", gets_completed, gets_failed);
-  if ((gets_completed == num_gets) && (outstanding_gets == 0))/* All gets successful */
-    {
-      GNUNET_SCHEDULER_cancel (die_task);
-      //GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5), &get_topology, NULL);
-      GNUNET_SCHEDULER_add_now(&finish_testing, NULL);
-    }
-  else if ((gets_completed + gets_failed == num_gets) && (outstanding_gets == 0)) /* Had some failures */
-    {
-      GNUNET_SCHEDULER_cancel(die_task);
-      GNUNET_SCHEDULER_add_now(&end_badly, "not all gets succeeded!\n");
-    }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%d gets succeeded, %d gets failed!\n",
+              gets_completed, gets_failed);
+  if ((gets_completed == num_gets) && (outstanding_gets == 0))  /* All gets successful */
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    //GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5), &get_topology, NULL);
+    GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
+  }
+  else if ((gets_completed + gets_failed == num_gets) && (outstanding_gets == 0))       /* Had some failures */
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    GNUNET_SCHEDULER_add_now (&end_badly, "not all gets succeeded!\n");
+  }
 }
 
 /**
  * Task to release get handle.
  */
 static void
-get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestGetContext *test_get = cls;
-  GNUNET_HashCode search_key; /* Key stored under */
-  char original_data[TEST_DATA_SIZE]; /* Made up data to store */
+  GNUNET_HashCode search_key;   /* Key stored under */
+  char original_data[TEST_DATA_SIZE];   /* Made up data to store */
 
-  memset(original_data, test_get->uid, sizeof(original_data));
-  GNUNET_CRYPTO_hash(original_data, TEST_DATA_SIZE, &search_key);
+  memset (original_data, test_get->uid, sizeof (original_data));
+  GNUNET_CRYPTO_hash (original_data, TEST_DATA_SIZE, &search_key);
 
-  if ( (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
-    {
-      gets_failed++;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get from peer %s for key %s failed!\n", test_get->daemon->shortname, GNUNET_h2s(&search_key));
-    }
-  GNUNET_assert(test_get->get_handle != NULL);
-  GNUNET_DHT_get_stop(test_get->get_handle);
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
+  {
+    gets_failed++;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Get from peer %s for key %s failed!\n",
+                test_get->daemon->shortname, GNUNET_h2s (&search_key));
+  }
+  GNUNET_assert (test_get->get_handle != NULL);
+  GNUNET_DHT_get_stop (test_get->get_handle);
   GNUNET_SCHEDULER_add_now (&get_stop_finished, test_get);
   test_get->get_handle = NULL;
   test_get->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
@@ -386,55 +393,58 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * @param size number of bytes in data
  * @param data pointer to the result data
  */
-void get_result_iterator (void *cls,
-                          struct GNUNET_TIME_Absolute exp,
-                          const GNUNET_HashCode * key,
-                          const struct GNUNET_PeerIdentity * const *get_path,
-			  const struct GNUNET_PeerIdentity * const *put_path,
-			  enum GNUNET_BLOCK_Type type,
-                          size_t size,
-                          const void *data)
+void
+get_result_iterator (void *cls,
+                     struct GNUNET_TIME_Absolute exp,
+                     const GNUNET_HashCode * key,
+                     const struct GNUNET_PeerIdentity *const *get_path,
+                     const struct GNUNET_PeerIdentity *const *put_path,
+                     enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
   struct TestGetContext *test_get = cls;
-  GNUNET_HashCode search_key; /* Key stored under */
-  char original_data[TEST_DATA_SIZE]; /* Made up data to store */
+  GNUNET_HashCode search_key;   /* Key stored under */
+  char original_data[TEST_DATA_SIZE];   /* Made up data to store */
   unsigned int i;
-  memset(original_data, test_get->uid, sizeof(original_data));
-  GNUNET_CRYPTO_hash(original_data, TEST_DATA_SIZE, &search_key);
+
+  memset (original_data, test_get->uid, sizeof (original_data));
+  GNUNET_CRYPTO_hash (original_data, TEST_DATA_SIZE, &search_key);
 
   if (test_get->succeeded == GNUNET_YES)
-    return; /* Get has already been successful, probably ending now */
+    return;                     /* Get has already been successful, probably ending now */
 
 #if PATH_TRACKING
   if (put_path != NULL)
-    {
-      fprintf(stderr, "PUT Path: ");
-      for (i = 0; put_path[i] != NULL; i++)
-        fprintf(stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s(put_path[i]));
-      fprintf(stderr, "\n");
-    }
+  {
+    fprintf (stderr, "PUT Path: ");
+    for (i = 0; put_path[i] != NULL; i++)
+      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (put_path[i]));
+    fprintf (stderr, "\n");
+  }
   if (get_path != NULL)
-    {
-      fprintf(stderr, "GET Path: ");
-      for (i = 0; get_path[i] != NULL; i++)
-        fprintf(stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s(get_path[i]));
-      fprintf(stderr, "\n");
-    }
+  {
+    fprintf (stderr, "GET Path: ");
+    for (i = 0; get_path[i] != NULL; i++)
+      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (get_path[i]));
+    fprintf (stderr, "\n");
+  }
 #endif
 
-  if ((0 != memcmp(&search_key, key, sizeof (GNUNET_HashCode))) || (0 != memcmp(original_data, data, sizeof(original_data))))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Key or data is not the same as was inserted!\n");
-    }
+  if ((0 != memcmp (&search_key, key, sizeof (GNUNET_HashCode))) ||
+      (0 != memcmp (original_data, data, sizeof (original_data))))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Key or data is not the same as was inserted!\n");
+  }
   else
-    {
-      gets_completed++;
-      test_get->succeeded = GNUNET_YES;
-    }
+  {
+    gets_completed++;
+    test_get->succeeded = GNUNET_YES;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct GET response!\n");
-  GNUNET_SCHEDULER_cancel(test_get->disconnect_task);
-  GNUNET_SCHEDULER_add_continuation(&get_stop_task, test_get, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_cancel (test_get->disconnect_task);
+  GNUNET_SCHEDULER_add_continuation (&get_stop_task, test_get,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -442,43 +452,42 @@ void get_result_iterator (void *cls,
  * Set up some data, and call API PUT function
  */
 static void
-do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestGetContext *test_get = cls;
-  GNUNET_HashCode key; /* Made up key to store data under */
-  char data[TEST_DATA_SIZE]; /* Made up data to store */
+  GNUNET_HashCode key;          /* Made up key to store data under */
+  char data[TEST_DATA_SIZE];    /* Made up data to store */
 
   if (test_get == NULL)
-    return; /* End of the list */
-  memset(data, test_get->uid, sizeof(data));
-  GNUNET_CRYPTO_hash(data, TEST_DATA_SIZE, &key);
+    return;                     /* End of the list */
+  memset (data, test_get->uid, sizeof (data));
+  GNUNET_CRYPTO_hash (data, TEST_DATA_SIZE, &key);
 
   if (outstanding_gets > MAX_OUTSTANDING_GETS)
-    {
-      GNUNET_SCHEDULER_add_delayed (GET_DELAY, &do_get, test_get);
-      return;
-    }
+  {
+    GNUNET_SCHEDULER_add_delayed (GET_DELAY, &do_get, test_get);
+    return;
+  }
 
-  test_get->dht_handle = GNUNET_DHT_connect(test_get->daemon->cfg, 10);
+  test_get->dht_handle = GNUNET_DHT_connect (test_get->daemon->cfg, 10);
   /* Insert the data at the first peer */
-  GNUNET_assert(test_get->dht_handle != NULL);
+  GNUNET_assert (test_get->dht_handle != NULL);
   outstanding_gets++;
-  test_get->get_handle = GNUNET_DHT_get_start(test_get->dht_handle,
-                                              GNUNET_TIME_UNIT_FOREVER_REL,
-                                              GNUNET_BLOCK_TYPE_TEST,
-                                              &key,
-                                              DEFAULT_GET_REPLICATION,
-                                              route_option,
-					      NULL, 0,
-					      NULL, 0,
-                                              &get_result_iterator,
-                                              test_get);
+  test_get->get_handle = GNUNET_DHT_get_start (test_get->dht_handle,
+                                               GNUNET_TIME_UNIT_FOREVER_REL,
+                                               GNUNET_BLOCK_TYPE_TEST,
+                                               &key,
+                                               DEFAULT_GET_REPLICATION,
+                                               route_option,
+                                               NULL, 0,
+                                               NULL, 0,
+                                               &get_result_iterator, test_get);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting get for uid %u from peer %s\n",
-             test_get->uid,
-             test_get->daemon->shortname);
+              test_get->uid, test_get->daemon->shortname);
 #endif
-  test_get->disconnect_task = GNUNET_SCHEDULER_add_delayed(GET_TIMEOUT, &get_stop_task, test_get);
+  test_get->disconnect_task =
+      GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &get_stop_task, test_get);
   GNUNET_SCHEDULER_add_now (&do_get, test_get->next);
 }
 
@@ -487,64 +496,68 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * Schedule the GET request for some time in the future.
  */
 static void
-put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestPutContext *test_put = cls;
+
   outstanding_puts--;
   puts_completed++;
 
-  GNUNET_SCHEDULER_cancel(test_put->disconnect_task);
-  test_put->disconnect_task = GNUNET_SCHEDULER_add_now(&put_disconnect_task, test_put);
+  GNUNET_SCHEDULER_cancel (test_put->disconnect_task);
+  test_put->disconnect_task =
+      GNUNET_SCHEDULER_add_now (&put_disconnect_task, test_put);
   if (puts_completed == num_puts)
-    {
-      GNUNET_assert(outstanding_puts == 0);
-      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10), &do_get, all_gets);
-      return;
-    }
+  {
+    GNUNET_assert (outstanding_puts == 0);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 10), &do_get,
+                                  all_gets);
+    return;
+  }
 }
 
 /**
  * Set up some data, and call API PUT function
  */
 static void
-do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestPutContext *test_put = cls;
-  GNUNET_HashCode key; /* Made up key to store data under */
-  char data[TEST_DATA_SIZE]; /* Made up data to store */
+  GNUNET_HashCode key;          /* Made up key to store data under */
+  char data[TEST_DATA_SIZE];    /* Made up data to store */
 
   if (test_put == NULL)
-    return; /* End of list */
+    return;                     /* End of list */
 
-  memset(data, test_put->uid, sizeof(data));
-  GNUNET_CRYPTO_hash(data, TEST_DATA_SIZE, &key);
+  memset (data, test_put->uid, sizeof (data));
+  GNUNET_CRYPTO_hash (data, TEST_DATA_SIZE, &key);
 
   if (outstanding_puts > MAX_OUTSTANDING_PUTS)
-    {
-      GNUNET_SCHEDULER_add_delayed (PUT_DELAY, &do_put, test_put);
-      return;
-    }
+  {
+    GNUNET_SCHEDULER_add_delayed (PUT_DELAY, &do_put, test_put);
+    return;
+  }
 
 #if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting put for uid %u from peer %s\n",
-               test_put->uid,
-               test_put->daemon->shortname);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting put for uid %u from peer %s\n",
+              test_put->uid, test_put->daemon->shortname);
 #endif
-  test_put->dht_handle = GNUNET_DHT_connect(test_put->daemon->cfg, 10);
+  test_put->dht_handle = GNUNET_DHT_connect (test_put->daemon->cfg, 10);
 
-  GNUNET_assert(test_put->dht_handle != NULL);
+  GNUNET_assert (test_put->dht_handle != NULL);
   outstanding_puts++;
-  GNUNET_DHT_put(test_put->dht_handle,
-                 &key,
-                 DEFAULT_PUT_REPLICATION,
-		 route_option,
-                 GNUNET_BLOCK_TYPE_TEST,
-                 sizeof(data), data,
-                 GNUNET_TIME_UNIT_FOREVER_ABS,
-                 GNUNET_TIME_UNIT_FOREVER_REL,
-                 &put_finished, test_put);
-  test_put->disconnect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_get_forever(), &put_disconnect_task, test_put);
-  GNUNET_SCHEDULER_add_now(&do_put, test_put->next);
+  GNUNET_DHT_put (test_put->dht_handle,
+                  &key,
+                  DEFAULT_PUT_REPLICATION,
+                  route_option,
+                  GNUNET_BLOCK_TYPE_TEST,
+                  sizeof (data), data,
+                  GNUNET_TIME_UNIT_FOREVER_ABS,
+                  GNUNET_TIME_UNIT_FOREVER_REL, &put_finished, test_put);
+  test_put->disconnect_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_get_forever (),
+                                    &put_disconnect_task, test_put);
+  GNUNET_SCHEDULER_add_now (&do_put, test_put->next);
 }
 
 
@@ -554,7 +567,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * then call actual insert functions.
  */
 static void
-setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int i;
   uint32_t temp_daemon;
@@ -563,27 +576,31 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   int remember[num_puts][num_peers];
 
   for (i = 0; i < num_puts; i++)
-    {
-      test_put = GNUNET_malloc(sizeof(struct TestPutContext));
-      test_put->uid = i;
-      temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
-      test_put->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
-      test_put->next = all_puts;
-      all_puts = test_put;
-    }
+  {
+    test_put = GNUNET_malloc (sizeof (struct TestPutContext));
+    test_put->uid = i;
+    temp_daemon =
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+    test_put->daemon = GNUNET_TESTING_daemon_get (pg, temp_daemon);
+    test_put->next = all_puts;
+    all_puts = test_put;
+  }
 
   for (i = 0; i < num_gets; i++)
-    {
-      test_get = GNUNET_malloc(sizeof(struct TestGetContext));
-      test_get->uid = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_puts);
-      temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
-      while (remember[test_get->uid][temp_daemon] == 1)
-        temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
-      test_get->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
-      remember[test_get->uid][temp_daemon] = 1;
-      test_get->next = all_gets;
-      all_gets = test_get;
-    }
+  {
+    test_get = GNUNET_malloc (sizeof (struct TestGetContext));
+    test_get->uid =
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_puts);
+    temp_daemon =
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+    while (remember[test_get->uid][temp_daemon] == 1)
+      temp_daemon =
+          GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+    test_get->daemon = GNUNET_TESTING_daemon_get (pg, temp_daemon);
+    remember[test_get->uid][temp_daemon] = 1;
+    test_get->next = all_gets;
+    all_gets = test_get;
+  }
 
   GNUNET_SCHEDULER_add_now (&do_put, all_puts);
 }
@@ -610,57 +627,61 @@ topology_callback (void *cls,
                    const char *emsg)
 {
   if (emsg == NULL)
-    {
-      total_connections++;
+  {
+    total_connections++;
 #if VERBOSE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connected peer %s to peer %s, distance %u\n",
-                 first_daemon->shortname,
-                 second_daemon->shortname,
-                 distance);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "connected peer %s to peer %s, distance %u\n",
+                first_daemon->shortname, second_daemon->shortname, distance);
 #endif
-    }
+  }
 #if VERBOSE
   else
-    {
-      failed_connections++;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to connect peer %s to peer %s with error :\n%s\n",
-                  first_daemon->shortname,
-                  second_daemon->shortname, emsg);
-    }
+  {
+    failed_connections++;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to connect peer %s to peer %s with error :\n%s\n",
+                first_daemon->shortname, second_daemon->shortname, emsg);
+  }
 #endif
 
   if (total_connections == expected_connections)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Created %d total connections, which is our target number!  Starting next phase of testing.\n",
-                  total_connections);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Created %d total connections, which is our target number!  Starting next phase of testing.\n",
+                total_connections);
 #endif
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                               &end_badly, "from setup puts/gets");
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                             &end_badly,
+                                             "from setup puts/gets");
 
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2), &setup_puts_and_gets, NULL);
-    }
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 2),
+                                  &setup_puts_and_gets, NULL);
+  }
   else if (total_connections + failed_connections == expected_connections)
-    {
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from topology_callback (too many failed connections)");
-    }
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task =
+        GNUNET_SCHEDULER_add_now (&end_badly,
+                                  "from topology_callback (too many failed connections)");
+  }
 }
 
 static void
 peers_started_callback (void *cls,
-       const struct GNUNET_PeerIdentity *id,
-       const struct GNUNET_CONFIGURATION_Handle *cfg,
-       struct GNUNET_TESTING_Daemon *d, const char *emsg)
+                        const struct GNUNET_PeerIdentity *id,
+                        const struct GNUNET_CONFIGURATION_Handle *cfg,
+                        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to start daemon with error: `%s'\n",
-                  emsg);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to start daemon with error: `%s'\n", emsg);
+    return;
+  }
   GNUNET_assert (id != NULL);
 
 #if VERBOSE
@@ -670,63 +691,69 @@ peers_started_callback (void *cls,
 
   peers_left--;
   if (peers_left == 0)
-    {
+  {
 
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "All %d daemons started, now connecting peers!\n", num_peers);
+#endif
+    GNUNET_SCHEDULER_cancel (die_task);
+
+    expected_connections = -1;
+    if ((pg != NULL) && (peers_left == 0))
+    {
+      expected_connections = GNUNET_TESTING_connect_topology (pg,
+                                                              connection_topology,
+                                                              connect_topology_option,
+                                                              connect_topology_option_modifier,
+                                                              TIMEOUT,
+                                                              num_peers,
+                                                              NULL, NULL);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All %d daemons started, now connecting peers!\n",
-                  num_peers);
+                  "Have %d expected connections\n", expected_connections);
 #endif
-      GNUNET_SCHEDULER_cancel (die_task);
-
-      expected_connections = -1;
-      if ((pg != NULL) && (peers_left == 0))
-        {
-          expected_connections = GNUNET_TESTING_connect_topology (pg,
-                                                                  connection_topology,
-                                                                  connect_topology_option,
-                                                                  connect_topology_option_modifier,
-                                                                  TIMEOUT,
-                                                                  num_peers,
-                                                                  NULL, NULL);
-#if VERBOSE
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Have %d expected connections\n", expected_connections);
-#endif
-        }
-
-      if (expected_connections == GNUNET_SYSERR)
-        {
-          die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from connect topology (bad return)");
-        }
-
-      die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                               &end_badly, "from connect topology (timeout)");
-
-      ok = 0;
     }
+
+    if (expected_connections == GNUNET_SYSERR)
+    {
+      die_task =
+          GNUNET_SCHEDULER_add_now (&end_badly,
+                                    "from connect topology (bad return)");
+    }
+
+    die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                             &end_badly,
+                                             "from connect topology (timeout)");
+
+    ok = 0;
+  }
 }
 
 static void
 create_topology ()
 {
-  peers_left = num_peers; /* Reset counter */
-  if (GNUNET_TESTING_create_topology (pg, topology, blacklist_topology, blacklist_transports) != GNUNET_SYSERR)
-    {
+  peers_left = num_peers;       /* Reset counter */
+  if (GNUNET_TESTING_create_topology
+      (pg, topology, blacklist_topology, blacklist_transports) != GNUNET_SYSERR)
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Topology set up, now starting peers!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Topology set up, now starting peers!\n");
 #endif
-      GNUNET_TESTING_daemons_continue_startup(pg);
-    }
+    GNUNET_TESTING_daemons_continue_startup (pg);
+  }
   else
-    {
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from create topology (bad return)");
-    }
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task =
+        GNUNET_SCHEDULER_add_now (&end_badly,
+                                  "from create topology (bad return)");
+  }
   GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                           &end_badly, "from continue startup (timeout)");
+                                           &end_badly,
+                                           "from continue startup (timeout)");
 }
 
 /**
@@ -737,39 +764,40 @@ create_topology ()
  * @param d the daemon handle (pretty useless at this point, remove?)
  * @param emsg non-null on failure
  */
-void hostkey_callback (void *cls,
-                       const struct GNUNET_PeerIdentity *id,
-                       struct GNUNET_TESTING_Daemon *d,
-                       const char *emsg)
+void
+hostkey_callback (void *cls,
+                  const struct GNUNET_PeerIdentity *id,
+                  struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Hostkey callback received error: %s\n", emsg);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Hostkey callback received error: %s\n", emsg);
+  }
 
 #if VERBOSE > 1
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Hostkey (%d/%d) created for peer `%s'\n",
-                num_peers - peers_left, num_peers, GNUNET_i2s(id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Hostkey (%d/%d) created for peer `%s'\n",
+              num_peers - peers_left, num_peers, GNUNET_i2s (id));
 #endif
 
 
-    peers_left--;
-    if (peers_left == 0)
-      {
+  peers_left--;
+  if (peers_left == 0)
+  {
 #if VERBOSE
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "All %d hostkeys created, now creating topology!\n",
-                    num_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "All %d hostkeys created, now creating topology!\n", num_peers);
 #endif
-        GNUNET_SCHEDULER_cancel (die_task);
-        /* Set up task in case topology creation doesn't finish
-         * within a reasonable amount of time */
-        die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                                 &end_badly, "from create_topology");
-        GNUNET_SCHEDULER_add_now(&create_topology, NULL);
-        ok = 0;
-      }
+    GNUNET_SCHEDULER_cancel (die_task);
+    /* Set up task in case topology creation doesn't finish
+     * within a reasonable amount of time */
+    die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                             &end_badly,
+                                             "from create_topology");
+    GNUNET_SCHEDULER_add_now (&create_topology, NULL);
+    ok = 0;
+  }
 }
 
 
@@ -778,11 +806,11 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char * topology_str;
-  char * connect_topology_str;
-  char * blacklist_topology_str;
-  char * connect_topology_option_str;
-  char * connect_topology_option_modifier_string;
+  char *topology_str;
+  char *connect_topology_str;
+  char *blacklist_topology_str;
+  char *connect_topology_option_str;
+  char *connect_topology_option_modifier_string;
 
 #if PATH_TRACKING
   route_option = GNUNET_DHT_RO_RECORD_ROUTE;
@@ -791,66 +819,91 @@ run (void *cls,
 #endif
 
   /* Get path from configuration file */
-  if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string(cfg, "paths", "servicehome", &test_directory))
-    {
-      ok = 404;
-      return;
-    }
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
+                                             &test_directory))
+  {
+    ok = 404;
+    return;
+  }
 
   if ((GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "topology",
-                                            &topology_str)) && (GNUNET_NO == GNUNET_TESTING_topology_get(&topology, topology_str)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid topology `%s' given for section %s option %s\n", topology_str, "TESTING", "TOPOLOGY");
-      topology = GNUNET_TESTING_TOPOLOGY_CLIQUE; /* Defaults to NONE, so set better default here */
-    }
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "topology",
+                                              &topology_str)) &&
+      (GNUNET_NO == GNUNET_TESTING_topology_get (&topology, topology_str)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid topology `%s' given for section %s option %s\n",
+                topology_str, "TESTING", "TOPOLOGY");
+    topology = GNUNET_TESTING_TOPOLOGY_CLIQUE;  /* Defaults to NONE, so set better default here */
+  }
 
   if ((GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "connect_topology",
-                                            &connect_topology_str)) && (GNUNET_NO == GNUNET_TESTING_topology_get(&connection_topology, connect_topology_str)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid connect topology `%s' given for section %s option %s\n", connect_topology_str, "TESTING", "CONNECT_TOPOLOGY");
-    }
-  GNUNET_free_non_null(connect_topology_str);
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                              "connect_topology",
+                                              &connect_topology_str)) &&
+      (GNUNET_NO ==
+       GNUNET_TESTING_topology_get (&connection_topology,
+                                    connect_topology_str)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid connect topology `%s' given for section %s option %s\n",
+                connect_topology_str, "TESTING", "CONNECT_TOPOLOGY");
+  }
+  GNUNET_free_non_null (connect_topology_str);
   if ((GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "connect_topology_option",
-                                            &connect_topology_option_str)) && (GNUNET_NO == GNUNET_TESTING_topology_option_get(&connect_topology_option, connect_topology_option_str)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid connect topology option `%s' given for section %s option %s\n", connect_topology_option_str, "TESTING", "CONNECT_TOPOLOGY_OPTION");
-      connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL; /* Defaults to NONE, set to ALL */
-    }
-  GNUNET_free_non_null(connect_topology_option_str);
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                              "connect_topology_option",
+                                              &connect_topology_option_str)) &&
+      (GNUNET_NO ==
+       GNUNET_TESTING_topology_option_get (&connect_topology_option,
+                                           connect_topology_option_str)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid connect topology option `%s' given for section %s option %s\n",
+                connect_topology_option_str, "TESTING",
+                "CONNECT_TOPOLOGY_OPTION");
+    connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL;       /* Defaults to NONE, set to ALL */
+  }
+  GNUNET_free_non_null (connect_topology_option_str);
   if (GNUNET_YES ==
-        GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "connect_topology_option_modifier",
-                                               &connect_topology_option_modifier_string))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                             "connect_topology_option_modifier",
+                                             &connect_topology_option_modifier_string))
+  {
+    if (sscanf
+        (connect_topology_option_modifier_string, "%lf",
+         &connect_topology_option_modifier) != 1)
     {
-      if (sscanf(connect_topology_option_modifier_string, "%lf", &connect_topology_option_modifier) != 1)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-        _("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
-        connect_topology_option_modifier_string,
-        "connect_topology_option_modifier",
-        "TESTING");
-      }
-      GNUNET_free (connect_topology_option_modifier_string);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _
+                  ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+                  connect_topology_option_modifier_string,
+                  "connect_topology_option_modifier", "TESTING");
     }
+    GNUNET_free (connect_topology_option_modifier_string);
+  }
 
-  if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "blacklist_transports",
-                                         &blacklist_transports))
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                             "blacklist_transports",
+                                             &blacklist_transports))
     blacklist_transports = NULL;
 
   if ((GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "blacklist_topology",
-                                            &blacklist_topology_str)) && (GNUNET_NO == GNUNET_TESTING_topology_get(&blacklist_topology, blacklist_topology_str)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid topology `%s' given for section %s option %s\n", topology_str, "TESTING", "BLACKLIST_TOPOLOGY");
-    }
-  GNUNET_free_non_null(topology_str);
-  GNUNET_free_non_null(blacklist_topology_str);
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+                                              "blacklist_topology",
+                                              &blacklist_topology_str)) &&
+      (GNUNET_NO ==
+       GNUNET_TESTING_topology_get (&blacklist_topology,
+                                    blacklist_topology_str)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid topology `%s' given for section %s option %s\n",
+                topology_str, "TESTING", "BLACKLIST_TOPOLOGY");
+  }
+  GNUNET_free_non_null (topology_str);
+  GNUNET_free_non_null (blacklist_topology_str);
 
   /* Get number of peers to start from configuration */
   if (GNUNET_SYSERR ==
@@ -872,21 +925,22 @@ run (void *cls,
   peers_left = num_peers;
 
   /* Set up a task to end testing if peer start fails */
-  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START * num_peers),
-                                           &end_badly, "didn't generate all hostkeys within a reasonable amount of time!!!");
+  die_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS,
+                                     SECONDS_PER_PEER_START * num_peers),
+                                    &end_badly,
+                                    "didn't generate all hostkeys within a reasonable amount of time!!!");
 
-  pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left, /* Total number of peers */
-                                     peers_left, /* Number of outstanding connections */
-                                     peers_left, /* Number of parallel ssh connections, or peers being started at once */
-                                     GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START * num_peers),
-                                     &hostkey_callback,
-                                     NULL,
-                                     &peers_started_callback,
-                                     NULL,
-                                     &topology_callback,
-                                     NULL,
-                                     NULL);
+  pg = GNUNET_TESTING_daemons_start (cfg, peers_left,   /* Total number of peers */
+                                     peers_left,        /* Number of outstanding connections */
+                                     peers_left,        /* Number of parallel ssh connections, or peers being started at once */
+                                     GNUNET_TIME_relative_multiply
+                                     (GNUNET_TIME_UNIT_SECONDS,
+                                      SECONDS_PER_PEER_START * num_peers),
+                                     &hostkey_callback, NULL,
+                                     &peers_started_callback, NULL,
+                                     &topology_callback, NULL, NULL);
 
 }
 
@@ -894,10 +948,11 @@ static int
 check ()
 {
   int ret;
+
   /* Arguments for GNUNET_PROGRAM_run */
-  char *const argv[] = {"test-dht-multipeer", /* Name to give running binary */
+  char *const argv[] = { "test-dht-multipeer",  /* Name to give running binary */
     "-c",
-    "test_dht_multipeer_data.conf", /* Config file to use */
+    "test_dht_multipeer_data.conf",     /* Config file to use */
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -908,12 +963,13 @@ check ()
   };
   /* Run the run function as a new program */
   ret = GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-dht-multipeer", "nohelp",
-                      options, &run, &ok);
+                            argv, "test-dht-multipeer", "nohelp",
+                            options, &run, &ok);
   if (ret != GNUNET_OK)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "`test-dht-multipeer': Failed with error code %d\n", ret);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "`test-dht-multipeer': Failed with error code %d\n", ret);
+  }
   return ok;
 }
 
@@ -935,9 +991,10 @@ main (int argc, char *argv[])
    * of by the testing framework.
    */
   if (GNUNET_DISK_directory_remove (test_directory) != GNUNET_OK)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to remove testing directory %s\n", test_directory);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to remove testing directory %s\n", test_directory);
+  }
   return ret;
 }
 

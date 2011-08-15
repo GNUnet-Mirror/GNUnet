@@ -213,7 +213,7 @@ struct DataMessage
    * Priority of the item (NBO), zero for remove.
    */
   uint32_t priority GNUNET_PACKED;
-  
+
   /**
    * Desired anonymity level (NBO), zero for remove.
    */
@@ -236,7 +236,7 @@ struct DataMessage
    * the key and content).
    */
   uint64_t uid;
-  
+
   /**
    * Expiration time (NBO); zero for remove.
    */

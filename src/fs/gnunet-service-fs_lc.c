@@ -170,16 +170,13 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
   struct GSF_LocalClient *pos;
 
   pos = client_head;
-  while ( (pos != NULL) &&
-	  (pos->client != client) )
+  while ((pos != NULL) && (pos->client != client))
     pos = pos->next;
   if (pos != NULL)
     return pos;
   pos = GNUNET_malloc (sizeof (struct GSF_LocalClient));
   pos->client = client;
-  GNUNET_CONTAINER_DLL_insert (client_head,
-			       client_tail,
-			       pos);
+  GNUNET_CONTAINER_DLL_insert (client_head, client_tail, pos);
   return pos;
 }
 
@@ -189,24 +186,21 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
  *
  * @param cls the client request to free
  * @param tc task context
- */ 
+ */
 static void
 client_request_destroy (void *cls,
-			const struct GNUNET_SCHEDULER_TaskContext *tc)
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ClientRequest *cr = cls;
   struct GSF_LocalClient *lc;
 
   cr->kill_task = GNUNET_SCHEDULER_NO_TASK;
   lc = cr->lc;
-  GNUNET_CONTAINER_DLL_remove (lc->cr_head,
-			       lc->cr_tail,
-			       cr);
+  GNUNET_CONTAINER_DLL_remove (lc->cr_head, lc->cr_tail, cr);
   GSF_pending_request_cancel_ (cr->pr, GNUNET_NO);
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# client searches active"),
-			    - 1,
-			    GNUNET_NO);
+                            gettext_noop ("# client searches active"),
+                            -1, GNUNET_NO);
   GNUNET_free (cr);
 }
 
@@ -230,13 +224,12 @@ client_request_destroy (void *cls,
  */
 static void
 client_response_handler (void *cls,
-			 enum GNUNET_BLOCK_EvaluationResult eval,
-			 struct GSF_PendingRequest *pr,
-			 uint32_t reply_anonymity_level,
-			 struct GNUNET_TIME_Absolute expiration,
-			 enum GNUNET_BLOCK_Type type,
-			 const void *data,
-			 size_t data_len)
+                         enum GNUNET_BLOCK_EvaluationResult eval,
+                         struct GSF_PendingRequest *pr,
+                         uint32_t reply_anonymity_level,
+                         struct GNUNET_TIME_Absolute expiration,
+                         enum GNUNET_BLOCK_Type type,
+                         const void *data, size_t data_len)
 {
   struct ClientRequest *cr = cls;
   struct GSF_LocalClient *lc;
@@ -245,47 +238,44 @@ client_response_handler (void *cls,
   size_t msize;
 
   if (NULL == data)
-    {
-      /* ugh, request 'timed out' -- how can this be? */
-      GNUNET_break (0);
-      return;
-    }
+  {
+    /* ugh, request 'timed out' -- how can this be? */
+    GNUNET_break (0);
+    return;
+  }
   prd = GSF_pending_request_get_data_ (pr);
   GNUNET_break (type != GNUNET_BLOCK_TYPE_ANY);
-  if ( (prd->type != type) &&
-       (prd->type != GNUNET_BLOCK_TYPE_ANY) )
-    {
-      GNUNET_break (0);
-      return;
-    }
+  if ((prd->type != type) && (prd->type != GNUNET_BLOCK_TYPE_ANY))
+  {
+    GNUNET_break (0);
+    return;
+  }
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# replies received for local clients"),
-			    1,
-			    GNUNET_NO);
+                            gettext_noop
+                            ("# replies received for local clients"), 1,
+                            GNUNET_NO);
   GNUNET_assert (pr == cr->pr);
   lc = cr->lc;
   msize = sizeof (struct PutMessage) + data_len;
   {
     char buf[msize];
-    
-    pm = (struct PutMessage*) buf;
+
+    pm = (struct PutMessage *) buf;
     pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
     pm->header.size = htons (msize);
     pm->type = htonl (type);
     pm->expiration = GNUNET_TIME_absolute_hton (expiration);
-    memcpy (&pm[1], data, data_len);      
+    memcpy (&pm[1], data, data_len);
     GSF_local_client_transmit_ (lc, &pm->header);
   }
 #if DEBUG_FS_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Queued reply to query `%s' for local client\n",
-	      GNUNET_h2s (&prd->query),
-	      (unsigned int) prd->type);
+              "Queued reply to query `%s' for local client\n",
+              GNUNET_h2s (&prd->query), (unsigned int) prd->type);
 #endif
   if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
     return;
-  cr->kill_task = GNUNET_SCHEDULER_add_now (&client_request_destroy,
-					    cr);
+  cr->kill_task = GNUNET_SCHEDULER_add_now (&client_request_destroy, cr);
 }
 
 
@@ -298,7 +288,8 @@ client_response_handler (void *cls,
  */
 struct GSF_PendingRequest *
 GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
-					const struct GNUNET_MessageHeader *message)
+                                        const struct GNUNET_MessageHeader
+                                        *message)
 {
   static GNUNET_HashCode all_zeros;
   const struct SearchMessage *sm;
@@ -311,99 +302,84 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
   enum GSF_PendingRequestOptions options;
 
   msize = ntohs (message->size);
-  if ( (msize < sizeof (struct SearchMessage)) ||
-       (0 != (msize - sizeof (struct SearchMessage)) % sizeof (GNUNET_HashCode)) )
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client,
-				  GNUNET_SYSERR);
-      return NULL;
-    }
+  if ((msize < sizeof (struct SearchMessage)) ||
+      (0 != (msize - sizeof (struct SearchMessage)) % sizeof (GNUNET_HashCode)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return NULL;
+  }
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# client searches received"),
-			    1,
-			    GNUNET_NO);
+                            gettext_noop ("# client searches received"),
+                            1, GNUNET_NO);
   sc = (msize - sizeof (struct SearchMessage)) / sizeof (GNUNET_HashCode);
-  sm = (const struct SearchMessage*) message;
+  sm = (const struct SearchMessage *) message;
   type = ntohl (sm->type);
 #if DEBUG_FS_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received request for `%s' of type %u from local client\n",
-	      GNUNET_h2s (&sm->query),
-	      (unsigned int) type);
+              "Received request for `%s' of type %u from local client\n",
+              GNUNET_h2s (&sm->query), (unsigned int) type);
 #endif
   lc = GSF_local_client_lookup_ (client);
 
   /* detect duplicate KBLOCK requests */
-  if ( (type == GNUNET_BLOCK_TYPE_FS_KBLOCK) ||
-       (type == GNUNET_BLOCK_TYPE_FS_NBLOCK) ||
-       (type == GNUNET_BLOCK_TYPE_ANY) )
+  if ((type == GNUNET_BLOCK_TYPE_FS_KBLOCK) ||
+      (type == GNUNET_BLOCK_TYPE_FS_NBLOCK) || (type == GNUNET_BLOCK_TYPE_ANY))
+  {
+    /* FIXME: this does currently not work to filter duplicate
+     * results from *local* datastore since the local store is
+     * queried before we continue to process additional
+     * messages from the client! -- fix protocol? */
+    cr = lc->cr_head;
+    while (cr != NULL)
     {
-      /* FIXME: this does currently not work to filter duplicate
-	 results from *local* datastore since the local store is
-	 queried before we continue to process additional
-	 messages from the client! -- fix protocol? */
-      cr = lc->cr_head;
-      while (cr != NULL) 
-	{
-	  prd = GSF_pending_request_get_data_ (cr->pr);
-	  if ( (0 != memcmp (&prd->query,
-			     &sm->query,
-			     sizeof (GNUNET_HashCode))) &&
-	       (prd->type == type) )
-	    break;
-	  cr = cr->next;
-	}
-      if (cr != NULL) 	
-	{ 
-#if DEBUG_FS_CLIENT
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Have existing request, merging content-seen lists.\n");
-#endif
-	  GSF_pending_request_update_ (cr->pr,
-				       (const GNUNET_HashCode*) &sm[1],
-				       sc);
-	  GNUNET_STATISTICS_update (GSF_stats,
-				    gettext_noop ("# client searches updated (merged content seen list)"),
-				    1,
-				    GNUNET_NO);
-	  GNUNET_SERVER_receive_done (client,
-				      GNUNET_OK);
-	  return NULL;
-	}
+      prd = GSF_pending_request_get_data_ (cr->pr);
+      if ((0 != memcmp (&prd->query,
+                        &sm->query,
+                        sizeof (GNUNET_HashCode))) && (prd->type == type))
+        break;
+      cr = cr->next;
     }
+    if (cr != NULL)
+    {
+#if DEBUG_FS_CLIENT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Have existing request, merging content-seen lists.\n");
+#endif
+      GSF_pending_request_update_ (cr->pr,
+                                   (const GNUNET_HashCode *) &sm[1], sc);
+      GNUNET_STATISTICS_update (GSF_stats,
+                                gettext_noop
+                                ("# client searches updated (merged content seen list)"),
+                                1, GNUNET_NO);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return NULL;
+    }
+  }
 
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# client searches active"),
-			    1,
-			    GNUNET_NO);
+                            gettext_noop ("# client searches active"),
+                            1, GNUNET_NO);
   cr = GNUNET_malloc (sizeof (struct ClientRequest));
   cr->lc = lc;
-  GNUNET_CONTAINER_DLL_insert (lc->cr_head,
-			       lc->cr_tail,
-			       cr);
-  options = GSF_PRO_LOCAL_REQUEST;  
+  GNUNET_CONTAINER_DLL_insert (lc->cr_head, lc->cr_tail, cr);
+  options = GSF_PRO_LOCAL_REQUEST;
   if (0 != (1 & ntohl (sm->options)))
     options |= GSF_PRO_LOCAL_ONLY;
-  cr->pr = GSF_pending_request_create_ (options,
-					type,
-					&sm->query,
-					(type == GNUNET_BLOCK_TYPE_FS_SBLOCK)
-					? &sm->target /* namespace */
-					: NULL,
-					(0 != memcmp (&sm->target,
-						      &all_zeros,
-						      sizeof (GNUNET_HashCode)))
-					? (const struct GNUNET_PeerIdentity*) &sm->target
-					: NULL,
-					NULL, 0, 0 /* bf */, 
-					ntohl (sm->anonymity_level),
-					0 /* priority */,
-					0 /* ttl */,
-					0 /* sender PID */,
-					(const GNUNET_HashCode*) &sm[1], sc,
-					&client_response_handler,
-					cr);
+  cr->pr = GSF_pending_request_create_ (options, type, &sm->query, (type == GNUNET_BLOCK_TYPE_FS_SBLOCK) ? &sm->target  /* namespace */
+                                        : NULL,
+                                        (0 != memcmp (&sm->target,
+                                                      &all_zeros,
+                                                      sizeof (GNUNET_HashCode)))
+                                        ? (const struct GNUNET_PeerIdentity *)
+                                        &sm->target : NULL, NULL, 0,
+                                        0 /* bf */ ,
+                                        ntohl (sm->anonymity_level),
+                                        0 /* priority */ ,
+                                        0 /* ttl */ ,
+                                        0 /* sender PID */ ,
+                                        (const GNUNET_HashCode *) &sm[1], sc,
+                                        &client_response_handler, cr);
   return cr->pr;
 }
 
@@ -422,36 +398,30 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
  * @return number of bytes written to buf
  */
 static size_t
-transmit_to_client (void *cls,
-		    size_t size,
-		    void *buf)
+transmit_to_client (void *cls, size_t size, void *buf)
 {
   struct GSF_LocalClient *lc = cls;
   char *cbuf = buf;
   struct ClientResponse *res;
   size_t msize;
-  
+
   lc->th = NULL;
   if (NULL == buf)
     return 0;
   msize = 0;
-  while ( (NULL != (res = lc->res_head) ) &&
-	  (res->msize <= size) )
-    {
-      memcpy (&cbuf[msize], &res[1], res->msize);
-      msize += res->msize;
-      size -= res->msize;
-      GNUNET_CONTAINER_DLL_remove (lc->res_head,
-				   lc->res_tail,
-				   res);
-      GNUNET_free (res);
-    }
+  while ((NULL != (res = lc->res_head)) && (res->msize <= size))
+  {
+    memcpy (&cbuf[msize], &res[1], res->msize);
+    msize += res->msize;
+    size -= res->msize;
+    GNUNET_CONTAINER_DLL_remove (lc->res_head, lc->res_tail, res);
+    GNUNET_free (res);
+  }
   if (NULL != res)
     lc->th = GNUNET_SERVER_notify_transmit_ready (lc->client,
-						  res->msize,
-						  GNUNET_TIME_UNIT_FOREVER_REL,
-						  &transmit_to_client,
-						  lc);
+                                                  res->msize,
+                                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                                  &transmit_to_client, lc);
   return msize;
 }
 
@@ -466,7 +436,7 @@ transmit_to_client (void *cls,
  */
 void
 GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
-			    const struct GNUNET_MessageHeader *msg)
+                            const struct GNUNET_MessageHeader *msg)
 {
   struct ClientResponse *res;
   size_t msize;
@@ -476,15 +446,12 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
   res->lc = lc;
   res->msize = msize;
   memcpy (&res[1], msg, msize);
-  GNUNET_CONTAINER_DLL_insert_tail (lc->res_head,
-				    lc->res_tail,
-				    res);
+  GNUNET_CONTAINER_DLL_insert_tail (lc->res_head, lc->res_tail, res);
   if (NULL == lc->th)
     lc->th = GNUNET_SERVER_notify_transmit_ready (lc->client,
-						  msize,
-						  GNUNET_TIME_UNIT_FOREVER_REL,
-						  &transmit_to_client,
-						  lc);
+                                                  msize,
+                                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                                  &transmit_to_client, lc);
 }
 
 
@@ -496,49 +463,40 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
  * @param client handle of the client
  */
 void
-GSF_client_disconnect_handler_ (void *cls,
-				struct GNUNET_SERVER_Client *client)
+GSF_client_disconnect_handler_ (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct GSF_LocalClient *pos;
   struct ClientRequest *cr;
   struct ClientResponse *res;
 
   pos = client_head;
-  while ( (pos != NULL) &&
-	  (pos->client != client) )
+  while ((pos != NULL) && (pos->client != client))
     pos = pos->next;
   if (pos == NULL)
     return;
   while (NULL != (cr = pos->cr_head))
-    {      
-      GNUNET_CONTAINER_DLL_remove (pos->cr_head,
-				   pos->cr_tail,
-				   cr);
-      GSF_pending_request_cancel_ (cr->pr, GNUNET_NO);
-      GNUNET_STATISTICS_update (GSF_stats,
-				gettext_noop ("# client searches active"),
-				- 1,
-				GNUNET_NO);
-      if (GNUNET_SCHEDULER_NO_TASK != cr->kill_task)
-	GNUNET_SCHEDULER_cancel (cr->kill_task);
-      GNUNET_free (cr);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (pos->cr_head, pos->cr_tail, cr);
+    GSF_pending_request_cancel_ (cr->pr, GNUNET_NO);
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop ("# client searches active"),
+                              -1, GNUNET_NO);
+    if (GNUNET_SCHEDULER_NO_TASK != cr->kill_task)
+      GNUNET_SCHEDULER_cancel (cr->kill_task);
+    GNUNET_free (cr);
+  }
   while (NULL != (res = pos->res_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (pos->res_head,
-				   pos->res_tail,
-				   res);
-      GNUNET_free (res);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (pos->res_head, pos->res_tail, res);
+    GNUNET_free (res);
+  }
   if (pos->th != NULL)
-    {
-      GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->th);
-      pos->th = NULL;
-    }
+  {
+    GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->th);
+    pos->th = NULL;
+  }
   GSF_handle_local_client_disconnect_ (pos);
-  GNUNET_CONTAINER_DLL_remove (client_head,
-			       client_tail,
-			       pos);
+  GNUNET_CONTAINER_DLL_remove (client_head, client_tail, pos);
   GNUNET_free (pos);
 }
 

@@ -48,33 +48,33 @@ end2_cb (void *cls, const char *emsg)
 {
 
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Ending with error: %s\n", emsg);
-      ok = 1;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Ending with error: %s\n", emsg);
+    ok = 1;
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Both daemons terminated, will now exit.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Both daemons terminated, will now exit.\n");
 #endif
-      ok = 0;
-    }
+    ok = 0;
+  }
 }
 
 static void
 end1_cb (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Stopping daemon 1 gave: %s\n",
-                  emsg);
-      ok = 1;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Stopping daemon 1 gave: %s\n",
+                emsg);
+    ok = 1;
+  }
   else
-    {
-      ok = 0;
-    }
+  {
+    ok = 0;
+  }
 
   GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &end2_cb, NULL, GNUNET_YES,
                               GNUNET_NO);
@@ -117,8 +117,7 @@ my_cb2 (void *cls,
 #endif
   GNUNET_TESTING_daemons_connect (d1, d2,
                                   TIMEOUT, CONNECT_ATTEMPTS,
-                                  GNUNET_YES,
-                                  &my_connect_complete, NULL);
+                                  GNUNET_YES, &my_connect_complete, NULL);
 }
 
 
@@ -133,9 +132,8 @@ my_cb1 (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemon `%s' started.\n", GNUNET_i2s (id));
 #endif
-  d2 =
-    GNUNET_TESTING_daemon_start (c2, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL, NULL, NULL,
-                                 &my_cb2, NULL);
+  d2 = GNUNET_TESTING_daemon_start (c2, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL,
+                                    NULL, NULL, &my_cb2, NULL);
   GNUNET_assert (d2 != NULL);
 
 }
@@ -154,9 +152,8 @@ run (void *cls,
   GNUNET_CONFIGURATION_parse (c1, "test_testing_connect_peer1.conf");
   c2 = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_parse (c2, "test_testing_connect_peer2.conf");
-  d1 =
-    GNUNET_TESTING_daemon_start (c1, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL, NULL, NULL,
-                                 &my_cb1, NULL);
+  d1 = GNUNET_TESTING_daemon_start (c1, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL,
+                                    NULL, NULL, &my_cb1, NULL);
   GNUNET_assert (d1 != NULL);
 }
 

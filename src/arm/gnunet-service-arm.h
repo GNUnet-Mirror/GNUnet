@@ -36,8 +36,7 @@
  * @return GNUNET_OK on success
  */
 int start_service (struct GNUNET_SERVER_Client *client,
-		   const char *servicename,
-		   const int *lsocks);
+                   const char *servicename, const int *lsocks);
 
 /**
  * Stop listening for connections to a service.
@@ -49,6 +48,6 @@ int start_service (struct GNUNET_SERVER_Client *client,
 int stop_listening (const char *serviceName);
 
 void prepareServices (const struct GNUNET_CONFIGURATION_Handle
-		      *configurationHandle);
+                      *configurationHandle);
 
 #endif

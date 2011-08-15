@@ -102,58 +102,55 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct ShutdownContext *shutdown_ctx = cls;
 
-  if ((msg == NULL) && (shutdown_ctx->confirmed != GNUNET_YES))   
-    {
-      /* Means the other side closed the connection and never confirmed a shutdown */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
-		  "Service handle shutdown before ACK!\n");
-      if (shutdown_ctx->cont != NULL)
-        shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);      
-      GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
-      GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
-      GNUNET_free(shutdown_ctx);
-    }
+  if ((msg == NULL) && (shutdown_ctx->confirmed != GNUNET_YES))
+  {
+    /* Means the other side closed the connection and never confirmed a shutdown */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Service handle shutdown before ACK!\n");
+    if (shutdown_ctx->cont != NULL)
+      shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_SYSERR);
+    GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
+    GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+    GNUNET_free (shutdown_ctx);
+  }
   else if ((msg == NULL) && (shutdown_ctx->confirmed == GNUNET_YES))
-    {
+  {
 #if VERBOSE
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
-		 "Service shutdown complete.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service shutdown complete.\n");
 #endif
-      if (shutdown_ctx->cont != NULL)
-        shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_NO);
+    if (shutdown_ctx->cont != NULL)
+      shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_NO);
 
-      GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
-      GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
-      GNUNET_free(shutdown_ctx);
-    }
+    GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
+    GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+    GNUNET_free (shutdown_ctx);
+  }
   else
+  {
+    GNUNET_assert (ntohs (msg->size) == sizeof (struct GNUNET_MessageHeader));
+    switch (ntohs (msg->type))
     {
-      GNUNET_assert(ntohs(msg->size) == sizeof(struct GNUNET_MessageHeader));
-      switch (ntohs(msg->type))
-	{
-	case GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN_ACK:
+    case GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN_ACK:
 #if VERBOSE
-	  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-		     "Received confirmation for service shutdown.\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Received confirmation for service shutdown.\n");
 #endif
-	  shutdown_ctx->confirmed = GNUNET_YES;
-	  GNUNET_CLIENT_receive (shutdown_ctx->sock, 
-				 &service_shutdown_handler, 
-				 shutdown_ctx, 
-				 GNUNET_TIME_UNIT_FOREVER_REL);
-	  break;
-	default: /* Fall through */
-	  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
-		     "Service shutdown refused!\n");
-	  if (shutdown_ctx->cont != NULL)
-	    shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_YES);
-	  
-	  GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
-	  GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
-	  GNUNET_free(shutdown_ctx);
-	  break;
-	}
+      shutdown_ctx->confirmed = GNUNET_YES;
+      GNUNET_CLIENT_receive (shutdown_ctx->sock,
+                             &service_shutdown_handler,
+                             shutdown_ctx, GNUNET_TIME_UNIT_FOREVER_REL);
+      break;
+    default:                   /* Fall through */
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Service shutdown refused!\n");
+      if (shutdown_ctx->cont != NULL)
+        shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_YES);
+
+      GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
+      GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+      GNUNET_free (shutdown_ctx);
+      break;
     }
+  }
 }
 
 /**
@@ -162,14 +159,16 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-void service_shutdown_cancel (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext * tc)
+void
+service_shutdown_cancel (void *cls,
+                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ShutdownContext *shutdown_ctx = cls;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "service_shutdown_cancel called!\n");
-  shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "service_shutdown_cancel called!\n");
+  shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_SYSERR);
   GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
-  GNUNET_free(shutdown_ctx);
+  GNUNET_free (shutdown_ctx);
 }
 
 
@@ -189,21 +188,22 @@ write_shutdown (void *cls, size_t size, void *buf)
   struct ShutdownContext *shutdown_ctx = cls;
 
   if (size < sizeof (struct GNUNET_MessageHeader))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Failed to transmit shutdown request to client.\n"));
-      shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
-      GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
-      GNUNET_free(shutdown_ctx);
-      return 0;                 /* client disconnected */
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to transmit shutdown request to client.\n"));
+    shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_SYSERR);
+    GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+    GNUNET_free (shutdown_ctx);
+    return 0;                   /* client disconnected */
+  }
 
   GNUNET_CLIENT_receive (shutdown_ctx->sock,
-			 &service_shutdown_handler, shutdown_ctx, 
-			 GNUNET_TIME_UNIT_FOREVER_REL);
-  shutdown_ctx->cancel_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining(shutdown_ctx->timeout),
-							    &service_shutdown_cancel, 
-							    shutdown_ctx);
+                         &service_shutdown_handler, shutdown_ctx,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
+  shutdown_ctx->cancel_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
+                                    (shutdown_ctx->timeout),
+                                    &service_shutdown_cancel, shutdown_ctx);
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -226,22 +226,22 @@ write_shutdown (void *cls, size_t size, void *buf)
  */
 static void
 arm_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
-		      struct GNUNET_TIME_Relative timeout,
-		      GNUNET_CLIENT_ShutdownTask cont,
-		      void *cont_cls)
+                      struct GNUNET_TIME_Relative timeout,
+                      GNUNET_CLIENT_ShutdownTask cont, void *cont_cls)
 {
   struct ShutdownContext *shutdown_ctx;
-  shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
+
+  shutdown_ctx = GNUNET_malloc (sizeof (struct ShutdownContext));
   shutdown_ctx->cont = cont;
   shutdown_ctx->cont_cls = cont_cls;
   shutdown_ctx->sock = sock;
-  shutdown_ctx->timeout = GNUNET_TIME_relative_to_absolute(timeout);
+  shutdown_ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_CLIENT_notify_transmit_ready (sock,
-				       sizeof (struct
-					       GNUNET_MessageHeader),
-				       timeout,
-				       GNUNET_NO,
-				       &write_shutdown, shutdown_ctx);
+                                       sizeof (struct
+                                               GNUNET_MessageHeader),
+                                       timeout,
+                                       GNUNET_NO,
+                                       &write_shutdown, shutdown_ctx);
 }
 
 
@@ -256,8 +256,7 @@ arm_notify_stop (void *cls, int success)
 
 
 static void
-kill_task (void *cbData,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc);
+kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
@@ -265,65 +264,55 @@ do_nothing_notify (void *cls, int success)
 {
   GNUNET_assert (success == GNUNET_YES);
   ok = 1;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				&kill_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &kill_task, NULL);
 }
 
 
 static void
 arm_notify (void *cls, int success)
-{ 
+{
   GNUNET_assert (success == GNUNET_YES);
-  GNUNET_ARM_start_service (arm, 
-			    "do-nothing", TIMEOUT, 
-			    &do_nothing_notify, NULL);
+  GNUNET_ARM_start_service (arm,
+                            "do-nothing", TIMEOUT, &do_nothing_notify, NULL);
 }
 
 
 static void
-kill_task (void *cbData,
-		   const struct GNUNET_SCHEDULER_TaskContext *tc);
+kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
 do_nothing_restarted_notify_task (void *cls,
-				  const struct GNUNET_SCHEDULER_TaskContext *tc)
-{	
+                                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
   static char a;
-  
+
   trialCount++;
 
-#if LOG_BACKOFF  
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) 
-    {
-      fprintf(killLogFilePtr, 
-	      "%d.Reason is shutdown!\n",
-	      trialCount);
-    } 
-  else if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0) 
-    {
-      fprintf(killLogFilePtr, 
-	      "%d.Reason is timeout!\n", 
-	      trialCount);
-    }
-  else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0) 
-    {
-      fprintf(killLogFilePtr, 
-	      "%d.Service is running!\n", 
-	      trialCount);
-    }  
+#if LOG_BACKOFF
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  {
+    fprintf (killLogFilePtr, "%d.Reason is shutdown!\n", trialCount);
+  }
+  else if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
+  {
+    fprintf (killLogFilePtr, "%d.Reason is timeout!\n", trialCount);
+  }
+  else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0)
+  {
+    fprintf (killLogFilePtr, "%d.Service is running!\n", trialCount);
+  }
 #endif
   GNUNET_SCHEDULER_add_now (&kill_task, &a);
 }
 
 
 static void
-do_test (void *cbData,
-	 const struct GNUNET_SCHEDULER_TaskContext *tc)
-{				      
-  GNUNET_CLIENT_service_test("do-nothing",
-			     cfg, TIMEOUT,
-			     &do_nothing_restarted_notify_task, NULL);
+do_test (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_CLIENT_service_test ("do-nothing",
+                              cfg, TIMEOUT,
+                              &do_nothing_restarted_notify_task, NULL);
 }
 
 
@@ -331,63 +320,56 @@ static void
 shutdown_cont (void *cls, int reason)
 {
   trialCount++;
-  startedWaitingAt = GNUNET_TIME_absolute_get();
-  GNUNET_SCHEDULER_add_delayed (waitedFor,
-                                &do_test,
-                                NULL);
+  startedWaitingAt = GNUNET_TIME_absolute_get ();
+  GNUNET_SCHEDULER_add_delayed (waitedFor, &do_test, NULL);
 }
 
 
 static void
-kill_task (void *cbData,
-		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  static struct GNUNET_CLIENT_Connection * doNothingConnection = NULL;
+  static struct GNUNET_CLIENT_Connection *doNothingConnection = NULL;
 
-  if (NULL != cbData) 
-    {
-      waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
-      
+  if (NULL != cbData)
+  {
+    waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
+
 #if LOG_BACKOFF
-      fprintf(killLogFilePtr, 
-	      "Waited for: %llu ms\n", 
-	      (unsigned long long) waitedFor.rel_value);
+    fprintf (killLogFilePtr,
+             "Waited for: %llu ms\n", (unsigned long long) waitedFor.rel_value);
 #endif
-    }
+  }
   else
-    {
-      waitedFor.rel_value = 0;
-    }
+  {
+    waitedFor.rel_value = 0;
+  }
   /* Connect to the doNothing task */
   doNothingConnection = GNUNET_CLIENT_connect ("do-nothing", cfg);
   GNUNET_assert (doNothingConnection != NULL);
-  if (trialCount == 12) {
+  if (trialCount == 12)
+  {
     GNUNET_CLIENT_disconnect (doNothingConnection, GNUNET_NO);
-    GNUNET_ARM_stop_service (arm, 
-			     "do-nothing", 
-			     TIMEOUT,
-			     &arm_notify_stop, NULL);
+    GNUNET_ARM_stop_service (arm,
+                             "do-nothing", TIMEOUT, &arm_notify_stop, NULL);
     ok = 0;
     return;
   }
   /* Use the created connection to kill the doNothingTask */
-  arm_service_shutdown(doNothingConnection,
-		       TIMEOUT, 
-		       &shutdown_cont, NULL);
+  arm_service_shutdown (doNothingConnection, TIMEOUT, &shutdown_cont, NULL);
 }
 
-       
+
 static void
 task (void *cls,
       char *const *args,
-      const char *cfgfile,
-      const struct GNUNET_CONFIGURATION_Handle *c)
+      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
-  
-  arm = GNUNET_ARM_connect (cfg,NULL);
+
+  arm = GNUNET_ARM_connect (cfg, NULL);
 #if START_ARM
-  GNUNET_ARM_start_service (arm, "arm", GNUNET_TIME_UNIT_ZERO, &arm_notify, NULL);
+  GNUNET_ARM_start_service (arm, "arm", GNUNET_TIME_UNIT_ZERO, &arm_notify,
+                            NULL);
 #else
   arm_do_nothing (NULL, GNUNET_YES);
 #endif
@@ -407,39 +389,41 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  
+
   /* Running ARM  and running the do_nothing task */
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                                      argv,
                                      "test-exponential-backoff",
                                      "nohelp", options, &task, NULL));
-  
-  
+
+
   return ok;
 }
 
 static int
-init()
+init ()
 {
 #if LOG_BACKOFF
-  killLogFileName = GNUNET_DISK_mktemp("exponential-backoff-waiting.log");
-  if (NULL == (killLogFilePtr = FOPEN(killLogFileName, "w"))) {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fopen", killLogFileName);
+  killLogFileName = GNUNET_DISK_mktemp ("exponential-backoff-waiting.log");
+  if (NULL == (killLogFilePtr = FOPEN (killLogFileName, "w")))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fopen",
+                              killLogFileName);
     GNUNET_free (killLogFileName);
     return GNUNET_SYSERR;
-  }  
+  }
 #endif
   return GNUNET_OK;
 }
 
 
 static void
-houseKeep()
+houseKeep ()
 {
 #if LOG_BACKOFF
   GNUNET_assert (0 == fclose (killLogFilePtr));
-  GNUNET_free(killLogFileName);
+  GNUNET_free (killLogFileName);
 #endif
 }
 
@@ -456,10 +440,10 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  
-  init();
+
+  init ();
   ret = check ();
-  houseKeep();
+  houseKeep ();
   return ret;
 }
 

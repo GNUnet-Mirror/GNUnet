@@ -36,7 +36,7 @@
 static int no_resolve;
 
 #if VERBOSE
-  static unsigned int peer_count;
+static unsigned int peer_count;
 #endif
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -74,15 +74,15 @@ dump_pc (struct PrintContext *pc)
   struct AddressStringList *address;
 
   GNUNET_CRYPTO_hash_to_enc (&pc->peer.hashPubKey, &enc);
-  printf (_("Peer `%s'\n"),
-          (const char *) &enc);
+  printf (_("Peer `%s'\n"), (const char *) &enc);
   while (NULL != (address = pc->address_list_head))
-    {
-      printf ("\t%s\n", address->address_string);
-      GNUNET_free(address->address_string);
-      GNUNET_CONTAINER_DLL_remove(pc->address_list_head, pc->address_list_tail, address);
-      GNUNET_free(address);
-    }
+  {
+    printf ("\t%s\n", address->address_string);
+    GNUNET_free (address->address_string);
+    GNUNET_CONTAINER_DLL_remove (pc->address_list_head, pc->address_list_tail,
+                                 address);
+    GNUNET_free (address);
+  }
 
   printf ("\n");
 
@@ -97,24 +97,24 @@ dump_pc (struct PrintContext *pc)
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 static void
-process_resolved_address (void *cls,
-                          const char *address)
+process_resolved_address (void *cls, const char *address)
 {
   struct PrintContext *pc = cls;
   struct AddressStringList *new_address;
 
   if (address == NULL)
-    {
-      dump_pc (pc);
-      return;
-    }
+  {
+    dump_pc (pc);
+    return;
+  }
 
-  new_address = GNUNET_malloc(sizeof(struct AddressStringList));
+  new_address = GNUNET_malloc (sizeof (struct AddressStringList));
 #if VERBOSE
-  fprintf(stderr, "Received address %s\n", address);
+  fprintf (stderr, "Received address %s\n", address);
 #endif
-  new_address->address_string = GNUNET_strdup(address);
-  GNUNET_CONTAINER_DLL_insert(pc->address_list_head, pc->address_list_tail, new_address);
+  new_address->address_string = GNUNET_strdup (address);
+  GNUNET_CONTAINER_DLL_insert (pc->address_list_head, pc->address_list_tail,
+                               new_address);
 }
 
 
@@ -127,23 +127,23 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct PrintContext *pc;
 
-  if (peer != NULL) /* Not yet finished */
-    {
+  if (peer != NULL)             /* Not yet finished */
+  {
 #if VERBOSE
-      fprintf(stderr, "Learned about peer %s\n", GNUNET_i2s(peer));
-      peer_count++;
+    fprintf (stderr, "Learned about peer %s\n", GNUNET_i2s (peer));
+    peer_count++;
 #endif
-      pc = GNUNET_malloc (sizeof (struct PrintContext));
-      pc->peer = *peer;
-      GNUNET_TRANSPORT_peer_address_lookup (cfg, peer,
-                                            GNUNET_TIME_UNIT_MINUTES,
-                                            &process_resolved_address, pc);
-    }
+    pc = GNUNET_malloc (sizeof (struct PrintContext));
+    pc->peer = *peer;
+    GNUNET_TRANSPORT_peer_address_lookup (cfg, peer,
+                                          GNUNET_TIME_UNIT_MINUTES,
+                                          &process_resolved_address, pc);
+  }
 #if VERBOSE
   else
-    {
-      fprintf(stderr, "Counted %u total connected peers.\n", peer_count);
-    }
+  {
+    fprintf (stderr, "Counted %u total connected peers.\n", peer_count);
+  }
 #endif
 }
 
@@ -159,22 +159,17 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
 
   cfg = c;
   if (args[0] != NULL)
-    {
-      fprintf (stderr,
-               _("Invalid command line argument `%s'\n"),
-               args[0]);
-      return;
-    }
+  {
+    fprintf (stderr, _("Invalid command line argument `%s'\n"), args[0]);
+    return;
+  }
 
-  GNUNET_CORE_iterate_peers (cfg,
-                             &connected_peer_callback,
-                             NULL);
+  GNUNET_CORE_iterate_peers (cfg, &connected_peer_callback, NULL);
 
 }
 
@@ -199,7 +194,8 @@ main (int argc, char *const *argv)
           GNUNET_PROGRAM_run (argc,
                               argv,
                               "gnunet-list-connections",
-                              gettext_noop ("Print information about connected peers."),
+                              gettext_noop
+                              ("Print information about connected peers."),
                               options, &run, NULL)) ? 0 : 1;
 }
 

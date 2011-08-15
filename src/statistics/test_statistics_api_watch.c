@@ -45,8 +45,7 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
 
 static void
-force_shutdown (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+force_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   fprintf (stderr, "Timeout, failed to receive notifications: %d\n", ok);
   GNUNET_STATISTICS_destroy (h, GNUNET_NO);
@@ -56,8 +55,7 @@ force_shutdown (void *cls,
 
 
 static void
-normal_shutdown (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+normal_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_STATISTICS_destroy (h, GNUNET_NO);
   GNUNET_STATISTICS_destroy (h2, GNUNET_NO);
@@ -65,39 +63,35 @@ normal_shutdown (void *cls,
 
 
 static int
-watch_1 (void *cls, 
-	 const char *subsystem,
-	 const char *name,
-	 uint64_t value,
-	 int is_persistent)
+watch_1 (void *cls,
+         const char *subsystem,
+         const char *name, uint64_t value, int is_persistent)
 {
   GNUNET_assert (value == 42);
   GNUNET_assert (0 == strcmp (name, "test-1"));
   ok &= ~1;
   if (0 == ok)
-    {
-      GNUNET_SCHEDULER_cancel (shutdown_task);
-      GNUNET_SCHEDULER_add_now (&normal_shutdown, NULL);
-    }  
+  {
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    GNUNET_SCHEDULER_add_now (&normal_shutdown, NULL);
+  }
   return GNUNET_OK;
 }
 
 
 static int
-watch_2 (void *cls, 
-	 const char *subsystem,
-	 const char *name,
-	 uint64_t value,
-	 int is_persistent)
+watch_2 (void *cls,
+         const char *subsystem,
+         const char *name, uint64_t value, int is_persistent)
 {
   GNUNET_assert (value == 43);
   GNUNET_assert (0 == strcmp (name, "test-2"));
   ok &= ~2;
   if (0 == ok)
-    {
-      GNUNET_SCHEDULER_cancel (shutdown_task);
-      GNUNET_SCHEDULER_add_now (&normal_shutdown, NULL);
-    }  
+  {
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    GNUNET_SCHEDULER_add_now (&normal_shutdown, NULL);
+  }
   return GNUNET_OK;
 }
 
@@ -105,27 +99,22 @@ watch_2 (void *cls,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   h = GNUNET_STATISTICS_create ("dummy", cfg);
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_STATISTICS_watch (h,
-					  "test-statistics-api-watch",
-					  "test-1",
-					  &watch_1,
-					  NULL));
+                 GNUNET_STATISTICS_watch (h,
+                                          "test-statistics-api-watch",
+                                          "test-1", &watch_1, NULL));
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_STATISTICS_watch (h,
-					  "test-statistics-api-watch",
-					  "test-2",
-					  &watch_2,
-					  NULL));
+                 GNUNET_STATISTICS_watch (h,
+                                          "test-statistics-api-watch",
+                                          "test-2", &watch_2, NULL));
   h2 = GNUNET_STATISTICS_create ("test-statistics-api-watch", cfg);
   GNUNET_STATISTICS_set (h2, "test-1", 42, GNUNET_NO);
   GNUNET_STATISTICS_set (h2, "test-2", 43, GNUNET_NO);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-						&force_shutdown, NULL);
+                                                &force_shutdown, NULL);
 }
 
 
@@ -142,12 +131,13 @@ check ()
   };
 #if START_SERVICE
   struct GNUNET_OS_Process *proc;
+
   proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
-                                 "gnunet-service-statistics",
+                                  "gnunet-service-statistics",
 #if VERBOSE
-                                 "-L", "DEBUG",
+                                  "-L", "DEBUG",
 #endif
-                                 "-c", "test_statistics_api_data.conf", NULL);
+                                  "-c", "test_statistics_api_data.conf", NULL);
 #endif
   GNUNET_assert (NULL != proc);
   ok = 3;
@@ -155,10 +145,10 @@ check ()
                       options, &run, NULL);
 #if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      ok = 1;
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    ok = 1;
+  }
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_close (proc);
   proc = NULL;

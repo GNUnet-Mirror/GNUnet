@@ -59,8 +59,7 @@ struct PeerContext
 
 
 static void *
-progress_cb (void *cls, 
-	     const struct GNUNET_FS_ProgressInfo *event)
+progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 {
   return NULL;
 }
@@ -72,11 +71,11 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                        "gnunet-service-arm",
+                                         "gnunet-service-arm",
 #if VERBOSE
-                                        "-L", "DEBUG",
+                                         "-L", "DEBUG",
 #endif
-                                        "-c", cfgname, NULL);
+                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
@@ -87,16 +86,17 @@ stop_arm (struct PeerContext *p)
 {
 #if START_ARM
   if (NULL != p->arm_proc)
-    {
-      if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
-	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      if (GNUNET_OS_process_wait(p->arm_proc) != GNUNET_OK)
-	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "ARM process %u stopped\n", GNUNET_OS_process_get_pid (p->arm_proc));
-      GNUNET_OS_process_close (p->arm_proc);
-      p->arm_proc = NULL;
-    }
+  {
+    if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "ARM process %u stopped\n",
+                GNUNET_OS_process_get_pid (p->arm_proc));
+    GNUNET_OS_process_close (p->arm_proc);
+    p->arm_proc = NULL;
+  }
 #endif
   if (uri_this != NULL)
     GNUNET_FS_uri_destroy (uri_this);
@@ -113,10 +113,10 @@ stop_arm (struct PeerContext *p)
 
 static void
 check_next (void *cls,
-	    const char *last_id, 
-	    const struct GNUNET_FS_Uri *last_uri,
-	    const struct GNUNET_CONTAINER_MetaData *last_meta,
-	    const char *next_id)
+            const char *last_id,
+            const struct GNUNET_FS_Uri *last_uri,
+            const struct GNUNET_CONTAINER_MetaData *last_meta,
+            const char *next_id)
 {
   GNUNET_break (0 == strcmp (last_id, "next"));
   GNUNET_break (0 == strcmp (next_id, "future"));
@@ -126,43 +126,35 @@ check_next (void *cls,
 
 static void
 check_this_next (void *cls,
-		 const char *last_id, 
-		 const struct GNUNET_FS_Uri *last_uri,
-		 const struct GNUNET_CONTAINER_MetaData *last_meta,
-		 const char *next_id)
+                 const char *last_id,
+                 const struct GNUNET_FS_Uri *last_uri,
+                 const struct GNUNET_CONTAINER_MetaData *last_meta,
+                 const char *next_id)
 {
   GNUNET_break (0 == strcmp (last_id, "this"));
   GNUNET_break (0 == strcmp (next_id, "next"));
   err -= 2;
   err += 4;
-  GNUNET_FS_namespace_list_updateable (ns,
-				       next_id,
-				       &check_next,
-				       NULL);
+  GNUNET_FS_namespace_list_updateable (ns, next_id, &check_next, NULL);
 }
 
 
 static void
-sks_cont_next (void *cls,
-	       const struct GNUNET_FS_Uri *uri,
-	       const char *emsg)
+sks_cont_next (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
   err += 2;
-  GNUNET_FS_namespace_list_updateable (ns,
-				       NULL,
-				       &check_this_next,
-				       NULL);
+  GNUNET_FS_namespace_list_updateable (ns, NULL, &check_this_next, NULL);
 
 }
 
 
 static void
 check_this (void *cls,
-	    const char *last_id, 
-	    const struct GNUNET_FS_Uri *last_uri,
-	    const struct GNUNET_CONTAINER_MetaData *last_meta,
-	    const char *next_id)
+            const char *last_id,
+            const struct GNUNET_FS_Uri *last_uri,
+            const struct GNUNET_CONTAINER_MetaData *last_meta,
+            const char *next_id)
 {
   GNUNET_break (0 == strcmp (last_id, "this"));
   GNUNET_break (0 == strcmp (next_id, "next"));
@@ -171,27 +163,20 @@ check_this (void *cls,
 
 
 static void
-sks_cont_this (void *cls,
-	       const struct GNUNET_FS_Uri *uri,
-	       const char *emsg)
+sks_cont_this (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
 
   GNUNET_assert (NULL == emsg);
   err = 1;
-  GNUNET_FS_namespace_list_updateable (ns,
-				       NULL,
-				       &check_this,
-				       NULL);
+  GNUNET_FS_namespace_list_updateable (ns, NULL, &check_this, NULL);
   GNUNET_FS_publish_sks (fs,
-			 ns,
-			 "next",
-			 "future",
-			 meta,
-			 uri_next,
-			 &bo,
-			 GNUNET_FS_PUBLISH_OPTION_NONE,
-			 &sks_cont_next,
-			 NULL);
+                         ns,
+                         "next",
+                         "future",
+                         meta,
+                         uri_next,
+                         &bo,
+                         GNUNET_FS_PUBLISH_OPTION_NONE, &sks_cont_next, NULL);
 
 }
 
@@ -201,45 +186,38 @@ static void
 testNamespace ()
 {
 
-  ns = GNUNET_FS_namespace_create (fs,
-				   "testNamespace");
+  ns = GNUNET_FS_namespace_create (fs, "testNamespace");
   GNUNET_assert (NULL != ns);
   bo.content_priority = 1;
   bo.anonymity_level = 1;
   bo.replication_level = 0;
-  bo.expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
+  bo.expiration_time =
+      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   meta = GNUNET_CONTAINER_meta_data_create ();
 
   uri_this =
-    GNUNET_FS_uri_parse ("gnunet://fs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.42", NULL);
+      GNUNET_FS_uri_parse
+      ("gnunet://fs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.42",
+       NULL);
   uri_next =
-    GNUNET_FS_uri_parse ("gnunet://fs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.43", NULL);
-  GNUNET_FS_publish_sks (fs,
-			 ns,
-			 "this",
-			 "next",
-			 meta,
-			 uri_this,
-			 &bo,
-			 GNUNET_FS_PUBLISH_OPTION_NONE,
-			 &sks_cont_this,
-			 NULL);
+      GNUNET_FS_uri_parse
+      ("gnunet://fs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.43",
+       NULL);
+  GNUNET_FS_publish_sks (fs, ns, "this", "next", meta, uri_this, &bo,
+                         GNUNET_FS_PUBLISH_OPTION_NONE, &sks_cont_this, NULL);
 }
 
 
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   setup_peer (&p1, "test_fs_namespace_data.conf");
   fs = GNUNET_FS_start (cfg,
-			"test-fs-namespace",
-			&progress_cb,
-			NULL,
-			GNUNET_FS_FLAGS_NONE,
-			GNUNET_FS_OPTIONS_END);
+                        "test-fs-namespace",
+                        &progress_cb,
+                        NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   testNamespace ();
 }
 
@@ -247,7 +225,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  char *const argvx[] = { 
+  char *const argvx[] = {
     "test-fs-namespace",
     "-c",
     "test_fs_namespace_data.conf",
@@ -260,16 +238,16 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_log_setup ("test_fs_namespace_list_updateable", 
+  GNUNET_log_setup ("test_fs_namespace_list_updateable",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING",
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
                       argvx, "test-fs-namespace",
-		      "nohelp", options, &run, NULL);
+                      "nohelp", options, &run, NULL);
   stop_arm (&p1);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-namespace/");
   return err;

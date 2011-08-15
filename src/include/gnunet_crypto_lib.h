@@ -231,8 +231,7 @@ struct GNUNET_CRYPTO_AuthKey
  * @param len the length of the buffer in bytes
  * @return the resulting CRC32 checksum
  */
-int32_t GNUNET_CRYPTO_crc32_n (const void *buf, 
-			       size_t len);
+int32_t GNUNET_CRYPTO_crc32_n (const void *buf, size_t len);
 
 
 /**
@@ -242,8 +241,7 @@ int32_t GNUNET_CRYPTO_crc32_n (const void *buf,
  * @param i the upper limit (exclusive) for the random number
  * @return a random value in the interval [0,i) (exclusive).
  */
-uint32_t GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
-				   uint32_t i);
+uint32_t GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i);
 
 
 /**
@@ -254,7 +252,7 @@ uint32_t GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
  * @return random 64-bit number
  */
 uint64_t GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
-				   uint64_t max);
+                                   uint64_t max);
 
 
 /**
@@ -298,12 +296,12 @@ int GNUNET_CRYPTO_aes_check_session_key (const struct
  * @return the size of the encrypted block, -1 for errors
  */
 ssize_t GNUNET_CRYPTO_aes_encrypt (const void *block,
-				   size_t len,
-				   const struct GNUNET_CRYPTO_AesSessionKey
-				   *sessionkey,
-				   const struct
-				   GNUNET_CRYPTO_AesInitializationVector *iv,
-				   void *result);
+                                   size_t len,
+                                   const struct GNUNET_CRYPTO_AesSessionKey
+                                   *sessionkey,
+                                   const struct
+                                   GNUNET_CRYPTO_AesInitializationVector *iv,
+                                   void *result);
 
 
 /**
@@ -316,11 +314,13 @@ ssize_t GNUNET_CRYPTO_aes_encrypt (const void *block,
  * @param result address to store the result at
  * @return -1 on failure, size of decrypted block on success
  */
-ssize_t GNUNET_CRYPTO_aes_decrypt (const void *block, 
-				   size_t size,
-				   const struct GNUNET_CRYPTO_AesSessionKey *sessionkey, 
-				   const struct GNUNET_CRYPTO_AesInitializationVector *iv,
-				   void *result);
+ssize_t GNUNET_CRYPTO_aes_decrypt (const void *block,
+                                   size_t size,
+                                   const struct GNUNET_CRYPTO_AesSessionKey
+                                   *sessionkey,
+                                   const struct
+                                   GNUNET_CRYPTO_AesInitializationVector *iv,
+                                   void *result);
 
 
 /**
@@ -333,9 +333,8 @@ ssize_t GNUNET_CRYPTO_aes_decrypt (const void *block,
  */
 void
 GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-    const struct GNUNET_CRYPTO_AesSessionKey *skey,
-    const void *salt, size_t salt_len,
-    ...);
+                             const struct GNUNET_CRYPTO_AesSessionKey *skey,
+                             const void *salt, size_t salt_len, ...);
 
 
 /**
@@ -348,9 +347,8 @@ GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
  */
 void
 GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-    const struct GNUNET_CRYPTO_AesSessionKey *skey,
-    const void *salt, size_t salt_len,
-    va_list argp);
+                               const struct GNUNET_CRYPTO_AesSessionKey *skey,
+                               const void *salt, size_t salt_len, va_list argp);
 
 
 /**
@@ -360,8 +358,7 @@ GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
  *  safely cast to char*, a '\\0' termination is set).
  */
 void GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
-                                struct GNUNET_CRYPTO_HashAsciiEncoded
-                                *result);
+                                struct GNUNET_CRYPTO_HashAsciiEncoded *result);
 
 
 /**
@@ -370,8 +367,7 @@ void GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
  * @param result where to store the GNUNET_CRYPTO_hash code
  * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
  */
-int GNUNET_CRYPTO_hash_from_string (const char *enc,
-                                    GNUNET_HashCode * result);
+int GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result);
 
 
 /**
@@ -386,7 +382,7 @@ int GNUNET_CRYPTO_hash_from_string (const char *enc,
  * @return number between 0 and UINT32_MAX
  */
 uint32_t GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
-					  const GNUNET_HashCode * b);
+                                          const GNUNET_HashCode * b);
 
 
 /**
@@ -396,9 +392,7 @@ uint32_t GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
  * @param size size of the block
  * @param ret pointer to where to write the hashcode
  */
-void GNUNET_CRYPTO_hash (const void *block, 
-			 size_t size,
-                         GNUNET_HashCode * ret);
+void GNUNET_CRYPTO_hash (const void *block, size_t size, GNUNET_HashCode * ret);
 
 
 /**
@@ -409,11 +403,10 @@ void GNUNET_CRYPTO_hash (const void *block,
  * @param plaintext_len length of plaintext
  * @param hmac where to store the hmac
  */
-void 
+void
 GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
-		    const void *plaintext,
-		    size_t plaintext_len,
-		    GNUNET_HashCode *hmac);
+                    const void *plaintext,
+                    size_t plaintext_len, GNUNET_HashCode * hmac);
 
 
 /**
@@ -443,12 +436,16 @@ struct GNUNET_CRYPTO_FileHashContext;
  * @param callback_cls closure for callback
  * @return NULL on (immediate) errror
  */
-struct GNUNET_CRYPTO_FileHashContext *
-GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
-			 const char *filename,
-			 size_t blocksize,
-			 GNUNET_CRYPTO_HashCompletedCallback callback,
-			 void *callback_cls);
+struct GNUNET_CRYPTO_FileHashContext *GNUNET_CRYPTO_hash_file (enum
+                                                               GNUNET_SCHEDULER_Priority
+                                                               priority,
+                                                               const char
+                                                               *filename,
+                                                               size_t blocksize,
+                                                               GNUNET_CRYPTO_HashCompletedCallback
+                                                               callback,
+                                                               void
+                                                               *callback_cls);
 
 
 /**
@@ -456,8 +453,7 @@ GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
  *
  * @param fhc operation to cancel (callback must not yet have been invoked)
  */
-void
-GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc);
+void GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc);
 
 
 /**
@@ -467,7 +463,7 @@ GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc);
  * @param result hash code that is randomized
  */
 void GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
-				       GNUNET_HashCode * result);
+                                       GNUNET_HashCode * result);
 
 
 /**
@@ -516,8 +512,7 @@ void GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a,
 void GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
                                     struct GNUNET_CRYPTO_AesSessionKey *skey,
                                     struct
-                                    GNUNET_CRYPTO_AesInitializationVector
-                                    *iv);
+                                    GNUNET_CRYPTO_AesInitializationVector *iv);
 
 
 /**
@@ -527,8 +522,7 @@ void GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
  * @param bit index into the hashcode, [0...159]
  * @return Bit \a bit from hashcode \a code, -1 for invalid index
  */
-int GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code,
-                                unsigned int bit);
+int GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code, unsigned int bit);
 
 /**
  * Determine how many low order bits match in two
@@ -542,7 +536,8 @@ int GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code,
  *
  * @return the number of bits that match
  */
-unsigned int GNUNET_CRYPTO_hash_matching_bits(const GNUNET_HashCode *first, const GNUNET_HashCode *second);
+unsigned int GNUNET_CRYPTO_hash_matching_bits (const GNUNET_HashCode * first,
+                                               const GNUNET_HashCode * second);
 
 
 /**
@@ -580,11 +575,10 @@ int GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
  * @param argp pair of void * & size_t for context chunks, terminated by NULL
  */
 void
-GNUNET_CRYPTO_hmac_derive_key_v(struct GNUNET_CRYPTO_AuthKey *key,
-                                const struct GNUNET_CRYPTO_AesSessionKey *rkey,
-                                const void *salt,
-                                size_t salt_len,
-				va_list argp);
+GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
+                                 const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                                 const void *salt,
+                                 size_t salt_len, va_list argp);
 
 
 /**
@@ -596,11 +590,9 @@ GNUNET_CRYPTO_hmac_derive_key_v(struct GNUNET_CRYPTO_AuthKey *key,
  * @param ... pair of void * & size_t for context chunks, terminated by NULL
  */
 void
-GNUNET_CRYPTO_hmac_derive_key(struct GNUNET_CRYPTO_AuthKey *key,
-                              const struct GNUNET_CRYPTO_AesSessionKey *rkey,
-                              const void *salt,
-                              size_t salt_len,
-                              ...);
+GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
+                               const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                               const void *salt, size_t salt_len, ...);
 
 /**
  * @brief Derive key
@@ -615,12 +607,11 @@ GNUNET_CRYPTO_hmac_derive_key(struct GNUNET_CRYPTO_AuthKey *key,
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_hkdf (void *result, 
-		    size_t out_len,
-		    int xtr_algo, int prf_algo, 
-		    const void *xts, size_t xts_len,
-		    const void *skm, size_t skm_len, 
-		    ...);
+GNUNET_CRYPTO_hkdf (void *result,
+                    size_t out_len,
+                    int xtr_algo, int prf_algo,
+                    const void *xts, size_t xts_len,
+                    const void *skm, size_t skm_len, ...);
 
 
 /**
@@ -637,13 +628,12 @@ GNUNET_CRYPTO_hkdf (void *result,
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_hkdf_v (void *result, 
-		      size_t out_len,
-		      int xtr_algo, 
-		      int prf_algo, 
-		      const void *xts, size_t xts_len,
-		      const void *skm, size_t skm_len, 
-		      va_list argp);
+GNUNET_CRYPTO_hkdf_v (void *result,
+                      size_t out_len,
+                      int xtr_algo,
+                      int prf_algo,
+                      const void *xts, size_t xts_len,
+                      const void *skm, size_t skm_len, va_list argp);
 
 
 /**
@@ -658,11 +648,10 @@ GNUNET_CRYPTO_hkdf_v (void *result,
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_kdf_v (void *result, 
-		     size_t out_len,
-		     const void *xts, size_t xts_len, 
-		     const void *skm, size_t skm_len, 
-		     va_list argp);
+GNUNET_CRYPTO_kdf_v (void *result,
+                     size_t out_len,
+                     const void *xts, size_t xts_len,
+                     const void *skm, size_t skm_len, va_list argp);
 
 
 /**
@@ -678,8 +667,8 @@ GNUNET_CRYPTO_kdf_v (void *result,
  */
 int
 GNUNET_CRYPTO_kdf (void *result, size_t out_len,
-    const void *xts, size_t xts_len, const void *skm,
-    size_t skm_len, ...);
+                   const void *xts, size_t xts_len, const void *skm,
+                   size_t skm_len, ...);
 
 
 /**
@@ -696,8 +685,9 @@ struct GNUNET_CRYPTO_RsaPrivateKey *GNUNET_CRYPTO_rsa_key_create (void);
  * @param buf the buffer where the private key data is stored
  * @param len the length of the data in 'buffer'
  */
-struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len);
+struct GNUNET_CRYPTO_RsaPrivateKey *GNUNET_CRYPTO_rsa_decode_key (const char
+                                                                  *buf,
+                                                                  uint16_t len);
 
 /**
  * Create a new private key by reading it from a file.  If the
@@ -714,7 +704,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len);
  *   permission denied)
  */
 struct GNUNET_CRYPTO_RsaPrivateKey
-  *GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename);
+    *GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename);
 
 
 /**
@@ -725,7 +715,7 @@ struct GNUNET_CRYPTO_RsaPrivateKey
  * @return some private key purely dependent on input
  */
 struct GNUNET_CRYPTO_RsaPrivateKey
-  *GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc);
+    *GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc);
 
 
 /**
@@ -775,11 +765,10 @@ int GNUNET_CRYPTO_rsa_encrypt (const void *block,
  * @param max how many bytes of a result are expected? Must be exact.
  * @return the size of the decrypted block (that is, size) or -1 on error
  */
-ssize_t GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-				   const struct GNUNET_CRYPTO_RsaEncryptedData
-				   *block,
-				   void *result, 
-				   size_t max);
+ssize_t GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey
+                                   *key,
+                                   const struct GNUNET_CRYPTO_RsaEncryptedData
+                                   *block, void *result, size_t max);
 
 
 /**
@@ -792,8 +781,7 @@ ssize_t GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey *key
  */
 int GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
                             const struct GNUNET_CRYPTO_RsaSignaturePurpose
-                            *purpose,
-                            struct GNUNET_CRYPTO_RsaSignature *sig);
+                            *purpose, struct GNUNET_CRYPTO_RsaSignature *sig);
 
 
 /**

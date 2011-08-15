@@ -98,8 +98,7 @@ struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_accept (const struct
  * @param fd socket to box
  * @return NULL on error (including not supported on target platform)
  */
-struct GNUNET_NETWORK_Handle *
-GNUNET_NETWORK_socket_box_native (int fd);
+struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_box_native (int fd);
 
 
 /**
@@ -181,10 +180,16 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
  * @param addrlen length of the addr
  */
 ssize_t
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle *desc,
                                 void *buffer, size_t length,
-                                struct sockaddr *src_addr,
-                                socklen_t * addrlen);
+                                struct sockaddr *src_addr, socklen_t * addrlen);
 
 
 /**
@@ -322,8 +327,8 @@ void GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
  * @param h the file handle to add
  */
 void
-GNUNET_NETWORK_fdset_handle_set_native_w32_handle (struct GNUNET_NETWORK_FDSet *fds,
-						   HANDLE h);
+GNUNET_NETWORK_fdset_handle_set_native_w32_handle (struct GNUNET_NETWORK_FDSet
+                                                   *fds, HANDLE h);
 #endif
 
 
@@ -380,8 +385,7 @@ void GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
  * @param to destination
  * @param nfd native FD to set
  */
-void GNUNET_NETWORK_fdset_set_native (struct GNUNET_NETWORK_FDSet *to,
-				      int nfd);
+void GNUNET_NETWORK_fdset_set_native (struct GNUNET_NETWORK_FDSet *to, int nfd);
 
 
 /**
@@ -391,9 +395,9 @@ void GNUNET_NETWORK_fdset_set_native (struct GNUNET_NETWORK_FDSet *to,
  * @param nfd native FD to test, -1 for none
  * @return GNUNET_YES if to contains nfd
  */
-int 
+int
 GNUNET_NETWORK_fdset_test_native (const struct GNUNET_NETWORK_FDSet *to,
-				  int nfd);
+                                  int nfd);
 
 
 /**
@@ -412,8 +416,7 @@ void GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
  * @return GNUNET_YES if the file handle is part of the set
  */
 int GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
-                                       const struct GNUNET_DISK_FileHandle
-                                       *h);
+                                       const struct GNUNET_DISK_FileHandle *h);
 
 
 /**

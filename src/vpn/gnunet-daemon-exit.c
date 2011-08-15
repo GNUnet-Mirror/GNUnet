@@ -132,11 +132,12 @@ struct redirect_state
   struct redirect_service *serv;
   struct remote_addr remote;
 
-  struct GNUNET_CONTAINER_HeapNode* heap_node;
+  struct GNUNET_CONTAINER_HeapNode *heap_node;
   struct GNUNET_CONTAINER_MultiHashMap *hashmap;
   GNUNET_HashCode hash;
 
-  enum { SERVICE, REMOTE } type;
+  enum
+  { SERVICE, REMOTE } type;
 
   /**
    * The source-address and -port of this connection
@@ -152,9 +153,9 @@ static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
 
 struct tunnel_notify_queue
 {
-  struct tunnel_notify_queue* next;
-  struct tunnel_notify_queue* prev;
-  void* cls;
+  struct tunnel_notify_queue *next;
+  struct tunnel_notify_queue *prev;
+  void *cls;
   size_t len;
 };
 
@@ -162,9 +163,10 @@ struct tunnel_notify_queue
  * Function that frees everything from a hashmap
  */
 static int
-free_iterate(void* cls __attribute__((unused)), const GNUNET_HashCode* hash __attribute__((unused)), void* value)
+free_iterate (void *cls __attribute__ ((unused)), const GNUNET_HashCode * hash
+              __attribute__ ((unused)), void *value)
 {
-  GNUNET_free(value);
+  GNUNET_free (value);
   return GNUNET_YES;
 }
 
@@ -172,46 +174,47 @@ free_iterate(void* cls __attribute__((unused)), const GNUNET_HashCode* hash __at
  * Function scheduled as very last function, cleans up after us
  */
 static void
-cleanup(void* cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
-    GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
+cleanup (void *cls
+         __attribute__ ((unused)),
+         const struct GNUNET_SCHEDULER_TaskContext *tskctx)
+{
+  GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
 
-    GNUNET_CONTAINER_multihashmap_iterate(udp_connections,
-                                          free_iterate,
-                                          NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (udp_connections, free_iterate, NULL);
 
-    GNUNET_CONTAINER_multihashmap_iterate(tcp_connections,
-                                          free_iterate,
-                                          NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (tcp_connections, free_iterate, NULL);
 
-    if (mesh_handle != NULL)
-      {
-	GNUNET_MESH_disconnect(mesh_handle);
-	mesh_handle = NULL;
-      }
+  if (mesh_handle != NULL)
+  {
+    GNUNET_MESH_disconnect (mesh_handle);
+    mesh_handle = NULL;
+  }
 }
 
 static void
-collect_connections(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
-	  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-      return;
+collect_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
 
 
-    struct GNUNET_CONTAINER_Heap *heap = cls;
+  struct GNUNET_CONTAINER_Heap *heap = cls;
 
-    struct redirect_state* state = GNUNET_CONTAINER_heap_remove_root(heap);
+  struct redirect_state *state = GNUNET_CONTAINER_heap_remove_root (heap);
 
-    /* This is free()ed memory! */
-    state->heap_node = NULL;
+  /* This is free()ed memory! */
+  state->heap_node = NULL;
 
-    /* FIXME! GNUNET_MESH_close_tunnel(state->tunnel); */
+  /* FIXME! GNUNET_MESH_close_tunnel(state->tunnel); */
 
-    GNUNET_CONTAINER_multihashmap_remove(state->hashmap, &state->hash, state);
+  GNUNET_CONTAINER_multihashmap_remove (state->hashmap, &state->hash, state);
 
-    GNUNET_free(state);
+  GNUNET_free (state);
 }
 
 static void
-hash_redirect_info(GNUNET_HashCode* hash, struct redirect_info* u_i, size_t addrlen)
+hash_redirect_info (GNUNET_HashCode * hash, struct redirect_info *u_i,
+                    size_t addrlen)
 {
 
   /* the gnunet hashmap only uses the first sizeof(unsigned int) of the hash
@@ -219,9 +222,12 @@ hash_redirect_info(GNUNET_HashCode* hash, struct redirect_info* u_i, size_t addr
    * build the hash out of the last bytes of the address and the 2 bytes of
    * the port
    */
-  memcpy(hash, &u_i->pt, sizeof(u_i->pt));
-  memcpy(((unsigned char*)hash)+2, u_i->addr+(addrlen-(sizeof(unsigned int) - 2)), (sizeof(unsigned int) - 2));
-  memset(((unsigned char*)hash)+sizeof(unsigned int), 0, sizeof(GNUNET_HashCode) - sizeof(unsigned int));
+  memcpy (hash, &u_i->pt, sizeof (u_i->pt));
+  memcpy (((unsigned char *) hash) + 2,
+          u_i->addr + (addrlen - (sizeof (unsigned int) - 2)),
+          (sizeof (unsigned int) - 2));
+  memset (((unsigned char *) hash) + sizeof (unsigned int), 0,
+          sizeof (GNUNET_HashCode) - sizeof (unsigned int));
 }
 
 /**
@@ -231,36 +237,41 @@ hash_redirect_info(GNUNET_HashCode* hash, struct redirect_info* u_i, size_t addr
 static size_t
 send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_MESH_Tunnel** tunnel = cls;
-  GNUNET_MESH_tunnel_set_data(*tunnel, NULL);
-  struct GNUNET_MessageHeader *hdr = (struct GNUNET_MessageHeader*)(tunnel + 1);
+  struct GNUNET_MESH_Tunnel **tunnel = cls;
+
+  GNUNET_MESH_tunnel_set_data (*tunnel, NULL);
+  struct GNUNET_MessageHeader *hdr =
+      (struct GNUNET_MessageHeader *) (tunnel + 1);
   GNUNET_assert (size >= ntohs (hdr->size));
   memcpy (buf, hdr, ntohs (hdr->size));
-  size = ntohs(hdr->size);
+  size = ntohs (hdr->size);
 
-  if (NULL != GNUNET_MESH_tunnel_get_head(*tunnel))
-    {
-      struct tunnel_notify_queue* element = GNUNET_MESH_tunnel_get_head(*tunnel);
-      struct tunnel_notify_queue* head = GNUNET_MESH_tunnel_get_head(*tunnel);
-      struct tunnel_notify_queue* tail = GNUNET_MESH_tunnel_get_tail(*tunnel);
+  if (NULL != GNUNET_MESH_tunnel_get_head (*tunnel))
+  {
+    struct tunnel_notify_queue *element = GNUNET_MESH_tunnel_get_head (*tunnel);
+    struct tunnel_notify_queue *head = GNUNET_MESH_tunnel_get_head (*tunnel);
+    struct tunnel_notify_queue *tail = GNUNET_MESH_tunnel_get_tail (*tunnel);
 
-      GNUNET_CONTAINER_DLL_remove(head, tail, element);
+    GNUNET_CONTAINER_DLL_remove (head, tail, element);
 
-      GNUNET_MESH_tunnel_set_head(*tunnel, head);
-      GNUNET_MESH_tunnel_set_tail(*tunnel, tail);
+    GNUNET_MESH_tunnel_set_head (*tunnel, head);
+    GNUNET_MESH_tunnel_set_tail (*tunnel, tail);
 
-      struct GNUNET_MESH_TransmitHandle* th = GNUNET_MESH_notify_transmit_ready (*tunnel,
-                                                                                 GNUNET_NO,
-                                                                                 42,
-                                                                                 GNUNET_TIME_relative_divide
-                                                                                 (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-                                                                                 (const struct GNUNET_PeerIdentity *)
-                                                                                 NULL, element->len,
-                                                                                 send_udp_to_peer_notify_callback, element->cls);
-      /* save the handle */
-      GNUNET_MESH_tunnel_set_data(*tunnel, th);
-      GNUNET_free(element);
-    }
+    struct GNUNET_MESH_TransmitHandle *th =
+        GNUNET_MESH_notify_transmit_ready (*tunnel,
+                                           GNUNET_NO,
+                                           42,
+                                           GNUNET_TIME_relative_divide
+                                           (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
+                                           (const struct GNUNET_PeerIdentity *)
+                                           NULL, element->len,
+                                           send_udp_to_peer_notify_callback,
+                                           element->cls);
+
+    /* save the handle */
+    GNUNET_MESH_tunnel_set_data (*tunnel, th);
+    GNUNET_free (element);
+  }
 
   GNUNET_free (cls);
 
@@ -291,10 +302,11 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
 
   /* get tunnel and service-descriptor from this */
   GNUNET_HashCode hash;
-  hash_redirect_info(&hash, &u_i, addrlen);
+
+  hash_redirect_info (&hash, &u_i, addrlen);
 
   struct redirect_state *state =
-    GNUNET_CONTAINER_multihashmap_get (udp_connections, &hash);
+      GNUNET_CONTAINER_multihashmap_get (udp_connections, &hash);
 
   /* Mark this connection as freshly used */
   GNUNET_CONTAINER_heap_update_cost (udp_connections_heap, state->heap_node,
@@ -303,80 +315,92 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
   tunnel = state->tunnel;
 
   if (state->type == SERVICE)
+  {
+    /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
+    if (ntohs (udp->spt) == state->serv->remote_port)
     {
-      /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
-      if (ntohs (udp->spt) == state->serv->remote_port)
-        {
-          udp->spt = htons (state->serv->my_port);
-        }
-      else
-        {
-          /* otherwise the answer came from a different port (tftp does this)
-           * add this new port to the list of all services, so that the packets
-           * coming back from the client to this new port will be routed correctly
-           */
-          struct redirect_service *serv =
-            GNUNET_malloc (sizeof (struct redirect_service));
-          memcpy (serv, state->serv, sizeof (struct redirect_service));
-          serv->my_port = ntohs (udp->spt);
-          serv->remote_port = ntohs (udp->spt);
-          uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
-          memcpy ((GNUNET_HashCode *) (desc + 1), &state->desc,
-                  sizeof (GNUNET_HashCode));
-          *desc = ntohs (udp->spt);
-          GNUNET_assert (GNUNET_OK ==
-                         GNUNET_CONTAINER_multihashmap_put (udp_services,
-                                                            (GNUNET_HashCode*)desc, serv,
-                                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-
-          state->serv = serv;
-        }
+      udp->spt = htons (state->serv->my_port);
     }
+    else
+    {
+      /* otherwise the answer came from a different port (tftp does this)
+       * add this new port to the list of all services, so that the packets
+       * coming back from the client to this new port will be routed correctly
+       */
+      struct redirect_service *serv =
+          GNUNET_malloc (sizeof (struct redirect_service));
+      memcpy (serv, state->serv, sizeof (struct redirect_service));
+      serv->my_port = ntohs (udp->spt);
+      serv->remote_port = ntohs (udp->spt);
+      uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
+
+      memcpy ((GNUNET_HashCode *) (desc + 1), &state->desc,
+              sizeof (GNUNET_HashCode));
+      *desc = ntohs (udp->spt);
+      GNUNET_assert (GNUNET_OK ==
+                     GNUNET_CONTAINER_multihashmap_put (udp_services,
+                                                        (GNUNET_HashCode *)
+                                                        desc, serv,
+                                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
+      state->serv = serv;
+    }
+  }
 
   /* send udp-packet back */
   len =
-    sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) +
-    ntohs (udp->len);
-  struct GNUNET_MESH_Tunnel** ctunnel = GNUNET_malloc (sizeof(struct GNUNET_MESH_TUNNEL*) + len);
+      sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) +
+      ntohs (udp->len);
+  struct GNUNET_MESH_Tunnel **ctunnel =
+      GNUNET_malloc (sizeof (struct GNUNET_MESH_TUNNEL *) + len);
   *ctunnel = tunnel;
-  msg = (struct GNUNET_MessageHeader*)(ctunnel + 1);
+  msg = (struct GNUNET_MessageHeader *) (ctunnel + 1);
   msg->size = htons (len);
-  msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK : GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK);
+  msg->type =
+      htons (state->type ==
+             SERVICE ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK :
+             GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK);
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
+
   if (state->type == SERVICE)
     memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
   else
     memcpy (desc, &state->remote, sizeof (struct remote_addr));
   void *_udp = desc + 1;
+
   memcpy (_udp, udp, ntohs (udp->len));
 
-  if (NULL == GNUNET_MESH_tunnel_get_data(tunnel))
-    {
-      /* No notify is pending */
-      struct GNUNET_MESH_TransmitHandle* th = GNUNET_MESH_notify_transmit_ready (tunnel,
-                                                                                 GNUNET_NO,
-                                                                                 42,
-                                                                                 GNUNET_TIME_relative_divide
-                                                                                 (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-                                                                                 (const struct GNUNET_PeerIdentity *)
-                                                                                 NULL, len,
-                                                                                 send_udp_to_peer_notify_callback, ctunnel);
-      /* save the handle */
-      GNUNET_MESH_tunnel_set_data(tunnel, th);
-    }
+  if (NULL == GNUNET_MESH_tunnel_get_data (tunnel))
+  {
+    /* No notify is pending */
+    struct GNUNET_MESH_TransmitHandle *th =
+        GNUNET_MESH_notify_transmit_ready (tunnel,
+                                           GNUNET_NO,
+                                           42,
+                                           GNUNET_TIME_relative_divide
+                                           (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
+                                           (const struct GNUNET_PeerIdentity *)
+                                           NULL, len,
+                                           send_udp_to_peer_notify_callback,
+                                           ctunnel);
+
+    /* save the handle */
+    GNUNET_MESH_tunnel_set_data (tunnel, th);
+  }
   else
-    {
-      struct tunnel_notify_queue* head = GNUNET_MESH_tunnel_get_head(tunnel);
-      struct tunnel_notify_queue* tail = GNUNET_MESH_tunnel_get_tail(tunnel);
+  {
+    struct tunnel_notify_queue *head = GNUNET_MESH_tunnel_get_head (tunnel);
+    struct tunnel_notify_queue *tail = GNUNET_MESH_tunnel_get_tail (tunnel);
 
-      struct tunnel_notify_queue* element = GNUNET_malloc(sizeof(struct tunnel_notify_queue));
-      element->cls = ctunnel;
-      element->len = len;
+    struct tunnel_notify_queue *element =
+        GNUNET_malloc (sizeof (struct tunnel_notify_queue));
+    element->cls = ctunnel;
+    element->len = len;
 
-      GNUNET_CONTAINER_DLL_insert_tail(head, tail, element);
-      GNUNET_MESH_tunnel_set_head(tunnel, head);
-      GNUNET_MESH_tunnel_set_tail(tunnel, tail);
-    }
+    GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
+    GNUNET_MESH_tunnel_set_head (tunnel, head);
+    GNUNET_MESH_tunnel_set_tail (tunnel, tail);
+  }
 }
 
 /**
@@ -404,16 +428,19 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
 
   /* get tunnel and service-descriptor from this */
   GNUNET_HashCode hash;
-  hash_redirect_info(&hash, &u_i, addrlen);
+
+  hash_redirect_info (&hash, &u_i, addrlen);
 
   struct redirect_state *state =
-    GNUNET_CONTAINER_multihashmap_get (tcp_connections, &hash);
+      GNUNET_CONTAINER_multihashmap_get (tcp_connections, &hash);
 
   if (state == NULL)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "No mapping for this connection; hash is %x\n", *((uint32_t*)&hash));
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No mapping for this connection; hash is %x\n",
+                *((uint32_t *) & hash));
+    return;
+  }
 
   /* Mark this connection as freshly used */
   GNUNET_CONTAINER_heap_update_cost (tcp_connections_heap, state->heap_node,
@@ -422,61 +449,72 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   tunnel = state->tunnel;
 
   if (state->type == SERVICE)
+  {
+    /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
+    if (ntohs (tcp->spt) == state->serv->remote_port)
     {
-      /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
-      if (ntohs (tcp->spt) == state->serv->remote_port)
-        {
-          tcp->spt = htons (state->serv->my_port);
-        }
-      else
-        {
-          // This is an illegal packet.
-          return;
-        }
+      tcp->spt = htons (state->serv->my_port);
     }
+    else
+    {
+      // This is an illegal packet.
+      return;
+    }
+  }
 
   /* send tcp-packet back */
   len =
-    sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + pktlen;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "len: %d\n", pktlen);
-  struct GNUNET_MESH_Tunnel** ctunnel = GNUNET_malloc (sizeof(struct GNUNET_MESH_TUNNEL*) + len);
+      sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + pktlen;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "len: %d\n", pktlen);
+  struct GNUNET_MESH_Tunnel **ctunnel =
+      GNUNET_malloc (sizeof (struct GNUNET_MESH_TUNNEL *) + len);
   *ctunnel = tunnel;
-  msg = (struct GNUNET_MessageHeader*)(ctunnel + 1);
+  msg = (struct GNUNET_MessageHeader *) (ctunnel + 1);
   msg->size = htons (len);
-  msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK : GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK);
+  msg->type =
+      htons (state->type ==
+             SERVICE ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK :
+             GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK);
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
+
   if (state->type == SERVICE)
     memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
   else
     memcpy (desc, &state->remote, sizeof (struct remote_addr));
   void *_tcp = desc + 1;
+
   memcpy (_tcp, tcp, pktlen);
 
-  if (NULL == GNUNET_MESH_tunnel_get_data(tunnel))
-    {
-      /* No notify is pending */
-      struct GNUNET_MESH_TransmitHandle* th = GNUNET_MESH_notify_transmit_ready (tunnel,
-                                     GNUNET_NO,
-                                     42,
-                                     GNUNET_TIME_relative_divide
-                                     (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-                                     (const struct GNUNET_PeerIdentity *)NULL,
-                                     len, send_udp_to_peer_notify_callback,
-                                     ctunnel);
-      /* save the handle */
-      GNUNET_MESH_tunnel_set_data(tunnel, th);
-    }
+  if (NULL == GNUNET_MESH_tunnel_get_data (tunnel))
+  {
+    /* No notify is pending */
+    struct GNUNET_MESH_TransmitHandle *th =
+        GNUNET_MESH_notify_transmit_ready (tunnel,
+                                           GNUNET_NO,
+                                           42,
+                                           GNUNET_TIME_relative_divide
+                                           (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
+                                           (const struct GNUNET_PeerIdentity *)
+                                           NULL,
+                                           len,
+                                           send_udp_to_peer_notify_callback,
+                                           ctunnel);
+
+    /* save the handle */
+    GNUNET_MESH_tunnel_set_data (tunnel, th);
+  }
   else
-    {
-      struct tunnel_notify_queue* head = GNUNET_MESH_tunnel_get_head(tunnel);
-      struct tunnel_notify_queue* tail = GNUNET_MESH_tunnel_get_tail(tunnel);
+  {
+    struct tunnel_notify_queue *head = GNUNET_MESH_tunnel_get_head (tunnel);
+    struct tunnel_notify_queue *tail = GNUNET_MESH_tunnel_get_tail (tunnel);
 
-      struct tunnel_notify_queue* element = GNUNET_malloc(sizeof(struct tunnel_notify_queue));
-      element->cls = ctunnel;
-      element->len = len;
+    struct tunnel_notify_queue *element =
+        GNUNET_malloc (sizeof (struct tunnel_notify_queue));
+    element->cls = ctunnel;
+    element->len = len;
 
-      GNUNET_CONTAINER_DLL_insert_tail(head, tail, element);
-    }
+    GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
+  }
 }
 
 
@@ -484,8 +522,10 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
  * Receive packets from the helper-process
  */
 static void
-message_token (void *cls __attribute__((unused)),
-               void *client __attribute__((unused)), const struct GNUNET_MessageHeader *message)
+message_token (void *cls __attribute__ ((unused)),
+               void *client
+               __attribute__ ((unused)),
+               const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_HELPER);
 
@@ -493,37 +533,40 @@ message_token (void *cls __attribute__((unused)),
 
   /* ethertype is ipv6 */
   if (ntohs (pkt_tun->tun.type) == 0x86dd)
-    {
-      struct ip6_pkt *pkt6 = (struct ip6_pkt *) pkt_tun;
-      if (0x11 == pkt6->ip6_hdr.nxthdr)
-        udp_from_helper (&((struct ip6_udp *) pkt6)->udp_hdr,
-                         (unsigned char *) &pkt6->ip6_hdr.dadr, 16);
-      else if (0x06 == pkt6->ip6_hdr.nxthdr)
-        tcp_from_helper (&((struct ip6_tcp *) pkt6)->tcp_hdr,
-                         (unsigned char *) &pkt6->ip6_hdr.dadr, 16,
-                         ntohs (pkt6->ip6_hdr.paylgth));
-    }
+  {
+    struct ip6_pkt *pkt6 = (struct ip6_pkt *) pkt_tun;
+
+    if (0x11 == pkt6->ip6_hdr.nxthdr)
+      udp_from_helper (&((struct ip6_udp *) pkt6)->udp_hdr,
+                       (unsigned char *) &pkt6->ip6_hdr.dadr, 16);
+    else if (0x06 == pkt6->ip6_hdr.nxthdr)
+      tcp_from_helper (&((struct ip6_tcp *) pkt6)->tcp_hdr,
+                       (unsigned char *) &pkt6->ip6_hdr.dadr, 16,
+                       ntohs (pkt6->ip6_hdr.paylgth));
+  }
   else if (ntohs (pkt_tun->tun.type) == 0x0800)
+  {
+    struct ip_pkt *pkt4 = (struct ip_pkt *) pkt_tun;
+    uint32_t tmp = pkt4->ip_hdr.dadr;
+
+    if (0x11 == pkt4->ip_hdr.proto)
+      udp_from_helper (&((struct ip_udp *) pkt4)->udp_hdr,
+                       (unsigned char *) &tmp, 4);
+    else if (0x06 == pkt4->ip_hdr.proto)
     {
-      struct ip_pkt *pkt4 = (struct ip_pkt *) pkt_tun;
-      uint32_t tmp = pkt4->ip_hdr.dadr;
-      if (0x11 == pkt4->ip_hdr.proto)
-        udp_from_helper (&((struct ip_udp *) pkt4)->udp_hdr,
-                         (unsigned char *) &tmp, 4);
-      else if (0x06 == pkt4->ip_hdr.proto)
-        {
-          size_t pktlen = ntohs(pkt4->ip_hdr.tot_lngth);
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "tot: %d\n", pktlen);
-          pktlen -= 4*pkt4->ip_hdr.hdr_lngth;
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "-hdr: %d\n", pktlen);
-          tcp_from_helper (&((struct ip_tcp *) pkt4)->tcp_hdr,
-                           (unsigned char *) &tmp, 4, pktlen);
-        }
+      size_t pktlen = ntohs (pkt4->ip_hdr.tot_lngth);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tot: %d\n", pktlen);
+      pktlen -= 4 * pkt4->ip_hdr.hdr_lngth;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-hdr: %d\n", pktlen);
+      tcp_from_helper (&((struct ip_tcp *) pkt4)->tcp_hdr,
+                       (unsigned char *) &tmp, 4, pktlen);
     }
+  }
   else
-    {
-      return;
-    }
+  {
+    return;
+  }
 }
 
 /**
@@ -533,18 +576,21 @@ message_token (void *cls __attribute__((unused)),
  * @param section name of section in config, equal to hostname
  */
 static void
-read_service_conf (void *cls __attribute__((unused)), const char *section)
+read_service_conf (void *cls __attribute__ ((unused)), const char *section)
 {
-  if ((strlen(section) < 8) || (0 != strcmp (".gnunet.", section + (strlen(section) - 8))))
+  if ((strlen (section) < 8) ||
+      (0 != strcmp (".gnunet.", section + (strlen (section) - 8))))
     return;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Parsing dns-name %d %s %s\n", strlen(section), section, section + (strlen(section) - 8));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing dns-name %d %s %s\n",
+              strlen (section), section, section + (strlen (section) - 8));
 
   char *cpy;
   char *redirect;
   char *hostname;
   char *hostport;
   uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
+
   GNUNET_CRYPTO_hash (section, strlen (section) + 1,
                       (GNUNET_HashCode *) (desc + 1));
 
@@ -554,96 +600,105 @@ read_service_conf (void *cls __attribute__((unused)), const char *section)
   int proto = UDP;
 
   do
+  {
+    if (proto == UDP &&
+        (GNUNET_OK !=
+         GNUNET_CONFIGURATION_get_value_string (cfg, section, "UDP_REDIRECTS",
+                                                &cpy)))
+      goto next;
+    else if (proto == TCP &&
+             (GNUNET_OK !=
+              GNUNET_CONFIGURATION_get_value_string (cfg, section,
+                                                     "TCP_REDIRECTS", &cpy)))
+      goto next;
+
+    for (redirect = strtok (cpy, " "); redirect != NULL; redirect = strtok
+         (NULL, " "))
     {
-      if (proto == UDP && (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, section, "UDP_REDIRECTS", &cpy)))
-        goto next;
-      else if (proto == TCP && (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, section, "TCP_REDIRECTS", &cpy)))
-        goto next;
+      if (NULL == (hostname = strstr (redirect, ":")))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Warning: option %s is not formatted correctly!\n",
+                    redirect);
+        continue;
+      }
+      hostname[0] = '\0';
+      hostname++;
+      if (NULL == (hostport = strstr (hostname, ":")))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Warning: option %s is not formatted correctly!\n",
+                    redirect);
+        continue;
+      }
+      hostport[0] = '\0';
+      hostport++;
 
-      for (redirect = strtok (cpy, " "); redirect != NULL; redirect = strtok
-           (NULL, " "))
-        {
-          if (NULL == (hostname = strstr (redirect, ":")))
-            {
-              GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n",
-                          redirect);
-              continue;
-            }
-          hostname[0] = '\0';
-          hostname++;
-          if (NULL == (hostport = strstr (hostname, ":")))
-            {
-              GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n",
-                          redirect);
-              continue;
-            }
-          hostport[0] = '\0';
-          hostport++;
+      int local_port = atoi (redirect);
 
-          int local_port = atoi (redirect);
-          if (!((local_port > 0) && (local_port < 65536)))
-            GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Warning: %s is not a correct port.",
-                        redirect);
+      if (!((local_port > 0) && (local_port < 65536)))
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Warning: %s is not a correct port.", redirect);
 
-          *desc = local_port;
+      *desc = local_port;
 
-          struct redirect_service *serv =
-            GNUNET_malloc (sizeof (struct redirect_service));
-          memset (serv, 0, sizeof (struct redirect_service));
-          serv->my_port = local_port;
+      struct redirect_service *serv =
+          GNUNET_malloc (sizeof (struct redirect_service));
+      memset (serv, 0, sizeof (struct redirect_service));
+      serv->my_port = local_port;
 
-          if (0 == strcmp ("localhost4", hostname))
-            {
-              serv->version = 4;
+      if (0 == strcmp ("localhost4", hostname))
+      {
+        serv->version = 4;
 
-              char *ip4addr;
-              GNUNET_assert (GNUNET_OK ==
-                             GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                                    "exit",
-                                                                    "IPV4ADDR",
-                                                                    &ip4addr));
-              GNUNET_assert (1 ==
-                             inet_pton (AF_INET, ip4addr,
-                                        serv->v4.ip4address));
-              GNUNET_free (ip4addr);
-            }
-          else if (0 == strcmp ("localhost6", hostname))
-            {
-              serv->version = 6;
+        char *ip4addr;
 
-              char *ip6addr;
-              GNUNET_assert (GNUNET_OK ==
-                             GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                                    "exit",
-                                                                    "IPV6ADDR",
-                                                                    &ip6addr));
-              GNUNET_assert (1 ==
-                             inet_pton (AF_INET6, ip6addr,
-                                        serv->v6.ip6address));
-              GNUNET_free (ip6addr);
-            }
-          else
-            {
-              // TODO Lookup, yadayadayada
-              GNUNET_assert (0);
-            }
-          serv->remote_port = atoi (hostport);
-          if (UDP == proto)
-            GNUNET_assert (GNUNET_OK ==
-                           GNUNET_CONTAINER_multihashmap_put (udp_services,
-                                                              (GNUNET_HashCode*)desc, serv,
-                                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-          else
-            GNUNET_assert (GNUNET_OK ==
-                           GNUNET_CONTAINER_multihashmap_put (tcp_services,
-                                                              (GNUNET_HashCode*)desc, serv,
-                                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                              "exit",
+                                                              "IPV4ADDR",
+                                                              &ip4addr));
+        GNUNET_assert (1 == inet_pton (AF_INET, ip4addr, serv->v4.ip4address));
+        GNUNET_free (ip4addr);
+      }
+      else if (0 == strcmp ("localhost6", hostname))
+      {
+        serv->version = 6;
 
-        }
-      GNUNET_free (cpy);
-next:
-      proto = (proto == UDP) ? TCP : UDP;
+        char *ip6addr;
+
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                              "exit",
+                                                              "IPV6ADDR",
+                                                              &ip6addr));
+        GNUNET_assert (1 == inet_pton (AF_INET6, ip6addr, serv->v6.ip6address));
+        GNUNET_free (ip6addr);
+      }
+      else
+      {
+        // TODO Lookup, yadayadayada
+        GNUNET_assert (0);
+      }
+      serv->remote_port = atoi (hostport);
+      if (UDP == proto)
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_CONTAINER_multihashmap_put (udp_services,
+                                                          (GNUNET_HashCode *)
+                                                          desc, serv,
+                                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      else
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_CONTAINER_multihashmap_put (tcp_services,
+                                                          (GNUNET_HashCode *)
+                                                          desc, serv,
+                                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
     }
+    GNUNET_free (cpy);
+next:
+    proto = (proto == UDP) ? TCP : UDP;
+  }
   while (proto != UDP);
 }
 
@@ -654,71 +709,84 @@ next:
  * helper. cls is then taken as handle to the old helper and is cleaned up.
  */
 static void
-start_helper_and_schedule(void *cls,
-			  const struct GNUNET_SCHEDULER_TaskContext *tc) {
-    if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-      return;
+start_helper_and_schedule (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
 
-    if (cls != NULL)
-      cleanup_helper(cls);
-    cls = NULL;
+  if (cls != NULL)
+    cleanup_helper (cls);
+  cls = NULL;
 
-    char* ifname;
-    char* ipv6addr;
-    char* ipv6prefix;
-    char* ipv4addr;
-    char* ipv4mask;
+  char *ifname;
+  char *ipv6addr;
+  char *ipv6prefix;
+  char *ipv4addr;
+  char *ipv4mask;
 
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "exit", "IFNAME", &ifname))
-      {
-	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IFNAME' in configuration!\n");
-	exit(1);
-      }
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IFNAME", &ifname))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IFNAME' in configuration!\n");
+    exit (1);
+  }
 
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "exit", "IPV6ADDR", &ipv6addr))
-      {
-	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IPV6ADDR' in configuration!\n");
-	exit(1);
-      }
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
+                                             &ipv6addr))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV6ADDR' in configuration!\n");
+    exit (1);
+  }
 
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "exit", "IPV6PREFIX", &ipv6prefix))
-      {
-	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IPV6PREFIX' in configuration!\n");
-	exit(1);
-      }
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
+                                             &ipv6prefix))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV6PREFIX' in configuration!\n");
+    exit (1);
+  }
 
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "exit", "IPV4ADDR", &ipv4addr))
-      {
-	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IPV4ADDR' in configuration!\n");
-	exit(1);
-      }
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
+                                             &ipv4addr))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV4ADDR' in configuration!\n");
+    exit (1);
+  }
 
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "exit", "IPV4MASK", &ipv4mask))
-      {
-	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IPV4MASK' in configuration!\n");
-	exit(1);
-      }
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
+                                             &ipv4mask))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV4MASK' in configuration!\n");
+    exit (1);
+  }
 
-    /* Start the helper
-     * Messages get passed to the function message_token
-     * When the helper dies, this function will be called again with the
-     * helper_handle as cls.
-     */
-    helper_handle = start_helper(ifname,
-				 ipv6addr,
-				 ipv6prefix,
-                                 ipv4addr,
-                                 ipv4mask,
-				 "exit-gnunet",
-				 start_helper_and_schedule,
-				 message_token,
-				 NULL);
+  /* Start the helper
+   * Messages get passed to the function message_token
+   * When the helper dies, this function will be called again with the
+   * helper_handle as cls.
+   */
+  helper_handle = start_helper (ifname,
+                                ipv6addr,
+                                ipv6prefix,
+                                ipv4addr,
+                                ipv4mask,
+                                "exit-gnunet",
+                                start_helper_and_schedule, message_token, NULL);
 
-    GNUNET_free(ipv6addr);
-    GNUNET_free(ipv6prefix);
-    GNUNET_free(ipv4addr);
-    GNUNET_free(ipv4mask);
-    GNUNET_free(ifname);
+  GNUNET_free (ipv6addr);
+  GNUNET_free (ipv6prefix);
+  GNUNET_free (ipv4addr);
+  GNUNET_free (ipv4mask);
+  GNUNET_free (ifname);
 }
 
 static void
@@ -752,14 +820,13 @@ prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
   /* Generate a new src-address */
   char *ipv4addr;
   char *ipv4mask;
+
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
-                                                        "IPV4ADDR",
-                                                        &ipv4addr));
+                                                        "IPV4ADDR", &ipv4addr));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
-                                                        "IPV4MASK",
-                                                        &ipv4mask));
+                                                        "IPV4MASK", &ipv4mask));
   inet_pton (AF_INET, ipv4addr, &tmp);
   inet_pton (AF_INET, ipv4mask, &tmp2);
   GNUNET_free (ipv4addr);
@@ -774,41 +841,44 @@ prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
 
   memcpy (&state->redirect_info.addr, &tmp, 4);
   if (0x11 == protocol)
-    {
-      struct ip_udp* pkt4_udp = (struct ip_udp*)pkt4;
-      state->redirect_info.pt = pkt4_udp->udp_hdr.spt;
+  {
+    struct ip_udp *pkt4_udp = (struct ip_udp *) pkt4;
 
-      pkt4_udp->udp_hdr.crc = 0;        /* Optional for IPv4 */
-    }
+    state->redirect_info.pt = pkt4_udp->udp_hdr.spt;
+
+    pkt4_udp->udp_hdr.crc = 0;  /* Optional for IPv4 */
+  }
   else if (0x06 == protocol)
-    {
-      struct ip_tcp* pkt4_tcp = (struct ip_tcp*)pkt4;
-      state->redirect_info.pt = pkt4_tcp->tcp_hdr.spt;
+  {
+    struct ip_tcp *pkt4_tcp = (struct ip_tcp *) pkt4;
 
-      pkt4_tcp->tcp_hdr.crc = 0;
-      uint32_t sum = 0;
-      tmp = pkt4->ip_hdr.sadr;
-      sum =
-        calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
-      tmp = pkt4->ip_hdr.dadr;
-      sum =
-        calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    state->redirect_info.pt = pkt4_tcp->tcp_hdr.spt;
 
-      tmp = (protocol << 16) | (0xffff & pktlen);
+    pkt4_tcp->tcp_hdr.crc = 0;
+    uint32_t sum = 0;
 
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "line: %08x, %x \n", tmp, (0xffff & pktlen));
+    tmp = pkt4->ip_hdr.sadr;
+    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    tmp = pkt4->ip_hdr.dadr;
+    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
 
-      tmp = htonl(tmp);
+    tmp = (protocol << 16) | (0xffff & pktlen);
 
-      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "line: %08x, %x \n", tmp,
+                (0xffff & pktlen));
 
-      sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt4_tcp->tcp_hdr, pktlen);
-      pkt4_tcp->tcp_hdr.crc = calculate_checksum_end (sum);
-    }
+    tmp = htonl (tmp);
+
+    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+    sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt4_tcp->tcp_hdr,
+                                   pktlen);
+    pkt4_tcp->tcp_hdr.crc = calculate_checksum_end (sum);
+  }
 
   pkt4->ip_hdr.chks =
-    calculate_ip_checksum ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
+      calculate_ip_checksum ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
 }
 
 static void
@@ -838,10 +908,10 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
    * the host-mask*/
   char *ipv6addr;
   unsigned long long ipv6prefix;
+
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
-                                                        "IPV6ADDR",
-                                                        &ipv6addr));
+                                                        "IPV6ADDR", &ipv6addr));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg, "exit",
                                                         "IPV6PREFIX",
@@ -856,6 +926,7 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
     ipv6prefix = 16 - sizeof (void *);
 
   unsigned int offset = ipv6prefix - (16 - sizeof (void *));
+
   memcpy ((((char *) &pkt6->ip6_hdr.sadr)) + ipv6prefix,
           ((char *) &tunnel) + offset, 16 - ipv6prefix);
 
@@ -863,66 +934,74 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
   memcpy (&state->redirect_info.addr, &pkt6->ip6_hdr.sadr, 16);
 
   if (0x11 == protocol)
-    {
-      struct ip6_udp* pkt6_udp = (struct ip6_udp*)pkt6;
-      state->redirect_info.pt = pkt6_udp->udp_hdr.spt;
+  {
+    struct ip6_udp *pkt6_udp = (struct ip6_udp *) pkt6;
 
-      pkt6_udp->udp_hdr.crc = 0;
-      uint32_t sum = 0;
-      sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt6_udp->ip6_hdr.sadr, 16);
-      sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt6_udp->ip6_hdr.dadr, 16);
-      tmp = (htons (pktlen) & 0xffff);
-      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
-      tmp = htons (((pkt6_udp->ip6_hdr.nxthdr & 0x00ff)));
-      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    state->redirect_info.pt = pkt6_udp->udp_hdr.spt;
 
-      sum =
+    pkt6_udp->udp_hdr.crc = 0;
+    uint32_t sum = 0;
+
+    sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6_udp->ip6_hdr.sadr,
+                                   16);
+    sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6_udp->ip6_hdr.dadr,
+                                   16);
+    tmp = (htons (pktlen) & 0xffff);
+    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    tmp = htons (((pkt6_udp->ip6_hdr.nxthdr & 0x00ff)));
+    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+    sum =
         calculate_checksum_update (sum, (uint16_t *) & pkt6_udp->udp_hdr,
                                    ntohs (pkt6_udp->udp_hdr.len));
-      pkt6_udp->udp_hdr.crc = calculate_checksum_end (sum);
-    }
+    pkt6_udp->udp_hdr.crc = calculate_checksum_end (sum);
+  }
   else if (0x06 == protocol)
-    {
-      struct ip6_tcp* pkt6_tcp = (struct ip6_tcp*)pkt6;
-      state->redirect_info.pt = pkt6_tcp->tcp_hdr.spt;
+  {
+    struct ip6_tcp *pkt6_tcp = (struct ip6_tcp *) pkt6;
 
-      pkt6_tcp->tcp_hdr.crc = 0;
-      uint32_t sum = 0;
-      sum =
+    state->redirect_info.pt = pkt6_tcp->tcp_hdr.spt;
+
+    pkt6_tcp->tcp_hdr.crc = 0;
+    uint32_t sum = 0;
+
+    sum =
         calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
-      sum =
+    sum =
         calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
-      tmp = htonl(pktlen);
-      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
-      tmp = htonl (((pkt6->ip6_hdr.nxthdr & 0x000000ff)));
-      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    tmp = htonl (pktlen);
+    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    tmp = htonl (((pkt6->ip6_hdr.nxthdr & 0x000000ff)));
+    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
 
-      sum =
+    sum =
         calculate_checksum_update (sum, (uint16_t *) & pkt6_tcp->tcp_hdr,
                                    ntohs (pkt6->ip6_hdr.paylgth));
-      pkt6_tcp->tcp_hdr.crc = calculate_checksum_end (sum);
-    }
+    pkt6_tcp->tcp_hdr.crc = calculate_checksum_end (sum);
+  }
 }
 
 /**
  * The messages are one GNUNET_HashCode for the service followed by a struct tcp_pkt
  */
 static int
-receive_tcp_service (void *cls __attribute__((unused)),
+receive_tcp_service (void *cls __attribute__ ((unused)),
                      struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx __attribute__((unused)),
-                     const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
+                     void **tunnel_ctx __attribute__ ((unused)),
+                     const struct GNUNET_PeerIdentity *sender
+                     __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
+                     const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                     __attribute__ ((unused)))
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
   unsigned int pkt_len = ntohs (message->size) - sizeof (struct
                                                          GNUNET_MessageHeader)
-    - sizeof (GNUNET_HashCode);
+      - sizeof (GNUNET_HashCode);
 
   /** Get the configuration from the services-hashmap.
    *
@@ -934,13 +1013,15 @@ receive_tcp_service (void *cls __attribute__((unused)),
   memcpy (tcp_desc + 1, desc, sizeof (GNUNET_HashCode));
   *tcp_desc = ntohs (pkt->dpt);
   struct redirect_service *serv =
-    GNUNET_CONTAINER_multihashmap_get (tcp_services, (GNUNET_HashCode*)tcp_desc);
+      GNUNET_CONTAINER_multihashmap_get (tcp_services,
+                                         (GNUNET_HashCode *) tcp_desc);
+
   if (NULL == serv)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "No service found for TCP dpt %d!\n", *tcp_desc);
-      return GNUNET_YES;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "No service found for TCP dpt %d!\n", *tcp_desc);
+    return GNUNET_YES;
+  }
 
   pkt->dpt = htons (serv->remote_port);
 
@@ -955,8 +1036,8 @@ receive_tcp_service (void *cls __attribute__((unused)),
    * This will be saved in the hashmap, so that the receiving procedure knows
    * through which tunnel this connection has to be routed.
    */
-  struct redirect_state *state =
-    GNUNET_malloc (sizeof (struct redirect_state));
+  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
@@ -965,44 +1046,46 @@ receive_tcp_service (void *cls __attribute__((unused)),
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
 
   len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
-    sizeof (struct ip6_hdr) + pkt_len;
+      sizeof (struct ip6_hdr) + pkt_len;
   buf = alloca (len);
 
   memset (buf, 0, len);
 
   switch (serv->version)
-    {
-    case 4:
-      prepare_ipv4_packet (len, pkt_len, pkt, 0x06,     /* TCP */
-                           &serv->v4.ip4address,
-                           tunnel, state, (struct ip_pkt *) buf);
-      break;
-    case 6:
-      prepare_ipv6_packet (len, pkt_len, pkt, 0x06,     /* TCP */
-                           &serv->v6.ip6address,
-                           tunnel, state, (struct ip6_pkt *) buf);
+  {
+  case 4:
+    prepare_ipv4_packet (len, pkt_len, pkt, 0x06,       /* TCP */
+                         &serv->v4.ip4address,
+                         tunnel, state, (struct ip_pkt *) buf);
+    break;
+  case 6:
+    prepare_ipv6_packet (len, pkt_len, pkt, 0x06,       /* TCP */
+                         &serv->v6.ip6address,
+                         tunnel, state, (struct ip6_pkt *) buf);
 
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
-    }
+    break;
+  default:
+    GNUNET_assert (0);
+    break;
+  }
 
-  hash_redirect_info(&state->hash, &state->redirect_info, serv->version == 4 ? 4 : 16);
+  hash_redirect_info (&state->hash, &state->redirect_info,
+                      serv->version == 4 ? 4 : 16);
 
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &state->hash))
-    {
-      GNUNET_CONTAINER_multihashmap_put (tcp_connections, &state->hash, state,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  {
+    GNUNET_CONTAINER_multihashmap_put (tcp_connections, &state->hash, state,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
-      state->heap_node =
+    state->heap_node =
         GNUNET_CONTAINER_heap_insert (tcp_connections_heap, state,
                                       GNUNET_TIME_absolute_get ().abs_value);
 
-      if (GNUNET_CONTAINER_heap_get_size(tcp_connections_heap) > max_tcp_connections)
-        GNUNET_SCHEDULER_add_now(collect_connections, tcp_connections_heap);
-    }
+    if (GNUNET_CONTAINER_heap_get_size (tcp_connections_heap) >
+        max_tcp_connections)
+      GNUNET_SCHEDULER_add_now (collect_connections, tcp_connections_heap);
+  }
   else
     GNUNET_free (state);
 
@@ -1011,22 +1094,26 @@ receive_tcp_service (void *cls __attribute__((unused)),
 }
 
 static int
-receive_tcp_remote (void *cls __attribute__((unused)),
-                     struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx __attribute__((unused)),
-                     const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
-                     const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
+receive_tcp_remote (void *cls __attribute__ ((unused)),
+                    struct GNUNET_MESH_Tunnel *tunnel,
+                    void **tunnel_ctx __attribute__ ((unused)),
+                    const struct GNUNET_PeerIdentity *sender
+                    __attribute__ ((unused)),
+                    const struct GNUNET_MessageHeader *message,
+                    const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                    __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
   struct remote_addr *s = (struct remote_addr *) desc;
   char *buf;
   size_t len;
-  unsigned int pkt_len = ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) - sizeof (GNUNET_HashCode);
+  unsigned int pkt_len =
+      ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
+      sizeof (GNUNET_HashCode);
 
-  struct redirect_state *state =
-    GNUNET_malloc (sizeof (struct redirect_state));
+  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->type = REMOTE;
@@ -1034,44 +1121,45 @@ receive_tcp_remote (void *cls __attribute__((unused)),
   memcpy (&state->remote, s, sizeof (struct remote_addr));
 
   len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
-    sizeof (struct ip6_hdr) + pkt_len;
+      sizeof (struct ip6_hdr) + pkt_len;
   buf = alloca (len);
 
   memset (buf, 0, len);
 
   switch (s->addrlen)
-    {
-    case 4:
-      prepare_ipv4_packet (len, pkt_len, pkt, 0x06,    /* TCP */
-                           &s->addr, tunnel, state, (struct ip_pkt *) buf);
-      break;
-    case 16:
-      prepare_ipv6_packet (len, pkt_len, pkt, 0x06,    /* TCP */
-                           &s->addr, tunnel, state, (struct ip6_pkt *) buf);
-      break;
-    default:
-      return GNUNET_SYSERR;
-      break;
-    }
+  {
+  case 4:
+    prepare_ipv4_packet (len, pkt_len, pkt, 0x06,       /* TCP */
+                         &s->addr, tunnel, state, (struct ip_pkt *) buf);
+    break;
+  case 16:
+    prepare_ipv6_packet (len, pkt_len, pkt, 0x06,       /* TCP */
+                         &s->addr, tunnel, state, (struct ip6_pkt *) buf);
+    break;
+  default:
+    return GNUNET_SYSERR;
+    break;
+  }
 
   hash_redirect_info (&state->hash, &state->redirect_info, s->addrlen);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Packet from remote; hash is %x\n", *((uint32_t*)&state->hash));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Packet from remote; hash is %x\n",
+              *((uint32_t *) & state->hash));
 
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &state->hash))
-    {
-      GNUNET_CONTAINER_multihashmap_put (tcp_connections, &state->hash, state,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  {
+    GNUNET_CONTAINER_multihashmap_put (tcp_connections, &state->hash, state,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
-      state->heap_node =
+    state->heap_node =
         GNUNET_CONTAINER_heap_insert (tcp_connections_heap, state,
                                       GNUNET_TIME_absolute_get ().abs_value);
 
-      if (GNUNET_CONTAINER_heap_get_size (tcp_connections_heap) >
-          max_tcp_connections)
-        GNUNET_SCHEDULER_add_now (collect_connections, tcp_connections_heap);
-    }
+    if (GNUNET_CONTAINER_heap_get_size (tcp_connections_heap) >
+        max_tcp_connections)
+      GNUNET_SCHEDULER_add_now (collect_connections, tcp_connections_heap);
+  }
   else
     GNUNET_free (state);
 
@@ -1081,12 +1169,14 @@ receive_tcp_remote (void *cls __attribute__((unused)),
 }
 
 static int
-receive_udp_remote (void *cls __attribute__((unused)),
+receive_udp_remote (void *cls __attribute__ ((unused)),
                     struct GNUNET_MESH_Tunnel *tunnel,
-                    void **tunnel_ctx __attribute__((unused)),
-                    const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
+                    void **tunnel_ctx __attribute__ ((unused)),
+                    const struct GNUNET_PeerIdentity *sender
+                    __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
+                    const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                    __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1103,8 +1193,8 @@ receive_udp_remote (void *cls __attribute__((unused)),
    * This will be saved in the hashmap, so that the receiving procedure knows
    * through which tunnel this connection has to be routed.
    */
-  struct redirect_state *state =
-    GNUNET_malloc (sizeof (struct redirect_state));
+  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->hashmap = udp_connections;
@@ -1112,42 +1202,42 @@ receive_udp_remote (void *cls __attribute__((unused)),
   memcpy (&state->remote, s, sizeof (struct remote_addr));
 
   len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
-    sizeof (struct ip6_hdr) + ntohs (pkt->len);
+      sizeof (struct ip6_hdr) + ntohs (pkt->len);
   buf = alloca (len);
 
   memset (buf, 0, len);
 
   switch (s->addrlen)
-    {
-    case 4:
-      prepare_ipv4_packet (len, ntohs (pkt->len), pkt, 0x11,    /* UDP */
-                           &s->addr, tunnel, state, (struct ip_pkt *) buf);
-      break;
-    case 16:
-      prepare_ipv6_packet (len, ntohs (pkt->len), pkt, 0x11,    /* UDP */
-                           &s->addr, tunnel, state, (struct ip6_pkt *) buf);
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
-    }
+  {
+  case 4:
+    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
+                         &s->addr, tunnel, state, (struct ip_pkt *) buf);
+    break;
+  case 16:
+    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
+                         &s->addr, tunnel, state, (struct ip6_pkt *) buf);
+    break;
+  default:
+    GNUNET_assert (0);
+    break;
+  }
 
   hash_redirect_info (&state->hash, &state->redirect_info, s->addrlen);
 
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (udp_connections, &state->hash))
-    {
-      GNUNET_CONTAINER_multihashmap_put (udp_connections, &state->hash, state,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  {
+    GNUNET_CONTAINER_multihashmap_put (udp_connections, &state->hash, state,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
-      state->heap_node =
+    state->heap_node =
         GNUNET_CONTAINER_heap_insert (udp_connections_heap, state,
                                       GNUNET_TIME_absolute_get ().abs_value);
 
-      if (GNUNET_CONTAINER_heap_get_size (udp_connections_heap) >
-          max_udp_connections)
-        GNUNET_SCHEDULER_add_now (collect_connections, udp_connections_heap);
-    }
+    if (GNUNET_CONTAINER_heap_get_size (udp_connections_heap) >
+        max_udp_connections)
+      GNUNET_SCHEDULER_add_now (collect_connections, udp_connections_heap);
+  }
   else
     GNUNET_free (state);
 
@@ -1159,12 +1249,14 @@ receive_udp_remote (void *cls __attribute__((unused)),
  * The messages are one GNUNET_HashCode for the service, followed by a struct udp_pkt
  */
 static int
-receive_udp_service (void *cls __attribute__((unused)),
+receive_udp_service (void *cls __attribute__ ((unused)),
                      struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx __attribute__((unused)),
-                     const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
+                     void **tunnel_ctx __attribute__ ((unused)),
+                     const struct GNUNET_PeerIdentity *sender
+                     __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
+                     const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                     __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1176,16 +1268,19 @@ receive_udp_service (void *cls __attribute__((unused)),
 
   /* Get the configuration from the hashmap */
   uint16_t *udp_desc = alloca (sizeof (GNUNET_HashCode) + 2);
+
   memcpy (udp_desc + 1, desc, sizeof (GNUNET_HashCode));
   *udp_desc = ntohs (pkt->dpt);
   struct redirect_service *serv =
-    GNUNET_CONTAINER_multihashmap_get (udp_services, (GNUNET_HashCode*)udp_desc);
+      GNUNET_CONTAINER_multihashmap_get (udp_services,
+                                         (GNUNET_HashCode *) udp_desc);
+
   if (NULL == serv)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "No service found for UDP dpt %d!\n", *udp_desc);
-      return GNUNET_YES;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "No service found for UDP dpt %d!\n", *udp_desc);
+    return GNUNET_YES;
+  }
 
   pkt->dpt = htons (serv->remote_port);
 
@@ -1200,8 +1295,8 @@ receive_udp_service (void *cls __attribute__((unused)),
    * This will be saved in the hashmap, so that the receiving procedure knows
    * through which tunnel this connection has to be routed.
    */
-  struct redirect_state *state =
-    GNUNET_malloc (sizeof (struct redirect_state));
+  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
@@ -1210,44 +1305,46 @@ receive_udp_service (void *cls __attribute__((unused)),
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
 
   len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
-    sizeof (struct ip6_hdr) + ntohs (pkt->len);
+      sizeof (struct ip6_hdr) + ntohs (pkt->len);
   buf = alloca (len);
 
   memset (buf, 0, len);
 
   switch (serv->version)
-    {
-    case 4:
-      prepare_ipv4_packet (len, ntohs (pkt->len), pkt, 0x11,    /* UDP */
-                           &serv->v4.ip4address,
-                           tunnel, state, (struct ip_pkt *) buf);
-      break;
-    case 6:
-      prepare_ipv6_packet (len, ntohs (pkt->len), pkt, 0x11,    /* UDP */
-                           &serv->v6.ip6address,
-                           tunnel, state, (struct ip6_pkt *) buf);
+  {
+  case 4:
+    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
+                         &serv->v4.ip4address,
+                         tunnel, state, (struct ip_pkt *) buf);
+    break;
+  case 6:
+    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
+                         &serv->v6.ip6address,
+                         tunnel, state, (struct ip6_pkt *) buf);
 
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
-    }
+    break;
+  default:
+    GNUNET_assert (0);
+    break;
+  }
 
-  hash_redirect_info(&state->hash, &state->redirect_info, serv->version == 4 ? 4 : 16);
+  hash_redirect_info (&state->hash, &state->redirect_info,
+                      serv->version == 4 ? 4 : 16);
 
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (udp_connections, &state->hash))
-    {
-      GNUNET_CONTAINER_multihashmap_put (udp_connections, &state->hash, state,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  {
+    GNUNET_CONTAINER_multihashmap_put (udp_connections, &state->hash, state,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
-      state->heap_node =
+    state->heap_node =
         GNUNET_CONTAINER_heap_insert (udp_connections_heap, state,
                                       GNUNET_TIME_absolute_get ().abs_value);
 
-      if (GNUNET_CONTAINER_heap_get_size(udp_connections_heap) > max_udp_connections)
-        GNUNET_SCHEDULER_add_now(collect_connections, udp_connections_heap);
-    }
+    if (GNUNET_CONTAINER_heap_get_size (udp_connections_heap) >
+        max_udp_connections)
+      GNUNET_SCHEDULER_add_now (collect_connections, udp_connections_heap);
+  }
   else
     GNUNET_free (state);
 
@@ -1256,13 +1353,13 @@ receive_udp_service (void *cls __attribute__((unused)),
 }
 
 static void
-connect_to_mesh()
+connect_to_mesh ()
 {
   int udp, tcp;
   int handler_idx, app_idx;
 
-  udp = GNUNET_CONFIGURATION_get_value_yesno(cfg, "exit", "ENABLE_UDP");
-  tcp = GNUNET_CONFIGURATION_get_value_yesno(cfg, "exit", "ENABLE_TCP");
+  udp = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_UDP");
+  tcp = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_TCP");
 
   static struct GNUNET_MESH_MessageHandler handlers[] = {
     {receive_udp_service, GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP, 0},
@@ -1272,35 +1369,34 @@ connect_to_mesh()
     {NULL, 0, 0}
   };
 
-  static GNUNET_MESH_ApplicationType apptypes[] =
-    {
-      GNUNET_APPLICATION_TYPE_END,
-      GNUNET_APPLICATION_TYPE_END,
-      GNUNET_APPLICATION_TYPE_END
-    };
+  static GNUNET_MESH_ApplicationType apptypes[] = {
+    GNUNET_APPLICATION_TYPE_END,
+    GNUNET_APPLICATION_TYPE_END,
+    GNUNET_APPLICATION_TYPE_END
+  };
 
   app_idx = 0;
   handler_idx = 2;
 
   if (GNUNET_YES == udp)
-    {
-      handlers[handler_idx].callback = receive_udp_remote;
-      handlers[handler_idx].expected_size = 0;
-      handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP;
-      apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
-      handler_idx++;
-      app_idx++;
-    }
+  {
+    handlers[handler_idx].callback = receive_udp_remote;
+    handlers[handler_idx].expected_size = 0;
+    handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP;
+    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
+    handler_idx++;
+    app_idx++;
+  }
 
   if (GNUNET_YES == tcp)
-    {
-      handlers[handler_idx].callback = receive_tcp_remote;
-      handlers[handler_idx].expected_size = 0;
-      handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP;
-      apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
-      handler_idx++;
-      app_idx++;
-    }
+  {
+    handlers[handler_idx].callback = receive_tcp_remote;
+    handlers[handler_idx].expected_size = 0;
+    handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP;
+    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
+    handler_idx++;
+    app_idx++;
+  }
 
   mesh_handle = GNUNET_MESH_connect (cfg, NULL, NULL, handlers, apptypes);
 }
@@ -1315,19 +1411,20 @@ connect_to_mesh()
  */
 static void
 run (void *cls,
-     char *const *args __attribute__((unused)),
-     const char *cfgfile __attribute__((unused)), const struct GNUNET_CONFIGURATION_Handle *cfg_)
+     char *const *args __attribute__ ((unused)),
+     const char *cfgfile
+     __attribute__ ((unused)), const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   cfg = cfg_;
 
-  connect_to_mesh();
+  connect_to_mesh ();
 
   udp_connections = GNUNET_CONTAINER_multihashmap_create (65536);
   udp_connections_heap =
-    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+      GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   tcp_connections = GNUNET_CONTAINER_multihashmap_create (65536);
   tcp_connections_heap =
-    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+      GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   udp_services = GNUNET_CONTAINER_multihashmap_create (65536);
   tcp_services = GNUNET_CONTAINER_multihashmap_create (65536);
 
@@ -1350,18 +1447,18 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv) {
-    static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-	GNUNET_GETOPT_OPTION_END
-    };
+main (int argc, char *const *argv)
+{
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
 
-    return (GNUNET_OK ==
-	    GNUNET_PROGRAM_run (argc,
-				argv,
-				"exit",
-				gettext_noop ("help text"),
-				options, &run, NULL)) ? ret : 1;
+  return (GNUNET_OK ==
+          GNUNET_PROGRAM_run (argc,
+                              argv,
+                              "exit",
+                              gettext_noop ("help text"),
+                              options, &run, NULL)) ? ret : 1;
 }
 
 /* end of gnunet-daemon-exit.c */
-

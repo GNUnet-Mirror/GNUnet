@@ -23,7 +23,7 @@
  * @brief common internal definitions for the wlan mediator
  * @author David Brodski
  */
- 
+
 #ifndef gnunet_wlan_H
 #define gnunet_wlan_H
 
@@ -72,4 +72,3 @@ struct sendbuf
 
 
 #endif /* gnunet_wlan_H */
-

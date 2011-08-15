@@ -56,15 +56,15 @@
  */
 int
 GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
-				  uint32_t size,
-				  const void *data,
-				  enum GNUNET_BLOCK_Type type,
-				  uint32_t priority,
-				  uint32_t anonymity,
-				  struct GNUNET_TIME_Absolute
-				  expiration, uint64_t uid,
-				  GNUNET_DATASTORE_DatumProcessor cont,
-				  void *cont_cls);
+                                  uint32_t size,
+                                  const void *data,
+                                  enum GNUNET_BLOCK_Type type,
+                                  uint32_t priority,
+                                  uint32_t anonymity,
+                                  struct GNUNET_TIME_Absolute
+                                  expiration, uint64_t uid,
+                                  GNUNET_DATASTORE_DatumProcessor cont,
+                                  void *cont_cls);
 
 /**
  * Handle INDEX_START-message.
@@ -75,8 +75,8 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
  */
 void
 GNUNET_FS_handle_index_start (void *cls,
-			      struct GNUNET_SERVER_Client *client,
-			      const struct GNUNET_MessageHeader *message);
+                              struct GNUNET_SERVER_Client *client,
+                              const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -88,8 +88,8 @@ GNUNET_FS_handle_index_start (void *cls,
  */
 void
 GNUNET_FS_handle_index_list_get (void *cls,
-				 struct GNUNET_SERVER_Client *client,
-				 const struct GNUNET_MessageHeader *message);
+                                 struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -101,8 +101,8 @@ GNUNET_FS_handle_index_list_get (void *cls,
  */
 void
 GNUNET_FS_handle_unindex (void *cls,
-			  struct GNUNET_SERVER_Client *client,
-			  const struct GNUNET_MessageHeader *message);
+                          struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -114,14 +114,13 @@ GNUNET_FS_handle_unindex (void *cls,
  */
 int
 GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
-			 struct GNUNET_DATASTORE_Handle *d);
+                         struct GNUNET_DATASTORE_Handle *d);
 
 
 /**
  * Shutdown the module.
  */
-void
-GNUNET_FS_indexing_done (void);
+void GNUNET_FS_indexing_done (void);
 
 
 #endif

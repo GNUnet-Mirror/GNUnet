@@ -61,9 +61,9 @@ extern "C"
  */
 int
 GNUNET_SERVICE_get_server_addresses (const char *serviceName,
-				     const struct GNUNET_CONFIGURATION_Handle *cfg,
-				     struct sockaddr ***addrs,
-				     socklen_t **addr_lens);
+                                     const struct GNUNET_CONFIGURATION_Handle
+                                     *cfg, struct sockaddr ***addrs,
+                                     socklen_t ** addr_lens);
 
 
 /**
@@ -84,18 +84,18 @@ typedef void (*GNUNET_SERVICE_Main) (void *cls,
  * Options for the service (bitmask).
  */
 enum GNUNET_SERVICE_Options
-  {
+{
     /**
      * Use defaults.
      */
-    GNUNET_SERVICE_OPTION_NONE = 0,
+  GNUNET_SERVICE_OPTION_NONE = 0,
 
     /**
      * Do not trigger server shutdown on signals, allow for the user
      * to terminate the server explicitly when needed.
      */
-    GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN = 1
-  };
+  GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN = 1
+};
 
 
 /**
@@ -111,12 +111,12 @@ enum GNUNET_SERVICE_Options
  * @return GNUNET_SYSERR on error, GNUNET_OK
  *         if we shutdown nicely
  */
-int GNUNET_SERVICE_run (int argc,
-                        char *const *argv,
-                        const char *serviceName,
-			enum GNUNET_SERVICE_Options opt,
-                        GNUNET_SERVICE_Main task,
-                        void *task_cls);
+int
+GNUNET_SERVICE_run (int argc,
+                    char *const *argv,
+                    const char *serviceName,
+                    enum GNUNET_SERVICE_Options opt,
+                    GNUNET_SERVICE_Main task, void *task_cls);
 
 
 struct GNUNET_SERVICE_Context;

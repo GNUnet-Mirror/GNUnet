@@ -37,8 +37,8 @@
 #define DEBUG_MESSAGE_DROP GNUNET_NO
 
 typedef void (*GNUNET_DV_MessageReceivedHandler) (void *cls,
-                                                  struct GNUNET_PeerIdentity *sender,
-                                                  char *msg,
+                                                  struct GNUNET_PeerIdentity *
+                                                  sender, char *msg,
                                                   size_t msg_len,
                                                   uint32_t distance,
                                                   char *sender_address,
@@ -257,16 +257,17 @@ typedef struct
 } p2p_dv_MESSAGE_Disconnect;
 
 
-struct GNUNET_DV_Handle *
-GNUNET_DV_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                  GNUNET_DV_MessageReceivedHandler receive_handler,
-                  void *receive_handler_cls);
+struct GNUNET_DV_Handle *GNUNET_DV_connect (const struct
+                                            GNUNET_CONFIGURATION_Handle *cfg,
+                                            GNUNET_DV_MessageReceivedHandler
+                                            receive_handler,
+                                            void *receive_handler_cls);
 
 /**
  * Disconnect from the DV service
  *
  * @param handle the current handle to the service to disconnect
  */
-void GNUNET_DV_disconnect(struct GNUNET_DV_Handle *handle);
+void GNUNET_DV_disconnect (struct GNUNET_DV_Handle *handle);
 
 #endif

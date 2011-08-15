@@ -51,119 +51,105 @@ static struct GNUNET_TESTING_Daemon *last;
 /**
  * Check whether peers successfully shut down.
  */
-static void 
-shutdown_callback (void *cls,
-		   const char *emsg)
+static void
+shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Shutdown of peers failed!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
 #endif
-      if (ok == 0)
-        ok = 666;
-    }
+    if (ok == 0)
+      ok = 666;
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All peers successfully shut down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
 #endif
-    }
+  }
 }
 
 
 static void
-clean_up_task (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-  ok = 0;     
+  ok = 0;
 }
 
 
-static void 
-notify_connect_complete(void *cls,
-                        const struct GNUNET_PeerIdentity *first,
-                        const struct GNUNET_PeerIdentity *second,
-                        unsigned int distance,
-                        const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-                        const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-                        struct GNUNET_TESTING_Daemon *first_daemon,
-                        struct GNUNET_TESTING_Daemon *second_daemon,
-                        const char *emsg)
+static void
+notify_connect_complete (void *cls,
+                         const struct GNUNET_PeerIdentity *first,
+                         const struct GNUNET_PeerIdentity *second,
+                         unsigned int distance,
+                         const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                         const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                         struct GNUNET_TESTING_Daemon *first_daemon,
+                         struct GNUNET_TESTING_Daemon *second_daemon,
+                         const char *emsg)
 {
   if (NULL != emsg)
-    {
-      fprintf (stderr,
-	       "Failed to connect two peers: %s\n",
-	       emsg);
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-      GNUNET_assert (0);
-      return;
-    }
+  {
+    fprintf (stderr, "Failed to connect two peers: %s\n", emsg);
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+    GNUNET_assert (0);
+    return;
+  }
   connect_left--;
   if (connect_left == 0)
-    {
-      /* FIXME: check that topology adds a few more links
-	 in addition to those that were seeded */
-      GNUNET_SCHEDULER_add_now (&clean_up_task,
-				NULL);
-    }
+  {
+    /* FIXME: check that topology adds a few more links
+     * in addition to those that were seeded */
+    GNUNET_SCHEDULER_add_now (&clean_up_task, NULL);
+  }
 }
 
 
-static 
-void my_cb(void *cls,
-	   const struct GNUNET_PeerIdentity *id,
-	   const struct GNUNET_CONFIGURATION_Handle *cfg,
-	   struct GNUNET_TESTING_Daemon *d,
-	   const char *emsg)
+static void
+my_cb (void *cls,
+       const struct GNUNET_PeerIdentity *id,
+       const struct GNUNET_CONFIGURATION_Handle *cfg,
+       struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   GNUNET_assert (id != NULL);
-  peers_left--;  
+  peers_left--;
   if (first == NULL)
-    {
-      connect_left = NUM_PEERS;
-      first = d;
-      last = d;
-      return;
-    }
+  {
+    connect_left = NUM_PEERS;
+    first = d;
+    last = d;
+    return;
+  }
   GNUNET_TESTING_daemons_connect (last, d, TIMEOUT, CONNECT_ATTEMPTS,
-                                  GNUNET_YES,
-				  &notify_connect_complete,
-				  NULL);
+                                  GNUNET_YES, &notify_connect_complete, NULL);
   if (peers_left == 0)
-    {
-      /* close circle */
-      GNUNET_TESTING_daemons_connect (d, first, TIMEOUT, CONNECT_ATTEMPTS,
-                                      GNUNET_YES,
-				      &notify_connect_complete,
-				      NULL);
-    }
+  {
+    /* close circle */
+    GNUNET_TESTING_daemons_connect (d, first, TIMEOUT, CONNECT_ATTEMPTS,
+                                    GNUNET_YES, &notify_connect_complete, NULL);
+  }
 }
 
 
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ok = 1;
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting daemons.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
 #endif
   peers_left = NUM_PEERS;
   pg = GNUNET_TESTING_daemons_start (cfg,
-				     peers_left,
-				     peers_left,
-				     peers_left,
-				     TIMEOUT,
-				     NULL, NULL,
-				     &my_cb, NULL, NULL, NULL, NULL);
+                                     peers_left,
+                                     peers_left,
+                                     peers_left,
+                                     TIMEOUT,
+                                     NULL, NULL,
+                                     &my_cb, NULL, NULL, NULL, NULL);
   GNUNET_assert (pg != NULL);
 }
 
@@ -171,7 +157,7 @@ run (void *cls,
 static int
 check ()
 {
-  char *const argv[] = { 
+  char *const argv[] = {
     "test-gnunet-daemon-topology",
     "-c",
     "test_gnunet_daemon_topology_data.conf",

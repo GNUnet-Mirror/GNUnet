@@ -58,11 +58,10 @@ static void
 addr_callback (void *cls, int add_remove,
                const struct sockaddr *addr, socklen_t addrlen)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      "Address changed: %s `%s' (%u bytes)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Address changed: %s `%s' (%u bytes)\n",
               add_remove == GNUNET_YES ? "added" : "removed",
-              GNUNET_a2s (addr, addrlen),
-	      (unsigned int) addrlen);
+              GNUNET_a2s (addr, addrlen), (unsigned int) addrlen);
 }
 
 
@@ -74,8 +73,7 @@ stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_Handle *nat = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      "Stopping NAT and quitting...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
   GNUNET_NAT_unregister (nat);
 }
 
@@ -132,11 +130,11 @@ run (void *cls,
   data.addr = NULL;
   GNUNET_OS_network_interfaces_list (process_if, &data);
   if (NULL == data.addr)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Could not find a valid interface address!\n");
-      exit (GNUNET_SYSERR);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not find a valid interface address!\n");
+    exit (GNUNET_SYSERR);
+  }
   addr = data.addr;
   GNUNET_assert (addr->sa_family == AF_INET || addr->sa_family == AF_INET6);
   if (addr->sa_family == AF_INET)
@@ -148,13 +146,11 @@ run (void *cls,
               "Requesting NAT redirection from address %s...\n",
               GNUNET_a2s (addr, data.addrlen));
 
-  nat = GNUNET_NAT_register (cfg, 
-			     GNUNET_YES /* tcp */,
-			     2086,
-			     1,
-			     (const struct sockaddr**) &addr, 
-			     &data.addrlen, 
-			     &addr_callback, NULL, NULL);
+  nat = GNUNET_NAT_register (cfg, GNUNET_YES /* tcp */ ,
+                             2086,
+                             1,
+                             (const struct sockaddr **) &addr,
+                             &data.addrlen, &addr_callback, NULL, NULL);
   GNUNET_free (addr);
   GNUNET_SCHEDULER_add_delayed (TIMEOUT, &stop, nat);
 }

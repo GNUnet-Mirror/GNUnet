@@ -46,8 +46,7 @@ static const char *plugin_name;
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DATACACHE_Handle *h;
   GNUNET_HashCode k;
@@ -58,56 +57,43 @@ run (void *cls,
   struct GNUNET_TIME_Absolute exp;
 
   ok = 0;
-  h = GNUNET_DATACACHE_create (cfg,
-			       "testcache");
+  h = GNUNET_DATACACHE_create (cfg, "testcache");
 
   if (h == NULL)
-    {
-      fprintf (stderr,
-	       "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
-      return;
-    }
+  {
+    fprintf (stderr,
+             "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+    return;
+  }
   exp = GNUNET_TIME_absolute_get ();
   exp.abs_value += 20 * 60 * 1000;
   memset (buf, 1, sizeof (buf));
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 10; i++)
+  {
+    fprintf (stderr, ".");
+    GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+    for (j = i; j < sizeof (buf); j += 10)
     {
-      fprintf (stderr, ".");
-      GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
-      for (j = i; j < sizeof (buf); j += 10)
-        {
-	  exp.abs_value++;
-          buf[j] = i;
-          ASSERT (GNUNET_OK == 
-		  GNUNET_DATACACHE_put (h,
-					&k,
-					j,
-					buf,
-					1+i,
-					exp));
-          ASSERT (0 < GNUNET_DATACACHE_get (h, 
-					    &k, 1+i, 
-					    NULL, NULL));
-        }
-      k = n;
+      exp.abs_value++;
+      buf[j] = i;
+      ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h, &k, j, buf, 1 + i, exp));
+      ASSERT (0 < GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
     }
+    k = n;
+  }
   fprintf (stderr, "\n");
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 10; i++)
-    {
-      fprintf (stderr, ".");
-      GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
-      if (i < 2)
-	ASSERT (0 == GNUNET_DATACACHE_get  (h, 
-					    &k, 1+i, 
-					    NULL, NULL));
-      if (i == 9)
-	ASSERT (0 < GNUNET_DATACACHE_get  (h, 
-					   &k, 1+i, 
-					   NULL, NULL));
-      k = n;
-    }
+  {
+    fprintf (stderr, ".");
+    GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+    if (i < 2)
+      ASSERT (0 == GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
+    if (i == 9)
+      ASSERT (0 < GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
+    k = n;
+  }
   fprintf (stderr, "\n");
   GNUNET_DATACACHE_destroy (h);
   return;
@@ -123,7 +109,8 @@ main (int argc, char *argv[])
 {
   char *pos;
   char cfg_name[128];
-  char *const xargv[] = { 
+
+  char *const xargv[] = {
     "test-datacache-quota",
     "-c",
     cfg_name,
@@ -135,7 +122,7 @@ main (int argc, char *argv[])
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
- 
+
   GNUNET_log_setup ("test-datacache-quota",
 #if VERBOSE
                     "DEBUG",
@@ -146,17 +133,16 @@ main (int argc, char *argv[])
 
   /* determine name of plugin to use */
   plugin_name = argv[0];
-  while (NULL != (pos = strstr(plugin_name, "_")))
-    plugin_name = pos+1;
-  if (NULL != (pos = strstr(plugin_name, ".")))
+  while (NULL != (pos = strstr (plugin_name, "_")))
+    plugin_name = pos + 1;
+  if (NULL != (pos = strstr (plugin_name, ".")))
     pos[0] = 0;
   else
     pos = (char *) plugin_name;
-  
+
   GNUNET_snprintf (cfg_name,
-		   sizeof (cfg_name),
-		   "test_datacache_data_%s.conf",
-		   plugin_name);
+                   sizeof (cfg_name),
+                   "test_datacache_data_%s.conf", plugin_name);
   if (pos != plugin_name)
     pos[0] = '.';
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1,

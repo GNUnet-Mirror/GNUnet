@@ -49,6 +49,7 @@ static void
 send_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Client *argclient = cls;
+
   GNUNET_assert (ok == 3);
   ok++;
   GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
@@ -66,8 +67,7 @@ recv_cb (void *cls,
   struct sockaddr_in *have;
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_SERVER_client_get_address (argclient,
-                                                   &addr, &addrlen));
+                 GNUNET_SERVER_client_get_address (argclient, &addr, &addrlen));
 
   GNUNET_assert (addrlen == sizeof (struct sockaddr_in));
   have = addr;
@@ -81,21 +81,21 @@ recv_cb (void *cls,
   GNUNET_assert (0 == memcmp (&sa, addr, addrlen));
   GNUNET_free (addr);
   switch (ok)
-    {
-    case 2:
-      ok++;
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MILLISECONDS, 50),
-                                    &send_done, argclient);
-      break;
-    case 4:
-      ok++;
-      GNUNET_CLIENT_disconnect (client, GNUNET_YES);
-      GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
-      break;
-    default:
-      GNUNET_assert (0);
-    }
+  {
+  case 2:
+    ok++;
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_MILLISECONDS, 50),
+                                  &send_done, argclient);
+    break;
+  case 4:
+    ok++;
+    GNUNET_CLIENT_disconnect (client, GNUNET_YES);
+    GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
+    break;
+  default:
+    GNUNET_assert (0);
+  }
 
 }
 
@@ -156,10 +156,10 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in sa;
-  struct sockaddr * sap[2];
+  struct sockaddr *sap[2];
   socklen_t slens[2];
 
-  sap[0] = (struct sockaddr*) &sa;
+  sap[0] = (struct sockaddr *) &sa;
   slens[0] = sizeof (sa);
   sap[1] = NULL;
   slens[1] = 0;
@@ -172,7 +172,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   server = GNUNET_SERVER_create (NULL,
                                  NULL,
                                  sap,
-				 slens,
+                                 slens,
                                  GNUNET_TIME_relative_multiply
                                  (GNUNET_TIME_UNIT_MILLISECONDS, 250),
                                  GNUNET_NO);
@@ -182,8 +182,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SERVER_disconnect_notify (server, &notify_disconnect, cls);
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_number (cfg, "test", "PORT", PORT);
-  GNUNET_CONFIGURATION_set_value_string (cfg, "test", "HOSTNAME",
-                                         "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, "test", "HOSTNAME", "localhost");
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
                                          "localhost");
   client = GNUNET_CLIENT_connect ("test", cfg);

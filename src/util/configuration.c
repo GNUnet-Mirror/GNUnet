@@ -168,90 +168,89 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   dirty = cfg->dirty;           /* back up value! */
   if (NULL == (fp = FOPEN (fn, "r")))
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fopen", fn);
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fopen", fn);
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   GNUNET_free (fn);
   ret = GNUNET_OK;
   section = GNUNET_strdup ("");
   memset (line, 0, 256);
   nr = 0;
   while (NULL != fgets (line, 255, fp))
+  {
+    nr++;
+    for (i = 0; i < 255; i++)
+      if (line[i] == '\t')
+        line[i] = ' ';
+    if (line[0] == '\n' || line[0] == '#' || line[0] == '%' || line[0] == '\r')
+      continue;
+    emptyline = 1;
+    for (i = 0; (i < 255 && line[i] != 0); i++)
+      if (line[i] != ' ' && line[i] != '\n' && line[i] != '\r')
+        emptyline = 0;
+    if (emptyline == 1)
+      continue;
+    /* remove tailing whitespace */
+    for (i = strlen (line) - 1; (i >= 0) && (isspace ((unsigned char) line[i]));
+         i--)
+      line[i] = '\0';
+    if (1 == sscanf (line, "@INLINE@ %191[^\n]", value))
     {
-      nr++;
-      for (i = 0; i < 255; i++)
-        if (line[i] == '\t')
-          line[i] = ' ';
-      if (line[0] == '\n' || line[0] == '#' || line[0] == '%' ||
-          line[0] == '\r')
-        continue;
-      emptyline = 1;
-      for (i = 0; (i < 255 && line[i] != 0); i++)
-        if (line[i] != ' ' && line[i] != '\n' && line[i] != '\r')
-          emptyline = 0;
-      if (emptyline == 1)
-        continue;
-      /* remove tailing whitespace */
-      for (i = strlen (line) - 1; (i >= 0) && (isspace ( (unsigned char) line[i])); i--)
-        line[i] = '\0';
-      if (1 == sscanf (line, "@INLINE@ %191[^\n]", value))
-        {
-          /* @INLINE@ value */
-          if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, value))
-            ret = GNUNET_SYSERR;        /* failed to parse included config */
-        }
-      else if (1 == sscanf (line, "[%99[^]]]", value))
-        {
-          /* [value] */
-          GNUNET_free (section);
-          section = GNUNET_strdup (value);
-        }
-      else if (2 == sscanf (line, " %63[^= ] = %191[^\n]", tag, value))
-        {
-          /* tag = value */
-          /* Strip LF */
-          i = strlen (value) - 1;
-          while ((i >= 0) && (isspace ( (unsigned char) value[i])))
-            value[i--] = '\0';
-          /* remove quotes */
-          i = 0;
-          if (value[0] == '"')
-            {
-              i = 1;
-              while ((value[i] != '\0') && (value[i] != '"'))
-                i++;
-              if (value[i] == '"')
-                {
-                  value[i] = '\0';
-                  i = 1;
-                }
-              else
-                i = 0;
-            }
-          GNUNET_CONFIGURATION_set_value_string (cfg,
-                                                 section, tag, &value[i]);
-        }
-      else if (1 == sscanf (line, " %63[^= ] =[^\n]", tag))
-        {
-          /* tag = */
-          GNUNET_CONFIGURATION_set_value_string (cfg, section, tag, "");
-        }
-      else
-        {
-          /* parse error */
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      _
-                      ("Syntax error in configuration file `%s' at line %u.\n"),
-                      filename, nr);
-          ret = GNUNET_SYSERR;
-          break;
-        }
+      /* @INLINE@ value */
+      if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, value))
+        ret = GNUNET_SYSERR;    /* failed to parse included config */
     }
+    else if (1 == sscanf (line, "[%99[^]]]", value))
+    {
+      /* [value] */
+      GNUNET_free (section);
+      section = GNUNET_strdup (value);
+    }
+    else if (2 == sscanf (line, " %63[^= ] = %191[^\n]", tag, value))
+    {
+      /* tag = value */
+      /* Strip LF */
+      i = strlen (value) - 1;
+      while ((i >= 0) && (isspace ((unsigned char) value[i])))
+        value[i--] = '\0';
+      /* remove quotes */
+      i = 0;
+      if (value[0] == '"')
+      {
+        i = 1;
+        while ((value[i] != '\0') && (value[i] != '"'))
+          i++;
+        if (value[i] == '"')
+        {
+          value[i] = '\0';
+          i = 1;
+        }
+        else
+          i = 0;
+      }
+      GNUNET_CONFIGURATION_set_value_string (cfg, section, tag, &value[i]);
+    }
+    else if (1 == sscanf (line, " %63[^= ] =[^\n]", tag))
+    {
+      /* tag = */
+      GNUNET_CONFIGURATION_set_value_string (cfg, section, tag, "");
+    }
+    else
+    {
+      /* parse error */
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _
+                  ("Syntax error in configuration file `%s' at line %u.\n"),
+                  filename, nr);
+      ret = GNUNET_SYSERR;
+      break;
+    }
+  }
   GNUNET_assert (0 == fclose (fp));
   /* restore dirty flag - anything we set in the meantime
-     came from disk */
+   * came from disk */
   cfg->dirty = dirty;
   GNUNET_free (section);
   return ret;
@@ -295,66 +294,66 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
   if (fn == NULL)
     return GNUNET_SYSERR;
   if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn))
-    {
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   if (NULL == (fp = FOPEN (fn, "w")))
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fopen", fn);
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fopen", fn);
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   GNUNET_free (fn);
   error = 0;
   sec = cfg->sections;
   while (sec != NULL)
+  {
+    if (0 > fprintf (fp, "[%s]\n", sec->name))
     {
-      if (0 > fprintf (fp, "[%s]\n", sec->name))
-        {
-          error = 1;
-          break;
-        }
-      ent = sec->entries;
-      while (ent != NULL)
-        {
-          if (ent->val != NULL)
-            {
-              val = GNUNET_malloc (strlen (ent->val) * 2 + 1);
-              strcpy (val, ent->val);
-              while (NULL != (pos = strstr (val, "\n")))
-                {
-                  memmove (&pos[2], &pos[1], strlen (&pos[1]));
-                  pos[0] = '\\';
-                  pos[1] = 'n';
-                }
-              if (0 > fprintf (fp, "%s = %s\n", ent->key, val))
-                {
-                  error = 1;
-                  GNUNET_free (val);
-                  break;
-                }
-              GNUNET_free (val);
-            }
-          ent = ent->next;
-        }
-      if (error != 0)
-        break;
-      if (0 > fprintf (fp, "\n"))
-        {
-          error = 1;
-          break;
-        }
-      sec = sec->next;
+      error = 1;
+      break;
     }
+    ent = sec->entries;
+    while (ent != NULL)
+    {
+      if (ent->val != NULL)
+      {
+        val = GNUNET_malloc (strlen (ent->val) * 2 + 1);
+        strcpy (val, ent->val);
+        while (NULL != (pos = strstr (val, "\n")))
+        {
+          memmove (&pos[2], &pos[1], strlen (&pos[1]));
+          pos[0] = '\\';
+          pos[1] = 'n';
+        }
+        if (0 > fprintf (fp, "%s = %s\n", ent->key, val))
+        {
+          error = 1;
+          GNUNET_free (val);
+          break;
+        }
+        GNUNET_free (val);
+      }
+      ent = ent->next;
+    }
+    if (error != 0)
+      break;
+    if (0 > fprintf (fp, "\n"))
+    {
+      error = 1;
+      break;
+    }
+    sec = sec->next;
+  }
   if (error != 0)
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fprintf", filename);
   GNUNET_assert (0 == fclose (fp));
   if (error != 0)
-    {
-      cfg->dirty = GNUNET_SYSERR;       /* last write failed */
-      return GNUNET_SYSERR;
-    }
+  {
+    cfg->dirty = GNUNET_SYSERR; /* last write failed */
+    return GNUNET_SYSERR;
+  }
   cfg->dirty = GNUNET_NO;       /* last write succeeded */
   return GNUNET_OK;
 }
@@ -377,15 +376,15 @@ GNUNET_CONFIGURATION_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   spos = cfg->sections;
   while (spos != NULL)
+  {
+    epos = spos->entries;
+    while (epos != NULL)
     {
-      epos = spos->entries;
-      while (epos != NULL)
-        {
-          iter (iter_cls, spos->name, epos->key, epos->val);
-          epos = epos->next;
-        }
-      spos = spos->next;
+      iter (iter_cls, spos->name, epos->key, epos->val);
+      epos = epos->next;
     }
+    spos = spos->next;
+  }
 }
 
 
@@ -398,10 +397,11 @@ GNUNET_CONFIGURATION_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param iter_cls closure for iter
  */
 void
-GNUNET_CONFIGURATION_iterate_section_values (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              const char *section,
-                              GNUNET_CONFIGURATION_Iterator iter,
-                              void *iter_cls)
+GNUNET_CONFIGURATION_iterate_section_values (const struct
+                                             GNUNET_CONFIGURATION_Handle *cfg,
+                                             const char *section,
+                                             GNUNET_CONFIGURATION_Iterator iter,
+                                             void *iter_cls)
 {
   struct ConfigSection *spos;
   struct ConfigEntry *epos;
@@ -415,10 +415,10 @@ GNUNET_CONFIGURATION_iterate_section_values (const struct GNUNET_CONFIGURATION_H
 
   epos = spos->entries;
   while (epos != NULL)
-    {
-      iter (iter_cls, spos->name, epos->key, epos->val);
-      epos = epos->next;
-    }
+  {
+    iter (iter_cls, spos->name, epos->key, epos->val);
+    epos = epos->next;
+  }
 }
 
 
@@ -430,20 +430,21 @@ GNUNET_CONFIGURATION_iterate_section_values (const struct GNUNET_CONFIGURATION_H
  * @param iter_cls closure for iter
  */
 void
-GNUNET_CONFIGURATION_iterate_sections (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                       GNUNET_CONFIGURATION_Section_Iterator iter,
-                                       void *iter_cls)
+GNUNET_CONFIGURATION_iterate_sections (const struct GNUNET_CONFIGURATION_Handle
+                                       *cfg,
+                                       GNUNET_CONFIGURATION_Section_Iterator
+                                       iter, void *iter_cls)
 {
   struct ConfigSection *spos;
   struct ConfigSection *next;
 
-  next = cfg->sections; 
+  next = cfg->sections;
   while (next != NULL)
-    {
-      spos = next;
-      next = spos->next;
-      iter (iter_cls, spos->name);
-    }
+  {
+    spos = next;
+    next = spos->next;
+    iter (iter_cls, spos->name);
+  }
 }
 
 /**
@@ -452,39 +453,39 @@ GNUNET_CONFIGURATION_iterate_sections (const struct GNUNET_CONFIGURATION_Handle 
  * @param cfg configuration to inspect
  * @param section name of the section to remove
  */
-void GNUNET_CONFIGURATION_remove_section (struct GNUNET_CONFIGURATION_Handle *cfg,
-					  const char *section)
+void
+GNUNET_CONFIGURATION_remove_section (struct GNUNET_CONFIGURATION_Handle *cfg,
+                                     const char *section)
 {
   struct ConfigSection *spos;
   struct ConfigSection *prev;
   struct ConfigEntry *ent;
 
   prev = NULL;
-  spos = cfg->sections; 
-  while (spos != NULL) 	 
+  spos = cfg->sections;
+  while (spos != NULL)
+  {
+    if (0 == strcmp (section, spos->name))
     {
-      if (0 == strcmp (section,
-		       spos->name))
-	{
-	  if (prev == NULL)
-	    cfg->sections = spos->next;
-	  else
-	    prev->next = spos->next;
-	  while (NULL != (ent = spos->entries))
-	    {
-	      spos->entries = ent->next;
-	      GNUNET_free (ent->key);
-	      GNUNET_free_non_null (ent->val);
-	      GNUNET_free (ent);
-	      cfg->dirty = GNUNET_YES;
-	    }
-	  GNUNET_free (spos->name);
-	  GNUNET_free (spos);
-	  return;
-	}
-      prev = spos;
-      spos = spos->next;
+      if (prev == NULL)
+        cfg->sections = spos->next;
+      else
+        prev->next = spos->next;
+      while (NULL != (ent = spos->entries))
+      {
+        spos->entries = ent->next;
+        GNUNET_free (ent->key);
+        GNUNET_free_non_null (ent->val);
+        GNUNET_free (ent);
+        cfg->dirty = GNUNET_YES;
+      }
+      GNUNET_free (spos->name);
+      GNUNET_free (spos);
+      return;
     }
+    prev = spos;
+    spos = spos->next;
+  }
 }
 
 
@@ -502,6 +503,7 @@ copy_entry (void *cls,
             const char *section, const char *option, const char *value)
 {
   struct GNUNET_CONFIGURATION_Handle *dst = cls;
+
   GNUNET_CONFIGURATION_set_value_string (dst, section, option, value);
 }
 
@@ -531,8 +533,7 @@ GNUNET_CONFIGURATION_dup (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @return matching entry, NULL if not found
  */
 static struct ConfigSection *
-findSection (const struct GNUNET_CONFIGURATION_Handle *cfg,
-             const char *section)
+findSection (const struct GNUNET_CONFIGURATION_Handle *cfg, const char *section)
 {
   struct ConfigSection *pos;
 
@@ -584,15 +585,11 @@ compareEntries (void *cls,
 {
   struct DiffHandle *dh = cls;
   struct ConfigEntry *entNew;
- 
+
   entNew = findEntry (dh->cfgDefault, section, option);
-  if ( (entNew != NULL) &&
-       (strcmp (entNew->val, value) == 0) )
+  if ((entNew != NULL) && (strcmp (entNew->val, value) == 0))
     return;
-  GNUNET_CONFIGURATION_set_value_string (dh->cfgDiff,
-					 section,
-					 option,
-					 value);
+  GNUNET_CONFIGURATION_set_value_string (dh->cfgDiff, section, option, value);
 }
 
 
@@ -606,8 +603,8 @@ compareEntries (void *cls,
 int
 GNUNET_CONFIGURATION_write_diffs (const struct GNUNET_CONFIGURATION_Handle
                                   *cfgDefault,
-                                  const struct GNUNET_CONFIGURATION_Handle *cfgNew,
-                                  const char *filename)
+                                  const struct GNUNET_CONFIGURATION_Handle
+                                  *cfgNew, const char *filename)
 {
   int ret;
   struct DiffHandle diffHandle;
@@ -640,19 +637,19 @@ GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle
 
   e = findEntry (cfg, section, option);
   if (e != NULL)
-    {
-      GNUNET_free_non_null (e->val);
-      e->val = GNUNET_strdup (value);
-      return;
-    }
+  {
+    GNUNET_free_non_null (e->val);
+    e->val = GNUNET_strdup (value);
+    return;
+  }
   sec = findSection (cfg, section);
   if (sec == NULL)
-    {
-      sec = GNUNET_malloc (sizeof (struct ConfigSection));
-      sec->name = GNUNET_strdup (section);
-      sec->next = cfg->sections;
-      cfg->sections = sec;
-    }
+  {
+    sec = GNUNET_malloc (sizeof (struct ConfigSection));
+    sec->name = GNUNET_strdup (section);
+    sec->next = cfg->sections;
+    cfg->sections = sec;
+  }
   e = GNUNET_malloc (sizeof (struct ConfigEntry));
   e->key = GNUNET_strdup (option);
   e->val = GNUNET_strdup (value);
@@ -676,6 +673,7 @@ GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle
                                        unsigned long long number)
 {
   char s[64];
+
   GNUNET_snprintf (s, 64, "%llu", number);
   GNUNET_CONFIGURATION_set_value_string (cfg, section, option, s);
 }
@@ -729,12 +727,12 @@ GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
   e = findEntry (cfg, section, option);
   if (e == NULL)
     return GNUNET_SYSERR;
-  if ( (0 == strcasecmp (e->val, "infinity")) ||
-       (0 == strcasecmp (e->val, "forever")) )
-    {
-      *time = GNUNET_TIME_UNIT_FOREVER_REL;
-      return GNUNET_OK;
-    }
+  if ((0 == strcasecmp (e->val, "infinity")) ||
+      (0 == strcasecmp (e->val, "forever")))
+  {
+    *time = GNUNET_TIME_UNIT_FOREVER_REL;
+    return GNUNET_OK;
+  }
   if (1 != SSCANF (e->val, "%llu", &num))
     return GNUNET_SYSERR;
   time->rel_value = (uint64_t) num;
@@ -762,10 +760,10 @@ GNUNET_CONFIGURATION_get_value_string (const struct
 
   e = findEntry (cfg, section, option);
   if ((e == NULL) || (e->val == NULL))
-    {
-      *value = NULL;
-      return GNUNET_SYSERR;
-    }
+  {
+    *value = NULL;
+    return GNUNET_SYSERR;
+  }
   *value = GNUNET_strdup (e->val);
   return GNUNET_OK;
 }
@@ -788,8 +786,7 @@ GNUNET_CONFIGURATION_get_value_choice (const struct
                                        GNUNET_CONFIGURATION_Handle *cfg,
                                        const char *section,
                                        const char *option,
-                                       const char **choices,
-                                       const char **value)
+                                       const char **choices, const char **value)
 {
   struct ConfigEntry *e;
   int i;
@@ -799,19 +796,19 @@ GNUNET_CONFIGURATION_get_value_choice (const struct
     return GNUNET_SYSERR;
   i = 0;
   while (choices[i] != NULL)
-    {
-      if (0 == strcasecmp (choices[i], e->val))
-        break;
-      i++;
-    }
+  {
+    if (0 == strcasecmp (choices[i], e->val))
+      break;
+    i++;
+  }
   if (choices[i] == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Configuration value '%s' for '%s'"
-                    " in section '%s' is not in set of legal choices\n"),
-                  e->val, option, section);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Configuration value '%s' for '%s'"
+                  " in section '%s' is not in set of legal choices\n"),
+                e->val, option, section);
+    return GNUNET_SYSERR;
+  }
   *value = choices[i];
   return GNUNET_OK;
 }
@@ -826,10 +823,10 @@ GNUNET_CONFIGURATION_get_value_choice (const struct
  */
 int
 GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle
-                                 *cfg, const char *section,
-                                 const char *option)
+                                 *cfg, const char *section, const char *option)
 {
   struct ConfigEntry *e;
+
   if ((NULL == (e = findEntry (cfg, section, option))) || (e->val == NULL))
     return GNUNET_NO;
   return GNUNET_YES;
@@ -861,25 +858,25 @@ GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle
   while ((orig[i] != '/') && (orig[i] != '\\') && (orig[i] != '\0'))
     i++;
   if (orig[i] == '\0')
-    {
-      post = "";
-    }
+  {
+    post = "";
+  }
   else
-    {
-      orig[i] = '\0';
-      post = &orig[i + 1];
-    }
+  {
+    orig[i] = '\0';
+    post = &orig[i + 1];
+  }
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg,
-							    "PATHS",
-							    &orig[1], &prefix))
+                                                            "PATHS",
+                                                            &orig[1], &prefix))
+  {
+    if (NULL == (env = getenv (&orig[1])))
     {
-      if (NULL == (env = getenv (&orig[1])))
-        {
-          orig[i] = DIR_SEPARATOR;
-          return orig;
-        }
-      prefix = GNUNET_strdup (env);
+      orig[i] = DIR_SEPARATOR;
+      return orig;
     }
+    prefix = GNUNET_strdup (env);
+  }
   result = GNUNET_malloc (strlen (prefix) + strlen (post) + 2);
   strcpy (result, prefix);
   if ((strlen (prefix) == 0) ||
@@ -912,10 +909,10 @@ GNUNET_CONFIGURATION_get_value_filename (const struct
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, section, option, &tmp))
-    {
-      *value = NULL;
-      return GNUNET_SYSERR;
-    }
+  {
+    *value = NULL;
+    return GNUNET_SYSERR;
+  }
   tmp = GNUNET_CONFIGURATION_expand_dollar (cfg, tmp);
   *value = GNUNET_STRINGS_filename_expand (tmp);
   GNUNET_free (tmp);
@@ -984,46 +981,46 @@ GNUNET_CONFIGURATION_iterate_value_filenames (const struct
   ret = 0;
   pos = list;
   while (1)
+  {
+    while (pos[0] == ' ')
+      pos++;
+    if (strlen (pos) == 0)
+      break;
+    end = pos + 1;
+    while ((end[0] != ' ') && (end[0] != '\0'))
     {
-      while (pos[0] == ' ')
-        pos++;
-      if (strlen (pos) == 0)
-        break;
-      end = pos + 1;
-      while ((end[0] != ' ') && (end[0] != '\0'))
+      if (end[0] == '\\')
+      {
+        switch (end[1])
         {
-          if (end[0] == '\\')
-            {
-              switch (end[1])
-                {
-                case '\\':
-                case ' ':
-                  memmove (end, &end[1], strlen (&end[1]) + 1);
-                case '\0':
-                  /* illegal, but just keep it */
-                  break;
-                default:
-                  /* illegal, but just ignore that there was a '/' */
-                  break;
-                }
-            }
-          end++;
+        case '\\':
+        case ' ':
+          memmove (end, &end[1], strlen (&end[1]) + 1);
+        case '\0':
+          /* illegal, but just keep it */
+          break;
+        default:
+          /* illegal, but just ignore that there was a '/' */
+          break;
         }
-      old = end[0];
-      end[0] = '\0';
-      if (strlen (pos) > 0)
-        {
-          ret++;
-          if ((cb != NULL) && (GNUNET_OK != cb (cb_cls, pos)))
-            {
-              ret = GNUNET_SYSERR;
-              break;
-            }
-        }
-      if (old == '\0')
-        break;
-      pos = end + 1;
+      }
+      end++;
     }
+    old = end[0];
+    end[0] = '\0';
+    if (strlen (pos) > 0)
+    {
+      ret++;
+      if ((cb != NULL) && (GNUNET_OK != cb (cb_cls, pos)))
+      {
+        ret = GNUNET_SYSERR;
+        break;
+      }
+    }
+    if (old == '\0')
+      break;
+    pos = end + 1;
+  }
   GNUNET_free (list);
   return ret;
 }
@@ -1047,21 +1044,21 @@ escape_name (const char *value)
   rpos = value;
   wpos = escaped;
   while (rpos[0] != '\0')
+  {
+    switch (rpos[0])
     {
-      switch (rpos[0])
-        {
-        case '\\':
-        case ' ':
-          wpos[0] = '\\';
-          wpos[1] = rpos[0];
-          wpos += 2;
-          break;
-        default:
-          wpos[0] = rpos[0];
-          wpos++;
-        }
-      rpos++;
+    case '\\':
+    case ' ':
+      wpos[0] = '\\';
+      wpos[1] = rpos[0];
+      wpos += 2;
+      break;
+    default:
+      wpos[0] = rpos[0];
+      wpos++;
     }
+    rpos++;
+  }
   return escaped;
 }
 
@@ -1077,6 +1074,7 @@ static int
 test_match (void *cls, const char *fn)
 {
   const char *of = cls;
+
   return (0 == strcmp (of, fn)) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
@@ -1159,56 +1157,55 @@ GNUNET_CONFIGURATION_remove_value_filename (struct GNUNET_CONFIGURATION_Handle
   match = escape_name (value);
   pos = list;
   while (1)
+  {
+    while (pos[0] == ' ')
+      pos++;
+    if (strlen (pos) == 0)
+      break;
+    end = pos + 1;
+    while ((end[0] != ' ') && (end[0] != '\0'))
     {
-      while (pos[0] == ' ')
-        pos++;
-      if (strlen (pos) == 0)
-        break;
-      end = pos + 1;
-      while ((end[0] != ' ') && (end[0] != '\0'))
+      if (end[0] == '\\')
+      {
+        switch (end[1])
         {
-          if (end[0] == '\\')
-            {
-              switch (end[1])
-                {
-                case '\\':
-                case ' ':
-                  end++;
-                  break;
-                case '\0':
-                  /* illegal, but just keep it */
-                  break;
-                default:
-                  /* illegal, but just ignore that there was a '/' */
-                  break;
-                }
-            }
+        case '\\':
+        case ' ':
           end++;
+          break;
+        case '\0':
+          /* illegal, but just keep it */
+          break;
+        default:
+          /* illegal, but just ignore that there was a '/' */
+          break;
         }
-      old = end[0];
-      end[0] = '\0';
-      if (0 == strcmp (pos, match))
-	{
-	  if (old != '\0')
-	    memmove (pos, &end[1], strlen (&end[1]) + 1);
-	  else
-	    {
-	      if (pos != list) 
-		pos[-1] = '\0';
-	      else
-		pos[0] = '\0';
-	    }
-	  GNUNET_CONFIGURATION_set_value_string (cfg,
-						 section, option, list);
-	  GNUNET_free (list);
-	  GNUNET_free (match);
-	  return GNUNET_OK;
-	}        
-      if (old == '\0')
-        break;
-      end[0] = old;
-      pos = end + 1;
+      }
+      end++;
     }
+    old = end[0];
+    end[0] = '\0';
+    if (0 == strcmp (pos, match))
+    {
+      if (old != '\0')
+        memmove (pos, &end[1], strlen (&end[1]) + 1);
+      else
+      {
+        if (pos != list)
+          pos[-1] = '\0';
+        else
+          pos[0] = '\0';
+      }
+      GNUNET_CONFIGURATION_set_value_string (cfg, section, option, list);
+      GNUNET_free (list);
+      GNUNET_free (match);
+      return GNUNET_OK;
+    }
+    if (old == '\0')
+      break;
+    end[0] = old;
+    pos = end + 1;
+  }
   GNUNET_free (list);
   GNUNET_free (match);
   return GNUNET_NO;
@@ -1241,19 +1238,17 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
        GNUNET_CONFIGURATION_parse (cfg, baseconfig)) ||
       (!((filename == NULL) ||
          (GNUNET_OK == GNUNET_CONFIGURATION_parse (cfg, filename)))))
-    {
-      GNUNET_free (baseconfig);
-      return (filename == NULL) ? GNUNET_OK : GNUNET_SYSERR;
-    }
+  {
+    GNUNET_free (baseconfig);
+    return (filename == NULL) ? GNUNET_OK : GNUNET_SYSERR;
+  }
   GNUNET_free (baseconfig);
-  if ( ((GNUNET_YES != GNUNET_CONFIGURATION_have_value (cfg,
-							"PATHS",
-							"DEFAULTCONFIG"))) &&
-       (filename != NULL) )
+  if (((GNUNET_YES != GNUNET_CONFIGURATION_have_value (cfg,
+                                                       "PATHS",
+                                                       "DEFAULTCONFIG"))) &&
+      (filename != NULL))
     GNUNET_CONFIGURATION_set_value_string (cfg,
-					   "PATHS",
-					   "DEFAULTCONFIG",
-					   filename);
+                                           "PATHS", "DEFAULTCONFIG", filename);
   if ((GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg,
                                                       "TESTING",
                                                       "WEAKRANDOM")) &&

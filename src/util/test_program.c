@@ -62,6 +62,7 @@ runner (void *cls,
         const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ok = cls;
+
   GNUNET_assert (setme1 == 1);
   GNUNET_assert (0 == strcmp (args[0], "extra"));
   GNUNET_assert (args[1] == NULL);
@@ -78,6 +79,7 @@ static int
 check ()
 {
   int ok = 1;
+
   char *const argv[] = {
     "test_program",
     "-c",

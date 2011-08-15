@@ -47,112 +47,91 @@ static struct GNUNET_FS_TestDaemon *daemons[NUM_DAEMONS];
 static int ret;
 
 static void
-do_stop (void *cls,
-	 const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
-    {
-      GNUNET_break (0);
-      ret = 1;
-    }
+  {
+    GNUNET_break (0);
+    ret = 1;
+  }
   else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Finished download, shutting down\n",
-		  (unsigned long long) FILESIZE);
-    }
-  GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS,
-			       daemons);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Finished download, shutting down\n",
+                (unsigned long long) FILESIZE);
+  }
+  GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS, daemons);
 }
 
 
 static void
-do_download (void *cls,
-	     const struct GNUNET_FS_Uri *uri)
+do_download (void *cls, const struct GNUNET_FS_Uri *uri)
 {
   if (NULL == uri)
-    {
-      GNUNET_break (0);
-      GNUNET_SCHEDULER_add_now (&do_stop,
-				NULL);
-      ret = 1;
-      return;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_add_now (&do_stop, NULL);
+    ret = 1;
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Downloading %llu bytes\n",
-	      (unsigned long long) FILESIZE);
+              "Downloading %llu bytes\n", (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_download (daemons[0],
-			   TIMEOUT,
-			   1, SEED, uri, 
-			   VERBOSE, 
-			   &do_stop, NULL);
+                           TIMEOUT, 1, SEED, uri, VERBOSE, &do_stop, NULL);
 }
 
 
 static void
-do_publish (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_publish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
-    {
-      GNUNET_break (0);
-      ret = 1;
-      GNUNET_SCHEDULER_add_now (&do_stop,
-				NULL);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    ret = 1;
+    GNUNET_SCHEDULER_add_now (&do_stop, NULL);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Publishing %llu bytes\n",
-	      (unsigned long long) FILESIZE);
+              "Publishing %llu bytes\n", (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_publish (daemons[0],
-			  TIMEOUT,
-			  1, GNUNET_NO, FILESIZE, SEED, 
-			  VERBOSE, 
-			  &do_download, NULL);
+                          TIMEOUT,
+                          1, GNUNET_NO, FILESIZE, SEED,
+                          VERBOSE, &do_download, NULL);
 }
 
 
 static void
-do_connect (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
-    {
-      GNUNET_break (0);
-      ret = 1;
-      GNUNET_SCHEDULER_add_now (&do_stop,
-				NULL);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    ret = 1;
+    GNUNET_SCHEDULER_add_now (&do_stop, NULL);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Daemons started, will now try to connect them\n");
+              "Daemons started, will now try to connect them\n");
   GNUNET_FS_TEST_daemons_connect (daemons[0],
-				  daemons[1],
-				  TIMEOUT,
-				  &do_publish,
-				  NULL);  
+                                  daemons[1], TIMEOUT, &do_publish, NULL);
 }
 
 
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_FS_TEST_daemons_start ("fs_test_lib_data.conf",
-				TIMEOUT,
-				NUM_DAEMONS,
-				daemons,
-				&do_connect,
-				NULL);
+                                TIMEOUT,
+                                NUM_DAEMONS, daemons, &do_connect, NULL);
 }
 
 
 int
 main (int argc, char *argv[])
 {
-  char *const argvx[] = { 
+  char *const argvx[] = {
     "test-fs-test-lib",
     "-c",
     "fs_test_lib_data.conf",
@@ -166,16 +145,15 @@ main (int argc, char *argv[])
   };
 
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
-  GNUNET_log_setup ("test_fs_test_lib", 
+  GNUNET_log_setup ("test_fs_test_lib",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING",
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "test-fs-test-lib",
-		      "nohelp", options, &run, NULL);
+                      argvx, "test-fs-test-lib", "nohelp", options, &run, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ret;
 }

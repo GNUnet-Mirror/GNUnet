@@ -47,7 +47,7 @@ static int ok = 1;
 static void
 arm_stopped (void *cls, int success)
 {
-  if (success != GNUNET_NO)        
+  if (success != GNUNET_NO)
     ok = 3;
   else if (ok == 1)
     ok = 0;
@@ -67,15 +67,15 @@ static void
 dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 {
   if (addr == NULL)
+  {
+    if (ok != 0)
     {
-      if (ok != 0)
-	{
-	  GNUNET_break (0);
-	  ok = 2;
-	}
-      GNUNET_ARM_stop_service (arm, "resolver", TIMEOUT, &arm_notify_stop, NULL);
-      return;
+      GNUNET_break (0);
+      ok = 2;
     }
+    GNUNET_ARM_stop_service (arm, "resolver", TIMEOUT, &arm_notify_stop, NULL);
+    return;
+  }
   GNUNET_assert (addr != NULL);
   ok = 0;
 }
@@ -85,14 +85,14 @@ static void
 resolver_notify (void *cls, int success)
 {
   if (success != GNUNET_YES)
-    {
-      GNUNET_break (0);
-      ok = 2;
+  {
+    GNUNET_break (0);
+    ok = 2;
 #if START_ARM
-      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+    GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
-      return;
-    }
+    return;
+  }
   GNUNET_RESOLVER_ip_get ("localhost", AF_INET, TIMEOUT, &dns_notify, NULL);
 }
 
@@ -101,22 +101,22 @@ static void
 arm_notify (void *cls, int success)
 {
   if (success != GNUNET_YES)
-    {
-      GNUNET_break (0);
-      ok = 2;
+  {
+    GNUNET_break (0);
+    ok = 2;
 #if START_ARM
-      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+    GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
-    }
-  GNUNET_ARM_start_service (arm, "resolver", START_TIMEOUT, &resolver_notify, NULL);
+  }
+  GNUNET_ARM_start_service (arm, "resolver", START_TIMEOUT, &resolver_notify,
+                            NULL);
 }
 
 
 static void
 task (void *cls,
       char *const *args,
-      const char *cfgfile,
-      const struct GNUNET_CONFIGURATION_Handle *c)
+      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
   arm = GNUNET_ARM_connect (cfg, NULL);

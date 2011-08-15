@@ -319,7 +319,7 @@ struct AddressLookupMessage
   uint32_t addrlen GNUNET_PACKED;
 
   /* followed by 'addrlen' bytes of the actual address, then
-     followed by the 0-terminated name of the transport */
+   * followed by the 0-terminated name of the transport */
 };
 
 

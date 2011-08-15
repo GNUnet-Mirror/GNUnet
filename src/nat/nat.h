@@ -35,17 +35,17 @@ struct GNUNET_NAT_TestMessage
 {
   /**
    * Header with type "GNUNET_MESSAGE_TYPE_NAT_TEST"
-   */ 
+   */
   struct GNUNET_MessageHeader header;
 
   /**
    * IPv4 target IP address
-   */ 
+   */
   uint32_t dst_ipv4;
 
   /**
    * Port to use, 0 to send dummy ICMP response.
-   */ 
+   */
   uint16_t dport;
 
   /**

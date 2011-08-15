@@ -121,35 +121,35 @@ get_hello_address_size (const char *buf, size_t max, uint16_t * ralen)
   pos = buf;
   slen = 1;
   while ((left > 0) && ('\0' != *pos))
-    {
-      left--;
-      pos++;
-      slen++;
-    }
+  {
+    left--;
+    pos++;
+    slen++;
+  }
   if (left == 0)
-    {
-      /* 0-termination not found */
-      GNUNET_break_op (0);
-      abort ();
-      return 0;
-    }
+  {
+    /* 0-termination not found */
+    GNUNET_break_op (0);
+    abort ();
+    return 0;
+  }
   pos++;
   if (left < sizeof (uint16_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO))
-    {
-      /* not enough space for addrlen */
-      GNUNET_break_op (0);
-      return 0;
-    }
+  {
+    /* not enough space for addrlen */
+    GNUNET_break_op (0);
+    return 0;
+  }
   memcpy (&alen, pos, sizeof (uint16_t));
   alen = ntohs (alen);
   *ralen = alen;
   slen += alen + sizeof (uint16_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO);
   if (max < slen)
-    {
-      /* not enough space for addr */
-      GNUNET_break_op (0);
-      return 0;
-    }
+  {
+    /* not enough space for addr */
+    GNUNET_break_op (0);
+    return 0;
+  }
   return slen;
 }
 
@@ -177,13 +177,13 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
   max = sizeof (buffer);
   used = 0;
   if (addrgen != NULL)
+  {
+    while (0 != (ret = addrgen (addrgen_cls, max, &buffer[used])))
     {
-      while (0 != (ret = addrgen (addrgen_cls, max, &buffer[used])))
-	{
-	  max -= ret;
-	  used += ret;
-	}
+      max -= ret;
+      used += ret;
     }
+  }
   hello = GNUNET_malloc (sizeof (struct GNUNET_HELLO_Message) + used);
   hello->header.type = htons (GNUNET_MESSAGE_TYPE_HELLO);
   hello->header.size = htons (sizeof (struct GNUNET_HELLO_Message) + used);
@@ -225,46 +225,44 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
     return NULL;
   ret = NULL;
   if (return_modified)
-    {
-      ret = GNUNET_malloc (msize);
-      memcpy (ret, msg, msize);
-    }
+  {
+    ret = GNUNET_malloc (msize);
+    memcpy (ret, msg, msize);
+  }
   inptr = (const char *) &msg[1];
   insize = msize - sizeof (struct GNUNET_HELLO_Message);
   wpos = 0;
   woff = (ret != NULL) ? (char *) &ret[1] : NULL;
   while (insize > 0)
+  {
+    esize = get_hello_address_size (inptr, insize, &alen);
+    if (esize == 0)
     {
-      esize = get_hello_address_size (inptr, insize, &alen);
-      if (esize == 0)
-        {
-          GNUNET_break (0);
-          GNUNET_free_non_null (ret);
-          return NULL;
-        }
-      memcpy (&expire,
-              &inptr[esize - alen - sizeof (struct GNUNET_TIME_AbsoluteNBO)],
-              sizeof (struct GNUNET_TIME_AbsoluteNBO));
-      iret = it (it_cls,
-                 inptr,
-                 GNUNET_TIME_absolute_ntoh (expire),
-                 &inptr[esize - alen], alen);
-      if (iret == GNUNET_SYSERR)
-        {
-          if (ret != NULL)
-            ret->header.size =
-              ntohs (sizeof (struct GNUNET_HELLO_Message) + wpos);
-          return ret;
-        }
-      if ((iret == GNUNET_OK) && (ret != NULL))
-        {
-          memcpy (woff, inptr, esize);
-          woff += esize;
-          wpos += esize;
-        }
-      insize -= esize;
-      inptr += esize;
+      GNUNET_break (0);
+      GNUNET_free_non_null (ret);
+      return NULL;
     }
+    memcpy (&expire,
+            &inptr[esize - alen - sizeof (struct GNUNET_TIME_AbsoluteNBO)],
+            sizeof (struct GNUNET_TIME_AbsoluteNBO));
+    iret = it (it_cls,
+               inptr,
+               GNUNET_TIME_absolute_ntoh (expire), &inptr[esize - alen], alen);
+    if (iret == GNUNET_SYSERR)
+    {
+      if (ret != NULL)
+        ret->header.size = ntohs (sizeof (struct GNUNET_HELLO_Message) + wpos);
+      return ret;
+    }
+    if ((iret == GNUNET_OK) && (ret != NULL))
+    {
+      memcpy (woff, inptr, esize);
+      woff += esize;
+      wpos += esize;
+    }
+    insize -= esize;
+    inptr += esize;
+  }
   if (ret != NULL)
     ret->header.size = ntohs (sizeof (struct GNUNET_HELLO_Message) + wpos);
   return ret;
@@ -289,14 +287,14 @@ get_match_exp (void *cls,
 {
   struct ExpireContext *ec = cls;
 
-  if ( (addrlen == ec->addrlen) && 
-       (0 == memcmp (addr, ec->addr, addrlen)) &&
-       (0 == strcmp (tname, ec->tname)) )
-    {
-      ec->found = GNUNET_YES;
-      ec->expiration = expiration;
-      return GNUNET_SYSERR;     /* done here */
-    }
+  if ((addrlen == ec->addrlen) &&
+      (0 == memcmp (addr, ec->addr, addrlen)) &&
+      (0 == strcmp (tname, ec->tname)))
+  {
+    ec->found = GNUNET_YES;
+    ec->expiration = expiration;
+    return GNUNET_SYSERR;       /* done here */
+  }
   return GNUNET_OK;
 }
 
@@ -328,18 +326,17 @@ copy_latest (void *cls,
   ec.found = GNUNET_NO;
   ec.tname = tname;
   GNUNET_HELLO_iterate_addresses (mc->other, GNUNET_NO, &get_match_exp, &ec);
-  if ( (ec.found == GNUNET_NO) ||
-       (ec.expiration.abs_value < expiration.abs_value) ||
-       ( (ec.expiration.abs_value == expiration.abs_value) &&
-	 (mc->take_equal == GNUNET_YES) ) )
-    {
-      mc->ret += GNUNET_HELLO_add_address (tname,
-					   expiration,
-					   addr,
-					   addrlen,
-					   &mc->buf[mc->ret],
-					   mc->max - mc->ret);
-    }
+  if ((ec.found == GNUNET_NO) ||
+      (ec.expiration.abs_value < expiration.abs_value) ||
+      ((ec.expiration.abs_value == expiration.abs_value) &&
+       (mc->take_equal == GNUNET_YES)))
+  {
+    mc->ret += GNUNET_HELLO_add_address (tname,
+                                         expiration,
+                                         addr,
+                                         addrlen,
+                                         &mc->buf[mc->ret], mc->max - mc->ret);
+  }
   return GNUNET_OK;
 }
 
@@ -461,6 +458,7 @@ uint16_t
 GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello)
 {
   uint16_t ret = ntohs (hello->header.size);
+
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
       (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return 0;
@@ -477,10 +475,10 @@ GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello)
  */
 int
 GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
-                      struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                      *publicKey)
+                      struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
   uint16_t ret = ntohs (hello->header.size);
+
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
       (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return GNUNET_SYSERR;
@@ -498,15 +496,16 @@ GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
  */
 int
 GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
-		     struct GNUNET_PeerIdentity *peer)
+                     struct GNUNET_PeerIdentity *peer)
 {
   uint16_t ret = ntohs (hello->header.size);
+
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
       (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return GNUNET_SYSERR;
   GNUNET_CRYPTO_hash (&hello->publicKey,
-		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-		      &peer->hashPubKey);
+                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      &peer->hashPubKey);
   return GNUNET_OK;
 }
 
@@ -523,6 +522,7 @@ struct GNUNET_MessageHeader *
 GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello)
 {
   uint16_t ret = ntohs (hello->header.size);
+
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
       (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return NULL;
@@ -538,11 +538,11 @@ struct EqualsContext
   struct GNUNET_TIME_Absolute result;
 
   const struct GNUNET_HELLO_Message *h2;
-  
+
   const char *tname;
-  
+
   const void *addr;
-  
+
   struct GNUNET_TIME_Absolute expiration;
 
   int found;
@@ -554,27 +554,23 @@ struct EqualsContext
 
 static int
 find_other_matching (void *cls,
-		     const char *tname,
-		     struct GNUNET_TIME_Absolute expiration,
-		     const void *addr, uint16_t addrlen)
+                     const char *tname,
+                     struct GNUNET_TIME_Absolute expiration,
+                     const void *addr, uint16_t addrlen)
 {
   struct EqualsContext *ec = cls;
 
   if (expiration.abs_value < ec->expiration_limit.abs_value)
     return GNUNET_YES;
-  if ( (addrlen == ec->addrlen) && 
-       (0 == strcmp (tname,
-		     ec->tname)) &&
-       (0 == memcmp (addr,
-		     ec->addr,
-		     addrlen)) )
-    {
-      ec->found = GNUNET_YES;
-      if (expiration.abs_value < ec->expiration.abs_value)	
-	ec->result = GNUNET_TIME_absolute_min (expiration,
-					       ec->result);		
-      return GNUNET_SYSERR;
-    }
+  if ((addrlen == ec->addrlen) &&
+      (0 == strcmp (tname,
+                    ec->tname)) && (0 == memcmp (addr, ec->addr, addrlen)))
+  {
+    ec->found = GNUNET_YES;
+    if (expiration.abs_value < ec->expiration.abs_value)
+      ec->result = GNUNET_TIME_absolute_min (expiration, ec->result);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_YES;
 }
 
@@ -594,15 +590,12 @@ find_matching (void *cls,
   ec->addr = addr;
   ec->addrlen = addrlen;
   ec->found = GNUNET_NO;
-  GNUNET_HELLO_iterate_addresses (ec->h2,
-				  GNUNET_NO,
-				  &find_other_matching,
-				  ec);
+  GNUNET_HELLO_iterate_addresses (ec->h2, GNUNET_NO, &find_other_matching, ec);
   if (ec->found == GNUNET_NO)
-    {
-      ec->result = GNUNET_TIME_UNIT_ZERO_ABS;
-      return GNUNET_SYSERR;
-    }
+  {
+    ec->result = GNUNET_TIME_UNIT_ZERO_ABS;
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -622,34 +615,26 @@ find_matching (void *cls,
  *         zero if the some addresses with expirations >= now
  *         do not match at all
  */
-struct GNUNET_TIME_Absolute 
+struct GNUNET_TIME_Absolute
 GNUNET_HELLO_equals (const struct
-		     GNUNET_HELLO_Message *h1,
-		     const struct
-		     GNUNET_HELLO_Message *h2,
-		     struct GNUNET_TIME_Absolute now)
+                     GNUNET_HELLO_Message *h1,
+                     const struct
+                     GNUNET_HELLO_Message *h2, struct GNUNET_TIME_Absolute now)
 {
   struct EqualsContext ec;
 
   if (0 != memcmp (&h1->publicKey,
-		   &h2->publicKey,
-		   sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+                   &h2->publicKey,
+                   sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
     return GNUNET_TIME_UNIT_ZERO_ABS;
   ec.expiration_limit = now;
   ec.result = GNUNET_TIME_UNIT_FOREVER_ABS;
   ec.h2 = h2;
-  GNUNET_HELLO_iterate_addresses (h1,
-				   GNUNET_NO,
-				   &find_matching,
-				   &ec);
-  if (ec.result.abs_value ==
-      GNUNET_TIME_UNIT_ZERO.rel_value)
-    return ec.result; 
+  GNUNET_HELLO_iterate_addresses (h1, GNUNET_NO, &find_matching, &ec);
+  if (ec.result.abs_value == GNUNET_TIME_UNIT_ZERO.rel_value)
+    return ec.result;
   ec.h2 = h1;
-  GNUNET_HELLO_iterate_addresses (h2,
-				   GNUNET_NO,
-				   &find_matching,
-				   &ec);
+  GNUNET_HELLO_iterate_addresses (h2, GNUNET_NO, &find_matching, &ec);
   return ec.result;
 }
 

@@ -39,7 +39,7 @@ GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key)
   gcry_randomize (&key->key[0], GNUNET_CRYPTO_AES_KEY_LENGTH,
                   GCRY_STRONG_RANDOM);
   key->crc32 =
-    htonl (GNUNET_CRYPTO_crc32_n (key, GNUNET_CRYPTO_AES_KEY_LENGTH));
+      htonl (GNUNET_CRYPTO_crc32_n (key, GNUNET_CRYPTO_AES_KEY_LENGTH));
 }
 
 /**
@@ -84,20 +84,19 @@ GNUNET_CRYPTO_aes_encrypt (const void *block,
   int rc;
 
   if (sessionkey->crc32 !=
-      htonl (GNUNET_CRYPTO_crc32_n
-             (sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH)))
-    {
-      GNUNET_break (0);
-      return -1;
-    }
+      htonl (GNUNET_CRYPTO_crc32_n (sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH)))
+  {
+    GNUNET_break (0);
+    return -1;
+  }
   GNUNET_assert (0 == gcry_cipher_open (&handle,
                                         GCRY_CIPHER_AES256,
                                         GCRY_CIPHER_MODE_CFB, 0));
   rc = gcry_cipher_setkey (handle, sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH);
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  rc =
-    gcry_cipher_setiv (handle, iv,
-                       sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
+  rc = gcry_cipher_setiv (handle, iv,
+                          sizeof (struct
+                                  GNUNET_CRYPTO_AesInitializationVector));
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
   GNUNET_assert (0 == gcry_cipher_encrypt (handle, result, len, block, len));
   gcry_cipher_close (handle);
@@ -127,23 +126,21 @@ GNUNET_CRYPTO_aes_decrypt (const void *block,
   int rc;
 
   if (sessionkey->crc32 !=
-      htonl (GNUNET_CRYPTO_crc32_n
-             (sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH)))
-    {
-      GNUNET_break (0);
-      return -1;
-    }
+      htonl (GNUNET_CRYPTO_crc32_n (sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH)))
+  {
+    GNUNET_break (0);
+    return -1;
+  }
   GNUNET_assert (0 == gcry_cipher_open (&handle,
                                         GCRY_CIPHER_AES256,
                                         GCRY_CIPHER_MODE_CFB, 0));
   rc = gcry_cipher_setkey (handle, sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH);
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  rc =
-    gcry_cipher_setiv (handle, iv,
-                       sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
+  rc = gcry_cipher_setiv (handle, iv,
+                          sizeof (struct
+                                  GNUNET_CRYPTO_AesInitializationVector));
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  GNUNET_assert (0 ==
-                 gcry_cipher_decrypt (handle, result, size, block, size));
+  GNUNET_assert (0 == gcry_cipher_decrypt (handle, result, size, block, size));
   gcry_cipher_close (handle);
   return size;
 }
@@ -158,9 +155,8 @@ GNUNET_CRYPTO_aes_decrypt (const void *block,
  */
 void
 GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-    const struct GNUNET_CRYPTO_AesSessionKey *skey,
-    const void *salt, size_t salt_len,
-    ...)
+                             const struct GNUNET_CRYPTO_AesSessionKey *skey,
+                             const void *salt, size_t salt_len, ...)
 {
   va_list argp;
 
@@ -179,12 +175,11 @@ GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
  */
 void
 GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-    const struct GNUNET_CRYPTO_AesSessionKey *skey,
-    const void *salt, size_t salt_len,
-    va_list argp)
+                               const struct GNUNET_CRYPTO_AesSessionKey *skey,
+                               const void *salt, size_t salt_len, va_list argp)
 {
-  GNUNET_CRYPTO_kdf_v (iv->iv, sizeof(iv->iv), salt, salt_len, skey->key,
-      sizeof(skey->key), argp);
+  GNUNET_CRYPTO_kdf_v (iv->iv, sizeof (iv->iv), salt, salt_len, skey->key,
+                       sizeof (skey->key), argp);
 }
 
 /* end of crypto_aes.c */

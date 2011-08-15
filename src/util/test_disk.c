@@ -46,36 +46,35 @@ testReadWrite ()
     return 1;
   ret = GNUNET_DISK_fn_read (".testfile", tmp, sizeof (tmp) - 1);
   if (ret < 0)
-    {
-      fprintf (stderr,
-               "Error reading file `%s' in testReadWrite\n", ".testfile");
-      return 1;
-    }
+  {
+    fprintf (stderr, "Error reading file `%s' in testReadWrite\n", ".testfile");
+    return 1;
+  }
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
-    {
-      fprintf (stderr,
-               "Error in testReadWrite: *%s* != *%s* for file %s\n",
-               tmp, TESTSTRING, ".testfile");
-      return 1;
-    }
+  {
+    fprintf (stderr,
+             "Error in testReadWrite: *%s* != *%s* for file %s\n",
+             tmp, TESTSTRING, ".testfile");
+    return 1;
+  }
   GNUNET_DISK_file_copy (".testfile", ".testfile2");
   memset (tmp, 0, sizeof (tmp));
   ret = GNUNET_DISK_fn_read (".testfile2", tmp, sizeof (tmp) - 1);
   if (ret < 0)
-    {
-      fprintf (stderr,
-               "Error reading file `%s' in testReadWrite\n", ".testfile2");
-      return 1;
-    }
+  {
+    fprintf (stderr,
+             "Error reading file `%s' in testReadWrite\n", ".testfile2");
+    return 1;
+  }
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
-    {
-      fprintf (stderr,
-               "Error in testReadWrite: *%s* != *%s* for file %s\n",
-               tmp, TESTSTRING, ".testfile2");
-      return 1;
-    }
+  {
+    fprintf (stderr,
+             "Error in testReadWrite: *%s* != *%s* for file %s\n",
+             tmp, TESTSTRING, ".testfile2");
+    return 1;
+  }
 
   GNUNET_break (0 == UNLINK (".testfile"));
   GNUNET_break (0 == UNLINK (".testfile2"));
@@ -117,11 +116,11 @@ testOpenClose ()
   while ((avail == GNUNET_DISK_get_blocks_available (".testfile")) &&
          (avail != -1))
     if (16 != GNUNET_DISK_file_write (fh, "HelloWorld123456", 16))
-      {
-        GNUNET_DISK_file_close (fh);
-        GNUNET_break (0 == UNLINK (".testfile"));
-        return 1;
-      }
+    {
+      GNUNET_DISK_file_close (fh);
+      GNUNET_break (0 == UNLINK (".testfile"));
+      return 1;
+    }
   GNUNET_DISK_file_close (fh);
   GNUNET_break (0 == UNLINK (".testfile"));
 
@@ -162,6 +161,7 @@ iter_callback (void *cls,
                const char *filename, const char *dirname)
 {
   int *i = cls;
+
   (*i)++;
   GNUNET_DISK_directory_iterator_next (di, GNUNET_NO);
 }
@@ -210,7 +210,8 @@ testGetHome ()
   GNUNET_CONFIGURATION_destroy (cfg);
   ret = strcmp ("/tmp/test-gnunet-disk-a/b/c/d/e", fn);
   GNUNET_free (fn);
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove ("/tmp/test-gnunet-disk-a"));
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_DISK_directory_remove ("/tmp/test-gnunet-disk-a"));
   return ret;
 }
 
@@ -218,12 +219,13 @@ static int
 testCanonicalize ()
 {
   char *fn = GNUNET_strdup ("ab?><|cd*ef:/g\"");
+
   GNUNET_DISK_filename_canonicalize (fn);
   if (0 != strcmp (fn, "ab____cd_ef__g_"))
-    {
-      GNUNET_free (fn);
-      return 1;
-    }
+  {
+    GNUNET_free (fn);
+    return 1;
+  }
   GNUNET_free (fn);
   return 0;
 }
@@ -275,9 +277,9 @@ main (int argc, char *argv[])
   failureCount += testChangeOwner ();
   failureCount += testDirMani ();
   if (failureCount != 0)
-    {
-      fprintf (stderr, "\n%u TESTS FAILED!\n", failureCount);
-      return -1;
-    }
+  {
+    fprintf (stderr, "\n%u TESTS FAILED!\n", failureCount);
+    return -1;
+  }
   return 0;
 }                               /* end of main */

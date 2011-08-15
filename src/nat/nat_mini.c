@@ -109,8 +109,7 @@ struct GNUNET_NAT_ExternalHandle
  * @param tc scheduler context
  */
 static void
-read_external_ipv4 (void *cls,
-		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_external_ipv4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_ExternalHandle *eh = cls;
   ssize_t ret;
@@ -118,39 +117,34 @@ read_external_ipv4 (void *cls,
   int iret;
 
   eh->task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_YES ==
-      GNUNET_NETWORK_fdset_handle_isset (tc->read_ready,
-					 eh->r))
+  if (GNUNET_YES == GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, eh->r))
     ret = GNUNET_DISK_file_read (eh->r,
-				 &eh->buf[eh->off], 
-				 sizeof (eh->buf)-eh->off);
+                                 &eh->buf[eh->off], sizeof (eh->buf) - eh->off);
   else
-    ret = -1; /* error reading, timeout, etc. */
+    ret = -1;                   /* error reading, timeout, etc. */
   if (ret > 0)
-    {
-      /* try to read more */
-      eh->off += ret;
-      eh->task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining (eh->timeout),
-						 eh->r,
-						 &read_external_ipv4,
-						 eh);
-      return;
-    }
+  {
+    /* try to read more */
+    eh->off += ret;
+    eh->task =
+        GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining
+                                        (eh->timeout), eh->r,
+                                        &read_external_ipv4, eh);
+    return;
+  }
   iret = GNUNET_NO;
-  if ( (eh->off > 7) &&    
-       (eh->buf[eh->off-1] == '\n') )    
+  if ((eh->off > 7) && (eh->buf[eh->off - 1] == '\n'))
+  {
+    eh->buf[eh->off - 1] = '\0';
+    if (1 == inet_pton (AF_INET, eh->buf, &addr))
     {
-      eh->buf[eh->off-1] = '\0';
-      if (1 == inet_pton (AF_INET, eh->buf, &addr))
-	{
-	  if (addr.s_addr == 0)
-	    iret = GNUNET_NO; /* got 0.0.0.0 */
-	  else
-	    iret = GNUNET_OK;
-	}
+      if (addr.s_addr == 0)
+        iret = GNUNET_NO;       /* got 0.0.0.0 */
+      else
+        iret = GNUNET_OK;
     }
-  eh->cb (eh->cb_cls,
-	  (iret == GNUNET_OK) ? &addr : NULL);
+  }
+  eh->cb (eh->cb_cls, (iret == GNUNET_OK) ? &addr : NULL);
   GNUNET_NAT_mini_get_external_ipv4_cancel (eh);
 }
 
@@ -165,40 +159,33 @@ read_external_ipv4 (void *cls,
  */
 struct GNUNET_NAT_ExternalHandle *
 GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
-				   GNUNET_NAT_IPCallback cb,
-				   void *cb_cls)
+                                   GNUNET_NAT_IPCallback cb, void *cb_cls)
 {
   struct GNUNET_NAT_ExternalHandle *eh;
 
   eh = GNUNET_malloc (sizeof (struct GNUNET_NAT_ExternalHandle));
   eh->cb = cb;
   eh->cb_cls = cb_cls;
-  eh->opipe = GNUNET_DISK_pipe (GNUNET_YES,
-				GNUNET_NO,
-				GNUNET_YES);
+  eh->opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (NULL == eh->opipe)
-    {
-      GNUNET_free (eh);
-      return NULL;
-    }
+  {
+    GNUNET_free (eh);
+    return NULL;
+  }
   eh->eip = GNUNET_OS_start_process (NULL,
-				     eh->opipe,
-				     "external-ip",
-				     "external-ip", NULL);
+                                     eh->opipe,
+                                     "external-ip", "external-ip", NULL);
   if (NULL == eh->eip)
-    {
-      GNUNET_DISK_pipe_close (eh->opipe);
-      GNUNET_free (eh);
-      return NULL;
-    }
+  {
+    GNUNET_DISK_pipe_close (eh->opipe);
+    GNUNET_free (eh);
+    return NULL;
+  }
   GNUNET_DISK_pipe_close_end (eh->opipe, GNUNET_DISK_PIPE_END_WRITE);
   eh->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  eh->r = GNUNET_DISK_pipe_handle (eh->opipe,
-				   GNUNET_DISK_PIPE_END_READ);
+  eh->r = GNUNET_DISK_pipe_handle (eh->opipe, GNUNET_DISK_PIPE_END_READ);
   eh->task = GNUNET_SCHEDULER_add_read_file (timeout,
-					     eh->r,
-					     &read_external_ipv4,
-					     eh);
+                                             eh->r, &read_external_ipv4, eh);
   return eh;
 }
 
@@ -222,7 +209,7 @@ GNUNET_NAT_mini_get_external_ipv4_cancel (struct GNUNET_NAT_ExternalHandle *eh)
 
 /**
  * Handle to a mapping created with upnpc.
- */ 
+ */
 struct GNUNET_NAT_MiniHandle
 {
 
@@ -274,7 +261,7 @@ struct GNUNET_NAT_MiniHandle
 
   /**
    * Did we find our mapping during refresh scan?
-   */ 
+   */
   int found;
 
   /**
@@ -292,8 +279,7 @@ struct GNUNET_NAT_MiniHandle
  * @param tc scheduler context
  */
 static void
-do_refresh (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -302,9 +288,7 @@ do_refresh (void *cls,
  * @param cls the 'struct GNUNET_NAT_MiniHandle'
  * @param line line of output, NULL at the end
  */
-static void
-process_map_output (void *cls,
-		    const char *line);
+static void process_map_output (void *cls, const char *line);
 
 
 /**
@@ -315,8 +299,7 @@ process_map_output (void *cls,
  * @param line line of output, NULL at the end
  */
 static void
-process_refresh_output (void *cls,
-			const char *line)
+process_refresh_output (void *cls, const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
   char pstr[9];
@@ -325,99 +308,92 @@ process_refresh_output (void *cls,
   struct in_addr exip;
 
   if (NULL == line)
+  {
+    GNUNET_OS_command_stop (mini->refresh_cmd);
+    mini->refresh_cmd = NULL;
+    if (mini->found == GNUNET_NO)
     {
-      GNUNET_OS_command_stop (mini->refresh_cmd);
-      mini->refresh_cmd = NULL;
-      if (mini->found == GNUNET_NO)
-	{
-	  /* mapping disappeared, try to re-create */
-	  if (mini->did_map)
-	    {
-	      mini->ac (mini->ac_cls, GNUNET_NO,
-			(const struct sockaddr*) &mini->current_addr,
-			sizeof (mini->current_addr));
-	      mini->did_map = GNUNET_NO;
-	    }
-	  GNUNET_snprintf (pstr, sizeof (pstr),
-			   "%u",
-			   (unsigned int) mini->port);
-	  mini->map_cmd = GNUNET_OS_command_run (&process_map_output,
-						 mini,
-						 MAP_TIMEOUT,
-						 "upnpc",
-						 "upnpc",
-						 "-r", pstr, 
-						 mini->is_tcp ? "tcp" : "udp",
-						 NULL);
-	  if (NULL != mini->map_cmd)
-	    return;
-	}
-      mini->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
-							 &do_refresh,
-							 mini);
-      return;
+      /* mapping disappeared, try to re-create */
+      if (mini->did_map)
+      {
+        mini->ac (mini->ac_cls, GNUNET_NO,
+                  (const struct sockaddr *) &mini->current_addr,
+                  sizeof (mini->current_addr));
+        mini->did_map = GNUNET_NO;
+      }
+      GNUNET_snprintf (pstr, sizeof (pstr), "%u", (unsigned int) mini->port);
+      mini->map_cmd = GNUNET_OS_command_run (&process_map_output,
+                                             mini,
+                                             MAP_TIMEOUT,
+                                             "upnpc",
+                                             "upnpc",
+                                             "-r", pstr,
+                                             mini->is_tcp ? "tcp" : "udp",
+                                             NULL);
+      if (NULL != mini->map_cmd)
+        return;
     }
-  if (! mini->did_map)
-    return; /* never mapped, won't find our mapping anyway */
+    mini->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
+                                                       &do_refresh, mini);
+    return;
+  }
+  if (!mini->did_map)
+    return;                     /* never mapped, won't find our mapping anyway */
 
   /* we're looking for output of the form:
-     "ExternalIPAddress = 12.134.41.124" */
+   * "ExternalIPAddress = 12.134.41.124" */
 
   s = strstr (line, "ExternalIPAddress = ");
   if (NULL != s)
-    {
-      s += strlen ("ExternalIPAddress = ");
-      if (1 != inet_pton (AF_INET,
-			  s, &exip))
-	return; /* skip */
-      if (exip.s_addr == mini->current_addr.sin_addr.s_addr)
-	return; /* no change */
-      /* update mapping */
-      mini->ac (mini->ac_cls, GNUNET_NO,
-		(const struct sockaddr*) &mini->current_addr,
-		sizeof (mini->current_addr));
-      mini->current_addr.sin_addr = exip;
-      mini->ac (mini->ac_cls, GNUNET_YES,
-		(const struct sockaddr*) &mini->current_addr,
-		sizeof (mini->current_addr));     
-      return;
-    }
+  {
+    s += strlen ("ExternalIPAddress = ");
+    if (1 != inet_pton (AF_INET, s, &exip))
+      return;                   /* skip */
+    if (exip.s_addr == mini->current_addr.sin_addr.s_addr)
+      return;                   /* no change */
+    /* update mapping */
+    mini->ac (mini->ac_cls, GNUNET_NO,
+              (const struct sockaddr *) &mini->current_addr,
+              sizeof (mini->current_addr));
+    mini->current_addr.sin_addr = exip;
+    mini->ac (mini->ac_cls, GNUNET_YES,
+              (const struct sockaddr *) &mini->current_addr,
+              sizeof (mini->current_addr));
+    return;
+  }
   /*
-    we're looking for output of the form:
-     
-     "0 TCP  3000->192.168.2.150:3000  'libminiupnpc' ''"
-     "1 UDP  3001->192.168.2.150:3001  'libminiupnpc' ''"
-
-    the pattern we look for is:
-
-     "%s TCP  PORT->STRING:OURPORT *" or
-     "%s UDP  PORT->STRING:OURPORT *"
-  */
-  GNUNET_snprintf (pstr, sizeof (pstr),
-		   ":%u ",
-		   mini->port);
+   * we're looking for output of the form:
+   * 
+   * "0 TCP  3000->192.168.2.150:3000  'libminiupnpc' ''"
+   * "1 UDP  3001->192.168.2.150:3001  'libminiupnpc' ''"
+   * 
+   * the pattern we look for is:
+   * 
+   * "%s TCP  PORT->STRING:OURPORT *" or
+   * "%s UDP  PORT->STRING:OURPORT *"
+   */
+  GNUNET_snprintf (pstr, sizeof (pstr), ":%u ", mini->port);
   if (NULL == (s = strstr (line, "->")))
-    return; /* skip */
+    return;                     /* skip */
   if (NULL == strstr (s, pstr))
-    return; /* skip */
+    return;                     /* skip */
   if (1 != sscanf (line,
-		   (mini->is_tcp) 
-		   ? "%*u TCP  %u->%*s:%*u %*s" 
-		   : "%*u UDP  %u->%*s:%*u %*s",
-		   &nport))
-    return; /* skip */
+                   (mini->is_tcp)
+                   ? "%*u TCP  %u->%*s:%*u %*s"
+                   : "%*u UDP  %u->%*s:%*u %*s", &nport))
+    return;                     /* skip */
   mini->found = GNUNET_YES;
   if (nport == ntohs (mini->current_addr.sin_port))
-    return; /* no change */    
+    return;                     /* no change */
 
   /* external port changed, update mapping */
   mini->ac (mini->ac_cls, GNUNET_NO,
-	    (const struct sockaddr*) &mini->current_addr,
-	    sizeof (mini->current_addr));
+            (const struct sockaddr *) &mini->current_addr,
+            sizeof (mini->current_addr));
   mini->current_addr.sin_port = htons ((uint16_t) nport);
   mini->ac (mini->ac_cls, GNUNET_YES,
-	    (const struct sockaddr*) &mini->current_addr,
-	    sizeof (mini->current_addr));     
+            (const struct sockaddr *) &mini->current_addr,
+            sizeof (mini->current_addr));
 }
 
 
@@ -428,20 +404,16 @@ process_refresh_output (void *cls,
  * @param tc scheduler context
  */
 static void
-do_refresh (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
 
   mini->refresh_task = GNUNET_SCHEDULER_NO_TASK;
   mini->found = GNUNET_NO;
   mini->refresh_cmd = GNUNET_OS_command_run (&process_refresh_output,
-					     mini,
-					     MAP_TIMEOUT,
-					     "upnpc",
-					     "upnpc",
-					     "-l",
-					     NULL);
+                                             mini,
+                                             MAP_TIMEOUT,
+                                             "upnpc", "upnpc", "-l", NULL);
 }
 
 
@@ -452,8 +424,7 @@ do_refresh (void *cls,
  * @param line line of output, NULL at the end
  */
 static void
-process_map_output (void *cls,
-		    const char *line)
+process_map_output (void *cls, const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
   const char *ipaddr;
@@ -462,35 +433,32 @@ process_map_output (void *cls,
   unsigned int port;
 
   if (NULL == line)
-    {
-      GNUNET_OS_command_stop (mini->map_cmd);
-      mini->map_cmd = NULL;
-      mini->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
-							 &do_refresh,
-							 mini);
-      return;
-    }
+  {
+    GNUNET_OS_command_stop (mini->map_cmd);
+    mini->map_cmd = NULL;
+    mini->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
+                                                       &do_refresh, mini);
+    return;
+  }
   /*
-    The upnpc output we're after looks like this:
-
-     "external 87.123.42.204:3000 TCP is redirected to internal 192.168.2.150:3000"
-  */
-  if ( (NULL == (ipaddr = strstr (line, " "))) ||
-       (NULL == (pstr = strstr (ipaddr, ":"))) ||
-       (1 != sscanf (pstr + 1, "%u", &port)) )
-    {
-      return; /* skip line */
-    }
+   * The upnpc output we're after looks like this:
+   * 
+   * "external 87.123.42.204:3000 TCP is redirected to internal 192.168.2.150:3000"
+   */
+  if ((NULL == (ipaddr = strstr (line, " "))) ||
+      (NULL == (pstr = strstr (ipaddr, ":"))) ||
+      (1 != sscanf (pstr + 1, "%u", &port)))
+  {
+    return;                     /* skip line */
+  }
   ipa = GNUNET_strdup (ipaddr + 1);
   strstr (ipa, ":")[0] = '\0';
-  if (1 != inet_pton (AF_INET,
-		      ipa, 
-		      &mini->current_addr.sin_addr))
-    {
-      GNUNET_free (ipa);
-      return; /* skip line */
-    }
-  GNUNET_free (ipa);	      
+  if (1 != inet_pton (AF_INET, ipa, &mini->current_addr.sin_addr))
+  {
+    GNUNET_free (ipa);
+    return;                     /* skip line */
+  }
+  GNUNET_free (ipa);
 
   mini->current_addr.sin_port = htons (port);
   mini->current_addr.sin_family = AF_INET;
@@ -499,8 +467,8 @@ process_map_output (void *cls,
 #endif
   mini->did_map = GNUNET_YES;
   mini->ac (mini->ac_cls, GNUNET_YES,
-	    (const struct sockaddr*) &mini->current_addr,
-	    sizeof (mini->current_addr));
+            (const struct sockaddr *) &mini->current_addr,
+            sizeof (mini->current_addr));
 }
 
 
@@ -519,37 +487,31 @@ process_map_output (void *cls,
  */
 struct GNUNET_NAT_MiniHandle *
 GNUNET_NAT_mini_map_start (uint16_t port,
-			   int is_tcp,
-			   GNUNET_NAT_AddressCallback ac,
-			   void *ac_cls)
+                           int is_tcp,
+                           GNUNET_NAT_AddressCallback ac, void *ac_cls)
 {
   struct GNUNET_NAT_MiniHandle *ret;
   char pstr[6];
 
-  if (GNUNET_SYSERR ==
-      GNUNET_OS_check_helper_binary ("upnpc"))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("upnpc"))
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_NAT_MiniHandle));
   ret->ac = ac;
   ret->ac_cls = ac_cls;
   ret->is_tcp = is_tcp;
   ret->port = port;
-  GNUNET_snprintf (pstr, sizeof (pstr),
-		   "%u",
-		   (unsigned int) port);
+  GNUNET_snprintf (pstr, sizeof (pstr), "%u", (unsigned int) port);
   ret->map_cmd = GNUNET_OS_command_run (&process_map_output,
-					ret,
-					MAP_TIMEOUT,
-					"upnpc",
-					"upnpc",
-					"-r", pstr, 
-					is_tcp ? "tcp" : "udp",
-					NULL);
+                                        ret,
+                                        MAP_TIMEOUT,
+                                        "upnpc",
+                                        "upnpc",
+                                        "-r", pstr,
+                                        is_tcp ? "tcp" : "udp", NULL);
   if (NULL != ret->map_cmd)
     return ret;
   ret->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
-						    &do_refresh,
-						    ret);
+                                                    &do_refresh, ret);
 
   return ret;
 }
@@ -562,23 +524,20 @@ GNUNET_NAT_mini_map_start (uint16_t port,
  * @param line line of output, NULL at the end
  */
 static void
-process_unmap_output (void *cls,
-		      const char *line)
+process_unmap_output (void *cls, const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
 
   if (NULL == line)
-    {
+  {
 #if DEBUG_NAT
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "nat",
-		       "UPnP unmap done\n");
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat", "UPnP unmap done\n");
 #endif
-      GNUNET_OS_command_stop (mini->unmap_cmd);
-      mini->unmap_cmd = NULL;
-      GNUNET_free (mini);
-      return;
-    }
+    GNUNET_OS_command_stop (mini->unmap_cmd);
+    mini->unmap_cmd = NULL;
+    GNUNET_free (mini);
+    return;
+  }
   /* we don't really care about the output... */
 }
 
@@ -597,48 +556,46 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
   char pstr[6];
 
   if (GNUNET_SCHEDULER_NO_TASK != mini->refresh_task)
-    {
-      GNUNET_SCHEDULER_cancel (mini->refresh_task);
-      mini->refresh_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (mini->refresh_task);
+    mini->refresh_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (mini->refresh_cmd != NULL)
+  {
+    GNUNET_OS_command_stop (mini->refresh_cmd);
+    mini->refresh_cmd = NULL;
+  }
+  if (!mini->did_map)
+  {
+    if (mini->map_cmd != NULL)
     {
-      GNUNET_OS_command_stop (mini->refresh_cmd);
-      mini->refresh_cmd = NULL;
+      GNUNET_OS_command_stop (mini->map_cmd);
+      mini->map_cmd = NULL;
     }
-  if (! mini->did_map)
-    {
-      if (mini->map_cmd != NULL)
-	{
-	  GNUNET_OS_command_stop (mini->map_cmd);
-	  mini->map_cmd = NULL;
-	}
-      GNUNET_free (mini);
-      return;
-    }
+    GNUNET_free (mini);
+    return;
+  }
   mini->ac (mini->ac_cls, GNUNET_NO,
-	    (const struct sockaddr*) &mini->current_addr,
-	    sizeof (mini->current_addr));
+            (const struct sockaddr *) &mini->current_addr,
+            sizeof (mini->current_addr));
   /* Note: oddly enough, deletion uses the external port whereas
-     addition uses the internal port; this rarely matters since they
-     often are the same, but it might... */
+   * addition uses the internal port; this rarely matters since they
+   * often are the same, but it might... */
   GNUNET_snprintf (pstr, sizeof (pstr),
-		   "%u",
-		   (unsigned int) ntohs (mini->current_addr.sin_port));
+                   "%u", (unsigned int) ntohs (mini->current_addr.sin_port));
 #if DEBUG_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "nat",
-		   "Unmapping port %u with UPnP\n",
-		   ntohs (mini->current_addr.sin_port));
+                   "nat",
+                   "Unmapping port %u with UPnP\n",
+                   ntohs (mini->current_addr.sin_port));
 #endif
   mini->unmap_cmd = GNUNET_OS_command_run (&process_unmap_output,
-					   mini,
-					   UNMAP_TIMEOUT,
-					   "upnpc",
-					   "upnpc",
-					   "-d", pstr, 
-					   mini->is_tcp ? "tcp" : "udp",
-					   NULL);
+                                           mini,
+                                           UNMAP_TIMEOUT,
+                                           "upnpc",
+                                           "upnpc",
+                                           "-d", pstr,
+                                           mini->is_tcp ? "tcp" : "udp", NULL);
 }
 
 

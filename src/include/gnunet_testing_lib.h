@@ -88,10 +88,12 @@ struct GNUNET_TESTING_Host
  * @param d handle for the daemon
  * @param emsg error message (NULL on success)
  */
-typedef void (*GNUNET_TESTING_NotifyHostkeyCreated)(void *cls,
-                                                    const struct GNUNET_PeerIdentity *id,
-                                                    struct GNUNET_TESTING_Daemon *d,
-                                                    const char *emsg);
+typedef void (*GNUNET_TESTING_NotifyHostkeyCreated) (void *cls,
+                                                     const struct
+                                                     GNUNET_PeerIdentity * id,
+                                                     struct
+                                                     GNUNET_TESTING_Daemon * d,
+                                                     const char *emsg);
 
 /**
  * Prototype of a function that will be called whenever
@@ -103,11 +105,14 @@ typedef void (*GNUNET_TESTING_NotifyHostkeyCreated)(void *cls,
  * @param d handle for the daemon
  * @param emsg error message (NULL on success)
  */
-typedef void (*GNUNET_TESTING_NotifyDaemonRunning)(void *cls,
-						   const struct GNUNET_PeerIdentity *id,
-						   const struct GNUNET_CONFIGURATION_Handle *cfg,
-						   struct GNUNET_TESTING_Daemon *d,
-						   const char *emsg);
+typedef void (*GNUNET_TESTING_NotifyDaemonRunning) (void *cls,
+                                                    const struct
+                                                    GNUNET_PeerIdentity * id,
+                                                    const struct
+                                                    GNUNET_CONFIGURATION_Handle
+                                                    * cfg,
+                                                    struct GNUNET_TESTING_Daemon
+                                                    * d, const char *emsg);
 
 
 /**
@@ -203,8 +208,7 @@ enum GNUNET_TESTING_StartPhase
  * @param cls closure
  * @param emsg NULL on success
  */
-typedef void (*GNUNET_TESTING_NotifyCompletion)(void *cls,
-                                                const char *emsg);
+typedef void (*GNUNET_TESTING_NotifyCompletion) (void *cls, const char *emsg);
 
 /**
  * Prototype of a function that will be called with the
@@ -213,8 +217,8 @@ typedef void (*GNUNET_TESTING_NotifyCompletion)(void *cls,
  * @param cls closure
  * @param num_connections the number of connections created
  */
-typedef void (*GNUNET_TESTING_NotifyConnections)(void *cls,
-                                                unsigned int num_connections);
+typedef void (*GNUNET_TESTING_NotifyConnections) (void *cls,
+                                                  unsigned int num_connections);
 
 /**
  * Handle for a GNUnet daemon (technically a set of
@@ -405,15 +409,23 @@ struct GNUNET_TESTING_PeerGroup;
  * @param second_daemon handle for the second daemon
  * @param emsg error message (NULL on success)
  */
-typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
-                                                const struct GNUNET_PeerIdentity *first,
-                                                const struct GNUNET_PeerIdentity *second,
-                                                uint32_t distance,
-                                                const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-                                                const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-                                                struct GNUNET_TESTING_Daemon *first_daemon,
-                                                struct GNUNET_TESTING_Daemon *second_daemon,
-                                                const char *emsg);
+typedef void (*GNUNET_TESTING_NotifyConnection) (void *cls,
+                                                 const struct
+                                                 GNUNET_PeerIdentity * first,
+                                                 const struct
+                                                 GNUNET_PeerIdentity * second,
+                                                 uint32_t distance,
+                                                 const struct
+                                                 GNUNET_CONFIGURATION_Handle *
+                                                 first_cfg,
+                                                 const struct
+                                                 GNUNET_CONFIGURATION_Handle *
+                                                 second_cfg,
+                                                 struct GNUNET_TESTING_Daemon *
+                                                 first_daemon,
+                                                 struct GNUNET_TESTING_Daemon *
+                                                 second_daemon,
+                                                 const char *emsg);
 
 /**
  * Prototype of a callback function indicating that two peers
@@ -425,10 +437,11 @@ typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
  * @param distance distance between the connected peers
  * @param emsg error message (NULL on success)
  */
-typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
-                                              const struct GNUNET_PeerIdentity *first,
-                                              const struct GNUNET_PeerIdentity *second,
-                                              const char *emsg);
+typedef void (*GNUNET_TESTING_NotifyTopology) (void *cls,
+                                               const struct GNUNET_PeerIdentity
+                                               * first,
+                                               const struct GNUNET_PeerIdentity
+                                               * second, const char *emsg);
 
 /**
  * Starts a GNUnet daemon.  GNUnet must be installed on the target
@@ -453,18 +466,22 @@ typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
  * @param cb_cls closure for cb
  * @return handle to the daemon (actual start will be completed asynchronously)
  */
-struct GNUNET_TESTING_Daemon *
-GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                             struct GNUNET_TIME_Relative timeout,
-                             int pretend,
-                             const char *hostname,
-                             const char *ssh_username,
-                             uint16_t sshport,
-                             const char *hostkey,
-                             GNUNET_TESTING_NotifyHostkeyCreated
-                             hostkey_callback, void *hostkey_cls,
-                             GNUNET_TESTING_NotifyDaemonRunning cb,
-                             void *cb_cls);
+struct GNUNET_TESTING_Daemon *GNUNET_TESTING_daemon_start (const struct
+                                                           GNUNET_CONFIGURATION_Handle
+                                                           *cfg,
+                                                           struct
+                                                           GNUNET_TIME_Relative
+                                                           timeout, int pretend,
+                                                           const char *hostname,
+                                                           const char
+                                                           *ssh_username,
+                                                           uint16_t sshport,
+                                                           const char *hostkey,
+                                                           GNUNET_TESTING_NotifyHostkeyCreated
+                                                           hostkey_callback,
+                                                           void *hostkey_cls,
+                                                           GNUNET_TESTING_NotifyDaemonRunning
+                                                           cb, void *cb_cls);
 
 /**
  * Continues GNUnet daemon startup when user wanted to be notified
@@ -474,7 +491,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param daemon the daemon to finish starting
  */
 void
-GNUNET_TESTING_daemon_continue_startup(struct GNUNET_TESTING_Daemon *daemon);
+GNUNET_TESTING_daemon_continue_startup (struct GNUNET_TESTING_Daemon *daemon);
 
 /**
  * Check whether the given daemon is running.
@@ -484,8 +501,7 @@ GNUNET_TESTING_daemon_continue_startup(struct GNUNET_TESTING_Daemon *daemon);
  * @return GNUNET_YES if the daemon is up, GNUNET_NO if the
  *         daemon is down, GNUNET_SYSERR on error.
  */
-int
-GNUNET_TESTING_daemon_running (struct GNUNET_TESTING_Daemon *daemon);
+int GNUNET_TESTING_daemon_running (struct GNUNET_TESTING_Daemon *daemon);
 
 /**
  * Restart (stop and start) a GNUnet daemon.
@@ -496,7 +512,8 @@ GNUNET_TESTING_daemon_running (struct GNUNET_TESTING_Daemon *daemon);
  */
 void
 GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
-                               GNUNET_TESTING_NotifyDaemonRunning cb, void *cb_cls);
+                               GNUNET_TESTING_NotifyDaemonRunning cb,
+                               void *cb_cls);
 
 /**
  * Start a peer that has previously been stopped using the daemon_stop
@@ -526,7 +543,8 @@ void
 GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
                                      char *service,
                                      struct GNUNET_TIME_Relative timeout,
-                                     GNUNET_TESTING_NotifyDaemonRunning cb, void *cb_cls);
+                                     GNUNET_TESTING_NotifyDaemonRunning cb,
+                                     void *cb_cls);
 
 /**
  * Starts a GNUnet daemon's service which has been previously turned off.
@@ -540,8 +558,10 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
 void
 GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
                                              char *service,
-                                             struct GNUNET_TIME_Relative timeout,
-                                             GNUNET_TESTING_NotifyDaemonRunning cb, void *cb_cls);
+                                             struct GNUNET_TIME_Relative
+                                             timeout,
+                                             GNUNET_TESTING_NotifyDaemonRunning
+                                             cb, void *cb_cls);
 
 /**
  * Get a certain testing daemon handle.
@@ -549,9 +569,10 @@ GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
  * @param pg handle to the set of running peers
  * @param position the number of the peer to return
  */
-struct GNUNET_TESTING_Daemon *
-GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, 
-			   unsigned int position);
+struct GNUNET_TESTING_Daemon *GNUNET_TESTING_daemon_get (struct
+                                                         GNUNET_TESTING_PeerGroup
+                                                         *pg,
+                                                         unsigned int position);
 
 /*
  * Get a daemon by peer identity, so callers can
@@ -562,9 +583,12 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg,
  *
  * @return the daemon on success, or NULL if no such peer identity is found
  */
-struct GNUNET_TESTING_Daemon *
-GNUNET_TESTING_daemon_get_by_id (struct GNUNET_TESTING_PeerGroup *pg,
-                                 struct GNUNET_PeerIdentity *peer_id);
+struct GNUNET_TESTING_Daemon *GNUNET_TESTING_daemon_get_by_id (struct
+                                                               GNUNET_TESTING_PeerGroup
+                                                               *pg,
+                                                               struct
+                                                               GNUNET_PeerIdentity
+                                                               *peer_id);
 
 /**
  * Stops a GNUnet daemon.
@@ -595,9 +619,9 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
  * @param cb_cls closure for cb
  */
 void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
-					struct GNUNET_CONFIGURATION_Handle *cfg,
-					GNUNET_TESTING_NotifyCompletion cb,
-					void * cb_cls);
+                                        struct GNUNET_CONFIGURATION_Handle *cfg,
+                                        GNUNET_TESTING_NotifyCompletion cb,
+                                        void *cb_cls);
 
 /**
  * Stops a single service of a GNUnet daemon.  Used like daemon_stop,
@@ -615,7 +639,8 @@ void
 GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
                                     char *service,
                                     struct GNUNET_TIME_Relative timeout,
-                                    GNUNET_TESTING_NotifyCompletion cb, void *cb_cls);
+                                    GNUNET_TESTING_NotifyCompletion cb,
+                                    void *cb_cls);
 
 /**
  * Read a testing hosts file based on a configuration.
@@ -626,8 +651,9 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
  *
  * @return DLL of hosts on success, NULL on failure
  */
-struct GNUNET_TESTING_Host *
-GNUNET_TESTING_hosts_load (const struct GNUNET_CONFIGURATION_Handle *cfg);
+struct GNUNET_TESTING_Host *GNUNET_TESTING_hosts_load (const struct
+                                                       GNUNET_CONFIGURATION_Handle
+                                                       *cfg);
 
 
 /**
@@ -657,19 +683,31 @@ GNUNET_TESTING_hosts_load (const struct GNUNET_CONFIGURATION_Handle *cfg);
  *
  * @return NULL on error, otherwise handle to control peer group
  */
-struct GNUNET_TESTING_PeerGroup *
-GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              unsigned int total,
-                              unsigned int max_concurrent_connections,
-                              unsigned int max_concurrent_ssh,
-                              struct GNUNET_TIME_Relative timeout,
-                              GNUNET_TESTING_NotifyHostkeyCreated
-                              hostkey_callback, void *hostkey_cls,
-                              GNUNET_TESTING_NotifyDaemonRunning cb,
-                              void *cb_cls,
-                              GNUNET_TESTING_NotifyConnection
-                              connect_callback, void *connect_callback_cls,
-                              const struct GNUNET_TESTING_Host *hostnames);
+struct GNUNET_TESTING_PeerGroup *GNUNET_TESTING_daemons_start (const struct
+                                                               GNUNET_CONFIGURATION_Handle
+                                                               *cfg,
+                                                               unsigned int
+                                                               total,
+                                                               unsigned int
+                                                               max_concurrent_connections,
+                                                               unsigned int
+                                                               max_concurrent_ssh,
+                                                               struct
+                                                               GNUNET_TIME_Relative
+                                                               timeout,
+                                                               GNUNET_TESTING_NotifyHostkeyCreated
+                                                               hostkey_callback,
+                                                               void
+                                                               *hostkey_cls,
+                                                               GNUNET_TESTING_NotifyDaemonRunning
+                                                               cb, void *cb_cls,
+                                                               GNUNET_TESTING_NotifyConnection
+                                                               connect_callback,
+                                                               void
+                                                               *connect_callback_cls,
+                                                               const struct
+                                                               GNUNET_TESTING_Host
+                                                               *hostnames);
 
 /**
  * Function which continues a peer group starting up
@@ -678,7 +716,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param pg the peer group to continue starting
  */
 void
-GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg);
+GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg);
 
 
 /**
@@ -727,10 +765,9 @@ GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg,
  * @param cb_cls closure for cb
  */
 void
-GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg, 
+GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
                              struct GNUNET_TIME_Relative timeout,
-                             GNUNET_TESTING_NotifyCompletion cb,
-                             void *cb_cls);
+                             GNUNET_TESTING_NotifyCompletion cb, void *cb_cls);
 
 
 /**
@@ -772,8 +809,7 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
                               unsigned int voff,
                               unsigned int von,
                               struct GNUNET_TIME_Relative timeout,
-                              GNUNET_TESTING_NotifyCompletion cb,
-                              void *cb_cls);
+                              GNUNET_TESTING_NotifyCompletion cb, void *cb_cls);
 /*
  * Start a given service for each of the peers in the peer group.
  *
@@ -804,7 +840,8 @@ GNUNET_TESTING_daemons_start_service (struct GNUNET_TESTING_PeerGroup *pg,
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
 typedef int (*GNUNET_TESTING_STATISTICS_Iterator) (void *cls,
-                                                   const struct GNUNET_PeerIdentity *peer,
+                                                   const struct
+                                                   GNUNET_PeerIdentity * peer,
                                                    const char *subsystem,
                                                    const char *name,
                                                    uint64_t value,
@@ -822,7 +859,8 @@ typedef int (*GNUNET_TESTING_STATISTICS_Iterator) (void *cls,
 void
 GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
                                GNUNET_STATISTICS_Callback cont,
-                               GNUNET_TESTING_STATISTICS_Iterator proc, void *cls);
+                               GNUNET_TESTING_STATISTICS_Iterator proc,
+                               void *cls);
 
 /**
  * Topologies supported for testbeds.
@@ -938,8 +976,8 @@ enum GNUNET_TESTING_TopologyOption
  *         known topology, GNUNET_NO if not
  */
 int
-GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, 
-			    const char * topology_string);
+GNUNET_TESTING_topology_get (enum GNUNET_TESTING_Topology *topology,
+                             const char *topology_string);
 
 /**
  * Get connect topology option from string input.
@@ -951,8 +989,9 @@ GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology,
  *         known topology, GNUNET_NO if not
  */
 int
-GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_option,
-				   const char * topology_string);
+GNUNET_TESTING_topology_option_get (enum GNUNET_TESTING_TopologyOption
+                                    *topology_option,
+                                    const char *topology_string);
 
 
 /**
@@ -1007,21 +1046,21 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
  */
 void
 GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg,
-			     GNUNET_TESTING_NotifyTopology cb, void *cls);
+                             GNUNET_TESTING_NotifyTopology cb, void *cls);
 
 /**
  * Stop the connection process temporarily.
  *
  * @param pg the peer group to stop connecting
  */
-void GNUNET_TESTING_stop_connections(struct GNUNET_TESTING_PeerGroup *pg);
+void GNUNET_TESTING_stop_connections (struct GNUNET_TESTING_PeerGroup *pg);
 
 /**
  * Resume the connection process.
  *
  * @param pg the peer group to resume connecting
  */
-void GNUNET_TESTING_resume_connections(struct GNUNET_TESTING_PeerGroup *pg);
+void GNUNET_TESTING_resume_connections (struct GNUNET_TESTING_PeerGroup *pg);
 
 /**
  * There are many ways to connect peers that are supported by this function.
@@ -1066,12 +1105,11 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
  * @param cb_cls closure for cb
  */
 void
-GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg, 
-			     unsigned int offset,
-			     int desired_status,
-			     struct GNUNET_TIME_Relative timeout,
-			     GNUNET_TESTING_NotifyCompletion cb,
-			     void *cb_cls);
+GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg,
+                             unsigned int offset,
+                             int desired_status,
+                             struct GNUNET_TIME_Relative timeout,
+                             GNUNET_TESTING_NotifyCompletion cb, void *cb_cls);
 
 /**
  * Start a peer group with a given number of peers.  Notify
@@ -1090,15 +1128,23 @@ GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg,
  *
  * @return NULL on error, otherwise handle to control peer group
  */
-struct GNUNET_TESTING_PeerGroup *
-GNUNET_TESTING_peergroup_start(
-                               const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               unsigned int total,
-                               struct GNUNET_TIME_Relative timeout,
-                               GNUNET_TESTING_NotifyConnection connect_cb,
-                               GNUNET_TESTING_NotifyCompletion peergroup_cb,
-                               void *peergroup_cls,
-                               const struct GNUNET_TESTING_Host *hostnames);
+struct GNUNET_TESTING_PeerGroup *GNUNET_TESTING_peergroup_start (const struct
+                                                                 GNUNET_CONFIGURATION_Handle
+                                                                 *cfg,
+                                                                 unsigned int
+                                                                 total,
+                                                                 struct
+                                                                 GNUNET_TIME_Relative
+                                                                 timeout,
+                                                                 GNUNET_TESTING_NotifyConnection
+                                                                 connect_cb,
+                                                                 GNUNET_TESTING_NotifyCompletion
+                                                                 peergroup_cb,
+                                                                 void
+                                                                 *peergroup_cls,
+                                                                 const struct
+                                                                 GNUNET_TESTING_Host
+                                                                 *hostnames);
 
 /**
  * Print current topology to a graphviz readable file.
@@ -1110,10 +1156,10 @@ GNUNET_TESTING_peergroup_start(
  *
  */
 void
-GNUNET_TESTING_peergroup_topology_to_file(struct GNUNET_TESTING_PeerGroup *pg,
-                                          const char *output_filename,
-                                          GNUNET_TESTING_NotifyCompletion notify_cb,
-                                          void *notify_cb_cls);
+GNUNET_TESTING_peergroup_topology_to_file (struct GNUNET_TESTING_PeerGroup *pg,
+                                           const char *output_filename,
+                                           GNUNET_TESTING_NotifyCompletion
+                                           notify_cb, void *notify_cb_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

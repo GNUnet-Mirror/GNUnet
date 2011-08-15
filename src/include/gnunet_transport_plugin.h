@@ -63,7 +63,7 @@ struct SessionHeader
    * Expiration time for signature.  Do not use in the plugin!
    */
   struct GNUNET_TIME_Absolute pong_sig_expires;
-  
+
 };
 
 /**
@@ -80,8 +80,8 @@ struct SessionHeader
  * @param session which session is being destoyed
  */
 typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
-					     const struct GNUNET_PeerIdentity *peer,
-					     struct Session *session);
+                                             const struct GNUNET_PeerIdentity *
+                                             peer, struct Session * session);
 
 
 /**
@@ -105,18 +105,26 @@ typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
  * @return how long the plugin should wait until receiving more data
  *         (plugins that do not support this, can ignore the return value)
  */
-typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-									       const struct
-									       GNUNET_PeerIdentity *
-									       peer,
-									       const struct
-									       GNUNET_MessageHeader *
-									       message,
-									       const struct GNUNET_TRANSPORT_ATS_Information *ats,
-									       uint32_t ats_count,
-									       struct Session *session,
-									       const char *sender_address,
-									       uint16_t sender_address_len);
+typedef struct
+    GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
+                                                                    const struct
+                                                                    GNUNET_PeerIdentity
+                                                                    * peer,
+                                                                    const struct
+                                                                    GNUNET_MessageHeader
+                                                                    * message,
+                                                                    const struct
+                                                                    GNUNET_TRANSPORT_ATS_Information
+                                                                    * ats,
+                                                                    uint32_t
+                                                                    ats_count,
+                                                                    struct
+                                                                    Session *
+                                                                    session,
+                                                                    const char
+                                                                    *sender_address,
+                                                                    uint16_t
+                                                                    sender_address_len);
 
 
 /**
@@ -131,7 +139,7 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (v
  * @param addrlen length of the address
  */
 typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
-						      int add_remove,
+                                                      int add_remove,
                                                       const void *addr,
                                                       size_t addrlen);
 
@@ -151,16 +159,21 @@ typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
  * @return how long to wait until reading more from this peer
  *         (to enforce inbound quotas)
  */
-typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void *cls,
-                                                                      const struct
-                                                                      GNUNET_PeerIdentity *peer,
-                                                                      size_t amount_recved);
+typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void
+                                                                       *cls,
+                                                                       const
+                                                                       struct
+                                                                       GNUNET_PeerIdentity
+                                                                       * peer,
+                                                                       size_t
+                                                                       amount_recved);
 
 
 /**
  * Function that returns a HELLO message.
- */ 
-typedef const struct GNUNET_MessageHeader * (*GNUNET_TRANSPORT_GetHelloCallback)(void);
+ */
+typedef const struct GNUNET_MessageHeader
+    *(*GNUNET_TRANSPORT_GetHelloCallback) (void);
 
 
 /**
@@ -242,9 +255,9 @@ struct GNUNET_TRANSPORT_PluginEnvironment
  *               the ReceiveCallback.
  */
 typedef void
-  (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
-                                            const struct GNUNET_PeerIdentity *
-                                            target, int result);
+    (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
+                                              const struct GNUNET_PeerIdentity *
+                                              target, int result);
 
 
 /**
@@ -284,19 +297,19 @@ typedef void
  *         and does NOT mean that the message was not transmitted (DV)
  */
 typedef ssize_t
-  (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
-                                        const struct GNUNET_PeerIdentity *
-                                        target,
-                                        const char *msgbuf,
-                                        size_t msgbuf_size,
-                                        uint32_t priority,
-                                        struct GNUNET_TIME_Relative timeout,
-					struct Session *session,
-                                        const void *addr,
-					size_t addrlen,
-					int force_address,
-					GNUNET_TRANSPORT_TransmitContinuation
-                                        cont, void *cont_cls);
+    (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
+                                          const struct GNUNET_PeerIdentity *
+                                          target,
+                                          const char *msgbuf,
+                                          size_t msgbuf_size,
+                                          uint32_t priority,
+                                          struct GNUNET_TIME_Relative timeout,
+                                          struct Session * session,
+                                          const void *addr,
+                                          size_t addrlen,
+                                          int force_address,
+                                          GNUNET_TRANSPORT_TransmitContinuation
+                                          cont, void *cont_cls);
 
 
 /**
@@ -316,9 +329,9 @@ typedef ssize_t
  *        to be cancelled
  */
 typedef void
-  (*GNUNET_TRANSPORT_DisconnectFunction) (void *cls,
-                                          const struct GNUNET_PeerIdentity *
-                                          target);
+    (*GNUNET_TRANSPORT_DisconnectFunction) (void *cls,
+                                            const struct GNUNET_PeerIdentity *
+                                            target);
 
 
 /**
@@ -348,15 +361,15 @@ typedef void (*GNUNET_TRANSPORT_AddressStringCallback) (void *cls,
  * @param asc_cls closure for asc
  */
 typedef void
-  (*GNUNET_TRANSPORT_AddressPrettyPrinter) (void *cls,
-                                            const char *type,
-                                            const void *addr,
-                                            size_t addrlen,
-                                            int numeric,
-                                            struct GNUNET_TIME_Relative
-                                            timeout,
-                                            GNUNET_TRANSPORT_AddressStringCallback
-                                            asc, void *asc_cls);
+    (*GNUNET_TRANSPORT_AddressPrettyPrinter) (void *cls,
+                                              const char *type,
+                                              const void *addr,
+                                              size_t addrlen,
+                                              int numeric,
+                                              struct GNUNET_TIME_Relative
+                                              timeout,
+                                              GNUNET_TRANSPORT_AddressStringCallback
+                                              asc, void *asc_cls);
 
 
 /**
@@ -374,8 +387,8 @@ typedef void
  *         and transport, GNUNET_SYSERR if not
  */
 typedef int
-(*GNUNET_TRANSPORT_CheckAddress) (void *cls,
-				  const void *addr, size_t addrlen);
+    (*GNUNET_TRANSPORT_CheckAddress) (void *cls,
+                                      const void *addr, size_t addrlen);
 
 
 /**
@@ -389,9 +402,9 @@ typedef int
  * @param addr_len length of the address
  * @return string representing the same address 
  */
-typedef const char* (*GNUNET_TRANSPORT_AddressToString) (void *cls,
-							 const void *addr,
-							 size_t addrlen);
+typedef const char *(*GNUNET_TRANSPORT_AddressToString) (void *cls,
+                                                         const void *addr,
+                                                         size_t addrlen);
 
 
 /**

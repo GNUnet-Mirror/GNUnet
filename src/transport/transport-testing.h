@@ -53,16 +53,18 @@ struct PeerContext
 
   GNUNET_TRANSPORT_NotifyDisconnect nd;
 
-  void * cb_cls;
+  void *cb_cls;
 
-  char * servicehome;
+  char *servicehome;
 };
 
 /**
  * Callback when two peers are connected and both have called the connect callback
  * to notify clients about a new peer
  */
-typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1, struct PeerContext * p2, void *cls);
+typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1,
+                                                     struct PeerContext * p2,
+                                                     void *cls);
 
 
 /**
@@ -74,12 +76,13 @@ typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1, st
  *   if NULL passed the PeerContext * will be used!
  * @return the peer context
  */
-struct PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname,
-    GNUNET_TRANSPORT_ReceiveCallback rec,
-    GNUNET_TRANSPORT_NotifyConnect nc,
-    GNUNET_TRANSPORT_NotifyDisconnect nd,
-    void * cb_cls);
+struct PeerContext *GNUNET_TRANSPORT_TESTING_start_peer (const char *cfgname,
+                                                         GNUNET_TRANSPORT_ReceiveCallback
+                                                         rec,
+                                                         GNUNET_TRANSPORT_NotifyConnect
+                                                         nc,
+                                                         GNUNET_TRANSPORT_NotifyDisconnect
+                                                         nd, void *cb_cls);
 
 
 /**
@@ -87,8 +90,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname,
  * @param p the peer
  */
 
-void
-GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * pc);
+void GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext *pc);
 
 
 /**
@@ -101,9 +103,9 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * pc);
  * @param cb_cls callback cls
  */
 void
-GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext * p1,
-    struct PeerContext * p2,
-    GNUNET_TRANSPORT_TESTING_connect_cb cb,
-    void * cls);
+GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
+                                        struct PeerContext *p2,
+                                        GNUNET_TRANSPORT_TESTING_connect_cb cb,
+                                        void *cls);
 
 /* end of transport_testing.h */

@@ -54,42 +54,36 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_test_evaluate (void *cls,
-			   enum GNUNET_BLOCK_Type type,
-			   const GNUNET_HashCode *query,
-			   struct GNUNET_CONTAINER_BloomFilter **bf,
-			   int32_t bf_mutator,
-			   const void *xquery,
-			   size_t xquery_size,
-			   const void *reply_block,
-			   size_t reply_block_size)
+                            enum GNUNET_BLOCK_Type type,
+                            const GNUNET_HashCode * query,
+                            struct GNUNET_CONTAINER_BloomFilter **bf,
+                            int32_t bf_mutator,
+                            const void *xquery,
+                            size_t xquery_size,
+                            const void *reply_block, size_t reply_block_size)
 {
   GNUNET_HashCode chash;
   GNUNET_HashCode mhash;
 
-  if (type != GNUNET_BLOCK_TYPE_TEST)  
+  if (type != GNUNET_BLOCK_TYPE_TEST)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   if (xquery_size != 0)
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
   if (reply_block_size == 0)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
-  GNUNET_CRYPTO_hash (reply_block,
-		      reply_block_size,
-		      &chash);
+  GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
   GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
   if (NULL != *bf)
-    {
-      if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf,
-							   &mhash))
-	return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-    }
+  {
+    if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+      return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+  }
   else
-    {
-      *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 
-					       8,
-					       BLOOMFILTER_K);
-    }
-  GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);  
+  {
+    *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+  }
+  GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
   return GNUNET_BLOCK_EVALUATION_OK_MORE;
 }
 
@@ -107,16 +101,15 @@ block_plugin_test_evaluate (void *cls,
  */
 static int
 block_plugin_test_get_key (void *cls,
-			  enum GNUNET_BLOCK_Type type,
-			  const void *block,
-			  size_t block_size,
-			  GNUNET_HashCode *key)
+                           enum GNUNET_BLOCK_Type type,
+                           const void *block,
+                           size_t block_size, GNUNET_HashCode * key)
 {
   /* always fails since there is no fixed relationship between
-     keys and values for test values */
+   * keys and values for test values */
   return GNUNET_SYSERR;
 }
-				  
+
 
 /**
  * Entry point for the plugin.
@@ -124,11 +117,11 @@ block_plugin_test_get_key (void *cls,
 void *
 libgnunet_plugin_block_test_init (void *cls)
 {
-  static enum GNUNET_BLOCK_Type types[] = 
-    {
-      GNUNET_BLOCK_TYPE_TEST,
-      GNUNET_BLOCK_TYPE_ANY /* end of list */
-    };
+  static enum GNUNET_BLOCK_Type types[] =
+  {
+    GNUNET_BLOCK_TYPE_TEST,
+    GNUNET_BLOCK_TYPE_ANY       /* end of list */
+  };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));

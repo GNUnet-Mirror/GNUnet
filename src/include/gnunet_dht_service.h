@@ -90,29 +90,29 @@ struct GNUNET_DHT_FindPeerHandle;
  * Options for routing.
  */
 enum GNUNET_DHT_RouteOption
-  {
+{
     /**
      * Default.  Do nothing special.
      */
-    GNUNET_DHT_RO_NONE = 0,
+  GNUNET_DHT_RO_NONE = 0,
 
     /**
      * Each peer along the way should look at 'enc' (otherwise
      * only the k-peers closest to the key should look at it).
      */
-    GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE = 1,
+  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE = 1,
 
     /**
      * We should keep track of the route that the message
      * took in the P2P network.
      */
-    GNUNET_DHT_RO_RECORD_ROUTE = 2,
+  GNUNET_DHT_RO_RECORD_ROUTE = 2,
 
     /**
      * Possible message option for query key randomization.
      */
-    GNUNET_DHT_RO_BART = 4
-  };
+  GNUNET_DHT_RO_BART = 4
+};
 
 
 /**
@@ -123,9 +123,9 @@ enum GNUNET_DHT_RouteOption
  *               processing multiple GET/FIND requests in parallel
  * @return NULL on error
  */
-struct GNUNET_DHT_Handle *
-GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    unsigned int ht_len);
+struct GNUNET_DHT_Handle *GNUNET_DHT_connect (const struct
+                                              GNUNET_CONFIGURATION_Handle *cfg,
+                                              unsigned int ht_len);
 
 
 /**
@@ -133,8 +133,7 @@ GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param handle connection to shut down
  */
-void
-GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
+void GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
 
 
 /* *************** Standard API: get and put ******************* */
@@ -165,8 +164,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const char *data,
                 struct GNUNET_TIME_Absolute exp,
                 struct GNUNET_TIME_Relative timeout,
-                GNUNET_SCHEDULER_Task cont,
-                void *cont_cls);
+                GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -184,14 +182,15 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
  * @param size number of bytes in data
  * @param data pointer to the result data
  */
-typedef void (*GNUNET_DHT_GetIterator)(void *cls,
-				       struct GNUNET_TIME_Absolute exp,
-				       const GNUNET_HashCode * key,
-				       const struct GNUNET_PeerIdentity * const *get_path,
-				       const struct GNUNET_PeerIdentity * const *put_path,
-				       enum GNUNET_BLOCK_Type type,
-				       size_t size,
-				       const void *data);
+typedef void (*GNUNET_DHT_GetIterator) (void *cls,
+                                        struct GNUNET_TIME_Absolute exp,
+                                        const GNUNET_HashCode * key,
+                                        const struct GNUNET_PeerIdentity *
+                                        const *get_path,
+                                        const struct GNUNET_PeerIdentity *
+                                        const *put_path,
+                                        enum GNUNET_BLOCK_Type type,
+                                        size_t size, const void *data);
 
 
 
@@ -215,19 +214,23 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
  *
  * @return handle to stop the async get
  */
-struct GNUNET_DHT_GetHandle *
-GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      struct GNUNET_TIME_Relative timeout,
-                      enum GNUNET_BLOCK_Type type,
-                      const GNUNET_HashCode * key,
-                      uint32_t desired_replication_level,
-                      enum GNUNET_DHT_RouteOption options,
-                      const struct GNUNET_CONTAINER_BloomFilter *bf,
-                      int32_t bf_mutator,
-                      const void *xquery,
-                      size_t xquery_size,
-                      GNUNET_DHT_GetIterator iter,
-                      void *iter_cls);
+struct GNUNET_DHT_GetHandle *GNUNET_DHT_get_start (struct GNUNET_DHT_Handle
+                                                   *handle,
+                                                   struct GNUNET_TIME_Relative
+                                                   timeout,
+                                                   enum GNUNET_BLOCK_Type type,
+                                                   const GNUNET_HashCode * key,
+                                                   uint32_t
+                                                   desired_replication_level,
+                                                   enum GNUNET_DHT_RouteOption
+                                                   options,
+                                                   const struct
+                                                   GNUNET_CONTAINER_BloomFilter
+                                                   *bf, int32_t bf_mutator,
+                                                   const void *xquery,
+                                                   size_t xquery_size,
+                                                   GNUNET_DHT_GetIterator iter,
+                                                   void *iter_cls);
 
 
 /**
@@ -238,8 +241,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
  * On return get_handle will no longer be valid, caller
  * must not use again!!!
  */
-void
-GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle);
+void GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle);
 
 
 /* ******** Special high-level API for finding peers *********** */
@@ -251,8 +253,9 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle);
  * @param cls closure
  * @param peer hello of a target (peer near key)
  */
-typedef void (*GNUNET_DHT_FindPeerProcessor)(void *cls,
-					     const struct GNUNET_HELLO_Message *peer);
+typedef void (*GNUNET_DHT_FindPeerProcessor) (void *cls,
+                                              const struct GNUNET_HELLO_Message
+                                              * peer);
 
 
 /**
@@ -267,13 +270,21 @@ typedef void (*GNUNET_DHT_FindPeerProcessor)(void *cls,
  * @param proc_cls closure for proc
  * @return handle to stop the async get, NULL on error
  */
-struct GNUNET_DHT_FindPeerHandle *
-GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
-			    struct GNUNET_TIME_Relative timeout,
-			    const GNUNET_HashCode *key,
-			    enum GNUNET_DHT_RouteOption options,
-			    GNUNET_DHT_FindPeerProcessor proc,
-			    void *proc_cls);
+struct GNUNET_DHT_FindPeerHandle *GNUNET_DHT_find_peer_start (struct
+                                                              GNUNET_DHT_Handle
+                                                              *handle,
+                                                              struct
+                                                              GNUNET_TIME_Relative
+                                                              timeout,
+                                                              const
+                                                              GNUNET_HashCode *
+                                                              key,
+                                                              enum
+                                                              GNUNET_DHT_RouteOption
+                                                              options,
+                                                              GNUNET_DHT_FindPeerProcessor
+                                                              proc,
+                                                              void *proc_cls);
 
 
 /**
@@ -300,10 +311,12 @@ GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle);
  *                 to the peers on the PUT path (or NULL if not recorded)
  * @param reply response
  */
-typedef void (*GNUNET_DHT_ReplyProcessor)(void *cls,
-					  const GNUNET_HashCode *key,
-					  const struct GNUNET_PeerIdentity * const *outgoing_path,
-                                          const struct GNUNET_MessageHeader *reply);
+typedef void (*GNUNET_DHT_ReplyProcessor) (void *cls,
+                                           const GNUNET_HashCode * key,
+                                           const struct GNUNET_PeerIdentity *
+                                           const *outgoing_path,
+                                           const struct GNUNET_MessageHeader *
+                                           reply);
 
 
 /**
@@ -327,17 +340,25 @@ typedef void (*GNUNET_DHT_ReplyProcessor)(void *cls,
  * @param cont_cls closure for cont
  * @return handle to stop the request, NULL if the request is "fire and forget"
  */
-struct GNUNET_DHT_RouteHandle *
-GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
-			const GNUNET_HashCode *key,
-			uint32_t desired_replication_level,
-			enum GNUNET_DHT_RouteOption options,
-			const struct GNUNET_MessageHeader *enc,
-			struct GNUNET_TIME_Relative timeout,
-			GNUNET_DHT_ReplyProcessor iter,
-			void *iter_cls,
-			GNUNET_SCHEDULER_Task cont,
-			void *cont_cls);
+struct GNUNET_DHT_RouteHandle *GNUNET_DHT_route_start (struct GNUNET_DHT_Handle
+                                                       *handle,
+                                                       const GNUNET_HashCode *
+                                                       key,
+                                                       uint32_t
+                                                       desired_replication_level,
+                                                       enum
+                                                       GNUNET_DHT_RouteOption
+                                                       options,
+                                                       const struct
+                                                       GNUNET_MessageHeader
+                                                       *enc,
+                                                       struct
+                                                       GNUNET_TIME_Relative
+                                                       timeout,
+                                                       GNUNET_DHT_ReplyProcessor
+                                                       iter, void *iter_cls,
+                                                       GNUNET_SCHEDULER_Task
+                                                       cont, void *cont_cls);
 
 
 
@@ -346,8 +367,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
  *
  * @param route_handle  operation to stop.
  */
-void
-GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle);
+void GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle);
 
 
 /* ***** Special API for controlling DHT routing maintenance ******* */
@@ -366,8 +386,7 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle);
  */
 void
 GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
-		       GNUNET_SCHEDULER_Task cont,
-		       void *cont_cls);
+                       GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 /* ***** Special API for testing robustness with malicious peers ******* */
 
@@ -387,9 +406,9 @@ GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
  * @param cont_cls closure for cont
  *
  */
-void 
-GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle, GNUNET_SCHEDULER_Task cont,
-    void *cont_cls);
+void
+GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle,
+                                  GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -401,10 +420,10 @@ GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle, GNUNET_SCHED
  * @param cont continuation to call when done (transmitting request to service)
  * @param cont_cls closure for cont
  */
-void 
+void
 GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
-         struct GNUNET_TIME_Relative frequency, GNUNET_SCHEDULER_Task cont,
-          void *cont_cls);
+                                 struct GNUNET_TIME_Relative frequency,
+                                 GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -418,8 +437,8 @@ GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
  */
 void
 GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
-         struct GNUNET_TIME_Relative frequency, GNUNET_SCHEDULER_Task cont,
-          void *cont_cls);
+                                 struct GNUNET_TIME_Relative frequency,
+                                 GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 #endif

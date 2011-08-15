@@ -45,9 +45,9 @@ extern "C"
  * @param key key of the content that was deleted
  * @param size number of bytes that were made available
  */
-typedef void (*GNUNET_DATACACHE_DeleteNotifyCallback)(void *cls,
-						      const GNUNET_HashCode *key,
-						      size_t size);
+typedef void (*GNUNET_DATACACHE_DeleteNotifyCallback) (void *cls,
+                                                       const GNUNET_HashCode *
+                                                       key, size_t size);
 
 
 /**
@@ -57,7 +57,7 @@ typedef void (*GNUNET_DATACACHE_DeleteNotifyCallback)(void *cls,
  */
 struct GNUNET_DATACACHE_PluginEnvironment
 {
-  
+
 
   /**
    * Configuration to use.
@@ -91,11 +91,12 @@ struct GNUNET_DATACACHE_PluginEnvironment
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_DATACACHE_PluginFunctions {
+struct GNUNET_DATACACHE_PluginFunctions
+{
 
   /**
    * Closure to pass to all plugin functions.
-   */ 
+   */
   void *cls;
 
   /**
@@ -108,12 +109,12 @@ struct GNUNET_DATACACHE_PluginFunctions {
    * @param discard_time when to discard the value in any case
    * @return 0 on error, number of bytes used otherwise
    */
-  size_t (*put) (void *cls,
-		 const GNUNET_HashCode * key,
-		 size_t size,
-		 const char *data,
-		 enum GNUNET_BLOCK_Type type,
-		 struct GNUNET_TIME_Absolute discard_time);
+       size_t (*put) (void *cls,
+                      const GNUNET_HashCode * key,
+                      size_t size,
+                      const char *data,
+                      enum GNUNET_BLOCK_Type type,
+                      struct GNUNET_TIME_Absolute discard_time);
 
 
   /**
@@ -128,10 +129,9 @@ struct GNUNET_DATACACHE_PluginFunctions {
    * @return the number of results found
    */
   unsigned int (*get) (void *cls,
-		       const GNUNET_HashCode * key,
-		       enum GNUNET_BLOCK_Type type,
-		       GNUNET_DATACACHE_Iterator iter,
-		       void *iter_cls);
+                       const GNUNET_HashCode * key,
+                       enum GNUNET_BLOCK_Type type,
+                       GNUNET_DATACACHE_Iterator iter, void *iter_cls);
 
 
   /**
@@ -140,7 +140,7 @@ struct GNUNET_DATACACHE_PluginFunctions {
    * 
    * @param cls closure (internal context for the plugin)
    * @return GNUNET_OK on success, GNUNET_SYSERR on error
-   */ 
+   */
   int (*del) (void *cls);
 
 

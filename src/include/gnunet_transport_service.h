@@ -90,7 +90,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * 2G : 10 [cent/MB]
    */
   GNUNET_TRANSPORT_ATS_COST_FINANCIAL_PER_VOLUME = 1,
-  
+
   /**
    * Time based cost in financial units to transmit data
    *
@@ -108,7 +108,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * Dialup: 10 [cent/h]
    */
   GNUNET_TRANSPORT_ATS_COST_FINANCIAL_PER_TIME = 2,
-  
+
   /**
    * Computational costs
    *
@@ -128,7 +128,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * HTTPS with RC4-1024: 	2,652
    */
   GNUNET_TRANSPORT_ATS_COST_COMPUTATIONAL = 3,
-  
+
   /**
    * Energy consumption
    *
@@ -157,7 +157,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * Bluetooth: 267 (100 mW @ BT2.0 EDR /w 3 MBit/s)
    */
   GNUNET_TRANSPORT_ATS_COST_ENERGY_CONSUMPTION = 4,
-  
+
   /**
    * Connect cost
    * How many bytes are transmitted to initiate a new connection using
@@ -180,7 +180,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    *
    * */
   GNUNET_TRANSPORT_ATS_COST_CONNECT = 5,
-  
+
   /**
    * Bandwidth cost
    *
@@ -198,7 +198,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    *
    */
   GNUNET_TRANSPORT_ATS_COST_BANDWITH_AVAILABLE = 6,
-  
+
   /**
    *  Network overhead
    *
@@ -219,36 +219,36 @@ enum GNUNET_TRANSPORT_ATS_Property
    * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
    */
   GNUNET_TRANSPORT_ATS_COST_NETWORK_OVERHEAD = 7,
-  
-  
+
+
   /* Quality related values */
   /* ====================== */
-  
+
   /* Physical layer quality properties */
-  
+
   /**
    * Signal strength on physical layer
    *
    * Unit: [dBm]
    */
   GNUNET_TRANSPORT_ATS_QUALITY_PHY_SIGNAL_STRENGTH = 1025,
-  
+
   /**
    * Collision rate on physical layer
    *
    * Unit: [B/s]
    */
   GNUNET_TRANSPORT_ATS_QUALITY_PHY_COLLISION_RATE = 1026,
-  
+
   /**
    * Error rate on physical layer
    *
    * Unit: [B/s]
    */
   GNUNET_TRANSPORT_ATS_QUALITY_PHY_ERROR_RATE = 1027,
-  
+
   /* Network layer quality properties */
-  
+
   /**
    * Delay
    * Time between when the time packet is sent and the packet arrives
@@ -262,7 +262,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * Dialup:  500
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY = 1028,
-  
+
   /**
    * Jitter
    * Time variations of the delay
@@ -271,7 +271,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * Unit: [ms]
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_JITTER = 1029,
-  
+
   /**
    * Error rate on network layer
    *
@@ -286,7 +286,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * measured or somehow determined
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_ERRORRATE = 1030,
-  
+
   /**
    * Drop rate on network layer
    * Bytes actively dismissed by a network component during transmission
@@ -303,7 +303,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * measured or somehow determined
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_DROPRATE = 1031,
-  
+
   /**
    * Loss rate on network layer
    * Bytes lost during transmission
@@ -320,7 +320,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * or somehow determined
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_LOSSRATE = 1032,
-  
+
   /**
    * Throughput on network layer
    *
@@ -334,7 +334,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    *
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_THROUGHPUT = 1033,
-  
+
  /**
   * Distance on network layer
   *
@@ -345,17 +345,16 @@ enum GNUNET_TRANSPORT_ATS_Property
 
   /* Availability related values */
   /* =========================== */
-  
+
   /**
    * Is a peer reachable?
    */
   GNUNET_TRANSPORT_ATS_AVAILABILITY_REACHABLE = 2048,
-  
+
   /**
    * Is there a connection established to a peer using this transport
    */
   GNUNET_TRANSPORT_ATS_AVAILABILITY_CONNECTED = 2049
-
 };
 
 
@@ -383,7 +382,7 @@ struct GNUNET_TRANSPORT_ATS_Information
    * ATS property type, in network byte order.
    */
   uint32_t type;
-  
+
   /**
    * ATS property value, in network byte order.
    */
@@ -407,8 +406,9 @@ typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
                                                   const struct
                                                   GNUNET_MessageHeader *
                                                   message,
-                                                  const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                                                  uint32_t ats_count);
+                                                  const struct
+                                                  GNUNET_TRANSPORT_ATS_Information
+                                                  * ats, uint32_t ats_count);
 
 
 /**
@@ -427,10 +427,11 @@ struct GNUNET_TRANSPORT_Handle;
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
 typedef void
-  (*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
-                                     const struct GNUNET_PeerIdentity * peer,
-                                     const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                                     uint32_t ats_count);
+    (*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
+                                       const struct GNUNET_PeerIdentity * peer,
+                                       const struct
+                                       GNUNET_TRANSPORT_ATS_Information * ats,
+                                       uint32_t ats_count);
 
 /**
  * Function called to notify transport users that another
@@ -440,9 +441,9 @@ typedef void
  * @param peer the peer that disconnected
  */
 typedef void
-  (*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
-                                        const struct GNUNET_PeerIdentity *
-                                        peer);
+    (*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
+                                          const struct GNUNET_PeerIdentity *
+                                          peer);
 
 
 /**
@@ -452,8 +453,7 @@ typedef void
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 typedef void
-(*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
-					   const char *address);
+    (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls, const char *address);
 
 
 /**
@@ -471,9 +471,10 @@ typedef void
  */
 struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (const struct
                                                           GNUNET_CONFIGURATION_Handle
-                                                          *cfg, 
-							  const struct GNUNET_PeerIdentity *self,
-							  void *cls,
+                                                          *cfg,
+                                                          const struct
+                                                          GNUNET_PeerIdentity
+                                                          *self, void *cls,
                                                           GNUNET_TRANSPORT_ReceiveCallback
                                                           rec,
                                                           GNUNET_TRANSPORT_NotifyConnect
@@ -499,7 +500,7 @@ void GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
  */
 void
 GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
-			      const struct GNUNET_PeerIdentity *target);
+                              const struct GNUNET_PeerIdentity *target);
 
 
 /**
@@ -544,15 +545,15 @@ struct GNUNET_TRANSPORT_TransmitHandle;
  *         using GNUNET_TRANSPORT_notify_transmit_ready_cancel)
  */
 struct GNUNET_TRANSPORT_TransmitHandle
-  *GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
-                                           *handle,
-                                           const struct GNUNET_PeerIdentity
-                                           *target, size_t size,
-					   uint32_t priority,
-                                           struct GNUNET_TIME_Relative
-                                           timeout,
-                                           GNUNET_CONNECTION_TransmitReadyNotify
-                                           notify, void *notify_cls);
+    *GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
+                                             *handle,
+                                             const struct GNUNET_PeerIdentity
+                                             *target, size_t size,
+                                             uint32_t priority,
+                                             struct GNUNET_TIME_Relative
+                                             timeout,
+                                             GNUNET_CONNECTION_TransmitReadyNotify
+                                             notify, void *notify_cls);
 
 
 /**
@@ -574,8 +575,10 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
  * @param cls closure
  * @param hello our updated HELLO
  */
-typedef void (*GNUNET_TRANSPORT_HelloUpdateCallback)(void *cls,
-						     const struct GNUNET_MessageHeader *hello);
+typedef void (*GNUNET_TRANSPORT_HelloUpdateCallback) (void *cls,
+                                                      const struct
+                                                      GNUNET_MessageHeader *
+                                                      hello);
 
 
 /**
@@ -600,8 +603,8 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
  */
 void
 GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
-				   GNUNET_TRANSPORT_HelloUpdateCallback rec,
-				   void *rec_cls);
+                                   GNUNET_TRANSPORT_HelloUpdateCallback rec,
+                                   void *rec_cls);
 
 
 /**
@@ -618,8 +621,7 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
 void
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello,
-                              GNUNET_SCHEDULER_Task cont,
-                              void *cls);
+                              GNUNET_SCHEDULER_Task cont, void *cls);
 
 
 /**
@@ -637,13 +639,13 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  */
 void
 GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const char * address,
+                                 const char *address,
                                  size_t addressLen,
-				 int numeric,
+                                 int numeric,
                                  const char *nameTrans,
-				 struct GNUNET_TIME_Relative timeout,
-				 GNUNET_TRANSPORT_AddressLookUpCallback aluc,
-				 void *aluc_cls);
+                                 struct GNUNET_TIME_Relative timeout,
+                                 GNUNET_TRANSPORT_AddressLookUpCallback aluc,
+                                 void *aluc_cls);
 
 
 /**
@@ -657,10 +659,12 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param peer_address_callback_cls closure for peer_address_callback
  */
 void
-GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
+                                      *cfg,
                                       const struct GNUNET_PeerIdentity *peer,
                                       struct GNUNET_TIME_Relative timeout,
-                                      GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
+                                      GNUNET_TRANSPORT_AddressLookUpCallback
+                                      peer_address_callback,
                                       void *peer_address_callback_cls);
 
 
@@ -676,7 +680,8 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle *
 void
 GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
+                                  GNUNET_TRANSPORT_AddressLookUpCallback
+                                  peer_address_callback,
                                   void *peer_address_callback_cls);
 
 
@@ -693,8 +698,9 @@ struct GNUNET_TRANSPORT_Blacklist;
  * @param pid peer to approve or disapproave
  * @return GNUNET_OK if the connection is allowed
  */
-typedef int (*GNUNET_TRANSPORT_BlacklistCallback)(void *cls,
-						  const struct GNUNET_PeerIdentity *pid);
+typedef int (*GNUNET_TRANSPORT_BlacklistCallback) (void *cls,
+                                                   const struct
+                                                   GNUNET_PeerIdentity * pid);
 
 
 /**
@@ -711,10 +717,12 @@ typedef int (*GNUNET_TRANSPORT_BlacklistCallback)(void *cls,
  * @param cb_cls closure for cb
  * @return NULL on error, otherwise handle for cancellation
  */
-struct GNUNET_TRANSPORT_Blacklist *
-GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			    GNUNET_TRANSPORT_BlacklistCallback cb,
-			    void *cb_cls);
+struct GNUNET_TRANSPORT_Blacklist *GNUNET_TRANSPORT_blacklist (const struct
+                                                               GNUNET_CONFIGURATION_Handle
+                                                               *cfg,
+                                                               GNUNET_TRANSPORT_BlacklistCallback
+                                                               cb,
+                                                               void *cb_cls);
 
 
 /**
@@ -723,8 +731,7 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param br handle of the request that is to be cancelled
  */
-void
-GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br);
+void GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br);
 
 
 

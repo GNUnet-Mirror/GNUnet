@@ -68,7 +68,7 @@ struct GNUNET_CLIENT_Connection *GNUNET_CLIENT_connect (const char
  */
 void
 GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
-			       int do_ignore);
+                               int do_ignore);
 
 
 
@@ -88,7 +88,7 @@ GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
  *          handle be completed?
  */
 void GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
-			       int finish_pending_write);
+                               int finish_pending_write);
 
 /**
  * Type of a function to call when we receive a message
@@ -111,8 +111,7 @@ typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
  *        GNUNET_YES on running
  *        GNUNET_SYSERR on failure to transmit message
  */
-typedef void (*GNUNET_CLIENT_ShutdownTask) (void *cls,
-                                            int reason);
+typedef void (*GNUNET_CLIENT_ShutdownTask) (void *cls, int reason);
 
 /**
  * Read from the service.
@@ -125,7 +124,7 @@ typedef void (*GNUNET_CLIENT_ShutdownTask) (void *cls,
 void GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
                             GNUNET_CLIENT_MessageHandler handler,
                             void *handler_cls,
-			    struct GNUNET_TIME_Relative timeout);
+                            struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -155,13 +154,12 @@ struct GNUNET_CLIENT_TransmitHandle;
  *         using GNUNET_CONNECTION_notify_transmit_ready_cancel)
  */
 struct GNUNET_CLIENT_TransmitHandle
-  *GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
-                                        size_t size,
-                                        struct GNUNET_TIME_Relative timeout,
-					int auto_retry,
-                                        GNUNET_CONNECTION_TransmitReadyNotify
-                                        notify,
-					void *notify_cls);
+    *GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
+                                          size_t size,
+                                          struct GNUNET_TIME_Relative timeout,
+                                          int auto_retry,
+                                          GNUNET_CONNECTION_TransmitReadyNotify
+                                          notify, void *notify_cls);
 
 
 /**
@@ -170,7 +168,8 @@ struct GNUNET_CLIENT_TransmitHandle
  * @param th handle from the original request.
  */
 void
-GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle *th);
+GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle
+                                            *th);
 
 
 /**
@@ -196,11 +195,11 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle 
  */
 int
 GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
-					 const struct GNUNET_MessageHeader *hdr,
-					 struct GNUNET_TIME_Relative timeout,
-					 int auto_retry,
-					 GNUNET_CLIENT_MessageHandler rn,
-					 void *rn_cls);
+                                         const struct GNUNET_MessageHeader *hdr,
+                                         struct GNUNET_TIME_Relative timeout,
+                                         int auto_retry,
+                                         GNUNET_CLIENT_MessageHandler rn,
+                                         void *rn_cls);
 
 
 /**

@@ -64,8 +64,7 @@ struct GNUNET_STATISTICS_Handle;
 typedef int (*GNUNET_STATISTICS_Iterator) (void *cls,
                                            const char *subsystem,
                                            const char *name,
-                                           uint64_t value,
-                                           int is_persistent);
+                                           uint64_t value, int is_persistent);
 
 /**
  * Get handle for the statistics service.
@@ -75,8 +74,8 @@ typedef int (*GNUNET_STATISTICS_Iterator) (void *cls,
  * @return handle to use
  */
 struct GNUNET_STATISTICS_Handle
-  *GNUNET_STATISTICS_create (const char *subsystem,
-                             const struct GNUNET_CONFIGURATION_Handle *cfg);
+    *GNUNET_STATISTICS_create (const char *subsystem,
+                               const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -88,7 +87,7 @@ struct GNUNET_STATISTICS_Handle
  *        be completed
  */
 void GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
-				int sync_first);
+                                int sync_first);
 
 
 /**
@@ -105,10 +104,9 @@ void GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
  */
 int
 GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
-			 const char *subsystem,
-			 const char *name,
-			 GNUNET_STATISTICS_Iterator proc, 
-			 void *proc_cls);
+                         const char *subsystem,
+                         const char *name,
+                         GNUNET_STATISTICS_Iterator proc, void *proc_cls);
 
 
 /**
@@ -138,13 +136,19 @@ struct GNUNET_STATISTICS_GetHandle;
  * @param cls closure for proc and cont
  * @return NULL on error
  */
-struct GNUNET_STATISTICS_GetHandle *
-GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
-                       const char *subsystem,
-                       const char *name,
-                       struct GNUNET_TIME_Relative timeout,
-                       GNUNET_STATISTICS_Callback cont,
-                       GNUNET_STATISTICS_Iterator proc, void *cls);
+struct GNUNET_STATISTICS_GetHandle *GNUNET_STATISTICS_get (struct
+                                                           GNUNET_STATISTICS_Handle
+                                                           *handle,
+                                                           const char
+                                                           *subsystem,
+                                                           const char *name,
+                                                           struct
+                                                           GNUNET_TIME_Relative
+                                                           timeout,
+                                                           GNUNET_STATISTICS_Callback
+                                                           cont,
+                                                           GNUNET_STATISTICS_Iterator
+                                                           proc, void *cls);
 
 
 /**
@@ -153,8 +157,7 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
  *
  * @param gh handle of the request to cancel
  */
-void
-GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
+void GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
 
 
 /**
@@ -168,8 +171,7 @@ GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
  */
 void
 GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
-                       const char *name,
-                       uint64_t value, int make_persistent);
+                       const char *name, uint64_t value, int make_persistent);
 
 /**
  * Set statistic value for the peer.  Will always use our
@@ -182,8 +184,7 @@ GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
  */
 void
 GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
-                          const char *name,
-                          int64_t delta, int make_persistent);
+                          const char *name, int64_t delta, int make_persistent);
 
 
 

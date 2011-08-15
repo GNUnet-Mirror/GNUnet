@@ -62,45 +62,44 @@ struct AddressLookupCtx
  *        message with the human-readable address
  */
 static void
-address_response_processor (void *cls,
-			    const struct GNUNET_MessageHeader *msg)
+address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct AddressLookupCtx *alucb = cls;
   const char *address;
   uint16_t size;
 
   if (msg == NULL)
-    {
-      alucb->cb (alucb->cb_cls, NULL);
-      GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
-      GNUNET_free (alucb);
-      return;
-    }
-  GNUNET_break (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+  {
+    alucb->cb (alucb->cb_cls, NULL);
+    GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
+    GNUNET_free (alucb);
+    return;
+  }
+  GNUNET_break (ntohs (msg->type) ==
+                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
   size = ntohs (msg->size);
   if (size == sizeof (struct GNUNET_MessageHeader))
-    {
-      /* done! */
-      alucb->cb (alucb->cb_cls, NULL);
-      GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
-      GNUNET_free (alucb);
-      return;
-    }
+  {
+    /* done! */
+    alucb->cb (alucb->cb_cls, NULL);
+    GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
+    GNUNET_free (alucb);
+    return;
+  }
   address = (const char *) &msg[1];
   if (address[size - sizeof (struct GNUNET_MessageHeader) - 1] != '\0')
-    {
-      /* invalid reply */
-      GNUNET_break (0);
-      alucb->cb (alucb->cb_cls, NULL);
-      GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
-      GNUNET_free (alucb);
-      return;
-    }
+  {
+    /* invalid reply */
+    GNUNET_break (0);
+    alucb->cb (alucb->cb_cls, NULL);
+    GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
+    GNUNET_free (alucb);
+    return;
+  }
   /* expect more replies */
   GNUNET_CLIENT_receive (alucb->client,
-			 &address_response_processor, alucb,
-			 GNUNET_TIME_absolute_get_remaining
-			 (alucb->timeout));
+                         &address_response_processor, alucb,
+                         GNUNET_TIME_absolute_get_remaining (alucb->timeout));
   alucb->cb (alucb->cb_cls, address);
 }
 
@@ -120,9 +119,9 @@ address_response_processor (void *cls,
  */
 void
 GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				 const char *address,
-				 size_t addressLen,
-				 int numeric,
+                                 const char *address,
+                                 size_t addressLen,
+                                 int numeric,
                                  const char *nameTrans,
                                  struct GNUNET_TIME_Relative timeout,
                                  GNUNET_TRANSPORT_AddressLookUpCallback aluc,
@@ -138,17 +137,17 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   slen = strlen (nameTrans) + 1;
   len = sizeof (struct AddressLookupMessage) + addressLen + slen;
   if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break (0);
-      aluc (aluc_cls, NULL);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    aluc (aluc_cls, NULL);
+    return;
+  }
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (client == NULL)
-    {
-      aluc (aluc_cls, NULL);
-      return;
-    }
+  {
+    aluc (aluc_cls, NULL);
+    return;
+  }
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP);
@@ -164,12 +163,12 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   aluCB->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   aluCB->client = client;
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CLIENT_transmit_and_get_response (client,
-							  &msg->header,
-							  timeout,
-							  GNUNET_YES,
-							  &address_response_processor,
-							  aluCB));
+                 GNUNET_CLIENT_transmit_and_get_response (client,
+                                                          &msg->header,
+                                                          timeout,
+                                                          GNUNET_YES,
+                                                          &address_response_processor,
+                                                          aluCB));
   GNUNET_free (msg);
 }
 

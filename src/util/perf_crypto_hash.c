@@ -42,11 +42,11 @@ perfHash ()
   memset (buf, 1, 1024 * 64);
   GNUNET_CRYPTO_hash ("foo", 3, &hc1);
   for (i = 0; i < 1024; i++)
-    {
-      GNUNET_CRYPTO_hash (&hc1, sizeof (GNUNET_HashCode), &hc2);
-      GNUNET_CRYPTO_hash (&hc2, sizeof (GNUNET_HashCode), &hc1);
-      GNUNET_CRYPTO_hash (buf, 1024 * 64, &hc3);
-    }
+  {
+    GNUNET_CRYPTO_hash (&hc1, sizeof (GNUNET_HashCode), &hc2);
+    GNUNET_CRYPTO_hash (&hc2, sizeof (GNUNET_HashCode), &hc1);
+    GNUNET_CRYPTO_hash (buf, 1024 * 64, &hc3);
+  }
   GNUNET_free (buf);
 }
 
@@ -60,7 +60,10 @@ main (int argc, char *argv[])
   printf ("Hash perf took %llu ms\n",
           (unsigned long long)
           GNUNET_TIME_absolute_get_duration (start).rel_value);
-  GAUGER ("UTIL", "Cryptographic hashing", 1024 * 64 * 1024 / (1+GNUNET_TIME_absolute_get_duration (start).rel_value), "kb/s");
+  GAUGER ("UTIL", "Cryptographic hashing",
+          1024 * 64 * 1024 / (1 +
+                              GNUNET_TIME_absolute_get_duration
+                              (start).rel_value), "kb/s");
   return 0;
 }
 

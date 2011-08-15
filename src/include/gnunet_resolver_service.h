@@ -48,7 +48,7 @@ extern "C"
  * @param addrlen length of the address
  */
 typedef void (*GNUNET_RESOLVER_AddressCallback) (void *cls,
-                                                 const struct sockaddr *addr,
+                                                 const struct sockaddr * addr,
                                                  socklen_t addrlen);
 
 
@@ -63,15 +63,13 @@ struct GNUNET_RESOLVER_RequestHandle;
  *
  * @param cfg configuration to use
  */
-void
-GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *c);
+void GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *c);
 
 
 /**
  * Destroy the connection to the resolver service.
  */
-void
-GNUNET_RESOLVER_disconnect (void);
+void GNUNET_RESOLVER_disconnect (void);
 
 
 /**
@@ -84,12 +82,16 @@ GNUNET_RESOLVER_disconnect (void);
  * @param timeout how long to try resolving
  * @return handle that can be used to cancel the request, NULL on error
  */
-struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_ip_get (const char *hostname,
-                        int domain,
-                        struct GNUNET_TIME_Relative timeout,
-                        GNUNET_RESOLVER_AddressCallback callback, 
-			void *callback_cls);
+struct GNUNET_RESOLVER_RequestHandle *GNUNET_RESOLVER_ip_get (const char
+                                                              *hostname,
+                                                              int domain,
+                                                              struct
+                                                              GNUNET_TIME_Relative
+                                                              timeout,
+                                                              GNUNET_RESOLVER_AddressCallback
+                                                              callback,
+                                                              void
+                                                              *callback_cls);
 
 
 /**
@@ -102,11 +104,15 @@ GNUNET_RESOLVER_ip_get (const char *hostname,
  * @param timeout how long to try resolving
  * @return handle that can be used to cancel the request, NULL on error
  */
-struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_resolve (int domain,
-                                  struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_RESOLVER_AddressCallback callback,
-                                  void *cls);
+struct GNUNET_RESOLVER_RequestHandle *GNUNET_RESOLVER_hostname_resolve (int
+                                                                        domain,
+                                                                        struct
+                                                                        GNUNET_TIME_Relative
+                                                                        timeout,
+                                                                        GNUNET_RESOLVER_AddressCallback
+                                                                        callback,
+                                                                        void
+                                                                        *cls);
 
 
 /**
@@ -124,8 +130,7 @@ typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
  *
  * @return local hostname, caller must free
  */
-char *
-GNUNET_RESOLVER_local_fqdn_get (void);
+char *GNUNET_RESOLVER_local_fqdn_get (void);
 
 
 /**
@@ -140,13 +145,19 @@ GNUNET_RESOLVER_local_fqdn_get (void);
  * @param cls closure for callback
  * @return handle that can be used to cancel the request, NULL on error
  */
-struct GNUNET_RESOLVER_RequestHandle * 
-GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
-			      socklen_t salen,
-			      int do_resolve,
-			      struct GNUNET_TIME_Relative timeout,
-			      GNUNET_RESOLVER_HostnameCallback callback,
-			      void *cls);
+struct GNUNET_RESOLVER_RequestHandle *GNUNET_RESOLVER_hostname_get (const struct
+                                                                    sockaddr
+                                                                    *sa,
+                                                                    socklen_t
+                                                                    salen,
+                                                                    int
+                                                                    do_resolve,
+                                                                    struct
+                                                                    GNUNET_TIME_Relative
+                                                                    timeout,
+                                                                    GNUNET_RESOLVER_HostnameCallback
+                                                                    callback,
+                                                                    void *cls);
 
 
 /**
@@ -157,8 +168,7 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
  *
  * @param rh handle of request to cancel
  */
-void
-GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *rh);
+void GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *rh);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

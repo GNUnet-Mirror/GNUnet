@@ -138,9 +138,7 @@ static struct GNUNET_TIME_Relative timeout;
  * @param cls closure, unused
  * @param tc context, unused
  */
-static void
-cps_loop (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -154,39 +152,39 @@ static void
 confirm_cb (void *cls, int success)
 {
   const char *service = cls;
+
   switch (success)
+  {
+  case GNUNET_OK:
+    if (quiet != GNUNET_YES)
+      fprintf (stdout, _("Service `%s' has been started.\n"), service);
+    if ((phase - 1 != 2) && (phase - 1 != 3))
     {
-    case GNUNET_OK:
       if (quiet != GNUNET_YES)
-        fprintf(stdout, _("Service `%s' has been started.\n"), service);
-      if ((phase - 1 != 2) && (phase - 1 != 3))
-        {
-          if (quiet != GNUNET_YES)
-            fprintf(stdout, _("Failed to stop service `%s'!\n"), service);
-          ret = 1;
-        }
-      break;
-    case GNUNET_NO:
-      if (quiet != GNUNET_YES)
-        fprintf(stdout, _("Service `%s' has been stopped.\n"), service);
-      if ((phase - 1 != 0) && (phase - 1 != 1))
-        {
-          if (quiet != GNUNET_YES)
-            fprintf(stdout, _("Failed to start service `%s'!\n"), service);
-          ret = 1;
-        }
-      break;
-    case GNUNET_SYSERR:
-      if (quiet != GNUNET_YES)
-        fprintf(stdout,
-                _("Some error communicating with service `%s'.\n"), service);
+        fprintf (stdout, _("Failed to stop service `%s'!\n"), service);
       ret = 1;
-      break;
     }
+    break;
+  case GNUNET_NO:
+    if (quiet != GNUNET_YES)
+      fprintf (stdout, _("Service `%s' has been stopped.\n"), service);
+    if ((phase - 1 != 0) && (phase - 1 != 1))
+    {
+      if (quiet != GNUNET_YES)
+        fprintf (stdout, _("Failed to start service `%s'!\n"), service);
+      ret = 1;
+    }
+    break;
+  case GNUNET_SYSERR:
+    if (quiet != GNUNET_YES)
+      fprintf (stdout,
+               _("Some error communicating with service `%s'.\n"), service);
+    ret = 1;
+    break;
+  }
 
   GNUNET_SCHEDULER_add_continuation (&cps_loop,
-				     NULL,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     NULL, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -203,18 +201,17 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const char *service = cls;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
-    {
-      if (quiet != GNUNET_YES)
-        fprintf(stdout, _("Service `%s' is running.\n"), service);
-    }
+  {
+    if (quiet != GNUNET_YES)
+      fprintf (stdout, _("Service `%s' is running.\n"), service);
+  }
   else
-    {
-      if (quiet != GNUNET_YES)
-        fprintf(stdout, _("Service `%s' is not running.\n"), service);
-    }
+  {
+    if (quiet != GNUNET_YES)
+      fprintf (stdout, _("Service `%s' is not running.\n"), service);
+  }
   GNUNET_SCHEDULER_add_continuation (&cps_loop,
-				     NULL,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     NULL, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -229,30 +226,29 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
   config_file = cfgfile;
-  if (GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "SERVICEHOME", &dir) != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Fatal configuration error: `%s' option in section `%s' missing.\n"),
-		  "SERVICEHOME",
-		  "PATHS");
-      return;
-    }
+  if (GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME", &dir)
+      != GNUNET_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Fatal configuration error: `%s' option in section `%s' missing.\n"),
+                "SERVICEHOME", "PATHS");
+    return;
+  }
   h = GNUNET_ARM_connect (cfg, NULL);
   if (h == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	       _("Fatal error initializing ARM API.\n"));
-      ret = 1;
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Fatal error initializing ARM API.\n"));
+    ret = 1;
+    return;
+  }
   GNUNET_SCHEDULER_add_continuation (&cps_loop,
-				     NULL,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                     NULL, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 /**
@@ -260,20 +256,23 @@ run (void *cls,
  * on arm shutdown provided the end and delete options
  * were specified when gnunet-arm was run.
  */
-static void delete_files()
+static void
+delete_files ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will attempt to remove configuration file %s and service directory %s\n", config_file, dir);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Will attempt to remove configuration file %s and service directory %s\n",
+              config_file, dir);
 
-  if (UNLINK(config_file) != 0)
+  if (UNLINK (config_file) != 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-           _("Failed to remove configuration file %s\n"), config_file);
+                _("Failed to remove configuration file %s\n"), config_file);
   }
 
-  if (GNUNET_DISK_directory_remove(dir) != GNUNET_OK)
+  if (GNUNET_DISK_directory_remove (dir) != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-        _("Failed to remove servicehome directory %s\n"), dir);
+                _("Failed to remove servicehome directory %s\n"), dir);
 
   }
 }
@@ -286,75 +285,89 @@ static void delete_files()
  * @param tc context, unused
  */
 static void
-cps_loop (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   while (1)
+  {
+    switch (phase++)
     {
-      switch (phase++)
-	{
-	case 0:
-	  if (term != NULL)
-	    {
-	      GNUNET_ARM_stop_service (h, term, (0 == timeout.rel_value) ? STOP_TIMEOUT : timeout, &confirm_cb, term);
-	      return;
-	    }
-	  break;
-	case 1:
-	  if ((end) || (restart))
-	    {
-	      GNUNET_ARM_stop_service (h, "arm", (0 == timeout.rel_value) ? STOP_TIMEOUT_ARM : timeout, &confirm_cb, "arm");
-	      return;
-	    }
-	  break;
-	case 2:
-	  if (start)
-	    {
-	      GNUNET_ARM_start_service (h, "arm", (0 == timeout.rel_value) ? START_TIMEOUT : timeout, &confirm_cb, "arm");
-	      return;
-	    }
-	  break;
-	case 3:
-	  if (init != NULL)
-	    {
-	      GNUNET_ARM_start_service (h, init, (0 == timeout.rel_value) ? START_TIMEOUT : timeout, &confirm_cb, init);
-	      return;
-	    }
-	  break;
-	case 4:
-	  if (test != NULL)
-	    {
-	      GNUNET_CLIENT_service_test (test, cfg, (0 == timeout.rel_value) ? TEST_TIMEOUT : timeout, &confirm_task, test);
-	      return;
-	    }
-	  break;
-	case 5:
-	  if (restart)
-	    {
-              GNUNET_ARM_disconnect (h);
-              phase = 0;
-              end = 0;
-              start = 1;
-              restart = 0;
-              h = GNUNET_ARM_connect (cfg, NULL);
-              if (h == NULL)
-                {
-                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                           _("Fatal error initializing ARM API.\n"));
-                  ret = 1;
-                  return;
-                }
-              GNUNET_SCHEDULER_add_now(&cps_loop, NULL);
-              return;
-	    }
-	  /* Fall through */
-	default: /* last phase */
-	  GNUNET_ARM_disconnect (h);
-	  if ((end == GNUNET_YES) && (delete == GNUNET_YES))
-	    delete_files();
-	  return;
-	}
+    case 0:
+      if (term != NULL)
+      {
+        GNUNET_ARM_stop_service (h, term,
+                                 (0 ==
+                                  timeout.rel_value) ? STOP_TIMEOUT : timeout,
+                                 &confirm_cb, term);
+        return;
+      }
+      break;
+    case 1:
+      if ((end) || (restart))
+      {
+        GNUNET_ARM_stop_service (h, "arm",
+                                 (0 ==
+                                  timeout.rel_value) ? STOP_TIMEOUT_ARM :
+                                 timeout, &confirm_cb, "arm");
+        return;
+      }
+      break;
+    case 2:
+      if (start)
+      {
+        GNUNET_ARM_start_service (h, "arm",
+                                  (0 ==
+                                   timeout.rel_value) ? START_TIMEOUT : timeout,
+                                  &confirm_cb, "arm");
+        return;
+      }
+      break;
+    case 3:
+      if (init != NULL)
+      {
+        GNUNET_ARM_start_service (h, init,
+                                  (0 ==
+                                   timeout.rel_value) ? START_TIMEOUT : timeout,
+                                  &confirm_cb, init);
+        return;
+      }
+      break;
+    case 4:
+      if (test != NULL)
+      {
+        GNUNET_CLIENT_service_test (test, cfg,
+                                    (0 ==
+                                     timeout.rel_value) ? TEST_TIMEOUT :
+                                    timeout, &confirm_task, test);
+        return;
+      }
+      break;
+    case 5:
+      if (restart)
+      {
+        GNUNET_ARM_disconnect (h);
+        phase = 0;
+        end = 0;
+        start = 1;
+        restart = 0;
+        h = GNUNET_ARM_connect (cfg, NULL);
+        if (h == NULL)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Fatal error initializing ARM API.\n"));
+          ret = 1;
+          return;
+        }
+        GNUNET_SCHEDULER_add_now (&cps_loop, NULL);
+        return;
+      }
+      /* Fall through */
+    default:                   /* last phase */
+      GNUNET_ARM_disconnect (h);
+      if ((end == GNUNET_YES) && (delete == GNUNET_YES))
+        delete_files ();
+      return;
     }
+  }
 }
 
 
@@ -379,16 +392,19 @@ main (int argc, char *const *argv)
      GNUNET_YES, &GNUNET_GETOPT_set_string, &term},
     {'s', "start", NULL, gettext_noop ("start all GNUnet default services"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &start},
-    {'r', "restart", NULL, gettext_noop ("stop and start all GNUnet default services"),
+    {'r', "restart", NULL,
+     gettext_noop ("stop and start all GNUnet default services"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &restart},
     {'t', "test", "SERVICE",
      gettext_noop ("test if a particular service is running"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &test},
-    {'d', "delete", NULL, gettext_noop ("delete config file and directory on exit"),
+    {'d', "delete", NULL,
+     gettext_noop ("delete config file and directory on exit"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &delete},
     {'q', "quiet", NULL, gettext_noop ("don't print status messages"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &quiet},
-    {'T', "timeout", NULL, gettext_noop ("timeout for completing current operation"),
+    {'T', "timeout", NULL,
+     gettext_noop ("timeout for completing current operation"),
      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &temp_timeout_ms},
     GNUNET_GETOPT_OPTION_END
   };
@@ -397,16 +413,16 @@ main (int argc, char *const *argv)
     timeout.rel_value = temp_timeout_ms;
 
   if (GNUNET_OK == GNUNET_PROGRAM_run (argc,
-                      argv,
-                      "gnunet-arm",
-                      gettext_noop
-                      ("Control services and the Automated Restart Manager (ARM)"),
-                      options, &run, NULL))
-    {
-      return ret;
-    }
+                                       argv,
+                                       "gnunet-arm",
+                                       gettext_noop
+                                       ("Control services and the Automated Restart Manager (ARM)"),
+                                       options, &run, NULL))
+  {
+    return ret;
+  }
 
-    return 1;
+  return 1;
 }
 
 /* end of gnunet-arm.c */

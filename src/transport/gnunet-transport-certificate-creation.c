@@ -29,20 +29,19 @@
 #include "gnunet_os_lib.h"
 
 
-static void 
-removecerts (const char *file1, 
-	     const char *file2)
+static void
+removecerts (const char *file1, const char *file2)
 {
   if (GNUNET_DISK_file_test (file1) == GNUNET_YES)
-    {
-      CHMOD (file1, S_IWUSR | S_IRUSR);
-      REMOVE (file1);
-    }
+  {
+    CHMOD (file1, S_IWUSR | S_IRUSR);
+    REMOVE (file1);
+  }
   if (GNUNET_DISK_file_test (file2) == GNUNET_YES)
-    {
-      CHMOD (file2, S_IWUSR | S_IRUSR);
-      REMOVE (file2);
-    }
+  {
+    CHMOD (file2, S_IWUSR | S_IRUSR);
+    REMOVE (file2);
+  }
 }
 
 
@@ -54,27 +53,26 @@ main (int argc, char **argv)
   if (argc != 3)
     return 1;
   removecerts (argv[1], argv[2]);
-  close (2); /* eliminate stderr */
+  close (2);                    /* eliminate stderr */
   /* Create RSA Private Key */
   /* openssl genrsa -out $1 1024 2> /dev/null */
   openssl = GNUNET_OS_start_process (NULL, NULL,
-				     "openssl", 
-				     "openssl",
-				     "genrsa", "-out", argv[1], "1024",
-				     NULL);
+                                     "openssl",
+                                     "openssl",
+                                     "genrsa", "-out", argv[1], "1024", NULL);
   if (openssl == NULL)
     return 2;
   GNUNET_assert (GNUNET_OS_process_wait (openssl) == GNUNET_OK);
   GNUNET_OS_process_close (openssl);
-  
-  /* Create a self-signed certificate in batch mode using rsa key*/
+
+  /* Create a self-signed certificate in batch mode using rsa key */
   /* openssl req -batch -days 365 -out $2 -new -x509 -key $1 2> /dev/null */
-  openssl = GNUNET_OS_start_process (NULL, NULL, 
-				     "openssl", 
-				     "openssl", 
-				     "req", "-batch", "-days", "365", 
-				     "-out", argv[2], "-new", "-x509", "-key", argv[1], 
-				     NULL);
+  openssl = GNUNET_OS_start_process (NULL, NULL,
+                                     "openssl",
+                                     "openssl",
+                                     "req", "-batch", "-days", "365",
+                                     "-out", argv[2], "-new", "-x509", "-key",
+                                     argv[1], NULL);
   if (openssl == NULL)
     return 3;
   GNUNET_assert (GNUNET_OS_process_wait (openssl) == GNUNET_OK);

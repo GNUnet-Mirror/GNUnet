@@ -99,7 +99,7 @@ static enum GNUNET_TESTING_Topology blacklist_topology = GNUNET_TESTING_TOPOLOGY
 static enum GNUNET_TESTING_Topology connection_topology = GNUNET_TESTING_TOPOLOGY_NONE; /* NONE actually means connect all allowed peers */
 
 static enum GNUNET_TESTING_TopologyOption connect_topology_option =
-  GNUNET_TESTING_TOPOLOGY_OPTION_ALL;
+    GNUNET_TESTING_TOPOLOGY_OPTION_ALL;
 
 static double connect_topology_option_modifier = 0.0;
 
@@ -160,20 +160,19 @@ void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
 #endif
-      if (ok == 0)
-        ok = 666;
-    }
+    if (ok == 0)
+      ok = 666;
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All peers successfully shut down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
 #endif
-    }
+  }
 }
 
 #if DELAY_FOR_LOGGING
@@ -183,6 +182,7 @@ gather_log_data ()
   char *peer_number;
   char *connect_number;
   struct GNUNET_OS_Process *mem_process;
+
   GNUNET_asprintf (&peer_number, "%llu", num_peers);
   GNUNET_asprintf (&connect_number, "%llu", expected_connections);
   mem_process = GNUNET_OS_start_process (NULL, NULL, "./memsize.pl",
@@ -201,6 +201,7 @@ finish_testing ()
   GNUNET_assert (pg != NULL);
   struct TestMessageContext *pos;
   struct TestMessageContext *free_pos;
+
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Called finish testing, stopping daemons.\n");
@@ -208,25 +209,25 @@ finish_testing ()
 
   pos = test_messages;
   while (pos != NULL)
+  {
+    if (pos->peer1handle != NULL)
     {
-      if (pos->peer1handle != NULL)
-        {
-          GNUNET_CORE_disconnect (pos->peer1handle);
-          pos->peer1handle = NULL;
-        }
-      if (pos->peer2handle != NULL)
-        {
-          GNUNET_CORE_disconnect (pos->peer2handle);
-          pos->peer2handle = NULL;
-        }
-      free_pos = pos;
-      pos = pos->next;
-      if (free_pos->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-        {
-          GNUNET_SCHEDULER_cancel (free_pos->disconnect_task);
-        }
-      GNUNET_free (free_pos);
+      GNUNET_CORE_disconnect (pos->peer1handle);
+      pos->peer1handle = NULL;
     }
+    if (pos->peer2handle != NULL)
+    {
+      GNUNET_CORE_disconnect (pos->peer2handle);
+      pos->peer2handle = NULL;
+    }
+    free_pos = pos;
+    pos = pos->next;
+    if (free_pos->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (free_pos->disconnect_task);
+    }
+    GNUNET_free (free_pos);
+  }
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmit_ready's scheduled %d, failed %d, transmit_ready's called %d\n",
@@ -240,10 +241,10 @@ finish_testing ()
   GNUNET_TESTING_daemons_stop (pg, timeout, &shutdown_callback, NULL);
 
   if (dotOutFile != NULL)
-    {
-      fprintf (dotOutFile, "}");
-      fclose (dotOutFile);
-    }
+  {
+    fprintf (dotOutFile, "}");
+    fclose (dotOutFile);
+  }
 
   ok = 0;
 }
@@ -284,27 +285,28 @@ topology_cb (void *cls,
              const struct GNUNET_PeerIdentity *second, const char *emsg)
 {
   FILE *outfile = cls;
+
   if (first != NULL)
+  {
+    if (outfile != NULL)
     {
-      if (outfile != NULL)
-        {
-          fprintf (outfile, "\t\"%s\" -- ", GNUNET_i2s (first));
-          fprintf (outfile, "\"%s\";\n", GNUNET_i2s (second));
-        }
-      topology_connections++;
+      fprintf (outfile, "\t\"%s\" -- ", GNUNET_i2s (first));
+      fprintf (outfile, "\"%s\";\n", GNUNET_i2s (second));
     }
+    topology_connections++;
+  }
   else
+  {
+    fprintf (stderr,
+             "Finished iterating over topology, %d total connections!\n",
+             topology_connections);
+    if (outfile != NULL)
     {
-      fprintf (stderr,
-               "Finished iterating over topology, %d total connections!\n",
-               topology_connections);
-      if (outfile != NULL)
-        {
-          fprintf (outfile, "}\n");
-          fclose (outfile);
-          GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
-        }
+      fprintf (outfile, "}\n");
+      fclose (outfile);
+      GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
     }
+  }
 }
 
 static int
@@ -317,24 +319,25 @@ process_mtype (void *cls,
   FILE *dotOutFileFinished;
   struct TestMessageContext *pos = cls;
   struct GNUNET_TestMessage *msg = (struct GNUNET_TestMessage *) message;
+
   if (pos->uid != ntohl (msg->uid))
     return GNUNET_OK;
 
 #if VERBOSE
   if ((total_messages_received) % modnum == 0)
-    {
-      if (total_messages_received == 0)
-        fprintf (stdout, "0%%");
-      else
-        fprintf (stdout, "%d%%",
-                 (int) (((float) total_messages_received /
-                         expected_messages) * 100));
+  {
+    if (total_messages_received == 0)
+      fprintf (stdout, "0%%");
+    else
+      fprintf (stdout, "%d%%",
+               (int) (((float) total_messages_received /
+                       expected_messages) * 100));
 
-    }
+  }
   else if (total_messages_received % dotnum == 0)
-    {
-      fprintf (stdout, ".");
-    }
+  {
+    fprintf (stdout, ".");
+  }
   fflush (stdout);
 #endif
 
@@ -350,27 +353,26 @@ process_mtype (void *cls,
 #endif
 
   if (total_messages_received == expected_messages)
-    {
+  {
 #if VERBOSE
-      fprintf (stdout, "100%%]\n");
+    fprintf (stdout, "100%%]\n");
 #endif
-      GNUNET_SCHEDULER_cancel (die_task);
-      GNUNET_asprintf (&dotOutFileNameFinished, "%s.dot", "final_topology");
-      dotOutFileFinished = fopen (dotOutFileNameFinished, "w");
-      GNUNET_free (dotOutFileNameFinished);
-      if (dotOutFileFinished != NULL)
-        {
-          fprintf (dotOutFileFinished, "strict graph G {\n");
-        }
-      topology_connections = 0;
-      GNUNET_TESTING_get_topology (pg, &topology_cb, dotOutFileFinished);
-      //GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
-    }
-  else
+    GNUNET_SCHEDULER_cancel (die_task);
+    GNUNET_asprintf (&dotOutFileNameFinished, "%s.dot", "final_topology");
+    dotOutFileFinished = fopen (dotOutFileNameFinished, "w");
+    GNUNET_free (dotOutFileNameFinished);
+    if (dotOutFileFinished != NULL)
     {
-      pos->disconnect_task =
-        GNUNET_SCHEDULER_add_now (&disconnect_cores, pos);
+      fprintf (dotOutFileFinished, "strict graph G {\n");
     }
+    topology_connections = 0;
+    GNUNET_TESTING_get_topology (pg, &topology_cb, dotOutFileFinished);
+    //GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
+  }
+  else
+  {
+    pos->disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cores, pos);
+  }
 
   return GNUNET_OK;
 }
@@ -379,6 +381,7 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *msg = cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "End badly was called (%s)... stopping daemons.\n", msg);
   struct TestMessageContext *pos;
@@ -386,21 +389,21 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   pos = test_messages;
   while (pos != NULL)
+  {
+    if (pos->peer1handle != NULL)
     {
-      if (pos->peer1handle != NULL)
-        {
-          GNUNET_CORE_disconnect (pos->peer1handle);
-          pos->peer1handle = NULL;
-        }
-      if (pos->peer2handle != NULL)
-        {
-          GNUNET_CORE_disconnect (pos->peer2handle);
-          pos->peer2handle = NULL;
-        }
-      free_pos = pos;
-      pos = pos->next;
-      GNUNET_free (free_pos);
+      GNUNET_CORE_disconnect (pos->peer1handle);
+      pos->peer1handle = NULL;
     }
+    if (pos->peer2handle != NULL)
+    {
+      GNUNET_CORE_disconnect (pos->peer2handle);
+      pos->peer2handle = NULL;
+    }
+    free_pos = pos;
+    pos = pos->next;
+    GNUNET_free (free_pos);
+  }
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -413,18 +416,18 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
 
   if (pg != NULL)
-    {
-      GNUNET_TESTING_daemons_stop (pg, timeout, &shutdown_callback, NULL);
-      ok = 7331;                /* Opposite of leet */
-    }
+  {
+    GNUNET_TESTING_daemons_stop (pg, timeout, &shutdown_callback, NULL);
+    ok = 7331;                  /* Opposite of leet */
+  }
   else
     ok = 401;                   /* Never got peers started */
 
   if (dotOutFile != NULL)
-    {
-      fprintf (dotOutFile, "}");
-      fclose (dotOutFile);
-    }
+  {
+    fprintf (dotOutFile, "}");
+    fclose (dotOutFile);
+  }
 }
 
 static size_t
@@ -471,30 +474,31 @@ init_notify_peer2 (void *cls,
 
   pos->peer2connected = GNUNET_YES;
   if (pos->peer1notified == GNUNET_YES) /* Peer 1 has been notified of connection to peer 2 */
-    {
+  {
 #if VERBOSE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Scheduling message send to peer `%s' from peer `%s' (init_notify_peer2)\n",
-                  GNUNET_i2s (my_identity), GNUNET_h2s(&pos->peer1->id.hashPubKey));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Scheduling message send to peer `%s' from peer `%s' (init_notify_peer2)\n",
+                GNUNET_i2s (my_identity),
+                GNUNET_h2s (&pos->peer1->id.hashPubKey));
 #endif
-      if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
-                                                     0,
-                                                     timeout,
-                                                     &pos->peer2->id,
-                                                     sizeof (struct
-                                                             GNUNET_TestMessage),
-                                                     &transmit_ready, pos))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
-                      GNUNET_i2s (&pos->peer2->id));
-          transmit_ready_failed++;
-        }
-      else
-        {
-          transmit_ready_scheduled++;
-        }
+    if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
+                                                   0,
+                                                   timeout,
+                                                   &pos->peer2->id,
+                                                   sizeof (struct
+                                                           GNUNET_TestMessage),
+                                                   &transmit_ready, pos))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
+                  GNUNET_i2s (&pos->peer2->id));
+      transmit_ready_failed++;
     }
+    else
+    {
+      transmit_ready_scheduled++;
+    }
+  }
 }
 
 /**
@@ -504,50 +508,52 @@ init_notify_peer2 (void *cls,
  * @param peer peer identity this notification is about
  * @param atsi performance data for the connection
  */
-static void connect_notify_peers (void *cls,
-                                  const struct
-                                  GNUNET_PeerIdentity *peer,
-                                  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+static void
+connect_notify_peers (void *cls,
+                      const struct
+                      GNUNET_PeerIdentity *peer,
+                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct TestMessageContext *pos = cls;
 
-  if (0 == memcmp(peer, &pos->peer2->id, sizeof(struct GNUNET_PeerIdentity)))
-    {
-      pos->peer1notified = GNUNET_YES;
+  if (0 == memcmp (peer, &pos->peer2->id, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    pos->peer1notified = GNUNET_YES;
 #if VERBOSE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer `%s' notified of connection to peer `%s'\n",
-                GNUNET_i2s (&pos->peer1->id), GNUNET_h2s(&peer->hashPubKey));
+                GNUNET_i2s (&pos->peer1->id), GNUNET_h2s (&peer->hashPubKey));
 #endif
-    }
+  }
   else
     return;
 
-  if (pos->peer2connected == GNUNET_YES) /* Already connected and notified of connection, send message! */
-    {
+  if (pos->peer2connected == GNUNET_YES)        /* Already connected and notified of connection, send message! */
+  {
 #if VERBOSE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Scheduling message send to peer `%s' from peer `%s' (init_notify_peer2)\n",
-                GNUNET_i2s (&pos->peer2->id), GNUNET_h2s(&pos->peer1->id.hashPubKey));
+                GNUNET_i2s (&pos->peer2->id),
+                GNUNET_h2s (&pos->peer1->id.hashPubKey));
 #endif
-      if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
-                                                     0,
-                                                     timeout,
-                                                     &pos->peer2->id,
-                                                     sizeof (struct
-                                                             GNUNET_TestMessage),
-                                                     &transmit_ready, pos))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
-                      GNUNET_i2s (&pos->peer2->id));
-          transmit_ready_failed++;
-        }
-      else
-        {
-          transmit_ready_scheduled++;
-        }
+    if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
+                                                   0,
+                                                   timeout,
+                                                   &pos->peer2->id,
+                                                   sizeof (struct
+                                                           GNUNET_TestMessage),
+                                                   &transmit_ready, pos))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
+                  GNUNET_i2s (&pos->peer2->id));
+      transmit_ready_failed++;
     }
+    else
+    {
+      transmit_ready_scheduled++;
+    }
+  }
 }
 
 static void
@@ -558,6 +564,7 @@ init_notify_peer1 (void *cls,
                    *publicKey)
 {
   struct TestMessageContext *pos = cls;
+
   total_server_connections++;
 
 #if VERBOSE > 1
@@ -588,27 +595,27 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct TestMessageContext *pos = cls;
 
   if ((pos == test_messages) && (settle_time.rel_value > 0))
-    {
-      topology_connections = 0;
-      GNUNET_TESTING_get_topology (pg, &topology_cb, NULL);
-    }
-  if (( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)|| (cls == NULL))
+  {
+    topology_connections = 0;
+    GNUNET_TESTING_get_topology (pg, &topology_cb, NULL);
+  }
+  if (((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) || (cls == NULL))
     return;
 
   if (die_task == GNUNET_SCHEDULER_NO_TASK)
-    {
-      die_task = GNUNET_SCHEDULER_add_delayed (test_timeout,
-                                               &end_badly,
-                                               "from send test messages (timeout)");
-    }
+  {
+    die_task = GNUNET_SCHEDULER_add_delayed (test_timeout,
+                                             &end_badly,
+                                             "from send test messages (timeout)");
+  }
 
   if (total_server_connections >= MAX_OUTSTANDING_CONNECTIONS)
-    {
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 1),
-                                    &send_test_messages, pos);
-      return;                   /* Otherwise we'll double schedule messages here! */
-    }
+  {
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 1),
+                                  &send_test_messages, pos);
+    return;                     /* Otherwise we'll double schedule messages here! */
+  }
 
   /*
    * Connect to the sending peer
@@ -626,15 +633,15 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (pos->peer1handle != NULL);
 
   if (total_server_connections < MAX_OUTSTANDING_CONNECTIONS)
-    {
-      GNUNET_SCHEDULER_add_now (&send_test_messages, pos->next);
-    }
+  {
+    GNUNET_SCHEDULER_add_now (&send_test_messages, pos->next);
+  }
   else
-    {
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 1),
-                                    &send_test_messages, pos->next);
-    }
+  {
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 1),
+                                  &send_test_messages, pos->next);
+  }
 }
 
 
@@ -650,113 +657,114 @@ topology_callback (void *cls,
                    const char *emsg)
 {
   struct TestMessageContext *temp_context;
+
   if (emsg == NULL)
-    {
+  {
 #if VERBOSE
-      if ((total_connections) % modnum == 0)
-        {
-          if (total_connections == 0)
-            fprintf (stdout, "0%%");
-          else
-            fprintf (stdout, "%d%%",
-                     (int) (((float) total_connections /
-                             expected_connections) * 100));
+    if ((total_connections) % modnum == 0)
+    {
+      if (total_connections == 0)
+        fprintf (stdout, "0%%");
+      else
+        fprintf (stdout, "%d%%",
+                 (int) (((float) total_connections /
+                         expected_connections) * 100));
 
-        }
-      else if (total_connections % dotnum == 0)
-        {
-          fprintf (stdout, ".");
-        }
-      fflush (stdout);
-#endif
-      total_connections++;
-#if VERBOSE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "connected peer %s to peer %s\n",
-                  first_daemon->shortname, second_daemon->shortname);
-#endif
-      temp_context = GNUNET_malloc (sizeof (struct TestMessageContext));
-      temp_context->peer1 = first_daemon;
-      temp_context->peer2 = second_daemon;
-      temp_context->next = test_messages;
-      temp_context->uid = total_connections;
-      temp_context->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-      test_messages = temp_context;
-
-      expected_messages++;
-      if (dotOutFile != NULL)
-        fprintf (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
-                 second_daemon->shortname);
     }
+    else if (total_connections % dotnum == 0)
+    {
+      fprintf (stdout, ".");
+    }
+    fflush (stdout);
+#endif
+    total_connections++;
+#if VERBOSE > 1
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "connected peer %s to peer %s\n",
+                first_daemon->shortname, second_daemon->shortname);
+#endif
+    temp_context = GNUNET_malloc (sizeof (struct TestMessageContext));
+    temp_context->peer1 = first_daemon;
+    temp_context->peer2 = second_daemon;
+    temp_context->next = test_messages;
+    temp_context->uid = total_connections;
+    temp_context->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    test_messages = temp_context;
+
+    expected_messages++;
+    if (dotOutFile != NULL)
+      fprintf (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
+               second_daemon->shortname);
+  }
 #if VERBOSE
   else
-    {
-      failed_connections++;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to connect peer %s to peer %s with error :\n%s\n",
-                  first_daemon->shortname, second_daemon->shortname, emsg);
-    }
+  {
+    failed_connections++;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to connect peer %s to peer %s with error :\n%s\n",
+                first_daemon->shortname, second_daemon->shortname, emsg);
+  }
 #endif
 
   if (total_connections == expected_connections)
-    {
+  {
 #if VERBOSE
-      fprintf (stdout, "100%%]\n");
+    fprintf (stdout, "100%%]\n");
 #endif
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Created %d total connections, which is our target number!  Calling send messages.\n",
-                  total_connections);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Created %d total connections, which is our target number!  Calling send messages.\n",
+                total_connections);
 #endif
-      modnum = expected_messages / 4;
-      dotnum = (expected_messages / 50) + 1;
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_NO_TASK;
+    modnum = expected_messages / 4;
+    dotnum = (expected_messages / 50) + 1;
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
 #if DELAY_FOR_LOGGING
-      fprintf (stdout, "Sending test messages in 10 seconds.\n");
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 10),
-                                    &send_test_messages, test_messages);
-      gather_log_data ();
+    fprintf (stdout, "Sending test messages in 10 seconds.\n");
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 10),
+                                  &send_test_messages, test_messages);
+    gather_log_data ();
 #else
-      if (settle_time.rel_value > 0)
-        {
-          GNUNET_TESTING_get_topology (pg, &topology_cb, NULL);
-        }
-      GNUNET_SCHEDULER_add_delayed (settle_time, &send_test_messages,
-                                    test_messages);
+    if (settle_time.rel_value > 0)
+    {
+      GNUNET_TESTING_get_topology (pg, &topology_cb, NULL);
+    }
+    GNUNET_SCHEDULER_add_delayed (settle_time, &send_test_messages,
+                                  test_messages);
 #endif
 #if VERBOSE
-      fprintf (stdout, "Test message progress: [");
+    fprintf (stdout, "Test message progress: [");
 #endif
 
-    }
+  }
   else if (total_connections + failed_connections == expected_connections)
+  {
+    if (failed_connections <
+        (unsigned int) (fail_percentage * total_connections))
     {
-      if (failed_connections <
-          (unsigned int) (fail_percentage * total_connections))
-        {
-          GNUNET_SCHEDULER_cancel (die_task);
-          die_task = GNUNET_SCHEDULER_NO_TASK;
-          GNUNET_SCHEDULER_add_now (&send_test_messages, test_messages);
-        }
-      else
-        {
-          GNUNET_SCHEDULER_cancel (die_task);
-          die_task =
-            GNUNET_SCHEDULER_add_now (&end_badly,
-                                      "from topology_callback (too many failed connections)");
-        }
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_NO_TASK;
+      GNUNET_SCHEDULER_add_now (&send_test_messages, test_messages);
     }
+    else
+    {
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task =
+          GNUNET_SCHEDULER_add_now (&end_badly,
+                                    "from topology_callback (too many failed connections)");
+    }
+  }
   else
-    {
+  {
 #if VERBOSE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Have %d total connections, %d failed connections, Want %d (at least %d)\n",
-                  total_connections, failed_connections, expected_connections,
-                  expected_connections -
-                  (unsigned int) (fail_percentage * expected_connections));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Have %d total connections, %d failed connections, Want %d (at least %d)\n",
+                total_connections, failed_connections, expected_connections,
+                expected_connections -
+                (unsigned int) (fail_percentage * expected_connections));
 #endif
-    }
+  }
 }
 
 static void
@@ -774,8 +782,8 @@ connect_topology ()
 {
   expected_connections = -1;
   if ((pg != NULL) && (peers_left == 0))
-    {
-      expected_connections =
+  {
+    expected_connections =
         GNUNET_TESTING_connect_topology (pg, connection_topology,
                                          connect_topology_option,
                                          connect_topology_option_modifier,
@@ -783,18 +791,18 @@ connect_topology ()
                                          connect_attempts,
                                          &topology_creation_finished, NULL);
 #if VERBOSE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Have %d expected connections\n", expected_connections);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Have %d expected connections\n", expected_connections);
 #endif
-    }
+  }
 
   GNUNET_SCHEDULER_cancel (die_task);
   if (expected_connections == GNUNET_SYSERR)
-    {
-      die_task =
+  {
+    die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
                                   "from connect topology (bad return)");
-    }
+  }
 
   die_task = GNUNET_SCHEDULER_add_delayed (test_timeout,
                                            &end_badly,
@@ -811,23 +819,22 @@ create_topology ()
 {
   peers_left = num_peers;       /* Reset counter */
   if (GNUNET_TESTING_create_topology
-      (pg, topology, blacklist_topology,
-       blacklist_transports) != GNUNET_SYSERR)
-    {
+      (pg, topology, blacklist_topology, blacklist_transports) != GNUNET_SYSERR)
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Topology set up, now starting peers!\n");
-      fprintf (stdout, "Daemon start progress [");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Topology set up, now starting peers!\n");
+    fprintf (stdout, "Daemon start progress [");
 #endif
-      GNUNET_TESTING_daemons_continue_startup (pg);
-    }
+    GNUNET_TESTING_daemons_continue_startup (pg);
+  }
   else
-    {
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task =
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
                                   "from create topology (bad return)");
-    }
+  }
   GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_add_delayed (test_timeout,
                                            &end_badly,
@@ -842,11 +849,11 @@ peers_started_callback (void *cls,
                         struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to start daemon with error: `%s'\n", emsg);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to start daemon with error: `%s'\n", emsg);
+    return;
+  }
   GNUNET_assert (id != NULL);
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %llu out of %llu\n",
@@ -854,49 +861,47 @@ peers_started_callback (void *cls,
 #endif
 #if VERBOSE
   if ((num_peers - peers_left) % modnum == 0)
-    {
-      if (num_peers - peers_left == 0)
-        fprintf (stdout, "0%%");
-      else
-        fprintf (stdout, "%d%%",
-                 (int) (((float) (num_peers - peers_left) /
-                         num_peers) * 100));
+  {
+    if (num_peers - peers_left == 0)
+      fprintf (stdout, "0%%");
+    else
+      fprintf (stdout, "%d%%",
+               (int) (((float) (num_peers - peers_left) / num_peers) * 100));
 
-    }
+  }
   else if ((num_peers - peers_left) % dotnum == 0)
-    {
-      fprintf (stdout, ".");
-    }
+  {
+    fprintf (stdout, ".");
+  }
   fflush (stdout);
 #endif
   peers_left--;
   if (peers_left == 0)
-    {
+  {
 #if VERBOSE
-      fprintf (stdout, "100%%]\n");
+    fprintf (stdout, "100%%]\n");
 #endif
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All %d daemons started, now connecting peers!\n",
-                  num_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "All %d daemons started, now connecting peers!\n", num_peers);
 #endif
-      GNUNET_SCHEDULER_cancel (die_task);
-      /* Set up task in case topology creation doesn't finish
-       * within a reasonable amount of time */
-      die_task = GNUNET_SCHEDULER_add_delayed (timeout,
-                                               &end_badly,
-                                               "from peers_started_callback");
+    GNUNET_SCHEDULER_cancel (die_task);
+    /* Set up task in case topology creation doesn't finish
+     * within a reasonable amount of time */
+    die_task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                             &end_badly,
+                                             "from peers_started_callback");
 #if DELAY_FOR_LOGGING
-      fprintf (stdout, "Connecting topology in 10 seconds\n");
-      gather_log_data ();
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 10),
-                                    &connect_topology, NULL);
+    fprintf (stdout, "Connecting topology in 10 seconds\n");
+    gather_log_data ();
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 10),
+                                  &connect_topology, NULL);
 #else
-      connect_topology ();
+    connect_topology ();
 #endif
-      ok = 0;
-    }
+    ok = 0;
+  }
 }
 
 /**
@@ -913,10 +918,10 @@ hostkey_callback (void *cls,
                   struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Hostkey callback received error: %s\n", emsg);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Hostkey callback received error: %s\n", emsg);
+  }
 
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -926,39 +931,37 @@ hostkey_callback (void *cls,
 
 #if VERBOSE
   if ((num_peers - peers_left) % modnum == 0)
-    {
-      if (num_peers - peers_left == 0)
-        fprintf (stdout, "0%%");
-      else
-        fprintf (stdout, "%d%%",
-                 (int) (((float) (num_peers - peers_left) /
-                         num_peers) * 100));
+  {
+    if (num_peers - peers_left == 0)
+      fprintf (stdout, "0%%");
+    else
+      fprintf (stdout, "%d%%",
+               (int) (((float) (num_peers - peers_left) / num_peers) * 100));
 
-    }
+  }
   else if ((num_peers - peers_left) % dotnum == 0)
-    {
-      fprintf (stdout, ".");
-    }
+  {
+    fprintf (stdout, ".");
+  }
   fflush (stdout);
 #endif
   peers_left--;
   if (peers_left == 0)
-    {
+  {
 #if VERBOSE
-      fprintf (stdout, "100%%]\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All %d hostkeys created, now creating topology!\n",
-                  num_peers);
+    fprintf (stdout, "100%%]\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "All %d hostkeys created, now creating topology!\n", num_peers);
 #endif
-      GNUNET_SCHEDULER_cancel (die_task);
-      /* Set up task in case topology creation doesn't finish
-       * within a reasonable amount of time */
-      die_task = GNUNET_SCHEDULER_add_delayed (test_timeout,
-                                               &end_badly,
-                                               "from create_topology");
-      GNUNET_SCHEDULER_add_now (&create_topology, NULL);
-      ok = 0;
-    }
+    GNUNET_SCHEDULER_cancel (die_task);
+    /* Set up task in case topology creation doesn't finish
+     * within a reasonable amount of time */
+    die_task = GNUNET_SCHEDULER_add_delayed (test_timeout,
+                                             &end_badly,
+                                             "from create_topology");
+    GNUNET_SCHEDULER_add_now (&create_topology, NULL);
+    ok = 0;
+  }
 }
 
 static void
@@ -972,13 +975,14 @@ run (void *cls,
   char *connect_topology_option_str;
   char *connect_topology_option_modifier_string;
   unsigned long long temp_settle;
+
   ok = 1;
 
   dotOutFile = fopen (dotOutFileName, "w");
   if (dotOutFile != NULL)
-    {
-      fprintf (dotOutFile, "strict graph G {\n");
-    }
+  {
+    fprintf (dotOutFile, "strict graph G {\n");
+  }
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -988,21 +992,21 @@ run (void *cls,
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
                                              &test_directory))
-    {
-      ok = 404;
-      return;
-    }
+  {
+    ok = 404;
+    return;
+  }
 
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "topology",
                                               &topology_str))
       && (GNUNET_NO == GNUNET_TESTING_topology_get (&topology, topology_str)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid topology `%s' given for section %s option %s\n",
-                  topology_str, "TESTING", "TOPOLOGY");
-      topology = GNUNET_TESTING_TOPOLOGY_CLIQUE;        /* Defaults to NONE, so set better default here */
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid topology `%s' given for section %s option %s\n",
+                topology_str, "TESTING", "TOPOLOGY");
+    topology = GNUNET_TESTING_TOPOLOGY_CLIQUE;  /* Defaults to NONE, so set better default here */
+  }
 
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
@@ -1011,11 +1015,11 @@ run (void *cls,
       && (GNUNET_NO ==
           GNUNET_TESTING_topology_get (&connection_topology,
                                        connect_topology_str)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid connect topology `%s' given for section %s option %s\n",
-                  connect_topology_str, "TESTING", "CONNECT_TOPOLOGY");
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid connect topology `%s' given for section %s option %s\n",
+                connect_topology_str, "TESTING", "CONNECT_TOPOLOGY");
+  }
   GNUNET_free_non_null (connect_topology_str);
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
@@ -1024,31 +1028,31 @@ run (void *cls,
       && (GNUNET_NO ==
           GNUNET_TESTING_topology_option_get (&connect_topology_option,
                                               connect_topology_option_str)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid connect topology option `%s' given for section %s option %s\n",
-                  connect_topology_option_str, "TESTING",
-                  "CONNECT_TOPOLOGY_OPTION");
-      connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL;     /* Defaults to NONE, set to ALL */
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid connect topology option `%s' given for section %s option %s\n",
+                connect_topology_option_str, "TESTING",
+                "CONNECT_TOPOLOGY_OPTION");
+    connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL;       /* Defaults to NONE, set to ALL */
+  }
   GNUNET_free_non_null (connect_topology_option_str);
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
                                              "connect_topology_option_modifier",
                                              &connect_topology_option_modifier_string))
+  {
+    if (sscanf
+        (connect_topology_option_modifier_string, "%lf",
+         &connect_topology_option_modifier) != 1)
     {
-      if (sscanf
-          (connect_topology_option_modifier_string, "%lf",
-           &connect_topology_option_modifier) != 1)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      _
-                      ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
-                      connect_topology_option_modifier_string,
-                      "connect_topology_option_modifier", "TESTING");
-        }
-      GNUNET_free (connect_topology_option_modifier_string);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _
+                  ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+                  connect_topology_option_modifier_string,
+                  "connect_topology_option_modifier", "TESTING");
     }
+    GNUNET_free (connect_topology_option_modifier_string);
+  }
 
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
@@ -1063,11 +1067,11 @@ run (void *cls,
       && (GNUNET_NO ==
           GNUNET_TESTING_topology_get (&blacklist_topology,
                                        blacklist_topology_str)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid topology `%s' given for section %s option %s\n",
-                  topology_str, "TESTING", "BLACKLIST_TOPOLOGY");
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid topology `%s' given for section %s option %s\n",
+                topology_str, "TESTING", "BLACKLIST_TOPOLOGY");
+  }
   GNUNET_free_non_null (topology_str);
   GNUNET_free_non_null (blacklist_topology_str);
 
@@ -1075,7 +1079,7 @@ run (void *cls,
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "settle_time",
                                              &temp_settle))
     settle_time =
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_settle);
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_settle);
 
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
@@ -1086,21 +1090,23 @@ run (void *cls,
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_timeout",
                                              &temp_settle))
     connect_timeout =
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_settle);
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_settle);
   else
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_timeout");
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
+                "testing", "connect_timeout");
+    return;
+  }
 
 
   if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_attempts",
-                                               &connect_attempts))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_attempts");
-      return;
-    }
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_attempts",
+                                             &connect_attempts))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
+                "testing", "connect_attempts");
+    return;
+  }
 
   main_cfg = cfg;
 
@@ -1109,12 +1115,18 @@ run (void *cls,
   /**
    * How long until we fail the whole testcase?
    */
-  test_timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START), num_peers * 2);
+  test_timeout =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_multiply
+                                     (GNUNET_TIME_UNIT_SECONDS,
+                                      SECONDS_PER_PEER_START), num_peers * 2);
 
   /**
    * How long until we give up on starting the peers?
    */
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START), num_peers);
+  timeout =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_multiply
+                                     (GNUNET_TIME_UNIT_SECONDS,
+                                      SECONDS_PER_PEER_START), num_peers);
 
   modnum = num_peers / 4;
   dotnum = (num_peers / 50) + 1;
@@ -1123,9 +1135,9 @@ run (void *cls,
 #endif
   /* Set up a task to end testing if peer start fails */
   die_task =
-    GNUNET_SCHEDULER_add_delayed (timeout,
-                                  &end_badly,
-                                  "didn't generate all hostkeys within a reasonable amount of time!!!");
+      GNUNET_SCHEDULER_add_delayed (timeout,
+                                    &end_badly,
+                                    "didn't generate all hostkeys within a reasonable amount of time!!!");
 
   GNUNET_assert (num_peers > 0 && num_peers < (unsigned int) -1);
   pg = GNUNET_TESTING_daemons_start (cfg,
@@ -1144,10 +1156,12 @@ check ()
 {
   char *binary_name;
   char *config_file_name;
+
   GNUNET_asprintf (&binary_name, "test-testing-topology-%s", topology_string);
   GNUNET_asprintf (&config_file_name, "test_testing_data_topology_%s.conf",
                    topology_string);
   int ret;
+
   char *const argv[] = { binary_name,
     "-c",
     config_file_name,
@@ -1162,11 +1176,11 @@ check ()
   ret = GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                             argv, binary_name, "nohelp", options, &run, &ok);
   if (ret != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "`test-testing-topology-%s': Failed with error code %d\n",
-                  topology_string, ret);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "`test-testing-topology-%s': Failed with error code %d\n",
+                topology_string, ret);
+  }
   GNUNET_free (binary_name);
   GNUNET_free (config_file_name);
   return ok;
@@ -1206,10 +1220,10 @@ main (int argc, char *argv[])
    * of by the testing framework.
    */
   if (GNUNET_DISK_directory_remove (test_directory) != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Failed to remove testing directory %s\n", test_directory);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to remove testing directory %s\n", test_directory);
+  }
   GNUNET_free (our_binary_name);
   return ret;
 }

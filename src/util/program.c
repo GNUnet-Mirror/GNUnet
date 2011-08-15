@@ -95,9 +95,12 @@ cmd_sorter (__const void *a1, __const void *a2)
 {
   __const struct GNUNET_GETOPT_CommandLineOption *c1 = a1;
   __const struct GNUNET_GETOPT_CommandLineOption *c2 = a2;
-  if (toupper ( (unsigned char) c1->shortName) > toupper ( (unsigned char) c2->shortName))
+
+  if (toupper ((unsigned char) c1->shortName) >
+      toupper ((unsigned char) c2->shortName))
     return 1;
-  if (toupper ( (unsigned char) c1->shortName) < toupper ( (unsigned char) c2->shortName))
+  if (toupper ((unsigned char) c1->shortName) <
+      toupper ((unsigned char) c2->shortName))
     return -1;
   if (c1->shortName > c2->shortName)
     return 1;
@@ -138,6 +141,7 @@ GNUNET_PROGRAM_run (int argc,
   unsigned long long skew_variance;
   long long clock_offset;
   struct GNUNET_CONFIGURATION_Handle *cfg;
+
   struct GNUNET_GETOPT_CommandLineOption defoptions[] = {
     GNUNET_GETOPT_OPTION_CFG_FILE (&cc.cfgfile),
     GNUNET_GETOPT_OPTION_HELP (binaryHelp),
@@ -153,29 +157,29 @@ GNUNET_PROGRAM_run (int argc,
   logfile = NULL;
   gargs = getenv ("GNUNET_ARGS");
   if (gargs != NULL)
+  {
+    char **gargv;
+    unsigned int gargc;
+    int i;
+    char *tok;
+    char *cargs;
+
+    gargv = NULL;
+    gargc = 0;
+    for (i = 0; i < argc; i++)
+      GNUNET_array_append (gargv, gargc, GNUNET_strdup (argv[i]));
+    cargs = GNUNET_strdup (gargs);
+    tok = strtok (cargs, " ");
+    while (NULL != tok)
     {
-      char **gargv;
-      unsigned int gargc;
-      int i;
-      char *tok;
-      char *cargs;
-      
-      gargv = NULL;
-      gargc = 0;
-      for (i=0;i<argc;i++)
-	GNUNET_array_append (gargv, gargc, GNUNET_strdup (argv[i]));
-      cargs = GNUNET_strdup (gargs);
-      tok = strtok (cargs, " ");
-      while (NULL != tok)
-	{
-	  GNUNET_array_append (gargv, gargc, GNUNET_strdup (tok));
-	  tok = strtok (NULL, " ");
-	}      
-      GNUNET_free (cargs);
-      GNUNET_array_append (gargv, gargc, NULL);
-      argv = (char *const *) gargv;
-      argc = gargc - 1;
+      GNUNET_array_append (gargv, gargc, GNUNET_strdup (tok));
+      tok = strtok (NULL, " ");
     }
+    GNUNET_free (cargs);
+    GNUNET_array_append (gargv, gargc, NULL);
+    argv = (char *const *) gargv;
+    argc = gargc - 1;
+  }
   memset (&cc, 0, sizeof (cc));
   loglev = NULL;
   cc.task = task;
@@ -187,26 +191,25 @@ GNUNET_PROGRAM_run (int argc,
   setlocale (LC_ALL, "");
   path = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LOCALEDIR);
   if (path != NULL)
-    {
-      BINDTEXTDOMAIN ("GNUnet", path);
-      GNUNET_free (path);
-    }
+  {
+    BINDTEXTDOMAIN ("GNUnet", path);
+    GNUNET_free (path);
+  }
   textdomain ("GNUnet");
 #endif
   cnt = 0;
   while (options[cnt].name != NULL)
     cnt++;
   allopts =
-    GNUNET_malloc ((cnt +
-                    1) * sizeof (struct GNUNET_GETOPT_CommandLineOption) +
-                   sizeof (defoptions));
+      GNUNET_malloc ((cnt +
+                      1) * sizeof (struct GNUNET_GETOPT_CommandLineOption) +
+                     sizeof (defoptions));
   memcpy (allopts, defoptions, sizeof (defoptions));
   memcpy (&allopts
           [sizeof (defoptions) /
            sizeof (struct GNUNET_GETOPT_CommandLineOption)], options,
           (cnt + 1) * sizeof (struct GNUNET_GETOPT_CommandLineOption));
-  cnt +=
-    sizeof (defoptions) / sizeof (struct GNUNET_GETOPT_CommandLineOption);
+  cnt += sizeof (defoptions) / sizeof (struct GNUNET_GETOPT_CommandLineOption);
   qsort (allopts, cnt, sizeof (struct GNUNET_GETOPT_CommandLineOption),
          &cmd_sorter);
   loglev = GNUNET_strdup ("WARNING");
@@ -222,22 +225,26 @@ GNUNET_PROGRAM_run (int argc,
                           loglev,
                           logfile)) ||
        (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cc.cfgfile))))
-    {
-      GNUNET_CONFIGURATION_destroy (cfg);
-      GNUNET_free_non_null (cc.cfgfile);
-      GNUNET_free (loglev);
-      GNUNET_free (allopts);
-      GNUNET_free (lpfx);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_free_non_null (cc.cfgfile);
+    GNUNET_free (loglev);
+    GNUNET_free (allopts);
+    GNUNET_free (lpfx);
+    return GNUNET_SYSERR;
+  }
   GNUNET_free (allopts);
   GNUNET_free (lpfx);
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cc.cfg, "testing", "skew_offset", &skew_offset) &&
-      (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cc.cfg, "testing", "skew_variance", &skew_variance)))
-    {
-      clock_offset = skew_offset - skew_variance;
-      GNUNET_TIME_set_offset(clock_offset);
-    }
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number (cc.cfg, "testing", "skew_offset",
+                                             &skew_offset) &&
+      (GNUNET_OK ==
+       GNUNET_CONFIGURATION_get_value_number (cc.cfg, "testing",
+                                              "skew_variance", &skew_variance)))
+  {
+    clock_offset = skew_offset - skew_variance;
+    GNUNET_TIME_set_offset (clock_offset);
+  }
   /* run */
   cc.args = &argv[ret];
   GNUNET_SCHEDULER_run (&program_main, &cc);

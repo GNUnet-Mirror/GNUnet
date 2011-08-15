@@ -69,7 +69,7 @@ FILE *dhtkey_outfile;
 FILE *extended_topology_outfile;
 
 static char *
-get_sql_time()
+get_sql_time ()
 {
   static char date[DATE_STR_SIZE];
   time_t timetmp;
@@ -97,13 +97,19 @@ int
 add_topology (int num_connections)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "insert into topology (trialuid, date, connections) values (@temp_trial, \"%s\", %d);\n", get_sql_time(), num_connections);
+  ret =
+      fprintf (outfile,
+               "insert into topology (trialuid, date, connections) values (@temp_trial, \"%s\", %d);\n",
+               get_sql_time (), num_connections);
   if (ret < 0)
     return GNUNET_SYSERR;
-  ret = fprintf(outfile, "select max(topology_uid) from topology into @temp_topology;\n");
+  ret =
+      fprintf (outfile,
+               "select max(topology_uid) from topology into @temp_topology;\n");
   if (ret >= 0)
     return GNUNET_OK;
   return GNUNET_SYSERR;
@@ -117,13 +123,18 @@ add_topology (int num_connections)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_round (unsigned int round_type, unsigned int round_count)
+int
+add_round (unsigned int round_type, unsigned int round_count)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "insert into rounds (trialuid, round_type, round_count, starttime) values (@temp_trial, \"%u\", \"%u\", \"%s\");\n", round_type, round_count, get_sql_time());
+  ret =
+      fprintf (outfile,
+               "insert into rounds (trialuid, round_type, round_count, starttime) values (@temp_trial, \"%u\", \"%u\", \"%s\");\n",
+               round_type, round_count, get_sql_time ());
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -142,15 +153,21 @@ int add_round (unsigned int round_type, unsigned int round_count)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_round_details (unsigned int round_type, unsigned int round_count,
-                       unsigned int num_messages, unsigned int num_messages_succeeded)
+int
+add_round_details (unsigned int round_type, unsigned int round_count,
+                   unsigned int num_messages,
+                   unsigned int num_messages_succeeded)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "insert into processed_trial_rounds (trialuid, round_type, round_count, starttime, endtime, num_messages, num_messages_succeeded) values (@temp_trial, \"%u\", \"%u\", \"%s\", \"%s\", \"%u\", \"%u\");\n",
-                                                              round_type, round_count, get_sql_time(), get_sql_time(), num_messages, num_messages_succeeded);
+  ret =
+      fprintf (outfile,
+               "insert into processed_trial_rounds (trialuid, round_type, round_count, starttime, endtime, num_messages, num_messages_succeeded) values (@temp_trial, \"%u\", \"%u\", \"%s\", \"%s\", \"%u\", \"%u\");\n",
+               round_type, round_count, get_sql_time (), get_sql_time (),
+               num_messages, num_messages_succeeded);
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -166,16 +183,23 @@ int add_round_details (unsigned int round_type, unsigned int round_count,
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNUNET_PeerIdentity *second)
+add_extended_topology (const struct GNUNET_PeerIdentity *first,
+                       const struct GNUNET_PeerIdentity *second)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(extended_topology_outfile, "insert into extended_topology (topology_uid, uid_first, uid_second) values (%u, %s,", topology_count, GNUNET_h2s_full(&first->hashPubKey));
+  ret =
+      fprintf (extended_topology_outfile,
+               "insert into extended_topology (topology_uid, uid_first, uid_second) values (%u, %s,",
+               topology_count, GNUNET_h2s_full (&first->hashPubKey));
   if (ret < 0)
     return GNUNET_SYSERR;
-  ret = fprintf(extended_topology_outfile, "%s);\n", GNUNET_h2s_full(&second->hashPubKey));
+  ret =
+      fprintf (extended_topology_outfile, "%s);\n",
+               GNUNET_h2s_full (&second->hashPubKey));
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -190,35 +214,46 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
+int
+add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "INSERT INTO trials "
-                         "(starttime, other_trial_identifier, numnodes, topology,"
-                           "blacklist_topology, connect_topology, connect_topology_option,"
-                           "connect_topology_option_modifier, topology_percentage, topology_probability,"
-                           "puts, gets, "
-                           "concurrent, settle_time, num_rounds, malicious_getters,"
-                           "malicious_putters, malicious_droppers, malicious_get_frequency,"
-                           "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "
-                           "gets_succeeded, message) "
-                           "VALUES (\"%s\", %u, %u, %u, %u, %u, %u, %f, %f, %f, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, \"%s\");\n",
-                           get_sql_time(), trial_info->other_identifier, trial_info->num_nodes, trial_info->topology,
-                           trial_info->blacklist_topology, trial_info->connect_topology,
-                           trial_info->connect_topology_option, trial_info->connect_topology_option_modifier,
-                           trial_info->topology_percentage, trial_info->topology_probability,
-                           trial_info->puts, trial_info->gets, trial_info->concurrent, trial_info->settle_time,
-                           trial_info->num_rounds, trial_info->malicious_getters, trial_info->malicious_putters,
-                           trial_info->malicious_droppers, trial_info->malicious_get_frequency, trial_info->malicious_put_frequency,
-                           trial_info->stop_closest, trial_info->stop_found, trial_info->strict_kademlia, trial_info->gets_succeeded, trial_info->message);
+  ret = fprintf (outfile, "INSERT INTO trials "
+                 "(starttime, other_trial_identifier, numnodes, topology,"
+                 "blacklist_topology, connect_topology, connect_topology_option,"
+                 "connect_topology_option_modifier, topology_percentage, topology_probability,"
+                 "puts, gets, "
+                 "concurrent, settle_time, num_rounds, malicious_getters,"
+                 "malicious_putters, malicious_droppers, malicious_get_frequency,"
+                 "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "
+                 "gets_succeeded, message) "
+                 "VALUES (\"%s\", %u, %u, %u, %u, %u, %u, %f, %f, %f, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, \"%s\");\n",
+                 get_sql_time (), trial_info->other_identifier,
+                 trial_info->num_nodes, trial_info->topology,
+                 trial_info->blacklist_topology, trial_info->connect_topology,
+                 trial_info->connect_topology_option,
+                 trial_info->connect_topology_option_modifier,
+                 trial_info->topology_percentage,
+                 trial_info->topology_probability, trial_info->puts,
+                 trial_info->gets, trial_info->concurrent,
+                 trial_info->settle_time, trial_info->num_rounds,
+                 trial_info->malicious_getters, trial_info->malicious_putters,
+                 trial_info->malicious_droppers,
+                 trial_info->malicious_get_frequency,
+                 trial_info->malicious_put_frequency, trial_info->stop_closest,
+                 trial_info->stop_found, trial_info->strict_kademlia,
+                 trial_info->gets_succeeded, trial_info->message);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "SELECT MAX( trialuid ) FROM trials into @temp_trial;\n");
+  ret =
+      fprintf (outfile,
+               "SELECT MAX( trialuid ) FROM trials into @temp_trial;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -239,14 +274,15 @@ int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
  */
 int
 add_generic_stat (const struct GNUNET_PeerIdentity *peer,
-                  const char *name,
-                  const char *section, uint64_t value)
+                  const char *name, const char *section, uint64_t value)
 {
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
   if (peer != NULL)
-    fprintf(generic_stat_outfile, "TRIALUID\t%s\t%s\t%s\t%llu\n", GNUNET_h2s_full(&peer->hashPubKey), section, name, (unsigned long long)value);
+    fprintf (generic_stat_outfile, "TRIALUID\t%s\t%s\t%s\t%llu\n",
+             GNUNET_h2s_full (&peer->hashPubKey), section, name,
+             (unsigned long long) value);
 
   return GNUNET_OK;
 }
@@ -283,22 +319,25 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
           unsigned int data_inserts, unsigned int find_peer_requests,
           unsigned int find_peers_started, unsigned int gets_started,
           unsigned int puts_started, unsigned int find_peer_responses_received,
-          unsigned int get_responses_received, unsigned int find_peer_responses_sent,
+          unsigned int get_responses_received,
+          unsigned int find_peer_responses_sent,
           unsigned int get_responses_sent)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
   if (peer != NULL)
-    ret = fprintf(stat_outfile, "TRIALUID\t%s\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\n",
-                                GNUNET_h2s_full(&peer->hashPubKey),
-                                route_requests, route_forwards, result_requests,
-                                client_requests, result_forwards, gets, puts,
-                                data_inserts, find_peer_requests, find_peers_started,
-                                gets_started, puts_started, find_peer_responses_received,
-                                get_responses_received, find_peer_responses_sent,
-                                get_responses_sent);
+    ret =
+        fprintf (stat_outfile,
+                 "TRIALUID\t%s\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\n",
+                 GNUNET_h2s_full (&peer->hashPubKey), route_requests,
+                 route_forwards, result_requests, client_requests,
+                 result_forwards, gets, puts, data_inserts, find_peer_requests,
+                 find_peers_started, gets_started, puts_started,
+                 find_peer_responses_received, get_responses_received,
+                 find_peer_responses_sent, get_responses_sent);
 
   else
     return GNUNET_SYSERR;
@@ -308,6 +347,7 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
   else
     return GNUNET_SYSERR;
 }
+
 /*
  * Inserts the specified dhtkey into the dhttests.dhtkeys table,
  * stores return value of dhttests.dhtkeys.dhtkeyuid into dhtkeyuid
@@ -321,13 +361,14 @@ int
 add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
 {
   int ret;
+
   if (dhtkeyuid != NULL)
     *dhtkeyuid = 0;
 
   if ((dhtkey_outfile == NULL) || (dhtkey == NULL))
     return GNUNET_SYSERR;
 
-  ret = fprintf(dhtkey_outfile, "TRIALUID\t%s\n", GNUNET_h2s_full(dhtkey));
+  ret = fprintf (dhtkey_outfile, "TRIALUID\t%s\n", GNUNET_h2s_full (dhtkey));
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -344,15 +385,17 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
+add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity *node)
 {
   int ret;
 
   if ((node == NULL) || (node_outfile == NULL))
     return GNUNET_SYSERR;
 
-  ret = fprintf(node_outfile, "TRIALUID\t%s\n", GNUNET_h2s_full(&node->hashPubKey));
-  fflush(node_outfile);
+  ret =
+      fprintf (node_outfile, "TRIALUID\t%s\n",
+               GNUNET_h2s_full (&node->hashPubKey));
+  fflush (node_outfile);
   if (ret >= 0)
     return GNUNET_OK;
   return GNUNET_SYSERR;
@@ -373,8 +416,11 @@ update_trials (unsigned int gets_succeeded)
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "update trials set endtime=\"%s\", gets_succeeded=%u where trialuid = @temp_trial;\n", get_sql_time(), gets_succeeded);
-  fflush(node_outfile);
+  ret =
+      fprintf (outfile,
+               "update trials set endtime=\"%s\", gets_succeeded=%u where trialuid = @temp_trial;\n",
+               get_sql_time (), gets_succeeded);
+  fflush (node_outfile);
   if (ret >= 0)
     return GNUNET_OK;
   else
@@ -398,8 +444,11 @@ set_malicious (struct GNUNET_PeerIdentity *peer)
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "update nodes set malicious_dropper = 1 where trialuid = @temp_trial and nodeid = \"%s\";\n", GNUNET_h2s_full(&peer->hashPubKey));
-  fflush(node_outfile);
+  ret =
+      fprintf (outfile,
+               "update nodes set malicious_dropper = 1 where trialuid = @temp_trial and nodeid = \"%s\";\n",
+               GNUNET_h2s_full (&peer->hashPubKey));
+  fflush (node_outfile);
   if (ret >= 0)
     return GNUNET_OK;
   else
@@ -422,8 +471,11 @@ add_connections (unsigned int totalConnections)
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "update trials set totalConnections = %u where trialuid = @temp_trial;\n", totalConnections);
-  fflush(node_outfile);
+  ret =
+      fprintf (outfile,
+               "update trials set totalConnections = %u where trialuid = @temp_trial;\n",
+               totalConnections);
+  fflush (node_outfile);
   if (ret >= 0)
     return GNUNET_OK;
   else
@@ -442,10 +494,14 @@ int
 update_topology (unsigned int connections)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "update topology set connections = %u where topology_uid = @temp_topology;\n", connections);
+  ret =
+      fprintf (outfile,
+               "update topology set connections = %u where topology_uid = @temp_topology;\n",
+               connections);
   topology_count++;
   if (ret >= 0)
     return GNUNET_OK;
@@ -469,7 +525,7 @@ update_topology (unsigned int connections)
 int
 add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
            unsigned int type, unsigned int hops, int succeeded,
-           const struct GNUNET_PeerIdentity * node, const GNUNET_HashCode * key)
+           const struct GNUNET_PeerIdentity *node, const GNUNET_HashCode * key)
 {
   int ret;
 
@@ -479,12 +535,15 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
   if (sqlqueryuid != NULL)
     *sqlqueryuid = 0;
 
-  ret = fprintf(query_outfile, "TRIALUID\t%s\t", GNUNET_h2s_full(key));
+  ret = fprintf (query_outfile, "TRIALUID\t%s\t", GNUNET_h2s_full (key));
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(query_outfile, "%s\t%llu\t%u\t%u\t%u\t%s\n", GNUNET_h2s_full(&node->hashPubKey), queryid, type, hops, succeeded, get_sql_time());
+  ret =
+      fprintf (query_outfile, "%s\t%llu\t%u\t%u\t%u\t%s\n",
+               GNUNET_h2s_full (&node->hashPubKey), queryid, type, hops,
+               succeeded, get_sql_time ());
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -510,9 +569,10 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
 int
 add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
            unsigned int type, unsigned int hops,
-           int succeeded, const struct GNUNET_PeerIdentity * node,
-           const GNUNET_HashCode * key, const struct GNUNET_PeerIdentity * from_node,
-           const struct GNUNET_PeerIdentity * to_node)
+           int succeeded, const struct GNUNET_PeerIdentity *node,
+           const GNUNET_HashCode * key,
+           const struct GNUNET_PeerIdentity *from_node,
+           const struct GNUNET_PeerIdentity *to_node)
 {
   int ret;
 
@@ -522,24 +582,31 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
   if (sqlqueryuid != NULL)
     *sqlqueryuid = 0;
 
-  ret = fprintf(route_outfile, "TRIALUID\t%s\t", GNUNET_h2s_full(key));
+  ret = fprintf (route_outfile, "TRIALUID\t%s\t", GNUNET_h2s_full (key));
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(route_outfile, "%s\t", GNUNET_h2s_full(&node->hashPubKey));
+  ret = fprintf (route_outfile, "%s\t", GNUNET_h2s_full (&node->hashPubKey));
   if (ret < 0)
     return GNUNET_SYSERR;
   if (from_node == NULL)
-    ret = fprintf(route_outfile, "0\t");
+    ret = fprintf (route_outfile, "0\t");
   else
-    ret = fprintf(route_outfile, "%s\t", GNUNET_h2s_full(&from_node->hashPubKey));
+    ret =
+        fprintf (route_outfile, "%s\t",
+                 GNUNET_h2s_full (&from_node->hashPubKey));
   if (ret < 0)
     return GNUNET_SYSERR;
 
   if (to_node == NULL)
-    ret = fprintf(route_outfile, "0\t%llu\t%u\t%u\t%d\n", queryid, type, hops, succeeded);
+    ret =
+        fprintf (route_outfile, "0\t%llu\t%u\t%u\t%d\n", queryid, type, hops,
+                 succeeded);
   else
-    ret = fprintf(route_outfile, "%s\t%llu\t%u\t%u\t%d\n", GNUNET_h2s_full(&to_node->hashPubKey), queryid, type, hops, succeeded);
+    ret =
+        fprintf (route_outfile, "%s\t%llu\t%u\t%u\t%d\n",
+                 GNUNET_h2s_full (&to_node->hashPubKey), queryid, type, hops,
+                 succeeded);
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -555,7 +622,7 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
  * @return the handle to the server, or NULL on error
  */
 void *
-libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
+libgnunet_plugin_dhtlog_mysql_dump_load_init (void *cls)
 {
   struct GNUNET_DHTLOG_Plugin *plugin = cls;
   char *outfile_name;
@@ -566,287 +633,274 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
   cfg = plugin->cfg;
   max_varchar_len = 255;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MySQL (DUMP) DHT Logger: initializing\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MySQL (DUMP) DHT Logger: initializing\n");
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                         "MYSQLDUMP", "PATH",
-                                                         &outfile_path))
-    {
-      outfile_path = GNUNET_strdup("");
-    }
+                                                          "MYSQLDUMP", "PATH",
+                                                          &outfile_path))
+  {
+    outfile_path = GNUNET_strdup ("");
+  }
 
   GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d",
-                   outfile_path,
-                   "mysqldump",
-                   getpid());
+                   "%s%s-%d", outfile_path, "mysqldump", getpid ());
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to get full path for `%s'\n"), outfile_name);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    return NULL;
+  }
 
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   outfile = FOPEN (fn, "w");
 
   if (outfile == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to create or access directory for log file `%s'\n"),
-                    fn);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      GNUNET_free (fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    GNUNET_free (fn);
+    return NULL;
+  }
 
-  GNUNET_free(outfile_name);
+  GNUNET_free (outfile_name);
   GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d",
-                   outfile_path,
-                   "mysqldump_nodes",
-                   getpid());
-  GNUNET_free(fn);
+                   "%s%s-%d", outfile_path, "mysqldump_nodes", getpid ());
+  GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to get full path for `%s'\n"), outfile_name);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    return NULL;
+  }
 
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   node_outfile = FOPEN (fn, "w");
 
   if (node_outfile == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to create or access directory for log file `%s'\n"),
-                    fn);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      GNUNET_free (fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    GNUNET_free (fn);
+    return NULL;
+  }
 
-  GNUNET_free(outfile_name);
+  GNUNET_free (outfile_name);
   GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d",
-                   outfile_path,
-                   "mysqldump_routes",
-                   getpid());
+                   "%s%s-%d", outfile_path, "mysqldump_routes", getpid ());
 
-  GNUNET_free(fn);
+  GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to get full path for `%s'\n"), outfile_name);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    return NULL;
+  }
 
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   route_outfile = FOPEN (fn, "w");
 
   if (route_outfile == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to create or access directory for log file `%s'\n"),
-                    fn);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      GNUNET_free (fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    GNUNET_free (fn);
+    return NULL;
+  }
 
-  GNUNET_free(outfile_name);
+  GNUNET_free (outfile_name);
   GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d",
-                   outfile_path,
-                   "mysqldump_queries",
-                   getpid());
+                   "%s%s-%d", outfile_path, "mysqldump_queries", getpid ());
 
-  GNUNET_free(fn);
+  GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to get full path for `%s'\n"), outfile_name);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    return NULL;
+  }
 
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   query_outfile = FOPEN (fn, "w");
 
   if (query_outfile == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to create or access directory for log file `%s'\n"),
-                    fn);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      GNUNET_free (fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    GNUNET_free (fn);
+    return NULL;
+  }
 
-  GNUNET_free(outfile_name);
+  GNUNET_free (outfile_name);
   GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d",
-                   outfile_path,
-                   "mysqldump_stats",
-                   getpid());
+                   "%s%s-%d", outfile_path, "mysqldump_stats", getpid ());
 
-  GNUNET_free(fn);
+  GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to get full path for `%s'\n"), outfile_name);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    return NULL;
+  }
 
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   stat_outfile = FOPEN (fn, "w");
 
   if (stat_outfile == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to create or access directory for log file `%s'\n"),
-                    fn);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      GNUNET_free (fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    GNUNET_free (fn);
+    return NULL;
+  }
 
-  GNUNET_free(outfile_name);
+  GNUNET_free (outfile_name);
   GNUNET_asprintf (&outfile_name,
                    "%s%s-%d",
-                   outfile_path,
-                   "mysqldump_generic_stats",
-                   getpid());
-  GNUNET_free(fn);
+                   outfile_path, "mysqldump_generic_stats", getpid ());
+  GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to get full path for `%s'\n"), outfile_name);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    return NULL;
+  }
 
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   generic_stat_outfile = FOPEN (fn, "w");
 
   if (generic_stat_outfile == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to create or access directory for log file `%s'\n"),
-                    fn);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      GNUNET_free (fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    GNUNET_free (fn);
+    return NULL;
+  }
 
-  GNUNET_free(outfile_name);
+  GNUNET_free (outfile_name);
   GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d",
-                   outfile_path,
-                   "mysqldump_dhtkey",
-                   getpid());
-  GNUNET_free(fn);
+                   "%s%s-%d", outfile_path, "mysqldump_dhtkey", getpid ());
+  GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to get full path for `%s'\n"), outfile_name);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    return NULL;
+  }
 
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   dhtkey_outfile = FOPEN (fn, "w");
 
   if (dhtkey_outfile == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to create or access directory for log file `%s'\n"),
-                    fn);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      GNUNET_free (fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    GNUNET_free (fn);
+    return NULL;
+  }
 
-  GNUNET_free(outfile_name);
+  GNUNET_free (outfile_name);
   GNUNET_asprintf (&outfile_name,
                    "%s%s-%d",
-                   outfile_path,
-                   "mysqldump_extended_topology",
-                   getpid());
-  GNUNET_free(fn);
+                   outfile_path, "mysqldump_extended_topology", getpid ());
+  GNUNET_free (fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to get full path for `%s'\n"), outfile_name);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    return NULL;
+  }
 
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   extended_topology_outfile = FOPEN (fn, "w");
 
   if (extended_topology_outfile == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to create or access directory for log file `%s'\n"),
-                    fn);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      GNUNET_free (fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    GNUNET_free (fn);
+    return NULL;
+  }
 
   GNUNET_free (outfile_path);
   GNUNET_free (outfile_name);
   GNUNET_free (fn);
 
-  GNUNET_assert(plugin->dhtlog_api == NULL);
-  plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
+  GNUNET_assert (plugin->dhtlog_api == NULL);
+  plugin->dhtlog_api = GNUNET_malloc (sizeof (struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_stat = &add_stat;
   plugin->dhtlog_api->insert_round = &add_round;
@@ -870,21 +924,21 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
  * Shutdown the plugin.
  */
 void *
-libgnunet_plugin_dhtlog_mysql_dump_load_done (void * cls)
+libgnunet_plugin_dhtlog_mysql_dump_load_done (void *cls)
 {
   struct GNUNET_DHTLOG_Handle *dhtlog_api = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MySQL DHT Logger: database shutdown\n");
-  GNUNET_assert(dhtlog_api != NULL);
 
-  fclose(outfile);
-  fclose(node_outfile);
-  fclose(query_outfile);
-  fclose(route_outfile);
-  fclose(stat_outfile);
-  fclose(generic_stat_outfile);
-  fclose(extended_topology_outfile);
-  GNUNET_free(dhtlog_api);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MySQL DHT Logger: database shutdown\n");
+  GNUNET_assert (dhtlog_api != NULL);
+
+  fclose (outfile);
+  fclose (node_outfile);
+  fclose (query_outfile);
+  fclose (route_outfile);
+  fclose (stat_outfile);
+  fclose (generic_stat_outfile);
+  fclose (extended_topology_outfile);
+  GNUNET_free (dhtlog_api);
   return NULL;
 }
 

@@ -129,12 +129,9 @@ static struct GNUNET_PeerIdentity me;
 
 static void
 core_init (void *cls,
-	   struct GNUNET_CORE_Handle * server,
-	   const struct GNUNET_PeerIdentity *
-	   my_identity,
-	   const struct
-	   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
-	   publicKey)
+           struct GNUNET_CORE_Handle *server,
+           const struct GNUNET_PeerIdentity *my_identity,
+           const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
   me = *my_identity;
 }
@@ -142,10 +139,11 @@ core_init (void *cls,
 /**
  * Core handler for p2p hostlist advertisements
  */
-static int advertisement_handler (void *cls,
-				  const struct GNUNET_PeerIdentity * peer,
-				  const struct GNUNET_MessageHeader * message,
-				  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+static int
+advertisement_handler (void *cls,
+                       const struct GNUNET_PeerIdentity *peer,
+                       const struct GNUNET_MessageHeader *message,
+                       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_assert (NULL != client_adv_handler);
   return (*client_adv_handler) (cls, peer, message, atsi);
@@ -162,17 +160,17 @@ static int advertisement_handler (void *cls,
 static void
 connect_handler (void *cls,
                  const struct
-                 GNUNET_PeerIdentity * peer,
-		 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                 GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected, notifying client and server\n");
-  if ( NULL != client_ch)
+  if (NULL != client_ch)
     (*client_ch) (cls, peer, atsi);
 #if HAVE_MHD
-  if ( NULL != server_ch)
+  if (NULL != server_ch)
     (*server_ch) (cls, peer, atsi);
 #endif
 }
@@ -184,18 +182,16 @@ connect_handler (void *cls,
  * @param peer peer identity this notification is about
  */
 static void
-disconnect_handler (void *cls,
-                    const struct
-                    GNUNET_PeerIdentity * peer)
+disconnect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  /* call hostlist client disconnect handler*/
-  if ( NULL != client_dh)
+  /* call hostlist client disconnect handler */
+  if (NULL != client_dh)
     (*client_dh) (cls, peer);
 #if HAVE_MHD
-  /* call hostlist server disconnect handler*/
-  if ( NULL != server_dh)
+  /* call hostlist server disconnect handler */
+  if (NULL != server_dh)
     (*server_dh) (cls, peer);
 #endif
 }
@@ -207,29 +203,27 @@ disconnect_handler (void *cls,
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist daemon is shutting down\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hostlist daemon is shutting down\n");
   if (core != NULL)
-    {
-      GNUNET_CORE_disconnect (core);
-      core = NULL;
-    }
+  {
+    GNUNET_CORE_disconnect (core);
+    core = NULL;
+  }
   if (bootstrapping)
-    {
-      GNUNET_HOSTLIST_client_stop ();
-    }
+  {
+    GNUNET_HOSTLIST_client_stop ();
+  }
 #if HAVE_MHD
   if (provide_hostlist)
-    {      
-      GNUNET_HOSTLIST_server_stop ();
-    }
+  {
+    GNUNET_HOSTLIST_server_stop ();
+  }
 #endif
   if (stats != NULL)
-    {
-      GNUNET_STATISTICS_destroy (stats,
-				 GNUNET_NO);
-      stats = NULL;
-    }
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    stats = NULL;
+  }
 }
 
 
@@ -241,67 +235,67 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
-static void 
+static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle * cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_CORE_MessageHandler learn_handlers[] = {
-    { &advertisement_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
-    { NULL, 0, 0 }
+    {&advertisement_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
+    {NULL, 0, 0}
   };
   static const struct GNUNET_CORE_MessageHandler no_learn_handlers[] = {
-    { NULL, 0, 0 }
+    {NULL, 0, 0}
   };
-  if ( (! bootstrapping) &&
-       (! learning) 
+  if ((!bootstrapping) && (!learning)
 #if HAVE_MHD
-       && (! provide_hostlist) 
+      && (!provide_hostlist)
 #endif
-       )
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("None of the functions for the hostlist daemon were enabled.  I have no reason to run!\n"));
-      return;
-    }
+      )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _
+                ("None of the functions for the hostlist daemon were enabled.  I have no reason to run!\n"));
+    return;
+  }
 
 
 
   stats = GNUNET_STATISTICS_create ("hostlist", cfg);
 
   core = GNUNET_CORE_connect (cfg,
-			      1,
-			      NULL,
-			      &core_init,
-			      &connect_handler, &disconnect_handler, NULL,
-			      NULL, GNUNET_NO,
-			      NULL, GNUNET_NO,
-			      learning? learn_handlers : no_learn_handlers);
+                              1,
+                              NULL,
+                              &core_init,
+                              &connect_handler, &disconnect_handler, NULL,
+                              NULL, GNUNET_NO,
+                              NULL, GNUNET_NO,
+                              learning ? learn_handlers : no_learn_handlers);
 
   if (bootstrapping)
-    {
-      GNUNET_HOSTLIST_client_start (cfg, stats,
-				    &client_ch, &client_dh, &client_adv_handler, learning);
-    }
+  {
+    GNUNET_HOSTLIST_client_start (cfg, stats,
+                                  &client_ch, &client_dh, &client_adv_handler,
+                                  learning);
+  }
 
-  #if HAVE_MHD
+#if HAVE_MHD
   if (provide_hostlist)
-    {      
-      GNUNET_HOSTLIST_server_start (cfg, stats, core, &server_ch, &server_dh, advertising );
-    }
+  {
+    GNUNET_HOSTLIST_server_start (cfg, stats, core, &server_ch, &server_dh,
+                                  advertising);
+  }
 #endif
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
 
   if (NULL == core)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Failed to connect to `%s' service.\n"),
-		  "core");
-      GNUNET_SCHEDULER_shutdown ();
-      return;     
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to connect to `%s' service.\n"), "core");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 }
 
 
@@ -317,33 +311,34 @@ main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
 #if HAVE_MHD
-    { 'a', "advertise", NULL, 
-      gettext_noop ("advertise our hostlist to other peers"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &advertising },
+    {'a', "advertise", NULL,
+     gettext_noop ("advertise our hostlist to other peers"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &advertising},
 #endif
-    { 'b', "bootstrap", NULL, 
-      gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &bootstrapping },
-    { 'e', "enable-learning", NULL,
-      gettext_noop ("enable learning about hostlist servers from other peers"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &learning},
+    {'b', "bootstrap", NULL,
+     gettext_noop
+     ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &bootstrapping},
+    {'e', "enable-learning", NULL,
+     gettext_noop ("enable learning about hostlist servers from other peers"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &learning},
 #if HAVE_MHD
-    { 'p', "provide-hostlist", NULL, 
-      gettext_noop ("provide a hostlist server"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &provide_hostlist},
+    {'p', "provide-hostlist", NULL,
+     gettext_noop ("provide a hostlist server"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &provide_hostlist},
 #endif
     GNUNET_GETOPT_OPTION_END
   };
 
   int ret;
+
   GNUNET_log_setup ("hostlist", "WARNING", NULL);
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (argc,
                              argv,
-                             "hostlist", 
-			     _("GNUnet hostlist server and client"),
-			     options,
-			     &run, NULL)) ? 0 : 1;
+                             "hostlist",
+                             _("GNUnet hostlist server and client"),
+                             options, &run, NULL)) ? 0 : 1;
 
   return ret;
 }

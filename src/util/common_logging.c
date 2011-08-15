@@ -107,7 +107,7 @@ static unsigned int last_bulk_repeat;
 /**
  * Component when the last bulk was logged.  Will be 0-terminated.
  */
-static char last_bulk_comp[COMP_TRACK_SIZE+1];
+static char last_bulk_comp[COMP_TRACK_SIZE + 1];
 
 /**
  * Running component.
@@ -187,10 +187,7 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   QueryPerformanceFrequency (&performance_frequency);
 #endif
   GNUNET_free_non_null (component);
-  GNUNET_asprintf (&component,
-		   "%s-%d",
-		   comp,
-		   getpid());
+  GNUNET_asprintf (&component, "%s-%d", comp, getpid ());
   env_loglevel = getenv ("GNUNET_LOGLEVEL");
   if (env_loglevel != NULL)
     env_minlevel = get_type (env_loglevel);
@@ -205,20 +202,20 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   if (logfile == NULL)
     return GNUNET_OK;
   fn = GNUNET_STRINGS_filename_expand (logfile);
-  if (NULL == fn)    
-    return GNUNET_SYSERR;    
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  if (NULL == fn)
+    return GNUNET_SYSERR;
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   altlog = FOPEN (fn, "a");
   if (altlog == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn) 
-	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _("Failed to create or access directory for log file `%s'\n"), 
-		    fn);
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   GNUNET_free (fn);
   if (GNUNET_stderr != NULL)
     fclose (GNUNET_stderr);
@@ -260,10 +257,10 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
   pos = loggers;
   while ((pos != NULL) &&
          ((pos->logger != logger) || (pos->logger_cls != logger_cls)))
-    {
-      prev = pos;
-      pos = pos->next;
-    }
+  {
+    prev = pos;
+    pos = pos->next;
+  }
   GNUNET_assert (pos != NULL);
   if (prev == NULL)
     loggers = pos->next;
@@ -286,18 +283,19 @@ output_message (enum GNUNET_ErrorType kind,
                 const char *comp, const char *datestr, const char *msg)
 {
   struct CustomLogger *pos;
+
   if (GNUNET_stderr != NULL)
-    {
-      fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp, 
-	       GNUNET_error_type_to_string (kind), msg);
-      fflush (GNUNET_stderr);
-    }
+  {
+    fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp,
+             GNUNET_error_type_to_string (kind), msg);
+    fflush (GNUNET_stderr);
+  }
   pos = loggers;
   while (pos != NULL)
-    {
-      pos->logger (pos->logger_cls, kind, comp, datestr, msg);
-      pos = pos->next;
-    }
+  {
+    pos->logger (pos->logger_cls, kind, comp, datestr, msg);
+    pos = pos->next;
+  }
 }
 
 
@@ -323,13 +321,12 @@ flush_bulk (const char *datestr)
   else if (last != last_bulk)
     last--;
   if (last[0] == '\n')
-    {
-      rev = 1;
-      last[0] = '\0';
-    }
-  ft =
-    GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration
-                                            (last_bulk_time));
+  {
+    rev = 1;
+    last[0] = '\0';
+  }
+  ft = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration
+                                               (last_bulk_time));
   snprintf (msg, sizeof (msg),
             _("Message `%.*s' repeated %u times in the last %s\n"),
             BULK_TRACK_SIZE, last_bulk, last_bulk_repeat, ft);
@@ -352,14 +349,14 @@ void
 GNUNET_log_skip (unsigned int n, int check_reset)
 {
   if (n == 0)
-    {
-      int ok;
+  {
+    int ok;
 
-      ok = (0 == skip_log);
-      skip_log = 0;
-      if (check_reset)
-        GNUNET_assert (ok);
-    }
+    ok = (0 == skip_log);
+    skip_log = 0;
+    if (check_reset)
+      GNUNET_assert (ok);
+  }
   else
     skip_log += n;
 }
@@ -387,10 +384,10 @@ mylog (enum GNUNET_ErrorType kind,
   va_list vacp;
 
   if (skip_log > 0)
-    {
-      skip_log--;
-      return;
-    }
+  {
+    skip_log--;
+    return;
+  }
   if ((kind & (~GNUNET_ERROR_TYPE_BULK)) > min_level)
     return;
   va_copy (vacp, va);
@@ -403,15 +400,18 @@ mylog (enum GNUNET_ErrorType kind,
   time (&timetmp);
   memset (date, 0, DATE_STR_SIZE);
   tmptr = localtime (&timetmp);
-  gettimeofday(&timeofday, NULL);
+  gettimeofday (&timeofday, NULL);
   if (NULL != tmptr)
   {
 #ifdef WINDOWS
     LARGE_INTEGER pc;
+
     pc.QuadPart = 0;
     QueryPerformanceCounter (&pc);
     strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr);
-    snprintf (date, sizeof (date), date2, (long long) (pc.QuadPart / (performance_frequency.QuadPart / 1000)));
+    snprintf (date, sizeof (date), date2,
+              (long long) (pc.QuadPart /
+                           (performance_frequency.QuadPart / 1000)));
 #else
     strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
     snprintf (date, sizeof (date), date2, timeofday.tv_usec);
@@ -422,15 +422,14 @@ mylog (enum GNUNET_ErrorType kind,
   if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
       (last_bulk_time.abs_value != 0) &&
       (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
-    {
-      last_bulk_repeat++;
-      if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value >
-           BULK_DELAY_THRESHOLD)
-          || (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
-        flush_bulk (date);
-      free (buf);
-      return;
-    }
+  {
+    last_bulk_repeat++;
+    if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value >
+         BULK_DELAY_THRESHOLD) || (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
+      flush_bulk (date);
+    free (buf);
+    return;
+  }
   flush_bulk (date);
   strncpy (last_bulk, buf, sizeof (last_bulk));
   last_bulk_repeat = 0;
@@ -453,6 +452,7 @@ void
 GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...)
 {
   va_list va;
+
   va_start (va, message);
   mylog (kind, component, message, va);
   va_end (va);
@@ -476,11 +476,7 @@ GNUNET_log_from (enum GNUNET_ErrorType kind,
   char comp_w_pid[128];
 
   va_start (va, message);
-  GNUNET_snprintf (comp_w_pid,
-		   sizeof (comp_w_pid),
-		   "%s-%d",
-		   comp,
-		   getpid());
+  GNUNET_snprintf (comp_w_pid, sizeof (comp_w_pid), "%s-%d", comp, getpid ());
   mylog (kind, comp_w_pid, message, va);
   va_end (va);
 }
@@ -539,7 +535,7 @@ GNUNET_h2s_full (const GNUNET_HashCode * hc)
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
 
   GNUNET_CRYPTO_hash_to_enc (hc, &ret);
-  ret.encoding[sizeof(ret)-1] = '\0';
+  ret.encoding[sizeof (ret) - 1] = '\0';
   return (const char *) ret.encoding;
 }
 
@@ -587,46 +583,47 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
   if (addr == NULL)
     return _("unknown address");
   switch (addr->sa_family)
-    {
-    case AF_INET:
-      if (addrlen != sizeof (struct sockaddr_in))
-	return "<invalid v4 address>";
-      v4 = (const struct sockaddr_in *) addr;
-      inet_ntop (AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
-      if (0 == ntohs (v4->sin_port))
-        return buf;
-      strcat (buf, ":");
-      GNUNET_snprintf (b2, sizeof(b2), "%u", ntohs (v4->sin_port));
-      strcat (buf, b2);
+  {
+  case AF_INET:
+    if (addrlen != sizeof (struct sockaddr_in))
+      return "<invalid v4 address>";
+    v4 = (const struct sockaddr_in *) addr;
+    inet_ntop (AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
+    if (0 == ntohs (v4->sin_port))
       return buf;
-    case AF_INET6:
-      if (addrlen != sizeof (struct sockaddr_in6))
-	return "<invalid v4 address>";
-      v6 = (const struct sockaddr_in6 *) addr;
-      buf[0] = '[';
-      inet_ntop (AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
-      if (0 == ntohs (v6->sin6_port))
-        return &buf[1];
-      strcat (buf, "]:");
-      GNUNET_snprintf (b2, sizeof(b2), "%u", ntohs (v6->sin6_port));
-      strcat (buf, b2);
-      return buf;
-    case AF_UNIX:
-      if (addrlen <= sizeof (sa_family_t))
-	return "<unbound UNIX client>";
-      un = (const struct sockaddr_un*) addr;
-      off = 0;
-      if (un->sun_path[0] == '\0') off++;
-      snprintf (buf, 
-		sizeof (buf),
-		"%s%.*s", 
-		(off == 1) ? "@" : "",
-		(int) (addrlen - sizeof (sa_family_t) - 1 - off),
-		&un->sun_path[off]);
-      return buf;
-    default:
-      return _("invalid address");
-    }
+    strcat (buf, ":");
+    GNUNET_snprintf (b2, sizeof (b2), "%u", ntohs (v4->sin_port));
+    strcat (buf, b2);
+    return buf;
+  case AF_INET6:
+    if (addrlen != sizeof (struct sockaddr_in6))
+      return "<invalid v4 address>";
+    v6 = (const struct sockaddr_in6 *) addr;
+    buf[0] = '[';
+    inet_ntop (AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
+    if (0 == ntohs (v6->sin6_port))
+      return &buf[1];
+    strcat (buf, "]:");
+    GNUNET_snprintf (b2, sizeof (b2), "%u", ntohs (v6->sin6_port));
+    strcat (buf, b2);
+    return buf;
+  case AF_UNIX:
+    if (addrlen <= sizeof (sa_family_t))
+      return "<unbound UNIX client>";
+    un = (const struct sockaddr_un *) addr;
+    off = 0;
+    if (un->sun_path[0] == '\0')
+      off++;
+    snprintf (buf,
+              sizeof (buf),
+              "%s%.*s",
+              (off == 1) ? "@" : "",
+              (int) (addrlen - sizeof (sa_family_t) - 1 - off),
+              &un->sun_path[off]);
+    return buf;
+  default:
+    return _("invalid address");
+  }
 }
 
 

@@ -90,7 +90,7 @@ static GST_HelloCallback hello_cb;
 
 /**
  * Closure for 'hello_cb'.
- */ 
+ */
 static void *hello_cb_cls;
 
 /**
@@ -118,7 +118,7 @@ struct GeneratorContext
    * Where are we in the DLL?
    */
   struct OwnAddressList *addr_pos;
-  
+
   /**
    * When do addresses expire?
    */
@@ -140,12 +140,11 @@ address_generator (void *cls, size_t max, void *buf)
   size_t ret;
 
   if (NULL == gc->addr_pos)
-      return 0;    
+    return 0;
   ret = GNUNET_HELLO_add_address (gc->addr_pos->plugin_name,
                                   gc->expiration,
                                   &gc->addr_pos[1],
-                                  gc->addr_pos->addrlen,
-				  buf, max);
+                                  gc->addr_pos->addrlen, buf, max);
   gc->addr_pos = gc->addr_pos->next;
   return ret;
 }
@@ -159,34 +158,30 @@ address_generator (void *cls, size_t max, void *buf)
  * @param tc scheduler context
  */
 static void
-refresh_hello_task (void *cls,
-		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GeneratorContext gc;
 
   hello_task = GNUNET_SCHEDULER_NO_TASK;
   gc.addr_pos = oal_head;
-  gc.expiration = GNUNET_TIME_relative_to_absolute (GST_HELLO_ADDRESS_EXPIRATION);
+  gc.expiration =
+      GNUNET_TIME_relative_to_absolute (GST_HELLO_ADDRESS_EXPIRATION);
   GNUNET_free (our_hello);
-  our_hello = GNUNET_HELLO_create (&GST_my_public_key, 
-				   &address_generator, 
-				   &gc);
+  our_hello = GNUNET_HELLO_create (&GST_my_public_key, &address_generator, &gc);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Refreshed my `%s', new size is %d\n", "HELLO", 
-	      GNUNET_HELLO_size(our_hello));
+              "Refreshed my `%s', new size is %d\n", "HELLO",
+              GNUNET_HELLO_size (our_hello));
 #endif
   GNUNET_STATISTICS_update (GST_stats,
-			    gettext_noop ("# refreshed my HELLO"),
-			    1,
-			    GNUNET_NO);
+                            gettext_noop ("# refreshed my HELLO"),
+                            1, GNUNET_NO);
   if (NULL != hello_cb)
-    hello_cb (hello_cb_cls, GST_hello_get());
+    hello_cb (hello_cb_cls, GST_hello_get ());
   GNUNET_PEERINFO_add_peer (GST_peerinfo, our_hello);
   hello_task
-    = GNUNET_SCHEDULER_add_delayed (HELLO_REFRESH_PERIOD,
-				    &refresh_hello_task,
-				    NULL);
+      = GNUNET_SCHEDULER_add_delayed (HELLO_REFRESH_PERIOD,
+                                      &refresh_hello_task, NULL);
 
 }
 
@@ -200,9 +195,7 @@ refresh_hello ()
 {
   if (hello_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (hello_task);
-  hello_task
-    = GNUNET_SCHEDULER_add_now (&refresh_hello_task,
-				NULL);  
+  hello_task = GNUNET_SCHEDULER_add_now (&refresh_hello_task, NULL);
 }
 
 
@@ -212,14 +205,12 @@ refresh_hello ()
  * @param cb function to call whenever our HELLO changes
  * @param cb_cls closure for cb
  */
-void 
-GST_hello_start (GST_HelloCallback cb,
-		 void *cb_cls)
+void
+GST_hello_start (GST_HelloCallback cb, void *cb_cls)
 {
   hello_cb = cb;
   hello_cb_cls = cb_cls;
-  our_hello = GNUNET_HELLO_create (&GST_my_public_key, 
-				   NULL, NULL);
+  our_hello = GNUNET_HELLO_create (&GST_my_public_key, NULL, NULL);
   refresh_hello ();
 }
 
@@ -233,15 +224,15 @@ GST_hello_stop ()
   hello_cb = NULL;
   hello_cb_cls = NULL;
   if (GNUNET_SCHEDULER_NO_TASK != hello_task)
-    {
-      GNUNET_SCHEDULER_cancel (hello_task);
-      hello_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (hello_task);
+    hello_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != our_hello)
-    {
-      GNUNET_free (our_hello);
-      our_hello = NULL;
-    }
+  {
+    GNUNET_free (our_hello);
+    our_hello = NULL;
+  }
 }
 
 
@@ -253,7 +244,7 @@ GST_hello_stop ()
 const struct GNUNET_MessageHeader *
 GST_hello_get ()
 {
-  return (struct GNUNET_MessageHeader*) our_hello;
+  return (struct GNUNET_MessageHeader *) our_hello;
 }
 
 
@@ -267,45 +258,39 @@ GST_hello_get ()
  */
 void
 GST_hello_modify_addresses (int addremove,
-			    const char *plugin_name,
-			    const void *plugin_address,
-			    size_t plugin_address_len)
+                            const char *plugin_name,
+                            const void *plugin_address,
+                            size_t plugin_address_len)
 {
   struct OwnAddressList *al;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      (add_remove == GNUNET_YES)
-	      ? "Adding `%s':%s to the set of our addresses\n"
-	      : "Removing `%s':%s from the set of our addresses\n",
-	      GST_plugins_a2s (plugin_name,
-			       addr, addrlen),
-	      p->short_name);
+              (add_remove == GNUNET_YES)
+              ? "Adding `%s':%s to the set of our addresses\n"
+              : "Removing `%s':%s from the set of our addresses\n",
+              GST_plugins_a2s (plugin_name, addr, addrlen), p->short_name);
 #endif
   GNUNET_assert (plugin_address != NULL);
   if (GNUNET_NO == addremove)
-    {
-      for (al = oal_head; al != NULL; al = al->next)
-	if ( (plugin_address_len == al->addrlen) &&
-	     (0 == strcmp (al->plugin_name, plugin_name)) &&
-	     (0 == memcmp (plugin_address, &al[1], plugin_address_len)) )
-	  {
-	    GNUNET_CONTAINER_DLL_remove (oal_head,
-					 oal_tail,
-					 al);
-	    GNUNET_free (al->plugin_name);
-	    GNUNET_free (al);
-	    refresh_hello ();
-	    return;	    
-	  }
-      /* address to be removed not found!? */
-      GNUNET_break (0);
-      return;
-    }
+  {
+    for (al = oal_head; al != NULL; al = al->next)
+      if ((plugin_address_len == al->addrlen) &&
+          (0 == strcmp (al->plugin_name, plugin_name)) &&
+          (0 == memcmp (plugin_address, &al[1], plugin_address_len)))
+      {
+        GNUNET_CONTAINER_DLL_remove (oal_head, oal_tail, al);
+        GNUNET_free (al->plugin_name);
+        GNUNET_free (al);
+        refresh_hello ();
+        return;
+      }
+    /* address to be removed not found!? */
+    GNUNET_break (0);
+    return;
+  }
   al = GNUNET_malloc (sizeof (struct OwnAddressList) + plugin_address_len);
-  GNUNET_CONTAINER_DLL_insert (oal_head,
-			       oal_tail,
-			       al);
+  GNUNET_CONTAINER_DLL_insert (oal_head, oal_tail, al);
   al->plugin_name = GNUNET_strdup (plugin_name);
   al->addrlen = plugin_address_len;
   memcpy (&al[1], plugin_address, plugin_address_len);
@@ -327,22 +312,22 @@ GST_hello_modify_addresses (int addremove,
  */
 int
 GST_hello_test_address (const char *plugin_name,
-			const void *plugin_address,
-			size_t plugin_address_len,
-			struct GNUNET_CRYPTO_RsaSignature **sig,
-			struct GNUNET_TIME_Absolute **sig_expiration)
+                        const void *plugin_address,
+                        size_t plugin_address_len,
+                        struct GNUNET_CRYPTO_RsaSignature **sig,
+                        struct GNUNET_TIME_Absolute **sig_expiration)
 {
   struct OwnAddressList *al;
 
   for (al = oal_head; al != NULL; al = al->next)
-    if ( (plugin_address_len == al->addrlen) &&
-	 (0 == strcmp (al->plugin_name, plugin_name)) &&
-	 (0 == memcmp (plugin_address, &al[1], plugin_address_len)) )
-      {
-	*sig = &al->pong_signature;
-	*sig_expiration = &al->pong_sig_expires;
-	return GNUNET_YES;
-      }
+    if ((plugin_address_len == al->addrlen) &&
+        (0 == strcmp (al->plugin_name, plugin_name)) &&
+        (0 == memcmp (plugin_address, &al[1], plugin_address_len)))
+    {
+      *sig = &al->pong_signature;
+      *sig_expiration = &al->pong_sig_expires;
+      return GNUNET_YES;
+    }
   *sig = NULL;
   *sig_expiration = NULL;
   return GNUNET_NO;

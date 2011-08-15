@@ -48,8 +48,7 @@
  * @param delta change in disk utilization, 
  *        0 for "reset to empty"
  */
-typedef void (*DiskUtilizationChange)(void *cls,
-				      int delta);
+typedef void (*DiskUtilizationChange) (void *cls, int delta);
 
 
 /**
@@ -94,15 +93,14 @@ struct GNUNET_DATASTORE_PluginEnvironment
  *         GNUNET_NO to delete the item
  */
 typedef int (*PluginDatumProcessor) (void *cls,
-				     const GNUNET_HashCode * key,
-				     uint32_t size,
-				     const void *data,
-				     enum GNUNET_BLOCK_Type type,
-				     uint32_t priority,
-				     uint32_t anonymity,
-				     struct GNUNET_TIME_Absolute
-				     expiration, 
-				     uint64_t uid);
+                                     const GNUNET_HashCode * key,
+                                     uint32_t size,
+                                     const void *data,
+                                     enum GNUNET_BLOCK_Type type,
+                                     uint32_t priority,
+                                     uint32_t anonymity,
+                                     struct GNUNET_TIME_Absolute
+                                     expiration, uint64_t uid);
 
 /**
  * Get an estimate of how much space the database is
@@ -133,15 +131,14 @@ typedef unsigned long long (*PluginEstimateSize) (void *cls);
  *         GNUNET_SYSERR on failure
  */
 typedef int (*PluginPut) (void *cls,
-			  const GNUNET_HashCode * key,
-			  uint32_t size,
-			  const void *data,
-			  enum GNUNET_BLOCK_Type type,
-			  uint32_t priority,
-			  uint32_t anonymity,
-			  uint32_t replication,
-			  struct GNUNET_TIME_Absolute expiration,
-			  char **msg);
+                          const GNUNET_HashCode * key,
+                          uint32_t size,
+                          const void *data,
+                          enum GNUNET_BLOCK_Type type,
+                          uint32_t priority,
+                          uint32_t anonymity,
+                          uint32_t replication,
+                          struct GNUNET_TIME_Absolute expiration, char **msg);
 
 
 /**
@@ -163,11 +160,11 @@ typedef int (*PluginPut) (void *cls,
  * @param proc_cls closure for proc
  */
 typedef void (*PluginGetKey) (void *cls,
-			      uint64_t offset,
-			      const GNUNET_HashCode *key,
-			      const GNUNET_HashCode *vhash,
-			      enum GNUNET_BLOCK_Type type,
-			      PluginDatumProcessor proc, void *proc_cls);
+                              uint64_t offset,
+                              const GNUNET_HashCode * key,
+                              const GNUNET_HashCode * vhash,
+                              enum GNUNET_BLOCK_Type type,
+                              PluginDatumProcessor proc, void *proc_cls);
 
 
 
@@ -182,7 +179,7 @@ typedef void (*PluginGetKey) (void *cls,
  * @param proc_cls closure for proc
  */
 typedef void (*PluginGetRandom) (void *cls,
-				 PluginDatumProcessor proc, void *proc_cls);
+                                 PluginDatumProcessor proc, void *proc_cls);
 
 
 /**
@@ -209,10 +206,9 @@ typedef void (*PluginGetRandom) (void *cls,
  * @return GNUNET_OK on success
  */
 typedef int (*PluginUpdate) (void *cls,
-			     uint64_t uid,
-			     int delta, 
-			     struct GNUNET_TIME_Absolute expire,
-			     char **msg);
+                             uint64_t uid,
+                             int delta,
+                             struct GNUNET_TIME_Absolute expire, char **msg);
 
 
 /**
@@ -228,10 +224,9 @@ typedef int (*PluginUpdate) (void *cls,
  * @param proc_cls closure for proc
  */
 typedef void (*PluginGetType) (void *cls,
-			       uint64_t offset,
-			       enum GNUNET_BLOCK_Type type,
-			       PluginDatumProcessor proc,
-			       void *proc_cls);
+                               uint64_t offset,
+                               enum GNUNET_BLOCK_Type type,
+                               PluginDatumProcessor proc, void *proc_cls);
 
 
 /**

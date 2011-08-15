@@ -43,17 +43,16 @@
  * @param connect_cb function to call if we connect to a peer
  * @param disconnect_cb function to call if we disconnect from a peer
  */
-void 
+void
 GST_neighbours_start (void *cls,
-		      GNUNET_TRANSPORT_NotifyConnect connect_cb,
-		      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb);
+                      GNUNET_TRANSPORT_NotifyConnect connect_cb,
+                      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb);
 
 
 /**
  * Cleanup the neighbours subsystem.
  */
-void
-GST_neighbours_stop (void);
+void GST_neighbours_stop (void);
 
 
 /**
@@ -61,8 +60,7 @@ GST_neighbours_stop (void);
  *
  * @param target peer to try to connect to
  */
-void
-GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target);
+void GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target);
 
 
 /**
@@ -71,8 +69,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target);
  * @param target peer to test
  * @return GNUNET_YES if we are connected, GNUNET_NO if not
  */
-int
-GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target);
+int GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target);
 
 
 /**
@@ -81,8 +78,7 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target);
  * @param cls closure
  * @param success GNUNET_OK on success, GNUNET_NO on failure, GNUNET_SYSERR if we're not connected
  */
-typedef void (*GST_NeighbourSendContinuation)(void *cls,
-					      int success);
+typedef void (*GST_NeighbourSendContinuation) (void *cls, int success);
 
 
 /**
@@ -97,11 +93,10 @@ typedef void (*GST_NeighbourSendContinuation)(void *cls,
  */
 void
 GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
-		     const void *msg,
-		     size_t msg_size,
-		     struct GNUNET_TIME_Relative timeout,
-		     GST_NeighbourSendContinuation cont,
-		     void *cont_cls);
+                     const void *msg,
+                     size_t msg_size,
+                     struct GNUNET_TIME_Relative timeout,
+                     GST_NeighbourSendContinuation cont, void *cont_cls);
 
 
 /**
@@ -116,9 +111,8 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
  * @return how long to wait before reading more from this sender
  */
 struct GNUNET_TIME_Relative
-GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender,
-					ssize_t size,
-					int *do_forward);
+GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
+                                        *sender, ssize_t size, int *do_forward);
 
 
 /**
@@ -127,8 +121,7 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender
  *
  * @param neighbour neighbour to keep alive
  */
-void
-GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
+void GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
 
 
 /**
@@ -139,7 +132,7 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
  */
 void
 GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
-				   struct GNUNET_BANDWIDTH_Value32NBO quota);
+                                   struct GNUNET_BANDWIDTH_Value32NBO quota);
 
 
 /**
@@ -147,8 +140,7 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
  *
  * @param target peer to disconnect from
  */
-void
-GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
+void GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
 
 
 /**
@@ -159,10 +151,12 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
-typedef void (*GST_NeighbourIterator)(void *cls,
-				      const struct GNUNET_PeerIdentity *neighbour,
-				      const struct GNUNET_TRANSPORT_ATS_Information *ats,
-				      uint32_t ats_count);
+typedef void (*GST_NeighbourIterator) (void *cls,
+                                       const struct GNUNET_PeerIdentity *
+                                       neighbour,
+                                       const struct
+                                       GNUNET_TRANSPORT_ATS_Information * ats,
+                                       uint32_t ats_count);
 
 
 /**
@@ -171,9 +165,7 @@ typedef void (*GST_NeighbourIterator)(void *cls,
  * @param cb function to call 
  * @param cb_cls closure for cb
  */
-void
-GST_neighbours_iterate (GST_NeighbourIterator cb,
-			void *cb_cls);
+void GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls);
 
 
 /**
@@ -184,7 +176,7 @@ GST_neighbours_iterate (GST_NeighbourIterator cb,
  */
 void
 GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
-				   struct Session *session);
+                                   struct Session *session);
 
 
 /**
@@ -202,12 +194,12 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  */
 void
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
-				  const char *plugin_name,
-				  const void *address,
-				  size_t address_len,
-				  struct Session *session,
-				  const struct GNUNET_TRANSPORT_ATS_Information *ats,
-				  uint32_t ats_count);
+                                  const char *plugin_name,
+                                  const void *address,
+                                  size_t address_len,
+                                  struct Session *session,
+                                  const struct GNUNET_TRANSPORT_ATS_Information
+                                  *ats, uint32_t ats_count);
 
 
 #endif

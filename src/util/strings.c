@@ -55,8 +55,7 @@
  *         (or number of bytes that would have been written)
  */
 size_t
-GNUNET_STRINGS_buffer_fill (char *buffer,
-                            size_t size, unsigned int count, ...)
+GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count, ...)
 {
   size_t needed;
   size_t slen;
@@ -66,17 +65,18 @@ GNUNET_STRINGS_buffer_fill (char *buffer,
   needed = 0;
   va_start (ap, count);
   while (count > 0)
+  {
+    s = va_arg (ap, const char *);
+
+    slen = strlen (s) + 1;
+    if (buffer != NULL)
     {
-      s = va_arg (ap, const char *);
-      slen = strlen (s) + 1;
-      if (buffer != NULL)
-        {
-          GNUNET_assert (needed + slen <= size);
-          memcpy (&buffer[needed], s, slen);
-        }
-      needed += slen;
-      count--;
+      GNUNET_assert (needed + slen <= size);
+      memcpy (&buffer[needed], s, slen);
     }
+    needed += slen;
+    count--;
+  }
   va_end (ap);
   return needed;
 }
@@ -107,20 +107,21 @@ GNUNET_STRINGS_buffer_tokenize (const char *buffer,
   needed = 0;
   va_start (ap, count);
   while (count > 0)
+  {
+    r = va_arg (ap, const char **);
+
+    start = needed;
+    while ((needed < size) && (buffer[needed] != '\0'))
+      needed++;
+    if (needed == size)
     {
-      r = va_arg (ap, const char **);
-      start = needed;
-      while ((needed < size) && (buffer[needed] != '\0'))
-        needed++;
-      if (needed == size)
-        {
-          va_end (ap);
-          return 0;             /* error */
-        }
-      *r = &buffer[start];
-      needed++;                 /* skip 0-termination */
-      count--;
+      va_end (ap);
+      return 0;                 /* error */
     }
+    *r = &buffer[start];
+    needed++;                   /* skip 0-termination */
+    count--;
+  }
   va_end (ap);
   return needed;
 }
@@ -139,25 +140,25 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size)
   char *ret;
 
   if (size > 5 * 1024)
+  {
+    size = size / 1024;
+    unit = _( /* size unit */ "KiB");
+    if (size > 5 * 1024)
     {
       size = size / 1024;
-      unit = _( /* size unit */ "KiB");
+      unit = _( /* size unit */ "MiB");
       if (size > 5 * 1024)
+      {
+        size = size / 1024;
+        unit = _( /* size unit */ "GiB");
+        if (size > 5 * 1024)
         {
           size = size / 1024;
-          unit = _( /* size unit */ "MiB");
-          if (size > 5 * 1024)
-            {
-              size = size / 1024;
-              unit = _( /* size unit */ "GiB");
-              if (size > 5 * 1024)
-                {
-                  size = size / 1024;
-                  unit = _( /* size unit */ "TiB");
-                }
-            }
+          unit = _( /* size unit */ "TiB");
         }
+      }
     }
+  }
   ret = GNUNET_malloc (32);
   GNUNET_snprintf (ret, 32, "%llu %s", size, unit);
   return ret;
@@ -176,6 +177,7 @@ char *
 GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
 {
   char *ret;
+
 #if ENABLE_NLS && HAVE_ICONV
   size_t tmpSize;
   size_t finSize;
@@ -185,15 +187,15 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
 
   cd = iconv_open ("UTF-8", charset);
   if (cd == (iconv_t) - 1)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "iconv_open");
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Character set requested was `%s'\n"), charset);
-      ret = GNUNET_malloc (len + 1);
-      memcpy (ret, input, len);
-      ret[len] = '\0';
-      return ret;
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "iconv_open");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Character set requested was `%s'\n"), charset);
+    ret = GNUNET_malloc (len + 1);
+    memcpy (ret, input, len);
+    ret[len] = '\0';
+    return ret;
+  }
   tmpSize = 3 * len + 4;
   tmp = GNUNET_malloc (tmpSize);
   itmp = tmp;
@@ -205,15 +207,15 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
              (char **) &input,
 #endif
              &len, &itmp, &finSize) == SIZE_MAX)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "iconv");
-      iconv_close (cd);
-      GNUNET_free (tmp);
-      ret = GNUNET_malloc (len + 1);
-      memcpy (ret, input, len);
-      ret[len] = '\0';
-      return ret;
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "iconv");
+    iconv_close (cd);
+    GNUNET_free (tmp);
+    ret = GNUNET_malloc (len + 1);
+    memcpy (ret, input, len);
+    ret[len] = '\0';
+    return ret;
+  }
   ret = GNUNET_malloc (tmpSize - finSize + 1);
   memcpy (ret, tmp, tmpSize - finSize);
   ret[tmpSize - finSize] = '\0';
@@ -241,6 +243,7 @@ char *
 GNUNET_STRINGS_filename_expand (const char *fil)
 {
   char *buffer;
+
 #ifndef MINGW
   size_t len;
   size_t n;
@@ -259,56 +262,56 @@ GNUNET_STRINGS_filename_expand (const char *fil)
     /* absolute path, just copy */
     return GNUNET_strdup (fil);
   if (fil[0] == '~')
+  {
+    fm = getenv ("HOME");
+    if (fm == NULL)
     {
-      fm = getenv ("HOME");
-      if (fm == NULL)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      _
-                      ("Failed to expand `$HOME': environment variable `HOME' not set"));
-          return NULL;
-        }
-      fm = GNUNET_strdup (fm);
-      /* do not copy '~' */
-      fil_ptr = fil + 1;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _
+                  ("Failed to expand `$HOME': environment variable `HOME' not set"));
+      return NULL;
+    }
+    fm = GNUNET_strdup (fm);
+    /* do not copy '~' */
+    fil_ptr = fil + 1;
 
-      /* skip over dir seperator to be consistent */
-      if (fil_ptr[0] == DIR_SEPARATOR)
-        fil_ptr++;
-    }
+    /* skip over dir seperator to be consistent */
+    if (fil_ptr[0] == DIR_SEPARATOR)
+      fil_ptr++;
+  }
   else
+  {
+    /* relative path */
+    fil_ptr = fil;
+    len = 512;
+    fm = NULL;
+    while (1)
     {
-      /* relative path */
-      fil_ptr = fil;
-      len = 512;
-      fm = NULL;
-      while (1)
-        {
-          buffer = GNUNET_malloc (len);
-          if (getcwd (buffer, len) != NULL)
-            {
-              fm = buffer;
-              break;
-            }
-          if ((errno == ERANGE) && (len < 1024 * 1024 * 4))
-            {
-              len *= 2;
-              GNUNET_free (buffer);
-              continue;
-            }
-          GNUNET_free (buffer);
-          break;
-        }
-      if (fm == NULL)
-        {
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "getcwd");
-          buffer = getenv ("PWD");      /* alternative */
-          if (buffer != NULL)
-            fm = GNUNET_strdup (buffer);
-        }
-      if (fm == NULL)
-        fm = GNUNET_strdup ("./");      /* give up */
+      buffer = GNUNET_malloc (len);
+      if (getcwd (buffer, len) != NULL)
+      {
+        fm = buffer;
+        break;
+      }
+      if ((errno == ERANGE) && (len < 1024 * 1024 * 4))
+      {
+        len *= 2;
+        GNUNET_free (buffer);
+        continue;
+      }
+      GNUNET_free (buffer);
+      break;
     }
+    if (fm == NULL)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "getcwd");
+      buffer = getenv ("PWD");  /* alternative */
+      if (buffer != NULL)
+        fm = GNUNET_strdup (buffer);
+    }
+    if (fm == NULL)
+      fm = GNUNET_strdup ("./");        /* give up */
+  }
   n = strlen (fm) + 1 + strlen (fil_ptr) + 1;
   buffer = GNUNET_malloc (n);
   GNUNET_snprintf (buffer, n, "%s%s%s",
@@ -321,29 +324,28 @@ GNUNET_STRINGS_filename_expand (const char *fil)
   fn = GNUNET_malloc (MAX_PATH + 1);
 
   if ((lRet = plibc_conv_to_win_path (fil, fn)) != ERROR_SUCCESS)
-    {
-      SetErrnoFromWinError (lRet);
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                           "plibc_conv_to_win_path");
-      return NULL;
-    }
+  {
+    SetErrnoFromWinError (lRet);
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "plibc_conv_to_win_path");
+    return NULL;
+  }
   /* is the path relative? */
   if ((strncmp (fn + 1, ":\\", 2) != 0) && (strncmp (fn, "\\\\", 2) != 0))
+  {
+    char szCurDir[MAX_PATH + 1];
+
+    lRet = GetCurrentDirectory (MAX_PATH + 1, szCurDir);
+    if (lRet + strlen (fn) + 1 > (MAX_PATH + 1))
     {
-      char szCurDir[MAX_PATH + 1];
-      lRet = GetCurrentDirectory (MAX_PATH + 1, szCurDir);
-      if (lRet + strlen (fn) + 1 > (MAX_PATH + 1))
-        {
-          SetErrnoFromWinError (ERROR_BUFFER_OVERFLOW);
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                               "GetCurrentDirectory");
-          return NULL;
-        }
-      buffer = GNUNET_malloc (MAX_PATH + 1);
-      GNUNET_snprintf (buffer, MAX_PATH + 1, "%s\\%s", szCurDir, fn);
-      GNUNET_free (fn);
-      fn = buffer;
+      SetErrnoFromWinError (ERROR_BUFFER_OVERFLOW);
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "GetCurrentDirectory");
+      return NULL;
     }
+    buffer = GNUNET_malloc (MAX_PATH + 1);
+    GNUNET_snprintf (buffer, MAX_PATH + 1, "%s\\%s", szCurDir, fn);
+    GNUNET_free (fn);
+    fn = buffer;
+  }
 
   return fn;
 #endif
@@ -366,25 +368,25 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta)
   if (delta.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
     return GNUNET_strdup (_("eternity"));
   if (dval > 5 * 1000)
+  {
+    dval = dval / 1000;
+    unit = _( /* time unit */ "s");
+    if (dval > 5 * 60)
     {
-      dval = dval / 1000;
-      unit = _( /* time unit */ "s");
+      dval = dval / 60;
+      unit = _( /* time unit */ "m");
       if (dval > 5 * 60)
+      {
+        dval = dval / 60;
+        unit = _( /* time unit */ "h");
+        if (dval > 5 * 24)
         {
-          dval = dval / 60;
-          unit = _( /* time unit */ "m");
-          if (dval > 5 * 60)
-            {
-              dval = dval / 60;
-              unit = _( /* time unit */ "h");
-              if (dval > 5 * 24)
-                {
-                  dval = dval / 24;
-                  unit = _( /* time unit */ " days");
-                }
-            }
+          dval = dval / 24;
+          unit = _( /* time unit */ " days");
         }
+      }
     }
+  }
   GNUNET_asprintf (&ret, "%llu %s", dval, unit);
   return ret;
 }

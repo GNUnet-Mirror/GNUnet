@@ -47,31 +47,22 @@
  * @return number of bytes copied to buf, 0 on error
  */
 static size_t
-unindex_reader (void *cls,
-		uint64_t offset,
-		size_t max, 
-		void *buf,
-		char **emsg)
+unindex_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
   size_t pt_size;
 
-  pt_size = GNUNET_MIN(max,
-		       uc->file_size - offset);
-  if (offset != 
-      GNUNET_DISK_file_seek (uc->fh, offset, GNUNET_DISK_SEEK_SET))
-    {
-      *emsg = GNUNET_strdup (_("Failed to find given position in file"));
-      return 0;
-    }
-  if (pt_size !=
-      GNUNET_DISK_file_read (uc->fh,
-			     buf,
-			     pt_size))
-    {
-      *emsg = GNUNET_strdup (_("Failed to read file"));
-      return 0;
-    }
+  pt_size = GNUNET_MIN (max, uc->file_size - offset);
+  if (offset != GNUNET_DISK_file_seek (uc->fh, offset, GNUNET_DISK_SEEK_SET))
+  {
+    *emsg = GNUNET_strdup (_("Failed to find given position in file"));
+    return 0;
+  }
+  if (pt_size != GNUNET_DISK_file_read (uc->fh, buf, pt_size))
+  {
+    *emsg = GNUNET_strdup (_("Failed to read file"));
+    return 0;
+  }
   return pt_size;
 }
 
@@ -86,22 +77,19 @@ unindex_reader (void *cls,
  */
 void
 GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
-				struct GNUNET_FS_UnindexContext *uc,
-				uint64_t offset)
+                                struct GNUNET_FS_UnindexContext *uc,
+                                uint64_t offset)
 {
   pi->value.unindex.uc = uc;
   pi->value.unindex.cctx = uc->client_info;
   pi->value.unindex.filename = uc->filename;
   pi->value.unindex.size = uc->file_size;
-  pi->value.unindex.eta 
-    = GNUNET_TIME_calculate_eta (uc->start_time,
-				 offset,
-				 uc->file_size);
-  pi->value.unindex.duration = GNUNET_TIME_absolute_get_duration (uc->start_time);
+  pi->value.unindex.eta
+      = GNUNET_TIME_calculate_eta (uc->start_time, offset, uc->file_size);
+  pi->value.unindex.duration =
+      GNUNET_TIME_absolute_get_duration (uc->start_time);
   pi->value.unindex.completed = offset;
-  uc->client_info 
-    = uc->h->upcb (uc->h->upcb_cls,
-		   pi);
+  uc->client_info = uc->h->upcb (uc->h->upcb_cls, pi);
 
 }
 
@@ -118,10 +106,8 @@ GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  */
 static void
 unindex_progress (void *cls,
-		  uint64_t offset,
-		  const void *pt_block,
-		  size_t pt_size,
-		  unsigned int depth)
+                  uint64_t offset,
+                  const void *pt_block, size_t pt_size, unsigned int depth)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -133,7 +119,7 @@ unindex_progress (void *cls,
   pi.value.unindex.specifics.progress.depth = depth;
   GNUNET_FS_unindex_make_status_ (&pi, uc, offset);
 }
-					       
+
 
 /**
  * We've encountered an error during
@@ -145,7 +131,7 @@ static void
 signal_unindex_error (struct GNUNET_FS_UnindexContext *uc)
 {
   struct GNUNET_FS_ProgressInfo pi;
-  
+
   pi.status = GNUNET_FS_STATUS_UNINDEX_ERROR;
   pi.value.unindex.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   pi.value.unindex.specifics.error.message = uc->emsg;
@@ -162,20 +148,19 @@ signal_unindex_error (struct GNUNET_FS_UnindexContext *uc)
  * @param msg NULL on success, otherwise an error message
  */
 static void
-process_cont (void *cls,
-	      int success,
-	      const char *msg)
+process_cont (void *cls, int success, const char *msg)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
+
   if (success == GNUNET_SYSERR)
-    {
-      uc->emsg = GNUNET_strdup (msg);
-      signal_unindex_error (uc);
-      return;
-    }  
+  {
+    uc->emsg = GNUNET_strdup (msg);
+    signal_unindex_error (uc);
+    return;
+  }
 #if DEBUG_UNINDEX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Datastore REMOVE operation succeeded\n");
+              "Datastore REMOVE operation succeeded\n");
 #endif
   GNUNET_FS_tree_encoder_next (uc->tc);
 }
@@ -195,14 +180,13 @@ process_cont (void *cls,
  * @param block the (encrypted) block
  * @param block_size size of block (in bytes)
  */
-static void 
+static void
 unindex_process (void *cls,
-		 const struct ContentHashKey *chk,
-		 uint64_t offset,
-		 unsigned int depth,
-		 enum GNUNET_BLOCK_Type type,
-		 const void *block,
-		 uint16_t block_size)
+                 const struct ContentHashKey *chk,
+                 uint64_t offset,
+                 unsigned int depth,
+                 enum GNUNET_BLOCK_Type type,
+                 const void *block, uint16_t block_size)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
   uint32_t size;
@@ -210,29 +194,27 @@ unindex_process (void *cls,
   struct OnDemandBlock odb;
 
   if (type != GNUNET_BLOCK_TYPE_FS_DBLOCK)
-    {
-      size = block_size;
-      data = block;
-    }
-  else /* on-demand encoded DBLOCK */
-    {
-      size = sizeof(struct OnDemandBlock);
-      odb.offset = GNUNET_htonll (offset);
-      odb.file_id = uc->file_id;
-      data = &odb;
-    }
+  {
+    size = block_size;
+    data = block;
+  }
+  else                          /* on-demand encoded DBLOCK */
+  {
+    size = sizeof (struct OnDemandBlock);
+    odb.offset = GNUNET_htonll (offset);
+    odb.file_id = uc->file_id;
+    data = &odb;
+  }
 #if DEBUG_UNINDEX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending REMOVE request to DATASTORE service\n");
+              "Sending REMOVE request to DATASTORE service\n");
 #endif
   GNUNET_DATASTORE_remove (uc->dsh,
-			   &chk->query,
-			   size,
-			   data,
-			   -2, 1,
-			   GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-			   &process_cont,
-			   uc);
+                           &chk->query,
+                           size,
+                           data,
+                           -2, 1,
+                           GNUNET_CONSTANTS_SERVICE_TIMEOUT, &process_cont, uc);
 }
 
 
@@ -244,41 +226,41 @@ unindex_process (void *cls,
  * @param msg NULL on timeout, otherwise the response
  */
 static void
-process_fs_response (void *cls,
-		     const struct GNUNET_MessageHeader *msg)
+process_fs_response (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
   struct GNUNET_FS_ProgressInfo pi;
 
   if (uc->client != NULL)
-    {
-      GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
-      uc->client = NULL;
-    }
-  if (uc->state != UNINDEX_STATE_FS_NOTIFY) 
-    {
-      uc->state = UNINDEX_STATE_ERROR;
-      uc->emsg = GNUNET_strdup (_("Unexpected time for a response from `fs' service."));
-      GNUNET_FS_unindex_sync_ (uc);
-      signal_unindex_error (uc);
-      return;
-    }
+  {
+    GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
+    uc->client = NULL;
+  }
+  if (uc->state != UNINDEX_STATE_FS_NOTIFY)
+  {
+    uc->state = UNINDEX_STATE_ERROR;
+    uc->emsg =
+        GNUNET_strdup (_("Unexpected time for a response from `fs' service."));
+    GNUNET_FS_unindex_sync_ (uc);
+    signal_unindex_error (uc);
+    return;
+  }
   if (NULL == msg)
-    {
-      uc->state = UNINDEX_STATE_ERROR;
-      uc->emsg = GNUNET_strdup (_("Timeout waiting for `fs' service."));
-      GNUNET_FS_unindex_sync_ (uc);
-      signal_unindex_error (uc);
-      return;
-    }
-  if (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK)
-    {
-      uc->state = UNINDEX_STATE_ERROR;
-      uc->emsg = GNUNET_strdup (_("Invalid response from `fs' service."));
-      GNUNET_FS_unindex_sync_ (uc);
-      signal_unindex_error (uc);			    
-      return;      
-    }
+  {
+    uc->state = UNINDEX_STATE_ERROR;
+    uc->emsg = GNUNET_strdup (_("Timeout waiting for `fs' service."));
+    GNUNET_FS_unindex_sync_ (uc);
+    signal_unindex_error (uc);
+    return;
+  }
+  if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK)
+  {
+    uc->state = UNINDEX_STATE_ERROR;
+    uc->emsg = GNUNET_strdup (_("Invalid response from `fs' service."));
+    GNUNET_FS_unindex_sync_ (uc);
+    signal_unindex_error (uc);
+    return;
+  }
   uc->state = UNINDEX_STATE_COMPLETE;
   pi.status = GNUNET_FS_STATUS_UNINDEX_COMPLETED;
   pi.value.unindex.eta = GNUNET_TIME_UNIT_ZERO;
@@ -295,8 +277,7 @@ process_fs_response (void *cls,
  * @param tc not used
  */
 static void
-unindex_finish (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+unindex_finish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
   char *emsg;
@@ -304,13 +285,8 @@ unindex_finish (void *cls,
   struct UnindexMessage req;
 
   /* generate final progress message */
-  unindex_progress (uc, 
-		    uc->file_size,
-		    NULL,
-		    0, 0);
-  GNUNET_FS_tree_encoder_finish (uc->tc,
-				 &uri,
-				 &emsg);
+  unindex_progress (uc, uc->file_size, NULL, 0, 0);
+  GNUNET_FS_tree_encoder_finish (uc->tc, &uri, &emsg);
   uc->tc = NULL;
   if (uri != NULL)
     GNUNET_FS_uri_destroy (uri);
@@ -320,31 +296,31 @@ unindex_finish (void *cls,
   uc->dsh = NULL;
   uc->state = UNINDEX_STATE_FS_NOTIFY;
   GNUNET_FS_unindex_sync_ (uc);
-  uc->client = GNUNET_CLIENT_connect ("fs",
-				      uc->h->cfg);
+  uc->client = GNUNET_CLIENT_connect ("fs", uc->h->cfg);
   if (uc->client == NULL)
-    {
-      uc->state = UNINDEX_STATE_ERROR;
-      uc->emsg = GNUNET_strdup (_("Failed to connect to FS service for unindexing."));
-      GNUNET_FS_unindex_sync_ (uc);
-      signal_unindex_error (uc);
-      return;
-    }
+  {
+    uc->state = UNINDEX_STATE_ERROR;
+    uc->emsg =
+        GNUNET_strdup (_("Failed to connect to FS service for unindexing."));
+    GNUNET_FS_unindex_sync_ (uc);
+    signal_unindex_error (uc);
+    return;
+  }
 #if DEBUG_UNINDEX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending UNINDEX message to FS service\n");
+              "Sending UNINDEX message to FS service\n");
 #endif
   req.header.size = htons (sizeof (struct UnindexMessage));
   req.header.type = htons (GNUNET_MESSAGE_TYPE_FS_UNINDEX);
   req.reserved = 0;
   req.file_id = uc->file_id;
-  GNUNET_break (GNUNET_OK == 
-		GNUNET_CLIENT_transmit_and_get_response (uc->client,
-							 &req.header,
-							 GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-							 GNUNET_YES,
-							 &process_fs_response,
-							 uc));
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CLIENT_transmit_and_get_response (uc->client,
+                                                         &req.header,
+                                                         GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+                                                         GNUNET_YES,
+                                                         &process_fs_response,
+                                                         uc));
 }
 
 
@@ -353,38 +329,36 @@ unindex_finish (void *cls,
  *
  * @param uc context for the unindex operation.
  */
-void 
+void
 GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc)
 {
   uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg);
   if (NULL == uc->dsh)
-    {
-      uc->state = UNINDEX_STATE_ERROR;
-      uc->emsg = GNUNET_strdup (_("Failed to connect to `datastore' service."));
-      GNUNET_FS_unindex_sync_ (uc);
-      signal_unindex_error (uc);
-      return;
-    }
+  {
+    uc->state = UNINDEX_STATE_ERROR;
+    uc->emsg = GNUNET_strdup (_("Failed to connect to `datastore' service."));
+    GNUNET_FS_unindex_sync_ (uc);
+    signal_unindex_error (uc);
+    return;
+  }
   uc->fh = GNUNET_DISK_file_open (uc->filename,
-				  GNUNET_DISK_OPEN_READ,
-				  GNUNET_DISK_PERM_NONE);
+                                  GNUNET_DISK_OPEN_READ, GNUNET_DISK_PERM_NONE);
   if (NULL == uc->fh)
-    {
-      GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
-      uc->dsh = NULL;
-      uc->state = UNINDEX_STATE_ERROR;
-      uc->emsg = GNUNET_strdup (_("Failed to open file for unindexing."));
-      GNUNET_FS_unindex_sync_ (uc);
-      signal_unindex_error (uc);
-      return;
-    }
+  {
+    GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
+    uc->dsh = NULL;
+    uc->state = UNINDEX_STATE_ERROR;
+    uc->emsg = GNUNET_strdup (_("Failed to open file for unindexing."));
+    GNUNET_FS_unindex_sync_ (uc);
+    signal_unindex_error (uc);
+    return;
+  }
   uc->tc = GNUNET_FS_tree_encoder_create (uc->h,
-					  uc->file_size,
-					  uc,
-					  &unindex_reader,
-					  &unindex_process,
-					  &unindex_progress,
-					  &unindex_finish);
+                                          uc->file_size,
+                                          uc,
+                                          &unindex_reader,
+                                          &unindex_process,
+                                          &unindex_progress, &unindex_finish);
   GNUNET_FS_tree_encoder_next (uc->tc);
 }
 
@@ -396,26 +370,25 @@ GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc)
  * @param cls closure, unindex context
  * @param file_id computed hash, NULL on error
  */
-void 
-GNUNET_FS_unindex_process_hash_ (void *cls,
-				 const GNUNET_HashCode *file_id)
+void
+GNUNET_FS_unindex_process_hash_ (void *cls, const GNUNET_HashCode * file_id)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
 
   uc->fhc = NULL;
-  if (uc->state != UNINDEX_STATE_HASHING) 
-    {
-      GNUNET_FS_unindex_stop (uc);
-      return;
-    }
+  if (uc->state != UNINDEX_STATE_HASHING)
+  {
+    GNUNET_FS_unindex_stop (uc);
+    return;
+  }
   if (file_id == NULL)
-    {
-      uc->state = UNINDEX_STATE_ERROR;
-      uc->emsg = GNUNET_strdup (_("Failed to compute hash of file."));
-      GNUNET_FS_unindex_sync_ (uc);
-      signal_unindex_error (uc);
-      return;
-    }
+  {
+    uc->state = UNINDEX_STATE_ERROR;
+    uc->emsg = GNUNET_strdup (_("Failed to compute hash of file."));
+    GNUNET_FS_unindex_sync_ (uc);
+    signal_unindex_error (uc);
+    return;
+  }
   uc->file_id = *file_id;
   uc->state = UNINDEX_STATE_DS_REMOVE;
   GNUNET_FS_unindex_sync_ (uc);
@@ -436,37 +409,35 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
   struct GNUNET_FS_ProgressInfo pi;
 
   if (uc->fhc != NULL)
-    {
-      GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
-      uc->fhc = NULL;
-    }
+  {
+    GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
+    uc->fhc = NULL;
+  }
   if (uc->client != NULL)
-    {
-      GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
-      uc->client = NULL;
-    }
+  {
+    GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
+    uc->client = NULL;
+  }
   if (NULL != uc->dsh)
-    {
-      GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
-      uc->dsh = NULL;
-    }
+  {
+    GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
+    uc->dsh = NULL;
+  }
   if (NULL != uc->tc)
-    {
-      GNUNET_FS_tree_encoder_finish (uc->tc,
-				     NULL, 
-				     NULL);
-      uc->tc = NULL;
-    }
+  {
+    GNUNET_FS_tree_encoder_finish (uc->tc, NULL, NULL);
+    uc->tc = NULL;
+  }
   if (uc->fh != NULL)
-    {
-      GNUNET_DISK_file_close (uc->fh);
-      uc->fh = NULL;
-    }
+  {
+    GNUNET_DISK_file_close (uc->fh);
+    uc->fh = NULL;
+  }
   GNUNET_FS_end_top (uc->h, uc->top);
   pi.status = GNUNET_FS_STATUS_UNINDEX_SUSPEND;
-  GNUNET_FS_unindex_make_status_ (&pi, uc, 
-				  (uc->state == UNINDEX_STATE_COMPLETE)
-				  ? uc->file_size : 0);
+  GNUNET_FS_unindex_make_status_ (&pi, uc,
+                                  (uc->state == UNINDEX_STATE_COMPLETE)
+                                  ? uc->file_size : 0);
   GNUNET_break (NULL == uc->client_info);
   GNUNET_free (uc->filename);
   GNUNET_free_non_null (uc->serialization);
@@ -485,17 +456,13 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
  */
 struct GNUNET_FS_UnindexContext *
 GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
-			 const char *filename,
-			 void *cctx)
+                         const char *filename, void *cctx)
 {
   struct GNUNET_FS_UnindexContext *ret;
   struct GNUNET_FS_ProgressInfo pi;
   uint64_t size;
 
-  if (GNUNET_OK !=
-      GNUNET_DISK_file_size (filename,
-			     &size,
-			     GNUNET_YES))
+  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &size, GNUNET_YES))
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_UnindexContext));
   ret->h = h;
@@ -508,13 +475,10 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
   pi.value.unindex.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_FS_unindex_make_status_ (&pi, ret, 0);
   ret->fhc = GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_IDLE,
-				      filename,
-				      HASHING_BLOCKSIZE,
-				      &GNUNET_FS_unindex_process_hash_,
-				      ret);
-  ret->top = GNUNET_FS_make_top (h,
-				 &GNUNET_FS_unindex_signal_suspend_,
-				 ret);
+                                      filename,
+                                      HASHING_BLOCKSIZE,
+                                      &GNUNET_FS_unindex_process_hash_, ret);
+  ret->top = GNUNET_FS_make_top (h, &GNUNET_FS_unindex_signal_suspend_, ret);
   return ret;
 }
 
@@ -526,48 +490,47 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
  */
 void
 GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
-{  
+{
   struct GNUNET_FS_ProgressInfo pi;
-  
+
   if (uc->fhc != NULL)
-    {
-      GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
-      uc->fhc = NULL;
-    }
+  {
+    GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
+    uc->fhc = NULL;
+  }
   if (uc->client != NULL)
-    {
-      GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
-      uc->client = NULL;
-    }
+  {
+    GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
+    uc->client = NULL;
+  }
   if (NULL != uc->dsh)
-    {
-      GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
-      uc->dsh = NULL;
-    }
+  {
+    GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
+    uc->dsh = NULL;
+  }
   if (NULL != uc->tc)
-    {
-      GNUNET_FS_tree_encoder_finish (uc->tc,
-				     NULL, 
-				     NULL);
-      uc->tc = NULL;
-    }
+  {
+    GNUNET_FS_tree_encoder_finish (uc->tc, NULL, NULL);
+    uc->tc = NULL;
+  }
   if (uc->fh != NULL)
-    {
-      GNUNET_DISK_file_close (uc->fh);
-      uc->fh = NULL;
-    }
+  {
+    GNUNET_DISK_file_close (uc->fh);
+    uc->fh = NULL;
+  }
   GNUNET_FS_end_top (uc->h, uc->top);
   if (uc->serialization != NULL)
-    {
-      GNUNET_FS_remove_sync_file_ (uc->h, GNUNET_FS_SYNC_PATH_MASTER_UNINDEX, uc->serialization);
-      GNUNET_free (uc->serialization);
-      uc->serialization = NULL;
-    }
+  {
+    GNUNET_FS_remove_sync_file_ (uc->h, GNUNET_FS_SYNC_PATH_MASTER_UNINDEX,
+                                 uc->serialization);
+    GNUNET_free (uc->serialization);
+    uc->serialization = NULL;
+  }
   pi.status = GNUNET_FS_STATUS_UNINDEX_STOPPED;
   pi.value.unindex.eta = GNUNET_TIME_UNIT_ZERO;
-  GNUNET_FS_unindex_make_status_ (&pi, uc, 
-				  (uc->state == UNINDEX_STATE_COMPLETE)
-				  ? uc->file_size : 0);
+  GNUNET_FS_unindex_make_status_ (&pi, uc,
+                                  (uc->state == UNINDEX_STATE_COMPLETE)
+                                  ? uc->file_size : 0);
   GNUNET_break (NULL == uc->client_info);
   GNUNET_free (uc->filename);
   GNUNET_free (uc);

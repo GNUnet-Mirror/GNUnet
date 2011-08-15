@@ -34,15 +34,13 @@
 /**
  * Start the validation subsystem.
  */
-void 
-GST_validation_start (void);
+void GST_validation_start (void);
 
 
 /**
  * Stop the validation subsystem.
  */
-void
-GST_validation_stop (void);
+void GST_validation_stop (void);
 
 
 /**
@@ -58,11 +56,11 @@ GST_validation_stop (void);
  */
 void
 GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
-			    const struct GNUNET_MessageHeader *hdr,
-			    const char *plugin_name,
-			    struct Session *session,
-			    const void *sender_address,
-			    size_t sender_address_len);
+                            const struct GNUNET_MessageHeader *hdr,
+                            const char *plugin_name,
+                            struct Session *session,
+                            const void *sender_address,
+                            size_t sender_address_len);
 
 
 /**
@@ -74,7 +72,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
  */
 void
 GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
-			    const struct GNUNET_MessageHeader *hdr);
+                            const struct GNUNET_MessageHeader *hdr);
 
 
 /**
@@ -83,8 +81,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
  *
  * @param hello the HELLO we received
  */
-void
-GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
+void GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
 
 
 /**
@@ -103,14 +100,19 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
  * @param plugin_address binary address
  * @param plugin_address_len length of address
  */
-typedef void (*GST_ValidationAddressCallback)(void *cls,
-					      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-					      const struct GNUNET_PeerIdentity *target,
-					      struct GNUNET_TIME_Absolute valid_until,
-					      struct GNUNET_TIME_Absolute validation_block,
-					      const char *plugin_name,
-					      const void *plugin_address,
-					      size_t plugin_address_len);
+typedef void (*GST_ValidationAddressCallback) (void *cls,
+                                               const struct
+                                               GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                                               * public_key,
+                                               const struct GNUNET_PeerIdentity
+                                               * target,
+                                               struct GNUNET_TIME_Absolute
+                                               valid_until,
+                                               struct GNUNET_TIME_Absolute
+                                               validation_block,
+                                               const char *plugin_name,
+                                               const void *plugin_address,
+                                               size_t plugin_address_len);
 
 
 /**
@@ -124,8 +126,7 @@ typedef void (*GST_ValidationAddressCallback)(void *cls,
  */
 void
 GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
-			      GST_ValidationAddressCallback cb,
-			      void *cb_cls);
+                              GST_ValidationAddressCallback cb, void *cb_cls);
 
 
 #endif

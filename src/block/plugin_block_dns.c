@@ -48,14 +48,13 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_dns_evaluate (void *cls,
-			   enum GNUNET_BLOCK_Type type,
-			   const GNUNET_HashCode *query,
-			   struct GNUNET_CONTAINER_BloomFilter **bf,
-			   int32_t bf_mutator,
-			   const void *xquery,
-			   size_t xquery_size,
-			   const void *reply_block,
-			   size_t reply_block_size)
+                           enum GNUNET_BLOCK_Type type,
+                           const GNUNET_HashCode * query,
+                           struct GNUNET_CONTAINER_BloomFilter **bf,
+                           int32_t bf_mutator,
+                           const void *xquery,
+                           size_t xquery_size,
+                           const void *reply_block, size_t reply_block_size)
 {
   switch (type)
   {
@@ -66,37 +65,43 @@ block_plugin_dns_evaluate (void *cls,
     if (reply_block_size == 0)
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
-    if (reply_block_size != sizeof(struct GNUNET_DNS_Record))
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DNS-Block is invalid: reply_block_size=%d != %d\n", reply_block_size, sizeof(struct GNUNET_DNS_Record));
-        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-      }
+    if (reply_block_size != sizeof (struct GNUNET_DNS_Record))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "DNS-Block is invalid: reply_block_size=%d != %d\n",
+                  reply_block_size, sizeof (struct GNUNET_DNS_Record));
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
 
-    const struct GNUNET_DNS_Record* rec = reply_block;
+    const struct GNUNET_DNS_Record *rec = reply_block;
 
-    if (ntohl(rec->purpose.size) != sizeof(struct GNUNET_DNS_Record) - sizeof(struct GNUNET_CRYPTO_RsaSignature))
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "DNS-Block is invalid: rec->purpose.size=%d != %d\n",
-                   ntohl(rec->purpose.size),
-                   sizeof(struct GNUNET_DNS_Record) - sizeof(struct GNUNET_CRYPTO_RsaSignature));
-        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-      }
+    if (ntohl (rec->purpose.size) !=
+        sizeof (struct GNUNET_DNS_Record) -
+        sizeof (struct GNUNET_CRYPTO_RsaSignature))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "DNS-Block is invalid: rec->purpose.size=%d != %d\n",
+                  ntohl (rec->purpose.size),
+                  sizeof (struct GNUNET_DNS_Record) -
+                  sizeof (struct GNUNET_CRYPTO_RsaSignature));
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
 
-    if (GNUNET_TIME_relative_get_zero().rel_value == GNUNET_TIME_absolute_get_remaining(rec->expiration_time).rel_value)
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DNS-Block is invalid: Timeout\n");
-        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-      }
+    if (GNUNET_TIME_relative_get_zero ().rel_value ==
+        GNUNET_TIME_absolute_get_remaining (rec->expiration_time).rel_value)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DNS-Block is invalid: Timeout\n");
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
 
-    if (GNUNET_OK != GNUNET_CRYPTO_rsa_verify (htonl(GNUNET_SIGNATURE_PURPOSE_DNS_RECORD),
-					       &rec->purpose,
-					       &rec->signature,
-					       &rec->peer))
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DNS-Block is invalid: invalid signature\n");
-        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-      }
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_rsa_verify (htonl (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD),
+                                  &rec->purpose, &rec->signature, &rec->peer))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "DNS-Block is invalid: invalid signature\n");
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
 
     /* How to decide whether there are no more? */
     return GNUNET_BLOCK_EVALUATION_OK_MORE;
@@ -119,15 +124,15 @@ block_plugin_dns_evaluate (void *cls,
  */
 static int
 block_plugin_dns_get_key (void *cls,
-			  enum GNUNET_BLOCK_Type type,
-			  const void *block,
-			  size_t block_size,
-			  GNUNET_HashCode *key)
+                          enum GNUNET_BLOCK_Type type,
+                          const void *block,
+                          size_t block_size, GNUNET_HashCode * key)
 {
   if (type != GNUNET_BLOCK_TYPE_DNS)
     return GNUNET_SYSERR;
-  const struct GNUNET_DNS_Record* rec = block;
-  memcpy(key, &rec->service_descriptor, sizeof(GNUNET_HashCode));
+  const struct GNUNET_DNS_Record *rec = block;
+
+  memcpy (key, &rec->service_descriptor, sizeof (GNUNET_HashCode));
   return GNUNET_OK;
 }
 
@@ -137,11 +142,11 @@ block_plugin_dns_get_key (void *cls,
 void *
 libgnunet_plugin_block_dns_init (void *cls)
 {
-  static enum GNUNET_BLOCK_Type types[] = 
-    {
-      GNUNET_BLOCK_TYPE_DNS,
-      GNUNET_BLOCK_TYPE_ANY /* end of list */
-    };
+  static enum GNUNET_BLOCK_Type types[] =
+  {
+    GNUNET_BLOCK_TYPE_DNS,
+    GNUNET_BLOCK_TYPE_ANY       /* end of list */
+  };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));

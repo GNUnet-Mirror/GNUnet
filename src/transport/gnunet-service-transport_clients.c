@@ -134,13 +134,13 @@ lookup_client (struct GNUNET_SERVER_Client *client)
 {
   struct TransportClient *tc;
 
-  tc = clients_head; 
+  tc = clients_head;
   while (tc != NULL)
-    {
-      if (tc->client == client)
-	return tc;
-      tc = tc->next;
-    }
+  {
+    if (tc->client == client)
+      return tc;
+    tc = tc->next;
+  }
   return NULL;
 }
 
@@ -155,12 +155,10 @@ static struct TransportClient *
 setup_client (struct GNUNET_SERVER_Client *client)
 {
   struct TransportClient *tc;
-  
+
   tc = GNUNET_malloc (sizeof (struct TransportClient));
   tc->client = client;
-  GNUNET_CONTAINER_DLL_insert (clients_head,
-			       clients_tail,
-			       tc);
+  GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, tc);
   return tc;
 }
 
@@ -176,9 +174,7 @@ setup_client (struct GNUNET_SERVER_Client *client)
  * @return number of bytes written to buf
  */
 static size_t
-transmit_to_client_callback (void *cls, 
-			     size_t size, 
-			     void *buf)
+transmit_to_client_callback (void *cls, size_t size, void *buf)
 {
   struct TransportClient *tc = cls;
   struct ClientMessageQueueEntry *q;
@@ -189,46 +185,43 @@ transmit_to_client_callback (void *cls,
 
   tc->th = NULL;
   if (buf == NULL)
-    {
-#if DEBUG_TRANSPORT 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Transmission to client failed, closing connection.\n");
+  {
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmission to client failed, closing connection.\n");
 #endif
-      return 0;
-    }
+    return 0;
+  }
   cbuf = buf;
   tsize = 0;
   while (NULL != (q = tc->message_queue_head))
-    {
-      msg = (const struct GNUNET_MessageHeader *) &q[1];
-      msize = ntohs (msg->size);
-      if (msize + tsize > size)
-        break;
+  {
+    msg = (const struct GNUNET_MessageHeader *) &q[1];
+    msize = ntohs (msg->size);
+    if (msize + tsize > size)
+      break;
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Transmitting message of type %u to client.\n",
-                  ntohs (msg->type));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmitting message of type %u to client.\n",
+                ntohs (msg->type));
 #endif
-      GNUNET_CONTAINER_DLL_remove (tc->message_queue_head,
-				   tc->message_queue_tail,
-				   q);
-      tc->message_count--;
-      memcpy (&cbuf[tsize], 
-	      msg, 
-	      msize);
-      GNUNET_free (q);
-      tsize += msize;
-    }
+    GNUNET_CONTAINER_DLL_remove (tc->message_queue_head,
+                                 tc->message_queue_tail, q);
+    tc->message_count--;
+    memcpy (&cbuf[tsize], msg, msize);
+    GNUNET_free (q);
+    tsize += msize;
+  }
   if (NULL != q)
-    {
-      GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
-      tc->th = GNUNET_SERVER_notify_transmit_ready (tc->client,
-						    msize,
-						    GNUNET_TIME_UNIT_FOREVER_REL,
-						    &transmit_to_client_callback,
-						    tc);
-      GNUNET_assert (tc->th != NULL);
-    }
+  {
+    GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
+    tc->th = GNUNET_SERVER_notify_transmit_ready (tc->client,
+                                                  msize,
+                                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                                  &transmit_to_client_callback,
+                                                  tc);
+    GNUNET_assert (tc->th != NULL);
+  }
   return tsize;
 }
 
@@ -242,43 +235,39 @@ transmit_to_client_callback (void *cls,
  */
 static void
 unicast (struct TransportClient *tc,
-	 const struct GNUNET_MessageHeader *msg,
-	 int may_drop)
+         const struct GNUNET_MessageHeader *msg, int may_drop)
 {
   struct ClientMessageQueueEntry *q;
   uint16_t msize;
 
-  if ( (tc->message_count >= MAX_PENDING) && 
-       (GNUNET_YES == may_drop) )
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Dropping message of type %u and size %u, have %u/%u messages pending\n"),
-		  ntohs (msg->type),
-		  ntohs (msg->size),
-                  tc->message_count,
-		  MAX_PENDING);
-      GNUNET_STATISTICS_update (GST_stats,
-				gettext_noop ("# messages dropped due to slow client"),
-				1,
-				GNUNET_NO);
-      return;
-    }
+  if ((tc->message_count >= MAX_PENDING) && (GNUNET_YES == may_drop))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _
+                ("Dropping message of type %u and size %u, have %u/%u messages pending\n"),
+                ntohs (msg->type), ntohs (msg->size), tc->message_count,
+                MAX_PENDING);
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# messages dropped due to slow client"), 1,
+                              GNUNET_NO);
+    return;
+  }
   msize = ntohs (msg->size);
   GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
   q = GNUNET_malloc (sizeof (struct ClientMessageQueueEntry) + msize);
   memcpy (&q[1], msg, msize);
   GNUNET_CONTAINER_DLL_insert_tail (tc->message_queue_head,
-				    tc->message_queue_tail,
-				    q);
+                                    tc->message_queue_tail, q);
   tc->message_count++;
   if (tc->th != NULL)
     return;
   tc->th = GNUNET_SERVER_notify_transmit_ready (tc->client,
-						msize,
-						GNUNET_TIME_UNIT_FOREVER_REL,
-						&transmit_to_client_callback,
-						tc);
-  GNUNET_assert (tc->th != NULL);    
+                                                msize,
+                                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                                &transmit_to_client_callback,
+                                                tc);
+  GNUNET_assert (tc->th != NULL);
 }
 
 
@@ -290,8 +279,7 @@ unicast (struct TransportClient *tc,
  * @param client identification of the client
  */
 static void
-client_disconnect_notification (void *cls,
-                                struct GNUNET_SERVER_Client *client)
+client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct TransportClient *tc;
   struct ClientMessageQueueEntry *mqe;
@@ -306,21 +294,18 @@ client_disconnect_notification (void *cls,
               "Client disconnected, cleaning up.\n");
 #endif
   while (NULL != (mqe = tc->message_queue_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (tc->message_queue_head,
-				   tc->message_queue_tail,
-				   mqe);
-      tc->message_count--;
-      GNUNET_free (mqe);
-    }
-  GNUNET_CONTAINER_DLL_remove (clients_head,
-			       clients_tail,
-			       tc);
+  {
+    GNUNET_CONTAINER_DLL_remove (tc->message_queue_head,
+                                 tc->message_queue_tail, mqe);
+    tc->message_count--;
+    GNUNET_free (mqe);
+  }
+  GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, tc);
   if (tc->th != NULL)
-    {
-      GNUNET_CONNECTION_notify_transmit_ready_cancel (tc->th);
-      tc->th = NULL;
-    }
+  {
+    GNUNET_CONNECTION_notify_transmit_ready_cancel (tc->th);
+    tc->th = NULL;
+  }
   GNUNET_break (0 == tc->message_count);
   GNUNET_free (tc);
 }
@@ -337,24 +322,25 @@ client_disconnect_notification (void *cls,
  */
 static void
 notify_client_about_neighbour (void *cls,
-			       const struct GNUNET_PeerIdentity *peer,
-			       const struct GNUNET_TRANSPORT_ATS_Information *ats,
-			       uint32_t ats_count)
+                               const struct GNUNET_PeerIdentity *peer,
+                               const struct GNUNET_TRANSPORT_ATS_Information
+                               *ats, uint32_t ats_count)
 {
   struct TransportClient *tc = cls;
   struct ConnectInfoMessage *cim;
   size_t size;
 
-  size  = sizeof (struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  size =
+      sizeof (struct ConnectInfoMessage) +
+      ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   cim = GNUNET_malloc (size);
   cim->header.size = htons (size);
   cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  cim->ats_count = htonl(ats_count);
+  cim->ats_count = htonl (ats_count);
   cim->id = *peer;
   memcpy (&cim->ats,
-	  ats, 
-	  ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+          ats, ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
   unicast (tc, &cim->header, GNUNET_NO);
   GNUNET_free (cim);
 }
@@ -371,35 +357,35 @@ notify_client_about_neighbour (void *cls,
  */
 static void
 clients_handle_start (void *cls,
-		      struct GNUNET_SERVER_Client *client,
-		      const struct GNUNET_MessageHeader *message)
+                      struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *message)
 {
   const struct StartMessage *start;
   struct TransportClient *tc;
 
   tc = lookup_client (client);
   if (tc != NULL)
-    {
-      /* got 'start' twice from the same client, not allowed */
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-  start = (const struct StartMessage*) message;
-  if ( (GNUNET_NO != ntohl (start->do_check)) &&
-       (0 != memcmp (&start->self,
-		     &GST_my_identity,
-		     sizeof (struct GNUNET_PeerIdentity))) )
-    {
-      /* client thinks this is a different peer, reject */
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Rejecting control connection from peer `%s', which is not me!\n"),
-		  GNUNET_i2s (&start->self));
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }  
+  {
+    /* got 'start' twice from the same client, not allowed */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  start = (const struct StartMessage *) message;
+  if ((GNUNET_NO != ntohl (start->do_check)) &&
+      (0 != memcmp (&start->self,
+                    &GST_my_identity, sizeof (struct GNUNET_PeerIdentity))))
+  {
+    /* client thinks this is a different peer, reject */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Rejecting control connection from peer `%s', which is not me!\n"),
+                GNUNET_i2s (&start->self));
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   tc = setup_client (client);
-  unicast (tc, GST_hello_get(), GNUNET_NO);
+  unicast (tc, GST_hello_get (), GNUNET_NO);
   GST_neighbours_iterate (&notify_client_about_neighbour, tc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -414,8 +400,8 @@ clients_handle_start (void *cls,
  */
 static void
 clients_handle_hello (void *cls,
-		      struct GNUNET_SERVER_Client *client,
-		      const struct GNUNET_MessageHeader *message)
+                      struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *message)
 {
   GST_validation_handle_hello (message);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -447,8 +433,7 @@ struct SendTransmitContinuationContext
  * @param success GNUNET_OK on success, GNUNET_NO on failure, GNUNET_SYSERR if we're not connected
  */
 static void
-handle_send_transmit_continuation (void *cls,
-				   int success)
+handle_send_transmit_continuation (void *cls, int success)
 {
   struct SendTransmitContinuationContext *stcc = cls;
   struct SendOkMessage send_ok_msg;
@@ -456,9 +441,10 @@ handle_send_transmit_continuation (void *cls,
   send_ok_msg.header.size = htons (sizeof (send_ok_msg));
   send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
   send_ok_msg.success = htonl (success);
-  send_ok_msg.latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_FOREVER_REL);
+  send_ok_msg.latency =
+      GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_FOREVER_REL);
   send_ok_msg.peer = stcc->target;
-  GST_clients_unicast (stcc->client, &send_ok_msg.header, GNUNET_NO); 
+  GST_clients_unicast (stcc->client, &send_ok_msg.header, GNUNET_NO);
   GNUNET_SERVER_client_drop (stcc->client);
   GNUNET_free (stcc);
 }
@@ -473,8 +459,8 @@ handle_send_transmit_continuation (void *cls,
  */
 static void
 clients_handle_send (void *cls,
-		     struct GNUNET_SERVER_Client *client,
-		     const struct GNUNET_MessageHeader *message)
+                     struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *message)
 {
   const struct OutboundMessage *obm;
   const struct GNUNET_MessageHeader *obmm;
@@ -483,56 +469,52 @@ clients_handle_send (void *cls,
   uint16_t msize;
 
   size = ntohs (message->size);
-  if (size < sizeof (struct OutboundMessage) + sizeof (struct GNUNET_MessageHeader))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  if (size <
+      sizeof (struct OutboundMessage) + sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   obm = (const struct OutboundMessage *) message;
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
   msize = size - sizeof (struct OutboundMessage);
   if (msize < sizeof (struct GNUNET_MessageHeader))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   GNUNET_STATISTICS_update (GST_stats,
-			    gettext_noop ("# bytes payload received for other peers"),
-			    msize,
-			    GNUNET_NO);
+                            gettext_noop
+                            ("# bytes payload received for other peers"), msize,
+                            GNUNET_NO);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request from client with target `%4s' and first message of type %u and total size %u\n",
-              "SEND", 
-	      GNUNET_i2s (&obm->peer),
-              ntohs (obmm->type),
-              msize);
+              "SEND", GNUNET_i2s (&obm->peer), ntohs (obmm->type), msize);
 #endif
-  if (GNUNET_NO == 
-      GST_neighbours_test_connected (&obm->peer))
-    {
-      /* not connected, not allowed to send; can happen due to asynchronous operations */
-      GNUNET_STATISTICS_update (GST_stats,
-				gettext_noop ("# bytes payload dropped (other peer was not connected)"),
-				msize,
-				GNUNET_NO);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;      
-    }
+  if (GNUNET_NO == GST_neighbours_test_connected (&obm->peer))
+  {
+    /* not connected, not allowed to send; can happen due to asynchronous operations */
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# bytes payload dropped (other peer was not connected)"),
+                              msize, GNUNET_NO);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   stcc = GNUNET_malloc (sizeof (struct SendTransmitContinuationContext));
   stcc->target = obm->peer;
   stcc->client = client;
   GNUNET_SERVER_client_keep (client);
   GST_neighbours_send (&obm->peer,
-		       obmm, msize,
-		       GNUNET_TIME_relative_ntoh (obm->timeout),
-		       &handle_send_transmit_continuation,
-		       stcc);
+                       obmm, msize,
+                       GNUNET_TIME_relative_ntoh (obm->timeout),
+                       &handle_send_transmit_continuation, stcc);
 }
-			
+
 
 /**
  * Try to initiate a connection to the given peer if the blacklist
@@ -545,11 +527,10 @@ clients_handle_send (void *cls,
  */
 static void
 try_connect_if_allowed (void *cls,
-			const struct GNUNET_PeerIdentity *peer,
-			int result)
+                        const struct GNUNET_PeerIdentity *peer, int result)
 {
   if (GNUNET_OK != result)
-    return; /* not allowed */
+    return;                     /* not allowed */
   GST_neighbours_try_connect (peer);
 }
 
@@ -563,23 +544,23 @@ try_connect_if_allowed (void *cls,
  */
 static void
 clients_handle_request_connect (void *cls,
-				struct GNUNET_SERVER_Client *client,
-				const struct GNUNET_MessageHeader *message)
+                                struct GNUNET_SERVER_Client *client,
+                                const struct GNUNET_MessageHeader *message)
 {
   const struct TransportRequestConnectMessage *trcm =
-    (const struct TransportRequestConnectMessage *) message;
+      (const struct TransportRequestConnectMessage *) message;
 
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# REQUEST CONNECT messages received"),
-                            1,
+                            gettext_noop
+                            ("# REQUEST CONNECT messages received"), 1,
                             GNUNET_NO);
 #if DEBUG_TRANSPORT
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
-	     "Received a request connect message for peer `%s'\n", 
-	     GNUNET_i2s(&trcm->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received a request connect message for peer `%s'\n",
+              GNUNET_i2s (&trcm->peer));
 #endif
   (void) GST_blacklist_test_allowed (&trcm->peer, NULL,
-				     &try_connect_if_allowed, NULL);
+                                     &try_connect_if_allowed, NULL);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -593,25 +574,23 @@ clients_handle_request_connect (void *cls,
  */
 static void
 clients_handle_set_quota (void *cls,
-			  struct GNUNET_SERVER_Client *client,
-			  const struct GNUNET_MessageHeader *message)
+                          struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message)
 {
   const struct QuotaSetMessage *qsm;
 
   qsm = (const struct QuotaSetMessage *) message;
   GNUNET_STATISTICS_update (GST_stats,
-			    gettext_noop ("# SET QUOTA messages received"),
-			    1,
-			    GNUNET_NO);
-#if DEBUG_TRANSPORT 
+                            gettext_noop ("# SET QUOTA messages received"),
+                            1, GNUNET_NO);
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request (new quota %u) from client for peer `%4s'\n",
               "SET_QUOTA",
-	      (unsigned int) ntohl (qsm->quota.value__),
-	      GNUNET_i2s (&qsm->peer));
+              (unsigned int) ntohl (qsm->quota.value__),
+              GNUNET_i2s (&qsm->peer));
 #endif
-  GST_neighbours_set_incoming_quota (&qsm->peer,
-				     qsm->quota);
+  GST_neighbours_set_incoming_quota (&qsm->peer, qsm->quota);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -624,22 +603,20 @@ clients_handle_set_quota (void *cls,
  * @param address the resolved name, NULL to indicate the last response
  */
 static void
-transmit_address_to_client (void *cls, 
-			    const char *address)
+transmit_address_to_client (void *cls, const char *address)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
 
   if (NULL == address)
-    {
-      GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-						  GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
-      GNUNET_SERVER_transmit_context_run (tc,
-					  GNUNET_TIME_UNIT_FOREVER_REL);
-      return;
-    }
-  GNUNET_SERVER_transmit_context_append_data (tc, 
-					      address, strlen (address) + 1,
-					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+  {
+    GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+    GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+    return;
+  }
+  GNUNET_SERVER_transmit_context_append_data (tc,
+                                              address, strlen (address) + 1,
+                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
 }
 
 
@@ -652,8 +629,8 @@ transmit_address_to_client (void *cls,
  */
 static void
 clients_handle_address_lookup (void *cls,
-			       struct GNUNET_SERVER_Client *client,
-			       const struct GNUNET_MessageHeader *message)
+                               struct GNUNET_SERVER_Client *client,
+                               const struct GNUNET_MessageHeader *message)
 {
   const struct AddressLookupMessage *alum;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
@@ -667,46 +644,45 @@ clients_handle_address_lookup (void *cls,
 
   size = ntohs (message->size);
   if (size < sizeof (struct AddressLookupMessage))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   alum = (const struct AddressLookupMessage *) message;
   address_len = ntohl (alum->addrlen);
   if (size <= sizeof (struct AddressLookupMessage) + address_len)
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   address = (const char *) &alum[1];
   plugin_name = (const char *) &address[address_len];
   if (plugin_name
       [size - sizeof (struct AddressLookupMessage) - address_len - 1] != '\0')
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   rtimeout = GNUNET_TIME_relative_ntoh (alum->timeout);
   numeric = ntohl (alum->numeric_only);
   tc = GNUNET_SERVER_transmit_context_create (client);
   papi = GST_plugins_find (plugin_name);
   if (NULL == papi)
-    {
-      GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-						  GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
-      GNUNET_SERVER_transmit_context_run (tc, rtimeout);
-      return;
-    }
+  {
+    GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+    GNUNET_SERVER_transmit_context_run (tc, rtimeout);
+    return;
+  }
   GNUNET_SERVER_disable_receive_done_warning (client);
   papi->address_pretty_printer (papi->cls,
-				plugin_name,
-				address, address_len,
-				numeric,
-				rtimeout,
-				&transmit_address_to_client, tc);
+                                plugin_name,
+                                address, address_len,
+                                numeric,
+                                rtimeout, &transmit_address_to_client, tc);
 }
 
 
@@ -726,28 +702,26 @@ clients_handle_address_lookup (void *cls,
  */
 static void
 send_address_to_client (void *cls,
-			const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-			const struct GNUNET_PeerIdentity *target,
-			struct GNUNET_TIME_Absolute valid_until,
-			struct GNUNET_TIME_Absolute validation_block,
-			const char *plugin_name,
-			const void *plugin_address,
-			size_t plugin_address_len)
+                        const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                        *public_key, const struct GNUNET_PeerIdentity *target,
+                        struct GNUNET_TIME_Absolute valid_until,
+                        struct GNUNET_TIME_Absolute validation_block,
+                        const char *plugin_name, const void *plugin_address,
+                        size_t plugin_address_len)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   char *addr_buf;
 
   /* FIXME: move to a binary format!!! */
   GNUNET_asprintf (&addr_buf, "%s --- %s, %s",
-		   GST_plugins_a2s (plugin_name,
-				    plugin_address,
-				    plugin_address_len),
-		   (GNUNET_YES == GST_neighbours_test_connected (target))
-		   ? "CONNECTED"
-		   : "DISCONNECTED",
-		   (GNUNET_TIME_absolute_get_remaining (valid_until).rel_value > 0)
-		   ? "VALIDATED"
-		   : "UNVALIDATED");
+                   GST_plugins_a2s (plugin_name,
+                                    plugin_address,
+                                    plugin_address_len),
+                   (GNUNET_YES == GST_neighbours_test_connected (target))
+                   ? "CONNECTED"
+                   : "DISCONNECTED",
+                   (GNUNET_TIME_absolute_get_remaining (valid_until).rel_value >
+                    0) ? "VALIDATED" : "UNVALIDATED");
   transmit_address_to_client (tc, addr_buf);
   GNUNET_free (addr_buf);
 }
@@ -764,8 +738,8 @@ send_address_to_client (void *cls,
  */
 static void
 clients_handle_peer_address_lookup (void *cls,
-				    struct GNUNET_SERVER_Client *client,
-				    const struct GNUNET_MessageHeader *message)
+                                    struct GNUNET_SERVER_Client *client,
+                                    const struct GNUNET_MessageHeader *message)
 {
   const struct PeerAddressLookupMessage *peer_address_lookup;
   struct GNUNET_SERVER_TransmitContext *tc;
@@ -774,13 +748,11 @@ clients_handle_peer_address_lookup (void *cls,
   GNUNET_break (ntohl (peer_address_lookup->reserved) == 0);
   tc = GNUNET_SERVER_transmit_context_create (client);
   GST_validation_get_addresses (&peer_address_lookup->peer,
-				&send_address_to_client,
-				tc);
+                                &send_address_to_client, tc);
   GNUNET_SERVER_transmit_context_append_data (tc,
-					      NULL, 0,
-					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
-  GNUNET_SERVER_transmit_context_run (tc, 
-				      GNUNET_TIME_UNIT_FOREVER_REL);
+                                              NULL, 0,
+                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -794,18 +766,17 @@ clients_handle_peer_address_lookup (void *cls,
  */
 static void
 output_addresses (void *cls,
-		  const struct GNUNET_PeerIdentity *neighbour,
-		  const struct GNUNET_TRANSPORT_ATS_Information *ats,
-		  uint32_t ats_count)
+                  const struct GNUNET_PeerIdentity *neighbour,
+                  const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                  uint32_t ats_count)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   char *addr_buf;
 
   /* FIXME: move to a binary format!!! */
-  GNUNET_asprintf (&addr_buf, 
-		   "%s: %s",
-		   GNUNET_i2s(neighbour),
-		   GST_plugins_a2s ("FIXME", NULL, 0));
+  GNUNET_asprintf (&addr_buf,
+                   "%s: %s",
+                   GNUNET_i2s (neighbour), GST_plugins_a2s ("FIXME", NULL, 0));
   transmit_address_to_client (tc, addr_buf);
   GNUNET_free (addr_buf);
 }
@@ -821,15 +792,14 @@ output_addresses (void *cls,
  */
 static void
 clients_handle_address_iterate (void *cls,
-				struct GNUNET_SERVER_Client *client,
-				const struct GNUNET_MessageHeader *message)
-{ 
+                                struct GNUNET_SERVER_Client *client,
+                                const struct GNUNET_MessageHeader *message)
+{
   struct GNUNET_SERVER_TransmitContext *tc;
 
   GNUNET_SERVER_disable_receive_done_warning (client);
   tc = GNUNET_SERVER_transmit_context_create (client);
-  GST_neighbours_iterate (&output_addresses,
-			  tc);
+  GST_neighbours_iterate (&output_addresses, tc);
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -841,30 +811,35 @@ clients_handle_address_iterate (void *cls,
  *
  * @param server server used to accept clients from.
  */
-void 
+void
 GST_clients_start (struct GNUNET_SERVER_Handle *server)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    { &clients_handle_start, NULL, 
-      GNUNET_MESSAGE_TYPE_TRANSPORT_START, sizeof (struct StartMessage)},
-    { &clients_handle_hello, NULL, 
-      GNUNET_MESSAGE_TYPE_HELLO, 0},
-    { &clients_handle_send,  NULL, 
-      GNUNET_MESSAGE_TYPE_TRANSPORT_SEND , 0},
-    { &clients_handle_request_connect, NULL,  
-      GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT, sizeof (struct TransportRequestConnectMessage)},
-    { &clients_handle_set_quota, NULL, 
-      GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA, sizeof (struct QuotaSetMessage)},
-    { &clients_handle_address_lookup, NULL,
-      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP , 0},
-    { &clients_handle_peer_address_lookup, NULL, 
-      GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP, sizeof (struct PeerAddressLookupMessage)},
-    { &clients_handle_address_iterate, NULL,
-      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE, sizeof (struct GNUNET_MessageHeader)},
-    { &GST_blacklist_handle_init, NULL,
-      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT, sizeof (struct GNUNET_MessageHeader)},
-    { &GST_blacklist_handle_reply, NULL,
-      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY, sizeof (struct BlacklistMessage)},
+    {&clients_handle_start, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_START, sizeof (struct StartMessage)},
+    {&clients_handle_hello, NULL,
+     GNUNET_MESSAGE_TYPE_HELLO, 0},
+    {&clients_handle_send, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, 0},
+    {&clients_handle_request_connect, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT,
+     sizeof (struct TransportRequestConnectMessage)},
+    {&clients_handle_set_quota, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA, sizeof (struct QuotaSetMessage)},
+    {&clients_handle_address_lookup, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP, 0},
+    {&clients_handle_peer_address_lookup, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP,
+     sizeof (struct PeerAddressLookupMessage)},
+    {&clients_handle_address_iterate, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE,
+     sizeof (struct GNUNET_MessageHeader)},
+    {&GST_blacklist_handle_init, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT,
+     sizeof (struct GNUNET_MessageHeader)},
+    {&GST_blacklist_handle_reply, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY,
+     sizeof (struct BlacklistMessage)},
     {NULL, NULL, 0, 0}
   };
   GNUNET_SERVER_add_handlers (server, handlers);
@@ -890,8 +865,7 @@ GST_clients_stop ()
  * @param may_drop GNUNET_YES if the message can be dropped
  */
 void
-GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
-		       int may_drop)
+GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop)
 {
   struct TransportClient *tc;
 
@@ -909,8 +883,7 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
  */
 void
 GST_clients_unicast (struct GNUNET_SERVER_Client *client,
-		     const struct GNUNET_MessageHeader *msg,
-		     int may_drop)
+                     const struct GNUNET_MessageHeader *msg, int may_drop)
 {
   struct TransportClient *tc;
 

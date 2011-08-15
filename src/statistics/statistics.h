@@ -126,7 +126,7 @@ struct GNUNET_STATISTICS_WatchValueMessage
    * be signed even though the type given here is unsigned.
    */
   uint64_t value GNUNET_PACKED;
-  
+
 };
 
 

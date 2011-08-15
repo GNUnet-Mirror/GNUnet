@@ -76,8 +76,7 @@ struct GetIndexedContext
  * @param msg message with indexing information
  */
 static void
-handle_index_info (void *cls,
-		   const struct GNUNET_MessageHeader *msg)
+handle_index_info (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GetIndexedContext *gic = cls;
   const struct IndexInfoMessage *iim;
@@ -85,64 +84,58 @@ handle_index_info (void *cls,
   const char *filename;
 
   if (NULL == msg)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to receive response for `%s' request from `%s' service.\n"),
-		  "GET_INDEXED",
-		  "fs");
-      GNUNET_SCHEDULER_add_continuation (gic->cont,
-					 gic->cont_cls,
-					 GNUNET_SCHEDULER_REASON_TIMEOUT);
-      GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
-      GNUNET_free (gic);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _
+                ("Failed to receive response for `%s' request from `%s' service.\n"),
+                "GET_INDEXED", "fs");
+    GNUNET_SCHEDULER_add_continuation (gic->cont, gic->cont_cls,
+                                       GNUNET_SCHEDULER_REASON_TIMEOUT);
+    GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
+    GNUNET_free (gic);
+    return;
+  }
   if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END)
-    {
-      /* normal end-of-list */
-      GNUNET_SCHEDULER_add_continuation (gic->cont,
-					 gic->cont_cls,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
-      GNUNET_free (gic);
-      return;
-    }
+  {
+    /* normal end-of-list */
+    GNUNET_SCHEDULER_add_continuation (gic->cont,
+                                       gic->cont_cls,
+                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
+    GNUNET_free (gic);
+    return;
+  }
   msize = ntohs (msg->size);
-  iim = (const struct IndexInfoMessage*) msg;
-  filename = (const char*) &iim[1];
-  if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY) ||
-       (msize <= sizeof (struct IndexInfoMessage)) ||
-       (filename[msize-sizeof (struct IndexInfoMessage) -1] != '\0') )
-    {
-      /* bogus reply */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to receive valid response for `%s' request from `%s' service.\n"),
-		  "GET_INDEXED",
-		  "fs");
-      GNUNET_SCHEDULER_add_continuation (gic->cont,
-					 gic->cont_cls,
-					 GNUNET_SCHEDULER_REASON_TIMEOUT);
-      GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
-      GNUNET_free (gic);
-      return;
-    }
-  if (GNUNET_OK !=
-      gic->iterator (gic->iterator_cls,
-		     filename,
-		     &iim->file_id))
-    {
-      GNUNET_SCHEDULER_add_continuation (gic->cont,
-					 gic->cont_cls,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
-      GNUNET_free (gic);
-      return;
-    }
+  iim = (const struct IndexInfoMessage *) msg;
+  filename = (const char *) &iim[1];
+  if ((ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY) ||
+      (msize <= sizeof (struct IndexInfoMessage)) ||
+      (filename[msize - sizeof (struct IndexInfoMessage) - 1] != '\0'))
+  {
+    /* bogus reply */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _
+                ("Failed to receive valid response for `%s' request from `%s' service.\n"),
+                "GET_INDEXED", "fs");
+    GNUNET_SCHEDULER_add_continuation (gic->cont, gic->cont_cls,
+                                       GNUNET_SCHEDULER_REASON_TIMEOUT);
+    GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
+    GNUNET_free (gic);
+    return;
+  }
+  if (GNUNET_OK != gic->iterator (gic->iterator_cls, filename, &iim->file_id))
+  {
+    GNUNET_SCHEDULER_add_continuation (gic->cont,
+                                       gic->cont_cls,
+                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
+    GNUNET_free (gic);
+    return;
+  }
   /* get more */
   GNUNET_CLIENT_receive (gic->client,
-			 &handle_index_info,
-			 gic,
-			 GNUNET_CONSTANTS_SERVICE_TIMEOUT);  
+                         &handle_index_info,
+                         gic, GNUNET_CONSTANTS_SERVICE_TIMEOUT);
 }
 
 
@@ -157,29 +150,26 @@ handle_index_info (void *cls,
  *             error) or  "PREREQ_DONE" (on success)
  * @param cont_cls closure for cont
  */
-void 
+void
 GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
-			     GNUNET_FS_IndexedFileProcessor iterator,
-			     void *iterator_cls,
-			     GNUNET_SCHEDULER_Task cont,
-			     void *cont_cls)
+                             GNUNET_FS_IndexedFileProcessor iterator,
+                             void *iterator_cls,
+                             GNUNET_SCHEDULER_Task cont, void *cont_cls)
 {
   struct GNUNET_CLIENT_Connection *client;
   struct GetIndexedContext *gic;
   struct GNUNET_MessageHeader msg;
 
-  client = GNUNET_CLIENT_connect ("fs",
-				  h->cfg);
+  client = GNUNET_CLIENT_connect ("fs", h->cfg);
   if (NULL == client)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to not connect to `%s' service.\n"),
-		  "fs");
-      GNUNET_SCHEDULER_add_continuation (cont,
-					 cont_cls,
-					 GNUNET_SCHEDULER_REASON_TIMEOUT);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to not connect to `%s' service.\n"), "fs");
+    GNUNET_SCHEDULER_add_continuation (cont,
+                                       cont_cls,
+                                       GNUNET_SCHEDULER_REASON_TIMEOUT);
+    return;
+  }
 
   gic = GNUNET_malloc (sizeof (struct GetIndexedContext));
   gic->h = h;
@@ -191,12 +181,12 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   msg.type = htons (GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET);
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CLIENT_transmit_and_get_response (client,
-							  &msg,
-							  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-							  GNUNET_YES,
-							  &handle_index_info,
-							  gic));
+                 GNUNET_CLIENT_transmit_and_get_response (client,
+                                                          &msg,
+                                                          GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+                                                          GNUNET_YES,
+                                                          &handle_index_info,
+                                                          gic));
 }
 
 /* end of fs_list_indexed.c */

@@ -76,10 +76,10 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (dht_handle != NULL)
-    {
-      GNUNET_DHT_disconnect (dht_handle);
-      dht_handle = NULL;
-    }
+  {
+    GNUNET_DHT_disconnect (dht_handle);
+    dht_handle = NULL;
+  }
 }
 
 /**
@@ -92,8 +92,7 @@ void
 message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (verbose)
-    fprintf (stderr, 
-	     _("PUT request sent!\n"));    
+    fprintf (stderr, _("PUT request sent!\n"));
   GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -113,40 +112,37 @@ run (void *cls,
   struct GNUNET_TIME_Relative timeout;
   struct GNUNET_TIME_Absolute expiration;
   GNUNET_HashCode key;
+
   cfg = c;
 
-  if ( (query_key == NULL) || (data == NULL) )
-    {
-      fprintf (stderr,
-	       _("Must provide KEY and DATA for DHT put!\n"));
-      ret = 1;
-      return;
-    }
+  if ((query_key == NULL) || (data == NULL))
+  {
+    fprintf (stderr, _("Must provide KEY and DATA for DHT put!\n"));
+    ret = 1;
+    return;
+  }
 
   dht_handle = GNUNET_DHT_connect (cfg, 1);
   if (dht_handle == NULL)
-    {
-      fprintf (stderr, 
-	       _("Could not connect to %s service!\n"),
-	       "DHT");
-      ret = 1;
-      return;
-    }
+  {
+    fprintf (stderr, _("Could not connect to %s service!\n"), "DHT");
+    ret = 1;
+    return;
+  }
   else if (verbose)
-    fprintf (stderr,
-	     _("Connected to %s service!\n"), "DHT");
+    fprintf (stderr, _("Connected to %s service!\n"), "DHT");
 
-  if (query_type == GNUNET_BLOCK_TYPE_ANY) /* Type of data not set */
+  if (query_type == GNUNET_BLOCK_TYPE_ANY)      /* Type of data not set */
     query_type = GNUNET_BLOCK_TYPE_TEST;
 
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
 
   timeout =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
   expiration =
-    GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
-                                      (GNUNET_TIME_UNIT_SECONDS,
-                                       expiration_seconds));
+      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
+                                        (GNUNET_TIME_UNIT_SECONDS,
+                                         expiration_seconds));
 
   if (verbose)
     fprintf (stderr, _("Issuing put request for `%s' with data `%s'!\n"),

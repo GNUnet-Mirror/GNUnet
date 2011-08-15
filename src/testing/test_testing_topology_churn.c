@@ -79,20 +79,19 @@ void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
 #endif
-      if (ok == 0)
-        ok = 666;
-    }
+    if (ok == 0)
+      ok = 666;
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All peers successfully shut down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
 #endif
-    }
+  }
 }
 
 static void
@@ -123,14 +122,15 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *msg = cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "End badly was called (%s)... stopping daemons.\n", msg);
 
   if (pg != NULL)
-    {
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-      ok = 7331;                /* Opposite of leet */
-    }
+  {
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+    ok = 7331;                  /* Opposite of leet */
+  }
   else
     ok = 401;                   /* Never got peers started */
 
@@ -154,18 +154,18 @@ void
 churn_callback (void *cls, const char *emsg)
 {
   if (emsg == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Successfully churned peers!\n",
-                  emsg);
-      GNUNET_SCHEDULER_add_now (churn_ctx.next_task, NULL);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Successfully churned peers!\n",
+                emsg);
+    GNUNET_SCHEDULER_add_now (churn_ctx.next_task, NULL);
+  }
   else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Failed to churn peers with error `%s'\n", emsg);
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to churn peers with error `%s'\n", emsg);
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+  }
 }
 
 
@@ -204,11 +204,11 @@ peers_started_callback (void *cls,
                         struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to start daemon with error: `%s'\n", emsg);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to start daemon with error: `%s'\n", emsg);
+    return;
+  }
   GNUNET_assert (id != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %llu out of %llu\n",
@@ -216,21 +216,21 @@ peers_started_callback (void *cls,
 #endif
   peers_left--;
   if (peers_left == 0)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All %d daemons started, now testing churn!\n", num_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "All %d daemons started, now testing churn!\n", num_peers);
 #endif
-      GNUNET_SCHEDULER_cancel (die_task);
-      /* Set up task in case topology creation doesn't finish
-       * within a reasonable amount of time */
-      die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                               (GNUNET_TIME_UNIT_MINUTES, 5),
-                                               &end_badly,
-                                               "from peers_started_callback");
-      churn_peers_off ();
-      ok = 0;
-    }
+    GNUNET_SCHEDULER_cancel (die_task);
+    /* Set up task in case topology creation doesn't finish
+     * within a reasonable amount of time */
+    die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                             (GNUNET_TIME_UNIT_MINUTES, 5),
+                                             &end_badly,
+                                             "from peers_started_callback");
+    churn_peers_off ();
+    ok = 0;
+  }
 }
 
 
@@ -249,10 +249,10 @@ run (void *cls,
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
                                              &test_directory))
-    {
-      ok = 404;
-      return;
-    }
+  {
+    ok = 404;
+    return;
+  }
 
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
@@ -293,6 +293,7 @@ static int
 check ()
 {
   int ret;
+
   char *const argv[] = { "test-testing-topology-churn",
     "-c",
     "test_testing_data_topology_churn.conf",
@@ -308,11 +309,11 @@ check ()
                             argv, "test-testing-topology-churn", "nohelp",
                             options, &run, &ok);
   if (ret != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "`test-testing-topology-churn': Failed with error code %d\n",
-                  ret);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "`test-testing-topology-churn': Failed with error code %d\n",
+                ret);
+  }
 
   return ok;
 }
@@ -336,14 +337,13 @@ main (int argc, char *argv[])
    * of by the testing framework.
    */
   if (test_directory != NULL)
+  {
+    if (GNUNET_DISK_directory_remove (test_directory) != GNUNET_OK)
     {
-      if (GNUNET_DISK_directory_remove (test_directory) != GNUNET_OK)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      "Failed to remove testing directory %s\n",
-                      test_directory);
-        }
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Failed to remove testing directory %s\n", test_directory);
     }
+  }
 
   return ret;
 }

@@ -52,7 +52,7 @@ static uLong crc_table[256];
  * with the ccorrect final value.  Thus, it is safe to call
  * even on a table that someone else is using concurrently.
  */
-static void 
+static void
 crc_init ()
 {
   static int once;
@@ -64,12 +64,12 @@ crc_init ()
   once = 1;
   crc_table[0] = 0;
   for (i = 128; i; i >>= 1)
-    {
-      h = (h >> 1) ^ ((h & 1) ? POLYNOMIAL : 0);
-      /* h is now crc_table[i] */
-      for (j = 0; j < 256; j += 2 * i)
-        crc_table[i + j] = crc_table[j] ^ h;
-    }
+  {
+    h = (h >> 1) ^ ((h & 1) ? POLYNOMIAL : 0);
+    /* h is now crc_table[i] */
+    for (j = 0; j < 256; j += 2 * i)
+      crc_table[i + j] = crc_table[j] ^ h;
+  }
 }
 
 /*
@@ -105,6 +105,7 @@ int32_t
 GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
 {
   uLong crc;
+
   crc = crc32 (0L, Z_NULL, 0);
   crc = crc32 (crc, (char *) buf, len);
   return crc;

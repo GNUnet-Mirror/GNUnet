@@ -74,29 +74,25 @@ static unsigned int result_count;
 static int ret;
 
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (dht_handle != NULL)
-    {
-      GNUNET_DHT_disconnect (dht_handle);
-      dht_handle = NULL;
-    }
-  fprintf (stderr,
-	   _("Found %u peers\n"),
-	   result_count);
+  {
+    GNUNET_DHT_disconnect (dht_handle);
+    dht_handle = NULL;
+  }
+  fprintf (stderr, _("Found %u peers\n"), result_count);
 }
 
 
 static void
-cleanup_task (void *cls, 
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (find_peer_handle != NULL)
-    {
-      GNUNET_DHT_find_peer_stop (find_peer_handle);
-      find_peer_handle = NULL;
-    }
+  {
+    GNUNET_DHT_find_peer_stop (find_peer_handle);
+    find_peer_handle = NULL;
+  }
   GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -107,20 +103,17 @@ cleanup_task (void *cls,
  * @param cls closure (NULL)
  * @param hello the response message, a HELLO
  */
-static void 
-find_peer_processor (void *cls,
-		     const struct GNUNET_HELLO_Message *hello)
+static void
+find_peer_processor (void *cls, const struct GNUNET_HELLO_Message *hello)
 {
   struct GNUNET_PeerIdentity peer;
 
-  if (GNUNET_OK == GNUNET_HELLO_get_id(hello, &peer))
-    {
-      result_count++;
-      if (verbose)
-	fprintf (stderr,
-		 _("Found peer `%s'\n"),
-		 GNUNET_i2s (&peer));
-    }
+  if (GNUNET_OK == GNUNET_HELLO_get_id (hello, &peer))
+  {
+    result_count++;
+    if (verbose)
+      fprintf (stderr, _("Found peer `%s'\n"), GNUNET_i2s (&peer));
+  }
 }
 
 
@@ -139,32 +132,33 @@ run (void *cls,
 {
   struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode key;
+
   cfg = c;
 
   if (query_key == NULL)
-    {
-      if (verbose)
-        fprintf (stderr, "Must provide key for DHT GET!\n");
-      ret = 1;
-      return;
-    }
+  {
+    if (verbose)
+      fprintf (stderr, "Must provide key for DHT GET!\n");
+    ret = 1;
+    return;
+  }
 
   dht_handle = GNUNET_DHT_connect (cfg, 1);
 
   if (dht_handle == NULL)
-    {
-      if (verbose)
-        fprintf (stderr, "Couldn't connect to DHT service!\n");
-      ret = 1;
-      return;
-    }
+  {
+    if (verbose)
+      fprintf (stderr, "Couldn't connect to DHT service!\n");
+    ret = 1;
+    return;
+  }
   else if (verbose)
     fprintf (stderr, "Connected to DHT service!\n");
 
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
 
   timeout =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
   absolute_timeout = GNUNET_TIME_relative_to_absolute (timeout);
 
   if (verbose)
@@ -173,17 +167,15 @@ run (void *cls,
   find_peer_handle = GNUNET_DHT_find_peer_start (dht_handle,
                                                  timeout,
                                                  &key,
-						 GNUNET_DHT_RO_NONE,
-                                                 &find_peer_processor,
-                                                 NULL);
+                                                 GNUNET_DHT_RO_NONE,
+                                                 &find_peer_processor, NULL);
   if (NULL == find_peer_handle)
-    {
-      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-      return;
-    }
+  {
+    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    return;
+  }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-				(absolute_timeout),
-				&cleanup_task, NULL);
+                                (absolute_timeout), &cleanup_task, NULL);
 }
 
 

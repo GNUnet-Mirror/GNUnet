@@ -13,8 +13,7 @@
  * @return PID of the started process, -1 on error
  */
 static struct GNUNET_OS_Process *
-do_start_process (const int *lsocks,
-		  const char *first_arg, ...)
+do_start_process (const int *lsocks, const char *first_arg, ...)
 {
   va_list ap;
   char **argv;
@@ -34,24 +33,24 @@ do_start_process (const int *lsocks,
   do
     {
 /* *INDENT-ON* */
-      rpos = arg;
-      while ('\0' != *rpos)
-	{
-	  if (' ' == *rpos)
-	    {
-	      if (last != NULL)
-		argv_size++;
-	      last = NULL;
-	      while (' ' == *rpos)
-		rpos++;
-	    } 
-	  if ( (last == NULL) && (*rpos != '\0') )
-	    last = rpos;
-	  if (*rpos != '\0')
-	    rpos++;
-	}      
+  rpos = arg;
+  while ('\0' != *rpos)
+  {
+    if (' ' == *rpos)
+    {
       if (last != NULL)
-	argv_size++;
+        argv_size++;
+      last = NULL;
+      while (' ' == *rpos)
+        rpos++;
+    }
+    if ((last == NULL) && (*rpos != '\0'))
+      last = rpos;
+    if (*rpos != '\0')
+      rpos++;
+  }
+  if (last != NULL)
+    argv_size++;
 /* *INDENT-OFF* */
     }
   while (NULL != (arg = (va_arg (ap, const char*))));
@@ -67,29 +66,29 @@ do_start_process (const int *lsocks,
   do
     {
 /* *INDENT-ON* */
-      cp = GNUNET_strdup (arg);
-      pos = cp;
-      while ('\0' != *pos)
-	{
-	  if (' ' == *pos)
-	    {
-	      *pos = '\0';
-	      if (last != NULL)
-		argv[argv_size++] = GNUNET_strdup (last);
-	      last = NULL;
-	      pos++;
-	      while (' ' == *pos)
-		pos++;
-	    }
-	  if ( (last == NULL) && (*pos != '\0') ) 
-	    last = pos;
-	  if (*pos != '\0')
-	    pos++;
-	}
+  cp = GNUNET_strdup (arg);
+  pos = cp;
+  while ('\0' != *pos)
+  {
+    if (' ' == *pos)
+    {
+      *pos = '\0';
       if (last != NULL)
-	argv[argv_size++] = GNUNET_strdup (last);
+        argv[argv_size++] = GNUNET_strdup (last);
       last = NULL;
-      GNUNET_free (cp);
+      pos++;
+      while (' ' == *pos)
+        pos++;
+    }
+    if ((last == NULL) && (*pos != '\0'))
+      last = pos;
+    if (*pos != '\0')
+      pos++;
+  }
+  if (last != NULL)
+    argv[argv_size++] = GNUNET_strdup (last);
+  last = NULL;
+  GNUNET_free (cp);
 /* *INDENT-OFF* */
     }
   while (NULL != (arg = (va_arg (ap, const char*))));

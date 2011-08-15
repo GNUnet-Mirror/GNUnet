@@ -61,6 +61,13 @@ struct GNUNET_HELLO_Message;
  *         the target buffer was not big enough.
  */
 size_t
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 GNUNET_HELLO_add_address (const char *tname,
                           struct GNUNET_TIME_Absolute expiration,
                           const void *addr,
@@ -79,8 +86,8 @@ GNUNET_HELLO_add_address (const char *tname,
  *         end of the iteration.
  */
 typedef size_t
-  (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
-                                               size_t max, void *buf);
+    (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
+                                                 size_t max, void *buf);
 
 
 /**
@@ -136,12 +143,11 @@ struct GNUNET_HELLO_Message *GNUNET_HELLO_merge (const struct
  *         zero if the some addresses with expirations >= now
  *         do not match at all
  */
-struct GNUNET_TIME_Absolute 
+struct GNUNET_TIME_Absolute
 GNUNET_HELLO_equals (const struct
-		     GNUNET_HELLO_Message *h1,
-		     const struct
-		     GNUNET_HELLO_Message *h2,
-		     struct GNUNET_TIME_Absolute now);
+                     GNUNET_HELLO_Message *h1,
+                     const struct
+                     GNUNET_HELLO_Message *h2, struct GNUNET_TIME_Absolute now);
 
 
 /**
@@ -157,11 +163,10 @@ GNUNET_HELLO_equals (const struct
  *         GNUNET_SYSERR to stop iterating (but keep current address)
  */
 typedef int
-  (*GNUNET_HELLO_AddressIterator) (void *cls,
-                                   const char *tname,
-                                   struct GNUNET_TIME_Absolute expiration,
-                                   const void *addr, 
-				   uint16_t addrlen);
+    (*GNUNET_HELLO_AddressIterator) (void *cls,
+                                     const char *tname,
+                                     struct GNUNET_TIME_Absolute expiration,
+                                     const void *addr, uint16_t addrlen);
 
 
 /**
@@ -182,8 +187,7 @@ struct GNUNET_HELLO_Message *GNUNET_HELLO_iterate_addresses (const struct
                                                              int
                                                              return_modified,
                                                              GNUNET_HELLO_AddressIterator
-                                                             it,
-                                                             void *it_cls);
+                                                             it, void *it_cls);
 
 
 /**
@@ -230,7 +234,7 @@ GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
  */
 int
 GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
-		     struct GNUNET_PeerIdentity *peer);
+                     struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -241,8 +245,9 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
  *
  * @return header or NULL if the HELLO was malformed
  */
-struct GNUNET_MessageHeader *
-GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
+struct GNUNET_MessageHeader *GNUNET_HELLO_get_header (struct
+                                                      GNUNET_HELLO_Message
+                                                      *hello);
 
 /* ifndef GNUNET_HELLO_LIB_H */
 #endif

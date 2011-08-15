@@ -45,19 +45,17 @@
 
 /**
  * How long should our test-content live?
- */ 
+ */
 #define LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
 
 static int
-mycleaner(void *cls,
-	  struct GNUNET_FS_FileInformation *fi,
-	  uint64_t length,
-	  struct GNUNET_CONTAINER_MetaData *meta,
-	  struct GNUNET_FS_Uri **uri,
-	  struct GNUNET_FS_BlockOptions *bo,
-	  int *do_index,
-	  void **client_info)
+mycleaner (void *cls,
+           struct GNUNET_FS_FileInformation *fi,
+           uint64_t length,
+           struct GNUNET_CONTAINER_MetaData *meta,
+           struct GNUNET_FS_Uri **uri,
+           struct GNUNET_FS_BlockOptions *bo, int *do_index, void **client_info)
 {
   return GNUNET_OK;
 }
@@ -66,8 +64,7 @@ mycleaner(void *cls,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const char *keywords[] = {
     "down_foo",
@@ -86,17 +83,17 @@ run (void *cls,
   struct GNUNET_FS_BlockOptions bo;
 
   fs = GNUNET_FS_start (cfg, "test-fs-file-information", NULL, NULL,
-			GNUNET_FS_FLAGS_NONE,
-			GNUNET_FS_OPTIONS_END);
+                        GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   fn1 = GNUNET_DISK_mktemp ("gnunet-file_information-test-dst");
   buf = GNUNET_malloc (FILESIZE);
   for (i = 0; i < FILESIZE; i++)
     buf[i] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 256);
   GNUNET_assert (FILESIZE ==
-		 GNUNET_DISK_fn_write (fn1,
-				       buf,
-				       FILESIZE,
-				       GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE));
+                 GNUNET_DISK_fn_write (fn1,
+                                       buf,
+                                       FILESIZE,
+                                       GNUNET_DISK_PERM_USER_READ |
+                                       GNUNET_DISK_PERM_USER_WRITE));
   GNUNET_free (buf);
 
   fn2 = GNUNET_DISK_mktemp ("gnunet-file_information-test-dst");
@@ -104,48 +101,41 @@ run (void *cls,
   for (i = 0; i < FILESIZE; i++)
     buf[i] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 256);
   GNUNET_assert (FILESIZE ==
-		 GNUNET_DISK_fn_write (fn2,
-				       buf,
-				       FILESIZE,
-				       GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE));
+                 GNUNET_DISK_fn_write (fn2,
+                                       buf,
+                                       FILESIZE,
+                                       GNUNET_DISK_PERM_USER_READ |
+                                       GNUNET_DISK_PERM_USER_WRITE));
   GNUNET_free (buf);
 
   meta = GNUNET_CONTAINER_meta_data_create ();
-  kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords); 
+  kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
   bo.content_priority = 42;
   bo.anonymity_level = 1;
   bo.replication_level = 0;
-  bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME); 
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME);
   fi1 = GNUNET_FS_file_information_create_from_file (fs,
-						     "file_information-context1",
-						     fn1,
-						     kuri,
-						     meta,
-						     GNUNET_YES,
-						     &bo);
+                                                     "file_information-context1",
+                                                     fn1,
+                                                     kuri,
+                                                     meta, GNUNET_YES, &bo);
   GNUNET_assert (fi1 != NULL);
   fi2 = GNUNET_FS_file_information_create_from_file (fs,
-						     "file_information-context2",
-						     fn2,
-						     kuri,
-						     meta,
-						     GNUNET_YES,
-						     &bo);
+                                                     "file_information-context2",
+                                                     fn2,
+                                                     kuri,
+                                                     meta, GNUNET_YES, &bo);
   GNUNET_assert (fi2 != NULL);
   fidir = GNUNET_FS_file_information_create_empty_directory (fs,
-							     "file_information-context-dir",
-							     kuri,
-							     meta,
-							     &bo);
+                                                             "file_information-context-dir",
+                                                             kuri, meta, &bo);
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi1));
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi2));
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fidir);
   /* FIXME: test more of API! */
-  GNUNET_FS_file_information_destroy (fidir,
-				      &mycleaner,
-				      NULL);
+  GNUNET_FS_file_information_destroy (fidir, &mycleaner, NULL);
   GNUNET_DISK_directory_remove (fn1);
   GNUNET_DISK_directory_remove (fn2);
   GNUNET_free_non_null (fn1);
@@ -164,45 +154,47 @@ testThumbnail ()
   size_t size;
   char *date;
 
-  ex = EXTRACTOR_plugin_add_config (NULL, "thumbnailgtk", EXTRACTOR_OPTION_DEFAULT_POLICY);
+  ex = EXTRACTOR_plugin_add_config (NULL, "thumbnailgtk",
+                                    EXTRACTOR_OPTION_DEFAULT_POLICY);
   if (ex == NULL)
-    {
-      fprintf (stderr,
-               "Test incomplete, have no GTK thumbnail extractor available.\n");
-      return 0;                 /* can not test, no thumbnailer */
-    }
-  ex = EXTRACTOR_plugin_add_config (ex, "mime", EXTRACTOR_OPTION_DEFAULT_POLICY);
+  {
+    fprintf (stderr,
+             "Test incomplete, have no GTK thumbnail extractor available.\n");
+    return 0;                   /* can not test, no thumbnailer */
+  }
+  ex = EXTRACTOR_plugin_add_config (ex, "mime",
+                                    EXTRACTOR_OPTION_DEFAULT_POLICY);
   m = GNUNET_CONTAINER_meta_data_create ();
   if (3 != GNUNET_FS_meta_data_extract_from_file (m,
-						  "test_fs_file_information_meta_data_image.jpg",
-						  ex))
-    {
-      GNUNET_break (0);
-      EXTRACTOR_plugin_remove_all (ex);
-      GNUNET_CONTAINER_meta_data_destroy (m);
-      return 1;
-    }
+                                                  "test_fs_file_information_meta_data_image.jpg",
+                                                  ex))
+  {
+    GNUNET_break (0);
+    EXTRACTOR_plugin_remove_all (ex);
+    GNUNET_CONTAINER_meta_data_destroy (m);
+    return 1;
+  }
   EXTRACTOR_plugin_remove_all (ex);
   d = GNUNET_CONTAINER_meta_data_duplicate (m);
   GNUNET_CONTAINER_meta_data_destroy (m);
   thumb = NULL;
   size = GNUNET_CONTAINER_meta_data_get_thumbnail (d, &thumb);
   if (size == 0)
-    {
-      GNUNET_break (0);
-      GNUNET_CONTAINER_meta_data_destroy (d);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_CONTAINER_meta_data_destroy (d);
+    return 1;
+  }
   GNUNET_free (thumb);
   GNUNET_CONTAINER_meta_data_add_publication_date (d);
   date = GNUNET_CONTAINER_meta_data_get_by_type (d,
                                                  EXTRACTOR_METATYPE_PUBLICATION_DATE);
   if (date == NULL)
-    {
-      GNUNET_break (0);
-      GNUNET_CONTAINER_meta_data_destroy (d);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_CONTAINER_meta_data_destroy (d);
+    return 1;
+  }
   GNUNET_free (date);
   GNUNET_CONTAINER_meta_data_destroy (d);
   return 0;
@@ -213,7 +205,7 @@ testThumbnail ()
 int
 main (int argc, char *argv[])
 {
-  char *const argvx[] = { 
+  char *const argvx[] = {
     "test-fs-file_information",
     "-c",
     "test_fs_file_information_data.conf",
@@ -226,18 +218,18 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_log_setup ("test_fs_file_information", 
+  GNUNET_log_setup ("test_fs_file_information",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING",
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   if (0 != testThumbnail ())
     return 1;
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
                       argvx, "test-fs-file_information",
-		      "nohelp", options, &run, NULL);
+                      "nohelp", options, &run, NULL);
   return 0;
 }
 

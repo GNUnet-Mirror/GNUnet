@@ -42,10 +42,10 @@ test (int number)
   memset (&h1, number, sizeof (GNUNET_HashCode));
   GNUNET_CRYPTO_hash_to_enc (&h1, &enc);
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char *) &enc, &h2))
-    {
-      printf ("enc2hash failed!\n");
-      return 1;
-    }
+  {
+    printf ("enc2hash failed!\n");
+    return 1;
+  }
   if (0 != memcmp (&h1, &h2, sizeof (GNUNET_HashCode)))
     return 1;
   return 0;
@@ -55,6 +55,7 @@ static int
 testEncoding ()
 {
   int i;
+
   for (i = 0; i < 255; i++)
     if (0 != test (i))
       return 1;
@@ -123,9 +124,8 @@ static void
 file_hasher (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (NULL !=
-		 GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					  FILENAME, 1024,
-					  &finished_task, cls));
+                 GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                          FILENAME, 1024, &finished_task, cls));
 }
 
 

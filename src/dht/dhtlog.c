@@ -47,26 +47,26 @@ GNUNET_DHTLOG_connect (const struct GNUNET_CONFIGURATION_Handle *c)
   struct GNUNET_DHTLOG_Handle *api;
   char *plugin_name;
 
-  plugin = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Plugin));
+  plugin = GNUNET_malloc (sizeof (struct GNUNET_DHTLOG_Plugin));
   plugin->cfg = c;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (c,
                                              "DHTLOG", "PLUGIN", &plugin_name))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Loading `%s' dhtlog plugin\n"), plugin_name);
-      GNUNET_asprintf (&libname, "libgnunet_plugin_dhtlog_%s", plugin_name);
-      GNUNET_PLUGIN_load (libname, plugin);
-    }
+    GNUNET_asprintf (&libname, "libgnunet_plugin_dhtlog_%s", plugin_name);
+    GNUNET_PLUGIN_load (libname, plugin);
+  }
 
   if (plugin->dhtlog_api == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to load dhtlog plugin for `%s'\n"), plugin_name);
-      GNUNET_free (plugin_name);
-      GNUNET_free (plugin);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to load dhtlog plugin for `%s'\n"), plugin_name);
+    GNUNET_free (plugin_name);
+    GNUNET_free (plugin);
+    return NULL;
+  }
 
   api = plugin->dhtlog_api;
   GNUNET_free (plugin_name);
@@ -81,14 +81,13 @@ void
 GNUNET_DHTLOG_disconnect (struct GNUNET_DHTLOG_Handle *api)
 {
 #if DEBUG_DHTLOG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MySQL DHT Logger: database shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MySQL DHT Logger: database shutdown\n");
 #endif
   if (api != NULL)
-    {
-      GNUNET_PLUGIN_unload(libname, api);
-    }
-  GNUNET_free_non_null(libname);
+  {
+    GNUNET_PLUGIN_unload (libname, api);
+  }
+  GNUNET_free_non_null (libname);
 }
 
 /* end of dhtlog.c */

@@ -152,11 +152,10 @@ struct SendCallbackContext
  * @param hash set to uid (extended with zeros)
  */
 static void
-hash_from_uid (uint32_t uid,
-               GNUNET_HashCode *hash)
+hash_from_uid (uint32_t uid, GNUNET_HashCode * hash)
 {
-  memset (hash, 0, sizeof(GNUNET_HashCode));
-  *((uint32_t*)hash) = uid;
+  memset (hash, 0, sizeof (GNUNET_HashCode));
+  *((uint32_t *) hash) = uid;
 }
 
 /**
@@ -181,7 +180,7 @@ try_connect (struct GNUNET_DV_Handle *ret)
   return GNUNET_NO;
 }
 
-static void process_pending_message(struct GNUNET_DV_Handle *handle);
+static void process_pending_message (struct GNUNET_DV_Handle *handle);
 
 /**
  * Send complete, schedule next
@@ -193,10 +192,11 @@ static void
 finish (struct GNUNET_DV_Handle *handle, int code)
 {
   struct PendingMessages *pos = handle->current;
+
   handle->current = NULL;
   process_pending_message (handle);
 
-  GNUNET_free(pos->msg);
+  GNUNET_free (pos->msg);
   GNUNET_free (pos);
 }
 
@@ -218,31 +218,35 @@ transmit_pending (void *cls, size_t size, void *buf)
 
 #if DEBUG_DV
   if (handle->current != NULL)
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Transmit pending called with message type %d\n", ntohs(handle->current->msg->header.type));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "DV API: Transmit pending called with message type %d\n",
+                ntohs (handle->current->msg->header.type));
 #endif
 
   if (buf == NULL)
-    {
+  {
 #if DEBUG_DV
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Transmit pending FAILED!\n\n\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "DV API: Transmit pending FAILED!\n\n\n");
 #endif
-      finish(handle, GNUNET_SYSERR);
-      return 0;
-    }
+    finish (handle, GNUNET_SYSERR);
+    return 0;
+  }
   handle->th = NULL;
 
   ret = 0;
 
   if (handle->current != NULL)
   {
-    tsize = ntohs(handle->current->msg->header.size);
+    tsize = ntohs (handle->current->msg->header.size);
     if (size >= tsize)
     {
-      memcpy(buf, handle->current->msg, tsize);
+      memcpy (buf, handle->current->msg, tsize);
 #if DEBUG_DV
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: Copied %d bytes into buffer!\n\n\n", tsize);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "DV API: Copied %d bytes into buffer!\n\n\n", tsize);
 #endif
-      finish(handle, GNUNET_OK);
+      finish (handle, GNUNET_OK);
       return tsize;
     }
 
@@ -256,39 +260,44 @@ transmit_pending (void *cls, size_t size, void *buf)
  *
  * @param handle handle to the distance vector service
  */
-static void process_pending_message(struct GNUNET_DV_Handle *handle)
+static void
+process_pending_message (struct GNUNET_DV_Handle *handle)
 {
 
   if (handle->current != NULL)
     return;                     /* action already pending */
   if (GNUNET_YES != try_connect (handle))
-    {
-      finish (handle, GNUNET_SYSERR);
-      return;
-    }
+  {
+    finish (handle, GNUNET_SYSERR);
+    return;
+  }
 
   /* schedule next action */
   handle->current = handle->pending_list;
   if (NULL == handle->current)
-    {
-      return;
-    }
+  {
+    return;
+  }
   handle->pending_list = handle->pending_list->next;
   handle->current->next = NULL;
 
   if (NULL ==
       (handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                                         ntohs(handle->current->msg->header.size),
-                                                         handle->current->msg->timeout,
+                                                         ntohs
+                                                         (handle->current->
+                                                          msg->header.size),
+                                                         handle->current->
+                                                         msg->timeout,
                                                          GNUNET_YES,
-                                                         &transmit_pending, handle)))
-    {
+                                                         &transmit_pending,
+                                                         handle)))
+  {
 #if DEBUG_DV
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to transmit request to dv service.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to transmit request to dv service.\n");
 #endif
-      finish (handle, GNUNET_SYSERR);
-    }
+    finish (handle, GNUNET_SYSERR);
+  }
 }
 
 /**
@@ -297,31 +306,32 @@ static void process_pending_message(struct GNUNET_DV_Handle *handle)
  * @param handle handle to the specified DV api
  * @param msg the message to add to the list
  */
-static void add_pending(struct GNUNET_DV_Handle *handle, struct GNUNET_DV_SendMessage *msg)
+static void
+add_pending (struct GNUNET_DV_Handle *handle, struct GNUNET_DV_SendMessage *msg)
 {
   struct PendingMessages *new_message;
   struct PendingMessages *pos;
   struct PendingMessages *last;
 
-  new_message = GNUNET_malloc(sizeof(struct PendingMessages));
+  new_message = GNUNET_malloc (sizeof (struct PendingMessages));
   new_message->msg = msg;
 
   if (handle->pending_list != NULL)
+  {
+    pos = handle->pending_list;
+    while (pos != NULL)
     {
-      pos = handle->pending_list;
-      while(pos != NULL)
-        {
-          last = pos;
-          pos = pos->next;
-        }
-      last->next = new_message;
+      last = pos;
+      pos = pos->next;
     }
+    last->next = new_message;
+  }
   else
-    {
-      handle->pending_list = new_message;
-    }
+  {
+    handle->pending_list = new_message;
+  }
 
-  process_pending_message(handle);
+  process_pending_message (handle);
 }
 
 /**
@@ -331,8 +341,8 @@ static void add_pending(struct GNUNET_DV_Handle *handle, struct GNUNET_DV_SendMe
  * @param cls the handle to the DV API
  * @param msg the message that was received
  */
-void handle_message_receipt (void *cls,
-                             const struct GNUNET_MessageHeader * msg)
+void
+handle_message_receipt (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_DV_Handle *handle = cls;
   struct GNUNET_DV_MessageReceived *received_msg;
@@ -348,65 +358,75 @@ void handle_message_receipt (void *cls,
   if (msg == NULL)
   {
 #if DEBUG_DV_MESSAGES
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: connection closed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: connection closed\n");
 #endif
-    return; /* Connection closed? */
+    return;                     /* Connection closed? */
   }
 
-  GNUNET_assert((ntohs(msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE) || (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND_RESULT));
+  GNUNET_assert ((ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE)
+                 || (ntohs (msg->type) ==
+                     GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND_RESULT));
 
-  switch (ntohs(msg->type))
+  switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE:
-    if (ntohs(msg->size) < sizeof(struct GNUNET_DV_MessageReceived))
+    if (ntohs (msg->size) < sizeof (struct GNUNET_DV_MessageReceived))
       return;
 
-    received_msg = (struct GNUNET_DV_MessageReceived *)msg;
-    packed_msg_len = ntohl(received_msg->msg_len);
-    sender_address_len = ntohs(msg->size) - packed_msg_len - sizeof(struct GNUNET_DV_MessageReceived);
-    GNUNET_assert(sender_address_len > 0);
-    sender_address = GNUNET_malloc(sender_address_len);
-    memcpy(sender_address, &received_msg[1], sender_address_len);
-    packed_msg_start = (char *)&received_msg[1];
-    packed_msg = GNUNET_malloc(packed_msg_len);
-    memcpy(packed_msg, &packed_msg_start[sender_address_len], packed_msg_len);
+    received_msg = (struct GNUNET_DV_MessageReceived *) msg;
+    packed_msg_len = ntohl (received_msg->msg_len);
+    sender_address_len =
+        ntohs (msg->size) - packed_msg_len -
+        sizeof (struct GNUNET_DV_MessageReceived);
+    GNUNET_assert (sender_address_len > 0);
+    sender_address = GNUNET_malloc (sender_address_len);
+    memcpy (sender_address, &received_msg[1], sender_address_len);
+    packed_msg_start = (char *) &received_msg[1];
+    packed_msg = GNUNET_malloc (packed_msg_len);
+    memcpy (packed_msg, &packed_msg_start[sender_address_len], packed_msg_len);
 
 #if DEBUG_DV_MESSAGES
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: packed message type: %d or %d\n", ntohs(((struct GNUNET_MessageHeader *)packed_msg)->type), ((struct GNUNET_MessageHeader *)packed_msg)->type);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: message sender reported as %s\n", GNUNET_i2s(&received_msg->sender));
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: distance is %u\n", ntohl(received_msg->distance));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "DV_API receive: packed message type: %d or %d\n",
+                ntohs (((struct GNUNET_MessageHeader *) packed_msg)->type),
+                ((struct GNUNET_MessageHeader *) packed_msg)->type);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "DV_API receive: message sender reported as %s\n",
+                GNUNET_i2s (&received_msg->sender));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: distance is %u\n",
+                ntohl (received_msg->distance));
 #endif
 
-    handle->receive_handler(handle->receive_cls,
-                            &received_msg->sender,
-                            packed_msg,
-                            packed_msg_len,
-                            ntohl(received_msg->distance),
-                            sender_address,
-                            sender_address_len);
+    handle->receive_handler (handle->receive_cls,
+                             &received_msg->sender,
+                             packed_msg,
+                             packed_msg_len,
+                             ntohl (received_msg->distance),
+                             sender_address, sender_address_len);
 
-    GNUNET_free(sender_address);
+    GNUNET_free (sender_address);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND_RESULT:
-    if (ntohs(msg->size) < sizeof(struct GNUNET_DV_SendResultMessage))
+    if (ntohs (msg->size) < sizeof (struct GNUNET_DV_SendResultMessage))
       return;
 
-    send_result_msg = (struct GNUNET_DV_SendResultMessage *)msg;
-    hash_from_uid(ntohl(send_result_msg->uid), &uidhash);
-    send_ctx = GNUNET_CONTAINER_multihashmap_get(handle->send_callbacks, &uidhash);
+    send_result_msg = (struct GNUNET_DV_SendResultMessage *) msg;
+    hash_from_uid (ntohl (send_result_msg->uid), &uidhash);
+    send_ctx =
+        GNUNET_CONTAINER_multihashmap_get (handle->send_callbacks, &uidhash);
 
     if ((send_ctx != NULL) && (send_ctx->cont != NULL))
+    {
+      if (ntohl (send_result_msg->result) == 0)
       {
-        if (ntohl(send_result_msg->result) == 0)
-          {
-            send_ctx->cont(send_ctx->cont_cls, &send_ctx->target, GNUNET_OK);
-          }
-        else
-          {
-            send_ctx->cont(send_ctx->cont_cls, &send_ctx->target, GNUNET_SYSERR);
-          }
+        send_ctx->cont (send_ctx->cont_cls, &send_ctx->target, GNUNET_OK);
       }
-    GNUNET_free_non_null(send_ctx);
+      else
+      {
+        send_ctx->cont (send_ctx->cont_cls, &send_ctx->target, GNUNET_SYSERR);
+      }
+    }
+    GNUNET_free_non_null (send_ctx);
     break;
   default:
     break;
@@ -432,48 +452,52 @@ void handle_message_receipt (void *cls,
  * @param cont_cls closure for continuation
  *
  */
-int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
-                    const struct GNUNET_PeerIdentity *target,
-                    const char *msgbuf,
-                    size_t msgbuf_size,
-                    unsigned int priority,
-                    struct GNUNET_TIME_Relative timeout,
-                    const void *addr,
-                    size_t addrlen,
-                    GNUNET_TRANSPORT_TransmitContinuation
-                    cont, void *cont_cls)
+int
+GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
+                const struct GNUNET_PeerIdentity *target,
+                const char *msgbuf,
+                size_t msgbuf_size,
+                unsigned int priority,
+                struct GNUNET_TIME_Relative timeout,
+                const void *addr,
+                size_t addrlen,
+                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct GNUNET_DV_SendMessage *msg;
   struct SendCallbackContext *send_ctx;
   char *end_of_message;
   GNUNET_HashCode uidhash;
   int msize;
+
 #if DEBUG_DV_MESSAGES
-  dv_handle->uid_gen = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, UINT32_MAX);
+  dv_handle->uid_gen =
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, UINT32_MAX);
 #else
   dv_handle->uid_gen++;
 #endif
 
-  msize = sizeof(struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size;
-  msg = GNUNET_malloc(msize);
-  msg->header.size = htons(msize);
-  msg->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
-  memcpy(&msg->target, target, sizeof(struct GNUNET_PeerIdentity));
-  msg->priority = htonl(priority);
+  msize = sizeof (struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size;
+  msg = GNUNET_malloc (msize);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
+  memcpy (&msg->target, target, sizeof (struct GNUNET_PeerIdentity));
+  msg->priority = htonl (priority);
   msg->timeout = timeout;
-  msg->addrlen = htonl(addrlen);
-  msg->uid = htonl(dv_handle->uid_gen);
-  memcpy(&msg[1], addr, addrlen);
-  end_of_message = (char *)&msg[1];
+  msg->addrlen = htonl (addrlen);
+  msg->uid = htonl (dv_handle->uid_gen);
+  memcpy (&msg[1], addr, addrlen);
+  end_of_message = (char *) &msg[1];
   end_of_message = &end_of_message[addrlen];
-  memcpy(end_of_message, msgbuf, msgbuf_size);
-  add_pending(dv_handle, msg);
-  send_ctx = GNUNET_malloc(sizeof(struct SendCallbackContext));
+  memcpy (end_of_message, msgbuf, msgbuf_size);
+  add_pending (dv_handle, msg);
+  send_ctx = GNUNET_malloc (sizeof (struct SendCallbackContext));
   send_ctx->cont = cont;
   send_ctx->cont_cls = cont_cls;
-  memcpy(&send_ctx->target, target, sizeof(struct GNUNET_PeerIdentity));
-  hash_from_uid(dv_handle->uid_gen, &uidhash);
-  GNUNET_CONTAINER_multihashmap_put(dv_handle->send_callbacks, &uidhash, send_ctx, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+  memcpy (&send_ctx->target, target, sizeof (struct GNUNET_PeerIdentity));
+  hash_from_uid (dv_handle->uid_gen, &uidhash);
+  GNUNET_CONTAINER_multihashmap_put (dv_handle->send_callbacks, &uidhash,
+                                     send_ctx,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 
   return GNUNET_OK;
 }
@@ -494,23 +518,25 @@ transmit_start (void *cls, size_t size, void *buf)
   struct StartContext *start_context = cls;
   struct GNUNET_DV_Handle *handle = start_context->handle;
   size_t tsize;
+
 #if DEBUG_DV
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DV API: sending start request to service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "DV API: sending start request to service\n");
 #endif
   if (buf == NULL)
-    {
-      GNUNET_free(start_context->message);
-      GNUNET_free(start_context);
-      GNUNET_DV_disconnect(handle);
-      return 0;
-    }
+  {
+    GNUNET_free (start_context->message);
+    GNUNET_free (start_context);
+    GNUNET_DV_disconnect (handle);
+    return 0;
+  }
 
-  tsize = ntohs(start_context->message->size);
+  tsize = ntohs (start_context->message->size);
   if (size >= tsize)
   {
-    memcpy(buf, start_context->message, tsize);
-    GNUNET_free(start_context->message);
-    GNUNET_free(start_context);
+    memcpy (buf, start_context->message, tsize);
+    GNUNET_free (start_context->message);
+    GNUNET_free (start_context);
     GNUNET_CLIENT_receive (handle->client,
                            &handle_message_receipt,
                            handle, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -533,42 +559,44 @@ transmit_start (void *cls, size_t size, void *buf)
  */
 struct GNUNET_DV_Handle *
 GNUNET_DV_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                  GNUNET_DV_MessageReceivedHandler receive_handler,
-                  void *receive_handler_cls)
+                   GNUNET_DV_MessageReceivedHandler receive_handler,
+                   void *receive_handler_cls)
 {
   struct GNUNET_DV_Handle *handle;
   struct GNUNET_MessageHeader *start_message;
   struct StartContext *start_context;
-  handle = GNUNET_malloc(sizeof(struct GNUNET_DV_Handle));
+
+  handle = GNUNET_malloc (sizeof (struct GNUNET_DV_Handle));
 
   handle->cfg = cfg;
   handle->pending_list = NULL;
   handle->current = NULL;
   handle->th = NULL;
-  handle->client = GNUNET_CLIENT_connect("dv", cfg);
+  handle->client = GNUNET_CLIENT_connect ("dv", cfg);
   handle->receive_handler = receive_handler;
   handle->receive_cls = receive_handler_cls;
 
   if (handle->client == NULL)
-    {
-      GNUNET_free(handle);
-      return NULL;
-    }
+  {
+    GNUNET_free (handle);
+    return NULL;
+  }
 
-  start_message = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
-  start_message->size = htons(sizeof(struct GNUNET_MessageHeader));
-  start_message->type = htons(GNUNET_MESSAGE_TYPE_DV_START);
+  start_message = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader));
+  start_message->size = htons (sizeof (struct GNUNET_MessageHeader));
+  start_message->type = htons (GNUNET_MESSAGE_TYPE_DV_START);
 
-  start_context = GNUNET_malloc(sizeof(struct StartContext));
+  start_context = GNUNET_malloc (sizeof (struct StartContext));
   start_context->handle = handle;
   start_context->message = start_message;
   GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                       sizeof(struct GNUNET_MessageHeader),
-                                       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
-                                       GNUNET_YES,
-                                       &transmit_start, start_context);
+                                       sizeof (struct GNUNET_MessageHeader),
+                                       GNUNET_TIME_relative_multiply
+                                       (GNUNET_TIME_UNIT_SECONDS, 60),
+                                       GNUNET_YES, &transmit_start,
+                                       start_context);
 
-  handle->send_callbacks = GNUNET_CONTAINER_multihashmap_create(100);
+  handle->send_callbacks = GNUNET_CONTAINER_multihashmap_create (100);
 
   return handle;
 }
@@ -578,29 +606,30 @@ GNUNET_DV_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param handle the current handle to the service to disconnect
  */
-void GNUNET_DV_disconnect(struct GNUNET_DV_Handle *handle)
+void
+GNUNET_DV_disconnect (struct GNUNET_DV_Handle *handle)
 {
   struct PendingMessages *pos;
 
-  GNUNET_assert(handle != NULL);
+  GNUNET_assert (handle != NULL);
 
-  if (handle->th != NULL) /* We have a live transmit request in the Aether */
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
-      handle->th = NULL;
-    }
-  if (handle->current != NULL) /* We are trying to send something now, clean it up */
-    GNUNET_free(handle->current);
-  while (NULL != (pos = handle->pending_list)) /* Remove all pending sends from the list */
-    {
-      handle->pending_list = pos->next;
-      GNUNET_free(pos);
-    }
-  if (handle->client != NULL) /* Finally, disconnect from the service */
-    {
-      GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
-      handle->client = NULL;
-    }
+  if (handle->th != NULL)       /* We have a live transmit request in the Aether */
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
+    handle->th = NULL;
+  }
+  if (handle->current != NULL)  /* We are trying to send something now, clean it up */
+    GNUNET_free (handle->current);
+  while (NULL != (pos = handle->pending_list))  /* Remove all pending sends from the list */
+  {
+    handle->pending_list = pos->next;
+    GNUNET_free (pos);
+  }
+  if (handle->client != NULL)   /* Finally, disconnect from the service */
+  {
+    GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
+    handle->client = NULL;
+  }
 
   GNUNET_free (handle);
 }

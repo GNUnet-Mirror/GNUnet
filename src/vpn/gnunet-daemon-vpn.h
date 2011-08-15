@@ -35,24 +35,25 @@
  * At the moment this means "inventing" and IPv6-Address for .gnunet-services and
  * doing nothing for "real" services.
  */
-void
-process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc);
+void process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-void send_icmp6_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-void send_icmp4_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+void send_icmp6_response (void *cls,
+                          const struct GNUNET_SCHEDULER_TaskContext *tc);
+void send_icmp4_response (void *cls,
+                          const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 size_t
-send_udp_service (void *cls, size_t size, void *buf);
+                      send_udp_service (void *cls, size_t size, void *buf);
 
-GNUNET_HashCode* address6_mapping_exists(unsigned char addr[]);
-GNUNET_HashCode* address4_mapping_exists(uint32_t addr);
+GNUNET_HashCode *address6_mapping_exists (unsigned char addr[]);
+GNUNET_HashCode *address4_mapping_exists (uint32_t addr);
 
 unsigned int port_in_ports (uint64_t ports, uint16_t port);
 
 void
 send_pkt_to_peer (void *cls,
-		  const struct GNUNET_PeerIdentity *peer,
-		  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+                  const struct GNUNET_PeerIdentity *peer,
+                  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
 /**
  * The configuration to use
@@ -67,22 +68,23 @@ extern struct GNUNET_MESH_Handle *mesh_handle;
 /**
  * The hashmap containing the mappings from ipv6-addresses to gnunet-descriptors
  */
-extern struct GNUNET_CONTAINER_MultiHashMap* hashmap;
+extern struct GNUNET_CONTAINER_MultiHashMap *hashmap;
 
-struct map_entry {
+struct map_entry
+{
     /** The description of the service (used for service) */
-    struct GNUNET_vpn_service_descriptor desc;
+  struct GNUNET_vpn_service_descriptor desc;
 
     /** The real address of the service (used for remote) */
-    char addrlen;
-    char addr[16];
+  char addrlen;
+  char addr[16];
 
-    struct GNUNET_MESH_Tunnel *tunnel;
-    uint16_t namelen;
-    char additional_ports[8192];
+  struct GNUNET_MESH_Tunnel *tunnel;
+  uint16_t namelen;
+  char additional_ports[8192];
 
-    struct GNUNET_CONTAINER_HeapNode* heap_node;
-    GNUNET_HashCode hash;
+  struct GNUNET_CONTAINER_HeapNode *heap_node;
+  GNUNET_HashCode hash;
     /**
      * After this struct the name is located in DNS-Format!
      */

@@ -76,8 +76,7 @@ struct GNUNET_PEERINFO_NotifyContext
  *
  * @param nc our context
  */
-static void
-request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
+static void request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
 
 
 /**
@@ -86,8 +85,7 @@ request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
  *
  * @param nc our context
  */
-static void
-receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
+static void receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
 
 
 /**
@@ -95,23 +93,21 @@ receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
  *
  * @param cls the 'struct GNUNET_PEERINFO_NotifyContext'
  * @param tc scheduler context
- */ 
+ */
 static void
-reconnect (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc = cls;
 
   nc->task = GNUNET_SCHEDULER_NO_TASK;
   nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
   if (NULL == nc->client)
-    {
-      /* ugh */
-      nc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-					       &reconnect,
-					       nc);
-      return; 
-    }
+  {
+    /* ugh */
+    nc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                             &reconnect, nc);
+    return;
+  }
   request_notifications (nc);
 }
 
@@ -124,9 +120,7 @@ reconnect (void *cls,
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-process_notification (void *cls,
-		      const struct
-		      GNUNET_MessageHeader * msg)
+process_notification (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc = cls;
   const struct InfoMessage *im;
@@ -134,14 +128,27 @@ process_notification (void *cls,
   uint16_t ms;
 
   if (msg == NULL)
-    {
-      GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
-      reconnect (nc, NULL);
-      return;
-    }
+  {
+    GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+    reconnect (nc, NULL);
+    return;
+  }
   ms = ntohs (msg->size);
   if ((ms < sizeof (struct InfoMessage)) ||
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_PEERINFO_INFO))
+  {
+    GNUNET_break (0);
+    GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+    nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
+    request_notifications (nc);
+    return;
+  }
+  im = (const struct InfoMessage *) msg;
+  hello = NULL;
+  if (ms > sizeof (struct InfoMessage) + sizeof (struct GNUNET_MessageHeader))
+  {
+    hello = (const struct GNUNET_HELLO_Message *) &im[1];
+    if (ms != sizeof (struct InfoMessage) + GNUNET_HELLO_size (hello))
     {
       GNUNET_break (0);
       GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
@@ -149,24 +156,11 @@ process_notification (void *cls,
       request_notifications (nc);
       return;
     }
-  im = (const struct InfoMessage *) msg;
-  hello = NULL;
-  if (ms > sizeof (struct InfoMessage) + sizeof (struct GNUNET_MessageHeader))
-    {
-      hello = (const struct GNUNET_HELLO_Message *) &im[1];
-      if (ms != sizeof (struct InfoMessage) + GNUNET_HELLO_size (hello))
-        {
-          GNUNET_break (0);
-	  GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
-	  nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
-	  request_notifications (nc);
-          return;
-        }
-    }
+  }
 #if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received information about peer `%s' from peerinfo database\n",
-	      GNUNET_i2s (&im->peer));
+              "Received information about peer `%s' from peerinfo database\n",
+              GNUNET_i2s (&im->peer));
 #endif
   nc->callback (nc->callback_cls, &im->peer, hello, NULL);
   receive_notifications (nc);
@@ -183,9 +177,8 @@ static void
 receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc)
 {
   GNUNET_CLIENT_receive (nc->client,
-			 &process_notification,
-			 nc,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
+                         &process_notification,
+                         nc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -197,22 +190,20 @@ receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc)
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-static size_t 
-transmit_notify_request (void *cls,
-			 size_t size, 
-			 void *buf)
+static size_t
+transmit_notify_request (void *cls, size_t size, void *buf)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc = cls;
   struct GNUNET_MessageHeader hdr;
 
   nc->init = NULL;
   if (buf == NULL)
-    {
-      GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
-      nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
-      request_notifications (nc);
-      return 0;
-    }
+  {
+    GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+    nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
+    request_notifications (nc);
+    return 0;
+  }
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   hdr.size = htons (sizeof (struct GNUNET_MessageHeader));
   hdr.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY);
@@ -232,12 +223,12 @@ static void
 request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc)
 {
   GNUNET_assert (NULL == nc->init);
-  nc->init =GNUNET_CLIENT_notify_transmit_ready (nc->client,
-						 sizeof (struct GNUNET_MessageHeader),
-						 GNUNET_TIME_UNIT_FOREVER_REL,
-						 GNUNET_YES,
-						 &transmit_notify_request,
-						 nc);
+  nc->init = GNUNET_CLIENT_notify_transmit_ready (nc->client,
+                                                  sizeof (struct
+                                                          GNUNET_MessageHeader),
+                                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                                  GNUNET_YES,
+                                                  &transmit_notify_request, nc);
 }
 
 
@@ -253,24 +244,23 @@ request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc)
  */
 struct GNUNET_PEERINFO_NotifyContext *
 GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			GNUNET_PEERINFO_Processor callback,
-			void *callback_cls)
+                        GNUNET_PEERINFO_Processor callback, void *callback_cls)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc;
   struct GNUNET_CLIENT_Connection *client;
 
   client = GNUNET_CLIENT_connect ("peerinfo", cfg);
   if (client == NULL)
-    {      
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Could not connect to `%s' service.\n"), "peerinfo");
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Could not connect to `%s' service.\n"), "peerinfo");
+    return NULL;
+  }
   nc = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_NotifyContext));
   nc->cfg = cfg;
   nc->client = client;
   nc->callback = callback;
-  nc->callback_cls = callback_cls; 
+  nc->callback_cls = callback_cls;
   request_notifications (nc);
   return nc;
 }
@@ -285,10 +275,10 @@ void
 GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc)
 {
   if (NULL != nc->init)
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (nc->init);
-      nc->init = NULL;
-    }
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (nc->init);
+    nc->init = NULL;
+  }
   if (NULL != nc->client)
     GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
   if (GNUNET_SCHEDULER_NO_TASK != nc->task)

@@ -90,8 +90,8 @@
  * FIXME: document.
  */
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
-                                                   const struct GNUNET_MessageHeader
-                                                   *msg);
+                                                   const struct
+                                                   GNUNET_MessageHeader * msg);
 
 
 /**

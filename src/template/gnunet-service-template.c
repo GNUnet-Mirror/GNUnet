@@ -35,8 +35,7 @@
  * @param tc unused
  */
 static void
-cleanup_task (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   /* FIXME: do clean up here */
 }
@@ -61,8 +60,7 @@ run (void *cls,
   /* FIXME: do setup here */
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&cleanup_task,
-				NULL);
+                                &cleanup_task, NULL);
 }
 
 
@@ -80,8 +78,7 @@ main (int argc, char *const *argv)
           GNUNET_SERVICE_run (argc,
                               argv,
                               "template",
-			      GNUNET_SERVICE_OPTION_NONE,
-			      &run, NULL)) ? 0 : 1;
+                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-template.c */

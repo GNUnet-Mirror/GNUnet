@@ -31,7 +31,7 @@
 /**
  * Context for all functions in this plugin.
  */
-struct Plugin 
+struct Plugin
 {
   /**
    * Our execution environment.
@@ -47,7 +47,7 @@ struct Plugin
  * @param cls our "struct Plugin*"
  * @return number of bytes used on disk
  */
-static unsigned long long 
+static unsigned long long
 template_plugin_estimate_size (void *cls)
 {
   GNUNET_break (0);
@@ -72,15 +72,14 @@ template_plugin_estimate_size (void *cls)
  */
 static int
 template_plugin_put (void *cls,
-		     const GNUNET_HashCode * key,
-		     uint32_t size,
-		     const void *data,
-		     enum GNUNET_BLOCK_Type type,
-		     uint32_t priority,
-		     uint32_t anonymity,
-		     uint32_t replication,
-		     struct GNUNET_TIME_Absolute expiration,
-		     char **msg)
+                     const GNUNET_HashCode * key,
+                     uint32_t size,
+                     const void *data,
+                     enum GNUNET_BLOCK_Type type,
+                     uint32_t priority,
+                     uint32_t anonymity,
+                     uint32_t replication,
+                     struct GNUNET_TIME_Absolute expiration, char **msg)
 {
   GNUNET_break (0);
   *msg = GNUNET_strdup ("not implemented");
@@ -108,11 +107,11 @@ template_plugin_put (void *cls,
  */
 static void
 template_plugin_get_key (void *cls,
-			 uint64_t offset,
-			 const GNUNET_HashCode * key,
-			 const GNUNET_HashCode * vhash,
-			 enum GNUNET_BLOCK_Type type,
-			 PluginDatumProcessor proc, void *proc_cls)
+                         uint64_t offset,
+                         const GNUNET_HashCode * key,
+                         const GNUNET_HashCode * vhash,
+                         enum GNUNET_BLOCK_Type type,
+                         PluginDatumProcessor proc, void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -132,7 +131,7 @@ template_plugin_get_key (void *cls,
  */
 static void
 template_plugin_get_replication (void *cls,
-				 PluginDatumProcessor proc, void *proc_cls)
+                                 PluginDatumProcessor proc, void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -148,7 +147,7 @@ template_plugin_get_replication (void *cls,
  */
 static void
 template_plugin_get_expiration (void *cls,
-				PluginDatumProcessor proc, void *proc_cls)
+                                PluginDatumProcessor proc, void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -179,10 +178,9 @@ template_plugin_get_expiration (void *cls,
  */
 static int
 template_plugin_update (void *cls,
-			uint64_t uid,
-			int delta, 
-			struct GNUNET_TIME_Absolute expire,
-			char **msg)
+                        uint64_t uid,
+                        int delta,
+                        struct GNUNET_TIME_Absolute expire, char **msg)
 {
   GNUNET_break (0);
   *msg = GNUNET_strdup ("not implemented");
@@ -204,10 +202,9 @@ template_plugin_update (void *cls,
  */
 static void
 template_plugin_get_zero_anonymity (void *cls,
-				    uint64_t offset,
-				    enum GNUNET_BLOCK_Type type,
-				    PluginDatumProcessor proc,
-				    void *proc_cls)
+                                    uint64_t offset,
+                                    enum GNUNET_BLOCK_Type type,
+                                    PluginDatumProcessor proc, void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -216,7 +213,7 @@ template_plugin_get_zero_anonymity (void *cls,
 /**
  * Drop database.
  */
-static void 
+static void
 template_plugin_drop (void *cls)
 {
   GNUNET_break (0);

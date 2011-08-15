@@ -53,11 +53,11 @@ check_it (void *cls,
   unsigned int *agc = cls;
 
   if (addrlen > 0)
-    {
-      GNUNET_assert (0 == strcmp ("peerinfotest", tname));
-      GNUNET_assert (0 == strncmp ("Address", addr, addrlen));
-      (*agc) -= (1 << (addrlen - 1));
-    }
+  {
+    GNUNET_assert (0 == strcmp ("peerinfotest", tname));
+    GNUNET_assert (0 == strncmp ("Address", addr, addrlen));
+    (*agc) -= (1 << (addrlen - 1));
+  }
   return GNUNET_OK;
 }
 
@@ -100,67 +100,63 @@ add_peer ()
 static void
 process (void *cls,
          const struct GNUNET_PeerIdentity *peer,
-         const struct GNUNET_HELLO_Message *hello,
-         const char * err_msg)
+         const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
   int *ok = cls;
   unsigned int agc;
 
   if (err_msg != NULL)
   {
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Error in communication with PEERINFO service\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Error in communication with PEERINFO service\n"));
   }
 
   if (peer == NULL)
+  {
+    ic = NULL;
+    if ((3 == *ok) && (retries < 50))
     {
-      ic = NULL;
-      if ( (3 == *ok) &&
-	   (retries < 50) )
-	{
-	  /* try again */
-	  retries++;	  
-	  add_peer ();
-	  ic = GNUNET_PEERINFO_iterate (h,
-					NULL,
-					GNUNET_TIME_relative_multiply
-					(GNUNET_TIME_UNIT_SECONDS, 15), 
-					&process, cls);
-	  return;
-	}
-      GNUNET_assert (peer == NULL);
-      GNUNET_assert (2 == *ok);
-      GNUNET_PEERINFO_disconnect (h);
-      h = NULL;
-      *ok = 0;
+      /* try again */
+      retries++;
+      add_peer ();
+      ic = GNUNET_PEERINFO_iterate (h,
+                                    NULL,
+                                    GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 15),
+                                    &process, cls);
       return;
     }
+    GNUNET_assert (peer == NULL);
+    GNUNET_assert (2 == *ok);
+    GNUNET_PEERINFO_disconnect (h);
+    h = NULL;
+    *ok = 0;
+    return;
+  }
   if (hello != NULL)
-    {
-      GNUNET_assert (3 == *ok);
-      agc = 3;
-      GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_it, &agc);
-      GNUNET_assert (agc == 0);
-      *ok = 2;
-    }
+  {
+    GNUNET_assert (3 == *ok);
+    agc = 3;
+    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_it, &agc);
+    GNUNET_assert (agc == 0);
+    *ok = 2;
+  }
 }
 
 
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile, 
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
   h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (h != NULL);
   add_peer ();
   ic = GNUNET_PEERINFO_iterate (h,
-				NULL,
-				GNUNET_TIME_relative_multiply
-				(GNUNET_TIME_UNIT_SECONDS, 15),
-				&process, cls);
+                                NULL,
+                                GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
 }
 
 
@@ -169,6 +165,7 @@ check ()
 {
   int ok = 3;
   struct GNUNET_OS_Process *proc;
+
   char *const argv[] = { "test-peerinfo-api",
     "-c",
     "test_peerinfo_api_data.conf",
@@ -181,20 +178,19 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-peerinfo",
-                                 "gnunet-service-peerinfo",
+                                  "gnunet-service-peerinfo",
 #if DEBUG_PEERINFO
-                                 "-L", "DEBUG",
+                                  "-L", "DEBUG",
 #endif
-                                 "-c", "test_peerinfo_api_data.conf", NULL);
+                                  "-c", "test_peerinfo_api_data.conf", NULL);
   GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-peerinfo-api", "nohelp",
-                      options, &run, &ok);
+                      argv, "test-peerinfo-api", "nohelp", options, &run, &ok);
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      ok = 1;
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    ok = 1;
+  }
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_close (proc);
   proc = NULL;

@@ -73,7 +73,7 @@ static struct PluginList *plugins;
 /**
  * Setup libtool paths.
  */
-static void 
+static void
 plugin_init ()
 {
   int err;
@@ -83,34 +83,31 @@ plugin_init ()
 
   err = lt_dlinit ();
   if (err > 0)
-    {
-      fprintf (stderr,
-               _("Initialization of plugin mechanism failed: %s!\n"),
-               lt_dlerror ());
-      return;
-    }
+  {
+    fprintf (stderr,
+             _("Initialization of plugin mechanism failed: %s!\n"),
+             lt_dlerror ());
+    return;
+  }
   opath = lt_dlgetsearchpath ();
   if (opath != NULL)
     old_dlsearchpath = GNUNET_strdup (opath);
   path = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBDIR);
   if (path != NULL)
+  {
+    if (opath != NULL)
     {
-      if (opath != NULL)
-        {
-	  GNUNET_asprintf (&cpath,
-			   "%s:%s",
-			   opath,
-			   path);
-          lt_dlsetsearchpath (cpath);
-          GNUNET_free (path);
-          GNUNET_free (cpath);
-        }
-      else
-        {
-          lt_dlsetsearchpath (path);
-          GNUNET_free (path);
-        }
+      GNUNET_asprintf (&cpath, "%s:%s", opath, path);
+      lt_dlsetsearchpath (cpath);
+      GNUNET_free (path);
+      GNUNET_free (cpath);
     }
+    else
+    {
+      lt_dlsetsearchpath (path);
+      GNUNET_free (path);
+    }
+  }
 }
 
 
@@ -122,10 +119,10 @@ plugin_fini ()
 {
   lt_dlsetsearchpath (old_dlsearchpath);
   if (old_dlsearchpath != NULL)
-    {
-      GNUNET_free (old_dlsearchpath);
-      old_dlsearchpath = NULL;
-    }
+  {
+    GNUNET_free (old_dlsearchpath);
+    old_dlsearchpath = NULL;
+  }
   lt_dlexit ();
 }
 
@@ -167,23 +164,23 @@ GNUNET_PLUGIN_test (const char *library_name)
   GNUNET_PLUGIN_Callback init;
   struct PluginList plug;
 
-  if (! initialized)
-    {
-      initialized = GNUNET_YES;
-      plugin_init ();
-    }
+  if (!initialized)
+  {
+    initialized = GNUNET_YES;
+    plugin_init ();
+  }
   libhandle = lt_dlopenext (library_name);
   if (libhandle == NULL)
     return GNUNET_NO;
   plug.handle = libhandle;
-  plug.name = (char*) library_name;
+  plug.name = (char *) library_name;
   init = resolve_function (&plug, "init");
   if (init == NULL)
-    {
-      GNUNET_break (0);
-      lt_dlclose (libhandle);
-      return GNUNET_NO;
-    }
+  {
+    GNUNET_break (0);
+    lt_dlclose (libhandle);
+    return GNUNET_NO;
+  }
   lt_dlclose (libhandle);
   return GNUNET_YES;
 }
@@ -209,19 +206,19 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
   GNUNET_PLUGIN_Callback init;
   void *ret;
 
-  if (! initialized)
-    {
-      initialized = GNUNET_YES;
-      plugin_init ();
-    }
+  if (!initialized)
+  {
+    initialized = GNUNET_YES;
+    plugin_init ();
+  }
   libhandle = lt_dlopenext (library_name);
   if (libhandle == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("`%s' failed for library `%s' with error: %s\n"),
-                  "lt_dlopenext", library_name, lt_dlerror ());
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("`%s' failed for library `%s' with error: %s\n"),
+                "lt_dlopenext", library_name, lt_dlerror ());
+    return NULL;
+  }
   plug = GNUNET_malloc (sizeof (struct PluginList));
   plug->handle = libhandle;
   plug->name = GNUNET_strdup (library_name);
@@ -229,13 +226,13 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
   plugins = plug;
   init = resolve_function (plug, "init");
   if ((init == NULL) || (NULL == (ret = init (arg))))
-    {
-      lt_dlclose (libhandle);
-      GNUNET_free (plug->name);
-      plugins = plug->next;
-      GNUNET_free (plug);
-      return NULL;
-    }
+  {
+    lt_dlclose (libhandle);
+    GNUNET_free (plug->name);
+    plugins = plug->next;
+    GNUNET_free (plug);
+    return NULL;
+  }
   return ret;
 }
 
@@ -259,10 +256,10 @@ GNUNET_PLUGIN_unload (const char *library_name, void *arg)
   prev = NULL;
   pos = plugins;
   while ((pos != NULL) && (0 != strcmp (pos->name, library_name)))
-    {
-      prev = pos;
-      pos = pos->next;
-    }
+  {
+    prev = pos;
+    pos = pos->next;
+  }
   if (pos == NULL)
     return NULL;
 
@@ -278,10 +275,10 @@ GNUNET_PLUGIN_unload (const char *library_name, void *arg)
   GNUNET_free (pos->name);
   GNUNET_free (pos);
   if (plugins == NULL)
-    {
-      plugin_fini();
-      initialized = GNUNET_NO;
-    }
+  {
+    plugin_fini ();
+    initialized = GNUNET_NO;
+  }
   return ret;
 }
 

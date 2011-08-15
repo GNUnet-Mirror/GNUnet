@@ -46,10 +46,9 @@ makeName (unsigned int i)
 {
   char *fn;
 
-  fn =
-    GNUNET_malloc (strlen
-                   ("/tmp/gnunet-fsui-recursive_download_test/FSUITEST") +
-                   15);
+  fn = GNUNET_malloc (strlen
+                      ("/tmp/gnunet-fsui-recursive_download_test/FSUITEST") +
+                      15);
   GNUNET_snprintf (fn,
                    strlen
                    ("/tmp/gnunet-fsui-recursive_download_test/FSUITEST") + 15,
@@ -68,56 +67,56 @@ makeHierarchyHelper (const char *current, const char *tree, int index,
   fi = 0;
   done = 0;
   while (!done && tree[index] != '\0')
+  {
+    s = GNUNET_malloc (strlen (current) + strlen (DIR_SEPARATOR_STR) + 14);
+    GNUNET_snprintf (s, strlen (current) + strlen (DIR_SEPARATOR_STR) + 14,
+                     "%s%s%u", current, DIR_SEPARATOR_STR, fi);
+    switch (tree[index++])
     {
-      s = GNUNET_malloc (strlen (current) + strlen (DIR_SEPARATOR_STR) + 14);
-      GNUNET_snprintf (s, strlen (current) + strlen (DIR_SEPARATOR_STR) + 14,
-                       "%s%s%u", current, DIR_SEPARATOR_STR, fi);
-      switch (tree[index++])
+    case 'd':
+      if (check)
+      {
+        if (GNUNET_disk_directory_test (NULL, s) == GNUNET_NO)
         {
-        case 'd':
-          if (check)
-            {
-              if (GNUNET_disk_directory_test (NULL, s) == GNUNET_NO)
-                {
-                  index = -1;
-                  done = 1;
-                }
-            }
-          else
-            {
-              GNUNET_disk_directory_create (NULL, s);
-            }
-          if (!done)
-            index = makeHierarchyHelper (s, tree, index, check);
-          break;
-        case 'f':
-          if (check)
-            {
-              /* TODO: compare file contents */
-              if (GNUNET_disk_directory_test (NULL, s) != GNUNET_NO)
-                {
-                  index = -1;
-                  done = 1;
-                }
-            }
-          else
-            {
-              buf = GNUNET_malloc (FILESIZE);
-              for (i = 0; i < FILESIZE; i++)
-                buf[i] = GNUNET_random_u32 (GNUNET_RANDOM_QUALITY_WEAK, 256);
-              GNUNET_disk_file_write (ectx, s, buf, FILESIZE, "600");
-              GNUNET_free (buf);
-            }
-          break;
-        case '.':
+          index = -1;
           done = 1;
-          break;
-        default:
-          break;
         }
-      GNUNET_free (s);
-      fi++;
+      }
+      else
+      {
+        GNUNET_disk_directory_create (NULL, s);
+      }
+      if (!done)
+        index = makeHierarchyHelper (s, tree, index, check);
+      break;
+    case 'f':
+      if (check)
+      {
+        /* TODO: compare file contents */
+        if (GNUNET_disk_directory_test (NULL, s) != GNUNET_NO)
+        {
+          index = -1;
+          done = 1;
+        }
+      }
+      else
+      {
+        buf = GNUNET_malloc (FILESIZE);
+        for (i = 0; i < FILESIZE; i++)
+          buf[i] = GNUNET_random_u32 (GNUNET_RANDOM_QUALITY_WEAK, 256);
+        GNUNET_disk_file_write (ectx, s, buf, FILESIZE, "600");
+        GNUNET_free (buf);
+      }
+      break;
+    case '.':
+      done = 1;
+      break;
+    default:
+      break;
     }
+    GNUNET_free (s);
+    fi++;
+  }
   return index;
 }
 
@@ -139,10 +138,10 @@ checkHierarchy (unsigned int i, const char *tree)
 
   fn = makeName (i);
   if (GNUNET_disk_directory_test (NULL, fn) != GNUNET_YES)
-    {
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   res = ((makeHierarchyHelper (fn, tree, 0, 1) == -1) ?
          GNUNET_SYSERR : GNUNET_OK);
   GNUNET_free (fn);
@@ -160,89 +159,87 @@ static void *
 eventCallback (void *cls, const GNUNET_FSUI_Event * event)
 {
   switch (event->type)
-    {
-    case GNUNET_FSUI_download_suspended:
-      download = NULL;
-      break;
-    case GNUNET_FSUI_download_resumed:
-      download = event->data.DownloadResumed.dc.pos;
-      break;
-      break;
-    case GNUNET_FSUI_upload_progress:
+  {
+  case GNUNET_FSUI_download_suspended:
+    download = NULL;
+    break;
+  case GNUNET_FSUI_download_resumed:
+    download = event->data.DownloadResumed.dc.pos;
+    break;
+    break;
+  case GNUNET_FSUI_upload_progress:
 #if DEBUG_VERBOSE > 1
-      printf ("Upload is progressing (%llu/%llu)...\n",
-              event->data.UploadProgress.completed,
-              event->data.UploadProgress.total);
+    printf ("Upload is progressing (%llu/%llu)...\n",
+            event->data.UploadProgress.completed,
+            event->data.UploadProgress.total);
 #endif
-      break;
-    case GNUNET_FSUI_upload_completed:
-      upURI = GNUNET_ECRS_uri_duplicate (event->data.UploadCompleted.uri);
+    break;
+  case GNUNET_FSUI_upload_completed:
+    upURI = GNUNET_ECRS_uri_duplicate (event->data.UploadCompleted.uri);
 #if DEBUG_VERBOSE
-      printf ("Upload of `%s' complete.\n",
-              event->data.UploadCompleted.filename);
+    printf ("Upload of `%s' complete.\n", event->data.UploadCompleted.filename);
 #endif
-      break;
-    case GNUNET_FSUI_download_completed:
+    break;
+  case GNUNET_FSUI_download_completed:
 #if DEBUG_VERBOSE
-      printf ("Download of `%s' complete.\n",
-              event->data.DownloadCompleted.filename);
+    printf ("Download of `%s' complete.\n",
+            event->data.DownloadCompleted.filename);
 #endif
-      if (checkHierarchy (43, DIRECTORY_TREE_SPEC) == GNUNET_OK)
-        download_done = 1;
+    if (checkHierarchy (43, DIRECTORY_TREE_SPEC) == GNUNET_OK)
+      download_done = 1;
 #if DEBUG_VERBOSE
-      else
-        printf ("Hierarchy check not successful yet...\n");
+    else
+      printf ("Hierarchy check not successful yet...\n");
 #endif
-      break;
-    case GNUNET_FSUI_download_progress:
+    break;
+  case GNUNET_FSUI_download_progress:
 #if DEBUG_VERBOSE > 1
-      printf ("Download is progressing (%llu/%llu)...\n",
-              event->data.DownloadProgress.completed,
-              event->data.DownloadProgress.total);
+    printf ("Download is progressing (%llu/%llu)...\n",
+            event->data.DownloadProgress.completed,
+            event->data.DownloadProgress.total);
 #endif
-      break;
-    case GNUNET_FSUI_unindex_progress:
+    break;
+  case GNUNET_FSUI_unindex_progress:
 #if DEBUG_VERBOSE > 1
-      printf ("Unindex is progressing (%llu/%llu)...\n",
-              event->data.UnindexProgress.completed,
-              event->data.UnindexProgress.total);
+    printf ("Unindex is progressing (%llu/%llu)...\n",
+            event->data.UnindexProgress.completed,
+            event->data.UnindexProgress.total);
 #endif
-      break;
-    case GNUNET_FSUI_unindex_completed:
+    break;
+  case GNUNET_FSUI_unindex_completed:
 #if DEBUG_VERBOSE
-      printf ("Unindex complete.\n");
+    printf ("Unindex complete.\n");
 #endif
-      break;
-    case GNUNET_FSUI_unindex_error:
-      fprintf (stderr, "Error unindexing: %s\n",
-               event->data.UnindexError.message);
-      break;
-    case GNUNET_FSUI_upload_error:
-      fprintf (stderr, "Error uploading: %s\n",
-               event->data.UploadError.message);
-      break;
-    case GNUNET_FSUI_download_error:
-      fprintf (stderr, "Error downloading: %s\n",
-               event->data.DownloadError.message);
-      break;
-    case GNUNET_FSUI_download_aborted:
+    break;
+  case GNUNET_FSUI_unindex_error:
+    fprintf (stderr, "Error unindexing: %s\n",
+             event->data.UnindexError.message);
+    break;
+  case GNUNET_FSUI_upload_error:
+    fprintf (stderr, "Error uploading: %s\n", event->data.UploadError.message);
+    break;
+  case GNUNET_FSUI_download_error:
+    fprintf (stderr, "Error downloading: %s\n",
+             event->data.DownloadError.message);
+    break;
+  case GNUNET_FSUI_download_aborted:
 #if DEBUG_VERBOSE
-      printf ("Received download aborted event.\n");
+    printf ("Received download aborted event.\n");
 #endif
-      break;
-    case GNUNET_FSUI_unindex_suspended:
-    case GNUNET_FSUI_upload_suspended:
-    case GNUNET_FSUI_upload_started:
-    case GNUNET_FSUI_upload_stopped:
-    case GNUNET_FSUI_download_started:
-    case GNUNET_FSUI_download_stopped:
-    case GNUNET_FSUI_unindex_started:
-    case GNUNET_FSUI_unindex_stopped:
-      break;
-    default:
-      printf ("Unexpected event: %d\n", event->type);
-      break;
-    }
+    break;
+  case GNUNET_FSUI_unindex_suspended:
+  case GNUNET_FSUI_upload_suspended:
+  case GNUNET_FSUI_upload_started:
+  case GNUNET_FSUI_upload_stopped:
+  case GNUNET_FSUI_download_started:
+  case GNUNET_FSUI_download_stopped:
+  case GNUNET_FSUI_unindex_started:
+  case GNUNET_FSUI_unindex_stopped:
+    break;
+  default:
+    printf ("Unexpected event: %d\n", event->type);
+    break;
+  }
   if (lastEvent == waitForEvent)
     return NULL;                /* ignore all other events */
   lastEvent = event->type;
@@ -261,6 +258,7 @@ main (int argc, char *argv[])
   int ok;
   char *fn = NULL;
   char *fn43 = NULL;
+
   char *keywords[] = {
     "down_foo",
     "down_bar",
@@ -274,20 +272,18 @@ main (int argc, char *argv[])
   ok = GNUNET_YES;
   cfg = GNUNET_GC_create ();
   if (-1 == GNUNET_GC_parse_configuration (cfg, "check.conf"))
-    {
-      GNUNET_GC_free (cfg);
-      return -1;
-    }
-  fprintf(stderr,
-	  "Setup...\n");
+  {
+    GNUNET_GC_free (cfg);
+    return -1;
+  }
+  fprintf (stderr, "Setup...\n");
 #if START_DAEMON
   GNUNET_disk_directory_remove (NULL,
                                 "/tmp/gnunet-fsui-recursive_download_test/");
   daemon = GNUNET_daemon_start (NULL, cfg, "peer.conf", GNUNET_NO);
   GNUNET_GE_ASSERT (NULL, daemon != NULL);
   CHECK (GNUNET_OK ==
-         GNUNET_wait_for_daemon_running (NULL, cfg,
-                                         30 * GNUNET_CRON_SECONDS));
+         GNUNET_wait_for_daemon_running (NULL, cfg, 30 * GNUNET_CRON_SECONDS));
   GNUNET_thread_sleep (5 * GNUNET_CRON_SECONDS);        /* give apps time to start */
   /* ACTUAL TEST CODE */
 #endif
@@ -298,10 +294,9 @@ main (int argc, char *argv[])
   fn = makeHierarchy (42, DIRECTORY_TREE_SPEC);
   meta = GNUNET_meta_data_create ();
   kuri =
-    GNUNET_ECRS_keyword_command_line_to_uri (ectx, 2,
-                                             (const char **) keywords);
-  fprintf(stderr,
-	  "Uploading...\n");
+      GNUNET_ECRS_keyword_command_line_to_uri (ectx, 2,
+                                               (const char **) keywords);
+  fprintf (stderr, "Uploading...\n");
   waitForEvent = GNUNET_FSUI_upload_completed;
   upload = GNUNET_FSUI_upload_start (ctx,
                                      fn,
@@ -315,19 +310,18 @@ main (int argc, char *argv[])
   kuri = NULL;
   prog = 0;
   while (lastEvent != GNUNET_FSUI_upload_completed)
-    {
-      prog++;
-      CHECK (prog < 5000);
-      GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
-      if (GNUNET_shutdown_test () == GNUNET_YES)
-        break;
-    }
+  {
+    prog++;
+    CHECK (prog < 5000);
+    GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
+    if (GNUNET_shutdown_test () == GNUNET_YES)
+      break;
+  }
   GNUNET_FSUI_upload_stop (upload);
   upload = NULL;
   CHECK (upURI != NULL);
 
-  fprintf(stderr,
-	  "Downloading...\n");
+  fprintf (stderr, "Downloading...\n");
   waitForEvent = GNUNET_FSUI_download_completed;
   fn43 = makeName (43);
   download = GNUNET_FSUI_download_start (ctx,
@@ -339,29 +333,28 @@ main (int argc, char *argv[])
   fn43 = NULL;
   prog = 0;
   while (!download_done)
-    {
-      prog++;
-      CHECK (prog < 5000);
-      GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
-      if (GNUNET_shutdown_test () == GNUNET_YES)
-        break;
-    }
+  {
+    prog++;
+    CHECK (prog < 5000);
+    GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
+    if (GNUNET_shutdown_test () == GNUNET_YES)
+      break;
+  }
 FAILURE:
-  fprintf(stderr,
-	  "Cleanup...\n");
+  fprintf (stderr, "Cleanup...\n");
   if (meta != NULL)
     GNUNET_meta_data_destroy (meta);
   if (ctx != NULL)
-    {
-      if (download != NULL)
-        GNUNET_FSUI_download_stop (download);
-      GNUNET_FSUI_stop (ctx);
-    }
+  {
+    if (download != NULL)
+      GNUNET_FSUI_download_stop (download);
+    GNUNET_FSUI_stop (ctx);
+  }
   if (fn != NULL)
-    {
-      GNUNET_disk_directory_remove (NULL, fn);
-      GNUNET_free (fn);
-    }
+  {
+    GNUNET_disk_directory_remove (NULL, fn);
+    GNUNET_free (fn);
+  }
   if (kuri != NULL)
     GNUNET_ECRS_uri_destroy (kuri);
   fn43 = makeName (43);

@@ -47,15 +47,13 @@ static struct GNUNET_NAT_Test *tst;
 static GNUNET_SCHEDULER_TaskIdentifier end;
 
 static void
-end_test (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_NAT_test_stop (tst);
 }
 
 static void
-report_success (void *cls,
-		int success)
+report_success (void *cls, int success)
 {
   GNUNET_assert (GNUNET_OK == success);
   ret = 0;
@@ -72,13 +70,10 @@ run (void *cls,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   tst = GNUNET_NAT_test_start (cfg, GNUNET_YES,
-			       1285, 1285,
-			       &report_success, NULL);
+                               1285, 1285, &report_success, NULL);
   if (NULL == tst)
     return;
-  end  = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-				       &end_test,
-				       NULL);
+  end = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_test, NULL);
 }
 
 
@@ -89,6 +84,7 @@ main (int argc, char *const argv[])
     GNUNET_GETOPT_OPTION_END
   };
   struct GNUNET_OS_Process *gns;
+
   char *const argv_prog[] = {
     "test-nat-test",
     "-c",
@@ -110,23 +106,17 @@ main (int argc, char *const argv[])
 #endif
                     NULL);
   gns = GNUNET_OS_start_process (NULL, NULL,
-				 "gnunet-nat-server",
-				 "gnunet-nat-server",
+                                 "gnunet-nat-server", "gnunet-nat-server",
 #if VERBOSE
-				 "-L",
-				 "DEBUG",
+                                 "-L", "DEBUG",
 #endif
-				 "-c", "test_nat_test_data.conf",
-				 "12345",
-				 NULL);
+                                 "-c", "test_nat_test_data.conf",
+                                 "12345", NULL);
   GNUNET_assert (NULL != gns);
-  GNUNET_PROGRAM_run (5, argv_prog, 
-		      "test-nat-test", "nohelp", 
-		      options, 
-		      &run, NULL);
+  GNUNET_PROGRAM_run (5, argv_prog,
+                      "test-nat-test", "nohelp", options, &run, NULL);
   GNUNET_break (0 == GNUNET_OS_process_kill (gns, SIGTERM));
-  GNUNET_break (GNUNET_OK ==
-		GNUNET_OS_process_wait (gns));
+  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (gns));
   GNUNET_OS_process_close (gns);
   return ret;
 }

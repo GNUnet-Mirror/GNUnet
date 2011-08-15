@@ -92,10 +92,10 @@ static void
 adjust (unsigned char *buf, size_t size, size_t target)
 {
   if (size < target)
-    {
-      memmove (&buf[target - size], buf, size);
-      memset (buf, 0, target - size);
-    }
+  {
+    memmove (&buf[target - size], buf, size);
+    memset (buf, 0, target - size);
+  }
 }
 
 /**
@@ -142,44 +142,44 @@ key_from_sexp (gcry_mpi_t * array,
 
   list = gcry_sexp_find_token (sexp, topname, 0);
   if (!list)
-    {
-      return 1;
-    }
+  {
+    return 1;
+  }
   l2 = gcry_sexp_cadr (list);
   gcry_sexp_release (list);
   list = l2;
   if (!list)
-    {
-      return 2;
-    }
+  {
+    return 2;
+  }
 
   idx = 0;
   for (s = elems; *s; s++, idx++)
+  {
+    l2 = gcry_sexp_find_token (list, s, 1);
+    if (!l2)
     {
-      l2 = gcry_sexp_find_token (list, s, 1);
-      if (!l2)
-        {
-          for (i = 0; i < idx; i++)
-            {
-              gcry_free (array[i]);
-              array[i] = NULL;
-            }
-          gcry_sexp_release (list);
-          return 3;             /* required parameter not found */
-        }
-      array[idx] = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
-      gcry_sexp_release (l2);
-      if (!array[idx])
-        {
-          for (i = 0; i < idx; i++)
-            {
-              gcry_free (array[i]);
-              array[i] = NULL;
-            }
-          gcry_sexp_release (list);
-          return 4;             /* required parameter is invalid */
-        }
+      for (i = 0; i < idx; i++)
+      {
+        gcry_free (array[i]);
+        array[i] = NULL;
+      }
+      gcry_sexp_release (list);
+      return 3;                 /* required parameter not found */
     }
+    array[idx] = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+    gcry_sexp_release (l2);
+    if (!array[idx])
+    {
+      for (i = 0; i < idx; i++)
+      {
+        gcry_free (array[i]);
+        array[i] = NULL;
+      }
+      gcry_sexp_release (list);
+      return 4;                 /* required parameter is invalid */
+    }
+  }
   gcry_sexp_release (list);
   return 0;
 }
@@ -193,8 +193,7 @@ void
 GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
                                   *priv,
                                   struct
-                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                                  *pub)
+                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub)
 {
   gcry_mpi_t skey[2];
   size_t size;
@@ -207,16 +206,15 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
     rc = key_from_sexp (skey, priv->sexp, "rsa", "ne");
   GNUNET_assert (0 == rc);
   pub->len =
-    htons (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) -
-           sizeof (pub->padding));
+      htons (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) -
+             sizeof (pub->padding));
   pub->sizen = htons (GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH);
   pub->padding = 0;
   size = GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
   GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
                                       &pub->key[0], size, &size, skey[0]));
   adjust (&pub->key[0], size, GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH);
-  size =
-    GNUNET_CRYPTO_RSA_KEY_LENGTH - GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
+  size = GNUNET_CRYPTO_RSA_KEY_LENGTH - GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
   GNUNET_assert (0 ==
                  gcry_mpi_print (GCRYMPI_FMT_USG,
                                  &pub->key
@@ -252,38 +250,36 @@ public2PrivateKey (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
       (ntohs (publicKey->len) !=
        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) -
        sizeof (publicKey->padding)))
-    {
-      GNUNET_break (0);
-      return NULL;
-    }
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   size = GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
   rc = gcry_mpi_scan (&n, GCRYMPI_FMT_USG, &publicKey->key[0], size, &size);
   if (rc)
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-      return NULL;
-    }
-  size =
-    GNUNET_CRYPTO_RSA_KEY_LENGTH - GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
-  rc =
-    gcry_mpi_scan (&e, GCRYMPI_FMT_USG,
-                   &publicKey->key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH],
-                   size, &size);
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    return NULL;
+  }
+  size = GNUNET_CRYPTO_RSA_KEY_LENGTH - GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
+  rc = gcry_mpi_scan (&e, GCRYMPI_FMT_USG,
+                      &publicKey->key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH],
+                      size, &size);
   if (rc)
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-      gcry_mpi_release (n);
-      return NULL;
-    }
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    gcry_mpi_release (n);
+    return NULL;
+  }
   rc = gcry_sexp_build (&result,
                         &erroff, "(public-key(rsa(n %m)(e %m)))", n, e);
   gcry_mpi_release (n);
   gcry_mpi_release (e);
   if (rc)
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);        /* erroff gives more info */
-      return NULL;
-    }
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);  /* erroff gives more info */
+    return NULL;
+  }
   ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
   ret->sexp = result;
   return ret;
@@ -309,10 +305,10 @@ rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
 
 #if EXTRA_CHECKS
   if (gcry_pk_testkey (hostkey->sexp))
-    {
-      GNUNET_break (0);
-      return NULL;
-    }
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
 #endif
 
   memset (pkv, 0, sizeof (gcry_mpi_t) * 6);
@@ -330,20 +326,20 @@ rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
   GNUNET_assert (0 == rc);
   size = sizeof (struct RsaPrivateKeyBinaryEncoded);
   for (i = 0; i < 6; i++)
+  {
+    if (pkv[i] != NULL)
     {
-      if (pkv[i] != NULL)
-        {
-          GNUNET_assert (0 == gcry_mpi_aprint (GCRYMPI_FMT_USG,
-                                               (unsigned char **) &pbu[i],
-                                               &sizes[i], pkv[i]));
-          size += sizes[i];
-        }
-      else
-        {
-          pbu[i] = NULL;
-          sizes[i] = 0;
-        }
+      GNUNET_assert (0 == gcry_mpi_aprint (GCRYMPI_FMT_USG,
+                                           (unsigned char **) &pbu[i],
+                                           &sizes[i], pkv[i]));
+      size += sizes[i];
     }
+    else
+    {
+      pbu[i] = NULL;
+      sizes[i] = 0;
+    }
+  }
   GNUNET_assert (size < 65536);
   retval = GNUNET_malloc (size);
   retval->len = htons (size);
@@ -368,12 +364,12 @@ rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
   retval->sizedmq1 = htons (0);
   memcpy (&((char *) (&retval[1]))[i], pbu[5], sizes[5]);
   for (i = 0; i < 6; i++)
-    {
-      if (pkv[i] != NULL)
-        gcry_mpi_release (pkv[i]);
-      if (pbu[i] != NULL)
-        free (pbu[i]);
-    }
+  {
+    if (pkv[i] != NULL)
+      gcry_mpi_release (pkv[i]);
+    if (pbu[i] != NULL)
+      free (pbu[i]);
+  }
   return retval;
 }
 
@@ -388,7 +384,8 @@ struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *ret;
-  const struct RsaPrivateKeyBinaryEncoded *encoding = (const struct RsaPrivateKeyBinaryEncoded *)buf;
+  const struct RsaPrivateKeyBinaryEncoded *encoding =
+      (const struct RsaPrivateKeyBinaryEncoded *) buf;
   gcry_sexp_t res;
   gcry_mpi_t n, e, d, p, q, u;
   int rc;
@@ -396,7 +393,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
   int pos;
   uint16_t enc_len;
 
-  enc_len = ntohs(encoding->len);
+  enc_len = ntohs (encoding->len);
   if (len != enc_len)
     return NULL;
 
@@ -408,10 +405,10 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
                       size, &size);
   pos += ntohs (encoding->sizen);
   if (rc)
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-      return NULL;
-    }
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    return NULL;
+  }
   size = ntohs (encoding->sizee);
   rc = gcry_mpi_scan (&e,
                       GCRYMPI_FMT_USG,
@@ -419,11 +416,11 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
                       size, &size);
   pos += ntohs (encoding->sizee);
   if (rc)
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-      gcry_mpi_release (n);
-      return NULL;
-    }
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    gcry_mpi_release (n);
+    return NULL;
+  }
   size = ntohs (encoding->sized);
   rc = gcry_mpi_scan (&d,
                       GCRYMPI_FMT_USG,
@@ -431,100 +428,99 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
                       size, &size);
   pos += ntohs (encoding->sized);
   if (rc)
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    gcry_mpi_release (n);
+    gcry_mpi_release (e);
+    return NULL;
+  }
+  /* swap p and q! */
+  size = ntohs (encoding->sizep);
+  if (size > 0)
+  {
+    rc = gcry_mpi_scan (&q,
+                        GCRYMPI_FMT_USG,
+                        &((const unsigned char *) (&encoding[1]))[pos],
+                        size, &size);
+    pos += ntohs (encoding->sizep);
+    if (rc)
     {
       LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
       gcry_mpi_release (n);
       gcry_mpi_release (e);
+      gcry_mpi_release (d);
       return NULL;
     }
-  /* swap p and q! */
-  size = ntohs (encoding->sizep);
-  if (size > 0)
-    {
-      rc = gcry_mpi_scan (&q,
-                          GCRYMPI_FMT_USG,
-                          &((const unsigned char *) (&encoding[1]))[pos],
-                          size, &size);
-      pos += ntohs (encoding->sizep);
-      if (rc)
-        {
-          LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-          gcry_mpi_release (n);
-          gcry_mpi_release (e);
-          gcry_mpi_release (d);
-          return NULL;
-        }
-    }
+  }
   else
     q = NULL;
   size = ntohs (encoding->sizeq);
   if (size > 0)
+  {
+    rc = gcry_mpi_scan (&p,
+                        GCRYMPI_FMT_USG,
+                        &((const unsigned char *) (&encoding[1]))[pos],
+                        size, &size);
+    pos += ntohs (encoding->sizeq);
+    if (rc)
     {
-      rc = gcry_mpi_scan (&p,
-                          GCRYMPI_FMT_USG,
-                          &((const unsigned char *) (&encoding[1]))[pos],
-                          size, &size);
-      pos += ntohs (encoding->sizeq);
-      if (rc)
-        {
-          LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-          gcry_mpi_release (n);
-          gcry_mpi_release (e);
-          gcry_mpi_release (d);
-          if (q != NULL)
-            gcry_mpi_release (q);
-          return NULL;
-        }
+      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+      gcry_mpi_release (n);
+      gcry_mpi_release (e);
+      gcry_mpi_release (d);
+      if (q != NULL)
+        gcry_mpi_release (q);
+      return NULL;
     }
+  }
   else
     p = NULL;
   pos += ntohs (encoding->sizedmp1);
   pos += ntohs (encoding->sizedmq1);
   size =
-    ntohs (encoding->len) - sizeof (struct RsaPrivateKeyBinaryEncoded) - pos;
+      ntohs (encoding->len) - sizeof (struct RsaPrivateKeyBinaryEncoded) - pos;
   if (size > 0)
+  {
+    rc = gcry_mpi_scan (&u,
+                        GCRYMPI_FMT_USG,
+                        &((const unsigned char *) (&encoding[1]))[pos],
+                        size, &size);
+    if (rc)
     {
-      rc = gcry_mpi_scan (&u,
-                          GCRYMPI_FMT_USG,
-                          &((const unsigned char *) (&encoding[1]))[pos],
-                          size, &size);
-      if (rc)
-        {
-          LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-          gcry_mpi_release (n);
-          gcry_mpi_release (e);
-          gcry_mpi_release (d);
-          if (p != NULL)
-            gcry_mpi_release (p);
-          if (q != NULL)
-            gcry_mpi_release (q);
-          return NULL;
-        }
+      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+      gcry_mpi_release (n);
+      gcry_mpi_release (e);
+      gcry_mpi_release (d);
+      if (p != NULL)
+        gcry_mpi_release (p);
+      if (q != NULL)
+        gcry_mpi_release (q);
+      return NULL;
     }
+  }
   else
     u = NULL;
 
   if ((p != NULL) && (q != NULL) && (u != NULL))
+  {
+    rc = gcry_sexp_build (&res, &size,  /* erroff */
+                          "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)(u %m)))",
+                          n, e, d, p, q, u);
+  }
+  else
+  {
+    if ((p != NULL) && (q != NULL))
     {
       rc = gcry_sexp_build (&res, &size,        /* erroff */
-                            "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)(u %m)))",
-                            n, e, d, p, q, u);
+                            "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)))",
+                            n, e, d, p, q);
     }
-  else
+    else
     {
-      if ((p != NULL) && (q != NULL))
-        {
-          rc = gcry_sexp_build (&res, &size,    /* erroff */
-                                "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)))",
-                                n, e, d, p, q);
-        }
-      else
-        {
-          rc = gcry_sexp_build (&res, &size,    /* erroff */
-                                "(private-key(rsa(n %m)(e %m)(d %m)))",
-                                n, e, d);
-        }
+      rc = gcry_sexp_build (&res, &size,        /* erroff */
+                            "(private-key(rsa(n %m)(e %m)(d %m)))", n, e, d);
     }
+  }
   gcry_mpi_release (n);
   gcry_mpi_release (e);
   gcry_mpi_release (d);
@@ -539,10 +535,10 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
 #if EXTRA_CHECKS
   if (gcry_pk_testkey (res))
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
-      return NULL;
-    }
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+    return NULL;
+  }
 #endif
   ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
   ret->sexp = res;
@@ -579,167 +575,156 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
     return NULL;
   while (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  {
+    fd = GNUNET_DISK_file_open (filename,
+                                GNUNET_DISK_OPEN_WRITE |
+                                GNUNET_DISK_OPEN_CREATE |
+                                GNUNET_DISK_OPEN_FAILIFEXISTS,
+                                GNUNET_DISK_PERM_USER_READ |
+                                GNUNET_DISK_PERM_USER_WRITE);
+    if (NULL == fd)
     {
-      fd = GNUNET_DISK_file_open (filename,
-                                  GNUNET_DISK_OPEN_WRITE |
-                                  GNUNET_DISK_OPEN_CREATE |
-                                  GNUNET_DISK_OPEN_FAILIFEXISTS,
-                                  GNUNET_DISK_PERM_USER_READ |
-                                  GNUNET_DISK_PERM_USER_WRITE);
-      if (NULL == fd)
+      if (errno == EEXIST)
+      {
+        if (GNUNET_YES != GNUNET_DISK_file_test (filename))
         {
-          if (errno == EEXIST)
-	    {	      
-	      if (GNUNET_YES != GNUNET_DISK_file_test (filename))
-		{
-		  /* must exist but not be accessible, fail for good! */
-		  if (0 != ACCESS (filename, R_OK))		    
-		    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-					      "access", filename);
-		  else
-		    GNUNET_break (0); /* what is going on!? */
-		  return NULL;
-		}
-	      continue;
-	    }
-          GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                                    "open", filename);
+          /* must exist but not be accessible, fail for good! */
+          if (0 != ACCESS (filename, R_OK))
+            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                                      "access", filename);
+          else
+            GNUNET_break (0);   /* what is going on!? */
           return NULL;
         }
-      cnt = 0;
-
-      while (GNUNET_YES !=
-             GNUNET_DISK_file_lock (fd, 0,
-                                    sizeof (struct
-                                            RsaPrivateKeyBinaryEncoded),
-                                    GNUNET_YES))
-        {
-          sleep (1);
-          if (0 == ++cnt % 10)
-            {
-              ec = errno;
-              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                          _
-                          ("Could not aquire lock on file `%s': %s...\n"),
-                          filename, STRERROR (ec));
-            }
-        }
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Creating a new private key.  This may take a while.\n"));
-      ret = GNUNET_CRYPTO_rsa_key_create ();
-      GNUNET_assert (ret != NULL);
-      enc = rsa_encode_key (ret);
-      GNUNET_assert (enc != NULL);
-      GNUNET_assert (ntohs (enc->len) ==
-                     GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
-      GNUNET_free (enc);
-
-      GNUNET_DISK_file_sync (fd);
-      if (GNUNET_YES !=
-          GNUNET_DISK_file_unlock (fd, 0,
-                                   sizeof (struct
-                                           RsaPrivateKeyBinaryEncoded)))
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl",
-                                  filename);
-      GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
-      GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
-      GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("I am host `%s'.  Stored new private key in `%s'.\n"), 
-		  GNUNET_i2s (&pid),
-		  filename);
-      return ret;
+        continue;
+      }
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+      return NULL;
     }
+    cnt = 0;
+
+    while (GNUNET_YES !=
+           GNUNET_DISK_file_lock (fd, 0,
+                                  sizeof (struct
+                                          RsaPrivateKeyBinaryEncoded),
+                                  GNUNET_YES))
+    {
+      sleep (1);
+      if (0 == ++cnt % 10)
+      {
+        ec = errno;
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _
+                    ("Could not aquire lock on file `%s': %s...\n"),
+                    filename, STRERROR (ec));
+      }
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Creating a new private key.  This may take a while.\n"));
+    ret = GNUNET_CRYPTO_rsa_key_create ();
+    GNUNET_assert (ret != NULL);
+    enc = rsa_encode_key (ret);
+    GNUNET_assert (enc != NULL);
+    GNUNET_assert (ntohs (enc->len) ==
+                   GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
+    GNUNET_free (enc);
+
+    GNUNET_DISK_file_sync (fd);
+    if (GNUNET_YES !=
+        GNUNET_DISK_file_unlock (fd, 0,
+                                 sizeof (struct RsaPrivateKeyBinaryEncoded)))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
+    GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
+    GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
+    GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("I am host `%s'.  Stored new private key in `%s'.\n"),
+                GNUNET_i2s (&pid), filename);
+    return ret;
+  }
   /* hostkey file exists already, read it! */
   fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
                               GNUNET_DISK_PERM_NONE);
   if (NULL == fd)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+    return NULL;
+  }
   cnt = 0;
   while (1)
+  {
+    if (GNUNET_YES !=
+        GNUNET_DISK_file_lock (fd, 0,
+                               sizeof (struct RsaPrivateKeyBinaryEncoded),
+                               GNUNET_NO))
     {
-      if (GNUNET_YES !=
-          GNUNET_DISK_file_lock (fd, 0,
-                                 sizeof (struct RsaPrivateKeyBinaryEncoded),
-                                 GNUNET_NO))
-        {
-          if (0 == ++cnt % 60)
-            {
-              ec = errno;
-              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                          _("Could not aquire lock on file `%s': %s...\n"),
-                          filename, STRERROR (ec));
-              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                          _
-                          ("This may be ok if someone is currently generating a hostkey.\n"));
-            }
-          sleep (1);
-          continue;
-        }
-      if (GNUNET_YES != GNUNET_DISK_file_test (filename))
-        {
-          /* eh, what!? File we opened is now gone!? */
-          GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                    "stat", filename);
-          if (GNUNET_YES !=
-              GNUNET_DISK_file_unlock (fd, 0,
-                                       sizeof (struct
-                                               RsaPrivateKeyBinaryEncoded)))
-            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl",
-                                      filename);
-          GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
-
-          return NULL;
-        }
-      if (GNUNET_YES != GNUNET_DISK_file_size (filename, &fs, GNUNET_YES))
-        fs = 0;
-      if (fs < sizeof (struct RsaPrivateKeyBinaryEncoded))
-        {
-          /* maybe we got the read lock before the hostkey generating
-             process had a chance to get the write lock; give it up! */
-          if (GNUNET_YES !=
-              GNUNET_DISK_file_unlock (fd, 0,
-                                       sizeof (struct
-                                               RsaPrivateKeyBinaryEncoded)))
-            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl",
-                                      filename);
-          if (0 == ++cnt % 10)
-            {
-              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                          _
-                          ("When trying to read hostkey file `%s' I found %u bytes but I need at least %u.\n"),
-                          filename, (unsigned int) fs,
-                          (unsigned int) sizeof (struct
-                                                 RsaPrivateKeyBinaryEncoded));
-              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                          _
-                          ("This may be ok if someone is currently generating a hostkey.\n"));
-            }
-          sleep (2);            /* wait a bit longer! */
-          continue;
-        }
-      break;
+      if (0 == ++cnt % 60)
+      {
+        ec = errno;
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Could not aquire lock on file `%s': %s...\n"),
+                    filename, STRERROR (ec));
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _
+                    ("This may be ok if someone is currently generating a hostkey.\n"));
+      }
+      sleep (1);
+      continue;
     }
+    if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+    {
+      /* eh, what!? File we opened is now gone!? */
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "stat", filename);
+      if (GNUNET_YES !=
+          GNUNET_DISK_file_unlock (fd, 0,
+                                   sizeof (struct RsaPrivateKeyBinaryEncoded)))
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
+      GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
+
+      return NULL;
+    }
+    if (GNUNET_YES != GNUNET_DISK_file_size (filename, &fs, GNUNET_YES))
+      fs = 0;
+    if (fs < sizeof (struct RsaPrivateKeyBinaryEncoded))
+    {
+      /* maybe we got the read lock before the hostkey generating
+       * process had a chance to get the write lock; give it up! */
+      if (GNUNET_YES !=
+          GNUNET_DISK_file_unlock (fd, 0,
+                                   sizeof (struct RsaPrivateKeyBinaryEncoded)))
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
+      if (0 == ++cnt % 10)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _
+                    ("When trying to read hostkey file `%s' I found %u bytes but I need at least %u.\n"),
+                    filename, (unsigned int) fs,
+                    (unsigned int) sizeof (struct RsaPrivateKeyBinaryEncoded));
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _
+                    ("This may be ok if someone is currently generating a hostkey.\n"));
+      }
+      sleep (2);                /* wait a bit longer! */
+      continue;
+    }
+    break;
+  }
   enc = GNUNET_malloc (fs);
   GNUNET_assert (fs == GNUNET_DISK_file_read (fd, enc, fs));
   len = ntohs (enc->len);
   ret = NULL;
-  if ((len != fs) || (NULL == (ret = GNUNET_CRYPTO_rsa_decode_key ((char *)enc, len))))
+  if ((len != fs) ||
+      (NULL == (ret = GNUNET_CRYPTO_rsa_decode_key ((char *) enc, len))))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("File `%s' does not contain a valid private key.  Deleting it.\n"),
+                filename);
+    if (0 != UNLINK (filename))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("File `%s' does not contain a valid private key.  Deleting it.\n"),
-                  filename);
-      if (0 != UNLINK (filename))
-	{
-	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-				    "unlink",
-				    filename);
-	}
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
     }
+  }
   GNUNET_free (enc);
   if (GNUNET_YES !=
       GNUNET_DISK_file_unlock (fd, 0,
@@ -747,14 +732,13 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
   GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
   if (ret != NULL)
-    {
-      GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
-      GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("I am host `%s'.  Read private key from `%s'.\n"), 
-		  GNUNET_i2s (&pid),
-		  filename);
-    }
+  {
+    GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
+    GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("I am host `%s'.  Read private key from `%s'.\n"),
+                GNUNET_i2s (&pid), filename);
+  }
   return ret;
 }
 
@@ -853,8 +837,7 @@ GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey * key,
   gcry_sexp_release (resultsexp);
   tmp = GNUNET_malloc (max + HOSTKEY_LEN / 8);
   size = max + HOSTKEY_LEN / 8;
-  GNUNET_assert (0 ==
-                 gcry_mpi_print (GCRYMPI_FMT_USG, tmp, size, &size, val));
+  GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG, tmp, size, &size, val));
   gcry_mpi_release (val);
   endp = tmp;
   endp += (size - max);
@@ -946,8 +929,7 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
   size = sizeof (struct GNUNET_CRYPTO_RsaSignature);
   GNUNET_assert (0 == gcry_mpi_scan (&val,
                                      GCRYMPI_FMT_USG,
-                                     (const unsigned char *) sig, size,
-                                     &size));
+                                     (const unsigned char *) sig, size, &size));
   GNUNET_assert (0 ==
                  gcry_sexp_build (&sigdata, &erroff, "(sig-val(rsa(s %m)))",
                                   val));
@@ -963,22 +945,22 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
   GNUNET_free (buff);
   hostkey = public2PrivateKey (publicKey);
   if (hostkey == NULL)
-    {
-      gcry_sexp_release (data);
-      gcry_sexp_release (sigdata);
-      return GNUNET_SYSERR;
-    }
+  {
+    gcry_sexp_release (data);
+    gcry_sexp_release (sigdata);
+    return GNUNET_SYSERR;
+  }
   rc = gcry_pk_verify (sigdata, data, hostkey->sexp);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   gcry_sexp_release (data);
   gcry_sexp_release (sigdata);
   if (rc)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("RSA signature verification failed at %s:%d: %s\n"),
-                  __FILE__, __LINE__, gcry_strerror (rc));
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("RSA signature verification failed at %s:%d: %s\n"),
+                __FILE__, __LINE__, gcry_strerror (rc));
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 

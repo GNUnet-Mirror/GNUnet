@@ -90,7 +90,7 @@
 #if HAVE_NETINET_IN_SYSTM_H
 #include <netinet/in_systm.h>
 #endif
-#include <netinet/ip.h> /* superset of previous */
+#include <netinet/ip.h>         /* superset of previous */
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <pwd.h>
@@ -110,7 +110,7 @@
 #include <errno.h>
 #include <signal.h>
 #ifdef WINDOWS
-#include <malloc.h> /* for alloca(), on other OSes it's in stdlib.h */
+#include <malloc.h>             /* for alloca(), on other OSes it's in stdlib.h */
 #endif
 #ifndef _MSC_VER
 #include <unistd.h>             /* KLB_FIX */

@@ -56,21 +56,22 @@ testVerbose ()
     NULL
   };
   unsigned int vflags = 0;
+
   const struct GNUNET_GETOPT_CommandLineOption verboseoptionlist[] = {
     GNUNET_GETOPT_OPTION_VERBOSE (&vflags),
     GNUNET_GETOPT_OPTION_END
   };
 
   if (3 != GNUNET_GETOPT_run ("test", verboseoptionlist, 4, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   if (vflags != 2)
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   return 0;
 }
 
@@ -88,10 +89,10 @@ testVersion ()
   };
 
   if (-1 != GNUNET_GETOPT_run ("test_getopt", versionoptionlist, 2, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   return 0;
 }
 
@@ -109,10 +110,10 @@ testAbout ()
   };
 
   if (-1 != GNUNET_GETOPT_run ("test_getopt", aboutoptionlist, 2, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   return 0;
 }
 
@@ -127,6 +128,7 @@ testLogOpts ()
   };
   char *level = GNUNET_strdup ("stuff");
   char *fn = NULL;
+
   const struct GNUNET_GETOPT_CommandLineOption logoptionlist[] = {
     GNUNET_GETOPT_OPTION_LOGFILE (&fn),
     GNUNET_GETOPT_OPTION_LOGLEVEL (&level),
@@ -134,18 +136,18 @@ testLogOpts ()
   };
 
   if (5 != GNUNET_GETOPT_run ("test_getopt", logoptionlist, 5, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   GNUNET_assert (fn != NULL);
   if ((0 != strcmp (level, "WARNING")) || (0 != strcmp (fn, "filename")))
-    {
-      GNUNET_break (0);
-      GNUNET_free (level);
-      GNUNET_free (fn);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_free (level);
+    GNUNET_free (fn);
+    return 1;
+  }
   GNUNET_free (level);
   GNUNET_free (fn);
   return 0;
@@ -164,6 +166,7 @@ testFlagNum ()
   int flag = 0;
   unsigned int num = 0;
   unsigned long long lnum = 0;
+
   const struct GNUNET_GETOPT_CommandLineOption logoptionlist[] = {
     {'f', "--flag", NULL, "helptext", 0, &GNUNET_GETOPT_set_one,
      (void *) &flag},
@@ -175,15 +178,15 @@ testFlagNum ()
   };
 
   if (6 != GNUNET_GETOPT_run ("test_getopt", logoptionlist, 6, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   if ((1 != flag) || (42 != num) || (42 != lnum))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   return 0;
 }
 

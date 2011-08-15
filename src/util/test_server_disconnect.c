@@ -46,8 +46,7 @@ static int ok;
 
 
 static void
-finish_up (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (ok == 5);
   ok = 0;
@@ -64,8 +63,7 @@ notify_disconnect (void *cls, struct GNUNET_SERVER_Client *clientarg)
     return;
   GNUNET_assert (ok == 4);
   ok = 5;
-  GNUNET_SCHEDULER_add_now (&finish_up,
-			    NULL);
+  GNUNET_SCHEDULER_add_now (&finish_up, NULL);
 }
 
 
@@ -73,6 +71,7 @@ static void
 server_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Client *argclient = cls;
+
   GNUNET_assert (ok == 3);
   ok = 4;
   GNUNET_SERVER_client_disconnect (argclient);
@@ -89,8 +88,7 @@ recv_cb (void *cls,
   ok = 3;
   GNUNET_SERVER_client_keep (client);
   GNUNET_SCHEDULER_add_now (&server_disconnect, client);
-  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
-                 ntohs (message->size));
+  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size));
   GNUNET_assert (MY_TYPE == ntohs (message->type));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -103,10 +101,8 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 static size_t
-transmit_initial_message (void *cls,
-			  size_t size,
-			  void *buf)
-{  
+transmit_initial_message (void *cls, size_t size, void *buf)
+{
   struct GNUNET_MessageHeader msg;
 
   GNUNET_assert (ok == 1);
@@ -123,10 +119,10 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in sa;
-  struct sockaddr * sap[2];
+  struct sockaddr *sap[2];
   socklen_t slens[2];
 
-  sap[0] = (struct sockaddr*) &sa;
+  sap[0] = (struct sockaddr *) &sa;
   slens[0] = sizeof (sa);
   sap[1] = NULL;
   slens[1] = 0;
@@ -136,29 +132,25 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
-  server = GNUNET_SERVER_create (NULL,
-                                 NULL,
-                                 sap,
-				 slens,
-                                 TIMEOUT,
-                                 GNUNET_NO);
+  server = GNUNET_SERVER_create (NULL, NULL, sap, slens, TIMEOUT, GNUNET_NO);
   GNUNET_assert (server != NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &notify_disconnect, NULL);
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_number (cfg, "test-server", "PORT", PORT);
-  GNUNET_CONFIGURATION_set_value_string (cfg, "test-server", "HOSTNAME", "localhost");
-  GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME", "localhost");
-  cc = GNUNET_CLIENT_connect ("test-server",
-			      cfg);
+  GNUNET_CONFIGURATION_set_value_string (cfg, "test-server", "HOSTNAME",
+                                         "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
+                                         "localhost");
+  cc = GNUNET_CLIENT_connect ("test-server", cfg);
   GNUNET_assert (cc != NULL);
   GNUNET_assert (NULL !=
-		 GNUNET_CLIENT_notify_transmit_ready (cc,
-						      sizeof (struct GNUNET_MessageHeader),
-						      TIMEOUT,
-						      GNUNET_YES,
-						      &transmit_initial_message,
-						      NULL));
+                 GNUNET_CLIENT_notify_transmit_ready (cc,
+                                                      sizeof (struct
+                                                              GNUNET_MessageHeader),
+                                                      TIMEOUT, GNUNET_YES,
+                                                      &transmit_initial_message,
+                                                      NULL));
 }
 
 

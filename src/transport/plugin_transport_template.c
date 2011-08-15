@@ -152,13 +152,12 @@ struct Plugin
  */
 static ssize_t
 template_plugin_send (void *cls,
-                      const struct GNUNET_PeerIdentity *
-                      target,
+                      const struct GNUNET_PeerIdentity *target,
                       const char *msgbuf,
                       size_t msgbuf_size,
                       unsigned int priority,
                       struct GNUNET_TIME_Relative timeout,
-		      struct Session *session,
+                      struct Session *session,
                       const void *addr,
                       size_t addrlen,
                       int force_address,
@@ -166,6 +165,7 @@ template_plugin_send (void *cls,
                       cont, void *cont_cls)
 {
   int bytes_sent = 0;
+
   /*  struct Plugin *plugin = cls; */
   return bytes_sent;
 }
@@ -181,8 +181,7 @@ template_plugin_send (void *cls,
  * @param target peer from which to disconnect
  */
 static void
-template_plugin_disconnect (void *cls,
-                            const struct GNUNET_PeerIdentity *target)
+template_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
   // FIXME
@@ -231,14 +230,12 @@ template_plugin_address_pretty_printer (void *cls,
  *         and transport
  */
 static int
-template_plugin_address_suggested (void *cls,
-				   const void *addr,
-				   size_t addrlen)
+template_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
 {
   /* struct Plugin *plugin = cls; */
 
   /* check if the address is plausible; if so,
-     add it to our list! */
+   * add it to our list! */
   return GNUNET_OK;
 }
 
@@ -254,10 +251,8 @@ template_plugin_address_suggested (void *cls,
  * @param addrlen length of the address
  * @return string representing the same address
  */
-static const char*
-template_plugin_address_to_string (void *cls,
-				   const void *addr,
-				   size_t addrlen)
+static const char *
+template_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
   GNUNET_break (0);
   return NULL;

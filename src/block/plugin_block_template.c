@@ -47,14 +47,14 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_template_evaluate (void *cls,
-			  enum GNUNET_BLOCK_Type type,
-			  const GNUNET_HashCode *query,
-			  struct GNUNET_CONTAINER_BloomFilter **bf,
-			  int32_t bf_mutator,
-			  const void *xquery,
-			  size_t xquery_size,
-			  const void *reply_block,
-			  size_t reply_block_size)
+                                enum GNUNET_BLOCK_Type type,
+                                const GNUNET_HashCode * query,
+                                struct GNUNET_CONTAINER_BloomFilter **bf,
+                                int32_t bf_mutator,
+                                const void *xquery,
+                                size_t xquery_size,
+                                const void *reply_block,
+                                size_t reply_block_size)
 {
   return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
 }
@@ -73,14 +73,13 @@ block_plugin_template_evaluate (void *cls,
  */
 static int
 block_plugin_template_get_key (void *cls,
-			 enum GNUNET_BLOCK_Type type,
-			 const void *block,
-			 size_t block_size,
-			 GNUNET_HashCode *key)
+                               enum GNUNET_BLOCK_Type type,
+                               const void *block,
+                               size_t block_size, GNUNET_HashCode * key)
 {
   return GNUNET_SYSERR;
 }
-				  
+
 
 /**
  * Entry point for the plugin.
@@ -88,11 +87,11 @@ block_plugin_template_get_key (void *cls,
 void *
 libgnunet_plugin_block_template_init (void *cls)
 {
-  static enum GNUNET_BLOCK_Type types[] = 
-    {
-      /* FIXME: insert supported block types here */
-      GNUNET_BLOCK_TYPE_ANY /* end of list */
-    };
+  static enum GNUNET_BLOCK_Type types[] =
+  {
+    /* FIXME: insert supported block types here */
+    GNUNET_BLOCK_TYPE_ANY       /* end of list */
+  };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));

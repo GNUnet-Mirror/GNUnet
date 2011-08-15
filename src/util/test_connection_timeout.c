@@ -62,8 +62,7 @@ open_listen_socket ()
   GNUNET_assert (desc != NULL);
   if (GNUNET_NETWORK_socket_setsockopt
       (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "setsockopt");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "setsockopt");
   GNUNET_assert (GNUNET_NETWORK_socket_bind
                  (desc, (const struct sockaddr *) &sa,
                   sizeof (sa)) == GNUNET_OK);
@@ -76,17 +75,18 @@ static size_t
 send_kilo (void *cls, size_t size, void *buf)
 {
   int *ok = cls;
+
   if (size == 0)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got the desired timeout!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got the desired timeout!\n");
 #endif
-      GNUNET_assert (buf == NULL);
-      *ok = 0;
-      GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
-      GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
-      return 0;
-    }
+    GNUNET_assert (buf == NULL);
+    *ok = 0;
+    GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
+    GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
+    return 0;
+  }
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending kilo to fill buffer.\n");
 #endif
@@ -109,8 +109,7 @@ task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ls = open_listen_socket ();
   lsock = GNUNET_CONNECTION_create_from_existing (ls);
   GNUNET_assert (lsock != NULL);
-  csock = GNUNET_CONNECTION_create_from_connect (cfg,
-                                                 "localhost", PORT);
+  csock = GNUNET_CONNECTION_create_from_connect (cfg, "localhost", PORT);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock,

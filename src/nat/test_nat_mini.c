@@ -50,10 +50,9 @@ addr_callback (void *cls, int add_remove,
                const struct sockaddr *addr, socklen_t addrlen)
 {
   fprintf (stderr,
-	   "Address changed: %s `%s' (%u bytes)\n",
-	   add_remove == GNUNET_YES ? "added" : "removed",
-	   GNUNET_a2s (addr, addrlen),
-	   (unsigned int) addrlen);
+           "Address changed: %s `%s' (%u bytes)\n",
+           add_remove == GNUNET_YES ? "added" : "removed",
+           GNUNET_a2s (addr, addrlen), (unsigned int) addrlen);
 }
 
 
@@ -65,8 +64,7 @@ stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      "Stopping NAT and quitting...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
   GNUNET_NAT_mini_map_stop (mini);
 }
 
@@ -83,17 +81,14 @@ run (void *cls,
   struct GNUNET_NAT_MiniHandle *mini;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Requesting NAT redirection for port %u...\n",
-              PORT);
-  mini = GNUNET_NAT_mini_map_start (PORT,
-				    GNUNET_YES /* tcp */,
-				    &addr_callback, NULL);
+              "Requesting NAT redirection for port %u...\n", PORT);
+  mini = GNUNET_NAT_mini_map_start (PORT, GNUNET_YES /* tcp */ ,
+                                    &addr_callback, NULL);
   if (NULL == mini)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "Could not start UPnP interaction\n");
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Could not start UPnP interaction\n");
+    return;
+  }
   GNUNET_SCHEDULER_add_delayed (TIMEOUT, &stop, mini);
 }
 
@@ -127,9 +122,10 @@ main (int argc, char *const argv[])
                     NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "UPnP test for NAT library, timeout set to %d seconds\n", TIMEOUT);
-  GNUNET_PROGRAM_run (5, argv_prog, "test-nat-mini",
-		      "nohelp", options, &run, NULL);
+              "UPnP test for NAT library, timeout set to %d seconds\n",
+              TIMEOUT);
+  GNUNET_PROGRAM_run (5, argv_prog, "test-nat-mini", "nohelp", options, &run,
+                      NULL);
   return 0;
 }
 

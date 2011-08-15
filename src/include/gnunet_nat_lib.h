@@ -41,9 +41,9 @@
  * @param addr either the previous or the new public IP address
  * @param addrlen actual lenght of the address
  */
-typedef void (*GNUNET_NAT_AddressCallback) (void *cls, 
-					    int add_remove,
-                                            const struct sockaddr *addr,
+typedef void (*GNUNET_NAT_AddressCallback) (void *cls,
+                                            int add_remove,
+                                            const struct sockaddr * addr,
                                             socklen_t addrlen);
 
 
@@ -56,9 +56,9 @@ typedef void (*GNUNET_NAT_AddressCallback) (void *cls,
  * @param addr public IP address of the other peer
  * @param addrlen actual lenght of the address
  */
-typedef void (*GNUNET_NAT_ReversalCallback) (void *cls, 
-					     const struct sockaddr *addr,
-					     socklen_t addrlen);
+typedef void (*GNUNET_NAT_ReversalCallback) (void *cls,
+                                             const struct sockaddr * addr,
+                                             socklen_t addrlen);
 
 
 /**
@@ -87,16 +87,17 @@ struct GNUNET_NAT_Handle;
  * @param callback_cls closure for callback
  * @return NULL on error, otherwise handle that can be used to unregister 
  */
-struct GNUNET_NAT_Handle *
-GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		     int is_tcp,
-		     uint16_t adv_port,
-		     unsigned int num_addrs,
-		     const struct sockaddr **addrs,
-		     const socklen_t *addrlens,
-		     GNUNET_NAT_AddressCallback address_callback, 
-		     GNUNET_NAT_ReversalCallback reversal_callback,
-		     void *callback_cls);
+struct GNUNET_NAT_Handle *GNUNET_NAT_register (const struct
+                                               GNUNET_CONFIGURATION_Handle *cfg,
+                                               int is_tcp, uint16_t adv_port,
+                                               unsigned int num_addrs,
+                                               const struct sockaddr **addrs,
+                                               const socklen_t * addrlens,
+                                               GNUNET_NAT_AddressCallback
+                                               address_callback,
+                                               GNUNET_NAT_ReversalCallback
+                                               reversal_callback,
+                                               void *callback_cls);
 
 
 /**
@@ -111,8 +112,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
-			 const void *addr,
-			 socklen_t addrlen);
+                         const void *addr, socklen_t addrlen);
 
 
 /**
@@ -125,7 +125,7 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
  */
 void
 GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
-		       const struct sockaddr_in *sa);
+                       const struct sockaddr_in *sa);
 
 
 
@@ -135,8 +135,7 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
  *
  * @param h the handle to stop
  */
-void 
-GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h);
+void GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h);
 
 
 /**
@@ -153,8 +152,7 @@ struct GNUNET_NAT_Test;
  *                GNUNET_SYSERR if the test could not be 
  *                properly started (internal failure)
  */
-typedef void (*GNUNET_NAT_TestCallback)(void *cls,
-					int success);
+typedef void (*GNUNET_NAT_TestCallback) (void *cls, int success);
 
 /**
  * Start testing if NAT traversal works using the
@@ -168,13 +166,12 @@ typedef void (*GNUNET_NAT_TestCallback)(void *cls,
  * @param report_cls closure for report
  * @return handle to cancel NAT test
  */
-struct GNUNET_NAT_Test *
-GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		       int is_tcp,
-		       uint16_t bnd_port,
-		       uint16_t adv_port,
-		       GNUNET_NAT_TestCallback report,
-		       void *report_cls);
+struct GNUNET_NAT_Test *GNUNET_NAT_test_start (const struct
+                                               GNUNET_CONFIGURATION_Handle *cfg,
+                                               int is_tcp, uint16_t bnd_port,
+                                               uint16_t adv_port,
+                                               GNUNET_NAT_TestCallback report,
+                                               void *report_cls);
 
 
 /**
@@ -182,8 +179,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param tst test to stop.
  */
-void
-GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
+void GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
 
 
 /**
@@ -192,8 +188,7 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
  * @param cls closure
  * @param addr the address, NULL on errors
  */
-typedef void (*GNUNET_NAT_IPCallback)(void *cls,
-				      const struct in_addr *addr);
+typedef void (*GNUNET_NAT_IPCallback) (void *cls, const struct in_addr * addr);
 
 
 
@@ -211,10 +206,13 @@ struct GNUNET_NAT_ExternalHandle;
  * @param cb_cls closure for 'cb'
  * @return handle for cancellation (can only be used until 'cb' is called), NULL on error
  */
-struct GNUNET_NAT_ExternalHandle *
-GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
-				   GNUNET_NAT_IPCallback cb,
-				   void *cb_cls);
+struct GNUNET_NAT_ExternalHandle *GNUNET_NAT_mini_get_external_ipv4 (struct
+                                                                     GNUNET_TIME_Relative
+                                                                     timeout,
+                                                                     GNUNET_NAT_IPCallback
+                                                                     cb,
+                                                                     void
+                                                                     *cb_cls);
 
 
 /**
@@ -228,7 +226,7 @@ GNUNET_NAT_mini_get_external_ipv4_cancel (struct GNUNET_NAT_ExternalHandle *eh);
 
 /**
  * Handle to a mapping created with upnpc.
- */ 
+ */
 struct GNUNET_NAT_MiniHandle;
 
 
@@ -245,11 +243,10 @@ struct GNUNET_NAT_MiniHandle;
  * @param ac_cls closure for 'ac'
  * @return NULL on error
  */
-struct GNUNET_NAT_MiniHandle *
-GNUNET_NAT_mini_map_start (uint16_t port,
-			   int is_tcp,
-			   GNUNET_NAT_AddressCallback ac,
-			   void *ac_cls);
+struct GNUNET_NAT_MiniHandle *GNUNET_NAT_mini_map_start (uint16_t port,
+                                                         int is_tcp,
+                                                         GNUNET_NAT_AddressCallback
+                                                         ac, void *ac_cls);
 
 
 /**
@@ -260,10 +257,9 @@ GNUNET_NAT_mini_map_start (uint16_t port,
  * 
  * @param mini the handle
  */
-void
-GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini);
+void GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini);
 
 
-#endif 
+#endif
 
 /* end of gnunet_nat_lib.h */

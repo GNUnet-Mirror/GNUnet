@@ -90,9 +90,8 @@ static void
 receive (void *cls,
          const struct GNUNET_PeerIdentity
          *peer, const struct GNUNET_MessageHeader *message,
-	 uint32_t distance,
-	 const char *sender_address,
-	 size_t sender_address_len)
+         uint32_t distance,
+         const char *sender_address, size_t sender_address_len)
 {
   /* do nothing */
 }
@@ -116,8 +115,7 @@ static void
 unload_plugins (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (NULL ==
-                 GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_tcp",
-                                       api));
+                 GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_tcp", api));
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
 
@@ -128,6 +126,7 @@ static void
 unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
   unload_plugins (NULL, cfg);
 }
 
@@ -160,8 +159,7 @@ test_validation ()
   soaddr.sin_port = htons (2368 /* FIXME: get from config! */ );
   soaddr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   GNUNET_assert (GNUNET_OK ==
-		 api->check_address (api->cls,
-				     &soaddr, sizeof (soaddr)));
+                 api->check_address (api->cls, &soaddr, sizeof (soaddr)));
   ok = 0;
   GNUNET_SCHEDULER_add_continuation (&unload_task,
                                      (void *) cfg,
@@ -207,24 +205,23 @@ run (void *cls,
        GNUNET_CONFIGURATION_get_value_filename (c,
                                                 "GNUNETD",
                                                 "HOSTKEY", &keyfile)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Transport service is lacking key configuration settings.  Exiting.\n"));
-      GNUNET_SCHEDULER_shutdown (s);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Transport service is lacking key configuration settings.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown (s);
+    return;
+  }
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   if (my_private_key == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Transport service could not access hostkey.  Exiting.\n"));
-      GNUNET_SCHEDULER_shutdown (s);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Transport service could not access hostkey.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown (s);
+    return;
+  }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key,
                       sizeof (my_public_key), &my_identity.hashPubKey);
@@ -239,12 +236,12 @@ run (void *cls,
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to load transport plugin for tcp\n"));
-      /* FIXME: set some error code for main */
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to load transport plugin for tcp\n"));
+    /* FIXME: set some error code for main */
+    return;
+  }
   test_validation ();
 }
 
@@ -263,6 +260,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
+
   char *const argv_prog[] = {
     "test_plugin_transport",
     "-c",

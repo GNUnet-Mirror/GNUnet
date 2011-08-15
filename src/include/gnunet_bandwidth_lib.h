@@ -107,9 +107,20 @@ GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second);
  * @param deadline when is the deadline
  * @return number of bytes available at bps until deadline
  */
-uint64_t 
-GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO bps,
-					    struct GNUNET_TIME_Relative deadline);
+uint64_t
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO
+                                             bps,
+                                             struct GNUNET_TIME_Relative
+                                             deadline);
 
 
 /**
@@ -122,7 +133,7 @@ GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO b
  */
 struct GNUNET_TIME_Relative
 GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
-				      uint64_t size);
+                                      uint64_t size);
 
 
 
@@ -135,7 +146,7 @@ GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
  */
 struct GNUNET_BANDWIDTH_Value32NBO
 GNUNET_BANDWIDTH_value_min (struct GNUNET_BANDWIDTH_Value32NBO b1,
-			    struct GNUNET_BANDWIDTH_Value32NBO b2);
+                            struct GNUNET_BANDWIDTH_Value32NBO b2);
 
 
 /**
@@ -154,8 +165,8 @@ GNUNET_BANDWIDTH_value_min (struct GNUNET_BANDWIDTH_Value32NBO b1,
  */
 void
 GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
-			       struct GNUNET_BANDWIDTH_Value32NBO bytes_per_second_limit,
-			       uint32_t max_carry_s);
+                               struct GNUNET_BANDWIDTH_Value32NBO
+                               bytes_per_second_limit, uint32_t max_carry_s);
 
 
 /**
@@ -171,7 +182,7 @@ GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
  */
 int
 GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
-				  ssize_t size);
+                                  ssize_t size);
 
 
 /**
@@ -185,7 +196,7 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
  */
 struct GNUNET_TIME_Relative
 GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
-				    size_t size);
+                                    size_t size);
 
 
 /**
@@ -195,8 +206,15 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
  * @param av tracker to query
  * @return number of bytes available for consumption right now
  */
-int64_t 
-GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av);
+int64_t
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+   GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av);
 
 
 /**
@@ -207,7 +225,8 @@ GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av);
  */
 void
 GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
-				       struct GNUNET_BANDWIDTH_Value32NBO bytes_per_second_limit);
+                                       struct GNUNET_BANDWIDTH_Value32NBO
+                                       bytes_per_second_limit);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

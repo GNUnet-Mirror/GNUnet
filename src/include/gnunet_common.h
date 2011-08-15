@@ -45,7 +45,7 @@
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
 #endif
- 
+
 /**
  * Version of the API (for entire gnunetutil.so library).
  */
@@ -193,8 +193,7 @@ GNUNET_log_from (enum GNUNET_ErrorType kind,
  * @param n number of log calls to ignore
  * @param check_reset GNUNET_YES to assert that the log skip counter is currently zero
  */
-void
-GNUNET_log_skip (unsigned int n, int check_reset);
+void GNUNET_log_skip (unsigned int n, int check_reset);
 
 
 /**
@@ -206,8 +205,7 @@ GNUNET_log_skip (unsigned int n, int check_reset);
  * @return GNUNET_OK on success, GNUNET_SYSERR if logfile could not be opened
  */
 int
-GNUNET_log_setup (const char *comp,
-                  const char *loglevel, const char *logfile);
+GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile);
 
 
 /**
@@ -236,7 +234,7 @@ void GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
  * @param hc the hash code
  * @return string 
  */
-const char *GNUNET_h2s (const GNUNET_HashCode *hc);
+const char *GNUNET_h2s (const GNUNET_HashCode * hc);
 
 
 /**
@@ -248,7 +246,7 @@ const char *GNUNET_h2s (const GNUNET_HashCode *hc);
  * @param hc the hash code
  * @return string
  */
-const char *GNUNET_h2s_full (const GNUNET_HashCode *hc);
+const char *GNUNET_h2s_full (const GNUNET_HashCode * hc);
 
 
 /**
@@ -273,8 +271,7 @@ const char *GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
  * @return nicely formatted string for the address
  *  will be overwritten by next call to GNUNET_a2s.
  */
-const char *GNUNET_a2s (const struct sockaddr *addr,
-			socklen_t addrlen);
+const char *GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen);
 
 /**
  * Convert error type to string.
@@ -515,7 +512,8 @@ void *GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
  * @param linenumber line where this call is being made (for debugging)
  * @return allocated memory, never NULL
  */
-void *GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename, int linenumber);
+void *GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
+                       int linenumber);
 
 
 /**
@@ -569,7 +567,8 @@ char *GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber);
  * @param linenumber line where this call is being made (for debugging)
  * @return the duplicated string
  */
-char *GNUNET_xstrndup_ (const char *str, size_t len, const char *filename, int linenumber);
+char *GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
+                        int linenumber);
 
 /**
  * Grow an array, the new elements are zeroed out.
@@ -596,11 +595,11 @@ void GNUNET_xgrow_ (void **old,
 
 
 #if __STDC_VERSION__ < 199901L
-# if __GNUC__ >= 2
-#  define __func__ __FUNCTION__
-# else
-#  define __func__ "<unknown>"
-# endif
+#if __GNUC__ >= 2
+#define __func__ __FUNCTION__
+#else
+#define __func__ "<unknown>"
+#endif
 #endif
 
 #endif /*GNUNET_COMMON_H_ */

@@ -41,7 +41,7 @@
 static int no_resolve;
 
 #if VERBOSE
-  static unsigned int connection_count;
+static unsigned int connection_count;
 #endif
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -53,14 +53,13 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 static void
-process_address (void *cls,
-                          const char *address)
+process_address (void *cls, const char *address)
 {
 #if VERBOSE
   connection_count++;
 #endif
   if (address != NULL)
-    fprintf(stdout, "%s\n", address);
+    fprintf (stdout, "%s\n", address);
 }
 
 
@@ -75,18 +74,15 @@ process_address (void *cls,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
 
   cfg = c;
   if (args[0] != NULL)
-    {
-      fprintf (stderr,
-               _("Invalid command line argument `%s'\n"),
-               args[0]);
-      return;
-    }
+  {
+    fprintf (stderr, _("Invalid command line argument `%s'\n"), args[0]);
+    return;
+  }
 
   GNUNET_TRANSPORT_address_iterate (cfg,
                                     GNUNET_TIME_UNIT_MINUTES,
@@ -114,7 +110,8 @@ main (int argc, char *const *argv)
           GNUNET_PROGRAM_run (argc,
                               argv,
                               "gnunet-list-connections",
-                              gettext_noop ("Print information about connected peers."),
+                              gettext_noop
+                              ("Print information about connected peers."),
                               options, &run, NULL)) ? 0 : 1;
 }
 

@@ -34,28 +34,27 @@ static void
 end_cb (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Ending with error: %s\n", emsg);
-      ok = 1;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Ending with error: %s\n", emsg);
+    ok = 1;
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Daemon terminated, will now exit.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon terminated, will now exit.\n");
 #endif
-      ok = 0;
-    }
+    ok = 0;
+  }
 }
 
 
 
-void do_shutdown (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext * tc)
+void
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTING_Daemon *d = cls;
-  GNUNET_TESTING_daemon_stop (d, TIMEOUT, &end_cb, NULL, GNUNET_YES,
-                              GNUNET_NO);
+
+  GNUNET_TESTING_daemon_stop (d, TIMEOUT, &end_cb, NULL, GNUNET_YES, GNUNET_NO);
 }
 
 
@@ -70,7 +69,7 @@ my_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemon `%s' started, will now stop it.\n", GNUNET_i2s (id));
 #endif
-  GNUNET_SCHEDULER_add_now(&do_shutdown, d);
+  GNUNET_SCHEDULER_add_now (&do_shutdown, d);
 }
 
 
@@ -85,9 +84,8 @@ run (void *cls,
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemon.\n");
 #endif
-  d =
-    GNUNET_TESTING_daemon_start (cfg, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL, NULL, NULL,
-                                 &my_cb, NULL);
+  d = GNUNET_TESTING_daemon_start (cfg, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL,
+                                   NULL, NULL, &my_cb, NULL);
   GNUNET_assert (d != NULL);
 }
 

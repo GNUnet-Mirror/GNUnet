@@ -66,15 +66,15 @@ open_listen_socket ()
   GNUNET_assert (desc != 0);
   if (GNUNET_NETWORK_socket_setsockopt
       (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "setsockopt");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "setsockopt");
   if (GNUNET_OK != GNUNET_NETWORK_socket_bind (desc,
-      (const struct sockaddr *) &sa, sizeof(sa)))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-          "bind");
-      GNUNET_assert (0);
-    }
+                                               (const struct sockaddr *) &sa,
+                                               sizeof (sa)))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                         "bind");
+    GNUNET_assert (0);
+  }
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
@@ -92,18 +92,18 @@ receive_check (void *cls,
   if (0 == memcmp (&"Hello World"[sofar], buf, available))
     sofar += available;
   if (sofar < 12)
-    {
-      GNUNET_CONNECTION_receive (asock,
-                                 1024,
-                                 GNUNET_TIME_relative_multiply
-                                 (GNUNET_TIME_UNIT_SECONDS, 5),
-                                 &receive_check, cls);
-    }
+  {
+    GNUNET_CONNECTION_receive (asock,
+                               1024,
+                               GNUNET_TIME_relative_multiply
+                               (GNUNET_TIME_UNIT_SECONDS, 5),
+                               &receive_check, cls);
+  }
   else
-    {
-      *ok = 0;
-      GNUNET_CONNECTION_destroy (asock, GNUNET_YES);
-    }
+  {
+    *ok = 0;
+    GNUNET_CONNECTION_destroy (asock, GNUNET_YES);
+  }
 }
 
 
@@ -151,6 +151,7 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in v4;
+
   ls = open_listen_socket ();
   lsock = GNUNET_CONNECTION_create_from_existing (ls);
   GNUNET_assert (lsock != NULL);

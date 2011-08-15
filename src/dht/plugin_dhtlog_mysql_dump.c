@@ -124,7 +124,7 @@ FILE *outfile;
 
 
 static char *
-get_sql_time()
+get_sql_time ()
 {
   static char date[DATE_STR_SIZE];
   time_t timetmp;
@@ -149,7 +149,7 @@ get_sql_time()
 static int
 prepared_statement_create (const char *statement)
 {
-  if (fprintf(outfile, "%s;\n", statement) > 0)
+  if (fprintf (outfile, "%s;\n", statement) > 0)
     return GNUNET_OK;
 
   return GNUNET_SYSERR;
@@ -179,11 +179,10 @@ iopen ()
       PINIT (INSERT_TOPOLOGY_STMT) ||
       PINIT (EXTEND_TOPOLOGY_STMT) ||
       PINIT (UPDATE_TOPOLOGY_STMT) ||
-      PINIT (GET_TRIAL_STMT) ||
-      PINIT (GET_TOPOLOGY_STMT))
-    {
-      return GNUNET_SYSERR;
-    }
+      PINIT (GET_TRIAL_STMT) || PINIT (GET_TOPOLOGY_STMT))
+  {
+    return GNUNET_SYSERR;
+  }
 #undef PINIT
 
   return GNUNET_OK;
@@ -197,17 +196,22 @@ iopen ()
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_round (unsigned int round_type, unsigned int round_count)
+int
+add_round (unsigned int round_type, unsigned int round_count)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @curr_time = \"%s\", @rtype = \"%u\", @rcount = \"%u\";\n", get_sql_time(), round_type, round_count);
+  ret =
+      fprintf (outfile,
+               "set @curr_time = \"%s\", @rtype = \"%u\", @rcount = \"%u\";\n",
+               get_sql_time (), round_type, round_count);
 
   if (ret < 0)
     return GNUNET_SYSERR;
-  ret = fprintf(outfile, "execute insert_round;\n");
+  ret = fprintf (outfile, "execute insert_round;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -225,19 +229,25 @@ int add_round (unsigned int round_type, unsigned int round_count)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_round_details (unsigned int round_type, unsigned int round_count,
-                       unsigned int num_messages, unsigned int num_messages_succeeded)
+int
+add_round_details (unsigned int round_type, unsigned int round_count,
+                   unsigned int num_messages,
+                   unsigned int num_messages_succeeded)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @curr_time = \"%s\", @rtype = \"%u\", @rcount = \"%u\", @totalmsgs = \"%u\", @msgssucceeded = \"%u\";\n",
-                          get_sql_time(), round_type, round_count, num_messages, num_messages_succeeded);
+  ret =
+      fprintf (outfile,
+               "set @curr_time = \"%s\", @rtype = \"%u\", @rcount = \"%u\", @totalmsgs = \"%u\", @msgssucceeded = \"%u\";\n",
+               get_sql_time (), round_type, round_count, num_messages,
+               num_messages_succeeded);
 
   if (ret < 0)
     return GNUNET_SYSERR;
-  ret = fprintf(outfile, "execute insert_round_details;\n");
+  ret = fprintf (outfile, "execute insert_round_details;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -255,19 +265,21 @@ int
 add_topology (int num_connections)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @date = \"%s\", @num = %d;\n", get_sql_time(), num_connections);
+  ret =
+      fprintf (outfile, "set @date = \"%s\", @num = %d;\n", get_sql_time (),
+               num_connections);
 
   if (ret < 0)
     return GNUNET_SYSERR;
-  ret = fprintf(outfile, "execute insert_topology using "
-                         "@date, @num;\n");
+  ret = fprintf (outfile, "execute insert_topology using " "@date, @num;\n");
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute select_topology;\n");
+  ret = fprintf (outfile, "execute select_topology;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -283,30 +295,38 @@ add_topology (int num_connections)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNUNET_PeerIdentity *second)
+add_extended_topology (const struct GNUNET_PeerIdentity *first,
+                       const struct GNUNET_PeerIdentity *second)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
   if (first != NULL)
-    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_first_node;\n", GNUNET_h2s_full(&first->hashPubKey));
+    ret =
+        fprintf (outfile,
+                 "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_first_node;\n",
+                 GNUNET_h2s_full (&first->hashPubKey));
   else
-    ret = fprintf(outfile, "set @temp_first_node = 0;\n");
+    ret = fprintf (outfile, "set @temp_first_node = 0;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
   if (second != NULL)
-    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_second_node;\n", GNUNET_h2s_full(&second->hashPubKey));
+    ret =
+        fprintf (outfile,
+                 "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_second_node;\n",
+                 GNUNET_h2s_full (&second->hashPubKey));
   else
-    ret = fprintf(outfile, "set @temp_second_node = 0;\n");
+    ret = fprintf (outfile, "set @temp_second_node = 0;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute extend_topology using "
-                         "@temp_first_node, @temp_second_node;\n");
+  ret = fprintf (outfile, "execute extend_topology using "
+                 "@temp_first_node, @temp_second_node;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -321,42 +341,51 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
+int
+add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 {
   int ret;
 
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @date = \"%s\", @oid = %u, @num = %u, @topology = %u, @bl = %u, "
-                   "@connect = %u, @c_t_o = %u, @c_t_o_m = %f, @t_p = %f, "
-                   "@t_pr = %f, @puts = %u, @gets = %u, "
-                   "@concurrent = %u, @settle = %u, @rounds = %u, "
-                   "@m_gets = %u, @m_puts = %u, @m_drops = %u, "
-                   "@m_g_f = %u, @m_p_f = %u, @s_c = %u, @s_f = %u,"
-                   "@s_k = %u, @g_s = %u, @message = \"%s\";\n",
-                   get_sql_time(), trial_info->other_identifier, trial_info->num_nodes, trial_info->topology,
-                   trial_info->blacklist_topology, trial_info->connect_topology,
-                   trial_info->connect_topology_option, trial_info->connect_topology_option_modifier,
-                   trial_info->topology_percentage, trial_info->topology_probability,
-                   trial_info->puts, trial_info->gets, trial_info->concurrent, trial_info->settle_time,
-                   trial_info->num_rounds, trial_info->malicious_getters, trial_info->malicious_putters,
-                   trial_info->malicious_droppers, trial_info->malicious_get_frequency, trial_info->malicious_put_frequency,
-                   trial_info->stop_closest, trial_info->stop_found, trial_info->strict_kademlia, trial_info->gets_succeeded, trial_info->message);
+  ret =
+      fprintf (outfile,
+               "set @date = \"%s\", @oid = %u, @num = %u, @topology = %u, @bl = %u, "
+               "@connect = %u, @c_t_o = %u, @c_t_o_m = %f, @t_p = %f, "
+               "@t_pr = %f, @puts = %u, @gets = %u, "
+               "@concurrent = %u, @settle = %u, @rounds = %u, "
+               "@m_gets = %u, @m_puts = %u, @m_drops = %u, "
+               "@m_g_f = %u, @m_p_f = %u, @s_c = %u, @s_f = %u,"
+               "@s_k = %u, @g_s = %u, @message = \"%s\";\n", get_sql_time (),
+               trial_info->other_identifier, trial_info->num_nodes,
+               trial_info->topology, trial_info->blacklist_topology,
+               trial_info->connect_topology,
+               trial_info->connect_topology_option,
+               trial_info->connect_topology_option_modifier,
+               trial_info->topology_percentage,
+               trial_info->topology_probability, trial_info->puts,
+               trial_info->gets, trial_info->concurrent,
+               trial_info->settle_time, trial_info->num_rounds,
+               trial_info->malicious_getters, trial_info->malicious_putters,
+               trial_info->malicious_droppers,
+               trial_info->malicious_get_frequency,
+               trial_info->malicious_put_frequency, trial_info->stop_closest,
+               trial_info->stop_found, trial_info->strict_kademlia,
+               trial_info->gets_succeeded, trial_info->message);
 
   if (ret < 0)
     return GNUNET_SYSERR;
-  ret = fprintf(outfile, "execute insert_trial using "
-                         "@date, @oid, @num, @topology, @t_p, @t_pr,"
-                         " @bl, @connect, @c_t_o,"
-                         "@c_t_o_m, @puts, @gets,"
-                         "@concurrent, @settle, @rounds,"
-                         "@m_gets, @m_puts, @m_drops,"
-                         "@m_g_f, @m_p_f, @s_c, @s_f,"
-                         "@s_k, @g_s, @message;\n");
+  ret = fprintf (outfile, "execute insert_trial using "
+                 "@date, @oid, @num, @topology, @t_p, @t_pr,"
+                 " @bl, @connect, @c_t_o,"
+                 "@c_t_o_m, @puts, @gets,"
+                 "@concurrent, @settle, @rounds,"
+                 "@m_gets, @m_puts, @m_drops,"
+                 "@m_g_f, @m_p_f, @s_c, @s_f," "@s_k, @g_s, @message;\n");
   if (ret < 0)
     return GNUNET_SYSERR;
-  ret = fprintf(outfile, "execute select_trial;\n");
+  ret = fprintf (outfile, "execute select_trial;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -376,28 +405,33 @@ int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
  */
 int
 add_generic_stat (const struct GNUNET_PeerIdentity *peer,
-                  const char *name,
-                  const char *section, uint64_t value)
+                  const char *name, const char *section, uint64_t value)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
   if (peer != NULL)
-    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n", GNUNET_h2s_full(&peer->hashPubKey));
+    ret =
+        fprintf (outfile,
+                 "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n",
+                 GNUNET_h2s_full (&peer->hashPubKey));
   else
-    ret = fprintf(outfile, "set @temp_node = 0;\n");
+    ret = fprintf (outfile, "set @temp_node = 0;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @temp_section = \"%s\", @temp_stat = \"%s\", @temp_value = %llu;\n",
-                         section, name, (unsigned long long)value);
+  ret =
+      fprintf (outfile,
+               "set @temp_section = \"%s\", @temp_stat = \"%s\", @temp_value = %llu;\n",
+               section, name, (unsigned long long) value);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute insert_generic_stat;\n");
+  ret = fprintf (outfile, "execute insert_generic_stat;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
@@ -436,43 +470,49 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
           unsigned int data_inserts, unsigned int find_peer_requests,
           unsigned int find_peers_started, unsigned int gets_started,
           unsigned int puts_started, unsigned int find_peer_responses_received,
-          unsigned int get_responses_received, unsigned int find_peer_responses_sent,
+          unsigned int get_responses_received,
+          unsigned int find_peer_responses_sent,
           unsigned int get_responses_sent)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
   if (peer != NULL)
-    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n", GNUNET_h2s_full(&peer->hashPubKey));
+    ret =
+        fprintf (outfile,
+                 "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n",
+                 GNUNET_h2s_full (&peer->hashPubKey));
   else
-    ret = fprintf(outfile, "set @temp_node = 0;\n");
+    ret = fprintf (outfile, "set @temp_node = 0;\n");
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @r_r = %u, @r_f = %u, @res_r = %u, @c_r = %u, "
-                         "@res_f = %u, @gets = %u, @puts = %u, @d_i = %u, "
-                         "@f_p_r = %u, @f_p_s = %u, @g_s = %u, @p_s = %u, "
-                         "@f_p_r_r = %u, @g_r_r = %u, @f_p_r_s = %u, @g_r_s = %u;\n",
-                         route_requests, route_forwards, result_requests,
-                         client_requests, result_forwards, gets, puts,
-                         data_inserts, find_peer_requests, find_peers_started,
-                         gets_started, puts_started, find_peer_responses_received,
-                         get_responses_received, find_peer_responses_sent,
-                         get_responses_sent);
+  ret = fprintf (outfile, "set @r_r = %u, @r_f = %u, @res_r = %u, @c_r = %u, "
+                 "@res_f = %u, @gets = %u, @puts = %u, @d_i = %u, "
+                 "@f_p_r = %u, @f_p_s = %u, @g_s = %u, @p_s = %u, "
+                 "@f_p_r_r = %u, @g_r_r = %u, @f_p_r_s = %u, @g_r_s = %u;\n",
+                 route_requests, route_forwards, result_requests,
+                 client_requests, result_forwards, gets, puts,
+                 data_inserts, find_peer_requests, find_peers_started,
+                 gets_started, puts_started, find_peer_responses_received,
+                 get_responses_received, find_peer_responses_sent,
+                 get_responses_sent);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute insert_stat using "
-                         "@temp_trial, @temp_node, @r_r, @r_f, @res_r, @c_r, "
-                         "@res_f, @gets, @puts, @d_i, "
-                         "@f_p_r, @f_p_s, @g_s, @p_s, "
-                         "@f_p_r_r, @g_r_r, @f_p_r_s, @g_r_s;\n");
+  ret = fprintf (outfile, "execute insert_stat using "
+                 "@temp_trial, @temp_node, @r_r, @r_f, @res_r, @c_r, "
+                 "@res_f, @gets, @puts, @d_i, "
+                 "@f_p_r, @f_p_s, @g_s, @p_s, "
+                 "@f_p_r_r, @g_r_r, @f_p_r_s, @g_r_s;\n");
   if (ret < 0)
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
+
 /*
  * Inserts the specified dhtkey into the dhttests.dhtkeys table,
  * stores return value of dhttests.dhtkeys.dhtkeyuid into dhtkeyuid
@@ -486,6 +526,7 @@ int
 add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
 {
   int ret;
+
   if (dhtkeyuid != NULL)
     *dhtkeyuid = 0;
 
@@ -493,13 +534,14 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
     return GNUNET_SYSERR;
 
   if (dhtkey != NULL)
-    ret = fprintf(outfile, "set @dhtkey = \"%s\";\n", GNUNET_h2s_full(dhtkey));
+    ret =
+        fprintf (outfile, "set @dhtkey = \"%s\";\n", GNUNET_h2s_full (dhtkey));
   else
-    ret = fprintf(outfile, "set @dhtkey = XXXXX;\n");
+    ret = fprintf (outfile, "set @dhtkey = XXXXX;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
-  ret = fprintf(outfile, "execute insert_dhtkey using @dhtkey;\n");
+  ret = fprintf (outfile, "execute insert_dhtkey using @dhtkey;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -515,7 +557,7 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
+add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity *node)
 {
   int ret;
 
@@ -525,12 +567,14 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @node = \"%s\";\n", GNUNET_h2s_full(&node->hashPubKey));
+  ret =
+      fprintf (outfile, "set @node = \"%s\";\n",
+               GNUNET_h2s_full (&node->hashPubKey));
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute insert_node using @node;\n");
+  ret = fprintf (outfile, "execute insert_node using @node;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -552,12 +596,14 @@ update_trials (unsigned int gets_succeeded)
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @date = \"%s\", @g_s = %u;\n", get_sql_time(), gets_succeeded);
+  ret =
+      fprintf (outfile, "set @date = \"%s\", @g_s = %u;\n", get_sql_time (),
+               gets_succeeded);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute update_trial using @date, @g_s;\n");
+  ret = fprintf (outfile, "execute update_trial using @date, @g_s;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -582,12 +628,14 @@ set_malicious (struct GNUNET_PeerIdentity *peer)
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @temp_node = \"%s\";\n", GNUNET_h2s_full(&peer->hashPubKey));
+  ret =
+      fprintf (outfile, "set @temp_node = \"%s\";\n",
+               GNUNET_h2s_full (&peer->hashPubKey));
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute set_malicious;\n");
+  ret = fprintf (outfile, "execute set_malicious;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -611,12 +659,12 @@ add_connections (unsigned int totalConnections)
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @conns = %u;\n", totalConnections);
+  ret = fprintf (outfile, "set @conns = %u;\n", totalConnections);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute update_conn using @conns;\n");
+  ret = fprintf (outfile, "execute update_conn using @conns;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -636,15 +684,16 @@ int
 update_topology (unsigned int connections)
 {
   int ret;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @temp_conns = %u;\n", connections);
+  ret = fprintf (outfile, "set @temp_conns = %u;\n", connections);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute update_topology using @temp_conns;\n");
+  ret = fprintf (outfile, "execute update_topology using @temp_conns;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -668,7 +717,7 @@ update_topology (unsigned int connections)
 int
 add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
            unsigned int type, unsigned int hops, int succeeded,
-           const struct GNUNET_PeerIdentity * node, const GNUNET_HashCode * key)
+           const struct GNUNET_PeerIdentity *node, const GNUNET_HashCode * key)
 {
   int ret;
 
@@ -679,27 +728,38 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
     *sqlqueryuid = 0;
 
   if (key != NULL)
-    ret = fprintf(outfile, "select dhtkeyuid from dhtkeys where trialuid = @temp_trial and dhtkey = \"%s\" into @temp_dhtkey;\n", GNUNET_h2s_full(key));
+    ret =
+        fprintf (outfile,
+                 "select dhtkeyuid from dhtkeys where trialuid = @temp_trial and dhtkey = \"%s\" into @temp_dhtkey;\n",
+                 GNUNET_h2s_full (key));
   else
-    ret = fprintf(outfile, "set @temp_dhtkey = 0;\n");
+    ret = fprintf (outfile, "set @temp_dhtkey = 0;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
   if (node != NULL)
-    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n", GNUNET_h2s_full(&node->hashPubKey));
+    ret =
+        fprintf (outfile,
+                 "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n",
+                 GNUNET_h2s_full (&node->hashPubKey));
   else
-    ret = fprintf(outfile, "set @temp_node = 0;\n");
+    ret = fprintf (outfile, "set @temp_node = 0;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @qid = %llu, @type = %u, @hops = %u, @succ = %d, @time = \"%s\";\n", queryid, type, hops, succeeded, get_sql_time());
+  ret =
+      fprintf (outfile,
+               "set @qid = %llu, @type = %u, @hops = %u, @succ = %d, @time = \"%s\";\n",
+               queryid, type, hops, succeeded, get_sql_time ());
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute insert_query using @type, @hops, @temp_dhtkey, @qid, @succ, @temp_node, @time;\n");
+  ret =
+      fprintf (outfile,
+               "execute insert_query using @type, @hops, @temp_dhtkey, @qid, @succ, @temp_node, @time;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -725,9 +785,10 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
 int
 add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
            unsigned int type, unsigned int hops,
-           int succeeded, const struct GNUNET_PeerIdentity * node,
-           const GNUNET_HashCode * key, const struct GNUNET_PeerIdentity * from_node,
-           const struct GNUNET_PeerIdentity * to_node)
+           int succeeded, const struct GNUNET_PeerIdentity *node,
+           const GNUNET_HashCode * key,
+           const struct GNUNET_PeerIdentity *from_node,
+           const struct GNUNET_PeerIdentity *to_node)
 {
   int ret;
 
@@ -738,43 +799,60 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
     *sqlqueryuid = 0;
 
   if (key != NULL)
-    ret = fprintf(outfile, "select dhtkeyuid from dhtkeys where trialuid = @temp_trial and dhtkey = \"%s\" into @temp_dhtkey;\n", GNUNET_h2s_full(key));
+    ret =
+        fprintf (outfile,
+                 "select dhtkeyuid from dhtkeys where trialuid = @temp_trial and dhtkey = \"%s\" into @temp_dhtkey;\n",
+                 GNUNET_h2s_full (key));
   else
-    ret = fprintf(outfile, "set @temp_dhtkey = 0;\n");
+    ret = fprintf (outfile, "set @temp_dhtkey = 0;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
   if (node != NULL)
-    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n", GNUNET_h2s_full(&node->hashPubKey));
+    ret =
+        fprintf (outfile,
+                 "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n",
+                 GNUNET_h2s_full (&node->hashPubKey));
   else
-    ret = fprintf(outfile, "set @temp_node = 0;\n");
+    ret = fprintf (outfile, "set @temp_node = 0;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
   if (from_node != NULL)
-    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_from_node;\n", GNUNET_h2s_full(&from_node->hashPubKey));
+    ret =
+        fprintf (outfile,
+                 "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_from_node;\n",
+                 GNUNET_h2s_full (&from_node->hashPubKey));
   else
-    ret = fprintf(outfile, "set @temp_from_node = 0;\n");
+    ret = fprintf (outfile, "set @temp_from_node = 0;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
   if (to_node != NULL)
-    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_to_node;\n", GNUNET_h2s_full(&to_node->hashPubKey));
+    ret =
+        fprintf (outfile,
+                 "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_to_node;\n",
+                 GNUNET_h2s_full (&to_node->hashPubKey));
   else
-    ret = fprintf(outfile, "set @temp_to_node = 0;\n");
+    ret = fprintf (outfile, "set @temp_to_node = 0;\n");
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @qid = %llu, @type = %u, @hops = %u, @succ = %d;\n", queryid, type, hops, succeeded);
+  ret =
+      fprintf (outfile,
+               "set @qid = %llu, @type = %u, @hops = %u, @succ = %d;\n",
+               queryid, type, hops, succeeded);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute insert_route using @type, @hops, @temp_dhtkey, @qid, @succ, @temp_node, @temp_from_node, @temp_to_node;\n");
+  ret =
+      fprintf (outfile,
+               "execute insert_route using @type, @hops, @temp_dhtkey, @qid, @succ, @temp_node, @temp_from_node, @temp_to_node;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -790,7 +868,7 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
  * @return the handle to the server, or NULL on error
  */
 void *
-libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
+libgnunet_plugin_dhtlog_mysql_dump_init (void *cls)
 {
   struct GNUNET_DHTLOG_Plugin *plugin = cls;
   char *outfile_name;
@@ -801,60 +879,59 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
   cfg = plugin->cfg;
   max_varchar_len = 255;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MySQL (DUMP) DHT Logger: initializing\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MySQL (DUMP) DHT Logger: initializing\n");
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                         "MYSQLDUMP", "PATH",
-                                                         &outfile_path))
-    {
-      outfile_path = GNUNET_strdup("");
-    }
+                                                          "MYSQLDUMP", "PATH",
+                                                          &outfile_path))
+  {
+    outfile_path = GNUNET_strdup ("");
+  }
 
   GNUNET_asprintf (&outfile_name,
-                   "%s%s-%d",
-                   outfile_path,
-                   "mysqldump",
-                   getpid());
+                   "%s%s-%d", outfile_path, "mysqldump", getpid ());
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to get full path for `%s'\n"), outfile_name);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    return NULL;
+  }
 
-  dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   outfile = FOPEN (fn, "w");
 
   if (outfile == NULL)
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-      if (dirwarn)
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to create or access directory for log file `%s'\n"),
-                    fn);
-      GNUNET_free(outfile_path);
-      GNUNET_free(outfile_name);
-      GNUNET_free (fn);
-      return NULL;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    GNUNET_free (outfile_path);
+    GNUNET_free (outfile_name);
+    GNUNET_free (fn);
+    return NULL;
+  }
 
   GNUNET_free (outfile_path);
   GNUNET_free (outfile_name);
   GNUNET_free (fn);
 
   if (iopen () != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Failed to create file for dhtlog.\n"));
-      fclose (outfile);
-      return NULL;
-    }
-  GNUNET_assert(plugin->dhtlog_api == NULL);
-  plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to create file for dhtlog.\n"));
+    fclose (outfile);
+    return NULL;
+  }
+  GNUNET_assert (plugin->dhtlog_api == NULL);
+  plugin->dhtlog_api = GNUNET_malloc (sizeof (struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_round = &add_round;
   plugin->dhtlog_api->insert_round_details = &add_round_details;
@@ -878,14 +955,14 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
  * Shutdown the plugin.
  */
 void *
-libgnunet_plugin_dhtlog_mysql_dump_done (void * cls)
+libgnunet_plugin_dhtlog_mysql_dump_done (void *cls)
 {
   struct GNUNET_DHTLOG_Handle *dhtlog_api = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MySQL DHT Logger: database shutdown\n");
-  GNUNET_assert(dhtlog_api != NULL);
 
-  GNUNET_free(dhtlog_api);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MySQL DHT Logger: database shutdown\n");
+  GNUNET_assert (dhtlog_api != NULL);
+
+  GNUNET_free (dhtlog_api);
   return NULL;
 }
 

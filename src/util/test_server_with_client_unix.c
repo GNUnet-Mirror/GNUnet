@@ -47,6 +47,7 @@ static void
 send_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Client *argclient = cls;
+
   GNUNET_assert (ok == 3);
   ok++;
   GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
@@ -59,21 +60,21 @@ recv_cb (void *cls,
          const struct GNUNET_MessageHeader *message)
 {
   switch (ok)
-    {
-    case 2:
-      ok++;
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MILLISECONDS, 50),
-                                    &send_done, argclient);
-      break;
-    case 4:
-      ok++;
-      GNUNET_CLIENT_disconnect (client, GNUNET_YES);
-      GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
-      break;
-    default:
-      GNUNET_assert (0);
-    }
+  {
+  case 2:
+    ok++;
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_MILLISECONDS, 50),
+                                  &send_done, argclient);
+    break;
+  case 4:
+    ok++;
+    GNUNET_CLIENT_disconnect (client, GNUNET_YES);
+    GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
+    break;
+  default:
+    GNUNET_assert (0);
+  }
 
 }
 
@@ -134,12 +135,12 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_un un;
-  const char * unixpath = "/tmp/testsock";
+  const char *unixpath = "/tmp/testsock";
   size_t slen = strlen (unixpath);
-  struct sockaddr * sap[2];
+  struct sockaddr *sap[2];
   socklen_t slens[2];
 
-  memset(&un, 0, sizeof(un));
+  memset (&un, 0, sizeof (un));
   un.sun_family = AF_UNIX;
   memcpy (un.sun_path, unixpath, slen);
   un.sun_path[slen] = '\0';
@@ -151,7 +152,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
 
 
-  sap[0] = (struct sockaddr*) &un;
+  sap[0] = (struct sockaddr *) &un;
   slens[0] = sizeof (un);
   sap[1] = NULL;
   slens[1] = 0;
@@ -168,8 +169,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SERVER_disconnect_notify (server, &notify_disconnect, cls);
   cfg = GNUNET_CONFIGURATION_create ();
 
-  GNUNET_CONFIGURATION_set_value_string (cfg, "test", "UNIXPATH",
-		  unixpath);
+  GNUNET_CONFIGURATION_set_value_string (cfg, "test", "UNIXPATH", unixpath);
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
                                          "localhost");
 

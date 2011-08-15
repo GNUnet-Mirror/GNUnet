@@ -65,8 +65,7 @@ open_listen_socket ()
   GNUNET_assert (desc != NULL);
   if (GNUNET_NETWORK_socket_setsockopt
       (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "setsockopt");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "setsockopt");
   GNUNET_assert (GNUNET_NETWORK_socket_bind
                  (desc, (const struct sockaddr *) &sa,
                   sizeof (sa)) == GNUNET_OK);
@@ -97,8 +96,7 @@ run_accept_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONNECTION_receive (asock,
                              1024,
                              GNUNET_TIME_relative_multiply
-                             (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive,
-                             cls);
+                             (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive, cls);
 }
 
 
@@ -106,6 +104,7 @@ static void
 receive_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
+
   GNUNET_CONNECTION_receive_cancel (asock);
   GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
   GNUNET_CONNECTION_destroy (asock, GNUNET_YES);
@@ -120,8 +119,7 @@ task_receive_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ls = open_listen_socket ();
   lsock = GNUNET_CONNECTION_create_from_existing (ls);
   GNUNET_assert (lsock != NULL);
-  csock = GNUNET_CONNECTION_create_from_connect (cfg,
-                                                 "localhost", PORT);
+  csock = GNUNET_CONNECTION_create_from_connect (cfg, "localhost", PORT);
   GNUNET_assert (csock != NULL);
   GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                  ls, &run_accept_cancel, cls);

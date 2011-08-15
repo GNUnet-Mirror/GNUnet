@@ -28,13 +28,13 @@
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test_fs_directory", 
+  GNUNET_log_setup ("test_fs_directory",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING",
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   fprintf (stderr, "WARNING: testcase not yet written.\n");
   return 0;                     /* testcase passed */
 }

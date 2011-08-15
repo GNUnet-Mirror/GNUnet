@@ -32,11 +32,11 @@
 #define VERBOSE 1
 #define VERBOSE_ARM 0
 
-static struct GNUNET_OS_Process                 *arm_pid;
-static struct GNUNET_MESH_Handle                *mesh;
-static int                                      result;
-GNUNET_SCHEDULER_TaskIdentifier                 abort_task;
-GNUNET_SCHEDULER_TaskIdentifier                 test_task;
+static struct GNUNET_OS_Process *arm_pid;
+static struct GNUNET_MESH_Handle *mesh;
+static int result;
+GNUNET_SCHEDULER_TaskIdentifier abort_task;
+GNUNET_SCHEDULER_TaskIdentifier test_task;
 
 /**
  * Function is called whenever a message is received.
@@ -51,70 +51,76 @@ GNUNET_SCHEDULER_TaskIdentifier                 test_task;
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-callback(void *cls,
-        struct GNUNET_MESH_Tunnel *tunnel,
-        void **tunnel_ctx,
-        const struct GNUNET_PeerIdentity *sender,
-        const struct GNUNET_MessageHeader *message,
-        const struct GNUNET_TRANSPORT_ATS_Information
-        *atsi)
+callback (void *cls,
+          struct GNUNET_MESH_Tunnel *tunnel,
+          void **tunnel_ctx,
+          const struct GNUNET_PeerIdentity *sender,
+          const struct GNUNET_MessageHeader *message,
+          const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-    return 0;
+  return 0;
 }
 
-static struct GNUNET_MESH_MessageHandler        handlers[] = {{&callback, 1, 0},
-                                                              {NULL, 0, 0}};
+static struct GNUNET_MESH_MessageHandler handlers[] = { {&callback, 1, 0},
+{NULL, 0, 0}
+};
 
 
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-    if (0 != abort_task) {
-        GNUNET_SCHEDULER_cancel(abort_task);
-    }
-    if (NULL != mesh) {
-        GNUNET_MESH_disconnect (mesh);
-    }
-    if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM)) {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    }
-    GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
-    GNUNET_OS_process_close (arm_pid);
+  if (0 != abort_task)
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+  }
+  if (NULL != mesh)
+  {
+    GNUNET_MESH_disconnect (mesh);
+  }
+  if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  }
+  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
+  GNUNET_OS_process_close (arm_pid);
 }
 
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-    if (0 != test_task) {
-        GNUNET_SCHEDULER_cancel(test_task);
-    }
-    result = GNUNET_SYSERR;
-    abort_task = 0;
-    do_shutdown(cls, tc);
+  if (0 != test_task)
+  {
+    GNUNET_SCHEDULER_cancel (test_task);
+  }
+  result = GNUNET_SYSERR;
+  abort_task = 0;
+  do_shutdown (cls, tc);
 }
 
 static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-    struct GNUNET_CONFIGURATION_Handle  *cfg = cls;
-    GNUNET_MESH_ApplicationType         app[3];
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  GNUNET_MESH_ApplicationType app[3];
 
-    test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
-    app[0] = (GNUNET_MESH_ApplicationType) 1;
-    app[1] = (GNUNET_MESH_ApplicationType) 2;
-    app[2] = (GNUNET_MESH_ApplicationType) 0;
-    mesh = GNUNET_MESH_connect(cfg, NULL, NULL, handlers, &app);
-    if(NULL == mesh) {
-        GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
-        return;
-    } else {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
-    }
+  test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
+  app[0] = (GNUNET_MESH_ApplicationType) 1;
+  app[1] = (GNUNET_MESH_ApplicationType) 2;
+  app[2] = (GNUNET_MESH_ApplicationType) 0;
+  mesh = GNUNET_MESH_connect (cfg, NULL, NULL, handlers, &app);
+  if (NULL == mesh)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
+    return;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
+  }
 
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                    GNUNET_TIME_UNIT_SECONDS, 1),
-                                    &do_shutdown,
-                                    NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, 1), &do_shutdown,
+                                NULL);
 }
 
 
@@ -123,23 +129,21 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-    arm_pid = GNUNET_OS_start_process (NULL, NULL,
-                                       "gnunet-service-arm",
-                                       "gnunet-service-arm",
+  arm_pid = GNUNET_OS_start_process (NULL, NULL,
+                                     "gnunet-service-arm", "gnunet-service-arm",
 #if VERBOSE_ARM
-                                       "-L", "DEBUG",
+                                     "-L", "DEBUG",
 #endif
-                                       "-c", "test_mesh.conf",
-                                       NULL);
+                                     "-c", "test_mesh.conf", NULL);
 
-    abort_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                                GNUNET_TIME_UNIT_SECONDS, 20),
-                                                &do_abort,
-                                                NULL);
-    test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                                GNUNET_TIME_UNIT_SECONDS, 1),
-                                                &test,
-                                                (void *)cfg);
+  abort_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 20), &do_abort,
+                                    NULL);
+  test_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 1), &test,
+                                    (void *) cfg);
 
 }
 
@@ -147,37 +151,39 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-    int ret;
-    char *const argv2[] = {"test-mesh-api",
-        "-c", "test_mesh.conf",
+  int ret;
+
+  char *const argv2[] = { "test-mesh-api",
+    "-c", "test_mesh.conf",
 #if VERBOSE
-        "-L", "DEBUG",
+    "-L", "DEBUG",
 #endif
-        NULL
-    };
-    struct GNUNET_GETOPT_CommandLineOption options[] = {
-        GNUNET_GETOPT_OPTION_END
-    };
-    GNUNET_log_setup ("test-mesh-api",
+    NULL
+  };
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+  GNUNET_log_setup ("test-mesh-api",
 #if VERBOSE
                     "DEBUG",
 #else
                     "WARNING",
 #endif
                     NULL);
-    ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1,
-                        argv2, "test-mesh-api", "nohelp",
-                        options, &run, NULL);
+  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1,
+                            argv2, "test-mesh-api", "nohelp",
+                            options, &run, NULL);
 
-    if ( GNUNET_OK != ret ) {
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "run failed with error code %d\n", ret);
-        return 1;
-    }
-    if ( GNUNET_SYSERR == result ) {
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "test failed\n");
-        return 1;
-    }
-    return 0;
+  if (GNUNET_OK != ret)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "run failed with error code %d\n", ret);
+    return 1;
+  }
+  if (GNUNET_SYSERR == result)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test failed\n");
+    return 1;
+  }
+  return 0;
 }

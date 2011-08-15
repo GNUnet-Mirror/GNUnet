@@ -59,7 +59,7 @@ typedef void (*GNUNET_ARM_Callback) (void *cls, int success);
 
 /**
  * Handle for interacting with ARM.
- */ 
+ */
 struct GNUNET_ARM_Handle;
 
 
@@ -73,9 +73,9 @@ struct GNUNET_ARM_Handle;
  * @param service service that *this* process is implementing/providing, can be NULL
  * @return context to use for further ARM operations, NULL on error
  */
-struct GNUNET_ARM_Handle *
-GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		    const char *service);
+struct GNUNET_ARM_Handle *GNUNET_ARM_connect (const struct
+                                              GNUNET_CONFIGURATION_Handle *cfg,
+                                              const char *service);
 
 
 /**
@@ -83,8 +83,7 @@ GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param h the handle that was being used
  */
-void
-GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h);
+void GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h);
 
 
 /**
@@ -107,7 +106,7 @@ GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h);
  */
 void
 GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
-			  const char *service_name,
+                          const char *service_name,
                           struct GNUNET_TIME_Relative timeout,
                           GNUNET_ARM_Callback cb, void *cb_cls);
 
@@ -125,7 +124,7 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
  */
 void
 GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
-			 const char *service_name,
+                         const char *service_name,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_ARM_Callback cb, void *cb_cls);
 

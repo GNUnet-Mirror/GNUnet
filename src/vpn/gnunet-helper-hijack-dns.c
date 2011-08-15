@@ -27,75 +27,130 @@
 
 #include "gnunet_common.h"
 
-int fork_and_exec(char* file, char* cmd[]) {
-	pid_t pid = fork();
-	if (pid < 0) {
-		fprintf(stderr, "could not fork: %s\n", strerror(errno));
-		return GNUNET_SYSERR;
-	}
+int
+fork_and_exec (char *file, char *cmd[])
+{
+  pid_t pid = fork ();
 
-	int st = 0;
+  if (pid < 0)
+  {
+    fprintf (stderr, "could not fork: %s\n", strerror (errno));
+    return GNUNET_SYSERR;
+  }
 
-	if (pid == 0) {
-		execv(file, cmd);
-	} else {
-		waitpid(pid, &st, 0);
-	}
-	return WIFEXITED(st) && (WEXITSTATUS(st) == 0);
+  int st = 0;
+
+  if (pid == 0)
+  {
+    execv (file, cmd);
+  }
+  else
+  {
+    waitpid (pid, &st, 0);
+  }
+  return WIFEXITED (st) && (WEXITSTATUS (st) == 0);
 }
 
-int main(int argc, char** argv) {
-	int delete = 0;
-	int port = 0;
-        char* virt_dns;
-	if (argc < 3) return GNUNET_SYSERR;
+int
+main (int argc, char **argv)
+{
+  int delete = 0;
+  int port = 0;
+  char *virt_dns;
 
-	if (strncmp(argv[1], "-d", 2) == 0) {
-		if (argc < 3) return GNUNET_SYSERR;
-		delete = 1;
-		port = atoi(argv[2]);
-                virt_dns = argv[3];
-	} else {
-		port = atoi(argv[1]);
-                virt_dns = argv[2];
-	}
+  if (argc < 3)
+    return GNUNET_SYSERR;
 
-	if (port == 0) return GNUNET_SYSERR;
+  if (strncmp (argv[1], "-d", 2) == 0)
+  {
+    if (argc < 3)
+      return GNUNET_SYSERR;
+    delete = 1;
+    port = atoi (argv[2]);
+    virt_dns = argv[3];
+  }
+  else
+  {
+    port = atoi (argv[1]);
+    virt_dns = argv[2];
+  }
 
-	struct stat s;
-	if (stat("/sbin/iptables", &s) < 0) {
-		fprintf(stderr, "stat on /sbin/iptables failed: %s\n", strerror(errno));
-		return GNUNET_SYSERR;
-	}
-	if (stat("/sbin/ip", &s) < 0) {
-		fprintf(stderr, "stat on /sbin/ip failed: %s\n", strerror(errno));
-		return GNUNET_SYSERR;
-	}
+  if (port == 0)
+    return GNUNET_SYSERR;
 
-	char localport[7];
-	snprintf(localport, 7, "%d", port);
+  struct stat s;
 
-	int r;
-	if (delete) {
+  if (stat ("/sbin/iptables", &s) < 0)
+  {
+    fprintf (stderr, "stat on /sbin/iptables failed: %s\n", strerror (errno));
+    return GNUNET_SYSERR;
+  }
+  if (stat ("/sbin/ip", &s) < 0)
+  {
+    fprintf (stderr, "stat on /sbin/ip failed: %s\n", strerror (errno));
+    return GNUNET_SYSERR;
+  }
+
+  char localport[7];
+
+  snprintf (localport, 7, "%d", port);
+
+  int r;
+
+  if (delete)
+  {
 e4:
-		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "route", "del", "default", "via", virt_dns,"table","2", NULL});
+    r = fork_and_exec ("/sbin/ip", (char *[])
+                       {
+                       "ip", "route", "del", "default", "via", virt_dns,
+                       "table", "2", NULL});
 e3:
-		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "rule", "del", "fwmark", "3", "table","2", NULL});
+    r = fork_and_exec ("/sbin/ip", (char *[])
+                       {
+                       "ip", "rule", "del", "fwmark", "3", "table", "2", NULL});
 e2:
-		r = fork_and_exec("/sbin/iptables", (char*[]){"iptables", "-t", "mangle", "-D", "OUTPUT", "-p", "udp", "--dport", "53", "-j", "MARK", "--set-mark", "3", NULL});
+    r = fork_and_exec ("/sbin/iptables", (char *[])
+                       {
+                       "iptables", "-t", "mangle", "-D", "OUTPUT", "-p", "udp",
+                       "--dport", "53", "-j", "MARK", "--set-mark", "3", NULL});
 e1:
-		r = fork_and_exec("/sbin/iptables", (char*[]){"iptables", "-t", "mangle", "-D", "OUTPUT", "-p", "udp", "--sport", localport, "--dport", "53", "-j", "ACCEPT", NULL});
-		if (!delete) r = 0;
-	} else {
-		r = fork_and_exec("/sbin/iptables", (char*[]){"iptables", "-t", "mangle", "-I", "OUTPUT", "1", "-p", "udp", "--sport", localport, "--dport", "53", "-j", "ACCEPT", NULL});
-		if (!r) goto e1;
-		r = fork_and_exec("/sbin/iptables", (char*[]){"iptables", "-t", "mangle", "-I", "OUTPUT", "2", "-p", "udp", "--dport", "53", "-j", "MARK", "--set-mark", "3", NULL});
-		if (!r) goto e2;
-		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "rule", "add", "fwmark", "3", "table","2", NULL});
-		if (!r) goto e3;
-		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "route", "add", "default", "via", virt_dns, "table","2", NULL});
-		if (!r) goto e4;
-	}
-	if (r) return GNUNET_YES;
-	return GNUNET_SYSERR;
+    r = fork_and_exec ("/sbin/iptables", (char *[])
+                       {
+                       "iptables", "-t", "mangle", "-D", "OUTPUT", "-p", "udp",
+                       "--sport", localport, "--dport", "53", "-j", "ACCEPT",
+                       NULL});
+    if (!delete)
+      r = 0;
+  }
+  else
+  {
+    r = fork_and_exec ("/sbin/iptables", (char *[])
+                       {
+                       "iptables", "-t", "mangle", "-I", "OUTPUT", "1", "-p",
+                       "udp", "--sport", localport, "--dport", "53", "-j",
+                       "ACCEPT", NULL});
+    if (!r)
+      goto e1;
+    r = fork_and_exec ("/sbin/iptables", (char *[])
+                       {
+                       "iptables", "-t", "mangle", "-I", "OUTPUT", "2", "-p",
+                       "udp", "--dport", "53", "-j", "MARK", "--set-mark", "3",
+                       NULL});
+    if (!r)
+      goto e2;
+    r = fork_and_exec ("/sbin/ip", (char *[])
+                       {
+                       "ip", "rule", "add", "fwmark", "3", "table", "2", NULL});
+    if (!r)
+      goto e3;
+    r = fork_and_exec ("/sbin/ip", (char *[])
+                       {
+                       "ip", "route", "add", "default", "via", virt_dns,
+                       "table", "2", NULL});
+    if (!r)
+      goto e4;
+  }
+  if (r)
+    return GNUNET_YES;
+  return GNUNET_SYSERR;
 }

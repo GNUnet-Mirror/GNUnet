@@ -106,20 +106,19 @@ void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
 #endif
-      if (ok == 0)
-        ok = 666;
-    }
+    if (ok == 0)
+      ok = 666;
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All peers successfully shut down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
 #endif
-    }
+  }
 }
 
 static void
@@ -140,10 +139,10 @@ finish_testing ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "daemons_stop finished\n");
 #endif
   if (dotOutFile != NULL)
-    {
-      fprintf (dotOutFile, "}");
-      fclose (dotOutFile);
-    }
+  {
+    fprintf (dotOutFile, "}");
+    fclose (dotOutFile);
+  }
 
   ok = 0;
 }
@@ -152,22 +151,23 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *msg = cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "End badly was called (%s)... stopping daemons.\n", msg);
 
   if (pg != NULL)
-    {
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-      ok = 7331;                /* Opposite of leet */
-    }
+  {
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+    ok = 7331;                  /* Opposite of leet */
+  }
   else
     ok = 401;                   /* Never got peers started */
 
   if (dotOutFile != NULL)
-    {
-      fprintf (dotOutFile, "}");
-      fclose (dotOutFile);
-    }
+  {
+    fprintf (dotOutFile, "}");
+    fclose (dotOutFile);
+  }
 }
 
 
@@ -184,70 +184,70 @@ topology_callback (void *cls,
                    const char *emsg)
 {
   if (emsg == NULL)
-    {
-      total_connections++;
+  {
+    total_connections++;
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connected peer %s to peer %s\n",
-                  first_daemon->shortname, second_daemon->shortname);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connected peer %s to peer %s\n",
+                first_daemon->shortname, second_daemon->shortname);
 #endif
-      if (dotOutFile != NULL)
-        fprintf (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
-                 second_daemon->shortname);
-    }
+    if (dotOutFile != NULL)
+      fprintf (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
+               second_daemon->shortname);
+  }
 
   else
-    {
-      failed_connections++;
+  {
+    failed_connections++;
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to connect peer %s to peer %s with error :\n%s\n",
-                  first_daemon->shortname, second_daemon->shortname, emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to connect peer %s to peer %s with error :\n%s\n",
+                first_daemon->shortname, second_daemon->shortname, emsg);
 #endif
-    }
+  }
 
 
   if (total_connections == expected_connections)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Created %d total connections, which is our target number (that's bad)!\n",
-                  total_connections);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Created %d total connections, which is our target number (that's bad)!\n",
+                total_connections);
 #endif
 
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_NO_TASK;
-      die_task =
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
                                   "from topology_callback (too many successful connections)");
-    }
+  }
   else if (total_connections + failed_connections == expected_connections)
+  {
+    if ((failed_connections == expected_failed_connections)
+        && (total_connections ==
+            expected_connections - expected_failed_connections))
     {
-      if ((failed_connections == expected_failed_connections)
-          && (total_connections ==
-              expected_connections - expected_failed_connections))
-        {
-          GNUNET_SCHEDULER_cancel (die_task);
-          die_task = GNUNET_SCHEDULER_NO_TASK;
-          die_task = GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
-        }
-      else
-        {
-          GNUNET_SCHEDULER_cancel (die_task);
-          die_task =
-            GNUNET_SCHEDULER_add_now (&end_badly,
-                                      "from topology_callback (wrong number of failed connections)");
-        }
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_NO_TASK;
+      die_task = GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
     }
+    else
+    {
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task =
+          GNUNET_SCHEDULER_add_now (&end_badly,
+                                    "from topology_callback (wrong number of failed connections)");
+    }
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Have %d total connections, %d failed connections, Want %d (failed) and %d (successful)\n",
-                  total_connections, failed_connections,
-                  expected_failed_connections,
-                  expected_connections - expected_failed_connections);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Have %d total connections, %d failed connections, Want %d (failed) and %d (successful)\n",
+                total_connections, failed_connections,
+                expected_failed_connections,
+                expected_connections - expected_failed_connections);
 #endif
-    }
+  }
 }
 
 static void
@@ -255,27 +255,26 @@ connect_topology ()
 {
   expected_connections = -1;
   if ((pg != NULL) && (peers_left == 0))
-    {
-      expected_connections =
+  {
+    expected_connections =
         GNUNET_TESTING_connect_topology (pg, connection_topology,
                                          connect_topology_option,
                                          connect_topology_option_modifier,
                                          connect_timeout,
-                                         connect_attempts,
-                                         NULL, NULL);
+                                         connect_attempts, NULL, NULL);
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Have %d expected connections\n", expected_connections);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Have %d expected connections\n", expected_connections);
 #endif
-    }
+  }
 
   GNUNET_SCHEDULER_cancel (die_task);
   if (expected_connections == GNUNET_SYSERR)
-    {
-      die_task =
+  {
+    die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
                                   "from connect topology (bad return)");
-    }
+  }
 
   die_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT,
                                            &end_badly,
@@ -287,22 +286,21 @@ create_topology ()
 {
   peers_left = num_peers;       /* Reset counter */
   if (GNUNET_TESTING_create_topology
-      (pg, topology, blacklist_topology,
-       blacklist_transports) != GNUNET_SYSERR)
-    {
+      (pg, topology, blacklist_topology, blacklist_transports) != GNUNET_SYSERR)
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Topology set up, now starting peers!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Topology set up, now starting peers!\n");
 #endif
-      GNUNET_TESTING_daemons_continue_startup (pg);
-    }
+    GNUNET_TESTING_daemons_continue_startup (pg);
+  }
   else
-    {
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task =
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
                                   "from create topology (bad return)");
-    }
+  }
   GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT,
                                            &end_badly,
@@ -317,11 +315,11 @@ peers_started_callback (void *cls,
                         struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to start daemon with error: `%s'\n", emsg);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to start daemon with error: `%s'\n", emsg);
+    return;
+  }
   GNUNET_assert (id != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %llu out of %llu\n",
@@ -329,22 +327,21 @@ peers_started_callback (void *cls,
 #endif
   peers_left--;
   if (peers_left == 0)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All %d daemons started, now creating topology!\n",
-                  num_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "All %d daemons started, now creating topology!\n", num_peers);
 #endif
-      GNUNET_SCHEDULER_cancel (die_task);
-      /* Set up task in case topology creation doesn't finish
-       * within a reasonable amount of time */
-      die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                               (GNUNET_TIME_UNIT_MINUTES, 5),
-                                               &end_badly,
-                                               "from peers_started_callback");
-      connect_topology ();
-      ok = 0;
-    }
+    GNUNET_SCHEDULER_cancel (die_task);
+    /* Set up task in case topology creation doesn't finish
+     * within a reasonable amount of time */
+    die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                             (GNUNET_TIME_UNIT_MINUTES, 5),
+                                             &end_badly,
+                                             "from peers_started_callback");
+    connect_topology ();
+    ok = 0;
+  }
 }
 
 /**
@@ -361,10 +358,10 @@ hostkey_callback (void *cls,
                   struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Hostkey callback received error: %s\n", emsg);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Hostkey callback received error: %s\n", emsg);
+  }
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -372,22 +369,21 @@ hostkey_callback (void *cls,
 #endif
   peers_left--;
   if (peers_left == 0)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All %d hostkeys created, now creating topology!\n",
-                  num_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "All %d hostkeys created, now creating topology!\n", num_peers);
 #endif
-      GNUNET_SCHEDULER_cancel (die_task);
-      /* Set up task in case topology creation doesn't finish
-       * within a reasonable amount of time */
-      die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                               (GNUNET_TIME_UNIT_MINUTES, 5),
-                                               &end_badly,
-                                               "from hostkey_callback");
-      GNUNET_SCHEDULER_add_now (&create_topology, NULL);
-      ok = 0;
-    }
+    GNUNET_SCHEDULER_cancel (die_task);
+    /* Set up task in case topology creation doesn't finish
+     * within a reasonable amount of time */
+    die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                             (GNUNET_TIME_UNIT_MINUTES, 5),
+                                             &end_badly,
+                                             "from hostkey_callback");
+    GNUNET_SCHEDULER_add_now (&create_topology, NULL);
+    ok = 0;
+  }
 }
 
 static void
@@ -401,13 +397,14 @@ run (void *cls,
   unsigned long long connect_topology_option_num;
   unsigned long long temp_connect;
   char *connect_topology_option_modifier_string;
+
   ok = 1;
 
   dotOutFile = fopen (dotOutFileName, "w");
   if (dotOutFile != NULL)
-    {
-      fprintf (dotOutFile, "strict graph G {\n");
-    }
+  {
+    fprintf (dotOutFile, "strict graph G {\n");
+  }
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -417,14 +414,14 @@ run (void *cls,
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
                                              &test_directory))
+  {
+    ok = 404;
+    if (dotOutFile != NULL)
     {
-      ok = 404;
-      if (dotOutFile != NULL)
-        {
-          fclose (dotOutFile);
-        }
-      return;
+      fclose (dotOutFile);
     }
+    return;
+  }
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "topology",
@@ -447,41 +444,41 @@ run (void *cls,
       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
                                              "connect_topology_option_modifier",
                                              &connect_topology_option_modifier_string))
+  {
+    if (sscanf
+        (connect_topology_option_modifier_string, "%lf",
+         &connect_topology_option_modifier) != 1)
     {
-      if (sscanf
-          (connect_topology_option_modifier_string, "%lf",
-           &connect_topology_option_modifier) != 1)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      _
-                      ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
-                      connect_topology_option_modifier_string,
-                      "connect_topology_option_modifier", "TESTING");
-          GNUNET_free (connect_topology_option_modifier_string);
-          ok = 707;
-          if (dotOutFile != NULL)
-            {
-              fclose (dotOutFile);
-            }
-          return;
-        }
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _
+                  ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+                  connect_topology_option_modifier_string,
+                  "connect_topology_option_modifier", "TESTING");
       GNUNET_free (connect_topology_option_modifier_string);
+      ok = 707;
+      if (dotOutFile != NULL)
+      {
+        fclose (dotOutFile);
+      }
+      return;
     }
+    GNUNET_free (connect_topology_option_modifier_string);
+  }
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
                                              "blacklist_transports",
                                              &blacklist_transports))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "No transports specified for blacklisting in blacklist testcase (this shouldn't happen!)\n");
+    ok = 808;
+    if (dotOutFile != NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "No transports specified for blacklisting in blacklist testcase (this shouldn't happen!)\n");
-      ok = 808;
-      if (dotOutFile != NULL)
-        {
-          fclose (dotOutFile);
-        }
-      return;
+      fclose (dotOutFile);
     }
+    return;
+  }
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
@@ -498,21 +495,23 @@ run (void *cls,
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_timeout",
                                              &temp_connect))
     connect_timeout =
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_connect);
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_connect);
   else
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_timeout");
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
+                "testing", "connect_timeout");
+    return;
+  }
 
 
   if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_attempts",
-                                               &connect_attempts))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_attempts");
-      return;
-    }
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_attempts",
+                                             &connect_attempts))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
+                "testing", "connect_attempts");
+    return;
+  }
 
   main_cfg = cfg;
 
@@ -546,6 +545,7 @@ static int
 check ()
 {
   int ret;
+
   char *const argv[] = { "test-testing-topology-blacklist",
     "-c",
     "test_testing_data_topology_blacklist.conf",
@@ -561,11 +561,11 @@ check ()
                             argv, "test-testing-topology-blacklist", "nohelp",
                             options, &run, &ok);
   if (ret != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "`test-testing-topology-blacklist': Failed with error code %d\n",
-                  ret);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "`test-testing-topology-blacklist': Failed with error code %d\n",
+                ret);
+  }
 
   return ok;
 }
@@ -589,14 +589,13 @@ main (int argc, char *argv[])
    * of by the testing framework.
    */
   if (test_directory != NULL)
+  {
+    if (GNUNET_DISK_directory_remove (test_directory) != GNUNET_OK)
     {
-      if (GNUNET_DISK_directory_remove (test_directory) != GNUNET_OK)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      "Failed to remove testing directory %s\n",
-                      test_directory);
-        }
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Failed to remove testing directory %s\n", test_directory);
     }
+  }
 
   return ret;
 }

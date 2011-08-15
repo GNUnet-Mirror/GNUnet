@@ -59,9 +59,11 @@ struct GNUNET_CORE_Handle;
  * @param atsi performance data for the connection
  */
 typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
-						 const struct
-						 GNUNET_PeerIdentity *peer,
-						 const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+                                                 const struct
+                                                 GNUNET_PeerIdentity * peer,
+                                                 const struct
+                                                 GNUNET_TRANSPORT_ATS_Information
+                                                 * atsi);
 
 
 /**
@@ -76,12 +78,19 @@ typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
  * @param atsi performance data for the connection
  */
 typedef void (*GNUNET_CORE_PeerStatusEventHandler) (void *cls,
-						    const struct
-						    GNUNET_PeerIdentity *peer,
-						    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-						    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-						    struct GNUNET_TIME_Absolute timeout,
-						    const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+                                                    const struct
+                                                    GNUNET_PeerIdentity * peer,
+                                                    struct
+                                                    GNUNET_BANDWIDTH_Value32NBO
+                                                    bandwidth_in,
+                                                    struct
+                                                    GNUNET_BANDWIDTH_Value32NBO
+                                                    bandwidth_out,
+                                                    struct GNUNET_TIME_Absolute
+                                                    timeout,
+                                                    const struct
+                                                    GNUNET_TRANSPORT_ATS_Information
+                                                    * atsi);
 
 
 /**
@@ -91,8 +100,8 @@ typedef void (*GNUNET_CORE_PeerStatusEventHandler) (void *cls,
  * @param peer peer identity this notification is about
  */
 typedef void (*GNUNET_CORE_DisconnectEventHandler) (void *cls,
-						    const struct
-						    GNUNET_PeerIdentity *peer);
+                                                    const struct
+                                                    GNUNET_PeerIdentity * peer);
 
 
 /**
@@ -108,10 +117,11 @@ typedef void (*GNUNET_CORE_DisconnectEventHandler) (void *cls,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 typedef int
-  (*GNUNET_CORE_MessageCallback) (void *cls,
-                                  const struct GNUNET_PeerIdentity *other,
-                                  const struct GNUNET_MessageHeader *message,
-                                  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+    (*GNUNET_CORE_MessageCallback) (void *cls,
+                                    const struct GNUNET_PeerIdentity * other,
+                                    const struct GNUNET_MessageHeader * message,
+                                    const struct
+                                    GNUNET_TRANSPORT_ATS_Information * atsi);
 
 
 /**
@@ -153,13 +163,13 @@ struct GNUNET_CORE_MessageHandler
  * @param publicKey public key of this peer, NULL if we failed
  */
 typedef void
-  (*GNUNET_CORE_StartupCallback) (void *cls,
-                                  struct GNUNET_CORE_Handle * server,
-                                  const struct GNUNET_PeerIdentity *
-                                  my_identity,
-                                  const struct
-                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
-                                  publicKey);
+    (*GNUNET_CORE_StartupCallback) (void *cls,
+                                    struct GNUNET_CORE_Handle * server,
+                                    const struct GNUNET_PeerIdentity *
+                                    my_identity,
+                                    const struct
+                                    GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
+                                    publicKey);
 
 
 /**
@@ -208,19 +218,27 @@ typedef void
  * @return handle to the core service (only useful for disconnect until 'init' is called),
  *           NULL on error (in this case, init is never called)
  */
-struct GNUNET_CORE_Handle *
-GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		     unsigned int queue_size,
-                     void *cls,
-                     GNUNET_CORE_StartupCallback init,
-                     GNUNET_CORE_ConnectEventHandler connects,
-                     GNUNET_CORE_DisconnectEventHandler disconnects,
-		     GNUNET_CORE_PeerStatusEventHandler status_events,
-                     GNUNET_CORE_MessageCallback inbound_notify,
-                     int inbound_hdr_only,
-                     GNUNET_CORE_MessageCallback outbound_notify,
-                     int outbound_hdr_only,
-                     const struct GNUNET_CORE_MessageHandler *handlers);
+struct GNUNET_CORE_Handle *GNUNET_CORE_connect (const struct
+                                                GNUNET_CONFIGURATION_Handle
+                                                *cfg, unsigned int queue_size,
+                                                void *cls,
+                                                GNUNET_CORE_StartupCallback
+                                                init,
+                                                GNUNET_CORE_ConnectEventHandler
+                                                connects,
+                                                GNUNET_CORE_DisconnectEventHandler
+                                                disconnects,
+                                                GNUNET_CORE_PeerStatusEventHandler
+                                                status_events,
+                                                GNUNET_CORE_MessageCallback
+                                                inbound_notify,
+                                                int inbound_hdr_only,
+                                                GNUNET_CORE_MessageCallback
+                                                outbound_notify,
+                                                int outbound_hdr_only,
+                                                const struct
+                                                GNUNET_CORE_MessageHandler
+                                                *handlers);
 
 
 /**
@@ -251,7 +269,7 @@ struct GNUNET_CORE_PeerRequestHandle;
  *        GNUNET_NO on timeout,
  *        GNUNET_SYSERR if core was shut down
  */
-typedef void (*GNUNET_CORE_ControlContinuation)(void *cls, int success);
+typedef void (*GNUNET_CORE_ControlContinuation) (void *cls, int success);
 
 
 /**
@@ -271,11 +289,17 @@ typedef void (*GNUNET_CORE_ControlContinuation)(void *cls, int success);
  * @param cont_cls closure for cont
  * @return NULL on error (cont will not be called), otherwise handle for cancellation
  */
-struct GNUNET_CORE_PeerRequestHandle *
-GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
-				  const struct GNUNET_PeerIdentity * peer,
-				  GNUNET_CORE_ControlContinuation cont,
-				  void *cont_cls);
+struct GNUNET_CORE_PeerRequestHandle *GNUNET_CORE_peer_request_connect (struct
+                                                                        GNUNET_CORE_Handle
+                                                                        *h,
+                                                                        const
+                                                                        struct
+                                                                        GNUNET_PeerIdentity
+                                                                        *peer,
+                                                                        GNUNET_CORE_ControlContinuation
+                                                                        cont,
+                                                                        void
+                                                                        *cont_cls);
 
 
 /**
@@ -285,7 +309,8 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
  * @param req request handle that was returned for the original request
  */
 void
-GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *req);
+GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle
+                                         *req);
 
 
 /**
@@ -301,13 +326,15 @@ GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *r
  * @param preference current traffic preference for the given peer
  */
 typedef void
-  (*GNUNET_CORE_PeerConfigurationInfoCallback) (void *cls,
-                                                const struct
-                                                GNUNET_PeerIdentity *peer,
-						struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-						int32_t amount,
-						struct GNUNET_TIME_Relative res_delay,
-                                                uint64_t preference);
+    (*GNUNET_CORE_PeerConfigurationInfoCallback) (void *cls,
+                                                  const struct
+                                                  GNUNET_PeerIdentity * peer,
+                                                  struct
+                                                  GNUNET_BANDWIDTH_Value32NBO
+                                                  bandwidth_out, int32_t amount,
+                                                  struct GNUNET_TIME_Relative
+                                                  res_delay,
+                                                  uint64_t preference);
 
 
 
@@ -342,15 +369,15 @@ struct GNUNET_CORE_InformationRequestContext;
  * @param info_cls closure for info
  * @return NULL on error
  */
-struct GNUNET_CORE_InformationRequestContext *
-GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
-				    const struct GNUNET_PeerIdentity *peer,
-				    struct GNUNET_TIME_Relative timeout,
-				    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
-				    int32_t amount,
-				    uint64_t preference,
-				    GNUNET_CORE_PeerConfigurationInfoCallback info,
-				    void *info_cls);
+struct GNUNET_CORE_InformationRequestContext
+    *GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
+                                         const struct GNUNET_PeerIdentity *peer,
+                                         struct GNUNET_TIME_Relative timeout,
+                                         struct GNUNET_BANDWIDTH_Value32NBO
+                                         bw_out, int32_t amount,
+                                         uint64_t preference,
+                                         GNUNET_CORE_PeerConfigurationInfoCallback
+                                         info, void *info_cls);
 
 
 /**
@@ -365,7 +392,9 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
  * @param irc context returned by the original GNUNET_CORE_peer_get_info call
  */
 void
-GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequestContext *irc);
+GNUNET_CORE_peer_change_preference_cancel (struct
+                                           GNUNET_CORE_InformationRequestContext
+                                           *irc);
 
 
 /**
@@ -435,25 +464,25 @@ struct GNUNET_CORE_TransmitHandle;
  *         NULL if we can not even queue the request (insufficient
  *         memory); if NULL is returned, "notify" will NOT be called.
  */
-struct GNUNET_CORE_TransmitHandle *
-GNUNET_CORE_notify_transmit_ready (struct
-				   GNUNET_CORE_Handle
-				   *handle,
-				   int cork,
-				   uint32_t priority,
-				   struct
-				   GNUNET_TIME_Relative
-				   maxdelay,
-				   const
-				   struct
-				   GNUNET_PeerIdentity
-				   *target,
-				   size_t
-				   notify_size,
-				   GNUNET_CONNECTION_TransmitReadyNotify
-				   notify,
-				   void
-				   *notify_cls);
+struct GNUNET_CORE_TransmitHandle *GNUNET_CORE_notify_transmit_ready (struct
+                                                                      GNUNET_CORE_Handle
+                                                                      *handle,
+                                                                      int cork,
+                                                                      uint32_t
+                                                                      priority,
+                                                                      struct
+                                                                      GNUNET_TIME_Relative
+                                                                      maxdelay,
+                                                                      const
+                                                                      struct
+                                                                      GNUNET_PeerIdentity
+                                                                      *target,
+                                                                      size_t
+                                                                      notify_size,
+                                                                      GNUNET_CONNECTION_TransmitReadyNotify
+                                                                      notify,
+                                                                      void
+                                                                      *notify_cls);
 
 
 /**

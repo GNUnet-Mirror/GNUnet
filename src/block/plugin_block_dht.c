@@ -50,14 +50,13 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_dht_evaluate (void *cls,
-			   enum GNUNET_BLOCK_Type type,
-			   const GNUNET_HashCode *query,
-			   struct GNUNET_CONTAINER_BloomFilter **bf,
-			   int32_t bf_mutator,
-			   const void *xquery,
-			   size_t xquery_size,
-			   const void *reply_block,
-			   size_t reply_block_size)
+                           enum GNUNET_BLOCK_Type type,
+                           const GNUNET_HashCode * query,
+                           struct GNUNET_CONTAINER_BloomFilter **bf,
+                           int32_t bf_mutator,
+                           const void *xquery,
+                           size_t xquery_size,
+                           const void *reply_block, size_t reply_block_size)
 {
   switch (type)
   {
@@ -67,7 +66,7 @@ block_plugin_dht_evaluate (void *cls,
     if (reply_block_size == 0)
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
     GNUNET_break (NULL == *bf);
-      return GNUNET_BLOCK_EVALUATION_OK_LAST;
+    return GNUNET_BLOCK_EVALUATION_OK_LAST;
   default:
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   }
@@ -87,10 +86,9 @@ block_plugin_dht_evaluate (void *cls,
  */
 static int
 block_plugin_dht_get_key (void *cls,
-			  enum GNUNET_BLOCK_Type type,
-			  const void *block,
-			  size_t block_size,
-			  GNUNET_HashCode *key)
+                          enum GNUNET_BLOCK_Type type,
+                          const void *block,
+                          size_t block_size, GNUNET_HashCode * key)
 {
   const struct GNUNET_MessageHeader *msg;
   const struct GNUNET_HELLO_Message *hello;
@@ -99,37 +97,34 @@ block_plugin_dht_get_key (void *cls,
   if (type != GNUNET_BLOCK_TYPE_DHT_HELLO)
     return GNUNET_SYSERR;
   if (block_size < sizeof (struct GNUNET_MessageHeader))
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		       "block-dht",
-		       _("Block not of type %u\n"),
-		       GNUNET_BLOCK_TYPE_DHT_HELLO);
-      return GNUNET_NO;
-    }
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "block-dht",
+                     _("Block not of type %u\n"), GNUNET_BLOCK_TYPE_DHT_HELLO);
+    return GNUNET_NO;
+  }
   msg = block;
   if (block_size != ntohs (msg->size))
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		       "block-dht",
-		       _("Size mismatch for block\n"),
-		       GNUNET_BLOCK_TYPE_DHT_HELLO);
-      return GNUNET_NO;
-    }
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "block-dht",
+                     _("Size mismatch for block\n"),
+                     GNUNET_BLOCK_TYPE_DHT_HELLO);
+    return GNUNET_NO;
+  }
   hello = block;
-  pid = (struct GNUNET_PeerIdentity*) key;
-  if (GNUNET_OK !=
-      GNUNET_HELLO_get_id (hello,
-			   pid))
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		       "block-dht",
-		       _("Block of type %u is malformed\n"),
-		       GNUNET_BLOCK_TYPE_DHT_HELLO);
-      return GNUNET_NO;
-    }
+  pid = (struct GNUNET_PeerIdentity *) key;
+  if (GNUNET_OK != GNUNET_HELLO_get_id (hello, pid))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "block-dht",
+                     _("Block of type %u is malformed\n"),
+                     GNUNET_BLOCK_TYPE_DHT_HELLO);
+    return GNUNET_NO;
+  }
   return GNUNET_OK;
 }
-				  
+
 
 /**
  * Entry point for the plugin.
@@ -137,11 +132,11 @@ block_plugin_dht_get_key (void *cls,
 void *
 libgnunet_plugin_block_dht_init (void *cls)
 {
-  static enum GNUNET_BLOCK_Type types[] = 
-    {
-      GNUNET_BLOCK_TYPE_DHT_HELLO,
-      GNUNET_BLOCK_TYPE_ANY /* end of list */
-    };
+  static enum GNUNET_BLOCK_Type types[] =
+  {
+    GNUNET_BLOCK_TYPE_DHT_HELLO,
+    GNUNET_BLOCK_TYPE_ANY       /* end of list */
+  };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));

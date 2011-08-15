@@ -41,7 +41,7 @@
 static int ok;
 
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-    
+
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -61,15 +61,15 @@ static void
 clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (p1.th != NULL)
-    {
-      GNUNET_TRANSPORT_disconnect (p1.th);
-      p1.th = NULL;
-    }
+  {
+    GNUNET_TRANSPORT_disconnect (p1.th);
+    p1.th = NULL;
+  }
   if (p2.th != NULL)
-    {
-      GNUNET_TRANSPORT_disconnect (p2.th);
-      p2.th = NULL;
-    }
+  {
+    GNUNET_TRANSPORT_disconnect (p2.th);
+    p2.th = NULL;
+  }
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -81,7 +81,7 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      "Timeout trying to connect peers, test failed.\n");
+              "Timeout trying to connect peers, test failed.\n");
   clean_up (NULL, tc);
 }
 
@@ -97,35 +97,34 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 notify_connect (void *cls,
-		const struct GNUNET_PeerIdentity * peer,
-		const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                uint32_t ats_count)
 {
   if (peer == NULL)
     return;
 #if VERBOSE
   fprintf (stderr, "Peer %s connected\n", GNUNET_i2s (peer));
 #endif
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Peers connected, shutting down.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected, shutting down.\n");
   ok = 0;
   if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (timeout_task);
-      timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_SCHEDULER_add_now (&clean_up, NULL);
 }
 
 
 static void
-process_hello (void *cls,
-               const struct GNUNET_MessageHeader *message)
+process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p->th, &process_hello, p);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received HELLO, starting hostlist service.\n");
+              "Received HELLO, starting hostlist service.\n");
 }
 
 
@@ -135,35 +134,34 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                        "gnunet-service-arm",
+                                         "gnunet-service-arm",
 #if VERBOSE
-                                        "-L", "DEBUG",
+                                         "-L", "DEBUG",
 #endif
-                                        "-c", cfgname, NULL);
+                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL,
-				    &notify_connect, NULL);
+                                    &notify_connect, NULL);
   GNUNET_assert (p->th != NULL);
   GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
 }
 
 
 static void
-waitpid_task (void *cls, 
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+waitpid_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *p = cls;
 
-#if START_ARM 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Killing ARM process.\n");
+#if START_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Killing ARM process.\n");
   if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait(p->arm_proc) != GNUNET_OK)
+  if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ARM process %u stopped\n", GNUNET_OS_process_get_pid (p->arm_proc));
+              "ARM process %u stopped\n",
+              GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_close (p->arm_proc);
   p->arm_proc = NULL;
 #endif
@@ -174,10 +172,8 @@ waitpid_task (void *cls,
 static void
 stop_arm (struct PeerContext *p)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asking ARM to stop core service\n");
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				&waitpid_task, p);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking ARM to stop core service\n");
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &waitpid_task, p);
 }
 
 
@@ -195,17 +191,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   ok++;
-  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-					       &timeout_error,
-					       NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_error, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task,
-				NULL);
+                                &shutdown_task, NULL);
   setup_peer (&p1, "test_gnunet_daemon_hostlist_peer1.conf");
   setup_peer (&p2, "test_gnunet_daemon_hostlist_peer2.conf");
 }
@@ -227,7 +219,7 @@ check ()
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-gnunet-daemon-hostlist",
-		      "nohelp", options, &run, &ok);
+                      "nohelp", options, &run, &ok);
   return ok;
 }
 
@@ -235,7 +227,7 @@ check ()
 int
 main (int argc, char *argv[])
 {
-  
+
   int ret;
 
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
@@ -250,16 +242,16 @@ main (int argc, char *argv[])
                     NULL);
   ret = check ();
   if (ret == 0)
-    {
-      fprintf (stderr, ".");
-      /* now do it again */
-      ret = check ();
-      fprintf (stderr, ".\n");
-    }
+  {
+    fprintf (stderr, ".");
+    /* now do it again */
+    ret = check ();
+    fprintf (stderr, ".\n");
+  }
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-3");
-  return ret; 
+  return ret;
 }
 
 /* end of test_gnunet_daemon_hostlist_reconnect.c */

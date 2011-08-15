@@ -46,37 +46,35 @@ void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
 #endif
-      if (ok == 0)
-        ok = 666;
-    }
+    if (ok == 0)
+      ok = 666;
+  }
   else
-    {
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All peers successfully shut down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
 #endif
-      ok = 0;
-    }
+    ok = 0;
+  }
 }
 
 
 static void
-my_cb (void *cls,
-       const char *emsg)
+my_cb (void *cls, const char *emsg)
 {
   if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Peergroup callback called with error, aborting test!\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
-      ok = 1;
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peergroup callback called with error, aborting test!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
+    ok = 1;
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+    return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer Group started successfully, ending test!\n");
@@ -106,22 +104,19 @@ run (void *cls,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CONFIGURATION_Handle *testing_cfg;
+
   ok = 1;
-  testing_cfg = GNUNET_CONFIGURATION_create();
-  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_load(testing_cfg, cfgfile));
+  testing_cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (testing_cfg, cfgfile));
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
   GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing",
-                                           "use_progressbars",
-                                           "YES");
+                                         "use_progressbars", "YES");
 #endif
   peers_left = NUM_PEERS;
-  pg = GNUNET_TESTING_peergroup_start(testing_cfg,
-                                      peers_left,
-                                      TIMEOUT,
-                                      NULL,
-                                      &my_cb, NULL,
-                                      NULL);
+  pg = GNUNET_TESTING_peergroup_start (testing_cfg,
+                                       peers_left,
+                                       TIMEOUT, NULL, &my_cb, NULL, NULL);
   GNUNET_assert (pg != NULL);
 }
 

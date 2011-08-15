@@ -82,37 +82,37 @@ peer_address_response_processor (void *cls,
   uint16_t size;
 
   if (msg == NULL)
-    {
-      alucb->cb (alucb->cb_cls, NULL);
-      GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
-      GNUNET_free (alucb);
-      return;
-    }
-  GNUNET_break (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+  {
+    alucb->cb (alucb->cb_cls, NULL);
+    GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
+    GNUNET_free (alucb);
+    return;
+  }
+  GNUNET_break (ntohs (msg->type) ==
+                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
   size = ntohs (msg->size);
   if (size == sizeof (struct GNUNET_MessageHeader))
-    {
-      /* done! */
-      alucb->cb (alucb->cb_cls, NULL);
-      GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
-      GNUNET_free (alucb);
-      return;
-    }
+  {
+    /* done! */
+    alucb->cb (alucb->cb_cls, NULL);
+    GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
+    GNUNET_free (alucb);
+    return;
+  }
   address = (const char *) &msg[1];
   if (address[size - sizeof (struct GNUNET_MessageHeader) - 1] != '\0')
-    {
-      /* invalid reply */
-      GNUNET_break (0);
-      alucb->cb (alucb->cb_cls, NULL);
-      GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
-      GNUNET_free (alucb);
-      return;
-    }
+  {
+    /* invalid reply */
+    GNUNET_break (0);
+    alucb->cb (alucb->cb_cls, NULL);
+    GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
+    GNUNET_free (alucb);
+    return;
+  }
   /* expect more replies */
   GNUNET_CLIENT_receive (alucb->client,
-			 &peer_address_response_processor, alucb,
-			 GNUNET_TIME_absolute_get_remaining
-			 (alucb->timeout));
+                         &peer_address_response_processor, alucb,
+                         GNUNET_TIME_absolute_get_remaining (alucb->timeout));
   alucb->cb (alucb->cb_cls, address);
 }
 
@@ -128,7 +128,8 @@ peer_address_response_processor (void *cls,
 void
 GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
+                                  GNUNET_TRANSPORT_AddressLookUpCallback
+                                  peer_address_callback,
                                   void *peer_address_callback_cls)
 {
   struct AddressIterateMessage msg;
@@ -138,13 +139,13 @@ GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (client == NULL)
-    {
-      peer_address_callback (peer_address_callback_cls, NULL);
-      return;
-    }
+  {
+    peer_address_callback (peer_address_callback_cls, NULL);
+    return;
+  }
   abs_timeout = GNUNET_TIME_relative_to_absolute (timeout);
 
-  msg.header.size = htons (sizeof(struct AddressLookupMessage));
+  msg.header.size = htons (sizeof (struct AddressLookupMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE);
   msg.timeout = GNUNET_TIME_absolute_hton (abs_timeout);
   peer_address_lookup_cb = GNUNET_malloc (sizeof (struct AddressLookupCtx));
@@ -153,12 +154,12 @@ GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
   peer_address_lookup_cb->timeout = abs_timeout;
   peer_address_lookup_cb->client = client;
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CLIENT_transmit_and_get_response (client,
-							  &msg.header,
-							  timeout,
-							  GNUNET_YES,
-							  &peer_address_response_processor,
-							  peer_address_lookup_cb));
+                 GNUNET_CLIENT_transmit_and_get_response (client,
+                                                          &msg.header,
+                                                          timeout,
+                                                          GNUNET_YES,
+                                                          &peer_address_response_processor,
+                                                          peer_address_lookup_cb));
 }
 
 /* end of transport_api_address_iterate.c */

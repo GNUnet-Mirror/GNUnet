@@ -56,8 +56,7 @@ extern "C"
 #define MAX_NAME_LENGTH 25
 #endif
 
-  typedef DWORD WINAPI (*TNtQuerySystemInformation) (int, PVOID, ULONG,
-                                                     PULONG);
+  typedef DWORD WINAPI (*TNtQuerySystemInformation) (int, PVOID, ULONG, PULONG);
   typedef DWORD WINAPI (*TGetIfEntry) (PMIB_IFROW pIfRow);
   typedef DWORD WINAPI (*TGetIpAddrTable) (PMIB_IPADDRTABLE pIpAddrTable,
                                            PULONG pdwSize, BOOL bOrder);
@@ -104,8 +103,7 @@ extern "C"
                                              PDWORD pdwBestIfIndex);
   typedef DWORD WINAPI (*TGetAdaptersInfo) (PIP_ADAPTER_INFO pAdapterInfo,
                                             PULONG pOutBufLen);
-  typedef NET_API_STATUS WINAPI (*TNetUserAdd) (LPCWSTR, DWORD, PBYTE,
-                                                PDWORD);
+  typedef NET_API_STATUS WINAPI (*TNetUserAdd) (LPCWSTR, DWORD, PBYTE, PDWORD);
   typedef NET_API_STATUS WINAPI (*TNetUserSetInfo) (LPCWSTR servername,
                                                     LPCWSTR username,
                                                     DWORD level, LPBYTE buf,
@@ -205,7 +203,7 @@ extern "C"
   BOOL AddPathAccessRights (char *lpszFileName, char *lpszAccountName,
                             DWORD dwAccessMask);
   char *winErrorStr (const char *prefix, int dwErr);
-  void EnumNICs(PMIB_IFTABLE *pIfTable, PMIB_IPADDRTABLE *pAddrTable);
+  void EnumNICs (PMIB_IFTABLE * pIfTable, PMIB_IPADDRTABLE * pAddrTable);
   int GNInitWinEnv ();
   void GNShutdownWinEnv ();
 

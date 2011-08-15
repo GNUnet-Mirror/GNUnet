@@ -51,15 +51,14 @@
  * @return characterization of result
  */
 typedef enum GNUNET_BLOCK_EvaluationResult
-  (*GNUNET_BLOCK_EvaluationFunction) (void *cls,
-				      enum GNUNET_BLOCK_Type type,
-				      const GNUNET_HashCode *query,
-				      struct GNUNET_CONTAINER_BloomFilter **bf,
-				      int32_t bf_mutator,
-				      const void *xquery,
-				      size_t xquery_size,
-				      const void *reply_block,
-				      size_t reply_block_size);
+    (*GNUNET_BLOCK_EvaluationFunction) (void *cls,
+                                        enum GNUNET_BLOCK_Type type,
+                                        const GNUNET_HashCode * query,
+                                        struct GNUNET_CONTAINER_BloomFilter **
+                                        bf, int32_t bf_mutator,
+                                        const void *xquery, size_t xquery_size,
+                                        const void *reply_block,
+                                        size_t reply_block_size);
 
 
 /**
@@ -76,12 +75,11 @@ typedef enum GNUNET_BLOCK_EvaluationResult
  *         (or if extracting a key from a block of this type does not work)
  */
 typedef int
-  (*GNUNET_BLOCK_GetKeyFunction) (void *cls,
-				  enum GNUNET_BLOCK_Type type,
-				  const void *block,
-				  size_t block_size,
-				  GNUNET_HashCode *key);
-				  
+    (*GNUNET_BLOCK_GetKeyFunction) (void *cls,
+                                    enum GNUNET_BLOCK_Type type,
+                                    const void *block,
+                                    size_t block_size, GNUNET_HashCode * key);
+
 
 
 /**
