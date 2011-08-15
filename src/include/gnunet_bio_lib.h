@@ -72,8 +72,8 @@ int GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h, char **emsg);
  * @param len the number of bytes to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
-                     const char *what, void *result, size_t len);
+int GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h, const char *what,
+                     void *result, size_t len);
 
 
 /**
@@ -86,8 +86,8 @@ int GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
  * @param len the number of bytes to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
-                        const char *file, int line, void *result, size_t len);
+int GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h, const char *file,
+                        int line, void *result, size_t len);
 
 /**
  * Read 0-terminated string from a file.
@@ -99,8 +99,8 @@ int GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
  * @param maxLen maximum allowed length for the string
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
-                            const char *what, char **result, size_t maxLen);
+int GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, const char *what,
+                            char **result, size_t maxLen);
 
 
 /**
@@ -144,8 +144,8 @@ int GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
  * @param i address of 32-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
-                             const char *file, int line, int32_t * i);
+int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
+                             int line, int32_t * i);
 
 
 /**
@@ -166,8 +166,8 @@ int GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h,
  * @param i address of 64-bit integer to read
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h,
-                             const char *file, int line, int64_t * i);
+int GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
+                             int line, int64_t * i);
 
 
 /**
@@ -210,8 +210,8 @@ int GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h);
  * @param n number of bytes to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h,
-                      const void *buffer, size_t n);
+int GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, const void *buffer,
+                      size_t n);
 
 
 /**

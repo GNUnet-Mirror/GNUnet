@@ -238,10 +238,9 @@ struct GSF_PendingRequest *GSF_pending_request_create_ (enum
  * @param replies_seen hash codes of replies that we've seen
  * @param replies_seen_count size of the replies_seen array
  */
-void
-GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
-                             const GNUNET_HashCode * replies_seen,
-                             unsigned int replies_seen_count);
+void GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
+                                  const GNUNET_HashCode * replies_seen,
+                                  unsigned int replies_seen_count);
 
 
 /**
@@ -264,9 +263,8 @@ struct GSF_PendingRequestData *GSF_pending_request_get_data_ (struct
  * @param pra another pending request
  * @return GNUNET_OK if the requests are compatible
  */
-int
-GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
-                                    struct GSF_PendingRequest *prb);
+int GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
+                                        struct GSF_PendingRequest *prb);
 
 
 /**
@@ -278,15 +276,9 @@ GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
  * @param buf where to copy the message (can be NULL)
  * @return number of bytes needed (if buf_size too small) or used
  */
-size_t
- 
- 
- 
- 
- 
- 
-GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
-                                  size_t buf_size, void *buf);
+size_t             GSF_pending_request_get_message_ (struct GSF_PendingRequest
+                                                     *pr, size_t buf_size,
+                                                     void *buf);
 
 
 /**
@@ -295,8 +287,8 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
  * @param pr request to cancel
  * @param full_cleanup fully purge the request
  */
-void
-GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup);
+void GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr,
+                                  int full_cleanup);
 
 
 /**
@@ -335,9 +327,8 @@ void GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it, void *cls);
  *         GNUNET_SYSERR if the message was malformed (close connection,
  *         do not cache under any circumstances)
  */
-int
-GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
-                         const struct GNUNET_MessageHeader *message);
+int GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
+                             const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -369,9 +360,8 @@ typedef void (*GSF_LocalLookupContinuation) (void *cls,
  * @param cont function to call at the end
  * @param cont_cls closure for cont
  */
-void
-GSF_local_lookup_ (struct GSF_PendingRequest *pr,
-                   GSF_LocalLookupContinuation cont, void *cont_cls);
+void GSF_local_lookup_ (struct GSF_PendingRequest *pr,
+                        GSF_LocalLookupContinuation cont, void *cont_cls);
 
 
 /**

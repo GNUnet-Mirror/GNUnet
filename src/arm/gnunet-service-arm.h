@@ -35,8 +35,8 @@
  * @param lsocks -1 terminated list of listen sockets to pass (systemd style), or NULL
  * @return GNUNET_OK on success
  */
-int start_service (struct GNUNET_SERVER_Client *client,
-                   const char *servicename, const int *lsocks);
+int start_service (struct GNUNET_SERVER_Client *client, const char *servicename,
+                   const int *lsocks);
 
 /**
  * Stop listening for connections to a service.

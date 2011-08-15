@@ -41,8 +41,7 @@
  * @param addr either the previous or the new public IP address
  * @param addrlen actual lenght of the address
  */
-typedef void (*GNUNET_NAT_AddressCallback) (void *cls,
-                                            int add_remove,
+typedef void (*GNUNET_NAT_AddressCallback) (void *cls, int add_remove,
                                             const struct sockaddr * addr,
                                             socklen_t addrlen);
 
@@ -110,9 +109,8 @@ struct GNUNET_NAT_Handle *GNUNET_NAT_register (const struct
  *         GNUNET_NO if the address is not plausible,
  *         GNUNET_SYSERR if the address is malformed
  */
-int
-GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
-                         const void *addr, socklen_t addrlen);
+int GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h, const void *addr,
+                             socklen_t addrlen);
 
 
 /**
@@ -123,9 +121,8 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
  * @param h handle (used for configuration)
  * @param sa the address of the peer (IPv4-only)
  */
-void
-GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
-                       const struct sockaddr_in *sa);
+void GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
+                            const struct sockaddr_in *sa);
 
 
 
@@ -220,8 +217,8 @@ struct GNUNET_NAT_ExternalHandle *GNUNET_NAT_mini_get_external_ipv4 (struct
  *
  * @param eh operation to cancel
  */
-void
-GNUNET_NAT_mini_get_external_ipv4_cancel (struct GNUNET_NAT_ExternalHandle *eh);
+void GNUNET_NAT_mini_get_external_ipv4_cancel (struct GNUNET_NAT_ExternalHandle
+                                               *eh);
 
 
 /**

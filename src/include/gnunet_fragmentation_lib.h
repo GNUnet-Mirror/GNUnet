@@ -105,8 +105,8 @@ struct GNUNET_FRAGMENT_Context *GNUNET_FRAGMENT_context_create (struct
  *
  * @param fc fragmentation context
  */
-void
-GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context *fc);
+void GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context
+                                                *fc);
 
 
 /**
@@ -132,8 +132,9 @@ int GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
  * @return average delay between transmission and ACK for the
  *         last message, FOREVER if the message was not fully transmitted
  */
-struct GNUNET_TIME_Relative
-GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc);
+struct GNUNET_TIME_Relative GNUNET_FRAGMENT_context_destroy (struct
+                                                             GNUNET_FRAGMENT_Context
+                                                             *fc);
 
 
 /**
@@ -152,8 +153,7 @@ struct GNUNET_DEFRAGMENT_Context;
  * @param id unique message ID (modulo collisions)
  * @param msg the message that was created
  */
-typedef void (*GNUNET_DEFRAGMENT_AckProcessor) (void *cls,
-                                                uint32_t id,
+typedef void (*GNUNET_DEFRAGMENT_AckProcessor) (void *cls, uint32_t id,
                                                 const struct
                                                 GNUNET_MessageHeader * msg);
 
@@ -200,9 +200,8 @@ void GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc);
  * @param msg the message that was received
  * @return GNUNET_OK on success, GNUNET_NO if this was a duplicate, GNUNET_SYSERR on error
  */
-int
-GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
-                                    const struct GNUNET_MessageHeader *msg);
+int GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
+                                        const struct GNUNET_MessageHeader *msg);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

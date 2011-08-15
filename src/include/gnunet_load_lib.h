@@ -61,9 +61,8 @@ struct GNUNET_LOAD_Value *GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative
  * @param load load to update
  * @param autodecline frequency of load decline
  */
-void
-GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
-                               struct GNUNET_TIME_Relative autodecline);
+void GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
+                                    struct GNUNET_TIME_Relative autodecline);
 
 
 /**

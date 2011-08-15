@@ -157,10 +157,9 @@ enum GNUNET_ErrorType
  * @param date when was the message logged?
  * @param message what is the message
  */
-typedef void (*GNUNET_Logger) (void *cls,
-                               enum GNUNET_ErrorType kind,
-                               const char *component,
-                               const char *date, const char *message);
+typedef void (*GNUNET_Logger) (void *cls, enum GNUNET_ErrorType kind,
+                               const char *component, const char *date,
+                               const char *message);
 
 /**
  * Main log function.
@@ -182,9 +181,8 @@ void GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...);
  * @param message what is the message (format string)
  * @param ... arguments for format string
  */
-void
-GNUNET_log_from (enum GNUNET_ErrorType kind,
-                 const char *comp, const char *message, ...);
+void GNUNET_log_from (enum GNUNET_ErrorType kind, const char *comp,
+                      const char *message, ...);
 
 
 /**
@@ -204,8 +202,8 @@ void GNUNET_log_skip (unsigned int n, int check_reset);
  * @param logfile change logging to logfile (use NULL to keep stderr)
  * @return GNUNET_OK on success, GNUNET_SYSERR if logfile could not be opened
  */
-int
-GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile);
+int GNUNET_log_setup (const char *comp, const char *loglevel,
+                      const char *logfile);
 
 
 /**
@@ -528,15 +526,15 @@ void *GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
  * @param linenumber line where this call is being made (for debugging)
  * @return pointer to size bytes of memory, NULL if we do not have enough memory
  */
-void *GNUNET_xmalloc_unchecked_ (size_t size,
-                                 const char *filename, int linenumber);
+void *GNUNET_xmalloc_unchecked_ (size_t size, const char *filename,
+                                 int linenumber);
 
 /**
  * Reallocate memory. Checks the return value, aborts if no more
  * memory is available.
  */
-void *GNUNET_xrealloc_ (void *ptr,
-                        size_t n, const char *filename, int linenumber);
+void *GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename,
+                        int linenumber);
 
 /**
  * Free memory. Merely a wrapper for the case that we
@@ -585,11 +583,9 @@ char *GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
  * @param filename where is this call being made (for debugging)
  * @param linenumber line where this call is being made (for debugging)
  */
-void GNUNET_xgrow_ (void **old,
-                    size_t elementSize,
-                    unsigned int *oldCount,
-                    unsigned int newCount,
-                    const char *filename, int linenumber);
+void GNUNET_xgrow_ (void **old, size_t elementSize, unsigned int *oldCount,
+                    unsigned int newCount, const char *filename,
+                    int linenumber);
 
 
 

@@ -149,8 +149,7 @@ char *GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind
  * @param addrlen length of the address
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_OS_NetworkInterfaceProcessor) (void *cls,
-                                                    const char *name,
+typedef int (*GNUNET_OS_NetworkInterfaceProcessor) (void *cls, const char *name,
                                                     int isDefault,
                                                     const struct sockaddr *
                                                     addr, socklen_t addrlen);
@@ -342,10 +341,10 @@ int GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
 /**
  * Connects this process to its parent via pipe
  */
-void
-GNUNET_OS_install_parent_control_handler (void *cls,
-                                          const struct
-                                          GNUNET_SCHEDULER_TaskContext *tc);
+void GNUNET_OS_install_parent_control_handler (void *cls,
+                                               const struct
+                                               GNUNET_SCHEDULER_TaskContext
+                                               *tc);
 
 
 /**

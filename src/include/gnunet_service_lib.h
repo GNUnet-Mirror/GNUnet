@@ -59,11 +59,11 @@ extern "C"
  *              zero (in this case, '*addrs' and '*addr_lens' will be
  *              set to NULL).
  */
-int
-GNUNET_SERVICE_get_server_addresses (const char *serviceName,
-                                     const struct GNUNET_CONFIGURATION_Handle
-                                     *cfg, struct sockaddr ***addrs,
-                                     socklen_t ** addr_lens);
+int GNUNET_SERVICE_get_server_addresses (const char *serviceName,
+                                         const struct
+                                         GNUNET_CONFIGURATION_Handle *cfg,
+                                         struct sockaddr ***addrs,
+                                         socklen_t ** addr_lens);
 
 
 /**
@@ -111,12 +111,9 @@ enum GNUNET_SERVICE_Options
  * @return GNUNET_SYSERR on error, GNUNET_OK
  *         if we shutdown nicely
  */
-int
-GNUNET_SERVICE_run (int argc,
-                    char *const *argv,
-                    const char *serviceName,
-                    enum GNUNET_SERVICE_Options opt,
-                    GNUNET_SERVICE_Main task, void *task_cls);
+int GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
+                        enum GNUNET_SERVICE_Options opt,
+                        GNUNET_SERVICE_Main task, void *task_cls);
 
 
 struct GNUNET_SERVICE_Context;

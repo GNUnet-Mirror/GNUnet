@@ -113,11 +113,10 @@ int GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param filename where to write the configuration diff between default and new
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int
-GNUNET_CONFIGURATION_write_diffs (const struct GNUNET_CONFIGURATION_Handle
-                                  *cfgDefault,
-                                  const struct GNUNET_CONFIGURATION_Handle
-                                  *cfgNew, const char *filename);
+int GNUNET_CONFIGURATION_write_diffs (const struct GNUNET_CONFIGURATION_Handle
+                                      *cfgDefault,
+                                      const struct GNUNET_CONFIGURATION_Handle
+                                      *cfgNew, const char *filename);
 
 /**
  * Test if there are configuration options that were
@@ -138,8 +137,7 @@ int GNUNET_CONFIGURATION_is_dirty (const struct GNUNET_CONFIGURATION_Handle
  * @param option name of the option
  * @param value value of the option
  */
-typedef void (*GNUNET_CONFIGURATION_Iterator) (void *cls,
-                                               const char *section,
+typedef void (*GNUNET_CONFIGURATION_Iterator) (void *cls, const char *section,
                                                const char *option,
                                                const char *value);
 
@@ -277,11 +275,10 @@ int GNUNET_CONFIGURATION_get_value_filename (const struct
  */
 int GNUNET_CONFIGURATION_iterate_value_filenames (const struct
                                                   GNUNET_CONFIGURATION_Handle
-                                                  *cfg,
-                                                  const char *section,
+                                                  *cfg, const char *section,
                                                   const char *option,
-                                                  GNUNET_FileNameCallback
-                                                  cb, void *cb_cls);
+                                                  GNUNET_FileNameCallback cb,
+                                                  void *cb_cls);
 
 /**
  * Iterate over values of a section in the configuration.
@@ -291,12 +288,11 @@ int GNUNET_CONFIGURATION_iterate_value_filenames (const struct
  * @param iter function to call on each option
  * @param iter_cls closure for iter
  */
-void
-GNUNET_CONFIGURATION_iterate_section_values (const struct
-                                             GNUNET_CONFIGURATION_Handle *cfg,
-                                             const char *section,
-                                             GNUNET_CONFIGURATION_Iterator iter,
-                                             void *iter_cls);
+void GNUNET_CONFIGURATION_iterate_section_values (const struct
+                                                  GNUNET_CONFIGURATION_Handle
+                                                  *cfg, const char *section,
+                                                  GNUNET_CONFIGURATION_Iterator
+                                                  iter, void *iter_cls);
 
 /**
  * Get a configuration value that should be in a set of
@@ -353,12 +349,10 @@ char *GNUNET_CONFIGURATION_expand_dollar (const struct
  * @param option option of interest
  * @param number value to set
  */
-void
-GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle
-                                       *cfg,
-                                       const char *section,
-                                       const char *option,
-                                       unsigned long long number);
+void GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle
+                                            *cfg, const char *section,
+                                            const char *option,
+                                            unsigned long long number);
 
 
 /**
@@ -369,11 +363,10 @@ GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle
  * @param option option of interest
  * @param value value to set
  */
-void
-GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle
-                                       *cfg,
-                                       const char *section,
-                                       const char *option, const char *value);
+void GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle
+                                            *cfg, const char *section,
+                                            const char *option,
+                                            const char *value);
 
 /**
  * Remove a filename from a configuration value that
@@ -388,8 +381,7 @@ GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle
  */
 int GNUNET_CONFIGURATION_remove_value_filename (struct
                                                 GNUNET_CONFIGURATION_Handle
-                                                *cfg,
-                                                const char *section,
+                                                *cfg, const char *section,
                                                 const char *option,
                                                 const char *value);
 

@@ -83,9 +83,8 @@ void GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
  * @param h handle to the peerinfo service
  * @param hello the verified (!) HELLO message
  */
-void
-GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
-                          const struct GNUNET_HELLO_Message *hello);
+void GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
+                               const struct GNUNET_HELLO_Message *hello);
 
 
 /**
@@ -97,11 +96,11 @@ GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
  * @param hello hello message for the peer (can be NULL)
  * @param error message
  */
-typedef void
-    (*GNUNET_PEERINFO_Processor) (void *cls,
-                                  const struct GNUNET_PeerIdentity * peer,
-                                  const struct GNUNET_HELLO_Message * hello,
-                                  const char *err_msg);
+typedef void (*GNUNET_PEERINFO_Processor) (void *cls,
+                                           const struct GNUNET_PeerIdentity *
+                                           peer,
+                                           const struct GNUNET_HELLO_Message *
+                                           hello, const char *err_msg);
 
 
 /**
@@ -148,8 +147,8 @@ struct GNUNET_PEERINFO_IteratorContext *GNUNET_PEERINFO_iterate (struct
  *
  * @param ic context of the iterator to cancel
  */
-void
-GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic);
+void GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext
+                                     *ic);
 
 
 

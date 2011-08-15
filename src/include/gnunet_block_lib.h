@@ -161,9 +161,8 @@ struct GNUNET_BLOCK_Context;
  * @param mingle_number number for hash permutation
  * @param hc where to store the result.
  */
-void
-GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in,
-                          uint32_t mingle_number, GNUNET_HashCode * hc);
+void GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in,
+                               uint32_t mingle_number, GNUNET_HashCode * hc);
 
 
 /**
@@ -203,15 +202,23 @@ void GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx);
  * @param reply_block_size number of bytes in reply block
  * @return characterization of result
  */
-enum GNUNET_BLOCK_EvaluationResult
-GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
-                       enum GNUNET_BLOCK_Type type,
-                       const GNUNET_HashCode * query,
-                       struct GNUNET_CONTAINER_BloomFilter **bf,
-                       int32_t bf_mutator,
-                       const void *xquery,
-                       size_t xquery_size,
-                       const void *reply_block, size_t reply_block_size);
+enum GNUNET_BLOCK_EvaluationResult GNUNET_BLOCK_evaluate (struct
+                                                          GNUNET_BLOCK_Context
+                                                          *ctx,
+                                                          enum GNUNET_BLOCK_Type
+                                                          type,
+                                                          const GNUNET_HashCode
+                                                          * query,
+                                                          struct
+                                                          GNUNET_CONTAINER_BloomFilter
+                                                          **bf,
+                                                          int32_t bf_mutator,
+                                                          const void *xquery,
+                                                          size_t xquery_size,
+                                                          const void
+                                                          *reply_block,
+                                                          size_t
+                                                          reply_block_size);
 
 
 /**
@@ -227,11 +234,9 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  *         GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
-int
-GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
-                      enum GNUNET_BLOCK_Type type,
-                      const void *block,
-                      size_t block_size, GNUNET_HashCode * key);
+int GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
+                          enum GNUNET_BLOCK_Type type, const void *block,
+                          size_t block_size, GNUNET_HashCode * key);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

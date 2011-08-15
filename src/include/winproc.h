@@ -109,12 +109,11 @@ extern "C"
                                                     DWORD level, LPBYTE buf,
                                                     LPDWORD parm_err);
   typedef NTSTATUS NTAPI (*TLsaOpenPolicy) (PLSA_UNICODE_STRING,
-                                            PLSA_OBJECT_ATTRIBUTES,
-                                            ACCESS_MASK, PLSA_HANDLE);
+                                            PLSA_OBJECT_ATTRIBUTES, ACCESS_MASK,
+                                            PLSA_HANDLE);
   typedef NTSTATUS NTAPI (*TLsaAddAccountRights) (LSA_HANDLE, PSID,
                                                   PLSA_UNICODE_STRING, ULONG);
-  typedef NTSTATUS NTAPI (*TLsaRemoveAccountRights) (LSA_HANDLE, PSID,
-                                                     BOOLEAN,
+  typedef NTSTATUS NTAPI (*TLsaRemoveAccountRights) (LSA_HANDLE, PSID, BOOLEAN,
                                                      PLSA_UNICODE_STRING,
                                                      ULONG);
   typedef NTSTATUS NTAPI (*TLsaClose) (LSA_HANDLE);
@@ -139,8 +138,7 @@ extern "C"
                                                      LPBOOL lpbDaclPresent,
                                                      PACL * pDacl,
                                                      LPBOOL lpbDaclDefaulted);
-  typedef BOOL WINAPI (*TGetAclInformation) (PACL pAcl,
-                                             LPVOID pAclInformation,
+  typedef BOOL WINAPI (*TGetAclInformation) (PACL pAcl, LPVOID pAclInformation,
                                              DWORD nAclInformationLength,
                                              ACL_INFORMATION_CLASS
                                              dwAclInformationClass);

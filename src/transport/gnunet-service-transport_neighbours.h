@@ -43,10 +43,8 @@
  * @param connect_cb function to call if we connect to a peer
  * @param disconnect_cb function to call if we disconnect from a peer
  */
-void
-GST_neighbours_start (void *cls,
-                      GNUNET_TRANSPORT_NotifyConnect connect_cb,
-                      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb);
+void GST_neighbours_start (void *cls, GNUNET_TRANSPORT_NotifyConnect connect_cb,
+                           GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb);
 
 
 /**
@@ -91,12 +89,10 @@ typedef void (*GST_NeighbourSendContinuation) (void *cls, int success);
  * @param cont function to call when done
  * @param cont_cls closure for 'cont'
  */
-void
-GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
-                     const void *msg,
-                     size_t msg_size,
-                     struct GNUNET_TIME_Relative timeout,
-                     GST_NeighbourSendContinuation cont, void *cont_cls);
+void GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
+                          const void *msg, size_t msg_size,
+                          struct GNUNET_TIME_Relative timeout,
+                          GST_NeighbourSendContinuation cont, void *cont_cls);
 
 
 /**
@@ -110,9 +106,13 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
  *                   GNUNET_NO if the neighbour is not connected or violates the quota
  * @return how long to wait before reading more from this sender
  */
-struct GNUNET_TIME_Relative
-GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
-                                        *sender, ssize_t size, int *do_forward);
+struct GNUNET_TIME_Relative GST_neighbours_calculate_receive_delay (const struct
+                                                                    GNUNET_PeerIdentity
+                                                                    *sender,
+                                                                    ssize_t
+                                                                    size,
+                                                                    int
+                                                                    *do_forward);
 
 
 /**
@@ -130,9 +130,10 @@ void GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
  * @param neighbour identity of peer to change qutoa for
  * @param quota new quota 
  */
-void
-GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
-                                   struct GNUNET_BANDWIDTH_Value32NBO quota);
+void GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity
+                                        *neighbour,
+                                        struct GNUNET_BANDWIDTH_Value32NBO
+                                        quota);
 
 
 /**
@@ -174,9 +175,8 @@ void GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls);
  * @param peer identity of the peer where the session died
  * @param session session that is gone
  */
-void
-GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
-                                   struct Session *session);
+void GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
+                                        struct Session *session);
 
 
 /**
@@ -192,14 +192,13 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
-void
-GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
-                                  const char *plugin_name,
-                                  const void *address,
-                                  size_t address_len,
-                                  struct Session *session,
-                                  const struct GNUNET_TRANSPORT_ATS_Information
-                                  *ats, uint32_t ats_count);
+void GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
+                                       const char *plugin_name,
+                                       const void *address, size_t address_len,
+                                       struct Session *session,
+                                       const struct
+                                       GNUNET_TRANSPORT_ATS_Information *ats,
+                                       uint32_t ats_count);
 
 
 #endif

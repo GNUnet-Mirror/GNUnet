@@ -42,18 +42,16 @@ void send_icmp6_response (void *cls,
 void send_icmp4_response (void *cls,
                           const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-size_t
-                      send_udp_service (void *cls, size_t size, void *buf);
+size_t                       send_udp_service (void *cls, size_t size,
+                                               void *buf);
 
 GNUNET_HashCode *address6_mapping_exists (unsigned char addr[]);
 GNUNET_HashCode *address4_mapping_exists (uint32_t addr);
 
 unsigned int port_in_ports (uint64_t ports, uint16_t port);
 
-void
-send_pkt_to_peer (void *cls,
-                  const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+void send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
+                       const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
 /**
  * The configuration to use

@@ -67,14 +67,16 @@ struct GNUNET_MESH_Tunnel;
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-typedef int
-    (*GNUNET_MESH_MessageCallback) (void *cls,
-                                    struct GNUNET_MESH_Tunnel * tunnel,
-                                    void **tunnel_ctx,
-                                    const struct GNUNET_PeerIdentity * sender,
-                                    const struct GNUNET_MessageHeader * message,
-                                    const struct
-                                    GNUNET_TRANSPORT_ATS_Information * atsi);
+typedef int (*GNUNET_MESH_MessageCallback) (void *cls,
+                                            struct GNUNET_MESH_Tunnel * tunnel,
+                                            void **tunnel_ctx,
+                                            const struct GNUNET_PeerIdentity *
+                                            sender,
+                                            const struct GNUNET_MessageHeader *
+                                            message,
+                                            const struct
+                                            GNUNET_TRANSPORT_ATS_Information *
+                                            atsi);
 
 
 /**
@@ -281,10 +283,10 @@ struct GNUNET_MESH_Tunnel *GNUNET_MESH_peer_request_connect_all (struct
  * @param timeout how long to try to establish a connection
  * @param peer peer to add
  */
-void
-GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
-                                      struct GNUNET_TIME_Relative timeout,
-                                      const struct GNUNET_PeerIdentity *peer);
+void GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
+                                           struct GNUNET_TIME_Relative timeout,
+                                           const struct GNUNET_PeerIdentity
+                                           *peer);
 
 
 /**
@@ -294,9 +296,9 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
  * @param tunnel handle to existing tunnel
  * @param peer peer to remove
  */
-void
-GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
-                                      const struct GNUNET_PeerIdentity *peer);
+void GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
+                                           const struct GNUNET_PeerIdentity
+                                           *peer);
 
 
 /**
@@ -394,9 +396,8 @@ struct GNUNET_MESH_TransmitHandle *GNUNET_MESH_notify_transmit_ready (struct
  *
  * @param th handle that was returned by "notify_transmit_ready".
  */
-void
-GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
-                                          *th);
+void GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
+                                               *th);
 
 void GNUNET_MESH_tunnel_set_head (struct GNUNET_MESH_Tunnel *tunnel,
                                   void *head);

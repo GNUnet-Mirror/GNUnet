@@ -449,8 +449,8 @@
 //             ((mask[0] == '0') || (mask[0] == '*')))))
 // -------
 // For now just keep ignoring. After everything settles down, we might want to start putting custom newlines where it is appropriate
---honour-newlines
-//--ignore-newlines
+// --honour-newlines
+--ignore-newlines
 //
 //
 //

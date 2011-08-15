@@ -138,8 +138,7 @@ typedef struct
  *        the specific address format depends on the transport
  * @param addrlen length of the address
  */
-typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
-                                                      int add_remove,
+typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls, int add_remove,
                                                       const void *addr,
                                                       size_t addrlen);
 
@@ -254,10 +253,10 @@ struct GNUNET_TRANSPORT_PluginEnvironment
  *               disconnect will ALSO be signalled using
  *               the ReceiveCallback.
  */
-typedef void
-    (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
-                                              const struct GNUNET_PeerIdentity *
-                                              target, int result);
+typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
+                                                       const struct
+                                                       GNUNET_PeerIdentity *
+                                                       target, int result);
 
 
 /**
@@ -296,20 +295,22 @@ typedef void
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
  *         and does NOT mean that the message was not transmitted (DV)
  */
-typedef ssize_t
-    (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
-                                          const struct GNUNET_PeerIdentity *
-                                          target,
-                                          const char *msgbuf,
-                                          size_t msgbuf_size,
-                                          uint32_t priority,
-                                          struct GNUNET_TIME_Relative timeout,
-                                          struct Session * session,
-                                          const void *addr,
-                                          size_t addrlen,
-                                          int force_address,
-                                          GNUNET_TRANSPORT_TransmitContinuation
-                                          cont, void *cont_cls);
+typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
+                                                      const struct
+                                                      GNUNET_PeerIdentity *
+                                                      target,
+                                                      const char *msgbuf,
+                                                      size_t msgbuf_size,
+                                                      uint32_t priority,
+                                                      struct
+                                                      GNUNET_TIME_Relative
+                                                      timeout,
+                                                      struct Session * session,
+                                                      const void *addr,
+                                                      size_t addrlen,
+                                                      int force_address,
+                                                      GNUNET_TRANSPORT_TransmitContinuation
+                                                      cont, void *cont_cls);
 
 
 /**
@@ -328,10 +329,10 @@ typedef ssize_t
  * @param target peer for which the last transmission is
  *        to be cancelled
  */
-typedef void
-    (*GNUNET_TRANSPORT_DisconnectFunction) (void *cls,
-                                            const struct GNUNET_PeerIdentity *
-                                            target);
+typedef void (*GNUNET_TRANSPORT_DisconnectFunction) (void *cls,
+                                                     const struct
+                                                     GNUNET_PeerIdentity *
+                                                     target);
 
 
 /**
@@ -360,16 +361,16 @@ typedef void (*GNUNET_TRANSPORT_AddressStringCallback) (void *cls,
  * @param asc function to call on each string
  * @param asc_cls closure for asc
  */
-typedef void
-    (*GNUNET_TRANSPORT_AddressPrettyPrinter) (void *cls,
-                                              const char *type,
-                                              const void *addr,
-                                              size_t addrlen,
-                                              int numeric,
-                                              struct GNUNET_TIME_Relative
-                                              timeout,
-                                              GNUNET_TRANSPORT_AddressStringCallback
-                                              asc, void *asc_cls);
+typedef void (*GNUNET_TRANSPORT_AddressPrettyPrinter) (void *cls,
+                                                       const char *type,
+                                                       const void *addr,
+                                                       size_t addrlen,
+                                                       int numeric,
+                                                       struct
+                                                       GNUNET_TIME_Relative
+                                                       timeout,
+                                                       GNUNET_TRANSPORT_AddressStringCallback
+                                                       asc, void *asc_cls);
 
 
 /**
@@ -386,9 +387,8 @@ typedef void
  * @return GNUNET_OK if this is a plausible address for this peer
  *         and transport, GNUNET_SYSERR if not
  */
-typedef int
-    (*GNUNET_TRANSPORT_CheckAddress) (void *cls,
-                                      const void *addr, size_t addrlen);
+typedef int (*GNUNET_TRANSPORT_CheckAddress) (void *cls, const void *addr,
+                                              size_t addrlen);
 
 
 /**

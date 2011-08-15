@@ -35,8 +35,8 @@
  * @param cp peer with the entry
  * @param pr request with the entry
  */
-void
-GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr);
+void GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
+                    struct GSF_PendingRequest *pr);
 
 
 /**

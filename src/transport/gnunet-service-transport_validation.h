@@ -54,13 +54,12 @@ void GST_validation_stop (void);
  *                       if we did not initiate the connection
  * @param sender_address_len number of bytes in sender_address
  */
-void
-GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
-                            const struct GNUNET_MessageHeader *hdr,
-                            const char *plugin_name,
-                            struct Session *session,
-                            const void *sender_address,
-                            size_t sender_address_len);
+void GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
+                                 const struct GNUNET_MessageHeader *hdr,
+                                 const char *plugin_name,
+                                 struct Session *session,
+                                 const void *sender_address,
+                                 size_t sender_address_len);
 
 
 /**
@@ -70,9 +69,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
  * @param sender peer sending the PONG
  * @param hdr the PONG
  */
-void
-GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
-                            const struct GNUNET_MessageHeader *hdr);
+void GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
+                                 const struct GNUNET_MessageHeader *hdr);
 
 
 /**
@@ -124,9 +122,9 @@ typedef void (*GST_ValidationAddressCallback) (void *cls,
  * @param cb_cls closure for 'cb'
  * @return context to cancel, NULL if 'snapshot_only' is GNUNET_YES
  */
-void
-GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
-                              GST_ValidationAddressCallback cb, void *cb_cls);
+void GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
+                                   GST_ValidationAddressCallback cb,
+                                   void *cb_cls);
 
 
 #endif

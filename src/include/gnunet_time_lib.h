@@ -199,8 +199,7 @@ struct GNUNET_TIME_Absolute GNUNET_TIME_relative_to_absolute (struct
  * @return timestamp that is smaller
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_relative_min (struct
-                                                      GNUNET_TIME_Relative
-                                                      t1,
+                                                      GNUNET_TIME_Relative t1,
                                                       struct
                                                       GNUNET_TIME_Relative t2);
 
@@ -213,8 +212,7 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_min (struct
  * @return timestamp that is larger
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_relative_max (struct
-                                                      GNUNET_TIME_Relative
-                                                      t1,
+                                                      GNUNET_TIME_Relative t1,
                                                       struct
                                                       GNUNET_TIME_Relative t2);
 
@@ -226,8 +224,7 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_max (struct
  * @return timestamp that is smaller
  */
 struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_min (struct
-                                                      GNUNET_TIME_Absolute
-                                                      t1,
+                                                      GNUNET_TIME_Absolute t1,
                                                       struct
                                                       GNUNET_TIME_Absolute t2);
 
@@ -239,8 +236,7 @@ struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_min (struct
  * @return timestamp that is smaller
  */
 struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_max (struct
-                                                      GNUNET_TIME_Absolute
-                                                      t1,
+                                                      GNUNET_TIME_Absolute t1,
                                                       struct
                                                       GNUNET_TIME_Absolute t2);
 
@@ -374,9 +370,12 @@ struct GNUNET_TIME_Relative GNUNET_TIME_relative_add (struct
  * @param a2 second timestamp
  * @return ZERO if a2>=a1 (including both FOREVER), FOREVER if a1 is FOREVER, a1-a2 otherwise
  */
-struct GNUNET_TIME_Relative
-GNUNET_TIME_relative_subtract (struct GNUNET_TIME_Relative a1,
-                               struct GNUNET_TIME_Relative a2);
+struct GNUNET_TIME_Relative GNUNET_TIME_relative_subtract (struct
+                                                           GNUNET_TIME_Relative
+                                                           a1,
+                                                           struct
+                                                           GNUNET_TIME_Relative
+                                                           a2);
 
 
 /**

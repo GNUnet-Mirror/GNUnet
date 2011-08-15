@@ -66,9 +66,8 @@ uint64_t GNUNET_FS_tree_compute_tree_size (unsigned int depth);
  * @param depth depth of the node in the tree, 0 for DBLOCK
  * @return number of bytes stored in this node
  */
-size_t
-GNUNET_FS_tree_calculate_block_size (uint64_t fsize,
-                                     uint64_t offset, unsigned int depth);
+size_t GNUNET_FS_tree_calculate_block_size (uint64_t fsize, uint64_t offset,
+                                            unsigned int depth);
 
 
 /**
@@ -111,8 +110,7 @@ typedef void (*GNUNET_FS_TreeBlockProcessor) (void *cls,
  * @param pt_size size of pt_block
  * @param depth depth of the block in the tree, 0 for DBLOCKS
  */
-typedef void (*GNUNET_FS_TreeProgressCallback) (void *cls,
-                                                uint64_t offset,
+typedef void (*GNUNET_FS_TreeProgressCallback) (void *cls, uint64_t offset,
                                                 const void *pt_block,
                                                 size_t pt_size,
                                                 unsigned int depth);

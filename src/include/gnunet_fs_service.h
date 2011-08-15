@@ -79,8 +79,7 @@ struct GNUNET_FS_Uri;
  * @param is_mandatory is the keyword mandatory (in a search)
  * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_FS_KeywordIterator) (void *cls,
-                                          const char *keyword,
+typedef int (*GNUNET_FS_KeywordIterator) (void *cls, const char *keyword,
                                           int is_mandatory);
 
 /**
@@ -90,8 +89,8 @@ typedef int (*GNUNET_FS_KeywordIterator) (void *cls,
  * @param uri uri to convert to a unique key
  * @param key wherer to store the unique key
  */
-void
-GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, GNUNET_HashCode * key);
+void GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri,
+                           GNUNET_HashCode * key);
 
 /**
  * Convert a URI to a UTF-8 String.
@@ -119,9 +118,8 @@ char *GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri);
  * @param keyword keyword to add
  * @param is_mandatory is this keyword mandatory?
  */
-void
-GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri,
-                               const char *keyword, int is_mandatory);
+void GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri,
+                                    const char *keyword, int is_mandatory);
 
 
 /**
@@ -131,9 +129,8 @@ GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri,
  * @param uri ksk uri to modify
  * @param keyword keyword to add
  */
-void
-GNUNET_FS_uri_ksk_remove_keyword (struct GNUNET_FS_Uri *uri,
-                                  const char *keyword);
+void GNUNET_FS_uri_ksk_remove_keyword (struct GNUNET_FS_Uri *uri,
+                                       const char *keyword);
 
 
 /**
@@ -159,8 +156,8 @@ void GNUNET_FS_uri_destroy (struct GNUNET_FS_Uri *uri);
  * @param uri ksk uri to get the number of keywords from
  * @return 0 if this is not a keyword URI
  */
-unsigned int
-GNUNET_FS_uri_ksk_get_keyword_count (const struct GNUNET_FS_Uri *uri);
+unsigned int GNUNET_FS_uri_ksk_get_keyword_count (const struct GNUNET_FS_Uri
+                                                  *uri);
 
 
 /**
@@ -172,10 +169,9 @@ GNUNET_FS_uri_ksk_get_keyword_count (const struct GNUNET_FS_Uri *uri);
  * @return -1 if this is not a keyword URI, otherwise number of
  *   keywords iterated over until iterator aborted
  */
-int
-GNUNET_FS_uri_ksk_get_keywords (const struct GNUNET_FS_Uri *uri,
-                                GNUNET_FS_KeywordIterator iterator,
-                                void *iterator_cls);
+int GNUNET_FS_uri_ksk_get_keywords (const struct GNUNET_FS_Uri *uri,
+                                    GNUNET_FS_KeywordIterator iterator,
+                                    void *iterator_cls);
 
 
 /**
@@ -185,9 +181,8 @@ GNUNET_FS_uri_ksk_get_keywords (const struct GNUNET_FS_Uri *uri,
  * @param peer where to store the identify of the peer (presumably) offering the content
  * @return GNUNET_SYSERR if this is not a location URI, otherwise GNUNET_OK
  */
-int
-GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
-                                     struct GNUNET_PeerIdentity *peer);
+int GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
+                                         struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -206,8 +201,9 @@ struct GNUNET_FS_Uri *GNUNET_FS_uri_loc_get_uri (const struct GNUNET_FS_Uri
  * @param uri location URI to get the expiration from
  * @return expiration time of the URI
  */
-struct GNUNET_TIME_Absolute
-GNUNET_FS_uri_loc_get_expiration (const struct GNUNET_FS_Uri *uri);
+struct GNUNET_TIME_Absolute GNUNET_FS_uri_loc_get_expiration (const struct
+                                                              GNUNET_FS_Uri
+                                                              *uri);
 
 
 /**
@@ -310,9 +306,8 @@ struct GNUNET_FS_Uri *GNUNET_FS_uri_ksk_create_from_args (unsigned int argc,
  * @param u2 the other URI
  * @return GNUNET_YES if the URIs are equal
  */
-int
-GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
-                          const struct GNUNET_FS_Uri *u2);
+int GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
+                              const struct GNUNET_FS_Uri *u2);
 
 
 /**
@@ -361,9 +356,8 @@ struct GNUNET_FS_Uri *GNUNET_FS_uri_sks_create_from_nsid (GNUNET_HashCode *
  * @param nsid where to store the ID of the namespace
  * @return GNUNET_OK on success
  */
-int
-GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 GNUNET_HashCode * nsid);
+int GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
+                                     GNUNET_HashCode * nsid);
 
 
 /**
@@ -451,10 +445,10 @@ struct GNUNET_FS_Uri *GNUNET_FS_uri_ksk_create_from_meta_data (const struct
  * @param value command line argument given
  * @return GNUNET_OK on success
  */
-int
-GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
-                               *ctx, void *scls, const char *option,
-                               const char *value);
+int GNUNET_FS_getopt_set_keywords (struct
+                                   GNUNET_GETOPT_CommandLineProcessorContext
+                                   *ctx, void *scls, const char *option,
+                                   const char *value);
 
 
 /**
@@ -469,10 +463,10 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value command line argument given
  * @return GNUNET_OK on success
  */
-int
-GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
-                               *ctx, void *scls, const char *option,
-                               const char *value);
+int GNUNET_FS_getopt_set_metadata (struct
+                                   GNUNET_GETOPT_CommandLineProcessorContext
+                                   *ctx, void *scls, const char *option,
+                                   const char *value);
 
 
 
@@ -1522,8 +1516,9 @@ struct GNUNET_FS_ProgressInfo
  *         will be passed to future callbacks in the respective
  *         field in the GNUNET_FS_ProgressInfo struct.
  */
-typedef void *(*GNUNET_FS_ProgressCallback)
-    (void *cls, const struct GNUNET_FS_ProgressInfo * info);
+typedef void *(*GNUNET_FS_ProgressCallback) (void *cls,
+                                             const struct GNUNET_FS_ProgressInfo
+                                             * info);
 
 
 /**
@@ -1682,11 +1677,10 @@ void GNUNET_FS_stop (struct GNUNET_FS_Handle *h);
  * @return GNUNET_SYSERR on error, otherwise the number
  *   of meta-data items obtained
  */
-int
-GNUNET_FS_meta_data_extract_from_file (struct
-                                       GNUNET_CONTAINER_MetaData
-                                       *md, const char *filename,
-                                       struct EXTRACTOR_PluginList *extractors);
+int GNUNET_FS_meta_data_extract_from_file (struct GNUNET_CONTAINER_MetaData *md,
+                                           const char *filename,
+                                           struct EXTRACTOR_PluginList
+                                           *extractors);
 
 
 /**
@@ -1804,9 +1798,8 @@ struct GNUNET_FS_FileInformation
  * @param emsg location for the reader to store an error message
  * @return number of bytes written, usually "max", 0 on error
  */
-typedef size_t (*GNUNET_FS_DataReader) (void *cls,
-                                        uint64_t offset,
-                                        size_t max, void *buf, char **emsg);
+typedef size_t (*GNUNET_FS_DataReader) (void *cls, uint64_t offset, size_t max,
+                                        void *buf, char **emsg);
 
 
 /**
@@ -1850,8 +1843,7 @@ struct GNUNET_FS_FileInformation
  * @param fi information about the file (should not be
  *        used henceforth by the caller)
  */
-typedef void (*GNUNET_FS_FileProcessor) (void *cls,
-                                         const char *filename,
+typedef void (*GNUNET_FS_FileProcessor) (void *cls, const char *filename,
                                          struct GNUNET_FS_FileInformation * fi);
 
 
@@ -1870,8 +1862,7 @@ typedef void (*GNUNET_FS_FileProcessor) (void *cls,
  */
 typedef int (*GNUNET_FS_DirectoryScanner) (void *cls,
                                            struct GNUNET_FS_Handle * h,
-                                           const char *dirname,
-                                           int do_index,
+                                           const char *dirname, int do_index,
                                            const struct GNUNET_FS_BlockOptions *
                                            bo, GNUNET_FS_FileProcessor proc,
                                            void *proc_cls, char **emsg);
@@ -1899,14 +1890,11 @@ typedef int (*GNUNET_FS_DirectoryScanner) (void *cls,
  * @param emsg where to store an error message (on errors)
  * @return GNUNET_OK on success
  */
-int
-GNUNET_FS_directory_scanner_default (void *cls,
-                                     struct GNUNET_FS_Handle *h,
-                                     const char *dirname,
-                                     int do_index,
-                                     const struct GNUNET_FS_BlockOptions *bo,
-                                     GNUNET_FS_FileProcessor proc,
-                                     void *proc_cls, char **emsg);
+int GNUNET_FS_directory_scanner_default (void *cls, struct GNUNET_FS_Handle *h,
+                                         const char *dirname, int do_index,
+                                         const struct GNUNET_FS_BlockOptions
+                                         *bo, GNUNET_FS_FileProcessor proc,
+                                         void *proc_cls, char **emsg);
 
 
 /**
@@ -1975,9 +1963,8 @@ struct GNUNET_FS_FileInformation
  * @param ent check if this FI represents a directory
  * @return GNUNET_YES if so, GNUNET_NO if not
  */
-int
-GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation
-                                         *ent);
+int GNUNET_FS_file_information_is_directory (const struct
+                                             GNUNET_FS_FileInformation *ent);
 
 
 /**
@@ -1991,9 +1978,8 @@ GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation
  *            must not include "dir" in its structure
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int
-GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
-                                struct GNUNET_FS_FileInformation *ent);
+int GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
+                                    struct GNUNET_FS_FileInformation *ent);
 
 
 /**
@@ -2010,10 +1996,9 @@ GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
  * @param proc function to call on each entry
  * @param proc_cls closure for proc
  */
-void
-GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
-                                    GNUNET_FS_FileInformationProcessor proc,
-                                    void *proc_cls);
+void GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
+                                         GNUNET_FS_FileInformationProcessor
+                                         proc, void *proc_cls);
 
 
 /**
@@ -2026,10 +2011,9 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
  *        values are ignored
  * @param cleaner_cls closure for cleaner
  */
-void
-GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
-                                    GNUNET_FS_FileInformationProcessor cleaner,
-                                    void *cleaner_cls);
+void GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
+                                         GNUNET_FS_FileInformationProcessor
+                                         cleaner, void *cleaner_cls);
 
 
 /**
@@ -2114,14 +2098,13 @@ typedef void (*GNUNET_FS_PublishContinuation) (void *cls,
  * @param cont continuation
  * @param cont_cls closure for cont
  */
-void
-GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
-                       const struct GNUNET_FS_Uri *ksk_uri,
-                       const struct GNUNET_CONTAINER_MetaData *meta,
-                       const struct GNUNET_FS_Uri *uri,
-                       const struct GNUNET_FS_BlockOptions *bo,
-                       enum GNUNET_FS_PublishOptions options,
-                       GNUNET_FS_PublishContinuation cont, void *cont_cls);
+void GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
+                            const struct GNUNET_FS_Uri *ksk_uri,
+                            const struct GNUNET_CONTAINER_MetaData *meta,
+                            const struct GNUNET_FS_Uri *uri,
+                            const struct GNUNET_FS_BlockOptions *bo,
+                            enum GNUNET_FS_PublishOptions options,
+                            GNUNET_FS_PublishContinuation cont, void *cont_cls);
 
 
 /**
@@ -2138,16 +2121,14 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
  * @param cont continuation
  * @param cont_cls closure for cont
  */
-void
-GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
-                       struct GNUNET_FS_Namespace *namespace,
-                       const char *identifier,
-                       const char *update,
-                       const struct GNUNET_CONTAINER_MetaData *meta,
-                       const struct GNUNET_FS_Uri *uri,
-                       const struct GNUNET_FS_BlockOptions *bo,
-                       enum GNUNET_FS_PublishOptions options,
-                       GNUNET_FS_PublishContinuation cont, void *cont_cls);
+void GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
+                            struct GNUNET_FS_Namespace *namespace,
+                            const char *identifier, const char *update,
+                            const struct GNUNET_CONTAINER_MetaData *meta,
+                            const struct GNUNET_FS_Uri *uri,
+                            const struct GNUNET_FS_BlockOptions *bo,
+                            enum GNUNET_FS_PublishOptions options,
+                            GNUNET_FS_PublishContinuation cont, void *cont_cls);
 
 
 /**
@@ -2158,8 +2139,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
  * @param file_id hash of the contents of the indexed file
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls,
-                                               const char *filename,
+typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls, const char *filename,
                                                const GNUNET_HashCode * file_id);
 
 
@@ -2174,11 +2154,10 @@ typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls,
  *             error) or  "PREREQ_DONE" (on success)
  * @param cont_cls closure for cont
  */
-void
-GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
-                             GNUNET_FS_IndexedFileProcessor iterator,
-                             void *iterator_cls,
-                             GNUNET_SCHEDULER_Task cont, void *cont_cls);
+void GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
+                                  GNUNET_FS_IndexedFileProcessor iterator,
+                                  void *iterator_cls,
+                                  GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -2215,15 +2194,15 @@ void GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
  * @param cont continuation
  * @param cont_cls closure for cont
  */
-void
-GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
-                               struct GNUNET_FS_Uri *ksk_uri,
-                               struct GNUNET_FS_Namespace *namespace,
-                               const struct GNUNET_CONTAINER_MetaData *meta,
-                               const struct GNUNET_FS_BlockOptions *bo,
-                               const char *rootEntry,
-                               GNUNET_FS_PublishContinuation cont,
-                               void *cont_cls);
+void GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
+                                    struct GNUNET_FS_Uri *ksk_uri,
+                                    struct GNUNET_FS_Namespace *namespace,
+                                    const struct GNUNET_CONTAINER_MetaData
+                                    *meta,
+                                    const struct GNUNET_FS_BlockOptions *bo,
+                                    const char *rootEntry,
+                                    GNUNET_FS_PublishContinuation cont,
+                                    void *cont_cls);
 
 
 /**
@@ -2249,8 +2228,8 @@ struct GNUNET_FS_Namespace *GNUNET_FS_namespace_create (struct GNUNET_FS_Handle
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int
-GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *namespace, int freeze);
+int GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *namespace,
+                                int freeze);
 
 
 /**
@@ -2262,8 +2241,7 @@ GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *namespace, int freeze);
  * @param name human-readable identifier of the namespace
  * @param id hash identifier for the namespace
  */
-typedef void (*GNUNET_FS_NamespaceInfoProcessor) (void *cls,
-                                                  const char *name,
+typedef void (*GNUNET_FS_NamespaceInfoProcessor) (void *cls, const char *name,
                                                   const GNUNET_HashCode * id);
 
 
@@ -2276,9 +2254,9 @@ typedef void (*GNUNET_FS_NamespaceInfoProcessor) (void *cls,
  * @param cb function to call on each known namespace
  * @param cb_cls closure for cb
  */
-void
-GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
-                          GNUNET_FS_NamespaceInfoProcessor cb, void *cb_cls);
+void GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
+                               GNUNET_FS_NamespaceInfoProcessor cb,
+                               void *cb_cls);
 
 
 /**
@@ -2290,12 +2268,12 @@ GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
  * @param last_meta metadata associated with last_uri
  * @param next_id identifier that should be used for updates
  */
-typedef void
-    (*GNUNET_FS_IdentifierProcessor) (void *cls,
-                                      const char *last_id,
-                                      const struct GNUNET_FS_Uri * last_uri,
-                                      const struct GNUNET_CONTAINER_MetaData *
-                                      last_meta, const char *next_id);
+typedef void (*GNUNET_FS_IdentifierProcessor) (void *cls, const char *last_id,
+                                               const struct GNUNET_FS_Uri *
+                                               last_uri,
+                                               const struct
+                                               GNUNET_CONTAINER_MetaData *
+                                               last_meta, const char *next_id);
 
 
 /**
@@ -2318,11 +2296,10 @@ typedef void
  * @param ip function to call on each updateable identifier
  * @param ip_cls closure for ip
  */
-void
-GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
-                                     const char *next_id,
-                                     GNUNET_FS_IdentifierProcessor ip,
-                                     void *ip_cls);
+void GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
+                                          const char *next_id,
+                                          GNUNET_FS_IdentifierProcessor ip,
+                                          void *ip_cls);
 
 
 /**
@@ -2547,8 +2524,8 @@ struct GNUNET_FS_DownloadContext *GNUNET_FS_download_start_from_search (struct
  * @param dc handle for the download
  * @param do_delete delete files of incomplete downloads
  */
-void
-GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete);
+void GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
+                              int do_delete);
 
 
 
@@ -2566,9 +2543,8 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete);
  * @return GNUNET_YES if it is, GNUNET_NO if it is not, GNUNET_SYSERR if
  *  we have no mime-type information (treat as 'GNUNET_NO')
  */
-int
-GNUNET_FS_meta_data_test_for_directory (const struct GNUNET_CONTAINER_MetaData
-                                        *md);
+int GNUNET_FS_meta_data_test_for_directory (const struct
+                                            GNUNET_CONTAINER_MetaData *md);
 
 
 /**
@@ -2634,12 +2610,10 @@ typedef void (*GNUNET_FS_DirectoryEntryProcessor) (void *cls,
  *         GNUNET_NO if this could be part of a directory (but not 100% OK)
  *         GNUNET_SYSERR if 'data' does not represent a directory
  */
-int
-GNUNET_FS_directory_list_contents (size_t size,
-                                   const void *data,
-                                   uint64_t offset,
-                                   GNUNET_FS_DirectoryEntryProcessor dep,
-                                   void *dep_cls);
+int GNUNET_FS_directory_list_contents (size_t size, const void *data,
+                                       uint64_t offset,
+                                       GNUNET_FS_DirectoryEntryProcessor dep,
+                                       void *dep_cls);
 
 
 /**
@@ -2668,11 +2642,10 @@ struct GNUNET_FS_DirectoryBuilder *GNUNET_FS_directory_builder_create (const
  *        data must point to exactly the number of bytes specified
  *        by the uri
  */
-void
-GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
-                                 const struct GNUNET_FS_Uri *uri,
-                                 const struct GNUNET_CONTAINER_MetaData *md,
-                                 const void *data);
+void GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
+                                      const struct GNUNET_FS_Uri *uri,
+                                      const struct GNUNET_CONTAINER_MetaData
+                                      *md, const void *data);
 
 
 /**
@@ -2685,9 +2658,8 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
  * @param rdata set to the encoded directory
  * @return GNUNET_OK on success
  */
-int
-GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
-                                    size_t * rsize, void **rdata);
+int GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
+                                        size_t * rsize, void **rdata);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

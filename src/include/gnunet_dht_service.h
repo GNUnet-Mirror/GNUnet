@@ -154,17 +154,14 @@ void GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
  * @param cont continuation to call when done (transmitting request to service)
  * @param cont_cls closure for cont
  */
-void
-GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
-                const GNUNET_HashCode * key,
-                uint32_t desired_replication_level,
-                enum GNUNET_DHT_RouteOption options,
-                enum GNUNET_BLOCK_Type type,
-                size_t size,
-                const char *data,
-                struct GNUNET_TIME_Absolute exp,
-                struct GNUNET_TIME_Relative timeout,
-                GNUNET_SCHEDULER_Task cont, void *cont_cls);
+void GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
+                     const GNUNET_HashCode * key,
+                     uint32_t desired_replication_level,
+                     enum GNUNET_DHT_RouteOption options,
+                     enum GNUNET_BLOCK_Type type, size_t size, const char *data,
+                     struct GNUNET_TIME_Absolute exp,
+                     struct GNUNET_TIME_Relative timeout,
+                     GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -292,8 +289,8 @@ struct GNUNET_DHT_FindPeerHandle *GNUNET_DHT_find_peer_start (struct
  *
  * @param find_peer_handle GET operation to stop.
  */
-void
-GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle);
+void GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle
+                                *find_peer_handle);
 
 
 
@@ -384,9 +381,8 @@ void GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle);
  * @param cont_cls closure for cont
  * @param handle handle to the DHT service
  */
-void
-GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
-                       GNUNET_SCHEDULER_Task cont, void *cont_cls);
+void GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
+                            GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 /* ***** Special API for testing robustness with malicious peers ******* */
 
@@ -406,9 +402,9 @@ GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
  * @param cont_cls closure for cont
  *
  */
-void
-GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle,
-                                  GNUNET_SCHEDULER_Task cont, void *cont_cls);
+void GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle,
+                                       GNUNET_SCHEDULER_Task cont,
+                                       void *cont_cls);
 
 
 /**
@@ -420,10 +416,10 @@ GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle,
  * @param cont continuation to call when done (transmitting request to service)
  * @param cont_cls closure for cont
  */
-void
-GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
-                                 struct GNUNET_TIME_Relative frequency,
-                                 GNUNET_SCHEDULER_Task cont, void *cont_cls);
+void GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
+                                      struct GNUNET_TIME_Relative frequency,
+                                      GNUNET_SCHEDULER_Task cont,
+                                      void *cont_cls);
 
 
 /**
@@ -435,10 +431,10 @@ GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
  * @param cont continuation to call when done (transmitting request to service)
  * @param cont_cls closure for cont
  */
-void
-GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
-                                 struct GNUNET_TIME_Relative frequency,
-                                 GNUNET_SCHEDULER_Task cont, void *cont_cls);
+void GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
+                                      struct GNUNET_TIME_Relative frequency,
+                                      GNUNET_SCHEDULER_Task cont,
+                                      void *cont_cls);
 
 
 #endif

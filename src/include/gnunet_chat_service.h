@@ -213,12 +213,12 @@ struct GNUNET_CHAT_Room *GNUNET_CHAT_join_room (const struct
  * @param receiver use NULL to send to everyone in the room
  * @param sequence_number where to write the sequence id of the message
  */
-void
-GNUNET_CHAT_send_message (struct GNUNET_CHAT_Room *room,
-                          const char *message,
-                          enum GNUNET_CHAT_MsgOptions options,
-                          const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                          *receiver, uint32_t * sequence_number);
+void GNUNET_CHAT_send_message (struct GNUNET_CHAT_Room *room,
+                               const char *message,
+                               enum GNUNET_CHAT_MsgOptions options,
+                               const struct
+                               GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                               *receiver, uint32_t * sequence_number);
 
 
 /**
@@ -234,8 +234,8 @@ void GNUNET_CHAT_leave_room (struct GNUNET_CHAT_Room *chat_room);
  *
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
-typedef int (*GNUNET_CHAT_RoomIterator) (const char *room,
-                                         const char *topic, void *cls);
+typedef int (*GNUNET_CHAT_RoomIterator) (const char *room, const char *topic,
+                                         void *cls);
 
 /**
  * List all of the (publically visible) chat rooms.

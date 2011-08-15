@@ -69,8 +69,8 @@ char *GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
  * @param charset character set to convert from
  * @return the converted string (0-terminated)
  */
-char *GNUNET_STRINGS_to_utf8 (const char *input,
-                              size_t len, const char *charset);
+char *GNUNET_STRINGS_to_utf8 (const char *input, size_t len,
+                              const char *charset);
 
 
 /**
@@ -104,8 +104,8 @@ char *GNUNET_STRINGS_filename_expand (const char *fil);
  * @return number of bytes written to the buffer
  *         (or number of bytes that would have been written)
  */
-size_t GNUNET_STRINGS_buffer_fill (char *buffer,
-                                   size_t size, unsigned int count, ...);
+size_t GNUNET_STRINGS_buffer_fill (char *buffer, size_t size,
+                                   unsigned int count, ...);
 
 
 /**
@@ -122,8 +122,7 @@ size_t GNUNET_STRINGS_buffer_fill (char *buffer,
  * @return offset of the character after the last 0-termination
  *         in the buffer, or 0 on error.
  */
-unsigned int GNUNET_STRINGS_buffer_tokenize (const char *buffer,
-                                             size_t size,
+unsigned int GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
                                              unsigned int count, ...);
 
 

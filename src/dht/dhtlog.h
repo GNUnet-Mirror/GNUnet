@@ -166,8 +166,7 @@ struct GNUNET_DHTLOG_Handle
    */
   int (*insert_query) (unsigned long long *sqlqueryuid,
                        unsigned long long queryid, DHTLOG_MESSAGE_TYPES type,
-                       unsigned int hops,
-                       int succeeded,
+                       unsigned int hops, int succeeded,
                        const struct GNUNET_PeerIdentity * node,
                        const GNUNET_HashCode * key);
 
@@ -203,16 +202,19 @@ struct GNUNET_DHTLOG_Handle
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-  int (*insert_stat)
-      (const struct GNUNET_PeerIdentity * peer, unsigned int route_requests,
-       unsigned int route_forwards, unsigned int result_requests,
-       unsigned int client_requests, unsigned int result_forwards,
-       unsigned int gets, unsigned int puts,
-       unsigned int data_inserts, unsigned int find_peer_requests,
-       unsigned int find_peers_started, unsigned int gets_started,
-       unsigned int puts_started, unsigned int find_peer_responses_received,
-       unsigned int get_responses_received,
-       unsigned int find_peer_responses_sent, unsigned int get_responses_sent);
+  int (*insert_stat) (const struct GNUNET_PeerIdentity * peer,
+                      unsigned int route_requests, unsigned int route_forwards,
+                      unsigned int result_requests,
+                      unsigned int client_requests,
+                      unsigned int result_forwards, unsigned int gets,
+                      unsigned int puts, unsigned int data_inserts,
+                      unsigned int find_peer_requests,
+                      unsigned int find_peers_started,
+                      unsigned int gets_started, unsigned int puts_started,
+                      unsigned int find_peer_responses_received,
+                      unsigned int get_responses_received,
+                      unsigned int find_peer_responses_sent,
+                      unsigned int get_responses_sent);
 
   /*
    * Update dhttests.trials table with current server time as end time
@@ -264,8 +266,8 @@ struct GNUNET_DHTLOG_Handle
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
   int (*add_generic_stat) (const struct GNUNET_PeerIdentity * peer,
-                           const char *name,
-                           const char *section, uint64_t value);
+                           const char *name, const char *section,
+                           uint64_t value);
 
   /*
    * Inserts the specified round into the dhttests.rounds table
@@ -327,10 +329,8 @@ struct GNUNET_DHTLOG_Handle
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
    */
   int (*insert_route) (unsigned long long *sqlqueryuid,
-                       unsigned long long queryid,
-                       unsigned int type,
-                       unsigned int hops,
-                       int succeeded,
+                       unsigned long long queryid, unsigned int type,
+                       unsigned int hops, int succeeded,
                        const struct GNUNET_PeerIdentity * node,
                        const GNUNET_HashCode * key,
                        const struct GNUNET_PeerIdentity * from_node,

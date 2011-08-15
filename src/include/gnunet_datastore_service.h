@@ -313,8 +313,7 @@ struct GNUNET_DATASTORE_QueueEntry *GNUNET_DATASTORE_remove (struct
  */
 typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
                                                  const GNUNET_HashCode * key,
-                                                 size_t size,
-                                                 const void *data,
+                                                 size_t size, const void *data,
                                                  enum GNUNET_BLOCK_Type type,
                                                  uint32_t priority,
                                                  uint32_t anonymity,

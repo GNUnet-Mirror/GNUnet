@@ -49,11 +49,9 @@ extern "C"
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_PSEUDONYM_Iterator) (void *cls,
-                                          const GNUNET_HashCode *
-                                          pseudonym,
-                                          const struct
-                                          GNUNET_CONTAINER_MetaData * md,
-                                          int rating);
+                                          const GNUNET_HashCode * pseudonym,
+                                          const struct GNUNET_CONTAINER_MetaData
+                                          * md, int rating);
 
 /**
  * Change the ranking of a pseudonym.
@@ -105,9 +103,8 @@ int GNUNET_PSEUDONYM_discovery_callback_register (const struct
 /**
  * Unregister namespace discovery callback.
  */
-int
-GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
-                                                iterator, void *closure);
+int GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
+                                                    iterator, void *closure);
 
 /**
  * Return the unique, human readable name for the given pseudonym.

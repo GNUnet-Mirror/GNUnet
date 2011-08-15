@@ -104,11 +104,10 @@ void GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h);
  * @param cb callback to invoke when service is ready
  * @param cb_cls closure for callback
  */
-void
-GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
-                          const char *service_name,
-                          struct GNUNET_TIME_Relative timeout,
-                          GNUNET_ARM_Callback cb, void *cb_cls);
+void GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
+                               const char *service_name,
+                               struct GNUNET_TIME_Relative timeout,
+                               GNUNET_ARM_Callback cb, void *cb_cls);
 
 
 /**
@@ -122,11 +121,10 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
  * @param cb callback to invoke when service is ready
  * @param cb_cls closure for callback
  */
-void
-GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
-                         const char *service_name,
-                         struct GNUNET_TIME_Relative timeout,
-                         GNUNET_ARM_Callback cb, void *cb_cls);
+void GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
+                              const char *service_name,
+                              struct GNUNET_TIME_Relative timeout,
+                              GNUNET_ARM_Callback cb, void *cb_cls);
 
 
 

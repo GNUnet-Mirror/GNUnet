@@ -67,14 +67,16 @@ struct GNUNET_MESH_Tunnel;
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-typedef int
-    (*GNUNET_MESH_MessageCallback) (void *cls,
-                                    struct GNUNET_MESH_Tunnel * tunnel,
-                                    void **tunnel_ctx,
-                                    const struct GNUNET_PeerIdentity * sender,
-                                    const struct GNUNET_MessageHeader * message,
-                                    const struct
-                                    GNUNET_TRANSPORT_ATS_Information * atsi);
+typedef int (*GNUNET_MESH_MessageCallback) (void *cls,
+                                            struct GNUNET_MESH_Tunnel * tunnel,
+                                            void **tunnel_ctx,
+                                            const struct GNUNET_PeerIdentity *
+                                            sender,
+                                            const struct GNUNET_MessageHeader *
+                                            message,
+                                            const struct
+                                            GNUNET_TRANSPORT_ATS_Information *
+                                            atsi);
 
 
 /**
@@ -113,8 +115,8 @@ struct GNUNET_MESH_MessageHandler
  *                   with the tunnel is stored
  */
 typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
-                                             const struct GNUNET_MESH_Tunnel
-                                             * tunnel, void **tunnel_ctx);
+                                             const struct GNUNET_MESH_Tunnel *
+                                             tunnel, void **tunnel_ctx);
 
 
 /**
@@ -220,10 +222,10 @@ void GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tun);
  * @param timeout how long to try to establish a connection
  * @param peer peer to add
  */
-void
-GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
-                                      struct GNUNET_TIME_Relative timeout,
-                                      const struct GNUNET_PeerIdentity *peer);
+void GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
+                                           struct GNUNET_TIME_Relative timeout,
+                                           const struct GNUNET_PeerIdentity
+                                           *peer);
 
 
 /**
@@ -233,9 +235,9 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
  * @param tunnel handle to existing tunnel
  * @param peer peer to remove
  */
-void
-GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
-                                      const struct GNUNET_PeerIdentity *peer);
+void GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
+                                           const struct GNUNET_PeerIdentity
+                                           *peer);
 
 
 /**
@@ -247,10 +249,12 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
  * @param app_type application type that must be supported by the peer
  *                 (MESH should discover peer in proximity handling this type)
  */
-void
-GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
-                                          struct GNUNET_TIME_Relative timeout,
-                                          GNUNET_MESH_ApplicationType app_type);
+void GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel
+                                               *tunnel,
+                                               struct GNUNET_TIME_Relative
+                                               timeout,
+                                               GNUNET_MESH_ApplicationType
+                                               app_type);
 
 
 /**
@@ -305,9 +309,8 @@ struct GNUNET_MESH_TransmitHandle *GNUNET_MESH_notify_transmit_ready (struct
  *
  * @param th handle that was returned by "notify_transmit_ready".
  */
-void
-GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
-                                          *th);
+void GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
+                                               *th);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

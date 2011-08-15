@@ -292,9 +292,8 @@ int GNUNET_DISK_file_test (const char *fil);
  * @param whence specification to which position the offset parameter relates to
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
-off_t
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h,
-                       off_t offset, enum GNUNET_DISK_Seek whence);
+off_t GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h,
+                             off_t offset, enum GNUNET_DISK_Seek whence);
 
 
 /**
@@ -309,8 +308,8 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h,
  *        included?
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_DISK_file_size (const char *filename,
-                           uint64_t * size, int includeSymLinks);
+int GNUNET_DISK_file_size (const char *filename, uint64_t * size,
+                           int includeSymLinks);
 
 
 /**
@@ -328,8 +327,8 @@ int GNUNET_DISK_file_size (const char *filename,
  * @param ino set to the inode ID
  * @return GNUNET_OK on success
  */
-int GNUNET_DISK_file_get_identifiers (const char *filename,
-                                      uint64_t * dev, uint64_t * ino);
+int GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
+                                      uint64_t * ino);
 
 
 /**
@@ -372,8 +371,7 @@ struct GNUNET_DISK_FileHandle *GNUNET_DISK_file_open (const char *fn,
  * @param inherit_write 1 to make write handle inheritable, 0 otherwise (NT only)
  * @return handle to the new pipe, NULL on error
  */
-struct GNUNET_DISK_PipeHandle *GNUNET_DISK_pipe (int blocking,
-                                                 int inherit_read,
+struct GNUNET_DISK_PipeHandle *GNUNET_DISK_pipe (int blocking, int inherit_read,
                                                  int inherit_write);
 
 
@@ -391,9 +389,8 @@ int GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p);
  * @param end which end of the pipe to close
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int
-GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
-                            enum GNUNET_DISK_PipeEnd end);
+int GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
+                                enum GNUNET_DISK_PipeEnd end);
 
 /**
  * Close an open file.
@@ -462,9 +459,7 @@ ssize_t GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h,
  * @param mode file permissions 
  * @return number of bytes written on success, GNUNET_SYSERR on error
  */
-ssize_t GNUNET_DISK_fn_write (const char *fn,
-                              const void *buffer,
-                              size_t n,
+ssize_t GNUNET_DISK_fn_write (const char *fn, const void *buffer, size_t n,
                               enum GNUNET_DISK_AccessPermissions mode);
 
 
@@ -541,8 +536,8 @@ int GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator
  * @param callback the method to call for each file
  * @param callback_cls closure for callback
  */
-void GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority
-                                           prio, const char *dirName,
+void GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority prio,
+                                           const char *dirName,
                                            GNUNET_DISK_DirectoryIteratorCallback
                                            callback, void *callback_cls);
 
@@ -599,9 +594,8 @@ int GNUNET_DISK_directory_create (const char *dir);
  * @param excl GNUNET_YES for an exclusive lock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int
-GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
-                       off_t lockEnd, int excl);
+int GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
+                           off_t lockEnd, int excl);
 
 
 /**
@@ -611,9 +605,8 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
  * @param unlockEnd absolute position until where to unlock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int
-GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh,
-                         off_t unlockStart, off_t unlockEnd);
+int GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh,
+                             off_t unlockStart, off_t unlockEnd);
 
 
 /**

@@ -770,8 +770,7 @@ extern "C"
                     PLIBC_SEARCH__compar_fn_t __compar);
 
 /* Remove the element matching KEY from the tree pointed to by *ROOTP.  */
-  void *_win_tdelete (__const void *__restrict __key,
-                      void **__restrict __rootp,
+  void *_win_tdelete (__const void *__restrict __key, void **__restrict __rootp,
                       PLIBC_SEARCH__compar_fn_t __compar);
 
   typedef void (*PLIBC_SEARCH__action_fn_t) (__const void *__nodep,
@@ -792,15 +791,13 @@ extern "C"
 
 /* Perform linear search for KEY by comparing by COMPAR in an array
    [BASE,BASE+NMEMB*SIZE).  */
-  void *_win_lfind (__const void *__key, __const void *__base,
-                    size_t * __nmemb, size_t __size,
-                    PLIBC_SEARCH__compar_fn_t __compar);
+  void *_win_lfind (__const void *__key, __const void *__base, size_t * __nmemb,
+                    size_t __size, PLIBC_SEARCH__compar_fn_t __compar);
 
 /* Perform linear search for KEY by comparing by COMPAR function in
    array [BASE,BASE+NMEMB*SIZE) and insert entry if not found.  */
-  void *_win_lsearch (__const void *__key, void *__base,
-                      size_t * __nmemb, size_t __size,
-                      PLIBC_SEARCH__compar_fn_t __compar);
+  void *_win_lsearch (__const void *__key, void *__base, size_t * __nmemb,
+                      size_t __size, PLIBC_SEARCH__compar_fn_t __compar);
 
 
 #ifdef __cplusplus

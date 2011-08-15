@@ -85,12 +85,11 @@ struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value argument, NULL if none was given
  * @return GNUNET_OK to continue processing other options, GNUNET_SYSERR to abort
  */
-typedef
-    int (*GNUNET_GETOPT_CommandLineOptionProcessor) (struct
-                                                     GNUNET_GETOPT_CommandLineProcessorContext
-                                                     * ctx, void *scls,
-                                                     const char *option,
-                                                     const char *value);
+typedef int (*GNUNET_GETOPT_CommandLineOptionProcessor) (struct
+                                                         GNUNET_GETOPT_CommandLineProcessorContext
+                                                         * ctx, void *scls,
+                                                         const char *option,
+                                                         const char *value);
 
 /**
  * @brief Definition of a command line option.
@@ -209,8 +208,8 @@ struct GNUNET_GETOPT_CommandLineOption
  *   argument, or GNUNET_SYSERR on error
  */
 int GNUNET_GETOPT_run (const char *binaryOptions,
-                       const struct GNUNET_GETOPT_CommandLineOption
-                       *allOptions, unsigned int argc, char *const *argv);
+                       const struct GNUNET_GETOPT_CommandLineOption *allOptions,
+                       unsigned int argc, char *const *argv);
 
 
 /**
@@ -300,11 +299,10 @@ int GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value not used (NULL)
  * @return GNUNET_OK 
  */
-int
-GNUNET_GETOPT_increment_value (struct
-                               GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-                               void *scls, const char *option,
-                               const char *value);
+int GNUNET_GETOPT_increment_value (struct
+                                   GNUNET_GETOPT_CommandLineProcessorContext
+                                   *ctx, void *scls, const char *option,
+                                   const char *value);
 
 
 /* *************** internal prototypes - use macros above! ************* */
@@ -318,8 +316,7 @@ GNUNET_GETOPT_increment_value (struct
  * @param value not used (NULL)
  * @return GNUNET_SYSERR (do not continue)
  */
-int GNUNET_GETOPT_format_help_ (struct
-                                GNUNET_GETOPT_CommandLineProcessorContext
+int GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
                                 *ctx, void *scls, const char *option,
                                 const char *value);
 

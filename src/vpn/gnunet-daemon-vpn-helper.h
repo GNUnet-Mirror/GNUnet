@@ -62,8 +62,8 @@ void helper_write (void *cls,
 /**
  * Receive packets from the helper-process
  */
-void message_token (void *cls,
-                    void *client, const struct GNUNET_MessageHeader *message);
+void message_token (void *cls, void *client,
+                    const struct GNUNET_MessageHeader *message);
 
 void write_to_helper (void *buf, size_t len);
 

@@ -66,9 +66,8 @@ struct GSF_PendingRequest *GSF_local_client_start_search_handler_ (struct
  * @param lc recipient
  * @param msg message to transmit to client
  */
-void
-GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
-                            const struct GNUNET_MessageHeader *msg);
+void GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
+                                 const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -77,8 +76,8 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
  * @param cls unused
  * @param client handle of the client
  */
-void
-GSF_client_disconnect_handler_ (void *cls, struct GNUNET_SERVER_Client *client);
+void GSF_client_disconnect_handler_ (void *cls,
+                                     struct GNUNET_SERVER_Client *client);
 
 
 #endif

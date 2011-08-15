@@ -99,8 +99,7 @@ typedef int (*GNUNET_CONNECTION_AccessCheck) (void *cls,
  * @param addrlen size of addr
  * @param errCode value of errno (on errors receiving)
  */
-typedef void (*GNUNET_CONNECTION_Receiver) (void *cls,
-                                            const void *buf,
+typedef void (*GNUNET_CONNECTION_Receiver) (void *cls, const void *buf,
                                             size_t available,
                                             const struct sockaddr * addr,
                                             socklen_t addrlen, int errCode);
@@ -136,9 +135,9 @@ int GNUNET_CONNECTION_disable_corking (struct GNUNET_CONNECTION_Handle *sock);
  * @param osSocket existing socket to box
  * @return the boxed socket handle
  */
-struct GNUNET_CONNECTION_Handle
-    *GNUNET_CONNECTION_create_from_existing (struct
-                                             GNUNET_NETWORK_Handle *osSocket);
+struct GNUNET_CONNECTION_Handle *GNUNET_CONNECTION_create_from_existing (struct
+                                                                         GNUNET_NETWORK_Handle
+                                                                         *osSocket);
 
 
 /**
@@ -151,8 +150,8 @@ struct GNUNET_CONNECTION_Handle
  * @return the socket handle, NULL on error (for example, access refused)
  */
 struct GNUNET_CONNECTION_Handle
-    *GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck
-                                           access, void *access_cls,
+    *GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
+                                           void *access_cls,
                                            struct GNUNET_NETWORK_Handle *lsock);
 
 
@@ -166,11 +165,15 @@ struct GNUNET_CONNECTION_Handle
  * @param port port to connect to
  * @return the socket handle
  */
-struct GNUNET_CONNECTION_Handle
-    *GNUNET_CONNECTION_create_from_connect (const struct
-                                            GNUNET_CONFIGURATION_Handle *cfg,
-                                            const char *hostname,
-                                            uint16_t port);
+struct GNUNET_CONNECTION_Handle *GNUNET_CONNECTION_create_from_connect (const
+                                                                        struct
+                                                                        GNUNET_CONFIGURATION_Handle
+                                                                        *cfg,
+                                                                        const
+                                                                        char
+                                                                        *hostname,
+                                                                        uint16_t
+                                                                        port);
 
 
 /**
@@ -201,10 +204,14 @@ struct GNUNET_CONNECTION_Handle
  * @param addrlen length of server address
  * @return the socket handle
  */
-struct GNUNET_CONNECTION_Handle
-    *GNUNET_CONNECTION_create_from_sockaddr (int af_family,
-                                             const struct sockaddr
-                                             *serv_addr, socklen_t addrlen);
+struct GNUNET_CONNECTION_Handle *GNUNET_CONNECTION_create_from_sockaddr (int
+                                                                         af_family,
+                                                                         const
+                                                                         struct
+                                                                         sockaddr
+                                                                         *serv_addr,
+                                                                         socklen_t
+                                                                         addrlen);
 
 /**
  * Check if socket is valid (no fatal errors have happened so far).
@@ -225,9 +232,8 @@ int GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *sock);
  * @param addrlen where to store the length of the address
  * @return GNUNET_OK on success
  */
-int GNUNET_CONNECTION_get_address (struct
-                                   GNUNET_CONNECTION_Handle
-                                   *sock, void **addr, size_t * addrlen);
+int GNUNET_CONNECTION_get_address (struct GNUNET_CONNECTION_Handle *sock,
+                                   void **addr, size_t * addrlen);
 
 
 /**
@@ -243,9 +249,8 @@ int GNUNET_CONNECTION_get_address (struct
  *        read from the application; all other transmissions should be
  *        aborted using 'GNUNET_CONNECTION_notify_transmit_ready_cancel').
  */
-void
-GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
-                           int finish_pending_write);
+void GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
+                                int finish_pending_write);
 
 
 /**
@@ -261,12 +266,10 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
  * @param receiver function to call with received data
  * @param receiver_cls closure for receiver
  */
-void
-GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle
-                           *sock, size_t max,
-                           struct GNUNET_TIME_Relative timeout,
-                           GNUNET_CONNECTION_Receiver receiver,
-                           void *receiver_cls);
+void GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *sock,
+                                size_t max, struct GNUNET_TIME_Relative timeout,
+                                GNUNET_CONNECTION_Receiver receiver,
+                                void *receiver_cls);
 
 
 /**
@@ -291,8 +294,7 @@ void *GNUNET_CONNECTION_receive_cancel (struct GNUNET_CONNECTION_Handle *sock);
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-typedef size_t (*GNUNET_CONNECTION_TransmitReadyNotify) (void *cls,
-                                                         size_t size,
+typedef size_t (*GNUNET_CONNECTION_TransmitReadyNotify) (void *cls, size_t size,
                                                          void *buf);
 
 
@@ -332,11 +334,9 @@ struct GNUNET_CONNECTION_TransmitHandle;
  *         NULL if we are already going to notify someone else (busy)
  */
 struct GNUNET_CONNECTION_TransmitHandle
-    *GNUNET_CONNECTION_notify_transmit_ready (struct
-                                              GNUNET_CONNECTION_Handle
+    *GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
                                               *sock, size_t size,
-                                              struct
-                                              GNUNET_TIME_Relative
+                                              struct GNUNET_TIME_Relative
                                               timeout,
                                               GNUNET_CONNECTION_TransmitReadyNotify
                                               notify, void *notify_cls);
@@ -348,10 +348,9 @@ struct GNUNET_CONNECTION_TransmitHandle
  *
  * @param h handle for notification to cancel
  */
-void
-GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
-                                                GNUNET_CONNECTION_TransmitHandle
-                                                *h);
+void GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
+                                                     GNUNET_CONNECTION_TransmitHandle
+                                                     *h);
 
 
 /**
@@ -360,9 +359,8 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
  * @param sock socket handle
  * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
  */
-void
-GNUNET_CONNECTION_ignore_shutdown (struct GNUNET_CONNECTION_Handle *sock,
-                                   int do_ignore);
+void GNUNET_CONNECTION_ignore_shutdown (struct GNUNET_CONNECTION_Handle *sock,
+                                        int do_ignore);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

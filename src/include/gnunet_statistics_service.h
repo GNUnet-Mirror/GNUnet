@@ -61,10 +61,9 @@ struct GNUNET_STATISTICS_Handle;
  * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
-typedef int (*GNUNET_STATISTICS_Iterator) (void *cls,
-                                           const char *subsystem,
-                                           const char *name,
-                                           uint64_t value, int is_persistent);
+typedef int (*GNUNET_STATISTICS_Iterator) (void *cls, const char *subsystem,
+                                           const char *name, uint64_t value,
+                                           int is_persistent);
 
 /**
  * Get handle for the statistics service.
@@ -73,9 +72,11 @@ typedef int (*GNUNET_STATISTICS_Iterator) (void *cls,
  * @param cfg services configuration in use
  * @return handle to use
  */
-struct GNUNET_STATISTICS_Handle
-    *GNUNET_STATISTICS_create (const char *subsystem,
-                               const struct GNUNET_CONFIGURATION_Handle *cfg);
+struct GNUNET_STATISTICS_Handle *GNUNET_STATISTICS_create (const char
+                                                           *subsystem,
+                                                           const struct
+                                                           GNUNET_CONFIGURATION_Handle
+                                                           *cfg);
 
 
 /**
@@ -102,11 +103,9 @@ void GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
  * @param proc_cls closure for proc
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int
-GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
-                         const char *subsystem,
-                         const char *name,
-                         GNUNET_STATISTICS_Iterator proc, void *proc_cls);
+int GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
+                             const char *subsystem, const char *name,
+                             GNUNET_STATISTICS_Iterator proc, void *proc_cls);
 
 
 /**
@@ -169,9 +168,9 @@ void GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
  * @param value new value to set
  * @param make_persistent should the value be kept across restarts?
  */
-void
-GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
-                       const char *name, uint64_t value, int make_persistent);
+void GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
+                            const char *name, uint64_t value,
+                            int make_persistent);
 
 /**
  * Set statistic value for the peer.  Will always use our
@@ -182,9 +181,9 @@ GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
  * @param delta change in value (added to existing value)
  * @param make_persistent should the value be kept across restarts?
  */
-void
-GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
-                          const char *name, int64_t delta, int make_persistent);
+void GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
+                               const char *name, int64_t delta,
+                               int make_persistent);
 
 
 
