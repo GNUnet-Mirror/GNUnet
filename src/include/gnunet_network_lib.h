@@ -36,11 +36,11 @@ extern "C"
 #endif
 
 
-
 /**
  * @brief handle to a socket
  */
 struct GNUNET_NETWORK_Handle;
+
 
 /**
  * @brief collection of IO descriptors
@@ -122,6 +122,7 @@ int GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
  */
 int GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc);
 
+
 /**
  * Connect a socket
  *
@@ -160,6 +161,7 @@ int GNUNET_NETWORK_socket_getsockopt (const struct GNUNET_NETWORK_Handle
 int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
                                   int backlog);
 
+
 /**
  * How much data is available to be read on this descriptor?
  * @param desc socket
@@ -167,6 +169,7 @@ int GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
 ssize_t
 GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
                                        *desc);
+
 
 /**
  * Read data from a connected socket (always non-blocking).
@@ -183,6 +186,7 @@ GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle *desc,
                                 struct sockaddr *src_addr,
                                 socklen_t * addrlen);
 
+
 /**
  * Read data from a connected socket (always non-blocking).
  *
@@ -193,6 +197,7 @@ GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle *desc,
  */
 ssize_t GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle *desc,
                                     void *buffer, size_t length);
+
 
 /**
  * Check if sockets meet certain conditions
@@ -206,7 +211,6 @@ int GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                                   struct GNUNET_NETWORK_FDSet *wfds,
                                   struct GNUNET_NETWORK_FDSet *efds,
                                   struct GNUNET_TIME_Relative timeout);
-
 
 
 /**
@@ -238,8 +242,10 @@ ssize_t GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle
                                       const struct sockaddr *dest_addr,
                                       socklen_t dest_len);
 
+
 /**
  * Set socket option
+ *
  * @param fd socket
  * @param level protocol level of the option
  * @param option_name option identifier
@@ -252,14 +258,17 @@ int GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd,
                                       const void *option_value,
                                       socklen_t option_len);
 
+
 /**
  * Shut down socket operations
+ *
  * @param desc socket
  * @param how type of shutdown
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc,
                                     int how);
+
 
 /**
  * Disable the "CORK" feature for communication with the given socket,
@@ -287,12 +296,14 @@ struct GNUNET_NETWORK_Handle *GNUNET_NETWORK_socket_create (int domain,
                                                             int type,
                                                             int protocol);
 
+
 /**
  * Reset FD set (clears all file descriptors).
  *
  * @param fds fd set to clear
  */
 void GNUNET_NETWORK_fdset_zero (struct GNUNET_NETWORK_FDSet *fds);
+
 
 /**
  * Add a socket to the FD set
@@ -325,6 +336,7 @@ GNUNET_NETWORK_fdset_handle_set_native_w32_handle (struct GNUNET_NETWORK_FDSet *
 int GNUNET_NETWORK_fdset_isset (const struct GNUNET_NETWORK_FDSet *fds,
                                 const struct GNUNET_NETWORK_Handle *desc);
 
+
 /**
  * Add one fd set to another
  * @param dst the fd set to add to
@@ -332,6 +344,7 @@ int GNUNET_NETWORK_fdset_isset (const struct GNUNET_NETWORK_FDSet *fds,
  */
 void GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
                                const struct GNUNET_NETWORK_FDSet *src);
+
 
 /**
  * Copy one fd set to another
@@ -349,6 +362,7 @@ void GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
  * @return POSIX file descriptor
  */
 int GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc);
+
 
 /**
  * Copy a native fd set
@@ -390,6 +404,7 @@ GNUNET_NETWORK_fdset_test_native (const struct GNUNET_NETWORK_FDSet *to,
 void GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
                                       const struct GNUNET_DISK_FileHandle *h);
 
+
 /**
  * Check if a file handle is part of an fd set
  * @param fds fd set
@@ -400,6 +415,7 @@ int GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
                                        const struct GNUNET_DISK_FileHandle
                                        *h);
 
+
 /**
  * Checks if two fd sets overlap
  * @param fds1 first fd set
@@ -409,11 +425,13 @@ int GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
 int GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
                                   const struct GNUNET_NETWORK_FDSet *fds2);
 
+
 /**
  * Creates an fd set
  * @return a new fd set
  */
 struct GNUNET_NETWORK_FDSet *GNUNET_NETWORK_fdset_create (void);
+
 
 /**
  * Releases the associated memory of an fd set
