@@ -186,19 +186,44 @@ void
 GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
 
 
+/**
+ * Signature of a callback that is given an IP address.
+ *
+ * @param cls closure
+ * @param addr the address, NULL on errors
+ */
+typedef void (*GNUNET_NAT_IPCallback)(void *cls,
+				      const struct in_addr *addr);
+
+
+
+/**
+ * Opaque handle to cancel "GNUNET_NAT_mini_get_external_ipv4" operation.
+ */
+struct GNUNET_NAT_ExternalHandle;
+
 
 /**
  * Try to get the external IPv4 address of this peer.
- * Note: calling this function may block this process
- * for a few seconds (!).
  *
- * @param addr address to set
- * @return GNUNET_OK on success,
- *         GNUNET_NO if the result is questionable,
- *         GNUNET_SYSERR on error
+ * @param timeout when to fail
+ * @param cb function to call with result
+ * @param cb_cls closure for 'cb'
+ * @return handle for cancellation (can only be used until 'cb' is called), NULL on error
  */
-int
-GNUNET_NAT_mini_get_external_ipv4 (struct in_addr *addr);
+struct GNUNET_NAT_ExternalHandle *
+GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
+				   GNUNET_NAT_IPCallback cb,
+				   void *cb_cls);
+
+
+/**
+ * Cancel operation.
+ *
+ * @param eh operation to cancel
+ */
+void
+GNUNET_NAT_mini_get_external_ipv4_cancel (struct GNUNET_NAT_ExternalHandle *eh);
 
 
 /**

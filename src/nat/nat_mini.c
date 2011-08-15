@@ -46,63 +46,177 @@
 #define MAP_REFRESH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 
+
 /**
- * Try to get the external IPv4 address of this peer.
- * Note: calling this function may block this process
- * for a few seconds (!).
- *
- * @param addr address to set
- * @return GNUNET_OK on success,
- *         GNUNET_NO if the result is questionable,
- *         GNUNET_SYSERR on error
+ * Opaque handle to cancel "GNUNET_NAT_mini_get_external_ipv4" operation.
  */
-int
-GNUNET_NAT_mini_get_external_ipv4 (struct in_addr *addr)
+struct GNUNET_NAT_ExternalHandle
 {
+
+  /**
+   * Function to call with the result.
+   */
+  GNUNET_NAT_IPCallback cb;
+
+  /**
+   * Closure for 'cb'.
+   */
+  void *cb_cls;
+
+  /**
+   * Read task.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Handle to 'external-ip' process.
+   */
   struct GNUNET_OS_Process *eip;
+
+  /**
+   * Handle to stdout pipe of 'external-ip'.
+   */
   struct GNUNET_DISK_PipeHandle *opipe;
+
+  /**
+   * Read handle of 'opipe'.
+   */
   const struct GNUNET_DISK_FileHandle *r;
+
+  /**
+   * When should this operation time out?
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Number of bytes in 'buf' that are valid.
+   */
   size_t off;
+
+  /**
+   * Destination of our read operation (output of 'external-ip').
+   */
   char buf[17];
+
+};
+
+
+/**
+ * Read the output of 'external-ip' into buf.  When complete, parse the
+ * address and call our callback.
+ *
+ * @param cls the 'struct GNUNET_NAT_ExternalHandle'
+ * @param tc scheduler context
+ */
+static void
+read_external_ipv4 (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_NAT_ExternalHandle *eh = cls;
   ssize_t ret;
+  struct in_addr addr;
   int iret;
 
-  opipe = GNUNET_DISK_pipe (GNUNET_YES,
-			    GNUNET_NO,
-			    GNUNET_YES);
-  if (NULL == opipe)
-    return GNUNET_SYSERR;
-  eip = GNUNET_OS_start_process (NULL,
-				 opipe,
-				 "external-ip",
-				 "external-ip", NULL);
-  if (NULL == eip)
+  eh->task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_YES ==
+      GNUNET_NETWORK_fdset_handle_isset (tc->read_ready,
+					 eh->r))
+    ret = GNUNET_DISK_file_read (eh->r,
+				 &eh->buf[eh->off], 
+				 sizeof (eh->buf)-eh->off);
+  else
+    ret = -1; /* error reading, timeout, etc. */
+  if (ret > 0)
     {
-      GNUNET_DISK_pipe_close (opipe);
-      return GNUNET_SYSERR;
+      /* try to read more */
+      eh->off += ret;
+      eh->task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining (eh->timeout),
+						 eh->r,
+						 &read_external_ipv4,
+						 eh);
+      return;
     }
-  GNUNET_DISK_pipe_close_end (opipe, GNUNET_DISK_PIPE_END_WRITE);
-  iret = GNUNET_SYSERR;
-  r = GNUNET_DISK_pipe_handle (opipe,
-			       GNUNET_DISK_PIPE_END_READ);
-  off = 0;
-  while (0 < (ret = GNUNET_DISK_file_read (r, &buf[off], sizeof (buf)-off)))
-    off += ret;
-  if ( (off > 7) &&    
-       (buf[off-1] == '\n') )    
+  iret = GNUNET_NO;
+  if ( (eh->off > 7) &&    
+       (eh->buf[eh->off-1] == '\n') )    
     {
-      buf[off-1] = '\0';
-      if (1 == inet_pton (AF_INET, buf, addr))
+      eh->buf[eh->off-1] = '\0';
+      if (1 == inet_pton (AF_INET, eh->buf, &addr))
 	{
-	  if (addr->s_addr == 0)
+	  if (addr.s_addr == 0)
 	    iret = GNUNET_NO; /* got 0.0.0.0 */
-	  iret = GNUNET_OK;
+	  else
+	    iret = GNUNET_OK;
 	}
     }
-  (void) GNUNET_OS_process_kill (eip, SIGKILL);
-  GNUNET_OS_process_close (eip);
-  GNUNET_DISK_pipe_close (opipe);
-  return iret; 
+  eh->cb (eh->cb_cls,
+	  (iret == GNUNET_OK) ? &addr : NULL);
+  GNUNET_NAT_mini_get_external_ipv4_cancel (eh);
+}
+
+
+/**
+ * Try to get the external IPv4 address of this peer.
+ *
+ * @param timeout when to fail
+ * @param cb function to call with result
+ * @param cb_cls closure for 'cb'
+ * @return handle for cancellation (can only be used until 'cb' is called), NULL on error
+ */
+struct GNUNET_NAT_ExternalHandle *
+GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
+				   GNUNET_NAT_IPCallback cb,
+				   void *cb_cls)
+{
+  struct GNUNET_NAT_ExternalHandle *eh;
+
+  eh = GNUNET_malloc (sizeof (struct GNUNET_NAT_ExternalHandle));
+  eh->cb = cb;
+  eh->cb_cls = cb_cls;
+  eh->opipe = GNUNET_DISK_pipe (GNUNET_YES,
+				GNUNET_NO,
+				GNUNET_YES);
+  if (NULL == eh->opipe)
+    {
+      GNUNET_free (eh);
+      return NULL;
+    }
+  eh->eip = GNUNET_OS_start_process (NULL,
+				     eh->opipe,
+				     "external-ip",
+				     "external-ip", NULL);
+  if (NULL == eh->eip)
+    {
+      GNUNET_DISK_pipe_close (eh->opipe);
+      GNUNET_free (eh);
+      return NULL;
+    }
+  GNUNET_DISK_pipe_close_end (eh->opipe, GNUNET_DISK_PIPE_END_WRITE);
+  eh->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  eh->r = GNUNET_DISK_pipe_handle (eh->opipe,
+				   GNUNET_DISK_PIPE_END_READ);
+  eh->task = GNUNET_SCHEDULER_add_read_file (timeout,
+					     eh->r,
+					     &read_external_ipv4,
+					     eh);
+  return eh;
+}
+
+
+/**
+ * Cancel operation.
+ *
+ * @param eh operation to cancel
+ */
+void
+GNUNET_NAT_mini_get_external_ipv4_cancel (struct GNUNET_NAT_ExternalHandle *eh)
+{
+  (void) GNUNET_OS_process_kill (eh->eip, SIGKILL);
+  GNUNET_OS_process_close (eh->eip);
+  GNUNET_DISK_pipe_close (eh->opipe);
+  if (GNUNET_SCHEDULER_NO_TASK != eh->task)
+    GNUNET_SCHEDULER_cancel (eh->task);
+  GNUNET_free (eh);
 }
 
 
