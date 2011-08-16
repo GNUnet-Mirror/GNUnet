@@ -188,7 +188,8 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h)
  *
  * @param h handle to the service
  */
-static void trigger_transmit (struct GNUNET_PEERINFO_Handle *h);
+static void
+trigger_transmit (struct GNUNET_PEERINFO_Handle *h);
 
 
 /**
@@ -196,7 +197,8 @@ static void trigger_transmit (struct GNUNET_PEERINFO_Handle *h);
  *
  * @param h handle to the service
  */
-static void reconnect (struct GNUNET_PEERINFO_Handle *h);
+static void
+reconnect (struct GNUNET_PEERINFO_Handle *h);
 
 /**
  * Task scheduled to re-try connecting to the peerinfo service.

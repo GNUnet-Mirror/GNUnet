@@ -440,15 +440,10 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
  * @param psearch parent search result (for namespace update searches)
  * @return context that can be used to control the search
  */
-static struct GNUNET_FS_SearchContext *search_start (struct GNUNET_FS_Handle *h,
-                                                     const struct GNUNET_FS_Uri
-                                                     *uri, uint32_t anonymity,
-                                                     enum
-                                                     GNUNET_FS_SearchOptions
-                                                     options, void *cctx,
-                                                     struct
-                                                     GNUNET_FS_SearchResult
-                                                     *psearch);
+static struct GNUNET_FS_SearchContext *
+search_start (struct GNUNET_FS_Handle *h, const struct GNUNET_FS_Uri *uri,
+              uint32_t anonymity, enum GNUNET_FS_SearchOptions options,
+              void *cctx, struct GNUNET_FS_SearchResult *psearch);
 
 
 /**
@@ -813,7 +808,8 @@ process_result (struct GNUNET_FS_SearchContext *sc, enum GNUNET_BLOCK_Type type,
  *
  * @param sc the search to reconnec
  */
-static void try_reconnect (struct GNUNET_FS_SearchContext *sc);
+static void
+try_reconnect (struct GNUNET_FS_SearchContext *sc);
 
 
 /**
@@ -855,8 +851,8 @@ receive_results (void *cls, const struct GNUNET_MessageHeader *msg)
  *
  * @param sc context for the search
  */
-static void schedule_transmit_search_request (struct GNUNET_FS_SearchContext
-                                              *sc);
+static void
+schedule_transmit_search_request (struct GNUNET_FS_SearchContext *sc);
 
 
 /**

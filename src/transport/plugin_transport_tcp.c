@@ -605,7 +605,8 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
  *
  * @param session for which session should we do this
  */
-static void process_pending_messages (struct Session *session);
+static void
+process_pending_messages (struct Session *session);
 
 
 /**
@@ -779,8 +780,8 @@ disconnect_session (struct Session *session)
                    (session->connect_addr !=
                     NULL) ? tcp_address_to_string (session->plugin,
                                                    session->connect_addr,
-                                                   session->
-                                                   connect_alen) : "*");
+                                                   session->connect_alen) :
+                   "*");
 #endif
   /* remove from session list */
   prev = NULL;
@@ -1455,8 +1456,8 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
 
   session =
       GNUNET_CONTAINER_multihashmap_get (plugin->nat_wait_conns,
-                                         &tcp_nat_probe->clientIdentity.
-                                         hashPubKey);
+                                         &tcp_nat_probe->
+                                         clientIdentity.hashPubKey);
   if (session == NULL)
   {
 #if DEBUG_TCP_NAT
@@ -1775,8 +1776,8 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
                    (session->connect_addr !=
                     NULL) ? tcp_address_to_string (session->plugin,
                                                    session->connect_addr,
-                                                   session->
-                                                   connect_alen) : "*");
+                                                   session->connect_alen) :
+                   "*");
 #endif
   GNUNET_STATISTICS_update (session->plugin->env->stats,
                             gettext_noop
@@ -1863,8 +1864,8 @@ try_connection_reversal (void *cls, const struct sockaddr *addr,
                                tcp_probe_ctx);
   tcp_probe_ctx->transmit_handle =
       GNUNET_CONNECTION_notify_transmit_ready (sock,
-                                               ntohs (tcp_probe_ctx->message.
-                                                      header.size),
+                                               ntohs (tcp_probe_ctx->
+                                                      message.header.size),
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                &notify_send_probe,
                                                tcp_probe_ctx);

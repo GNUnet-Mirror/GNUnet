@@ -1244,12 +1244,14 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Forward declaration.
  */
-static void do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Forward declaration.
  */
-static void do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Iterator over hash map entries.
@@ -1465,8 +1467,8 @@ iterate_min_heap_peers (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
     GNUNET_TESTING_daemons_connect (d1, d2, timeout, DEFAULT_RECONNECT_ATTEMPTS,
                                     GNUNET_YES, NULL, NULL);
   }
-  if (GNUNET_TIME_absolute_get_remaining (find_peer_context->endtime).
-      rel_value > 0)
+  if (GNUNET_TIME_absolute_get_remaining (find_peer_context->endtime).rel_value
+      > 0)
     return GNUNET_YES;
   else
     return GNUNET_NO;
@@ -1475,10 +1477,10 @@ iterate_min_heap_peers (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
 /**
  * Forward declaration.
  */
-static void schedule_churn_find_peer_requests (void *cls,
-                                               const struct
-                                               GNUNET_SCHEDULER_TaskContext
-                                               *tc);
+static void
+schedule_churn_find_peer_requests (void *cls,
+                                   const struct GNUNET_SCHEDULER_TaskContext
+                                   *tc);
 
 /**
  * Callback for iterating over all the peer connections of a peer group.
@@ -1555,12 +1557,11 @@ count_peers_churn_cb (void *cls, const struct GNUNET_PeerIdentity *first,
        */
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Out of %u peers, fewest connections is %d\n",
-                GNUNET_CONTAINER_heap_get_size (find_peer_context->
-                                                peer_min_heap),
-                peer_count->count);
+                GNUNET_CONTAINER_heap_get_size
+                (find_peer_context->peer_min_heap), peer_count->count);
     if ((peer_count->count == 0) &&
-        (GNUNET_TIME_absolute_get_remaining (find_peer_context->endtime).
-         rel_value > 0))
+        (GNUNET_TIME_absolute_get_remaining
+         (find_peer_context->endtime).rel_value > 0))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Found peer with no connections, will choose some peer(s) at random to connect to!\n");
@@ -1570,8 +1571,9 @@ count_peers_churn_cb (void *cls, const struct GNUNET_PeerIdentity *first,
       GNUNET_SCHEDULER_add_now (&schedule_churn_find_peer_requests,
                                 find_peer_context);
     }
-    else if ((GNUNET_TIME_absolute_get_remaining (find_peer_context->endtime).
-              rel_value > 0) && (find_peer_context->last_sent != 0))
+    else if ((GNUNET_TIME_absolute_get_remaining
+              (find_peer_context->endtime).rel_value > 0) &&
+             (find_peer_context->last_sent != 0))
     {
       GNUNET_SCHEDULER_add_now (&schedule_churn_find_peer_requests,
                                 find_peer_context);
@@ -1772,8 +1774,8 @@ churn_complete (void *cls, const char *emsg)
     }
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Added %d peers to heap, total size %d\n", count_added,
-                GNUNET_CONTAINER_heap_get_size (find_peer_context->
-                                                peer_min_heap));
+                GNUNET_CONTAINER_heap_get_size
+                (find_peer_context->peer_min_heap));
     GNUNET_SCHEDULER_add_delayed (DEFAULT_PEER_DISCONNECT_TIMEOUT,
                                   &schedule_churn_get_topology,
                                   find_peer_context);
@@ -2262,14 +2264,14 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                 test_put->next);
 }
 
-static void schedule_find_peer_requests (void *cls,
-                                         const struct
-                                         GNUNET_SCHEDULER_TaskContext *tc);
+static void
+schedule_find_peer_requests (void *cls,
+                             const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 #if HAVE_MALICIOUS
-static void setup_malicious_peers (void *cls,
-                                   const struct GNUNET_SCHEDULER_TaskContext
-                                   *tc);
+static void
+setup_malicious_peers (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc);
 #endif
 
 /**
@@ -2322,8 +2324,8 @@ count_peers_cb (void *cls, const struct GNUNET_PeerIdentity *first,
     if ((find_peer_context->last_sent < 8) ||
         ((find_peer_context->current_peers <
           2 * connection_estimate (num_peers, DEFAULT_BUCKET_SIZE)) &&
-         (GNUNET_TIME_absolute_get_remaining (find_peer_context->endtime).
-          rel_value > 0) &&
+         (GNUNET_TIME_absolute_get_remaining
+          (find_peer_context->endtime).rel_value > 0) &&
          (find_peer_context->current_peers < target_total_connections)))
     {
       GNUNET_SCHEDULER_add_now (&schedule_find_peer_requests,
@@ -2424,11 +2426,9 @@ schedule_find_peer_requests (void *cls,
       peer_count =
           GNUNET_CONTAINER_heap_remove_root (find_peer_ctx->peer_min_heap);
       GNUNET_assert (GNUNET_YES ==
-                     GNUNET_CONTAINER_multihashmap_remove (find_peer_ctx->
-                                                           peer_hash,
-                                                           &peer_count->peer_id.
-                                                           hashPubKey,
-                                                           peer_count));
+                     GNUNET_CONTAINER_multihashmap_remove
+                     (find_peer_ctx->peer_hash, &peer_count->peer_id.hashPubKey,
+                      peer_count));
       test_find_peer->daemon =
           GNUNET_TESTING_daemon_get_by_id (pg, &peer_count->peer_id);
       GNUNET_assert (test_find_peer->daemon != NULL);
@@ -2879,17 +2879,14 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 #if ONLY_TESTING
 /* Forward declaration */
-static void topology_callback (void *cls,
-                               const struct GNUNET_PeerIdentity *first,
-                               const struct GNUNET_PeerIdentity *second,
-                               uint32_t distance,
-                               const struct GNUNET_CONFIGURATION_Handle
-                               *first_cfg,
-                               const struct GNUNET_CONFIGURATION_Handle
-                               *second_cfg,
-                               struct GNUNET_TESTING_Daemon *first_daemon,
-                               struct GNUNET_TESTING_Daemon *second_daemon,
-                               const char *emsg);
+static void
+topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
+                   const struct GNUNET_PeerIdentity *second, uint32_t distance,
+                   const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                   const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                   struct GNUNET_TESTING_Daemon *first_daemon,
+                   struct GNUNET_TESTING_Daemon *second_daemon,
+                   const char *emsg);
 
 /**
  * Retry connecting two specific peers until they connect,
@@ -2993,12 +2990,12 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     /* Get duration in seconds */
     duration =
         GNUNET_TIME_absolute_get_difference (connect_last_time,
-                                             GNUNET_TIME_absolute_get ()).
-        rel_value / 1000;
+                                             GNUNET_TIME_absolute_get
+                                             ()).rel_value / 1000;
     total_duration =
         GNUNET_TIME_absolute_get_difference (connect_start_time,
-                                             GNUNET_TIME_absolute_get ()).
-        rel_value / 1000;
+                                             GNUNET_TIME_absolute_get
+                                             ()).rel_value / 1000;
 
     failed_conns_per_sec_recent =
         (double) new_failed_connections / (double) duration;
@@ -3086,8 +3083,8 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
 
     total_duration =
         GNUNET_TIME_absolute_get_difference (connect_start_time,
-                                             GNUNET_TIME_absolute_get ()).
-        rel_value / 1000;
+                                             GNUNET_TIME_absolute_get
+                                             ()).rel_value / 1000;
     failed_conns_per_sec_total =
         (long double) failed_connections / total_duration;
     conns_per_sec_total = (long double) total_connections / total_duration;
@@ -3299,14 +3296,16 @@ hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
           GNUNET_CONFIGURATION_have_value (config, "TESTING", "HOSTKEYSFILE"))
       {
         GAUGER_ID ("DHT_TESTING", "HOSTKEY_GENERATION",
-                   GNUNET_TIME_absolute_get_duration (hostkey_start_time).
-                   rel_value / (double) num_peers, "ms/hostkey", revision_str);
+                   GNUNET_TIME_absolute_get_duration
+                   (hostkey_start_time).rel_value / (double) num_peers,
+                   "ms/hostkey", revision_str);
       }
       else
       {
         GAUGER_ID ("DHT_TESTING", "HOSTKEY_GENERATION_REAL",
-                   GNUNET_TIME_absolute_get_duration (hostkey_start_time).
-                   rel_value / (double) num_peers, "ms/hostkey", revision_str);
+                   GNUNET_TIME_absolute_get_duration
+                   (hostkey_start_time).rel_value / (double) num_peers,
+                   "ms/hostkey", revision_str);
       }
     }
 

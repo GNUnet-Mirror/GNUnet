@@ -34,13 +34,15 @@
  *
  * @param server server used to accept clients from
  */
-void GST_blacklist_start (struct GNUNET_SERVER_Handle *server);
+void
+GST_blacklist_start (struct GNUNET_SERVER_Handle *server);
 
 
 /**
  * Stop blacklist subsystem.
  */
-void GST_blacklist_stop (void);
+void
+GST_blacklist_stop (void);
 
 
 /**
@@ -52,8 +54,9 @@ void GST_blacklist_stop (void);
  * @param client the client
  * @param message the blacklist-init message that was sent
  */
-void GST_blacklist_handle_init (void *cls, struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message);
+void
+GST_blacklist_handle_init (void *cls, struct GNUNET_SERVER_Client *client,
+                           const struct GNUNET_MessageHeader *message);
 
 /**
  * A blacklisting client has sent us reply. Process it.
@@ -62,8 +65,9 @@ void GST_blacklist_handle_init (void *cls, struct GNUNET_SERVER_Client *client,
  * @param client the client
  * @param message the blacklist-init message that was sent
  */
-void GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
-                                 const struct GNUNET_MessageHeader *message);
+void
+GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *message);
 
 /**
  * Add the given peer to the blacklist (for the given transport).
@@ -71,8 +75,9 @@ void GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
  * @param peer peer to blacklist
  * @param transport_name transport to blacklist for this peer, NULL for all
  */
-void GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
-                             const char *transport_name);
+void
+GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
+                        const char *transport_name);
 
 
 /**
@@ -104,13 +109,10 @@ typedef void (*GST_BlacklistTestContinuation) (void *cls,
  * @return handle to the blacklist check, NULL if the decision
  *        was made instantly and 'cont' was already called
  */
-struct GST_BlacklistCheck *GST_blacklist_test_allowed (const struct
-                                                       GNUNET_PeerIdentity
-                                                       *peer,
-                                                       const char
-                                                       *transport_name,
-                                                       GST_BlacklistTestContinuation
-                                                       cont, void *cont_cls);
+struct GST_BlacklistCheck *
+GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
+                            const char *transport_name,
+                            GST_BlacklistTestContinuation cont, void *cont_cls);
 
 
 /**
@@ -118,7 +120,8 @@ struct GST_BlacklistCheck *GST_blacklist_test_allowed (const struct
  * 
  * @param bc check to cancel
  */
-void GST_blacklist_test_cancel (struct GST_BlacklistCheck *bc);
+void
+GST_blacklist_test_cancel (struct GST_BlacklistCheck *bc);
 
 #endif
 /* end of file gnunet-service-transport_blacklist.h */

@@ -162,7 +162,8 @@ print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
 /**
  * Function that gathers stats from all daemons.
  */
-static void stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -244,8 +245,7 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     sm->stat =
         GNUNET_STATISTICS_create ("<driver>",
                                   GNUNET_FS_TEST_get_configuration (daemons,
-                                                                    sm->
-                                                                    daemon));
+                                                                    sm->daemon));
     GNUNET_SCHEDULER_add_now (&stat_run, sm);
   }
   else

@@ -452,8 +452,8 @@ check_complete (struct GNUNET_CLIENT_Connection *conn)
 {
   if ((conn->received_pos >= sizeof (struct GNUNET_MessageHeader)) &&
       (conn->received_pos >=
-       ntohs (((const struct GNUNET_MessageHeader *) conn->
-               received_buf)->size)))
+       ntohs (((const struct GNUNET_MessageHeader *) conn->received_buf)->
+              size)))
     conn->msg_complete = GNUNET_YES;
 }
 
@@ -679,8 +679,8 @@ write_test (void *cls, size_t size, void *buf)
   msg->type = htons (GNUNET_MESSAGE_TYPE_TEST);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   GNUNET_CLIENT_receive (conn, &confirm_handler, conn,
-                         GNUNET_TIME_absolute_get_remaining (conn->
-                                                             test_deadline));
+                         GNUNET_TIME_absolute_get_remaining
+                         (conn->test_deadline));
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -902,7 +902,8 @@ GNUNET_CLIENT_service_test (const char *service,
  * @param buf where to write them
  * @return number of bytes written to buf
  */
-static size_t client_notify (void *cls, size_t size, void *buf);
+static size_t
+client_notify (void *cls, size_t size, void *buf);
 
 
 /**

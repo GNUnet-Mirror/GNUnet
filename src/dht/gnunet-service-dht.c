@@ -934,11 +934,13 @@ static struct GNUNET_BLOCK_Context *block_context;
 /**
  * Forward declaration.
  */
-static size_t send_generic_reply (void *cls, size_t size, void *buf);
+static size_t
+send_generic_reply (void *cls, size_t size, void *buf);
 
 
 /** Declare here so retry_core_send is aware of it */
-static size_t core_transmit_notify (void *cls, size_t size, void *buf);
+static size_t
+core_transmit_notify (void *cls, size_t size, void *buf);
 
 /**
  * Convert unique ID to hash code.
@@ -1160,7 +1162,8 @@ forward_result_message (const struct GNUNET_MessageHeader *msg,
   result_message->hop_count = htonl (msg_ctx->hop_count + 1);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_bloomfilter_get_raw_data (msg_ctx->bloom,
-                                                            result_message->bloomfilter,
+                                                            result_message->
+                                                            bloomfilter,
                                                             DHT_BLOOM_SIZE));
   result_message->unique_id = GNUNET_htonll (msg_ctx->unique_id);
   memcpy (&result_message->key, &msg_ctx->key, sizeof (GNUNET_HashCode));
@@ -1474,9 +1477,9 @@ find_peer_by_id (const struct GNUNET_PeerIdentity *peer)
 }
 
 /* Forward declaration */
-static void update_core_preference (void *cls,
-                                    const struct GNUNET_SCHEDULER_TaskContext
-                                    *tc);
+static void
+update_core_preference (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc);
 /**
  * Function called with statistics about the given peer.
  *
@@ -1776,7 +1779,8 @@ forward_message (const struct GNUNET_MessageHeader *msg, struct PeerInfo *peer,
   if (msg_ctx->bloom != NULL)
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_bloomfilter_get_raw_data (msg_ctx->bloom,
-                                                              route_message->bloomfilter,
+                                                              route_message->
+                                                              bloomfilter,
                                                               DHT_BLOOM_SIZE));
   memcpy (&route_message->key, &msg_ctx->key, sizeof (GNUNET_HashCode));
   memcpy (&route_message[1], msg, ntohs (msg->size));
@@ -1885,8 +1889,8 @@ process_pending_messages (struct ClientList *client)
 
   client->transmit_handle =
       GNUNET_SERVER_notify_transmit_ready (client->client_handle,
-                                           ntohs (client->pending_head->msg->
-                                                  size),
+                                           ntohs (client->pending_head->
+                                                  msg->size),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            &send_generic_reply, client);
 }
@@ -2457,8 +2461,9 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
  * @param msg the message to be routed
  * @param msg_ctx the context containing all pertinent information about the message
  */
-static void route_message (const struct GNUNET_MessageHeader *msg,
-                           struct DHT_MessageContext *msg_ctx);
+static void
+route_message (const struct GNUNET_MessageHeader *msg,
+               struct DHT_MessageContext *msg_ctx);
 
 
 /**
@@ -2815,8 +2820,8 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
  * @param cls closure (a struct RepublishContext)
  * @param tc runtime context for this task
  */
-static void republish_content (void *cls,
-                               const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+republish_content (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Server handler for initiating local dht put requests
@@ -3509,10 +3514,10 @@ select_peer (const GNUNET_HashCode * target,
       break;                    /* overflow case */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Choose %d matching bits (%d bits match me) (%.2f percent) converge ret %llu\n",
-                GNUNET_CRYPTO_hash_matching_bits (&sorted_closest[i]->
-                                                  id.hashPubKey, target),
-                GNUNET_CRYPTO_hash_matching_bits (&sorted_closest[i]->
-                                                  id.hashPubKey,
+                GNUNET_CRYPTO_hash_matching_bits (&sorted_closest[i]->id.
+                                                  hashPubKey, target),
+                GNUNET_CRYPTO_hash_matching_bits (&sorted_closest[i]->id.
+                                                  hashPubKey,
                                                   &my_identity.hashPubKey),
                 (temp_converge_distance / (double) total_distance) * 100,
                 temp_converge_distance);
@@ -4473,7 +4478,8 @@ send_find_peer_message (void *cls,
                                          temp_bloom);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_bloomfilter_get_raw_data (temp_bloom,
-                                                            find_peer_msg->bloomfilter,
+                                                            find_peer_msg->
+                                                            bloomfilter,
                                                             DHT_BLOOM_SIZE));
   GNUNET_CONTAINER_bloomfilter_free (temp_bloom);
   memset (&msg_ctx, 0, sizeof (struct DHT_MessageContext));

@@ -497,9 +497,9 @@ message_token (void *cls __attribute__ ((unused)), void *client
 
             }
             else if (0x06 == pkt->ip_hdr.proto &&
-                     (me->desc.
-                      service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP)) &&
-                     (port_in_ports (me->desc.ports, pkt_tcp->tcp_hdr.dpt)))
+                     (me->
+                      desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP))
+                     && (port_in_ports (me->desc.ports, pkt_tcp->tcp_hdr.dpt)))
             {
               hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP);
 

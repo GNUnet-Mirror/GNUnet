@@ -506,8 +506,8 @@ GNUNET_CONNECTION_get_address (struct GNUNET_CONNECTION_Handle *sock,
  * @param cls our connection handle
  * @param tc task context describing why we are here
  */
-static void receive_again (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -619,8 +619,8 @@ destroy_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls our connection handle
  * @param tc task context describing why we are here
  */
-static void transmit_ready (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -867,13 +867,13 @@ try_connect_using_address (void *cls, const struct sockaddr *addr,
   if (h->nth.notify_ready != NULL)
     delay =
         GNUNET_TIME_relative_min (delay,
-                                  GNUNET_TIME_absolute_get_remaining (h->nth.
-                                                                      transmit_timeout));
+                                  GNUNET_TIME_absolute_get_remaining (h->
+                                                                      nth.transmit_timeout));
   if (h->receiver != NULL)
     delay =
         GNUNET_TIME_relative_min (delay,
-                                  GNUNET_TIME_absolute_get_remaining (h->
-                                                                      receive_timeout));
+                                  GNUNET_TIME_absolute_get_remaining
+                                  (h->receive_timeout));
   ap->task =
       GNUNET_SCHEDULER_add_write_net (delay, ap->sock,
                                       &connect_probe_continuation, ap);
@@ -1152,9 +1152,8 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Receive from `%s' encounters error: time out by %llums... (%p)\n",
                   GNUNET_a2s (sh->addr, sh->addrlen),
-                  GNUNET_TIME_absolute_get_duration (sh->
-                                                     receive_timeout).rel_value,
-                  sh);
+                  GNUNET_TIME_absolute_get_duration (sh->receive_timeout).
+                  rel_value, sh);
 #endif
     signal_timeout (sh);
     return;

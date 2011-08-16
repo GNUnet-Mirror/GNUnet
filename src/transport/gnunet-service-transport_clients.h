@@ -35,13 +35,15 @@
  *
  * @param server server used to accept clients from.
  */
-void GST_clients_start (struct GNUNET_SERVER_Handle *server);
+void
+GST_clients_start (struct GNUNET_SERVER_Handle *server);
 
 
 /**
  * Stop processing clients.
  */
-void GST_clients_stop (void);
+void
+GST_clients_stop (void);
 
 
 /**
@@ -50,8 +52,8 @@ void GST_clients_stop (void);
  * @param msg message to broadcast
  * @param may_drop GNUNET_YES if the message can be dropped
  */
-void GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
-                            int may_drop);
+void
+GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop);
 
 
 /**
@@ -61,8 +63,9 @@ void GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
  * @param msg message to transmit
  * @param may_drop GNUNET_YES if the message can be dropped
  */
-void GST_clients_unicast (struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *msg, int may_drop);
+void
+GST_clients_unicast (struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *msg, int may_drop);
 
 
 

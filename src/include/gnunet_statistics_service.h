@@ -72,11 +72,9 @@ typedef int (*GNUNET_STATISTICS_Iterator) (void *cls, const char *subsystem,
  * @param cfg services configuration in use
  * @return handle to use
  */
-struct GNUNET_STATISTICS_Handle *GNUNET_STATISTICS_create (const char
-                                                           *subsystem,
-                                                           const struct
-                                                           GNUNET_CONFIGURATION_Handle
-                                                           *cfg);
+struct GNUNET_STATISTICS_Handle *
+GNUNET_STATISTICS_create (const char *subsystem,
+                          const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -87,8 +85,8 @@ struct GNUNET_STATISTICS_Handle *GNUNET_STATISTICS_create (const char
  * @param sync_first set to GNUNET_YES if pending SET requests should
  *        be completed
  */
-void GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
-                                int sync_first);
+void
+GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first);
 
 
 /**
@@ -103,9 +101,10 @@ void GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
  * @param proc_cls closure for proc
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
-                             const char *subsystem, const char *name,
-                             GNUNET_STATISTICS_Iterator proc, void *proc_cls);
+int
+GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
+                         const char *subsystem, const char *name,
+                         GNUNET_STATISTICS_Iterator proc, void *proc_cls);
 
 
 /**
@@ -135,19 +134,12 @@ struct GNUNET_STATISTICS_GetHandle;
  * @param cls closure for proc and cont
  * @return NULL on error
  */
-struct GNUNET_STATISTICS_GetHandle *GNUNET_STATISTICS_get (struct
-                                                           GNUNET_STATISTICS_Handle
-                                                           *handle,
-                                                           const char
-                                                           *subsystem,
-                                                           const char *name,
-                                                           struct
-                                                           GNUNET_TIME_Relative
-                                                           timeout,
-                                                           GNUNET_STATISTICS_Callback
-                                                           cont,
-                                                           GNUNET_STATISTICS_Iterator
-                                                           proc, void *cls);
+struct GNUNET_STATISTICS_GetHandle *
+GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
+                       const char *subsystem, const char *name,
+                       struct GNUNET_TIME_Relative timeout,
+                       GNUNET_STATISTICS_Callback cont,
+                       GNUNET_STATISTICS_Iterator proc, void *cls);
 
 
 /**
@@ -156,7 +148,8 @@ struct GNUNET_STATISTICS_GetHandle *GNUNET_STATISTICS_get (struct
  *
  * @param gh handle of the request to cancel
  */
-void GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
+void
+GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
 
 
 /**
@@ -168,9 +161,9 @@ void GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
  * @param value new value to set
  * @param make_persistent should the value be kept across restarts?
  */
-void GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
-                            const char *name, uint64_t value,
-                            int make_persistent);
+void
+GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
+                       const char *name, uint64_t value, int make_persistent);
 
 /**
  * Set statistic value for the peer.  Will always use our
@@ -181,9 +174,9 @@ void GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
  * @param delta change in value (added to existing value)
  * @param make_persistent should the value be kept across restarts?
  */
-void GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
-                               const char *name, int64_t delta,
-                               int make_persistent);
+void
+GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
+                          const char *name, int64_t delta, int make_persistent);
 
 
 

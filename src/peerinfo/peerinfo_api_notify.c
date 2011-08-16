@@ -76,7 +76,8 @@ struct GNUNET_PEERINFO_NotifyContext
  *
  * @param nc our context
  */
-static void request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
+static void
+request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
 
 
 /**
@@ -85,7 +86,8 @@ static void request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
  *
  * @param nc our context
  */
-static void receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
+static void
+receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
 
 
 /**

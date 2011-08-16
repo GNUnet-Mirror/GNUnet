@@ -318,7 +318,8 @@ no_resolve (const struct sockaddr *sa, socklen_t salen)
 /**
  * Adjust exponential back-off and reconnect to the service.
  */
-static void reconnect ();
+static void
+reconnect ();
 
 
 /**
@@ -326,7 +327,8 @@ static void reconnect ();
  *
  * @param h handle to the resolver
  */
-static void process_requests ();
+static void
+process_requests ();
 
 
 /**

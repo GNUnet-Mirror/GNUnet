@@ -54,7 +54,8 @@ static int phase;
  * Run the next phase of starting daemons, connecting them and
  * stopping them again.
  */
-static void run_phase ();
+static void
+run_phase ();
 
 static void
 end2_cb (void *cls, const char *emsg)

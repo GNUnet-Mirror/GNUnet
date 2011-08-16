@@ -85,8 +85,8 @@ struct GNUNET_NSE_Handle
  * @param cls the handle to the transport service
  * @param tc scheduler context
  */
-static void reconnect (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**

@@ -135,8 +135,9 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
                 pTable->table[dwIfIdx].dwPhysAddrLen);
 
         snprintf (szEntry, 1000, "%s (%s - %I64u)",
-                  pszIfName ? pszIfName : (char *) pTable->table[dwIfIdx].
-                  bDescr, inet_ntop (AF_INET, &dwIP, dst, INET_ADDRSTRLEN),
+                  pszIfName ? pszIfName : (char *) pTable->
+                  table[dwIfIdx].bDescr, inet_ntop (AF_INET, &dwIP, dst,
+                                                    INET_ADDRSTRLEN),
                   *((unsigned long long *) bPhysAddr));
         szEntry[1000] = 0;
 

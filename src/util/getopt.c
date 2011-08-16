@@ -194,7 +194,8 @@ static char *posixly_correct;
 /* Avoid depending on library functions or files
    whose names are inconsistent.  */
 
-char *getenv ();
+char *
+getenv ();
 
 static char *
 my_index (str, chr)
@@ -218,7 +219,8 @@ my_index (str, chr)
 #if !defined (__STDC__) || !__STDC__
 /* gcc with -traditional declares the built-in strlen to return int,
    and has done so at least since version 2.4.5. -- rms.  */
-extern int strlen (const char *);
+extern int
+strlen (const char *);
 #endif /* not __STDC__ */
 #endif /* __GNUC__ */
 
@@ -283,7 +285,8 @@ text_set_element (__libc_subinit, store_args_and_env);
    the new indices of the non-options in ARGV after they are moved.  */
 
 #if defined (__STDC__) && __STDC__
-static void exchange (char **);
+static void
+exchange (char **);
 #endif
 
 static void
@@ -370,7 +373,8 @@ exchange (argv)
 /* Initialize the internal data when the first call is made.  */
 
 #if defined (__STDC__) && __STDC__
-static const char *_getopt_initialize (int, char *const *, const char *);
+static const char *
+_getopt_initialize (int, char *const *, const char *);
 #endif
 static const char *
 _getopt_initialize (argc, argv, optstring)

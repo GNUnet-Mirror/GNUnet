@@ -638,8 +638,8 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
   no = GNUNET_NO;
   if (GNUNET_OK !=
       proc (proc_cls, dir,
-            (dir->is_directory) ? dir->data.dir.dir_size : dir->data.file.
-            file_size, dir->meta, &dir->keywords, &dir->bo,
+            (dir->is_directory) ? dir->data.dir.dir_size : dir->data.
+            file.file_size, dir->meta, &dir->keywords, &dir->bo,
             (dir->is_directory) ? &no : &dir->data.file.do_index,
             &dir->client_info))
     return;
@@ -651,8 +651,8 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
     no = GNUNET_NO;
     if (GNUNET_OK !=
         proc (proc_cls, pos,
-              (pos->is_directory) ? pos->data.dir.dir_size : pos->data.file.
-              file_size, pos->meta, &pos->keywords, &pos->bo,
+              (pos->is_directory) ? pos->data.dir.dir_size : pos->data.
+              file.file_size, pos->meta, &pos->keywords, &pos->bo,
               (dir->is_directory) ? &no : &dir->data.file.do_index,
               &pos->client_info))
       break;

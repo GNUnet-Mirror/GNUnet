@@ -279,8 +279,8 @@ struct GNUNET_NAT_MiniHandle
  * @param cls the 'struct GNUNET_NAT_MiniHandle'
  * @param tc scheduler context
  */
-static void do_refresh (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+do_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -289,7 +289,8 @@ static void do_refresh (void *cls,
  * @param cls the 'struct GNUNET_NAT_MiniHandle'
  * @param line line of output, NULL at the end
  */
-static void process_map_output (void *cls, const char *line);
+static void
+process_map_output (void *cls, const char *line);
 
 
 /**
@@ -376,8 +377,7 @@ process_refresh_output (void *cls, const char *line)
     return;                     /* skip */
   if (1 !=
       sscanf (line,
-              (mini->
-               is_tcp) ? "%*u TCP  %u->%*s:%*u %*s" :
+              (mini->is_tcp) ? "%*u TCP  %u->%*s:%*u %*s" :
               "%*u UDP  %u->%*s:%*u %*s", &nport))
     return;                     /* skip */
   mini->found = GNUNET_YES;

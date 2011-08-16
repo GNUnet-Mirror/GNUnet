@@ -356,8 +356,8 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc, int reason)
  * @param cls callback data,   struct ForwardedConnection for the communication between client and service
  * @param tc context 
  */
-static void receiveFromClient (void *cls,
-                               const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -366,15 +366,15 @@ static void receiveFromClient (void *cls,
  * @param cls callback data, struct ForwardedConnection for the communication between client and service
  * @param tc scheduler context
  */
-static void receiveFromService (void *cls,
-                                const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
  *
  */
-static void start_forwarding (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+start_forwarding (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 
@@ -497,8 +497,7 @@ receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_a2s (fc->listen_info->service_addr,
                               fc->listen_info->service_addr_len),
                   (unsigned long long) GNUNET_TIME_relative_min (fc->back_off,
-                                                                 rem).
-                  rel_value);
+                                                                 rem).rel_value);
 #endif
       rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
@@ -584,8 +583,7 @@ forwardToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_a2s (fc->listen_info->service_addr,
                               fc->listen_info->service_addr_len),
                   (unsigned long long) GNUNET_TIME_relative_min (fc->back_off,
-                                                                 rem).
-                  rel_value);
+                                                                 rem).rel_value);
 #endif
       rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
@@ -913,8 +911,8 @@ stop_listening (const char *serviceName)
  * @param cls callback data, struct ServiceListeningInfo describing a listen socket
  * @param tc context 
  */
-static void acceptConnection (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
@@ -948,8 +946,8 @@ accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
     return;
   }
   GNUNET_break (GNUNET_OK ==
-                GNUNET_NETWORK_socket_close (serviceListeningInfo->
-                                             listeningSocket));
+                GNUNET_NETWORK_socket_close
+                (serviceListeningInfo->listeningSocket));
   start_service (NULL, serviceListeningInfo->serviceName, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Service `%s' started\n"),
               fc->listen_info->serviceName);

@@ -246,8 +246,8 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
  * @param cls the 'struct NeighbourMapEntry'
  * @param tc scheduler context
  */
-static void transmission_task (void *cls,
-                               const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+transmission_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -770,8 +770,8 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Throttling read (%llu bytes excess at %u b/s), waiting %llu ms before reading more.\n",
-                (unsigned long long) n->in_tracker.
-                consumption_since_last_update__,
+                (unsigned long long) n->
+                in_tracker.consumption_since_last_update__,
                 (unsigned int) n->in_tracker.available_bytes_per_s__,
                 (unsigned long long) ret.rel_value);
 #endif

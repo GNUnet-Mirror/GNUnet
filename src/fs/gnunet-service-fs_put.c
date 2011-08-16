@@ -86,9 +86,9 @@ static struct PutOperator operators[] = {
  * @param cls type of blocks to gather
  * @param tc scheduler context (unused)
  */
-static void gather_dht_put_blocks (void *cls,
-                                   const struct GNUNET_SCHEDULER_TaskContext
-                                   *tc);
+static void
+gather_dht_put_blocks (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**

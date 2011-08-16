@@ -63,10 +63,9 @@ parent_control_handler (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n",
               __FUNCTION__, tc->reason);
 #endif
-  if (tc->
-      reason & (GNUNET_SCHEDULER_REASON_SHUTDOWN |
-                GNUNET_SCHEDULER_REASON_TIMEOUT |
-                GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  if (tc->reason &
+      (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT |
+       GNUNET_SCHEDULER_REASON_PREREQ_DONE))
   {
     GNUNET_DISK_npipe_close (control_pipe);
   }

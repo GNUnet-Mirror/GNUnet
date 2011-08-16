@@ -148,7 +148,8 @@ struct GNUNET_CHAT_SendReceiptContext
 /**
  * Ask client to send a join request.
  */
-static int rejoin_room (struct GNUNET_CHAT_Room *chat_room);
+static int
+rejoin_room (struct GNUNET_CHAT_Room *chat_room);
 
 
 /**
@@ -404,9 +405,8 @@ process_result (struct GNUNET_CHAT_Room *room,
     if (NULL != room->confirmation_callback)
       room->confirmation_callback (room->confirmation_cls, room,
                                    ntohl (receipt->sequence_number),
-                                   GNUNET_TIME_absolute_ntoh (receipt->
-                                                              timestamp),
-                                   &receipt->target);
+                                   GNUNET_TIME_absolute_ntoh
+                                   (receipt->timestamp), &receipt->target);
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Unknown message type: '%u'\n"),

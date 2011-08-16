@@ -135,8 +135,8 @@ enum GNUNET_OS_ProcessStatusType
  * @param dirkind what kind of directory is desired?
  * @return a pointer to the dir path (to be freed by the caller)
  */
-char *GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind
-                                       dirkind);
+char *
+GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind);
 
 
 /**
@@ -160,8 +160,9 @@ typedef int (*GNUNET_OS_NetworkInterfaceProcessor) (void *cls, const char *name,
  * @param proc the callback function
  * @param proc_cls closure for proc
  */
-void GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor
-                                        proc, void *proc_cls);
+void
+GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
+                                   void *proc_cls);
 
 /**
  * @brief Get maximum string length returned by gethostname()
@@ -183,7 +184,8 @@ void GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor
  *
  * @return pointer to the process sturcutre for this process
  */
-struct GNUNET_OS_Process *GNUNET_OS_process_current (void);
+struct GNUNET_OS_Process *
+GNUNET_OS_process_current (void);
 
 
 /**
@@ -193,7 +195,8 @@ struct GNUNET_OS_Process *GNUNET_OS_process_current (void);
  * @param sig signal
  * @return 0 on success, -1 on error
  */
-int GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig);
+int
+GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig);
 
 
 /**
@@ -201,7 +204,8 @@ int GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig);
  *
  * @param proc pointer to process structure
  */
-void GNUNET_OS_process_close (struct GNUNET_OS_Process *proc);
+void
+GNUNET_OS_process_close (struct GNUNET_OS_Process *proc);
 
 /**
  * Get the pid of the process in question
@@ -210,7 +214,8 @@ void GNUNET_OS_process_close (struct GNUNET_OS_Process *proc);
  *
  * @return the current process id
  */
-pid_t GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc);
+pid_t
+GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc);
 
 /**
  * Set process priority
@@ -219,8 +224,9 @@ pid_t GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc);
  * @param prio priority value
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
-                                    enum GNUNET_SCHEDULER_Priority prio);
+int
+GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
+                                enum GNUNET_SCHEDULER_Priority prio);
 
 
 /**
@@ -232,11 +238,10 @@ int GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
  * @param ... NULL-terminated list of arguments to the process
  * @return pointer to process structure of the new process, NULL on error
  */
-struct GNUNET_OS_Process *GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle
-                                                   *pipe_stdin,
-                                                   struct GNUNET_DISK_PipeHandle
-                                                   *pipe_stdout,
-                                                   const char *filename, ...);
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+                         struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                         const char *filename, ...);
 
 
 /**
@@ -248,14 +253,10 @@ struct GNUNET_OS_Process *GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle
  * @param va NULL-terminated list of arguments to the process
  * @return pointer to process structure of the new process, NULL on error
  */
-struct GNUNET_OS_Process *GNUNET_OS_start_process_va (struct
-                                                      GNUNET_DISK_PipeHandle
-                                                      *pipe_stdin,
-                                                      struct
-                                                      GNUNET_DISK_PipeHandle
-                                                      *pipe_stdout,
-                                                      const char *filename,
-                                                      va_list va);
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+                            struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                            const char *filename, va_list va);
 
 /**
  * Start a process.
@@ -267,9 +268,9 @@ struct GNUNET_OS_Process *GNUNET_OS_start_process_va (struct
  *             including the process name as the first argument
  * @return pointer to process structure of the new process, NULL on error
  */
-struct GNUNET_OS_Process *GNUNET_OS_start_process_v (const int *lsocks,
-                                                     const char *filename,
-                                                     char *const argv[]);
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
+                           char *const argv[]);
 
 
 /**
@@ -290,7 +291,8 @@ typedef void (*GNUNET_OS_LineProcessor) (void *cls, const char *line);
  *
  * @param cmd handle to the process
  */
-void GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd);
+void
+GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd);
 
 
 /**
@@ -304,12 +306,10 @@ void GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd);
  * @param ... arguments to command
  * @return NULL on error
  */
-struct GNUNET_OS_CommandHandle *GNUNET_OS_command_run (GNUNET_OS_LineProcessor
-                                                       proc, void *proc_cls,
-                                                       struct
-                                                       GNUNET_TIME_Relative
-                                                       timeout,
-                                                       const char *binary, ...);
+struct GNUNET_OS_CommandHandle *
+GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
+                       struct GNUNET_TIME_Relative timeout, const char *binary,
+                       ...);
 
 
 /**
@@ -320,9 +320,10 @@ struct GNUNET_OS_CommandHandle *GNUNET_OS_command_run (GNUNET_OS_LineProcessor
  * @param code return code/signal number
  * @return GNUNET_OK on success, GNUNET_NO if the process is still running, GNUNET_SYSERR otherwise
  */
-int GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
-                              enum GNUNET_OS_ProcessStatusType *type,
-                              unsigned long *code);
+int
+GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
+                          enum GNUNET_OS_ProcessStatusType *type,
+                          unsigned long *code);
 
 
 /**
@@ -335,16 +336,17 @@ int GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
  * @param proc pointer to process structure of the process to wait for
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
+int
+GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
 
 
 /**
  * Connects this process to its parent via pipe
  */
-void GNUNET_OS_install_parent_control_handler (void *cls,
-                                               const struct
-                                               GNUNET_SCHEDULER_TaskContext
-                                               *tc);
+void
+GNUNET_OS_install_parent_control_handler (void *cls,
+                                          const struct
+                                          GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -358,7 +360,8 @@ void GNUNET_OS_install_parent_control_handler (void *cls,
  *         GNUNET_NO if not SUID (but binary exists)
  *         GNUNET_SYSERR on error (no such binary or not executable)
  */
-int GNUNET_OS_check_helper_binary (const char *binary);
+int
+GNUNET_OS_check_helper_binary (const char *binary);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

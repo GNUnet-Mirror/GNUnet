@@ -32,13 +32,15 @@
 /**
  * Setup the module.
  */
-void GSF_push_init_ (void);
+void
+GSF_push_init_ (void);
 
 
 /**
  * Shutdown the module.
  */
-void GSF_push_done_ (void);
+void
+GSF_push_done_ (void);
 
 
 /**
@@ -47,7 +49,8 @@ void GSF_push_done_ (void);
  *
  * @param peer handle for the peer that connected
  */
-void GSF_push_start_ (struct GSF_ConnectedPeer *peer);
+void
+GSF_push_start_ (struct GSF_ConnectedPeer *peer);
 
 
 /**
@@ -56,7 +59,8 @@ void GSF_push_start_ (struct GSF_ConnectedPeer *peer);
  *
  * @param peer handle for the peer that disconnected
  */
-void GSF_push_stop_ (struct GSF_ConnectedPeer *peer);
+void
+GSF_push_stop_ (struct GSF_ConnectedPeer *peer);
 
 
 #endif

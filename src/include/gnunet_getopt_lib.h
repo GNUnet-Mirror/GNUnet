@@ -207,9 +207,10 @@ struct GNUNET_GETOPT_CommandLineOption
  * @return index into argv with first non-option
  *   argument, or GNUNET_SYSERR on error
  */
-int GNUNET_GETOPT_run (const char *binaryOptions,
-                       const struct GNUNET_GETOPT_CommandLineOption *allOptions,
-                       unsigned int argc, char *const *argv);
+int
+GNUNET_GETOPT_run (const char *binaryOptions,
+                   const struct GNUNET_GETOPT_CommandLineOption *allOptions,
+                   unsigned int argc, char *const *argv);
 
 
 /**
@@ -225,9 +226,9 @@ int GNUNET_GETOPT_run (const char *binaryOptions,
  * @param value actual value of the option as a string.
  * @return GNUNET_OK if parsing the value worked
  */
-int GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext
-                             *ctx, void *scls, const char *option,
-                             const char *value);
+int
+GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                         void *scls, const char *option, const char *value);
 
 
 /**
@@ -243,9 +244,9 @@ int GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value actual value of the option as a string.
  * @return GNUNET_OK if parsing the value worked
  */
-int GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext
-                            *ctx, void *scls, const char *option,
-                            const char *value);
+int
+GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                        void *scls, const char *option, const char *value);
 
 
 /**
@@ -262,9 +263,9 @@ int GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value not used (NULL)
  * @return GNUNET_OK 
  */
-int GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext
-                           *ctx, void *scls, const char *option,
-                           const char *value);
+int
+GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                       void *scls, const char *option, const char *value);
 
 
 /**
@@ -281,9 +282,9 @@ int GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value actual value of the option (a string)
  * @return GNUNET_OK 
  */
-int GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext
-                              *ctx, void *scls, const char *option,
-                              const char *value);
+int
+GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                          void *scls, const char *option, const char *value);
 
 /**
  * Set an option of type 'unsigned int' from the command line. Each
@@ -299,10 +300,10 @@ int GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value not used (NULL)
  * @return GNUNET_OK 
  */
-int GNUNET_GETOPT_increment_value (struct
-                                   GNUNET_GETOPT_CommandLineProcessorContext
-                                   *ctx, void *scls, const char *option,
-                                   const char *value);
+int
+GNUNET_GETOPT_increment_value (struct GNUNET_GETOPT_CommandLineProcessorContext
+                               *ctx, void *scls, const char *option,
+                               const char *value);
 
 
 /* *************** internal prototypes - use macros above! ************* */
@@ -316,9 +317,10 @@ int GNUNET_GETOPT_increment_value (struct
  * @param value not used (NULL)
  * @return GNUNET_SYSERR (do not continue)
  */
-int GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
-                                *ctx, void *scls, const char *option,
-                                const char *value);
+int
+GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
+                            *ctx, void *scls, const char *option,
+                            const char *value);
 
 /**
  * Print out program version (implements --version).
@@ -329,10 +331,10 @@ int GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value not used (NULL)
  * @return GNUNET_SYSERR (do not continue)
  */
-int GNUNET_GETOPT_print_version_ (struct
-                                  GNUNET_GETOPT_CommandLineProcessorContext
-                                  *ctx, void *scls, const char *option,
-                                  const char *value);
+int
+GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext
+                              *ctx, void *scls, const char *option,
+                              const char *value);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

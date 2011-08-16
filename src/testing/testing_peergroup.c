@@ -346,12 +346,12 @@ internal_topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     /* Get duration in seconds */
     duration =
         GNUNET_TIME_absolute_get_difference (connect_last_time,
-                                             GNUNET_TIME_absolute_get ()).
-        rel_value / 1000;
+                                             GNUNET_TIME_absolute_get
+                                             ()).rel_value / 1000;
     total_duration =
         GNUNET_TIME_absolute_get_difference (connect_start_time,
-                                             GNUNET_TIME_absolute_get ()).
-        rel_value / 1000;
+                                             GNUNET_TIME_absolute_get
+                                             ()).rel_value / 1000;
 
     failed_conns_per_sec_recent = (double) new_failed_connections / duration;
     failed_conns_per_sec_total = (double) failed_connections / total_duration;
@@ -422,8 +422,8 @@ internal_topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
 #if TIMING
     total_duration =
         GNUNET_TIME_absolute_get_difference (connect_start_time,
-                                             GNUNET_TIME_absolute_get ()).
-        rel_value / 1000;
+                                             GNUNET_TIME_absolute_get
+                                             ()).rel_value / 1000;
     failed_conns_per_sec_total = (double) failed_connections / total_duration;
     conns_per_sec_total = (double) total_connections / total_duration;
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -493,10 +493,8 @@ internal_peers_started_callback (void *cls,
       pg_start_ctx->expected_connections =
           GNUNET_TESTING_connect_topology (pg_start_ctx->pg,
                                            pg_start_ctx->connect_topology,
-                                           pg_start_ctx->
-                                           connect_topology_option,
-                                           pg_start_ctx->
-                                           connect_topology_option_modifier,
+                                           pg_start_ctx->connect_topology_option,
+                                           pg_start_ctx->connect_topology_option_modifier,
                                            DEFAULT_CONNECT_TIMEOUT,
                                            pg_start_ctx->connect_attempts, NULL,
                                            NULL);
@@ -736,8 +734,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
                                              "max_outstanding_connections",
-                                             &pg_start_ctx->
-                                             max_concurrent_connections))
+                                             &pg_start_ctx->max_concurrent_connections))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
                 "testing", "max_outstanding_connections");
@@ -857,8 +854,8 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                               "connect_topology_option",
                                               &temp_str)) &&
       (GNUNET_NO ==
-       GNUNET_TESTING_topology_option_get (&pg_start_ctx->
-                                           connect_topology_option, temp_str)))
+       GNUNET_TESTING_topology_option_get
+       (&pg_start_ctx->connect_topology_option, temp_str)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Invalid connect topology option `%s' given for section %s option %s\n",
@@ -889,8 +886,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
                                              "blacklist_transports",
-                                             &pg_start_ctx->
-                                             restrict_transports))
+                                             &pg_start_ctx->restrict_transports))
     pg_start_ctx->restrict_transports = NULL;
 
   pg_start_ctx->restrict_topology = GNUNET_TESTING_TOPOLOGY_NONE;

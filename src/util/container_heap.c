@@ -292,11 +292,8 @@ insert_node (struct GNUNET_CONTAINER_Heap *heap,
 
   GNUNET_assert (node->parent == NULL);
   while ((heap->order == GNUNET_CONTAINER_HEAP_ORDER_MAX) ? (pos->cost >=
-                                                             node->
-                                                             cost) : (pos->
-                                                                      cost <=
-                                                                      node->
-                                                                      cost))
+                                                             node->cost)
+         : (pos->cost <= node->cost))
   {
     /* node is descendent of pos */
     pos->tree_size += (1 + node->tree_size);

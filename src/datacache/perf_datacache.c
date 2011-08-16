@@ -91,8 +91,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   fprintf (stderr, "\n");
   fprintf (stdout, "Stored %u items in %llums\n", ITERATIONS,
-           (unsigned long long) GNUNET_TIME_absolute_get_duration (start).
-           rel_value);
+           (unsigned long long)
+           GNUNET_TIME_absolute_get_duration (start).rel_value);
   GNUNET_snprintf (gstr, sizeof (gstr), "DATACACHE-%s", plugin_name);
   GAUGER (gstr, "Time to PUT item in datacache",
           GNUNET_TIME_absolute_get_duration (start).rel_value / ITERATIONS,
@@ -111,8 +111,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   fprintf (stdout,
            "Found %u/%u items in %llums (%u were deleted during storage processing)\n",
            found, ITERATIONS,
-           (unsigned long long) GNUNET_TIME_absolute_get_duration (start).
-           rel_value, ITERATIONS - found);
+           (unsigned long long)
+           GNUNET_TIME_absolute_get_duration (start).rel_value,
+           ITERATIONS - found);
   if (found > 0)
     GAUGER (gstr, "Time to GET item from datacache",
             GNUNET_TIME_absolute_get_duration (start).rel_value / found,

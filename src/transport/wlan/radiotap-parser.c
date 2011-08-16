@@ -191,13 +191,13 @@ ieee80211_radiotap_iterator_next (struct ieee80211_radiotap_iterator *iterator)
      */
 
     if ((((void *) iterator->arg) -
-         ((void *) iterator->
-          rtheader)) & ((rt_sizes[iterator->arg_index] >> 4) - 1))
+         ((void *) iterator->rtheader)) & ((rt_sizes[iterator->arg_index] >> 4)
+                                           - 1))
       iterator->arg_index +=
           (rt_sizes[iterator->arg_index] >> 4) -
           ((((void *) iterator->arg) -
-            ((void *) iterator->
-             rtheader)) & ((rt_sizes[iterator->arg_index] >> 4) - 1));
+            ((void *) iterator->rtheader)) & ((rt_sizes[iterator->arg_index] >>
+                                               4) - 1));
 
     /*
      * this is what we will return to user, but we need to

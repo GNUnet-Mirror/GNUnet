@@ -95,20 +95,16 @@ struct GNUNET_VPN_HELPER_Handle
  *
  * @return A pointer to the new Handle, NULL on error
  */
-struct GNUNET_VPN_HELPER_Handle *start_helper (const char *ifname,
-                                               const char *ipv6addr,
-                                               const char *ipv6prefix,
-                                               const char *ipv4addr,
-                                               const char *ipv4mask,
-                                               const char *process_name,
-                                               GNUNET_SCHEDULER_Task
-                                               restart_task,
-                                               GNUNET_SERVER_MessageTokenizerCallback
-                                               cb, void *cb_cls);
+struct GNUNET_VPN_HELPER_Handle *
+start_helper (const char *ifname, const char *ipv6addr, const char *ipv6prefix,
+              const char *ipv4addr, const char *ipv4mask,
+              const char *process_name, GNUNET_SCHEDULER_Task restart_task,
+              GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls);
 
 /**
  * @brief Kills the helper, closes the pipe and free()s the handle
  */
-void cleanup_helper (struct GNUNET_VPN_HELPER_Handle *);
+void
+cleanup_helper (struct GNUNET_VPN_HELPER_Handle *);
 
 #endif /* end of include guard: GNUNET_HELPER_VPN_API_H */

@@ -76,7 +76,8 @@ free_user_list ()
   }
 }
 
-static int do_help (const char *args, const void *xtra);
+static int
+do_help (const char *args, const void *xtra);
 
 
 /**

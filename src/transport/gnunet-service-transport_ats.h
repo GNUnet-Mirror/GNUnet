@@ -449,40 +449,48 @@ static struct ATS_quality_metric qm[] = {
 /*
  * ATS functions
  */
-struct ATS_Handle *ats_init (double D, double U, double R, int v_b_min,
-                             int v_n_min, int max_iterations,
-                             struct GNUNET_TIME_Relative max_duration,
-                             GNUNET_TRANSPORT_ATS_AddressNotification
-                             address_not,
-                             GNUNET_TRANSPORT_ATS_ResultCallback res_cb);
+struct ATS_Handle *
+ats_init (double D, double U, double R, int v_b_min, int v_n_min,
+          int max_iterations, struct GNUNET_TIME_Relative max_duration,
+          GNUNET_TRANSPORT_ATS_AddressNotification address_not,
+          GNUNET_TRANSPORT_ATS_ResultCallback res_cb);
 
-void ats_shutdown (struct ATS_Handle *ats);
+void
+ats_shutdown (struct ATS_Handle *ats);
 
-void ats_delete_problem (struct ATS_Handle *ats);
+void
+ats_delete_problem (struct ATS_Handle *ats);
 
-int ats_create_problem (struct ATS_Handle *ats, struct ATS_internals *stat,
-                        struct ATS_peer *peers, int c_p,
-                        struct ATS_mechanism *mechanisms, int c_m);
+int
+ats_create_problem (struct ATS_Handle *ats, struct ATS_internals *stat,
+                    struct ATS_peer *peers, int c_p,
+                    struct ATS_mechanism *mechanisms, int c_m);
 
-void ats_modify_problem_state (struct ATS_Handle *ats,
-                               enum ATS_problem_state s);
+void
+ats_modify_problem_state (struct ATS_Handle *ats, enum ATS_problem_state s);
 
-void ats_calculate_bandwidth_distribution (struct ATS_Handle *ats);
+void
+ats_calculate_bandwidth_distribution (struct ATS_Handle *ats);
 
-void ats_solve_problem (struct ATS_Handle *ats, unsigned int max_it,
-                        unsigned int max_dur, unsigned int c_peers,
-                        unsigned int c_mechs, struct ATS_internals *stat);
+void
+ats_solve_problem (struct ATS_Handle *ats, unsigned int max_it,
+                   unsigned int max_dur, unsigned int c_peers,
+                   unsigned int c_mechs, struct ATS_internals *stat);
 
-int ats_evaluate_results (int result, int solution, char *problem);
+int
+ats_evaluate_results (int result, int solution, char *problem);
 
-void ats_update_problem_qm (struct ATS_Handle *ats);
+void
+ats_update_problem_qm (struct ATS_Handle *ats);
 
-void ats_update_problem_cr (struct ATS_Handle *ats);
+void
+ats_update_problem_cr (struct ATS_Handle *ats);
 
 
-void ats_set_logging_options (struct ATS_Handle *ats,
-                              struct GNUNET_STATISTICS_Handle *stats,
-                              const struct GNUNET_CONFIGURATION_Handle *cfg);
+void
+ats_set_logging_options (struct ATS_Handle *ats,
+                         struct GNUNET_STATISTICS_Handle *stats,
+                         const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 #endif
 /* end of file gnunet-service-transport_ats.h */

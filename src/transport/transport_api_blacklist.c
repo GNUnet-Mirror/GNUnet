@@ -78,7 +78,8 @@ struct GNUNET_TRANSPORT_Blacklist
  *
  * @param br overall handle
  */
-static void reconnect (struct GNUNET_TRANSPORT_Blacklist *br);
+static void
+reconnect (struct GNUNET_TRANSPORT_Blacklist *br);
 
 
 /**
@@ -86,7 +87,8 @@ static void reconnect (struct GNUNET_TRANSPORT_Blacklist *br);
  *
  * @param br our overall context
  */
-static void reply (struct GNUNET_TRANSPORT_Blacklist *br);
+static void
+reply (struct GNUNET_TRANSPORT_Blacklist *br);
 
 
 /**

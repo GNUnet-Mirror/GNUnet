@@ -551,7 +551,8 @@ task_send_cont (void *cls, const struct GNUNET_PeerIdentity *target, int result)
 }
 
 
-static void run_connection_tests (int phase, void *cls);
+static void
+run_connection_tests (int phase, void *cls);
 
 /**
  * Recieves messages from plugin, in real world transport
@@ -679,7 +680,8 @@ header_function (void *ptr, size_t size, size_t nmemb, void *stream)
   return size * nmemb;
 }
 
-static size_t send_prepare (struct HTTP_Transfer *result);
+static size_t
+send_prepare (struct HTTP_Transfer *result);
 
 
 

@@ -237,8 +237,8 @@ test_find_peer_processor (void *cls, const struct GNUNET_HELLO_Message *hello)
  * @param cls closure
  * @param tc context information (why was this task triggered now?)
  */
-void retry_find_peer_stop (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc);
+void
+retry_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Retry the find_peer task on timeout.

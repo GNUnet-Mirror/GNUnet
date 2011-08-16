@@ -662,12 +662,13 @@ struct FragmentMessage
   struct Radiotap_Send *radioHeader;
 };
 
-static void do_transmit (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc);
-static void free_session (struct Plugin *plugin, struct Sessionqueue *queue,
-                          int do_free_macendpoint);
-static struct MacEndpoint *create_macendpoint (struct Plugin *plugin,
-                                               const struct MacAddress *addr);
+static void
+do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+free_session (struct Plugin *plugin, struct Sessionqueue *queue,
+              int do_free_macendpoint);
+static struct MacEndpoint *
+create_macendpoint (struct Plugin *plugin, const struct MacAddress *addr);
 
 /**
  * Generates a nice hexdump of a memory area.
@@ -1860,8 +1861,9 @@ wlan_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     newmsg = session->pending_message_head;
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
                      "wlan_plugin_send: a pending message is already in the queue for this client\n remaining time to send this message is %u, queued fragment messages for this mac connection %u\n",
-                     GNUNET_TIME_absolute_get_remaining (newmsg->timeout).
-                     rel_value, session->mac->fragment_messages_out_count);
+                     GNUNET_TIME_absolute_get_remaining (newmsg->
+                                                         timeout).rel_value,
+                     session->mac->fragment_messages_out_count);
   }
 
   newmsg = GNUNET_malloc (sizeof (struct PendingMessage));
@@ -2263,8 +2265,8 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                    "Calling plugin->env->receive for session %p; %s; size: %u\n",
                    session, wlan_plugin_address_to_string (NULL,
-                                                           session->mac->addr.
-                                                           mac, 6),
+                                                           session->mac->
+                                                           addr.mac, 6),
                    htons (hdr->size));
 #endif
 
@@ -2303,9 +2305,8 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                      "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT size: %u; %s\n",
                      ntohs (hdr->size), wlan_plugin_address_to_string (NULL,
-                                                                       session_light->
-                                                                       addr.mac,
-                                                                       6));
+                                                                       session_light->addr.
+                                                                       mac, 6));
 #endif
 
     if (session_light->macendpoint == NULL)
@@ -2373,9 +2374,7 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                        "Macendpoint does not exist for this GNUNET_MESSAGE_TYPE_FRAGMENT_ACK size: %u; %s\n",
                        ntohs (hdr->size), wlan_plugin_address_to_string (NULL,
-                                                                         session_light->
-                                                                         addr.
-                                                                         mac,
+                                                                         session_light->addr.mac,
                                                                          6));
 #endif
       return;
@@ -2477,8 +2476,8 @@ macendpoint_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   if (GNUNET_TIME_absolute_get_remaining
-      (GNUNET_TIME_absolute_add (endpoint->last_activity, MACENDPOINT_TIMEOUT)).
-      rel_value == 0)
+      (GNUNET_TIME_absolute_add
+       (endpoint->last_activity, MACENDPOINT_TIMEOUT)).rel_value == 0)
   {
     free_macendpoint (endpoint->plugin, endpoint);
   }

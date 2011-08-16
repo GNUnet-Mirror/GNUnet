@@ -480,7 +480,8 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
  * 
  * @param h handle to the datastore
  */
-static void process_queue (struct GNUNET_DATASTORE_Handle *h);
+static void
+process_queue (struct GNUNET_DATASTORE_Handle *h);
 
 
 /**

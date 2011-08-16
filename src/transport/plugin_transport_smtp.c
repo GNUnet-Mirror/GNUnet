@@ -420,9 +420,8 @@ api_verify_hello (const GNUNET_MessageHello * hello)
   maddr = (const EmailAddress *) &hello[1];
   if ((ntohs (hello->header.size) !=
        sizeof (GNUNET_MessageHello) + ntohs (hello->senderAddressSize)) ||
-      (maddr->
-       senderAddress[ntohs (hello->senderAddressSize) - 1 -
-                     FILTER_STRING_SIZE] != '\0'))
+      (maddr->senderAddress
+       [ntohs (hello->senderAddressSize) - 1 - FILTER_STRING_SIZE] != '\0'))
   {
     GNUNET_GE_BREAK (ectx, 0);
     return GNUNET_SYSERR;       /* obviously invalid */

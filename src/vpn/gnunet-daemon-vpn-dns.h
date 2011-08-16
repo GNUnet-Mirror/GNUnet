@@ -40,19 +40,22 @@ extern struct query_packet_list *tail;
  * Callback called by notify_transmit_ready; sends dns-queries or rehijack-messages
  * to the service-dns
  */
-size_t send_query (void *cls, size_t size, void *buf);
+size_t
+send_query (void *cls, size_t size, void *buf);
 
 /**
  * Connect to the service-dns
  */
-void connect_to_service_dns (void *cls,
-                             const struct GNUNET_SCHEDULER_TaskContext *tc);
+void
+connect_to_service_dns (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * This receives packets from the service-dns and schedules process_answer to
  * handle it
  */
-void dns_answer_handler (void *cls, const struct GNUNET_MessageHeader *msg);
+void
+dns_answer_handler (void *cls, const struct GNUNET_MessageHeader *msg);
 
 /**
  * The connection to the service-dns

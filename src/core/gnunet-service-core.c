@@ -1807,7 +1807,8 @@ free_neighbour (struct Neighbour *n)
  *
  * @param n neighbour to check.
  */
-static void process_encrypted_neighbour_queue (struct Neighbour *n);
+static void
+process_encrypted_neighbour_queue (struct Neighbour *n);
 
 
 /**
@@ -1854,7 +1855,8 @@ do_encrypt (struct Neighbour *n,
  *
  * @param n neighbour to consider discarding
  */
-static void consider_free_neighbour (struct Neighbour *n);
+static void
+consider_free_neighbour (struct Neighbour *n);
 
 
 /**
@@ -2006,9 +2008,9 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
 #if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Copied message of type %u and size %u into transport buffer for `%4s'\n",
-                (unsigned int) ntohs (((struct GNUNET_MessageHeader *) &m[1])->
-                                      type), (unsigned int) ret,
-                GNUNET_i2s (&n->peer));
+                (unsigned int)
+                ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
+                (unsigned int) ret, GNUNET_i2s (&n->peer));
 #endif
     process_encrypted_neighbour_queue (n);
   }
@@ -2017,8 +2019,9 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
 #if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Transmission of message of type %u and size %u failed\n",
-                (unsigned int) ntohs (((struct GNUNET_MessageHeader *) &m[1])->
-                                      type), (unsigned int) m->size);
+                (unsigned int)
+                ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
+                (unsigned int) m->size);
 #endif
   }
   GNUNET_free (m);
@@ -2038,7 +2041,8 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
  *
  * @param n neighbour to check.
  */
-static void process_plaintext_neighbour_queue (struct Neighbour *n);
+static void
+process_plaintext_neighbour_queue (struct Neighbour *n);
 
 
 /**
@@ -2071,9 +2075,8 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport for transmission of %u bytes to `%4s' in next %llu ms\n",
               (unsigned int) m->size, GNUNET_i2s (&n->peer),
-              (unsigned long long) GNUNET_TIME_absolute_get_remaining (m->
-                                                                       deadline).
-              rel_value);
+              (unsigned long long)
+              GNUNET_TIME_absolute_get_remaining (m->deadline).rel_value);
 #endif
   n->th =
       GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size,
@@ -2436,8 +2439,8 @@ batch_message (struct Neighbour *n, char *buf, size_t size,
                   (unsigned int)
                   ntohs (((const struct GNUNET_MessageHeader *) &pos[1])->type),
                   (unsigned int)
-                  ntohs (((const struct GNUNET_MessageHeader *) &pos[1])->
-                         size));
+                  ntohs (((const struct GNUNET_MessageHeader *)
+                          &pos[1])->size));
 #endif
       /* copy for encrypted transmission */
       memcpy (&buf[ret], &pos[1], pos->size);
@@ -2448,9 +2451,8 @@ batch_message (struct Neighbour *n, char *buf, size_t size,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Adding plaintext message of size %u with deadline %llu ms to batch\n",
                   (unsigned int) pos->size,
-                  (unsigned long long) GNUNET_TIME_absolute_get_remaining (pos->
-                                                                           deadline).
-                  rel_value);
+                  (unsigned long long)
+                  GNUNET_TIME_absolute_get_remaining (pos->deadline).rel_value);
 #endif
       deadline->abs_value =
           GNUNET_MIN (deadline->abs_value, pos->deadline.abs_value);
@@ -2548,7 +2550,8 @@ retry_plaintext_processing (void *cls,
  *
  * @param n the other peer
  */
-static void send_key (struct Neighbour *n);
+static void
+send_key (struct Neighbour *n);
 
 /**
  * Task that will retry "send_key" if our previous attempt failed
@@ -2734,9 +2737,9 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
  * @param cls neighbour for the quota update
  * @param tc context
  */
-static void neighbour_quota_update (void *cls,
-                                    const struct GNUNET_SCHEDULER_TaskContext
-                                    *tc);
+static void
+neighbour_quota_update (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -3269,9 +3272,9 @@ send_key (struct Neighbour *n)
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Have %llu ms left for `%s' transmission.\n",
-              (unsigned long long) GNUNET_TIME_absolute_get_remaining (me->
-                                                                       deadline).
-              rel_value, "SET_KEY");
+              (unsigned long long)
+              GNUNET_TIME_absolute_get_remaining (me->deadline).rel_value,
+              "SET_KEY");
 #endif
 trigger_processing:
   /* trigger queue processing */
@@ -3293,9 +3296,10 @@ trigger_processing:
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
-static void handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m,
-                            const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                            uint32_t ats_count);
+static void
+handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m,
+                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                uint32_t ats_count);
 
 
 
@@ -3843,8 +3847,8 @@ send_p2p_message_to_client (struct Neighbour *sender, struct Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service passes message from `%4s' of type %u to client.\n",
               GNUNET_i2s (&sender->peer),
-              (unsigned int) ntohs (((const struct GNUNET_MessageHeader *) m)->
-                                    type));
+              (unsigned int)
+              ntohs (((const struct GNUNET_MessageHeader *) m)->type));
 #endif
   ntm = (struct NotifyTrafficMessage *) buf;
   ntm->header.size = htons (size);

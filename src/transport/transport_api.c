@@ -295,7 +295,8 @@ struct GNUNET_TRANSPORT_Handle
  *
  * @param h transport service to schedule a transmission for
  */
-static void schedule_transmission (struct GNUNET_TRANSPORT_Handle *h);
+static void
+schedule_transmission (struct GNUNET_TRANSPORT_Handle *h);
 
 
 /**
@@ -304,8 +305,8 @@ static void schedule_transmission (struct GNUNET_TRANSPORT_Handle *h);
  *
  * @param h transport service to reconnect
  */
-static void disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle
-                                               *h);
+static void
+disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h);
 
 
 /**
@@ -659,8 +660,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
     th = n->th;
     if (th->notify_size + sizeof (struct OutboundMessage) > size)
       break;                    /* does not fit */
-    if (GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, th->notify_size).
-        rel_value > 0)
+    if (GNUNET_BANDWIDTH_tracker_get_delay
+        (&n->out_tracker, th->notify_size).rel_value > 0)
       break;                    /* too early */
     GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
     n->hn = NULL;

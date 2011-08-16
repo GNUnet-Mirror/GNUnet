@@ -117,8 +117,8 @@ struct CpsRunContext
 };
 
 
-static void run_continuation (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void

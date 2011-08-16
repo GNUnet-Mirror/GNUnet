@@ -42,15 +42,17 @@
  * @param address_cb function to call when our public addresses changed
  * @param session_end_cb function to call when a session was terminated
  */
-void GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
-                       GNUNET_TRANSPORT_AddressNotification address_cb,
-                       GNUNET_TRANSPORT_SessionEnd session_end_cb);
+void
+GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
+                  GNUNET_TRANSPORT_AddressNotification address_cb,
+                  GNUNET_TRANSPORT_SessionEnd session_end_cb);
 
 
 /**
  * Unload all plugins
  */
-void GST_plugins_unload (void);
+void
+GST_plugins_unload (void);
 
 
 /**
@@ -59,7 +61,8 @@ void GST_plugins_unload (void);
  * @param name name of the plugin
  * @return the plugin's API, NULL if the plugin is not loaded
  */
-struct GNUNET_TRANSPORT_PluginFunctions *GST_plugins_find (const char *name);
+struct GNUNET_TRANSPORT_PluginFunctions *
+GST_plugins_find (const char *name);
 
 
 /**
@@ -71,8 +74,8 @@ struct GNUNET_TRANSPORT_PluginFunctions *GST_plugins_find (const char *name);
  * @param addrlen number of bytes in 'addr'
  * @return statically allocated (!) human-readable address
  */
-const char *GST_plugins_a2s (const char *name, const void *addr,
-                             size_t addrlen);
+const char *
+GST_plugins_a2s (const char *name, const void *addr, size_t addrlen);
 
 
 #endif

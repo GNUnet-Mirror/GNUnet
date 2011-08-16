@@ -203,7 +203,8 @@ struct GNUNET_DHT_Handle
 /**
  * Transmit the next pending message, called by notify_transmit_ready
  */
-static size_t transmit_pending (void *cls, size_t size, void *buf);
+static size_t
+transmit_pending (void *cls, size_t size, void *buf);
 
 
 /**
@@ -211,8 +212,8 @@ static size_t transmit_pending (void *cls, size_t size, void *buf);
  * a demultiplexer which handles numerous message types
  *
  */
-static void service_message_handler (void *cls,
-                                     const struct GNUNET_MessageHeader *msg);
+static void
+service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg);
 
 
 
@@ -273,7 +274,8 @@ add_request_to_pending (void *cls, const GNUNET_HashCode * key, void *value)
  * Try to send messages from list of messages to send
  * @param handle DHT_Handle
  */
-static void process_pending_messages (struct GNUNET_DHT_Handle *handle);
+static void
+process_pending_messages (struct GNUNET_DHT_Handle *handle);
 
 
 /**
@@ -760,11 +762,9 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
                                  route_handle->message);
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (route_handle->
-                                                       dht_handle->
-                                                       active_requests,
-                                                       &route_handle->key,
-                                                       route_handle));
+                 GNUNET_CONTAINER_multihashmap_remove
+                 (route_handle->dht_handle->active_requests, &route_handle->key,
+                  route_handle));
   GNUNET_free (route_handle->message);
   GNUNET_free (route_handle);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DHT route stop request processed\n");

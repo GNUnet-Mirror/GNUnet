@@ -373,14 +373,14 @@ struct GNUNET_DHTLOG_Plugin
  *
  * @param c a configuration to use
  */
-struct GNUNET_DHTLOG_Handle *GNUNET_DHTLOG_connect (const struct
-                                                    GNUNET_CONFIGURATION_Handle
-                                                    *c);
+struct GNUNET_DHTLOG_Handle *
+GNUNET_DHTLOG_connect (const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**
  * Shutdown the module.
  */
-void GNUNET_DHTLOG_disconnect (struct GNUNET_DHTLOG_Handle *api);
+void
+GNUNET_DHTLOG_disconnect (struct GNUNET_DHTLOG_Handle *api);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

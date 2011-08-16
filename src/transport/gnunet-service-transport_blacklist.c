@@ -161,8 +161,8 @@ static struct GNUNET_CONTAINER_MultiHashMap *blacklist;
  * @param cls the 'struct BlacklistCheck*'
  * @param tc unused
  */
-static void do_blacklist_check (void *cls,
-                                const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+do_blacklist_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -328,8 +328,8 @@ read_blacklist_file ()
 #endif
     memcpy (&enc, &data[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
     if (!isspace
-        ((unsigned char) enc.
-         encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
+        ((unsigned char)
+         enc.encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _

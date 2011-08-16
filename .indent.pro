@@ -1,3 +1,5 @@
+//LRN extension for return values for prototypes
+-nddd
 //GNU (default) style: 	
 //
 //-nbad -bap -nbc -bbo -bl -bli2 -bls -ncdb -nce -cp1 -cs -di2

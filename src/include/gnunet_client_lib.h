@@ -53,11 +53,9 @@ struct GNUNET_CLIENT_Connection;
  * @param cfg configuration to use
  * @return NULL on error (service unknown to configuration)
  */
-struct GNUNET_CLIENT_Connection *GNUNET_CLIENT_connect (const char
-                                                        *service_name,
-                                                        const struct
-                                                        GNUNET_CONFIGURATION_Handle
-                                                        *cfg);
+struct GNUNET_CLIENT_Connection *
+GNUNET_CLIENT_connect (const char *service_name,
+                       const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -66,8 +64,9 @@ struct GNUNET_CLIENT_Connection *GNUNET_CLIENT_connect (const char
  * @param h client handle
  * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
  */
-void GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
-                                    int do_ignore);
+void
+GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
+                               int do_ignore);
 
 
 
@@ -86,8 +85,9 @@ void GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
  * @param finish_pending_write should a transmission already passed to the
  *          handle be completed?
  */
-void GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
-                               int finish_pending_write);
+void
+GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
+                          int finish_pending_write);
 
 /**
  * Type of a function to call when we receive a message
@@ -120,10 +120,10 @@ typedef void (*GNUNET_CLIENT_ShutdownTask) (void *cls, int reason);
  * @param handler_cls closure for handler
  * @param timeout how long to wait until timing out
  */
-void GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
-                            GNUNET_CLIENT_MessageHandler handler,
-                            void *handler_cls,
-                            struct GNUNET_TIME_Relative timeout);
+void
+GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
+                       GNUNET_CLIENT_MessageHandler handler, void *handler_cls,
+                       struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -152,20 +152,13 @@ struct GNUNET_CLIENT_TransmitHandle;
  *         non-NULL if the notify callback was queued (can be used to cancel
  *         using GNUNET_CONNECTION_notify_transmit_ready_cancel)
  */
-struct GNUNET_CLIENT_TransmitHandle *GNUNET_CLIENT_notify_transmit_ready (struct
-                                                                          GNUNET_CLIENT_Connection
-                                                                          *sock,
-                                                                          size_t
-                                                                          size,
-                                                                          struct
-                                                                          GNUNET_TIME_Relative
-                                                                          timeout,
-                                                                          int
-                                                                          auto_retry,
-                                                                          GNUNET_CONNECTION_TransmitReadyNotify
-                                                                          notify,
-                                                                          void
-                                                                          *notify_cls);
+struct GNUNET_CLIENT_TransmitHandle *
+GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
+                                     size_t size,
+                                     struct GNUNET_TIME_Relative timeout,
+                                     int auto_retry,
+                                     GNUNET_CONNECTION_TransmitReadyNotify
+                                     notify, void *notify_cls);
 
 
 /**
@@ -173,9 +166,9 @@ struct GNUNET_CLIENT_TransmitHandle *GNUNET_CLIENT_notify_transmit_ready (struct
  * 
  * @param th handle from the original request.
  */
-void GNUNET_CLIENT_notify_transmit_ready_cancel (struct
-                                                 GNUNET_CLIENT_TransmitHandle
-                                                 *th);
+void
+GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle
+                                            *th);
 
 
 /**
@@ -199,14 +192,13 @@ void GNUNET_CLIENT_notify_transmit_ready_cancel (struct
  * @return GNUNET_OK on success, GNUNET_SYSERR if a request
  *         is already pending
  */
-int GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection
-                                             *sock,
-                                             const struct GNUNET_MessageHeader
-                                             *hdr,
-                                             struct GNUNET_TIME_Relative
-                                             timeout, int auto_retry,
-                                             GNUNET_CLIENT_MessageHandler rn,
-                                             void *rn_cls);
+int
+GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
+                                         const struct GNUNET_MessageHeader *hdr,
+                                         struct GNUNET_TIME_Relative timeout,
+                                         int auto_retry,
+                                         GNUNET_CLIENT_MessageHandler rn,
+                                         void *rn_cls);
 
 
 /**
@@ -220,10 +212,11 @@ int GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection
  *         or "TIMEOUT" (service not known to be running))
  * @param task_cls closure for task
  */
-void GNUNET_CLIENT_service_test (const char *service,
-                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 struct GNUNET_TIME_Relative timeout,
-                                 GNUNET_SCHEDULER_Task task, void *task_cls);
+void
+GNUNET_CLIENT_service_test (const char *service,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            struct GNUNET_TIME_Relative timeout,
+                            GNUNET_SCHEDULER_Task task, void *task_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

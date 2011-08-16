@@ -68,12 +68,13 @@ struct GNUNET_DV_Handle;
  * @param cont_cls closure for continuation
  *
  */
-int GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
-                    const struct GNUNET_PeerIdentity *target,
-                    const char *msgbuf, size_t msgbuf_size,
-                    unsigned int priority, struct GNUNET_TIME_Relative timeout,
-                    const void *addr, size_t addrlen,
-                    GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
+int
+GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
+                const struct GNUNET_PeerIdentity *target, const char *msgbuf,
+                size_t msgbuf_size, unsigned int priority,
+                struct GNUNET_TIME_Relative timeout, const void *addr,
+                size_t addrlen, GNUNET_TRANSPORT_TransmitContinuation cont,
+                void *cont_cls);
 
 
 

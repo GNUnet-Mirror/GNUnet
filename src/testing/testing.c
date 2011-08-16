@@ -164,8 +164,8 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 #endif
 }
 
-static void start_fsm (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 #if WAIT_FOR_HELLO
 /**
@@ -195,10 +195,9 @@ testing_init (void *cls, struct GNUNET_CORE_Handle *server,
     d->server = NULL;
     if (GNUNET_YES == d->dead)
       GNUNET_TESTING_daemon_stop (d,
-                                  GNUNET_TIME_absolute_get_remaining (d->
-                                                                      max_timeout),
-                                  d->dead_cb, d->dead_cb_cls, GNUNET_YES,
-                                  GNUNET_NO);
+                                  GNUNET_TIME_absolute_get_remaining
+                                  (d->max_timeout), d->dead_cb, d->dead_cb_cls,
+                                  GNUNET_YES, GNUNET_NO);
     else if (NULL != d->cb)
       d->cb (d->cb_cls, NULL, d->cfg, d,
              _("Failed to connect to core service\n"));
@@ -233,10 +232,9 @@ testing_init (void *cls, struct GNUNET_CORE_Handle *server,
   {
     if (GNUNET_YES == d->dead)
       GNUNET_TESTING_daemon_stop (d,
-                                  GNUNET_TIME_absolute_get_remaining (d->
-                                                                      max_timeout),
-                                  d->dead_cb, d->dead_cb_cls, GNUNET_YES,
-                                  GNUNET_NO);
+                                  GNUNET_TIME_absolute_get_remaining
+                                  (d->max_timeout), d->dead_cb, d->dead_cb_cls,
+                                  GNUNET_YES, GNUNET_NO);
     else if (NULL != d->cb)
       d->cb (d->cb_cls, &d->id, d->cfg, d,
              _("Failed to connect to transport service!\n"));
@@ -349,8 +347,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         if (NULL != cb)
           cb (d->cb_cls, NULL, d->cfg, d,
               (NULL ==
-               d->
-               hostname) ?
+               d->hostname) ?
               _("Failed to create pipe for `gnunet-peerinfo' process.\n") :
               _("Failed to create pipe for `ssh' process.\n"));
         return;
@@ -415,9 +412,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         if (NULL != cb)
           cb (d->cb_cls, NULL, d->cfg, d,
               (NULL ==
-               d->
-               hostname) ? _("Failed to start `gnunet-peerinfo' process.\n") :
-              _("Failed to start `ssh' process.\n"));
+               d->hostname) ? _("Failed to start `gnunet-peerinfo' process.\n")
+              : _("Failed to start `ssh' process.\n"));
         GNUNET_DISK_pipe_close (d->pipe_stdout);
         return;
       }
@@ -429,9 +425,9 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       d->task =
           GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining
                                           (d->max_timeout),
-                                          GNUNET_DISK_pipe_handle (d->
-                                                                   pipe_stdout,
-                                                                   GNUNET_DISK_PIPE_END_READ),
+                                          GNUNET_DISK_pipe_handle
+                                          (d->pipe_stdout,
+                                           GNUNET_DISK_PIPE_END_READ),
                                           &start_fsm, d);
     }
     else                        /* Already have a hostkey! */
@@ -464,9 +460,9 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       d->task =
           GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining
                                           (d->max_timeout),
-                                          GNUNET_DISK_pipe_handle (d->
-                                                                   pipe_stdout,
-                                                                   GNUNET_DISK_PIPE_END_READ),
+                                          GNUNET_DISK_pipe_handle
+                                          (d->pipe_stdout,
+                                           GNUNET_DISK_PIPE_END_READ),
                                           &start_fsm, d);
       return;
     }
@@ -614,8 +610,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (NULL != cb)
         cb (d->cb_cls, NULL, d->cfg, d,
             (NULL ==
-             d->
-             hostname) ? _("Failed to start `gnunet-arm' process.\n") :
+             d->hostname) ? _("Failed to start `gnunet-arm' process.\n") :
             _("Failed to start `ssh' process.\n"));
       return;
     }
@@ -639,8 +634,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         if (NULL != cb)
           cb (d->cb_cls, NULL, d->cfg, d,
               (NULL ==
-               d->
-               hostname) ? _("`gnunet-arm' does not seem to terminate.\n") :
+               d->hostname) ? _("`gnunet-arm' does not seem to terminate.\n") :
               _("`ssh' does not seem to terminate.\n"));
         GNUNET_CONFIGURATION_destroy (d->cfg);
         GNUNET_free (d->cfgfile);
@@ -698,10 +692,9 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       if (GNUNET_YES == d->dead)
         GNUNET_TESTING_daemon_stop (d,
-                                    GNUNET_TIME_absolute_get_remaining (d->
-                                                                        max_timeout),
-                                    d->dead_cb, d->dead_cb_cls, GNUNET_YES,
-                                    GNUNET_NO);
+                                    GNUNET_TIME_absolute_get_remaining
+                                    (d->max_timeout), d->dead_cb,
+                                    d->dead_cb_cls, GNUNET_YES, GNUNET_NO);
       else if (NULL != d->cb)
         d->cb (d->cb_cls, &d->id, d->cfg, d,
                _("Failed to connect to transport service!\n"));
@@ -763,8 +756,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         if (NULL != cb)
           cb (d->cb_cls, NULL, d->cfg, d,
               (NULL ==
-               d->
-               hostname) ? _("`gnunet-arm' does not seem to terminate.\n") :
+               d->hostname) ? _("`gnunet-arm' does not seem to terminate.\n") :
               _("`ssh' does not seem to terminate.\n"));
         return;
       }
@@ -782,8 +774,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (NULL != cb)
         cb (d->cb_cls, NULL, d->cfg, d,
             (NULL ==
-             d->
-             hostname) ?
+             d->hostname) ?
             _
             ("`gnunet-arm' terminated with non-zero exit status (or timed out)!\n")
             : _("`ssh' does not seem to terminate.\n"));
@@ -1946,9 +1937,9 @@ struct ConnectContext
 
 
 /** Forward declaration **/
-static void reattempt_daemons_connect (void *cls,
-                                       const struct GNUNET_SCHEDULER_TaskContext
-                                       *tc);
+static void
+reattempt_daemons_connect (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**

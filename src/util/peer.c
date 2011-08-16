@@ -181,8 +181,8 @@ GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count)
     {
       GNUNET_break (GNUNET_OK ==
                     GNUNET_CONTAINER_multihashmap_remove (map,
-                                                          &table[id].id.
-                                                          hashPubKey,
+                                                          &table[id].
+                                                          id.hashPubKey,
                                                           (void *) (long) id));
       table[id].pid = free_list_start;
       free_list_start = id;
@@ -210,8 +210,8 @@ GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta)
   {
     GNUNET_break (GNUNET_OK ==
                   GNUNET_CONTAINER_multihashmap_remove (map,
-                                                        &table[id].id.
-                                                        hashPubKey,
+                                                        &table[id].
+                                                        id.hashPubKey,
                                                         (void *) (long) id));
     table[id].pid = free_list_start;
     free_list_start = id;

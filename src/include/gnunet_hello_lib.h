@@ -60,11 +60,11 @@ struct GNUNET_HELLO_Message;
  * @return number of bytes copied, 0 if
  *         the target buffer was not big enough.
  */
-size_t               GNUNET_HELLO_add_address (const char *tname,
-                                               struct GNUNET_TIME_Absolute
-                                               expiration, const void *addr,
-                                               uint16_t addr_len, char *target,
-                                               size_t max);
+size_t
+GNUNET_HELLO_add_address (const char *tname,
+                          struct GNUNET_TIME_Absolute expiration,
+                          const void *addr, uint16_t addr_len, char *target,
+                          size_t max);
 
 
 /**
@@ -90,11 +90,11 @@ typedef size_t (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
  *
  * @return the hello message
  */
-struct GNUNET_HELLO_Message *GNUNET_HELLO_create (const struct
-                                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                                                  *publicKey,
-                                                  GNUNET_HELLO_GenerateAddressListCallback
-                                                  addrgen, void *addrgen_cls);
+struct GNUNET_HELLO_Message *
+GNUNET_HELLO_create (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                     *publicKey,
+                     GNUNET_HELLO_GenerateAddressListCallback addrgen,
+                     void *addrgen_cls);
 
 
 /**
@@ -102,7 +102,8 @@ struct GNUNET_HELLO_Message *GNUNET_HELLO_create (const struct
  * @param hello to inspect
  * @return the size, 0 if HELLO is invalid
  */
-uint16_t GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello);
+uint16_t
+GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello);
 
 
 /**
@@ -114,10 +115,9 @@ uint16_t GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello);
  * @param h2 the second HELLO message
  * @return the combined hello message
  */
-struct GNUNET_HELLO_Message *GNUNET_HELLO_merge (const struct
-                                                 GNUNET_HELLO_Message *h1,
-                                                 const struct
-                                                 GNUNET_HELLO_Message *h2);
+struct GNUNET_HELLO_Message *
+GNUNET_HELLO_merge (const struct GNUNET_HELLO_Message *h1,
+                    const struct GNUNET_HELLO_Message *h2);
 
 
 /**
@@ -136,12 +136,10 @@ struct GNUNET_HELLO_Message *GNUNET_HELLO_merge (const struct
  *         zero if the some addresses with expirations >= now
  *         do not match at all
  */
-struct GNUNET_TIME_Absolute GNUNET_HELLO_equals (const struct
-                                                 GNUNET_HELLO_Message *h1,
-                                                 const struct
-                                                 GNUNET_HELLO_Message *h2,
-                                                 struct GNUNET_TIME_Absolute
-                                                 now);
+struct GNUNET_TIME_Absolute
+GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
+                     const struct GNUNET_HELLO_Message *h2,
+                     struct GNUNET_TIME_Absolute now);
 
 
 /**
@@ -174,13 +172,10 @@ typedef int (*GNUNET_HELLO_AddressIterator) (void *cls, const char *tname,
  * @param it_cls closure for it
  * @return the modified HELLO or NULL
  */
-struct GNUNET_HELLO_Message *GNUNET_HELLO_iterate_addresses (const struct
-                                                             GNUNET_HELLO_Message
-                                                             *msg,
-                                                             int
-                                                             return_modified,
-                                                             GNUNET_HELLO_AddressIterator
-                                                             it, void *it_cls);
+struct GNUNET_HELLO_Message *
+GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
+                                int return_modified,
+                                GNUNET_HELLO_AddressIterator it, void *it_cls);
 
 
 /**
@@ -194,14 +189,15 @@ struct GNUNET_HELLO_Message *GNUNET_HELLO_iterate_addresses (const struct
  * @param it iterator to call on each address
  * @param it_cls closure for it
  */
-void GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message
-                                         *new_hello,
-                                         const struct GNUNET_HELLO_Message
-                                         *old_hello,
-                                         struct GNUNET_TIME_Absolute
-                                         expiration_limit,
-                                         GNUNET_HELLO_AddressIterator it,
-                                         void *it_cls);
+void
+GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message
+                                    *new_hello,
+                                    const struct GNUNET_HELLO_Message
+                                    *old_hello,
+                                    struct GNUNET_TIME_Absolute
+                                    expiration_limit,
+                                    GNUNET_HELLO_AddressIterator it,
+                                    void *it_cls);
 
 
 /**
@@ -211,9 +207,10 @@ void GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message
  * @param publicKey where to copy the public key information, can be NULL
  * @return GNUNET_SYSERR if the HELLO was malformed
  */
-int GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
-                          struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                          *publicKey);
+int
+GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
+                      struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                      *publicKey);
 
 
 /**
@@ -223,8 +220,9 @@ int GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
  * @param peer where to store the peer's identity
  * @return GNUNET_SYSERR if the HELLO was malformed
  */
-int GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
-                         struct GNUNET_PeerIdentity *peer);
+int
+GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
+                     struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -235,9 +233,8 @@ int GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
  *
  * @return header or NULL if the HELLO was malformed
  */
-struct GNUNET_MessageHeader *GNUNET_HELLO_get_header (struct
-                                                      GNUNET_HELLO_Message
-                                                      *hello);
+struct GNUNET_MessageHeader *
+GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
 
 /* ifndef GNUNET_HELLO_LIB_H */
 #endif

@@ -84,10 +84,9 @@ typedef void (*GNUNET_NSE_Callback) (void *cls,
  *
  * @return handle to use
  */
-struct GNUNET_NSE_Handle *GNUNET_NSE_connect (const struct
-                                              GNUNET_CONFIGURATION_Handle *cfg,
-                                              GNUNET_NSE_Callback func,
-                                              void *func_cls);
+struct GNUNET_NSE_Handle *
+GNUNET_NSE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    GNUNET_NSE_Callback func, void *func_cls);
 
 
 /**
@@ -96,7 +95,8 @@ struct GNUNET_NSE_Handle *GNUNET_NSE_connect (const struct
  * @param h handle to destroy
  *
  */
-void GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h);
+void
+GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

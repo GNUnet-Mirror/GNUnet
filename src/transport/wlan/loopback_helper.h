@@ -14,6 +14,7 @@
 
 //static void file_in_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr);
 
-int testmode (int argc, char *argv[]);
+int
+testmode (int argc, char *argv[]);
 
 #endif /* LOOPBACK_HELPER_H_ */

@@ -759,17 +759,17 @@ struct GNUNET_FS_SearchResult
  * @param blocks number of blocks this download has
  * @return queue handle
  */
-struct GNUNET_FS_QueueEntry *GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
-                                               GNUNET_FS_QueueStart start,
-                                               GNUNET_FS_QueueStop stop,
-                                               void *cls, unsigned int blocks);
+struct GNUNET_FS_QueueEntry *
+GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h, GNUNET_FS_QueueStart start,
+                  GNUNET_FS_QueueStop stop, void *cls, unsigned int blocks);
 
 
 /**
  * Dequeue a job from the queue.
  * @param qh handle for the job
  */
-void GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh);
+void
+GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh);
 
 
 /**
@@ -788,9 +788,9 @@ void GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh);
  * @param emsg location for the reader to store an error message
  * @return number of bytes written, usually "max", 0 on error
  */
-size_t               GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset,
-                                                  size_t max, void *buf,
-                                                  char **emsg);
+size_t
+GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
+                             char **emsg);
 
 
 /**
@@ -799,7 +799,8 @@ size_t               GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset,
  * @param filename file to read
  * @return closure to use
  */
-void *GNUNET_FS_make_file_reader_context_ (const char *filename);
+void *
+GNUNET_FS_make_file_reader_context_ (const char *filename);
 
 
 
@@ -819,8 +820,9 @@ void *GNUNET_FS_make_file_reader_context_ (const char *filename);
  * @param emsg location for the reader to store an error message
  * @return number of bytes written, usually "max", 0 on error
  */
-size_t GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max,
-                                    void *buf, char **emsg);
+size_t
+GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max, void *buf,
+                             char **emsg);
 
 /**
  * Notification of FS that a search probe has made progress.
@@ -837,9 +839,9 @@ size_t GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max,
  *         will be passed to future callbacks in the respective
  *         field in the GNUNET_FS_ProgressInfo struct.
  */
-void *GNUNET_FS_search_probe_progress_ (void *cls,
-                                        const struct GNUNET_FS_ProgressInfo
-                                        *info);
+void *
+GNUNET_FS_search_probe_progress_ (void *cls,
+                                  const struct GNUNET_FS_ProgressInfo *info);
 
 
 /**
@@ -848,8 +850,9 @@ void *GNUNET_FS_search_probe_progress_ (void *cls,
  * @param cls "struct GNUNET_FS_PublishContext" identifies the upload
  * @param tc task context
  */
-void GNUNET_FS_publish_main_ (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc);
+void
+GNUNET_FS_publish_main_ (void *cls,
+                         const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -859,8 +862,8 @@ void GNUNET_FS_publish_main_ (void *cls,
  * @param cls closure, unindex context
  * @param file_id computed hash, NULL on error
  */
-void GNUNET_FS_unindex_process_hash_ (void *cls,
-                                      const GNUNET_HashCode * file_id);
+void
+GNUNET_FS_unindex_process_hash_ (void *cls, const GNUNET_HashCode * file_id);
 
 
 /**
@@ -873,10 +876,11 @@ void GNUNET_FS_unindex_process_hash_ (void *cls,
  * @param offset where in the file are we so far
  * @return value returned from callback
  */
-void *GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
-                                      struct GNUNET_FS_PublishContext *sc,
-                                      const struct GNUNET_FS_FileInformation *p,
-                                      uint64_t offset);
+void *
+GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+                                struct GNUNET_FS_PublishContext *sc,
+                                const struct GNUNET_FS_FileInformation *p,
+                                uint64_t offset);
 
 
 /**
@@ -886,8 +890,9 @@ void *GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * @param pi structure to fill in
  * @param dc overall download context
  */
-void GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
-                                      struct GNUNET_FS_DownloadContext *dc);
+void
+GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+                                 struct GNUNET_FS_DownloadContext *dc);
 
 
 /**
@@ -897,9 +902,9 @@ void GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * @param cls the 'struct GNUNET_FS_DownloadContext'
  * @param tc scheduler context
  */
-void GNUNET_FS_download_start_task_ (void *cls,
-                                     const struct GNUNET_SCHEDULER_TaskContext
-                                     *tc);
+void
+GNUNET_FS_download_start_task_ (void *cls,
+                                const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 
@@ -911,9 +916,10 @@ void GNUNET_FS_download_start_task_ (void *cls,
  * @param uc overall unindex context
  * @param offset where we are in the file (for progress)
  */
-void GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
-                                     struct GNUNET_FS_UnindexContext *uc,
-                                     uint64_t offset);
+void
+GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+                                struct GNUNET_FS_UnindexContext *uc,
+                                uint64_t offset);
 
 /**
  * Fill in all of the generic fields for a search event and
@@ -923,8 +929,9 @@ void GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * @param sc overall search context
  * @return value returned by the callback
  */
-void *GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
-                                     struct GNUNET_FS_SearchContext *sc);
+void *
+GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+                               struct GNUNET_FS_SearchContext *sc);
 
 
 /**
@@ -932,7 +939,8 @@ void *GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  *
  * @param uc context for the unindex operation.
  */
-void GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc);
+void
+GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc);
 
 /**
  * Build the request and actually initiate the search using the
@@ -941,15 +949,16 @@ void GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc);
  * @param sc search context
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc);
+int
+GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc);
 
 /**
  * Start the downloading process (by entering the queue).
  *
  * @param dc our download context
  */
-void GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext
-                                            *dc);
+void
+GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc);
 
 
 /**
@@ -957,7 +966,8 @@ void GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext
  *
  * @param sr the search result
  */
-void GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr);
+void
+GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr);
 
 /**
  * Remove serialization/deserialization file from disk.
@@ -966,8 +976,9 @@ void GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr);
  * @param ext component of the path 
  * @param ent entity identifier 
  */
-void GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
-                                  const char *ent);
+void
+GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
+                             const char *ent);
 
 
 /**
@@ -977,8 +988,9 @@ void GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
  * @param ext component of the path 
  * @param uni unique name of parent 
  */
-void GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
-                                 const char *uni);
+void
+GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
+                            const char *uni);
 
 
 /**
@@ -989,7 +1001,8 @@ void GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
  * 
  * @param fi the struct to sync
  */
-void GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
+void
+GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
 
 /**
  * Synchronize this publishing struct with its mirror
@@ -999,7 +1012,8 @@ void GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
  * 
  * @param pc the struct to sync
  */
-void GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
+void
+GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
 
 /**
  * Synchronize this unindex struct with its mirror
@@ -1009,7 +1023,8 @@ void GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
  * 
  * @param uc the struct to sync
  */
-void GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
+void
+GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
 
 /**
  * Synchronize this search struct with its mirror
@@ -1019,7 +1034,8 @@ void GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
  * 
  * @param sc the struct to sync
  */
-void GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
+void
+GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
 
 /**
  * Synchronize this search result with its mirror
@@ -1029,7 +1045,8 @@ void GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
  * 
  * @param sr the struct to sync
  */
-void GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr);
+void
+GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr);
 
 /**
  * Synchronize this download struct with its mirror
@@ -1039,7 +1056,8 @@ void GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr);
  * 
  * @param dc the struct to sync
  */
-void GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
+void
+GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
 
 /**
  * Create SUSPEND event for the given publish operation
@@ -1047,7 +1065,8 @@ void GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
  *
  * @param cls the 'struct GNUNET_FS_PublishContext' to signal for
  */
-void GNUNET_FS_publish_signal_suspend_ (void *cls);
+void
+GNUNET_FS_publish_signal_suspend_ (void *cls);
 
 /**
  * Create SUSPEND event for the given search operation
@@ -1055,7 +1074,8 @@ void GNUNET_FS_publish_signal_suspend_ (void *cls);
  *
  * @param cls the 'struct GNUNET_FS_SearchContext' to signal for
  */
-void GNUNET_FS_search_signal_suspend_ (void *cls);
+void
+GNUNET_FS_search_signal_suspend_ (void *cls);
 
 /**
  * Create SUSPEND event for the given download operation
@@ -1063,7 +1083,8 @@ void GNUNET_FS_search_signal_suspend_ (void *cls);
  *
  * @param cls the 'struct GNUNET_FS_DownloadContext' to signal for
  */
-void GNUNET_FS_download_signal_suspend_ (void *cls);
+void
+GNUNET_FS_download_signal_suspend_ (void *cls);
 
 /**
  * Create SUSPEND event for the given unindex operation
@@ -1071,7 +1092,8 @@ void GNUNET_FS_download_signal_suspend_ (void *cls);
  *
  * @param cls the 'struct GNUNET_FS_UnindexContext' to signal for
  */
-void GNUNET_FS_unindex_signal_suspend_ (void *cls);
+void
+GNUNET_FS_unindex_signal_suspend_ (void *cls);
 
 /**
  * Function signature of the functions that can be called
@@ -1118,9 +1140,9 @@ struct TopLevelActivity
  * @param ssf_cls closure for ssf
  * @return fresh top-level activity handle
  */
-struct TopLevelActivity *GNUNET_FS_make_top (struct GNUNET_FS_Handle *h,
-                                             SuspendSignalFunction ssf,
-                                             void *ssf_cls);
+struct TopLevelActivity *
+GNUNET_FS_make_top (struct GNUNET_FS_Handle *h, SuspendSignalFunction ssf,
+                    void *ssf_cls);
 
 
 /**
@@ -1129,8 +1151,8 @@ struct TopLevelActivity *GNUNET_FS_make_top (struct GNUNET_FS_Handle *h,
  * @param h global fs handle
  * @param top top level activity entry
  */
-void GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
-                        struct TopLevelActivity *top);
+void
+GNUNET_FS_end_top (struct GNUNET_FS_Handle *h, struct TopLevelActivity *top);
 
 
 
@@ -1736,7 +1758,8 @@ struct DownloadRequest
  *
  * @param dr request to free
  */
-void GNUNET_FS_free_download_request_ (struct DownloadRequest *dr);
+void
+GNUNET_FS_free_download_request_ (struct DownloadRequest *dr);
 
 
 /**

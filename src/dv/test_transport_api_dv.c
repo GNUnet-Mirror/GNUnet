@@ -382,8 +382,8 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
-static void send_other_messages (void *cls,
-                                 const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Get distance information from 'atsi'.

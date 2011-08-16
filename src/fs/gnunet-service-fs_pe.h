@@ -35,8 +35,8 @@
  * @param cp peer with the entry
  * @param pr request with the entry
  */
-void GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
-                    struct GSF_PendingRequest *pr);
+void
+GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr);
 
 
 /**
@@ -45,7 +45,8 @@ void GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
  *
  * @param cp connected peer 
  */
-void GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp);
+void
+GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp);
 
 
 /**
@@ -54,19 +55,22 @@ void GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp);
  *
  * @param pr request that is done
  */
-void GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
+void
+GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
 
 
 /**
  * Initialize plan subsystem.
  */
-void GSF_plan_init (void);
+void
+GSF_plan_init (void);
 
 
 /**
  * Shutdown plan subsystem.
  */
-void GSF_plan_done (void);
+void
+GSF_plan_done (void);
 
 
 #endif

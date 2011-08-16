@@ -98,8 +98,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     printf ("Publish complete,  %llu kbps.\n",
             (unsigned long long) (FILESIZE * 1000 /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration (start).
-                                   rel_value) / 1024));
+                                   GNUNET_TIME_absolute_get_duration
+                                   (start).rel_value) / 1024));
     if (0 == strcmp ("publish-context-dir", event->value.publish.cctx))
       GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -112,8 +112,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
             (unsigned long long) event->value.publish.completed,
             (unsigned long long) event->value.publish.size,
             event->value.publish.specifics.progress.depth,
-            (unsigned long long) event->value.publish.specifics.progress.
-            offset);
+            (unsigned long long) event->value.publish.specifics.
+            progress.offset);
 #endif
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:

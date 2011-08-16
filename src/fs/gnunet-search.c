@@ -150,8 +150,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     uri = GNUNET_FS_uri_to_string (info->value.search.specifics.result.uri);
     printf ("#%u:\n", cnt++);
     filename =
-        GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.specifics.
-                                                result.meta,
+        GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.
+                                                specifics.result.meta,
                                                 EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
     if (filename != NULL)
     {
@@ -162,8 +162,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     else
       printf ("gnunet-download %s\n", uri);
     if (verbose)
-      GNUNET_CONTAINER_meta_data_iterate (info->value.search.specifics.result.
-                                          meta, &item_printer, NULL);
+      GNUNET_CONTAINER_meta_data_iterate (info->value.search.specifics.
+                                          result.meta, &item_printer, NULL);
     printf ("\n");
     fflush (stdout);
     GNUNET_free_non_null (filename);

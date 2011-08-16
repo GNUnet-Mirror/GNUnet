@@ -218,9 +218,9 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
   size = GNUNET_CRYPTO_RSA_KEY_LENGTH - GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
   GNUNET_assert (0 ==
                  gcry_mpi_print (GCRYMPI_FMT_USG,
-                                 &pub->
-                                 key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH],
-                                 size, &size, skey[1]));
+                                 &pub->key
+                                 [GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH], size,
+                                 &size, skey[1]));
   adjust (&pub->key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH], size,
           GNUNET_CRYPTO_RSA_KEY_LENGTH -
           GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH);

@@ -53,7 +53,8 @@ typedef unsigned int GNUNET_PEER_Id;
  * @param pid identity to find
  * @return the interned identity or 0.
  */
-GNUNET_PEER_Id GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid);
+GNUNET_PEER_Id
+GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -63,7 +64,8 @@ GNUNET_PEER_Id GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid);
  * @param pid identity to intern
  * @return the interned identity.
  */
-GNUNET_PEER_Id GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid);
+GNUNET_PEER_Id
+GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -72,7 +74,8 @@ GNUNET_PEER_Id GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid);
  * @param id identity to change the RC of
  * @param delta how much to change the RC
  */
-void GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta);
+void
+GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta);
 
 
 /**
@@ -81,7 +84,8 @@ void GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta);
  * @param ids array of PIDs to decrement the RCs of
  * @param count size of the ids array
  */
-void GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count);
+void
+GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count);
 
 
 /**
@@ -90,7 +94,8 @@ void GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count);
  * @param id interned PID to convert
  * @param pid where to write the normal peer identity
  */
-void GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid);
+void
+GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid);
 
 
 /* ifndef GNUNET_PEER_LIB_H */

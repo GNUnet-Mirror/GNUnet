@@ -419,16 +419,14 @@ find_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *peer)
 }
 
 /* Forward Declaration */
-static ssize_t unix_real_send (void *cls,
-                               struct RetrySendContext *incoming_retry_context,
-                               struct GNUNET_NETWORK_Handle *send_handle,
-                               const struct GNUNET_PeerIdentity *target,
-                               const char *msgbuf, size_t msgbuf_size,
-                               unsigned int priority,
-                               struct GNUNET_TIME_Relative timeout,
-                               const void *addr, size_t addrlen,
-                               GNUNET_TRANSPORT_TransmitContinuation cont,
-                               void *cont_cls);
+static ssize_t
+unix_real_send (void *cls, struct RetrySendContext *incoming_retry_context,
+                struct GNUNET_NETWORK_Handle *send_handle,
+                const struct GNUNET_PeerIdentity *target, const char *msgbuf,
+                size_t msgbuf_size, unsigned int priority,
+                struct GNUNET_TIME_Relative timeout, const void *addr,
+                size_t addrlen, GNUNET_TRANSPORT_TransmitContinuation cont,
+                void *cont_cls);
 
 /**
  * Retry sending a message.

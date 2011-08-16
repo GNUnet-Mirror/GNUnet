@@ -656,9 +656,9 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Task %llu took %llums to be scheduled\n", pos->id,
-                  (unsigned long long) GNUNET_TIME_absolute_get_duration (pos->
-                                                                          start_time).
-                  rel_value);
+                  (unsigned long long)
+                  GNUNET_TIME_absolute_get_duration
+                  (pos->start_time).rel_value);
     }
 #endif
     tc.reason = pos->reason;

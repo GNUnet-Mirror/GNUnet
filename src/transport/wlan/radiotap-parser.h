@@ -70,10 +70,10 @@ struct ieee80211_radiotap_iterator
   u32 bitmap_shifter;
 };
 
-int ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator
-                                      *iterator,
-                                      struct ieee80211_radiotap_header
-                                      *radiotap_header, int max_length);
+int
+ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator *iterator,
+                                  struct ieee80211_radiotap_header
+                                  *radiotap_header, int max_length);
 
-int ieee80211_radiotap_iterator_next (struct ieee80211_radiotap_iterator
-                                      *iterator);
+int
+ieee80211_radiotap_iterator_next (struct ieee80211_radiotap_iterator *iterator);

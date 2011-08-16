@@ -191,7 +191,8 @@ delete_migration_block (struct MigrationReadyBlock *mb)
 /**
  * Find content for migration to this peer.
  */
-static void find_content (struct MigrationReadyPeer *mrp);
+static void
+find_content (struct MigrationReadyPeer *mrp);
 
 
 /**
@@ -343,7 +344,8 @@ score_content (struct MigrationReadyPeer *peer,
  * If the migration task is not currently running, consider
  * (re)scheduling it with the appropriate delay.
  */
-static void consider_gathering (void);
+static void
+consider_gathering (void);
 
 
 /**
@@ -421,9 +423,9 @@ find_content (struct MigrationReadyPeer *mrp)
  * @param cls unused
  * @param tc scheduler context (also unused)
  */
-static void gather_migration_blocks (void *cls,
-                                     const struct GNUNET_SCHEDULER_TaskContext
-                                     *tc);
+static void
+gather_migration_blocks (void *cls,
+                         const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**

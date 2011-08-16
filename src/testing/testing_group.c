@@ -1630,19 +1630,23 @@ remove_connections (struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
   }
 #else
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multihashmap_contains (pg->peers[first].
-                                              blacklisted_peers, &hash_second))
+      GNUNET_CONTAINER_multihashmap_contains (pg->
+                                              peers[first].blacklisted_peers,
+                                              &hash_second))
   {
-    GNUNET_CONTAINER_multihashmap_remove_all (pg->peers[first].
-                                              blacklisted_peers, &hash_second);
+    GNUNET_CONTAINER_multihashmap_remove_all (pg->
+                                              peers[first].blacklisted_peers,
+                                              &hash_second);
   }
 
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multihashmap_contains (pg->peers[second].
-                                              blacklisted_peers, &hash_first))
+      GNUNET_CONTAINER_multihashmap_contains (pg->
+                                              peers[second].blacklisted_peers,
+                                              &hash_first))
   {
-    GNUNET_CONTAINER_multihashmap_remove_all (pg->peers[second].
-                                              blacklisted_peers, &hash_first);
+    GNUNET_CONTAINER_multihashmap_remove_all (pg->
+                                              peers[second].blacklisted_peers,
+                                              &hash_first);
   }
 #endif
 
@@ -2864,8 +2868,8 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
     conn_iter = pg->peers[pg_iter].allowed_peers_head;
     while (conn_iter != NULL)
     {
-      GNUNET_CRYPTO_hash_to_enc (&pg->peers[conn_iter->index].daemon->id.
-                                 hashPubKey, &peer_enc);
+      GNUNET_CRYPTO_hash_to_enc (&pg->peers[conn_iter->index].daemon->
+                                 id.hashPubKey, &peer_enc);
       fprintf (temp_friend_handle, "%s\n", (char *) &peer_enc);
       conn_iter = conn_iter->next;
     }
@@ -3051,15 +3055,16 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
         conn_iter = pg->peers[pg_iter].blacklisted_peers_head;
         while (conn_iter != NULL)
         {
-          GNUNET_CRYPTO_hash_to_enc (&pg->peers[conn_iter->index].daemon->id.
-                                     hashPubKey, &peer_enc);
+          GNUNET_CRYPTO_hash_to_enc (&pg->peers[conn_iter->index].daemon->
+                                     id.hashPubKey, &peer_enc);
           fprintf (temp_file_handle, "%s:%s\n", pos, (char *) &peer_enc);
           conn_iter = conn_iter->next;
         }
 #else
         blacklist_ctx.transport = pos;
-        (void) GNUNET_CONTAINER_multihashmap_iterate (pg->peers[pg_iter].
-                                                      blacklisted_peers,
+        (void) GNUNET_CONTAINER_multihashmap_iterate (pg->
+                                                      peers
+                                                      [pg_iter].blacklisted_peers,
                                                       &blacklist_file_iterator,
                                                       &blacklist_ctx);
 #endif
@@ -3176,8 +3181,8 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
 }
 
 /* Forward Declaration */
-static void schedule_connect (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Choose a random peer's next connection to create, and
@@ -3216,9 +3221,8 @@ preschedule_connect (struct GNUNET_TESTING_PeerGroup *pg)
 
 #if USE_SEND_HELLOS
 /* Forward declaration */
-static void schedule_send_hellos (void *cls,
-                                  const struct GNUNET_SCHEDULER_TaskContext
-                                  *tc);
+static void
+schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Close connections and free the hello context.
@@ -3319,19 +3323,19 @@ send_core_connect_requests (void *cls,
     conn = send_hello_context->peer->connect_peers_head;
     while (conn != NULL)
     {
-      GNUNET_CORE_peer_request_connect (send_hello_context->peer->daemon->
-                                        server,
-                                        &send_hello_context->pg->peers[conn->
-                                                                       index].
-                                        daemon->id, NULL, NULL);
+      GNUNET_CORE_peer_request_connect (send_hello_context->peer->
+                                        daemon->server,
+                                        &send_hello_context->pg->
+                                        peers[conn->index].daemon->id, NULL,
+                                        NULL);
       conn = conn->next;
     }
     send_hello_context->core_connect_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
-                                      (send_hello_context->pg->ct_ctx.
-                                       connect_timeout,
-                                       send_hello_context->pg->ct_ctx.
-                                       connect_attempts),
+                                      (send_hello_context->pg->
+                                       ct_ctx.connect_timeout,
+                                       send_hello_context->pg->
+                                       ct_ctx.connect_attempts),
                                       &send_core_connect_requests,
                                       send_hello_context);
   }
@@ -3522,10 +3526,10 @@ hello_sent_callback (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     send_hello_context->core_connect_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
-                                      (send_hello_context->pg->ct_ctx.
-                                       connect_timeout,
-                                       send_hello_context->pg->ct_ctx.
-                                       connect_attempts),
+                                      (send_hello_context->pg->
+                                       ct_ctx.connect_timeout,
+                                       send_hello_context->pg->
+                                       ct_ctx.connect_attempts),
                                       &send_core_connect_requests,
                                       send_hello_context);
   }
@@ -3584,14 +3588,14 @@ schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Offering Hello of peer %s to peer %s\n"),
                 send_hello_context->peer->daemon->shortname,
-                pg->peers[send_hello_context->peer_pos->index].daemon->
-                shortname);
+                pg->peers[send_hello_context->peer_pos->index].
+                daemon->shortname);
 #endif
     GNUNET_TRANSPORT_offer_hello (send_hello_context->peer->daemon->th,
-                                  (const struct GNUNET_MessageHeader *) pg->
-                                  peers[send_hello_context->peer_pos->index].
-                                  daemon->hello, &hello_sent_callback,
-                                  send_hello_context);
+                                  (const struct GNUNET_MessageHeader *)
+                                  pg->peers[send_hello_context->peer_pos->
+                                            index].daemon->hello,
+                                  &hello_sent_callback, send_hello_context);
     send_hello_context->peer_pos = send_hello_context->peer_pos->next;
     GNUNET_assert (send_hello_context->peer->daemon->th != NULL);
   }
@@ -3647,10 +3651,12 @@ internal_connect_notify (void *cls, const struct GNUNET_PeerIdentity *first,
                              second_cfg, first_cfg, second_daemon, first_daemon,
                              emsg);
 
-    GNUNET_CONTAINER_DLL_remove (pg->peers[connect_ctx->second_index].
-                                 connect_peers_head,
-                                 pg->peers[connect_ctx->second_index].
-                                 connect_peers_tail, connection);
+    GNUNET_CONTAINER_DLL_remove (pg->
+                                 peers[connect_ctx->
+                                       second_index].connect_peers_head,
+                                 pg->peers[connect_ctx->
+                                           second_index].connect_peers_tail,
+                                 connection);
     GNUNET_free (connection);
   }
 
@@ -3711,10 +3717,10 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
     pg->outstanding_connects++;
     pg->total_connects_scheduled++;
-    GNUNET_TESTING_daemons_connect (pg->peers[connect_context->first_index].
-                                    daemon,
-                                    pg->peers[connect_context->second_index].
-                                    daemon,
+    GNUNET_TESTING_daemons_connect (pg->
+                                    peers[connect_context->first_index].daemon,
+                                    pg->peers[connect_context->
+                                              second_index].daemon,
                                     connect_context->ct_ctx->connect_timeout,
                                     connect_context->ct_ctx->connect_attempts,
 #if USE_SEND_HELLOS
@@ -4224,8 +4230,8 @@ random_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
   if (random_number < random_ctx->percentage)
   {
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put (random_ctx->first->
-                                                      connect_peers_working_set,
+                   GNUNET_CONTAINER_multihashmap_put (random_ctx->
+                                                      first->connect_peers_working_set,
                                                       key, value,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
@@ -4235,12 +4241,12 @@ random_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
   hash_from_uid (random_ctx->first_uid, &first_hash);
   GNUNET_assert (random_ctx->pg->total > second_pos);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (random_ctx->pg->
-                                                       peers[second_pos].
-                                                       connect_peers,
+                 GNUNET_CONTAINER_multihashmap_remove (random_ctx->
+                                                       pg->peers
+                                                       [second_pos].connect_peers,
                                                        &first_hash,
-                                                       random_ctx->first->
-                                                       daemon));
+                                                       random_ctx->
+                                                       first->daemon));
 
   return GNUNET_YES;
 }
@@ -4270,29 +4276,29 @@ minimum_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
       if (min_ctx->pg_array[i] == min_ctx->current)
       {
         GNUNET_assert (GNUNET_OK ==
-                       GNUNET_CONTAINER_multihashmap_put (min_ctx->first->
-                                                          connect_peers_working_set,
+                       GNUNET_CONTAINER_multihashmap_put (min_ctx->
+                                                          first->connect_peers_working_set,
                                                           key, value,
                                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
         uid_from_hash (key, &second_pos);
         hash_from_uid (min_ctx->first_uid, &first_hash);
         GNUNET_assert (min_ctx->pg->total > second_pos);
         GNUNET_assert (GNUNET_OK ==
-                       GNUNET_CONTAINER_multihashmap_put (min_ctx->pg->
-                                                          peers[second_pos].
-                                                          connect_peers_working_set,
+                       GNUNET_CONTAINER_multihashmap_put (min_ctx->
+                                                          pg->peers
+                                                          [second_pos].connect_peers_working_set,
                                                           &first_hash,
-                                                          min_ctx->
-                                                          first->daemon,
+                                                          min_ctx->first->
+                                                          daemon,
                                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
         /* Now we have added this particular connection, remove it from the second peer's map so it's not double counted */
         GNUNET_assert (GNUNET_YES ==
-                       GNUNET_CONTAINER_multihashmap_remove (min_ctx->pg->
-                                                             peers[second_pos].
-                                                             connect_peers,
+                       GNUNET_CONTAINER_multihashmap_remove (min_ctx->
+                                                             pg->peers
+                                                             [second_pos].connect_peers,
                                                              &first_hash,
-                                                             min_ctx->first->
-                                                             daemon));
+                                                             min_ctx->
+                                                             first->daemon));
       }
     }
     min_ctx->current++;
@@ -4321,28 +4327,26 @@ dfs_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
   if (dfs_ctx->current == dfs_ctx->chosen)
   {
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put (dfs_ctx->first->
-                                                      connect_peers_working_set,
+                   GNUNET_CONTAINER_multihashmap_put (dfs_ctx->
+                                                      first->connect_peers_working_set,
                                                       key, value,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     uid_from_hash (key, &dfs_ctx->second_uid);
     hash_from_uid (dfs_ctx->first_uid, &first_hash);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put (dfs_ctx->pg->
-                                                      peers
-                                                      [dfs_ctx->second_uid].
-                                                      connect_peers_working_set,
+                   GNUNET_CONTAINER_multihashmap_put (dfs_ctx->
+                                                      pg->peers[dfs_ctx->
+                                                                second_uid].connect_peers_working_set,
                                                       &first_hash,
                                                       dfs_ctx->first->daemon,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_remove (dfs_ctx->pg->
-                                                         peers[dfs_ctx->
-                                                               second_uid].
-                                                         connect_peers,
+                   GNUNET_CONTAINER_multihashmap_remove (dfs_ctx->
+                                                         pg->peers
+                                                         [dfs_ctx->second_uid].connect_peers,
                                                          &first_hash,
-                                                         dfs_ctx->first->
-                                                         daemon));
+                                                         dfs_ctx->
+                                                         first->daemon));
     /* Can't remove second from first yet because we are currently iterating, hence the return value in the DFSContext! */
     return GNUNET_NO;           /* We have found our peer, don't iterate more */
   }
@@ -4469,8 +4473,9 @@ count_workingset_connections (struct GNUNET_TESTING_PeerGroup *pg)
     }
 #else
     count +=
-        GNUNET_CONTAINER_multihashmap_size (pg->peers[pg_iter].
-                                            connect_peers_working_set);
+        GNUNET_CONTAINER_multihashmap_size (pg->
+                                            peers
+                                            [pg_iter].connect_peers_working_set);
 #endif
   }
 
@@ -4561,10 +4566,8 @@ choose_minimum (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
     minimum_ctx.first_uid = pg_iter;
     minimum_ctx.pg_array =
         GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK,
-                                      GNUNET_CONTAINER_multihashmap_size (pg->
-                                                                          peers
-                                                                          [pg_iter].
-                                                                          connect_peers));
+                                      GNUNET_CONTAINER_multihashmap_size
+                                      (pg->peers[pg_iter].connect_peers));
     minimum_ctx.first = &pg->peers[pg_iter];
     minimum_ctx.pg = pg;
     minimum_ctx.num_to_add = num;
@@ -4654,13 +4657,13 @@ find_closest_peers (void *cls, const GNUNET_HashCode * key, void *value)
          &closest_ctx->curr_peer->daemon->id.hashPubKey) >
         closest_ctx->closest_dist)) &&
       (GNUNET_YES !=
-       GNUNET_CONTAINER_multihashmap_contains (closest_ctx->curr_peer->
-                                               connect_peers, key)))
+       GNUNET_CONTAINER_multihashmap_contains (closest_ctx->
+                                               curr_peer->connect_peers, key)))
   {
     closest_ctx->closest_dist =
         GNUNET_CRYPTO_hash_matching_bits (&daemon->id.hashPubKey,
-                                          &closest_ctx->curr_peer->daemon->id.
-                                          hashPubKey);
+                                          &closest_ctx->curr_peer->daemon->
+                                          id.hashPubKey);
     closest_ctx->closest = daemon;
     uid_from_hash (key, &closest_ctx->closest_num);
   }
@@ -4747,8 +4750,8 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
       for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
       {
         temp_count =
-            count_connections (pg->peers[pg_iter].
-                               connect_peers_working_set_head);
+            count_connections (pg->
+                               peers[pg_iter].connect_peers_working_set_head);
         if (temp_count < least_connections)
         {
           starting_peer = pg_iter;
@@ -4802,8 +4805,9 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
         {
           starting_peer = pg_iter;
           least_connections =
-              GNUNET_CONTAINER_multihashmap_size (pg->peers[pg_iter].
-                                                  connect_peers_working_set);
+              GNUNET_CONTAINER_multihashmap_size (pg->
+                                                  peers
+                                                  [pg_iter].connect_peers_working_set);
         }
       }
     }
@@ -4817,28 +4821,25 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
     /* Choose a random peer from the chosen peers set of connections to add */
     dfs_ctx.chosen =
         GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                  GNUNET_CONTAINER_multihashmap_size (pg->
-                                                                      peers
-                                                                      [starting_peer].
-                                                                      connect_peers));
+                                  GNUNET_CONTAINER_multihashmap_size (pg->peers
+                                                                      [starting_peer].connect_peers));
     dfs_ctx.first_uid = starting_peer;
     dfs_ctx.first = &pg->peers[starting_peer];
     dfs_ctx.pg = pg;
     dfs_ctx.current = 0;
 
-    GNUNET_CONTAINER_multihashmap_iterate (pg->peers[starting_peer].
-                                           connect_peers, &dfs_connect_iterator,
-                                           &dfs_ctx);
+    GNUNET_CONTAINER_multihashmap_iterate (pg->
+                                           peers[starting_peer].connect_peers,
+                                           &dfs_connect_iterator, &dfs_ctx);
     /* Remove the second from the first, since we will be continuing the search and may encounter the first peer again! */
     hash_from_uid (dfs_ctx.second_uid, &second_hash);
     GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_remove (pg->
-                                                         peers[starting_peer].
-                                                         connect_peers,
+                   GNUNET_CONTAINER_multihashmap_remove (pg->peers
+                                                         [starting_peer].connect_peers,
                                                          &second_hash,
-                                                         pg->peers[dfs_ctx.
-                                                                   second_uid].
-                                                         daemon));
+                                                         pg->
+                                                         peers
+                                                         [dfs_ctx.second_uid].daemon));
     starting_peer = dfs_ctx.second_uid;
   }
 
@@ -5620,8 +5621,8 @@ schedule_churn_restart (void *cls,
   {
     if (startup_ctx->churn_ctx->service != NULL)
       GNUNET_TESTING_daemon_start_stopped_service (peer_restart_ctx->daemon,
-                                                   startup_ctx->churn_ctx->
-                                                   service,
+                                                   startup_ctx->
+                                                   churn_ctx->service,
                                                    startup_ctx->timeout,
                                                    &churn_start_callback,
                                                    startup_ctx);
@@ -5880,9 +5881,8 @@ call_hostkey_callbacks (void *cls,
   for (i = 0; i < pg->total; i++)
   {
     if (pg->peers[i].internal_context.hostkey_callback != NULL)
-      pg->peers[i].internal_context.hostkey_callback (pg->
-                                                      peers[i].internal_context.
-                                                      hostkey_cls,
+      pg->peers[i].internal_context.hostkey_callback (pg->peers[i].
+                                                      internal_context.hostkey_cls,
                                                       &pg->peers[i].daemon->id,
                                                       pg->peers[i].daemon,
                                                       NULL);

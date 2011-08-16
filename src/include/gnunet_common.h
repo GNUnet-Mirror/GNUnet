@@ -168,7 +168,8 @@ typedef void (*GNUNET_Logger) (void *cls, enum GNUNET_ErrorType kind,
  * @param message what is the message (format string)
  * @param ... arguments for format string
  */
-void GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...);
+void
+GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...);
 
 
 
@@ -181,8 +182,9 @@ void GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...);
  * @param message what is the message (format string)
  * @param ... arguments for format string
  */
-void GNUNET_log_from (enum GNUNET_ErrorType kind, const char *comp,
-                      const char *message, ...);
+void
+GNUNET_log_from (enum GNUNET_ErrorType kind, const char *comp,
+                 const char *message, ...);
 
 
 /**
@@ -191,7 +193,8 @@ void GNUNET_log_from (enum GNUNET_ErrorType kind, const char *comp,
  * @param n number of log calls to ignore
  * @param check_reset GNUNET_YES to assert that the log skip counter is currently zero
  */
-void GNUNET_log_skip (unsigned int n, int check_reset);
+void
+GNUNET_log_skip (unsigned int n, int check_reset);
 
 
 /**
@@ -202,8 +205,8 @@ void GNUNET_log_skip (unsigned int n, int check_reset);
  * @param logfile change logging to logfile (use NULL to keep stderr)
  * @return GNUNET_OK on success, GNUNET_SYSERR if logfile could not be opened
  */
-int GNUNET_log_setup (const char *comp, const char *loglevel,
-                      const char *logfile);
+int
+GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile);
 
 
 /**
@@ -212,7 +215,8 @@ int GNUNET_log_setup (const char *comp, const char *loglevel,
  * @param logger log function
  * @param logger_cls closure for logger
  */
-void GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls);
+void
+GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls);
 
 
 /**
@@ -221,7 +225,8 @@ void GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls);
  * @param logger log function
  * @param logger_cls closure for logger
  */
-void GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
+void
+GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
 
 
 /**
@@ -232,7 +237,8 @@ void GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
  * @param hc the hash code
  * @return string 
  */
-const char *GNUNET_h2s (const GNUNET_HashCode * hc);
+const char *
+GNUNET_h2s (const GNUNET_HashCode * hc);
 
 
 /**
@@ -244,7 +250,8 @@ const char *GNUNET_h2s (const GNUNET_HashCode * hc);
  * @param hc the hash code
  * @return string
  */
-const char *GNUNET_h2s_full (const GNUNET_HashCode * hc);
+const char *
+GNUNET_h2s_full (const GNUNET_HashCode * hc);
 
 
 /**
@@ -256,7 +263,8 @@ const char *GNUNET_h2s_full (const GNUNET_HashCode * hc);
  * @return string form of the pid; will be overwritten by next
  *         call to GNUNET_i2s.
  */
-const char *GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
+const char *
+GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -269,7 +277,8 @@ const char *GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
  * @return nicely formatted string for the address
  *  will be overwritten by next call to GNUNET_a2s.
  */
-const char *GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen);
+const char *
+GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen);
 
 /**
  * Convert error type to string.
@@ -277,7 +286,8 @@ const char *GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen);
  * @param kind type to convert
  * @return string corresponding to the type
  */
-const char *GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
+const char *
+GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
 
 
 /**
@@ -327,14 +337,16 @@ const char *GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
  * @param n the value in network byte order
  * @return the same value in host byte order
  */
-unsigned long long GNUNET_ntohll (unsigned long long n);
+unsigned long long
+GNUNET_ntohll (unsigned long long n);
 
 /**
  * Convert a long long to network-byte-order.
  * @param n the value in host byte order
  * @return the same value in network byte order
  */
-unsigned long long GNUNET_htonll (unsigned long long n);
+unsigned long long
+GNUNET_htonll (unsigned long long n);
 
 
 /* ************************* allocation functions ****************** */
@@ -468,7 +480,8 @@ unsigned long long GNUNET_htonll (unsigned long long n);
  * @param ... data for format string
  * @return number of bytes written to buf or negative value on error
  */
-int GNUNET_snprintf (char *buf, size_t size, const char *format, ...);
+int
+GNUNET_snprintf (char *buf, size_t size, const char *format, ...);
 
 
 /**
@@ -479,7 +492,8 @@ int GNUNET_snprintf (char *buf, size_t size, const char *format, ...);
  * @param ... data for format string
  * @return number of bytes in "*buf" excluding 0-termination
  */
-int GNUNET_asprintf (char **buf, const char *format, ...);
+int
+GNUNET_asprintf (char **buf, const char *format, ...);
 
 
 /* ************** internal implementations, use macros above! ************** */
@@ -495,7 +509,8 @@ int GNUNET_asprintf (char **buf, const char *format, ...);
  * @param linenumber line where this call is being made (for debugging)
  * @return allocated memory, never NULL
  */
-void *GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
+void *
+GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
 
 
 
@@ -510,8 +525,9 @@ void *GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
  * @param linenumber line where this call is being made (for debugging)
  * @return allocated memory, never NULL
  */
-void *GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
-                       int linenumber);
+void *
+GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
+                 int linenumber);
 
 
 /**
@@ -526,15 +542,15 @@ void *GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
  * @param linenumber line where this call is being made (for debugging)
  * @return pointer to size bytes of memory, NULL if we do not have enough memory
  */
-void *GNUNET_xmalloc_unchecked_ (size_t size, const char *filename,
-                                 int linenumber);
+void *
+GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber);
 
 /**
  * Reallocate memory. Checks the return value, aborts if no more
  * memory is available.
  */
-void *GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename,
-                        int linenumber);
+void *
+GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber);
 
 /**
  * Free memory. Merely a wrapper for the case that we
@@ -545,7 +561,8 @@ void *GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename,
  * @param filename where is this call being made (for debugging)
  * @param linenumber line where this call is being made (for debugging)
  */
-void GNUNET_xfree_ (void *ptr, const char *filename, int linenumber);
+void
+GNUNET_xfree_ (void *ptr, const char *filename, int linenumber);
 
 
 /**
@@ -555,7 +572,8 @@ void GNUNET_xfree_ (void *ptr, const char *filename, int linenumber);
  * @param linenumber line where this call is being made (for debugging)
  * @return the duplicated string
  */
-char *GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber);
+char *
+GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber);
 
 /**
  * Dup partially a string. Don't call GNUNET_xstrndup_ directly. Use the GNUNET_strndup macro.
@@ -565,8 +583,9 @@ char *GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber);
  * @param linenumber line where this call is being made (for debugging)
  * @return the duplicated string
  */
-char *GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
-                        int linenumber);
+char *
+GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
+                  int linenumber);
 
 /**
  * Grow an array, the new elements are zeroed out.
@@ -583,9 +602,9 @@ char *GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
  * @param filename where is this call being made (for debugging)
  * @param linenumber line where this call is being made (for debugging)
  */
-void GNUNET_xgrow_ (void **old, size_t elementSize, unsigned int *oldCount,
-                    unsigned int newCount, const char *filename,
-                    int linenumber);
+void
+GNUNET_xgrow_ (void **old, size_t elementSize, unsigned int *oldCount,
+               unsigned int newCount, const char *filename, int linenumber);
 
 
 

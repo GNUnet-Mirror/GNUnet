@@ -927,8 +927,8 @@ out:
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
-static void read_response (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 static int
 open_port ()

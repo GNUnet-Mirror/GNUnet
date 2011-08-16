@@ -817,9 +817,8 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
     /* short cut: stop processing early, no BF-update, etc. */
     update_request_performance_data (prq, pr);
     GNUNET_LOAD_update (GSF_rt_entry_lifetime,
-                        GNUNET_TIME_absolute_get_duration (pr->public_data.
-                                                           start_time).
-                        rel_value);
+                        GNUNET_TIME_absolute_get_duration (pr->
+                                                           public_data.start_time).rel_value);
     /* pass on to other peers / local clients */
     pr->rh (pr->rh_cls, prq->eval, pr, prq->anonymity_level, prq->expiration,
             prq->type, prq->data, prq->size);
@@ -1101,9 +1100,8 @@ warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               _("Datastore lookup already took %llu ms!\n"),
-              (unsigned long long) GNUNET_TIME_absolute_get_duration (pr->
-                                                                      qe_start).
-              rel_value);
+              (unsigned long long)
+              GNUNET_TIME_absolute_get_duration (pr->qe_start).rel_value);
   pr->warn_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &warn_delay_task,
                                     pr);
@@ -1123,9 +1121,8 @@ odc_warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               _("On-demand lookup already took %llu ms!\n"),
-              (unsigned long long) GNUNET_TIME_absolute_get_duration (pr->
-                                                                      qe_start).
-              rel_value);
+              (unsigned long long)
+              GNUNET_TIME_absolute_get_duration (pr->qe_start).rel_value);
   pr->warn_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                     &odc_warn_delay_task, pr);
@@ -1257,12 +1254,12 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                   GNUNET_BLOCK_TYPE_FS_DBLOCK ?
                                   GNUNET_BLOCK_TYPE_ANY : pr->public_data.type,
                                   (0 !=
-                                   (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                    public_data.options)) ? UINT_MAX : 1
+                                   (GSF_PRO_PRIORITY_UNLIMITED &
+                                    pr->public_data.options)) ? UINT_MAX : 1
                                   /* queue priority */ ,
                                   (0 !=
-                                   (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                    public_data.options)) ? UINT_MAX : 1
+                                   (GSF_PRO_PRIORITY_UNLIMITED &
+                                    pr->public_data.options)) ? UINT_MAX : 1
                                   /* max queue size */ ,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
@@ -1298,12 +1295,12 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                   GNUNET_BLOCK_TYPE_FS_DBLOCK ?
                                   GNUNET_BLOCK_TYPE_ANY : pr->public_data.type,
                                   (0 !=
-                                   (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                    public_data.options)) ? UINT_MAX : 1
+                                   (GSF_PRO_PRIORITY_UNLIMITED &
+                                    pr->public_data.options)) ? UINT_MAX : 1
                                   /* queue priority */ ,
                                   (0 !=
-                                   (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                    public_data.options)) ? UINT_MAX : 1
+                                   (GSF_PRO_PRIORITY_UNLIMITED &
+                                    pr->public_data.options)) ? UINT_MAX : 1
                                   /* max queue size */ ,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
@@ -1357,12 +1354,12 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                 GNUNET_BLOCK_TYPE_FS_DBLOCK ?
                                 GNUNET_BLOCK_TYPE_ANY : pr->public_data.type,
                                 (0 !=
-                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.
-                                  options)) ? UINT_MAX : 1
+                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
+                                  public_data.options)) ? UINT_MAX : 1
                                 /* queue priority */ ,
                                 (0 !=
-                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.
-                                  options)) ? UINT_MAX : 1
+                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
+                                  public_data.options)) ? UINT_MAX : 1
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
@@ -1413,12 +1410,12 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                                 GNUNET_BLOCK_TYPE_FS_DBLOCK ?
                                 GNUNET_BLOCK_TYPE_ANY : pr->public_data.type,
                                 (0 !=
-                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.
-                                  options)) ? UINT_MAX : 1
+                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
+                                  public_data.options)) ? UINT_MAX : 1
                                 /* queue priority */ ,
                                 (0 !=
-                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.
-                                  options)) ? UINT_MAX : 1
+                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
+                                  public_data.options)) ? UINT_MAX : 1
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);

@@ -55,13 +55,15 @@ typedef void (*GST_HelloCallback) (void *cls,
  * @param cb function to call whenever our HELLO changes
  * @param cb_cls closure for cb
  */
-void GST_hello_start (GST_HelloCallback cb, void *cb_cls);
+void
+GST_hello_start (GST_HelloCallback cb, void *cb_cls);
 
 
 /**
  * Shutdown the HELLO module.
  */
-void GST_hello_stop (void);
+void
+GST_hello_stop (void);
 
 
 /**
@@ -69,7 +71,8 @@ void GST_hello_stop (void);
  *
  * @return our HELLO message
  */
-const struct GNUNET_MessageHeader *GST_hello_get (void);
+const struct GNUNET_MessageHeader *
+GST_hello_get (void);
 
 
 /**
@@ -80,9 +83,10 @@ const struct GNUNET_MessageHeader *GST_hello_get (void);
  * @param plugin_address address in a plugin-specific format
  * @param plugin_address_len number of bytes in plugin_address
  */
-void GST_hello_modify_addresses (int addremove, const char *plugin_name,
-                                 const void *plugin_address,
-                                 size_t plugin_address_len);
+void
+GST_hello_modify_addresses (int addremove, const char *plugin_name,
+                            const void *plugin_address,
+                            size_t plugin_address_len);
 
 
 /**
@@ -97,10 +101,11 @@ void GST_hello_modify_addresses (int addremove, const char *plugin_name,
  * @return GNUNET_YES if this is one of our addresses,
  *         GNUNET_NO if not
  */
-int GST_hello_test_address (const char *plugin_name, const void *plugin_address,
-                            size_t plugin_address_len,
-                            struct GNUNET_CRYPTO_RsaSignature **sig,
-                            struct GNUNET_TIME_Absolute **sig_expiration);
+int
+GST_hello_test_address (const char *plugin_name, const void *plugin_address,
+                        size_t plugin_address_len,
+                        struct GNUNET_CRYPTO_RsaSignature **sig,
+                        struct GNUNET_TIME_Absolute **sig_expiration);
 
 
 #endif

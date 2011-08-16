@@ -114,8 +114,8 @@ struct TestMessage
   uint32_t num;
 };
 
-static void process_hello (void *cls,
-                           const struct GNUNET_MessageHeader *message);
+static void
+process_hello (void *cls, const struct GNUNET_MessageHeader *message);
 
 static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -424,7 +424,8 @@ outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 }
 
 
-static size_t transmit_ready (void *cls, size_t size, void *buf);
+static size_t
+transmit_ready (void *cls, size_t size, void *buf);
 
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,

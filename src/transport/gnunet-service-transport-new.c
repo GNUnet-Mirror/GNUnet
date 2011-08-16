@@ -218,8 +218,8 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
       ret =
           GST_neighbours_calculate_receive_delay (peer,
                                                   (message ==
-                                                   NULL) ? 0 : ntohs (message->
-                                                                      size),
+                                                   NULL) ? 0 :
+                                                  ntohs (message->size),
                                                   &do_forward);
       if (do_forward == GNUNET_YES)
         GST_clients_broadcast (message, GNUNET_YES);

@@ -468,18 +468,12 @@ typedef void (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
  * @param nd function to call on disconnect events
  * @return NULL on error
  */
-struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (const struct
-                                                          GNUNET_CONFIGURATION_Handle
-                                                          *cfg,
-                                                          const struct
-                                                          GNUNET_PeerIdentity
-                                                          *self, void *cls,
-                                                          GNUNET_TRANSPORT_ReceiveCallback
-                                                          rec,
-                                                          GNUNET_TRANSPORT_NotifyConnect
-                                                          nc,
-                                                          GNUNET_TRANSPORT_NotifyDisconnect
-                                                          nd);
+struct GNUNET_TRANSPORT_Handle *
+GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          const struct GNUNET_PeerIdentity *self, void *cls,
+                          GNUNET_TRANSPORT_ReceiveCallback rec,
+                          GNUNET_TRANSPORT_NotifyConnect nc,
+                          GNUNET_TRANSPORT_NotifyDisconnect nd);
 
 
 /**
@@ -487,7 +481,8 @@ struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (const struct
  *
  * @param handle handle returned from connect
  */
-void GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
+void
+GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
 
 
 /**
@@ -497,8 +492,9 @@ void GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
  * @param handle connection to transport service
  * @param target who we should try to connect to
  */
-void GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
-                                   const struct GNUNET_PeerIdentity *target);
+void
+GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
+                              const struct GNUNET_PeerIdentity *target);
 
 
 /**
@@ -510,10 +506,11 @@ void GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
  * @param quota_in incoming bandwidth quota
  * @param quota_out outgoing bandwidth quota
  */
-void GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
-                                 const struct GNUNET_PeerIdentity *target,
-                                 struct GNUNET_BANDWIDTH_Value32NBO quota_in,
-                                 struct GNUNET_BANDWIDTH_Value32NBO quota_out);
+void
+GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
+                            const struct GNUNET_PeerIdentity *target,
+                            struct GNUNET_BANDWIDTH_Value32NBO quota_in,
+                            struct GNUNET_BANDWIDTH_Value32NBO quota_out);
 
 
 /**
@@ -541,16 +538,13 @@ struct GNUNET_TRANSPORT_TransmitHandle;
  *         non-NULL if the notify callback was queued (can be used to cancel
  *         using GNUNET_TRANSPORT_notify_transmit_ready_cancel)
  */
-struct GNUNET_TRANSPORT_TransmitHandle
-    *GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
-                                             *handle,
-                                             const struct GNUNET_PeerIdentity
-                                             *target, size_t size,
-                                             uint32_t priority,
-                                             struct GNUNET_TIME_Relative
-                                             timeout,
-                                             GNUNET_CONNECTION_TransmitReadyNotify
-                                             notify, void *notify_cls);
+struct GNUNET_TRANSPORT_TransmitHandle *
+GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
+                                        const struct GNUNET_PeerIdentity
+                                        *target, size_t size, uint32_t priority,
+                                        struct GNUNET_TIME_Relative timeout,
+                                        GNUNET_CONNECTION_TransmitReadyNotify
+                                        notify, void *notify_cls);
 
 
 /**
@@ -558,9 +552,10 @@ struct GNUNET_TRANSPORT_TransmitHandle
  *
  * @param th handle of the transmission notification request to cancel
  */
-void GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
-                                                    GNUNET_TRANSPORT_TransmitHandle
-                                                    *th);
+void
+GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
+                                               GNUNET_TRANSPORT_TransmitHandle
+                                               *th);
 
 
 
@@ -584,9 +579,10 @@ typedef void (*GNUNET_TRANSPORT_HelloUpdateCallback) (void *cls,
  * @param rec function to call with the HELLO
  * @param rec_cls closure for rec
  */
-void GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
-                                 GNUNET_TRANSPORT_HelloUpdateCallback rec,
-                                 void *rec_cls);
+void
+GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
+                            GNUNET_TRANSPORT_HelloUpdateCallback rec,
+                            void *rec_cls);
 
 
 /**
@@ -596,9 +592,10 @@ void GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
  * @param rec function previously registered to be called with the HELLOs
  * @param rec_cls closure for rec
  */
-void GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
-                                        GNUNET_TRANSPORT_HelloUpdateCallback
-                                        rec, void *rec_cls);
+void
+GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
+                                   GNUNET_TRANSPORT_HelloUpdateCallback rec,
+                                   void *rec_cls);
 
 
 /**
@@ -612,9 +609,10 @@ void GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
  * @param cls closure for continuation
  *
  */
-void GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
-                                   const struct GNUNET_MessageHeader *hello,
-                                   GNUNET_SCHEDULER_Task cont, void *cls);
+void
+GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
+                              const struct GNUNET_MessageHeader *hello,
+                              GNUNET_SCHEDULER_Task cont, void *cls);
 
 
 /**
@@ -630,13 +628,13 @@ void GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  * @param aluc function to call with the results
  * @param aluc_cls closure for aluc
  */
-void GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle
-                                      *cfg, const char *address,
-                                      size_t addressLen, int numeric,
-                                      const char *nameTrans,
-                                      struct GNUNET_TIME_Relative timeout,
-                                      GNUNET_TRANSPORT_AddressLookUpCallback
-                                      aluc, void *aluc_cls);
+void
+GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 const char *address, size_t addressLen,
+                                 int numeric, const char *nameTrans,
+                                 struct GNUNET_TIME_Relative timeout,
+                                 GNUNET_TRANSPORT_AddressLookUpCallback aluc,
+                                 void *aluc_cls);
 
 
 /**
@@ -649,14 +647,14 @@ void GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
  */
-void GNUNET_TRANSPORT_peer_address_lookup (const struct
-                                           GNUNET_CONFIGURATION_Handle *cfg,
-                                           const struct GNUNET_PeerIdentity
-                                           *peer,
-                                           struct GNUNET_TIME_Relative timeout,
-                                           GNUNET_TRANSPORT_AddressLookUpCallback
-                                           peer_address_callback,
-                                           void *peer_address_callback_cls);
+void
+GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
+                                      *cfg,
+                                      const struct GNUNET_PeerIdentity *peer,
+                                      struct GNUNET_TIME_Relative timeout,
+                                      GNUNET_TRANSPORT_AddressLookUpCallback
+                                      peer_address_callback,
+                                      void *peer_address_callback_cls);
 
 
 /**
@@ -668,12 +666,12 @@ void GNUNET_TRANSPORT_peer_address_lookup (const struct
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
  */
-void GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle
-                                       *cfg,
-                                       struct GNUNET_TIME_Relative timeout,
-                                       GNUNET_TRANSPORT_AddressLookUpCallback
-                                       peer_address_callback,
-                                       void *peer_address_callback_cls);
+void
+GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  struct GNUNET_TIME_Relative timeout,
+                                  GNUNET_TRANSPORT_AddressLookUpCallback
+                                  peer_address_callback,
+                                  void *peer_address_callback_cls);
 
 
 /**
@@ -708,12 +706,10 @@ typedef int (*GNUNET_TRANSPORT_BlacklistCallback) (void *cls,
  * @param cb_cls closure for cb
  * @return NULL on error, otherwise handle for cancellation
  */
-struct GNUNET_TRANSPORT_Blacklist *GNUNET_TRANSPORT_blacklist (const struct
-                                                               GNUNET_CONFIGURATION_Handle
-                                                               *cfg,
-                                                               GNUNET_TRANSPORT_BlacklistCallback
-                                                               cb,
-                                                               void *cb_cls);
+struct GNUNET_TRANSPORT_Blacklist *
+GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            GNUNET_TRANSPORT_BlacklistCallback cb,
+                            void *cb_cls);
 
 
 /**
@@ -722,7 +718,8 @@ struct GNUNET_TRANSPORT_Blacklist *GNUNET_TRANSPORT_blacklist (const struct
  *
  * @param br handle of the request that is to be cancelled
  */
-void GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br);
+void
+GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br);
 
 
 

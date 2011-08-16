@@ -213,8 +213,8 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static void churn_peers (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+churn_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**

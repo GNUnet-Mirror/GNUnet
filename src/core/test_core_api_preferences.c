@@ -75,8 +75,8 @@ static GNUNET_SCHEDULER_TaskIdentifier ask_task;
 static unsigned int total_reserve = 5;
 
 
-static void process_hello (void *cls,
-                           const struct GNUNET_MessageHeader *message);
+static void
+process_hello (void *cls, const struct GNUNET_MessageHeader *message);
 
 static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -151,11 +151,10 @@ transmit_ready (void *cls, size_t size, void *buf)
   return sizeof (struct GNUNET_MessageHeader);
 }
 
-static void preference_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
-                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                           int32_t amount,
-                           struct GNUNET_TIME_Relative res_delay,
-                           uint64_t preference);
+static void
+preference_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
+               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out, int32_t amount,
+               struct GNUNET_TIME_Relative res_delay, uint64_t preference);
 
 static void
 do_reserve (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)

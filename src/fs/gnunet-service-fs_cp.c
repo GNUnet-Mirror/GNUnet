@@ -383,7 +383,8 @@ GSF_get_peer_performance_data_ (struct GSF_ConnectedPeer *cp)
  * @param buf where to copy the message
  * @return number of bytes copied to buf
  */
-static size_t peer_transmit_ready_cb (void *cls, size_t size, void *buf);
+static size_t
+peer_transmit_ready_cb (void *cls, size_t size, void *buf);
 
 
 
@@ -400,12 +401,11 @@ static size_t peer_transmit_ready_cb (void *cls, size_t size, void *buf);
  *        long should the client wait until re-trying?
  * @param preference current traffic preference for the given peer
  */
-static void core_reserve_callback (void *cls,
-                                   const struct GNUNET_PeerIdentity *peer,
-                                   struct GNUNET_BANDWIDTH_Value32NBO
-                                   bandwidth_out, int32_t amount,
-                                   struct GNUNET_TIME_Relative res_delay,
-                                   uint64_t preference);
+static void
+core_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
+                       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                       int32_t amount, struct GNUNET_TIME_Relative res_delay,
+                       uint64_t preference);
 
 
 /**
@@ -491,9 +491,8 @@ peer_transmit_ready_cb (void *cls, size_t size, void *buf)
     GNUNET_assert (0 < cp->ppd.pending_replies--);
   }
   GNUNET_LOAD_update (cp->ppd.transmission_delay,
-                      GNUNET_TIME_absolute_get_duration (pth->
-                                                         transmission_request_start_time).
-                      rel_value);
+                      GNUNET_TIME_absolute_get_duration
+                      (pth->transmission_request_start_time).rel_value);
   ret = pth->gmc (pth->gmc_cls, size, buf);
   GNUNET_assert (NULL == pth->cth);
   for (pos = cp->pth_head; pos != NULL; pos = pos->next)
@@ -1732,9 +1731,9 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
 #if DEBUG_FS && 0
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Migration already blocked for another %llu ms\n",
-                (unsigned long long) GNUNET_TIME_absolute_get_remaining (cp->
-                                                                         last_migration_block).
-                rel_value);
+                (unsigned long long)
+                GNUNET_TIME_absolute_get_remaining
+                (cp->last_migration_block).rel_value);
 #endif
     return;                     /* already blocked */
   }

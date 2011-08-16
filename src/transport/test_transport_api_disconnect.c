@@ -80,7 +80,8 @@ struct GNUNET_TRANSPORT_TransmitHandle *th;
 #endif
 
 
-static void peers_connect ();
+static void
+peers_connect ();
 
 static void
 end ()
@@ -200,8 +201,8 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   msgs_recv++;
 }
 
-static void peers_disconnect (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+peers_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 static size_t
 notify_ready (void *cls, size_t size, void *buf)

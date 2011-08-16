@@ -145,7 +145,8 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
   stored_entries++;
 }
 
-static void test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static int

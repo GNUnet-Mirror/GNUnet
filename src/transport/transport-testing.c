@@ -41,10 +41,10 @@ struct ConnectingContext
   int p2_c;
 };
 
-static void exchange_hello_last (void *cb_cls,
-                                 const struct GNUNET_MessageHeader *message);
-static void exchange_hello (void *cb_cls,
-                            const struct GNUNET_MessageHeader *message);
+static void
+exchange_hello_last (void *cb_cls, const struct GNUNET_MessageHeader *message);
+static void
+exchange_hello (void *cb_cls, const struct GNUNET_MessageHeader *message);
 
 static void
 notify_connect_internal (void *cls, const struct GNUNET_PeerIdentity *peer,

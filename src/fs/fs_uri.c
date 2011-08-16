@@ -1834,8 +1834,8 @@ uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
   GNUNET_asprintf (&ret, "%s%s%s.%s.%llu.%s.%s.%llu", GNUNET_FS_URI_PREFIX,
                    GNUNET_FS_URI_LOC_INFIX, (const char *) &keyhash,
                    (const char *) &queryhash,
-                   (unsigned long long) GNUNET_ntohll (uri->data.loc.fi.
-                                                       file_length), peerId,
+                   (unsigned long long) GNUNET_ntohll (uri->data.loc.
+                                                       fi.file_length), peerId,
                    peerSig,
                    (unsigned long long) uri->data.loc.expirationTime.abs_value);
   GNUNET_free (peerSig);

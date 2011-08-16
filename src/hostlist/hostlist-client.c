@@ -476,7 +476,8 @@ download_get_url ()
  * Method to save hostlist to a file during hostlist client shutdown
  * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
  */
-static void save_hostlist_file (int shutdown);
+static void
+save_hostlist_file (int shutdown);
 
 
 /**
@@ -708,8 +709,8 @@ clean_up ()
  * @param cls closure, unused
  * @param tc task context, unused
  */
-static void task_download (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**

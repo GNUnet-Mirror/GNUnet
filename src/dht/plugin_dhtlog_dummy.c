@@ -281,18 +281,18 @@ set_malicious (struct GNUNET_PeerIdentity *peer)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int insert_stat (const struct GNUNET_PeerIdentity *peer,
-                 unsigned int route_requests, unsigned int route_forwards,
-                 unsigned int result_requests, unsigned int client_requests,
-                 unsigned int result_forwards, unsigned int gets,
-                 unsigned int puts, unsigned int data_inserts,
-                 unsigned int find_peer_requests,
-                 unsigned int find_peers_started, unsigned int gets_started,
-                 unsigned int puts_started,
-                 unsigned int find_peer_responses_received,
-                 unsigned int get_responses_received,
-                 unsigned int find_peer_responses_sent,
-                 unsigned int get_responses_sent)
+int
+insert_stat (const struct GNUNET_PeerIdentity *peer,
+             unsigned int route_requests, unsigned int route_forwards,
+             unsigned int result_requests, unsigned int client_requests,
+             unsigned int result_forwards, unsigned int gets, unsigned int puts,
+             unsigned int data_inserts, unsigned int find_peer_requests,
+             unsigned int find_peers_started, unsigned int gets_started,
+             unsigned int puts_started,
+             unsigned int find_peer_responses_received,
+             unsigned int get_responses_received,
+             unsigned int find_peer_responses_sent,
+             unsigned int get_responses_sent)
 {
   return GNUNET_OK;
 }

@@ -53,11 +53,12 @@ struct GNUNET_FS_TestDaemon;
  *             'GNUNET_FS_TEST_daemons_stop'!
  * @param cont_cls closure for cont
  */
-void GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
-                                   struct GNUNET_TIME_Relative timeout,
-                                   unsigned int total,
-                                   struct GNUNET_FS_TestDaemon **daemons,
-                                   GNUNET_SCHEDULER_Task cont, void *cont_cls);
+void
+GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
+                              struct GNUNET_TIME_Relative timeout,
+                              unsigned int total,
+                              struct GNUNET_FS_TestDaemon **daemons,
+                              GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -70,11 +71,11 @@ void GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
  * @param cont function to call when done
  * @param cont_cls closure for cont
  */
-void GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
-                                     struct GNUNET_FS_TestDaemon *daemon2,
-                                     struct GNUNET_TIME_Relative timeout,
-                                     GNUNET_SCHEDULER_Task cont,
-                                     void *cont_cls);
+void
+GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
+                                struct GNUNET_FS_TestDaemon *daemon2,
+                                struct GNUNET_TIME_Relative timeout,
+                                GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 /**
@@ -83,9 +84,8 @@ void GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
  * @param daemons array with the daemons (must contain at least one)
  * @return peer group
  */
-struct GNUNET_TESTING_PeerGroup *GNUNET_FS_TEST_get_group (struct
-                                                           GNUNET_FS_TestDaemon
-                                                           **daemons);
+struct GNUNET_TESTING_PeerGroup *
+GNUNET_FS_TEST_get_group (struct GNUNET_FS_TestDaemon **daemons);
 
 
 
@@ -96,9 +96,9 @@ struct GNUNET_TESTING_PeerGroup *GNUNET_FS_TEST_get_group (struct
  * @param off which configuration to get
  * @return peer configuration
  */
-const struct GNUNET_CONFIGURATION_Handle
-    *GNUNET_FS_TEST_get_configuration (struct GNUNET_FS_TestDaemon **daemons,
-                                       unsigned int off);
+const struct GNUNET_CONFIGURATION_Handle *
+GNUNET_FS_TEST_get_configuration (struct GNUNET_FS_TestDaemon **daemons,
+                                  unsigned int off);
 
 /**
  * Stop daemons used for testing.
@@ -106,8 +106,9 @@ const struct GNUNET_CONFIGURATION_Handle
  * @param total number of daemons to stop
  * @param daemons array with the daemons (values will be clobbered)
  */
-void GNUNET_FS_TEST_daemons_stop (unsigned int total,
-                                  struct GNUNET_FS_TestDaemon **daemons);
+void
+GNUNET_FS_TEST_daemons_stop (unsigned int total,
+                             struct GNUNET_FS_TestDaemon **daemons);
 
 
 /**
@@ -136,12 +137,12 @@ typedef void (*GNUNET_FS_TEST_UriContinuation) (void *cls,
  * @param cont function to call when done
  * @param cont_cls closure for cont
  */
-void GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
-                             struct GNUNET_TIME_Relative timeout,
-                             uint32_t anonymity, int do_index, uint64_t size,
-                             uint32_t seed, unsigned int verbose,
-                             GNUNET_FS_TEST_UriContinuation cont,
-                             void *cont_cls);
+void
+GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
+                        struct GNUNET_TIME_Relative timeout, uint32_t anonymity,
+                        int do_index, uint64_t size, uint32_t seed,
+                        unsigned int verbose,
+                        GNUNET_FS_TEST_UriContinuation cont, void *cont_cls);
 
 
 /**
@@ -157,12 +158,12 @@ void GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
  * @param cont function to call when done
  * @param cont_cls closure for cont
  */
-void GNUNET_FS_TEST_download (struct GNUNET_FS_TestDaemon *daemon,
-                              struct GNUNET_TIME_Relative timeout,
-                              uint32_t anonymity, uint32_t seed,
-                              const struct GNUNET_FS_Uri *uri,
-                              unsigned int verbose, GNUNET_SCHEDULER_Task cont,
-                              void *cont_cls);
+void
+GNUNET_FS_TEST_download (struct GNUNET_FS_TestDaemon *daemon,
+                         struct GNUNET_TIME_Relative timeout,
+                         uint32_t anonymity, uint32_t seed,
+                         const struct GNUNET_FS_Uri *uri, unsigned int verbose,
+                         GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
 

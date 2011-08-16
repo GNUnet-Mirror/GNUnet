@@ -1165,9 +1165,9 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
     else
       mime_type = &mdata[left];
     GNUNET_CONTAINER_meta_data_insert (md, plugin_name,
-                                       (enum EXTRACTOR_MetaType) ntohl (ent.
-                                                                        type),
-                                       format, mime_type, meta_data, dlen);
+                                       (enum EXTRACTOR_MetaType)
+                                       ntohl (ent.type), format, mime_type,
+                                       meta_data, dlen);
   }
   GNUNET_free_non_null (data);
   return md;

@@ -183,26 +183,19 @@ typedef int (*GNUNET_CHAT_MessageConfirmation) (void *cls,
  * @param me member ID (pseudonym)
  * @return NULL on error
  */
-struct GNUNET_CHAT_Room *GNUNET_CHAT_join_room (const struct
-                                                GNUNET_CONFIGURATION_Handle
-                                                *cfg, const char *nick_name,
-                                                struct GNUNET_CONTAINER_MetaData
-                                                *member_info,
-                                                const char *room_name,
-                                                enum GNUNET_CHAT_MsgOptions
-                                                msg_options,
-                                                GNUNET_CHAT_JoinCallback
-                                                joinCallback, void *join_cls,
-                                                GNUNET_CHAT_MessageCallback
-                                                messageCallback,
-                                                void *message_cls,
-                                                GNUNET_CHAT_MemberListCallback
-                                                memberCallback,
-                                                void *member_cls,
-                                                GNUNET_CHAT_MessageConfirmation
-                                                confirmationCallback,
-                                                void *confirmation_cls,
-                                                GNUNET_HashCode * me);
+struct GNUNET_CHAT_Room *
+GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       const char *nick_name,
+                       struct GNUNET_CONTAINER_MetaData *member_info,
+                       const char *room_name,
+                       enum GNUNET_CHAT_MsgOptions msg_options,
+                       GNUNET_CHAT_JoinCallback joinCallback, void *join_cls,
+                       GNUNET_CHAT_MessageCallback messageCallback,
+                       void *message_cls,
+                       GNUNET_CHAT_MemberListCallback memberCallback,
+                       void *member_cls,
+                       GNUNET_CHAT_MessageConfirmation confirmationCallback,
+                       void *confirmation_cls, GNUNET_HashCode * me);
 
 /**
  * Send a message.
@@ -213,18 +206,18 @@ struct GNUNET_CHAT_Room *GNUNET_CHAT_join_room (const struct
  * @param receiver use NULL to send to everyone in the room
  * @param sequence_number where to write the sequence id of the message
  */
-void GNUNET_CHAT_send_message (struct GNUNET_CHAT_Room *room,
-                               const char *message,
-                               enum GNUNET_CHAT_MsgOptions options,
-                               const struct
-                               GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                               *receiver, uint32_t * sequence_number);
+void
+GNUNET_CHAT_send_message (struct GNUNET_CHAT_Room *room, const char *message,
+                          enum GNUNET_CHAT_MsgOptions options,
+                          const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                          *receiver, uint32_t * sequence_number);
 
 
 /**
  * Leave a chat room.
  */
-void GNUNET_CHAT_leave_room (struct GNUNET_CHAT_Room *chat_room);
+void
+GNUNET_CHAT_leave_room (struct GNUNET_CHAT_Room *chat_room);
 
 
 #if 0
@@ -241,9 +234,10 @@ typedef int (*GNUNET_CHAT_RoomIterator) (const char *room, const char *topic,
  * List all of the (publically visible) chat rooms.
  * @return number of rooms on success, GNUNET_SYSERR if iterator aborted
  */
-int GNUNET_CHAT_list_rooms (struct GNUNET_GE_Context *ectx,
-                            struct GNUNET_GC_Configuration *cfg,
-                            GNUNET_CHAT_RoomIterator it, void *cls);
+int
+GNUNET_CHAT_list_rooms (struct GNUNET_GE_Context *ectx,
+                        struct GNUNET_GC_Configuration *cfg,
+                        GNUNET_CHAT_RoomIterator it, void *cls);
 #endif
 
 

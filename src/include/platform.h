@@ -226,7 +226,8 @@
 
 
 #if !HAVE_ATOLL
-long long atoll (const char *nptr);
+long long
+atoll (const char *nptr);
 #endif
 
 #if ENABLE_NLS

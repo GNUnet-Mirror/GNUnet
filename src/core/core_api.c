@@ -371,7 +371,8 @@ struct GNUNET_CORE_TransmitHandle
  *
  * @param h our handle to the core service
  */
-static void reconnect (struct GNUNET_CORE_Handle *h);
+static void
+reconnect (struct GNUNET_CORE_Handle *h);
 
 
 /**
@@ -515,8 +516,8 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
  * @param h core handle
  * @param ignore_currently_down transmit message even if not initialized?
  */
-static void trigger_next_request (struct GNUNET_CORE_Handle *h,
-                                  int ignore_currently_down);
+static void
+trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down);
 
 
 /**
@@ -526,9 +527,8 @@ static void trigger_next_request (struct GNUNET_CORE_Handle *h,
  * @param cls the transmit handle of the request that timed out
  * @param tc context, can be NULL (!)
  */
-static void transmission_timeout (void *cls,
-                                  const struct GNUNET_SCHEDULER_TaskContext
-                                  *tc);
+static void
+transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -776,8 +776,8 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
   }
   if (h->control_pending_head != NULL)
     msize =
-        ntohs (((struct GNUNET_MessageHeader *) &h->control_pending_head[1])->
-               size);
+        ntohs (((struct GNUNET_MessageHeader *) &h->
+                control_pending_head[1])->size);
   else if (h->ready_peer_head != NULL)
     msize =
         h->ready_peer_head->pending_head->msize + sizeof (struct SendMessage);

@@ -72,8 +72,8 @@ stop_job (struct GNUNET_FS_QueueEntry *qe)
   qe->h->active_blocks -= qe->blocks;
   qe->run_time =
       GNUNET_TIME_relative_add (qe->run_time,
-                                GNUNET_TIME_absolute_get_duration (qe->
-                                                                   start_time));
+                                GNUNET_TIME_absolute_get_duration
+                                (qe->start_time));
   GNUNET_CONTAINER_DLL_remove (qe->h->running_head, qe->h->running_tail, qe);
   GNUNET_CONTAINER_DLL_insert_after (qe->h->pending_head, qe->h->pending_tail,
                                      qe->h->pending_tail, qe);
@@ -638,12 +638,8 @@ read_start_time (struct GNUNET_BIO_ReadHandle *rh,
  *        the infromation
  * @return NULL on error
  */
-static struct GNUNET_FS_FileInformation *deserialize_file_information (struct
-                                                                       GNUNET_FS_Handle
-                                                                       *h,
-                                                                       const
-                                                                       char
-                                                                       *filename);
+static struct GNUNET_FS_FileInformation *
+deserialize_file_information (struct GNUNET_FS_Handle *h, const char *filename);
 
 
 /**
@@ -1152,8 +1148,8 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *fi)
         (GNUNET_OK !=
          GNUNET_BIO_write_string (wh,
                                   (fi->data.dir.entries ==
-                                   NULL) ? NULL : fi->data.dir.entries->
-                                  serialization)))
+                                   NULL) ? NULL : fi->data.dir.
+                                  entries->serialization)))
     {
       GNUNET_break (0);
       goto cleanup;
@@ -1566,9 +1562,9 @@ read_download_request (struct GNUNET_BIO_ReadHandle *rh)
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &dr->num_children)) ||
       (dr->num_children > CHK_PER_INODE) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &dr->depth)) || ((dr->depth == 0)
-                                                                && (dr->
-                                                                    num_children
-                                                                    > 0)) ||
+                                                                &&
+                                                                (dr->num_children
+                                                                 > 0)) ||
       ((dr->depth > 0) && (dr->num_children == 0)))
   {
     GNUNET_break (0);
@@ -2017,11 +2013,12 @@ cleanup:
  * @param search associated search
  * @param serialization name under which the search was serialized
  */
-static void deserialize_download (struct GNUNET_FS_Handle *h,
-                                  struct GNUNET_BIO_ReadHandle *rh,
-                                  struct GNUNET_FS_DownloadContext *parent,
-                                  struct GNUNET_FS_SearchResult *search,
-                                  const char *serialization);
+static void
+deserialize_download (struct GNUNET_FS_Handle *h,
+                      struct GNUNET_BIO_ReadHandle *rh,
+                      struct GNUNET_FS_DownloadContext *parent,
+                      struct GNUNET_FS_SearchResult *search,
+                      const char *serialization);
 
 
 /**
@@ -2032,16 +2029,11 @@ static void deserialize_download (struct GNUNET_FS_Handle *h,
  * @param psearch_result parent search result
  * @param serialization name under which the search was serialized
  */
-static struct GNUNET_FS_SearchContext *deserialize_search (struct
-                                                           GNUNET_FS_Handle *h,
-                                                           struct
-                                                           GNUNET_BIO_ReadHandle
-                                                           *rh,
-                                                           struct
-                                                           GNUNET_FS_SearchResult
-                                                           *psearch_result,
-                                                           const char
-                                                           *serialization);
+static struct GNUNET_FS_SearchContext *
+deserialize_search (struct GNUNET_FS_Handle *h,
+                    struct GNUNET_BIO_ReadHandle *rh,
+                    struct GNUNET_FS_SearchResult *psearch_result,
+                    const char *serialization);
 
 
 /**
@@ -2203,7 +2195,8 @@ signal_download_resume (struct GNUNET_FS_DownloadContext *dc)
  *
  * @param sc search being resumed
  */
-static void signal_search_resume (struct GNUNET_FS_SearchContext *sc);
+static void
+signal_search_resume (struct GNUNET_FS_SearchContext *sc);
 
 
 /**
@@ -2255,7 +2248,8 @@ signal_result_resume (void *cls, const GNUNET_HashCode * key, void *value)
  *
  * @param sc search context to free
  */
-static void free_search_context (struct GNUNET_FS_SearchContext *sc);
+static void
+free_search_context (struct GNUNET_FS_SearchContext *sc);
 
 
 /**

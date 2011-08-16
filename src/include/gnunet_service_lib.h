@@ -59,11 +59,11 @@ extern "C"
  *              zero (in this case, '*addrs' and '*addr_lens' will be
  *              set to NULL).
  */
-int GNUNET_SERVICE_get_server_addresses (const char *serviceName,
-                                         const struct
-                                         GNUNET_CONFIGURATION_Handle *cfg,
-                                         struct sockaddr ***addrs,
-                                         socklen_t ** addr_lens);
+int
+GNUNET_SERVICE_get_server_addresses (const char *serviceName,
+                                     const struct GNUNET_CONFIGURATION_Handle
+                                     *cfg, struct sockaddr ***addrs,
+                                     socklen_t ** addr_lens);
 
 
 /**
@@ -111,9 +111,10 @@ enum GNUNET_SERVICE_Options
  * @return GNUNET_SYSERR on error, GNUNET_OK
  *         if we shutdown nicely
  */
-int GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
-                        enum GNUNET_SERVICE_Options opt,
-                        GNUNET_SERVICE_Main task, void *task_cls);
+int
+GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
+                    enum GNUNET_SERVICE_Options opt, GNUNET_SERVICE_Main task,
+                    void *task_cls);
 
 
 struct GNUNET_SERVICE_Context;
@@ -126,10 +127,9 @@ struct GNUNET_SERVICE_Context;
  * @param cfg configuration to use
  * @return NULL on error, service handle
  */
-struct GNUNET_SERVICE_Context *GNUNET_SERVICE_start (const char *serviceName,
-                                                     const struct
-                                                     GNUNET_CONFIGURATION_Handle
-                                                     *cfg);
+struct GNUNET_SERVICE_Context *
+GNUNET_SERVICE_start (const char *serviceName,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -139,9 +139,8 @@ struct GNUNET_SERVICE_Context *GNUNET_SERVICE_start (const char *serviceName,
  * @param ctx the service context returned from the start function
  * @return handle to the server for this service, NULL if there is none
  */
-struct GNUNET_SERVER_Handle *GNUNET_SERVICE_get_server (struct
-                                                        GNUNET_SERVICE_Context
-                                                        *ctx);
+struct GNUNET_SERVER_Handle *
+GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx);
 
 
 /**
@@ -149,7 +148,8 @@ struct GNUNET_SERVER_Handle *GNUNET_SERVICE_get_server (struct
  *
  * @param sctx the service context returned from the start function
  */
-void GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx);
+void
+GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

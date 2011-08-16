@@ -35,23 +35,28 @@
  * At the moment this means "inventing" and IPv6-Address for .gnunet-services and
  * doing nothing for "real" services.
  */
-void process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+void
+process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-void send_icmp6_response (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc);
-void send_icmp4_response (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc);
+void
+send_icmp6_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+void
+send_icmp4_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-size_t                       send_udp_service (void *cls, size_t size,
-                                               void *buf);
+size_t
+send_udp_service (void *cls, size_t size, void *buf);
 
-GNUNET_HashCode *address6_mapping_exists (unsigned char addr[]);
-GNUNET_HashCode *address4_mapping_exists (uint32_t addr);
+GNUNET_HashCode *
+address6_mapping_exists (unsigned char addr[]);
+GNUNET_HashCode *
+address4_mapping_exists (uint32_t addr);
 
-unsigned int port_in_ports (uint64_t ports, uint16_t port);
+unsigned int
+port_in_ports (uint64_t ports, uint16_t port);
 
-void send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+void
+send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
+                  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
 /**
  * The configuration to use
@@ -94,7 +99,8 @@ struct map_entry
  * @param bitArray memory area to set the bit in
  * @param bitIdx which bit to set
  */
-void setBit (char *bitArray, unsigned int bitIdx);
+void
+setBit (char *bitArray, unsigned int bitIdx);
 
 /**
  * Clears a bit from bitArray.
@@ -102,7 +108,8 @@ void setBit (char *bitArray, unsigned int bitIdx);
  * @param bitArray memory area to set the bit in
  * @param bitIdx which bit to unset
  */
-void clearBit (char *bitArray, unsigned int bitIdx);
+void
+clearBit (char *bitArray, unsigned int bitIdx);
 
 /**
  * Checks if a bit is active in the bitArray
@@ -111,7 +118,8 @@ void clearBit (char *bitArray, unsigned int bitIdx);
  * @param bitIdx which bit to test
  * @return GNUNET_YES if the bit is set, GNUNET_NO if not.
  */
-int testBit (char *bitArray, unsigned int bitIdx);
+int
+testBit (char *bitArray, unsigned int bitIdx);
 
 struct remote_addr
 {

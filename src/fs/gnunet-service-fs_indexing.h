@@ -54,14 +54,14 @@
  * @param cont_cls closure for cont
  * @return GNUNET_OK on success
  */
-int GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
-                                      uint32_t size, const void *data,
-                                      enum GNUNET_BLOCK_Type type,
-                                      uint32_t priority, uint32_t anonymity,
-                                      struct GNUNET_TIME_Absolute expiration,
-                                      uint64_t uid,
-                                      GNUNET_DATASTORE_DatumProcessor cont,
-                                      void *cont_cls);
+int
+GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key, uint32_t size,
+                                  const void *data, enum GNUNET_BLOCK_Type type,
+                                  uint32_t priority, uint32_t anonymity,
+                                  struct GNUNET_TIME_Absolute expiration,
+                                  uint64_t uid,
+                                  GNUNET_DATASTORE_DatumProcessor cont,
+                                  void *cont_cls);
 
 /**
  * Handle INDEX_START-message.
@@ -70,9 +70,9 @@ int GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
  * @param client identification of the client
  * @param message the actual message
  */
-void GNUNET_FS_handle_index_start (void *cls,
-                                   struct GNUNET_SERVER_Client *client,
-                                   const struct GNUNET_MessageHeader *message);
+void
+GNUNET_FS_handle_index_start (void *cls, struct GNUNET_SERVER_Client *client,
+                              const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -82,10 +82,9 @@ void GNUNET_FS_handle_index_start (void *cls,
  * @param client identification of the client
  * @param message the actual message
  */
-void GNUNET_FS_handle_index_list_get (void *cls,
-                                      struct GNUNET_SERVER_Client *client,
-                                      const struct GNUNET_MessageHeader
-                                      *message);
+void
+GNUNET_FS_handle_index_list_get (void *cls, struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -95,8 +94,9 @@ void GNUNET_FS_handle_index_list_get (void *cls,
  * @param client identification of the client
  * @param message the actual message
  */
-void GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
-                               const struct GNUNET_MessageHeader *message);
+void
+GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -106,14 +106,16 @@ void GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
  * @param d datastore to use
  * @return GNUNET_OK on success
  */
-int GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
-                             struct GNUNET_DATASTORE_Handle *d);
+int
+GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
+                         struct GNUNET_DATASTORE_Handle *d);
 
 
 /**
  * Shutdown the module.
  */
-void GNUNET_FS_indexing_done (void);
+void
+GNUNET_FS_indexing_done (void);
 
 
 #endif

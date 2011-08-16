@@ -180,7 +180,8 @@ try_connect (struct GNUNET_DV_Handle *ret)
   return GNUNET_NO;
 }
 
-static void process_pending_message (struct GNUNET_DV_Handle *handle);
+static void
+process_pending_message (struct GNUNET_DV_Handle *handle);
 
 /**
  * Send complete, schedule next
@@ -284,8 +285,8 @@ process_pending_message (struct GNUNET_DV_Handle *handle)
   if (NULL ==
       (handle->th =
        GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                            ntohs (handle->current->msg->header.
-                                                   size),
+                                            ntohs (handle->current->msg->
+                                                   header.size),
                                             handle->current->msg->timeout,
                                             GNUNET_YES, &transmit_pending,
                                             handle)))

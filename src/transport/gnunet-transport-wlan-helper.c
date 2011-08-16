@@ -108,7 +108,8 @@ struct Hardware_Infos
 };
 
 // FIXME: inline?
-int getChannelFromFrequency (int frequency);
+int
+getChannelFromFrequency (int frequency);
 
 // FIXME: make nice...
 static unsigned long

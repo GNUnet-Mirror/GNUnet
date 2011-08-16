@@ -228,8 +228,7 @@ signal_index_ok (struct IndexInfo *ii)
                 ("Index request received for file `%s' is already indexed as `%s'.  Permitting anyway.\n"),
                 ii->filename,
                 (const char *) GNUNET_CONTAINER_multihashmap_get (ifm,
-                                                                  &ii->
-                                                                  file_id));
+                                                                  &ii->file_id));
     GNUNET_SERVER_transmit_context_append_data (ii->tc, NULL, 0,
                                                 GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK);
     GNUNET_SERVER_transmit_context_run (ii->tc, GNUNET_TIME_UNIT_MINUTES);
@@ -447,8 +446,8 @@ GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
         prev->next = next;
       GNUNET_break (GNUNET_OK ==
                     GNUNET_CONTAINER_multihashmap_remove (ifm, &pos->file_id,
-                                                          (void *) pos->
-                                                          filename));
+                                                          (void *)
+                                                          pos->filename));
       GNUNET_free (pos);
       found = GNUNET_YES;
     }

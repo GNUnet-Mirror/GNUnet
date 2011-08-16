@@ -32,13 +32,15 @@
 /**
  * Setup the module.
  */
-void GSF_put_init_ (void);
+void
+GSF_put_init_ (void);
 
 
 /**
  * Shutdown the module.
  */
-void GSF_put_done_ (void);
+void
+GSF_put_done_ (void);
 
 
 #endif

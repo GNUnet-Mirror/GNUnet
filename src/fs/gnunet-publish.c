@@ -133,8 +133,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     fprintf (stdout, _("Publishing `%s' done.\n"),
              info->value.publish.filename);
-    s = GNUNET_FS_uri_to_string (info->value.publish.specifics.completed.
-                                 chk_uri);
+    s = GNUNET_FS_uri_to_string (info->value.publish.specifics.
+                                 completed.chk_uri);
     fprintf (stdout, _("URI is `%s'.\n"), s);
     GNUNET_free (s);
     if (info->value.publish.pctx == NULL)

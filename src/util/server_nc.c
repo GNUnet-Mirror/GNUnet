@@ -381,8 +381,8 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
   if (client->th == NULL)
     client->th =
         GNUNET_SERVER_notify_transmit_ready (client->client,
-                                             ntohs (client->pending_head->msg->
-                                                    size),
+                                             ntohs (client->pending_head->
+                                                    msg->size),
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              &transmit_message, client);
 }

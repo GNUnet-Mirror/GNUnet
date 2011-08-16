@@ -40,7 +40,8 @@
  * @param flen file length for which to compute the depth
  * @return depth of the tree, always > 0.  A depth of 1 means only a DBLOCK.
  */
-unsigned int GNUNET_FS_compute_depth (uint64_t flen);
+unsigned int
+GNUNET_FS_compute_depth (uint64_t flen);
 
 
 /**
@@ -52,7 +53,8 @@ unsigned int GNUNET_FS_compute_depth (uint64_t flen);
  * @param depth depth of the block.  depth==0 is a DBLOCK.
  * @return number of bytes of payload a subtree of this depth may correspond to
  */
-uint64_t GNUNET_FS_tree_compute_tree_size (unsigned int depth);
+uint64_t
+GNUNET_FS_tree_compute_tree_size (unsigned int depth);
 
 
 /**
@@ -66,8 +68,9 @@ uint64_t GNUNET_FS_tree_compute_tree_size (unsigned int depth);
  * @param depth depth of the node in the tree, 0 for DBLOCK
  * @return number of bytes stored in this node
  */
-size_t GNUNET_FS_tree_calculate_block_size (uint64_t fsize, uint64_t offset,
-                                            unsigned int depth);
+size_t
+GNUNET_FS_tree_calculate_block_size (uint64_t fsize, uint64_t offset,
+                                     unsigned int depth);
 
 
 /**
@@ -134,18 +137,12 @@ typedef void (*GNUNET_FS_TreeProgressCallback) (void *cls, uint64_t offset,
  * @param cont function to call when done
  * @return tree encoder context
  */
-struct GNUNET_FS_TreeEncoder *GNUNET_FS_tree_encoder_create (struct
-                                                             GNUNET_FS_Handle
-                                                             *h, uint64_t size,
-                                                             void *cls,
-                                                             GNUNET_FS_DataReader
-                                                             reader,
-                                                             GNUNET_FS_TreeBlockProcessor
-                                                             proc,
-                                                             GNUNET_FS_TreeProgressCallback
-                                                             progress,
-                                                             GNUNET_SCHEDULER_Task
-                                                             cont);
+struct GNUNET_FS_TreeEncoder *
+GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
+                               void *cls, GNUNET_FS_DataReader reader,
+                               GNUNET_FS_TreeBlockProcessor proc,
+                               GNUNET_FS_TreeProgressCallback progress,
+                               GNUNET_SCHEDULER_Task cont);
 
 
 /**
@@ -156,7 +153,8 @@ struct GNUNET_FS_TreeEncoder *GNUNET_FS_tree_encoder_create (struct
  *
  * @param te tree encoder to use
  */
-void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te);
+void
+GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te);
 
 
 /**
@@ -170,8 +168,9 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te);
  *        prior to completion and prior to an internal error,
  *        both "*uri" and "*emsg" will be set to NULL).
  */
-void GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
-                                    struct GNUNET_FS_Uri **uri, char **emsg);
+void
+GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
+                               struct GNUNET_FS_Uri **uri, char **emsg);
 
 
 #if 0
@@ -185,8 +184,9 @@ void GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
  * @param data set to the resume data
  * @param size set to the size of the resume data
  */
-void GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder
-                                             *te, void **data, size_t * size);
+void
+GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder *te,
+                                        void **data, size_t * size);
 
 
 /**
@@ -197,8 +197,9 @@ void GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder
  * @param data the resume data
  * @param size the size of the resume data
  */
-void GNUNET_FS_tree_encoder_resume (struct GNUNET_FS_TreeEncoder *te,
-                                    const void *data, size_t size);
+void
+GNUNET_FS_tree_encoder_resume (struct GNUNET_FS_TreeEncoder *te,
+                               const void *data, size_t size);
 #endif
 
 #endif

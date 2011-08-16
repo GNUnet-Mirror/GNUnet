@@ -611,9 +611,9 @@ warn_no_receive_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 _
                 ("Processing code for message of type %u did not call GNUNET_SERVER_receive_done after %llums\n"),
                 (unsigned int) client->warn_type,
-                (unsigned long long) GNUNET_TIME_absolute_get_duration (client->
-                                                                        warn_start).
-                rel_value);
+                (unsigned long long)
+                GNUNET_TIME_absolute_get_duration
+                (client->warn_start).rel_value);
 }
 
 
@@ -730,9 +730,9 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
  * @param addrlen length of addr
  * @param errCode code indicating errors receiving, 0 for success
  */
-static void process_incoming (void *cls, const void *buf, size_t available,
-                              const struct sockaddr *addr, socklen_t addrlen,
-                              int errCode);
+static void
+process_incoming (void *cls, const void *buf, size_t available,
+                  const struct sockaddr *addr, socklen_t addrlen, int errCode);
 
 
 /**

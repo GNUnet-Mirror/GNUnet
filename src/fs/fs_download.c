@@ -143,7 +143,8 @@ GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-static size_t transmit_download_request (void *cls, size_t size, void *buf);
+static size_t
+transmit_download_request (void *cls, size_t size, void *buf);
 
 
 /**
@@ -194,8 +195,9 @@ struct ProcessResultClosure
  * @param value value in the hash map (a 'struct DownloadRequest')
  * @return GNUNET_YES (we should continue to iterate); unless serious error
  */
-static int process_result_with_request (void *cls, const GNUNET_HashCode * key,
-                                        void *value);
+static int
+process_result_with_request (void *cls, const GNUNET_HashCode * key,
+                             void *value);
 
 
 /**
@@ -261,7 +263,8 @@ encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
  *
  * @param dc download context that is having trouble
  */
-static void try_reconnect (struct GNUNET_FS_DownloadContext *dc);
+static void
+try_reconnect (struct GNUNET_FS_DownloadContext *dc);
 
 
 /**
@@ -275,10 +278,11 @@ static void try_reconnect (struct GNUNET_FS_DownloadContext *dc);
  * @param length number of bytes in data
  * @param data contents of the file (or NULL if they were not inlined)
  */
-static void trigger_recursive_download (void *cls, const char *filename,
-                                        const struct GNUNET_FS_Uri *uri,
-                                        const struct GNUNET_CONTAINER_MetaData
-                                        *meta, size_t length, const void *data);
+static void
+trigger_recursive_download (void *cls, const char *filename,
+                            const struct GNUNET_FS_Uri *uri,
+                            const struct GNUNET_CONTAINER_MetaData *meta,
+                            size_t length, const void *data);
 
 
 /**
@@ -940,8 +944,8 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received block `%s' matching pending request at depth %u and offset %llu/%llu\n",
               GNUNET_h2s (key), dr->depth, (unsigned long long) dr->offset,
-              (unsigned long long) GNUNET_ntohll (dc->uri->data.chk.
-                                                  file_length));
+              (unsigned long long) GNUNET_ntohll (dc->uri->data.
+                                                  chk.file_length));
 
 #endif
   bs = GNUNET_FS_tree_calculate_block_size (GNUNET_ntohll
@@ -953,8 +957,8 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
                      _
                      ("Internal error or bogus download URI (expected %u bytes at depth %u and offset %llu/%llu, got %u bytes)\n"),
                      bs, dr->depth, (unsigned long long) dr->offset,
-                     (unsigned long long) GNUNET_ntohll (dc->uri->data.chk.
-                                                         file_length),
+                     (unsigned long long) GNUNET_ntohll (dc->uri->data.
+                                                         chk.file_length),
                      prc->size);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s", dc->emsg);
     while (dr->parent != NULL)
@@ -1077,8 +1081,8 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
 #if DEBUG_DOWNLOAD
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Download completed, truncating file to desired length %llu\n",
-                (unsigned long long) GNUNET_ntohll (dc->uri->data.chk.
-                                                    file_length));
+                (unsigned long long) GNUNET_ntohll (dc->uri->data.
+                                                    chk.file_length));
 #endif
     /* truncate file to size (since we store IBlocks at the end) */
     if (dc->filename != NULL)
@@ -1757,8 +1761,7 @@ GNUNET_FS_download_start_task_ (void *cls,
                                   GNUNET_DISK_OPEN_READWRITE |
                                   GNUNET_DISK_OPEN_CREATE |
                                   ((0 ==
-                                    GNUNET_FS_uri_chk_get_file_size (dc->
-                                                                     uri)) ?
+                                    GNUNET_FS_uri_chk_get_file_size (dc->uri)) ?
                                    GNUNET_DISK_OPEN_TRUNCATE : 0),
                                   GNUNET_DISK_PERM_USER_READ |
                                   GNUNET_DISK_PERM_USER_WRITE |

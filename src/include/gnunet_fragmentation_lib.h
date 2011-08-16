@@ -80,22 +80,14 @@ typedef void (*GNUNET_FRAGMENT_MessageProcessor) (void *cls,
  * @param proc_cls closure for proc
  * @return the fragmentation context
  */
-struct GNUNET_FRAGMENT_Context *GNUNET_FRAGMENT_context_create (struct
-                                                                GNUNET_STATISTICS_Handle
-                                                                *stats,
-                                                                uint16_t mtu,
-                                                                struct
-                                                                GNUNET_BANDWIDTH_Tracker
-                                                                *tracker,
-                                                                struct
-                                                                GNUNET_TIME_Relative
-                                                                delay,
-                                                                const struct
-                                                                GNUNET_MessageHeader
-                                                                *msg,
-                                                                GNUNET_FRAGMENT_MessageProcessor
-                                                                proc,
-                                                                void *proc_cls);
+struct GNUNET_FRAGMENT_Context *
+GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
+                                uint16_t mtu,
+                                struct GNUNET_BANDWIDTH_Tracker *tracker,
+                                struct GNUNET_TIME_Relative delay,
+                                const struct GNUNET_MessageHeader *msg,
+                                GNUNET_FRAGMENT_MessageProcessor proc,
+                                void *proc_cls);
 
 
 /**
@@ -105,8 +97,8 @@ struct GNUNET_FRAGMENT_Context *GNUNET_FRAGMENT_context_create (struct
  *
  * @param fc fragmentation context
  */
-void GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context
-                                                *fc);
+void
+GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context *fc);
 
 
 /**
@@ -120,8 +112,9 @@ void GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context
  *         GNUNET_NO if more messages are pending
  *         GNUNET_SYSERR if this ack is not valid for this fc
  */
-int GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
-                                 const struct GNUNET_MessageHeader *msg);
+int
+GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
+                             const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -132,9 +125,8 @@ int GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
  * @return average delay between transmission and ACK for the
  *         last message, FOREVER if the message was not fully transmitted
  */
-struct GNUNET_TIME_Relative GNUNET_FRAGMENT_context_destroy (struct
-                                                             GNUNET_FRAGMENT_Context
-                                                             *fc);
+struct GNUNET_TIME_Relative
+GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc);
 
 
 /**
@@ -171,18 +163,12 @@ typedef void (*GNUNET_DEFRAGMENT_AckProcessor) (void *cls, uint32_t id,
  *             back to the other side)
  * @return the defragmentation context
  */
-struct GNUNET_DEFRAGMENT_Context *GNUNET_DEFRAGMENT_context_create (struct
-                                                                    GNUNET_STATISTICS_Handle
-                                                                    *stats,
-                                                                    uint16_t
-                                                                    mtu,
-                                                                    unsigned int
-                                                                    num_msgs,
-                                                                    void *cls,
-                                                                    GNUNET_FRAGMENT_MessageProcessor
-                                                                    proc,
-                                                                    GNUNET_DEFRAGMENT_AckProcessor
-                                                                    ackp);
+struct GNUNET_DEFRAGMENT_Context *
+GNUNET_DEFRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
+                                  uint16_t mtu, unsigned int num_msgs,
+                                  void *cls,
+                                  GNUNET_FRAGMENT_MessageProcessor proc,
+                                  GNUNET_DEFRAGMENT_AckProcessor ackp);
 
 
 /**
@@ -190,7 +176,8 @@ struct GNUNET_DEFRAGMENT_Context *GNUNET_DEFRAGMENT_context_create (struct
  *
  * @param dc defragmentation context
  */
-void GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc);
+void
+GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc);
 
 
 /**
@@ -200,8 +187,9 @@ void GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc);
  * @param msg the message that was received
  * @return GNUNET_OK on success, GNUNET_NO if this was a duplicate, GNUNET_SYSERR on error
  */
-int GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
-                                        const struct GNUNET_MessageHeader *msg);
+int
+GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
+                                    const struct GNUNET_MessageHeader *msg);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -56,10 +56,9 @@ struct GNUNET_DATACACHE_Handle;
  * @param section section in the configuration that contains our options
  * @return handle to use to access the service
  */
-struct GNUNET_DATACACHE_Handle *GNUNET_DATACACHE_create (const struct
-                                                         GNUNET_CONFIGURATION_Handle
-                                                         *cfg,
-                                                         const char *section);
+struct GNUNET_DATACACHE_Handle *
+GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                         const char *section);
 
 
 /**
@@ -67,7 +66,8 @@ struct GNUNET_DATACACHE_Handle *GNUNET_DATACACHE_create (const struct
  *
  * @param h handle to the datastore
  */
-void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h);
+void
+GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h);
 
 
 /**
@@ -99,10 +99,11 @@ typedef int (*GNUNET_DATACACHE_Iterator) (void *cls,
  * @param discard_time when to discard the value in any case
  * @return GNUNET_OK on success, GNUNET_SYSERR on error (full, etc.)
  */
-int GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
-                          const GNUNET_HashCode * key, size_t size,
-                          const char *data, enum GNUNET_BLOCK_Type type,
-                          struct GNUNET_TIME_Absolute discard_time);
+int
+GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
+                      const GNUNET_HashCode * key, size_t size,
+                      const char *data, enum GNUNET_BLOCK_Type type,
+                      struct GNUNET_TIME_Absolute discard_time);
 
 
 /**
@@ -116,11 +117,10 @@ int GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
  * @param iter_cls closure for iter
  * @return the number of results found
  */
-unsigned int GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
-                                   const GNUNET_HashCode * key,
-                                   enum GNUNET_BLOCK_Type type,
-                                   GNUNET_DATACACHE_Iterator iter,
-                                   void *iter_cls);
+unsigned int
+GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
+                      const GNUNET_HashCode * key, enum GNUNET_BLOCK_Type type,
+                      GNUNET_DATACACHE_Iterator iter, void *iter_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

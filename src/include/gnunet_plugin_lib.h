@@ -59,7 +59,8 @@ typedef void *(*GNUNET_PLUGIN_Callback) (void *arg);
  * @param library_name name of the plugin to test if it is installed
  * @return GNUNET_YES if the plugin exists, GNUNET_NO if not
  */
-int GNUNET_PLUGIN_test (const char *library_name);
+int
+GNUNET_PLUGIN_test (const char *library_name);
 
 /**
  * Setup plugin (runs the "init" callback and returns whatever "init"
@@ -73,7 +74,8 @@ int GNUNET_PLUGIN_test (const char *library_name);
  * @param arg argument to the plugin initialization function
  * @return whatever the initialization function returned, NULL on error
  */
-void *GNUNET_PLUGIN_load (const char *library_name, void *arg);
+void *
+GNUNET_PLUGIN_load (const char *library_name, void *arg);
 
 
 /**
@@ -85,7 +87,8 @@ void *GNUNET_PLUGIN_load (const char *library_name, void *arg);
  * @return whatever the shutdown function returned, typically NULL
  *         or a "char *" representing the error message
  */
-void *GNUNET_PLUGIN_unload (const char *library_name, void *arg);
+void *
+GNUNET_PLUGIN_unload (const char *library_name, void *arg);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

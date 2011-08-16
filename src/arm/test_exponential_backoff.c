@@ -251,8 +251,8 @@ arm_notify_stop (void *cls, int success)
 }
 
 
-static void kill_task (void *cbData,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
@@ -273,8 +273,8 @@ arm_notify (void *cls, int success)
 }
 
 
-static void kill_task (void *cbData,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void

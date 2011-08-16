@@ -361,7 +361,8 @@ struct GNUNET_NAT_Handle
  *
  * @param h handle to NAT
  */
-static void start_gnunet_nat_server (struct GNUNET_NAT_Handle *h);
+static void
+start_gnunet_nat_server (struct GNUNET_NAT_Handle *h);
 
 
 /**
@@ -548,8 +549,8 @@ add_ip_to_address_list (struct GNUNET_NAT_Handle *h,
  * @param cls the NAT handle
  * @param tc scheduler context
  */
-static void resolve_dns (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+resolve_dns (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -585,8 +586,8 @@ process_external_ip (void *cls, const struct sockaddr *addr, socklen_t addrlen)
  * @param cls the NAT handle
  * @param tc scheduler context
  */
-static void resolve_hostname (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+resolve_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**

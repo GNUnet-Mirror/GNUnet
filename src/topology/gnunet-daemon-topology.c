@@ -355,9 +355,8 @@ free_peer (void *cls, const GNUNET_HashCode * pid, void *value)
  * @param cls 'struct Peer' to greylist
  * @param tc scheduler context
  */
-static void remove_from_greylist (void *cls,
-                                  const struct GNUNET_SCHEDULER_TaskContext
-                                  *tc);
+static void
+remove_from_greylist (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -503,7 +502,8 @@ setup_filter (struct Peer *peer)
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-static size_t hello_advertising_ready (void *cls, size_t size, void *buf);
+static size_t
+hello_advertising_ready (void *cls, size_t size, void *buf);
 
 
 /**
@@ -921,8 +921,8 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
       }
       if ((!pos->is_connected) && (!pos->is_friend) &&
           (0 ==
-           GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).
-           rel_value))
+           GNUNET_TIME_absolute_get_remaining (pos->
+                                               greylisted_until).rel_value))
         free_peer (NULL, &pos->pid.hashPubKey, pos);
     }
     return;
@@ -1056,8 +1056,8 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
   {
     memcpy (&enc, &data[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
     if (!isspace
-        ((unsigned char) enc.
-         encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
+        ((unsigned char)
+         enc.encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _

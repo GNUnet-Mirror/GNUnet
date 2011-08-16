@@ -315,7 +315,8 @@ notify_ready (void *cls, size_t size, void *buf)
 }
 
 
-static void measure (unsigned long long quota_p1, unsigned long long quota_p2);
+static void
+measure (unsigned long long quota_p1, unsigned long long quota_p2);
 
 static void
 measurement_counter (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)

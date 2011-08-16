@@ -51,8 +51,8 @@ struct GNUNET_LOAD_Value;
  *        frequency, 0-load values will be added to the load
  * @return the new load value
  */
-struct GNUNET_LOAD_Value *GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative
-                                                  autodecline);
+struct GNUNET_LOAD_Value *
+GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline);
 
 
 /**
@@ -61,8 +61,9 @@ struct GNUNET_LOAD_Value *GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative
  * @param load load to update
  * @param autodecline frequency of load decline
  */
-void GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
-                                    struct GNUNET_TIME_Relative autodecline);
+void
+GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
+                               struct GNUNET_TIME_Relative autodecline);
 
 
 /**
@@ -82,7 +83,8 @@ void GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
  *         100 if the latest updates were so large
  *         that we could not do proper calculations
  */
-double GNUNET_LOAD_get_load (struct GNUNET_LOAD_Value *load);
+double
+GNUNET_LOAD_get_load (struct GNUNET_LOAD_Value *load);
 
 
 /**
@@ -91,7 +93,8 @@ double GNUNET_LOAD_get_load (struct GNUNET_LOAD_Value *load);
  * @param load load handle
  * @return zero if update was never called
  */
-double GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load);
+double
+GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load);
 
 
 /**
@@ -100,7 +103,8 @@ double GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load);
  * @param load to update
  * @param data latest measurement value (for example, delay)
  */
-void GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data);
+void
+GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

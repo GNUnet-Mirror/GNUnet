@@ -448,8 +448,8 @@ process_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
  */
-static GNUNET_SCHEDULER_TaskIdentifier prepare_daemon (struct MHD_Daemon
-                                                       *daemon_handle);
+static GNUNET_SCHEDULER_TaskIdentifier
+prepare_daemon (struct MHD_Daemon *daemon_handle);
 
 
 /**

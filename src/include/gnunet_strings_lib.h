@@ -56,7 +56,8 @@ extern "C"
  * @param size number of bytes
  * @return fancy representation of the size (possibly rounded) for humans
  */
-char *GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
+char *
+GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
 
 
 /**
@@ -69,8 +70,8 @@ char *GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
  * @param charset character set to convert from
  * @return the converted string (0-terminated)
  */
-char *GNUNET_STRINGS_to_utf8 (const char *input, size_t len,
-                              const char *charset);
+char *
+GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset);
 
 
 /**
@@ -81,7 +82,8 @@ char *GNUNET_STRINGS_to_utf8 (const char *input, size_t len,
  * @return the full file name,
  *          NULL is returned on error
  */
-char *GNUNET_STRINGS_filename_expand (const char *fil);
+char *
+GNUNET_STRINGS_filename_expand (const char *fil);
 
 /**
  * Fill a buffer of the given size with
@@ -104,8 +106,8 @@ char *GNUNET_STRINGS_filename_expand (const char *fil);
  * @return number of bytes written to the buffer
  *         (or number of bytes that would have been written)
  */
-size_t GNUNET_STRINGS_buffer_fill (char *buffer, size_t size,
-                                   unsigned int count, ...);
+size_t
+GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count, ...);
 
 
 /**
@@ -122,8 +124,9 @@ size_t GNUNET_STRINGS_buffer_fill (char *buffer, size_t size,
  * @return offset of the character after the last 0-termination
  *         in the buffer, or 0 on error.
  */
-unsigned int GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
-                                             unsigned int count, ...);
+unsigned int
+GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
+                                unsigned int count, ...);
 
 
 
@@ -134,7 +137,8 @@ unsigned int GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
  * @param t the absolute time to convert
  * @return timestamp in human-readable form
  */
-char *GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
+char *
+GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
 
 
 /**
@@ -143,8 +147,8 @@ char *GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
  * @param delta time in milli seconds
  * @return string in human-readable form
  */
-char *GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative
-                                              delta);
+char *
+GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

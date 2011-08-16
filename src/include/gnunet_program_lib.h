@@ -66,10 +66,11 @@ typedef void (*GNUNET_PROGRAM_Main) (void *cls, char *const *args,
  * @param task_cls closure for task
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
-int GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
-                        const char *binaryHelp,
-                        const struct GNUNET_GETOPT_CommandLineOption *options,
-                        GNUNET_PROGRAM_Main task, void *task_cls);
+int
+GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
+                    const char *binaryHelp,
+                    const struct GNUNET_GETOPT_CommandLineOption *options,
+                    GNUNET_PROGRAM_Main task, void *task_cls);
 
 
 

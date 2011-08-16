@@ -473,7 +473,8 @@ _lp_print_sol (glp_prob *P, const char *fname)
  * Dummy functions for CFLAGS
  */
 
-static void _dummy2 ();
+static void
+_dummy2 ();
 static void
 _dummy ()
 {

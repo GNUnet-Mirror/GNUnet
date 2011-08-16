@@ -276,8 +276,8 @@ static struct GNUNET_STATISTICS_GetHandle *stat_get;
  * @param cls not used
  * @param tc task context
  */
-static void delete_expired (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+delete_expired (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**

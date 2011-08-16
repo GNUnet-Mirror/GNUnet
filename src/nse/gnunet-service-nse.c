@@ -498,8 +498,8 @@ get_transmit_delay (int round_offset)
  * @param cls the 'struct NSEPeerEntry'
  * @param tc scheduler context
  */
-static void transmit_task (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+transmit_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -545,8 +545,9 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "In round %llu, sending to `%s' estimate with %u bits\n",
               (unsigned long long)
-              GNUNET_TIME_absolute_ntoh (size_estimate_messages[idx].timestamp).
-              abs_value, GNUNET_i2s (&peer_entry->id),
+              GNUNET_TIME_absolute_ntoh (size_estimate_messages[idx].
+                                         timestamp).abs_value,
+              GNUNET_i2s (&peer_entry->id),
               (unsigned int) ntohl (size_estimate_messages[idx].matching_bits));
 #endif
   if (ntohl (size_estimate_messages[idx].hop_count) == 0)
@@ -861,8 +862,8 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
                            incoming_flood->proof_of_work))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Proof of work invalid: %llu!\n"),
-                (unsigned long long) GNUNET_ntohll (incoming_flood->
-                                                    proof_of_work));
+                (unsigned long long)
+                GNUNET_ntohll (incoming_flood->proof_of_work));
     GNUNET_break_op (0);
     return GNUNET_NO;
   }
@@ -959,9 +960,9 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_snprintf (pred, sizeof (pred), "%s", GNUNET_i2s (peer));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Flood at %llu from `%s' via `%s' at `%s' with bits %u\n",
-                (unsigned long long) GNUNET_TIME_absolute_ntoh (incoming_flood->
-                                                                timestamp).
-                abs_value, origin, pred, GNUNET_i2s (&my_identity),
+                (unsigned long long)
+                GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp).abs_value,
+                origin, pred, GNUNET_i2s (&my_identity),
                 (unsigned int) matching_bits);
   }
 #endif

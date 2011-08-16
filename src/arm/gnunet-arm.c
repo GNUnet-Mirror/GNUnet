@@ -138,7 +138,8 @@ static struct GNUNET_TIME_Relative timeout;
  * @param cls closure, unused
  * @param tc context, unused
  */
-static void cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -305,9 +306,8 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_ARM_stop_service (h, "arm",
                                  (0 ==
-                                  timeout.
-                                  rel_value) ? STOP_TIMEOUT_ARM : timeout,
-                                 &confirm_cb, "arm");
+                                  timeout.rel_value) ? STOP_TIMEOUT_ARM :
+                                 timeout, &confirm_cb, "arm");
         return;
       }
       break;
@@ -336,9 +336,8 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_CLIENT_service_test (test, cfg,
                                     (0 ==
-                                     timeout.
-                                     rel_value) ? TEST_TIMEOUT : timeout,
-                                    &confirm_task, test);
+                                     timeout.rel_value) ? TEST_TIMEOUT :
+                                    timeout, &confirm_task, test);
         return;
       }
       break;

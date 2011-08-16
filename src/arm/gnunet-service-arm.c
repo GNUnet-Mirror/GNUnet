@@ -722,8 +722,8 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         lowestRestartDelay =
             GNUNET_TIME_relative_min (lowestRestartDelay,
-                                      GNUNET_TIME_absolute_get_remaining (pos->
-                                                                          restartAt));
+                                      GNUNET_TIME_absolute_get_remaining
+                                      (pos->restartAt));
       }
     }
     pos = pos->next;

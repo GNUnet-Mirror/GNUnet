@@ -207,9 +207,9 @@ static unsigned long long plan_count;
  * @param cls the 'struct GSF_ConnectedPeer' for transmission
  * @param tc scheduler context
  */
-static void schedule_peer_transmission (void *cls,
-                                        const struct
-                                        GNUNET_SCHEDULER_TaskContext *tc);
+static void
+schedule_peer_transmission (void *cls,
+                            const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -243,8 +243,8 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
 #endif
 
   GNUNET_assert (rp->hn == NULL);
-  if (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).
-      rel_value == 0)
+  if (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value
+      == 0)
     rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap, rp, rp->priority);
   else
     rp->hn =
@@ -359,8 +359,8 @@ schedule_peer_transmission (void *cls,
   }
   /* move ready requests to priority queue */
   while ((NULL != (rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap))) &&
-         (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).
-          rel_value == 0))
+         (GNUNET_TIME_absolute_get_remaining
+          (rp->earliest_transmission).rel_value == 0))
   {
     GNUNET_assert (rp == GNUNET_CONTAINER_heap_remove_root (pp->delay_heap));
     rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap, rp, rp->priority);
@@ -380,9 +380,9 @@ schedule_peer_transmission (void *cls,
 #if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sleeping for %llu ms before retrying requests on plan %p.\n",
-                (unsigned long long) GNUNET_TIME_absolute_get_remaining (rp->
-                                                                         earliest_transmission).
-                rel_value, pp);
+                (unsigned long long)
+                GNUNET_TIME_absolute_get_remaining
+                (rp->earliest_transmission).rel_value, pp);
 #endif
     pp->task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining

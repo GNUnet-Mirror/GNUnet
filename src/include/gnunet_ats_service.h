@@ -83,10 +83,10 @@ typedef void (*GNUNET_TRANSPORT_ATS_AllocationNotification) (void *cls,
  * @param alloc_cb_cls closure for 'alloc_cb'
  * @return ats context
  */
-struct GNUNET_ATS_Handle *GNUNET_ATS_init (const struct
-                                           GNUNET_CONFIGURATION_Handle *cfg,
-                                           GNUNET_TRANSPORT_ATS_AllocationNotification
-                                           alloc_cb, void *alloc_cb_cls);
+struct GNUNET_ATS_Handle *
+GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                 GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
+                 void *alloc_cb_cls);
 
 
 /**
@@ -94,7 +94,8 @@ struct GNUNET_ATS_Handle *GNUNET_ATS_init (const struct
  *
  * @param atc handle
  */
-void GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
+void
+GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
 
 
 /**
@@ -140,15 +141,11 @@ struct GNUNET_ATS_SuggestionContext;
  * @param cb function to call with the address
  * @param cb_cls closure for cb
  */
-struct GNUNET_ATS_SuggestionContext *GNUNET_ATS_suggest_address (struct
-                                                                 GNUNET_ATS_Handle
-                                                                 *atc,
-                                                                 const struct
-                                                                 GNUNET_PeerIdentity
-                                                                 *peer,
-                                                                 GNUNET_ATS_AddressSuggestionCallback
-                                                                 cb,
-                                                                 void *cb_cls);
+struct GNUNET_ATS_SuggestionContext *
+GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
+                            const struct GNUNET_PeerIdentity *peer,
+                            GNUNET_ATS_AddressSuggestionCallback cb,
+                            void *cb_cls);
 
 
 /**
@@ -156,8 +153,8 @@ struct GNUNET_ATS_SuggestionContext *GNUNET_ATS_suggest_address (struct
  *
  * @param asc handle of the request to cancel
  */
-void GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext
-                                        *asc);
+void
+GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext *asc);
 
 
 /**
@@ -174,12 +171,13 @@ void GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext
  * @param ats performance data for the connection
  * @param ats_count number of performance records in 'ats'
  */
-void GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
-                              const struct GNUNET_PeerIdentity *peer,
-                              const char *plugin_name, struct Session *session,
-                              const void *plugin_addr, size_t plugin_addr_len,
-                              const struct GNUNET_TRANSPORT_ATS_Information
-                              *ats, uint32_t ats_count);
+void
+GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
+                         const struct GNUNET_PeerIdentity *peer,
+                         const char *plugin_name, struct Session *session,
+                         const void *plugin_addr, size_t plugin_addr_len,
+                         const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                         uint32_t ats_count);
 
 
 /**
@@ -190,8 +188,9 @@ void GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
  * @param atc handle
  * @param peer identity of the peer
  */
-void GNUNET_ATS_peer_disconnect (struct GNUNET_ATS_Handle *atc,
-                                 const struct GNUNET_PeerIdentity *peer);
+void
+GNUNET_ATS_peer_disconnect (struct GNUNET_ATS_Handle *atc,
+                            const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -201,9 +200,10 @@ void GNUNET_ATS_peer_disconnect (struct GNUNET_ATS_Handle *atc,
  * @param peer identity of the peer
  * @param session session handle that is no longer valid
  */
-void GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
-                                   const struct GNUNET_PeerIdentity *peer,
-                                   const struct Session *session);
+void
+GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
+                              const struct GNUNET_PeerIdentity *peer,
+                              const struct Session *session);
 
 
 /**
@@ -224,14 +224,14 @@ void GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
  * @param ats performance data for the address
  * @param ats_count number of performance records in 'ats'
  */
-void GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
-                                const struct GNUNET_PeerIdentity *peer,
-                                struct GNUNET_TIME_Absolute valid_until,
-                                const char *plugin_name,
-                                struct Session *session,
-                                const void *plugin_addr, size_t plugin_addr_len,
-                                const struct GNUNET_TRANSPORT_ATS_Information
-                                *ats, uint32_t ats_count);
+void
+GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
+                           const struct GNUNET_PeerIdentity *peer,
+                           struct GNUNET_TIME_Absolute valid_until,
+                           const char *plugin_name, struct Session *session,
+                           const void *plugin_addr, size_t plugin_addr_len,
+                           const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                           uint32_t ats_count);
 
 
 #endif

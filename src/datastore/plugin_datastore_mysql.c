@@ -1068,12 +1068,12 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
     {
       ret =
           prepared_statement_run_select (plugin,
-                                         plugin->count_entry_by_hash_vhash_and_type,
-                                         1, cbind, MYSQL_TYPE_BLOB, key,
-                                         hashSize, &hashSize, MYSQL_TYPE_BLOB,
-                                         vhash, hashSize2, &hashSize2,
-                                         MYSQL_TYPE_LONG, &type, GNUNET_YES,
-                                         -1);
+                                         plugin->
+                                         count_entry_by_hash_vhash_and_type, 1,
+                                         cbind, MYSQL_TYPE_BLOB, key, hashSize,
+                                         &hashSize, MYSQL_TYPE_BLOB, vhash,
+                                         hashSize2, &hashSize2, MYSQL_TYPE_LONG,
+                                         &type, GNUNET_YES, -1);
     }
     else
     {

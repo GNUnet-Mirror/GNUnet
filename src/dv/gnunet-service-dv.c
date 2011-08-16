@@ -761,8 +761,8 @@ transmit_to_plugin (void *cls, size_t size, void *buf)
   if (plugin_pending_head != NULL)
     plugin_transmit_handle =
         GNUNET_SERVER_notify_transmit_ready (client_handle,
-                                             ntohs (plugin_pending_head->
-                                                    msg->size),
+                                             ntohs (plugin_pending_head->msg->
+                                                    size),
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              &transmit_to_plugin, NULL);
 
@@ -858,7 +858,8 @@ send_to_plugin (const struct GNUNET_PeerIdentity *sender,
 }
 
 /* Declare here so retry_core_send is aware of it */
-size_t core_transmit_notify (void *cls, size_t size, void *buf);
+size_t
+core_transmit_notify (void *cls, size_t size, void *buf);
 
 /**
  *  Try to send another message from our core sending list
@@ -999,9 +1000,9 @@ send_message_via (const struct GNUNET_PeerIdentity *sender,
   find_context.via = recipient;
   find_context.tid = 0;
   GNUNET_CONTAINER_multihashmap_get_multiple (extended_neighbors,
-                                              &send_context->distant_peer->
-                                              hashPubKey, &find_specific_id,
-                                              &find_context);
+                                              &send_context->
+                                              distant_peer->hashPubKey,
+                                              &find_specific_id, &find_context);
 
   if (find_context.tid == 0)
   {
@@ -2071,19 +2072,16 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 /** Forward declarations **/
-static int handle_dv_gossip_message (void *cls,
-                                     const struct GNUNET_PeerIdentity *peer,
-                                     const struct GNUNET_MessageHeader *message,
-                                     const struct
-                                     GNUNET_TRANSPORT_ATS_Information *atsi);
+static int
+handle_dv_gossip_message (void *cls, const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *message,
+                          const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
-static int handle_dv_disconnect_message (void *cls,
-                                         const struct GNUNET_PeerIdentity *peer,
-                                         const struct GNUNET_MessageHeader
-                                         *message,
-                                         const struct
-                                         GNUNET_TRANSPORT_ATS_Information
-                                         *atsi);
+static int
+handle_dv_disconnect_message (void *cls, const struct GNUNET_PeerIdentity *peer,
+                              const struct GNUNET_MessageHeader *message,
+                              const struct GNUNET_TRANSPORT_ATS_Information
+                              *atsi);
 /** End forward declarations **/
 
 
@@ -2658,8 +2656,8 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity *peer,
           atsi[0].value = htonl (referrer->pending_messages[i].distance);
           atsi[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
           atsi[1].value =
-              htonl ((uint32_t) referrer->pending_messages[i].latency.
-                     rel_value);
+              htonl ((uint32_t) referrer->pending_messages[i].
+                     latency.rel_value);
           atsi[2].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
           atsi[2].value = htonl (0);
           handle_dv_data_message (NULL, &referrer->pending_messages[i].sender,

@@ -852,8 +852,8 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
       return;
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
-                                                         &udp->sender.
-                                                         hashPubKey,
+                                                         &udp->
+                                                         sender.hashPubKey,
                                                          peer_session));
     plugin->last_expected_delay =
         GNUNET_FRAGMENT_context_destroy (peer_session->frag);
@@ -882,8 +882,8 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
                                             &fragment_msg_proc, &ack_proc);
       rc->hnode =
           GNUNET_CONTAINER_heap_insert (plugin->defrags, rc,
-                                        (GNUNET_CONTAINER_HeapCostType) now.
-                                        abs_value);
+                                        (GNUNET_CONTAINER_HeapCostType)
+                                        now.abs_value);
     }
 #if DEBUG_UDP
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -896,8 +896,8 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     {
       /* keep this 'rc' from expiring */
       GNUNET_CONTAINER_heap_update_cost (plugin->defrags, rc->hnode,
-                                         (GNUNET_CONTAINER_HeapCostType) now.
-                                         abs_value);
+                                         (GNUNET_CONTAINER_HeapCostType)
+                                         now.abs_value);
     }
     if (GNUNET_CONTAINER_heap_get_size (plugin->defrags) >
         UDP_MAX_SENDER_ADDRESSES_WITH_DEFRAG)

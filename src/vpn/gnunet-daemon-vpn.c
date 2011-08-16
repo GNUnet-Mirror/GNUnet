@@ -931,8 +931,8 @@ receive_udp_back (void *cls
     GNUNET_assert (me != NULL);
     if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK)
     {
-      GNUNET_assert (me->
-                     desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP));
+      GNUNET_assert (me->desc.
+                     service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP));
       if (!port_in_ports (me->desc.ports, pkt6->udp_hdr.spt) &&
           !testBit (me->additional_ports, ntohs (pkt6->udp_hdr.spt)))
       {
@@ -1109,8 +1109,8 @@ receive_tcp_back (void *cls
 
     GNUNET_assert (me != NULL);
     if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK)
-      GNUNET_assert (me->
-                     desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP));
+      GNUNET_assert (me->desc.
+                     service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP));
 
     pkt6->tcp_hdr.crc = 0;
     uint32_t sum = 0;

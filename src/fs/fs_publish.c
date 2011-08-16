@@ -179,8 +179,8 @@ signal_publish_completion (struct GNUNET_FS_FileInformation *p,
   pi.value.publish.specifics.completed.chk_uri = p->chk_uri;
   p->client_info =
       GNUNET_FS_publish_make_status_ (&pi, pc, p,
-                                      GNUNET_ntohll (p->chk_uri->data.chk.
-                                                     file_length));
+                                      GNUNET_ntohll (p->chk_uri->data.
+                                                     chk.file_length));
 }
 
 
@@ -1333,8 +1333,8 @@ struct PublishKskContext
  * @param cls closure of type "struct PublishKskContext*"
  * @param tc unused
  */
-static void publish_ksk_cont (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**

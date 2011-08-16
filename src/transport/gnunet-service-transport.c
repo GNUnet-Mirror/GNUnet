@@ -953,7 +953,8 @@ struct GNUNET_TIME_Relative ats_regular_interval;
  *        disconnected or must we ask all plugins to
  *        disconnect?
  */
-static void disconnect_neighbour (struct NeighbourMapEntry *n, int check);
+static void
+disconnect_neighbour (struct NeighbourMapEntry *n, int check);
 
 /**
  * Check the ready list for the given neighbour and if a plugin is
@@ -961,10 +962,11 @@ static void disconnect_neighbour (struct NeighbourMapEntry *n, int check);
  *
  * @param nexi target peer for which to transmit
  */
-static void try_transmission_to_peer (struct NeighbourMapEntry *n);
+static void
+try_transmission_to_peer (struct NeighbourMapEntry *n);
 
-struct ForeignAddressList *get_preferred_ats_address (struct NeighbourMapEntry
-                                                      *n);
+struct ForeignAddressList *
+get_preferred_ats_address (struct NeighbourMapEntry *n);
 
 /**
  * Find an entry in the neighbour list for a particular peer.
@@ -1223,8 +1225,8 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 #endif
     memcpy (&enc, &data[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
     if (!isspace
-        ((unsigned char) enc.
-         encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
+        ((unsigned char)
+         enc.encoding[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1]))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
@@ -1523,7 +1525,8 @@ transmit_send_ok (struct TransportClient *client, struct NeighbourMapEntry *n,
  *
  * @param fal address to set to 'connected'
  */
-static void mark_address_connected (struct ForeignAddressList *fal);
+static void
+mark_address_connected (struct ForeignAddressList *fal);
 
 
 
@@ -1939,8 +1942,8 @@ mark_address_connected (struct ForeignAddressList *fal)
   /* Have an inbound connection to this peer which is valid; our id is lower, ignore outbound connection! */
   if ((inbound != NULL) && (0 != fal->addrlen) &&
       (1 ==
-       GNUNET_CRYPTO_hash_xorcmp (&inbound->ready_list->neighbour->
-                                  id.hashPubKey, &my_identity.hashPubKey,
+       GNUNET_CRYPTO_hash_xorcmp (&inbound->ready_list->neighbour->id.
+                                  hashPubKey, &my_identity.hashPubKey,
                                   &null_hash)))
   {
 #if DEBUG_INBOUND
@@ -1951,8 +1954,8 @@ mark_address_connected (struct ForeignAddressList *fal)
   }
   else if ((outbound != NULL) && (0 == fal->addrlen) &&
            ((-1 ==
-             GNUNET_CRYPTO_hash_xorcmp (&outbound->ready_list->neighbour->id.
-                                        hashPubKey, &my_identity.hashPubKey,
+             GNUNET_CRYPTO_hash_xorcmp (&outbound->ready_list->neighbour->
+                                        id.hashPubKey, &my_identity.hashPubKey,
                                         &null_hash))))
   {
 #if DEBUG_INBOUND
@@ -2056,10 +2059,10 @@ find_ready_address (struct NeighbourMapEntry *neighbour)
       if (((best_address == NULL) || (addresses->connected == GNUNET_YES) ||
            (best_address->connected == GNUNET_NO)) &&
           (addresses->in_transmit == GNUNET_NO) && ((best_address == NULL) ||
-                                                    (addresses->latency.
-                                                     rel_value <
-                                                     best_address->latency.
-                                                     rel_value)))
+                                                    (addresses->
+                                                     latency.rel_value <
+                                                     best_address->
+                                                     latency.rel_value)))
         best_address = addresses;
       /* FIXME: also give lower-latency addresses that are not
        * connected a chance some times... */
@@ -2960,7 +2963,8 @@ neighbour_timeout_task (void *cls,
  *
  * @param fal address to PING
  */
-static void schedule_next_ping (struct ForeignAddressList *fal);
+static void
+schedule_next_ping (struct ForeignAddressList *fal);
 
 
 /**
@@ -3295,8 +3299,8 @@ static struct BlacklistCheck *bc_tail;
  * @param cls the 'struct BlacklistCheck*'
  * @param tc unused
  */
-static void do_blacklist_check (void *cls,
-                                const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+do_blacklist_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Transmit blacklist query to the client.
@@ -3633,9 +3637,8 @@ send_periodic_ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 "Some validation of address `%s' via `%s' for peer `%4s' already in progress.\n",
                 (peer_address->addr != NULL) ? a2s (tp->short_name,
                                                     peer_address->addr,
-                                                    peer_address->
-                                                    addrlen) : "<inbound>",
-                tp->short_name, GNUNET_i2s (&neighbour->id));
+                                                    peer_address->addrlen) :
+                "<inbound>", tp->short_name, GNUNET_i2s (&neighbour->id));
 #endif
     schedule_next_ping (peer_address);
     return;
@@ -4065,8 +4068,9 @@ check_pending_validation (void *cls, const GNUNET_HashCode * key, void *value)
                               GNUNET_NO);
     fal->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
     update_addr_value (fal,
-                       GNUNET_TIME_absolute_get_duration (ve->send_time).
-                       rel_value, GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+                       GNUNET_TIME_absolute_get_duration (ve->
+                                                          send_time).rel_value,
+                       GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
 
     schedule_next_ping (fal);
     if (n->latency.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
@@ -4571,8 +4575,8 @@ process_hello (struct TransportPlugin *plugin,
   chvc = chvc_head;
   while (NULL != chvc)
   {
-    if (GNUNET_HELLO_equals (hello, chvc->hello, GNUNET_TIME_absolute_get ()).
-        abs_value > 0)
+    if (GNUNET_HELLO_equals
+        (hello, chvc->hello, GNUNET_TIME_absolute_get ()).abs_value > 0)
     {
 #if DEBUG_TRANSPORT_HELLO > 2
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4889,8 +4893,9 @@ handle_ping (void *cls, const struct GNUNET_MessageHeader *message,
     memcpy (&pong[1], plugin->short_name, slen);
     if ((sender_address != NULL) && (sender_address_len > 0))
       memcpy (&((char *) &pong[1])[slen], sender_address, sender_address_len);
-    if (GNUNET_TIME_absolute_get_remaining (session_header->pong_sig_expires).
-        rel_value < PONG_SIGNATURE_LIFETIME.rel_value / 4)
+    if (GNUNET_TIME_absolute_get_remaining
+        (session_header->pong_sig_expires).rel_value <
+        PONG_SIGNATURE_LIFETIME.rel_value / 4)
     {
       /* create / update cached sig */
 #if DEBUG_TRANSPORT
@@ -5235,8 +5240,8 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Throttling read (%llu bytes excess at %u b/s), waiting %llu ms before reading more.\n",
-                (unsigned long long) n->in_tracker.
-                consumption_since_last_update__,
+                (unsigned long long) n->
+                in_tracker.consumption_since_last_update__,
                 (unsigned int) n->in_tracker.available_bytes_per_s__,
                 (unsigned long long) ret.rel_value);
 #endif

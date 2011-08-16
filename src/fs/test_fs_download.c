@@ -140,42 +140,42 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
             (unsigned long long) event->value.publish.completed,
             (unsigned long long) event->value.publish.size,
             event->value.publish.specifics.progress.depth,
-            (unsigned long long) event->value.publish.specifics.progress.
-            offset);
+            (unsigned long long) event->value.publish.specifics.
+            progress.offset);
 #endif
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     printf ("Publishing complete, %llu kb/s.\n",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration (start).
-                                   rel_value) / 1024LL));
+                                   GNUNET_TIME_absolute_get_duration
+                                   (start).rel_value) / 1024LL));
     GAUGER ("FS", "Publishing speed (insertion)",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration (start).
-                                   rel_value) / 1024LL), "kb/s");
+                                   GNUNET_TIME_absolute_get_duration
+                                   (start).rel_value) / 1024LL), "kb/s");
     fn = GNUNET_DISK_mktemp ("gnunet-download-test-dst");
     start = GNUNET_TIME_absolute_get ();
     download =
         GNUNET_FS_download_start (fs,
-                                  event->value.publish.specifics.completed.
-                                  chk_uri, NULL, fn, NULL, 0, FILESIZE, 1,
-                                  GNUNET_FS_DOWNLOAD_OPTION_NONE, "download",
-                                  NULL);
+                                  event->value.publish.specifics.
+                                  completed.chk_uri, NULL, fn, NULL, 0,
+                                  FILESIZE, 1, GNUNET_FS_DOWNLOAD_OPTION_NONE,
+                                  "download", NULL);
     GNUNET_assert (download != NULL);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
     printf ("Download complete,  %llu kb/s.\n",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration (start).
-                                   rel_value) / 1024LL));
+                                   GNUNET_TIME_absolute_get_duration
+                                   (start).rel_value) / 1024LL));
     GAUGER ("FS", "Local download speed (inserted)",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
-                                   GNUNET_TIME_absolute_get_duration (start).
-                                   rel_value) / 1024LL), "kb/s");
+                                   GNUNET_TIME_absolute_get_duration
+                                   (start).rel_value) / 1024LL), "kb/s");
     GNUNET_SCHEDULER_add_now (&abort_download_task, NULL);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
@@ -185,8 +185,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
             (unsigned long long) event->value.download.completed,
             (unsigned long long) event->value.download.size,
             event->value.download.specifics.progress.depth,
-            (unsigned long long) event->value.download.specifics.progress.
-            offset);
+            (unsigned long long) event->value.download.specifics.
+            progress.offset);
 #endif
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:

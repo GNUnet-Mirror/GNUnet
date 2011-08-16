@@ -54,10 +54,11 @@ extern "C"
  *        function will be called with NULL on error
  * @param cls closure for callback
  */
-int GNUNET_UPNP_get_ip (struct GNUNET_CONFIGURATION_Handle *cfg, int domain,
-                        int type, int protocol, uint16_t port,
-                        struct GNUNET_TIME_Relative timeout,
-                        GNUNET_RESOLVER_AddressCallback callback, void *cls);
+int
+GNUNET_UPNP_get_ip (struct GNUNET_CONFIGURATION_Handle *cfg, int domain,
+                    int type, int protocol, uint16_t port,
+                    struct GNUNET_TIME_Relative timeout,
+                    GNUNET_RESOLVER_AddressCallback callback, void *cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

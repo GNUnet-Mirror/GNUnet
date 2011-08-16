@@ -242,14 +242,16 @@ struct GNUNET_STATISTICS_Handle
 /**
  * Schedule the next action to be performed.
  */
-static void schedule_action (struct GNUNET_STATISTICS_Handle *h);
+static void
+schedule_action (struct GNUNET_STATISTICS_Handle *h);
 
 /**
  * Try to (re)connect to the statistics service.
  *
  * @return GNUNET_YES on success, GNUNET_NO on failure.
  */
-static int try_connect (struct GNUNET_STATISTICS_Handle *ret);
+static int
+try_connect (struct GNUNET_STATISTICS_Handle *ret);
 
 
 static void
@@ -500,8 +502,8 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
                   "Processing VALUE done, now reading more\n");
 #endif
       GNUNET_CLIENT_receive (h->client, &receive_stats, h,
-                             GNUNET_TIME_absolute_get_remaining (h->current->
-                                                                 timeout));
+                             GNUNET_TIME_absolute_get_remaining (h->
+                                                                 current->timeout));
       h->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
       return;
     }
@@ -572,8 +574,8 @@ transmit_get (struct GNUNET_STATISTICS_Handle *handle, size_t size, void *buf)
 #endif
     handle->receiving = GNUNET_YES;
     GNUNET_CLIENT_receive (handle->client, &receive_stats, handle,
-                           GNUNET_TIME_absolute_get_remaining (handle->current->
-                                                               timeout));
+                           GNUNET_TIME_absolute_get_remaining (handle->
+                                                               current->timeout));
   }
   return msize;
 }

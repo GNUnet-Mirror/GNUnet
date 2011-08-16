@@ -141,7 +141,8 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 /* Forward declaration */
-static void do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Iterator called on each result obtained for a DHT
@@ -199,8 +200,8 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 
 }
 
-static void stop_retry_get (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+stop_retry_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 static void
 get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)

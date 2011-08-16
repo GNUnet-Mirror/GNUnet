@@ -141,7 +141,8 @@ put_value (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
 }
 
 
-static void test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static uint64_t guid;

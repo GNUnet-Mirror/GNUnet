@@ -61,8 +61,9 @@ typedef int (*GNUNET_PSEUDONYM_Iterator) (void *cls,
  * @param delta by how much should the rating be changed?
  * @return new rating of the namespace
  */
-int GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const GNUNET_HashCode * nsid, int delta);
+int
+GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       const GNUNET_HashCode * nsid, int delta);
 
 /**
  * Add a pseudonym to the set of known pseudonyms.
@@ -73,9 +74,10 @@ int GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param id the pseudonym identifier
  * @param meta metadata for the pseudonym
  */
-void GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const GNUNET_HashCode * id,
-                           const struct GNUNET_CONTAINER_MetaData *meta);
+void
+GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      const GNUNET_HashCode * id,
+                      const struct GNUNET_CONTAINER_MetaData *meta);
 
 
 /**
@@ -86,41 +88,44 @@ void GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param closure closure for iterator
  * @return number of pseudonyms found
  */
-int GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               GNUNET_PSEUDONYM_Iterator iterator,
-                               void *closure);
+int
+GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_PSEUDONYM_Iterator iterator, void *closure);
 
 /**
  * Register callback to be invoked whenever we discover
  * a new pseudonym.
  */
-int GNUNET_PSEUDONYM_discovery_callback_register (const struct
-                                                  GNUNET_CONFIGURATION_Handle
-                                                  *cfg,
-                                                  GNUNET_PSEUDONYM_Iterator
-                                                  iterator, void *closure);
+int
+GNUNET_PSEUDONYM_discovery_callback_register (const struct
+                                              GNUNET_CONFIGURATION_Handle *cfg,
+                                              GNUNET_PSEUDONYM_Iterator
+                                              iterator, void *closure);
 
 /**
  * Unregister namespace discovery callback.
  */
-int GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
-                                                    iterator, void *closure);
+int
+GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
+                                                iterator, void *closure);
 
 /**
  * Return the unique, human readable name for the given pseudonym.
  *
  * @return NULL on failure (should never happen)
  */
-char *GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle
-                                   *cfg, const GNUNET_HashCode * pseudo);
+char *
+GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             const GNUNET_HashCode * pseudo);
 
 /**
  * Get the pseudonym ID belonging to the given human readable name.
  *
  * @return GNUNET_OK on success
  */
-int GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const char *hname, GNUNET_HashCode * psid);
+int
+GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             const char *hname, GNUNET_HashCode * psid);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

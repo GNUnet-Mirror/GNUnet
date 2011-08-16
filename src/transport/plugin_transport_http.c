@@ -547,24 +547,24 @@ struct PrettyPrinterContext
  * @param addrlen length of the address
  * @return string representing the same address
  */
-static const char *http_plugin_address_to_string (void *cls, const void *addr,
-                                                  size_t addrlen);
+static const char *
+http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen);
 
 
 /**
  * Call MHD to process pending ipv4 requests and then go back
  * and schedule the next run.
  */
-static void http_server_daemon_v4_run (void *cls,
-                                       const struct GNUNET_SCHEDULER_TaskContext
-                                       *tc);
+static void
+http_server_daemon_v4_run (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc);
 /**
  * Call MHD to process pending ipv6 requests and then go back
  * and schedule the next run.
  */
-static void http_server_daemon_v6_run (void *cls,
-                                       const struct GNUNET_SCHEDULER_TaskContext
-                                       *tc);
+static void
+http_server_daemon_v6_run (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Function setting up curl handle and selecting message to send
@@ -573,7 +573,8 @@ static void http_server_daemon_v6_run (void *cls,
  * @param ps session
  * @return GNUNET_SYSERR on failure, GNUNET_NO if connecting, GNUNET_YES if ok
  */
-static int send_check_connections (struct Plugin *plugin, struct Session *ps);
+static int
+send_check_connections (struct Plugin *plugin, struct Session *ps);
 
 /**
  * Function setting up file descriptors and scheduling task to run
@@ -581,7 +582,8 @@ static int send_check_connections (struct Plugin *plugin, struct Session *ps);
  * @param  plugin plugin as closure
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
-static int curl_schedule (struct Plugin *plugin);
+static int
+curl_schedule (struct Plugin *plugin);
 
 /**
  * Task scheduled to reset the inbound quota delay for a specific peer
@@ -1785,10 +1787,8 @@ curl_receive_mst_cb (void *cls, void *client,
               "Connection %X: Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
               ps, ntohs (message->type), ntohs (message->size),
               GNUNET_i2s (&(pc->identity)), http_plugin_address_to_string (NULL,
-                                                                           ps->
-                                                                           addr,
-                                                                           ps->
-                                                                           addrlen));
+                                                                           ps->addr,
+                                                                           ps->addrlen));
 #endif
   struct GNUNET_TRANSPORT_ATS_Information distance[2];
 
@@ -3333,8 +3333,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                   GNUNET_CONFIGURATION_get_value_string (env->cfg,
                                                          component_name,
                                                          "BINDTO4",
-                                                         &plugin->
-                                                         bind_hostname));
+                                                         &plugin->bind_hostname));
     plugin->bind4_address = GNUNET_malloc (sizeof (struct sockaddr_in));
     plugin->bind4_address->sin_family = AF_INET;
     plugin->bind4_address->sin_port = htons (port);
@@ -3494,8 +3493,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                                        MHD_OPTION_SOCK_ADDR,
                                                        tmp,
                                                        MHD_OPTION_CONNECTION_LIMIT,
-                                                       (unsigned int) plugin->
-                                                       max_connect_per_transport,
+                                                       (unsigned int)
+                                                       plugin->max_connect_per_transport,
 #if BUILD_HTTPS
                                                        MHD_OPTION_HTTPS_PRIORITIES,
                                                        plugin->crypto_init,
@@ -3534,8 +3533,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                                        (struct sockaddr_in *)
                                                        plugin->bind4_address,
                                                        MHD_OPTION_CONNECTION_LIMIT,
-                                                       (unsigned int) plugin->
-                                                       max_connect_per_transport,
+                                                       (unsigned int)
+                                                       plugin->max_connect_per_transport,
 #if BUILD_HTTPS
                                                        MHD_OPTION_HTTPS_PRIORITIES,
                                                        plugin->crypto_init,
