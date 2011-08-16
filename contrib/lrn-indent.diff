@@ -1,0 +1,83 @@
+diff -u indent-2.2.11/src/args.c indent-2.2.11.my/src/args.c
+--- indent-2.2.11/src/args.c	2008-07-23 23:27:17 +0400
++++ indent-2.2.11.my/src/args.c	2011-08-16 14:07:30 +0400
+@@ -151,6 +151,7 @@
+ static int exp_cpp  = 0;
+ static int exp_cs   = 0;
+ static int exp_d    = 0;
++static int exp_ddd  = 0;
+ static int exp_bfda = 0;
+ static int exp_bfde = 0;
+ static int exp_di   = 0;
+@@ -317,6 +318,8 @@
+     {"fca",     PRO_BOOL,                            true,       ON, &settings.format_comments,                  &exp_fca},
+     {"fc1",     PRO_BOOL,                            true,       ON, &settings.format_col1_comments,             &exp_fc1},
+     {"eei",     PRO_BOOL,                           false,       ON, &settings.extra_expression_indent,          &exp_eei},
++    {"ddd",     PRO_BOOL,                            true,       ON, &settings.diff_decls_and_defs,              &exp_ddd},
++    {"nddd",    PRO_BOOL,                            true,      OFF, &settings.diff_decls_and_defs,              &exp_ddd},
+     {"dj",      PRO_BOOL,                           false,       ON, &settings.ljust_decl,                       &exp_dj},
+     {"di",      PRO_INT,                               16, ONOFF_NA, &settings.decl_indent,                      &exp_di},
+     {"d",       PRO_INT,                                0, ONOFF_NA, &settings.unindent_displace,                &exp_d},
+@@ -436,6 +439,8 @@
+     {"fca",     PRO_BOOL,                           false,       ON, &settings.format_comments,                  &exp_fca},
+     {"fc1",     PRO_BOOL,                           false,       ON, &settings.format_col1_comments,             &exp_fc1},
+     {"eei",     PRO_BOOL,                           false,       ON, &settings.extra_expression_indent,          &exp_eei},
++    {"ddd",     PRO_BOOL,                            true,       ON, &settings.diff_decls_and_defs,              &exp_ddd},
++    {"nddd",    PRO_BOOL,                            true,      OFF, &settings.diff_decls_and_defs,              &exp_ddd},
+     {"dj",      PRO_BOOL,                           false,       ON, &settings.ljust_decl,                       &exp_dj},
+     {"di",      PRO_INT,                                2, ONOFF_NA, &settings.decl_indent,                      &exp_di},
+     {"d",       PRO_INT,                                0, ONOFF_NA, &settings.unindent_displace,                &exp_d},
+diff -u indent-2.2.11/src/handletoken.c indent-2.2.11.my/src/handletoken.c
+--- indent-2.2.11/src/handletoken.c	2009-02-15 14:20:42 +0300
++++ indent-2.2.11.my/src/handletoken.c	2011-08-16 14:18:28 +0400
+@@ -1642,6 +1642,11 @@
+     {
+       /* what ? */
+     }
++    if (parser_state_tos->in_parameter_declaration_prototype)
++    {
++      parser_state_tos->in_parameter_declaration_prototype = 0;
++      parser_state_tos->in_parameter_declaration = 0;
++    }
+ }
+ 
+ /**
+diff -u indent-2.2.11/src/indent.h indent-2.2.11.my/src/indent.h
+--- indent-2.2.11/src/indent.h	2009-10-11 23:15:34 +0400
++++ indent-2.2.11.my/src/indent.h	2011-08-16 14:19:37 +0400
+@@ -318,6 +318,11 @@
+     int brace_indent; /*!< number of spaces to indent braces from the suround if, while, etc. in -bl
+                        * (bype_2 == 0) code */
+     int expect_output_file;  /*!< Means "-o" was specified. */
++    int diff_decls_and_defs; /*!< Makes indent think that function prototypes are terminated by ';',
++                              * without this option indent will not be able to tell a difference between
++                              * int foo (); and int foo () {}
++                              * This is the default.
++                              */
+ } user_options_ty;
+ 
+ extern user_options_ty settings;
+@@ -430,6 +435,7 @@
+                                    * slightly different */
+     int in_stmt;                  /*!<  set to 1 while in a stmt */
+     int in_parameter_declaration;
++    int in_parameter_declaration_prototype;
+     int ind_level;                /*!<  the current indentation level in spaces */
+     int ind_stmt;                 /*!<  set to 1 if next line should have an extra
+                                    * indentation level because we are in the
+diff -u indent-2.2.11/src/lexi.c indent-2.2.11.my/src/lexi.c
+--- indent-2.2.11/src/lexi.c	2009-11-11 22:36:32 +0300
++++ indent-2.2.11.my/src/lexi.c	2011-08-16 14:14:28 +0400
+@@ -616,8 +616,11 @@
+                * I've added '=' to this list to keep from breaking
+                * a non-valid C macro from libc.  -jla */
+                     
+-               if (*tp != ';' && *tp != ',' && *tp != '(' && *tp != '=')
++               if ((*tp != ';' || !settings.diff_decls_and_defs) &&
++                   *tp != ',' && *tp != '(' && *tp != '=')
+                {
++                  if (*tp == ';')
++                    parser_state_tos->in_parameter_declaration_prototype = 1;
+                   parser_state_tos->in_parameter_declaration = 1;
+                }
+             }
