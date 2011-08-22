@@ -9,6 +9,8 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+AM_CLFAGS = -g
+
 bin_PROGRAMS = \
  gnunet-service-mesh
 
@@ -67,7 +69,7 @@ test_mesh_small_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 if ENABLE_TEST_RUN
-TESTS = test_mesh_api
+TESTS = test_mesh_small
 endif
 
 EXTRA_DIST = \
