@@ -16,43 +16,41 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */  
-    
+ */
+
 #ifndef _AIRCRACK_NG_BYTEORDER_H_
 #define _AIRCRACK_NG_BYTEORDER_H_
-    
+
 #define ___my_swab16(x) \
-    ((u_int16_t)
-     (\(((u_int16_t) (x) & (u_int16_t) 0x00ffU) << 8) |
-      \(((u_int16_t) (x) & (u_int16_t) 0xff00U) >> 8))) 
+((u_int16_t)( \
+  (((u_int16_t)(x) & (u_int16_t)0x00ffU) << 8) | \
+  (((u_int16_t)(x) & (u_int16_t)0xff00U) >> 8) ))
+
 #define ___my_swab32(x) \
-    ((u_int32_t)
-     (\(((u_int32_t) (x) & (u_int32_t) 0x000000ffUL) << 24) |
-      \(((u_int32_t) (x) & (u_int32_t) 0x0000ff00UL) << 8) |
-      \(((u_int32_t) (x) & (u_int32_t) 0x00ff0000UL) >> 8) |
-      \(((u_int32_t) (x) & (u_int32_t) 0xff000000UL) >> 24))) 
+((u_int32_t)( \
+  (((u_int32_t)(x) & (u_int32_t)0x000000ffUL) << 24) | \
+  (((u_int32_t)(x) & (u_int32_t)0x0000ff00UL) <<  8) | \
+  (((u_int32_t)(x) & (u_int32_t)0x00ff0000UL) >>  8) | \
+  (((u_int32_t)(x) & (u_int32_t)0xff000000UL) >> 24) ))
 #define ___my_swab64(x) \
-    ((u_int64_t)
-     (\(u_int64_t)
-      (((u_int64_t) (x) & (u_int64_t) 0x00000000000000ffULL) << 56) |
-      \(u_int64_t) (((u_int64_t) (x) & (u_int64_t) 0x000000000000ff00ULL) <<
-                     40) | \(u_int64_t) (((u_int64_t) (x) & (u_int64_t)
-                                           0x0000000000ff0000ULL) << 24) |
-      \(u_int64_t) (((u_int64_t) (x) & (u_int64_t) 0x00000000ff000000ULL) << 8)
-      | \(u_int64_t) (((u_int64_t) (x) & (u_int64_t) 0x000000ff00000000ULL) >>
-                       8) | \(u_int64_t) (((u_int64_t) (x) & (u_int64_t)
-                                            0x0000ff0000000000ULL) >> 24) |
-      \(u_int64_t) (((u_int64_t) (x) & (u_int64_t) 0x00ff000000000000ULL) >>
-                     40) | \(u_int64_t) (((u_int64_t) (x) & (u_int64_t)
-                                           0xff00000000000000ULL) >> 56)))   
+((u_int64_t)( \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00000000000000ffULL) << 56) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x000000000000ff00ULL) << 40) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x0000000000ff0000ULL) << 24) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00000000ff000000ULL) <<  8) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x000000ff00000000ULL) >>  8) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x0000ff0000000000ULL) >> 24) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00ff000000000000ULL) >> 40) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0xff00000000000000ULL) >> 56) ))
+
     /*
      * Linux
-     */ 
+     */
 #if defined(linux) || defined(Linux) || defined(__linux__) || defined(__linux) || defined(__gnu_linux__)
 #include <endian.h>
 #include <unistd.h>
 #include <stdint.h>
-    
+
 #ifndef __int8_t_defined
 typedef uint64_t u_int64_t;
 typedef uint32_t u_int32_t;
@@ -61,19 +59,19 @@ typedef uint64_t u_int64_t;
 
 
 #endif /*  */
-    
+
 #ifndef htole16
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define htobe16(x) ___my_swab16 (x)
 #define htole16(x) (x)
 #define be16toh(x) ___my_swab16 (x)
 #define le16toh(x) (x)
-    
+
 #define htobe32(x) ___my_swab32 (x)
 #define htole32(x) (x)
 #define be32toh(x) ___my_swab32 (x)
 #define le32toh(x) (x)
-    
+
 #define htobe64(x) ___my_swab64 (x)
 #define htole64(x) (x)
 #define be64toh(x) ___my_swab64 (x)
@@ -83,28 +81,26 @@ typedef uint64_t u_int64_t;
 #define htole16(x) ___my_swab16 (x)
 #define be16toh(x) (x)
 #define le16toh(x) ___my_swab16 (x)
-    
+
 #define htobe32(x) (x)
 #define htole32(x) ___my_swab32 (x)
 #define be32toh(x) (x)
 #define le32toh(x) ___my_swab32 (x)
-    
+
 #define htobe64(x) (x)
 #define htole64(x) ___my_swab64 (x)
 #define be64toh(x) (x)
 #define le64toh(x) ___my_swab64 (x)
 #endif /*  */
 #endif /*  */
-      
+
 #endif /*  */
-    
     /*
      * Cygwin
-     */ 
+     */
 #if defined(__CYGWIN32__)
 #include <asm/byteorder.h>
 #include <unistd.h>
-    
 #define __be64_to_cpu(x) ___my_swab64(x)
 #define __be32_to_cpu(x) ___my_swab32(x)
 #define __be16_to_cpu(x) ___my_swab16(x)
@@ -117,18 +113,13 @@ typedef uint64_t u_int64_t;
 #define __cpu_to_le64(x) (x)
 #define __cpu_to_le32(x) (x)
 #define __cpu_to_le16(x) (x)
-    
 #define AIRCRACK_NG_BYTE_ORDER_DEFINED
-    
 #endif /*  */
-    
     /*
      * Windows (DDK)
-     */ 
+     */
 #if defined(__WIN__)
-    
 #include <io.h>
-    
 #define __be64_to_cpu(x) ___my_swab64(x)
 #define __be32_to_cpu(x) ___my_swab32(x)
 #define __be16_to_cpu(x) ___my_swab16(x)
@@ -141,19 +132,14 @@ typedef uint64_t u_int64_t;
 #define __cpu_to_le64(x) (x)
 #define __cpu_to_le32(x) (x)
 #define __cpu_to_le16(x) (x)
-    
 #define AIRCRACK_NG_BYTE_ORDER_DEFINED
-    
 #endif /*  */
-    
     /*
      * MAC (Darwin)
-     */ 
+     */
 #if defined(__APPLE_CC__)
 #if defined(__x86_64__) && defined(__APPLE__)
-    
 #include <libkern/OSByteOrder.h>
-    
 #define __swab64(x)      (unsigned long long) OSSwapInt64((uint64_t)x)
 #define __swab32(x)      (unsigned long) OSSwapInt32((uint32_t)x)
 #define __swab16(x)      (unsigned short) OSSwapInt16((uint16_t)x)
@@ -169,11 +155,8 @@ typedef uint64_t u_int64_t;
 #define __cpu_to_le64(x) (unsigned long long) OSSwapHostToLittleInt64((uint64_t)x)
 #define __cpu_to_le32(x) (unsigned long) OSSwapHostToLittleInt32((uint32_t)x)
 #define __cpu_to_le16(x) (unsigned short) OSSwapHostToLittleInt16((uint16_t)x)
-    
 #else /*  */
-    
 #include <architecture/byte_order.h>
-    
 #define __swab64(x)      NXSwapLongLong(x)
 #define __swab32(x)      NXSwapLong(x)
 #define __swab16(x)      NXSwapShort(x)
@@ -189,27 +172,21 @@ typedef uint64_t u_int64_t;
 #define __cpu_to_le64(x) NXSwapHostLongLongToLittle(x)
 #define __cpu_to_le32(x) NXSwapHostLongToLittle(x)
 #define __cpu_to_le16(x) NXSwapHostShortToLittle(x)
-    
 #endif /*  */
-    
 #define __LITTLE_ENDIAN 1234
 #define __BIG_ENDIAN    4321
 #define __PDP_ENDIAN    3412
 #define __BYTE_ORDER    __BIG_ENDIAN
-    
 #define AIRCRACK_NG_BYTE_ORDER_DEFINED
-    
 #endif /*  */
-    
     /*
      * Solaris
      * -------
-     */ 
+     */
 #if defined(__sparc__) && defined(__sun__)
 #include <sys/byteorder.h>
 #include <sys/types.h>
 #include <unistd.h>
-    
 #define __be64_to_cpu(x) (x)
 #define __be32_to_cpu(x) (x)
 #define __be16_to_cpu(x) (x)
@@ -227,34 +204,28 @@ typedef uint64_t u_int64_t;
 typedef uint16_t u_int16_t;
 typedef uint8_t u_int8_t;
 
- 
+
 #define AIRCRACK_NG_BYTE_ORDER_DEFINED
-    
 #endif /*  */
-    
     /*
      * Custom stuff
-     */ 
+     */
 #if  defined(__MACH__) && !defined(__APPLE_CC__)
 #include <libkern/OSByteOrder.h>
 #define __cpu_to_be64(x) = OSSwapHostToBigInt64(x)
 #define __cpu_to_be32(x) = OSSwapHostToBigInt32(x)
-    
 #define AIRCRACK_NG_BYTE_ORDER_DEFINED
-    
 #endif /*  */
-     
+
     // FreeBSD
 #ifdef __FreeBSD__
 #include <machine/endian.h>
 #endif /*  */
-    
     // XXX: Is there anything to include on OpenBSD/NetBSD/DragonFlyBSD/...?
-     
+
     // XXX: Mac: Check http://www.opensource.apple.com/source/CF/CF-476.18/CFByteOrder.h
     //           http://developer.apple.com/DOCUMENTATION/CoreFoundation/Reference/CFByteOrderUtils/Reference/reference.html
     //           Write to apple to ask what should be used.
-    
 #if defined(LITTLE_ENDIAN)
 #define AIRCRACK_NG_LITTLE_ENDIAN LITTLE_ENDIAN
 #elif defined(__LITTLE_ENDIAN)
@@ -262,7 +233,6 @@ typedef uint64_t u_int64_t;
 #elif defined(_LITTLE_ENDIAN)
 #define AIRCRACK_NG_LITTLE_ENDIAN _LITTLE_ENDIAN
 #endif /*  */
-    
 #if defined(BIG_ENDIAN)
 #define AIRCRACK_NG_BIG_ENDIAN BIG_ENDIAN
 #elif defined(__BIG_ENDIAN)
@@ -270,11 +240,9 @@ typedef uint64_t u_int64_t;
 #elif defined(_BIG_ENDIAN)
 #define AIRCRACK_NG_BIG_ENDIAN _BIG_ENDIAN
 #endif /*  */
-    
 #if !defined(AIRCRACK_NG_LITTLE_ENDIAN) && !defined(AIRCRACK_NG_BIG_ENDIAN)
 #error Impossible to determine endianness (Little or Big endian), please contact the author.
 #endif /*  */
-    
 #if defined(BYTE_ORDER)
 #if (BYTE_ORDER == AIRCRACK_NG_LITTLE_ENDIAN)
 #define AIRCRACK_NG_BYTE_ORDER AIRCRACK_NG_LITTLE_ENDIAN
@@ -294,13 +262,10 @@ typedef uint64_t u_int64_t;
 #define AIRCRACK_NG_BYTE_ORDER AIRCRACK_NG_BIG_ENDIAN
 #endif /*  */
 #endif /*  */
-    
 #ifndef AIRCRACK_NG_BYTE_ORDER
 #error Impossible to determine endianness (Little or Big endian), please contact the author.
 #endif /*  */
-    
 #if (AIRCRACK_NG_BYTE_ORDER == AIRCRACK_NG_LITTLE_ENDIAN)
-    
 #ifndef AIRCRACK_NG_BYTE_ORDER_DEFINED
 #define __be64_to_cpu(x) ___my_swab64(x)
 #define __be32_to_cpu(x) ___my_swab32(x)
@@ -315,7 +280,6 @@ typedef uint64_t u_int64_t;
 #define __cpu_to_le32(x) (x)
 #define __cpu_to_le16(x) (x)
 #endif /*  */
-    
 #ifndef htobe16
 #define htobe16 ___my_swab16
 #endif /*  */
@@ -328,7 +292,6 @@ typedef uint64_t u_int64_t;
 #ifndef betoh32
 #define betoh32 ___my_swab32
 #endif /*  */
-    
 #ifndef htole16
 #define htole16(x) (x)
 #endif /*  */
@@ -341,11 +304,8 @@ typedef uint64_t u_int64_t;
 #ifndef letoh32
 #define letoh32(x) (x)
 #endif /*  */
-    
 #endif /*  */
-    
 #if (AIRCRACK_NG_BYTE_ORDER == AIRCRACK_NG_BIG_ENDIAN)
-    
 #ifndef AIRCRACK_NG_BYTE_ORDER_DEFINED
 #define __be64_to_cpu(x) (x)
 #define __be32_to_cpu(x) (x)
@@ -360,7 +320,6 @@ typedef uint64_t u_int64_t;
 #define __cpu_to_le32(x) ___my_swab32(x)
 #define __cpu_to_le16(x) ___my_swab16(x)
 #endif /*  */
-    
 #ifndef htobe16
 #define htobe16(x) (x)
 #endif /*  */
@@ -373,7 +332,6 @@ typedef uint64_t u_int64_t;
 #ifndef betoh32
 #define betoh32(x) (x)
 #endif /*  */
-    
 #ifndef htole16
 #define htole16 ___my_swab16
 #endif /*  */
@@ -386,9 +344,7 @@ typedef uint64_t u_int64_t;
 #ifndef letoh32
 #define letoh32 ___my_swab32
 #endif /*  */
-    
 #endif /*  */
-    
     // Common defines
 #define cpu_to_le64 __cpu_to_le64
 #define le64_to_cpu __le64_to_cpu
@@ -402,7 +358,6 @@ typedef uint64_t u_int64_t;
 #define be32_to_cpu __be32_to_cpu
 #define cpu_to_be16 __cpu_to_be16
 #define be16_to_cpu __be16_to_cpu
-    
 #ifndef le16toh
 #define le16toh le16_to_cpu
 #endif /*  */
@@ -415,7 +370,7 @@ typedef uint64_t u_int64_t;
 #ifndef be32toh
 #define be32toh be32_to_cpu
 #endif /*  */
-     
+
 #ifndef htons
 #define htons be16_to_cpu
 #endif /*  */
@@ -428,5 +383,4 @@ typedef uint64_t u_int64_t;
 #ifndef ntohl
 #define ntohl cpu_to_be32
 #endif /*  */
-    
 #endif /*  */
