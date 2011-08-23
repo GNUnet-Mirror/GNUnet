@@ -230,7 +230,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2, &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NOW!\n");
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
 }
 
