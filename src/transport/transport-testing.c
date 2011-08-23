@@ -246,6 +246,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char *cfgname,
 void
 GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext *p)
 {
+  GNUNET_assert (p != NULL);
   if (p->th != NULL)
     GNUNET_TRANSPORT_disconnect (p->th);
 
@@ -257,12 +258,15 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext *p)
     GNUNET_OS_process_close (p->arm_proc);
     p->arm_proc = NULL;
   }
-  GNUNET_CONFIGURATION_destroy (p->cfg);
   if (p->servicehome != NULL)
   {
     GNUNET_DISK_directory_remove (p->servicehome);
     GNUNET_free (p->servicehome);
   }
+
+  if (p->cfg != NULL)
+    GNUNET_CONFIGURATION_destroy (p->cfg);
+
   GNUNET_free (p);
 }
 
@@ -274,8 +278,9 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext *p)
  * @param p2 peer 2
  * @param cb the callback to call
  * @param cb_cls callback cls
+ * @return connect context
  */
-void
+GNUNET_TRANSPORT_TESTING_ConnectRequest
 GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
@@ -308,8 +313,36 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
   GNUNET_TRANSPORT_get_hello (cc->th_p2, &exchange_hello_last, cc);
 
   cc->tct = GNUNET_SCHEDULER_add_now (&try_connect, cc);
+  return cc;
 }
 
+/**
+ * Cancels a peer connect request
+ * before.
+ * @param p1 peer 1
+ * @param p2 peer 2
+ * @param cb the callback to call
+ * @param cb_cls callback cls
+ * @return connect context
+ */
+void
+GNUNET_TRANSPORT_TESTING_connect_peers_cancel (GNUNET_TRANSPORT_TESTING_ConnectRequest ccr)
+{
+  struct ConnectingContext *cc = ccr;
+  /* clean up */
+  GNUNET_TRANSPORT_get_hello_cancel (cc->th_p2, &exchange_hello_last, cc);
+  GNUNET_TRANSPORT_get_hello_cancel (cc->th_p1, &exchange_hello, cc);
+
+  if (cc->tct != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (cc->tct);
+
+  cc->tct = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_TRANSPORT_disconnect (cc->th_p1);
+  GNUNET_TRANSPORT_disconnect (cc->th_p2);
+
+  GNUNET_free (cc);
+}
 
 
 /* end of transport_testing.h */

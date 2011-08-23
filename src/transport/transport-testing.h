@@ -33,6 +33,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_transport_service.h"
 
+#define GNUNET_TRANSPORT_TESTING_ConnectRequest void *
 
 /**
  * Context for a single peer
@@ -102,10 +103,13 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext *pc);
  * @param cb the callback to call
  * @param cb_cls callback cls
  */
-void
+GNUNET_TRANSPORT_TESTING_ConnectRequest
 GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
                                         void *cls);
+
+void
+GNUNET_TRANSPORT_TESTING_connect_peers_cancel (void *cc);
 
 /* end of transport_testing.h */
