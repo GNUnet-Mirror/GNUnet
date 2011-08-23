@@ -1,0 +1,42 @@
+diff -ru indent-gnunet/doc/Makefile.am indent-texi2html5/doc/Makefile.am
+--- indent-gnunet/doc/Makefile.am	2008-04-14 20:31:19.000000000 +0200
++++ indent-texi2html5/doc/Makefile.am	2011-08-22 20:24:26.979782439 +0200
+@@ -34,14 +34,14 @@
+ html-split: @PACKAGE@_toc.html
+ 
+ @PACKAGE@.html: version.texi $(@PACKAGE@_TEXINFOS)
+-	$(TEXI2HTML) -expandinfo -number -monolithic `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi`
++	$(TEXI2HTML) -expandinfo -monolithic `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi`
+ 
+ @PACKAGE@_toc.html: version.texi $(@PACKAGE@_TEXINFOS)
+ 	case "$(TEXI2HTML)" in \
+ 	  *"/missing texi2html") \
+-	     $(TEXI2HTML) -expand info -number -nomenu -split section `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi` || exit 0 ;; \
++	     $(TEXI2HTML) -expand info -nomenu -split section `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi` || exit 0 ;; \
+ 	  *) $(RM) @PACKAGE@_*.html ; \
+-	     $(TEXI2HTML) -expand info -number -nomenu -split section `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi` ;; \
++	     $(TEXI2HTML) -expand info -nomenu -split section `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi` ;; \
+ 	esac
+ 
+ install-html-monolithic: @PACKAGE@.html
+diff -ru indent-gnunet/doc/Makefile.in indent-texi2html5/doc/Makefile.in
+--- indent-gnunet/doc/Makefile.in	2010-01-31 17:25:21.000000000 +0100
++++ indent-texi2html5/doc/Makefile.in	2011-08-22 20:24:41.376449156 +0200
+@@ -663,14 +663,14 @@
+ html-split: @PACKAGE@_toc.html
+ 
+ @PACKAGE@.html: version.texi $(@PACKAGE@_TEXINFOS)
+-	$(TEXI2HTML) -expandinfo -number -monolithic `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi`
++	$(TEXI2HTML) -expandinfo -monolithic `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi`
+ 
+ @PACKAGE@_toc.html: version.texi $(@PACKAGE@_TEXINFOS)
+ 	case "$(TEXI2HTML)" in \
+ 	  *"/missing texi2html") \
+-	     $(TEXI2HTML) -expand info -number -nomenu -split section `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi` || exit 0 ;; \
++	     $(TEXI2HTML) -expand info -nomenu -split section `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi` || exit 0 ;; \
+ 	  *) $(RM) @PACKAGE@_*.html ; \
+-	     $(TEXI2HTML) -expand info -number -nomenu -split section `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi` ;; \
++	     $(TEXI2HTML) -expand info -nomenu -split section `if test -f @PACKAGE@.texinfo; then echo @PACKAGE@.texinfo; else echo $(srcdir)/@PACKAGE@.texinfo; fi` ;; \
+ 	esac
+ 
+ install-html-monolithic: @PACKAGE@.html
