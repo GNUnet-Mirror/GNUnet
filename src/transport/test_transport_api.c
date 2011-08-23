@@ -59,9 +59,13 @@ static int ok;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
+static GNUNET_SCHEDULER_TaskIdentifier send_task;
+
 struct PeerContext *p1;
 
 struct PeerContext *p2;
+
+static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
 struct GNUNET_TRANSPORT_TransmitHandle *th;
 
@@ -81,6 +85,9 @@ end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
+  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (send_task);
+
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
 
@@ -93,13 +100,17 @@ end ()
 }
 
 static void
-end_badly ()
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (die_task);
-
   die_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Stopping peers\n");
+
+  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (send_task);
+
+  if  (cc != NULL)
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(cc);
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -111,6 +122,7 @@ end_badly ()
     GNUNET_TRANSPORT_TESTING_stop_peer (p2);
 
   ok = GNUNET_SYSERR;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Stopping peers END\n");
 }
 
 
@@ -180,8 +192,13 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 }
 
 static void
-sendtask ()
+sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  send_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
   th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0, TIMEOUT,
                                                &notify_ready, &p1);
 }
@@ -189,6 +206,7 @@ sendtask ()
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
+  cc = NULL;
   char *p1_c = strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n", p1_c,
@@ -196,7 +214,8 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   GNUNET_free (p1_c);
 
   // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
+  send_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
 }
 
 static void
@@ -211,8 +230,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2, &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             NULL);
-
-  GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NOW!\n");
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
 }
 
 static int
@@ -233,6 +252,8 @@ check ()
 #if WRITECONFIG
   setTransportOptions ("test_transport_api_data.conf");
 #endif
+  send_task = GNUNET_SCHEDULER_NO_TASK;
+
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
                       "test-transport-api", "nohelp", options, &run, &ok);
