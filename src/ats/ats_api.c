@@ -364,6 +364,7 @@ GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   atc->alloc_cb = alloc_cb;
   atc->alloc_cb_cls = alloc_cb_cls;
   atc->peers = GNUNET_CONTAINER_multihashmap_create (256);
+  atc->notify_map = GNUNET_CONTAINER_multihashmap_create (256);
   GNUNET_CONFIGURATION_get_value_number (cfg, "core", "TOTAL_QUOTA_OUT",
                                          &atc->total_bps);
   return atc;
