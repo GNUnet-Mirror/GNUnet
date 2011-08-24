@@ -104,7 +104,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Stopping peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (send_task);
@@ -122,7 +122,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_TESTING_stop_peer (p2);
 
   ok = GNUNET_SYSERR;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Stopping peers END\n");
 }
 
 

@@ -356,6 +356,15 @@ test_transport_api_disconnect_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
+test_transport_startonly_SOURCES = \
+ test_transport_startonly.c
+test_transport_startonly_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_ats_SOURCES = \
  test_transport_ats.c $(TRANSPORT_ATS_SRC)

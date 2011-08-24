@@ -266,8 +266,8 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext *p)
 
   if (p->cfg != NULL)
     GNUNET_CONFIGURATION_destroy (p->cfg);
-
   GNUNET_free (p);
+  p = NULL;
 }
 
 /**
@@ -317,13 +317,9 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
 }
 
 /**
- * Cancels a peer connect request
- * before.
- * @param p1 peer 1
- * @param p2 peer 2
- * @param cb the callback to call
- * @param cb_cls callback cls
- * @return connect context
+ * Cancel the request to connect two peers
+ * Tou MUST cancel the request if you stop the peers before the peers connected succesfully
+ * @param cc a connect request handle
  */
 void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (GNUNET_TRANSPORT_TESTING_ConnectRequest ccr)

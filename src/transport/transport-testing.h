@@ -102,6 +102,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext *pc);
  * @param p2 peer 2
  * @param cb the callback to call
  * @param cb_cls callback cls
+ * @return a connect request handle
  */
 GNUNET_TRANSPORT_TESTING_ConnectRequest
 GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
@@ -109,6 +110,11 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
                                         void *cls);
 
+/**
+ * Cancel the request to connect two peers
+ * Tou MUST cancel the request if you stop the peers before the peers connected succesfully
+ * @param cc a connect request handle
+ */
 void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (void *cc);
 
