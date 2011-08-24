@@ -273,6 +273,7 @@ libgnunet_plugin_transport_https_la_CPPFLAGS = \
 
 check_PROGRAMS = \
  test_transport_testing \
+ test_transport_startonly \
  test_transport_api_disconnect \
  $(TEST_TRANSPORT_ATS) \
  $(ATS_TRANSPORT_BENCHMARKS) \
@@ -307,6 +308,7 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
 TESTS = \
  test_transport_testing \
+ test_transport_startonly \
  test_transport_api_disconnect \
  $(TEST_TRANSPORT_ATS) \
  $(ATS_TRANSPORT_BENCHMARKS) \
