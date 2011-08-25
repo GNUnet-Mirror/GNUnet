@@ -618,7 +618,7 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
   struct NeighbourMapEntry *n;
 
   n = lookup_neighbour (target);
-  if ((NULL == n) || (n->is_connected == GNUNET_YES))
+  if ((NULL == n) || (n->is_connected != GNUNET_YES))
     return GNUNET_NO;           /* not connected */
   return GNUNET_YES;
 }
@@ -685,6 +685,14 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
                               gettext_noop
                               ("# SET QUOTA messages ignored (no such peer)"),
                               1, GNUNET_NO);
+#if DEBUG_TRANSPORT
+    if (n == NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Could not send message to peer `%s': unknown neighbor", GNUNET_i2s (target));
+    if (GNUNET_YES != n->is_connected)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Could not send message to peer `%s': not connected\n", GNUNET_i2s (target));
+#endif
     if (NULL != cont)
       cont (cont_cls, GNUNET_SYSERR);
     return;
