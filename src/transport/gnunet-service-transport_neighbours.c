@@ -318,6 +318,8 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
   n->is_active = mq;
   mq->n = n;
+
+
   ret =
       papi->send (papi->cls, &n->id, mq->message_buf, mq->message_buf_size,
                   0 /* priority -- remove from plugin API? */ ,
@@ -514,6 +516,16 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SWITCH! Peer `%4s' switches to plugin `%s' address '%s' session %X\n",
+              GNUNET_i2s (peer),
+              plugin_name,
+              (address_len == 0) ? "<inbound>" :
+              GST_plugins_a2s(plugin_name,address,address_len),
+              session);
+#endif
+
   GNUNET_free_non_null (n->addr);
   n->addr = GNUNET_malloc (address_len);
   memcpy (n->addr, address, address_len);
@@ -551,6 +563,7 @@ static void
 try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
                            const char *plugin_name, const void *plugin_address,
                            size_t plugin_address_len,
+                           struct Session *session,
                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth,
                            const struct GNUNET_TRANSPORT_ATS_Information *ats,
                            uint32_t ats_count)
@@ -559,7 +572,7 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
 
   n->asc = NULL;
   GST_neighbours_switch_to_address (target, plugin_name, plugin_address,
-                                    plugin_address_len, NULL, ats, ats_count);
+                                    plugin_address_len, session, ats, ats_count);
   if (GNUNET_YES == n->is_connected)
     return;
   n->is_connected = GNUNET_YES;

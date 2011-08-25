@@ -286,6 +286,7 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
   /* trivial strategy: pick first available address... */
   asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
            ar->plugin_addr_len,
+           ar->session,
            GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32), ar->ats,
            ar->ats_count);
   asc->cb = NULL;
@@ -682,6 +683,7 @@ notify_valid (void *cls, const GNUNET_HashCode * key, void *value)
 
   asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
            ar->plugin_addr_len,
+           ar->session,
            GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32), ar->ats,
            ar->ats_count);
   GNUNET_ATS_suggest_address_cancel (asc);

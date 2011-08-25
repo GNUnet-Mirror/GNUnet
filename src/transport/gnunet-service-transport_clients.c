@@ -493,6 +493,10 @@ clients_handle_send (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_NO == GST_neighbours_test_connected (&obm->peer))
   {
     /* not connected, not allowed to send; can happen due to asynchronous operations */
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Could not send message to peer `%s': not connected\n", GNUNET_i2s (&obm->peer));
+#endif
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
                               ("# bytes payload dropped (other peer was not connected)"),

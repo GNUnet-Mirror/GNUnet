@@ -117,6 +117,7 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                                       const char *plugin_name,
                                                       const void *plugin_addr,
                                                       size_t plugin_addr_len,
+                                                      struct Session *session,
                                                       struct
                                                       GNUNET_BANDWIDTH_Value32NBO
                                                       bandwidth,
