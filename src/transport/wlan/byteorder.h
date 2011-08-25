@@ -21,6 +21,7 @@
 #ifndef _AIRCRACK_NG_BYTEORDER_H_
 #define _AIRCRACK_NG_BYTEORDER_H_
 
+ /* *INDENT-OFF* */
 #define ___my_swab16(x) \
 ((u_int16_t)( \
   (((u_int16_t)(x) & (u_int16_t)0x00ffU) << 8) | \
@@ -42,7 +43,7 @@
   (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x0000ff0000000000ULL) >> 24) | \
   (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00ff000000000000ULL) >> 40) | \
   (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0xff00000000000000ULL) >> 56) ))
-
+ /* *INDENT-ON* */
     /*
      * Linux
      */
