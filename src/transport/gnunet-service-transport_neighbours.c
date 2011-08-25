@@ -518,11 +518,12 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SWITCH! Peer `%4s' switches to plugin `%s' address '%s' session %X\n",
-              GNUNET_i2s (peer),
-              plugin_name,
-              (address_len == 0) ? "<inbound>" :
-              GST_plugins_a2s(plugin_name,address,address_len),
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "SWITCH! Peer `%4s' switches to plugin `%s' address '%s' session %X\n",
+              GNUNET_i2s (peer), plugin_name,
+              (address_len == 0) ? "<inbound>" : GST_plugins_a2s (plugin_name,
+                                                                  address,
+                                                                  address_len),
               session);
 #endif
 
@@ -562,8 +563,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 static void
 try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
                            const char *plugin_name, const void *plugin_address,
-                           size_t plugin_address_len,
-                           struct Session *session,
+                           size_t plugin_address_len, struct Session *session,
                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth,
                            const struct GNUNET_TRANSPORT_ATS_Information *ats,
                            uint32_t ats_count)
@@ -572,7 +572,8 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
 
   n->asc = NULL;
   GST_neighbours_switch_to_address (target, plugin_name, plugin_address,
-                                    plugin_address_len, session, ats, ats_count);
+                                    plugin_address_len, session, ats,
+                                    ats_count);
   if (GNUNET_YES == n->is_connected)
     return;
   n->is_connected = GNUNET_YES;
@@ -657,17 +658,18 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   n->session = NULL;
   if (GNUNET_YES != n->is_connected)
     return;                     /* not connected anymore anyway, shouldn't matter */
-  /* try QUICKLY to re-establish a connection, reduce timeout! */
-  if (NULL != n->ats)
-  {
-    /* how can this be!? */
-    GNUNET_break (0);
-    return;
-  }
+
   GNUNET_SCHEDULER_cancel (n->timeout_task);
   n->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                     &neighbour_timeout_task, n);
+  /* try QUICKLY to re-establish a connection, reduce timeout! */
+  if (NULL != n->ats)
+  {
+    /* how can this be!? */
+    //GNUNET_break (0);
+    return;
+  }
   n->asc =
       GNUNET_ATS_suggest_address (GST_ats, peer, &try_connect_using_address, n);
 }
@@ -700,11 +702,13 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
                               1, GNUNET_NO);
 #if DEBUG_TRANSPORT
     if (n == NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Could not send message to peer `%s': unknown neighbor", GNUNET_i2s (target));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Could not send message to peer `%s': unknown neighbor",
+                  GNUNET_i2s (target));
     if (GNUNET_YES != n->is_connected)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Could not send message to peer `%s': not connected\n", GNUNET_i2s (target));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Could not send message to peer `%s': not connected\n",
+                  GNUNET_i2s (target));
 #endif
     if (NULL != cont)
       cont (cont_cls, GNUNET_SYSERR);
@@ -791,8 +795,8 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Throttling read (%llu bytes excess at %u b/s), waiting %llu ms before reading more.\n",
-                (unsigned long long) n->
-                in_tracker.consumption_since_last_update__,
+                (unsigned long long) n->in_tracker.
+                consumption_since_last_update__,
                 (unsigned int) n->in_tracker.available_bytes_per_s__,
                 (unsigned long long) ret.rel_value);
 #endif
