@@ -120,14 +120,14 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   timeout_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &end_badly, NULL);
+    GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   i = 1;
   fprintf(stderr,"%i",i);
   while (i <= ITERATIONS)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting peer\n");
-    p1 = GNUNET_TRANSPORT_TESTING_start_peer ("test_transport_api_tcp_peer1.conf",
+    p1 = GNUNET_TRANSPORT_TESTING_start_peer ("test_transport_startonly.conf",
                                               &notify_receive, &notify_connect,
                                               &notify_disconnect, p1);
 
@@ -140,10 +140,13 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_assert (p1 != NULL);
     GNUNET_assert (p1->th != NULL);
 
+    //sleep (5);
+
     GNUNET_TRANSPORT_TESTING_stop_peer(p1);
 
     i++;
-    fprintf(stderr,"..%i",i);
+    if (i <= ITERATIONS)
+      fprintf(stderr,"..%i",i);
   }
   fprintf(stderr,"\n");
   end();
