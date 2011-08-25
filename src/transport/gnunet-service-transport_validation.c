@@ -609,7 +609,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     return;
   }
   addrend++;
-  slen = strlen (addr);
+  slen = strlen (addr) + 1;
   alen -= slen;
 
   if (GNUNET_YES !=
@@ -731,15 +731,17 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
   ve->bc = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting plain PING to `%s'\n",
               GNUNET_i2s (pid));
-  ping.header.size = htons (sizeof (struct TransportPingMessage));
-  ping.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
-  ping.challenge = htonl (ve->challenge);
-  ping.target = *pid;
 
   slen = strlen (ve->transport_name) + 1;
   hello = GST_hello_get ();
   hsize = ntohs (hello->size);
   tsize = sizeof (struct TransportPingMessage) + ve->addrlen + slen + hsize;
+
+  ping.header.size = htons (sizeof (struct TransportPingMessage) + ve->addrlen + slen);
+  ping.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
+  ping.challenge = htonl (ve->challenge);
+  ping.target = *pid;
+
   if (tsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -753,6 +755,8 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
   {
     char message_buf[tsize];
 
+    /* build message with structure:
+     *  [HELLO][TransportPingMessage][Transport name][Address] */
     memcpy (message_buf, hello, hsize);
     memcpy (&message_buf[hsize], &ping, sizeof (struct TransportPingMessage));
     memcpy (&message_buf[sizeof (struct TransportPingMessage) + hsize],
