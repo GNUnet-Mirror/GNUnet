@@ -156,7 +156,8 @@ static struct GNUNET_TIME_Relative
 plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_MessageHeader *message,
                              const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                             uint32_t ats_count, struct Session *session,
+                             uint32_t ats_count,
+                             struct Session *session,
                              const char *sender_address,
                              uint16_t sender_address_len)
 {
@@ -222,7 +223,23 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                                                   ntohs (message->size),
                                                   &do_forward);
       if (do_forward == GNUNET_YES)
-        GST_clients_broadcast (message, GNUNET_YES);
+      {
+        struct InboundMessage * im;
+        size_t size =
+            sizeof (struct InboundMessage) +
+            ntohs (message->size);
+
+        im = GNUNET_malloc (size);
+        im->header.size = htons (size);
+        im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
+        im->ats_count = htonl (0);
+        memcpy (&(im->peer), peer, sizeof(struct GNUNET_PeerIdentity));
+        memcpy (&im[1], message, ntohs (message->size));
+
+        GST_clients_broadcast ((const struct GNUNET_MessageHeader *) im, GNUNET_YES);
+
+        GNUNET_free(im);
+      }
       break;
     }
   }
