@@ -450,10 +450,9 @@ send_connect_packet (void *cls, size_t size, void *buf)
         htons (sizeof (struct GNUNET_MESH_ClientConnect) +
                 sizeof (uint16_t) * ntypes +
                 sizeof (GNUNET_MESH_ApplicationType) * napps);
-
     memcpy (&msg[1], types, sizeof (uint16_t) * ntypes);
-    memcpy (&msg[1] + sizeof (uint16_t) * ntypes, apps,
-            sizeof (GNUNET_MESH_ApplicationType) * napps);
+    types = (uint16_t *) &msg[1];
+    memcpy (&types[ntypes], apps, sizeof (GNUNET_MESH_ApplicationType) * napps);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "mesh: Sent %lu bytes long message %d types and %d apps\n",
                 ntohs (msg->header.size), ntypes, napps);
