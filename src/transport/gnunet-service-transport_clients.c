@@ -109,6 +109,10 @@ struct TransportClient
    */
   unsigned int message_count;
 
+  /**
+   * GNUNET_SERVER_Client's unique id
+   */
+  uint64_t server_client_id;
 };
 
 
@@ -121,7 +125,6 @@ static struct TransportClient *clients_head;
  * Tail of linked list of all clients to this service.
  */
 static struct TransportClient *clients_tail;
-
 
 /**
  * Find the internal handle associated with the given client handle
@@ -137,7 +140,7 @@ lookup_client (struct GNUNET_SERVER_Client *client)
   tc = clients_head;
   while (tc != NULL)
   {
-    if (tc->client == client)
+    if (tc->server_client_id == GNUNET_SERVER_client_get_id (client))
       return tc;
     tc = tc->next;
   }
@@ -156,8 +159,12 @@ setup_client (struct GNUNET_SERVER_Client *client)
 {
   struct TransportClient *tc;
 
+  GNUNET_assert (lookup_client (client) == NULL);
+
   tc = GNUNET_malloc (sizeof (struct TransportClient));
   tc->client = client;
+  tc->server_client_id = GNUNET_SERVER_client_get_id (client);
+
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, tc);
   return tc;
 }
@@ -202,8 +209,8 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
       break;
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmitting message of type %u to client.\n",
-                ntohs (msg->type));
+                "Transmitting message of type %u to client %X.\n",
+                ntohs (msg->type), tc);
 #endif
     GNUNET_CONTAINER_DLL_remove (tc->message_queue_head, tc->message_queue_tail,
                                  q);
@@ -289,7 +296,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
     return;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Client disconnected, cleaning up.\n");
+              "Client %X disconnected, cleaning up.\n", tc);
 #endif
   while (NULL != (mqe = tc->message_queue_head))
   {
@@ -361,9 +368,25 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   struct TransportClient *tc;
 
   tc = lookup_client (client);
+
+#if DEBUG_TRANSPORT
+  if (tc != NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+                "Client %X sent START\n", tc);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+                "Client %X sent START\n", tc);
+#endif
   if (tc != NULL)
   {
     /* got 'start' twice from the same client, not allowed */
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+                "TransportClient %X ServerClient %X id %llu sent multiple START messages\n",
+                tc,
+                tc->client,
+                tc->server_client_id);
+#endif
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -383,6 +406,7 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   tc = setup_client (client);
+
   unicast (tc, GST_hello_get (), GNUNET_NO);
   GST_neighbours_iterate (&notify_client_about_neighbour, tc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -495,7 +519,8 @@ clients_handle_send (void *cls, struct GNUNET_SERVER_Client *client,
     /* not connected, not allowed to send; can happen due to asynchronous operations */
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Could not send message to peer `%s': not connected\n", GNUNET_i2s (&obm->peer));
+                "Could not send message to peer `%s': not connected\n",
+                GNUNET_i2s (&obm->peer));
 #endif
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
