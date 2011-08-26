@@ -108,11 +108,6 @@ struct TransportClient
    * Length of the list of messages pending for this client.
    */
   unsigned int message_count;
-
-  /**
-   * GNUNET_SERVER_Client's unique id
-   */
-  uint64_t server_client_id;
 };
 
 
@@ -140,7 +135,7 @@ lookup_client (struct GNUNET_SERVER_Client *client)
   tc = clients_head;
   while (tc != NULL)
   {
-    if (tc->server_client_id == GNUNET_SERVER_client_get_id (client))
+    if (tc->client == client)
       return tc;
     tc = tc->next;
   }
@@ -163,7 +158,6 @@ setup_client (struct GNUNET_SERVER_Client *client)
 
   tc = GNUNET_malloc (sizeof (struct TransportClient));
   tc->client = client;
-  tc->server_client_id = GNUNET_SERVER_client_get_id (client);
 
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, tc);
   return tc;
@@ -382,10 +376,9 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
     /* got 'start' twice from the same client, not allowed */
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "TransportClient %X ServerClient %X id %llu sent multiple START messages\n",
+                "TransportClient %X ServerClient %X  sent multiple START messages\n",
                 tc,
-                tc->client,
-                tc->server_client_id);
+                tc->client);
 #endif
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
