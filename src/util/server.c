@@ -247,6 +247,11 @@ struct GNUNET_SERVER_Client
    * Type of last message processed (for warn_no_receive_done).
    */
   uint16_t warn_type;
+
+  /**
+   * unique identifier to distinguish between clients
+   */
+  uint64_t id;
 };
 
 
@@ -933,6 +938,18 @@ client_message_tokenizer_callback (void *cls, void *client,
 
 
 /**
+ * Get a unique identifier for each GNUNET_SERVER_Client
+ */
+static uint64_t
+get_client_id (void)
+{
+  static uint64_t id;
+
+  GNUNET_assert (id < ULONG_LONG_MAX);
+  return (id++);
+}
+
+/**
  * Add a TCP socket-based connection to the set of handles managed by
  * this server.  Use this function for outgoing (P2P) connections that
  * we initiated (and where this server should process incoming
@@ -963,6 +980,7 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
   client->receive_pending = GNUNET_YES;
   client->callback = NULL;
   client->callback_cls = NULL;
+  client->id = get_client_id ();
   GNUNET_CONNECTION_receive (client->connection,
                              GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                              client->idle_timeout, &process_incoming, client);
@@ -1273,6 +1291,18 @@ GNUNET_SERVER_client_persist_ (struct GNUNET_SERVER_Client *client)
   client->persist = GNUNET_YES;
 }
 
+
+/**
+ * Retrieve the unique id from the opaque defined GNUNET_SERVER_Client
+ *
+ * @param client the client
+ * @return the unique id
+ */
+uint64_t
+GNUNET_SERVER_client_get_id (struct GNUNET_SERVER_Client *client)
+{
+  return client->id;
+}
 
 /**
  * Resume receiving from this client, we are done processing the

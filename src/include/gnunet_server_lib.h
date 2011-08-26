@@ -326,6 +326,16 @@ GNUNET_SERVER_client_get_address (struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Retrieve the unique id from the opaque defined GNUNET_SERVER_Client
+ *
+ * @param client the client
+ * @return the unique id
+ */
+uint64_t
+GNUNET_SERVER_client_get_id (struct GNUNET_SERVER_Client *client);
+
+
+/**
  * Functions with this signature are called whenever a client
  * is disconnected on the network level.
  *
