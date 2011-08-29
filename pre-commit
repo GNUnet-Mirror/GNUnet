@@ -1,12 +1,21 @@
 #!/bin/sh
-find src/ -name "*.c" -exec indent {} \;
-find src/ -name "*.h" -exec indent {} \;
-find src/ -name "*.c" -exec indent {} \;
-find src/ -name "*.h" -exec indent {} \;
-find src/ -name "*.c" -exec contrib/removetrailingwhitespace {} \;
-find src/ -name "*.h" -exec contrib/removetrailingwhitespace {} \;
+# Run this script to indent the GNUnet code.  When run without arguments,
+# it indents the ENTIRE src/ tree.  Run with 'src/XXX' to indent the
+# src/XXX directory.
+if test $# = 0
+then
+ PATHS=src/
+else
+ PATHS="$@"
+fi
+find $PATHS -name "*.c" -exec indent {} \;
+find $PATHS -name "*.h" -exec indent {} \;
+find $PATHS -name "*.c" -exec indent {} \;
+find $PATHS -name "*.h" -exec indent {} \;
+find $PATHS -name "*.c" -exec contrib/removetrailingwhitespace {} \;
+find $PATHS -name "*.h" -exec contrib/removetrailingwhitespace {} \;
 if test -x "`which 'dos2unix'`"
 then
-  find src/ -name "*.c" -exec dos2unix {} \;
-  find src/ -name "*.h" -exec dos2unix {} \;
+  find $PATHS -name "*.c" -exec dos2unix {} \;
+  find $PATHS -name "*.h" -exec dos2unix {} \;
 fi
