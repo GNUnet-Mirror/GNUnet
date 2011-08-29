@@ -27,15 +27,18 @@ libgnunetats_la_LIBADD = \
 #  $(GN_LIBINTL)
 
 
-#check_PROGRAMS = \
-# test_ats_api
+check_PROGRAMS = \
+ test_ats_api
 
-#if ENABLE_TEST_RUN
-#TESTS = $(check_PROGRAMS)
-#endif
+if ENABLE_TEST_RUN
+TESTS = $(check_PROGRAMS)
+endif
 
-#test_ats_api_SOURCES = \
-# test_ats_api.c
-#test_ats_api_LDADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la  
+test_ats_api_SOURCES = \
+ test_ats_api.c
+test_ats_api_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la  
+
+
 
