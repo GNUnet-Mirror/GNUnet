@@ -268,7 +268,7 @@ GNUNET_RESOLVER_disconnect ()
 /**
  * Convert IP address to string without DNS resolution.
  *
- * @param sa the address 
+ * @param sa the address
  * @param salen number of bytes in sa
  * @return address as a string, NULL on error
  */
@@ -469,7 +469,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * We've been asked to lookup the address for a hostname and were 
+ * We've been asked to lookup the address for a hostname and were
  * given a valid numeric string.  Perform the callbacks for the
  * numeric addresses.
  *
@@ -524,7 +524,7 @@ numeric_resolution (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * We've been asked to lookup the address for a hostname and were 
+ * We've been asked to lookup the address for a hostname and were
  * given a variant of "loopback".  Perform the callbacks for the
  * respective loopback numeric addresses.
  *

@@ -21,7 +21,7 @@
 /**
  * @file util/server_nc.c
  * @brief convenience functions for transmission of
- *        a notification stream 
+ *        a notification stream
  * @author Christian Grothoff
  */
 
@@ -78,7 +78,7 @@ struct ClientList
   struct ClientList *next;
 
   /**
-   * Overall context this client belongs to. 
+   * Overall context this client belongs to.
    */
   struct GNUNET_SERVER_NotificationContext *nc;
 

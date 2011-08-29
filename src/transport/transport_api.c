@@ -86,7 +86,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
   struct GNUNET_TIME_Absolute timeout;
 
   /**
-   * Task to trigger request timeout if the request is stalled due to 
+   * Task to trigger request timeout if the request is stalled due to
    * congestion.
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -520,7 +520,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->th->timeout_task);
       GNUNET_SCHEDULER_cancel (n->th->timeout_task);
       n->th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-      /* we've been waiting for this (congestion, not quota, 
+      /* we've been waiting for this (congestion, not quota,
        * caused delayed transmission) */
       n->hn = GNUNET_CONTAINER_heap_insert (h->ready_heap, n, 0);
       schedule_transmission (h);
@@ -1082,7 +1082,7 @@ send_try_connect (void *cls, size_t size, void *buf)
 
 
 /**
- * Ask the transport service to establish a connection to 
+ * Ask the transport service to establish a connection to
  * the given peer.
  *
  * @param handle connection to transport service

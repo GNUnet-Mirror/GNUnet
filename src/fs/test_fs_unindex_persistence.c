@@ -108,8 +108,8 @@ restart_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Consider scheduling the restart-task. 
- * Only runs the restart task once per event 
+ * Consider scheduling the restart-task.
+ * Only runs the restart task once per event
  * category.
  *
  * @param ev type of the event to consider

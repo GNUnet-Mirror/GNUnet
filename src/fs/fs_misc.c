@@ -30,7 +30,7 @@
 
 /**
  * Suggest a filename based on given metadata.
- * 
+ *
  * @param md given meta data
  * @return NULL if meta data is useless for suggesting a filename
  */

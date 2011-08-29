@@ -43,7 +43,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr);
  * Notify the plan about a peer being no longer available;
  * destroy all entries associated with this peer.
  *
- * @param cp connected peer 
+ * @param cp connected peer
  */
 void
 GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp);

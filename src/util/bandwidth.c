@@ -20,7 +20,7 @@
 
 /**
  * @file util/bandwidth.c
- * @brief functions related to bandwidth (unit) 
+ * @brief functions related to bandwidth (unit)
  * @author Christian Grothoff
  */
 #include "platform.h"

@@ -613,7 +613,7 @@ destroy_task (struct Task *t)
  * empty.  Keep running tasks until we are either no longer running
  * "URGENT" tasks or until we have at least one "pending" task (which
  * may become ready, hence we should select on it).  Naturally, if
- * there are no more ready tasks, we also return.  
+ * there are no more ready tasks, we also return.
  *
  * @param rs FDs ready for reading
  * @param ws FDs ready for writing
@@ -726,7 +726,7 @@ sighandler_shutdown ()
 
 /**
  * Check if the system is still life. Trigger shutdown if we
- * have tasks, but none of them give us lifeness.  
+ * have tasks, but none of them give us lifeness.
  *
  * @return GNUNET_OK to continue the main loop,
  *         GNUNET_NO to exit
@@ -893,7 +893,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 
 /**
  * Obtain the reason code for why the current task was
- * started.  Will return the same value as 
+ * started.  Will return the same value as
  * the GNUNET_SCHEDULER_TaskContext's reason field.
  *
  * @return reason(s) why the current task is run
@@ -1134,7 +1134,7 @@ GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
  * will be scheduled for execution once the delay has expired. It
  * will be run with the priority of the calling task.
  *
- * @param delay when should this operation time out? Use 
+ * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param task main function of the task
  * @param task_cls closure of task
@@ -1404,7 +1404,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay, int rfd, int wfd,
  * socket operation is ready.  It will be run with the priority of
  * the calling task.
  *
- * @param delay when should this operation time out? Use 
+ * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param rfd read file-descriptor
  * @param task main function of the task
@@ -1445,7 +1445,7 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
  * socket operation is ready.  It will be run with the priority of
  * the calling task.
  *
- * @param delay when should this operation time out? Use 
+ * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param wfd write file-descriptor
  * @param task main function of the task
@@ -1487,7 +1487,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
  * socket operation is ready. It will be run with the priority of
  * the calling task.
  *
- * @param delay when should this operation time out? Use 
+ * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param rfd read file-descriptor
  * @param task main function of the task
@@ -1531,7 +1531,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
  * socket operation is ready. It will be run with the priority of
  * the calling task.
  *
- * @param delay when should this operation time out? Use 
+ * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param wfd write file-descriptor
  * @param task main function of the task

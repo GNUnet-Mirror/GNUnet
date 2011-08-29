@@ -36,7 +36,7 @@
  * Return the name of the directory in which we store
  * our local namespaces (or rather, their public keys).
  *
- * @param h global fs handle 
+ * @param h global fs handle
  * @return NULL on error, otherwise the name of the directory
  */
 static char *
@@ -61,7 +61,7 @@ get_namespace_directory (struct GNUNET_FS_Handle *h)
  * Return the name of the directory in which we store
  * the update information graph for the given local namespace.
  *
- * @param ns namespace handle 
+ * @param ns namespace handle
  * @return NULL on error, otherwise the name of the directory
  */
 static char *
@@ -87,7 +87,7 @@ get_update_information_directory (struct GNUNET_FS_Namespace *ns)
 
 /**
  * Write the namespace update node graph to a file.
- * 
+ *
  * @param ns namespace to dump
  */
 static void
@@ -134,7 +134,7 @@ END:
 
 /**
  * Read the namespace update node graph from a file.
- * 
+ *
  * @param ns namespace to read
  */
 static void
@@ -280,7 +280,7 @@ struct AdvertisementContext
 
 /**
  * Disconnect from the datastore.
- * 
+ *
  * @param cls datastore handle
  * @param tc scheduler context
  */
@@ -375,7 +375,7 @@ advertisement_cont (void *cls, int success, const char *msg)
 
 
 /**
- * Publish an advertismement for a namespace.  
+ * Publish an advertismement for a namespace.
  *
  * @param h handle to the file sharing subsystem
  * @param ksk_uri keywords to use for advertisment
@@ -965,7 +965,7 @@ struct FindTreeClosure
  * head of an tree if it is in the 'tree_array' under its respective
  * 'tree_id'.
  *
- * In short, we're trying to find the smallest number of tree to 
+ * In short, we're trying to find the smallest number of tree to
  * cover a directed graph.
  *
  * @param cls closure (of type 'struct FindTreeClosure')
@@ -988,7 +988,7 @@ find_trees (void *cls, const GNUNET_HashCode * key, void *value)
       return GNUNET_YES;        /* circular */
     GNUNET_assert (nsn->tree_id < fc->tree_array_size);
     if (fc->tree_array[nsn->tree_id] != nsn)
-      return GNUNET_YES;        /* part of "another" (directed) TREE, 
+      return GNUNET_YES;        /* part of "another" (directed) TREE,
                                  * and not root of it, end trace */
     if (nsn->tree_id == fc->id)
       return GNUNET_YES;        /* that's our own root (can this be?) */
@@ -1015,12 +1015,12 @@ find_trees (void *cls, const GNUNET_HashCode * key, void *value)
  * produce an update.  Namespace updates form a graph where each node
  * has a name.  Each node can have any number of URI/meta-data entries
  * which can each be linked to other nodes.  Cycles are possible.
- * 
+ *
  * Calling this function with "next_id" NULL will cause the library to
  * call "ip" with a root for each strongly connected component of the
  * graph (a root being a node from which all other nodes in the Tree
  * are reachable).
- * 
+ *
  * Calling this function with "next_id" being the name of a node will
  * cause the library to call "ip" with all children of the node.  Note
  * that cycles within the final tree are possible (including self-loops).

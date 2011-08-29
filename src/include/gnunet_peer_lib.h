@@ -80,7 +80,7 @@ GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta);
 
 /**
  * Decrement multiple RCs of peer identities by one.
- * 
+ *
  * @param ids array of PIDs to decrement the RCs of
  * @param count size of the ids array
  */

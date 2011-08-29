@@ -164,7 +164,7 @@ calculate_load (struct GNUNET_LOAD_Value *load)
   if (load->cummulative_request_count <= 1)
     return;
   /* calcuate std dev of latency; we have for n values of "i" that:
-   * 
+   *
    * avg = (sum val_i) / n
    * stddev = (sum (val_i - avg)^2) / (n-1)
    * = (sum (val_i^2 - 2 avg val_i + avg^2) / (n-1)

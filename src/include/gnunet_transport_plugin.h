@@ -74,9 +74,9 @@ struct SessionHeader
  * use NULL wherever a session pointer is needed.  This function
  * should be called BEFORE a potential "TransmitContinuation"
  * from the "TransmitFunction".
- * 
+ *
  * @param cls closure
- * @param peer which peer was the session for 
+ * @param peer which peer was the session for
  * @param session which session is being destoyed
  */
 typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
@@ -393,14 +393,14 @@ typedef int (*GNUNET_TRANSPORT_CheckAddress) (void *cls, const void *addr,
 
 /**
  * Function called for a quick conversion of the binary address to
- * a numeric address.  Note that the caller must not free the 
+ * a numeric address.  Note that the caller must not free the
  * address and that the next call to this function is allowed
  * to override the address again.
  *
  * @param cls closure
  * @param addr binary address
  * @param addr_len length of the address
- * @return string representing the same address 
+ * @return string representing the same address
  */
 typedef const char *(*GNUNET_TRANSPORT_AddressToString) (void *cls,
                                                          const void *addr,
@@ -431,7 +431,7 @@ struct GNUNET_TRANSPORT_PluginFunctions
   /**
    * Function that can be used to force the plugin to disconnect from
    * the given peer and cancel all previous transmissions (and their
-   * continuations).  
+   * continuations).
    */
   GNUNET_TRANSPORT_DisconnectFunction disconnect;
 

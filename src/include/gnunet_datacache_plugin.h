@@ -40,7 +40,7 @@ extern "C"
 /**
  * Function called by plugins to notify the datacache
  * about content deletions.
- * 
+ *
  * @param cls closure
  * @param key key of the content that was deleted
  * @param size number of bytes that were made available
@@ -133,7 +133,7 @@ struct GNUNET_DATACACHE_PluginFunctions
   /**
    * Delete the entry with the lowest expiration value
    * from the datacache right now.
-   * 
+   *
    * @param cls closure (internal context for the plugin)
    * @return GNUNET_OK on success, GNUNET_SYSERR on error
    */

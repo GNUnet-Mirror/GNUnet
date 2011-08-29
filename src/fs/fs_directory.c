@@ -72,7 +72,7 @@ GNUNET_FS_meta_data_test_for_directory (const struct GNUNET_CONTAINER_MetaData
 /**
  * Set the MIMETYPE information for the given
  * metadata to "application/gnunet-directory".
- * 
+ *
  * @param md metadata to add mimetype to
  */
 void
@@ -124,7 +124,7 @@ struct GetFullDataClosure
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data
- * @param format basic format information about data 
+ * @param format basic format information about data
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
@@ -341,7 +341,7 @@ struct GNUNET_FS_DirectoryBuilder
 
 /**
  * Create a directory builder.
- * 
+ *
  * @param mdir metadata for the directory
  */
 struct GNUNET_FS_DirectoryBuilder *
@@ -362,7 +362,7 @@ GNUNET_FS_directory_builder_create (const struct GNUNET_CONTAINER_MetaData
 
 /**
  * Add an entry to a directory.
- * 
+ *
  * @param bld directory to extend
  * @param uri uri of the entry (must not be a KSK)
  * @param md metadata of the entry

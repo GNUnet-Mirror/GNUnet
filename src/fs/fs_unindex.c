@@ -68,7 +68,7 @@ unindex_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
 
 
 /**
- * Fill in all of the generic fields for 
+ * Fill in all of the generic fields for
  * an unindex event and call the callback.
  *
  * @param pi structure to fill in
@@ -443,7 +443,7 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
  * @param h handle to the file sharing subsystem
  * @param filename file to unindex
  * @param cctx initial value for the client context
- * @return NULL on error, otherwise handle 
+ * @return NULL on error, otherwise handle
  */
 struct GNUNET_FS_UnindexContext *
 GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h, const char *filename,

@@ -331,7 +331,7 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg)
 /**
  * Close database connection and all prepared statements (we got a DB
  * disconnect error).
- * 
+ *
  * @param plugin plugin context
  */
 static int
@@ -1025,7 +1025,7 @@ execute_select (struct Plugin *plugin, struct GNUNET_MysqlStatementHandle *stmt,
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results); 
+ * @param offset offset of the result (modulo num-results);
  *               specific ordering does not matter for the offset
  * @param key key to match, never NULL
  * @param vhash hash of the value, maybe NULL (to
@@ -1035,7 +1035,7 @@ execute_select (struct Plugin *plugin, struct GNUNET_MysqlStatementHandle *stmt,
  *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
- * @param proc function to call on the matching value, 
+ * @param proc function to call on the matching value,
  *        with NULL for if no value matches
  * @param proc_cls closure for proc
  */

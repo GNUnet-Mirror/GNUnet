@@ -377,8 +377,7 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "TransportClient %X ServerClient %X  sent multiple START messages\n",
-                tc,
-                tc->client);
+                tc, tc->client);
 #endif
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);

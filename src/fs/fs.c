@@ -213,7 +213,7 @@ GNUNET_FS_make_top (struct GNUNET_FS_Handle *h, SuspendSignalFunction ssf,
 
 /**
  * Destroy a top-level activity entry.
- * 
+ *
  * @param h global fs handle
  * @param top top level activity entry
  */
@@ -250,7 +250,7 @@ struct FileInfo
  * @param offset offset to read from; it is possible
  *            that the caller might need to go backwards
  *            a bit at times
- * @param max maximum number of bytes that should be 
+ * @param max maximum number of bytes that should be
  *            copied to buf; readers are not allowed
  *            to provide less data unless there is an error;
  *            a value of "0" will be used at the end to allow
@@ -333,7 +333,7 @@ GNUNET_FS_make_file_reader_context_ (const char *filename)
  * @param offset offset to read from; it is possible
  *            that the caller might need to go backwards
  *            a bit at times
- * @param max maximum number of bytes that should be 
+ * @param max maximum number of bytes that should be
  *            copied to buf; readers are not allowed
  *            to provide less data unless there is an error;
  *            a value of "0" will be used at the end to allow
@@ -363,7 +363,7 @@ GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max, void *buf,
  * (for serialization/deserialization).
  *
  * @param h master context
- * @param ext component of the path 
+ * @param ext component of the path
  * @param ent entity identifier (or emtpy string for the directory)
  * @return NULL on error
  */
@@ -394,7 +394,7 @@ get_serialization_file_name (struct GNUNET_FS_Handle *h, const char *ext,
  * parent operation.
  *
  * @param h master context
- * @param ext component of the path 
+ * @param ext component of the path
  * @param uni name of the parent operation
  * @param ent entity identifier (or emtpy string for the directory)
  * @return NULL on error
@@ -424,7 +424,7 @@ get_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h, const char *ext,
  * Return a read handle for deserialization.
  *
  * @param h master context
- * @param ext component of the path 
+ * @param ext component of the path
  * @param ent entity identifier (or emtpy string for the directory)
  * @return NULL on error
  */
@@ -447,7 +447,7 @@ get_read_handle (struct GNUNET_FS_Handle *h, const char *ext, const char *ent)
  * Return a write handle for serialization.
  *
  * @param h master context
- * @param ext component of the path 
+ * @param ext component of the path
  * @param ent entity identifier (or emtpy string for the directory)
  * @return NULL on error
  */
@@ -474,7 +474,7 @@ get_write_handle (struct GNUNET_FS_Handle *h, const char *ext, const char *ent)
  * Return a write handle for serialization.
  *
  * @param h master context
- * @param ext component of the path 
+ * @param ext component of the path
  * @param uni name of parent
  * @param ent entity identifier (or emtpy string for the directory)
  * @return NULL on error
@@ -499,8 +499,8 @@ get_write_handle_in_dir (struct GNUNET_FS_Handle *h, const char *ext,
  * Remove serialization/deserialization file from disk.
  *
  * @param h master context
- * @param ext component of the path 
- * @param ent entity identifier 
+ * @param ext component of the path
+ * @param ent entity identifier
  */
 void
 GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
@@ -527,9 +527,9 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
  * Remove serialization/deserialization file from disk.
  *
  * @param h master context
- * @param ext component of the path 
+ * @param ext component of the path
  * @param uni parent name
- * @param ent entity identifier 
+ * @param ent entity identifier
  */
 static void
 remove_sync_file_in_dir (struct GNUNET_FS_Handle *h, const char *ext,
@@ -556,8 +556,8 @@ remove_sync_file_in_dir (struct GNUNET_FS_Handle *h, const char *ext,
  * Remove serialization/deserialization directory from disk.
  *
  * @param h master context
- * @param ext component of the path 
- * @param uni unique name of parent 
+ * @param ext component of the path
+ * @param uni unique name of parent
  */
 void
 GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
@@ -891,7 +891,7 @@ deserialize_file_information (struct GNUNET_FS_Handle *h, const char *filename)
  * Given a serialization name (full absolute path), return the
  * basename of the file (without the path), which must only
  * consist of the 6 random characters.
- * 
+ *
  * @param fullname name to extract the basename from
  * @return copy of the basename, NULL on error
  */
@@ -926,7 +926,7 @@ get_serialization_short_name (const char *fullname)
  * is enabled and returns NULL if not.
  *
  * @param h master context
- * @param ext component of the path 
+ * @param ext component of the path
  * @return NULL on errror
  */
 static char *
@@ -961,7 +961,7 @@ make_serialization_file_name (struct GNUNET_FS_Handle *h, const char *ext)
  * is enabled and returns NULL if not.
  *
  * @param h master context
- * @param ext component of the path 
+ * @param ext component of the path
  * @param uni name of parent
  * @return NULL on errror
  */
@@ -1396,7 +1396,7 @@ cleanup:
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param pc the struct to sync
  */
 void
@@ -1463,7 +1463,7 @@ cleanup:
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param uc the struct to sync
  */
 void
@@ -1516,7 +1516,7 @@ cleanup:
 
 /**
  * Serialize a download request.
- * 
+ *
  * @param wh the 'struct GNUNET_BIO_WriteHandle*'
  * @param dr the 'struct DownloadRequest'
  * @return GNUNET_YES on success, GNUNET_NO on error
@@ -1545,7 +1545,7 @@ write_download_request (struct GNUNET_BIO_WriteHandle *wh,
 
 /**
  * Read a download request tree.
- * 
+ *
  * @param rh stream to read from
  * @return value the 'struct DownloadRequest', NULL on error
  */
@@ -1646,7 +1646,7 @@ get_download_sync_filename (struct GNUNET_FS_DownloadContext *dc,
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param dc the struct to sync
  */
 void
@@ -1748,7 +1748,7 @@ cleanup:
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param sr the struct to sync
  */
 void
@@ -1825,7 +1825,7 @@ cleanup:
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param sc the struct to sync
  */
 void
@@ -2022,7 +2022,7 @@ deserialize_download (struct GNUNET_FS_Handle *h,
 
 
 /**
- * Deserialize a search. 
+ * Deserialize a search.
  *
  * @param h overall context
  * @param rh file to deserialize from
@@ -2165,7 +2165,7 @@ cleanup:
  * resume the download (put it in the queue).  Does this
  * recursively for the top-level download and all child
  * downloads.
- * 
+ *
  * @param dc download to resume
  */
 static void
@@ -2511,7 +2511,7 @@ signal_search_resume (struct GNUNET_FS_SearchContext *sc)
 
 
 /**
- * Deserialize a search. 
+ * Deserialize a search.
  *
  * @param h overall context
  * @param rh file to deserialize from
@@ -2700,7 +2700,7 @@ deserialization_master (const char *master_path, GNUNET_FileNameCallback proc,
  * Setup a connection to the file-sharing service.
  *
  * @param cfg configuration to use
- * @param client_name unique identifier for this client 
+ * @param client_name unique identifier for this client
  * @param upcb function to call to notify about FS actions
  * @param upcb_cls closure for upcb
  * @param flags specific attributes for fs-operations

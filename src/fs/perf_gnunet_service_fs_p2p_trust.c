@@ -37,7 +37,7 @@
  * Download speed of type `seeder 1' was 757 KiB/s
  * Download speed of type `seeder 2' was 613 KiB/s
  * Download speed of type `leach` was 539 KiB/s
- * 
+ *
  * - 10 MB, 3 peers, without delays:
  * Download speed of type `seeder 1' was 1784 KiB/s
  * Download speed of type `seeder 2' was 1604 KiB/s

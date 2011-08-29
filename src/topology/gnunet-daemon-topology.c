@@ -231,7 +231,7 @@ static int autoconnect;
 
 
 /**
- * Function that decides if a connection is acceptable or not.  
+ * Function that decides if a connection is acceptable or not.
  * If we have a blacklist, only friends are allowed, so the check
  * is rather simple.
  *
@@ -285,7 +285,7 @@ connect_completed_callback (void *cls, int success)
 
 /**
  * Check if an additional connection from the given peer is allowed.
- * 
+ *
  * @param peer connection to check
  * @return GNUNET_OK if the connection is allowed
  */
@@ -536,7 +536,7 @@ struct FindAdvHelloContext
  *
  * @param cls closure
  * @param pid identity of a peer
- * @param value 'struct Peer*' for the peer we are considering 
+ * @param value 'struct Peer*' for the peer we are considering
  * @return GNUNET_YES (continue iteration)
  */
 static int

@@ -73,7 +73,7 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
 
 
 /**
- * Add a host to the persistent list.  This method operates in 
+ * Add a host to the persistent list.  This method operates in
  * semi-reliable mode: if the transmission is not completed by
  * the time 'GNUNET_PEERINFO_disconnect' is called, it will be
  * aborted.  Furthermore, if a second HELLO is added for the
@@ -116,15 +116,15 @@ struct GNUNET_PEERINFO_IteratorContext;
  * host and then finally once with a NULL pointer.  After that final
  * invocation, the iterator context must no longer be used.
  *
- * Instead of calling this function with 'peer == NULL' 
+ * Instead of calling this function with 'peer == NULL'
  * it is often better to use 'GNUNET_PEERINFO_notify'.
- * 
+ *
  * @param h handle to the peerinfo service
  * @param peer restrict iteration to this peer only (can be NULL)
  * @param timeout how long to wait until timing out
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
- * @return NULL on error (in this case, 'callback' is never called!), 
+ * @return NULL on error (in this case, 'callback' is never called!),
  *         otherwise an iterator context
  */
 struct GNUNET_PEERINFO_IteratorContext *

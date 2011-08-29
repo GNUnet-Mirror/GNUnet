@@ -247,7 +247,7 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i);
 
 
 /**
- * Random on unsigned 64-bit values. 
+ * Random on unsigned 64-bit values.
  *
  * @param mode desired quality of the random number
  * @param max value returned will be in range [0,max) (exclusive)
@@ -471,7 +471,7 @@ GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
  *
  * @param a some hash code
  * @param b some hash code
- * @param result set to b - a 
+ * @param result set to b - a
  */
 void
 GNUNET_CRYPTO_hash_difference (const GNUNET_HashCode * a,
@@ -497,7 +497,7 @@ GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
  *
  * @param a some hash code
  * @param b some hash code
- * @param result set to a ^ b 
+ * @param result set to a ^ b
  */
 void
 GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a, const GNUNET_HashCode * b,
@@ -693,7 +693,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len);
  * files does not exist, create a new key and write it to the
  * file.  Caller must free return value. Note that this function
  * can not guarantee that another process might not be trying
- * the same operation on the same file at the same time.  
+ * the same operation on the same file at the same time.
  * If the contents of the file
  * are invalid the old file is deleted and a fresh key is
  * created.
@@ -807,7 +807,7 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
 /**
  * This function should only be called in testcases
  * where strong entropy gathering is not desired
- * (for example, for hostkey generation). 
+ * (for example, for hostkey generation).
  */
 void
 GNUNET_CRYPTO_random_disable_entropy_gathering (void);

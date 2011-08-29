@@ -53,7 +53,7 @@ GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
    * setting. Second, as shown in Section 6, using HMAC with a truncated output as an extractor
    * allows to prove the security of HKDF under considerably weaker assumptions on the underlying
    * hash function."
-   * 
+   *
    * http://eprint.iacr.org/2010/264
    */
 

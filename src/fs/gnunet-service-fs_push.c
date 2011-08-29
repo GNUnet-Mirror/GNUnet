@@ -34,7 +34,7 @@
 #define DEBUG_FS_MIGRATION GNUNET_NO
 
 /**
- * How long must content remain valid for us to consider it for migration?  
+ * How long must content remain valid for us to consider it for migration?
  * If content will expire too soon, there is clearly no point in pushing
  * it to other peers.  This value gives the threshold for migration.  Note
  * that if this value is increased, the migration testcase may need to be
@@ -65,7 +65,7 @@ struct MigrationReadyBlock
   GNUNET_HashCode query;
 
   /**
-   * When does this block expire? 
+   * When does this block expire?
    */
   struct GNUNET_TIME_Absolute expiration;
 
@@ -313,7 +313,7 @@ count_targets (struct MigrationReadyBlock *block)
 
 /**
  * Check if sending this block to this peer would
- * be a good idea. 
+ * be a good idea.
  *
  * @param peer target peer
  * @param block the block
@@ -419,7 +419,7 @@ find_content (struct MigrationReadyPeer *mrp)
 /**
  * Task that is run periodically to obtain blocks for content
  * migration
- * 
+ *
  * @param cls unused
  * @param tc scheduler context (also unused)
  */
@@ -539,7 +539,7 @@ process_migration_content (void *cls, const GNUNET_HashCode * key, size_t size,
 /**
  * Task that is run periodically to obtain blocks for content
  * migration
- * 
+ *
  * @param cls unused
  * @param tc scheduler context (also unused)
  */

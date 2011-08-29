@@ -65,7 +65,7 @@ struct Plugin
  * Check if the result obtained from Postgres has
  * the desired status code.  If not, log an error, clear the
  * result and return GNUNET_SYSERR.
- * 
+ *
  * @param plugin global context
  * @param ret result to check
  * @param expected_status expected return value
@@ -582,7 +582,7 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
  * in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results); 
+ * @param offset offset of the result (modulo num-results);
  *        specific ordering does not matter for the offset
  * @param key maybe NULL (to match all entries)
  * @param vhash hash of the value, maybe NULL (to
@@ -822,7 +822,7 @@ repl_proc (void *cls, const GNUNET_HashCode * key, uint32_t size,
 
 /**
  * Get a random item for replication.  Returns a single, not expired, random item
- * from those with the highest replication counters.  The item's 
+ * from those with the highest replication counters.  The item's
  * replication counter is decremented by one IF it was positive before.
  * Call 'proc' with all values ZERO or NULL if the datastore is empty.
  *

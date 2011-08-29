@@ -209,7 +209,7 @@ client_request_destroy (void *cls,
  * Handle a reply to a pending request.  Also called if a request
  * expires (then with data == NULL).  The handler may be called
  * many times (depending on the request type), but will not be
- * called during or after a call to GSF_pending_request_cancel 
+ * called during or after a call to GSF_pending_request_cancel
  * and will also not be called anymore after a call signalling
  * expiration.
  *
@@ -217,7 +217,7 @@ client_request_destroy (void *cls,
  * @param eval evaluation of the result
  * @param pr handle to the original pending request
  * @param reply_anonymity_level anonymity level for the reply, UINT32_MAX for "unknown"
- * @param expiration when does 'data' expire? 
+ * @param expiration when does 'data' expire?
  * @param type type of the block
  * @param data response data, NULL on request expiration
  * @param data_len number of bytes in data

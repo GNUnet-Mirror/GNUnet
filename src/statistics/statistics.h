@@ -110,9 +110,9 @@ struct GNUNET_STATISTICS_WatchValueMessage
 
   /**
    * Unique watch identification number (watch
-   * requests are enumerated in the order they 
-   * are received, the first request having 
-   * a wid of zero). 
+   * requests are enumerated in the order they
+   * are received, the first request having
+   * a wid of zero).
    */
   uint32_t wid GNUNET_PACKED;
 

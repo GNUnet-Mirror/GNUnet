@@ -253,7 +253,7 @@ GNUNET_TIME_absolute_get_remaining (struct GNUNET_TIME_Absolute future);
 
 
 /**
- * Calculate the estimate time of arrival/completion 
+ * Calculate the estimate time of arrival/completion
  * for an operation.
  *
  * @param start when did the operation start?
@@ -363,7 +363,7 @@ GNUNET_TIME_relative_subtract (struct GNUNET_TIME_Relative a1,
 
 /**
  * Convert relative time to network byte order.
- * 
+ *
  * @param a time to convert
  * @return converted time value
  */

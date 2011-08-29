@@ -137,13 +137,13 @@ extern struct GNUNET_LOAD_Value *GSF_rt_entry_lifetime;
 extern double GSF_current_priorities;
 
 /**
- * How many query messages have we received 'recently' that 
+ * How many query messages have we received 'recently' that
  * have not yet been claimed as cover traffic?
  */
 extern unsigned int GSF_cover_query_count;
 
 /**
- * How many content messages have we received 'recently' that 
+ * How many content messages have we received 'recently' that
  * have not yet been claimed as cover traffic?
  */
 extern unsigned int GSF_cover_content_count;
@@ -161,8 +161,8 @@ extern int GSF_enable_randomized_delays;
 /**
  * Test if the DATABASE (GET) load on this peer is too high
  * to even consider processing the query at
- * all.  
- * 
+ * all.
+ *
  * @return GNUNET_YES if the load is too high to do anything (load high)
  *         GNUNET_NO to process normally (load normal)
  *         GNUNET_SYSERR to process for free (load low)

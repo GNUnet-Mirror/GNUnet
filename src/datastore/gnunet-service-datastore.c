@@ -199,7 +199,7 @@ static struct GNUNET_STATISTICS_Handle *stats;
 
 
 /**
- * Synchronize our utilization statistics with the 
+ * Synchronize our utilization statistics with the
  * statistics service.
  */
 static void
@@ -857,7 +857,7 @@ execute_put (struct GNUNET_SERVER_Client *client, const struct DataMessage *dm)
  *        maybe 0 if no unique identifier is available
  *
  * @return GNUNET_OK usually
- *         GNUNET_NO to delete the item 
+ *         GNUNET_NO to delete the item
  */
 static int
 check_present (void *cls, const GNUNET_HashCode * key, uint32_t size,
@@ -1214,7 +1214,7 @@ handle_drop (void *cls, struct GNUNET_SERVER_Client *client,
  * change in their disk utilization.
  *
  * @param cls closure (NULL)
- * @param delta change in disk utilization, 
+ * @param delta change in disk utilization,
  *        0 for "reset to empty"
  */
 static void

@@ -158,7 +158,7 @@ get_host_filename (const struct GNUNET_PeerIdentity *id)
 
 
 /**
- * Broadcast information about the given entry to all 
+ * Broadcast information about the given entry to all
  * clients that care.
  *
  * @param entry entry to broadcast about

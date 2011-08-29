@@ -20,7 +20,7 @@
 
 /**
  * @file include/gnunet_chat_service.h
- * @brief API for chatting via GNUnet 
+ * @brief API for chatting via GNUnet
  * @author Christian Grothoff
  * @author Nathan Evans
  * @author Vitaly Minko

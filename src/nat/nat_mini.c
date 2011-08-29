@@ -361,12 +361,12 @@ process_refresh_output (void *cls, const char *line)
   }
   /*
    * we're looking for output of the form:
-   * 
+   *
    * "0 TCP  3000->192.168.2.150:3000  'libminiupnpc' ''"
    * "1 UDP  3001->192.168.2.150:3001  'libminiupnpc' ''"
-   * 
+   *
    * the pattern we look for is:
-   * 
+   *
    * "%s TCP  PORT->STRING:OURPORT *" or
    * "%s UDP  PORT->STRING:OURPORT *"
    */
@@ -439,7 +439,7 @@ process_map_output (void *cls, const char *line)
   }
   /*
    * The upnpc output we're after looks like this:
-   * 
+   *
    * "external 87.123.42.204:3000 TCP is redirected to internal 192.168.2.150:3000"
    */
   if ((NULL == (ipaddr = strstr (line, " "))) ||
@@ -475,7 +475,7 @@ process_map_output (void *cls, const char *line)
  * general-purpose 'GNUNET_NAT_register' code).  However, it can be
  * used if specifically UPnP-based NAT traversal is to be used or
  * tested.
- * 
+ *
  * @param port port to map
  * @param is_tcp GNUNET_YES to map TCP, GNUNET_NO for UDP
  * @param ac function to call with mapping result
@@ -539,7 +539,7 @@ process_unmap_output (void *cls, const char *line)
  * this function will give 'upnpc' 1s to remove tha mapping,
  * so while this function is non-blocking, a task will be
  * left with the scheduler for up to 1s past this call.
- * 
+ *
  * @param mini the handle
  */
 void

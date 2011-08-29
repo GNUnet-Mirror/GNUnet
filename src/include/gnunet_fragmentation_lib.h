@@ -154,7 +154,7 @@ typedef void (*GNUNET_DEFRAGMENT_AckProcessor) (void *cls, uint32_t id,
  * Create a defragmentation context.
  *
  * @param stats statistics context
- * @param mtu the maximum message size for each fragment 
+ * @param mtu the maximum message size for each fragment
  * @param num_msgs how many fragmented messages
  *                 to we defragment at most at the same time?
  * @param cls closure for proc and ackp

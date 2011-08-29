@@ -673,7 +673,7 @@ core_notify (void *cls, size_t size, void *buf)
  * @param cork is corking allowed for this transmission?
  * @param priority how important is the message?
  * @param maxdelay how long can the message wait?
- * @param target destination for the message, NULL for multicast to all tunnel targets 
+ * @param target destination for the message, NULL for multicast to all tunnel targets
  * @param notify_size how many bytes of buffer space does notify want?
  * @param notify function to call when buffer space is available;
  *        will be called with NULL on timeout or if the overall queue

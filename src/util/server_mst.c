@@ -110,7 +110,7 @@ GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
  * @param client_identity ID of client for which this is a buffer
  * @param buf input data to add
  * @param size number of bytes in buf
- * @param purge should any excess bytes in the buffer be discarded 
+ * @param purge should any excess bytes in the buffer be discarded
  *       (i.e. for packet-based services like UDP)
  * @param one_shot only call callback once, keep rest of message in buffer
  * @return GNUNET_OK if we are done processing (need more data)

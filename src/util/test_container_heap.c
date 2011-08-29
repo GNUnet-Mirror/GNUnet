@@ -67,7 +67,7 @@ check ()
   n1 = GNUNET_CONTAINER_heap_peek (myHeap);
   GNUNET_assert (NULL == n1);
 
-  // GNUNET_CONTAINER_heap_walk_get_next: heap empty, taking if-branch 
+  // GNUNET_CONTAINER_heap_walk_get_next: heap empty, taking if-branch
   n1 = GNUNET_CONTAINER_heap_walk_get_next (myHeap);
   GNUNET_assert (NULL == n1);
 
@@ -75,7 +75,7 @@ check ()
   GNUNET_assert (NULL != n1);
 
 
-  // GNUNET_CONTAINER_heap_peek not empty, taking if-branch  
+  // GNUNET_CONTAINER_heap_peek not empty, taking if-branch
   n2 = NULL;
   n2 = GNUNET_CONTAINER_heap_peek (myHeap);
   GNUNET_assert (NULL != n2);
@@ -122,7 +122,7 @@ check ()
 
   GNUNET_CONTAINER_heap_destroy (myHeap);
 
-  // My additions to a complete testcase  
+  // My additions to a complete testcase
   // Testing a GNUNET_CONTAINER_HEAP_ORDER_MIN
   // Testing remove_node
 

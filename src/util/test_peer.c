@@ -32,7 +32,7 @@
 #define DEBUG GNUNET_NO
 
 /**
- * A list of Peer ID's to play with 
+ * A list of Peer ID's to play with
  */
 static struct GNUNET_PeerIdentity pidArr[NUMBER_OF_PEERS];
 
@@ -99,10 +99,10 @@ check ()
   GNUNET_PEER_resolve (1, &res);
   GNUNET_assert (0 == memcmp (&res, &pidArr[0], sizeof (res)));
 
-  /* 
-   * Attempt to convert pid = 0 (which is reserved) 
+  /*
+   * Attempt to convert pid = 0 (which is reserved)
    * into a peer identity object, the peer identity memory
-   * is expected to be set to zero 
+   * is expected to be set to zero
    */
   memset (&zero, 0, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_log_skip (1, GNUNET_YES);

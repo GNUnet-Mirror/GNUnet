@@ -69,7 +69,7 @@ extern "C"
 #define GNUNET_CONSTANTS_EXEC_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 200)
 
 /**
- * After how long do we retry a service connection that was 
+ * After how long do we retry a service connection that was
  * unavailable?  Used in cases where an exponential back-off
  * seems inappropriate.
  */
@@ -99,13 +99,13 @@ extern "C"
 
 /**
  * Size of the 'struct EncryptedMessage' of the core (which
- * is the per-message overhead of the core).  
+ * is the per-message overhead of the core).
  */
 #define GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE (24 + sizeof (GNUNET_HashCode))
 
 /**
- * Size of the 'struct OutboundMessage' of the transport 
- * (which, in combination with the 
+ * Size of the 'struct OutboundMessage' of the transport
+ * (which, in combination with the
  * GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE) defines
  * the headers that must be pre-pendable to all GNUnet
  * messages.  Taking GNUNET_SERVER_MAX_MESSAGE_SIZE
@@ -123,7 +123,7 @@ extern "C"
  *
  * Could theoretically be 64k minus (GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE +
  * GNUNET_CONSTANTS_TRANSPORT_SIZE_OUTBOUND_MESSAGE), but we're going
- * to be more conservative for now. 
+ * to be more conservative for now.
  */
 #define GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE (63 * 1024)
 

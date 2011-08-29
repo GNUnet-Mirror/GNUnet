@@ -84,7 +84,7 @@ struct GNUNET_NAT_Handle;
  * @param reversal_callback function to call if someone wants connection reversal from us,
  *        NULL if connection reversal is not supported
  * @param callback_cls closure for callback
- * @return NULL on error, otherwise handle that can be used to unregister 
+ * @return NULL on error, otherwise handle that can be used to unregister
  */
 struct GNUNET_NAT_Handle *
 GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
@@ -145,7 +145,7 @@ struct GNUNET_NAT_Test;
  *
  * @param cls closure
  * @param success GNUNET_OK on success, GNUNET_NO on failure,
- *                GNUNET_SYSERR if the test could not be 
+ *                GNUNET_SYSERR if the test could not be
  *                properly started (internal failure)
  */
 typedef void (*GNUNET_NAT_TestCallback) (void *cls, int success);
@@ -227,7 +227,7 @@ struct GNUNET_NAT_MiniHandle;
  * general-purpose 'GNUNET_NAT_register' code).  However, it can be
  * used if specifically UPnP-based NAT traversal is to be used or
  * tested.
- * 
+ *
  * @param port port to map
  * @param is_tcp GNUNET_YES to map TCP, GNUNET_NO for UDP
  * @param ac function to call with mapping result
@@ -244,7 +244,7 @@ GNUNET_NAT_mini_map_start (uint16_t port, int is_tcp,
  * this function will give 'upnpc' 1s to remove tha mapping,
  * so while this function is non-blocking, a task will be
  * left with the scheduler for up to 1s past this call.
- * 
+ *
  * @param mini the handle
  */
 void

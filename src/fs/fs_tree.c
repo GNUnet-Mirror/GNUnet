@@ -100,7 +100,7 @@ struct GNUNET_FS_TreeEncoder
    * In-memory cache of the current CHK tree.
    * This struct will contain the CHK values
    * from the root to the currently processed
-   * node in the tree as identified by 
+   * node in the tree as identified by
    * "current_depth" and "publish_offset".
    * The "chktree" will be initially NULL,
    * then allocated to a sufficient number of
@@ -176,8 +176,8 @@ GNUNET_FS_tree_compute_tree_size (unsigned int depth)
  *
  * @param depth depth of the IBlock in the tree, 0 would be a DBLOCK,
  *        must be > 0 (this function is for IBLOCKs only!)
- * @param end_offset current offset in the payload (!) of the overall file, 
- *        must be > 0 (since this function is called at the 
+ * @param end_offset current offset in the payload (!) of the overall file,
+ *        must be > 0 (since this function is called at the
  *        end of a block).
  * @return size of the corresponding IBlock
  */
@@ -264,7 +264,7 @@ GNUNET_FS_tree_calculate_block_size (uint64_t fsize, uint64_t offset,
  * @param cls closure for reader, proc, progress and cont
  * @param reader function to call to read plaintext data
  * @param proc function to call on each encrypted block
- * @param progress function to call with progress information 
+ * @param progress function to call with progress information
  * @param cont function to call when done
  */
 struct GNUNET_FS_TreeEncoder *
@@ -298,7 +298,7 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
  *
  * @param depth depth of the IBlock in the tree (aka overall
  *               number of tree levels minus depth); 0 == DBlock
- * @param end_offset current offset in the overall file, 
+ * @param end_offset current offset in the overall file,
  *               at the *beginning* of the block for DBLOCKs (depth==0),
  *               otherwise at the *end* of the block (exclusive)
  * @return (array of CHKs') offset in the above IBlock
@@ -421,7 +421,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
 /**
  * Clean up a tree encoder and return information
  * about the resulting URI or an error message.
- * 
+ *
  * @param te the tree encoder to clean up
  * @param uri set to the resulting URI (if encoding finished)
  * @param emsg set to an error message (if an error occured

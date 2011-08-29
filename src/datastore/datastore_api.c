@@ -34,7 +34,7 @@
 /**
  * If a client stopped asking for more results, how many more do
  * we receive from the DB before killing the connection?  Trade-off
- * between re-doing TCP handshakes and (needlessly) receiving 
+ * between re-doing TCP handshakes and (needlessly) receiving
  * useless results.
  */
 #define MAX_EXCESS_RESULTS 8
@@ -163,7 +163,7 @@ struct GNUNET_DATASTORE_QueueEntry
   /**
    * Has this message been transmitted to the service?
    * Only ever GNUNET_YES for the head of the queue.
-   * Note that the overall struct should end at a 
+   * Note that the overall struct should end at a
    * multiple of 64 bits.
    */
   int was_transmitted;
@@ -171,7 +171,7 @@ struct GNUNET_DATASTORE_QueueEntry
 };
 
 /**
- * Handle to the datastore service. 
+ * Handle to the datastore service.
  */
 struct GNUNET_DATASTORE_Handle
 {
@@ -391,7 +391,7 @@ timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param timeout timeout for the operation
  * @param response_proc function to call with replies (can be NULL)
  * @param qc client context (NOT a closure for response_proc)
- * @return NULL if the queue is full 
+ * @return NULL if the queue is full
  */
 static struct GNUNET_DATASTORE_QueueEntry *
 make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
@@ -452,7 +452,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
     if ((pos->max_queue < h->queue_size) && (pos->was_transmitted == GNUNET_NO))
     {
       GNUNET_assert (pos->response_proc != NULL);
-      /* move 'pos' element to head so that it will be 
+      /* move 'pos' element to head so that it will be
        * killed on 'NULL' call below */
 #if DEBUG_DATASTORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -477,7 +477,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
 /**
  * Process entries in the queue (or do nothing if we are already
  * doing so).
- * 
+ *
  * @param h handle to the datastore
  */
 static void
@@ -637,7 +637,7 @@ transmit_request (void *cls, size_t size, void *buf)
 /**
  * Process entries in the queue (or do nothing if we are already
  * doing so).
- * 
+ *
  * @param h handle to the datastore
  */
 static void
@@ -696,7 +696,7 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
  * Dummy continuation used to do nothing (but be non-zero).
  *
  * @param cls closure
- * @param result result 
+ * @param result result
  * @param emsg error message
  */
 static void
@@ -710,7 +710,7 @@ drop_status_cont (void *cls, int32_t result, const char *emsg)
  * Free a queue entry.  Removes the given entry from the
  * queue and releases associated resources.  Does NOT
  * call the callback.
- * 
+ *
  * @param qe entry to free.
  */
 static void
@@ -1478,7 +1478,7 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
 /**
  * Cancel a datastore operation.  The final callback from the
  * operation must not have been done yet.
- * 
+ *
  * @param qe operation to cancel
  */
 void

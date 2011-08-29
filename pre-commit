@@ -1,6 +1,10 @@
 #!/bin/sh
 find src/ -name "*.c" -exec indent {} \;
 find src/ -name "*.h" -exec indent {} \;
+find src/ -name "*.c" -exec indent {} \;
+find src/ -name "*.h" -exec indent {} \;
+find src/ -name "*.c" -exec contrib/removetrailingwhitespace {} \;
+find src/ -name "*.h" -exec contrib/removetrailingwhitespace {} \;
 if test -x "`which 'dos2unix'`"
 then
   find src/ -name "*.c" -exec dos2unix {} \;

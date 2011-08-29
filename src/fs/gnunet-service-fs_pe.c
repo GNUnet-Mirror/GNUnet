@@ -31,7 +31,7 @@
 
 
 /**
- * List of GSF_PendingRequests this request plan 
+ * List of GSF_PendingRequests this request plan
  * participates with.
  */
 struct PendingRequestList;
@@ -67,7 +67,7 @@ struct GSF_RequestPlanReference
 
 
 /**
- * List of GSF_PendingRequests this request plan 
+ * List of GSF_PendingRequests this request plan
  * participates with.
  */
 struct PendingRequestList
@@ -228,7 +228,7 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
                          gettext_noop ("# average retransmission delay (ms)"),
                          total_delay * 1000LL / plan_count, GNUNET_NO);
   prd = GSF_pending_request_get_data_ (rp->prl_head->pr);
-  // FIXME: calculate 'rp->priority'!  
+  // FIXME: calculate 'rp->priority'!
   if (rp->transmission_counter < 32)
     delay =
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
@@ -533,7 +533,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
  * Notify the plan about a peer being no longer available;
  * destroy all entries associated with this peer.
  *
- * @param cp connected peer 
+ * @param cp connected peer
  */
 void
 GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)

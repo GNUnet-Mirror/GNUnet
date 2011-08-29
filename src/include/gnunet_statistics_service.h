@@ -143,7 +143,7 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
 
 
 /**
- * Cancel a 'get' request.  Must be called before the 'cont' 
+ * Cancel a 'get' request.  Must be called before the 'cont'
  * function is called.
  *
  * @param gh handle of the request to cancel

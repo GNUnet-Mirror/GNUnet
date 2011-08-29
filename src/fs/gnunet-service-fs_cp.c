@@ -364,7 +364,7 @@ update_atsi (struct GSF_ConnectedPeer *cp,
 
 /**
  * Return the performance data record for the given peer
- * 
+ *
  * @param cp peer to query
  * @return performance data record for the peer
  */
@@ -818,7 +818,7 @@ transmit_delayed_now (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Get the randomized delay a response should be subjected to.
- * 
+ *
  * @return desired delay
  */
 static struct GNUNET_TIME_Relative
@@ -844,7 +844,7 @@ get_randomized_delay ()
  * Handle a reply to a pending request.  Also called if a request
  * expires (then with data == NULL).  The handler may be called
  * many times (depending on the request type), but will not be
- * called during or after a call to GSF_pending_request_cancel 
+ * called during or after a call to GSF_pending_request_cancel
  * and will also not be called anymore after a call signalling
  * expiration.
  *
@@ -997,7 +997,7 @@ change_host_trust (struct GSF_ConnectedPeer *cp, int value)
 /**
  * We've received a request with the specified priority.  Bound it
  * according to how much we trust the given peer.
- * 
+ *
  * @param prio_in requested priority
  * @param cp the peer making the request
  * @return effective priority
@@ -1333,7 +1333,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
  * Function called if there has been a timeout trying to satisfy
  * a transmission request.
  *
- * @param cls the 'struct GSF_PeerTransmitHandle' of the request 
+ * @param cls the 'struct GSF_PeerTransmitHandle' of the request
  * @param tc scheduler context
  */
 static void
@@ -1717,7 +1717,7 @@ create_migration_stop_message (void *cls, size_t size, void *buf)
 /**
  * Ask a peer to stop migrating data to us until the given point
  * in time.
- * 
+ *
  * @param cp peer to ask
  * @param block_time until when to block
  */

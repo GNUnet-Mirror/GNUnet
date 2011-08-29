@@ -24,7 +24,7 @@
  * @author Christian Grothoff
  *
  * To use:
- * - consider re-issue GSF_dht_lookup_ after non-DHT reply received 
+ * - consider re-issue GSF_dht_lookup_ after non-DHT reply received
  * - implement 'SUPPORT_DELAYS'
  *
  */
@@ -59,7 +59,7 @@
 
 
 /**
- * How quickly do we age cover traffic?  At the given 
+ * How quickly do we age cover traffic?  At the given
  * time interval, remaining cover traffic counters are
  * decremented by 1/16th.
  */
@@ -106,13 +106,13 @@ struct GNUNET_LOAD_Value *GSF_rt_entry_lifetime;
 double GSF_current_priorities;
 
 /**
- * How many query messages have we received 'recently' that 
+ * How many query messages have we received 'recently' that
  * have not yet been claimed as cover traffic?
  */
 unsigned int GSF_cover_query_count;
 
 /**
- * How many content messages have we received 'recently' that 
+ * How many content messages have we received 'recently' that
  * have not yet been claimed as cover traffic?
  */
 unsigned int GSF_cover_content_count;
@@ -192,8 +192,8 @@ GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start)
 /**
  * Test if the DATABASE (GET) load on this peer is too high
  * to even consider processing the query at
- * all.  
- * 
+ * all.
+ *
  * @return GNUNET_YES if the load is too high to do anything (load high)
  *         GNUNET_NO to process normally (load normal)
  *         GNUNET_SYSERR to process for free (load low)
@@ -311,7 +311,7 @@ handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
 /**
  * We're done with the local lookup, now consider
  * P2P processing (depending on request options and
- * result status).  Also signal that we can now 
+ * result status).  Also signal that we can now
  * receive more request information from the client.
  *
  * @param cls the client doing the request ('struct GNUNET_SERVER_Client')

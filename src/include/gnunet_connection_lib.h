@@ -232,7 +232,7 @@ GNUNET_CONNECTION_get_address (struct GNUNET_CONNECTION_Handle *sock,
 /**
  * Close the socket and free associated resources. Pending
  * transmissions may be completed or dropped depending on the
- * arguments.   If a receive call is pending and should 
+ * arguments.   If a receive call is pending and should
  * NOT be completed, 'GNUNET_CONNECTION_receive_cancel'
  * should be called explicitly first.
  *

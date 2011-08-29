@@ -47,7 +47,7 @@
 
 
 /**
- * Entry in neighbours. 
+ * Entry in neighbours.
  */
 struct NeighbourMapEntry;
 
@@ -105,7 +105,7 @@ struct MessageQueue
 
 
 /**
- * Entry in neighbours. 
+ * Entry in neighbours.
  */
 struct NeighbourMapEntry
 {
@@ -171,7 +171,7 @@ struct NeighbourMapEntry
 
   /**
    * ID of task scheduled to run when we should try transmitting
-   * the head of the message queue.  
+   * the head of the message queue.
    */
   GNUNET_SCHEDULER_TaskIdentifier transmission_task;
 
@@ -622,7 +622,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 
 /**
  * Test if we're connected to the given peer.
- * 
+ *
  * @param target peer to test
  * @return GNUNET_YES if we are connected, GNUNET_NO if not
  */
@@ -839,7 +839,7 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
  * Change the incoming quota for the given peer.
  *
  * @param neighbour identity of peer to change qutoa for
- * @param quota new quota 
+ * @param quota new quota
  */
 void
 GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
@@ -912,7 +912,7 @@ neighbours_iterate (void *cls, const GNUNET_HashCode * key, void *value)
 /**
  * Iterate over all connected neighbours.
  *
- * @param cb function to call 
+ * @param cb function to call
  * @param cb_cls closure for cb
  */
 void

@@ -20,7 +20,7 @@
 
 /**
  * @file chat/gnunet-service-chat.c
- * @brief service providing chat functionality 
+ * @brief service providing chat functionality
  * @author Christian Grothoff
  * @author Vitaly Minko
  */

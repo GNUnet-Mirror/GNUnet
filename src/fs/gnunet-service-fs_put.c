@@ -82,7 +82,7 @@ static struct PutOperator operators[] = {
 
 /**
  * Task that is run periodically to obtain blocks for DHT PUTs.
- * 
+ *
  * @param cls type of blocks to gather
  * @param tc scheduler context (unused)
  */
@@ -93,7 +93,7 @@ gather_dht_put_blocks (void *cls,
 
 /**
  * Task that is run periodically to obtain blocks for DHT PUTs.
- * 
+ *
  * @param cls type of blocks to gather
  * @param tc scheduler context (unused)
  */
@@ -169,7 +169,7 @@ process_dht_put_content (void *cls, const GNUNET_HashCode * key, size_t size,
 
 /**
  * Task that is run periodically to obtain blocks for DHT PUTs.
- * 
+ *
  * @param cls type of blocks to gather
  * @param tc scheduler context (unused)
  */

@@ -308,7 +308,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 
 /**
  * Return the performance data record for the given peer
- * 
+ *
  * @param cp peer to query
  * @return performance data record for the peer
  */
@@ -319,7 +319,7 @@ GSF_get_peer_performance_data_ (struct GSF_ConnectedPeer *cp);
 /**
  * Ask a peer to stop migrating data to us until the given point
  * in time.
- * 
+ *
  * @param cp peer to ask
  * @param block_time until when to block
  */

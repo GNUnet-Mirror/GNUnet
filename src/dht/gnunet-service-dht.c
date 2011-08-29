@@ -1281,7 +1281,7 @@ distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
    * two numbers being identical; furthermore, we need to
    * guarantee that a difference in the number of matching
    * bits is always represented in the result.
-   * 
+   *
    * We use 2^32/2^9 numerical values to distinguish between
    * hash codes that have the same LSB bit distance and
    * use the highest 2^9 bits of the result to signify the

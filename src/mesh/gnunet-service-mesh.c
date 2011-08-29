@@ -33,7 +33,7 @@
  * - MESH LOCAL HANDLER HELPERS
  * - MESH LOCAL HANDLES
  * - MAIN FUNCTIONS (main & run)
- * 
+ *
  * TODO:
  * - error reporting (CREATE/CHANGE/ADD/DEL?) -- new message!
  * - partial disconnect reporting -- same as error reporting?
@@ -797,7 +797,7 @@ destroy_tunnel (struct MeshTunnel *t)
 
 /**
  * Periodically announce what applications are provided by local clients
- * 
+ *
  * @param cls closure
  * @param tc task context
  */
@@ -844,7 +844,7 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Periodically announce self id in the DHT
- * 
+ *
  * @param cls closure
  * @param tc task context
  */
@@ -1199,7 +1199,7 @@ send_p2p_tunnel_destroy (void *cls, size_t size, void *buf)
 
 /**
  * Send the message to all clients that have subscribed to its type
- * 
+ *
  * @param msg Pointer to the message itself
  * @return number of clients this message was sent to
  */
@@ -1294,7 +1294,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshPeerInfo *orig_peer_info;
   struct MeshTunnel *t;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Received a MESH path create msg\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: Received a MESH path create msg\n");
   size = ntohs (message->size);
   if (size < sizeof (struct GNUNET_MESH_ManipulatePath))
   {
@@ -2057,7 +2058,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
 /**
  * Handler for new clients
- * 
+ *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message, which includes messages the client wants
@@ -2137,8 +2138,9 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
       }
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  client has %u+%u subscriptions\n",
-              c->type_counter, c->app_counter);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:  client has %u+%u subscriptions\n", c->type_counter,
+              c->app_counter);
 
   GNUNET_CONTAINER_DLL_insert (clients, clients_tail, c);
   c->tunnels = GNUNET_CONTAINER_multihashmap_create (32);
@@ -2151,7 +2153,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Handler for requests of new tunnels
- * 
+ *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message
@@ -2233,7 +2235,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Handler for requests of deleting tunnels
- * 
+ *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message
@@ -2286,7 +2288,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Handler for connection requests to new peers
- * 
+ *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message (PeerControl)
@@ -2359,7 +2361,7 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Handler for disconnection requests of peers in a tunnel
- * 
+ *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message (PeerControl)
@@ -2418,7 +2420,7 @@ handle_local_connect_del (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Handler for connection requests to new peers by type
- * 
+ *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message (ConnectPeerByType)
@@ -2515,7 +2517,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Handler for client traffic directed to one peer
- * 
+ *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message
@@ -2608,7 +2610,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Handler for client traffic directed to all peers in a tunnel
- * 
+ *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message
@@ -2807,9 +2809,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
   }
-  if (0 != announce_id_task) {
-      GNUNET_SCHEDULER_cancel(announce_id_task);
-      announce_id_task = 0;
+  if (0 != announce_id_task)
+  {
+    GNUNET_SCHEDULER_cancel (announce_id_task);
+    announce_id_task = 0;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: shut down\n");
 }

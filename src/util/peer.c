@@ -157,7 +157,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
 
 /**
  * Decrement multiple RCs of peer identities by one.
- * 
+ *
  * @param ids array of PIDs to decrement the RCs of
  * @param count size of the ids array
  */

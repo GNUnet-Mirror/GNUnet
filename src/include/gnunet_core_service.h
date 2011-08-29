@@ -201,7 +201,7 @@ typedef void (*GNUNET_CORE_StartupCallback) (void *cls,
  *                can be used to improve efficiency, ignored if inbound_notify is NULL
  *                note that the core is allowed to drop notifications about inbound
  *                messages if the client does not process them fast enough (for this
- *                notification type, a bounded queue is used) 
+ *                notification type, a bounded queue is used)
  * @param outbound_notify function to call for all outbound messages, can be NULL;
  *                note that the core is allowed to drop notifications about outbound
  *                messages if the client does not process them fast enough (for this
@@ -234,7 +234,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Disconnect from the core service.    This function can only 
+ * Disconnect from the core service.    This function can only
  * be called *after* all pending 'GNUNET_CORE_notify_transmit_ready'
  * requests have been explicitly cancelled.
  *
@@ -371,7 +371,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
 /**
  * Cancel request for getting information about a peer.
  * Note that an eventual change in preference, trust or bandwidth
- * assignment MAY have already been committed at the time, 
+ * assignment MAY have already been committed at the time,
  * so cancelling a request is NOT sure to undo the original
  * request.  The original request may or may not still commit.
  * The only thing cancellation ensures is that the callback
@@ -429,7 +429,7 @@ struct GNUNET_CORE_TransmitHandle;
  * given number of bytes to the specified "target".   Must only be
  * called after a connection to the respective peer has been
  * established (and the client has been informed about this).
- * 
+ *
  *
  * @param handle connection to core service
  * @param cork is corking allowed for this transmission?

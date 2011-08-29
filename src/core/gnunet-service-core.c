@@ -71,7 +71,7 @@
 
 /**
  * After how much time past the "official" expiration time do
- * we discard messages?  Should not be zero since we may 
+ * we discard messages?  Should not be zero since we may
  * intentionally defer transmission until close to the deadline
  * and then may be slightly past the deadline due to inaccuracy
  * in sleep and our own CPU consumption.
@@ -410,7 +410,7 @@ struct MessageEntry
 
 
 /**
- * Record kept for each request for transmission issued by a 
+ * Record kept for each request for transmission issued by a
  * client that is still pending.
  */
 struct ClientActiveRequest;
@@ -439,13 +439,13 @@ struct Neighbour
   struct MessageEntry *encrypted_tail;
 
   /**
-   * Head of list of requests from clients for transmission to 
+   * Head of list of requests from clients for transmission to
    * this peer.
    */
   struct ClientActiveRequest *active_client_request_head;
 
   /**
-   * Tail of list of requests from clients for transmission to 
+   * Tail of list of requests from clients for transmission to
    * this peer.
    */
   struct ClientActiveRequest *active_client_request_tail;
@@ -684,7 +684,7 @@ struct Client
 
 
 /**
- * Record kept for each request for transmission issued by a 
+ * Record kept for each request for transmission issued by a
  * client that is still pending.
  */
 struct ClientActiveRequest
@@ -962,10 +962,10 @@ send_to_client (struct Client *client, const struct GNUNET_MessageHeader *msg,
 /**
  * Send a message to all of our current clients that have
  * the right options set.
- * 
+ *
  * @param msg message to multicast
  * @param can_drop can this message be discarded if the queue is too long
- * @param options mask to use 
+ * @param options mask to use
  */
 static void
 send_to_all_clients (const struct GNUNET_MessageHeader *msg, int can_drop,
@@ -1225,7 +1225,7 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
       (n->status != PEER_STATE_KEY_CONFIRMED))
   {
     /* neighbour must have disconnected since request was issued,
-     * ignore (client will realize it once it processes the 
+     * ignore (client will realize it once it processes the
      * disconnect notification) */
 #if DEBUG_CORE_CLIENT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1705,7 +1705,7 @@ handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
   else
   {
     /* Technically, this COULD happen (due to asynchronous behavior),
-     * but it should be rare, so we should generate an info event 
+     * but it should be rare, so we should generate an info event
      * to help diagnosis of serious errors that might be masked by this */
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _
@@ -1860,7 +1860,7 @@ consider_free_neighbour (struct Neighbour *n);
 
 
 /**
- * Task triggered when a neighbour entry is about to time out 
+ * Task triggered when a neighbour entry is about to time out
  * (and we should prevent this by sending a PING).
  *
  * @param cls the 'struct Neighbour'
@@ -2733,7 +2733,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 /**
  * Function that recalculates the bandwidth quota for the
  * given neighbour and transmits it to the transport service.
- * 
+ *
  * @param cls neighbour for the quota update
  * @param tc context
  */
@@ -2850,7 +2850,7 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
   if ((n == NULL) || (GNUNET_YES != n->is_connected) ||
       (n->status != PEER_STATE_KEY_CONFIRMED))
   {
-    /* attempt to send message to peer that is not connected anymore 
+    /* attempt to send message to peer that is not connected anymore
      * (can happen due to asynchrony) */
     GNUNET_STATISTICS_update (stats,
                               gettext_noop
@@ -4256,7 +4256,7 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 /**
  * Function that recalculates the bandwidth quota for the
  * given neighbour and transmits it to the transport service.
- * 
+ *
  * @param cls neighbour for the quota update
  * @param tc context
  */
@@ -4283,7 +4283,7 @@ neighbour_quota_update (void *cls,
   n->quota_update_task = GNUNET_SCHEDULER_NO_TASK;
   /* calculate relative preference among all neighbours;
    * divides by a bit more to avoid division by zero AND to
-   * account for possibility of new neighbours joining any time 
+   * account for possibility of new neighbours joining any time
    * AND to convert to double... */
   neighbour_count = GNUNET_CONTAINER_multihashmap_size (neighbours);
   if (neighbour_count == 0)

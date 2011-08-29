@@ -67,33 +67,33 @@ static struct GNUNET_MESH_MessageHandler handlers[] = { {&callback, 1, 0},
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-    fprintf(stderr, "++++++++ STARTING SHUTDOWN\n");
-    fprintf(stderr, "+++++++++ ABORT TASK\n");
+  fprintf (stderr, "++++++++ STARTING SHUTDOWN\n");
+  fprintf (stderr, "+++++++++ ABORT TASK\n");
   if (0 != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
   }
-  fprintf(stderr, "+++++++++ DISCONNECT MESH\n");
+  fprintf (stderr, "+++++++++ DISCONNECT MESH\n");
   if (NULL != mesh)
   {
     GNUNET_MESH_disconnect (mesh);
   }
-  fprintf(stderr, "+++++++++ KILL PROCESS\n");
+  fprintf (stderr, "+++++++++ KILL PROCESS\n");
   if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   }
-  fprintf(stderr, "+++++++++ WAIT\n");
+  fprintf (stderr, "+++++++++ WAIT\n");
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
-  fprintf(stderr, "+++++++++ PROCESS CLOSE\n");
+  fprintf (stderr, "+++++++++ PROCESS CLOSE\n");
   GNUNET_OS_process_close (arm_pid);
-  fprintf(stderr, "++++++++ END SHUTDOWN\n");
+  fprintf (stderr, "++++++++ END SHUTDOWN\n");
 }
 
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-    fprintf(stderr, "++++++++ STARTING ABORT\n");
+  fprintf (stderr, "++++++++ STARTING ABORT\n");
   if (0 != test_task)
   {
     GNUNET_SCHEDULER_cancel (test_task);
@@ -101,16 +101,16 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   result = GNUNET_SYSERR;
   abort_task = 0;
   do_shutdown (cls, tc);
-  fprintf(stderr, "++++++++ END ABORT\n");
+  fprintf (stderr, "++++++++ END ABORT\n");
 }
 
 static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  static const GNUNET_MESH_ApplicationType app[] = {1,2,3,0};
+  static const GNUNET_MESH_ApplicationType app[] = { 1, 2, 3, 0 };
 
-  fprintf(stderr, "++++++++ STARTING TEST\n");
+  fprintf (stderr, "++++++++ STARTING TEST\n");
   test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
   mesh = GNUNET_MESH_connect (cfg, NULL, NULL, handlers, app);
   if (NULL == mesh)
@@ -123,8 +123,10 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
   }
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3), &do_shutdown, NULL);
-  fprintf(stderr, "++++++++ END TEST\n");
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, 3), &do_shutdown,
+                                NULL);
+  fprintf (stderr, "++++++++ END TEST\n");
 }
 
 
@@ -132,14 +134,14 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-    fprintf(stderr, "++++++++ STARTING RUN\n");
+  fprintf (stderr, "++++++++ STARTING RUN\n");
   GNUNET_log_setup ("test_mesh_small",
 #if VERBOSE
-                      "DEBUG",
+                    "DEBUG",
 #else
-                      "WARNING",
+                    "WARNING",
 #endif
-                      NULL);
+                    NULL);
   arm_pid =
       GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
@@ -152,10 +154,12 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 20), &do_abort,
                                     NULL);
-    test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &test, (void *)cfg);
+  test_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &test,
+                                    (void *) cfg);
 //       GNUNET_SCHEDULER_add_now (&test, (void *)cfg);
 
-      fprintf(stderr, "++++++++ END RUN\n");
+  fprintf (stderr, "++++++++ END RUN\n");
 }
 
 
@@ -163,6 +167,7 @@ int
 main (int argc, char *argv[])
 {
   int ret;
+
   char *const argv2[] = { "test-mesh-api",
     "-c", "test_mesh.conf",
 #if VERBOSE
@@ -174,7 +179,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  fprintf(stderr, "++++++++ STARTING TEST_API\n");
+  fprintf (stderr, "++++++++ STARTING TEST_API\n");
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test-mesh-api", "nohelp", options, &run, NULL);
@@ -191,6 +196,6 @@ main (int argc, char *argv[])
     return 1;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test ok\n");
-  fprintf(stderr, "++++++++ END TEST_API\n");
+  fprintf (stderr, "++++++++ END TEST_API\n");
   return 0;
 }

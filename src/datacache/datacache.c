@@ -92,7 +92,7 @@ struct GNUNET_DATACACHE_Handle
 /**
  * Function called by plugins to notify the datacache
  * about content deletions.
- * 
+ *
  * @param cls closure
  * @param key key of the content that was deleted
  * @param size number of bytes that were made available

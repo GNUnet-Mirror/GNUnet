@@ -109,8 +109,8 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (send_task);
 
-  if  (cc != NULL)
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(cc);
+  if (cc != NULL)
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (cc);
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -229,7 +229,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2, &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             NULL);
-  cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb,
+                                               NULL);
 }
 
 static int

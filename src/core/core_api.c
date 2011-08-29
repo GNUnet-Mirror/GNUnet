@@ -39,14 +39,14 @@ struct PeerRecord
   /**
    * We generally do NOT keep peer records in a DLL; this
    * DLL is only used IF this peer's 'pending_head' message
-   * is ready for transmission.  
+   * is ready for transmission.
    */
   struct PeerRecord *prev;
 
   /**
    * We generally do NOT keep peer records in a DLL; this
    * DLL is only used IF this peer's 'pending_head' message
-   * is ready for transmission. 
+   * is ready for transmission.
    */
   struct PeerRecord *next;
 
@@ -98,7 +98,7 @@ struct PeerRecord
 
   /**
    * ID of timeout task for the 'pending_head' handle
-   * which is the one with the smallest timeout. 
+   * which is the one with the smallest timeout.
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
@@ -124,7 +124,7 @@ struct PeerRecord
  * Entry in a doubly-linked list of control messages to be transmitted
  * to the core service.  Control messages include traffic allocation,
  * connection requests and of course our initial 'init' request.
- * 
+ *
  * The actual message is allocated at the end of this struct.
  */
 struct ControlMessage
@@ -319,7 +319,7 @@ struct GNUNET_CORE_TransmitHandle
   struct PeerRecord *peer;
 
   /**
-   * Corresponding SEND_REQUEST message.  Only non-NULL 
+   * Corresponding SEND_REQUEST message.  Only non-NULL
    * while SEND_REQUEST message is pending.
    */
   struct ControlMessage *cm;
@@ -396,7 +396,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Notify clients about disconnect and free 
+ * Notify clients about disconnect and free
  * the entry for connected peer.
  *
  * @param cls the 'struct GNUNET_CORE_Handle*'
@@ -1393,7 +1393,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Disconnect from the core service.  This function can only 
+ * Disconnect from the core service.  This function can only
  * be called *after* all pending 'GNUNET_CORE_notify_transmit_ready'
  * requests have been explicitly canceled.
  *
@@ -1883,7 +1883,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
 /**
  * Cancel request for getting information about a peer.
  * Note that an eventual change in preference, trust or bandwidth
- * assignment MAY have already been committed at the time, 
+ * assignment MAY have already been committed at the time,
  * so cancelling a request is NOT sure to undo the original
  * request.  The original request may or may not still commit.
  * The only thing cancellation ensures is that the callback

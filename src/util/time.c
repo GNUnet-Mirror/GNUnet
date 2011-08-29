@@ -353,7 +353,7 @@ GNUNET_TIME_relative_divide (struct GNUNET_TIME_Relative rel,
 
 
 /**
- * Calculate the estimate time of arrival/completion 
+ * Calculate the estimate time of arrival/completion
  * for an operation.
  *
  * @param start when did the operation start?

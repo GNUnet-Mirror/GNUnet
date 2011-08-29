@@ -648,7 +648,7 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
   bl->waiting_for_reply = GNUNET_NO;
   if (NULL != bc)
   {
-    /* only run this if the blacklist check has not been 
+    /* only run this if the blacklist check has not been
      * cancelled in the meantime... */
     if (ntohl (msg->is_allowed) == GNUNET_SYSERR)
     {
@@ -683,7 +683,7 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Add the given peer to the blacklist (for the given transport).
- * 
+ *
  * @param peer peer to blacklist
  * @param transport_name transport to blacklist for this peer, NULL for all
  */
@@ -780,7 +780,7 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
 
 /**
  * Cancel a blacklist check.
- * 
+ *
  * @param bc check to cancel
  */
 void

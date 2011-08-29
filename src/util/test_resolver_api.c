@@ -32,7 +32,7 @@
 
 #define VERBOSE GNUNET_NO
 
-/** 
+/**
  * Using DNS root servers to check gnunet's resolver service
  * a.root-servers.net <-> 198.41.0.4 is a fix 1:1 mapping that should not change over years
  * For more information have a look at IANA's website http://www.root-servers.org/

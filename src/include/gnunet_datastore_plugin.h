@@ -45,7 +45,7 @@
  * changes.
  *
  * @param cls closure
- * @param delta change in disk utilization, 
+ * @param delta change in disk utilization,
  *        0 for "reset to empty"
  */
 typedef void (*DiskUtilizationChange) (void *cls, int delta);
@@ -138,7 +138,7 @@ typedef int (*PluginPut) (void *cls, const GNUNET_HashCode * key, uint32_t size,
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results); 
+ * @param offset offset of the result (modulo num-results);
  *               specific ordering does not matter for the offset
  * @param key key to match, never NULL
  * @param vhash hash of the value, maybe NULL (to
@@ -148,7 +148,7 @@ typedef int (*PluginPut) (void *cls, const GNUNET_HashCode * key, uint32_t size,
  *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
- * @param proc function to call on the matching value; 
+ * @param proc function to call on the matching value;
  *        proc should be called with NULL if there is no result
  * @param proc_cls closure for proc
  */
@@ -203,10 +203,10 @@ typedef int (*PluginUpdate) (void *cls, uint64_t uid, int delta,
 
 /**
  * Select a single item from the datastore at the specified offset
- * (among those applicable). 
+ * (among those applicable).
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results); 
+ * @param offset offset of the result (modulo num-results);
  *               specific ordering does not matter for the offset
  * @param type entries of which type should be considered?
  *        Must not be zero (ANY).

@@ -20,7 +20,7 @@
 
 /**
  * @file include/gnunet_block_plugin.h
- * @brief API for block plugins.  Each block plugin must conform to 
+ * @brief API for block plugins.  Each block plugin must conform to
  *        the API specified by this header.
  * @author Christian Grothoff
  */
@@ -35,7 +35,7 @@
 /**
  * Function called to validate a reply or a request.  For
  * request evaluation, simply pass "NULL" for the reply_block.
- * Note that it is assumed that the reply has already been 
+ * Note that it is assumed that the reply has already been
  * matched to the key (and signatures checked) as it would
  * be done with the "get_key" function.
  *
@@ -81,7 +81,7 @@ typedef enum
  * @param block block to get the key for
  * @param block_size number of bytes in block
  * @param key set to the key (query) for the given block
- * @return GNUNET_YES on success, 
+ * @return GNUNET_YES on success,
  *         GNUNET_NO if the block is malformed
  *         GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
@@ -112,7 +112,7 @@ struct GNUNET_BLOCK_PluginFunctions
   const enum GNUNET_BLOCK_Type *types;
 
   /**
-   * Main function of a block plugin.  Allows us to check if a 
+   * Main function of a block plugin.  Allows us to check if a
    * block matches a query.
    */
   GNUNET_BLOCK_EvaluationFunction evaluate;

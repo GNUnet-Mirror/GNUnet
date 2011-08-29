@@ -256,7 +256,7 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p);
 
 /**
  * Obtain the reason code for why the current task was
- * started.  Will return the same value as 
+ * started.  Will return the same value as
  * the GNUNET_SCHEDULER_TaskContext's reason field.
  *
  * * @return reason(s) why the current task is run

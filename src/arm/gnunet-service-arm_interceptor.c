@@ -21,7 +21,7 @@
  * @file arm/gnunet-service-arm_interceptor.c
  * @brief listen to incoming connections from clients to services,
  * start services for which incoming an incoming connection occur,
- * and relay communication between the client and the service for 
+ * and relay communication between the client and the service for
  * that first incoming connection.
  *
  * @author Safey Abdel Halim
@@ -228,7 +228,7 @@ static struct ServiceListeningInfo *serviceListeningInfoList_tail;
 
 /**
  * Put the default services represented by a space separated string into an array of strings
- * 
+ *
  * @param services space separated string of default services
  */
 static void
@@ -264,7 +264,7 @@ addDefaultServicesToList (const char *services)
 
 /**
  * Checks whether the serviceName is in the list of default services
- * 
+ *
  * @param serviceName string to check its existance in the list
  * @return GNUNET_YES if the service is started by default
  */
@@ -283,7 +283,7 @@ isInDefaultList (const char *serviceName)
 /**
  * Close forwarded connection (partial or full).
  *
- * @param fc connection to close 
+ * @param fc connection to close
  * @param reason which direction to close
  */
 static void
@@ -352,9 +352,9 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc, int reason)
 
 /**
  * Read data from the client and then forward it to the service.
- * 
+ *
  * @param cls callback data,   struct ForwardedConnection for the communication between client and service
- * @param tc context 
+ * @param tc context
  */
 static void
 receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -362,7 +362,7 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Receive service messages sent by the service and forward it to client
- * 
+ *
  * @param cls callback data, struct ForwardedConnection for the communication between client and service
  * @param tc scheduler context
  */
@@ -380,7 +380,7 @@ start_forwarding (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Forward messages sent from service to client
- * 
+ *
  * @param cls callback data, struct ForwardedConnection for the communication between client and service
  * @param tc context
  */
@@ -437,7 +437,7 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Receive service messages sent by the service and forward it to client
- * 
+ *
  * @param cls callback data, struct ForwardedConnection for the communication between client and service
  * @param tc scheduler context
  */
@@ -531,7 +531,7 @@ receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Forward client message to service
- * 
+ *
  * @param cls callback data, struct ForwardedConnection for the communication between client and service
  * @param tc scheduler context
  */
@@ -626,9 +626,9 @@ forwardToService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Read data from the client and then forward it to the service.
- * 
+ *
  * @param cls callback data,   struct ForwardedConnection for the communication between client and service
- * @param tc context 
+ * @param tc context
  */
 static void
 receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -907,9 +907,9 @@ stop_listening (const char *serviceName)
 /**
  * First connection has come to the listening socket associated with the service,
  * create the service in order to relay the incoming connection to it
- * 
+ *
  * @param cls callback data, struct ServiceListeningInfo describing a listen socket
- * @param tc context 
+ * @param tc context
  */
 static void
 acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -970,9 +970,9 @@ accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
 /**
  * First connection has come to the listening socket associated with the service,
  * create the service in order to relay the incoming connection to it
- * 
+ *
  * @param cls callback data, struct ServiceListeningInfo describing a listen socket
- * @param tc context 
+ * @param tc context
  */
 static void
 acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -1042,7 +1042,7 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Creating a listening socket for each of the service's addresses and
  * wait for the first incoming connection to it
- * 
+ *
  * @param sa address associated with the service
  * @param addr_len length of sa
  * @param serviceName the name of the service in question
@@ -1132,7 +1132,7 @@ createListeningSocket (struct sockaddr *sa, socklen_t addr_len,
 /**
  * Callback function, checks whether the current tokens are representing a service,
  * gets its addresses and create listening socket for it.
- * 
+ *
  * @param cls callback data, not used
  * @param section configuration section
  * @param option configuration option

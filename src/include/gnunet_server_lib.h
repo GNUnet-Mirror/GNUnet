@@ -135,7 +135,7 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
  * @param access function for access control
  * @param access_cls closure for access
  * @param serverAddr address toes listen on (including port), NULL terminated array
- * @param socklen lengths of respective serverAddr 
+ * @param socklen lengths of respective serverAddr
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if YES, connections sending messages of unknown type
  *        will be closed
@@ -352,7 +352,7 @@ typedef void (*GNUNET_SERVER_DisconnectCallback) (void *cls,
  * Ask the server to notify us whenever a client disconnects.
  * This function is called whenever the actual network connection
  * is closed; the reference count may be zero or larger than zero
- * at this point.  If the server is destroyed before this 
+ * at this point.  If the server is destroyed before this
  * notification is explicitly cancelled, the 'callback' will
  * once be called with a 'client' argument of NULL to indicate
  * that the server itself is now gone (and that the callback
@@ -609,7 +609,7 @@ GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
  *        can be NULL (will be passed back to 'cb')
  * @param buf input data to add
  * @param size number of bytes in buf
- * @param purge should any excess bytes in the buffer be discarded 
+ * @param purge should any excess bytes in the buffer be discarded
  *       (i.e. for packet-based services like UDP)
  * @param one_shot only call callback once, keep rest of message in buffer
  * @return GNUNET_OK if we are done processing (need more data)

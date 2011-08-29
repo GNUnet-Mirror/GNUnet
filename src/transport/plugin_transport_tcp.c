@@ -385,7 +385,7 @@ struct Plugin
 
 /**
  * Function to check if an inbound connection is acceptable.
- * Mostly used to limit the total number of open connections 
+ * Mostly used to limit the total number of open connections
  * we can have.
  *
  * @param cls the 'struct Plugin'

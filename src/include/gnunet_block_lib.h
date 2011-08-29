@@ -69,7 +69,7 @@ enum GNUNET_BLOCK_Type
   GNUNET_BLOCK_TYPE_FS_SBLOCK = 4,
 
     /**
-     * Type of a block that is used to advertise a namespace.  
+     * Type of a block that is used to advertise a namespace.
      */
   GNUNET_BLOCK_TYPE_FS_NBLOCK = 5,
 
@@ -156,7 +156,7 @@ struct GNUNET_BLOCK_Context;
 
 /**
  * Mingle hash with the mingle_number to produce different bits.
- * 
+ *
  * @param in original hash code
  * @param mingle_number number for hash permutation
  * @param hc where to store the result.
@@ -188,7 +188,7 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx);
 /**
  * Function called to validate a reply or a request.  For
  * request evaluation, simply pass "NULL" for the reply_block.
- * Note that it is assumed that the reply has already been 
+ * Note that it is assumed that the reply has already been
  * matched to the key (and signatures checked) as it would
  * be done with the "get_key" function.
  *
@@ -221,7 +221,7 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  * @param block block to get the key for
  * @param block_size number of bytes in block
  * @param key set to the key (query) for the given block
- * @return GNUNET_YES on success, 
+ * @return GNUNET_YES on success,
  *         GNUNET_NO if the block is malformed
  *         GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)

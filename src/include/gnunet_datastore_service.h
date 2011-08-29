@@ -371,7 +371,7 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
 /**
  * Cancel a datastore operation.  The final callback from the
  * operation must not have been done yet.
- * 
+ *
  * @param qe operation to cancel
  */
 void

@@ -83,7 +83,7 @@ struct TcpContext
    */
   struct GNUNET_NETWORK_Handle *s;
 
-  /** 
+  /**
    * Data to transmit.
    */
   uint16_t data;
@@ -122,7 +122,7 @@ tcp_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Try to send 'data' to the
  * IP 'dst_ipv4' at port 'dport' via TCP.
- * 
+ *
  * @param dst_ivp4 target IP
  * @param dport target port
  * @param data data to send
@@ -169,7 +169,7 @@ try_send_tcp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
 /**
  * Try to send 'data' to the
  * IP 'dst_ipv4' at port 'dport' via UDP.
- * 
+ *
  * @param dst_ivp4 target IP
  * @param dport target port
  * @param data data to send
@@ -208,7 +208,7 @@ try_send_udp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
 /**
  * We've received a request to probe a NAT
  * traversal. Do it.
- * 
+ *
  * @param cls unused
  * @param client handle to client (we always close)
  * @param msg message with details about what to test

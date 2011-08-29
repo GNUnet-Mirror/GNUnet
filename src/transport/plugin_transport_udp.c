@@ -170,7 +170,7 @@ struct PeerSession
 
 /**
  * Data structure to track defragmentation contexts based
- * on the source of the UDP traffic.  
+ * on the source of the UDP traffic.
  */
 struct ReceiveContext
 {
@@ -272,7 +272,7 @@ struct Plugin
   struct GNUNET_NETWORK_Handle *sockv6;
 
   /**
-   * expected delay for ACKs 
+   * expected delay for ACKs
    */
   struct GNUNET_TIME_Relative last_expected_delay;
 
@@ -557,7 +557,7 @@ struct SourceInformation
 
 
 /**
- * Message tokenizer has broken up an incomming message. Pass it on 
+ * Message tokenizer has broken up an incomming message. Pass it on
  * to the service.
  *
  * @param cls the 'struct Plugin'
@@ -588,7 +588,7 @@ process_inbound_tokenized_messages (void *cls, void *client,
  *
  * @param plugin plugin context
  * @param msg the message
- * @param sender_addr sender address 
+ * @param sender_addr sender address
  * @param sender_addr_len number of bytes in sender_addr
  */
 static void

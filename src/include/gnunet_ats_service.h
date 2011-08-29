@@ -25,7 +25,7 @@
  *
  * TODO:
  * - move GNUNET_TRANSPORT_ATS* in here and rename...
- * - extend API to express communication preferences to ATS 
+ * - extend API to express communication preferences to ATS
  *   (to be called DIRECTLY from apps, not from transport/core!)
  */
 #ifndef GNUNET_ATS_SERVICE_H
@@ -47,7 +47,7 @@ struct GNUNET_ATS_Handle;
  * Signature of a function called by ATS to notify the callee that the
  * assigned bandwidth or address for a given peer was changed.  If the
  * callback is called with address/bandwidth assignments of zero, the
- * ATS disconnect function will still be called once the disconnect 
+ * ATS disconnect function will still be called once the disconnect
  * actually happened.
  *
  * @param cls closure
@@ -99,7 +99,7 @@ GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
 
 
 /**
- * Signature of a function that takes an address suggestion 
+ * Signature of a function that takes an address suggestion
  *
  * @param cls closure
  * @param peer identity of the new peer
@@ -117,7 +117,7 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                                       const char *plugin_name,
                                                       const void *plugin_addr,
                                                       size_t plugin_addr_len,
-                                                      struct Session *session,
+                                                      struct Session * session,
                                                       struct
                                                       GNUNET_BANDWIDTH_Value32NBO
                                                       bandwidth,

@@ -153,7 +153,7 @@ struct GSF_PendingRequestData
  * Handle a reply to a pending request.  Also called if a request
  * expires (then with data == NULL).  The handler may be called
  * many times (depending on the request type), but will not be
- * called during or after a call to GSF_pending_request_cancel 
+ * called during or after a call to GSF_pending_request_cancel
  * and will also not be called anymore after a call signalling
  * expiration.
  *
@@ -180,7 +180,7 @@ typedef void (*GSF_PendingRequestReplyHandler) (void *cls,
 
 
 /**
- * Create a new pending request.  
+ * Create a new pending request.
  *
  * @param options request options
  * @param type type of the block that is being requested
@@ -232,7 +232,7 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
 
 /**
  * Obtain the public data associated with a pending request
- * 
+ *
  * @param pr pending request
  * @return associated public data
  */
@@ -244,7 +244,7 @@ GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr);
  * Test if two pending requests are compatible (would generate
  * the same query modulo filters and should thus be processed
  * jointly).
- * 
+ *
  * @param pra a pending request
  * @param pra another pending request
  * @return GNUNET_OK if the requests are compatible

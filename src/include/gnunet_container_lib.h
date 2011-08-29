@@ -239,7 +239,7 @@ struct GNUNET_CONTAINER_MetaData;
 
 /**
  * Create a fresh MetaData token.
- * 
+ *
  * @return empty meta-data container
  */
 struct GNUNET_CONTAINER_MetaData *
@@ -247,7 +247,7 @@ GNUNET_CONTAINER_meta_data_create (void);
 
 /**
  * Duplicate a MetaData token.
- * 
+ *
  * @param md what to duplicate
  * @return duplicate meta-data container
  */
@@ -289,7 +289,7 @@ GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data
- * @param format basic format information about data 
+ * @param format basic format information about data
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
@@ -999,7 +999,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
 
 /**
  * Removes a node from the heap.
- * 
+ *
  * @param node node to remove
  * @return element data stored at the node, NULL if heap is empty
  */
@@ -1047,12 +1047,12 @@ enum GNUNET_CONTAINER_SListDisposition
 
 
 /**
- * Handle to a singly linked list  
+ * Handle to a singly linked list
  */
 struct GNUNET_CONTAINER_SList;
 
 /**
- * Handle to a singly linked list iterator 
+ * Handle to a singly linked list iterator
  */
 struct GNUNET_CONTAINER_SList_Iterator;
 

@@ -85,7 +85,7 @@ template_plugin_get (void *cls, const GNUNET_HashCode * key,
 /**
  * Delete the entry with the lowest expiration value
  * from the datacache right now.
- * 
+ *
  * @param cls closure (our "struct Plugin")
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */

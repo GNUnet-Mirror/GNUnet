@@ -139,7 +139,7 @@ translate_unix_perms (enum GNUNET_DISK_AccessPermissions perm)
 
 
 /**
- * Iterate over all files in the given directory and 
+ * Iterate over all files in the given directory and
  * accumulate their size.
  *
  * @param cls closure of type "struct GetFileSizeData"
@@ -339,7 +339,7 @@ GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
  * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
  * 6 random characters will be appended to the name to create a unique
  * filename.
- * 
+ *
  * @param t component to use for the name;
  *        does NOT contain "XXXXXX" or "/tmp/".
  * @return NULL on error, otherwise name of fresh
@@ -767,7 +767,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
  * @param fn file name
  * @param buffer the data to write
  * @param n number of bytes to write
- * @param mode file permissions 
+ * @param mode file permissions
  * @return number of bytes written on success, GNUNET_SYSERR on error
  */
 ssize_t
@@ -788,7 +788,7 @@ GNUNET_DISK_fn_write (const char *fn, const void *buffer, size_t n,
 }
 
 /**
- * Scan a directory for files. 
+ * Scan a directory for files.
  *
  * @param dirName the name of the directory
  * @param callback the method to call for each file,

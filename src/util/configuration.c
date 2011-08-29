@@ -495,7 +495,7 @@ GNUNET_CONFIGURATION_remove_section (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cls the destination configuration (struct GNUNET_CONFIGURATION_Handle*)
  * @param section section for the value
  * @param option option name of the value
- * @param value value to copy 
+ * @param value value to copy
  */
 static void
 copy_entry (void *cls, const char *section, const char *option,

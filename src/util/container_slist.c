@@ -55,7 +55,7 @@ struct GNUNET_CONTAINER_SList_Elem
 
 
 /**
- * Handle to a singly linked list  
+ * Handle to a singly linked list
  */
 struct GNUNET_CONTAINER_SList
 {
@@ -77,7 +77,7 @@ struct GNUNET_CONTAINER_SList
 
 
 /**
- * Handle to a singly linked list iterator 
+ * Handle to a singly linked list iterator
  */
 struct GNUNET_CONTAINER_SList_Iterator
 {

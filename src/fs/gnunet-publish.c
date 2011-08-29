@@ -87,7 +87,7 @@ do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Called by FS client to give information about the progress of an 
+ * Called by FS client to give information about the progress of an
  * operation.
  *
  * @param cls closure

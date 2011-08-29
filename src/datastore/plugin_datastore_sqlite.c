@@ -1,17 +1,17 @@
  /*
   * This file is part of GNUnet
   * (C) 2009, 2011 Christian Grothoff (and other contributing authors)
-  * 
+  *
   * GNUnet is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published
   * by the Free Software Foundation; either version 3, or (at your
   * option) any later version.
-  * 
+  *
   * GNUnet is distributed in the hope that it will be useful, but
   * WITHOUT ANY WARRANTY; without even the implied warranty of
   * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   * General Public License for more details.
-  * 
+  *
   * You should have received a copy of the GNU General Public License
   * along with GNUnet; see the file COPYING.  If not, write to the
   * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
@@ -157,7 +157,7 @@ sq_prepare (sqlite3 * dbh, const char *zSql, sqlite3_stmt ** ppStmt)
 
 /**
  * Create our database indices.
- * 
+ *
  * @param dbh handle to the database
  */
 static void
@@ -724,7 +724,7 @@ execute_get (struct Plugin *plugin, sqlite3_stmt * stmt,
  * the given processor for the item.
  *
  * @param cls our plugin context
- * @param offset offset of the result (modulo num-results); 
+ * @param offset offset of the result (modulo num-results);
  *               specific ordering does not matter for the offset
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
@@ -947,7 +947,7 @@ repl_proc (void *cls, const GNUNET_HashCode * key, uint32_t size,
 
 /**
  * Get a random item for replication.  Returns a single random item
- * from those with the highest replication counters.  The item's 
+ * from those with the highest replication counters.  The item's
  * replication counter is decremented by one IF it was positive before.
  * Call 'proc' with all values ZERO or NULL if the datastore is empty.
  *

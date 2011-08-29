@@ -111,7 +111,7 @@ struct GNUNET_CONNECTION_TransmitHandle
 
 /**
  * During connect, we try multiple possible IP addresses
- * to find out which one might work. 
+ * to find out which one might work.
  */
 struct AddressProbe
 {
@@ -165,13 +165,13 @@ struct GNUNET_CONNECTION_Handle
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Linked list of sockets we are currently trying out 
+   * Linked list of sockets we are currently trying out
    * (during connect).
    */
   struct AddressProbe *ap_head;
 
   /**
-   * Linked list of sockets we are currently trying out 
+   * Linked list of sockets we are currently trying out
    * (during connect).
    */
   struct AddressProbe *ap_tail;
@@ -1047,7 +1047,7 @@ GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *sock)
 /**
  * Close the socket and free associated resources. Pending
  * transmissions may be completed or dropped depending on the
- * arguments.   If a receive call is pending and should 
+ * arguments.   If a receive call is pending and should
  * NOT be completed, 'GNUNET_CONNECTION_receive_cancel'
  * should be called explicitly first.
  *

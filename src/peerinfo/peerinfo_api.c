@@ -33,7 +33,7 @@
 
 /**
  * Function to call after transmission has succeeded.
- * 
+ *
  * @param cls closure
  * @param success GNUNET_OK if transmission worked, GNUNET_SYSERR on error
  */
@@ -330,7 +330,7 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
 
 
 /**
- * Add a host to the persistent list.  This method operates in 
+ * Add a host to the persistent list.  This method operates in
  * semi-reliable mode: if the transmission is not completed by
  * the time 'GNUNET_PEERINFO_disconnect' is called, it will be
  * aborted.  Furthermore, if a second HELLO is added for the
@@ -535,7 +535,7 @@ iterator_start_receive (void *cls, int transmit_success)
 
 
 /**
- * Peerinfo iteration request has timed out.  
+ * Peerinfo iteration request has timed out.
  *
  * @param cls the 'struct GNUNET_PEERINFO_IteratorContext*'
  * @param tc scheduler context
@@ -567,7 +567,7 @@ signal_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * Instead of calling this function with 'peer == NULL' it is often
  * better to use 'GNUNET_PEERINFO_notify'.
- * 
+ *
  * @param h handle to the peerinfo service
  * @param peer restrict iteration to this peer only (can be NULL)
  * @param timeout how long to wait until timing out

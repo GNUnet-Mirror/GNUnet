@@ -90,7 +90,7 @@ struct CpsRunContext
  * change in their disk utilization.
  *
  * @param cls closure (NULL)
- * @param delta change in disk utilization, 
+ * @param delta change in disk utilization,
  *        0 for "reset to empty"
  */
 static void

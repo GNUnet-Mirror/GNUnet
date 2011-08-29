@@ -250,7 +250,7 @@ GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 
 
 /**
- * Set an option of type 'int' from the command line to 1 if the 
+ * Set an option of type 'int' from the command line to 1 if the
  * given option is present.
  * A pointer to this function should be passed as part of the
  * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
@@ -261,7 +261,7 @@ GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * @param scls additional closure (will point to the 'int')
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_OK 
+ * @return GNUNET_OK
  */
 int
 GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -280,7 +280,7 @@ GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  *             which will be allocated)
  * @param option name of the option
  * @param value actual value of the option (a string)
- * @return GNUNET_OK 
+ * @return GNUNET_OK
  */
 int
 GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -298,7 +298,7 @@ GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * @param scls additional closure (will point to the 'int')
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_OK 
+ * @return GNUNET_OK
  */
 int
 GNUNET_GETOPT_increment_value (struct GNUNET_GETOPT_CommandLineProcessorContext

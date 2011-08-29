@@ -128,7 +128,7 @@ struct GeneratorContext
 
 /**
  * Add an address from the 'OwnAddressList' to the buffer.
- * 
+ *
  * @param cls the 'struct GeneratorContext'
  * @param max maximum number of bytes left
  * @param buf where to write the address

@@ -66,7 +66,7 @@ struct GNUNET_BLOCK_Context
 
 /**
  * Mingle hash with the mingle_number to produce different bits.
- * 
+ *
  * @param in original hash code
  * @param mingle_number number for hash permutation
  * @param hc where to store the result.
@@ -192,7 +192,7 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx, enum GNUNET_BLOCK_Type type)
 /**
  * Function called to validate a reply or a request.  For
  * request evaluation, simply pass "NULL" for the reply_block.
- * Note that it is assumed that the reply has already been 
+ * Note that it is assumed that the reply has already been
  * matched to the key (and signatures checked) as it would
  * be done with the "get_key" function.
  *

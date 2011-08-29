@@ -62,7 +62,7 @@ static int local_only;
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data
- * @param format basic format information about data 
+ * @param format basic format information about data
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
@@ -117,7 +117,7 @@ clean_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Called by FS client to give information about the progress of an 
+ * Called by FS client to give information about the progress of an
  * operation.
  *
  * @param cls closure

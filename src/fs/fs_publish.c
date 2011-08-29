@@ -38,7 +38,7 @@
 
 
 /**
- * Fill in all of the generic fields for 
+ * Fill in all of the generic fields for
  * a publish event and call the callback.
  *
  * @param pi structure to fill in
@@ -216,7 +216,7 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
 
 /**
  * Datastore returns from reservation cancel request.
- * 
+ *
  * @param cls the 'struct GNUNET_FS_PublishContext'
  * @param success success code (not used)
  * @param msg error message (typically NULL, not used)
@@ -371,7 +371,7 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
   {
     pt_size = GNUNET_MIN (max, p->data.file.file_size - offset);
     if (pt_size == 0)
-      return 0;                 /* calling reader with pt_size==0 
+      return 0;                 /* calling reader with pt_size==0
                                  * might free buf, so don't! */
     if (pt_size !=
         p->data.file.reader (p->data.file.reader_cls, offset, pt_size, buf,
@@ -441,7 +441,7 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * or (on error) "GNUNET_FS_tree_encode_finish".
  *
  * @param cls closure
- * @param chk content hash key for the block 
+ * @param chk content hash key for the block
  * @param offset offset of the block in the file
  * @param depth depth of the block in the file, 0 for DBLOCK
  * @param type type of the block (IBLOCK or DBLOCK)
@@ -1059,7 +1059,7 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
 /**
  * We have gotten a reply for our space reservation request.
  * Either fail (insufficient space) or start publishing for good.
- * 
+ *
  * @param cls the 'struct GNUNET_FS_PublishContext*'
  * @param success positive reservation ID on success
  * @param msg error message on error, otherwise NULL
@@ -1096,9 +1096,9 @@ finish_reserve (void *cls, int success, const char *msg)
  * @param namespace namespace to publish the file in, NULL for no namespace
  * @param nid identifier to use for the publishd content in the namespace
  *        (can be NULL, must be NULL if namespace is NULL)
- * @param nuid update-identifier that will be used for future updates 
+ * @param nuid update-identifier that will be used for future updates
  *        (can be NULL, must be NULL if namespace or nid is NULL)
- * @param options options for the publication 
+ * @param options options for the publication
  * @return context that can be used to control the publish operation
  */
 struct GNUNET_FS_PublishContext *
@@ -1206,7 +1206,7 @@ fip_signal_stop (void *cls, struct GNUNET_FS_FileInformation *fi,
 
 
 /**
- * Stop an upload.  Will abort incomplete uploads (but 
+ * Stop an upload.  Will abort incomplete uploads (but
  * not remove blocks that have already been publishd) or
  * simply clean up the state for completed uploads.
  * Must NOT be called from within the event callback!

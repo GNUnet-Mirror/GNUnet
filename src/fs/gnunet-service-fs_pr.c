@@ -254,7 +254,7 @@ refresh_bloomfilter (struct GSF_PendingRequest *pr)
 
 
 /**
- * Create a new pending request.  
+ * Create a new pending request.
  *
  * @param options request options
  * @param type type of the block that is being requested
@@ -384,7 +384,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 
 /**
  * Obtain the public data associated with a pending request
- * 
+ *
  * @param pr pending request
  * @return associated public data
  */
@@ -399,7 +399,7 @@ GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr)
  * Test if two pending requests are compatible (would generate
  * the same query modulo filters and should thus be processed
  * jointly).
- * 
+ *
  * @param pra a pending request
  * @param pra another pending request
  * @return GNUNET_OK if the requests are compatible
@@ -957,8 +957,8 @@ put_migration_continuation (void *cls, int success, const char *msg)
 /**
  * Test if the DATABASE (PUT) load on this peer is too high
  * to even consider processing the query at
- * all.  
- * 
+ * all.
+ *
  * @return GNUNET_YES if the load is too high to do anything (load high)
  *         GNUNET_NO to process normally (load normal or low)
  */
@@ -1089,7 +1089,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
 
 /**
  * Task that issues a warning if the datastore lookup takes too long.
- * 
+ *
  * @param cls the 'struct GSF_PendingRequest'
  * @param tc task context
  */
@@ -1110,7 +1110,7 @@ warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Task that issues a warning if the datastore lookup takes too long.
- * 
+ *
  * @param cls the 'struct GSF_PendingRequest'
  * @param tc task context
  */

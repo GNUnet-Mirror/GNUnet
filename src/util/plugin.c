@@ -151,7 +151,7 @@ resolve_function (struct PluginList *plug, const char *name)
  * Test if a plugin exists.
  *
  * Note that the library must export a symbol called
- * "library_name_init" for the test to succeed. 
+ * "library_name_init" for the test to succeed.
  *
  * @param library_name name of the plugin to test if it is installed
  * @return GNUNET_YES if the plugin exists, GNUNET_NO if not

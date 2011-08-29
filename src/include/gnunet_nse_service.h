@@ -70,7 +70,7 @@ typedef void (*GNUNET_NSE_Callback) (void *cls,
  * Convert the logarithmic estimated returned to the 'GNUNET_NSE_Callback'
  * into an absolute estimate in terms of the number of peers in the network.
  *
- * @param loge logarithmic estimate 
+ * @param loge logarithmic estimate
  * @return absolute number of peers in the network (estimated)
  */
 #define GNUNET_NSE_log_estimate_to_n(loge) pow(2.0, (loge))

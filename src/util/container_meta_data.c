@@ -105,7 +105,7 @@ struct GNUNET_CONTAINER_MetaData
 
 /**
  * Create a fresh struct CONTAINER_MetaData token.
- * 
+ *
  * @return empty meta-data container
  */
 struct GNUNET_CONTAINER_MetaData *
@@ -251,7 +251,7 @@ GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data
- * @param format basic format information about data 
+ * @param format basic format information about data
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
@@ -339,7 +339,7 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data
- * @param format basic format information about data 
+ * @param format basic format information about data
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
@@ -587,7 +587,7 @@ GNUNET_CONTAINER_meta_data_get_thumbnail (const struct GNUNET_CONTAINER_MetaData
 
 /**
  * Duplicate struct GNUNET_CONTAINER_MetaData.
- * 
+ *
  * @param md what to duplicate
  * @return duplicate meta-data container
  */

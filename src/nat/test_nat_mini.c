@@ -22,7 +22,7 @@
  * Testcase for port redirection and public IP address retrieval.
  * This test never fails, because there need to be a NAT box set up for tha *
  * @file nat/test_nat_mini.c
- * @brief Testcase for NAT library - mini 
+ * @brief Testcase for NAT library - mini
  * @author Christian Grothoff
  *
  * TODO: actually use ARM to start resolver service to make DNS work!

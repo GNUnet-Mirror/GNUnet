@@ -57,7 +57,7 @@ struct Plugin
  * Check if the result obtained from Postgres has
  * the desired status code.  If not, log an error, clear the
  * result and return GNUNET_SYSERR.
- * 
+ *
  * @return GNUNET_OK if the result is acceptable
  */
 static int
@@ -416,7 +416,7 @@ postgres_plugin_get (void *cls, const GNUNET_HashCode * key,
 /**
  * Delete the entry with the lowest expiration value
  * from the datacache right now.
- * 
+ *
  * @param cls closure (our "struct Plugin")
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */

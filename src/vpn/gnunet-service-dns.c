@@ -1119,7 +1119,7 @@ cleanup_task (void *cls
  * @param udp_redirects
  * @param tcp_redirects
  *
- * @return 
+ * @return
  */
 uint64_t
 get_port_from_redirects (const char *udp_redirects, const char *tcp_redirects)

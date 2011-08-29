@@ -36,7 +36,7 @@
 /**
  * How long do we wait until a statistics request for setting
  * a value times out?  (The update will be lost if the
- * service does not react within this timeframe).  
+ * service does not react within this timeframe).
  */
 #define SET_TRANSMIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
@@ -954,7 +954,7 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
 
 
 /**
- * Cancel a 'get' request.  Must be called before the 'cont' 
+ * Cancel a 'get' request.  Must be called before the 'cont'
  * function is called.
  *
  * @param gh handle of the request to cancel

@@ -486,7 +486,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
 
 
 /**
- * Ask the transport service to establish a connection to 
+ * Ask the transport service to establish a connection to
  * the given peer.
  *
  * @param handle connection to transport service
@@ -621,7 +621,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  * @param cfg configuration to use
  * @param address address to convert (binary format)
  * @param addressLen number of bytes in address
- * @param numeric should (IP) addresses be displayed in numeric form 
+ * @param numeric should (IP) addresses be displayed in numeric form
  *                (otherwise do reverse DNS lookup)
  * @param nameTrans name of the transport to which the address belongs
  * @param timeout how long is the lookup allowed to take at most

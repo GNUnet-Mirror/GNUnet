@@ -20,7 +20,7 @@
 
 /**
  * @file transport/gnunet-service-transport-new.c
- * @brief 
+ * @brief
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -156,8 +156,7 @@ static struct GNUNET_TIME_Relative
 plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_MessageHeader *message,
                              const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                             uint32_t ats_count,
-                             struct Session *session,
+                             uint32_t ats_count, struct Session *session,
                              const char *sender_address,
                              uint16_t sender_address_len)
 {
@@ -202,7 +201,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
       (void) GST_blacklist_test_allowed (peer, NULL, &try_connect_if_allowed,
                                          NULL);
-      /* TODO: if 'session != NULL', maybe notify ATS that this is now the preferred 
+      /* TODO: if 'session != NULL', maybe notify ATS that this is now the preferred
        * way to communicate with this peer (other peer switched transport) */
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
@@ -224,21 +223,20 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                                                   &do_forward);
       if (do_forward == GNUNET_YES)
       {
-        struct InboundMessage * im;
-        size_t size =
-            sizeof (struct InboundMessage) +
-            ntohs (message->size);
+        struct InboundMessage *im;
+        size_t size = sizeof (struct InboundMessage) + ntohs (message->size);
 
         im = GNUNET_malloc (size);
         im->header.size = htons (size);
         im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
         im->ats_count = htonl (0);
-        memcpy (&(im->peer), peer, sizeof(struct GNUNET_PeerIdentity));
+        memcpy (&(im->peer), peer, sizeof (struct GNUNET_PeerIdentity));
         memcpy (&im[1], message, ntohs (message->size));
 
-        GST_clients_broadcast ((const struct GNUNET_MessageHeader *) im, GNUNET_YES);
+        GST_clients_broadcast ((const struct GNUNET_MessageHeader *) im,
+                               GNUNET_YES);
 
-        GNUNET_free(im);
+        GNUNET_free (im);
       }
       break;
     }
@@ -280,9 +278,9 @@ plugin_env_address_change_notification (void *cls, int add_remove,
  * use NULL wherever a session pointer is needed.  This function
  * should be called BEFORE a potential "TransmitContinuation"
  * from the "TransmitFunction".
- * 
+ *
  * @param cls closure
- * @param peer which peer was the session for 
+ * @param peer which peer was the session for
  * @param session which session is being destoyed
  */
 static void
@@ -297,7 +295,7 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  * Function called by ATS to notify the callee that the
  * assigned bandwidth or address for a given peer was changed.  If the
  * callback is called with address/bandwidth assignments of zero, the
- * ATS disconnect function will still be called once the disconnect 
+ * ATS disconnect function will still be called once the disconnect
  * actually happened.
  *
  * @param cls closure

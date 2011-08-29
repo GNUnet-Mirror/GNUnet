@@ -435,7 +435,7 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
  * PATH environment variable as a search path.
  *
  * @param binary the name of the file to check
- * @return GNUNET_YES if the file is SUID, 
+ * @return GNUNET_YES if the file is SUID,
  *         GNUNET_NO if not SUID (but binary exists)
  *         GNUNET_SYSERR on error (no such binary or not executable)
  */

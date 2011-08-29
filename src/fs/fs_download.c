@@ -59,7 +59,7 @@ is_recursive_download (struct GNUNET_FS_DownloadContext *dc)
  * Given the offset of a block (with respect to the DBLOCKS) and its
  * depth, return the offset where we would store this block in the
  * file.
- * 
+ *
  * @param fsize overall file size
  * @param off offset of the block in the file
  * @param depth depth of the block in the tree, 0 for DBLOCK
@@ -134,8 +134,8 @@ GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 
 /**
  * We're ready to transmit a search request to the
- * file-sharing service.  Do it.  If there is 
- * more than one request pending, try to send 
+ * file-sharing service.  Do it.  If there is
+ * more than one request pending, try to send
  * multiple or request another transmission.
  *
  * @param cls closure
@@ -204,7 +204,7 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
  * We've found a matching block without downloading it.
  * Encrypt it and pass it to our "receive" function as
  * if we had received it from the network.
- * 
+ *
  * @param dc download in question
  * @param chk request this relates to
  * @param dr request details
@@ -543,7 +543,7 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data
- * @param format basic format information about data 
+ * @param format basic format information about data
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
@@ -1057,7 +1057,7 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
     dc->completed += app;
 
     /* do recursive download if option is set and either meta data
-     * says it is a directory or if no meta data is given AND filename 
+     * says it is a directory or if no meta data is given AND filename
      * ends in '.gnd' (top-level case) */
     if (is_recursive_download (dc))
       GNUNET_FS_directory_list_contents (prc->size, pt, off,
@@ -1242,8 +1242,8 @@ receive_results (void *cls, const struct GNUNET_MessageHeader *msg)
 
 /**
  * We're ready to transmit a search request to the
- * file-sharing service.  Do it.  If there is 
- * more than one request pending, try to send 
+ * file-sharing service.  Do it.  If there is
+ * more than one request pending, try to send
  * multiple or request another transmission.
  *
  * @param cls closure
@@ -1495,7 +1495,7 @@ deactivate_fs_download (void *cls)
  * @param depth depth of the current entry, 0 are the DBLOCKs,
  *              top level block is 'dc->treedepth - 1'
  * @param dr_offset offset in the original file this block maps to
- *              (as in, offset of the first byte of the first DBLOCK 
+ *              (as in, offset of the first byte of the first DBLOCK
  *               in the subtree rooted in the returned download request tree)
  * @param file_start_offset desired starting offset for the download
  *             in the original file; requesting tree should not contain
@@ -1616,7 +1616,7 @@ get_next_block (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * This function checks if the content on disk matches
  * the expected content based on the URI.
- * 
+ *
  * @param cls closure
  * @param chk content hash key for the block
  * @param offset offset of the block
@@ -1658,7 +1658,7 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
   case BRS_CHK_SET:
     if (0 == memcmp (chk, &dr->chk, sizeof (struct ContentHashKey)))
     {
-      /* block matches, hence tree below matches; 
+      /* block matches, hence tree below matches;
        * this request is done! */
       dr->state = BRS_DOWNLOAD_UP;
       /* calculate how many bytes of payload this block
@@ -1816,7 +1816,7 @@ GNUNET_FS_download_start_task_ (void *cls,
         /* already done entirely, party! */
         if (dc->rfh != NULL)
         {
-          /* avoid hanging on to file handle longer than 
+          /* avoid hanging on to file handle longer than
            * necessary */
           GNUNET_DISK_file_close (dc->rfh);
           dc->rfh = NULL;
@@ -1851,7 +1851,7 @@ GNUNET_FS_download_start_task_ (void *cls,
     {
       if (dc->rfh != NULL)
       {
-        /* avoid hanging on to file handle longer than 
+        /* avoid hanging on to file handle longer than
          * necessary */
         GNUNET_DISK_file_close (dc->rfh);
         dc->rfh = NULL;

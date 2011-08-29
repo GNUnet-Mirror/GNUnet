@@ -31,7 +31,7 @@
  * Start the specified service.
  *
  * @param client who is asking for this
- * @param servicename name of the service to start 
+ * @param servicename name of the service to start
  * @param lsocks -1 terminated list of listen sockets to pass (systemd style), or NULL
  * @return GNUNET_OK on success
  */
@@ -41,7 +41,7 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename,
 
 /**
  * Stop listening for connections to a service.
- * 
+ *
  * @param serviceName name of service to stop listening for
  * @return GNUNET_OK if we stopped to listen, GNUNET_NO if we were
  *         not listening

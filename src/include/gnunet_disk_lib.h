@@ -103,37 +103,37 @@ enum GNUNET_DISK_OpenFlags
 {
 
     /**
-     * Open the file for reading 
+     * Open the file for reading
      */
   GNUNET_DISK_OPEN_READ = 1,
 
     /**
-     * Open the file for writing 
+     * Open the file for writing
      */
   GNUNET_DISK_OPEN_WRITE = 2,
 
     /**
-     * Open the file for both reading and writing 
+     * Open the file for both reading and writing
      */
   GNUNET_DISK_OPEN_READWRITE = 3,
 
     /**
-     * Fail if file already exists 
+     * Fail if file already exists
      */
   GNUNET_DISK_OPEN_FAILIFEXISTS = 4,
 
     /**
-     * Truncate file if it exists 
+     * Truncate file if it exists
      */
   GNUNET_DISK_OPEN_TRUNCATE = 8,
 
     /**
-     * Create file if it doesn't exist 
+     * Create file if it doesn't exist
      */
   GNUNET_DISK_OPEN_CREATE = 16,
 
     /**
-     * Append to the file 
+     * Append to the file
      */
   GNUNET_DISK_OPEN_APPEND = 32
 };
@@ -342,7 +342,7 @@ GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
  * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
  * 6 random characters will be appended to the name to create a unique
  * filename.
- * 
+ *
  * @param t component to use for the name;
  *        does NOT contain "XXXXXX" or "/tmp/".
  * @return NULL on error, otherwise name of fresh
@@ -463,7 +463,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h,
  * @param fn file name
  * @param buffer the data to write
  * @param n number of bytes to write
- * @param mode file permissions 
+ * @param mode file permissions
  * @return number of bytes written on success, GNUNET_SYSERR on error
  */
 ssize_t

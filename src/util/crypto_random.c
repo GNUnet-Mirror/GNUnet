@@ -32,7 +32,7 @@
 
 /**
  * Create a cryptographically weak pseudo-random number in the interval of 0 to 1.
- * 
+ *
  * @return number between 0 and 1.
  */
 static double

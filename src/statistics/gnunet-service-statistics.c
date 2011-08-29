@@ -22,7 +22,7 @@
  * @file statistics/gnunet-service-statistics.c
  * @brief program that tracks statistics
  * @author Christian Grothoff
- * 
+ *
  * TODO:
  * - use BIO for IO operations
  */

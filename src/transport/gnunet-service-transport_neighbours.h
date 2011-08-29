@@ -66,7 +66,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target);
 
 /**
  * Test if we're connected to the given peer.
- * 
+ *
  * @param target peer to test
  * @return GNUNET_YES if we are connected, GNUNET_NO if not
  */
@@ -129,7 +129,7 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
  * Change the incoming quota for the given peer.
  *
  * @param neighbour identity of peer to change qutoa for
- * @param quota new quota 
+ * @param quota new quota
  */
 void
 GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
@@ -164,7 +164,7 @@ typedef void (*GST_NeighbourIterator) (void *cls,
 /**
  * Iterate over all connected neighbours.
  *
- * @param cb function to call 
+ * @param cb function to call
  * @param cb_cls closure for cb
  */
 void

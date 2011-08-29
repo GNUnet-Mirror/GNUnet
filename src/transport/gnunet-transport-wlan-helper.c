@@ -611,7 +611,7 @@ stdin_send_hw (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   rtheader.rate = header->rate;
   memcpy (write_pout->buf, &rtheader, sizeof (rtheader));
   memcpy (write_pout->buf + sizeof (rtheader), &header[1], sendsize);
-  /* payload contains MAC address, but we don't trust it, so we'll 
+  /* payload contains MAC address, but we don't trust it, so we'll
    * overwrite it with OUR MAC address again to prevent mischief */
   wlanheader = (struct ieee80211_frame *) (write_pout->buf + sizeof (rtheader));
   mac_set (wlanheader, dev);

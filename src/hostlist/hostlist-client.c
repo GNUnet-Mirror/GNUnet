@@ -775,7 +775,7 @@ download_prepare ()
 
 /**
  * Task that is run when we are ready to receive more data from the hostlist
- * server. 
+ * server.
  *
  * @param cls closure, unused
  * @param tc task context, unused
@@ -1221,7 +1221,7 @@ handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Continuation called by the statistics code once 
+ * Continuation called by the statistics code once
  * we go the stat.  Initiates hostlist download scheduling.
  *
  * @param cls closure

@@ -378,7 +378,7 @@ struct SendMessageRequest
 
 
 /**
- * Core notifying client that it is allowed to now 
+ * Core notifying client that it is allowed to now
  * transmit a message to the given target
  * (response to GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST).
  */
@@ -390,9 +390,9 @@ struct SendMessageReady
   struct GNUNET_MessageHeader header;
 
   /**
-   * How many bytes are allowed for transmission? 
+   * How many bytes are allowed for transmission?
    * Guaranteed to be at least as big as the requested size,
-   * or ZERO if the request is rejected (will timeout, 
+   * or ZERO if the request is rejected (will timeout,
    * peer disconnected, queue full, etc.).
    */
   uint16_t size GNUNET_PACKED;

@@ -31,41 +31,41 @@
 #include "gnunet_pseudonym_lib.h"
 #include "gnunet_bio_lib.h"
 
-/** 
+/**
  * Name of the directory which stores meta data for pseudonym
  */
 #define PS_METADATA_DIR DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms" DIR_SEPARATOR_STR "metadata" DIR_SEPARATOR_STR
 
-/** 
+/**
  * Name of the directory which stores names for pseudonyms
  */
 #define PS_NAMES_DIR    DIR_SEPARATOR_STR "data" DIR_SEPARATOR_STR "pseudonyms" DIR_SEPARATOR_STR "names"    DIR_SEPARATOR_STR
 
 
-/** 
+/**
  * Registered callbacks for discovery of pseudonyms.
  */
 struct DiscoveryCallback
 {
-  /** 
+  /**
    * This is a linked list.
    */
   struct DiscoveryCallback *next;
 
-  /** 
+  /**
    * Function to call each time a pseudonym is discovered.
    */
   GNUNET_PSEUDONYM_Iterator callback;
 
-  /** 
+  /**
    * Closure for callback.
    */
   void *closure;
 };
 
 
-/** 
- * Head of the linked list of functions to call when 
+/**
+ * Head of the linked list of functions to call when
  * new pseudonyms are added.
  */
 static struct DiscoveryCallback *head;
@@ -280,7 +280,7 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Return the unique, human readable name for the given namespace.
  *
- * @param cfg configuration 
+ * @param cfg configuration
  * @param nsid cryptographic ID of the namespace
  * @return NULL on failure (should never happen)
  */
@@ -489,7 +489,7 @@ list_pseudonym_helper (void *cls, const char *fullname)
 /**
  * List all available pseudonyms.
  *
- * @param cfg overall configuration 
+ * @param cfg overall configuration
  * @param iterator function to call for each pseudonym
  * @param closure closure for iterator
  * @return number of pseudonyms found

@@ -465,7 +465,7 @@ struct GNUNET_FS_FileInformation
   char *emsg;
 
   /**
-   * Name of the file or directory (must be an absolute path). 
+   * Name of the file or directory (must be an absolute path).
    */
   char *filename;
 
@@ -779,7 +779,7 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh);
  * @param offset offset to read from; it is possible
  *            that the caller might need to go backwards
  *            a bit at times
- * @param max maximum number of bytes that should be 
+ * @param max maximum number of bytes that should be
  *            copied to buf; readers are not allowed
  *            to provide less data unless there is an error;
  *            a value of "0" will be used at the end to allow
@@ -811,7 +811,7 @@ GNUNET_FS_make_file_reader_context_ (const char *filename);
  * @param offset offset to read from; it is possible
  *            that the caller might need to go backwards
  *            a bit at times
- * @param max maximum number of bytes that should be 
+ * @param max maximum number of bytes that should be
  *            copied to buf; readers are not allowed
  *            to provide less data unless there is an error;
  *            a value of "0" will be used at the end to allow
@@ -909,7 +909,7 @@ GNUNET_FS_download_start_task_ (void *cls,
 
 
 /**
- * Fill in all of the generic fields for 
+ * Fill in all of the generic fields for
  * an unindex event and call the callback.
  *
  * @param pi structure to fill in
@@ -973,8 +973,8 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr);
  * Remove serialization/deserialization file from disk.
  *
  * @param h master context
- * @param ext component of the path 
- * @param ent entity identifier 
+ * @param ext component of the path
+ * @param ent entity identifier
  */
 void
 GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
@@ -985,8 +985,8 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
  * Remove serialization/deserialization directory from disk.
  *
  * @param h master context
- * @param ext component of the path 
- * @param uni unique name of parent 
+ * @param ext component of the path
+ * @param uni unique name of parent
  */
 void
 GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
@@ -998,7 +998,7 @@ GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
  * on disk.  Note that all internal FS-operations that change
  * file information data should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param fi the struct to sync
  */
 void
@@ -1009,7 +1009,7 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param pc the struct to sync
  */
 void
@@ -1020,7 +1020,7 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param uc the struct to sync
  */
 void
@@ -1031,7 +1031,7 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param sc the struct to sync
  */
 void
@@ -1042,7 +1042,7 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param sr the struct to sync
  */
 void
@@ -1053,7 +1053,7 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr);
  * on disk.  Note that all internal FS-operations that change
  * publishing structs should already call "sync" internally,
  * so this function is likely not useful for clients.
- * 
+ *
  * @param dc the struct to sync
  */
 void
@@ -1147,7 +1147,7 @@ GNUNET_FS_make_top (struct GNUNET_FS_Handle *h, SuspendSignalFunction ssf,
 
 /**
  * Destroy a top-level activity entry.
- * 
+ *
  * @param h global fs handle
  * @param top top level activity entry
  */
@@ -1660,7 +1660,7 @@ enum BlockRequestState
   BRS_RECONSTRUCT_UP = 3,
 
     /**
-     * We've determined the real, desired CHK for this block 
+     * We've determined the real, desired CHK for this block
      * (full tree reconstruction failed), request is now pending.
      * If the CHK that bubbled up through reconstruction did match
      * the top-level request, the state machine for the subtree
@@ -1672,7 +1672,7 @@ enum BlockRequestState
      * We've successfully downloaded this block, but the children
      * still need to be either downloaded or verified (download
      * request propagates down).  If the download fails, the
-     * state machine for this block may move to 
+     * state machine for this block may move to
      * BRS_DOWNLOAD_ERROR instead.
      */
   BRS_DOWNLOAD_DOWN = 5,
@@ -2127,7 +2127,7 @@ struct IndexStartMessage
 struct IndexInfoMessage
 {
   /**
-   * Message type will be 
+   * Message type will be
    * GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY.
    */
   struct GNUNET_MessageHeader header;
@@ -2160,7 +2160,7 @@ struct UnindexMessage
 {
 
   /**
-   * Message type will be 
+   * Message type will be
    * GNUNET_MESSAGE_TYPE_FS_UNINDEX.
    */
   struct GNUNET_MessageHeader header;
@@ -2186,13 +2186,13 @@ struct SearchMessage
 {
 
   /**
-   * Message type will be 
+   * Message type will be
    * GNUNET_MESSAGE_TYPE_FS_START_SEARCH.
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Bitmask with options.  Zero for no options, one for loopback-only.  
+   * Bitmask with options.  Zero for no options, one for loopback-only.
    * Other bits are currently not defined.
    */
   int32_t options GNUNET_PACKED;
@@ -2216,7 +2216,7 @@ struct SearchMessage
    * or similar blunt actions in order to avoid exposing ourselves).
    * <p>
    * If the request is for an SBLOCK, this is the identity of the
-   * pseudonym to which the SBLOCK belongs. 
+   * pseudonym to which the SBLOCK belongs.
    * <p>
    * If the request is for a KBLOCK, "target" must be all zeros.
    */
@@ -2346,7 +2346,7 @@ struct PutMessage
   uint32_t type GNUNET_PACKED;
 
   /**
-   * When does this result expire? 
+   * When does this result expire?
    */
   struct GNUNET_TIME_AbsoluteNBO expiration;
 
@@ -2362,7 +2362,7 @@ struct PutMessage
 struct MigrationStopMessage
 {
   /**
-   * Message type will be 
+   * Message type will be
    * GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP.
    */
   struct GNUNET_MessageHeader header;

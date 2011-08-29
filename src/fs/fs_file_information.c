@@ -227,7 +227,7 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
  * @param h handle to the file sharing subsystem
  * @param client_info initial value for the client-info value for this entry
  * @param length length of the file
- * @param reader function that can be used to obtain the data for the file 
+ * @param reader function that can be used to obtain the data for the file
  * @param reader_cls closure for "reader"
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
@@ -592,7 +592,7 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
  *
  * @param dir the directory
  * @param ent the entry to add; the entry must not have been
- *            added to any other directory at this point and 
+ *            added to any other directory at this point and
  *            must not include "dir" in its structure
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */

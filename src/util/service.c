@@ -751,7 +751,7 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
   *saddrs = (struct sockaddr *) un;
   *saddrlens = slen;
 #else
-  /* this function should never be called 
+  /* this function should never be called
    * unless AF_UNIX is defined! */
   GNUNET_assert (0);
 #endif

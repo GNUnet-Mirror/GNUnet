@@ -87,7 +87,7 @@ template_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results); 
+ * @param offset offset of the result (modulo num-results);
  *               specific ordering does not matter for the offset
  * @param key maybe NULL (to match all entries)
  * @param vhash hash of the value, maybe NULL (to
@@ -185,7 +185,7 @@ template_plugin_update (void *cls, uint64_t uid, int delta,
  * Call the given processor on an item with zero anonymity.
  *
  * @param cls our "struct Plugin*"
- * @param offset offset of the result (modulo num-results); 
+ * @param offset offset of the result (modulo num-results);
  *               specific ordering does not matter for the offset
  * @param type entries of which type should be considered?
  *        Use 0 for any type.

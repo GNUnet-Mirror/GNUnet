@@ -547,7 +547,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
  * files does not exist, create a new key and write it to the
  * file.  Caller must free return value.  Note that this function
  * can not guarantee that another process might not be trying
- * the same operation on the same file at the same time. 
+ * the same operation on the same file at the same time.
  * If the contents of the file
  * are invalid the old file is deleted and a fresh key is
  * created.

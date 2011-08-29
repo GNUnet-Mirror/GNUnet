@@ -409,7 +409,7 @@ add_valid_address (void *cls, const char *tname,
 
 
 /**
- * Function called for any HELLO known to PEERINFO. 
+ * Function called for any HELLO known to PEERINFO.
  *
  * @param cls unused
  * @param peer id of the peer, NULL for last call
@@ -737,7 +737,8 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
   hsize = ntohs (hello->size);
   tsize = sizeof (struct TransportPingMessage) + ve->addrlen + slen + hsize;
 
-  ping.header.size = htons (sizeof (struct TransportPingMessage) + ve->addrlen + slen);
+  ping.header.size =
+      htons (sizeof (struct TransportPingMessage) + ve->addrlen + slen);
   ping.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   ping.challenge = htonl (ve->challenge);
   ping.target = *pid;

@@ -742,7 +742,7 @@ process_incoming (void *cls, const void *buf, size_t available,
 
 /**
  * Process messages from the client's message tokenizer until either
- * the tokenizer is empty (and then schedule receiving more), or 
+ * the tokenizer is empty (and then schedule receiving more), or
  * until some handler is not immediately done (then wait for restart_processing)
  * or shutdown.
  *
@@ -1229,10 +1229,10 @@ GNUNET_SERVER_client_disable_corking (struct GNUNET_SERVER_Client *client)
 /**
  * Wrapper for transmission notification that calls the original
  * callback and update the last activity time for our connection.
- * 
+ *
  * @param cls the 'struct GNUNET_SERVER_Client'
  * @param size number of bytes we can transmit
- * @param buf where to copy the message 
+ * @param buf where to copy the message
  * @return number of bytes actually transmitted
  */
 static size_t

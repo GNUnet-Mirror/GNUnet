@@ -140,7 +140,7 @@ struct NBlock
 
 
 /**
- * @brief index block (indexing a DBlock that 
+ * @brief index block (indexing a DBlock that
  *        can be obtained directly from reading
  *        the plaintext file)
  */

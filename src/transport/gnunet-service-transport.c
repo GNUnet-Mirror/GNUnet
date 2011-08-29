@@ -439,7 +439,7 @@ struct ReadyList
 
 
 /**
- * Entry in neighbours. 
+ * Entry in neighbours.
  */
 struct NeighbourMapEntry
 {
@@ -2270,12 +2270,12 @@ try_fast_reconnect (struct TransportPlugin *p, struct NeighbourMapEntry *nl)
    * quickly (much faster than timeout) `if a connection was lost and
    * could not be re-established (i.e. other peer went down or is
    * unable / refuses to communicate);
-   * 
+   *
    * So we should consider:
    * 1) ideally: our own willingness / need to connect
    * 2) prior failures to connect to this peer (by plugin)
    * 3) ideally: reasons why other peer terminated (as far as knowable)
-   * 
+   *
    * Most importantly, it must be POSSIBLE for another peer to terminate
    * a connection for a while (without us instantly re-establishing it).
    * Similarly, if another peer is gone we should quickly notify CORE.
@@ -2284,7 +2284,7 @@ try_fast_reconnect (struct TransportPlugin *p, struct NeighbourMapEntry *nl)
    * services never even notice.
    * Furthermore, the same mechanism (or small variation) could be used
    * to switch to a better-performing plugin (ATS).
-   * 
+   *
    * Finally, this needs to be tested throughly... */
 
   /*
@@ -4002,7 +4002,7 @@ check_pending_validation (void *cls, const GNUNET_HashCode * key, void *value)
                   GNUNET_i2s (&pong->pid), a2s (ve->transport_name, &addr[slen],
                                                 alen));
       /* FIXME: since the sender of the PONG currently uses the
-       * wrong address (see FIMXE there!), we cannot run a 
+       * wrong address (see FIMXE there!), we cannot run a
        * proper check here... */
 #if FIXME_URGENT
       return GNUNET_NO;

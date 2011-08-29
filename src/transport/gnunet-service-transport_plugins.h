@@ -68,7 +68,7 @@ GST_plugins_find (const char *name);
 /**
  * Convert a given address to a human-readable format.  Note that the
  * return value will be overwritten on the next call to this function.
- * 
+ *
  * @param name plugin name
  * @param addr binary address in plugin-specific format
  * @param addrlen number of bytes in 'addr'

@@ -125,7 +125,7 @@ GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, GNUNET_HashCode * key)
  * Convert keyword URI to a human readable format
  * (i.e. the search query that was used in the first place)
  *
- * @param uri ksk uri to convert to a string 
+ * @param uri ksk uri to convert to a string
  * @return string with the keywords
  */
 char *
@@ -187,7 +187,7 @@ GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri)
  * spaces), return a copy of the keyword without %-encoding and
  * without double-quotes (%22).  Also, add a space at the beginning
  * if there is not a '+'.
- * 
+ *
  * @param in string with %-encoding
  * @param emsg where to store the parser error message (if any)
  * @return decodded string with leading space (or preserved plus)
@@ -971,7 +971,7 @@ GNUNET_FS_uri_sks_create_from_nsid (GNUNET_HashCode * nsid, const char *id)
 
 /**
  * Canonicalize a keyword.
- * 
+ *
  * @param in input string (the keyword)
  * @return canonicalized keyword
  */
@@ -1049,7 +1049,7 @@ canonicalize_keyword (const char *in)
  * as decapitalization and removal of certain characters.
  * (useful for search).
  *
- * @param uri the URI to canonicalize 
+ * @param uri the URI to canonicalize
  * @return canonicalized version of the URI, NULL on error
  */
 struct GNUNET_FS_Uri *
@@ -1568,7 +1568,7 @@ GNUNET_FS_uri_test_loc (const struct GNUNET_FS_Uri *uri)
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data
- * @param format basic format information about data 
+ * @param format basic format information about data
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found

@@ -36,7 +36,7 @@
 /*  Any API call should be documented in the folowing table under API CALL.
  *  Also, any message type should be documented in the following table, with the
  * associated event.
- * 
+ *
  * API CALL (GNUNET_MESH_*)             MESSAGE USED
  * ------------------------             ------------
  * connect                              GNUNET_MESH_ClientConnect
@@ -51,9 +51,9 @@
  *
  * notify_transmit_ready                *GNUNET_MESH_TransmitReady?*
  * notify_transmit_ready_cancel         None (clear of internal data structures)
- * 
- * 
- * 
+ *
+ *
+ *
  * EVENT                                MESSAGE USED
  * -----                                ------------
  * data                                 GNUNET_MESH_Data OR
@@ -135,8 +135,8 @@ struct GNUNET_MESH_PeerControl
    *       (client to service, client created tunnel)
    *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_[CONNECTED|DISCONNECTED]
    *       (service to client)
-   * 
-   * Size: sizeof(struct GNUNET_MESH_PeerControl) 
+   *
+   * Size: sizeof(struct GNUNET_MESH_PeerControl)
    */
   struct GNUNET_MessageHeader header;
 
@@ -168,7 +168,7 @@ struct GNUNET_MESH_ConnectPeerByType
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
   /**
-   * Type specification 
+   * Type specification
    */
   GNUNET_MESH_ApplicationType type GNUNET_PACKED;
 };

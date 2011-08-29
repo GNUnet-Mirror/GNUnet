@@ -163,7 +163,7 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
 
 /**
  * Cancel a request for notification.
- * 
+ *
  * @param th handle from the original request.
  */
 void
@@ -188,7 +188,7 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle
  *        if the caller does not care about temporary connection errors,
  *        for example because the protocol is stateless
  * @param rn function to call with the response
- * @param rn_cls closure for rn 
+ * @param rn_cls closure for rn
  * @return GNUNET_OK on success, GNUNET_SYSERR if a request
  *         is already pending
  */

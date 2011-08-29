@@ -103,7 +103,7 @@ struct GetMessage
 {
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_GET.  Size
-   * can either be "sizeof(struct GetMessage)" or 
+   * can either be "sizeof(struct GetMessage)" or
    * "sizeof(struct GetMessage) - sizeof(GNUNET_HashCode)"!
    */
   struct GNUNET_MessageHeader header;

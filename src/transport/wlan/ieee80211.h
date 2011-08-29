@@ -646,7 +646,7 @@ enum
 
 #define	IEEE80211_AID(b)	((b) &~ 0xc000)
 
-/* 
+/*
  * RTS frame length parameters.  The default is specified in
  * the 802.11 spec as 512; we treat it as implementation-dependent
  * so it's defined in ieee80211_var.h.  The max may be wrong
@@ -655,7 +655,7 @@ enum
 #define	IEEE80211_RTS_MIN		1
 #define	IEEE80211_RTS_MAX		2346
 
-/* 
+/*
  * TX fragmentation parameters.  As above for RTS, we treat
  * default as implementation-dependent so define it elsewhere.
  */

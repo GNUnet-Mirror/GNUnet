@@ -103,12 +103,12 @@ struct ServiceList
   time_t mtime;
 
   /**
-   * Process exponential backoff time 
+   * Process exponential backoff time
    */
   struct GNUNET_TIME_Relative backoff;
 
   /**
-   * Absolute time at which the process is scheduled to restart in case of death 
+   * Absolute time at which the process is scheduled to restart in case of death
    */
   struct GNUNET_TIME_Absolute restartAt;
 
@@ -631,8 +631,8 @@ clean_up_running ()
 
 
 /**
- * We are done with everything.  Stop remaining 
- * tasks, signal handler and the server. 
+ * We are done with everything.  Stop remaining
+ * tasks, signal handler and the server.
  */
 static void
 do_shutdown ()
@@ -743,7 +743,7 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Task triggered whenever we receive a SIGCHLD (child
- * process died).  
+ * process died).
  *
  * @param cls closure, NULL if we need to self-restart
  * @param tc context

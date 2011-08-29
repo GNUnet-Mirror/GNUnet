@@ -45,7 +45,7 @@
 
 
 /**
- * Time to wait before stopping NAT, in seconds 
+ * Time to wait before stopping NAT, in seconds
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
@@ -87,7 +87,7 @@ struct addr_cls
 
 /**
  * Return the address of the default interface,
- * or any interface with a valid address if the default is not valid 
+ * or any interface with a valid address if the default is not valid
  *
  * @param cls the 'struct addr_cls'
  * @param name name of the interface

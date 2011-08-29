@@ -235,7 +235,7 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
  * NOT reentrant!
  *
  * @param hc the hash code
- * @return string 
+ * @return string
  */
 const char *
 GNUNET_h2s (const GNUNET_HashCode * hc);
@@ -368,7 +368,7 @@ GNUNET_htonll (unsigned long long n);
 
 /**
  * Allocate and initialize a block of memory.
- * 
+ *
  * @param buf data to initalize the block with
  * @param size the number of bytes in buf (and size of the allocation)
  * @return pointer to size bytes of memory, never NULL (!)

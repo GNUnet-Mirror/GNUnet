@@ -62,7 +62,7 @@ GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 /**
  * Check if the given result is identical
  * to the given URI.
- * 
+ *
  * @param cls points to the URI we check against
  * @param key not used
  * @param value a "struct GNUNET_FS_SearchResult" who's URI we
@@ -85,7 +85,7 @@ test_result_present (void *cls, const GNUNET_HashCode * key, void *value)
 /**
  * We've found a new CHK result.  Let the client
  * know about it.
- * 
+ *
  * @param sc the search context
  * @param sr the specific result
  */
@@ -107,7 +107,7 @@ notify_client_chk_result (struct GNUNET_FS_SearchContext *sc,
 /**
  * We've found new information about an existing CHK result.  Let the
  * client know about it.
- * 
+ *
  * @param sc the search context
  * @param sr the specific result
  */
@@ -151,7 +151,7 @@ struct GetResultContext
 /**
  * Check if the given result is identical to the given URI and if so
  * return it.
- * 
+ *
  * @param cls a "struct GetResultContext"
  * @param key not used
  * @param value a "struct GNUNET_FS_SearchResult" who's URI we
@@ -1379,7 +1379,7 @@ GNUNET_FS_search_start (struct GNUNET_FS_Handle *h,
 
 
 /**
- * Pause search.  
+ * Pause search.
  *
  * @param sc context for the search that should be paused
  */

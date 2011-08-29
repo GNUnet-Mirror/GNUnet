@@ -57,7 +57,7 @@
 
 /**
  * Where did the given local address originate from?
- * To be used for debugging as well as in the future 
+ * To be used for debugging as well as in the future
  * to remove all addresses from a certain source when
  * we reevaluate the source.
  */
@@ -368,7 +368,7 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h);
 /**
  * Remove all addresses from the list of 'local' addresses
  * that originated from the given source.
- * 
+ *
  * @param plugin the plugin
  * @param src source that identifies addresses to remove
  */
@@ -396,8 +396,8 @@ remove_from_address_list_by_source (struct GNUNET_NAT_Handle *h,
 
 /**
  * Add the given address to the list of 'local' addresses, thereby
- * making it a 'legal' address for this peer to have.  
- * 
+ * making it a 'legal' address for this peer to have.
+ *
  * @param plugin the plugin
  * @param src where did the local address originate from?
  * @param arg the address, some 'struct sockaddr'
@@ -431,7 +431,7 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
  * making it a 'legal' address for this peer to have.   Set the
  * port number in the process to the advertised port and possibly
  * also to zero (if we have the gnunet-helper-nat-server).
- * 
+ *
  * @param plugin the plugin
  * @param src where did the local address originate from?
  * @param arg the address, some 'struct sockaddr'
@@ -481,8 +481,8 @@ add_to_address_list (struct GNUNET_NAT_Handle *h, enum LocalAddressSource src,
 
 /**
  * Add the given IP address to the list of 'local' addresses, thereby
- * making it a 'legal' address for this peer to have.  
- * 
+ * making it a 'legal' address for this peer to have.
+ *
  * @param plugin the plugin
  * @param src where did the local address originate from?
  * @param arg the address, some 'struct in_addr' or 'struct in6_addr'
@@ -1040,7 +1040,7 @@ add_from_bind (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param address_callback function to call everytime the public IP address changes
  * @param reversal_callback function to call if someone wants connection reversal from us
  * @param callback_cls closure for callbacks
- * @return NULL on error, otherwise handle that can be used to unregister 
+ * @return NULL on error, otherwise handle that can be used to unregister
  */
 struct GNUNET_NAT_Handle *
 GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,

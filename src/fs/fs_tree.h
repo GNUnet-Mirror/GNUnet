@@ -35,7 +35,7 @@
 #include "fs.h"
 
 /**
- * Compute the depth of the CHK tree.  
+ * Compute the depth of the CHK tree.
  *
  * @param flen file length for which to compute the depth
  * @return depth of the tree, always > 0.  A depth of 1 means only a DBLOCK.
@@ -133,7 +133,7 @@ typedef void (*GNUNET_FS_TreeProgressCallback) (void *cls, uint64_t offset,
  * @param cls closure for reader, proc, progress and cont
  * @param reader function to call to read plaintext data
  * @param proc function to call on each encrypted block
- * @param progress function to call with progress information 
+ * @param progress function to call with progress information
  * @param cont function to call when done
  * @return tree encoder context
  */
@@ -146,8 +146,8 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
 
 
 /**
- * Encrypt the next block of the file (and 
- * call proc and progress accordingly; or 
+ * Encrypt the next block of the file (and
+ * call proc and progress accordingly; or
  * of course "cont" if we have already completed
  * encoding of the entire file).
  *
@@ -160,7 +160,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te);
 /**
  * Clean up a tree encoder and return information
  * about the resulting URI or an error message.
- * 
+ *
  * @param te the tree encoder to clean up
  * @param uri set to the resulting URI (if encoding finished)
  * @param emsg set to an error message (if an error occured
@@ -179,7 +179,7 @@ GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
 /**
  * Get data that would be needed to resume
  * the encoding later.
- * 
+ *
  * @param te encoding to resume
  * @param data set to the resume data
  * @param size set to the size of the resume data
@@ -192,7 +192,7 @@ GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder *te,
 /**
  * Reset tree encoder to point previously
  * obtained for resuming.
- * 
+ *
  * @param te encoding to resume
  * @param data the resume data
  * @param size the size of the resume data

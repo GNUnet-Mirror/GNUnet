@@ -165,7 +165,7 @@ struct GNUNET_ATS_Handle
  *
  * @param cls pointer to counter
  * @param key identity of the peer associated with the records
- * @param value a 'struct AllocationRecord' 
+ * @param value a 'struct AllocationRecord'
  * @return GNUNET_YES (continue iteration)
  */
 static int
@@ -202,7 +202,7 @@ struct SetBandwidthContext
  *
  * @param cls 'struct SetBandwidthContext'
  * @param key identity of the peer associated with the records
- * @param value a 'struct AllocationRecord' 
+ * @param value a 'struct AllocationRecord'
  * @return GNUNET_YES (continue iteration)
  */
 static int
@@ -285,8 +285,7 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
 
   /* trivial strategy: pick first available address... */
   asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
-           ar->plugin_addr_len,
-           ar->session,
+           ar->plugin_addr_len, ar->session,
            GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32), ar->ats,
            ar->ats_count);
   asc->cb = NULL;
@@ -437,8 +436,8 @@ struct UpdateSessionContext
  *
  * @param cls a new 'struct AllocationRecord'
  * @param key identity of the peer associated with the records
- * @param value the old 'struct AllocationRecord' 
- * @return GNUNET_YES if the records do not match, 
+ * @param value the old 'struct AllocationRecord'
+ * @return GNUNET_YES if the records do not match,
  *         GNUNET_NO if the record do match and 'old' was updated
  */
 static int
@@ -682,8 +681,7 @@ notify_valid (void *cls, const GNUNET_HashCode * key, void *value)
   struct GNUNET_ATS_SuggestionContext *asc = value;
 
   asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
-           ar->plugin_addr_len,
-           ar->session,
+           ar->plugin_addr_len, ar->session,
            GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32), ar->ats,
            ar->ats_count);
   GNUNET_ATS_suggest_address_cancel (asc);

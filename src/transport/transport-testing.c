@@ -321,10 +321,11 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
  * Tou MUST cancel the request if you stop the peers before the peers connected succesfully
  * @param cc a connect request handle
  */
-void
-GNUNET_TRANSPORT_TESTING_connect_peers_cancel (GNUNET_TRANSPORT_TESTING_ConnectRequest ccr)
+void GNUNET_TRANSPORT_TESTING_connect_peers_cancel
+    (GNUNET_TRANSPORT_TESTING_ConnectRequest ccr)
 {
   struct ConnectingContext *cc = ccr;
+
   /* clean up */
   GNUNET_TRANSPORT_get_hello_cancel (cc->th_p2, &exchange_hello_last, cc);
   GNUNET_TRANSPORT_get_hello_cancel (cc->th_p1, &exchange_hello, cc);

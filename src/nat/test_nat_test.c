@@ -35,7 +35,7 @@
 
 
 /**
- * Time to wait before stopping NAT test, in seconds 
+ * Time to wait before stopping NAT test, in seconds
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 

@@ -135,7 +135,7 @@ typedef uint32_t GNUNET_MESH_ApplicationType;
  *                messages if the client does not process them fast enough (for this
  *                notification type, a bounded queue is used)
  * @param stypes Application Types the client claims to offer
- * @return handle to the mesh service 
+ * @return handle to the mesh service
  *           NULL on error (in this case, init is never called)
  */
 struct GNUNET_MESH_Handle *
@@ -146,7 +146,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
 
 /**
  * Get the peer on the other side of this tunnel if it is just one. Return NULL otherwise
- * 
+ *
  * @param tunnel the tunnel
  * @return the peer or NULL
  */
@@ -309,7 +309,7 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *h,
 
 /**
  * Cancel a pending request to connect to a particular peer.  Destroys the
- * tunnel. 
+ * tunnel.
  *
  * @param req request handle that was returned for the original request
  */
@@ -333,7 +333,7 @@ struct GNUNET_MESH_TransmitHandle;
  * @param cork is corking allowed for this transmission?
  * @param priority how important is the message?
  * @param maxdelay how long can the message wait?
- * @param target destination for the message, NULL for multicast to all tunnel targets 
+ * @param target destination for the message, NULL for multicast to all tunnel targets
  * @param notify_size how many bytes of buffer space does notify want?
  * @param notify function to call when buffer space is available;
  *        will be called with NULL on timeout or if the overall queue
