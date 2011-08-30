@@ -2167,6 +2167,8 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshClient *c;
   GNUNET_HashCode hash;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: new tunnel requested\n");
+
   /* Sanity check for client registration */
   if (NULL == (c = retrieve_client (client)))
   {
@@ -2250,6 +2252,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   MESH_TunnelNumber tid;
   GNUNET_HashCode hash;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: destroying tunnel\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = retrieve_client (client)))
