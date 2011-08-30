@@ -69,14 +69,15 @@ struct GNUNET_MESH_queue
   struct GNUNET_MESH_queue *prev;
 
     /**
+     * Data itself
+     */
+  void *data;
+
+    /**
      * Size of the data to follow
      */
   uint16_t size;
 
-    /**
-     * Data itself
-     */
-  void *data;
 };
 
 
@@ -94,7 +95,6 @@ struct GNUNET_MESH_Handle
      * Set of handlers used for processing incoming messages in the tunnels
      */
   const struct GNUNET_MESH_MessageHandler *message_handlers;
-  int n_handlers;
 
     /**
      * Set of applications that should be claimed to be offered at this node.
@@ -102,19 +102,13 @@ struct GNUNET_MESH_Handle
      * registered independently and the mapping is up to the developer of the
      * client application.
      */
-  const GNUNET_MESH_ApplicationType *applications;
-  int n_applications;
+  const GNUNET_MESH_ApplicationType *applications; 
 
     /**
      * Double linked list of the tunnels this client is connected to.
      */
   struct GNUNET_MESH_Tunnel *tunnels_head;
   struct GNUNET_MESH_Tunnel *tunnels_tail;
-
-    /**
-     * tid of the next tunnel to create (to avoid reusing IDs often)
-     */
-  MESH_TunnelNumber next_tid;
 
     /**
      * Callback for tunnel disconnection
@@ -137,6 +131,15 @@ struct GNUNET_MESH_Handle
   struct GNUNET_MESH_queue *queue_head;
   struct GNUNET_MESH_queue *queue_tail;
 
+    /**
+     * tid of the next tunnel to create (to avoid reusing IDs often)
+     */
+  MESH_TunnelNumber next_tid;
+
+  unsigned int n_handlers;
+
+  unsigned int n_applications;
+
   /**
    * Have we started the task to receive messages from the service
    * yet? We do this after we send the 'MESH_LOCAL_CONNECT' message.
@@ -157,16 +160,6 @@ struct GNUNET_MESH_Tunnel
   struct GNUNET_MESH_Tunnel *prev;
 
     /**
-     * Local ID of the tunnel
-     */
-  MESH_TunnelNumber tid;
-
-    /**
-     * Owner of the tunnel
-     */
-  GNUNET_PEER_Id owner;
-
-    /**
      * Callback to execute when peers connect to the tunnel
      */
   GNUNET_MESH_TunnelConnectHandler connect_handler;
@@ -182,11 +175,6 @@ struct GNUNET_MESH_Tunnel
   GNUNET_PEER_Id *peers;
 
     /**
-     * Number of peer added to the tunnel
-     */
-  uint32_t npeers;
-
-    /**
      * Closure for the connect/disconnect handlers
      */
   void *cls;
@@ -195,6 +183,21 @@ struct GNUNET_MESH_Tunnel
      * Handle to the mesh this tunnel belongs to
      */
   struct GNUNET_MESH_Handle *mesh;
+
+    /**
+     * Local ID of the tunnel
+     */
+  MESH_TunnelNumber tid;
+
+    /**
+     * Owner of the tunnel
+     */
+  GNUNET_PEER_Id owner;
+
+    /**
+     * Number of peer added to the tunnel
+     */
+  uint32_t npeers;
 };
 
 struct GNUNET_MESH_TransmitHandle
