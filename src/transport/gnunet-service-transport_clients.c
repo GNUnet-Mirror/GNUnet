@@ -533,7 +533,7 @@ clients_handle_send (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   stcc = GNUNET_malloc (sizeof (struct SendTransmitContinuationContext));
   stcc->target = obm->peer;
-  stcc->client = client; // !!!!
+  stcc->client = client;
   GNUNET_SERVER_client_keep (client);
   GST_neighbours_send (&obm->peer, obmm, msize,
                        GNUNET_TIME_relative_ntoh (obm->timeout),
@@ -902,10 +902,7 @@ GST_clients_unicast (struct GNUNET_SERVER_Client *client,
 
   tc = lookup_client (client);
   if (NULL == tc)
-    {
-      GNUNET_break (0);
-      return;     
-    }
+    return;  /* client got disconnected in the meantime, drop message */    
   unicast (tc, msg, may_drop);
 }
 
