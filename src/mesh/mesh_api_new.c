@@ -197,7 +197,7 @@ struct GNUNET_MESH_Tunnel
     /**
      * Number of peer added to the tunnel
      */
-  uint32_t npeers;
+  unsigned int npeers;
 };
 
 struct GNUNET_MESH_TransmitHandle
@@ -726,8 +726,8 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
 {
   struct GNUNET_MESH_PeerControl *msg;
   GNUNET_PEER_Id peer_id;
-  int i;
-
+  unsigned int i;
+  
   peer_id = GNUNET_PEER_intern (peer);
   for (i = 0; i < tunnel->npeers; i++)
   {
@@ -769,7 +769,7 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
 {
   struct GNUNET_MESH_PeerControl *msg;
   GNUNET_PEER_Id peer_id;
-  int i;
+  unsigned int i;
 
   peer_id = GNUNET_PEER_search (peer);
   if (0 == peer_id)
