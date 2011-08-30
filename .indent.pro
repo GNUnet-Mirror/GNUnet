@@ -632,3 +632,4 @@
 -T uLong
 -T KBlock_secret_key
 -T MyNSGetExecutablePathProto
+-T MeshClient
