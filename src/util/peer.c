@@ -90,16 +90,12 @@ GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid)
     return 0;
   off = (long) GNUNET_CONTAINER_multihashmap_get (map, &pid->hashPubKey);
   e = (off == 0) ? NULL : &table[off];
-  if (e != NULL)
-  {
-    GNUNET_assert (e->rc > 0);
-    return e->pid;
-  }
-  else
-  {
+  if (e == NULL)
     return 0;
-  }
+  GNUNET_assert (e->rc > 0);
+  return e->pid;
 }
+
 
 /**
  * Intern an peer identity.  If the identity is already known, its
