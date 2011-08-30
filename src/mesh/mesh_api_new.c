@@ -737,7 +737,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
   h->cls = cls;
   h->message_handlers = handlers;
   h->applications = stypes;
-  h->next_tid = 0x80000000;
+  h->next_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_MARK;
 
   /* count handlers and apps, calculate size */
   for (h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++) ;
@@ -962,6 +962,7 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
 {
   struct GNUNET_MESH_ConnectPeerByType msg;
 
+  /* FIXME: remember request connect by type for reconnect! */
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectPeerByType));
   msg.header.type =  htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE);
   msg.tunnel_id = htonl (tunnel->tid);
