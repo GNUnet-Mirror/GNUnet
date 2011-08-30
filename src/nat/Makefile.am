@@ -7,13 +7,19 @@ if MINGW
   NATCLIENT = gnunet-helper-nat-client-windows.c
 endif
 
+
+if ENABLE_TEST_RUN
+ nattest = $(bindir)/gnunet-nat-server
+endif
+
+
 if LINUX
 NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
 NATSERVER = gnunet-helper-nat-server.c
 NATCLIENT = gnunet-helper-nat-client.c
 install-exec-hook:
-	chown root:root $(bindir)/gnunet-helper-nat-server $(bindir)/gnunet-helper-nat-client || true
-	chmod u+s $(bindir)/gnunet-helper-nat-server $(bindir)/gnunet-helper-nat-client || true
+	chown root:root $(bindir)/gnunet-helper-nat-server $(bindir)/gnunet-helper-nat-client $(nattest) || true
+	chmod u+s $(bindir)/gnunet-helper-nat-server $(bindir)/gnunet-helper-nat-client $(nattest) || true
 else
 install-exec-hook:
 endif
