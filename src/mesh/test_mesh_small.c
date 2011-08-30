@@ -368,8 +368,9 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_assert (churn_task == GNUNET_SCHEDULER_NO_TASK);
     churn_task = GNUNET_SCHEDULER_add_now (&churn_peers, NULL);
   }
-  else                          /* No more rounds, let's shut it down! */
-  {
+  else
+  {                             /* No more rounds, let's shut it down! */
+
     stats_context = GNUNET_malloc (sizeof (struct StatsContext));
     GNUNET_SCHEDULER_cancel (shutdown_handle);
     shutdown_handle = GNUNET_SCHEDULER_NO_TASK;
@@ -406,8 +407,8 @@ churn_callback (void *cls, const char *emsg)
 {
   char *temp_output_file;
 
-  if (emsg == NULL)             /* Everything is okay! */
-  {
+  if (emsg == NULL)
+  {                             /* Everything is okay! */
     peers_running = peers_next_round;
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Round %llu, churn finished successfully.\n", current_round);
@@ -493,7 +494,6 @@ peergroup_ready (void *cls, const char *emsg)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
-
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer Group started successfully!\n");
 #endif

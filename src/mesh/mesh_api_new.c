@@ -437,8 +437,8 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     if (handler->type == type)
     {
       if (GNUNET_OK == handler->callback (h->cls, t, NULL,      /* FIXME ctx */
-                                          peer, payload, NULL)) /* FIXME atsi */
-      {
+                                          peer, payload, NULL))
+      {                         /* FIXME atsi */
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "MESH: callback completed successfully\n");
       }

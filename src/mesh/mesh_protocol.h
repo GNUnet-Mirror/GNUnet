@@ -29,7 +29,8 @@
 #ifdef __cplusplus
 extern "C"
 {
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0
+  /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
