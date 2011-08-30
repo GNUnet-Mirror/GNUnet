@@ -378,7 +378,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 static int
 check ()
 {
-  static char *const argv[] = { "test-transport-api",
+  static char *const argv[] = { "test-transport-api-reliability",
     "-c",
     "test_transport_api_data.conf",
 #if VERBOSE
@@ -395,7 +395,7 @@ check ()
 #endif
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-transport-api", "nohelp", options, &run, &ok);
+                      "test-transport-api-reliability", "nohelp", options, &run, &ok);
 
   return ok;
 }
@@ -406,7 +406,7 @@ main (int argc, char *argv[])
   int ret;
   int nat_res;
 
-  GNUNET_log_setup ("test-transport-api",
+  GNUNET_log_setup ("test-transport-api-reliability",
 #if VERBOSE
                     "DEBUG",
 #else
