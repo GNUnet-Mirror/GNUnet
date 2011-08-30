@@ -155,7 +155,6 @@ setup_client (struct GNUNET_SERVER_Client *client)
   struct TransportClient *tc;
 
   GNUNET_assert (lookup_client (client) == NULL);
-
   tc = GNUNET_malloc (sizeof (struct TransportClient));
   tc->client = client;
 
@@ -479,6 +478,16 @@ clients_handle_send (void *cls, struct GNUNET_SERVER_Client *client,
   struct SendTransmitContinuationContext *stcc;
   uint16_t size;
   uint16_t msize;
+  struct TransportClient *tc;
+
+  tc = lookup_client (client);
+  if (NULL == tc)
+    {
+      /* client asked for transmission before 'START' */
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
 
   size = ntohs (message->size);
   if (size <
@@ -524,7 +533,7 @@ clients_handle_send (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   stcc = GNUNET_malloc (sizeof (struct SendTransmitContinuationContext));
   stcc->target = obm->peer;
-  stcc->client = client;
+  stcc->client = client; // !!!!
   GNUNET_SERVER_client_keep (client);
   GST_neighbours_send (&obm->peer, obmm, msize,
                        GNUNET_TIME_relative_ntoh (obm->timeout),
@@ -893,7 +902,10 @@ GST_clients_unicast (struct GNUNET_SERVER_Client *client,
 
   tc = lookup_client (client);
   if (NULL == tc)
-    tc = setup_client (client);
+    {
+      GNUNET_break (0);
+      return;     
+    }
   unicast (tc, msg, may_drop);
 }
 
