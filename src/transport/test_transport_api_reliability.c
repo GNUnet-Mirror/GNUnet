@@ -82,6 +82,8 @@ struct TestMessage
   uint32_t num;
 };
 
+static char *test_name;
+
 static int msg_scheduled;
 static int msg_sent;
 static int msg_recv_expected;
@@ -109,16 +111,16 @@ end ()
 {
   unsigned long long delta;
 
-  //char *value_name;
+  char *value_name;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   fprintf (stderr, "\nThroughput was %llu kb/s\n",
            total_bytes * 1000 / 1024 / delta);
-  //GNUNET_asprintf(&value_name, "reliable_%s", test_name);
-  //GAUGER ("TRANSPORT", value_name, (int)(total_bytes * 1000 / 1024 /delta), "kb/s");
-  //GNUNET_free(value_name);
+  GNUNET_asprintf(&value_name, "reliable_%s", test_name);
+  GAUGER ("TRANSPORT", value_name, (int)(total_bytes * 1000 / 1024 /delta), "kb/s");
+  GNUNET_free(value_name);
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
@@ -416,6 +418,8 @@ main (int argc, char *argv[])
   char *backup = pch;
   char *filename = NULL;
   char *dotexe;
+  char *src_name  = strdup (__FILE__);
+  char *split = NULL;
 
   /* get executable filename */
   pch = strtok (pch, "/");
@@ -433,6 +437,17 @@ main (int argc, char *argv[])
   /* create cfg filename */
   GNUNET_asprintf (&cfg_file_p1, "%s_peer1.conf", filename);
   GNUNET_asprintf (&cfg_file_p2, "%s_peer2.conf", filename);
+
+  split = strstr (src_name, ".");
+  if (split != NULL)
+  {
+    split[0] = '\0';
+    test_name = strdup(&filename[strlen(src_name)+1]);
+  }
+  else
+    test_name = NULL;
+
+  GNUNET_free (src_name);
   GNUNET_free (backup);
 
   if ((strstr (argv[0], "tcp_nat") != NULL) || (strstr (argv[0], "udp_nat") != NULL))
@@ -459,6 +474,7 @@ main (int argc, char *argv[])
 
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
+  GNUNET_free_non_null (test_name);
 
   return ret;
 }
