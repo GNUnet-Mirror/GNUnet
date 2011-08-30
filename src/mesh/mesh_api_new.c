@@ -136,6 +136,12 @@ struct GNUNET_MESH_Handle
      */
   struct GNUNET_MESH_queue *queue_head;
   struct GNUNET_MESH_queue *queue_tail;
+
+  /**
+   * Have we started the task to receive messages from the service
+   * yet? We do this after we send the 'MESH_LOCAL_CONNECT' message.
+   */
+  int in_receive;
 };
 
 /**
@@ -385,7 +391,6 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
       }
     }
   }
-  return;
 }
 
 
@@ -403,7 +408,10 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: received a message from MESH\n");
   if (msg == NULL)
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
+    h->in_receive = GNUNET_NO;
+    // rather: do_reconnect () -- and set 'in_receive' to NO there...
+    // FIXME: service disconnect, handle!
     return;
   }
 
@@ -434,7 +442,6 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: message processed\n");
   GNUNET_CLIENT_receive (h->client, &msg_received, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
-  return;
 }
 
 
@@ -463,6 +470,7 @@ send_raw (void *cls, size_t size, void *buf)
   if (0 == size || NULL == buf)
   {
     // FIXME: disconnect, reconnect, retry?
+    // do_reconnect ();
     return 0;
   }
   q = h->queue_head;
@@ -495,7 +503,12 @@ send_raw (void *cls, size_t size, void *buf)
                                              GNUNET_YES, &send_raw, h);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Send packet() END\n");
-
+  if (GNUNET_NO == h->in_receive)
+    {
+      h->in_receive = GNUNET_YES;
+      GNUNET_CLIENT_receive (h->client, &msg_received, h,
+			     GNUNET_TIME_UNIT_FOREVER_REL);
+    }
   return size;
 }
 
@@ -516,13 +529,12 @@ send_packet (struct GNUNET_MESH_Handle *h, size_t size, void *data)
   q->size = size;
   q->data = data;
   GNUNET_CONTAINER_DLL_insert_tail (h->queue_head, h->queue_tail, q);
-  if (NULL == h->th)
-  {
-    h->th =
-        GNUNET_CLIENT_notify_transmit_ready (h->client, size,
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_raw, h);
-  }
+  if (NULL != h->th)
+    return;
+  h->th =
+    GNUNET_CLIENT_notify_transmit_ready (h->client, size,
+					 GNUNET_TIME_UNIT_FOREVER_REL,
+					 GNUNET_YES, &send_raw, h);
 }
 
 /******************************************************************************/
@@ -605,8 +617,6 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
 
   send_packet (h, size, msg);
 
-  GNUNET_CLIENT_receive (h->client, &msg_received, h,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: GNUNET_MESH_connect() END\n");
 
