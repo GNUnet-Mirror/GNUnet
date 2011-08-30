@@ -96,12 +96,6 @@ struct GNUNET_MESH_TransmitHandle
    * Closure for 'notify'
    */
   void *notify_cls;
-
-  /**
-   * Priority of the message.  The queue is sorted by priority,
-   * control messages have the maximum priority (UINT32_MAX).
-   */
-  uint32_t priority;
   
   /**
    * How long is this message valid.  Once the timeout has been
@@ -110,6 +104,17 @@ struct GNUNET_MESH_TransmitHandle
    * function should be called with 'buf' NULL and size 0.
    */
   struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Task triggering a timeout, can be NO_TASK if the timeout is FOREVER.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * Priority of the message.  The queue is sorted by priority,
+   * control messages have the maximum priority (UINT32_MAX).
+   */
+  uint32_t priority;
  
   /**
    * Target of the message, 0 for broadcast.  This field
@@ -517,6 +522,7 @@ send_raw (void *cls, size_t size, void *buf)
     return 0;
   }
   q = h->queue_head;
+  GNUNET_assert (NULL != q);
   if (sizeof (struct GNUNET_MessageHeader) > size)
   {
     GNUNET_break (0);
@@ -589,6 +595,8 @@ send_raw (void *cls, size_t size, void *buf)
       memcpy (buf, q->data, q->size);
       size = q->size;
     }
+  if (q->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (q->timeout_task);
   GNUNET_CONTAINER_DLL_remove (h->queue_head, h->queue_tail, q);
   GNUNET_free (q);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   size: %u\n", size);
@@ -613,6 +621,30 @@ send_raw (void *cls, size_t size, void *buf)
 }
 
 
+static void
+timeout_transmission (void *cls,
+		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_MESH_TransmitHandle *q = cls;
+  struct GNUNET_MESH_Handle *mesh;
+  
+  mesh = q->tunnel->mesh;
+  GNUNET_CONTAINER_DLL_remove (mesh->queue_head, 
+			       mesh->queue_tail,
+                               q);
+  if (q->notify != NULL)
+    q->notify (q->notify_cls, 0, NULL); /* signal timeout */
+  GNUNET_free (q);    
+  if ( (NULL == mesh->queue_head) &&
+       (NULL != mesh->th) )
+    {
+      /* queue empty, no point in asking for transmission */
+      GNUNET_CLIENT_notify_transmit_ready_cancel (mesh->th);
+      mesh->th = NULL;
+    }    
+}
+
+
 /**
  * Add a transmit handle to the transmission queue (by priority).
  * Also manage timeout.
@@ -630,6 +662,10 @@ queue_transmit_handle (struct GNUNET_MESH_Handle *h,
   while ( (NULL != p) && (q->priority < p->priority) )
     p = p->next;
   GNUNET_CONTAINER_DLL_insert_after (h->queue_head, h->queue_tail, p->prev, q);
+  if (GNUNET_TIME_UNIT_FOREVER_ABS.abs_value != q->timeout.abs_value)
+    q->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (q->timeout),
+						    &timeout_transmission,
+						    q);
 }
 
 
@@ -1000,10 +1036,22 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
 void
 GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
 {
-  GNUNET_CONTAINER_DLL_remove (th->tunnel->mesh->queue_head, 
-			       th->tunnel->mesh->queue_tail,
+  struct GNUNET_MESH_Handle *mesh;
+  
+  mesh = th->tunnel->mesh;
+  if (q->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (q->timeout_task);
+  GNUNET_CONTAINER_DLL_remove (mesh->queue_head, 
+			       mesh->queue_tail,
                                th);
   GNUNET_free (th);
+  if ( (NULL == mesh->queue_head) &&
+       (NULL != mesh->th) )
+    {
+      /* queue empty, no point in asking for transmission */
+      GNUNET_CLIENT_notify_transmit_ready_cancel (mesh->th);
+      mesh->th = NULL;
+    }    
 }
 
 
