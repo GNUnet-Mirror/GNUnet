@@ -99,8 +99,9 @@ static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  static const GNUNET_MESH_ApplicationType app[] = { 1, 2, 3, 4, 5, 6, 7, 8, 0};
-  struct GNUNET_MESH_Tunnel     *t;
+  static const GNUNET_MESH_ApplicationType app[] =
+      { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
+  struct GNUNET_MESH_Tunnel *t;
 
   test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
   mesh = GNUNET_MESH_connect (cfg, NULL, NULL, handlers, app);
@@ -114,12 +115,9 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
   }
 
-  t =  GNUNET_MESH_tunnel_create(mesh,
-      NULL,
-      NULL,
-      NULL);
+  t = GNUNET_MESH_tunnel_create (mesh, NULL, NULL, NULL);
 
-  GNUNET_MESH_tunnel_destroy(t);
+  GNUNET_MESH_tunnel_destroy (t);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS, 5), &do_shutdown,
@@ -151,7 +149,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                     (GNUNET_TIME_UNIT_SECONDS, 20), &do_abort,
                                     NULL);
 
-  test_task = GNUNET_SCHEDULER_add_now (&test, (void *)cfg);
+  test_task = GNUNET_SCHEDULER_add_now (&test, (void *) cfg);
 
 }
 
