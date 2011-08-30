@@ -23,6 +23,14 @@
  * @brief mesh api: client implementation of mesh service
  * @author Bartlomiej Polot
  *
+ * TODO:
+ * - handle reconnect (service crash/disconnect) properly
+ * - count only data for queue length; store current queue length
+ *   with tunnel instead of counting each time
+ *   (also count per tunnel instead of for the entire mesh handle?)
+ * - callbacks to client missing on certain events
+ * - processing messages from service is incomplete
+ *
  * STRUCTURE:
  * - CONSTANTS
  * - DATA STRUCTURES
@@ -51,6 +59,9 @@ extern "C"
 #include "mesh.h"
 #include "mesh_protocol.h"
 
+/**
+ * TODO: replace with extra argument to mesh-connect.
+ */
 #define MESH_API_MAX_QUEUE 10
 
 /******************************************************************************/
