@@ -60,14 +60,17 @@ extern "C"
 /**
  * Transmission queue to the service
  */
-struct GNUNET_MESH_queue
+struct GNUNET_MESH_TransmitHandle
 {
     /**
      * Double Linked list
      */
-  struct GNUNET_MESH_queue *next;
+  struct GNUNET_MESH_TransmitHandle *next;
 
-  struct GNUNET_MESH_queue *prev;
+    /**
+     * Double Linked list
+     */
+  struct GNUNET_MESH_TransmitHandle *prev;
 
     /**
      * Data itself, currently points to the end of this struct if 
@@ -77,8 +80,15 @@ struct GNUNET_MESH_queue
   const struct GNUNET_MessageHeader *data;
 
   /**
+   * Tunnel this message is sent over (may be NULL for control messages).
+   */
+  struct GNUNET_MESH_Tunnel *tunnel;
+
+  /**
    * Callback to obtain the message to transmit, or NULL if we
-   * got the message in 'data'.
+   * got the message in 'data'.  Notice that messages built
+   * by 'notify' need to be encapsulated with information about
+   * the 'target'.
    */
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
@@ -87,6 +97,26 @@ struct GNUNET_MESH_queue
    */
   void *notify_cls;
 
+  /**
+   * Priority of the message.  The queue is sorted by priority,
+   * control messages have the maximum priority (UINT32_MAX).
+   */
+  uint32_t priority;
+  
+  /**
+   * How long is this message valid.  Once the timeout has been
+   * reached, the message must no longer be sent.  If this 
+   * is a message with a 'notify' callback set, the 'notify'
+   * function should be called with 'buf' NULL and size 0.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+ 
+  /**
+   * Target of the message, 0 for broadcast.  This field
+   * is only valid if 'notify' is non-NULL.
+   */
+  GNUNET_PEER_Id target;
+                                 
   /**
    * Size of 'data' -- or the desired size of 'notify' if 'data' is NULL.
    */
@@ -141,8 +171,8 @@ struct GNUNET_MESH_Handle
     /**
      * Messages to send to the service
      */
-  struct GNUNET_MESH_queue *queue_head;
-  struct GNUNET_MESH_queue *queue_tail;
+  struct GNUNET_MESH_TransmitHandle *queue_head;
+  struct GNUNET_MESH_TransmitHandle *queue_tail;
 
     /**
      * tid of the next tunnel to create (to avoid reusing IDs often)
@@ -215,11 +245,6 @@ struct GNUNET_MESH_Tunnel
   unsigned int npeers;
 };
 
-struct GNUNET_MESH_TransmitHandle
-{
-  struct GNUNET_MESH_Tunnel *t;
-  struct GNUNET_MESH_queue *q;
-};
 
 /******************************************************************************/
 /***********************     AUXILIARY FUNCTIONS      *************************/
@@ -250,11 +275,11 @@ retrieve_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
  * Get the length of the transmission queue
  * @param h mesh handle whose queue is to be measured
  */
-static uint32_t
+static unsigned int
 get_queue_length (struct GNUNET_MESH_Handle *h)
 {
-  struct GNUNET_MESH_queue *q;
-  uint32_t i;
+  struct GNUNET_MESH_TransmitHandle *q;
+  unsigned int i;
 
   /* count */
   for (q = h->queue_head, i = 0; NULL != q; q = q->next, i++) ;
@@ -481,7 +506,7 @@ static size_t
 send_raw (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MESH_Handle *h = cls;
-  struct GNUNET_MESH_queue *q;
+  struct GNUNET_MESH_TransmitHandle *q;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Send packet() Buffer %u\n", size);
   h->th = NULL;
@@ -506,9 +531,58 @@ send_raw (void *cls, size_t size, void *buf)
               ntohs (q->data->type));
   if (NULL == q->data)
     {
-      // FIXME: need to encapsulate message with information about
-      // the target (if data message -- or use wrapper for callback...)
-      size = q->notify (q->notify_cls, size, buf);
+      GNUNET_assert (NULL != q->notify);
+      if (q->target == 0)
+	{
+	  /* multicast */
+	  struct GNUNET_MESH_Multicast mc; 
+	  char *cbuf;
+
+	  GNUNET_assert (size >= sizeof (mc) + q->size);
+	  cbuf = buf;
+	  q->size = q->notify (q->notify_cls,
+			       size - sizeof (mc), 
+			       &cbuf[sizeof(mc)]);
+	  if (q->size == 0)
+	    {
+	      size = 0;	      
+	    }
+	  else
+	    {
+	      mc.header.size = htons (sizeof (mc) + q->size);
+	      mc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
+	      mc.tid = htonl (q->tunnel->tid);
+	      memset (&mc.oid, 0, sizeof (struct GNUNET_PeerIdentity)); /* myself */
+	      memcpy (buf, &mc, sizeof (mc));
+	      size = q->size + sizeof (mc);
+	    }
+	}
+      else
+	{
+	  /* unicast */
+	  struct GNUNET_MESH_Unicast uc; 
+	  char *cbuf;
+
+	  GNUNET_assert (size >= sizeof (uc) + q->size);
+	  cbuf = buf;
+	  q->size = q->notify (q->notify_cls,
+			       size - sizeof (uc), 
+			       &cbuf[sizeof(uc)]);
+	  if (q->size == 0)
+	    {
+	      size = 0;	      
+	    }
+	  else
+	    {
+	      uc.header.size = htons (sizeof (uc) + q->size);
+	      uc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST);
+	      uc.tid = htonl (q->tunnel->tid);
+	      memset (&uc.oid, 0, sizeof (struct GNUNET_PeerIdentity)); /* myself */
+	      GNUNET_PEER_resolve (q->target, &uc.destination);
+	      memcpy (buf, &uc, sizeof (uc));
+	      size = q->size + sizeof (uc);
+	    }	  
+	}
     }
   else
     {
@@ -538,6 +612,27 @@ send_raw (void *cls, size_t size, void *buf)
   return size;
 }
 
+
+/**
+ * Add a transmit handle to the transmission queue (by priority).
+ * Also manage timeout.
+ *
+ * @param h mesh handle with the queue head and tail
+ * @param q handle to add
+ */
+static void
+queue_transmit_handle (struct GNUNET_MESH_Handle *h,
+		       struct GNUNET_MESH_TransmitHandle *q)
+{
+  struct GNUNET_MESH_TransmitHandle *p;
+
+  p = h->queue_head;
+  while ( (NULL != p) && (q->priority < p->priority) )
+    p = p->next;
+  GNUNET_CONTAINER_DLL_insert_after (h->queue_head, h->queue_tail, p->prev, q);
+}
+
+
 /**
  * Auxiliary function to send a packet to the service
  * Takes care of creating a new queue element and calling the tmt_rdy function
@@ -549,15 +644,17 @@ static void
 send_packet (struct GNUNET_MESH_Handle *h, 
 	     const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_MESH_queue *q;
+  struct GNUNET_MESH_TransmitHandle *q;
   size_t msize;
 
   msize = ntohs (msg->size);
-  q = GNUNET_malloc (sizeof (struct GNUNET_MESH_queue) + msize);
+  q = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle) + msize);
+  q->priority = UINT32_MAX;
+  q->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;  
   q->size = msize;
   q->data = (void*) &q[1];
   memcpy (&q[1], msg, msize);
-  GNUNET_CONTAINER_DLL_insert_tail (h->queue_head, h->queue_tail, q);
+  queue_transmit_handle (h, q);
   if (NULL != h->th)
     return;
   h->th =
@@ -877,26 +974,21 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
                                    GNUNET_CONNECTION_TransmitReadyNotify notify,
                                    void *notify_cls)
 {
-  struct GNUNET_MESH_TransmitHandle *handle;
-  struct GNUNET_MESH_queue *q;
+  struct GNUNET_MESH_TransmitHandle *q;
 
   if (get_queue_length (tunnel->mesh) >= tunnel->mesh->max_queue_size)
     return NULL; /* queue full */
 
-  // FIXME: priority, maxdelay, target! (keep in 'handle')
-  handle = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle));
-  handle->t = tunnel;
-  handle->q = q = GNUNET_malloc (sizeof (struct GNUNET_MESH_queue));
+  q = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle));
+  q->tunnel = tunnel;
+  q->priority = priority;
+  q->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
+  q->target = GNUNET_PEER_intern (target);
   q->size = notify_size;
   q->notify = notify;
   q->notify_cls = notify_cls;
-  // FIXME: insert by priority!? 
-  // FIXME: distinguish between control messages (MESH_LOCAL_CONNECT) and data 
-  // messages?
-  GNUNET_CONTAINER_DLL_insert_tail (tunnel->mesh->queue_head,
-				    tunnel->mesh->queue_tail, q);
-
-  return handle;
+  queue_transmit_handle (tunnel->mesh, q);
+  return q;
 }
 
 
@@ -908,10 +1000,9 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
 void
 GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
 {
-  GNUNET_CONTAINER_DLL_remove (th->t->mesh->queue_head, th->t->mesh->queue_tail,
-                               th->q);
-  // TODO remove from dataless queue
-  GNUNET_free (th->q);
+  GNUNET_CONTAINER_DLL_remove (th->tunnel->mesh->queue_head, 
+			       th->tunnel->mesh->queue_tail,
+                               th);
   GNUNET_free (th);
 }
 
