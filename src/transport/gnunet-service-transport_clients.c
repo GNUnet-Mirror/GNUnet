@@ -482,12 +482,12 @@ clients_handle_send (void *cls, struct GNUNET_SERVER_Client *client,
 
   tc = lookup_client (client);
   if (NULL == tc)
-    {
-      /* client asked for transmission before 'START' */
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    /* client asked for transmission before 'START' */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
   size = ntohs (message->size);
   if (size <
@@ -902,7 +902,7 @@ GST_clients_unicast (struct GNUNET_SERVER_Client *client,
 
   tc = lookup_client (client);
   if (NULL == tc)
-    return;  /* client got disconnected in the meantime, drop message */    
+    return;                     /* client got disconnected in the meantime, drop message */
   unicast (tc, msg, may_drop);
 }
 

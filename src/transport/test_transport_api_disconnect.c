@@ -326,9 +326,16 @@ peers_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (peers_connected > 0) ;
 
   if (counter < ITERATIONS)
+  {
+    if ((counter % (ITERATIONS / 10)) == 0)
+      fprintf (stderr, "%u%%..", (counter / (ITERATIONS / 10)) * 10);
     peers_connect ();
+  }
   else
+  {
+    fprintf (stderr, "100%%\n");
     end ();
+  }
 }
 
 static void

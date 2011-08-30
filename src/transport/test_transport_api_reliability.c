@@ -118,9 +118,10 @@ end ()
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   fprintf (stderr, "\nThroughput was %llu kb/s\n",
            total_bytes * 1000 / 1024 / delta);
-  GNUNET_asprintf(&value_name, "reliable_%s", test_name);
-  GAUGER ("TRANSPORT", value_name, (int)(total_bytes * 1000 / 1024 /delta), "kb/s");
-  GNUNET_free(value_name);
+  GNUNET_asprintf (&value_name, "reliable_%s", test_name);
+  GAUGER ("TRANSPORT", value_name, (int) (total_bytes * 1000 / 1024 / delta),
+          "kb/s");
+  GNUNET_free (value_name);
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
@@ -395,7 +396,8 @@ check ()
 #endif
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-transport-api-reliability", "nohelp", options, &run, &ok);
+                      "test-transport-api-reliability", "nohelp", options, &run,
+                      &ok);
 
   return ok;
 }
@@ -418,7 +420,7 @@ main (int argc, char *argv[])
   char *backup = pch;
   char *filename = NULL;
   char *dotexe;
-  char *src_name  = strdup (__FILE__);
+  char *src_name = strdup (__FILE__);
   char *split = NULL;
 
   /* get executable filename */
@@ -442,7 +444,7 @@ main (int argc, char *argv[])
   if (split != NULL)
   {
     split[0] = '\0';
-    test_name = strdup(&filename[strlen(src_name)+1]);
+    test_name = strdup (&filename[strlen (src_name) + 1]);
   }
   else
     test_name = NULL;
@@ -450,23 +452,20 @@ main (int argc, char *argv[])
   GNUNET_free (src_name);
   GNUNET_free (backup);
 
-  if ((strstr (argv[0], "tcp_nat") != NULL) || (strstr (argv[0], "udp_nat") != NULL))
+  if ((strstr (argv[0], "tcp_nat") != NULL) ||
+      (strstr (argv[0], "udp_nat") != NULL))
   {
     nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
     if (GNUNET_NO == nat_res)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-          "Cannot run NAT test: `%s' %s \n",
-          "gnunet-nat-server",
-           "SUID not set");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
+                  "gnunet-nat-server", "SUID not set");
       return 0;
     }
-    if (GNUNET_SYSERR ==  nat_res)
+    if (GNUNET_SYSERR == nat_res)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-          "Cannot run NAT test: `%s' %s \n",
-          "gnunet-nat-server",
-          "file not found");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
+                  "gnunet-nat-server", "file not found");
       return 0;
     }
   }
