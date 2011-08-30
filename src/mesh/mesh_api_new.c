@@ -892,6 +892,7 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
   msg->header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD);
   msg->tunnel_id = htonl (tunnel->tid);
+  msg->timeout = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (timeout));
   memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
 
   send_packet (tunnel->mesh, &msg->header);
@@ -939,6 +940,7 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
   msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL);
   msg.tunnel_id = htonl (tunnel->tid);
+  msg.timeout = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
   memcpy (&msg.peer, peer, sizeof (struct GNUNET_PeerIdentity));
   send_packet (tunnel->mesh, &msg.header);
 }
@@ -963,9 +965,9 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectPeerByType));
   msg.header.type =  htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE);
   msg.tunnel_id = htonl (tunnel->tid);
+  msg.timeout = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (timeout));
   msg.type = htonl (app_type);
   send_packet (tunnel->mesh, &msg.header);
-  //   TODO: remember timeout
 }
 
 
