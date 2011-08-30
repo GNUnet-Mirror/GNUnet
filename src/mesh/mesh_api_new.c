@@ -888,7 +888,6 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   handle->t = tunnel;
   handle->q = q = GNUNET_malloc (sizeof (struct GNUNET_MESH_queue));
   q->size = notify_size;
-  q->data = NULL;
   q->notify = notify;
   q->notify_cls = notify_cls;
   // FIXME: insert by priority!? 
