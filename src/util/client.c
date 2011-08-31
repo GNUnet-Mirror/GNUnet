@@ -792,7 +792,7 @@ GNUNET_CLIENT_service_test (const char *service,
 
     memset (&s_in, 0, sizeof (s_in));
 #if HAVE_SOCKADDR_IN_SIN_LEN
-    s_in.sin_len = saddrlens[1];
+    s_in.sin_len = sizeof (struct sockaddr_in);
 #endif
     s_in.sin_family = AF_INET;
     s_in.sin_port = htons (port);
@@ -826,7 +826,7 @@ GNUNET_CLIENT_service_test (const char *service,
 
     memset (&s_in6, 0, sizeof (s_in6));
 #if HAVE_SOCKADDR_IN_SIN_LEN
-    s_in6.sin6_len = saddrlens[1];
+    s_in6.sin6_len = sizeof (struct sockaddr_in6);
 #endif
     s_in6.sin6_family = AF_INET6;
     s_in6.sin6_port = htons (port);
