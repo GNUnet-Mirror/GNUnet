@@ -586,6 +586,7 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   memcpy (dpkt->data, query_states[id].name, query_states[id].namelen);
   GNUNET_free (query_states[id].name);
+  query_states[id].name = NULL;
 
   struct dns_query_line *dque =
       (struct dns_query_line *) (dpkt->data + (query_states[id].namelen));
