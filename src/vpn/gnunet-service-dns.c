@@ -694,6 +694,7 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
 
   memcpy (dpkt->data, query_states[id].name, query_states[id].namelen);
   GNUNET_free (query_states[id].name);
+  query_states[id].name = NULL;
 
   struct dns_query_line *dque =
       (struct dns_query_line *) (dpkt->data + (query_states[id].namelen));
