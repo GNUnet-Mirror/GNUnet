@@ -112,6 +112,13 @@ struct peer_list_element
 
   struct GNUNET_TRANSPORT_ATS_Information atsi;
   struct peer_list_element *next, *prev;
+
+  /* The handle that sends the hellos to this peer */
+  struct GNUNET_CORE_TransmitHandle *hello;
+
+  GNUNET_SCHEDULER_TaskIdentifier sched;
+
+  struct GNUNET_MESH_Handle *handle;
 };
 
 struct peer_list
@@ -191,7 +198,9 @@ send_hello_message (void *cls, size_t size, void *buf)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending hello\n");
 
-  struct GNUNET_MESH_Handle *handle = cls;
+  struct peer_list_element *element = cls;
+  struct GNUNET_MESH_Handle *handle = element->handle;
+  element->hello = NULL;
   struct GNUNET_MessageHeader *hdr = buf;
 
   size_t sent =
@@ -205,6 +214,24 @@ send_hello_message (void *cls, size_t size, void *buf)
 
   memcpy (hdr + 1, handle->hello_message, handle->hello_message_size);
   return sent;
+}
+
+void schedule_hello_message(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tctx)
+{
+  struct peer_list_element *element = cls;
+  element->sched = GNUNET_SCHEDULER_NO_TASK;
+
+  if ((tctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+      return;
+
+  if (element->hello == NULL)
+    element->hello = GNUNET_CORE_notify_transmit_ready (element->handle->core, GNUNET_NO, 42,
+                                                           GNUNET_TIME_UNIT_SECONDS, &element->peer,
+                                                           sizeof (struct GNUNET_MessageHeader) +
+                                                           element->handle->hello_message_size,
+                                                           &send_hello_message, element);
+
+  element->sched = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_MINUTES, schedule_hello_message, cls);
 }
 
 
@@ -223,17 +250,14 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core tells us we are connected to peer %s\n", GNUNET_i2s (peer));
 
-  /* Send a hello to this peer */
-  GNUNET_CORE_notify_transmit_ready (handle->core, GNUNET_NO, 42,
-                                     GNUNET_TIME_UNIT_SECONDS, peer,
-                                     sizeof (struct GNUNET_MessageHeader) +
-                                     handle->hello_message_size,
-                                     &send_hello_message, cls);
-
   /* put the new peer into the list of connected peers */
   struct peer_list_element *element =
       GNUNET_malloc (sizeof (struct peer_list_element));
   memcpy (&element->peer, peer, sizeof (struct GNUNET_PeerIdentity));
+  element->handle = handle;
+
+  /* Send a hello to this peer */
+  element->sched = GNUNET_SCHEDULER_add_now(schedule_hello_message, element);
 
   if (NULL != atsi)
     memcpy (&element->atsi, atsi,
@@ -303,6 +327,8 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
                                    tail);
       GNUNET_free (tail);
     }
+    GNUNET_CORE_notify_transmit_ready_cancel(element->hello);
+    GNUNET_SCHEDULER_cancel(element->sched);
     GNUNET_free (element);
   }
 
@@ -859,6 +885,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
                                    tail);
       GNUNET_free (tail);
     }
+    GNUNET_CORE_notify_transmit_ready_cancel(element->hello);
+    GNUNET_SCHEDULER_cancel(element->sched);
     GNUNET_free (element);
     element = next;
   }
