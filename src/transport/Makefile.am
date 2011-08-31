@@ -553,7 +553,8 @@ test_quota_compliance_tcp_SOURCES = \
 test_quota_compliance_tcp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_quota_compliance_tcp_asymmetric_recv_constant_SOURCES = \
  test_quota_compliance.c
