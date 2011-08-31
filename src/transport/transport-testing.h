@@ -118,4 +118,19 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
 void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (void *cc);
 
+/*
+ * Some utility functions
+ */
+
+/**
+ * this function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
+ * if existing ".exe"-prefix and adds the peer-number
+ * @param file filename of the test, e.g. argv[0]
+ * @param cfgname where to write the result
+ * @param count peer number
+ */
+void
+GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **cfgname,
+                                          int count);
+
 /* end of transport_testing.h */

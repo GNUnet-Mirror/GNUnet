@@ -341,5 +341,45 @@ void GNUNET_TRANSPORT_TESTING_connect_peers_cancel
   GNUNET_free (cc);
 }
 
+/*
+ * Some utility functions
+ */
+
+/**
+ * this function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
+ * if existing ".exe"-prefix and adds the peer-number
+ * @param file filename of the test, e.g. argv[0]
+ * @param cfgname where to write the result
+ * @param count peer number
+ */
+void
+GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **cfgname,
+                                          int count)
+{
+  char *pch = strdup (file);
+  char *backup = pch;
+  char *filename = NULL;
+  char *dotexe;
+
+
+  /* get executable filename */
+  pch = strtok (pch, "/");
+  while (pch != NULL)
+  {
+    pch = strtok (NULL, "/");
+    if (pch != NULL)
+      filename = pch;
+  }
+  /* remove "lt-" */
+  filename = strstr (filename, "tes");
+  if (NULL != (dotexe = strstr (filename, ".exe")))
+    dotexe[0] = '\0';
+
+  /* create cfg filename */
+  GNUNET_asprintf (cfgname, "%s_peer%u.conf", filename, count);
+
+  GNUNET_free (backup);
+}
+
 
 /* end of transport_testing.h */

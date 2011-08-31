@@ -499,10 +499,6 @@ main (int argc, char *argv[])
   if (NULL != (dotexe = strstr (filename, ".exe")))
     dotexe[0] = '\0';
 
-  /* create cfg filename */
-  GNUNET_asprintf (&cfg_file_p1, "%s_peer1.conf", filename);
-  GNUNET_asprintf (&cfg_file_p2, "%s_peer2.conf", filename);
-
   split = strstr (src_name, ".");
   if (split != NULL)
   {
@@ -532,10 +528,15 @@ main (int argc, char *argv[])
       return 0;
     }
   }
+
+  GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p1, 1);
+  GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p2, 2);
+
   ret = check ();
 
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
+
   GNUNET_free_non_null (test_name);
 
   return ret;

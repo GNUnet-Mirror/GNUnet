@@ -289,29 +289,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-  char *pch = strdup (argv[0]);
-  char *backup = pch;
-  char *filename = NULL;
-  char *dotexe;
   int nat_res;
-
-  /* get executable filename */
-  pch = strtok (pch, "/");
-  while (pch != NULL)
-  {
-    pch = strtok (NULL, "/");
-    if (pch != NULL)
-      filename = pch;
-  }
-  /* remove "lt-" */
-  filename = strstr (filename, "tes");
-  if (NULL != (dotexe = strstr (filename, ".exe")))
-    dotexe[0] = '\0';
-
-  /* create cfg filename */
-  GNUNET_asprintf (&cfg_file_p1, "%s_peer1.conf", filename);
-  GNUNET_asprintf (&cfg_file_p2, "%s_peer2.conf", filename);
-  GNUNET_free (backup);
 
   if ((strstr (argv[0], "tcp_nat") != NULL) ||
       (strstr (argv[0], "udp_nat") != NULL))
@@ -331,6 +309,10 @@ main (int argc, char *argv[])
     }
 
   }
+
+  GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p1, 1);
+  GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p2, 2);
+
   ret = check ();
 
   GNUNET_free (cfg_file_p1);
