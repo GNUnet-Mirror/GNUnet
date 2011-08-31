@@ -133,4 +133,10 @@ void
 GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **cfgname,
                                           int count);
 
+void
+GNUNET_TRANSPORT_TESTING_get_test_plugin (const char * executable, const char * testname, char **pluginname);
+
+void
+GNUNET_TRANSPORT_TESTING_get_test_sourcename (const char * file, char **testname);
+
 /* end of transport_testing.h */

@@ -345,6 +345,92 @@ void GNUNET_TRANSPORT_TESTING_connect_peers_cancel
  * Some utility functions
  */
 
+char *
+extract_filename (const char * file)
+{
+  char *pch = strdup (file);
+  char *backup = pch;
+  char *filename = NULL;
+  char *res;
+
+
+  /* get executable filename */
+  if (NULL != strstr (pch, "/"))
+  {
+    pch = strtok (pch, "/");
+    while (pch != NULL)
+    {
+      pch = strtok (NULL, "/");
+      if (pch != NULL)
+        {
+        filename = pch;
+        }
+    }
+  }
+  else
+    filename = pch;
+  res = strdup(filename);
+  GNUNET_free (backup);
+
+  return res;
+}
+
+void
+GNUNET_TRANSPORT_TESTING_get_test_sourcename (const char * file, char **testname)
+{
+  char * src = extract_filename (file);
+  char * split;
+
+  split = strstr (src, ".");
+  if (split != NULL)
+  {
+    split[0] = '\0';
+  }
+  GNUNET_asprintf(testname, "%s", src);
+  GNUNET_free (src);
+}
+
+void
+GNUNET_TRANSPORT_TESTING_get_test_plugin (const char * executable, const char * testname, char **pluginname)
+{
+  char *exec = extract_filename (executable);
+  char *test = extract_filename (testname);
+
+  char *backup_t = test;
+  char *filename = NULL;
+  char *dotexe;
+
+  if (exec == NULL)
+    goto fail;
+
+  /* remove "lt-" */
+  filename = strstr (exec, "tes");
+  if (filename == NULL)
+    goto fail;
+
+  /* remove ".exe" */
+  if (NULL != (dotexe = strstr (filename, ".exe")))
+      dotexe[0] = '\0';
+
+  /* find last _ */
+  filename = strstr (filename, test);
+  if (filename == NULL)
+    goto fail;
+
+  /* copy plugin */
+  filename += strlen (test);
+  filename++;
+  GNUNET_asprintf (pluginname, "%s", filename);
+  goto suc;
+
+fail:
+  (*pluginname) = NULL;
+suc:
+  GNUNET_free (backup_t);
+  GNUNET_free (exec);
+
+}
+
 /**
  * this function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
  * if existing ".exe"-prefix and adds the peer-number
@@ -356,30 +442,39 @@ void
 GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **cfgname,
                                           int count)
 {
-  char *pch = strdup (file);
-  char *backup = pch;
-  char *filename = NULL;
+  char *filename = extract_filename (file);
+  char *backup = filename;
   char *dotexe;
 
 
-  /* get executable filename */
-  pch = strtok (pch, "/");
-  while (pch != NULL)
-  {
-    pch = strtok (NULL, "/");
-    if (pch != NULL)
-      filename = pch;
-  }
+  if (filename == NULL)
+    goto fail;
+
   /* remove "lt-" */
   filename = strstr (filename, "tes");
-  if (NULL != (dotexe = strstr (filename, ".exe")))
-    dotexe[0] = '\0';
+  if (filename == NULL)
+    goto fail;
 
+  /* remove ".exe" */
+  if (NULL != (dotexe = strstr (filename, ".exe")))
+      dotexe[0] = '\0';
+
+  if (filename == NULL)
+    goto fail;
+
+  /* copy plugin */
+  goto suc;
+
+fail:
+   (*cfgname) = NULL;
+   return;
+
+suc:
   /* create cfg filename */
   GNUNET_asprintf (cfgname, "%s_peer%u.conf", filename, count);
-
   GNUNET_free (backup);
 }
+
 
 
 /* end of transport_testing.h */

@@ -83,6 +83,7 @@ struct TestMessage
 };
 
 static char *test_name;
+static char *test_plugin;
 
 static int msg_scheduled;
 static int msg_sent;
@@ -118,7 +119,7 @@ end ()
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   fprintf (stderr, "\nThroughput was %llu kb/s\n",
            total_bytes * 1000 / 1024 / delta);
-  GNUNET_asprintf (&value_name, "reliable_%s", test_name);
+  GNUNET_asprintf (&value_name, "reliable_%s", test_plugin);
   GAUGER ("TRANSPORT", value_name, (int) (total_bytes * 1000 / 1024 / delta),
           "kb/s");
   GNUNET_free (value_name);
@@ -379,7 +380,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 static int
 check ()
 {
-  static char *const argv[] = { "test-transport-api-reliability",
+  static char * argv[] = { "SDSD",
     "-c",
     "test_transport_api_data.conf",
 #if VERBOSE
@@ -396,7 +397,7 @@ check ()
 #endif
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-transport-api-reliability", "nohelp", options, &run,
+                      test_name, "nohelp", options, &run,
                       &ok);
 
   return ok;
@@ -407,8 +408,12 @@ main (int argc, char *argv[])
 {
   int ret;
   int nat_res;
+  //char * test_exec;
 
-  GNUNET_log_setup ("test-transport-api-reliability",
+  GNUNET_TRANSPORT_TESTING_get_test_sourcename (__FILE__, &test_name);
+
+
+  GNUNET_log_setup (test_name,
 #if VERBOSE
                     "DEBUG",
 #else
@@ -416,37 +421,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-  char *pch = strdup (argv[0]);
-  char *backup = pch;
-  char *filename = NULL;
-  char *dotexe;
-  char *src_name = strdup (__FILE__);
-  char *split = NULL;
-
-  /* get executable filename */
-  pch = strtok (pch, "/");
-  while (pch != NULL)
-  {
-    pch = strtok (NULL, "/");
-    if (pch != NULL)
-      filename = pch;
-  }
-  /* remove "lt-" */
-  filename = strstr (filename, "tes");
-  if (NULL != (dotexe = strstr (filename, ".exe")))
-    dotexe[0] = '\0';
-
-  split = strstr (src_name, ".");
-  if (split != NULL)
-  {
-    split[0] = '\0';
-    test_name = strdup (&filename[strlen (src_name) + 1]);
-  }
-  else
-    test_name = NULL;
-
-  GNUNET_free (src_name);
-  GNUNET_free (backup);
+  GNUNET_TRANSPORT_TESTING_get_test_plugin (argv[0], test_name, &test_plugin);
 
   if ((strstr (argv[0], "tcp_nat") != NULL) ||
       (strstr (argv[0], "udp_nat") != NULL))
@@ -466,6 +441,7 @@ main (int argc, char *argv[])
     }
   }
 
+
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p1, 1);
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p2, 2);
 
@@ -474,7 +450,8 @@ main (int argc, char *argv[])
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
 
-  GNUNET_free_non_null (test_name);
+  GNUNET_free (test_name);
+  GNUNET_free (test_plugin);
 
   return ret;
 }
