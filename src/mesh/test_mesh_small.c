@@ -263,7 +263,7 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "connecting to mesh service of peer %s\n", GNUNET_i2s (&d->id));
 #endif
-  h = GNUNET_MESH_connect (d->cfg, NULL, &tunnel_cleaner, handlers, &app);
+  h = GNUNET_MESH_connect (d->cfg, 10, NULL, &tunnel_cleaner, handlers, &app);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connected to mesh service of peer %s\n",
               GNUNET_i2s (&d->id));
