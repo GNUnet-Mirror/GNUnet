@@ -200,6 +200,7 @@ send_hello_message (void *cls, size_t size, void *buf)
 
   struct peer_list_element *element = cls;
   struct GNUNET_MESH_Handle *handle = element->handle;
+
   element->hello = NULL;
   struct GNUNET_MessageHeader *hdr = buf;
 
@@ -216,22 +217,30 @@ send_hello_message (void *cls, size_t size, void *buf)
   return sent;
 }
 
-void schedule_hello_message(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tctx)
+void
+schedule_hello_message (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tctx)
 {
   struct peer_list_element *element = cls;
+
   element->sched = GNUNET_SCHEDULER_NO_TASK;
 
   if ((tctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-      return;
+    return;
 
   if (element->hello == NULL)
-    element->hello = GNUNET_CORE_notify_transmit_ready (element->handle->core, GNUNET_NO, 42,
-                                                           GNUNET_TIME_UNIT_SECONDS, &element->peer,
-                                                           sizeof (struct GNUNET_MessageHeader) +
-                                                           element->handle->hello_message_size,
-                                                           &send_hello_message, element);
+    element->hello =
+        GNUNET_CORE_notify_transmit_ready (element->handle->core, GNUNET_NO, 42,
+                                           GNUNET_TIME_UNIT_SECONDS,
+                                           &element->peer,
+                                           sizeof (struct GNUNET_MessageHeader)
+                                           +
+                                           element->handle->hello_message_size,
+                                           &send_hello_message, element);
 
-  element->sched = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_MINUTES, schedule_hello_message, cls);
+  element->sched =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                    schedule_hello_message, cls);
 }
 
 
@@ -257,7 +266,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   element->handle = handle;
 
   /* Send a hello to this peer */
-  element->sched = GNUNET_SCHEDULER_add_now(schedule_hello_message, element);
+  element->sched = GNUNET_SCHEDULER_add_now (schedule_hello_message, element);
 
   if (NULL != atsi)
     memcpy (&element->atsi, atsi,
@@ -327,8 +336,8 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
                                    tail);
       GNUNET_free (tail);
     }
-    GNUNET_CORE_notify_transmit_ready_cancel(element->hello);
-    GNUNET_SCHEDULER_cancel(element->sched);
+    GNUNET_CORE_notify_transmit_ready_cancel (element->hello);
+    GNUNET_SCHEDULER_cancel (element->sched);
     GNUNET_free (element);
   }
 
@@ -885,8 +894,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
                                    tail);
       GNUNET_free (tail);
     }
-    GNUNET_CORE_notify_transmit_ready_cancel(element->hello);
-    GNUNET_SCHEDULER_cancel(element->sched);
+    GNUNET_CORE_notify_transmit_ready_cancel (element->hello);
+    GNUNET_SCHEDULER_cancel (element->sched);
     GNUNET_free (element);
     element = next;
   }

@@ -651,8 +651,8 @@ send_raw (void *cls, size_t size, void *buf)
 
 /**
  * Auxiliary function to send an already constructed packet to the service.
- * Takes care of creating a new queue element and calling the tmt_rdy function
- * if necessary.
+ * Takes care of creating a new queue element, copying the message and
+ * calling the tmt_rdy function if necessary.
  * @param h mesh handle
  * @param msg message to transmit
  */
@@ -732,12 +732,14 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->message_handlers = handlers;
   h->applications = stypes;
   h->next_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_MARK;
+
   /* count handlers and apps, calculate size */
   for (h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++) ;
   for (h->n_applications = 0; stypes[h->n_applications]; h->n_applications++) ;
   size = sizeof (struct GNUNET_MESH_ClientConnect);
   size += h->n_handlers * sizeof (uint16_t);
   size += h->n_applications * sizeof (GNUNET_MESH_ApplicationType);
+
   {
     char buf[size];
 
@@ -826,16 +828,16 @@ void
 GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tun)
 {
   struct GNUNET_MESH_Handle *h;
-  struct GNUNET_MESH_TunnelMessage *msg;
+  struct GNUNET_MESH_TunnelMessage msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Destroying tunnel\n");
   h = tun->mesh;
-  msg = GNUNET_malloc (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg->tunnel_id = htonl (tun->tid);
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
+  msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
+  msg.tunnel_id = htonl (tun->tid);
   GNUNET_free (tun);
-  send_packet (h, &msg->header);
+  send_packet (h, &msg.header);
 }
 
 
@@ -852,7 +854,7 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
                                       struct GNUNET_TIME_Relative timeout,
                                       const struct GNUNET_PeerIdentity *peer)
 {
-  struct GNUNET_MESH_PeerControl *msg;
+  struct GNUNET_MESH_PeerControl msg;
   GNUNET_PEER_Id peer_id;
   unsigned int i;
 
@@ -870,14 +872,14 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
   tunnel->peers =
       GNUNET_realloc (tunnel->peers, tunnel->npeers * sizeof (GNUNET_PEER_Id));
   tunnel->peers[tunnel->npeers - 1] = peer_id;
-  msg = GNUNET_malloc (sizeof (struct GNUNET_MESH_PeerControl));
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD);
-  msg->tunnel_id = htonl (tunnel->tid);
-  msg->timeout =
+
+  msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD);
+  msg.tunnel_id = htonl (tunnel->tid);
+  msg.timeout =
       GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (timeout));
-  memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  send_packet (tunnel->mesh, &msg->header);
+  msg.peer = *peer;
+  send_packet (tunnel->mesh, &msg.header);
 //   tunnel->connect_handler (tunnel->cls, peer, NULL); FIXME call this later
 //   TODO: remember timeout
   return;
