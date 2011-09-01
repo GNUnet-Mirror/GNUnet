@@ -123,7 +123,15 @@ GNUNET_TRANSPORT_TESTING_connect_peers_cancel (void *cc);
  */
 
 /**
- * this function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
+ * Extracts the test filename from an absolute file name and removes the extension
+ * @param file absolute file name
+ * @param dest where to store result
+ */
+void
+GNUNET_TRANSPORT_TESTING_get_test_name (const char *file, char **dest);
+
+/**
+ * This function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
  * if existing ".exe"-prefix and adds the peer-number
  * @param file filename of the test, e.g. argv[0]
  * @param cfgname where to write the result
@@ -133,10 +141,26 @@ void
 GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **cfgname,
                                           int count);
 
-void
-GNUNET_TRANSPORT_TESTING_get_test_plugin (const char * executable, const char * testname, char **pluginname);
 
+/**
+ * Extracts the plugin anme from an absolute file name and the test name
+ * @param file absolute file name
+ * @param test test name
+ * @param dest where to store result
+ */
 void
-GNUNET_TRANSPORT_TESTING_get_test_sourcename (const char * file, char **testname);
+GNUNET_TRANSPORT_TESTING_get_test_plugin_name (const char *executable,
+                                               const char *testname,
+                                               char **pluginname);
+
+
+/**
+ * Extracts the filename from an absolute file name and removes the extenstion
+ * @param file absolute file name
+ * @param dest where to store result
+ */
+void
+GNUNET_TRANSPORT_TESTING_get_test_source_name (const char *file,
+                                               char **testname);
 
 /* end of transport_testing.h */

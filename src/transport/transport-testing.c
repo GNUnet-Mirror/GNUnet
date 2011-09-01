@@ -205,6 +205,12 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char *cfgname,
                                      GNUNET_TRANSPORT_NotifyDisconnect nd,
                                      void *cb_cls)
 {
+  if (GNUNET_DISK_file_test (cfgname) == GNUNET_NO)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "File not found: `%s' \n", cfgname);
+    return NULL;
+  }
+
   struct PeerContext *p = GNUNET_malloc (sizeof (struct PeerContext));
 
   p->cfg = GNUNET_CONFIGURATION_create ();
@@ -341,20 +347,24 @@ void GNUNET_TRANSPORT_TESTING_connect_peers_cancel
   GNUNET_free (cc);
 }
 
+
 /*
  * Some utility functions
  */
 
+/**
+ * Removes all directory separators from absolute filename
+ * @param file the absolute file name, e.g. as found in argv[0]
+ * @return extracted file name, has to be freed by caller
+ */
 char *
-extract_filename (const char * file)
+extract_filename (const char *file)
 {
   char *pch = strdup (file);
   char *backup = pch;
   char *filename = NULL;
   char *res;
 
-
-  /* get executable filename */
   if (NULL != strstr (pch, "/"))
   {
     pch = strtok (pch, "/");
@@ -362,90 +372,30 @@ extract_filename (const char * file)
     {
       pch = strtok (NULL, "/");
       if (pch != NULL)
-        {
+      {
         filename = pch;
-        }
+      }
     }
   }
   else
     filename = pch;
-  res = strdup(filename);
-  GNUNET_free (backup);
 
+  res = strdup (filename);
+  GNUNET_free (backup);
   return res;
 }
 
-void
-GNUNET_TRANSPORT_TESTING_get_test_sourcename (const char * file, char **testname)
-{
-  char * src = extract_filename (file);
-  char * split;
-
-  split = strstr (src, ".");
-  if (split != NULL)
-  {
-    split[0] = '\0';
-  }
-  GNUNET_asprintf(testname, "%s", src);
-  GNUNET_free (src);
-}
-
-void
-GNUNET_TRANSPORT_TESTING_get_test_plugin (const char * executable, const char * testname, char **pluginname)
-{
-  char *exec = extract_filename (executable);
-  char *test = extract_filename (testname);
-
-  char *backup_t = test;
-  char *filename = NULL;
-  char *dotexe;
-
-  if (exec == NULL)
-    goto fail;
-
-  /* remove "lt-" */
-  filename = strstr (exec, "tes");
-  if (filename == NULL)
-    goto fail;
-
-  /* remove ".exe" */
-  if (NULL != (dotexe = strstr (filename, ".exe")))
-      dotexe[0] = '\0';
-
-  /* find last _ */
-  filename = strstr (filename, test);
-  if (filename == NULL)
-    goto fail;
-
-  /* copy plugin */
-  filename += strlen (test);
-  filename++;
-  GNUNET_asprintf (pluginname, "%s", filename);
-  goto suc;
-
-fail:
-  (*pluginname) = NULL;
-suc:
-  GNUNET_free (backup_t);
-  GNUNET_free (exec);
-
-}
-
 /**
- * this function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
- * if existing ".exe"-prefix and adds the peer-number
- * @param file filename of the test, e.g. argv[0]
- * @param cfgname where to write the result
- * @param count peer number
+ * Extracts the test filename from an absolute file name and removes the extension
+ * @param file absolute file name
+ * @param dest where to store result
  */
 void
-GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **cfgname,
-                                          int count)
+GNUNET_TRANSPORT_TESTING_get_test_name (const char *file, char **dest)
 {
   char *filename = extract_filename (file);
   char *backup = filename;
   char *dotexe;
-
 
   if (filename == NULL)
     goto fail;
@@ -457,21 +407,129 @@ GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **cfgname,
 
   /* remove ".exe" */
   if (NULL != (dotexe = strstr (filename, ".exe")))
-      dotexe[0] = '\0';
+    dotexe[0] = '\0';
 
+  if (filename == NULL)
+    goto fail;
+  goto suc;
+
+fail:
+  (*dest) = NULL;
+  return;
+
+suc:
+  /* create filename */
+  GNUNET_asprintf (dest, "%s", filename);
+  GNUNET_free (backup);
+}
+
+
+/**
+ * Extracts the filename from an absolute file name and removes the extension
+ * @param file absolute file name
+ * @param dest where to store result
+ */
+void
+GNUNET_TRANSPORT_TESTING_get_test_source_name (const char *file, char **dest)
+{
+  char *src = extract_filename (file);
+  char *split;
+
+  split = strstr (src, ".");
+  if (split != NULL)
+  {
+    split[0] = '\0';
+  }
+  GNUNET_asprintf (dest, "%s", src);
+  GNUNET_free (src);
+}
+
+
+/**
+ * Extracts the plugin anme from an absolute file name and the test name
+ * @param file absolute file name
+ * @param test test name
+ * @param dest where to store result
+ */
+void
+GNUNET_TRANSPORT_TESTING_get_test_plugin_name (const char *file,
+                                               const char *test, char **dest)
+{
+  char *e = extract_filename (file);
+  char *t = extract_filename (test);
+
+  char *filename = NULL;
+  char *dotexe;
+
+  if (e == NULL)
+    goto fail;
+
+  /* remove "lt-" */
+  filename = strstr (e, "tes");
+  if (filename == NULL)
+    goto fail;
+
+  /* remove ".exe" */
+  if (NULL != (dotexe = strstr (filename, ".exe")))
+    dotexe[0] = '\0';
+
+  /* find last _ */
+  filename = strstr (filename, t);
   if (filename == NULL)
     goto fail;
 
   /* copy plugin */
+  filename += strlen (t);
+  filename++;
+  GNUNET_asprintf (dest, "%s", filename);
   goto suc;
 
 fail:
-   (*cfgname) = NULL;
-   return;
+  (*dest) = NULL;
+suc:
+  GNUNET_free (t);
+  GNUNET_free (e);
+
+}
+
+/**
+ * This function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
+ * if existing ".exe"-prefix and adds the peer-number
+ * @param file filename of the test, e.g. argv[0]
+ * @param cfgname where to write the result
+ * @param count peer number
+ */
+void
+GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **dest,
+                                          int count)
+{
+  char *filename = extract_filename (file);
+  char *backup = filename;
+  char *dotexe;
+
+  if (filename == NULL)
+    goto fail;
+
+  /* remove "lt-" */
+  filename = strstr (filename, "tes");
+  if (filename == NULL)
+    goto fail;
+
+  /* remove ".exe" */
+  if (NULL != (dotexe = strstr (filename, ".exe")))
+    dotexe[0] = '\0';
+
+  if (filename == NULL)
+    goto fail;
+  goto suc;
+
+fail:
+  (*dest) = NULL;
+  return;
 
 suc:
   /* create cfg filename */
-  GNUNET_asprintf (cfgname, "%s_peer%u.conf", filename, count);
+  GNUNET_asprintf (dest, "%s_peer%u.conf", filename, count);
   GNUNET_free (backup);
 }
 
