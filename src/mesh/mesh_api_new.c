@@ -221,10 +221,6 @@ struct GNUNET_MESH_Peer
    */
   int connected;
 
-    /**
-     * Task to cancel the connection request for this peer
-     */
-  GNUNET_SCHEDULER_TaskIdentifier cancel;
 };
 
 
@@ -405,29 +401,6 @@ timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Notify client that the transmission has timed out
- * @param cls closure
- * @param tc task context
- */
-static void
-timeout_peer_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_MESH_Peer *p = cls;
-  struct GNUNET_PeerIdentity id;
-
-  GNUNET_assert (0 == p->connected);
-  remove_peer_from_tunnel (p);
-
-  if (NULL != p->t->connect_handler)
-    /* FIXME: change handler spec to allow send info about WHO timed out */
-    p->t->connect_handler (p->t->cls, 0, NULL);
-
-  GNUNET_PEER_resolve (p->id, &id);
-  GNUNET_MESH_peer_request_connect_del (p->t, &id);
-  GNUNET_free (p);
-}
-
-/**
  * Add a transmit handle to the transmission queue by priority and set the
  * timeout if needed.
  *
@@ -476,10 +449,7 @@ process_tunnel_create (struct GNUNET_MESH_Handle *h,
   tid = ntohl (msg->tunnel_id);
   if (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH: received an incoming tunnel with tid in local range (%X)\n",
-                tid);
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     return;                     //FIXME abort? reconnect?
   }
   t = GNUNET_malloc (sizeof (struct GNUNET_MESH_Tunnel));
@@ -528,11 +498,6 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
     if (NULL != t->connect_handler)
     {
       t->connect_handler (t->cls, &msg->peer, &atsi);
-    }
-    if (GNUNET_SCHEDULER_NO_TASK != p->cancel)
-    {
-      GNUNET_SCHEDULER_cancel (p->cancel);
-      p->cancel = GNUNET_SCHEDULER_NO_TASK;
     }
     p->connected = 1;
   }
@@ -590,12 +555,12 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     peer = &to_orig->sender;
     break;
   default:
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     return;
   }
   if (NULL == t)
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     return;
   }
   for (i = 0; i < h->n_handlers; i++)
@@ -975,7 +940,7 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tun)
  * Request that a peer should be added to the tunnel.  The existing
  * connect handler will be called ONCE with either success or failure.
  * This function should NOT be called again with the same peer before the
- * connect handler is called
+ * connect handler is called.
  *
  * @param tunnel handle to existing tunnel
  * @param timeout how long to try to establish a connection
@@ -983,7 +948,6 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tun)
  */
 void
 GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
-                                      struct GNUNET_TIME_Relative timeout,
                                       const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_MESH_PeerControl msg;
@@ -1002,7 +966,6 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
     }
   }
   p = add_peer_to_tunnel (tunnel, peer);
-  p->cancel = GNUNET_SCHEDULER_add_delayed (timeout, &timeout_peer_request, p);
 
   msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD);

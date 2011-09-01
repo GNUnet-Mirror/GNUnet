@@ -812,7 +812,7 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
   {
-    announce_applications_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
+    announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
   p = (unsigned int *) &buffer[8];
@@ -855,7 +855,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
   {
-    announce_id_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
+    announce_id_task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
   GNUNET_PEER_resolve (myid, &id);
