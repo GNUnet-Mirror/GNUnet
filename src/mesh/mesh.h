@@ -146,13 +146,6 @@ struct GNUNET_MESH_PeerControl
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
   /**
-   * When should this request time out (the service abort trying to find
-   * a matching peer)?  The request should naturally also be aborted
-   * if the corresponding client disconnects.
-   */
-  struct GNUNET_TIME_AbsoluteNBO timeout;
-
-  /**
    * Peer to connect/disconnect.
    */
   struct GNUNET_PeerIdentity peer;
@@ -165,7 +158,8 @@ struct GNUNET_MESH_PeerControl
 struct GNUNET_MESH_ConnectPeerByType
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE |
+     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_DISCONNECT_PEER_BY_TYPE
      */
   struct GNUNET_MessageHeader header;
 
@@ -173,13 +167,6 @@ struct GNUNET_MESH_ConnectPeerByType
    * ID of a tunnel controlled by this client.
    */
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
-
-  /**
-   * When should this request time out (the service abort trying to find
-   * a matching peer)?  The request should naturally also be aborted
-   * if the corresponding client disconnects.
-   */
-  struct GNUNET_TIME_AbsoluteNBO timeout;
 
   /**
    * Type specification
