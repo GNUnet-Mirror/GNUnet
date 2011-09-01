@@ -124,7 +124,7 @@ end ()
 
   char *value_name;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stopping peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   fprintf (stderr, "\nThroughput was %llu kb/s\n",

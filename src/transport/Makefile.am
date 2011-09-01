@@ -275,6 +275,7 @@ check_PROGRAMS = \
  test_transport_testing \
  test_transport_startonly \
  test_transport_api_disconnect \
+ test_transport_api_multiaddress_tcp \
  $(TEST_TRANSPORT_ATS) \
  $(ATS_TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
@@ -293,7 +294,6 @@ check_PROGRAMS = \
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
- test_transport_api_multiaddress_tcp \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric_recv_constant \
  test_quota_compliance_udp \
@@ -310,6 +310,7 @@ TESTS = \
  test_transport_testing \
  test_transport_startonly \
  test_transport_api_disconnect \
+ test_transport_api_multiaddress_tcp \
  $(TEST_TRANSPORT_ATS) \
  $(ATS_TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
@@ -321,7 +322,6 @@ TESTS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
- test_transport_api_multiaddress_tcp \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
