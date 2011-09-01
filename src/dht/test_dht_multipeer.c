@@ -211,7 +211,7 @@ static unsigned int failed_connections;
 enum GNUNET_DHT_RouteOption route_option;
 
 /* Task handle to use to schedule test failure */
-GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static char *blacklist_transports;
 
@@ -347,12 +347,13 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (die_task);
     //GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5), &get_topology, NULL);
-    GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
+    die_task = GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
   }
   else if ((gets_completed + gets_failed == num_gets) && (outstanding_gets == 0))       /* Had some failures */
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    GNUNET_SCHEDULER_add_now (&end_badly, "not all gets succeeded!\n");
+    die_task =
+        GNUNET_SCHEDULER_add_now (&end_badly, "not all gets succeeded!\n");
   }
 }
 
@@ -645,7 +646,6 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     die_task =
         GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
                                       "from setup puts/gets");
-
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 2),
                                   &setup_puts_and_gets, NULL);
@@ -685,7 +685,6 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All %d daemons started, now connecting peers!\n", num_peers);
 #endif
-    GNUNET_SCHEDULER_cancel (die_task);
 
     expected_connections = -1;
     if ((pg != NULL) && (peers_left == 0))
@@ -701,17 +700,19 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 #endif
     }
 
+    GNUNET_SCHEDULER_cancel (die_task);
     if (expected_connections == GNUNET_SYSERR)
     {
       die_task =
           GNUNET_SCHEDULER_add_now (&end_badly,
                                     "from connect topology (bad return)");
     }
-
-    die_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
-                                      "from connect topology (timeout)");
-
+    else
+    {
+      die_task =
+          GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
+                                        "from connect topology (timeout)");
+    }
     ok = 0;
   }
 }
@@ -720,6 +721,7 @@ static void
 create_topology ()
 {
   peers_left = num_peers;       /* Reset counter */
+  GNUNET_SCHEDULER_cancel (die_task);
   if (GNUNET_TESTING_create_topology
       (pg, topology, blacklist_topology, blacklist_transports) != GNUNET_SYSERR)
   {
@@ -728,18 +730,16 @@ create_topology ()
                 "Topology set up, now starting peers!\n");
 #endif
     GNUNET_TESTING_daemons_continue_startup (pg);
+    die_task =
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
+                                      "from continue startup (timeout)");
   }
   else
   {
-    GNUNET_SCHEDULER_cancel (die_task);
     die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
                                   "from create topology (bad return)");
   }
-  GNUNET_SCHEDULER_cancel (die_task);
-  die_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
-                                    "from continue startup (timeout)");
 }
 
 /**

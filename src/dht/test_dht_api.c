@@ -96,7 +96,7 @@ struct RetryContext retry_context;
 
 static int ok;
 
-GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -173,7 +173,7 @@ test_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (die_task);
-    GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
 
@@ -279,7 +279,7 @@ retry_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (die_task);
-    GNUNET_SCHEDULER_add_now (&end_badly, &p1);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, &p1);
     return;
   }
   retry_ctx->retry_task =
@@ -339,7 +339,7 @@ test_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (die_task);
-    GNUNET_SCHEDULER_add_now (&end_badly, &p1);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, &p1);
     return;
   }
   retry_context.retry_task =
@@ -363,7 +363,7 @@ test_get_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (die_task);
-    GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
   GNUNET_assert (peer->dht_handle != NULL);
@@ -416,7 +416,7 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (die_task);
-    GNUNET_SCHEDULER_add_now (&end_badly, &p1);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, &p1);
     return;
   }
 
