@@ -38,7 +38,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -48,6 +48,12 @@
  * How long until we give up on transmitting the message?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1500)
+
+static char *test_source;
+
+static char *test_plugin;
+
+static char *test_name;
 
 static int ok;
 
@@ -81,9 +87,6 @@ struct TestMessage
   struct GNUNET_MessageHeader header;
   uint32_t num;
 };
-
-static char *test_name;
-static char *test_plugin;
 
 static int msg_scheduled;
 static int msg_sent;
@@ -374,13 +377,22 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             &notify_connect, &notify_disconnect,
                                             NULL);
 
+  if ((p1 == NULL) || (p2 == NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
+    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    return;
+  }
+
   GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
 }
 
 static int
 check ()
 {
-  static char * argv[] = { "SDSD",
+  static char *argv[] = { "test_transport",
     "-c",
     "test_transport_api_data.conf",
 #if VERBOSE
@@ -396,9 +408,8 @@ check ()
   setTransportOptions ("test_transport_api_data.conf");
 #endif
   ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      test_name, "nohelp", options, &run,
-                      &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, test_name,
+                      "nohelp", options, &run, &ok);
 
   return ok;
 }
@@ -408,10 +419,11 @@ main (int argc, char *argv[])
 {
   int ret;
   int nat_res;
-  //char * test_exec;
 
-  GNUNET_TRANSPORT_TESTING_get_test_sourcename (__FILE__, &test_name);
-
+  GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
+  GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0], test_source,
+                                                 &test_plugin);
+  GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
 
   GNUNET_log_setup (test_name,
 #if VERBOSE
@@ -421,10 +433,8 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-  GNUNET_TRANSPORT_TESTING_get_test_plugin (argv[0], test_name, &test_plugin);
-
-  if ((strstr (argv[0], "tcp_nat") != NULL) ||
-      (strstr (argv[0], "udp_nat") != NULL))
+  if ((strcmp (test_plugin, "tcp_nat") == 0) ||
+      (strcmp (test_plugin, "udp_nat") == 0))
   {
     nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
     if (GNUNET_NO == nat_res)
@@ -441,7 +451,6 @@ main (int argc, char *argv[])
     }
   }
 
-
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p1, 1);
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p2, 2);
 
@@ -450,8 +459,9 @@ main (int argc, char *argv[])
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
 
-  GNUNET_free (test_name);
+  GNUNET_free (test_source);
   GNUNET_free (test_plugin);
+  GNUNET_free (test_name);
 
   return ret;
 }
