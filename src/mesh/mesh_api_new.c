@@ -414,7 +414,7 @@ add_to_queue (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MESH_TransmitHandle *p;
 
   p = h->th_head;
-  while ((NULL != p) && (th->priority < p->priority))
+  while ((NULL != p) && (th->priority <= p->priority))
     p = p->next;
   if (NULL == p)
     p = h->th_tail;
@@ -649,12 +649,12 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
  * @return number of bytes written to buf
  */
 static size_t
-send_raw (void *cls, size_t size, void *buf)
+send_callback (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MESH_Handle *h = cls;
   struct GNUNET_MESH_TransmitHandle *th;
   char *cbuf = buf;
-  size_t ret;
+  size_t tsize;
   size_t psize;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Send packet() Buffer %u\n", size);
@@ -665,11 +665,13 @@ send_raw (void *cls, size_t size, void *buf)
     // do_reconnect ();
     return 0;
   }
-  ret = 0;
+  tsize = 0;
   while ((NULL != (th = h->th_head)) && (size >= th->size))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "mesh-api", "type: %u\n",
-                     ntohs (th->data->type));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     type: %u\n",
+                ntohs (th->data->type));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     size: %u\n",
+                ntohs (th->data->size));
     if (NULL == th->data)
     {
       GNUNET_assert (NULL != th->notify);
@@ -722,16 +724,16 @@ send_raw (void *cls, size_t size, void *buf)
     GNUNET_free (th);
     cbuf += psize;
     size -= psize;
-    ret += psize;
+    tsize += psize;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   size: %u\n", ret);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   total size: %u\n", tsize);
   if (NULL != (th = h->th_head))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   next size: %u\n", th->size);
     h->th =
         GNUNET_CLIENT_notify_transmit_ready (h->client, th->size,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_raw, h);
+                                             GNUNET_YES, &send_callback, h);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Send packet() END\n");
   if (GNUNET_NO == h->in_receive)
@@ -740,7 +742,7 @@ send_raw (void *cls, size_t size, void *buf)
     GNUNET_CLIENT_receive (h->client, &msg_received, h,
                            GNUNET_TIME_UNIT_FOREVER_REL);
   }
-  return ret;
+  return tsize;
 }
 
 
@@ -771,7 +773,7 @@ send_packet (struct GNUNET_MESH_Handle *h,
   h->th =
       GNUNET_CLIENT_notify_transmit_ready (h->client, msize,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_YES, &send_raw, h);
+                                           GNUNET_YES, &send_callback, h);
 }
 
 
@@ -951,7 +953,6 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
                                       const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_MESH_PeerControl msg;
-  struct GNUNET_MESH_Peer *p;
   GNUNET_PEER_Id peer_id;
   unsigned int i;
 
@@ -965,7 +966,7 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
       return;
     }
   }
-  p = add_peer_to_tunnel (tunnel, peer);
+  add_peer_to_tunnel (tunnel, peer);
 
   msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD);
