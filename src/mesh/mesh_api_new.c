@@ -198,6 +198,11 @@ struct GNUNET_MESH_Handle
      * Number of packets queued
      */
   unsigned int npackets;
+
+  /**
+   * Configuration given by the client, in case of reconnection
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
 
@@ -271,7 +276,12 @@ struct GNUNET_MESH_Tunnel
      */
   GNUNET_PEER_Id owner;
 
-    /**
+  /**
+   * List of application types that have been requested for this tunnel
+   */
+  GNUNET_MESH_ApplicationType *apps;
+  
+  /**
      * Number of peers added to the tunnel
      */
   unsigned int npeers;
@@ -280,6 +290,12 @@ struct GNUNET_MESH_Tunnel
      * Number of packets queued in this tunnel
      */
   unsigned int npackets;
+
+    /**
+     * Number of applications requested this tunnel
+     */
+  unsigned int napps;
+
 };
 
 
@@ -426,6 +442,61 @@ add_to_queue (struct GNUNET_MESH_Handle *h,
   th->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (th->timeout), &timeout_transmission, th);
+}
+
+
+static void
+send_packet (struct GNUNET_MESH_Handle *h,
+             const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Reconnect to the service, retransmit all infomation to try to restore the
+ * original state.
+ * 
+ * @param h handle to the mesh
+ * 
+ * @return GNUNET_YES in case of sucess, GNUNET_NO otherwise (service down...)
+ */
+static int
+reconnect (struct GNUNET_MESH_Handle *h)
+{
+  struct GNUNET_MESH_Tunnel *t;
+
+  unsigned int i;
+
+  /* disconnect */
+  if (NULL != h->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+  }
+  if (NULL != h->client)
+  {
+    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+  }
+
+  /* connect again */
+  h->client = GNUNET_CLIENT_connect ("mesh", h->cfg);
+  if (h->client == NULL)
+  {
+    /* FIXME: panic? exponential backoff retry? */
+    GNUNET_break (0);
+    return GNUNET_NO;
+  }
+  for (t = h->tunnels_head; NULL != t; t = t->next)
+  {
+    /* create tunnel */
+    for (i = 0; i < t->npeers; i++)
+    {
+      struct GNUNET_MESH_PeerControl msg;
+      msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
+      msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD);
+      msg.tunnel_id = htonl (t->tid);
+//       msg.peer = *peer; FIXME
+      send_packet (t->mesh, &msg.header);
+    }
+  }
+  return GNUNET_YES;
 }
 
 
@@ -662,7 +733,7 @@ send_callback (void *cls, size_t size, void *buf)
   if ((0 == size) || (NULL == buf))
   {
     // FIXME: disconnect, reconnect, retry?
-    // do_reconnect ();
+    reconnect (h);
     return 0;
   }
   tsize = 0;
@@ -816,6 +887,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: GNUNET_MESH_connect()\n");
   h = GNUNET_malloc (sizeof (struct GNUNET_MESH_Handle));
+  h->cfg = cfg;
   h->max_queue_size = queue_size;
   h->cleaner = cleaner;
   h->client = GNUNET_CLIENT_connect ("mesh", cfg);
@@ -1027,18 +1099,18 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
  * message type.
  *
  * @param tunnel handle to existing tunnel
- * @param timeout how long to try to establish a connection
  * @param app_type application type that must be supported by the peer (MESH
  *                 should discover peer in proximity handling this type)
  */
 void
 GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
-                                          struct GNUNET_TIME_Relative timeout,
                                           GNUNET_MESH_ApplicationType app_type)
 {
   struct GNUNET_MESH_ConnectPeerByType msg;
 
-  /* FIXME: remember request connect by type for reconnect! */
+  GNUNET_array_append(tunnel->apps, tunnel->napps, app_type);
+  /* FIXME: add a new api call disconnect by type? */
+
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectPeerByType));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE);
   msg.tunnel_id = htonl (tunnel->tid);
