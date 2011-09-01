@@ -314,6 +314,72 @@ retrieve_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
 
 
 /**
+ * Get the peer descriptor for the peer with id from the given tunnel
+ * @param t Tunnel handle
+ * @param id Short form ID of the wanted peer
+ * @return handle to the requested peer or NULL if not found
+ */
+static struct GNUNET_MESH_Peer *
+retrieve_peer (struct GNUNET_MESH_Tunnel *t, GNUNET_PEER_Id id)
+{
+  unsigned int i;
+
+  for (i = 0; i < t->npeers; i++)
+    if (t->peers[i]->id == id)
+      return t->peers[i];
+  return NULL;
+}
+
+
+/**
+ * Add a peer into a tunnel
+ * @param t Tunnel handle
+ * @param pi Full ID of the new peer
+ * @return handle to the newly created peer
+ */
+static struct GNUNET_MESH_Peer *
+add_peer_to_tunnel (struct GNUNET_MESH_Tunnel *t,
+                    const struct GNUNET_PeerIdentity *pi)
+{
+  struct GNUNET_MESH_Peer *p;
+  GNUNET_PEER_Id id;
+
+  id = GNUNET_PEER_intern (pi);
+
+  p = GNUNET_malloc (sizeof (struct GNUNET_MESH_Peer));
+  p->id = id;
+  p->t = t;
+  GNUNET_array_append (t->peers, t->npeers, p);
+  return p;
+}
+
+
+/**
+ * Remove a peer from a tunnel
+ * @param t Tunnel handle
+ * @param p Peer handle
+ */
+static void
+remove_peer_from_tunnel (struct GNUNET_MESH_Peer *p)
+{
+  unsigned int i;
+
+  for (i = 0; i < p->t->npeers; i++)
+  {
+    if (p->t->peers[i] == p)
+      break;
+  }
+  if (i == p->t->npeers)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  p->t->peers[i] = p->t->peers[p->t->npeers - 1];
+  GNUNET_array_grow (p->t->peers, p->t->npeers, p->t->npeers - 1);
+}
+
+
+/**
  * Notify client that the transmission has timed out
  * @param cls closure
  * @param tc task context
@@ -348,27 +414,17 @@ timeout_peer_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_MESH_Peer *p = cls;
   struct GNUNET_PeerIdentity id;
-  unsigned int i;
 
   GNUNET_assert (0 == p->connected);
-  for (i = 0; i < p->t->npeers; i++)
-  {
-    if (p->t->peers[i] == p)
-      break;
-  }
-  if (i == p->t->npeers)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  p->t->peers[i] = p->t->peers[p->t->npeers - 1];
-  GNUNET_array_grow (p->t->peers, p->t->npeers, p->t->npeers - 1);
+  remove_peer_from_tunnel (p);
 
   if (NULL != p->t->connect_handler)
+    /* FIXME: change handler spec to allow send info about WHO timed out */
     p->t->connect_handler (p->t->cls, 0, NULL);
 
   GNUNET_PEER_resolve (p->id, &id);
   GNUNET_MESH_peer_request_connect_del (p->t, &id);
+  GNUNET_free (p);
 }
 
 /**
@@ -445,33 +501,49 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
                     const struct GNUNET_MESH_PeerControl *msg)
 {
   struct GNUNET_MESH_Tunnel *t;
+  struct GNUNET_MESH_Peer *p;
+  struct GNUNET_TRANSPORT_ATS_Information atsi;
+  GNUNET_PEER_Id id;
   uint16_t size;
 
   size = ntohs (msg->header.size);
   if (size != sizeof (struct GNUNET_MESH_PeerControl))
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     return;
   }
   t = retrieve_tunnel (h, ntohl (msg->tunnel_id));
   if (NULL == t)
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     return;
   }
+  id = GNUNET_PEER_search (&msg->peer);
+  if ((p = retrieve_peer (t, id)) == NULL)
+    p = add_peer_to_tunnel (t, &msg->peer);
+  atsi.type = 0;
+  atsi.value = 0;
   if (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED == msg->header.type)
   {
     if (NULL != t->connect_handler)
     {
-      t->connect_handler (t->cls, &msg->peer, NULL);    /* FIXME atsi */
+      t->connect_handler (t->cls, &msg->peer, &atsi);
     }
+    if (GNUNET_SCHEDULER_NO_TASK != p->cancel)
+    {
+      GNUNET_SCHEDULER_cancel (p->cancel);
+      p->cancel = GNUNET_SCHEDULER_NO_TASK;
+    }
+    p->connected = 1;
   }
   else
   {
-    if (NULL != t->disconnect_handler)
+    if (NULL != t->disconnect_handler && p->connected)
     {
       t->disconnect_handler (t->cls, &msg->peer);
     }
+    remove_peer_from_tunnel (p);
+    GNUNET_free (p);
   }
 }
 
@@ -925,23 +997,19 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
     if (tunnel->peers[i]->id == peer_id)
     {
       GNUNET_PEER_change_rc (peer_id, -1);
-      /* FIXME: peer was already in the tunnel */
+      GNUNET_break (0);
       return;
     }
   }
-  p = GNUNET_malloc (sizeof (struct GNUNET_MESH_Peer));
-  p->id = peer_id;
-  p->t = tunnel;
+  p = add_peer_to_tunnel (tunnel, peer);
   p->cancel = GNUNET_SCHEDULER_add_delayed (timeout, &timeout_peer_request, p);
-  GNUNET_array_append (tunnel->peers, tunnel->npeers, p);
 
   msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD);
   msg.tunnel_id = htonl (tunnel->tid);
   msg.peer = *peer;
   send_packet (tunnel->mesh, &msg.header);
-//   tunnel->connect_handler (tunnel->cls, peer, NULL); FIXME call this later
-//   TODO: remember timeout
+
   return;
 }
 
@@ -976,7 +1044,7 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
     return;
   }
   if (NULL != tunnel->disconnect_handler && tunnel->peers[i]->connected == 1)
-      tunnel->disconnect_handler (tunnel->cls, peer);
+    tunnel->disconnect_handler (tunnel->cls, peer);
   GNUNET_PEER_change_rc (peer_id, -1);
   GNUNET_free (tunnel->peers[i]);
   tunnel->peers[i] = tunnel->peers[tunnel->npeers - 1];
