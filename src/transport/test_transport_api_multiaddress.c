@@ -48,9 +48,16 @@
  * How long until we give up on transmitting the message?
  */
 #define WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
 
 #define MTYPE 12345
+
+static char *test_source;
+
+static char *test_plugin;
+
+static char *test_name;
 
 static int ok;
 
@@ -244,6 +251,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2, &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             NULL);
+
+  if ((p1 == NULL) || (p2 == NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
+    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    return;
+  }
+
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb,
                                                NULL);
 }
@@ -280,8 +297,14 @@ int
 main (int argc, char *argv[])
 {
   int ret;
+  int nat_res;
 
-  GNUNET_log_setup ("test-transport-api",
+  GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
+  GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0], test_source,
+                                                 &test_plugin);
+  GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
+
+  GNUNET_log_setup (test_name,
 #if VERBOSE
                     "DEBUG",
 #else
@@ -289,10 +312,8 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-  int nat_res;
-
-  if ((strstr (argv[0], "tcp_nat") != NULL) ||
-      (strstr (argv[0], "udp_nat") != NULL))
+  if ((strcmp (test_plugin, "tcp_nat") == 0) ||
+      (strcmp (test_plugin, "udp_nat") == 0))
   {
     nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
     if (GNUNET_NO == nat_res)
@@ -307,7 +328,6 @@ main (int argc, char *argv[])
                   "gnunet-nat-server", "file not found");
       return 0;
     }
-
   }
 
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p1, 1);
@@ -317,6 +337,11 @@ main (int argc, char *argv[])
 
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
+
+  GNUNET_free (test_source);
+  GNUNET_free (test_plugin);
+  GNUNET_free (test_name);
+
 
   return ret;
 }

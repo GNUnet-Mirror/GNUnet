@@ -50,6 +50,12 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 900)
 
+static char *test_source;
+
+static char *test_plugin;
+
+static char *test_name;
+
 static int ok;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
@@ -118,12 +124,12 @@ end ()
 
   char *value_name;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stopping peers\n");
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   fprintf (stderr, "\nThroughput was %llu kb/s\n",
            total_bytes * 1000 / 1024 / delta);
-  GNUNET_asprintf (&value_name, "unreliable_%s", test_name);
+  GNUNET_asprintf (&value_name, "unreliable_%s", test_plugin);
   GAUGER ("TRANSPORT", value_name, (int) (total_bytes * 1000 / 1024 / delta),
           "kb/s");
   GNUNET_free (value_name);
@@ -435,6 +441,15 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             &notify_connect, &notify_disconnect,
                                             NULL);
 
+  if ((p1 == NULL) || (p2 == NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
+    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    return;
+  }
+
   GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
 }
 
@@ -458,9 +473,8 @@ check ()
 #endif
   ok = GNUNET_SYSERR;
 
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-transport-api-unreliability", "nohelp", options,
-                      &run, &ok);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, test_name,
+                      "nohelp", options, &run, &ok);
 
   return ok;
 }
@@ -471,7 +485,12 @@ main (int argc, char *argv[])
   int ret;
   int nat_res;
 
-  GNUNET_log_setup ("test-transport-api-unreliability",
+  GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
+  GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0], test_source,
+                                                 &test_plugin);
+  GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
+
+  GNUNET_log_setup (test_name,
 #if VERBOSE
                     "DEBUG",
 #else
@@ -479,40 +498,8 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-  char *pch = strdup (argv[0]);
-  char *backup = pch;
-  char *filename = NULL;
-  char *dotexe;
-  char *src_name = strdup (__FILE__);
-  char *split = NULL;
-
-  /* get executable filename */
-  pch = strtok (pch, "/");
-  while (pch != NULL)
-  {
-    pch = strtok (NULL, "/");
-    if (pch != NULL)
-      filename = pch;
-  }
-  /* remove "lt-" */
-  filename = strstr (filename, "tes");
-  if (NULL != (dotexe = strstr (filename, ".exe")))
-    dotexe[0] = '\0';
-
-  split = strstr (src_name, ".");
-  if (split != NULL)
-  {
-    split[0] = '\0';
-    test_name = strdup (&filename[strlen (src_name) + 1]);
-  }
-  else
-    test_name = NULL;
-
-  GNUNET_free (src_name);
-  GNUNET_free (backup);
-
-  if ((strstr (argv[0], "tcp_nat") != NULL) ||
-      (strstr (argv[0], "udp_nat") != NULL))
+  if ((strcmp (test_plugin, "tcp_nat") == 0) ||
+      (strcmp (test_plugin, "udp_nat") == 0))
   {
     nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
     if (GNUNET_NO == nat_res)
@@ -537,7 +524,9 @@ main (int argc, char *argv[])
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
 
-  GNUNET_free_non_null (test_name);
+  GNUNET_free (test_source);
+  GNUNET_free (test_plugin);
+  GNUNET_free (test_name);
 
   return ret;
 }
