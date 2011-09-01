@@ -161,7 +161,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
 
 
 /**
- * Method called whenever a tunnel falls apart.
+ * Method called whenever a peer has disconnected from the tunnel.
  *
  * @param cls closure
  * @param peer peer identity the tunnel stopped working with
@@ -173,7 +173,7 @@ typedef void (*GNUNET_MESH_TunnelDisconnectHandler) (void *cls,
 
 
 /**
- * Method called whenever a tunnel is established.
+ * Method called whenever a peer has connected to the tunnel.
  *
  * @param cls closure
  * @param peer peer identity the tunnel was created to, NULL on timeout
@@ -213,16 +213,14 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tun);
 
 
 /**
- * Request that a peer should be added to the tunnel.  The existing
- * connect handler will be called ONCE with either success or failure.
+ * Request that a peer should be added to the tunnel.  The connect handler
+ * will be called when the peer connects
  *
  * @param tunnel handle to existing tunnel
- * @param timeout how long to try to establish a connection
  * @param peer peer to add
  */
 void
 GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
-                                      struct GNUNET_TIME_Relative timeout,
                                       const struct GNUNET_PeerIdentity *peer);
 
 
