@@ -406,23 +406,7 @@ destroy_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
     GNUNET_free (t->peers);
   GNUNET_free (t);
   return;
-  }
-  GNUNET_CONTAINER_DLL_remove (h->tunnels_head, h->tunnels_tail, t);
-  for (i = 0; i < t->npeers; i++)
-  {
-    GNUNET_PEER_resolve (t->peers[i]->id, &pi);
-    t->disconnect_handler (t->cls, &pi);
-    GNUNET_PEER_change_rc (t->peers[i]->id, -1);
-    GNUNET_free (t->peers[i]);
-  }
-  h->cleaner (h->cls, t, NULL); /* FIXME ctx? */
-  if (0 != t->owner)
-    GNUNET_PEER_change_rc (t->owner, -1);
-  GNUNET_free (t->peers);
-  GNUNET_free (t);
-  return;
 }
-
 
 /**
  * Get the peer descriptor for the peer with id from the given tunnel
@@ -1173,8 +1157,8 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tun)
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg.tunnel_id = htonl (t->tid);
-  destroy_tunnel (h, t->tid);
+  msg.tunnel_id = htonl (tun->tid);
+  destroy_tunnel (h, tun->tid);
   send_packet (h, &msg.header);
 }
 
