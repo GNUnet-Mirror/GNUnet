@@ -1203,14 +1203,13 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
 {
   struct GNUNET_TRANSPORT_GetHelloHandle *hwl;
 
-  if (handle->my_hello == NULL)
-    return NULL;
   hwl = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_GetHelloHandle));
   hwl->rec = rec;
   hwl->rec_cls = rec_cls;
   hwl->handle = handle;
   GNUNET_CONTAINER_DLL_insert (handle->hwl_head, handle->hwl_tail, hwl);
-  rec (rec_cls, (const struct GNUNET_MessageHeader *) handle->my_hello);
+  if (handle->my_hello != NULL)
+    rec (rec_cls, (const struct GNUNET_MessageHeader *) handle->my_hello);
   return hwl;
 }
 
