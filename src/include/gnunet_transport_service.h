@@ -584,7 +584,7 @@ struct GNUNET_TRANSPORT_GetHelloHandle;
  * @param handle connection to transport service
  * @param rec function to call with the HELLO
  * @param rec_cls closure for rec
- * @return handle to cancel the operation, NULL on error
+ * @return handle to cancel the operation
  */
 struct GNUNET_TRANSPORT_GetHelloHandle *
 GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,

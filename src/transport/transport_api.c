@@ -1194,7 +1194,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  *            (handshake with transport service pending/failed).
  *             cost estimate will be 0.
  * @param rec_cls closure for rec
- * @return handle to cancel the operation, NULL on error
+ * @return handle to cancel the operation
  */
 struct GNUNET_TRANSPORT_GetHelloHandle *
 GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
