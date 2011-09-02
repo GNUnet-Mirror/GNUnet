@@ -542,7 +542,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                     &neighbour_timeout_task, n);
   connect_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  connect_msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
+  connect_msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT);
   GST_neighbours_send (peer, &connect_msg, sizeof (connect_msg),
                        GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
 }
