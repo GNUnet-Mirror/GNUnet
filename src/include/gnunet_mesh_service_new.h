@@ -57,6 +57,7 @@ struct GNUNET_MESH_Tunnel;
 /**
  * Functions with this signature are called whenever a message is
  * received or transmitted.
+ * FIXME: transmitted???
  *
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
@@ -241,13 +242,11 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
  * message type.
  *
  * @param tunnel handle to existing tunnel
- * @param timeout how long to try to establish a connection
  * @param app_type application type that must be supported by the peer
  *                 (MESH should discover peer in proximity handling this type)
  */
 void
 GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
-                                          struct GNUNET_TIME_Relative timeout,
                                           GNUNET_MESH_ApplicationType app_type);
 
 

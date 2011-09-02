@@ -22,7 +22,6 @@
  * @author Bartlomiej Polot
  *
  * TODO:
- * - handle reconnect (service crash/disconnect) properly
  * - callbacks to client missing on certain events
  * - processing messages from service is incomplete
  *
@@ -280,7 +279,7 @@ struct GNUNET_MESH_Tunnel
    * List of application types that have been requested for this tunnel
    */
   GNUNET_MESH_ApplicationType *apps;
-  
+
   /**
      * Number of peers added to the tunnel
      */
@@ -322,6 +321,34 @@ retrieve_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
     t = t->next;
   }
   return NULL;
+}
+
+
+/**
+ * Get the tunnel handler for the tunnel specified by id from the given handle
+ * @param h Mesh handle
+ * @param tid ID of the wanted tunnel
+ * @return handle to the required tunnel or NULL if not found
+ */
+static struct GNUNET_MESH_Tunnel *
+create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
+{
+  struct GNUNET_MESH_Tunnel *t;
+
+  t = GNUNET_malloc (sizeof (struct GNUNET_MESH_Tunnel));
+  t->mesh = h;
+  if (0 == tid)
+  {
+    t->tid = h->next_tid++;
+  }
+  else
+  {
+    t->tid = tid;
+    h->next_tid = tid + 1;
+  }
+  h->next_tid |= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK;      // keep in range
+  GNUNET_CONTAINER_DLL_insert (h->tunnels_head, h->tunnels_tail, t);
+  return t;
 }
 
 
@@ -453,18 +480,19 @@ send_packet (struct GNUNET_MESH_Handle *h,
 /**
  * Reconnect to the service, retransmit all infomation to try to restore the
  * original state.
- * 
+ * FIXME: notify user about it? (call all disconnect callbacks?)
+ *
  * @param h handle to the mesh
- * 
+ *
  * @return GNUNET_YES in case of sucess, GNUNET_NO otherwise (service down...)
  */
 static int
 reconnect (struct GNUNET_MESH_Handle *h)
 {
   struct GNUNET_MESH_Tunnel *t;
-
   unsigned int i;
 
+  h->in_receive = GNUNET_NO;
   /* disconnect */
   if (NULL != h->th)
   {
@@ -485,16 +513,23 @@ reconnect (struct GNUNET_MESH_Handle *h)
   }
   for (t = h->tunnels_head; NULL != t; t = t->next)
   {
-    /* create tunnel */
+    struct GNUNET_MESH_TunnelMessage msg;
+
+    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
+    msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
+    msg.tunnel_id = htonl (t->tid);
+    send_packet (h, &msg.header);
     for (i = 0; i < t->npeers; i++)
     {
       struct GNUNET_MESH_PeerControl msg;
+
       msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
       msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD);
       msg.tunnel_id = htonl (t->tid);
-//       msg.peer = *peer; FIXME
+      GNUNET_PEER_resolve (t->peers[i]->id, &msg.peer);
       send_packet (t->mesh, &msg.header);
     }
+    /* FIXME what about connects by type? */
   }
   return GNUNET_YES;
 }
@@ -521,7 +556,7 @@ process_tunnel_create (struct GNUNET_MESH_Handle *h,
   if (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK)
   {
     GNUNET_break (0);
-    return;                     //FIXME abort? reconnect?
+    return;
   }
   t = GNUNET_malloc (sizeof (struct GNUNET_MESH_Tunnel));
   t->cls = h->cls;
@@ -556,7 +591,14 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   t = retrieve_tunnel (h, ntohl (msg->tunnel_id));
   if (NULL == t)
   {
-    GNUNET_break (0);
+    t = create_tunnel (h, msg->tunnel_id);
+    t->owner = GNUNET_PEER_intern (&msg->peer);
+    t->npeers = 1;
+    t->peers = GNUNET_malloc (sizeof (struct GNUNET_MESH_Peer *));
+    t->peers[0] = GNUNET_malloc (sizeof (struct GNUNET_MESH_Peer));
+    t->peers[0]->t = t;
+    t->peers[0]->connected = 1;
+    t->peers[0]->id = t->owner;
     return;
   }
   id = GNUNET_PEER_search (&msg->peer);
@@ -639,9 +681,14 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     handler = &h->message_handlers[i];
     if (handler->type == type)
     {
-      if (GNUNET_OK == handler->callback (h->cls, t, NULL,      /* FIXME ctx */
-                                          peer, payload, NULL))
-      {                         /* FIXME atsi */
+      struct GNUNET_TRANSPORT_ATS_Information atsi;
+
+      atsi.type = 0;
+      atsi.value = 0;
+      /* FIXME ctx */
+      if (GNUNET_OK ==
+          handler->callback (h->cls, t, NULL, peer, payload, &atsi))
+      {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "MESH: callback completed successfully\n");
       }
@@ -670,10 +717,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: received a message from MESH\n");
   if (msg == NULL)
   {
-    GNUNET_break (0);
-    h->in_receive = GNUNET_NO;
-    // rather: do_reconnect () -- and set 'in_receive' to NO there...
-    // FIXME: service disconnect, handle!
+    reconnect (h);
     return;
   }
   switch (ntohs (msg->type))
@@ -732,7 +776,6 @@ send_callback (void *cls, size_t size, void *buf)
   h->th = NULL;
   if ((0 == size) || (NULL == buf))
   {
-    // FIXME: disconnect, reconnect, retry?
     reconnect (h);
     return 0;
   }
@@ -973,13 +1016,10 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MESH_TunnelMessage msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Creating new tunnel\n");
-  t = GNUNET_malloc (sizeof (struct GNUNET_MESH_Tunnel));
+  t = create_tunnel (h, 0);
   t->connect_handler = connect_handler;
   t->disconnect_handler = disconnect_handler;
   t->cls = handler_cls;
-  t->mesh = h;
-  t->tid = h->next_tid++;
-  h->next_tid |= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK;      // keep in range
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
   msg.tunnel_id = htonl (t->tid);
@@ -994,18 +1034,21 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
  * @param tun tunnel handle
  */
 void
-GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tun)
+GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *t)
 {
   struct GNUNET_MESH_Handle *h;
   struct GNUNET_MESH_TunnelMessage msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Destroying tunnel\n");
-  h = tun->mesh;
+  h = t->mesh;
+
+  if (0 != t->owner)
+    GNUNET_PEER_change_rc (t->owner, -1);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg.tunnel_id = htonl (tun->tid);
-  GNUNET_free (tun);
+  msg.tunnel_id = htonl (t->tid);
+  GNUNET_free (t);
   send_packet (h, &msg.header);
 }
 
@@ -1108,7 +1151,7 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
 {
   struct GNUNET_MESH_ConnectPeerByType msg;
 
-  GNUNET_array_append(tunnel->apps, tunnel->napps, app_type);
+  GNUNET_array_append (tunnel->apps, tunnel->napps, app_type);
   /* FIXME: add a new api call disconnect by type? */
 
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectPeerByType));
