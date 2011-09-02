@@ -876,7 +876,6 @@ extern "C"
 
 /**
  * Transport data back in the mesh (end->origin)
- * (not sure if this is the right way, should be some other solution)
  */
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN              262
 
@@ -908,38 +907,22 @@ extern "C"
 /**
  * Ask the mesh service to add a peer to an existing tunnel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD 275
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD         275
 
 /**
  * Ask the mesh service to remove a peer from a tunnel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL 276
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL         276
 
 /**
  * Ask the mesh service to add a peer offering a service to an existing tunnel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE     277
-
-/**
- * Ask the mesh service to cancel a peer connection request
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL      278
-
-/**
- * Notify a mesh client that a peer has connected to a tunnel
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED           279
-
-/**
- * Notify a mesh client that a peer has disconnected from a tunnel
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DISCONNECTED        280
-
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE 277
 
 /**
  * 640kb should be enough for everybody
  */
-#define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END   288
+#define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END            288
 
 
 

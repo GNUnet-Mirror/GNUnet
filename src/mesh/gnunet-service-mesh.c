@@ -1682,7 +1682,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
     peer_info->state = MESH_PEER_READY;
-    pc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED);
+    pc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD);
     pc.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
     pc.tunnel_id = htonl (t->local_tid);
     GNUNET_PEER_resolve (peer_info->id, &pc.peer);
@@ -2494,7 +2494,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
                                          get_peer_info (&pc.peer),
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
       pc.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
-      pc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED);
+      pc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD);
       pc.tunnel_id = htonl (t->local_tid);
       GNUNET_SERVER_notification_context_unicast (nc, client, NULL, GNUNET_NO);
     }
@@ -2679,13 +2679,13 @@ static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY,
    sizeof (struct GNUNET_MESH_TunnelMessage)},
   {&handle_local_connect_add, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD,
    sizeof (struct GNUNET_MESH_PeerControl)},
   {&handle_local_connect_del, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL,
    sizeof (struct GNUNET_MESH_PeerControl)},
   {&handle_local_connect_by_type, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE,
    sizeof (struct GNUNET_MESH_ConnectPeerByType)},
   {&handle_local_unicast, NULL,
    GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
