@@ -217,6 +217,12 @@ struct ValidationEntry
    */
   size_t addrlen;
 
+  /**
+   * When passing the address in 'add_valid_peer_address', did we 
+   * copy the address to the HELLO yet?
+   */
+  int copied;
+
 };
 
 
@@ -865,12 +871,17 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls the 'struct ValidationEntry' with the validated address
  * @param max space in buf
  * @param buf where to add the address
+ * @return number of bytes written, 0 to signal the
+ *         end of the iteration.
  */
 static size_t
 add_valid_peer_address (void *cls, size_t max, void *buf)
 {
   struct ValidationEntry *ve = cls;
 
+  if (GNUNET_YES == ve->copied)
+    return 0; /* terminate */
+  ve->copied = GNUNET_YES;
   return GNUNET_HELLO_add_address (ve->transport_name, ve->valid_until,
                                    ve->addr, ve->addrlen, buf, max);
 }
@@ -968,6 +979,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   //  GNUNET_ATS_address_update (GST_ats, &ve->pid, ve->valid_until, ve->transport_name, NULL, ve->addr, ve->addrlen, NULL, 0);     /* FIXME: compute and add latency here... */
 
   /* build HELLO to store in PEERINFO */
+  ve->copied = GNUNET_NO;
   hello = GNUNET_HELLO_create (&ve->public_key, &add_valid_peer_address, ve);
   GNUNET_PEERINFO_add_peer (GST_peerinfo, hello);
   GNUNET_free (hello);
