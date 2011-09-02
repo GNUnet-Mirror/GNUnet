@@ -443,6 +443,7 @@ typedef void (*GNUNET_TESTING_NotifyTopology) (void *cls,
                                                const struct GNUNET_PeerIdentity
                                                * second, const char *emsg);
 
+
 /**
  * Starts a GNUnet daemon.  GNUnet must be installed on the target
  * system and available in the PATH.  The machine must furthermore be
@@ -486,6 +487,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_TESTING_daemon_continue_startup (struct GNUNET_TESTING_Daemon *daemon);
 
+
 /**
  * Check whether the given daemon is running.
  *
@@ -496,6 +498,7 @@ GNUNET_TESTING_daemon_continue_startup (struct GNUNET_TESTING_Daemon *daemon);
  */
 int
 GNUNET_TESTING_daemon_running (struct GNUNET_TESTING_Daemon *daemon);
+
 
 /**
  * Restart (stop and start) a GNUnet daemon.
@@ -508,6 +511,7 @@ void
 GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
                                GNUNET_TESTING_NotifyDaemonRunning cb,
                                void *cb_cls);
+
 
 /**
  * Start a peer that has previously been stopped using the daemon_stop
@@ -523,6 +527,7 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
                                      struct GNUNET_TIME_Relative timeout,
                                      GNUNET_TESTING_NotifyDaemonRunning cb,
                                      void *cb_cls);
+
 
 /**
  * Starts a GNUnet daemon's service.
@@ -540,6 +545,7 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
                                      GNUNET_TESTING_NotifyDaemonRunning cb,
                                      void *cb_cls);
 
+
 /**
  * Starts a GNUnet daemon's service which has been previously turned off.
  *
@@ -556,6 +562,7 @@ GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
                                              timeout,
                                              GNUNET_TESTING_NotifyDaemonRunning
                                              cb, void *cb_cls);
+
 
 /**
  * Get a certain testing daemon handle.
@@ -732,7 +739,8 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @param cc connect context
  */
 void
-GNUNET_TESTING_daemons_connect_cancel (struct GNUNET_TESTING_ConnectContext *cc);
+GNUNET_TESTING_daemons_connect_cancel (struct GNUNET_TESTING_ConnectContext
+                                       *cc);
 
 
 /**
