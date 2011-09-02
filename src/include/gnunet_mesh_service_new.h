@@ -106,6 +106,26 @@ struct GNUNET_MESH_MessageHandler
 
 
 /**
+ * Method called whenever another peer has added us to a tunnel
+ * the other peer initiated.
+ *
+ * @param cls closure
+ * @param tunnel new handle to the tunnel
+ * @param initiator peer that started the tunnel
+ * @param atsi performance information for the tunnel
+ * @return initial tunnel context for the tunnel (can be NULL -- that's not an error)
+ */
+typedef void* (GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
+                                                               struct GNUNET_MESH_Tunnel * tunnel,
+                                                               const struct
+                                                               GNUNET_PeerIdentity *
+                                                               initiator,
+                                                               const struct
+                                                               GNUNET_TRANSPORT_ATS_Information *
+                                                               atsi);
+
+
+/**
  * Function called whenever an inbound tunnel is destroyed.  Should clean up
  * any associated state.
  *
@@ -116,35 +136,13 @@ struct GNUNET_MESH_MessageHandler
  */
 typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
                                              const struct GNUNET_MESH_Tunnel *
-                                             tunnel, void **tunnel_ctx);
+                                             tunnel, void *tunnel_ctx);
 
 
 /**
  * Type for an application.  Values defined in gnunet_applications.h
  */
 typedef uint32_t GNUNET_MESH_ApplicationType;
-
-
-/**
- * Method called whenever another peer has added us to a tunnel
- * the other peer initiated.
- *
- * @param cls closure
- * @param tunnel new handle to the tunnel
- * @param initiator peer that started the tunnel
- * @param atsi performance information for the tunnel
- * @return initial tunnel context for the tunnel (can be NULL -- that's not an error)
- */
-typedef void *(*GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
-                                                               struct
-                                                               GNUNET_MESH_Tunnel
-                                                               * tunnel,
-                                                               const struct
-                                                               GNUNET_PeerIdentity
-                                                               * initiator,
-                                                               const struct
-                                                               GNUNET_TRANSPORT_ATS_Information
-                                                               * atsi);
 
 
 /**
@@ -156,6 +154,7 @@ typedef void *(*GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
  *                    no matter what is the status of other tunnels)
  * @param cls closure for the various callbacks that follow
  *            (including handlers in the handlers array)
+ * @param new_tunnel function called when an *inbound* tunnel is created
  * @param cleaner function called when an *inbound* tunnel is destroyed
  * @param handlers callbacks for messages we care about, NULL-terminated
  *                note that the mesh is allowed to drop notifications about
@@ -168,6 +167,7 @@ typedef void *(*GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
 struct GNUNET_MESH_Handle *
 GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      unsigned int queue_size, void *cls,
+                     GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,
                      const GNUNET_MESH_ApplicationType *stypes);

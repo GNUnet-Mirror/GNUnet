@@ -286,7 +286,7 @@ struct MESH_TunnelID
 
     /**
      * Tunnel number to differentiate all the tunnels owned by the node oid
-     * ( tid < GNUNET_MESH_LOCAL_TUNNEL_ID_MARK )
+     * ( tid < GNUNET_MESH_LOCAL_TUNNEL_ID_CLI )
      */
   MESH_TunnelNumber tid;
 };
@@ -309,7 +309,7 @@ struct MeshTunnel
   struct MESH_TunnelID id;
 
     /**
-     * Local tunnel number ( >= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK or 0 )
+     * Local tunnel number ( >= GNUNET_MESH_LOCAL_TUNNEL_ID_CLI or 0 )
      */
   MESH_TunnelNumber local_tid;
 
@@ -2187,7 +2187,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
   t_msg = (struct GNUNET_MESH_TunnelMessage *) message;
   /* Sanity check for tunnel numbering */
-  if (0 == (ntohl (t_msg->tunnel_id) & GNUNET_MESH_LOCAL_TUNNEL_ID_MARK))
+  if (0 == (ntohl (t_msg->tunnel_id) & GNUNET_MESH_LOCAL_TUNNEL_ID_CLI))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2203,7 +2203,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
   t = GNUNET_malloc (sizeof (struct MeshTunnel));
   while (NULL != retrieve_tunnel_by_pi (myid, next_tid))
-    next_tid = (next_tid + 1) % GNUNET_MESH_LOCAL_TUNNEL_ID_MARK;
+    next_tid = (next_tid + 1) & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   t->id.tid = next_tid++;
   t->id.oid = myid;
   t->local_tid = ntohl (t_msg->tunnel_id);

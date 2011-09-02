@@ -104,7 +104,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_MESH_Tunnel *t;
 
   test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
-  mesh = GNUNET_MESH_connect (cfg, 10, NULL, NULL, handlers, app);
+  mesh = GNUNET_MESH_connect (cfg, 10, NULL, NULL, NULL, handlers, app);
   if (NULL == mesh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
@@ -115,7 +115,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
   }
 
-  t = GNUNET_MESH_tunnel_create (mesh, NULL, NULL, NULL);
+  t = GNUNET_MESH_tunnel_create (mesh, NULL, NULL, NULL, NULL);
 
   GNUNET_MESH_tunnel_destroy (t);
 

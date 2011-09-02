@@ -204,7 +204,7 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
  */
 static void
 tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
-                void **tunnel_ctx)
+                void *tunnel_ctx)
 {
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel disconnected\n");
@@ -263,12 +263,13 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "connecting to mesh service of peer %s\n", GNUNET_i2s (&d->id));
 #endif
-  h = GNUNET_MESH_connect (d->cfg, 10, NULL, &tunnel_cleaner, handlers, &app);
+  h = GNUNET_MESH_connect (d->cfg, 10, NULL, NULL, &tunnel_cleaner, handlers,
+                           &app);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connected to mesh service of peer %s\n",
               GNUNET_i2s (&d->id));
 #endif
-  t = GNUNET_MESH_tunnel_create (h, &ch, &dh, NULL);
+  t = GNUNET_MESH_tunnel_create (h, NULL, &ch, &dh, NULL);
   GNUNET_MESH_tunnel_destroy (t);
   GNUNET_MESH_disconnect (h);
 }
