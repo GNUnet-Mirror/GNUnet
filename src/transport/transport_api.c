@@ -150,18 +150,23 @@ struct Neighbour
 /**
  * Linked list of functions to call whenever our HELLO is updated.
  */
-struct HelloWaitList
+struct GNUNET_TRANSPORT_GetHelloHandle
 {
 
   /**
    * This is a doubly linked list.
    */
-  struct HelloWaitList *next;
+  struct GNUNET_TRANSPORT_GetHelloHandle *next;
 
   /**
    * This is a doubly linked list.
    */
-  struct HelloWaitList *prev;
+  struct GNUNET_TRANSPORT_GetHelloHandle *prev;
+
+  /**
+   * Transport handle.
+   */
+  struct GNUNET_TRANSPORT_Handle *handle;
 
   /**
    * Callback to call once we got our HELLO.
@@ -232,12 +237,12 @@ struct GNUNET_TRANSPORT_Handle
   /**
    * Linked list of pending requests for our HELLO.
    */
-  struct HelloWaitList *hwl_head;
+  struct GNUNET_TRANSPORT_GetHelloHandle *hwl_head;
 
   /**
    * Linked list of pending requests for our HELLO.
    */
-  struct HelloWaitList *hwl_tail;
+  struct GNUNET_TRANSPORT_GetHelloHandle *hwl_tail;
 
   /**
    * My configuration.
@@ -397,8 +402,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct InboundMessage *im;
   const struct GNUNET_MessageHeader *imm;
   const struct SendOkMessage *okm;
-  struct HelloWaitList *hwl;
-  struct HelloWaitList *next_hwl;
+  struct GNUNET_TRANSPORT_GetHelloHandle *hwl;
+  struct GNUNET_TRANSPORT_GetHelloHandle *next_hwl;
   struct Neighbour *n;
   struct GNUNET_PeerIdentity me;
   uint16_t size;
@@ -1189,50 +1194,39 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  *            (handshake with transport service pending/failed).
  *             cost estimate will be 0.
  * @param rec_cls closure for rec
+ * @return handle to cancel the operation, NULL on error
  */
-void
+struct GNUNET_TRANSPORT_GetHelloHandle *
 GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
                             GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls)
 {
-  struct HelloWaitList *hwl;
+  struct GNUNET_TRANSPORT_GetHelloHandle *hwl;
 
-  hwl = GNUNET_malloc (sizeof (struct HelloWaitList));
+  if (handle->my_hello == NULL)
+    return NULL;
+  hwl = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_GetHelloHandle));
   hwl->rec = rec;
   hwl->rec_cls = rec_cls;
+  hwl->handle = handle;
   GNUNET_CONTAINER_DLL_insert (handle->hwl_head, handle->hwl_tail, hwl);
-  if (handle->my_hello == NULL)
-    return;
   rec (rec_cls, (const struct GNUNET_MessageHeader *) handle->my_hello);
+  return hwl;
 }
 
 
 /**
  * Stop receiving updates about changes to our HELLO message.
  *
- * @param handle connection to transport service
- * @param rec function previously registered to be called with the HELLOs
- * @param rec_cls closure for rec
+ * @param ghh handle to cancel
  */
 void
-GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
-                                   GNUNET_TRANSPORT_HelloUpdateCallback rec,
-                                   void *rec_cls)
+GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh)
 {
-  struct HelloWaitList *pos;
+  struct GNUNET_TRANSPORT_Handle *handle = ghh->handle;
 
-  pos = handle->hwl_head;
-  while (pos != NULL)
-  {
-    if ((pos->rec == rec) && (pos->rec_cls == rec_cls))
-      break;
-    pos = pos->next;
-  }
-  GNUNET_break (pos != NULL);
-  if (pos == NULL)
-    return;
-  GNUNET_CONTAINER_DLL_remove (handle->hwl_head, handle->hwl_tail, pos);
-  GNUNET_free (pos);
+  GNUNET_CONTAINER_DLL_remove (handle->hwl_head, handle->hwl_tail, ghh);
+  GNUNET_free (ghh);
 }
 
 

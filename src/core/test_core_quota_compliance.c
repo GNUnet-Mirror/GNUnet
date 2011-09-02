@@ -81,6 +81,7 @@ struct PeerContext
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_STATISTICS_Handle *stats;
+  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
   int connect_status;
 #if START_ARM
   struct GNUNET_OS_Process *arm_proc;
@@ -122,8 +123,8 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CORE_Handle *ch;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
-  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
+  GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
+  GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
   ch = p1.ch;
   p1.ch = NULL;
   GNUNET_CORE_disconnect (ch);
@@ -147,8 +148,8 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (measure_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (measure_task);
 
-  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
-  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
+  GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
+  GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
 
   GNUNET_CORE_disconnect (p1.ch);
   p1.ch = NULL;
@@ -563,7 +564,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   GNUNET_assert (p->stats != NULL);
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
-  GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
+  p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
 }
 
 

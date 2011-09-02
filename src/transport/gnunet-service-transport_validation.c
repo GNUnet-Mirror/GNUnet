@@ -218,7 +218,7 @@ struct ValidationEntry
   size_t addrlen;
 
   /**
-   * When passing the address in 'add_valid_peer_address', did we 
+   * When passing the address in 'add_valid_peer_address', did we
    * copy the address to the HELLO yet?
    */
   int copied;
@@ -880,7 +880,7 @@ add_valid_peer_address (void *cls, size_t max, void *buf)
   struct ValidationEntry *ve = cls;
 
   if (GNUNET_YES == ve->copied)
-    return 0; /* terminate */
+    return 0;                   /* terminate */
   ve->copied = GNUNET_YES;
   return GNUNET_HELLO_add_address (ve->transport_name, ve->valid_until,
                                    ve->addr, ve->addrlen, buf, max);

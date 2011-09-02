@@ -170,8 +170,8 @@ end_badly ()
   }
   else
   {
-    GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
-    GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
+    GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
+    GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
   }
 
   GNUNET_TRANSPORT_disconnect (p1.th);
@@ -314,8 +314,8 @@ peers_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from Transport \n");
 
-  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
-  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
+  GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
+  GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
 
   GNUNET_TRANSPORT_disconnect (p1.th);
   p1.th = NULL;
@@ -358,8 +358,8 @@ peers_connect ()
   GNUNET_assert (p1.th != NULL);
   GNUNET_assert (p2.th != NULL);
 
-  GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
-  GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
+  p1.ghh = GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
+  p2.ghh = GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
   tct = GNUNET_SCHEDULER_add_now (&try_connect, NULL);
 }
 

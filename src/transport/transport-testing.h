@@ -44,6 +44,8 @@ struct PeerContext
 
   struct GNUNET_TRANSPORT_Handle *th;
 
+  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+
   struct GNUNET_PeerIdentity id;
 
   struct GNUNET_OS_Process *arm_proc;

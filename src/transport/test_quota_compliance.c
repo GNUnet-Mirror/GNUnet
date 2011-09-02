@@ -601,8 +601,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_SCHEDULER_cancel (tct);
       tct = GNUNET_SCHEDULER_NO_TASK;
     }
-    GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
-    GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
+    GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
+    GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
     if (is_asymmetric_send_constant == GNUNET_YES)
       measure (MEASUREMENT_MIN_QUOTA, MEASUREMENT_MAX_QUOTA);
     else if (is_asymmetric_recv_constant == GNUNET_YES)
@@ -776,8 +776,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_assert (p1.th != NULL);
   GNUNET_assert (p2.th != NULL);
-  GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
-  GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
+  p1.ghh = GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
+  p2.ghh = GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
   tct = GNUNET_SCHEDULER_add_now (&try_connect, NULL);
 }
 

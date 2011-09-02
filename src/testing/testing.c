@@ -137,9 +137,9 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   {
     return;
   }
-  if (daemon->th != NULL)
+  if (daemon->ghh != NULL)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (daemon->th, &process_hello, daemon);
+    GNUNET_TRANSPORT_get_hello_cancel (daemon->ghh);
   }
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -246,7 +246,7 @@ testing_init (void *cls, struct GNUNET_CORE_Handle *server,
               GNUNET_i2s (my_identity));
 #endif
 
-  GNUNET_TRANSPORT_get_hello (d->th, &process_hello, d);
+  d->ghh = GNUNET_TRANSPORT_get_hello (d->th, &process_hello, d);
   /* wait some more */
   if (d->task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (d->task);
@@ -706,7 +706,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 GNUNET_i2s (&d->id));
 #endif
 
-    GNUNET_TRANSPORT_get_hello (d->th, &process_hello, d);
+    d->ghh = GNUNET_TRANSPORT_get_hello (d->th, &process_hello, d);
     GNUNET_SCHEDULER_add_now (&notify_daemon_started, d);
     /*cb = d->cb;
      * d->cb = NULL;
@@ -836,7 +836,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                       ("either `gnunet-arm' or `ssh' does not seem to terminate.\n"));
         if (d->th != NULL)
         {
-          GNUNET_TRANSPORT_get_hello_cancel (d->th, &process_hello, d);
+          GNUNET_TRANSPORT_get_hello_cancel (d->ghh);
+          d->ghh = NULL;
           GNUNET_TRANSPORT_disconnect (d->th);
           d->th = NULL;
         }
@@ -865,7 +866,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                     ("shutdown (either `gnunet-arm' or `ssh') did not complete cleanly.\n"));
       if (d->th != NULL)
       {
-        GNUNET_TRANSPORT_get_hello_cancel (d->th, &process_hello, d);
+        GNUNET_TRANSPORT_get_hello_cancel (d->ghh);
+        d->ghh = NULL;
         GNUNET_TRANSPORT_disconnect (d->th);
         d->th = NULL;
       }
@@ -896,7 +898,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     if (d->th != NULL)
     {
-      GNUNET_TRANSPORT_get_hello_cancel (d->th, &process_hello, d);
+      GNUNET_TRANSPORT_get_hello_cancel (d->ghh);
+      d->ghh = NULL;
       GNUNET_TRANSPORT_disconnect (d->th);
       d->th = NULL;
     }
@@ -1473,7 +1476,8 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
 
   if (d->th != NULL)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (d->th, &process_hello, d);
+    GNUNET_TRANSPORT_get_hello_cancel (d->ghh);
+    d->ghh = NULL;
     GNUNET_TRANSPORT_disconnect (d->th);
     d->th = NULL;
   }
@@ -1715,7 +1719,8 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
     d->churn = GNUNET_YES;
   if (d->th != NULL)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (d->th, &process_hello, d);
+    GNUNET_TRANSPORT_get_hello_cancel (d->ghh);
+    d->ghh = NULL;
     GNUNET_TRANSPORT_disconnect (d->th);
     d->th = NULL;
   }
@@ -2215,14 +2220,16 @@ reattempt_daemons_connect (void *cls,
     ctx->d2->hello = NULL;
     if (NULL != ctx->d2->th)
     {
-      GNUNET_TRANSPORT_get_hello_cancel (ctx->d2->th, &process_hello, ctx->d2);
+      GNUNET_TRANSPORT_get_hello_cancel (ctx->d2->ghh);
+      ctx->d2->ghh = NULL;
       GNUNET_TRANSPORT_disconnect (ctx->d2->th);
     }
     ctx->d2->th =
         GNUNET_TRANSPORT_connect (ctx->d2->cfg, &ctx->d2->id, NULL, NULL, NULL,
                                   NULL);
     GNUNET_assert (ctx->d2->th != NULL);
-    GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
+    ctx->d2->ghh =
+        GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
   }
 
   if ((NULL == ctx->d2->hello) && (ctx->d2->th == NULL))
@@ -2240,7 +2247,8 @@ reattempt_daemons_connect (void *cls,
                  _("Failed to connect to transport service!\n"));
       return;
     }
-    GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
+    ctx->d2->ghh =
+        GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
   }
 
   if (ctx->send_hello == GNUNET_YES)
@@ -2342,7 +2350,8 @@ core_initial_iteration (void *cls, const struct GNUNET_PeerIdentity *peer,
                    _("Failed to connect to transport service!\n"));
         return;
       }
-      GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
+      ctx->d2->ghh =
+          GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
     }
 
     if (ctx->send_hello == GNUNET_YES)

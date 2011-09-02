@@ -782,6 +782,10 @@ static struct GNUNET_DATACACHE_Handle *datacache;
  */
 struct GNUNET_STATISTICS_Handle *stats;
 
+/**
+ * Handle to get our current HELLO.
+ */
+static struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
 
 /**
  * The configuration the DHT service is running with
@@ -5001,11 +5005,16 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int bucket_count;
   struct PeerInfo *pos;
 
+  if (NULL != ghh)
+  {
+    GNUNET_TRANSPORT_get_hello_cancel (ghh);
+    ghh = NULL;
+  }
   if (transport_handle != NULL)
   {
     GNUNET_free_non_null (my_hello);
-    GNUNET_TRANSPORT_get_hello_cancel (transport_handle, &process_hello, NULL);
     GNUNET_TRANSPORT_disconnect (transport_handle);
+    transport_handle = NULL;
   }
   if (coreAPI != NULL)
   {
@@ -5304,7 +5313,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   transport_handle =
       GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
   if (transport_handle != NULL)
-    GNUNET_TRANSPORT_get_hello (transport_handle, &process_hello, NULL);
+    ghh = GNUNET_TRANSPORT_get_hello (transport_handle, &process_hello, NULL);
   else
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed to connect to transport service!\n");

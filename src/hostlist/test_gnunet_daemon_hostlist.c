@@ -46,6 +46,7 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
+  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
 #if START_ARM
   struct GNUNET_OS_Process *arm_proc;
 #endif
@@ -117,7 +118,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p->th, &process_hello, p);
+  GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received HELLO, starting hostlist service.\n");
 }
@@ -140,7 +141,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->th =
       GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, &notify_connect, NULL);
   GNUNET_assert (p->th != NULL);
-  GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
+  p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
 }
 
 

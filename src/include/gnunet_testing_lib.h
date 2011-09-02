@@ -319,6 +319,11 @@ struct GNUNET_TESTING_Daemon
   struct GNUNET_TRANSPORT_Handle *th;
 
   /**
+   * Handle for getting HELLOs from transport
+   */
+  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+
+  /**
    * HELLO message for this peer
    */
   struct GNUNET_HELLO_Message *hello;
@@ -723,7 +728,7 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg);
  * @param cb function to call at the end
  * @param cb_cls closure for cb
  */
-struct GNUNET_TESTING_ConnectContext *
+void                            /* struct GNUNET_TESTING_ConnectContext * */
 GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                 struct GNUNET_TESTING_Daemon *d2,
                                 struct GNUNET_TIME_Relative timeout,
@@ -733,6 +738,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                 void *cb_cls);
 
 
+#if 0
 /**
  * Cancel an attempt to connect two daemons.
  *
@@ -741,6 +747,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 void
 GNUNET_TESTING_daemons_connect_cancel (struct GNUNET_TESTING_ConnectContext
                                        *cc);
+#endif
 
 
 /**

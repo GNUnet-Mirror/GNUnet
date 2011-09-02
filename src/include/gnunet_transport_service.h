@@ -573,13 +573,20 @@ typedef void (*GNUNET_TRANSPORT_HelloUpdateCallback) (void *cls,
 
 
 /**
+ * Handle to cancel a 'GNUNET_TRANSPORT_get_hello' operation.
+ */
+struct GNUNET_TRANSPORT_GetHelloHandle;
+
+
+/**
  * Obtain updates on changes to the HELLO message for this peer.
  *
  * @param handle connection to transport service
  * @param rec function to call with the HELLO
  * @param rec_cls closure for rec
+ * @return handle to cancel the operation, NULL on error
  */
-void
+struct GNUNET_TRANSPORT_GetHelloHandle *
 GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
                             GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls);
@@ -588,14 +595,10 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
 /**
  * Stop receiving updates about changes to our HELLO message.
  *
- * @param handle connection to transport service
- * @param rec function previously registered to be called with the HELLOs
- * @param rec_cls closure for rec
+ * @param ghh handle returned from 'GNUNET_TRANSPORT_get_hello')
  */
 void
-GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
-                                   GNUNET_TRANSPORT_HelloUpdateCallback rec,
-                                   void *rec_cls);
+GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
 
 
 /**
