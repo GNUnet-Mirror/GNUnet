@@ -260,6 +260,7 @@ static void *scheduler_select_cls;
  * Sets the select function to use in the scheduler (scheduler_select).
  *
  * @param new_select new select function to use
+ * @param new_select_cls closure for 'new_select'
  * @return previously used select function, NULL for default
  */
 void

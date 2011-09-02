@@ -710,6 +710,8 @@ postgres_plugin_get_key (void *cls, uint64_t offset,
  * the given iterator for each of them.
  *
  * @param cls our "struct Plugin*"
+ * @param offset offset of the result (modulo num-results);
+ *        specific ordering does not matter for the offset
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param proc function to call on the matching value;
@@ -767,7 +769,6 @@ struct ReplCtx
  * iterator.
  *
  * @param cls closure
- * @param next_cls closure to pass to the "next" function.
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored

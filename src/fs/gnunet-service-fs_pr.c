@@ -401,7 +401,7 @@ GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr)
  * jointly).
  *
  * @param pra a pending request
- * @param pra another pending request
+ * @param prb another pending request
  * @return GNUNET_OK if the requests are compatible
  */
 int

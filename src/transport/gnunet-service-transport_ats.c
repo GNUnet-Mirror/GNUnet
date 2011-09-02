@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/transport_ats.c
+ * @file transport/gnunet-service-transport_ats.c
  * @brief automatic transport selection
  * @author Matthias Wachs
  *

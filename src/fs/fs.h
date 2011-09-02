@@ -871,14 +871,14 @@ GNUNET_FS_unindex_process_hash_ (void *cls, const GNUNET_HashCode * file_id);
  * callback.
  *
  * @param pi structure to fill in
- * @param sc overall publishing context
+ * @param pc overall publishing context
  * @param p file information for the file being published
  * @param offset where in the file are we so far
  * @return value returned from callback
  */
 void *
 GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
-                                struct GNUNET_FS_PublishContext *sc,
+                                struct GNUNET_FS_PublishContext *pc,
                                 const struct GNUNET_FS_FileInformation *p,
                                 uint64_t offset);
 

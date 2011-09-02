@@ -204,7 +204,7 @@ reconnect (struct GNUNET_PEERINFO_Handle *h);
  * Task scheduled to re-try connecting to the peerinfo service.
  *
  * @param cls the 'struct GNUNET_PEERINFO_Handle'
- * @param ts scheduler context
+ * @param tc scheduler context
  */
 static void
 reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)

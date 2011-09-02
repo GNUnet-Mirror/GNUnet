@@ -135,14 +135,16 @@ typedef uint32_t GNUNET_MESH_ApplicationType;
  * @param atsi performance information for the tunnel
  * @return initial tunnel context for the tunnel (can be NULL -- that's not an error)
  */
-typedef void* (*GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
-							       struct GNUNET_MESH_Tunnel * tunnel,
-							       const struct
-							       GNUNET_PeerIdentity *
-							       initiator,
-							       const struct
-							       GNUNET_TRANSPORT_ATS_Information *
-							       atsi);
+typedef void *(*GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
+                                                               struct
+                                                               GNUNET_MESH_Tunnel
+                                                               * tunnel,
+                                                               const struct
+                                                               GNUNET_PeerIdentity
+                                                               * initiator,
+                                                               const struct
+                                                               GNUNET_TRANSPORT_ATS_Information
+                                                               * atsi);
 
 
 /**
@@ -219,8 +221,7 @@ typedef void (*GNUNET_MESH_TunnelConnectHandler) (void *cls,
  * @param handler_cls closure for connect/disconnect handlers
  */
 struct GNUNET_MESH_Tunnel *
-GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
-			   void *tunnel_ctx,
+GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
                            GNUNET_MESH_TunnelConnectHandler connect_handler,
                            GNUNET_MESH_TunnelDisconnectHandler
                            disconnect_handler, void *handler_cls);

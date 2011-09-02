@@ -94,7 +94,7 @@ struct TcpContext
  * Task called by the scheduler once we can do the TCP send
  * (or once we failed to connect...).
  *
- * @param ctx the 'struct TcpContext'
+ * @param cls the 'struct TcpContext'
  * @param tc scheduler context
  */
 static void
@@ -123,7 +123,7 @@ tcp_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Try to send 'data' to the
  * IP 'dst_ipv4' at port 'dport' via TCP.
  *
- * @param dst_ivp4 target IP
+ * @param dst_ipv4 target IP
  * @param dport target port
  * @param data data to send
  */
@@ -170,7 +170,7 @@ try_send_tcp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
  * Try to send 'data' to the
  * IP 'dst_ipv4' at port 'dport' via UDP.
  *
- * @param dst_ivp4 target IP
+ * @param dst_ipv4 target IP
  * @param dport target port
  * @param data data to send
  */
@@ -238,7 +238,7 @@ test (void *cls, struct GNUNET_SERVER_Client *client,
 /**
  * Task run during shutdown.
  *
- * @param ctx unused
+ * @param cls unused
  * @param tc scheduler context
  */
 static void

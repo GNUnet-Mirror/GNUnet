@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport_testing.c
+ * @file transport-testing.c
  * @brief testing lib for transport service
  *
  * @author Matthias Wachs

@@ -363,30 +363,30 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
 static void
 destroy_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
 {
-    struct GNUNET_MESH_Tunnel *t;
-    struct GNUNET_PeerIdentity pi;
-    unsigned int i;
+  struct GNUNET_MESH_Tunnel *t;
+  struct GNUNET_PeerIdentity pi;
+  unsigned int i;
 
-    t = retrieve_tunnel(h, tid);
-    if (NULL == t)
-    {
-        GNUNET_break (0);
-        return;
-    }
-    GNUNET_CONTAINER_DLL_remove (h->tunnels_head, h->tunnels_tail, t);
-    for (i = 0; i < t->npeers; i++)
-    {
-        GNUNET_PEER_resolve(t->peers[i]->id, &pi);
-        t->disconnect_handler(t->cls, &pi);
-        GNUNET_PEER_change_rc(t->peers[i]->id, -1);
-        GNUNET_free (t->peers[i]);
-    }
-    h->cleaner(h->cls, t, NULL); /* FIXME ctx? */
-    if (0 != t->owner)
-        GNUNET_PEER_change_rc(t->owner, -1);
-    GNUNET_free(t->peers);
-    GNUNET_free(t);
+  t = retrieve_tunnel (h, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
     return;
+  }
+  GNUNET_CONTAINER_DLL_remove (h->tunnels_head, h->tunnels_tail, t);
+  for (i = 0; i < t->npeers; i++)
+  {
+    GNUNET_PEER_resolve (t->peers[i]->id, &pi);
+    t->disconnect_handler (t->cls, &pi);
+    GNUNET_PEER_change_rc (t->peers[i]->id, -1);
+    GNUNET_free (t->peers[i]);
+  }
+  h->cleaner (h->cls, t, NULL); /* FIXME ctx? */
+  if (0 != t->owner)
+    GNUNET_PEER_change_rc (t->owner, -1);
+  GNUNET_free (t->peers);
+  GNUNET_free (t);
+  return;
 }
 
 
@@ -600,7 +600,7 @@ process_tunnel_create (struct GNUNET_MESH_Handle *h,
   t->cls = h->cls;
   t->mesh = h;
   t->tid = tid;
-  GNUNET_CONTAINER_DLL_insert(h->tunnels_head, h->tunnels_tail, t);
+  GNUNET_CONTAINER_DLL_insert (h->tunnels_head, h->tunnels_tail, t);
   return;
 }
 
@@ -615,17 +615,17 @@ static void
 process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
                         const struct GNUNET_MESH_TunnelMessage *msg)
 {
-    struct GNUNET_MESH_Tunnel *t;
-    MESH_TunnelNumber tid;
+  struct GNUNET_MESH_Tunnel *t;
+  MESH_TunnelNumber tid;
 
-    tid = ntohl (msg->tunnel_id);
-    t = retrieve_tunnel(h, tid);
-    
-    t->cls = h->cls;
-    t->mesh = h;
-    t->tid = tid;
-    GNUNET_CONTAINER_DLL_insert(h->tunnels_head, h->tunnels_tail, t);
-    return;
+  tid = ntohl (msg->tunnel_id);
+  t = retrieve_tunnel (h, tid);
+
+  t->cls = h->cls;
+  t->mesh = h;
+  t->tid = tid;
+  GNUNET_CONTAINER_DLL_insert (h->tunnels_head, h->tunnels_tail, t);
+  return;
 }
 
 
@@ -1101,21 +1101,21 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
  * @param tun tunnel handle
  */
 void
-GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *t)
+GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tun)
 {
   struct GNUNET_MESH_Handle *h;
   struct GNUNET_MESH_TunnelMessage msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Destroying tunnel\n");
-  h = t->mesh;
+  h = tun->mesh;
 
-  if (0 != t->owner)
-    GNUNET_PEER_change_rc (t->owner, -1);
+  if (0 != tun->owner)
+    GNUNET_PEER_change_rc (tun->owner, -1);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg.tunnel_id = htonl (t->tid);
-  GNUNET_free (t);
+  msg.tunnel_id = htonl (tun->tid);
+  GNUNET_free (tun);
   send_packet (h, &msg.header);
 }
 

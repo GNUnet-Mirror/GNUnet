@@ -1685,28 +1685,28 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *sock,
 void
 GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
                                                 GNUNET_CONNECTION_TransmitHandle
-                                                *h)
+                                                *th)
 {
-  GNUNET_assert (h->notify_ready != NULL);
-  if (0 != (h->sh->ccs & COCO_TRANSMIT_READY))
+  GNUNET_assert (th->notify_ready != NULL);
+  if (0 != (th->sh->ccs & COCO_TRANSMIT_READY))
   {
 #if DEBUG_CONNECTION
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "notify_transmit_ready_cancel cancels timeout_task (%p)\n", h);
+                "notify_transmit_ready_cancel cancels timeout_task (%p)\n", th);
 #endif
-    GNUNET_SCHEDULER_cancel (h->timeout_task);
-    h->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    h->sh->ccs -= COCO_TRANSMIT_READY;
+    GNUNET_SCHEDULER_cancel (th->timeout_task);
+    th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    th->sh->ccs -= COCO_TRANSMIT_READY;
   }
   else
   {
-    if (h->sh->write_task != GNUNET_SCHEDULER_NO_TASK)
+    if (th->sh->write_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (h->sh->write_task);
-      h->sh->write_task = GNUNET_SCHEDULER_NO_TASK;
+      GNUNET_SCHEDULER_cancel (th->sh->write_task);
+      th->sh->write_task = GNUNET_SCHEDULER_NO_TASK;
     }
   }
-  h->notify_ready = NULL;
+  th->notify_ready = NULL;
 }
 
 /* end of connection.c */

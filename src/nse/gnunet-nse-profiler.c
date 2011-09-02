@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file nse/nse-profiler.c
+ * @file nse/gnunet-nse-profiler.c
  *
  * @brief Profiling driver for the network size estimation service.
  *        Generally, the profiler starts a given number of peers,

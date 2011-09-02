@@ -256,7 +256,7 @@ update_bandwidth_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Calculate an updated bandwidth assignment and notify.
  *
- * @param ats handle
+ * @param atc handle
  * @param change which allocation record changed?
  */
 static void

@@ -369,7 +369,7 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h);
  * Remove all addresses from the list of 'local' addresses
  * that originated from the given source.
  *
- * @param plugin the plugin
+ * @param h handle to NAT
  * @param src source that identifies addresses to remove
  */
 static void
@@ -398,7 +398,7 @@ remove_from_address_list_by_source (struct GNUNET_NAT_Handle *h,
  * Add the given address to the list of 'local' addresses, thereby
  * making it a 'legal' address for this peer to have.
  *
- * @param plugin the plugin
+ * @param h handle to NAT
  * @param src where did the local address originate from?
  * @param arg the address, some 'struct sockaddr'
  * @param arg_size number of bytes in arg
@@ -432,7 +432,7 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
  * port number in the process to the advertised port and possibly
  * also to zero (if we have the gnunet-helper-nat-server).
  *
- * @param plugin the plugin
+ * @param h handle to NAT
  * @param src where did the local address originate from?
  * @param arg the address, some 'struct sockaddr'
  * @param arg_size number of bytes in arg
@@ -483,10 +483,10 @@ add_to_address_list (struct GNUNET_NAT_Handle *h, enum LocalAddressSource src,
  * Add the given IP address to the list of 'local' addresses, thereby
  * making it a 'legal' address for this peer to have.
  *
- * @param plugin the plugin
+ * @param h handle to NAT
  * @param src where did the local address originate from?
- * @param arg the address, some 'struct in_addr' or 'struct in6_addr'
- * @param arg_size number of bytes in arg
+ * @param addr the address, some 'struct in_addr' or 'struct in6_addr'
+ * @param addrlen number of bytes in addr
  */
 static void
 add_ip_to_address_list (struct GNUNET_NAT_Handle *h,
@@ -1035,8 +1035,8 @@ add_from_bind (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param adv_port advertised port (port we are either bound to or that our OS
  *                 locally performs redirection from to our bound port).
  * @param num_addrs number of addresses in 'addrs'
- * @param addr the local address packets should be redirected to
- * @param addrlen actual lenght of the address
+ * @param addrs the local addresses packets should be redirected to
+ * @param addrlens actual lengths of the addresses
  * @param address_callback function to call everytime the public IP address changes
  * @param reversal_callback function to call if someone wants connection reversal from us
  * @param callback_cls closure for callbacks

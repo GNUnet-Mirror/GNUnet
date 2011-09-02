@@ -19,7 +19,7 @@
 */
 
 /**
- * @file core/gnunet-transport-list-connections.c
+ * @file transport/gnunet-transport-list-connections.c
  *
  * @brief Print all known address information about other peers.
  *

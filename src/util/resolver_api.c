@@ -52,7 +52,7 @@ static const char *loopback[] = {
 /**
  * Configuration.
  */
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *resolver_cfg;
 
 /**
  * Our connection to the resolver service, created on-demand, but then
@@ -172,7 +172,7 @@ struct GNUNET_RESOLVER_RequestHandle
  * (or equivalent).
  */
 static void
-check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
+check_config ()
 {
   char *hostname;
   unsigned int i;
@@ -191,8 +191,8 @@ check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
   v6.sin6_len = sizeof (v6);
 #endif
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "resolver", "HOSTNAME",
-                                             &hostname))
+      GNUNET_CONFIGURATION_get_value_string (resolver_cfg, "resolver",
+                                             "HOSTNAME", &hostname))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Must specify `%s' for `%s' in configuration!\n"), "HOSTNAME",
@@ -224,15 +224,15 @@ check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
 /**
  * Create the connection to the resolver service.
  *
- * @param c configuration to use
+ * @param cfg configuration to use
  */
 void
-GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *c)
+GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_assert (NULL != c);
-  check_config (c);
+  GNUNET_assert (NULL != cfg);
   backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-  cfg = c;
+  resolver_cfg = cfg;
+  check_config ();
 }
 
 
@@ -324,8 +324,6 @@ reconnect ();
 
 /**
  * Process pending requests to the resolver.
- *
- * @param h handle to the resolver
  */
 static void
 process_requests ();
@@ -654,7 +652,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if DEBUG_RESOLVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to DNS service\n");
 #endif
-  client = GNUNET_CLIENT_connect ("resolver", cfg);
+  client = GNUNET_CLIENT_connect ("resolver", resolver_cfg);
   if (NULL == client)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -703,7 +701,7 @@ reconnect ()
               "Will try to connect to DNS service in %llu ms\n",
               (unsigned long long) backoff.rel_value);
 #endif
-  GNUNET_assert (NULL != cfg);
+  GNUNET_assert (NULL != resolver_cfg);
   r_task = GNUNET_SCHEDULER_add_delayed (backoff, &reconnect_task, NULL);
   backoff = GNUNET_TIME_relative_multiply (backoff, 2);
 }
@@ -823,7 +821,7 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa, socklen_t salen,
 {
   struct GNUNET_RESOLVER_RequestHandle *rh;
 
-  check_config (cfg);
+  check_config ();
   rh = GNUNET_malloc (sizeof (struct GNUNET_RESOLVER_RequestHandle) + salen);
   rh->name_callback = callback;
   rh->cls = cls;
