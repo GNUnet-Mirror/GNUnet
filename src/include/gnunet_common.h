@@ -428,7 +428,7 @@ GNUNET_htonll (unsigned long long n);
  * @param length of the string to duplicate
  * @return a partial copy of the string including zero-termination
  */
-#define GNUNET_strndup(a,b) GNUNET_xstrndup_(a,b,__FILE__,__LINE__)
+#define GNUNET_strndup(a,length) GNUNET_xstrndup_(a,length,__FILE__,__LINE__)
 
 /**
  * Grow a well-typed (!) array.  This is a convenience
@@ -577,8 +577,9 @@ GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber);
 
 /**
  * Dup partially a string. Don't call GNUNET_xstrndup_ directly. Use the GNUNET_strndup macro.
+ *
  * @param str string to duplicate
- * @param len lenght of the string to duplicate
+ * @param len length of the string to duplicate
  * @param filename where is this call being made (for debugging)
  * @param linenumber line where this call is being made (for debugging)
  * @return the duplicated string

@@ -341,12 +341,12 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *sock,
  * Cancel the specified transmission-ready
  * notification.
  *
- * @param h handle for notification to cancel
+ * @param th handle for notification to cancel
  */
 void
 GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
                                                 GNUNET_CONNECTION_TransmitHandle
-                                                *h);
+                                                *th);
 
 
 /**

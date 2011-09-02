@@ -64,7 +64,7 @@ struct GNUNET_RESOLVER_RequestHandle;
  * @param cfg configuration to use
  */
 void
-GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *c);
+GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**

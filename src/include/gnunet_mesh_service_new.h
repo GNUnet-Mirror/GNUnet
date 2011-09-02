@@ -56,8 +56,7 @@ struct GNUNET_MESH_Tunnel;
 
 /**
  * Functions with this signature are called whenever a message is
- * received or transmitted.
- * FIXME: transmitted???
+ * received.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
@@ -124,6 +123,26 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  * Type for an application.  Values defined in gnunet_applications.h
  */
 typedef uint32_t GNUNET_MESH_ApplicationType;
+
+
+/**
+ * Method called whenever another peer has added us to a tunnel
+ * the other peer initiated.
+ *
+ * @param cls closure
+ * @param tunnel new handle to the tunnel
+ * @param initiator peer that started the tunnel
+ * @param atsi performance information for the tunnel
+ * @return initial tunnel context for the tunnel (can be NULL -- that's not an error)
+ */
+typedef void* (*GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
+							       struct GNUNET_MESH_Tunnel * tunnel,
+							       const struct
+							       GNUNET_PeerIdentity *
+							       initiator,
+							       const struct
+							       GNUNET_TRANSPORT_ATS_Information *
+							       atsi);
 
 
 /**
@@ -194,12 +213,14 @@ typedef void (*GNUNET_MESH_TunnelConnectHandler) (void *cls,
  * and to broadcast).
  *
  * @param h mesh handle
+ * @param tunnel_ctx client's tunnel context to associate with the tunnel
  * @param connect_handler function to call when peers are actually connected
  * @param disconnect_handler function to call when peers are disconnected
  * @param handler_cls closure for connect/disconnect handlers
  */
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
+			   void *tunnel_ctx,
                            GNUNET_MESH_TunnelConnectHandler connect_handler,
                            GNUNET_MESH_TunnelDisconnectHandler
                            disconnect_handler, void *handler_cls);
