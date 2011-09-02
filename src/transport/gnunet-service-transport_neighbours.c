@@ -569,14 +569,16 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
                            uint32_t ats_count)
 {
   struct NeighbourMapEntry *n = cls;
+  int was_connected;
 
   n->asc = NULL;
+  was_connected = n->is_connected;
+  n->is_connected = GNUNET_YES;
   GST_neighbours_switch_to_address (target, plugin_name, plugin_address,
                                     plugin_address_len, session, ats,
                                     ats_count);
-  if (GNUNET_YES == n->is_connected)
+  if (GNUNET_YES == was_connected)
     return;
-  n->is_connected = GNUNET_YES;
   connect_notify_cb (callback_cls, target, n->ats, n->ats_count);
 }
 
@@ -698,7 +700,7 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
   {
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
-                              ("# SET QUOTA messages ignored (no such peer)"),
+                              ("# messages not sent (no such peer or not connected)"),
                               1, GNUNET_NO);
 #if DEBUG_TRANSPORT
     if (n == NULL)
