@@ -1613,6 +1613,12 @@ transmit_send_continuation (void *cls, const struct GNUNET_PeerIdentity *target,
       mq->specific_address->in_transmit = GNUNET_NO;
   }
   n = find_neighbour (&mq->neighbour_id);
+  if (n == NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "transmit_send_continuation",
+                     "Neighbour `%s' no longer exists\n", GNUNET_i2s (&mq->neighbour_id));
+    return;
+  }
   if (mq->client != NULL)
     transmit_send_ok (mq->client, n, target, result);
   GNUNET_assert (n != NULL);
