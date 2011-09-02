@@ -114,7 +114,6 @@ typedef void (*GNUNET_TESTING_NotifyDaemonRunning) (void *cls,
                                                     struct GNUNET_TESTING_Daemon
                                                     * d, const char *emsg);
 
-
 /**
  * Handle to an entire testbed of GNUnet peers.
  */
@@ -305,38 +304,9 @@ struct GNUNET_TESTING_Daemon
   void *update_cb_cls;
 
   /**
-   * Identity of this peer (once started).
-   */
-  struct GNUNET_PeerIdentity id;
-
-  /**
-   * Flag to indicate that we've already been asked
-   * to terminate (but could not because some action
-   * was still pending).
-   */
-  int dead;
-
-  /**
-   * GNUNET_YES if the hostkey has been created
-   * for this peer, GNUNET_NO otherwise.
-   */
-  int have_hostkey;
-
-  /**
    * PID of the process that we started last.
    */
   struct GNUNET_OS_Process *proc;
-
-  /**
-   * In which phase are we during the start of
-   * this process?
-   */
-  enum GNUNET_TESTING_StartPhase phase;
-
-  /**
-   * ID of the current task.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier task;
 
   /**
    * Handle to the server.
@@ -359,9 +329,41 @@ struct GNUNET_TESTING_Daemon
   struct GNUNET_DISK_PipeHandle *pipe_stdout;
 
   /**
-   * Output from gnunet-peerinfo is read into this buffer.
+   * Currently, a single char * pointing to a service
+   * that has been churned off.
+   *
+   * FIXME: make this a linked list of services that have been churned off!!!
    */
-  char hostkeybuf[105];
+  char *churned_services;
+
+  /**
+   * ID of the current task.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Identity of this peer (once started).
+   */
+  struct GNUNET_PeerIdentity id;
+
+  /**
+   * Flag to indicate that we've already been asked
+   * to terminate (but could not because some action
+   * was still pending).
+   */
+  int dead;
+
+  /**
+   * GNUNET_YES if the hostkey has been created
+   * for this peer, GNUNET_NO otherwise.
+   */
+  int have_hostkey;
+
+  /**
+   * In which phase are we during the start of
+   * this process?
+   */
+  enum GNUNET_TESTING_StartPhase phase;
 
   /**
    * Current position in 'hostkeybuf' (for reading from gnunet-peerinfo)
@@ -380,12 +382,10 @@ struct GNUNET_TESTING_Daemon
   int churn;
 
   /**
-   * Currently, a single char * pointing to a service
-   * that has been churned off.
-   *
-   * FIXME: make this a linked list of services that have been churned off!!!
+   * Output from gnunet-peerinfo is read into this buffer.
    */
-  char *churned_services;
+  char hostkeybuf[105];
+
 };
 
 
@@ -567,7 +567,8 @@ struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg,
                            unsigned int position);
 
-/*
+
+/**
  * Get a daemon by peer identity, so callers can
  * retrieve the daemon without knowing it's offset.
  *
@@ -579,6 +580,7 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg,
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_get_by_id (struct GNUNET_TESTING_PeerGroup *pg,
                                  struct GNUNET_PeerIdentity *peer_id);
+
 
 /**
  * Stops a GNUnet daemon.
@@ -614,6 +616,7 @@ GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
                                    GNUNET_TESTING_NotifyCompletion cb,
                                    void *cb_cls);
 
+
 /**
  * Stops a single service of a GNUnet daemon.  Used like daemon_stop,
  * only doesn't stop the entire peer in any case.  If the service
@@ -632,6 +635,7 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
                                     struct GNUNET_TIME_Relative timeout,
                                     GNUNET_TESTING_NotifyCompletion cb,
                                     void *cb_cls);
+
 
 /**
  * Read a testing hosts file based on a configuration.
@@ -687,6 +691,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               void *connect_callback_cls,
                               const struct GNUNET_TESTING_Host *hostnames);
 
+
 /**
  * Function which continues a peer group starting up
  * after successfully generating hostkeys for each peer.
@@ -711,7 +716,7 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg);
  * @param cb function to call at the end
  * @param cb_cls closure for cb
  */
-void
+struct GNUNET_TESTING_ConnectContext *
 GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                 struct GNUNET_TESTING_Daemon *d2,
                                 struct GNUNET_TIME_Relative timeout,
@@ -719,6 +724,15 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                 int send_hello,
                                 GNUNET_TESTING_NotifyConnection cb,
                                 void *cb_cls);
+
+
+/**
+ * Cancel an attempt to connect two daemons.
+ *
+ * @param cc connect context
+ */
+void
+GNUNET_TESTING_daemons_connect_cancel (struct GNUNET_TESTING_ConnectContext *cc);
 
 
 /**
@@ -758,6 +772,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
 unsigned int
 GNUNET_TESTING_daemons_running (struct GNUNET_TESTING_PeerGroup *pg);
 
+
 /**
  * Simulate churn by stopping some peers (and possibly
  * re-starting others if churn is called multiple times).  This
@@ -787,7 +802,9 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
                               unsigned int von,
                               struct GNUNET_TIME_Relative timeout,
                               GNUNET_TESTING_NotifyCompletion cb, void *cb_cls);
-/*
+
+
+/**
  * Start a given service for each of the peers in the peer group.
  *
  * @param pg handle for the peer group
@@ -804,6 +821,7 @@ GNUNET_TESTING_daemons_start_service (struct GNUNET_TESTING_PeerGroup *pg,
                                       struct GNUNET_TIME_Relative timeout,
                                       GNUNET_TESTING_NotifyCompletion cb,
                                       void *cb_cls);
+
 
 /**
  * Callback function to process statistic values.
@@ -824,6 +842,7 @@ typedef int (*GNUNET_TESTING_STATISTICS_Iterator) (void *cls,
                                                    uint64_t value,
                                                    int is_persistent);
 
+
 /**
  * Iterate over all (running) peers in the peer group, retrieve
  * all statistics from each.
@@ -838,6 +857,7 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
                                GNUNET_STATISTICS_Callback cont,
                                GNUNET_TESTING_STATISTICS_Iterator proc,
                                void *cls);
+
 
 /**
  * Topologies supported for testbeds.
@@ -956,6 +976,7 @@ int
 GNUNET_TESTING_topology_get (enum GNUNET_TESTING_Topology *topology,
                              const char *topology_string);
 
+
 /**
  * Get connect topology option from string input.
  *
@@ -1013,6 +1034,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                 enum GNUNET_TESTING_Topology restrict_topology,
                                 const char *restrict_transports);
 
+
 /**
  * Iterate over all (running) peers in the peer group, retrieve
  * all connections that each currently has.
@@ -1025,6 +1047,7 @@ void
 GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg,
                              GNUNET_TESTING_NotifyTopology cb, void *cls);
 
+
 /**
  * Stop the connection process temporarily.
  *
@@ -1033,6 +1056,7 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg,
 void
 GNUNET_TESTING_stop_connections (struct GNUNET_TESTING_PeerGroup *pg);
 
+
 /**
  * Resume the connection process.
  *
@@ -1040,6 +1064,7 @@ GNUNET_TESTING_stop_connections (struct GNUNET_TESTING_PeerGroup *pg);
  */
 void
 GNUNET_TESTING_resume_connections (struct GNUNET_TESTING_PeerGroup *pg);
+
 
 /**
  * There are many ways to connect peers that are supported by this function.
@@ -1073,6 +1098,7 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                  GNUNET_TESTING_NotifyCompletion
                                  notify_callback, void *notify_cls);
 
+
 /**
  * Start or stop an individual peer from the given group.
  *
@@ -1088,6 +1114,7 @@ GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg,
                              unsigned int offset, int desired_status,
                              struct GNUNET_TIME_Relative timeout,
                              GNUNET_TESTING_NotifyCompletion cb, void *cb_cls);
+
 
 /**
  * Start a peer group with a given number of peers.  Notify
@@ -1114,6 +1141,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                 GNUNET_TESTING_NotifyCompletion peergroup_cb,
                                 void *peergroup_cls,
                                 const struct GNUNET_TESTING_Host *hostnames);
+
 
 /**
  * Print current topology to a graphviz readable file.
