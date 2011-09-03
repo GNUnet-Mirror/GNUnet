@@ -1613,22 +1613,21 @@ transmit_send_continuation (void *cls, const struct GNUNET_PeerIdentity *target,
       mq->specific_address->in_transmit = GNUNET_NO;
   }
   n = find_neighbour (&mq->neighbour_id);
-  if (n == NULL)
+  if (n != NULL)
   {
+    if (mq->client != NULL)
+      transmit_send_ok (mq->client, n, target, result);
+    GNUNET_CONTAINER_DLL_remove (n->cont_head, n->cont_tail, mq);
+    if (result == GNUNET_OK)
+      try_transmission_to_peer (n);
+    else if (GNUNET_SCHEDULER_NO_TASK == n->retry_task)
+      n->retry_task = GNUNET_SCHEDULER_add_now (&retry_transmission_task, n);
+  }
+  else
     GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "transmit_send_continuation",
                      "Neighbour `%s' no longer exists\n",
                      GNUNET_i2s (&mq->neighbour_id));
-    return;
-  }
-  if (mq->client != NULL)
-    transmit_send_ok (mq->client, n, target, result);
-  GNUNET_assert (n != NULL);
-  GNUNET_CONTAINER_DLL_remove (n->cont_head, n->cont_tail, mq);
   GNUNET_free (mq);
-  if (result == GNUNET_OK)
-    try_transmission_to_peer (n);
-  else if (GNUNET_SCHEDULER_NO_TASK == n->retry_task)
-    n->retry_task = GNUNET_SCHEDULER_add_now (&retry_transmission_task, n);
 }
 
 
