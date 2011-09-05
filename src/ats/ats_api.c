@@ -33,6 +33,8 @@
 #include "platform.h"
 #include "gnunet_ats_service.h"
 
+#define DEBUG_ATS GNUNET_YES
+
 // NOTE: this implementation is simply supposed
 // to implement a simplistic strategy in-process;
 // in the future, we plan to replace it with a real
@@ -241,13 +243,16 @@ static void
 update_bandwidth_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_ATS_Handle *atc = cls;
-  unsigned int ac;
+  unsigned int ac = 0;
   struct SetBandwidthContext bwc;
 
   atc->ba_task = GNUNET_SCHEDULER_NO_TASK;
   /* FIXME: update calculations NICELY; what follows is a naive version */
   GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &count_connections, &ac);
   bwc.atc = atc;
+  if (ac == 0)
+    ac++;
+  GNUNET_assert (ac > 0);
   bwc.bw = GNUNET_BANDWIDTH_value_init (atc->total_bps / ac);
   GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &set_bw_connections, &bwc);
 }
@@ -729,6 +734,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
     destroy_allocation_record (NULL, &peer->hashPubKey, ar);
     return;
   }
+
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (atc->peers,
                                                     &peer->hashPubKey, ar,
