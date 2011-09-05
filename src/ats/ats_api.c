@@ -288,6 +288,11 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
   struct GNUNET_ATS_SuggestionContext *asc = cls;
   struct AllocationRecord *ar = value;
 
+#if DEBUG_ATS
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+                   "Suggesting address for peer `%s'\n", GNUNET_h2s (key));
+#endif
+
   /* trivial strategy: pick first available address... */
   asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
            ar->plugin_addr_len, ar->session,
@@ -297,6 +302,13 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
   return GNUNET_NO;
 }
 
+int
+map_it (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api", "Found entry for %s\n",
+                   GNUNET_h2s (key));
+  return GNUNET_YES;
+}
 
 /**
  * We would like to establish a new connection with a peer.
@@ -315,13 +327,29 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
 {
   struct GNUNET_ATS_SuggestionContext *asc;
 
+#if DEBUG_ATS
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+                   "Looking up suggested address for peer `%s'\n",
+                   GNUNET_i2s (peer));
+#endif
+  int count = 0;
+
   asc = GNUNET_malloc (sizeof (struct GNUNET_ATS_SuggestionContext));
   asc->cb = cb;
   asc->cb_cls = cb_cls;
   asc->atc = atc;
   asc->target = *peer;
-  GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers, &peer->hashPubKey,
-                                              &suggest_address, asc);
+  count =
+      GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers, &peer->hashPubKey,
+                                                  &suggest_address, asc);
+
+#if DEBUG_ATS
+  GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &map_it, (void *) peer);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+                   "Addresses %u (of %i) processed, \n", count,
+                   GNUNET_CONTAINER_multihashmap_size (atc->peers));
+#endif
+
   if (NULL == asc->cb)
   {
     GNUNET_free (asc);
@@ -364,6 +392,9 @@ GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_ATS_Handle *atc;
 
+#if DEBUG_ATS
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api", "ATS init\n");
+#endif
   atc = GNUNET_malloc (sizeof (struct GNUNET_ATS_Handle));
   atc->cfg = cfg;
   atc->alloc_cb = alloc_cb;
@@ -404,6 +435,9 @@ destroy_allocation_record (void *cls, const GNUNET_HashCode * key, void *value)
 void
 GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc)
 {
+#if DEBUG_ATS
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api", "ATS shutdown\n");
+#endif
   if (GNUNET_SCHEDULER_NO_TASK != atc->ba_task)
   {
     GNUNET_SCHEDULER_cancel (atc->ba_task);
@@ -453,9 +487,16 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
   struct AllocationRecord *arold = value;
   int change;
 
+#if DEBUG_ATS
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+                   "Updating session for peer `%s' plugin `%s'\n",
+                   GNUNET_h2s (key), arold->plugin_name, arnew->session,
+                   arold->session);
+#endif
+
   if (0 != strcmp (arnew->plugin_name, arold->plugin_name))
     return GNUNET_YES;
-  if ((arnew->session == arold->session) ||
+  if (((arnew->session == arold->session) && (arnew->session != NULL)) ||
       ((arold->session == NULL) &&
        (arold->plugin_addr_len == arnew->plugin_addr_len) &&
        (0 ==
@@ -724,6 +765,13 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
   struct AllocationRecord *ar;
   struct UpdateSessionContext usc;
 
+
+#if DEBUG_ATS
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+                   "Updating address for peer `%s', plugin `%s'\n",
+                   GNUNET_i2s (peer), plugin_name);
+#endif
+
   ar = create_allocation_record (plugin_name, session, plugin_addr,
                                  plugin_addr_len, ats, ats_count);
   usc.atc = atc;
@@ -734,7 +782,11 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
     destroy_allocation_record (NULL, &peer->hashPubKey, ar);
     return;
   }
-
+#if DEBUG_ATS
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+                   "Adding new address for peer `%s', plugin `%s'\n",
+                   GNUNET_i2s (peer), plugin_name);
+#endif
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (atc->peers,
                                                     &peer->hashPubKey, ar,
