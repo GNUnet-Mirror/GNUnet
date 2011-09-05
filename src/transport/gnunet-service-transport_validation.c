@@ -975,8 +975,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 
   /* validity achieved, remember it! */
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
-  // FIXME: This crashes transport service
-  //  GNUNET_ATS_address_update (GST_ats, &ve->pid, ve->valid_until, ve->transport_name, NULL, ve->addr, ve->addrlen, NULL, 0);     /* FIXME: compute and add latency here... */
+  GNUNET_ATS_address_update (GST_ats, &ve->pid, ve->valid_until, ve->transport_name, NULL, ve->addr, ve->addrlen, NULL, 0);     /* FIXME: compute and add latency here... */
 
   /* build HELLO to store in PEERINFO */
   ve->copied = GNUNET_NO;
@@ -987,7 +986,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   if (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task)
     GNUNET_SCHEDULER_cancel (ve->timeout_task);
 
-  /* randomly delay by up to 1h to avoid synchronous validations */
+  /* randomly delay by up to 1h to avoid   synchronous validations */
   rdelay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 60 * 60);
   delay =
       GNUNET_TIME_relative_add (HELLO_REVALIDATION_START_TIME,

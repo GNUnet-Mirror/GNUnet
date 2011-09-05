@@ -30,6 +30,8 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_util_lib.h"
 
+#define VERBOSE_VALIDATION GNUNET_YES
+
 /**
  * Statistics handle.
  */

@@ -36,6 +36,8 @@
 
 #define DEBUG_TRANSPORT_DISCONNECT GNUNET_NO
 
+#define DEBUG_TRANSPORT_API GNUNET_NO
+
 /**
  * For how long do we allow unused bandwidth
  * from the past to carry over into the future? (in seconds)
