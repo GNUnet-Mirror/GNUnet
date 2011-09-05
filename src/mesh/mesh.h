@@ -118,6 +118,11 @@ struct GNUNET_MESH_TunnelMessage
      * ID of a tunnel controlled by this client.
      */
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+
+    /**
+     * Peer at the other end, if any
+     */
+  struct GNUNET_PeerIdentity peer;
 };
 
 /**

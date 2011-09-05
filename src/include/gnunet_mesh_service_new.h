@@ -196,6 +196,7 @@ typedef void (*GNUNET_MESH_TunnelDisconnectHandler) (void *cls,
 
 /**
  * Method called whenever a peer has connected to the tunnel.
+ * TODO: change to typedef int? to let client allow the new peer or not
  *
  * @param cls closure
  * @param peer peer identity the tunnel was created to, NULL on timeout
