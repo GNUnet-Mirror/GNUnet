@@ -379,10 +379,11 @@ GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
 }
 
 
-struct ConnectContext
+struct GNUNET_FS_TEST_ConnectContext
 {
   GNUNET_SCHEDULER_Task cont;
   void *cont_cls;
+  struct GNUNET_TESTING_ConnectContext *cc;
 };
 
 
@@ -409,8 +410,9 @@ notify_connection (void *cls, const struct GNUNET_PeerIdentity *first,
                    struct GNUNET_TESTING_Daemon *second_daemon,
                    const char *emsg)
 {
-  struct ConnectContext *cc = cls;
+  struct GNUNET_FS_TEST_ConnectContext *cc = cls;
 
+  cc->cc = NULL;
   if (emsg != NULL)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to connect peers: %s\n",
                 emsg);
@@ -432,20 +434,34 @@ notify_connection (void *cls, const struct GNUNET_PeerIdentity *first,
  * @param cont function to call when done
  * @param cont_cls closure for cont
  */
-void
+struct GNUNET_FS_TEST_ConnectContext *
 GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
                                 struct GNUNET_FS_TestDaemon *daemon2,
                                 struct GNUNET_TIME_Relative timeout,
                                 GNUNET_SCHEDULER_Task cont, void *cont_cls)
 {
-  struct ConnectContext *ncc;
+  struct GNUNET_FS_TEST_ConnectContext *ncc;
 
-  ncc = GNUNET_malloc (sizeof (struct ConnectContext));
+  ncc = GNUNET_malloc (sizeof (struct GNUNET_FS_TEST_ConnectContext));
   ncc->cont = cont;
   ncc->cont_cls = cont_cls;
-  GNUNET_TESTING_daemons_connect (daemon1->daemon, daemon2->daemon, timeout,
-                                  CONNECT_ATTEMPTS, GNUNET_YES,
-                                  &notify_connection, ncc);
+  ncc->cc = GNUNET_TESTING_daemons_connect (daemon1->daemon, daemon2->daemon, timeout,
+					    CONNECT_ATTEMPTS, GNUNET_YES,
+					    &notify_connection, ncc);
+  return ncc;
+}
+
+
+/**
+ * Cancel connect operation.
+ *
+ * @param cc operation to cancel
+ */
+void
+GNUNET_FS_TEST_daemons_connect_cancel (struct GNUNET_FS_TEST_ConnectContext *cc)
+{
+  GNUNET_TESTING_daemons_connect_cancel (cc->cc);
+  GNUNET_free (cc);
 }
 
 

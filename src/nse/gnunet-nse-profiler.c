@@ -251,7 +251,7 @@ connect_nse_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     current_peer = GNUNET_malloc (sizeof (struct NSEPeer));
     current_peer->daemon = GNUNET_TESTING_daemon_get (pg, i);
     if (GNUNET_YES ==
-        GNUNET_TESTING_daemon_running (GNUNET_TESTING_daemon_get (pg, i)))
+        GNUNET_TESTING_test_daemon_running (GNUNET_TESTING_daemon_get (pg, i)))
     {
       current_peer->nse_handle =
           GNUNET_NSE_connect (current_peer->daemon->cfg, &handle_estimate,

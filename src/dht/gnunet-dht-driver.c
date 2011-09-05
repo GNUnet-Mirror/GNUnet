@@ -36,9 +36,6 @@
 #include "dht.h"
 #include "gauger.h"
 
-/* Specific DEBUG hack, do not use normally (may leak memory, segfault, or eat children.) */
-#define ONLY_TESTING GNUNET_NO
-
 /* DEFINES */
 #define VERBOSE GNUNET_NO
 
@@ -332,6 +329,11 @@ struct FindPeerContext
   struct GNUNET_CONTAINER_MultiHashMap *peer_hash;
 
   /**
+   * Handle to an active attempt to connect this peer.
+   */
+  struct GNUNET_TESTING_ConnectContext *cc;
+
+  /**
    * Min heap which orders values in the peer_hash for
    * easy lookup.
    */
@@ -445,21 +447,6 @@ static unsigned int do_find_peer;
  * Whether or not to insert gauger data.
  */
 static unsigned int insert_gauger_data;
-
-#if ONLY_TESTING
-/**
- * Are we currently trying to connect two peers repeatedly?
- */
-static unsigned int repeat_connect_mode;
-
-/**
- * Task for repeating connects.
- */
-GNUNET_SCHEDULER_TaskIdentifier repeat_connect_task;
-
-struct GNUNET_TESTING_Daemon *repeat_connect_peer1;
-struct GNUNET_TESTING_Daemon *repeat_connect_peer2;
-#endif
 
 /**
  * Boolean value, should replication be done by the dht
@@ -724,6 +711,7 @@ static unsigned long long cumulative_successful_gets;
  */
 static unsigned long long gets_failed;
 
+#ifndef HAVE_MALICIOUS
 /**
  * How many malicious control messages do
  * we currently have in flight?
@@ -734,6 +722,7 @@ static unsigned long long outstanding_malicious;
  * How many set malicious peers are done?
  */
 static unsigned int malicious_completed;
+#endif
 
 /**
  * For gauger logging, what specific identifier (svn revision)
@@ -1417,6 +1406,30 @@ add_new_connection (struct FindPeerContext *find_peer_context,
   }
 }
 
+static void
+did_connect (void *cls, 
+	     const struct
+	     GNUNET_PeerIdentity * first,
+	     const struct
+	     GNUNET_PeerIdentity * second,
+	     uint32_t distance,
+	     const struct
+	     GNUNET_CONFIGURATION_Handle *
+	     first_cfg,
+	     const struct
+	     GNUNET_CONFIGURATION_Handle *
+	     second_cfg,
+	     struct GNUNET_TESTING_Daemon *
+	     first_daemon,
+	     struct GNUNET_TESTING_Daemon *
+	     second_daemon,
+	     const char *emsg)
+{
+  struct FindPeerContext *find_peer_context = cls;
+
+  find_peer_context->cc = NULL;
+}
+
 /**
  * Iterate over min heap of connections per peer.  For any
  * peer that has 0 connections, attempt to connect them to
@@ -1444,7 +1457,7 @@ iterate_min_heap_peers (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
     d1 = GNUNET_TESTING_daemon_get_by_id (pg, &peer_count->peer_id);
     GNUNET_assert (d1 != NULL);
     d2 = d1;
-    while ((d2 == d1) || (GNUNET_YES != GNUNET_TESTING_daemon_running (d2)))
+    while ((d2 == d1) || (GNUNET_YES != GNUNET_TESTING_test_daemon_running (d2)))
     {
       d2 = GNUNET_TESTING_daemon_get (pg,
                                       GNUNET_CRYPTO_random_u32
@@ -1464,14 +1477,17 @@ iterate_min_heap_peers (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
     {
       timeout = GNUNET_TIME_absolute_get_remaining (find_peer_context->endtime);
     }
-    GNUNET_TESTING_daemons_connect (d1, d2, timeout, DEFAULT_RECONNECT_ATTEMPTS,
-                                    GNUNET_YES, NULL, NULL);
+    if (NULL != find_peer_context->cc)
+      GNUNET_TESTING_daemons_connect_cancel (find_peer_context->cc);
+    find_peer_context->cc = GNUNET_TESTING_daemons_connect (d1, d2, timeout, DEFAULT_RECONNECT_ATTEMPTS,
+							    GNUNET_YES, 
+							    &did_connect, 
+							    find_peer_context);
   }
   if (GNUNET_TIME_absolute_get_remaining (find_peer_context->endtime).rel_value
       > 0)
     return GNUNET_YES;
-  else
-    return GNUNET_NO;
+  return GNUNET_NO;
 }
 
 /**
@@ -1585,6 +1601,8 @@ count_peers_churn_cb (void *cls, const struct GNUNET_PeerIdentity *first,
                                              find_peer_context);
       GNUNET_CONTAINER_multihashmap_destroy (find_peer_context->peer_hash);
       GNUNET_CONTAINER_heap_destroy (find_peer_context->peer_min_heap);
+      if (NULL != find_peer_context->cc)
+	GNUNET_TESTING_daemons_connect_cancel (find_peer_context->cc);
       GNUNET_free (find_peer_context);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Churn round %u of %llu finished, scheduling next GET round.\n",
@@ -1756,7 +1774,7 @@ churn_complete (void *cls, const char *emsg)
     for (i = 0; i < num_peers; i++)
     {
       temp_daemon = GNUNET_TESTING_daemon_get (pg, i);
-      if (GNUNET_YES == GNUNET_TESTING_daemon_running (temp_daemon))
+      if (GNUNET_YES == GNUNET_TESTING_test_daemon_running (temp_daemon))
       {
         peer_count = GNUNET_malloc (sizeof (struct PeerCount));
         memcpy (&peer_count->peer_id, &temp_daemon->id,
@@ -2102,7 +2120,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Set this here in case we are re-running gets */
   test_get->succeeded = GNUNET_NO;
 
-  if (GNUNET_YES != GNUNET_TESTING_daemon_running (test_get->daemon))   /* If the peer has been churned off, don't try issuing request from it! */
+  if (GNUNET_YES != GNUNET_TESTING_test_daemon_running (test_get->daemon))   /* If the peer has been churned off, don't try issuing request from it! */
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer we should issue get request from is down, skipping.\n");
@@ -2219,7 +2237,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (test_put == NULL)
     return;                     /* End of list */
 
-  if (GNUNET_YES != GNUNET_TESTING_daemon_running (test_put->daemon))   /* If the peer has been churned off, don't try issuing request from it! */
+  if (GNUNET_YES != GNUNET_TESTING_test_daemon_running (test_put->daemon))   /* If the peer has been churned off, don't try issuing request from it! */
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer we should issue put request at is down, skipping.\n");
@@ -2338,6 +2356,8 @@ count_peers_cb (void *cls, const struct GNUNET_PeerIdentity *first,
                                              find_peer_context);
       GNUNET_CONTAINER_multihashmap_destroy (find_peer_context->peer_hash);
       GNUNET_CONTAINER_heap_destroy (find_peer_context->peer_min_heap);
+      if (NULL != find_peer_context->cc)
+	GNUNET_TESTING_daemons_connect_cancel (find_peer_context->cc);
       GNUNET_free (find_peer_context);
       fprintf (stderr, "Not sending any more find peer requests.\n");
 
@@ -2663,6 +2683,7 @@ continue_puts_and_gets (void *cls,
   }
 }
 
+#if HAVE_MALICIOUS
 /**
  * Task to release DHT handles
  */
@@ -2686,7 +2707,6 @@ malicious_disconnect_task (void *cls,
   }
 }
 
-#if HAVE_MALICIOUS
 /**
  * Task to release DHT handles
  */
@@ -2784,7 +2804,7 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg,
       temp_daemon = GNUNET_TESTING_daemon_get (pg, i);
       hash_from_uid (i, &uid_hash);
       /* Check if this peer matches the bloomfilter */
-      if ((GNUNET_NO == GNUNET_TESTING_daemon_running (temp_daemon)) ||
+      if ((GNUNET_NO == GNUNET_TESTING_test_daemon_running (temp_daemon)) ||
           (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &uid_hash)))
         continue;
 
@@ -2877,43 +2897,6 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 #endif
 
-#if ONLY_TESTING
-/* Forward declaration */
-static void
-topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
-                   const struct GNUNET_PeerIdentity *second, uint32_t distance,
-                   const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-                   const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-                   struct GNUNET_TESTING_Daemon *first_daemon,
-                   struct GNUNET_TESTING_Daemon *second_daemon,
-                   const char *emsg);
-
-/**
- * Retry connecting two specific peers until they connect,
- * at a specific interval.  These two peers previously failed
- * to connect, and we hope they continue to so that we can
- * debug the reason they are having issues.
- */
-static void
-repeat_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Repeating connect attempt between %s and %s.\n",
-              repeat_connect_peer1->shortname, repeat_connect_peer2->shortname);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Peer 1 configuration `%s'\n",
-              repeat_connect_peer1->cfgfile);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Peer 2 configuration `%s'\n",
-              repeat_connect_peer2->cfgfile);
-
-  repeat_connect_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_TESTING_daemons_connect (repeat_connect_peer1, repeat_connect_peer2,
-                                  GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 60), 2,
-                                  &topology_callback, NULL);
-}
-#endif
-
 /**
  * This function is called whenever a connection attempt is finished between two of
  * the started peers (started with GNUNET_TESTING_daemons_start).  The total
@@ -2944,36 +2927,6 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
   char *temp_conn_string;
   char *temp_conn_failed_string;
   char *revision_str;
-
-#if ONLY_TESTING
-  if (repeat_connect_mode == GNUNET_YES)
-  {
-    if ((first_daemon == repeat_connect_peer1) &&
-        (second_daemon == repeat_connect_peer2))
-    {
-      if (emsg != NULL)         /* Peers failed to connect again! */
-      {
-        GNUNET_assert (repeat_connect_task == GNUNET_SCHEDULER_NO_TASK);
-        repeat_connect_task =
-            GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                          (GNUNET_TIME_UNIT_SECONDS, 60),
-                                          &repeat_connect, NULL);
-        return;
-      }
-      else                      /* Repeat peers actually connected! */
-      {
-        if (repeat_connect_task != GNUNET_SCHEDULER_NO_TASK)
-          GNUNET_SCHEDULER_cancel (repeat_connect_task);
-        repeat_connect_peer1 = NULL;
-        repeat_connect_peer2 = NULL;
-        repeat_connect_mode = GNUNET_NO;
-        GNUNET_TESTING_resume_connections (pg);
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Resuming normal connection mode, debug connection was successful!\n");
-      }
-    }
-  }
-#endif
 
   if (GNUNET_TIME_absolute_get_difference
       (connect_last_time,
@@ -3013,26 +2966,6 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "have %llu total_connections, %llu failed\n", total_connections,
                 failed_connections);
-#if ONLY_TESTING
-    /* These conditions likely mean we've entered the death spiral of doom */
-    if ((total_connections > 20000) && (conns_per_sec_recent < 5.0) &&
-        (conns_per_sec_total > 10.0) && (emsg != NULL) &&
-        (repeat_connect_mode == GNUNET_NO))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Entering repeat connection attempt mode!\n");
-      repeat_connect_peer1 = first_daemon;
-      repeat_connect_peer2 = second_daemon;
-      repeat_connect_mode = GNUNET_YES;
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Stopping NEW connections from being scheduled!\n");
-      GNUNET_TESTING_stop_connections (pg);
-      repeat_connect_task =
-          GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                        (GNUNET_TIME_UNIT_SECONDS, 60),
-                                        &repeat_connect, NULL);
-    }
-#endif
   }
 
   if (emsg == NULL)
@@ -3057,11 +2990,6 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                 first_daemon->shortname, second_daemon->shortname, emsg);
 #endif
   }
-
-#if ONLY_TESTING
-  if ((repeat_connect_mode == GNUNET_YES))
-    return;
-#endif
 
   GNUNET_assert (peer_connect_meter != NULL);
   if (GNUNET_YES == update_meter (peer_connect_meter))

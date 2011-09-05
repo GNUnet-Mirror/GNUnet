@@ -44,11 +44,18 @@
 
 static struct GNUNET_FS_TestDaemon *daemons[NUM_DAEMONS];
 
+static struct GNUNET_FS_TEST_ConnectContext *cc;
+
 static int ret;
 
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != cc)
+    {
+      GNUNET_FS_TEST_daemons_connect_cancel (cc);
+      cc = NULL;
+    }
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
   {
     GNUNET_break (0);
@@ -83,6 +90,7 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri)
 static void
 do_publish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  cc = NULL;
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
   {
     GNUNET_break (0);
@@ -109,8 +117,8 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemons started, will now try to connect them\n");
-  GNUNET_FS_TEST_daemons_connect (daemons[0], daemons[1], TIMEOUT, &do_publish,
-                                  NULL);
+  cc = GNUNET_FS_TEST_daemons_connect (daemons[0], daemons[1], TIMEOUT, &do_publish,
+				       NULL);
 }
 
 

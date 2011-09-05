@@ -43,6 +43,8 @@ static struct GNUNET_CONFIGURATION_Handle *c1;
 
 static struct GNUNET_CONFIGURATION_Handle *c2;
 
+static struct GNUNET_TESTING_ConnectContext *cc;
+
 /**
  * How many start-connect-stop iterations should we do?
  */
@@ -55,7 +57,7 @@ static int phase;
  * stopping them again.
  */
 static void
-run_phase ();
+run_phase (void);
 
 static void
 end2_cb (void *cls, const char *emsg)
@@ -123,6 +125,7 @@ my_connect_complete (void *cls, const struct GNUNET_PeerIdentity *first,
                      struct GNUNET_TESTING_Daemon *second_daemon,
                      const char *emsg)
 {
+  cc = NULL;
 #if VERBOSE
   fprintf (stderr, "Peer %s ", GNUNET_i2s (first));
   fprintf (stderr, "connected to %s\n", GNUNET_i2s (second));
@@ -143,8 +146,8 @@ my_cb2 (void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon `%s' started.\n",
               GNUNET_i2s (id));
 #endif
-  GNUNET_TESTING_daemons_connect (d1, d2, TIMEOUT, CONNECT_ATTEMPTS, GNUNET_YES,
-                                  &my_connect_complete, NULL);
+  cc = GNUNET_TESTING_daemons_connect (d1, d2, TIMEOUT, CONNECT_ATTEMPTS, GNUNET_YES,
+				       &my_connect_complete, NULL);
 }
 
 

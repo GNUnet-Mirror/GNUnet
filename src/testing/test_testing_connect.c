@@ -43,6 +43,8 @@ static struct GNUNET_CONFIGURATION_Handle *c1;
 
 static struct GNUNET_CONFIGURATION_Handle *c2;
 
+static struct GNUNET_TESTING_ConnectContext *cc;
+
 static void
 end2_cb (void *cls, const char *emsg)
 {
@@ -99,6 +101,7 @@ my_connect_complete (void *cls, const struct GNUNET_PeerIdentity *first,
                      struct GNUNET_TESTING_Daemon *second_daemon,
                      const char *emsg)
 {
+  cc = NULL;
   GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
 }
 
@@ -113,8 +116,8 @@ my_cb2 (void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon `%s' started.\n",
               GNUNET_i2s (id));
 #endif
-  GNUNET_TESTING_daemons_connect (d1, d2, TIMEOUT, CONNECT_ATTEMPTS, GNUNET_YES,
-                                  &my_connect_complete, NULL);
+  cc = GNUNET_TESTING_daemons_connect (d1, d2, TIMEOUT, CONNECT_ATTEMPTS, GNUNET_YES,
+				       &my_connect_complete, NULL);
 }
 
 

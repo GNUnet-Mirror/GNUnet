@@ -61,6 +61,9 @@ GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
                               GNUNET_SCHEDULER_Task cont, void *cont_cls);
 
 
+struct GNUNET_FS_TEST_ConnectContext;
+
+
 /**
  * Connect two daemons for testing.
  *
@@ -71,11 +74,20 @@ GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
  * @param cont function to call when done
  * @param cont_cls closure for cont
  */
-void
+struct GNUNET_FS_TEST_ConnectContext *
 GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
                                 struct GNUNET_FS_TestDaemon *daemon2,
                                 struct GNUNET_TIME_Relative timeout,
                                 GNUNET_SCHEDULER_Task cont, void *cont_cls);
+
+
+/**
+ * Cancel connect operation.
+ *
+ * @param cc operation to cancel
+ */
+void
+GNUNET_FS_TEST_daemons_connect_cancel (struct GNUNET_FS_TEST_ConnectContext *cc);
 
 
 /**

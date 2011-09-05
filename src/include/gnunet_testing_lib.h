@@ -432,6 +432,7 @@ typedef void (*GNUNET_TESTING_NotifyConnection) (void *cls,
                                                  second_daemon,
                                                  const char *emsg);
 
+
 /**
  * Prototype of a callback function indicating that two peers
  * are currently connected.
@@ -497,12 +498,11 @@ GNUNET_TESTING_daemon_continue_startup (struct GNUNET_TESTING_Daemon *daemon);
  * Check whether the given daemon is running.
  *
  * @param daemon the daemon to check
- *
  * @return GNUNET_YES if the daemon is up, GNUNET_NO if the
  *         daemon is down, GNUNET_SYSERR on error.
  */
 int
-GNUNET_TESTING_daemon_running (struct GNUNET_TESTING_Daemon *daemon);
+GNUNET_TESTING_test_daemon_running (struct GNUNET_TESTING_Daemon *daemon);
 
 
 /**
@@ -545,7 +545,7 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
  */
 void
 GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
-                                     char *service,
+                                     const char *service,
                                      struct GNUNET_TIME_Relative timeout,
                                      GNUNET_TESTING_NotifyDaemonRunning cb,
                                      void *cb_cls);
@@ -643,7 +643,7 @@ GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
  */
 void
 GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
-                                    char *service,
+                                    const char *service,
                                     struct GNUNET_TIME_Relative timeout,
                                     GNUNET_TESTING_NotifyCompletion cb,
                                     void *cb_cls);
@@ -715,7 +715,16 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg);
 
 
 /**
- * Establish a connection between two GNUnet daemons.
+ * Handle for an active request to connect two peers.
+ */
+struct GNUNET_TESTING_ConnectContext;
+
+
+/**
+ * Establish a connection between two GNUnet daemons.  The daemons
+ * must both be running and not be stopped until either the
+ * 'cb' callback is called OR the connection request has been
+ * explicitly cancelled.
  *
  * @param d1 handle for the first daemon
  * @param d2 handle for the second daemon
@@ -727,8 +736,9 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg);
  *                   the HELLO has already been exchanged
  * @param cb function to call at the end
  * @param cb_cls closure for cb
+ * @return handle to cancel the request, NULL on error
  */
-void                            /* struct GNUNET_TESTING_ConnectContext * */
+struct GNUNET_TESTING_ConnectContext *
 GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                 struct GNUNET_TESTING_Daemon *d2,
                                 struct GNUNET_TIME_Relative timeout,
@@ -738,7 +748,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                 void *cb_cls);
 
 
-#if 0
+
 /**
  * Cancel an attempt to connect two daemons.
  *
@@ -747,7 +757,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 void
 GNUNET_TESTING_daemons_connect_cancel (struct GNUNET_TESTING_ConnectContext
                                        *cc);
-#endif
+
 
 
 /**
