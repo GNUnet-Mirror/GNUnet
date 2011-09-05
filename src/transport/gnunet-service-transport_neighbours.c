@@ -226,7 +226,6 @@ static GNUNET_TRANSPORT_NotifyConnect connect_notify_cb;
  */
 static GNUNET_TRANSPORT_NotifyDisconnect disconnect_notify_cb;
 
-
 /**
  * Lookup a neighbour entry in the neighbours hash map.
  *
@@ -477,6 +476,8 @@ disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
 void
 GST_neighbours_stop ()
 {
+  GNUNET_assert (neighbours != NULL);
+
   GNUNET_CONTAINER_multihashmap_iterate (neighbours, &disconnect_all_neighbours,
                                          NULL);
   GNUNET_CONTAINER_multihashmap_destroy (neighbours);
@@ -509,6 +510,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
   struct GNUNET_MessageHeader connect_msg;
+
+  GNUNET_assert (neighbours != NULL);
 
   n = lookup_neighbour (peer);
   if (NULL == n)
@@ -593,6 +596,8 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 {
   struct NeighbourMapEntry *n;
 
+  GNUNET_assert (neighbours != NULL);
+
   GNUNET_assert (0 !=
                  memcmp (target, &GST_my_identity,
                          sizeof (struct GNUNET_PeerIdentity)));
@@ -633,6 +638,8 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
 {
   struct NeighbourMapEntry *n;
 
+  GNUNET_assert (neighbours != NULL);
+
   n = lookup_neighbour (target);
   if ((NULL == n) || (n->is_connected != GNUNET_YES))
     return GNUNET_NO;           /* not connected */
@@ -651,6 +658,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
                                    struct Session *session)
 {
   struct NeighbourMapEntry *n;
+
+  GNUNET_assert (neighbours != NULL);
 
   n = lookup_neighbour (peer);
   if (NULL == n)
@@ -694,6 +703,8 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
 {
   struct NeighbourMapEntry *n;
   struct MessageQueue *mq;
+
+  GNUNET_assert (neighbours != NULL);
 
   n = lookup_neighbour (target);
   if ((n == NULL) || (GNUNET_YES != n->is_connected))
@@ -753,6 +764,8 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
 {
   struct NeighbourMapEntry *n;
   struct GNUNET_TIME_Relative ret;
+
+  GNUNET_assert (neighbours != NULL);
 
   n = lookup_neighbour (sender);
   if (n == NULL)
@@ -821,6 +834,8 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
 {
   struct NeighbourMapEntry *n;
 
+  GNUNET_assert (neighbours != NULL);
+
   n = lookup_neighbour (neighbour);
   if (NULL == n)
   {
@@ -848,6 +863,8 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
                                    struct GNUNET_BANDWIDTH_Value32NBO quota)
 {
   struct NeighbourMapEntry *n;
+
+  GNUNET_assert (neighbours != NULL);
 
   n = lookup_neighbour (neighbour);
   if (n == NULL)
@@ -922,6 +939,8 @@ GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls)
 {
   struct IteratorContext ic;
 
+  GNUNET_assert (neighbours != NULL);
+
   ic.cb = cb;
   ic.cb_cls = cb_cls;
   GNUNET_CONTAINER_multihashmap_iterate (neighbours, &neighbours_iterate, &ic);
@@ -939,6 +958,8 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
   struct NeighbourMapEntry *n;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct GNUNET_MessageHeader disconnect_msg;
+
+  GNUNET_assert (neighbours != NULL);
 
   n = lookup_neighbour (target);
   if (NULL == n)
