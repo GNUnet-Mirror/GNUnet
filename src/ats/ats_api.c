@@ -33,7 +33,7 @@
 #include "platform.h"
 #include "gnunet_ats_service.h"
 
-#define DEBUG_ATS GNUNET_YES
+#define DEBUG_ATS GNUNET_NO
 
 // NOTE: this implementation is simply supposed
 // to implement a simplistic strategy in-process;
@@ -490,8 +490,7 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
 #if DEBUG_ATS
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
                    "Updating session for peer `%s' plugin `%s'\n",
-                   GNUNET_h2s (key), arold->plugin_name, arnew->session,
-                   arold->session);
+                   GNUNET_h2s (key), arold->plugin_name);
 #endif
 
   if (0 != strcmp (arnew->plugin_name, arold->plugin_name))
