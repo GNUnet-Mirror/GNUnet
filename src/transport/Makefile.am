@@ -63,8 +63,9 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric_recv_constant
 endif
 
-noinst_PROGRAMS = $(WLAN_BIN_DUMMY)
-
+noinst_PROGRAMS = \ 
+ $(WLAN_BIN_DUMMY) \
+ util_connect_running_peers
 
 lib_LTLIBRARIES = \
   libgnunettransport.la \
@@ -347,6 +348,14 @@ test_transport_testing_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+util_connect_running_peers_SOURCES = \
+ util_connect_running_peers.c
+util_connect_running_peers_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_api_disconnect_SOURCES = \
