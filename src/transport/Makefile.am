@@ -63,7 +63,7 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric_recv_constant
 endif
 
-noinst_PROGRAMS = \ 
+noinst_PROGRAMS = \
  $(WLAN_BIN_DUMMY) \
  util_connect_running_peers
 
