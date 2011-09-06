@@ -24,6 +24,7 @@
  * - callbacks to client missing on certain events
  * - processing messages from service is incomplete
  * - Check priorities to cancel traffic data
+ * - Use separate message types for tunnel creation s -> c (+pi) and c -> s
  *
  * STRUCTURE:
  * - CONSTANTS
@@ -380,6 +381,13 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t)
 
   if (NULL == t)
   {
+    GNUNET_break(0);
+    return;
+  }
+  h = t->mesh;
+  th = h->th_head;
+  while (NULL != th)
+  {
     if (th->tunnel == t)
     {
       aux = th->next;
@@ -401,8 +409,6 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t)
       th = th->next;
     }
   }
-  h = t->mesh;
-  /* TODO remove data packets from queue */
   GNUNET_CONTAINER_DLL_remove (h->tunnels_head, h->tunnels_tail, t);
   for (i = 0; i < t->npeers; i++)
   {

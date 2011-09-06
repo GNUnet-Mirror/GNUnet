@@ -450,7 +450,7 @@ static unsigned int *applications_rc;
 /**
  * Number of applications provided by this peer
  */
-static unsigned int n_applications;
+static unsigned int n_apps;
 
 /**
  * Task to periodically announce provided applications
@@ -768,6 +768,8 @@ static int
 destroy_tunnel (struct MeshTunnel *t)
 {
   struct MeshClient *c;
+  struct MeshQueue *q;
+  struct MeshQueue *qn;
   GNUNET_HashCode hash;
   int r;
 
@@ -786,6 +788,17 @@ destroy_tunnel (struct MeshTunnel *t)
   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (c->tunnels, &hash, t))
   {
     r = GNUNET_SYSERR;
+  }
+  GNUNET_CONTAINER_multihashmap_destroy(t->peers);
+  q = t->queue_head;
+  while (NULL != q)
+  {
+    if (NULL != q->data)
+      GNUNET_free(q->data);
+    qn = q->next;
+    GNUNET_free(q);
+    q = qn;
+    /* TODO cancel core transmit ready in case it was active */
   }
   GNUNET_free (t);
   return r;
@@ -817,7 +830,7 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   p = (unsigned int *) &buffer[8];
   GNUNET_PEER_resolve (myid, &id);
-  for (i = 0; i < n_applications; i++)
+  for (i = 0; i < n_apps; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Starting PUT for app %d\n",
                 applications[i]);
@@ -1999,56 +2012,46 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   c = clients;
   while (NULL != c)
   {
-    if (c->handle == client)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " matching client found, cleaning\n");
-      GNUNET_CONTAINER_multihashmap_iterate (c->tunnels, &delete_tunnel_entry,
-                                             c);
-      GNUNET_CONTAINER_multihashmap_destroy (c->tunnels);
-      if (0 != c->app_counter)
-      {                         /* deregister clients applications */
-        for (i = 0; i < c->app_counter; i++)
-        {
-          for (j = 0; j < n_applications; j++)
-          {
-            if (c->apps[i] == applications[j])
-            {
-              if (0 == --applications_rc[j])
-              {
-                applications[j] = applications[n_applications - 1];
-                applications_rc[j] = applications_rc[n_applications - 1];
-                n_applications--;
-                applications =
-                    GNUNET_realloc (applications,
-                                    n_applications *
-                                    sizeof (GNUNET_MESH_ApplicationType));
-                applications_rc =
-                    GNUNET_realloc (applications_rc,
-                                    n_applications * sizeof (unsigned int));
-              }
-              break;
-            }
-          }
-        }
-        GNUNET_free (c->apps);
-        if (0 == n_applications)
-        {
-          GNUNET_SCHEDULER_cancel (announce_applications_task);
-        }
-      }
-      if (0 != c->type_counter)
-        GNUNET_free (c->types);
-      GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
-      next = c->next;
-      GNUNET_free (c);
-      c = next;
-    }
-    else
+    if (c->handle != client)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    ... searching\n");
       c = c->next;
+      continue;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " matching client found, cleaning\n");
+    GNUNET_CONTAINER_multihashmap_iterate (c->tunnels, &delete_tunnel_entry, c);
+    GNUNET_CONTAINER_multihashmap_destroy (c->tunnels);
+    if (0 != c->app_counter)
+    {
+      /* deregister clients applications */
+      for (i = 0; i < c->app_counter; i++)
+      {
+	for (j = 0; j < n_apps; j++)
+	{
+	  if (c->apps[i] == applications[j] && 0 == --applications_rc[j])
+	  {
+	    applications[j] = applications[n_apps - 1];
+	    GNUNET_array_grow(applications, n_apps, n_apps - 1);
+	    n_apps++;
+	    applications_rc[j] = applications_rc[n_apps - 1];
+	    GNUNET_array_grow(applications_rc, n_apps, n_apps - 1);
+
+	  }
+	  break;
+	}
+      }
+      GNUNET_free (c->apps);
+      if (0 == n_apps)
+      {
+	GNUNET_SCHEDULER_cancel (announce_applications_task);
+      }
+    }
+    if (0 != c->type_counter)
+      GNUNET_free (c->types);
+    GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
+    next = c->next;
+    GNUNET_free (c);
+    c = next;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    done!\n");
@@ -2109,7 +2112,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   for (i = 0; i < apps; i++)
   {
     known = GNUNET_NO;
-    for (j = 0; i < n_applications; j++)
+    for (j = 0; i < n_apps; j++)
     {
       if (c->apps[i] == applications[j])
       {
@@ -2119,18 +2122,12 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
       }
     }
     if (!known)
-    {                           /* Register previously unknown application */
-      n_applications++;
-      applications =
-          GNUNET_realloc (applications,
-                          n_applications *
-                          sizeof (GNUNET_MESH_ApplicationType));
-      applications_rc =
-          GNUNET_realloc (applications_rc,
-                          n_applications * sizeof (unsigned int));
-      applications[n_applications - 1] = c->apps[i];
-      applications_rc[n_applications - 1] = 1;
-      if (0 == announce_applications_task)
+    {
+      /* Register previously unknown application */
+      GNUNET_array_append(applications, n_apps, c->apps[i]);
+      n_apps--;
+      GNUNET_array_append(applications_rc, n_apps, 1);
+      if (GNUNET_SCHEDULER_NO_TASK == announce_applications_task)
       {
         announce_applications_task =
             GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME,
@@ -2480,7 +2477,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Do WE have the service? */
   type = ntohl (connect_msg->type);
-  for (i = 0; i < n_applications; i++)
+  for (i = 0; i < n_apps; i++)
   {
     if (applications[i] == type)
     {
@@ -2872,7 +2869,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   applications = NULL;
   applications_rc = NULL;
-  n_applications = 0;
+  n_apps = 0;
   announce_applications_task = 0;
 
   /* Scheduled the task to clean up when shutdown is called */
