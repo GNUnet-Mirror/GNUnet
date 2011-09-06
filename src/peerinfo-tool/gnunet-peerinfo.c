@@ -158,7 +158,7 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_PEERINFO_disconnect (peerinfo);
     return;
   }
-  if (be_quiet)
+  if ( (be_quiet) || (NULL == hello) )
   {
     GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
     printf ("%s\n", (const char *) &enc);
