@@ -325,7 +325,8 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
                                                        &target->hashPubKey,
                                                        session));
   plugin->last_expected_delay = GNUNET_FRAGMENT_context_destroy (session->frag);
-  session->cont (session->cont_cls, target, GNUNET_SYSERR);
+  if (session->cont != NULL)
+    session->cont (session->cont_cls, target, GNUNET_SYSERR);
   GNUNET_free (session);
 }
 
@@ -406,6 +407,8 @@ send_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_FRAGMENT_context_transmission_done (session->frag);
 }
 
+static const char *
+udp_address_to_string (void *cls, const void *addr, size_t addrlen);
 
 /**
  * Function that can be used by the transport service to transmit
@@ -461,7 +464,8 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   case sizeof (struct IPv4UdpAddress):
     if (NULL == plugin->sockv4)
     {
-      cont (cont_cls, target, GNUNET_SYSERR);
+      if (cont != NULL)
+        cont (cont_cls, target, GNUNET_SYSERR);
       return 0;
     }
     t4 = addr;
@@ -479,7 +483,8 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   case sizeof (struct IPv6UdpAddress):
     if (NULL == plugin->sockv6)
     {
-      cont (cont_cls, target, GNUNET_SYSERR);
+      if (cont != NULL)
+        cont (cont_cls, target, GNUNET_SYSERR);
       return 0;
     }
     t6 = addr;
@@ -513,8 +518,9 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   if (mlen <= UDP_MTU)
   {
     mlen = udp_send (plugin, peer_session->sock_addr, &udp->header);
-    cont (cont_cls, target, (mlen > 0) ? GNUNET_OK : GNUNET_SYSERR);
-    GNUNET_free (peer_session);
+    if (cont != NULL)
+      cont (cont_cls, target, (mlen > 0) ? GNUNET_OK : GNUNET_SYSERR);
+    GNUNET_free_non_null (peer_session);
   }
   else
   {
@@ -857,7 +863,8 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
                                                          peer_session));
     plugin->last_expected_delay =
         GNUNET_FRAGMENT_context_destroy (peer_session->frag);
-    peer_session->cont (peer_session->cont_cls, &udp->sender, GNUNET_OK);
+    if (peer_session->cont != NULL)
+      peer_session->cont (peer_session->cont_cls, &udp->sender, GNUNET_OK);
     GNUNET_free (peer_session);
     return;
   case GNUNET_MESSAGE_TYPE_FRAGMENT:
