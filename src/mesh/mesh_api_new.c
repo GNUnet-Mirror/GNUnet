@@ -23,7 +23,6 @@
  * TODO:
  * - callbacks to client missing on certain events
  * - processing messages from service is incomplete
- * - Check priorities to cancel traffic data
  * - Use separate message types for tunnel creation s -> c (+pi) and c -> s
  *
  * STRUCTURE:
@@ -1347,12 +1346,42 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
                                    void *notify_cls)
 {
   struct GNUNET_MESH_TransmitHandle *th;
+  struct GNUNET_MESH_TransmitHandle *least_priority_th;
+  uint32_t least_priority;
   size_t overhead;
 
   GNUNET_assert(NULL != notify);
   if (tunnel->mesh->npackets >= tunnel->mesh->max_queue_size &&
       tunnel->npackets > 0)
-    return NULL;                /* queue full */
+  {
+    /* queue full */
+    if (0 == priority)
+      return NULL;
+    th = tunnel->mesh->th_tail;
+    least_priority = priority;
+    least_priority_th = NULL;
+    while (NULL != th)
+    {
+      if (th->priority < least_priority && th->tunnel->npackets > 1)
+      {
+        least_priority_th = th;
+        least_priority = th->priority;
+      }
+      th = th->prev;
+    }
+    if (NULL == least_priority_th)
+      return NULL;
+    GNUNET_assert(NULL != least_priority_th->notify); /* Cant be a cntrl msg */
+    least_priority_th->notify(notify_cls, 0, NULL);
+    least_priority_th->tunnel->npackets--;
+    tunnel->mesh->npackets--;
+    GNUNET_CONTAINER_DLL_remove(tunnel->mesh->th_head,
+                                tunnel->mesh->th_tail,
+                                least_priority_th);
+    if (GNUNET_SCHEDULER_NO_TASK != least_priority_th->timeout_task)
+      GNUNET_SCHEDULER_cancel(least_priority_th->timeout_task);
+    GNUNET_free(least_priority_th);
+  }
   tunnel->npackets++;
   tunnel->mesh->npackets++;
   th = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle));
