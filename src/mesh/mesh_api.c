@@ -921,4 +921,4 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
   GNUNET_free (handle);
 }
 
-/* end of mesh_api.c *
+/* end of mesh_api.c */
