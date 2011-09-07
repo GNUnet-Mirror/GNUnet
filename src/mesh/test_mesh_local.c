@@ -36,6 +36,7 @@ static struct GNUNET_OS_Process *arm_pid;
 static struct GNUNET_MESH_Handle *mesh_peer_1;
 static struct GNUNET_MESH_Handle *mesh_peer_2;
 static struct GNUNET_MESH_Tunnel *t_1;
+
 // static struct GNUNET_MESH_Tunnel *t_2;
 static int result;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
@@ -78,26 +79,66 @@ callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
 static void *
 inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
                 const struct GNUNET_PeerIdentity *initiator,
-                const struct GNUNET_TRANSPORT_ATS_Information * atsi)
+                const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: \n");
+  unsigned int id = (unsigned int) cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: received incoming tunnel\n");
+  if (id != 1)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        "test: received incoming tunnel on peer 2\n");
+    result = GNUNET_SYSERR;
+  }
   return NULL;
 }
 
+
+/**
+ * Function called whenever an inbound tunnel is destroyed.  Should clean up
+ * any associated state.
+ *
+ * @param cls closure (set from GNUNET_MESH_connect)
+ * @param tunnel connection to the other end (henceforth invalid)
+ * @param tunnel_ctx place where local state associated
+ *                   with the tunnel is stored
+ */
+static void 
+inbound_end (void *cls,
+             const struct GNUNET_MESH_Tunnel * tunnel,
+             void *tunnel_ctx)
+{
+  unsigned int id = (unsigned int) cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: incoming tunnel closed\n");
+  if (id != 1)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        "test: received closing tunnel on peer 2\n");
+    result = GNUNET_SYSERR;
+  }
+}
+
+
+/**
+ * Handler array for traffic received on peer1
+ */
 static struct GNUNET_MESH_MessageHandler handlers1[] = {
   {&callback, 1, 0},
   {NULL, 0, 0}
 };
 
+
+/**
+ * Handler array for traffic received on peer2 (none expected)
+ */
 static struct GNUNET_MESH_MessageHandler handlers2[] = { {NULL, 0, 0} };
 
 
 
-
-
-
-
-
+/**
+ * Shutdown nicely
+ */
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -126,6 +167,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_OS_process_close (arm_pid);
 }
 
+
+/**
+ * Something went wrong and timed out. Kill everything and set error flag
+ */
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -138,6 +183,10 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   do_shutdown (cls, tc);
 }
 
+
+/**
+ * Main test function
+ */
 static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -147,20 +196,21 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static const GNUNET_MESH_ApplicationType app2[] = { 0 };
 
   test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
-  mesh_peer_1 = GNUNET_MESH_connect (cfg,
-                                     10,
-                                     (void *)1,
-                                     &inbound_tunnel,
-                                     NULL,
-                                     handlers1,
-                                     app1);
-  mesh_peer_2 = GNUNET_MESH_connect (cfg,
-                                     10,
-                                     (void *)2,
-                                     NULL,
-                                     NULL,
-                                     handlers2,
-                                     app2);
+  mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
+                                     10,        /* queue size */
+                                     (void *) 1,        /* cls */
+                                     &inbound_tunnel,   /* inbound new hndlr */
+                                     &inbound_end,      /* inbound end hndlr */
+                                     handlers1, /* traffic handlers */
+                                     app1);     /* apps offered */
+
+  mesh_peer_2 = GNUNET_MESH_connect (cfg,       /* configuration */
+                                     10,        /* queue size */
+                                     (void *) 2,        /* cls */
+                                     &inbound_tunnel,   /* inbound new hndlr */
+                                     &inbound_end,      /* inbound end hndlr */
+                                     handlers2, /* traffic handlers */
+                                     app2);     /* apps offered */
   if (NULL == mesh_peer_1 || NULL == mesh_peer_2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: Couldn't connect to mesh :(\n");
@@ -171,7 +221,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: YAY! CONNECTED TO MESH :D\n");
   }
 
-  t_1 = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, NULL, NULL, (void *)1);
+  t_1 = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, NULL, NULL, (void *) 1);
 //   t_2 = GNUNET_MESH_tunnel_create (mesh_peer_2, NULL, NULL, NULL, 2);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -180,6 +230,9 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/**
+ * Initialize framework and start test
+ */
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -209,6 +262,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
+/**
+ * Main
+ */
 int
 main (int argc, char *argv[])
 {
