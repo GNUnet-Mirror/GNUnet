@@ -846,7 +846,7 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
      sizeof (struct PeerAddressLookupMessage)},
     {&clients_handle_address_iterate, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE,
-     sizeof (struct GNUNET_MessageHeader)},
+     sizeof (struct AddressIterateMessage)},
     {&GST_blacklist_handle_init, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT,
      sizeof (struct GNUNET_MessageHeader)},
