@@ -20,11 +20,6 @@
  * @brief mesh api: client implementation of mesh service
  * @author Bartlomiej Polot
  *
- * TODO:
- * - callbacks to client missing on certain events
- * - processing messages from service is incomplete
- * - Use separate message types for tunnel creation s -> c (+pi) and c -> s
- *
  * STRUCTURE:
  * - CONSTANTS
  * - DATA STRUCTURES
@@ -201,6 +196,11 @@ struct GNUNET_MESH_Handle
    * Configuration given by the client, in case of reconnection
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Time to the next reconnect in case one reconnect fails
+   */
+  struct GNUNET_TIME_Relative reconnect_time;
 };
 
 
@@ -556,9 +556,26 @@ add_to_queue (struct GNUNET_MESH_Handle *h,
 }
 
 
+/**
+ * Auxiliary function to send an already constructed packet to the service.
+ * Takes care of creating a new queue element, copying the message and
+ * calling the tmt_rdy function if necessary.
+ * @param h mesh handle
+ * @param msg message to transmit
+ */
 static void
 send_packet (struct GNUNET_MESH_Handle *h,
              const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Reconnect callback: tries to reconnect again after a failer previous
+ * reconnecttion
+ * @param cls closure (mesh handle)
+ * @param tc task context
+ */
+static void
+reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -590,9 +607,15 @@ reconnect (struct GNUNET_MESH_Handle *h)
   h->client = GNUNET_CLIENT_connect ("mesh", h->cfg);
   if (h->client == NULL)
   {
-    /* FIXME: panic? exponential backoff retry? */
+    GNUNET_SCHEDULER_add_delayed(h->reconnect_time, &reconnect_cbk, h);
+    h->reconnect_time = GNUNET_TIME_relative_min(GNUNET_TIME_UNIT_HOURS,
+        GNUNET_TIME_relative_multiply(h->reconnect_time, 2));
     GNUNET_break (0);
     return GNUNET_NO;
+  }
+  else
+  {
+    h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   }
   /* Rebuild all tunnels */
   for (t = h->tunnels_head; NULL != t; t = t->next)
@@ -634,6 +657,21 @@ reconnect (struct GNUNET_MESH_Handle *h)
   return GNUNET_YES;
 }
 
+/**
+ * Reconnect callback: tries to reconnect again after a failer previous
+ * reconnecttion
+ * @param cls closure (mesh handle)
+ * @param tc task context
+ */
+static void
+reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_MESH_Handle *h = cls;
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+  reconnect(h);
+}
+
 
 /******************************************************************************/
 /***********************      RECEIVE HANDLERS     ****************************/
@@ -646,8 +684,8 @@ reconnect (struct GNUNET_MESH_Handle *h)
  * @param msg   A message with the details of the new incoming tunnel
  */
 static void
-process_tunnel_create (struct GNUNET_MESH_Handle *h,
-                       const struct GNUNET_MESH_TunnelMessage *msg)
+process_tunnel_created (struct GNUNET_MESH_Handle *h,
+                       const struct GNUNET_MESH_TunnelNotification *msg)
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_TRANSPORT_ATS_Information atsi;
@@ -781,8 +819,9 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MESH_Multicast *mcast;
   struct GNUNET_MESH_ToOrigin *to_orig;
   struct GNUNET_MESH_Tunnel *t;
+  unsigned int i;
   uint16_t type;
-  int i;
+
 
   type = ntohs (message->type);
   switch (type)
@@ -814,6 +853,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     GNUNET_break (0);
     return;
   }
+  type = ntohs(payload->type);
   for (i = 0; i < h->n_handlers; i++)
   {
     handler = &h->message_handlers[i];
@@ -823,18 +863,21 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
 
       atsi.type = 0;
       atsi.value = 0;
-      if (GNUNET_OK ==
+      if (GNUNET_OK !=
           handler->callback (h->cls, t, &t->ctx, peer, payload, &atsi))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "MESH: callback completed successfully\n");
-      }
-      else
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "MESH: callback caused disconnection\n");
         GNUNET_MESH_disconnect (h);
       }
+#if DEBUG
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "MESH: callback completed successfully\n");
+
+      }
+#endif
     }
   }
 }
@@ -861,7 +904,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     /* Notify of a new incoming tunnel */
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE:
-    process_tunnel_create (h, (struct GNUNET_MESH_TunnelMessage *) msg);
+    process_tunnel_created (h, (struct GNUNET_MESH_TunnelNotification *) msg);
     break;
     /* Notify of a tunnel disconnection */
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY:
@@ -1088,6 +1131,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->message_handlers = handlers;
   h->applications = stypes;
   h->next_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
+  h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
 
   /* count handlers and apps, calculate size */
   for (h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++) ;
@@ -1111,9 +1155,11 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
       apps[napps] = h->applications[napps];
     msg->applications = htons (napps);
     msg->types = htons (ntypes);
+#if DEBUG
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "mesh: Sending %lu bytes long message %d types and %d apps\n",
                 ntohs (msg->header.size), ntypes, napps);
+#endif
     send_packet (h, &msg->header);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: GNUNET_MESH_connect() END\n");

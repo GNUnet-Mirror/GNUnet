@@ -118,6 +118,25 @@ struct GNUNET_MESH_TunnelMessage
      * ID of a tunnel controlled by this client.
      */
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+};
+
+
+/**
+ * Message for the service to let a client know about created tunnels.
+ */
+struct GNUNET_MESH_TunnelNotification
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE
+     *
+     * Size: sizeof(struct GNUNET_MESH_TunnelMessage)
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * ID of a tunnel controlled by this client.
+     */
+  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
     /**
      * Peer at the other end, if any
