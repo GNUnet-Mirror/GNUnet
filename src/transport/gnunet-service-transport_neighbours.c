@@ -403,10 +403,8 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     GNUNET_assert (neighbours_connected > 0);
     neighbours_connected--;
 
-    GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# peers connected"),
-                              -1, GNUNET_NO);
+    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
+                              GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
   }
   GNUNET_assert (GNUNET_YES ==
@@ -597,10 +595,8 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
     return;
 
   neighbours_connected++;
-  GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop
-                            ("# peers connected"),
-                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
+                            GNUNET_NO);
   connect_notify_cb (callback_cls, target, n->ats, n->ats_count);
 }
 

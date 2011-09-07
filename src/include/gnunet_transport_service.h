@@ -446,13 +446,32 @@ typedef void (*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
 
 
 /**
- * Function to call with a human-readable format of an address
+ * Function to call with a binary format of an address
  *
  * @param cls closure
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 typedef void (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
                                                         const char *address);
+
+
+/**
+ * Function to call with a binary format of an address
+ *
+ * @param cls closure
+ * @param peer peer identity
+ * @param transport transport plugin
+ * @param addr address
+ * @param addrlen address length
+ */
+typedef void (*GNUNET_TRANSPORT_AddressLookUpBinaryCallback) (void *cls,
+                                                              const struct
+                                                              GNUNET_PeerIdentity
+                                                              * peer,
+                                                              const char
+                                                              *transport,
+                                                              const void *addr,
+                                                              size_t addrlen);
 
 
 /**
@@ -672,7 +691,7 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
 void
 GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_TRANSPORT_AddressLookUpCallback
+                                  GNUNET_TRANSPORT_AddressLookUpBinaryCallback
                                   peer_address_callback,
                                   void *peer_address_callback_cls);
 

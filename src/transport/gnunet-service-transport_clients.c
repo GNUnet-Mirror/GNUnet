@@ -625,18 +625,42 @@ clients_handle_set_quota (void *cls, struct GNUNET_SERVER_Client *client,
  * @param address the resolved name, NULL to indicate the last response
  */
 static void
-transmit_address_to_client (void *cls, const char *address)
+transmit_address_to_client (void *cls, const char *buf)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
 
-  if (NULL == address)
+  if (NULL == buf)
   {
     GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
                                                 GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
     GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
     return;
   }
-  GNUNET_SERVER_transmit_context_append_data (tc, address, strlen (address) + 1,
+  GNUNET_SERVER_transmit_context_append_data (tc, buf, strlen (buf + 1),
+                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+}
+
+
+/**
+ * Take the given address and append it to the set of results sent back to
+ * the client.
+ *
+ * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
+ * @param address the resolved name, NULL to indicate the last response
+ */
+static void
+transmit_binary_to_client (void *cls, void *buf, size_t size)
+{
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+
+  if (NULL == buf)
+  {
+    GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+    GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+    return;
+  }
+  GNUNET_SERVER_transmit_context_append_data (tc, buf, size,
                                               GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
 }
 
@@ -781,18 +805,22 @@ clients_handle_peer_address_lookup (void *cls,
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
-output_addresses (void *cls, const struct GNUNET_PeerIdentity *neighbour,
+output_addresses (void *cls, const struct GNUNET_PeerIdentity *peer,
                   const struct GNUNET_TRANSPORT_ATS_Information *ats,
                   uint32_t ats_count)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
-  char *addr_buf;
+  struct AddressIterateResponseMessage msg;
+  size_t size;
 
-  /* FIXME: move to a binary format!!! */
-  GNUNET_asprintf (&addr_buf, "%s: %s", GNUNET_i2s (neighbour),
-                   GST_plugins_a2s ("FIXME", NULL, 0));
-  transmit_address_to_client (tc, addr_buf);
-  GNUNET_free (addr_buf);
+  size =
+      sizeof (struct AddressIterateResponseMessage) -
+      sizeof (struct GNUNET_MessageHeader);
+  memcpy (&msg.peer, peer, sizeof (struct GNUNET_PeerIdentity));
+  msg.addrlen = ntohs (0);
+  msg.pluginlen = ntohs (0);
+
+  transmit_binary_to_client (tc, &msg, size);
 }
 
 

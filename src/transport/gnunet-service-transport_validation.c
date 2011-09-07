@@ -409,6 +409,7 @@ add_valid_address (void *cls, const char *tname,
   ve = find_validation_entry (&public_key, &pid, tname, addr, addrlen);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until, expiration);
   struct GNUNET_TRANSPORT_ATS_Information ats;
+
   ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
   ats.value = htonl (0);
 
@@ -918,7 +919,6 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 
   if (ntohs (hdr->size) < sizeof (struct TransportPongMessage))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "SIZE!\n");
     GNUNET_break_op (0);
     return;
   }
@@ -983,6 +983,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   /* validity achieved, remember it! */
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
   struct GNUNET_TRANSPORT_ATS_Information ats;
+
   ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
   ats.value = htonl (0);
   GNUNET_ATS_address_update (GST_ats, &ve->pid, ve->valid_until, ve->transport_name, NULL, ve->addr, ve->addrlen, &ats, 1);     /* FIXME: compute and add latency here... */

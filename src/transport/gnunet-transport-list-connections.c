@@ -53,13 +53,22 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 static void
-process_address (void *cls, const char *address)
+process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
+                 const char *transport, const void *addr, size_t addrlen)
 {
 #if VERBOSE
   connection_count++;
 #endif
-  if (address != NULL)
-    fprintf (stdout, "%s\n", address);
+  if ((peer != NULL) || (transport != NULL) ||
+      ((addr != NULL) && (addrlen > 0)))
+    fprintf (stdout, "Peer `%s' plugin: `%s' address `%s'\n",
+             (peer != NULL) ? GNUNET_i2s (peer) : "<unknown>",
+             (transport != NULL) ? transport : "<unknown>", ((addr != NULL) &&
+                                                             (addrlen > 0) &&
+                                                             (transport !=
+                                                              NULL)) ?
+             "how do i resolve the name without transport service?" :
+             "<unknown>");
 }
 
 
