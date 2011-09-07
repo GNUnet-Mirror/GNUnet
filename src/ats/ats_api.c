@@ -548,6 +548,7 @@ create_allocation_record (const char *plugin_name, struct Session *session,
   memcpy (&ar[1], plugin_addr, plugin_addr_len);
   ar->session = session;
   ar->plugin_addr_len = plugin_addr_len;
+  GNUNET_assert (ats_count > 0);
   GNUNET_array_grow (ar->ats, ar->ats_count, ats_count);
   memcpy (ar->ats, ats,
           ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
