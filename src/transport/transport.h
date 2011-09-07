@@ -30,7 +30,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TRANSPORT 3
+#define DEBUG_TRANSPORT GNUNET_YES
 
 #define DEBUG_TRANSPORT_TIMEOUT GNUNET_NO
 
@@ -355,7 +355,7 @@ struct PeerAddressLookupMessage
 
 /**
  * Message from the library to the transport service
- * asking for human readable addresses known for a peer.
+ * asking for binary addresses known for a peer.
  */
 struct AddressIterateMessage
 {
@@ -373,6 +373,38 @@ struct AddressIterateMessage
    * timeout to give up.  FIXME: remove in the future
    */
   struct GNUNET_TIME_AbsoluteNBO timeout;
+};
+
+/**
+ * Message from the library to the transport service
+ * asking for human readable addresses known for a peer.
+ */
+struct AddressIterateResponseMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * For alignment.
+   */
+  uint32_t reserved;
+
+  /**
+   * Peer identity
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * address length
+   */
+  uint32_t addrlen GNUNET_PACKED;
+
+  /**
+   * length of the plugin name
+   */
+  uint32_t pluginlen GNUNET_PACKED;
 };
 
 
