@@ -36,18 +36,10 @@ static struct GNUNET_OS_Process *arm_pid;
 static struct GNUNET_MESH_Handle *mesh_peer_1;
 static struct GNUNET_MESH_Handle *mesh_peer_2;
 static struct GNUNET_MESH_Tunnel *t_1;
-static struct GNUNET_MESH_Tunnel *t_2;
+// static struct GNUNET_MESH_Tunnel *t_2;
 static int result;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 static GNUNET_SCHEDULER_TaskIdentifier test_task;
-
-static struct GNUNET_MESH_MessageHandler handlers1[] = {
-  {&callback, 1, 0},
-  {NULL, 0, 0}
-};
-
-static struct GNUNET_MESH_MessageHandler handlers2[] = { {NULL, 0, 0} };
-
 
 
 /**
@@ -86,13 +78,18 @@ callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
 static void *
 inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
                 const struct GNUNET_PeerIdentity *initiator,
-                const structGNUNET_TRANSPORT_ATS_Information * atsi)
+                const struct GNUNET_TRANSPORT_ATS_Information * atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: \n");
   return NULL;
 }
 
+static struct GNUNET_MESH_MessageHandler handlers1[] = {
+  {&callback, 1, 0},
+  {NULL, 0, 0}
+};
 
+static struct GNUNET_MESH_MessageHandler handlers2[] = { {NULL, 0, 0} };
 
 
 
@@ -150,8 +147,20 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static const GNUNET_MESH_ApplicationType app2[] = { 0 };
 
   test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
-  mesh_peer_1 = GNUNET_MESH_connect (cfg, 10, 1, NULL, NULL, handlers1, app1);
-  mesh_peer_2 = GNUNET_MESH_connect (cfg, 10, 2, NULL, NULL, handlers2, app2);
+  mesh_peer_1 = GNUNET_MESH_connect (cfg,
+                                     10,
+                                     (void *)1,
+                                     &inbound_tunnel,
+                                     NULL,
+                                     handlers1,
+                                     app1);
+  mesh_peer_2 = GNUNET_MESH_connect (cfg,
+                                     10,
+                                     (void *)2,
+                                     NULL,
+                                     NULL,
+                                     handlers2,
+                                     app2);
   if (NULL == mesh_peer_1 || NULL == mesh_peer_2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: Couldn't connect to mesh :(\n");
@@ -162,7 +171,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: YAY! CONNECTED TO MESH :D\n");
   }
 
-  t_1 = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, NULL, NULL, 1);
+  t_1 = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, NULL, NULL, (void *)1);
 //   t_2 = GNUNET_MESH_tunnel_create (mesh_peer_2, NULL, NULL, NULL, 2);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
