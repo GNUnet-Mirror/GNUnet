@@ -74,6 +74,7 @@ mesh_debug (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 #endif
 
+/* TODO: move into configuration file */
 #define CORE_QUEUE_SIZE         10
 #define LOCAL_QUEUE_SIZE        100
 #define REFRESH_PATH_TIME       GNUNET_TIME_relative_multiply(\

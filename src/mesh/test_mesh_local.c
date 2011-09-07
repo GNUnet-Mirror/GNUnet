@@ -19,8 +19,8 @@
 */
 
 /**
- * @file mesh/test_mesh_api.c
- * @brief test mesh api: dummy test of callbacks
+ * @file mesh/test_mesh_local.c
+ * @brief test mesh local: test of tunnels with just one peer
  * @author Bartlomiej Polot
  */
 
@@ -33,8 +33,10 @@
 #define VERBOSE_ARM 0
 
 static struct GNUNET_OS_Process *arm_pid;
-static struct GNUNET_MESH_Handle *mesh;
-static struct GNUNET_MESH_Tunnel *t;
+static struct GNUNET_MESH_Handle *mesh_peer_1;
+static struct GNUNET_MESH_Handle *mesh_peer_2;
+static struct GNUNET_MESH_Tunnel *t_1;
+static struct GNUNET_MESH_Tunnel *t_2;
 static int result;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 static GNUNET_SCHEDULER_TaskIdentifier test_task;
@@ -57,29 +59,41 @@ callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
           const struct GNUNET_MessageHeader *message,
           const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  return 0;
+  return GNUNET_OK;
 }
 
-static struct GNUNET_MESH_MessageHandler handlers[] = { {&callback, 1, 0},
-{NULL, 0, 0}
+static struct GNUNET_MESH_MessageHandler handlers1[] = {
+    {&callback, 1, 0},
+    {NULL, 0, 0}
 };
+
+static struct GNUNET_MESH_MessageHandler handlers2[] = {{NULL, 0, 0}};
 
 
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: shutdown\n");
   if (0 != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
   }
-  if (NULL != mesh)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D1\n");
+  if (NULL != mesh_peer_1)
   {
-    GNUNET_MESH_disconnect (mesh);
+    GNUNET_MESH_disconnect (mesh_peer_1);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D2\n");
+  if (NULL != mesh_peer_2)
+  {
+    GNUNET_MESH_disconnect (mesh_peer_2);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: arm\n");
   if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Wait\n");
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
   GNUNET_OS_process_close (arm_pid);
 }
@@ -100,12 +114,15 @@ static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  static const GNUNET_MESH_ApplicationType app[] =
+  static const GNUNET_MESH_ApplicationType app1[] =
       { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
+  static const GNUNET_MESH_ApplicationType app2[] =
+      { 0 };
 
   test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
-  mesh = GNUNET_MESH_connect (cfg, 10, NULL, NULL, NULL, handlers, app);
-  if (NULL == mesh)
+  mesh_peer_1 = GNUNET_MESH_connect (cfg, 10, 1, NULL, NULL, handlers1, app1);
+  mesh_peer_2 = GNUNET_MESH_connect (cfg, 10, 2, NULL, NULL, handlers2, app2);
+  if (NULL == mesh_peer_1 || NULL == mesh_peer_2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: Couldn't connect to mesh :(\n");
     return;
@@ -115,13 +132,13 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: YAY! CONNECTED TO MESH :D\n");
   }
 
-  t = GNUNET_MESH_tunnel_create (mesh, NULL, NULL, NULL, NULL);
-  if (NULL != t)
-  {
-    GNUNET_MESH_tunnel_destroy (t);
-  }
+  t_1 = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, NULL, NULL, 1);
+//   t_2 = GNUNET_MESH_tunnel_create (mesh_peer_2, NULL, NULL, NULL, 2);
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+                                    GNUNET_TIME_UNIT_SECONDS,
+                                    2),
+                                &do_shutdown,
                                 NULL);
 }
 
@@ -130,7 +147,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_log_setup ("test_mesh_api",
+  GNUNET_log_setup ("test_mesh_local",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -160,7 +177,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  char *const argv2[] = { "test-mesh-api",
+  char *const argv2[] = { "test-mesh-local",
     "-c", "test_mesh.conf",
 #if VERBOSE
     "-L", "DEBUG",
@@ -173,7 +190,7 @@ main (int argc, char *argv[])
 
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                          "test-mesh-api", "nohelp", options, &run, NULL);
+                          "test-mesh-local", "nohelp", options, &run, NULL);
 
   if (GNUNET_OK != ret)
   {

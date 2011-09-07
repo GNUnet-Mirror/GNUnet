@@ -431,6 +431,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t)
   return;
 }
 
+
 /**
  * Get the peer descriptor for the peer with id from the given tunnel
  * @param t Tunnel handle
@@ -1176,10 +1177,14 @@ void
 GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
 {
   struct GNUNET_MESH_Tunnel *t;
+  struct GNUNET_MESH_Tunnel *aux;
 
-  for (t = handle->tunnels_head; NULL != t; t = t->next)
+  t = handle->tunnels_head;
+  while (NULL != t)
   {
+    aux = t->next;
     destroy_tunnel (t);
+    t = aux;
   }
   if (NULL != handle->th)
   {
