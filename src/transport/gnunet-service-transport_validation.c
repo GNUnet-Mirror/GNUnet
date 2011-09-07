@@ -408,8 +408,12 @@ add_valid_address (void *cls, const char *tname,
   }
   ve = find_validation_entry (&public_key, &pid, tname, addr, addrlen);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until, expiration);
+  struct GNUNET_TRANSPORT_ATS_Information ats;
+  ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  ats.value = htonl (0);
+
   GNUNET_ATS_address_update (GST_ats, &pid, ve->valid_until, tname, NULL, addr,
-                             addrlen, NULL, 0);
+                             addrlen, &ats, 1);
   return GNUNET_OK;
 }
 
@@ -774,10 +778,13 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
     if (papi == NULL)
       ret = -1;
     else
+    {
+      GNUNET_assert (papi->send != NULL);
       ret =
           papi->send (papi->cls, pid, message_buf, tsize, PING_PRIORITY,
                       HELLO_REVALIDATION_START_TIME, NULL /* no session */ ,
                       ve->addr, ve->addrlen, GNUNET_YES, NULL, NULL);
+    }
   }
   if (-1 != ret)
   {
@@ -911,6 +918,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 
   if (ntohs (hdr->size) < sizeof (struct TransportPongMessage))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "SIZE!\n");
     GNUNET_break_op (0);
     return;
   }
@@ -965,8 +973,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     GNUNET_break_op (0);
     return;
   }
-
-#if VERBOSE_VALIDATION
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Address validated for peer `%s' with plugin `%s': `%s'\n",
               GNUNET_i2s (sender), tname, GST_plugins_a2s (tname, addr,
@@ -975,7 +982,10 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 
   /* validity achieved, remember it! */
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
-  GNUNET_ATS_address_update (GST_ats, &ve->pid, ve->valid_until, ve->transport_name, NULL, ve->addr, ve->addrlen, NULL, 0);     /* FIXME: compute and add latency here... */
+  struct GNUNET_TRANSPORT_ATS_Information ats;
+  ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  ats.value = htonl (0);
+  GNUNET_ATS_address_update (GST_ats, &ve->pid, ve->valid_until, ve->transport_name, NULL, ve->addr, ve->addrlen, &ats, 1);     /* FIXME: compute and add latency here... */
 
   /* build HELLO to store in PEERINFO */
   ve->copied = GNUNET_NO;

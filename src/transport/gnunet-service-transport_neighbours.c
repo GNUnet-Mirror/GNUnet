@@ -256,7 +256,7 @@ transmission_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param receiver intended receiver
  * @param success whether it worked or not
  */
-static void
+void
 transmit_send_continuation (void *cls,
                             const struct GNUNET_PeerIdentity *receiver,
                             int success)
@@ -317,7 +317,6 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
   n->is_active = mq;
   mq->n = n;
-
 
   ret =
       papi->send (papi->cls, &n->id, mq->message_buf, mq->message_buf_size,
@@ -598,6 +597,11 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 
   GNUNET_assert (neighbours != NULL);
 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to peer `%s'\n",
+              GNUNET_i2s (target));
+#endif
+
   GNUNET_assert (0 !=
                  memcmp (target, &GST_my_identity,
                          sizeof (struct GNUNET_PeerIdentity)));
@@ -606,8 +610,16 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     return;                     /* already connected */
   if (n == NULL)
   {
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Unknown peer `%s', creating new neighbour\n",
+                GNUNET_i2s (target));
+#endif
     n = GNUNET_malloc (sizeof (struct NeighbourMapEntry));
     n->id = *target;
+    GNUNET_array_grow (n->ats, n->ats_count, 1);
+    n->ats[0].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);;
+    n->ats[0].value = htonl (0);
     GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
                                    GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                    MAX_BANDWIDTH_CARRY_S);
@@ -621,6 +633,11 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   }
   if (n->asc != NULL)
     return;                     /* already trying */
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Asking ATS for suggested address to connect to peer `%s'\n",
+              GNUNET_i2s (target));
+#endif
   n->asc =
       GNUNET_ATS_suggest_address (GST_ats, target, &try_connect_using_address,
                                   n);
@@ -727,6 +744,7 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
       cont (cont_cls, GNUNET_SYSERR);
     return;
   }
+
   GNUNET_assert (msg_size >= sizeof (struct GNUNET_MessageHeader));
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop
@@ -922,8 +940,9 @@ neighbours_iterate (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (GNUNET_YES != n->is_connected)
     return GNUNET_OK;
+
   GNUNET_assert (n->ats_count > 0);
-  ic->cb (ic->cb_cls, &n->id, n->ats, n->ats_count - 1);
+  ic->cb (ic->cb_cls, &n->id, n->ats, n->ats_count);
   return GNUNET_OK;
 }
 
