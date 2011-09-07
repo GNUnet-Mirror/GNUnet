@@ -227,6 +227,11 @@ static GNUNET_TRANSPORT_NotifyConnect connect_notify_cb;
 static GNUNET_TRANSPORT_NotifyDisconnect disconnect_notify_cb;
 
 /**
+ * counter for connected neighbours
+ */
+static int neighbours_connected;
+
+/**
  * Lookup a neighbour entry in the neighbours hash map.
  *
  * @param pid identity of the peer to look up
@@ -394,6 +399,14 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   if (GNUNET_YES == n->is_connected)
   {
     n->is_connected = GNUNET_NO;
+
+    GNUNET_assert (neighbours_connected > 0);
+    neighbours_connected--;
+
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# peers connected"),
+                              -1, GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
   }
   GNUNET_assert (GNUNET_YES ==
@@ -480,6 +493,7 @@ GST_neighbours_stop ()
   GNUNET_CONTAINER_multihashmap_iterate (neighbours, &disconnect_all_neighbours,
                                          NULL);
   GNUNET_CONTAINER_multihashmap_destroy (neighbours);
+  GNUNET_assert (neighbours_connected == 0);
   neighbours = NULL;
   callback_cls = NULL;
   connect_notify_cb = NULL;
@@ -581,6 +595,12 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
                                     ats_count);
   if (GNUNET_YES == was_connected)
     return;
+
+  neighbours_connected++;
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop
+                            ("# peers connected"),
+                            1, GNUNET_NO);
   connect_notify_cb (callback_cls, target, n->ats, n->ats_count);
 }
 
