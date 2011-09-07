@@ -242,12 +242,12 @@ struct GNUNET_MESH_Tunnel
     /**
      * Callback to execute when peers connect to the tunnel
      */
-  GNUNET_MESH_TunnelConnectHandler connect_handler;
+  GNUNET_MESH_PeerConnectHandler connect_handler;
 
     /**
      * Callback to execute when peers disconnect from the tunnel
      */
-  GNUNET_MESH_TunnelDisconnectHandler disconnect_handler;
+  GNUNET_MESH_PeerDisconnectHandler disconnect_handler;
 
     /**
      * Closure for the connect/disconnect handlers
@@ -380,7 +380,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t)
 
   if (NULL == t)
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
     return;
   }
   h = t->mesh;
@@ -390,16 +390,16 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t)
     if (th->tunnel == t)
     {
       aux = th->next;
-      GNUNET_CONTAINER_DLL_remove(h->th_head, h->th_tail, th);
+      GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
       if (NULL == h->th_head && NULL != h->th)
       {
-        GNUNET_CLIENT_notify_transmit_ready_cancel(h->th);
+        GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
         h->th = NULL;
       }
       if (NULL != th->notify)
-          th->notify(th->notify_cls, 0, NULL);
+        th->notify (th->notify_cls, 0, NULL);
       if (GNUNET_SCHEDULER_NO_TASK != th->timeout_task)
-          GNUNET_SCHEDULER_cancel(th->timeout_task);
+        GNUNET_SCHEDULER_cancel (th->timeout_task);
       GNUNET_free (th);
       th = aux;
     }
@@ -420,7 +420,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t)
     GNUNET_free (t->peers[i]);
   }
   if (t->npeers > 0)
-      GNUNET_free (t->peers);
+    GNUNET_free (t->peers);
   if (NULL != h->cleaner && 0 != t->owner)
     h->cleaner (h->cls, t, t->ctx);
   if (0 != t->owner)
@@ -608,9 +608,11 @@ reconnect (struct GNUNET_MESH_Handle *h)
   h->client = GNUNET_CLIENT_connect ("mesh", h->cfg);
   if (h->client == NULL)
   {
-    GNUNET_SCHEDULER_add_delayed(h->reconnect_time, &reconnect_cbk, h);
-    h->reconnect_time = GNUNET_TIME_relative_min(GNUNET_TIME_UNIT_HOURS,
-        GNUNET_TIME_relative_multiply(h->reconnect_time, 2));
+    GNUNET_SCHEDULER_add_delayed (h->reconnect_time, &reconnect_cbk, h);
+    h->reconnect_time =
+        GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_HOURS,
+                                  GNUNET_TIME_relative_multiply
+                                  (h->reconnect_time, 2));
     GNUNET_break (0);
     return GNUNET_NO;
   }
@@ -668,9 +670,10 @@ static void
 reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_MESH_Handle *h = cls;
+
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
-  reconnect(h);
+  reconnect (h);
 }
 
 
@@ -686,7 +689,7 @@ reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 process_tunnel_created (struct GNUNET_MESH_Handle *h,
-                       const struct GNUNET_MESH_TunnelNotification *msg)
+                        const struct GNUNET_MESH_TunnelNotification *msg)
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_TRANSPORT_ATS_Information atsi;
@@ -712,7 +715,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
   {
     atsi.type = 0;
     atsi.value = 0;
-    t->ctx = h->new_tunnel(h->cls, t, &msg->peer, &atsi);
+    t->ctx = h->new_tunnel (h->cls, t, &msg->peer, &atsi);
   }
   GNUNET_CONTAINER_DLL_insert (h->tunnels_head, h->tunnels_tail, t);
   return;
@@ -737,15 +740,15 @@ process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
 
   if (NULL == t)
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
     return;
   }
   if (0 == t->owner)
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
   }
 
-  destroy_tunnel(t);
+  destroy_tunnel (t);
   return;
 }
 
@@ -775,7 +778,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   t = retrieve_tunnel (h, ntohl (msg->tunnel_id));
   if (NULL == t)
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
     return;
   }
   id = GNUNET_PEER_search (&msg->peer);
@@ -854,7 +857,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     GNUNET_break (0);
     return;
   }
-  type = ntohs(payload->type);
+  type = ntohs (payload->type);
   for (i = 0; i < h->n_handlers; i++)
   {
     handler = &h->message_handlers[i];
@@ -969,9 +972,9 @@ send_callback (void *cls, size_t size, void *buf)
   {
 #if DEBUG
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     type: %u\n",
-                ntohs (((struct GNUNET_MessageHeader *)&th[1])->type));
+                ntohs (((struct GNUNET_MessageHeader *) &th[1])->type));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     size: %u\n",
-                ntohs (((struct GNUNET_MessageHeader *)&th[1])->size));
+                ntohs (((struct GNUNET_MessageHeader *) &th[1])->size));
 #endif
     if (NULL != th->notify)
     {
@@ -988,7 +991,7 @@ send_callback (void *cls, size_t size, void *buf)
           mc.header.size = htons (sizeof (mc) + th->size);
           mc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
           mc.tid = htonl (th->tunnel->tid);
-          memset (&mc.oid, 0, sizeof (struct GNUNET_PeerIdentity)); /* myself */
+          memset (&mc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &mc, sizeof (mc));
           psize = th->size + sizeof (mc);
         }
@@ -1006,7 +1009,7 @@ send_callback (void *cls, size_t size, void *buf)
           uc.header.size = htons (sizeof (uc) + th->size);
           uc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST);
           uc.tid = htonl (th->tunnel->tid);
-          memset (&uc.oid, 0, sizeof (struct GNUNET_PeerIdentity));     /* myself */
+          memset (&uc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           GNUNET_PEER_resolve (th->target, &uc.destination);
           memcpy (cbuf, &uc, sizeof (uc));
           psize = th->size + sizeof (uc);
@@ -1210,9 +1213,9 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
  */
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
-                           GNUNET_MESH_TunnelConnectHandler connect_handler,
-                           GNUNET_MESH_TunnelDisconnectHandler
-                           disconnect_handler, void *handler_cls)
+                           GNUNET_MESH_PeerConnectHandler connect_handler,
+                           GNUNET_MESH_PeerDisconnectHandler disconnect_handler,
+                           void *handler_cls)
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_TunnelMessage msg;
@@ -1237,21 +1240,21 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
  * @param tun tunnel handle
  */
 void
-GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *t)
+GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
 {
   struct GNUNET_MESH_Handle *h;
   struct GNUNET_MESH_TunnelMessage msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Destroying tunnel\n");
-  h = t->mesh;
+  h = tunnel->mesh;
 
-  if (0 != t->owner)
-    GNUNET_PEER_change_rc (t->owner, -1);
+  if (0 != tunnel->owner)
+    GNUNET_PEER_change_rc (tunnel->owner, -1);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg.tunnel_id = htonl (t->tid);
-  destroy_tunnel (t);
+  msg.tunnel_id = htonl (tunnel->tid);
+  destroy_tunnel (tunnel);
   send_packet (h, &msg.header);
 }
 
@@ -1401,7 +1404,7 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   uint32_t least_priority;
   size_t overhead;
 
-  GNUNET_assert(NULL != notify);
+  GNUNET_assert (NULL != notify);
   if (tunnel->mesh->npackets >= tunnel->mesh->max_queue_size &&
       tunnel->npackets > 0)
   {
@@ -1422,16 +1425,16 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
     }
     if (NULL == least_priority_th)
       return NULL;
-    GNUNET_assert(NULL != least_priority_th->notify); /* Cant be a cntrl msg */
-    least_priority_th->notify(notify_cls, 0, NULL);
+    /* Can't be a control message */
+    GNUNET_assert (NULL != least_priority_th->notify);
+    least_priority_th->notify (notify_cls, 0, NULL);
     least_priority_th->tunnel->npackets--;
     tunnel->mesh->npackets--;
-    GNUNET_CONTAINER_DLL_remove(tunnel->mesh->th_head,
-                                tunnel->mesh->th_tail,
-                                least_priority_th);
+    GNUNET_CONTAINER_DLL_remove (tunnel->mesh->th_head, tunnel->mesh->th_tail,
+                                 least_priority_th);
     if (GNUNET_SCHEDULER_NO_TASK != least_priority_th->timeout_task)
-      GNUNET_SCHEDULER_cancel(least_priority_th->timeout_task);
-    GNUNET_free(least_priority_th);
+      GNUNET_SCHEDULER_cancel (least_priority_th->timeout_task);
+    GNUNET_free (least_priority_th);
   }
   tunnel->npackets++;
   tunnel->mesh->npackets++;
@@ -1440,10 +1443,10 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   th->priority = priority;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
   th->target = GNUNET_PEER_intern (target);
-  overhead =
-      (NULL ==
-       target) ? sizeof (struct GNUNET_MESH_Multicast) : sizeof (struct
-                                                                 GNUNET_MESH_Unicast);
+  if (NULL == target)
+    overhead = sizeof (struct GNUNET_MESH_Multicast);
+  else
+    overhead = sizeof (struct GNUNET_MESH_Unicast);
   th->size = notify_size + overhead;
   th->notify = notify;
   th->notify_cls = notify_cls;

@@ -121,8 +121,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_MESH_tunnel_destroy (t);
   }
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown,
-                                NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown, NULL);
 }
 
 

@@ -790,14 +790,14 @@ destroy_tunnel (struct MeshTunnel *t)
   {
     r = GNUNET_SYSERR;
   }
-  GNUNET_CONTAINER_multihashmap_destroy(t->peers);
+  GNUNET_CONTAINER_multihashmap_destroy (t->peers);
   q = t->queue_head;
   while (NULL != q)
   {
     if (NULL != q->data)
-      GNUNET_free(q->data);
+      GNUNET_free (q->data);
     qn = q->next;
-    GNUNET_free(q);
+    GNUNET_free (q);
     q = qn;
     /* TODO cancel core transmit ready in case it was active */
   }
@@ -2027,24 +2027,24 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       /* deregister clients applications */
       for (i = 0; i < c->app_counter; i++)
       {
-	for (j = 0; j < n_apps; j++)
-	{
-	  if (c->apps[i] == applications[j] && 0 == --applications_rc[j])
-	  {
-	    applications[j] = applications[n_apps - 1];
-	    GNUNET_array_grow(applications, n_apps, n_apps - 1);
-	    n_apps++;
-	    applications_rc[j] = applications_rc[n_apps - 1];
-	    GNUNET_array_grow(applications_rc, n_apps, n_apps - 1);
+        for (j = 0; j < n_apps; j++)
+        {
+          if (c->apps[i] == applications[j] && 0 == --applications_rc[j])
+          {
+            applications[j] = applications[n_apps - 1];
+            GNUNET_array_grow (applications, n_apps, n_apps - 1);
+            n_apps++;
+            applications_rc[j] = applications_rc[n_apps - 1];
+            GNUNET_array_grow (applications_rc, n_apps, n_apps - 1);
 
-	  }
-	  break;
-	}
+          }
+          break;
+        }
       }
       GNUNET_free (c->apps);
       if (0 == n_apps)
       {
-	GNUNET_SCHEDULER_cancel (announce_applications_task);
+        GNUNET_SCHEDULER_cancel (announce_applications_task);
       }
     }
     if (0 != c->type_counter)
@@ -2125,9 +2125,9 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     if (!known)
     {
       /* Register previously unknown application */
-      GNUNET_array_append(applications, n_apps, c->apps[i]);
+      GNUNET_array_append (applications, n_apps, c->apps[i]);
       n_apps--;
-      GNUNET_array_append(applications_rc, n_apps, 1);
+      GNUNET_array_append (applications_rc, n_apps, 1);
       if (GNUNET_SCHEDULER_NO_TASK == announce_applications_task)
       {
         announce_applications_task =

@@ -41,6 +41,15 @@ static int result;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 static GNUNET_SCHEDULER_TaskIdentifier test_task;
 
+static struct GNUNET_MESH_MessageHandler handlers1[] = {
+  {&callback, 1, 0},
+  {NULL, 0, 0}
+};
+
+static struct GNUNET_MESH_MessageHandler handlers2[] = { {NULL, 0, 0} };
+
+
+
 /**
  * Function is called whenever a message is received.
  *
@@ -59,15 +68,37 @@ callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
           const struct GNUNET_MessageHeader *message,
           const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Data callback\n");
   return GNUNET_OK;
 }
 
-static struct GNUNET_MESH_MessageHandler handlers1[] = {
-    {&callback, 1, 0},
-    {NULL, 0, 0}
-};
 
-static struct GNUNET_MESH_MessageHandler handlers2[] = {{NULL, 0, 0}};
+/**
+ * Method called whenever another peer has added us to a tunnel
+ * the other peer initiated.
+ *
+ * @param cls closure
+ * @param tunnel new handle to the tunnel
+ * @param initiator peer that started the tunnel
+ * @param atsi performance information for the tunnel
+ * @return initial tunnel context for the tunnel (can be NULL -- that's not an error)
+ */
+static void *
+inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
+                const struct GNUNET_PeerIdentity *initiator,
+                const structGNUNET_TRANSPORT_ATS_Information * atsi)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: \n");
+  return NULL;
+}
+
+
+
+
+
+
+
+
 
 
 static void
@@ -116,8 +147,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   static const GNUNET_MESH_ApplicationType app1[] =
       { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
-  static const GNUNET_MESH_ApplicationType app2[] =
-      { 0 };
+  static const GNUNET_MESH_ApplicationType app2[] = { 0 };
 
   test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
   mesh_peer_1 = GNUNET_MESH_connect (cfg, 10, 1, NULL, NULL, handlers1, app1);
@@ -135,10 +165,8 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   t_1 = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, NULL, NULL, 1);
 //   t_2 = GNUNET_MESH_tunnel_create (mesh_peer_2, NULL, NULL, NULL, 2);
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                    GNUNET_TIME_UNIT_SECONDS,
-                                    2),
-                                &do_shutdown,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, 2), &do_shutdown,
                                 NULL);
 }
 
