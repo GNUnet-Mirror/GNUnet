@@ -56,7 +56,7 @@ static GNUNET_SCHEDULER_TaskIdentifier test_task;
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
+data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
           const struct GNUNET_PeerIdentity *sender,
           const struct GNUNET_MessageHeader *message,
           const struct GNUNET_TRANSPORT_ATS_Information *atsi)
@@ -124,7 +124,7 @@ inbound_end (void *cls,
  * Handler array for traffic received on peer1
  */
 static struct GNUNET_MESH_MessageHandler handlers1[] = {
-  {&callback, 1, 0},
+  {&data_callback, 1, 0},
   {NULL, 0, 0}
 };
 

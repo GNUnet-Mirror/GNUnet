@@ -434,6 +434,11 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 static GNUNET_PEER_Id myid;
 
 /**
+ * Local peer own ID (full value)
+ */
+static struct GNUNET_PeerIdentity my_full_id;
+
+/**
  * Tunnel ID for the next created tunnel (global tunnel number)
  */
 static MESH_TunnelNumber next_tid;
@@ -818,7 +823,6 @@ destroy_tunnel (struct MeshTunnel *t)
 static void
 announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_PeerIdentity id;
   GNUNET_HashCode hash;
   uint8_t buffer[12] = "MESH_APP";
   uint32_t *p;
@@ -830,7 +834,6 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   p = (unsigned int *) &buffer[8];
-  GNUNET_PEER_resolve (myid, &id);
   for (i = 0; i < n_apps; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Starting PUT for app %d\n",
@@ -839,12 +842,12 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CRYPTO_hash (buffer, 12, &hash);
     GNUNET_DHT_put (dht_handle, &hash, 10U, GNUNET_DHT_RO_RECORD_ROUTE,
                     GNUNET_BLOCK_TYPE_ANY, sizeof (struct GNUNET_PeerIdentity),
-                    (const char *) &id,
+                    (const char *) &my_full_id,
                     GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
                                               APP_ANNOUNCE_TIME),
                     APP_ANNOUNCE_TIME,
 #if MESH_DEBUG
-                    &mesh_debug, "MESH: DHT_put for app completed\n");
+                    &mesh_debug, "MESH: DHT_put for apps completed\n");
 #else
                     NULL, NULL);
 #endif
@@ -865,20 +868,17 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_PeerIdentity id;
-
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
   {
     announce_id_task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
-  GNUNET_PEER_resolve (myid, &id);
   /* TODO
    * - Set data expiration in function of X
    * - Adapt X to churn
    */
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
-                  &id.hashPubKey,       /* Key to use */
+                  &my_full_id.hashPubKey,       /* Key to use */
                   10U,          /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE,   /* DHT options */
                   GNUNET_BLOCK_TYPE_ANY,        /* Block type */
@@ -1145,7 +1145,7 @@ send_core_path_ack (void *cls, size_t size, void *buf)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK);
   GNUNET_PEER_resolve (info->origin->oid, &msg->oid);
   msg->tid = htonl (info->origin->tid);
-  GNUNET_PEER_resolve (myid, &msg->peer_id);
+  msg->peer_id = my_full_id;
   /* TODO add signature */
 
   return sizeof (struct GNUNET_MESH_PathACK);
@@ -1440,8 +1440,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
  * Core handler for mesh network traffic going from the origin to a peer
  *
  * @param cls closure
- * @param message message
  * @param peer peer identity this notification is about
+ * @param message message
  * @param atsi performance data
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -1537,8 +1537,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   /* Transmit to locally interested clients */
-  GNUNET_PEER_resolve (myid, &id);
-  if (GNUNET_CONTAINER_multihashmap_contains (t->peers, &id.hashPubKey))
+  if (GNUNET_CONTAINER_multihashmap_contains (t->peers, &my_full_id.hashPubKey))
   {
     send_subscribed_clients ((struct GNUNET_MessageHeader *) &msg[1]);
   }
@@ -1680,7 +1679,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   /* Message for us? */
-  if (GNUNET_PEER_search (&msg->oid) == myid)
+  if (0 == memcmp (&msg->oid, &my_full_id, sizeof(struct GNUNET_PeerIdentity)))
   {
     struct GNUNET_MESH_PeerControl pc;
 
@@ -2487,7 +2486,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
        */
       struct GNUNET_MESH_PeerControl pc;
 
-      GNUNET_PEER_resolve (myid, &pc.peer);
+      pc.peer = my_full_id;
       GNUNET_CONTAINER_multihashmap_put (t->peers, &pc.peer.hashPubKey,
                                          get_peer_info (&pc.peer),
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
@@ -2576,9 +2575,6 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
   /* Is the selected peer in the tunnel? */
   if (NULL == pi)
   {
-    /* TODO
-     * Are we SO nice that we automatically try to add him to the tunnel?
-     */
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -2587,9 +2583,11 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
   {
     struct GNUNET_MESH_Unicast copy;
 
+    /* Work around const limitation */
     memcpy (&copy, data_msg, sizeof (struct GNUNET_MESH_Unicast));
-
-    handle_mesh_data_unicast (NULL, NULL, &copy.header, NULL);
+    copy.oid = my_full_id;
+    copy.tid = htonl(t->id.tid);
+    handle_mesh_data_unicast (NULL, &my_full_id, &copy.header, NULL);
     return;
   }
   GNUNET_PEER_resolve (get_first_hop (pi->path), &next_hop);
@@ -2710,6 +2708,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Core init\n");
   core_handle = server;
+  my_full_id = *identity;
   myid = GNUNET_PEER_intern (identity);
   announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
   return;
