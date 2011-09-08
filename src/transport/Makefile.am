@@ -65,7 +65,7 @@ endif
 
 noinst_PROGRAMS = \
  $(WLAN_BIN_DUMMY) \
- util_connect_running_peers
+ gnunet-transport-connect-running-peers
 
 lib_LTLIBRARIES = \
   libgnunettransport.la \
@@ -350,9 +350,9 @@ test_transport_testing_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
-util_connect_running_peers_SOURCES = \
- util_connect_running_peers.c
-util_connect_running_peers_LDADD = \
+gnunet_transport_connect_running_peers_SOURCES = \
+ gnunet-transport-connect-running-peers.c
+gnunet_transport_connect_running_peers_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \

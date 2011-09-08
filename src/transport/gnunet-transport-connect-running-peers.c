@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/util_connect_running_peers.c
+ * @file transport/gnunet-transport-connect-running-peers.c
  * @brief utility to connect running peers
  *
  * This utility connects to running peers with each other
@@ -78,7 +78,18 @@ char *cfg_file_p2;
 #define OKPP do { ok++; } while (0)
 #endif
 
+void
+disconnect_from_peer (struct PeerContext *p)
+{
+  GNUNET_assert (p != NULL);
+  if (p->th != NULL)
+    GNUNET_TRANSPORT_disconnect (p->th);
 
+  if (p->cfg != NULL)
+    GNUNET_CONFIGURATION_destroy (p->cfg);
+  GNUNET_free (p);
+  p = NULL;
+}
 
 static void
 end ()
@@ -193,18 +204,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 }
 
 
-void
-disconnect_from_peer (struct PeerContext *p)
-{
-  GNUNET_assert (p != NULL);
-  if (p->th != NULL)
-    GNUNET_TRANSPORT_disconnect (p->th);
 
-  if (p->cfg != NULL)
-    GNUNET_CONFIGURATION_destroy (p->cfg);
-  GNUNET_free (p);
-  p = NULL;
-}
 
 struct PeerContext *
 connect_to_peer (const char *cfgname, GNUNET_TRANSPORT_ReceiveCallback rec,
@@ -340,7 +340,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("util_connect_running_peers",
+  GNUNET_log_setup ("gnunet-transport-connect-running-peers",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -352,7 +352,7 @@ main (int argc, char *argv[])
   if (argc < 3)
   {
     fprintf (stderr,
-             "usage ./util_connect_running_peers <cfg_peer1> <cfg_peer2>\n");
+             "usage gnunet-transport-connect-running-peers <cfg_peer1> <cfg_peer2>\n");
     return -1;
   }
   else
@@ -388,4 +388,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_transport_api.c */
+/* end of gnunet-transport-connect-running-peers.c */
