@@ -104,7 +104,7 @@ notify_connect_complete (void *cls, const struct GNUNET_PeerIdentity *first,
                          struct GNUNET_TESTING_Daemon *second_daemon,
                          const char *emsg)
 {
-  struct GNUNET_TESTING_ConnectContext **cc;
+  struct GNUNET_TESTING_ConnectContext **cc = cls;
   unsigned int i;
 
   *cc = NULL;
