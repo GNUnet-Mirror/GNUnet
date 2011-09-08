@@ -35,12 +35,59 @@
 static struct GNUNET_OS_Process *arm_pid;
 static struct GNUNET_MESH_Handle *mesh_peer_1;
 static struct GNUNET_MESH_Handle *mesh_peer_2;
-static struct GNUNET_MESH_Tunnel *t_1;
+static struct GNUNET_MESH_Tunnel *t;
 
-// static struct GNUNET_MESH_Tunnel *t_2;
 static int result;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 static GNUNET_SCHEDULER_TaskIdentifier test_task;
+
+
+/**
+ * Shutdown nicely
+ */
+static void
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: shutdown\n");
+  if (0 != abort_task)
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D1\n");
+  if (NULL != mesh_peer_1)
+  {
+    GNUNET_MESH_disconnect (mesh_peer_1);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D2\n");
+  if (NULL != mesh_peer_2)
+  {
+    GNUNET_MESH_disconnect (mesh_peer_2);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: arm\n");
+  if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Wait\n");
+  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
+  GNUNET_OS_process_close (arm_pid);
+}
+
+
+/**
+ * Something went wrong and timed out. Kill everything and set error flag
+ */
+static void
+do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (0 != test_task)
+  {
+    GNUNET_SCHEDULER_cancel (test_task);
+  }
+  result = GNUNET_SYSERR;
+  abort_task = 0;
+  do_shutdown (cls, tc);
+}
 
 
 /**
@@ -62,6 +109,9 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
           const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Data callback\n");
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, 2), &do_shutdown,
+                                NULL);
   return GNUNET_OK;
 }
 
@@ -121,6 +171,36 @@ inbound_end (void *cls,
 
 
 /**
+ * Method called whenever a peer has disconnected from the tunnel.
+ *
+ * @param cls closure
+ * @param peer peer identity the tunnel stopped working with
+ */
+static void peer_conected (
+    void *cls,
+    const struct GNUNET_PeerIdentity * peer)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer connected\n");
+}
+
+
+/**
+ * Method called whenever a peer has connected to the tunnel.
+ * 
+ * @param cls closure
+ * @param peer peer identity the tunnel was created to, NULL on timeout
+ * @param atsi performance data for the connection
+ */
+static void peer_disconnected (
+    void *cls,
+    const struct GNUNET_PeerIdentity * peer,
+    const struct GNUNET_TRANSPORT_ATS_Information * atsi)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer disconnected\n");
+}
+
+
+/**
  * Handler array for traffic received on peer1
  */
 static struct GNUNET_MESH_MessageHandler handlers1[] = {
@@ -137,62 +217,13 @@ static struct GNUNET_MESH_MessageHandler handlers2[] = { {NULL, 0, 0} };
 
 
 /**
- * Shutdown nicely
- */
-static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: shutdown\n");
-  if (0 != abort_task)
-  {
-    GNUNET_SCHEDULER_cancel (abort_task);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D1\n");
-  if (NULL != mesh_peer_1)
-  {
-    GNUNET_MESH_disconnect (mesh_peer_1);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D2\n");
-  if (NULL != mesh_peer_2)
-  {
-    GNUNET_MESH_disconnect (mesh_peer_2);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: arm\n");
-  if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Wait\n");
-  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
-  GNUNET_OS_process_close (arm_pid);
-}
-
-
-/**
- * Something went wrong and timed out. Kill everything and set error flag
- */
-static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (0 != test_task)
-  {
-    GNUNET_SCHEDULER_cancel (test_task);
-  }
-  result = GNUNET_SYSERR;
-  abort_task = 0;
-  do_shutdown (cls, tc);
-}
-
-
-/**
  * Main test function
  */
 static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  static const GNUNET_MESH_ApplicationType app1[] =
-      { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
+  static const GNUNET_MESH_ApplicationType app1[] = { 1, 0 };
   static const GNUNET_MESH_ApplicationType app2[] = { 0 };
 
   test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
@@ -221,12 +252,14 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: YAY! CONNECTED TO MESH :D\n");
   }
 
-  t_1 = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, NULL, NULL, (void *) 1);
-//   t_2 = GNUNET_MESH_tunnel_create (mesh_peer_2, NULL, NULL, NULL, 2);
+  t = GNUNET_MESH_tunnel_create (mesh_peer_2,
+                                 NULL,
+                                 &peer_conected,
+                                 &peer_disconnected,
+                                 (void *) 2);
+  GNUNET_MESH_peer_request_connect_by_type(t, 1);
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 2), &do_shutdown,
-                                NULL);
+
 }
 
 

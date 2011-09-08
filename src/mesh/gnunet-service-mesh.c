@@ -82,11 +82,11 @@ mesh_debug (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     300)
 #define APP_ANNOUNCE_TIME       GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
-                                    60)
+                                    5)
 
 #define ID_ANNOUNCE_TIME        GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
-                                    300)
+                                    5)
 
 
 
@@ -833,10 +833,12 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Starting PUT for %u apps\n",
+              n_apps);
   p = (unsigned int *) &buffer[8];
   for (i = 0; i < n_apps; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Starting PUT for app %d\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   Starting PUT for app %u\n",
                 applications[i]);
     *p = htonl (applications[i]);
     GNUNET_CRYPTO_hash (buffer, 12, &hash);
@@ -847,7 +849,7 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                               APP_ANNOUNCE_TIME),
                     APP_ANNOUNCE_TIME,
 #if MESH_DEBUG
-                    &mesh_debug, "MESH: DHT_put for apps completed\n");
+                    &mesh_debug, "DHT_put for apps completed\n");
 #else
                     NULL, NULL);
 #endif
@@ -2018,7 +2020,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       c = c->next;
       continue;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " matching client found, cleaning\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: matching client found\n");
     GNUNET_CONTAINER_multihashmap_iterate (c->tunnels, &delete_tunnel_entry, c);
     GNUNET_CONTAINER_multihashmap_destroy (c->tunnels);
     if (0 != c->app_counter)
@@ -2072,8 +2074,10 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct GNUNET_MESH_ClientConnect *cc_msg;
   struct MeshClient *c;
+  GNUNET_MESH_ApplicationType *a;
   unsigned int size;
   uint16_t types;
+  uint16_t *t;
   uint16_t apps;
   uint16_t i;
   uint16_t j;
@@ -2096,43 +2100,50 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   /* Create new client structure */
   c = GNUNET_malloc (sizeof (struct MeshClient));
   c->handle = client;
-  if (types != 0)
-  {
-    c->type_counter = types;
-    c->types = GNUNET_malloc (types * sizeof (uint16_t));
-    memcpy (c->types, &message[1], types * sizeof (uint16_t));
-  }
-  if (apps != 0)
+  a = (GNUNET_MESH_ApplicationType *) &cc_msg[1];
+  if (apps > 0)
   {
     c->app_counter = apps;
-    c->apps = GNUNET_malloc (apps * sizeof (GNUNET_MESH_ApplicationType));
-    memcpy (c->apps, &message[1] + types * sizeof (uint16_t),
-            apps * sizeof (GNUNET_MESH_ApplicationType));
-  }
-  for (i = 0; i < apps; i++)
-  {
-    known = GNUNET_NO;
-    for (j = 0; i < n_apps; j++)
+    c->apps = GNUNET_malloc (apps * sizeof(GNUNET_MESH_ApplicationType));
+    for (i = 0; i < apps; i++)
     {
-      if (c->apps[i] == applications[j])
+      c->apps[i] = ntohl(a[i]);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:  app %u\n", c->apps[i]);
+      known = GNUNET_NO;
+      for (j = 0; i < n_apps; j++)
       {
-        known = GNUNET_YES;
-        applications_rc[j]++;
-        break;
+        if (c->apps[i] == applications[j])
+        {
+          known = GNUNET_YES;
+          applications_rc[j]++;
+          break;
+        }
+      }
+      if (!known)
+      {
+        /* Register previously unknown application */
+        GNUNET_array_append (applications, n_apps, c->apps[i]);
+        n_apps--;
+        GNUNET_array_append (applications_rc, n_apps, 1);
+        if (GNUNET_SCHEDULER_NO_TASK == announce_applications_task)
+        {
+          announce_applications_task =
+              GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME,
+                                            &announce_applications, NULL);
+        }
+      /* TODO: if any client was looking for *type*, notify peer found  */
       }
     }
-    if (!known)
+  }
+  if (types > 0)
+  {
+    t = (uint16_t *) &a[apps];
+    c->type_counter = types;
+    c->types = GNUNET_malloc (types * sizeof (uint16_t));
+    for (i =0; i < types; i++)
     {
-      /* Register previously unknown application */
-      GNUNET_array_append (applications, n_apps, c->apps[i]);
-      n_apps--;
-      GNUNET_array_append (applications_rc, n_apps, 1);
-      if (GNUNET_SCHEDULER_NO_TASK == announce_applications_task)
-      {
-        announce_applications_task =
-            GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME,
-                                          &announce_applications, NULL);
-      }
+      c->types[i] = ntohs(t[i]);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:  type %hu\n", c->types[i]);
     }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2439,6 +2450,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
   uint32_t *p;
   unsigned int i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: got connect by type request\n");
   /* Sanity check for client registration */
   if (NULL == (c = retrieve_client (client)))
   {
@@ -2449,7 +2461,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
 
   connect_msg = (struct GNUNET_MESH_ConnectPeerByType *) message;
   /* Sanity check for message size */
-  if (sizeof (struct GNUNET_MESH_PeerControl) !=
+  if (sizeof (struct GNUNET_MESH_ConnectPeerByType) !=
       ntohs (connect_msg->header.size))
   {
     GNUNET_break (0);
@@ -2477,6 +2489,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Do WE have the service? */
   type = ntohl (connect_msg->type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  type requested: %u\n", type);
   for (i = 0; i < n_apps; i++)
   {
     if (applications[i] == type)
@@ -2486,6 +2499,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
        */
       struct GNUNET_MESH_PeerControl pc;
 
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  available locally\n");
       pc.peer = my_full_id;
       GNUNET_CONTAINER_multihashmap_put (t->peers, &pc.peer.hashPubKey,
                                          get_peer_info (&pc.peer),
@@ -2493,7 +2507,13 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
       pc.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
       pc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD);
       pc.tunnel_id = htonl (t->local_tid);
-      GNUNET_SERVER_notification_context_unicast (nc, client, NULL, GNUNET_NO);
+      pc.peer = my_full_id;
+      GNUNET_SERVER_notification_context_unicast (nc,   /* context */
+                                                  client,       /* dest */
+                                                  &pc.header,   /* msg */
+                                                  GNUNET_NO);   /* can drop? */
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
     }
   }
   /* Ok, lets find a peer offering the service */

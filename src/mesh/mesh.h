@@ -84,14 +84,14 @@ struct GNUNET_MESH_ClientConnect
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT
      *
      * Size: sizeof(struct GNUNET_MESH_ClientConnect) +
-     *       sizeof(uint16_t) * types +
-     *       sizeof(MESH_ApplicationType) * applications
+     *       sizeof(MESH_ApplicationType) * applications +
+     *       sizeof(uint16_t) * types
      */
   struct GNUNET_MessageHeader header;
-  uint16_t types GNUNET_PACKED;
   uint16_t applications GNUNET_PACKED;
-  /* uint16_t                 list_types[types]           */
+  uint16_t types GNUNET_PACKED;
   /* uint16_t                 list_apps[applications]     */
+  /* uint16_t                 list_types[types]           */
 };
 
 

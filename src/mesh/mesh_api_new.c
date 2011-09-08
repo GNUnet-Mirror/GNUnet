@@ -593,6 +593,11 @@ reconnect (struct GNUNET_MESH_Handle *h)
   struct GNUNET_MESH_Tunnel *t;
   unsigned int i;
 
+#if DEBUG
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: *******   RECONNECT   *******\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
+#endif
   h->in_receive = GNUNET_NO;
   /* disconnect */
   if (NULL != h->th)
@@ -1132,17 +1137,18 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   }
   h->cls = cls;
-  h->message_handlers = handlers;
+  /* FIXME memdup? */
   h->applications = stypes;
+  h->message_handlers = handlers;
   h->next_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
 
   /* count handlers and apps, calculate size */
-  for (h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++) ;
   for (h->n_applications = 0; stypes[h->n_applications]; h->n_applications++) ;
+  for (h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++) ;
   size = sizeof (struct GNUNET_MESH_ClientConnect);
-  size += h->n_handlers * sizeof (uint16_t);
   size += h->n_applications * sizeof (GNUNET_MESH_ApplicationType);
+  size += h->n_handlers * sizeof (uint16_t);
 
   {
     char buf[size];
@@ -1151,12 +1157,15 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
     msg = (struct GNUNET_MESH_ClientConnect *) buf;
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT);
     msg->header.size = htons (size);
-    types = (uint16_t *) & msg[1];
-    for (ntypes = 0; ntypes < h->n_handlers; ntypes++)
-      types[ntypes] = h->message_handlers[ntypes].type;
-    apps = (GNUNET_MESH_ApplicationType *) &types[ntypes];
+    apps = (GNUNET_MESH_ApplicationType *) &msg[1];
     for (napps = 0; napps < h->n_applications; napps++)
-      apps[napps] = h->applications[napps];
+    {
+      apps[napps] = htonl(h->applications[napps]);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh:  app %u\n", h->applications[napps]);
+    }
+    types = (uint16_t *) &apps[napps];
+    for (ntypes = 0; ntypes < h->n_handlers; ntypes++)
+      types[ntypes] = htons(h->message_handlers[ntypes].type);
     msg->applications = htons (napps);
     msg->types = htons (ntypes);
 #if DEBUG
