@@ -486,6 +486,10 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
   struct AllocationRecord *arnew = usc->arnew;
   struct AllocationRecord *arold = value;
   int change;
+  int c_old;
+  int c_new;
+  int found;
+
 
 #if DEBUG_ATS
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
@@ -514,7 +518,52 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
       arold->connected = GNUNET_YES;
       change = GNUNET_YES;
     }
-    // FIXME: merge ats arrays of (arold, arnew);
+
+    /* Update existing value */
+    c_new = 0;
+    while (c_new < arnew->ats_count)
+    {
+      c_old = 0;
+      found = GNUNET_NO;
+      while (c_old < arold->ats_count)
+      {
+        if (arold->ats[c_old].type == arnew->ats[c_new].type)
+        {
+#if DEBUG_ATS
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Found type %u, old value=%u new value=%u\n",
+                      ntohl (arold->ats[c_old].type),
+                      ntohl (arold->ats[c_old].value),
+                      ntohl (arnew->ats[c_new].value));
+#endif
+          arold->ats[c_old].value = arnew->ats[c_new].value;
+          found = GNUNET_YES;
+        }
+        c_old++;
+      }
+      /* Add new value */
+      if (found == GNUNET_NO)
+      {
+#if DEBUG_ATS
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Added new value type %u, old value=%u new value=%u\n",
+                    ntohl (arnew->ats[c_new].type),
+                    ntohl (arnew->ats[c_new].value));
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Old array size: %u\n",
+                    arold->ats_count);
+#endif
+        GNUNET_array_grow (arold->ats, arold->ats_count, arold->ats_count + 1);
+        arold->ats[arold->ats_count - 1].type = arnew->ats[c_new].type;
+        arold->ats[arold->ats_count - 1].value = arnew->ats[c_new].value;
+        arold->ats[arold->ats_count].type = htonl (0);
+        arold->ats[arold->ats_count].value = htonl (0);
+#if DEBUG_ATS
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New array size: %i\n",
+                    arold->ats_count);
+#endif
+      }
+      c_new++;
+    }
 
     if (GNUNET_YES == change)
       update_bandwidth_assignment (usc->atc, arold);
