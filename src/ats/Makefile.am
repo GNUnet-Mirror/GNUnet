@@ -28,7 +28,8 @@ libgnunetats_la_LIBADD = \
 
 
 check_PROGRAMS = \
- test_ats_api
+ test_ats_api \
+ test_ats_api_update_address
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -40,5 +41,8 @@ test_ats_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
-
-
+test_ats_api_update_address_SOURCES = \
+ test_ats_api_update_address.c
+test_ats_api_update_address_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la  

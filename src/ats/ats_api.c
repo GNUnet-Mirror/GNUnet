@@ -343,13 +343,6 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
       GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers, &peer->hashPubKey,
                                                   &suggest_address, asc);
 
-#if DEBUG_ATS
-  GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &map_it, (void *) peer);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
-                   "Addresses %u (of %i) processed, \n", count,
-                   GNUNET_CONTAINER_multihashmap_size (atc->peers));
-#endif
-
   if (NULL == asc->cb)
   {
     GNUNET_free (asc);
@@ -531,7 +524,7 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
         {
 #if DEBUG_ATS
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Found type %u, old value=%u new value=%u\n",
+                      "Found type %i, old value=%i new value=%i\n",
                       ntohl (arold->ats[c_old].type),
                       ntohl (arold->ats[c_old].value),
                       ntohl (arnew->ats[c_new].value));
@@ -545,18 +538,18 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
       if (found == GNUNET_NO)
       {
 #if DEBUG_ATS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Added new value type %u, old value=%u new value=%u\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new type %i new value=%i\n",
                     ntohl (arnew->ats[c_new].type),
                     ntohl (arnew->ats[c_new].value));
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Old array size: %u\n",
                     arold->ats_count);
 #endif
         GNUNET_array_grow (arold->ats, arold->ats_count, arold->ats_count + 1);
-        arold->ats[arold->ats_count - 1].type = arnew->ats[c_new].type;
-        arold->ats[arold->ats_count - 1].value = arnew->ats[c_new].value;
-        arold->ats[arold->ats_count].type = htonl (0);
-        arold->ats[arold->ats_count].value = htonl (0);
+        GNUNET_assert (arold->ats_count >= 2);
+        arold->ats[arold->ats_count - 2].type = arnew->ats[c_new].type;
+        arold->ats[arold->ats_count - 2].value = arnew->ats[c_new].value;
+        arold->ats[arold->ats_count - 1].type = htonl (0);
+        arold->ats[arold->ats_count - 1].value = htonl (0);
 #if DEBUG_ATS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New array size: %i\n",
                     arold->ats_count);
@@ -780,6 +773,7 @@ notify_valid (void *cls, const GNUNET_HashCode * key, void *value)
            GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32), ar->ats,
            ar->ats_count);
   GNUNET_ATS_suggest_address_cancel (asc);
+  asc = NULL;
   return GNUNET_OK;
 }
 
