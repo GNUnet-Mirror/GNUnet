@@ -51,6 +51,32 @@
  */
 struct NeighbourMapEntry;
 
+/**
+ * Message a peer sends to another to indicate its
+ * preference for communicating via a particular
+ * session (and the desire to establish a real
+ * connection).
+ */
+struct SessionConnectMessage
+{
+  /**
+   * Header of type 'GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT'
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Absolute time at the sender.  Only the most recent connect
+   * message implies which session is preferred by the sender.
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
+
+};
+
 
 /**
  * For each neighbour we keep a list of messages
@@ -288,7 +314,7 @@ transmit_send_continuation (void *cls,
  * Check the ready list for the given neighbour and if a plugin is
  * ready for transmission (and if we have a message), do so!
  *
- * @param neighbour target peer for which to transmit
+ * @param n target peer for which to transmit
  */
 static void
 try_transmission_to_peer (struct NeighbourMapEntry *n)
@@ -520,7 +546,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                   *ats, uint32_t ats_count)
 {
   struct NeighbourMapEntry *n;
-  struct GNUNET_MessageHeader connect_msg;
+  struct SessionConnectMessage connect_msg;
 
   GNUNET_assert (neighbours != NULL);
 
@@ -555,8 +581,10 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   n->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                     &neighbour_timeout_task, n);
-  connect_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  connect_msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT);
+  connect_msg.header.size = htons (sizeof (struct SessionConnectMessage));
+  connect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT);
+  connect_msg.reserved = htonl (0);
+  connect_msg.timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   GST_neighbours_send (peer, &connect_msg, sizeof (connect_msg),
                        GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
 }
@@ -570,6 +598,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
  * @param plugin_name name of the plugin
  * @param plugin_address binary address
  * @param plugin_address_len length of address
+ * @param session session to use
  * @param bandwidth available bandwidth
  * @param ats performance data for the address (as far as known)
  * @param ats_count number of performance records in 'ats'

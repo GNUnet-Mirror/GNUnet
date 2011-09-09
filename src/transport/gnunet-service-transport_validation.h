@@ -122,9 +122,7 @@ typedef void (*GST_ValidationAddressCallback) (void *cls,
  *
  * @param target peer information is requested for
  * @param cb function to call; will not be called after this function returns
- *                             if snapshot_only is GNUNET_YES
  * @param cb_cls closure for 'cb'
- * @return context to cancel, NULL if 'snapshot_only' is GNUNET_YES
  */
 void
 GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,

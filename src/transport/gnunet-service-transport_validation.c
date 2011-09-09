@@ -335,9 +335,6 @@ validation_entry_match (void *cls, const GNUNET_HashCode * key, void *value)
  * @param public_key public key of the peer, NULL for unknown
  * @param neighbour which peer we care about
  * @param tname name of the transport plugin
- * @param session session to look for, NULL for 'any'; otherwise
- *        can be used for the service to "learn" this session ID
- *        if 'addr' matches
  * @param addr binary address
  * @param addrlen length of addr
  * @return validation entry matching the given specifications, NULL
@@ -425,7 +422,7 @@ add_valid_address (void *cls, const char *tname,
  * @param cls unused
  * @param peer id of the peer, NULL for last call
  * @param hello hello message for the peer (can be NULL)
- * @param error message
+ * @param err_msg error message
  */
 static void
 process_peerinfo_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -1077,12 +1074,8 @@ iterate_addresses (void *cls, const GNUNET_HashCode * key, void *value)
  * Can either give a snapshot (synchronous API) or be continuous.
  *
  * @param target peer information is requested for
- * @param snapshot_only GNUNET_YES to iterate over addresses once, GNUNET_NO to
- *                      continue to give information about addresses as it evolves
  * @param cb function to call; will not be called after this function returns
- *                             if snapshot_only is GNUNET_YES
  * @param cb_cls closure for 'cb'
- * @return context to cancel, NULL if 'snapshot_only' is GNUNET_YES
  */
 void
 GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,

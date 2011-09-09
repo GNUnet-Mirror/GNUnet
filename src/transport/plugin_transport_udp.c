@@ -335,19 +335,8 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
  * Actually send out the message.
  *
  * @param plugin the plugin
- * @param send_handle which handle to send message on
- * @param target who should receive this message (ignored by UDP)
- * @param msgbuf one or more GNUNET_MessageHeader(s) strung together
- * @param msgbuf_size the size of the msgbuf to send
- * @param priority how important is the message (ignored by UDP)
- * @param timeout when should we time out (give up) if we can not transmit?
- * @param addr the addr to send the message to, needs to be a sockaddr for us
- * @param addrlen the len of addr
- * @param cont continuation to call once the message has
- *        been transmitted (or if the transport is ready
- *        for the next transmission call; or if the
- *        peer disconnected...)
- * @param cont_cls closure for cont
+ * @param sa the address to send the message to
+ * @param msg message to transmit
  * @return the number of bytes written
  */
 static ssize_t

@@ -599,7 +599,6 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
  * @param cls closure
  * @param first peer id for first daemon
  * @param second peer id for the second daemon
- * @param distance distance between the connected peers
  * @param emsg error message (NULL on success)
  */
 void

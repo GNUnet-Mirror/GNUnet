@@ -228,7 +228,7 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
 /**
  * Queue the given message for transmission to the given client
  *
- * @param client target of the message
+ * @param tc target of the message
  * @param msg message to transmit
  * @param may_drop GNUNET_YES if the message can be dropped
  */

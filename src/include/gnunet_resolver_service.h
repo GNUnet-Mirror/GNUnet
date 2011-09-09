@@ -94,7 +94,6 @@ GNUNET_RESOLVER_ip_get (const char *hostname, int domain,
 /**
  * Resolve our hostname to an IP address.
  *
- * @param cfg configuration to use
  * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
  * @param cls closure for callback
@@ -130,7 +129,6 @@ GNUNET_RESOLVER_local_fqdn_get (void);
 /**
  * Perform a reverse DNS lookup.
  *
- * @param cfg configuration to use
  * @param sa host address
  * @param salen length of host address
  * @param do_resolve use GNUNET_NO to return numeric hostname

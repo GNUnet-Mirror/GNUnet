@@ -1,14 +1,5 @@
 0.9.0pre3:
-* connections fail if transport-plugin/nat produces 
-  some addresses that don't work (enable 'use_localaddr' with bindto for example,
-  so that some of the 'local' IPs do not work due to the bindto);  the result
-  seems to be that the plugin tries some of the broken addresses, fails and the
-  transport-level connection never comes up.
-  [still an issue?]
-* transport:
-  - explicit CONNECT: add timestamp
-  - explicit DISCONNECT: add signature
-* clean buildbots
+* clean buildbots (with new transport)
 
 0.9.0pre4:
 * GNUNET-GTK: [CG]
@@ -23,6 +14,9 @@
     + insert
     + download
     + search
+* transport:
+  - explicit DISCONNECT: add signature, create message...
+  - CONNECT: actually consider switching session...
 
 0.9.0:
 * new webpage:

@@ -201,7 +201,8 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
       (void) GST_blacklist_test_allowed (peer, NULL, &try_connect_if_allowed,
                                          NULL);
-      /* TODO: if 'session != NULL', maybe notify ATS that this is now the preferred
+      /* TODO: if 'session != NULL', and timestamp more recent than the
+	 previous one, maybe notify ATS that this is now the preferred
        * way to communicate with this peer (other peer switched transport) */
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:

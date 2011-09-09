@@ -582,8 +582,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Process pending requests to the resolver.
- *
- * @param h handle to the resolver
  */
 static void
 process_requests ()

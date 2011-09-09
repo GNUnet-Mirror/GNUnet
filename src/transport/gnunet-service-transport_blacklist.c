@@ -547,7 +547,7 @@ struct TestConnectionContext
  * blacklisting client.
  *
  * @param cls the 'struct TestConnectionContest'
- * @param pid neighbour's identity
+ * @param neighbour neighbour's identity
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  */

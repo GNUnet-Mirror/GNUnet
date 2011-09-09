@@ -87,7 +87,6 @@ static struct TransportPlugin *plugins_tail;
  *
  * @param recv_cb function to call when data is received
  * @param address_cb function to call when our public addresses changed
- * @param traffic_cb function to call for flow control
  * @param session_end_cb function to call when a session was terminated
  */
 void

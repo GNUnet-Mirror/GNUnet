@@ -1418,8 +1418,6 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
  * @param timeout how long to wait for process for shutdown to complete
  * @param cb function called once the daemon was stopped
  * @param cb_cls closure for cb
- * @param allow_restart GNUNET_YES to restart peer later (using this API)
- *        GNUNET_NO to kill off and clean up for good
  */
 void
 GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
