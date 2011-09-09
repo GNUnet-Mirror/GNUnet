@@ -773,6 +773,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   GNUNET_PEER_Id id;
   uint16_t size;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh: processig peer event\n");
   size = ntohs (msg->header.size);
   if (size != sizeof (struct GNUNET_MESH_PeerControl))
   {
@@ -788,8 +789,9 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   id = GNUNET_PEER_search (&msg->peer);
   if ((p = retrieve_peer (t, id)) == NULL)
     p = add_peer_to_tunnel (t, &msg->peer);
-  if (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD == msg->header.type)
+  if (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD == ntohs(msg->header.type))
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh: adding peer\n");
     if (NULL != t->connect_handler)
     {
       atsi.type = 0;
@@ -800,6 +802,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   }
   else
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh: removing peer\n");
     if (NULL != t->disconnect_handler && p->connected)
     {
       t->disconnect_handler (t->cls, &msg->peer);
@@ -807,6 +810,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
     remove_peer_from_tunnel (p);
     GNUNET_free (p);
   }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh: processing peer event END\n");
 }
 
 
@@ -902,7 +906,9 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_MESH_Handle *h = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: received a message from MESH\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mesh: received a message type %hu from MESH\n",
+              ntohs (msg->type));
   if (msg == NULL)
   {
     reconnect (h);

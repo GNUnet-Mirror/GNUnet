@@ -181,6 +181,7 @@ static void peer_conected (
     const struct GNUNET_PeerIdentity * peer)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer connected\n");
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &do_shutdown, NULL);
 }
 
 
@@ -215,6 +216,15 @@ static struct GNUNET_MESH_MessageHandler handlers1[] = {
 static struct GNUNET_MESH_MessageHandler handlers2[] = { {NULL, 0, 0} };
 
 
+/**
+ * Start looking for a peer by type
+ */
+static void
+do_find (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_MESH_peer_request_connect_by_type(t, 1);
+}
+
 
 /**
  * Main test function
@@ -226,7 +236,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static const GNUNET_MESH_ApplicationType app1[] = { 1, 0 };
   static const GNUNET_MESH_ApplicationType app2[] = { 0 };
 
-  test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
+  test_task = GNUNET_SCHEDULER_NO_TASK;
   mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
                                      10,        /* queue size */
                                      (void *) 1,        /* cls */
@@ -257,9 +267,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                  &peer_conected,
                                  &peer_disconnected,
                                  (void *) 2);
-  GNUNET_MESH_peer_request_connect_by_type(t, 1);
-
-
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &do_find, NULL);
 }
 
 
