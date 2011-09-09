@@ -60,6 +60,8 @@
 #if MESH_DEBUG
 /**
  * GNUNET_SCHEDULER_Task for printing a message after some operation is done
+ * @param cls string to print
+ * @param tc task context
  */
 static void
 mesh_debug (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -70,7 +72,7 @@ mesh_debug (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: %s", s);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: %s\n", s);
 }
 #endif
 
@@ -372,14 +374,12 @@ struct MeshClient
     /**
      * Applications that this client has claimed to provide
      */
-  GNUNET_MESH_ApplicationType *apps;
-  unsigned int app_counter;
+  struct GNUNET_CONTAINER_MultiHashMap *apps;
 
     /**
      * Messages that this client has declared interest in
      */
-  uint16_t *types;
-  unsigned int type_counter;
+  struct GNUNET_CONTAINER_MultiHashMap *types;
 
     /**
      * Used for seachching peers offering a service
@@ -446,17 +446,12 @@ static MESH_TunnelNumber next_tid;
 /**
  * All application types provided by this peer
  */
-static GNUNET_MESH_ApplicationType *applications;
+static struct GNUNET_CONTAINER_MultiHashMap *applications;
 
 /**
- * All application types provided by this peer (reference counter)
+ * All message types clients of this peer are interested in
  */
-static unsigned int *applications_rc;
-
-/**
- * Number of applications provided by this peer
- */
-static unsigned int n_apps;
+static struct GNUNET_CONTAINER_MultiHashMap *types;
 
 /**
  * Task to periodically announce provided applications
@@ -664,14 +659,10 @@ retrieve_client (struct GNUNET_SERVER_Client *client)
 static int                      /* FIXME inline? */
 is_client_subscribed (uint16_t message_type, struct MeshClient *c)
 {
-  unsigned int i;
+  GNUNET_HashCode hc;
 
-  for (i = 0; i < c->type_counter; i++)
-  {
-    if (c->types[i] == message_type)
-      return GNUNET_YES;
-  }
-  return GNUNET_NO;
+  GNUNET_CRYPTO_hash(&message_type, sizeof(uint16_t), &hc);
+  return GNUNET_CONTAINER_multihashmap_contains(c->types, &hc);
 }
 
 
@@ -815,6 +806,35 @@ destroy_tunnel (struct MeshTunnel *t)
 /******************************************************************************/
 
 /**
+ * Announce iterator over for each application provided by the peer
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+announce_application (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  /* FIXME are hashes in multihash map equal on all aquitectures? */
+  GNUNET_DHT_put (dht_handle, key, 10U, GNUNET_DHT_RO_RECORD_ROUTE,
+                  GNUNET_BLOCK_TYPE_ANY, sizeof (struct GNUNET_PeerIdentity),
+                  (const char *) &my_full_id,
+                  GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
+                                            APP_ANNOUNCE_TIME),
+                  APP_ANNOUNCE_TIME,
+#if MESH_DEBUG
+                  &mesh_debug, "DHT_put for app completed");
+#else
+                  NULL, NULL);
+#endif
+  return GNUNET_OK;
+}
+
+
+/**
  * Periodically announce what applications are provided by local clients
  *
  * @param cls closure
@@ -823,40 +843,19 @@ destroy_tunnel (struct MeshTunnel *t)
 static void
 announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_HashCode hash;
-  uint8_t buffer[12] = "MESH_APP";
-  uint32_t *p;
-  uint32_t i;
-
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
   {
     announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Starting PUT for %u apps\n",
-              n_apps);
-  p = (unsigned int *) &buffer[8];
-  for (i = 0; i < n_apps; i++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   Starting PUT for app %u\n",
-                applications[i]);
-    *p = htonl (applications[i]);
-    GNUNET_CRYPTO_hash (buffer, 12, &hash);
-    GNUNET_DHT_put (dht_handle, &hash, 10U, GNUNET_DHT_RO_RECORD_ROUTE,
-                    GNUNET_BLOCK_TYPE_ANY, sizeof (struct GNUNET_PeerIdentity),
-                    (const char *) &my_full_id,
-                    GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-                                              APP_ANNOUNCE_TIME),
-                    APP_ANNOUNCE_TIME,
-#if MESH_DEBUG
-                    &mesh_debug, "DHT_put for apps completed\n");
-#else
-                    NULL, NULL);
-#endif
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Starting PUT for apps\n");
+  GNUNET_CONTAINER_multihashmap_iterate(applications,
+                                        &announce_application,
+                                        NULL);
   announce_applications_task =
       GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME, &announce_applications,
                                     cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Finished PUT for apps\n");
   return;
 }
 
@@ -889,7 +888,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_TIME_absolute_get_forever (),  /* Data expiration */
                   GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
 #if MESH_DEBUG
-                  &mesh_debug, "DHT_put for id completed\n");
+                  &mesh_debug, "DHT_put for id completed");
 #else
                   NULL,         /* Continuation */
                   NULL);        /* Continuation closure */
@@ -1760,6 +1759,21 @@ delete_tunnel_entry (void *cls, const GNUNET_HashCode * key, void *value)
   return r;
 }
 
+
+/**
+ * deregister_app: iterator for removing each application registered by a client
+ * @param cls closure
+ * @param key the hash of the application id (used to access the hashmap)
+ * @param value the value stored at the key (client)
+ * @return GNUNET_OK on success
+ */
+static int
+deregister_app (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  GNUNET_CONTAINER_multihashmap_remove(applications, key, value);
+  return GNUNET_OK;
+}
+
 #if LATER
 /**
  * notify_client_connection_failure: notify a client that the connection to the
@@ -1863,8 +1877,13 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     // Find ourselves some alternate initial path to the destination: retry
     GNUNET_DHT_get_stop (peer_info->dhtget);
     GNUNET_PEER_resolve (peer_info->id, &pi);
-    peer_info->dhtget = GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_BLOCK_TYPE_ANY, &pi.hashPubKey, 4,       /* replication level */
-                                              GNUNET_DHT_RO_RECORD_ROUTE, NULL, /* bloom filter */
+    peer_info->dhtget = GNUNET_DHT_get_start (dht_handle,       /* handle */
+                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                              GNUNET_BLOCK_TYPE_ANY, /* type */
+                                              &pi.hashPubKey, /*key to search */
+                                              4,       /* replication level */
+                                              GNUNET_DHT_RO_RECORD_ROUTE,
+                                              NULL, /* bloom filter */
                                               0,        /* mutator */
                                               NULL,     /* xquery */
                                               0,        /* xquery bits */
@@ -2007,8 +2026,6 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct MeshClient *c;
   struct MeshClient *next;
-  unsigned int i;
-  unsigned int j;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: client disconnected\n");
   c = clients;
@@ -2023,33 +2040,16 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: matching client found\n");
     GNUNET_CONTAINER_multihashmap_iterate (c->tunnels, &delete_tunnel_entry, c);
     GNUNET_CONTAINER_multihashmap_destroy (c->tunnels);
-    if (0 != c->app_counter)
-    {
-      /* deregister clients applications */
-      for (i = 0; i < c->app_counter; i++)
-      {
-        for (j = 0; j < n_apps; j++)
-        {
-          if (c->apps[i] == applications[j] && 0 == --applications_rc[j])
-          {
-            applications[j] = applications[n_apps - 1];
-            GNUNET_array_grow (applications, n_apps, n_apps - 1);
-            n_apps++;
-            applications_rc[j] = applications_rc[n_apps - 1];
-            GNUNET_array_grow (applications_rc, n_apps, n_apps - 1);
 
-          }
-          break;
-        }
-      }
-      GNUNET_free (c->apps);
-      if (0 == n_apps)
-      {
-        GNUNET_SCHEDULER_cancel (announce_applications_task);
-      }
+    /* deregister clients applications */
+    GNUNET_CONTAINER_multihashmap_iterate(c->apps, &deregister_app, NULL);
+    GNUNET_CONTAINER_multihashmap_destroy(c->apps);
+    if (0 == GNUNET_CONTAINER_multihashmap_size(applications))
+    {
+      GNUNET_SCHEDULER_cancel (announce_applications_task);
     }
-    if (0 != c->type_counter)
-      GNUNET_free (c->types);
+
+    GNUNET_CONTAINER_multihashmap_destroy(c->types);
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     next = c->next;
     GNUNET_free (c);
@@ -2076,21 +2076,19 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshClient *c;
   GNUNET_MESH_ApplicationType *a;
   unsigned int size;
-  uint16_t types;
+  uint16_t ntypes;
   uint16_t *t;
-  uint16_t apps;
+  uint16_t napps;
   uint16_t i;
-  uint16_t j;
-  int known;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: new client connected\n");
   /* Check data sanity */
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_ClientConnect);
   cc_msg = (struct GNUNET_MESH_ClientConnect *) message;
-  types = ntohs (cc_msg->types);
-  apps = ntohs (cc_msg->applications);
+  ntypes = ntohs (cc_msg->types);
+  napps = ntohs (cc_msg->applications);
   if (size !=
-      types * sizeof (uint16_t) + apps * sizeof (GNUNET_MESH_ApplicationType))
+      ntypes * sizeof (uint16_t) + napps * sizeof (GNUNET_MESH_ApplicationType))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2101,54 +2099,61 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   c = GNUNET_malloc (sizeof (struct MeshClient));
   c->handle = client;
   a = (GNUNET_MESH_ApplicationType *) &cc_msg[1];
-  if (apps > 0)
+  if (napps > 0)
   {
-    c->app_counter = apps;
-    c->apps = GNUNET_malloc (apps * sizeof(GNUNET_MESH_ApplicationType));
-    for (i = 0; i < apps; i++)
+    GNUNET_MESH_ApplicationType at;
+    GNUNET_HashCode hc;
+
+    c->apps = GNUNET_CONTAINER_multihashmap_create(napps);
+    for (i = 0; i < napps; i++)
     {
-      c->apps[i] = ntohl(a[i]);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:  app %u\n", c->apps[i]);
-      known = GNUNET_NO;
-      for (j = 0; i < n_apps; j++)
-      {
-        if (c->apps[i] == applications[j])
-        {
-          known = GNUNET_YES;
-          applications_rc[j]++;
-          break;
-        }
-      }
-      if (!known)
-      {
-        /* Register previously unknown application */
-        GNUNET_array_append (applications, n_apps, c->apps[i]);
-        n_apps--;
-        GNUNET_array_append (applications_rc, n_apps, 1);
-        if (GNUNET_SCHEDULER_NO_TASK == announce_applications_task)
-        {
-          announce_applications_task =
-              GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME,
-                                            &announce_applications, NULL);
-        }
-      /* TODO: if any client was looking for *type*, notify peer found  */
-      }
+      at = ntohl(a[i]);
+      GNUNET_CRYPTO_hash(&at, sizeof(at), &hc);
+      /* store in clients hashmap */
+      GNUNET_CONTAINER_multihashmap_put(
+          c->apps,
+          &hc,
+          c,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      /* store in global hashmap, for announcements */
+      GNUNET_CONTAINER_multihashmap_put(
+          applications,
+          &hc,
+          c,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
+    if (GNUNET_SCHEDULER_NO_TASK == announce_applications_task)
+      announce_applications_task = GNUNET_SCHEDULER_add_now (
+          &announce_applications, NULL);
+
   }
-  if (types > 0)
+  if (ntypes > 0)
   {
-    t = (uint16_t *) &a[apps];
-    c->type_counter = types;
-    c->types = GNUNET_malloc (types * sizeof (uint16_t));
-    for (i =0; i < types; i++)
+    uint16_t u16;
+    GNUNET_HashCode hc;
+
+    t = (uint16_t *) &a[napps];
+    c->types = GNUNET_CONTAINER_multihashmap_create(ntypes);
+    for (i =0; i < ntypes; i++)
     {
-      c->types[i] = ntohs(t[i]);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:  type %hu\n", c->types[i]);
+      u16 = ntohs(t[i]);
+      GNUNET_CRYPTO_hash(&u16, sizeof(u16), &hc);
+      /* store in clients hashmap */
+      GNUNET_CONTAINER_multihashmap_put(
+          c->types,
+          &hc,
+          c,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      /* store in global hashmap */
+      GNUNET_CONTAINER_multihashmap_put(
+          types,
+          &hc,
+          c,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:  client has %u+%u subscriptions\n", c->type_counter,
-              c->app_counter);
+              "MESH:  client has %u+%u subscriptions\n", napps, ntypes);
 
   GNUNET_CONTAINER_DLL_insert (clients, clients_tail, c);
   c->tunnels = GNUNET_CONTAINER_multihashmap_create (32);
@@ -2446,9 +2451,6 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_HashCode hash;
   GNUNET_MESH_ApplicationType type;
   MESH_TunnelNumber tid;
-  uint8_t buffer[12] = "MESH_APP";
-  uint32_t *p;
-  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: got connect by type request\n");
   /* Sanity check for client registration */
@@ -2490,45 +2492,48 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
   /* Do WE have the service? */
   type = ntohl (connect_msg->type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  type requested: %u\n", type);
-  for (i = 0; i < n_apps; i++)
+  GNUNET_CRYPTO_hash (&type, sizeof (GNUNET_MESH_ApplicationType), &hash);
+  if (GNUNET_CONTAINER_multihashmap_contains(applications, &hash) == GNUNET_YES)
   {
-    if (applications[i] == type)
-    {
-      /* Yes! Fast forward, add ourselves to the tunnel and send the
-       * good news to the client
-       */
-      struct GNUNET_MESH_PeerControl pc;
+    /* Yes! Fast forward, add ourselves to the tunnel and send the
+      * good news to the client
+      */
+    struct GNUNET_MESH_PeerControl pc;
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  available locally\n");
-      pc.peer = my_full_id;
-      GNUNET_CONTAINER_multihashmap_put (t->peers, &pc.peer.hashPubKey,
-                                         get_peer_info (&pc.peer),
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-      pc.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
-      pc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD);
-      pc.tunnel_id = htonl (t->local_tid);
-      pc.peer = my_full_id;
-      GNUNET_SERVER_notification_context_unicast (nc,   /* context */
-                                                  client,       /* dest */
-                                                  &pc.header,   /* msg */
-                                                  GNUNET_NO);   /* can drop? */
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  available locally\n");
+    pc.peer = my_full_id;
+    GNUNET_CONTAINER_multihashmap_put (t->peers, &pc.peer.hashPubKey,
+                                        get_peer_info (&pc.peer),
+                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    pc.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
+    pc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD);
+    pc.tunnel_id = htonl (t->local_tid);
+    pc.peer = my_full_id;
+    GNUNET_SERVER_notification_context_unicast (nc,   /* context */
+                                                client,       /* dest */
+                                                &pc.header,   /* msg */
+                                                GNUNET_NO);   /* can drop? */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
   }
   /* Ok, lets find a peer offering the service */
-  p = (uint32_t *) & buffer[8];
-  *p = connect_msg->type;       /* Already in Network Byte Order! */
-  GNUNET_CRYPTO_hash (buffer, 12, &hash);
   if (c->dht_get_type)
   {
     GNUNET_DHT_get_stop (c->dht_get_type);
   }
   c->dht_get_type =
-      GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
-                            GNUNET_BLOCK_TYPE_ANY, &hash, 10U,
-                            GNUNET_DHT_RO_RECORD_ROUTE, NULL, 0, NULL, 0,
-                            &dht_get_type_handler, t);
+      GNUNET_DHT_get_start (dht_handle,
+                            GNUNET_TIME_UNIT_FOREVER_REL,
+                            GNUNET_BLOCK_TYPE_ANY,
+                            &hash,
+                            10U,
+                            GNUNET_DHT_RO_RECORD_ROUTE,
+                            NULL,
+                            0,
+                            NULL,
+                            0,
+                            &dht_get_type_handler,
+                            t);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -2882,14 +2887,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   tunnels = GNUNET_CONTAINER_multihashmap_create (32);
   peers = GNUNET_CONTAINER_multihashmap_create (32);
+  applications = GNUNET_CONTAINER_multihashmap_create (32);
+  types = GNUNET_CONTAINER_multihashmap_create (32);
   nc = GNUNET_SERVER_notification_context_create (server_handle,
                                                   LOCAL_QUEUE_SIZE);
   clients = NULL;
   clients_tail = NULL;
 
-  applications = NULL;
-  applications_rc = NULL;
-  n_apps = 0;
   announce_applications_task = 0;
 
   /* Scheduled the task to clean up when shutdown is called */

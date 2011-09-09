@@ -153,7 +153,7 @@ inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
  * @param tunnel_ctx place where local state associated
  *                   with the tunnel is stored
  */
-static void 
+static void
 inbound_end (void *cls,
              const struct GNUNET_MESH_Tunnel * tunnel,
              void *tunnel_ctx)
@@ -186,7 +186,7 @@ static void peer_conected (
 
 /**
  * Method called whenever a peer has connected to the tunnel.
- * 
+ *
  * @param cls closure
  * @param peer peer identity the tunnel was created to, NULL on timeout
  * @param atsi performance data for the connection
