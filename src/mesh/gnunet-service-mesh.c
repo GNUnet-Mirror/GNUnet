@@ -1965,6 +1965,9 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_break_op (0);
     return;
   }
+  GNUNET_assert (NULL != t->client);
+  GNUNET_DHT_get_stop(t->client->dht_get_type);
+  t->client->dht_get_type = NULL;
   peer_info = get_peer_info (pi);
   GNUNET_CONTAINER_multihashmap_put (t->peers, &pi->hashPubKey, peer_info,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
@@ -2059,12 +2062,16 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       GNUNET_CONTAINER_multihashmap_iterate(c->apps, &deregister_app, NULL);
       GNUNET_CONTAINER_multihashmap_destroy(c->apps);
     }
-    if (0 == GNUNET_CONTAINER_multihashmap_size(applications))
+    if (0 == GNUNET_CONTAINER_multihashmap_size(applications) &&
+        GNUNET_SCHEDULER_NO_TASK != announce_applications_task)
     {
       GNUNET_SCHEDULER_cancel (announce_applications_task);
+      announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
     }
     if (NULL != c->types)
       GNUNET_CONTAINER_multihashmap_destroy(c->types);
+    if (NULL != c->dht_get_type)
+      GNUNET_DHT_get_stop(c->dht_get_type);
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     next = c->next;
     GNUNET_free (c);
@@ -2839,6 +2846,8 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct MeshClient *c;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: shutting down\n");
   if (core_handle != NULL)
   {
@@ -2847,6 +2856,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (dht_handle != NULL)
   {
+    for (c = clients; NULL != c; c = c->next)
+      if (NULL != c->dht_get_type)
+        GNUNET_DHT_get_stop(c->dht_get_type);
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
   }
@@ -2855,10 +2867,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
   }
-  if (0 != announce_id_task)
+  if (GNUNET_SCHEDULER_NO_TASK != announce_id_task)
   {
     GNUNET_SCHEDULER_cancel (announce_id_task);
-    announce_id_task = 0;
+    announce_id_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: shut down\n");
 }
