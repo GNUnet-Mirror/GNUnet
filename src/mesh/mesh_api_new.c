@@ -480,7 +480,6 @@ add_peer_to_tunnel (struct GNUNET_MESH_Tunnel *t,
 
 /**
  * Remove a peer from a tunnel
- * @param t Tunnel handle
  * @param p Peer handle
  */
 static void
@@ -533,7 +532,7 @@ timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * timeout if needed.
  *
  * @param h mesh handle with the queue head and tail
- * @param q handle to the packet to be transmitted
+ * @param th handle to the packet to be transmitted
  */
 static void
 add_to_queue (struct GNUNET_MESH_Handle *h,
@@ -814,8 +813,8 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
 /**
  * Process the incoming data packets
  *
- * @param h     The mesh handle
- * @param msh   A message encapsulating the data
+ * @param h         The mesh handle
+ * @param message   A message encapsulating the data
  */
 static void
 process_incoming_data (struct GNUNET_MESH_Handle *h,
@@ -1275,7 +1274,6 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
  * connect handler is called.
  *
  * @param tunnel handle to existing tunnel
- * @param timeout how long to try to establish a connection
  * @param peer peer to add
  */
 void

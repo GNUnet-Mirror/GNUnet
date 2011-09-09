@@ -668,7 +668,7 @@ is_client_subscribed (uint16_t message_type, struct MeshClient *c)
 
 /**
  * Search for a tunnel among the tunnels for a client
- * @param client the client whose tunnels to search in
+ * @param c the client whose tunnels to search in
  * @param tid the local id of the tunnel
  * @return tunnel handler, NULL if doesn't exist
  */
@@ -717,7 +717,6 @@ retrieve_tunnel (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 
 /**
  * Destroy the path and free any allocated resources linked to it
- * @param t tunnel the path belongs to
  * @param p the path to destroy
  * @return GNUNET_OK on success
  */
@@ -757,7 +756,6 @@ destroy_peer_info (struct MeshPeerInfo *pi)
 
 /**
  * Destroy the tunnel and free any allocated resources linked to it
- * @param c client the tunnel belongs to
  * @param t the tunnel to destroy
  * @return GNUNET_OK on success
  */
