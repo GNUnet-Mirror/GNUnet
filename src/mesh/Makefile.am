@@ -48,7 +48,8 @@ libgnunetmeshnew_la_LDFLAGS = \
 
 check_PROGRAMS = \
  test_mesh_api \
- test_mesh_local \
+ test_mesh_local_1 \
+ test_mesh_local_2 \
  test_mesh_small
 
 test_mesh_api_SOURCES = \
@@ -59,12 +60,20 @@ test_mesh_api_LDADD = \
 test_mesh_api_DEPENDENCIES = \
   libgnunetmeshnew.la
 
-test_mesh_local_SOURCES = \
- test_mesh_local.c
-test_mesh_local_LDADD = \
+test_mesh_local_1_SOURCES = \
+ test_mesh_local_1.c
+test_mesh_local_1_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/mesh/libgnunetmeshnew.la
-test_mesh_api_DEPENDENCIES = \
+test_mesh_api_1_DEPENDENCIES = \
+  libgnunetmeshnew.la
+
+test_mesh_local_2_SOURCES = \
+ test_mesh_local_2.c
+test_mesh_local_2_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/mesh/libgnunetmeshnew.la
+test_mesh_api_2_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 test_mesh_small_SOURCES = \
@@ -77,7 +86,7 @@ test_mesh_small_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 if ENABLE_TEST_RUN
-TESTS = test_mesh_api
+TESTS = test_mesh_api test_mesh_local_1 test_mesh_local_2
 endif
 
 EXTRA_DIST = \

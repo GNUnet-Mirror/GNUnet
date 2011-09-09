@@ -823,9 +823,10 @@ announce_application (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_DHT_put (dht_handle, key, 10U, GNUNET_DHT_RO_RECORD_ROUTE,
                   GNUNET_BLOCK_TYPE_TEST, sizeof (struct GNUNET_PeerIdentity),
                   (const char *) &my_full_id,
-                  GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-                                            APP_ANNOUNCE_TIME),
-                  APP_ANNOUNCE_TIME,
+//                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
+//                                             APP_ANNOUNCE_TIME), FIXME
+//                   APP_ANNOUNCE_TIME,
+                  GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_REL,
 #if MESH_DEBUG
                   &mesh_debug, "DHT_put for app completed");
 #else

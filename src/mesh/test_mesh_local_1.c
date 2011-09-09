@@ -80,6 +80,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: ABORT\n");
   if (0 != test_task)
   {
     GNUNET_SCHEDULER_cancel (test_task);
