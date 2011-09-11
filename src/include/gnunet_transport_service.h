@@ -629,12 +629,17 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
  * @param hello the hello message
  * @param cont continuation to call when HELLO has been sent
  * @param cls closure for continuation
- *
  */
 void
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello,
                               GNUNET_SCHEDULER_Task cont, void *cls);
+
+
+/**
+ * Handle to cancel a pending address lookup.
+ */ 
+struct GNUNET_TRANSPORT_AddressLookupContext;
 
 
 /**
@@ -649,14 +654,30 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  * @param timeout how long is the lookup allowed to take at most
  * @param aluc function to call with the results
  * @param aluc_cls closure for aluc
+ * @return handle to cancel the operation, NULL on error
  */
-void
+struct GNUNET_TRANSPORT_AddressLookupContext *
 GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char *address, size_t addressLen,
                                  int numeric, const char *nameTrans,
                                  struct GNUNET_TIME_Relative timeout,
                                  GNUNET_TRANSPORT_AddressLookUpCallback aluc,
                                  void *aluc_cls);
+
+
+/**
+ * Cancel request for address conversion.
+ *
+ * @param alc handle for the request to cancel
+ */
+void
+GNUNET_TRANSPORT_address_lookup_cancel (struct GNUNET_TRANSPORT_AddressLookupContext *alc);
+
+
+/**
+ * Handle to cancel a pending address lookup.
+ */ 
+struct GNUNET_TRANSPORT_AddressLookupContext;
 
 
 /**
@@ -669,7 +690,7 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
  */
-void
+struct GNUNET_TRANSPORT_PeerAddressLookupContext *
 GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
                                       *cfg,
                                       const struct GNUNET_PeerIdentity *peer,
@@ -680,8 +701,17 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
 
 
 /**
+ * Cancel request for peer lookup.
+ *
+ * @param alc handle for the request to cancel
+ */
+void
+GNUNET_TRANSPORT_peer_address_lookup_cancel (struct GNUNET_TRANSPORT_PeerAddressLookupContext *alc);
+
+
+/**
  * Return all the known addresses. FIXME: document better!
- * FIXME: use better name!
+ * FIXME: use better name! FIXME: extend API to allow cancellation!
  *
  * @param cfg configuration to use
  * @param timeout how long is the lookup allowed to take at most

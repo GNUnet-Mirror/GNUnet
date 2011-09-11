@@ -30,7 +30,7 @@
 /**
  * Context for the address lookup.
  */
-struct AddressLookupCtx
+struct GNUNET_TRANSPORT_AddressLookupContext
 {
   /**
    * Function to call with the human-readable address.
@@ -57,14 +57,14 @@ struct AddressLookupCtx
 /**
  * Function called with responses from the service.
  *
- * @param cls our 'struct AddressLookupCtx*'
+ * @param cls our 'struct GNUNET_TRANSPORT_AddressLookupContext*'
  * @param msg NULL on timeout or error, otherwise presumably a
  *        message with the human-readable address
  */
 static void
 address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct AddressLookupCtx *alucb = cls;
+  struct GNUNET_TRANSPORT_AddressLookupContext *alucb = cls;
   const char *address;
   uint16_t size;
 
@@ -115,8 +115,9 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param timeout how long is the lookup allowed to take at most
  * @param aluc function to call with the results
  * @param aluc_cls closure for aluc
+ * @return handle to cancel the operation, NULL on error
  */
-void
+struct GNUNET_TRANSPORT_AddressLookupContext *
 GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char *address, size_t addressLen,
                                  int numeric, const char *nameTrans,
@@ -127,7 +128,7 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   size_t slen;
   size_t len;
   struct AddressLookupMessage *msg;
-  struct AddressLookupCtx *aluCB;
+  struct GNUNET_TRANSPORT_AddressLookupContext *alc;
   struct GNUNET_CLIENT_Connection *client;
   char *addrbuf;
 
@@ -136,15 +137,11 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
-    aluc (aluc_cls, NULL);
-    return;
+    return NULL;
   }
   client = GNUNET_CLIENT_connect ("transport", cfg);
-  if (client == NULL)
-  {
-    aluc (aluc_cls, NULL);
-    return;
-  }
+  if (client == NULL)    
+    return NULL;  
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP);
@@ -154,17 +151,33 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   addrbuf = (char *) &msg[1];
   memcpy (addrbuf, address, addressLen);
   memcpy (&addrbuf[addressLen], nameTrans, slen);
-  aluCB = GNUNET_malloc (sizeof (struct AddressLookupCtx));
-  aluCB->cb = aluc;
-  aluCB->cb_cls = aluc_cls;
-  aluCB->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  aluCB->client = client;
+  alc = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_AddressLookupContext));
+  alc->cb = aluc;
+  alc->cb_cls = aluc_cls;
+  alc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  alc->client = client;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CLIENT_transmit_and_get_response (client, &msg->header,
                                                           timeout, GNUNET_YES,
                                                           &address_response_processor,
-                                                          aluCB));
+                                                          alc));
   GNUNET_free (msg);
+  return alc;
 }
+
+
+/**
+ * Cancel request for address conversion.
+ *
+ * @param alc handle for the request to cancel
+ */
+void
+GNUNET_TRANSPORT_address_lookup_cancel (struct GNUNET_TRANSPORT_AddressLookupContext *alc)
+{
+  GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
+  GNUNET_free (alc);
+}
+
+
 
 /* end of transport_api_address_lookup.c */
