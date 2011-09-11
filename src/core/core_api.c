@@ -1379,8 +1379,9 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->currently_down = GNUNET_YES;
   h->peers = GNUNET_CONTAINER_multihashmap_create (128);
   h->retry_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-  while (handlers[h->hcnt].callback != NULL)
-    h->hcnt++;
+  if (NULL != handlers)
+    while (handlers[h->hcnt].callback != NULL)
+      h->hcnt++;
   GNUNET_assert (h->hcnt <
                  (GNUNET_SERVER_MAX_MESSAGE_SIZE -
                   sizeof (struct InitMessage)) / sizeof (uint16_t));
