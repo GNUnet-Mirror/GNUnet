@@ -2846,6 +2846,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
   int ret;
   struct RepublishContext *put_context;
   GNUNET_HashCode key;
+  struct DHTQueryRecord *record;
 
   GNUNET_assert (ntohs (msg->size) >= sizeof (struct GNUNET_DHT_PutMessage));
 
@@ -2922,6 +2923,37 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
     }
   }
 #endif
+
+//   GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "******************************************************** PUT 1\n");
+  record = GNUNET_CONTAINER_multihashmap_get(forward_list.hashmap, &msg_ctx->key);
+  if (NULL != record)
+  {
+    struct DHTRouteSource *pos;
+    struct GNUNET_DHT_GetMessage *gmsg;
+    size_t gsize;
+
+//     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "******************************************************** PUT 2\n");
+    pos = record->head;
+    while (pos != NULL)
+    {
+      /* TODO: do only for local started requests? or also for remote peers? */
+      /* TODO: include this in statistics? under what? */
+      if (NULL == pos->client)
+        continue;
+
+      gsize = data_size + sizeof(struct GNUNET_DHT_GetMessage);
+      gmsg = GNUNET_malloc(gsize);
+      gmsg->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_GET_RESULT);
+      gmsg->header.size = htons(gsize);
+      gmsg->type = put_msg->type;
+      memcpy(&gmsg[1], &put_msg[1], data_size);
+
+      /* TODO: duplicate and reverse order of path_history? */
+      send_reply_to_client (pos->client, &gmsg->header, msg_ctx);
+      GNUNET_free(gmsg);
+    }
+  }
+//   GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "******************************************************** PUT END\n");
 
   if (msg_ctx->closest != GNUNET_YES)
   {
@@ -3715,6 +3747,8 @@ cache_response (struct DHT_MessageContext *msg_ctx)
   unsigned int current_size;
 
   current_size = GNUNET_CONTAINER_multihashmap_size (forward_list.hashmap);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "******************************************************** GET %s\n", GNUNET_h2s_full(&msg_ctx->key));
 
 #if DELETE_WHEN_FULL
   while (current_size >= MAX_OUTSTANDING_FORWARDS)
@@ -4575,7 +4609,7 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
     msg_ctx.path_history_len = 1;
   }
   msg_ctx.network_size = estimate_diameter ();
-  msg_ctx.peer = &my_identity;
+  msg_ctx.peer = &my_identity; /* FIXME NULL? Fix doxygen? */
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 4;  /* Make local routing a higher priority */
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
 
