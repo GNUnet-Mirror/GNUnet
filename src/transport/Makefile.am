@@ -267,6 +267,7 @@ check_PROGRAMS = \
  test_transport_api_disconnect \
  test_transport_api_multiaddress_tcp \
  test_transport_api_tcp \
+ test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  $(UNIX_PLUGIN_TEST) \
@@ -300,6 +301,7 @@ TESTS = \
  test_transport_api_disconnect \
  test_transport_api_multiaddress_tcp \
  test_transport_api_tcp \
+ test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  $(UNIX_PLUGIN_TEST) \
@@ -366,7 +368,15 @@ test_transport_api_tcp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+  
+test_transport_api_limited_sockets_tcp_SOURCES = \
+ test_transport_api_limited_sockets.c
+test_transport_api_limited_sockets_tcp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
 
 test_transport_api_tcp_nat_SOURCES = \
  test_transport_api.c
@@ -383,7 +393,6 @@ test_transport_api_reliability_tcp_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
- 
 
 test_transport_api_multiaddress_tcp_SOURCES = \
  test_transport_api_multiaddress.c
