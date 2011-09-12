@@ -443,7 +443,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   }
   if (GNUNET_SCHEDULER_NO_TASK != n->transmission_task)
   {
-    GNUNET_SCHEDULER_cancel (n->timeout_task);
+    GNUNET_SCHEDULER_cancel (n->transmission_task);
     n->transmission_task = GNUNET_SCHEDULER_NO_TASK;
   }
   if (NULL != n->asc)
