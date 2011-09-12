@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = chat
+ EXP_DIR = chat dv 
 endif
 
 SUBDIRS = \
@@ -25,7 +25,6 @@ SUBDIRS = \
   core \
   testing \
   nse \
-  dv \
   dht \
   hostlist \
   topology \
