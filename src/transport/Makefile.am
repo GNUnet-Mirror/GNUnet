@@ -19,18 +19,6 @@ if HAVE_MHD
 		test_quota_compliance_https_asymmetric_recv_constant
 endif
 
-if HAVE_LIBGLPK
- TRANSPORT_ATS_SRC = gnunet-service-transport_ats.c
- TEST_TRANSPORT_ATS = \
-   test_transport_ats \
-   test_transport_ats_multiple_peers 
-  GN_GLPK = -lglpk
-if HAVE_BENCHMARKS
- ATS_TRANSPORT_BENCHMARKS = \
-   perf_transport_ats 
-endif
-endif
-
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
@@ -151,8 +139,9 @@ gnunet_transport_DEPENDENCIES = \
   libgnunettransport.la				
 
 gnunet_service_transport_SOURCES = \
- gnunet-service-transport.c $(TRANSPORT_ATS_SRC)
+  gnunet-service-transport.c
 gnunet_service_transport_LDADD = \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -277,8 +266,6 @@ check_PROGRAMS = \
  test_transport_startonly \
  test_transport_api_disconnect \
  test_transport_api_multiaddress_tcp \
- $(TEST_TRANSPORT_ATS) \
- $(ATS_TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -312,8 +299,6 @@ TESTS = \
  test_transport_startonly \
  test_transport_api_disconnect \
  test_transport_api_multiaddress_tcp \
- $(TEST_TRANSPORT_ATS) \
- $(ATS_TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -374,29 +359,6 @@ test_transport_startonly_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-test_transport_ats_SOURCES = \
- test_transport_ats.c $(TRANSPORT_ATS_SRC)
-test_transport_ats_LDADD = -lm \
- -lglpk \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/util/libgnunetutil.la 
-
-test_transport_ats_multiple_peers_SOURCES = \
- test_transport_ats_multiple_peers.c $(TRANSPORT_ATS_SRC)
-test_transport_ats_multiple_peers_LDADD = -lm \
- -lglpk \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/util/libgnunetutil.la  
-
-perf_transport_ats_SOURCES = \
- perf_transport_ats.c
-perf_transport_ats_LDADD = \
- -lglpk \
- $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c
@@ -661,7 +623,6 @@ test_transport_api_multi_LDADD = \
  
 EXTRA_DIST = \
   gnunet-transport-certificate-creation \
-  ats_mlp_p100_m400.problem \
   test_transport_defaults.conf \
   test_transport_api_data.conf \
   test_transport_api_tcp_peer1.conf \
@@ -700,7 +661,4 @@ EXTRA_DIST = \
   test_quota_compliance_udp_peer2.conf \
   test_quota_compliance_unix_peer1.conf \
   test_quota_compliance_unix_peer2.conf \
-  test_plugin_transport_data_udp.conf \
-  test_transport_ats_1addr.conf \
-  test_transport_ats_2addr.conf \
-  test_transport_ats_4addr.conf
+  test_plugin_transport_data_udp.conf
