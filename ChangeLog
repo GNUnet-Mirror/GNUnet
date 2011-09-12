@@ -7,10 +7,10 @@
 	* TRANSPORT ATS is not used for actual bandwidth assignment,
 	          important options to make it truly useful are still missing
 	* MESH does not work (mock API emulates for VPN)
-	* VPN is experimental
+	* VPN is experimental, but has been shown to work to some degree
         * TRANSPORT-WLAN is experimental
+	* TRANSPORT-DV is experimental, has known bugs, protocol may still change
 	* CHAT is experimental, has known bugs and was not reviewed yet
-	* MONKEY is highly experimental
 
 	With this release we will finally start with
 	a detailed accounting of changes in the ChangeLog.
