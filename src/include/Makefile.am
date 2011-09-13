@@ -20,6 +20,7 @@ gnunetinclude_HEADERS = \
   block_fs.h \
   gnunet_applications.h \
   gnunet_arm_service.h \
+  gnunet_ats	_service.h \
   gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \
   gnunet_block_lib.h \
@@ -49,6 +50,7 @@ gnunetinclude_HEADERS = \
   gnunet_mesh_service_new.h \
   gnunet_nat_lib.h \
   gnunet_network_lib.h \
+  gnunet_nse_service.h \
   gnunet_os_lib.h \
   gnunet_peer_lib.h \
   gnunet_peerinfo_service.h \

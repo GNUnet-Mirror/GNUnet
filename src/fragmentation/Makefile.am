@@ -11,7 +11,7 @@ endif
 lib_LTLIBRARIES = libgnunetfragmentation.la
 
 libgnunetfragmentation_la_SOURCES = \
-  fragmentation.c \
+  fragmentation.c fragmentation.h \
   defragmentation.c 
 libgnunetfragmentation_la_LIBADD = -lm \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
