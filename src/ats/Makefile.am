@@ -46,3 +46,8 @@ test_ats_api_update_address_SOURCES = \
 test_ats_api_update_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/ats/libgnunetats.la  
+
+
+EXTRA_DIST = \
+  test_ats_api.conf
+
