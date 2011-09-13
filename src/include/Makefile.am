@@ -20,7 +20,7 @@ gnunetinclude_HEADERS = \
   block_fs.h \
   gnunet_applications.h \
   gnunet_arm_service.h \
-  gnunet_ats	_service.h \
+  gnunet_ats_service.h \
   gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \
   gnunet_block_lib.h \
