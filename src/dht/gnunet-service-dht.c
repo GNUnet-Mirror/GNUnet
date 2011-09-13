@@ -26,7 +26,6 @@
  *
  * TODO:
  * - decide which 'benchmark'/test functions to keep
- * - estiamte_diameter?
  */
 
 #include "platform.h"
@@ -2996,25 +2995,6 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
     route_message (msg, msg_ctx);
 }
 
-/**
- * Estimate the diameter of the network based
- * on how many buckets are currently in use.
- * Concept here is that the diameter of the network
- * is roughly the distance a message must travel in
- * order to reach its intended destination.  Since
- * at each hop we expect to get one bit closer, and
- * we have one bit per bucket, the number of buckets
- * in use should be the largest number of hops for
- * a successful message. (of course, this assumes we
- * know all peers in the network!)
- *
- * @return ballpark diameter figure
- */
-static unsigned int
-estimate_diameter ()
-{
-  return MAX_BUCKETS - lowest_bucket;
-}
 
 /**
  * To how many peers should we (on average)
@@ -3035,9 +3015,6 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   uint32_t random_value;
   unsigned int forward_count;
   float target_value;
-  unsigned int diameter;
-
-  diameter = estimate_diameter ();
 
   /**
    * If we are behaving in strict kademlia mode, send multiple initial requests,
@@ -3059,9 +3036,9 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   if (hop_count > log_of_network_size_estimate * 2.0)
   {
 #if DEBUG_DHT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "`%s:%s': Hop count too high (est %d, lowest %d), NOT Forwarding request\n",
-                my_short_id, "DHT", estimate_diameter (), lowest_bucket);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,		
+                "Hop count too high (est %f, lowest %d), NOT Forwarding request\n",
+                log_of_network_size_estimate * 2.0, lowest_bucket);
 #endif
     /* FIXME: does this work as intended, isn't the decision to forward or not made based on closeness as well? */
     if (GNUNET_YES == paper_forwarding) /* Once we have reached our ideal number of hops, don't stop forwarding! */
@@ -3076,7 +3053,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   {
     /* FIXME: re-run replication trials with this formula */
     target_value =
-        1 + (target_replication - 1.0) / (diameter +
+        1 + (target_replication - 1.0) / (log_of_network_size_estimate +
                                           ((float) (target_replication - 1.0) *
                                            hop_count));
     /* Set forward count to floor of target_value */
@@ -3094,7 +3071,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
     random_value = 0;
     forward_count = 1;
     target_value =
-        target_replication / (diameter +
+        target_replication / (log_of_network_size_estimate +
                               ((float) target_replication * hop_count));
     if (target_value > 1)
     {
@@ -3732,7 +3709,7 @@ republish_content_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX));
   new_msg_ctx->replication = ntohl (DEFAULT_PUT_REPLICATION);
   new_msg_ctx->msg_options = ntohl (0);
-  new_msg_ctx->network_size = estimate_diameter ();
+  new_msg_ctx->network_size = log_of_network_size_estimate;
   new_msg_ctx->peer = &my_identity;
   new_msg_ctx->bloom =
       GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
@@ -3936,7 +3913,7 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                      (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX));
   msg_ctx.replication = ntohl (DHT_DEFAULT_FIND_PEER_REPLICATION);
   msg_ctx.msg_options = ntohl (0);
-  msg_ctx.network_size = estimate_diameter ();
+  msg_ctx.network_size = log_of_network_size_estimate;
   msg_ctx.peer = &my_identity;
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE;
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
@@ -3986,7 +3963,7 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                      (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX));
   msg_ctx.replication = ntohl (DHT_DEFAULT_FIND_PEER_REPLICATION);
   msg_ctx.msg_options = ntohl (0);
-  msg_ctx.network_size = estimate_diameter ();
+  msg_ctx.network_size = log_of_network_size_estimate;
   msg_ctx.peer = &my_identity;
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE;
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
@@ -4114,7 +4091,7 @@ send_find_peer_message (void *cls,
                      (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX));
   msg_ctx.replication = DHT_DEFAULT_FIND_PEER_REPLICATION;
   msg_ctx.msg_options = DHT_DEFAULT_FIND_PEER_OPTIONS;
-  msg_ctx.network_size = estimate_diameter ();
+  msg_ctx.network_size = log_of_network_size_estimate;
   msg_ctx.peer = &my_identity;
   msg_ctx.importance = DHT_DEFAULT_FIND_PEER_IMPORTANCE;
   msg_ctx.timeout = DHT_DEFAULT_FIND_PEER_TIMEOUT;
@@ -4195,7 +4172,7 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
             sizeof (struct GNUNET_PeerIdentity));
     msg_ctx.path_history_len = 1;
   }
-  msg_ctx.network_size = estimate_diameter ();
+  msg_ctx.network_size = log_of_network_size_estimate;
   msg_ctx.peer = &my_identity; /* FIXME bart NULL? Fix doxygen? */
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 4;  /* Make local routing a higher priority */
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
