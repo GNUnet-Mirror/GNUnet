@@ -601,7 +601,7 @@ mac_test (const struct ieee80211_frame *u8aIeeeHeader,
 
 /**
  * function to set the wlan header to make attacks more difficult
- * @param buf buffer of the packet
+ * @param u8aIeeeHeader pointer to the header of the packet
  * @param dev pointer to the Hardware_Infos struct
  */
 static void
