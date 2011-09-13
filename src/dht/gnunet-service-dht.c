@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,7 +26,6 @@
  *
  * TODO:
  * - decide which 'benchmark'/test functions to keep (malicious code, kademlia, etc.)
- * - integrate properly with 'block' library (instead of manual bloomfiltering)
  * - decide on 'stop_on_closest', 'stop_on_found', 'do_find_peer', 'paper_forwarding'
  */
 
@@ -4349,8 +4348,8 @@ handle_dht_p2p_route_result (void *cls, const struct GNUNET_PeerIdentity *peer,
               "`%s:%s': Received request from peer %s\n", my_short_id, "DHT",
               GNUNET_i2s (peer));
 #endif
-  struct GNUNET_DHT_P2PRouteResultMessage *incoming =
-      (struct GNUNET_DHT_P2PRouteResultMessage *) message;
+  const struct GNUNET_DHT_P2PRouteResultMessage *incoming =
+      (const struct GNUNET_DHT_P2PRouteResultMessage *) message;
   struct GNUNET_MessageHeader *enc_msg =
       (struct GNUNET_MessageHeader *) &incoming[1];
   struct DHT_MessageContext msg_ctx;
@@ -4381,7 +4380,6 @@ handle_dht_p2p_route_result (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   memset (&msg_ctx, 0, sizeof (struct DHT_MessageContext));
-  // FIXME: call GNUNET_BLOCK_evaluate (...) -- instead of doing your own bloomfilter!
   memcpy (&msg_ctx.key, &incoming->key, sizeof (GNUNET_HashCode));
   msg_ctx.unique_id = GNUNET_ntohll (incoming->unique_id);
   msg_ctx.msg_options = ntohl (incoming->options);
@@ -4792,8 +4790,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   forward_list.minHeap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   all_known_peers = GNUNET_CONTAINER_multihashmap_create (MAX_BUCKETS / 8);
-  recent_find_peer_requests =
-      GNUNET_CONTAINER_multihashmap_create (MAX_BUCKETS / 8);
   GNUNET_assert (all_known_peers != NULL);
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht_testing",
@@ -4927,10 +4923,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_STATISTICS_set (stats, STAT_HELLOS_PROVIDED, 0, GNUNET_NO);
     GNUNET_STATISTICS_set (stats, STAT_DISCONNECTS, 0, GNUNET_NO);
   }
-  /* FIXME: if there are no recent requests then these never get freed, but alternative is _annoying_! */
-  recent.hashmap = GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT / 2);
-  recent.minHeap =
-      GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   if (GNUNET_YES == do_find_peer)
   {
     next_send_time.rel_value =
@@ -4950,6 +4942,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                     &shutdown_task, NULL);
 }
 
+
 /**
  * The main function for the dht service.
  *
@@ -4962,26 +4955,23 @@ main (int argc, char *const *argv)
 {
   int ret;
 
+  recent.hashmap = GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT / 2);
+  recent.minHeap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  recent_find_peer_requests =
+      GNUNET_CONTAINER_multihashmap_create (MAX_BUCKETS / 8);
   ret =
       (GNUNET_OK ==
        GNUNET_SERVICE_run (argc, argv, "dht", GNUNET_SERVICE_OPTION_NONE, &run,
                            NULL)) ? 0 : 1;
-  if (NULL != recent.hashmap)
-  {
-    GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (recent.hashmap));
-    GNUNET_CONTAINER_multihashmap_destroy (recent.hashmap);
-    recent.hashmap = NULL;
-  }
-  if (NULL != recent.minHeap)
-  {
-    GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (recent.minHeap));
-    GNUNET_CONTAINER_heap_destroy (recent.minHeap);
-    recent.minHeap = NULL;
-  }
-  if (NULL != recent_find_peer_requests)
-  {
-    GNUNET_CONTAINER_multihashmap_destroy (recent_find_peer_requests);
-    recent_find_peer_requests = NULL;
-  }
+  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (recent.hashmap));
+  GNUNET_CONTAINER_multihashmap_destroy (recent.hashmap);
+  recent.hashmap = NULL;  
+  GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (recent.minHeap));
+  GNUNET_CONTAINER_heap_destroy (recent.minHeap);
+  recent.minHeap = NULL;
+  GNUNET_CONTAINER_multihashmap_destroy (recent_find_peer_requests);
+  recent_find_peer_requests = NULL;  
   return ret;
 }
+
+/* end of gnunet-service-dht.c */

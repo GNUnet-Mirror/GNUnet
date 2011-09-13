@@ -35,12 +35,12 @@
 #define DEBUG_DHT_ROUTING GNUNET_YES
 
 /**
- * FIXME: document.
+ * Size of the bloom filter the DHT uses to filter peers.
  */
 #define DHT_BLOOM_SIZE 128
 
 /**
- * FIXME: document.
+ * Number of bits set per entry in the bloom filter for peers.
  */
 #define DHT_BLOOM_K 6
 
@@ -271,7 +271,7 @@ struct GNUNET_DHT_P2PRouteMessage
   uint64_t unique_id GNUNET_PACKED;
 
   /**
-   * Bloomfilter to stop circular routes
+   * Bloomfilter (for peer identities) to stop circular routes
    */
   char bloomfilter[DHT_BLOOM_SIZE];
 
