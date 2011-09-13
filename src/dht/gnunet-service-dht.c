@@ -26,6 +26,7 @@
  *
  * TODO:
  * - decide which 'benchmark'/test functions to keep
+ * - integrate properly with 'block' library (instead of manual bloomfiltering)
  */
 
 #include "platform.h"
@@ -3029,23 +3030,18 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
     return 0;
   }
 
-  /* FIXME: the smaller we think the network is the more lenient we should be for
-   * routing right?  The estimation below only works if we think we have reasonably
-   * full routing tables, which for our RR topologies may not be the case!
-   */
   if (hop_count > log_of_network_size_estimate * 2.0)
   {
+    if (GNUNET_YES == paper_forwarding) 
+    {
+      /* Once we have reached our ideal number of hops, don't stop forwarding! */
+      return 1;
+    }
 #if DEBUG_DHT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,		
                 "Hop count too high (est %f, lowest %d), NOT Forwarding request\n",
                 log_of_network_size_estimate * 2.0, lowest_bucket);
 #endif
-    /* FIXME: does this work as intended, isn't the decision to forward or not made based on closeness as well? */
-    if (GNUNET_YES == paper_forwarding) /* Once we have reached our ideal number of hops, don't stop forwarding! */
-    {
-      return 1;
-    }
-
     return 0;
   }
 
@@ -3091,18 +3087,18 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   return forward_count;
 }
 
-/*
+
+/**
  * Check whether my identity is closer than any known peers.
  * If a non-null bloomfilter is given, check if this is the closest
  * peer that hasn't already been routed to.
  *
  * @param target hash code to check closeness to
  * @param bloom bloomfilter, exclude these entries from the decision
- *
- * Return GNUNET_YES if node location is closest, GNUNET_NO
- * otherwise.
+ * @return GNUNET_YES if node location is closest,
+ *         GNUNET_NO otherwise.
  */
-int
+static int
 am_closest_peer (const GNUNET_HashCode * target,
                  struct GNUNET_CONTAINER_BloomFilter *bloom)
 {
@@ -3603,7 +3599,6 @@ route_message (const struct GNUNET_MessageHeader *msg,
   }
 #endif
 }
-
 
 
 /**
