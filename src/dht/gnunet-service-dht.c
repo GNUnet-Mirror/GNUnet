@@ -86,7 +86,8 @@
 #define DHT_MAX_RECENT (1024 * 16)
 
 /**
- * Default time to wait to send messages on behalf of other peers.
+ * How long do we wait at most when queueing messages with core
+ * that we are sending on behalf of other peers.
  */
 #define DHT_DEFAULT_P2P_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
@@ -98,7 +99,7 @@
 /**
  * How long to keep recent requests around by default.
  */
-#define DEFAULT_RECENT_REMOVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define DEFAULT_RECENT_REMOVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
  * Default time to wait to send find peer messages sent by the dht service.
@@ -114,12 +115,6 @@
  * Default replication parameter for find peer messages sent by the dht service.
  */
 #define DHT_DEFAULT_FIND_PEER_REPLICATION 4
-
-/**
- * Default options for find peer requests sent by the dht service.
- */
-#define DHT_DEFAULT_FIND_PEER_OPTIONS GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
-/*#define DHT_DEFAULT_FIND_PEER_OPTIONS GNUNET_DHT_RO_NONE*/
 
 /**
  * How long at least to wait before sending another find peer request.
@@ -156,9 +151,6 @@
  * Default frequency for sending malicious put messages
  */
 #define DEFAULT_MALICIOUS_PUT_FREQUENCY GNUNET_TIME_UNIT_SECONDS
-
-
-#define DHT_DEFAULT_PING_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
 
 /**
  * How many time differences between requesting a core send and
@@ -203,6 +195,7 @@ struct P2PPendingMessage
   const struct GNUNET_MessageHeader *msg;       // msg = (cast) &pm[1]; // memcpy (&pm[1], data, len);
 
 };
+
 
 /**
  * Per-peer information.
@@ -3313,7 +3306,8 @@ route_message (const struct GNUNET_MessageHeader *msg,
     recent_req = GNUNET_CONTAINER_heap_peek (recent.minHeap);
     GNUNET_assert (recent_req != NULL);
     GNUNET_SCHEDULER_cancel (recent_req->remove_task);
-    GNUNET_SCHEDULER_add_now (&remove_recent, recent_req);
+    recent_req->remove_task = 
+        GNUNET_SCHEDULER_add_now (&remove_recent, recent_req);
   }
 
   forward_count = 0;
@@ -3762,7 +3756,7 @@ send_find_peer_message (void *cls,
       GNUNET_ntohll (GNUNET_CRYPTO_random_u64
                      (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX));
   msg_ctx.replication = DHT_DEFAULT_FIND_PEER_REPLICATION;
-  msg_ctx.msg_options = DHT_DEFAULT_FIND_PEER_OPTIONS;
+  msg_ctx.msg_options = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
   msg_ctx.network_size = log_of_network_size_estimate;
   msg_ctx.peer = &my_identity;
   msg_ctx.importance = DHT_DEFAULT_FIND_PEER_IMPORTANCE;
