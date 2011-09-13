@@ -1661,11 +1661,15 @@ delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session *session = cls;
   struct GNUNET_TIME_Relative delay;
+  struct GNUNET_TRANSPORT_ATS_Information ats;
+
+  ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  ats.value = htonl (0);
 
   session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
   delay =
       session->plugin->env->receive (session->plugin->env->cls,
-                                     &session->target, NULL, NULL, 0, session,
+                                     &session->target, NULL, &ats, 1, session,
                                      NULL, 0);
   if (delay.rel_value == 0)
     GNUNET_SERVER_receive_done (session->client, GNUNET_OK);

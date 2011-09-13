@@ -165,7 +165,6 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_TIME_Relative ret;
   uint16_t type;
 
-
   ret = GNUNET_TIME_UNIT_ZERO;
   if (NULL != message)
   {
@@ -202,8 +201,8 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
       (void) GST_blacklist_test_allowed (peer, NULL, &try_connect_if_allowed,
                                          NULL);
       /* TODO: if 'session != NULL', and timestamp more recent than the
-	 previous one, maybe notify ATS that this is now the preferred
-       * way to communicate with this peer (other peer switched transport) */
+       * previous one, maybe notify ATS that this is now the preferred
+       * * way to communicate with this peer (other peer switched transport) */
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
       /* TODO: do some validation to prevent an attacker from sending
@@ -242,6 +241,9 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
       break;
     }
   }
+
+  GNUNET_assert ((ats_count > 0) && (ats != NULL));
+
   GNUNET_ATS_address_update (GST_ats, peer, GNUNET_TIME_absolute_get (),        /* valid at least until right now... */
                              plugin_name, session, sender_address,
                              sender_address_len, ats, ats_count);
