@@ -682,48 +682,48 @@ static struct FindPeerMessageContext find_peer_context;
  * to closest peer; initially send requests to 3
  * peers.
  */
-static unsigned int strict_kademlia;
+static int strict_kademlia;
 
 /**
  * Routing option to end routing when closest peer found.
  */
-static unsigned int stop_on_closest;
+static int stop_on_closest;
 
 /**
  * Routing option to end routing when data is found.
  */
-static unsigned int stop_on_found;
+static int stop_on_found;
 
 /**
  * Whether DHT needs to manage find peer requests, or
  * an external force will do it on behalf of the DHT.
  */
-static unsigned int do_find_peer;
+static int do_find_peer;
 
 /**
  * Once we have stored an item in the DHT, refresh it
  * according to our republish interval.
  */
-static unsigned int do_republish;
+static int do_republish;
 
 /**
  * Use exactly the forwarding formula as described in
  * the paper if set to GNUNET_YES, otherwise use the
  * slightly modified version.
  */
-static unsigned int paper_forwarding;
+static int paper_forwarding;
 
 /**
  * PUT Peer Identities of peers we know about into
  * the datacache.
  */
-static unsigned int put_peer_identities;
+static int put_peer_identities;
 
 /**
  * Use the "real" distance metric when selecting the
  * next routing hop.  Can be less accurate.
  */
-static unsigned int use_real_distance;
+static int use_real_distance;
 
 /**
  * How many peers have we added since we sent out our last
