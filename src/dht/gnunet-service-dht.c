@@ -2499,7 +2499,7 @@ handle_dht_get (const struct GNUNET_MessageHeader *msg,
   get_msg = (const struct GNUNET_DHT_GetMessage *) msg;
   bf_size = ntohs (get_msg->bf_size);
   msg_ctx->xquery_size = ntohs (get_msg->xquery_size);
-  msg_ctx->reply_bf_mutator = get_msg->bf_mutator;      /* FIXME: ntohl? */
+  msg_ctx->reply_bf_mutator = get_msg->bf_mutator;
   if (msize !=
       sizeof (struct GNUNET_DHT_GetMessage) + bf_size + msg_ctx->xquery_size)
   {
@@ -3786,9 +3786,10 @@ cache_response (struct DHT_MessageContext *msg_ctx)
     pos = record->head;
     while (pos != NULL)
     {
-      if (0 ==
-          memcmp (msg_ctx->peer, &pos->source,
-                  sizeof (struct GNUNET_PeerIdentity)))
+      if ( (NULL != msg_ctx->peer) &&
+	   (0 ==
+	    memcmp (msg_ctx->peer, &pos->source,
+		    sizeof (struct GNUNET_PeerIdentity))) )
         break;                  /* Already have this peer in reply list! */
       pos = pos->next;
     }
@@ -4784,7 +4785,8 @@ handle_dht_local_route_stop (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
- *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -4805,8 +4807,9 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
   char *route_path;
   int path_size;
 
-  if (ntohs (enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_P2P_PING)        /* Throw these away. FIXME: Don't throw these away? (reply) */
+  if (ntohs (enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_P2P_PING)        
   {
+    /* Throw these away. FIXME: Don't throw these away? (reply) */
 #if DEBUG_PING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s:%s Received P2P Ping message.\n",
                 my_short_id, "DHT");
@@ -4869,16 +4872,12 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
     path_size =
         ntohl (incoming->outgoing_path_length) *
         sizeof (struct GNUNET_PeerIdentity);
-    /* FIXME bart: assert? remote peer can kill DHT sending malformed packets! */
-//     GNUNET_assert (ntohs (message->size) ==
-//                    (sizeof (struct GNUNET_DHT_P2PRouteMessage) +
-//                     ntohs (enc_msg->size) + path_size));
     if (ntohs (message->size) !=
           (sizeof (struct GNUNET_DHT_P2PRouteMessage) +
           ntohs (enc_msg->size) + path_size))
     {
       GNUNET_break_op(0);
-      return GNUNET_YES; /* FIXME bart GNUNET_NO? */
+      return GNUNET_YES;
     }
     route_path = (char *) &incoming[1];
     route_path = route_path + ntohs (enc_msg->size);
