@@ -27,6 +27,7 @@
  * TODO:
  * - decide which 'benchmark'/test functions to keep
  * - integrate properly with 'block' library (instead of manual bloomfiltering)
+ * - decide on 'stop_on_closest', 'stop_on_found', 'do_find_peer', 'paper_forwarding'
  */
 
 #include "platform.h"
@@ -631,20 +632,6 @@ struct RecentRequest
   GNUNET_SCHEDULER_TaskIdentifier remove_task;
 };
 
-struct RepublishContext
-{
-  /**
-   * Key to republish.
-   */
-  GNUNET_HashCode key;
-
-  /**
-   * Type of the data.
-   */
-  unsigned int type;
-
-};
-
 
 /**
  * log of the current network size estimate, used as the point where
@@ -686,12 +673,6 @@ static int stop_on_found;
  * an external force will do it on behalf of the DHT.
  */
 static int do_find_peer;
-
-/**
- * Once we have stored an item in the DHT, refresh it
- * according to our republish interval.
- */
-static int do_republish;
 
 /**
  * Use exactly the forwarding formula as described in
@@ -777,11 +758,6 @@ static GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
  * The lowest currently used bucket.
  */
 static unsigned int lowest_bucket;      /* Initially equal to MAX_BUCKETS - 1 */
-
-/**
- * How often to republish content we have previously stored.
- */
-static struct GNUNET_TIME_Relative dht_republish_frequency;
 
 /**
  * The buckets (Kademlia routing table, complete with growth).
@@ -2784,15 +2760,6 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
   route_message (find_msg, msg_ctx);
 }
 
-/**
- * Task used to republish data.
- * Forward declaration; function call loop.
- *
- * @param cls closure (a struct RepublishContext)
- * @param tc runtime context for this task
- */
-static void
-republish_content (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Server handler for initiating local dht put requests
@@ -2811,7 +2778,6 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
   enum GNUNET_BLOCK_Type put_type;
   size_t data_size;
   int ret;
-  struct RepublishContext *put_context;
   GNUNET_HashCode key;
   struct DHTQueryRecord *record;
 
@@ -2977,15 +2943,6 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
                               (const char *) put_entry, put_type,
                               GNUNET_TIME_absolute_ntoh (put_msg->expiration));
     GNUNET_free (put_entry);
-
-    if ((ret == GNUNET_YES) && (do_republish == GNUNET_YES))
-    {
-      put_context = GNUNET_malloc (sizeof (struct RepublishContext));
-      memcpy (&put_context->key, &msg_ctx->key, sizeof (GNUNET_HashCode));
-      put_context->type = put_type;
-      GNUNET_SCHEDULER_add_delayed (dht_republish_frequency, &republish_content,
-                                    put_context);
-    }
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3659,95 +3616,6 @@ demultiplex_message (const struct GNUNET_MessageHeader *msg,
                 "DHT", ntohs (msg->type));
     route_message (msg, msg_ctx);
   }
-}
-
-
-
-
-/**
- * Iterator for local get request results,
- *
- * @param cls closure for iterator, NULL
- * @param exp when does this value expire?
- * @param key the key this data is stored under
- * @param size the size of the data identified by key
- * @param data the actual data
- * @param type the type of the data
- *
- * @return GNUNET_OK to continue iteration, anything else
- * to stop iteration.
- */
-static int
-republish_content_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                            const GNUNET_HashCode * key, size_t size,
-                            const char *data, uint32_t type)
-{
-
-  struct DHT_MessageContext *new_msg_ctx;
-  struct GNUNET_DHT_PutMessage *put_msg;
-
-#if DEBUG_DHT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s:%s': Received `%s' response from datacache\n", my_short_id,
-              "DHT", "GET");
-#endif
-  new_msg_ctx = GNUNET_malloc (sizeof (struct DHT_MessageContext));
-
-  put_msg = GNUNET_malloc (sizeof (struct GNUNET_DHT_PutMessage) + size);
-  put_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_PUT);
-  put_msg->header.size = htons (sizeof (struct GNUNET_DHT_PutMessage) + size);
-  put_msg->expiration = GNUNET_TIME_absolute_hton (exp);
-  put_msg->type = htons (type);
-  memcpy (&put_msg[1], data, size);
-  new_msg_ctx->unique_id =
-      GNUNET_ntohll (GNUNET_CRYPTO_random_u64
-                     (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX));
-  new_msg_ctx->replication = ntohl (DEFAULT_PUT_REPLICATION);
-  new_msg_ctx->msg_options = ntohl (0);
-  new_msg_ctx->network_size = log_of_network_size_estimate;
-  new_msg_ctx->peer = &my_identity;
-  new_msg_ctx->bloom =
-      GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
-  new_msg_ctx->hop_count = 0;
-  new_msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE;
-  new_msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
-  increment_stats (STAT_PUT_START);
-  demultiplex_message (&put_msg->header, new_msg_ctx);
-
-  GNUNET_free (new_msg_ctx);
-  GNUNET_free (put_msg);
-  return GNUNET_OK;
-}
-
-/**
- * Task used to republish data.
- *
- * @param cls closure (a struct RepublishContext)
- * @param tc runtime context for this task
- */
-static void
-republish_content (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct RepublishContext *put_context = cls;
-
-  unsigned int results;
-
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-  {
-    GNUNET_free (put_context);
-    return;
-  }
-
-  GNUNET_assert (datacache != NULL);    /* If we have no datacache we never should have scheduled this! */
-  results =
-      GNUNET_DATACACHE_get (datacache, &put_context->key, put_context->type,
-                            &republish_content_iterator, NULL);
-  if (results == 0)             /* Data must have expired */
-    GNUNET_free (put_context);
-  else                          /* Reschedule task for next time period */
-    GNUNET_SCHEDULER_add_delayed (dht_republish_frequency, &republish_content,
-                                  put_context);
-
 }
 
 
@@ -4976,17 +4844,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
   }
 
-  dht_republish_frequency = GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY;
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "DHT",
-                                             "REPLICATION_FREQUENCY",
-                                             &temp_config_num))
-  {
-    dht_republish_frequency =
-        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES,
-                                       temp_config_num);
-  }
-
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "DHT", "bucket_size",
                                              &temp_config_num))
@@ -5006,10 +4863,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     malicious_dropper = GNUNET_YES;
   }
-
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "republish"))
-    do_republish = GNUNET_NO;
 
   if (GNUNET_NO ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "do_find_peer"))
