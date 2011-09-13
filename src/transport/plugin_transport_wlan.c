@@ -24,6 +24,8 @@
  * @author David Brodski
  */
 
+//TODO split rx and tx structures for better handling
+
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
@@ -91,7 +93,7 @@
 /**
  * DEBUG switch
  */
-#define DEBUG_wlan GNUNET_NO
+#define DEBUG_wlan GNUNET_YES
 #define DEBUG_wlan_retransmission GNUNET_NO
 #define DEBUG_wlan_ip_udp_packets_on_air GNUNET_NO
 
@@ -756,7 +758,7 @@ get_macendpoint (struct Plugin *plugin, const struct MacAddress *addr,
 }
 
 /**
- * search for a session with the addr and peer id
+ * search for a session with the address and peer id
  *
  * @param plugin pointer to the plugin struct
  * @param addr pointer to the mac address of the peer
@@ -2281,8 +2283,9 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
  * Function used for to process the data received from the wlan interface
  *
  * @param cls the plugin handle
- * @param session_light FIXME: document
+ * @param session_light pointer to the struct holding known informations
  * @param hdr hdr of the GNUNET_MessageHeader
+ * @param rxinfo pointer to the radiotap informations got with this packet
  */
 static void
 wlan_data_helper (void *cls, struct Session_light *session_light,
@@ -2448,7 +2451,11 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
 
 }
 
-//TODO DOXIGEN
+/**
+ * Function to print mac addresses nice *
+ * @param pointer to 6 byte with the mac address
+ * @return pointer to the chars which hold the print out
+ */
 const char *
 macprinter (const u_int8_t * mac)
 {
@@ -2652,6 +2659,12 @@ wlan_process_helper (void *cls, void *client,
                                  sizeof (struct MacAddress));
     break;
   default:
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                     "Func wlan_process_helper got unknown message with number %u, size %u\n",
+                     ntohs (hdr->type),
+                     ntohs (hdr->size));
+#endif
     GNUNET_break (0);
     return;
   }

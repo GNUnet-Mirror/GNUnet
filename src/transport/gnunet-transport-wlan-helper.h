@@ -57,18 +57,4 @@ typedef u32 __le32;
 */
 #define	unlikely(x) (x)
 
-#define FIFO_FILE1       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_in"
-#define FIFO_FILE2       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_out"
-#define MAXLINE         4096
-
-extern int closeprog;
-
-struct sendbuf
-{
-  unsigned int pos;
-  unsigned int size;
-  char buf[MAXLINE * 2];
-};
-
-
 #endif /* gnunet_wlan_H */

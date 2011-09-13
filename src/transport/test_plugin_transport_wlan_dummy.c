@@ -47,7 +47,7 @@
 #include "gnunet_util_lib.h"
 #include "plugin_transport_wlan.h"
 #include "gnunet_common.h"
-#include "gnunet-transport-wlan-helper.h"
+//#include "gnunet-transport-wlan-helper.h"
 #include "gnunet_crypto_lib.h"
 #include "wlan/loopback_helper.h"
 #include "wlan/helper_common.h"
@@ -160,16 +160,16 @@ testmode (int argc, char *argv[])
     //unlink(FIFO_FILE1);
     //unlink(FIFO_FILE2);
     // FIXME: use mkfifo!
-    erg = mknod (FIFO_FILE1, S_IFIFO | 0666, 0);
+    erg = mkfifo (FIFO_FILE1, 0666);
     if (0 != erg)
     {
-      fprintf (stderr, "Error at mknode1 \n");
+      fprintf (stderr, "Error at mkfifo1: %s\n", strerror(errno));
       //exit(1);
     }
-    erg = mknod (FIFO_FILE2, S_IFIFO | 0666, 0);
+    erg = mkfifo (FIFO_FILE2, 0666);
     if (0 != erg)
     {
-      fprintf (stderr, "Error at mknode2 \n");
+      fprintf (stderr, "Error at mkfifo2: %s\n", strerror(errno));
       //exit(1);
     }
 

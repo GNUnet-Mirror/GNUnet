@@ -17,4 +17,10 @@
 int
 testmode (int argc, char *argv[]);
 
+
+#define FIFO_FILE1       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_in"
+#define FIFO_FILE2       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_out"
+
+extern int closeprog;
+
 #endif /* LOOPBACK_HELPER_H_ */
