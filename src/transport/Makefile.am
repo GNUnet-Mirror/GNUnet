@@ -116,7 +116,7 @@ gnunet_transport_wlan_helper_dummy_SOURCES = \
  test_plugin_transport_wlan_dummy.c
 gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
-  
+
 gnunet_transport_list_connections_SOURCES = \
  gnunet-transport-list-connections.c         
 gnunet_transport_list_connections_LDADD = \
@@ -451,7 +451,7 @@ test_transport_api_http_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
-  
+
 test_transport_api_reliability_http_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_http_LDADD = \
@@ -459,7 +459,7 @@ test_transport_api_reliability_http_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
- 
+
 #test_plugin_transport_https_SOURCES = \
 # test_plugin_transport_https.c
 #test_plugin_transport_https_LDADD = \
@@ -499,7 +499,7 @@ test_transport_api_unreliability_udp_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
- 
+
 
 if LINUX
 test_transport_api_wlan_SOURCES = \
@@ -614,46 +614,64 @@ test_transport_api_multi_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
- 
- 
+
+
 EXTRA_DIST = \
-  gnunet-transport-certificate-creation \
-  test_transport_defaults.conf \
-  test_transport_api_data.conf \
-  test_transport_api_tcp_peer1.conf \
-  test_transport_api_tcp_peer2.conf \
-  test_transport_api_udp_peer1.conf \
-  test_transport_api_udp_peer2.conf \
-  test_transport_api_unix_peer1.conf \
-  test_transport_api_unix_peer2.conf \
-  test_transport_api_udp_nat_peer1.conf \
-  test_transport_api_udp_nat_peer2.conf \
-  test_transport_api_tcp_nat_peer1.conf \
-  test_transport_api_tcp_nat_peer2.conf \
-  test_plugin_transport_data.conf \
-  test_transport_api_http_peer1.conf \
-  test_transport_api_http_peer2.conf \
-  test_transport_api_https_peer1.conf \
-  test_transport_api_https_peer2.conf \
-  test_transport_api_wlan_peer1.conf \
-  test_transport_api_wlan_peer2.conf \
-  test_transport_api_multi_peer1.conf \
-  test_transport_api_multi_peer2.conf \
-  test_transport_api_rel_http_peer1.conf \
-  test_transport_api_rel_http_peer2.conf \
-  test_transport_api_rel_https_peer1.conf \
-  test_transport_api_rel_https_peer2.conf \
-  test_plugin_transport_data_http.conf \
-  test_plugin_transport_data.conf \
-  test_quota_compliance_data.conf \
-  test_quota_compliance_tcp_peer1.conf \
-  test_quota_compliance_tcp_peer2.conf \
-  test_quota_compliance_http_peer1.conf \
-  test_quota_compliance_http_peer2.conf \
-  test_quota_compliance_https_peer1.conf \
-  test_quota_compliance_https_peer2.conf \
-  test_quota_compliance_udp_peer1.conf \
-  test_quota_compliance_udp_peer2.conf \
-  test_quota_compliance_unix_peer1.conf \
-  test_quota_compliance_unix_peer2.conf \
-  test_plugin_transport_data_udp.conf
+gnunet-transport-certificate-creation \
+template_cfg_peer1.conf\
+template_cfg_peer2.conf\
+test_plugin_transport_data.conf\
+test_plugin_transport_data_http.conf\
+test_plugin_transport_data_udp.conf\
+test_quota_compliance_data.conf\
+test_quota_compliance_http_peer1.conf\
+test_quota_compliance_http_peer2.conf\
+test_quota_compliance_https_peer1.conf\
+test_quota_compliance_https_peer2.conf\
+test_quota_compliance_tcp_peer1.conf\
+test_quota_compliance_tcp_peer2.conf\
+test_quota_compliance_udp_peer1.conf\
+test_quota_compliance_udp_peer2.conf\
+test_quota_compliance_unix_peer1.conf\
+test_quota_compliance_unix_peer2.conf\
+test_transport_api_data.conf\
+test_transport_api_http_peer1.conf\
+test_transport_api_http_peer2.conf\
+test_transport_api_https_peer1.conf\
+test_transport_api_https_peer2.conf\
+test_transport_api_limited_sockets_tcp_peer1.conf\
+test_transport_api_limited_sockets_tcp_peer2.conf\
+test_transport_api_multiaddress_tcp_peer1.conf\
+test_transport_api_multiaddress_tcp_peer2.conf\
+test_transport_api_multi_peer1.conf\
+test_transport_api_multi_peer2.conf\
+test_transport_api_reliability_http_peer1.conf\
+test_transport_api_reliability_http_peer2.conf\
+test_transport_api_reliability_https_peer1.conf\
+test_transport_api_reliability_https_peer2.conf\
+test_transport_api_reliability_tcp_nat_peer1.conf\
+test_transport_api_reliability_tcp_nat_peer2.conf\
+test_transport_api_reliability_tcp_peer1.conf\
+test_transport_api_reliability_tcp_peer2.conf\
+test_transport_api_reliability_wlan_peer1.conf\
+test_transport_api_reliability_wlan_peer2.conf\
+test_transport_api_tcp_nat_peer1.conf\
+test_transport_api_tcp_nat_peer2.conf\
+test_transport_api_tcp_peer1.conf\
+test_transport_api_tcp_peer2.conf\
+test_transport_api_udp_nat_peer1.conf\
+test_transport_api_udp_nat_peer2.conf\
+test_transport_api_udp_peer1.conf\
+test_transport_api_udp_peer2.conf\
+test_transport_api_unix_peer1.conf\
+test_transport_api_unix_peer2.conf\
+test_transport_api_unreliability_udp_peer1.conf\
+test_transport_api_unreliability_udp_peer2.conf\
+test_transport_api_unreliability_unix_peer1.conf\
+test_transport_api_unreliability_unix_peer2.conf\
+test_transport_api_unreliability_wlan_peer1.conf\
+test_transport_api_unreliability_wlan_peer2.conf\
+test_transport_api_wlan_peer1.conf\
+test_transport_api_wlan_peer2.conf\
+test_transport_defaults.conf\
+test_transport_startonly.conf
