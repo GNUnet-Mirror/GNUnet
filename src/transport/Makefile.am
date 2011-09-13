@@ -108,18 +108,16 @@ gnunet_transport_wlan_helper_SOURCES = \
  wlan/loopback_helper.h \
  wlan/radiotap-parser.c wlan/radiotap-parser.h \
  gnunet-transport-wlan-helper.c gnunet-transport-wlan-helper.h
+gnunet_transport_wlan_helper_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_transport_wlan_helper_dummy_SOURCES = \
  wlan/radiotap-parser.c \
  wlan/helper_common.c \
  test_plugin_transport_wlan_dummy.c
-
-gnunet_transport_wlan_helper_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la 
-
 gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
-
+  
 gnunet_transport_list_connections_SOURCES = \
  gnunet-transport-list-connections.c         
 gnunet_transport_list_connections_LDADD = \
