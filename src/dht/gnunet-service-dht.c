@@ -49,7 +49,6 @@
 #include "dht.h"
 #include <fenv.h>
 
-#define EXTRA_CHECKS GNUNET_NO
 
 /**
  * How many buckets will we allow total.
@@ -1319,35 +1318,6 @@ find_current_bucket (const GNUNET_HashCode * hc)
   return actual_bucket;
 }
 
-#if EXTRA_CHECKS
-/**
- * Find a routing table entry from a peer identity
- *
- * @param peer the peer to look up
- *
- * @return the bucket number holding the peer, GNUNET_SYSERR if not found
- */
-static int
-find_bucket_by_peer (const struct PeerInfo *peer)
-{
-  int bucket;
-  struct PeerInfo *pos;
-
-  for (bucket = lowest_bucket; bucket < MAX_BUCKETS - 1; bucket++)
-  {
-    pos = k_buckets[bucket].head;
-    while (pos != NULL)
-    {
-      if (peer == pos)
-        return bucket;
-      pos = pos->next;
-    }
-  }
-
-  return GNUNET_SYSERR;         /* No such peer. */
-}
-#endif
-
 
 /**
  * Find a routing table entry from a peer identity
@@ -1481,27 +1451,7 @@ delete_peer (struct PeerInfo *peer, unsigned int bucket)
   struct P2PPendingMessage *pos;
   struct P2PPendingMessage *next;
 
-#if EXTRA_CHECKS
-  struct PeerInfo *peer_pos;
-
-  peer_pos = k_buckets[bucket].head;
-  while ((peer_pos != NULL) && (peer_pos != peer))
-    peer_pos = peer_pos->next;
-  if (peer_pos == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "%s:%s: Expected peer `%s' in bucket %d\n", my_short_id, "DHT",
-                GNUNET_i2s (&peer->id), bucket);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "%s:%s: Lowest bucket: %d, find_current_bucket: %d, peer resides in bucket: %d\n",
-                my_short_id, "DHT", lowest_bucket,
-                find_current_bucket (&peer->id.hashPubKey),
-                find_bucket_by_peer (peer));
-  }
-  GNUNET_assert (peer_pos != NULL);
-#endif
   remove_peer (peer, bucket);   /* First remove the peer from its bucket */
-
   if (peer->send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (peer->send_task);
   if ((peer->th != NULL) && (coreAPI != NULL))
@@ -4115,16 +4065,6 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct DHT_MessageContext *msg_ctx;
   char *route_path;
   int path_size;
-
-  if (ntohs (enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_P2P_PING)        
-  {
-    /* Throw these away. FIXME: Don't throw these away? (reply) */
-#if DEBUG_PING
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s:%s Received P2P Ping message.\n",
-                my_short_id, "DHT");
-#endif
-    return GNUNET_YES;
-  }
 
   if (ntohs (enc_msg->size) >= GNUNET_SERVER_MAX_MESSAGE_SIZE - 1)
   {
