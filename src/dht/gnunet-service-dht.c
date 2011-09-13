@@ -23,6 +23,10 @@
  * @brief GNUnet DHT service
  * @author Christian Grothoff
  * @author Nathan Evans
+ *
+ * TODO:
+ * - decide which 'benchmark'/test functions to keep
+ * - estiamte_diameter?
  */
 
 #include "platform.h"
@@ -159,12 +163,6 @@
 
 
 #define DHT_DEFAULT_PING_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
-
-/**
- * Real maximum number of hops, at which point we refuse
- * to forward the message.
- */
-#define DEFAULT_MAX_HOPS 10
 
 /**
  * How many time differences between requesting a core send and
@@ -781,19 +779,9 @@ static GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
 static unsigned int lowest_bucket;      /* Initially equal to MAX_BUCKETS - 1 */
 
 /**
- * The maximum number of hops before we stop routing messages.
- */
-static unsigned long long max_hops;
-
-/**
  * How often to republish content we have previously stored.
  */
 static struct GNUNET_TIME_Relative dht_republish_frequency;
-
-/**
- * GNUNET_YES to stop at max_hops, GNUNET_NO to heuristically decide when to stop forwarding.
- */
-static int use_max_hops;
 
 /**
  * The buckets (Kademlia routing table, complete with growth).
@@ -3051,9 +3039,6 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
 
   diameter = estimate_diameter ();
 
-  if (GNUNET_NO == use_max_hops)
-    max_hops = (diameter + 1) * 2;
-
   /**
    * If we are behaving in strict kademlia mode, send multiple initial requests,
    * but then only send to 1 or 0 peers based strictly on the number of hops.
@@ -3062,7 +3047,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   {
     if (hop_count == 0)
       return kademlia_replication;
-     if (hop_count < max_hops)
+     if (hop_count < log_of_network_size_estimate * 2.0)
       return 1;
     return 0;
   }
@@ -3071,7 +3056,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
    * routing right?  The estimation below only works if we think we have reasonably
    * full routing tables, which for our RR topologies may not be the case!
    */
-  if (hop_count > max_hops)
+  if (hop_count > log_of_network_size_estimate * 2.0)
   {
 #if DEBUG_DHT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -5006,18 +4991,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                "MALICIOUS_GET_FREQUENCY",
                                                &malicious_get_frequency))
       malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
-  }
-
-  if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "DHT", "MAX_HOPS", &max_hops))
-  {
-    max_hops = DEFAULT_MAX_HOPS;
-  }
-
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "DHT", "USE_MAX_HOPS"))
-  {
-    use_max_hops = GNUNET_YES;
   }
 
   if (GNUNET_YES ==
