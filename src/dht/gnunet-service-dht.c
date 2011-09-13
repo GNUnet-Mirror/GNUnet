@@ -277,16 +277,6 @@ struct PeerInfo
 #endif
 
   /**
-   * Holds matching bits from peer to current target,
-   * used for distance comparisons between peers. May
-   * be considered a really bad idea.
-   * FIXME: remove this value (create struct which holds
-   *        a single peerinfo and the matching bits, use
-   *        that to pass to comparator)
-   */
-  unsigned int matching_bits;
-
-  /**
    * Task for scheduling periodic ping messages for this peer.
    */
   GNUNET_SCHEDULER_TaskIdentifier ping_task;
