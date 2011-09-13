@@ -25,7 +25,7 @@
  * @author Nathan Evans
  *
  * TODO:
- * - decide which 'benchmark'/test functions to keep
+ * - decide which 'benchmark'/test functions to keep (malicious code, kademlia, etc.)
  * - integrate properly with 'block' library (instead of manual bloomfiltering)
  * - decide on 'stop_on_closest', 'stop_on_found', 'do_find_peer', 'paper_forwarding'
  */
@@ -152,12 +152,12 @@
  */
 #define DEFAULT_KADEMLIA_REPLICATION 3
 
-/*
+/**
  * Default frequency for sending malicious get messages
  */
 #define DEFAULT_MALICIOUS_GET_FREQUENCY 1000    /* Number of milliseconds */
 
-/*
+/**
  * Default frequency for sending malicious put messages
  */
 #define DEFAULT_MALICIOUS_PUT_FREQUENCY 1000    /* Default is in milliseconds */
