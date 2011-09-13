@@ -826,25 +826,25 @@ static struct ClientList *client_list;
  */
 static struct GNUNET_DHTLOG_Handle *dhtlog_handle;
 
-/*
+/**
  * Whether or not to send routing debugging information
  * to the dht logging server
  */
 static unsigned int debug_routes;
 
-/*
+/**
  * Whether or not to send FULL route information to
  * logging server
  */
 static unsigned int debug_routes_extended;
 
-/*
+/**
  * GNUNET_YES or GNUNET_NO, whether or not to act as
  * a malicious node which drops all messages
  */
 static unsigned int malicious_dropper;
 
-/*
+/**
  * GNUNET_YES or GNUNET_NO, whether or not to act as
  * a malicious node which sends out lots of GETS
  */
