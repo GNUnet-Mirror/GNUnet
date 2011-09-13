@@ -3083,10 +3083,9 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   {
     if (hop_count == 0)
       return kademlia_replication;
-    else if (hop_count < max_hops)
+     if (hop_count < max_hops)
       return 1;
-    else
-      return 0;
+    return 0;
   }
 
   /* FIXME: the smaller we think the network is the more lenient we should be for
