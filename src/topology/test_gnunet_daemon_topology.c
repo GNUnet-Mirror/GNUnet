@@ -151,7 +151,7 @@ my_cb (void *cls, const struct GNUNET_PeerIdentity *id,
   {
     /* close circle */
     cc[NUM_PEERS-1] = GNUNET_TESTING_daemons_connect (d, first, TIMEOUT, CONNECT_ATTEMPTS,
-						      GNUNET_YES, &notify_connect_complete, &cc[peers_left]);
+						      GNUNET_YES, &notify_connect_complete, &cc[NUM_PEERS-1]);
   }
 }
 
