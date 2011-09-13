@@ -3748,8 +3748,6 @@ cache_response (struct DHT_MessageContext *msg_ctx)
 
   current_size = GNUNET_CONTAINER_multihashmap_size (forward_list.hashmap);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "******************************************************** GET %s\n", GNUNET_h2s_full(&msg_ctx->key));
-
 #if DELETE_WHEN_FULL
   while (current_size >= MAX_OUTSTANDING_FORWARDS)
   {
@@ -4609,7 +4607,7 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
     msg_ctx.path_history_len = 1;
   }
   msg_ctx.network_size = estimate_diameter ();
-  msg_ctx.peer = &my_identity; /* FIXME NULL? Fix doxygen? */
+  msg_ctx.peer = &my_identity; /* FIXME bart NULL? Fix doxygen? */
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 4;  /* Make local routing a higher priority */
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
 
@@ -4871,9 +4869,17 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
     path_size =
         ntohl (incoming->outgoing_path_length) *
         sizeof (struct GNUNET_PeerIdentity);
-    GNUNET_assert (ntohs (message->size) ==
-                   (sizeof (struct GNUNET_DHT_P2PRouteMessage) +
-                    ntohs (enc_msg->size) + path_size));
+    /* FIXME bart: assert? remote peer can kill DHT sending malformed packets! */
+//     GNUNET_assert (ntohs (message->size) ==
+//                    (sizeof (struct GNUNET_DHT_P2PRouteMessage) +
+//                     ntohs (enc_msg->size) + path_size));
+    if (ntohs (message->size) !=
+          (sizeof (struct GNUNET_DHT_P2PRouteMessage) +
+          ntohs (enc_msg->size) + path_size))
+    {
+      GNUNET_break_op(0);
+      return GNUNET_YES; /* FIXME bart GNUNET_NO? */
+    }
     route_path = (char *) &incoming[1];
     route_path = route_path + ntohs (enc_msg->size);
     msg_ctx->path_history =
