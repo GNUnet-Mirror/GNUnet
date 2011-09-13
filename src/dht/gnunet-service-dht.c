@@ -543,11 +543,6 @@ struct DHTQueryRecord
   GNUNET_HashCode key;
 
   /**
-   * GET message of this record (what we already forwarded?).
-   */
-  //DV_DHT_MESSAGE get; Try to get away with not saving this.
-
-  /**
    * Bloomfilter of the peers we've replied to so far
    */
   //struct GNUNET_BloomFilter *bloom_results; Don't think we need this, just remove from DLL on response.
