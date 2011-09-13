@@ -171,38 +171,6 @@
  */
 #define MAX_REPLY_TIMES 8
 
-enum ConvergenceOptions
-{
-   /**
-    * Use the linear method for convergence.
-    */
-  DHT_CONVERGE_LINEAR,
-
-   /**
-    * Converge using a fast converging square
-    * function.
-    */
-  DHT_CONVERGE_SQUARE,
-
-   /**
-    * Converge using a slower exponential
-    * function.
-    */
-  DHT_CONVERGE_EXPONENTIAL,
-
-   /**
-    * Don't do any special convergence, allow
-    * the algorithm to hopefully route to closer
-    * peers more often.
-    */
-  DHT_CONVERGE_RANDOM,
-
-   /**
-    * Binary convergence, start routing to closest
-    * only after set number of hops.
-    */
-  DHT_CONVERGE_BINARY
-};
 
 /**
  * Linked list of messages to send to clients.
@@ -693,10 +661,6 @@ struct RepublishContext
 
 };
 
-/**
- * Which kind of convergence will we be using?
- */
-static enum ConvergenceOptions converge_option;
 
 /**
  * Modifier for the convergence function
@@ -3210,144 +3174,6 @@ am_closest_peer (const GNUNET_HashCode * target,
 
 
 /**
- * Return this peers adjusted value based on the convergence
- * function chosen.  This is the key function for randomized
- * routing decisions.
- *
- * @param target the key of the request
- * @param peer the peer we would like the value of
- * @param hops number of hops this message has already traveled
- *
- * @return bit distance from target to peer raised to an exponent
- *         adjusted based on the current routing convergence algorithm
- *
- */
-static unsigned long long
-converge_distance (const GNUNET_HashCode * target, struct PeerInfo *peer,
-                   unsigned int hops)
-{
-  unsigned long long ret;
-  unsigned int other_matching_bits;
-  double base_converge_modifier = .1;   /* Value that "looks" good (when plotted), have to start somewhere */
-  double temp_modifier;
-  double calc_value;
-  double exponent;
-  int curr_max_hops;
-
-  if (use_max_hops)
-    curr_max_hops = max_hops;
-  else
-    curr_max_hops = (estimate_diameter () + 1) * 2;
-
-  if (converge_modifier > 0)
-    temp_modifier = converge_modifier * base_converge_modifier;
-  else
-  {
-    temp_modifier = base_converge_modifier;
-    base_converge_modifier = 0.0;
-  }
-
-  GNUNET_assert (temp_modifier > 0);
-
-  other_matching_bits =
-      GNUNET_CRYPTO_hash_matching_bits (target, &peer->id.hashPubKey);
-
-  switch (converge_option)
-  {
-  case DHT_CONVERGE_RANDOM:
-    return 1;                   /* Always return 1, choose equally among all peers */
-  case DHT_CONVERGE_LINEAR:
-    calc_value = hops * curr_max_hops * temp_modifier;
-    break;
-  case DHT_CONVERGE_SQUARE:
-        /**
-         * Simple square based curve.
-         */
-    calc_value =
-        (sqrt (hops) / sqrt (curr_max_hops)) * (curr_max_hops /
-                                                (curr_max_hops *
-                                                 temp_modifier));
-    break;
-  case DHT_CONVERGE_EXPONENTIAL:
-        /**
-         * Simple exponential curve.
-         */
-    if (base_converge_modifier > 0)
-      calc_value = (temp_modifier * hops * hops) / curr_max_hops;
-    else
-      calc_value = (hops * hops) / curr_max_hops;
-    break;
-  case DHT_CONVERGE_BINARY:
-        /**
-         * If below the cutoff, route randomly (return 1),
-         * If above the cutoff, return the maximum possible
-         * value first (always route to closest, because
-         * they are sorted.)
-         */
-
-    if (hops >= converge_modifier)      /* Past cutoff */
-    {
-      return ULLONG_MAX;
-    }
-    /* Fall through */
-  default:
-    return 1;
-  }
-
-  /* Take the log (base e) of the number of bits matching the other peer */
-  exponent = log (other_matching_bits);
-
-  /* Check if we would overflow; our largest possible value is 2^64 approx. e^44.361419555836498 */
-  if (exponent * calc_value >= 44.361419555836498)
-    return ULLONG_MAX;
-
-  /* Clear errno and all math exceptions */
-  errno = 0;
-  feclearexcept (FE_ALL_EXCEPT);
-  ret = (unsigned long long) pow (other_matching_bits, calc_value);
-  if ((errno != 0) ||
-      fetestexcept (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW))
-  {
-    if (0 != fetestexcept (FE_OVERFLOW))
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "FE_OVERFLOW\n");
-    if (0 != fetestexcept (FE_INVALID))
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "FE_INVALID\n");
-    if (0 != fetestexcept (FE_UNDERFLOW))
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "FE_UNDERFLOW\n");
-    return 0;
-  }
-  else
-    return ret;
-}
-
-/**
- * Comparison function for two struct PeerInfo's
- * which have already had their matching bits to
- * some target calculated.
- *
- * @param p1 a pointer pointer to a struct PeerInfo
- * @param p2 a pointer pointer to a struct PeerInfo
- *
- * @return 0 if equidistant to target,
- *        -1 if p1 is closer,
- *         1 if p2 is closer
- */
-static int
-compare_peers (const void *p1, const void *p2)
-{
-  struct PeerInfo **first = (struct PeerInfo **) p1;
-  struct PeerInfo **second = (struct PeerInfo **) p2;
-
-  if ((*first)->matching_bits > (*second)->matching_bits)
-    return -1;
-  if ((*first)->matching_bits < (*second)->matching_bits)
-    return 1;
-  else
-    return 0;
-}
-
-
-/**
  * Select a peer from the routing table that would be a good routing
  * destination for sending a message for "target".  The resulting peer
  * must not be in the set of blocked peers.<p>
@@ -3367,30 +3193,18 @@ select_peer (const GNUNET_HashCode * target,
              struct GNUNET_CONTAINER_BloomFilter *bloom, unsigned int hops)
 {
   unsigned int bc;
-  unsigned int i;
   unsigned int count;
-  unsigned int offset;
-  int closest_bucket;
+  unsigned int selected;
   struct PeerInfo *pos;
-  struct PeerInfo *sorted_closest[bucket_size];
-  unsigned long long temp_converge_distance;
-  unsigned long long total_distance;
-  unsigned long long selected;
-
-#if DEBUG_DHT > 1
-  unsigned long long stats_total_distance;
-  double sum;
-#endif
-  /* For kademlia */
   unsigned int distance;
   unsigned int largest_distance;
   struct PeerInfo *chosen;
 
-  total_distance = 0;
-  /** If we are doing kademlia routing, or converge is binary (saves some cycles) */
-  if ((strict_kademlia == GNUNET_YES) ||
-      ((converge_option == DHT_CONVERGE_BINARY) && (hops >= converge_modifier)))
+  /** If we are doing kademlia routing (saves some cycles) */
+  if ( (strict_kademlia == GNUNET_YES) ||
+       (hops >= converge_modifier) )
   {
+    /* greedy selection (closest peer that is not in bloomfilter) */
     largest_distance = 0;
     chosen = NULL;
     for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
@@ -3414,284 +3228,59 @@ select_peer (const GNUNET_HashCode * target,
         pos = pos->next;
       }
     }
-
     if ((largest_distance > 0) && (chosen != NULL))
     {
       GNUNET_CONTAINER_bloomfilter_add (bloom, &chosen->id.hashPubKey);
       return chosen;
     }
-    else
-    {
-      return NULL;
-    }
+    return NULL; /* no peer available or we are the closest */
   }
 
-  /* GNUnet-style */
-  total_distance = 0;
-  /* Three steps: order peers in closest bucket (most matching bits).
-   * Then go over all LOWER buckets (matching same bits we do)
-   * Then go over all HIGHER buckets (matching less then we do)
-   */
 
-  closest_bucket = find_current_bucket (target);
-  GNUNET_assert (closest_bucket >= lowest_bucket);
-  pos = k_buckets[closest_bucket].head;
+  /* select "random" peer */
+  /* count number of peers that are available and not filtered */
   count = 0;
-  offset = 0;                   /* Need offset as well as count in case peers are bloomfiltered */
-  memset (sorted_closest, 0, sizeof (sorted_closest));
-  /* Put any peers in the closest bucket in the sorting array */
-  while ((pos != NULL) && (count < bucket_size))
-  {
-    if (GNUNET_YES ==
-        GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-    {
-      count++;
-      pos = pos->next;
-      continue;                 /* Ignore bloomfiltered peers */
-    }
-    pos->matching_bits =
-        GNUNET_CRYPTO_hash_matching_bits (&pos->id.hashPubKey, target);
-    sorted_closest[offset] = pos;
-    pos = pos->next;
-    offset++;
-    count++;
-  }
-
-  /* Sort the peers in descending order */
-  qsort (&sorted_closest[0], offset, sizeof (struct PeerInfo *),
-         &compare_peers);
-
-  /* Put the sorted closest peers into the possible bins first, in case of overflow. */
-  for (i = 0; i < offset; i++)
-  {
-    temp_converge_distance =
-        converge_distance (target, sorted_closest[i], hops);
-    if (GNUNET_YES ==
-        GNUNET_CONTAINER_bloomfilter_test (bloom,
-                                           &sorted_closest[i]->id.hashPubKey))
-      break;                    /* Ignore bloomfiltered peers */
-    if (total_distance + temp_converge_distance > total_distance)       /* Handle largest case and overflow */
-      total_distance += temp_converge_distance;
-    else
-      break;                    /* overflow case */
-  }
-
-  /* Now handle peers in lower buckets (matches same # of bits as target) */
-  for (bc = lowest_bucket; bc < closest_bucket; bc++)
+  for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
   {
     pos = k_buckets[bc].head;
-    count = 0;
     while ((pos != NULL) && (count < bucket_size))
     {
       if (GNUNET_YES ==
           GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
       {
-        count++;
         pos = pos->next;
         continue;               /* Ignore bloomfiltered peers */
       }
-      temp_converge_distance = converge_distance (target, pos, hops);
-      if (total_distance + temp_converge_distance > total_distance)     /* Handle largest case and overflow */
-        total_distance += temp_converge_distance;
-      else
-        break;                  /* overflow case */
-      pos = pos->next;
       count++;
+      pos = pos->next;
     }
   }
-
-  /* Now handle all the further away peers */
-  for (bc = closest_bucket + 1; bc < MAX_BUCKETS; bc++)
-  {
-    pos = k_buckets[bc].head;
-    count = 0;
-    while ((pos != NULL) && (count < bucket_size))
-    {
-      if (GNUNET_YES ==
-          GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-      {
-        count++;
-        pos = pos->next;
-        continue;               /* Ignore bloomfiltered peers */
-      }
-      temp_converge_distance = converge_distance (target, pos, hops);
-      if (total_distance + temp_converge_distance > total_distance)     /* Handle largest case and overflow */
-        total_distance += temp_converge_distance;
-      else
-        break;                  /* overflow case */
-      pos = pos->next;
-      count++;
-    }
-  }
-
-  if (total_distance == 0)      /* No peers to select from! */
+  if (count == 0)      /* No peers to select from! */
   {
     increment_stats ("# failed to select peer");
     return NULL;
   }
-
-#if DEBUG_DHT_ROUTING > 1
-  sum = 0.0;
-  /* PRINT STATS */
-  /* Put the sorted closest peers into the possible bins first, in case of overflow. */
-  stats_total_distance = 0;
-  for (i = 0; i < offset; i++)
-  {
-    if (GNUNET_YES ==
-        GNUNET_CONTAINER_bloomfilter_test (bloom,
-                                           &sorted_closest[i]->id.hashPubKey))
-      break;                    /* Ignore bloomfiltered peers */
-    temp_converge_distance =
-        converge_distance (target, sorted_closest[i], hops);
-    if (stats_total_distance + temp_converge_distance > stats_total_distance)   /* Handle largest case and overflow */
-      stats_total_distance += temp_converge_distance;
-    else
-      break;                    /* overflow case */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Choose %d matching bits (%d bits match me) (%.2f percent) converge ret %llu\n",
-                GNUNET_CRYPTO_hash_matching_bits (&sorted_closest[i]->id.
-                                                  hashPubKey, target),
-                GNUNET_CRYPTO_hash_matching_bits (&sorted_closest[i]->id.
-                                                  hashPubKey,
-                                                  &my_identity.hashPubKey),
-                (temp_converge_distance / (double) total_distance) * 100,
-                temp_converge_distance);
-  }
-
-  /* Now handle peers in lower buckets (matches same # of bits as target) */
-  for (bc = lowest_bucket; bc < closest_bucket; bc++)
-  {
-    pos = k_buckets[bc].head;
-    count = 0;
-    while ((pos != NULL) && (count < bucket_size))
-    {
-      if (GNUNET_YES ==
-          GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-      {
-        count++;
-        pos = pos->next;
-        continue;               /* Ignore bloomfiltered peers */
-      }
-      temp_converge_distance = converge_distance (target, pos, hops);
-      if (stats_total_distance + temp_converge_distance > stats_total_distance) /* Handle largest case and overflow */
-        stats_total_distance += temp_converge_distance;
-      else
-        break;                  /* overflow case */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Choose %d matching bits (%d bits match me) (%.2f percent) converge ret %llu\n",
-                  GNUNET_CRYPTO_hash_matching_bits (&pos->id.hashPubKey,
-                                                    target),
-                  GNUNET_CRYPTO_hash_matching_bits (&pos->id.hashPubKey,
-                                                    &my_identity.hashPubKey),
-                  (temp_converge_distance / (double) total_distance) * 100,
-                  temp_converge_distance);
-      pos = pos->next;
-      count++;
-    }
-  }
-
-  /* Now handle all the further away peers */
-  for (bc = closest_bucket + 1; bc < MAX_BUCKETS; bc++)
-  {
-    pos = k_buckets[bc].head;
-    count = 0;
-    while ((pos != NULL) && (count < bucket_size))
-    {
-      if (GNUNET_YES ==
-          GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-      {
-        count++;
-        pos = pos->next;
-        continue;               /* Ignore bloomfiltered peers */
-      }
-      temp_converge_distance = converge_distance (target, pos, hops);
-      if (stats_total_distance + temp_converge_distance > stats_total_distance) /* Handle largest case and overflow */
-        stats_total_distance += temp_converge_distance;
-      else
-        break;                  /* overflow case */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Choose %d matching bits (%d bits match me) (%.2f percent) converge ret %llu\n",
-                  GNUNET_CRYPTO_hash_matching_bits (&pos->id.hashPubKey,
-                                                    target),
-                  GNUNET_CRYPTO_hash_matching_bits (&pos->id.hashPubKey,
-                                                    &my_identity.hashPubKey),
-                  (temp_converge_distance / (double) total_distance) * 100,
-                  temp_converge_distance);
-      pos = pos->next;
-      count++;
-    }
-  }
-  /* END PRINT STATS */
-#endif
-
   /* Now actually choose a peer */
   selected =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, total_distance);
-
-  /* Go over closest sorted peers. */
-  for (i = 0; i < offset; i++)
-  {
-    if (GNUNET_YES ==
-        GNUNET_CONTAINER_bloomfilter_test (bloom,
-                                           &sorted_closest[i]->id.hashPubKey))
-      break;                    /* Ignore bloomfiltered peers */
-    temp_converge_distance =
-        converge_distance (target, sorted_closest[i], hops);
-    if (temp_converge_distance >= selected)
-      return sorted_closest[i];
-    else
-      selected -= temp_converge_distance;
-  }
-
-  /* Now handle peers in lower buckets (matches same # of bits as target) */
-  for (bc = lowest_bucket; bc < closest_bucket; bc++)
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, count);
+  count = 0;
+  for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
   {
     pos = k_buckets[bc].head;
-    count = 0;
     while ((pos != NULL) && (count < bucket_size))
     {
       if (GNUNET_YES ==
           GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
       {
-        count++;
         pos = pos->next;
         continue;               /* Ignore bloomfiltered peers */
       }
-      temp_converge_distance = converge_distance (target, pos, hops);
-      if (temp_converge_distance >= selected)
-        return pos;
-      else
-        selected -= temp_converge_distance;
+      if (0 == selected)
+	return pos;	
       pos = pos->next;
-      count++;
     }
   }
-
-  /* Now handle all the further away peers */
-  for (bc = closest_bucket + 1; bc < MAX_BUCKETS; bc++)
-  {
-    pos = k_buckets[bc].head;
-    count = 0;
-    while ((pos != NULL) && (count < bucket_size))
-    {
-      if (GNUNET_YES ==
-          GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-      {
-        count++;
-        pos = pos->next;
-        continue;               /* Ignore bloomfiltered peers */
-      }
-      temp_converge_distance = converge_distance (target, pos, hops);
-      if (temp_converge_distance >= selected)
-        return pos;
-      else
-        selected -= temp_converge_distance;
-      pos = pos->next;
-      count++;
-    }
-  }
-
-  increment_stats ("# failed to select peer");
+  GNUNET_break (0);
   return NULL;
 }
 
@@ -5490,29 +5079,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     }
   }
 #endif
-
-  converge_option = DHT_CONVERGE_BINARY;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "converge_linear"))
-  {
-    converge_option = DHT_CONVERGE_LINEAR;
-  }
-  else if (GNUNET_YES ==
-           GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht",
-                                                 "converge_exponential"))
-  {
-    converge_option = DHT_CONVERGE_EXPONENTIAL;
-  }
-  else if (GNUNET_YES ==
-           GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "converge_random"))
-  {
-    converge_option = DHT_CONVERGE_RANDOM;
-  }
-  else if (GNUNET_YES ==
-           GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "converge_binary"))
-  {
-    converge_option = DHT_CONVERGE_BINARY;
-  }
 
   converge_modifier = 4.0;
   if (GNUNET_OK ==
