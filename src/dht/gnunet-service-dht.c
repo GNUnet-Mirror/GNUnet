@@ -32,6 +32,7 @@
 #include "gnunet_os_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_service_lib.h"
+#include "gnunet_nse_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_signal_lib.h"
 #include "gnunet_util_lib.h"
@@ -648,9 +649,12 @@ struct RepublishContext
 
 
 /**
- * Modifier for the convergence function
+ * log of the current network size estimate, used as the point where
+ * we switch between random and deterministic routing.  Default
+ * value of 4.0 is used if NSE module is not available (i.e. not
+ * configured).
  */
-static float converge_modifier;
+static double log_of_network_size_estimate = 4.0;
 
 /**
  * Recent requests by hash/uid and by time inserted.
@@ -883,6 +887,31 @@ static unsigned int reply_counter;
  */
 static struct GNUNET_BLOCK_Context *block_context;
 
+/**
+ * Network size estimation handle.
+ */
+static struct GNUNET_NSE_Handle *nse;
+
+
+/**
+ * Callback that is called when network size estimate is updated.
+ *
+ * @param cls closure
+ * @param timestamp time when the estimate was received from the server (or created by the server)
+ * @param logestimate the log(Base 2) value of the current network size estimate
+ * @param std_dev standard deviation for the estimate
+ *
+ */
+static void 
+update_network_size_estimate (void *cls,
+			      struct GNUNET_TIME_Absolute timestamp,
+			      double logestimate, double std_dev)
+{
+  log_of_network_size_estimate = logestimate;
+}
+
+
+
 
 /**
  * Forward declaration.
@@ -894,6 +923,7 @@ send_generic_reply (void *cls, size_t size, void *buf);
 /** Declare here so retry_core_send is aware of it */
 static size_t
 core_transmit_notify (void *cls, size_t size, void *buf);
+
 
 /**
  * Convert unique ID to hash code.
@@ -3147,7 +3177,7 @@ am_closest_peer (const GNUNET_HashCode * target,
     {
       if (strict_kademlia != GNUNET_YES)        /* Return that we at as close as any other peer */
         return GNUNET_YES;
-      else if (distance (&pos->id.hashPubKey, target) < my_distance)    /* Check all known peers, only return if we are the true closest */
+      if (distance (&pos->id.hashPubKey, target) < my_distance)    /* Check all known peers, only return if we are the true closest */
         return GNUNET_NO;
     }
     pos = pos->next;
@@ -3187,7 +3217,7 @@ select_peer (const GNUNET_HashCode * target,
 
   /** If we are doing kademlia routing (saves some cycles) */
   if ( (strict_kademlia == GNUNET_YES) ||
-       (hops >= converge_modifier) )
+       (hops >= log_of_network_size_estimate) )
   {
     /* greedy selection (closest peer that is not in bloomfilter) */
     largest_distance = 0;
@@ -4628,6 +4658,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_disconnect (transport_handle);
     transport_handle = NULL;
   }
+  if (NULL != nse)
+  {
+    GNUNET_NSE_disconnect (nse);
+    nse = NULL;
+  }
   if (coreAPI != NULL)
   {
 #if DEBUG_DHT
@@ -4716,9 +4751,6 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
                 "%s Receive CORE INIT message but have already been initialized! Did CORE fail?\n",
                 "DHT SERVICE");
   my_short_id = GNUNET_strdup (GNUNET_i2s (&my_identity));
-  /* Set the server to local variable */
-  coreAPI = server;
-
   if (dhtlog_handle != NULL)
     dhtlog_handle->insert_node (NULL, &my_identity);
 }
@@ -4901,12 +4933,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 {
   struct GNUNET_TIME_Relative next_send_time;
   unsigned long long temp_config_num;
-  char *converge_modifier_buf;
 
   cfg = c;
   datacache = GNUNET_DATACACHE_create (cfg, "dhtcache");
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
+  nse = GNUNET_NSE_connect (cfg,
+			    &update_network_size_estimate, NULL);
   coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
                                  DEFAULT_CORE_QUEUE_SIZE,       /* queue size */
                                  NULL,  /* Closure passed to DHT functions */
@@ -5064,21 +5097,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     }
   }
 #endif
-
-  converge_modifier = 4.0;
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "dht", "converge_modifier",
-                                             &converge_modifier_buf))
-  {
-    if (1 != sscanf (converge_modifier_buf, "%f", &converge_modifier))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Failed to read decimal value for %s from `%s'\n",
-                  "CONVERGE_MODIFIER", converge_modifier_buf);
-      converge_modifier = 0.0;
-    }
-    GNUNET_free (converge_modifier_buf);
-  }
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "paper_forwarding"))

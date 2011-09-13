@@ -96,6 +96,7 @@ gnunet_service_dht_SOURCES = \
 gnunet_service_dht_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la \
