@@ -270,6 +270,7 @@ struct PeerInfo
   GNUNET_SCHEDULER_TaskIdentifier ping_task;
 };
 
+
 /**
  * Peers are grouped into buckets.
  */
@@ -290,6 +291,7 @@ struct PeerBucket
    */
   unsigned int peers_size;
 };
+
 
 /**
  * Linked list of messages to send to clients.
@@ -312,6 +314,7 @@ struct PendingMessage
   const struct GNUNET_MessageHeader *msg;       // msg = (cast) &pm[1]; // memcpy (&pm[1], data, len);
 
 };
+
 
 /**
  * Struct containing information about a client,
@@ -458,6 +461,7 @@ struct DHT_MessageContext
   int closest;
 };
 
+
 /**
  * Record used for remembering what peers are waiting for what
  * responses (based on search key).
@@ -510,6 +514,7 @@ struct DHTRouteSource
 
 };
 
+
 /**
  * Entry in the DHT routing table.
  */
@@ -530,12 +535,8 @@ struct DHTQueryRecord
    */
   GNUNET_HashCode key;
 
-  /**
-   * Bloomfilter of the peers we've replied to so far
-   */
-  //struct GNUNET_BloomFilter *bloom_results; Don't think we need this, just remove from DLL on response.
-
 };
+
 
 /**
  * Context used to calculate the number of find peer messages
@@ -551,6 +552,7 @@ struct FindPeerMessageContext
 
   struct GNUNET_TIME_Absolute end;
 };
+
 
 /**
  * DHT Routing results structure
@@ -569,6 +571,7 @@ struct DHTResults
 
 };
 
+
 /**
  * DHT structure for recent requests.
  */
@@ -584,6 +587,7 @@ struct RecentRequests
    */
   struct GNUNET_CONTAINER_MultiHashMap *hashmap;
 };
+
 
 struct RecentRequest
 {
@@ -751,7 +755,7 @@ static unsigned int lowest_bucket;      /* Initially equal to MAX_BUCKETS - 1 */
  * The buckets (Kademlia routing table, complete with growth).
  * Array of size MAX_BUCKET_SIZE.
  */
-static struct PeerBucket k_buckets[MAX_BUCKETS];        /* From 0 to MAX_BUCKETS - 1 */
+static struct PeerBucket k_buckets[MAX_BUCKETS];
 
 /**
  * Hash map of all known peers, for easy removal from k_buckets on disconnect.
@@ -766,7 +770,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *recent_find_peer_requests;
 /**
  * Maximum size for each bucket.
  */
-static unsigned int bucket_size = DEFAULT_BUCKET_SIZE;  /* Initially equal to DEFAULT_BUCKET_SIZE */
+static unsigned int bucket_size = DEFAULT_BUCKET_SIZE;
 
 /**
  * List of active clients.
@@ -888,42 +892,6 @@ hash_from_uid (uint64_t uid, GNUNET_HashCode * hash)
   *((uint64_t *) hash) = uid;
 }
 
-#if AVG
-/**
- * Calculate the average send time between messages so that we can
- * ignore certain requests if we get too busy.
- *
- * @return the average time between asking core to send a message
- *         and when the buffer for copying it is passed
- */
-static struct GNUNET_TIME_Relative
-get_average_send_delay ()
-{
-  unsigned int i;
-  unsigned int divisor;
-  struct GNUNET_TIME_Relative average_time;
-
-  average_time = GNUNET_TIME_relative_get_zero ();
-  divisor = 0;
-  for (i = 0; i < MAX_REPLY_TIMES; i++)
-  {
-    average_time = GNUNET_TIME_relative_add (average_time, reply_times[i]);
-    if (reply_times[i].abs_value == (uint64_t) 0)
-      continue;
-    else
-      divisor++;
-  }
-  if (divisor == 0)
-  {
-    return average_time;
-  }
-
-  average_time = GNUNET_TIME_relative_divide (average_time, divisor);
-  fprintf (stderr, "Avg send delay: %u sends is %llu\n", divisor,
-           (unsigned long long) average_time.abs_value);
-  return average_time;
-}
-#endif
 
 /**
  * Given the largest send delay, artificially decrease it
