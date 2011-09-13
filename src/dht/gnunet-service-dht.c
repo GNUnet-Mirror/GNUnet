@@ -80,9 +80,10 @@
  */
 #define MINIMUM_PEER_THRESHOLD 20
 
-#define DHT_MAX_RECENT 1000
-
-#define FIND_PEER_CALC_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+/**
+ * Number of requests we track at most (for routing replies).
+ */
+#define DHT_MAX_RECENT (1024 * 16)
 
 /**
  * Default time to wait to send messages on behalf of other peers.
@@ -3714,12 +3715,6 @@ send_find_peer_message (void *cls,
   struct GNUNET_TIME_Relative next_send_time;
   struct GNUNET_CONTAINER_BloomFilter *temp_bloom;
 
-#if COUNT_INTERVAL
-  struct GNUNET_TIME_Relative time_diff;
-  struct GNUNET_TIME_Absolute end;
-  double multiplier;
-  double count_per_interval;
-#endif
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
@@ -3735,23 +3730,6 @@ send_find_peer_message (void *cls,
   }
 
   increment_stats (STAT_FIND_PEER_START);
-#if COUNT_INTERVAL
-  end = GNUNET_TIME_absolute_get ();
-  time_diff =
-      GNUNET_TIME_absolute_get_difference (find_peer_context.start, end);
-
-  if (time_diff.abs_value > FIND_PEER_CALC_INTERVAL.abs_value)
-  {
-    multiplier = time_diff.abs_value / FIND_PEER_CALC_INTERVAL.abs_value;
-    count_per_interval = find_peer_context.count / multiplier;
-  }
-  else
-  {
-    multiplier = FIND_PEER_CALC_INTERVAL.abs_value / time_diff.abs_value;
-    count_per_interval = find_peer_context.count * multiplier;
-  }
-#endif
-
 #if FIND_PEER_WITH_HELLO
   find_peer_msg =
       GNUNET_malloc (sizeof (struct GNUNET_DHT_FindPeerMessage) +
