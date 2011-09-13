@@ -49,10 +49,6 @@
 #include "dht.h"
 #include <fenv.h>
 
-#define PRINT_TABLES GNUNET_NO
-
-#define REAL_DISTANCE GNUNET_NO
-
 #define EXTRA_CHECKS GNUNET_NO
 
 /**
@@ -874,8 +870,6 @@ update_network_size_estimate (void *cls,
 }
 
 
-
-
 /**
  * Forward declaration.
  */
@@ -1354,45 +1348,6 @@ find_bucket_by_peer (const struct PeerInfo *peer)
 }
 #endif
 
-#if PRINT_TABLES
-/**
- * Print the complete routing table for this peer.
- */
-static void
-print_routing_table ()
-{
-  int bucket;
-  struct PeerInfo *pos;
-  char char_buf[30000];
-  int char_pos;
-
-  memset (char_buf, 0, sizeof (char_buf));
-  char_pos = 0;
-  char_pos +=
-      sprintf (&char_buf[char_pos], "Printing routing table for peer %s\n",
-               my_short_id);
-  //fprintf(stderr, "Printing routing table for peer %s\n", my_short_id);
-  for (bucket = lowest_bucket; bucket < MAX_BUCKETS; bucket++)
-  {
-    pos = k_buckets[bucket].head;
-    char_pos += sprintf (&char_buf[char_pos], "Bucket %d:\n", bucket);
-    //fprintf(stderr, "Bucket %d:\n", bucket);
-    while (pos != NULL)
-    {
-      //fprintf(stderr, "\tPeer %s, best bucket %d, %d bits match\n", GNUNET_i2s(&pos->id), find_bucket(&pos->id.hashPubKey), GNUNET_CRYPTO_hash_matching_bits(&pos->id.hashPubKey, &my_identity.hashPubKey));
-      char_pos +=
-          sprintf (&char_buf[char_pos],
-                   "\tPeer %s, best bucket %d, %d bits match\n",
-                   GNUNET_i2s (&pos->id), find_bucket (&pos->id.hashPubKey),
-                   GNUNET_CRYPTO_hash_matching_bits (&pos->id.hashPubKey,
-                                                     &my_identity.hashPubKey));
-      pos = pos->next;
-    }
-  }
-  fprintf (stderr, "%s", char_buf);
-  fflush (stderr);
-}
-#endif
 
 /**
  * Find a routing table entry from a peer identity
@@ -1426,6 +1381,8 @@ find_peer_by_id (const struct GNUNET_PeerIdentity *peer)
 static void
 update_core_preference (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
 /**
  * Function called with statistics about the given peer.
  *
@@ -1613,10 +1570,6 @@ enable_next_bucket ()
   to_remove = GNUNET_CONTAINER_multihashmap_create (bucket_size);
   pos = k_buckets[lowest_bucket].head;
 
-#if PRINT_TABLES
-  fprintf (stderr, "Printing RT before new bucket\n");
-  print_routing_table ();
-#endif
   /* Populate the array of peers which should be in the next lowest bucket */
   while (pos != NULL)
   {
@@ -1630,11 +1583,8 @@ enable_next_bucket ()
   GNUNET_CONTAINER_multihashmap_iterate (to_remove, &move_lowest_bucket, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (to_remove);
   lowest_bucket = lowest_bucket - 1;
-#if PRINT_TABLES
-  fprintf (stderr, "Printing RT after new bucket\n");
-  print_routing_table ();
-#endif
 }
+
 
 /**
  * Find the closest peer in our routing table to the
@@ -1755,70 +1705,6 @@ forward_message (const struct GNUNET_MessageHeader *msg, struct PeerInfo *peer,
     peer->send_task = GNUNET_SCHEDULER_add_now (&try_core_send, peer);
 }
 
-#if DO_PING
-/**
- * Task used to send ping messages to peers so that
- * they don't get disconnected.
- *
- * @param cls the peer to send a ping message to
- * @param tc context, reason, etc.
- */
-static void
-periodic_ping_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct PeerInfo *peer = cls;
-  struct GNUNET_MessageHeader ping_message;
-  struct DHT_MessageContext msg_ctx;
-
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-
-  ping_message.size = htons (sizeof (struct GNUNET_MessageHeader));
-  ping_message.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_PING);
-
-  memset (&msg_ctx, 0, sizeof (struct DHT_MessageContext));
-#if DEBUG_PING
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s:%s Sending periodic ping to %s\n",
-              my_short_id, "DHT", GNUNET_i2s (&peer->id));
-#endif
-  forward_message (&ping_message, peer, &msg_ctx);
-  peer->ping_task =
-      GNUNET_SCHEDULER_add_delayed (DHT_DEFAULT_PING_DELAY, &periodic_ping_task,
-                                    peer);
-}
-
-/**
- * Schedule PING messages for the top X peers in each
- * bucket of the routing table (so core won't disconnect them!)
- */
-void
-schedule_ping_messages ()
-{
-  unsigned int bucket;
-  unsigned int count;
-  struct PeerInfo *pos;
-
-  for (bucket = lowest_bucket; bucket < MAX_BUCKETS; bucket++)
-  {
-    pos = k_buckets[bucket].head;
-    count = 0;
-    while (pos != NULL)
-    {
-      if ((count < bucket_size) && (pos->ping_task == GNUNET_SCHEDULER_NO_TASK))
-        GNUNET_SCHEDULER_add_now (&periodic_ping_task, pos);
-      else if ((count >= bucket_size) &&
-               (pos->ping_task != GNUNET_SCHEDULER_NO_TASK))
-      {
-        GNUNET_SCHEDULER_cancel (pos->ping_task);
-        pos->ping_task = GNUNET_SCHEDULER_NO_TASK;
-      }
-      pos = pos->next;
-      count++;
-    }
-  }
-}
-#endif
-
 
 /**
  * Task run to check for messages that need to be sent to a client.
@@ -1828,11 +1714,9 @@ schedule_ping_messages ()
 static void
 process_pending_messages (struct ClientList *client)
 {
-  if (client->pending_head == NULL)
+  if ( (client->pending_head == NULL) ||
+       (client->transmit_handle != NULL) )
     return;
-  if (client->transmit_handle != NULL)
-    return;
-
   client->transmit_handle =
       GNUNET_SERVER_notify_transmit_ready (client->client_handle,
                                            ntohs (client->pending_head->
@@ -4673,9 +4557,6 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
   if ((k_buckets[lowest_bucket].peers_size) >= bucket_size)
     enable_next_bucket ();
-#if DO_PING
-  schedule_ping_messages ();
-#endif
   newly_found_peers++;
   GNUNET_CONTAINER_multihashmap_put (all_known_peers, &peer->hashPubKey, ret,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);

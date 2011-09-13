@@ -676,10 +676,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT 151
 
-/**
- * P2P DHT PING request type
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_PING 152
 
 /**
  * DHT Control message type, for telling the
