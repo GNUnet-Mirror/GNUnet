@@ -155,12 +155,12 @@
 /**
  * Default frequency for sending malicious get messages
  */
-#define DEFAULT_MALICIOUS_GET_FREQUENCY 1000    /* Number of milliseconds */
+#define DEFAULT_MALICIOUS_GET_FREQUENCY GNUNET_TIME_UNIT_SECONDS
 
 /**
  * Default frequency for sending malicious put messages
  */
-#define DEFAULT_MALICIOUS_PUT_FREQUENCY 1000    /* Default is in milliseconds */
+#define DEFAULT_MALICIOUS_PUT_FREQUENCY GNUNET_TIME_UNIT_SECONDS
 
 
 #define DHT_DEFAULT_PING_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
@@ -823,12 +823,12 @@ static unsigned int malicious_putter;
 /**
  * Frequency for malicious get requests.
  */
-static unsigned long long malicious_get_frequency;
+static struct GNUNET_TIME_Relative malicious_get_frequency;
 
 /**
  * Frequency for malicious put requests.
  */
-static unsigned long long malicious_put_frequency;
+static struct GNUNET_TIME_Relative malicious_put_frequency;
 
 /**
  * Kademlia replication
@@ -3839,10 +3839,8 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "%s:%s Sending malicious GET message with hash %s\n", my_short_id,
               "DHT", GNUNET_h2s (&key));
   demultiplex_message (&get_message.header, &msg_ctx);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_MILLISECONDS,
-                                 malicious_get_frequency), &malicious_get_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_delayed (malicious_get_frequency,
+				&malicious_get_task, NULL);
 }
 #endif
 
@@ -4113,15 +4111,15 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
 #if HAVE_MALICIOUS
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
     if (ntohs (dht_control_msg->variable) > 0)
-      malicious_get_frequency = ntohs (dht_control_msg->variable);
+      malicious_get_frequency.value = ntohs (dht_control_msg->variable);
     if (malicious_get_frequency == 0)
       malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
     if (malicious_getter != GNUNET_YES)
       GNUNET_SCHEDULER_add_now (&malicious_get_task, NULL);
     malicious_getter = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s:%s Initiating malicious GET behavior, frequency %d\n",
-                my_short_id, "DHT", malicious_get_frequency);
+                "%s:%s Initiating malicious GET behavior, frequency %llu\n",
+                my_short_id, "DHT", malicious_get_frequency.value);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT:
     if (ntohs (dht_control_msg->variable) > 0)
@@ -4827,9 +4825,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     malicious_getter = GNUNET_YES;
     if (GNUNET_NO ==
-        GNUNET_CONFIGURATION_get_value_number (cfg, "DHT",
-                                               "MALICIOUS_GET_FREQUENCY",
-                                               &malicious_get_frequency))
+        GNUNET_CONFIGURATION_get_value_time (cfg, "DHT",
+					     "MALICIOUS_GET_FREQUENCY",
+					     &malicious_get_frequency))
       malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
   }
 
@@ -4838,9 +4836,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     malicious_putter = GNUNET_YES;
     if (GNUNET_NO ==
-        GNUNET_CONFIGURATION_get_value_number (cfg, "DHT",
-                                               "MALICIOUS_PUT_FREQUENCY",
-                                               &malicious_put_frequency))
+        GNUNET_CONFIGURATION_get_value_time (cfg, "DHT",
+					     "MALICIOUS_PUT_FREQUENCY",
+					     &malicious_put_frequency))
       malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
   }
 
