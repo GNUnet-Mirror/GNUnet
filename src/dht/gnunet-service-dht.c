@@ -913,6 +913,7 @@ decrease_max_send_delay (struct GNUNET_TIME_Relative max_time)
   }
 }
 
+
 /**
  * Find the maximum send time of the recently sent values.
  *
@@ -940,23 +941,24 @@ get_max_send_delay ()
   return max_time;
 }
 
+
 static void
 increment_stats (const char *value)
 {
-  if (stats != NULL)
-  {
-    GNUNET_STATISTICS_update (stats, value, 1, GNUNET_NO);
-  }
+  if (stats == NULL)
+    return;
+  GNUNET_STATISTICS_update (stats, value, 1, GNUNET_NO);  
 }
+
 
 static void
 decrement_stats (const char *value)
 {
-  if (stats != NULL)
-  {
-    GNUNET_STATISTICS_update (stats, value, -1, GNUNET_NO);
-  }
+  if (stats == NULL)
+    return;
+  GNUNET_STATISTICS_update (stats, value, -1, GNUNET_NO);  
 }
+
 
 /**
  *  Try to send another message from our core send list
@@ -998,6 +1000,7 @@ try_core_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       increment_stats ("# notify transmit ready failed");
   }
 }
+
 
 /**
  * Function called to send a request out to another peer.
@@ -1217,6 +1220,7 @@ distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
   }
   return msb | lsb;
 }
+
 
 /**
  * Return a number that is larger the closer the
@@ -2338,6 +2342,7 @@ handle_dht_get (const struct GNUNET_MessageHeader *msg,
   return results;
 }
 
+
 static void
 remove_recent_find_peer (void *cls,
                          const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -2349,6 +2354,7 @@ remove_recent_find_peer (void *cls,
                  (recent_find_peer_requests, key, NULL));
   GNUNET_free (key);
 }
+
 
 /**
  * Server handler for initiating local dht find peer requests
