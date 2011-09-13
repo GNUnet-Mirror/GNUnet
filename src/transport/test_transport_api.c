@@ -46,7 +46,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
 
 /**
  * How long until we give up on transmitting the message?
@@ -164,6 +164,17 @@ notify_ready (void *cls, size_t size, void *buf)
 
   th = NULL;
 
+  if (buf == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Timeout occurred while waiting for transmit_ready\n");
+    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+      GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    ok = 42;
+    return 0;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting message with %u bytes to peer %s\n",
               sizeof (struct GNUNET_MessageHeader), GNUNET_i2s (&p->id));
@@ -204,8 +215,9 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0, TIMEOUT,
-                                               &notify_ready, &p1);
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0,
+                                               TIMEOUT_TRANSMIT, &notify_ready,
+                                               &p1);
 }
 
 static void

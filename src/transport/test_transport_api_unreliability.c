@@ -46,9 +46,14 @@
 #define START_ARM GNUNET_YES
 
 /**
+ * Testcase timeout
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+
+/**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 900)
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static char *test_source;
 
@@ -315,7 +320,11 @@ notify_ready (void *cls, size_t size, void *buf)
 
   if (buf == NULL)
   {
-    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Timeout occurred while waiting for transmit_ready\n");
+    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+      GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     ok = 42;
     return 0;
   }
@@ -350,7 +359,8 @@ notify_ready (void *cls, size_t size, void *buf)
   while (size - ret >= s);
   if (n < TOTAL_MSGS)
   {
-    th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, s, 0, TIMEOUT,
+    th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, s, 0,
+                                                 TIMEOUT_TRANSMIT,
                                                  &notify_ready, NULL);
     msg_scheduled = n;
   }
@@ -412,7 +422,8 @@ sendtask ()
 {
   start_time = GNUNET_TIME_absolute_get ();
   th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, get_size (0), 0,
-                                               TIMEOUT, &notify_ready, NULL);
+                                               TIMEOUT_TRANSMIT, &notify_ready,
+                                               NULL);
 }
 
 static void
