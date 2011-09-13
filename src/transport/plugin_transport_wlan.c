@@ -93,9 +93,10 @@
 /**
  * DEBUG switch
  */
-#define DEBUG_wlan GNUNET_YES
+#define DEBUG_wlan GNUNET_NO
 #define DEBUG_wlan_retransmission GNUNET_NO
 #define DEBUG_wlan_ip_udp_packets_on_air GNUNET_NO
+#define DEBUG_wlan_msg_dump GNUNET_NO
 
 
 #define IEEE80211_ADDR_LEN      6       /* size of 802.11 address */
@@ -678,8 +679,8 @@ create_macendpoint (struct Plugin *plugin, const struct MacAddress *addr);
  * \param  mem     pointer to memory to dump
  * \param  length  how many bytes to dump
  */
-void
-hexdump (void *mem, unsigned length)
+static void
+hexdump (const void *mem, unsigned length)
 {
   char line[80];
   char *src = (char *) mem;
@@ -758,10 +759,10 @@ get_macendpoint (struct Plugin *plugin, const struct MacAddress *addr,
 }
 
 /**
- * search for a session with the address and peer id
+ * search for a session with the macendpoint and peer id
  *
  * @param plugin pointer to the plugin struct
- * @param addr pointer to the mac address of the peer
+ * @param endpoint pointer to the mac endpoint of the peer
  * @param peer pointer to the peerid
  * @return returns the session
  */
@@ -846,7 +847,8 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * create a new session
  *
  * @param plugin pointer to the plugin struct
- * @param addr pointer to the mac endpoint of the peer
+ * @param endpoint pointer to the mac endpoint of the peer
+ * @param peer peer identity to use for this session
  * @return returns the session
  */
 
@@ -1226,6 +1228,7 @@ getRadiotapHeader (struct Plugin *plugin, struct MacEndpoint *endpoint,
  * @param Header address to write the header to
  * @param to_mac_addr address of the recipient
  * @param plugin pointer to the plugin struct
+ * @param size size of the whole packet, needed to calculate the time to send the packet
  * @return GNUNET_YES if there was no error
  */
 static int
@@ -1336,8 +1339,8 @@ add_message_for_send (void *cls, const struct GNUNET_MessageHeader *hdr)
 
 #if DEBUG_wlan_retransmission
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                   "Adding fragment of message %p to send, session %p, endpoint %p\n",
-                   fm, fm->session, endpoint);
+                   "Adding fragment of message %p to send, session %p, endpoint %p, type %u\n",
+                   fm, fm->session, endpoint, hdr->type);
 #endif
 
   size =
@@ -1901,7 +1904,9 @@ wlan_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                    "New message for %p with size (incl wlan header) %u added\n",
                    session, newmsg->message_size);
 #endif
-
+#if DEBUG_wlan_msg_dump
+    hexdump(msgbuf,GNUNET_MIN(msgbuf_size, 256));
+#endif
   //queue session
   queue_session (plugin, session);
 
@@ -1914,7 +1919,7 @@ wlan_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
 /**
  * function to free a mac endpoint
  * @param plugin pointer to the plugin struct
- * @param endpoin pointer to the MacEndpoint to free
+ * @param endpoint pointer to the MacEndpoint to free
  */
 static void
 free_macendpoint (struct Plugin *plugin, struct MacEndpoint *endpoint)
@@ -2099,8 +2104,7 @@ wlan_plugin_address_pretty_printer (void *cls, const char *type,
 
 /**
  * handels the data after all fragments are put together
- * @param plugin
- * @param session_light
+ * @param cls macendpoint this messages belongs to
  * @param hdr pointer to the data
  */
 static void
@@ -2235,7 +2239,7 @@ wlan_data_message_handler (void *cls, const struct GNUNET_MessageHeader *hdr)
   else
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, PLUGIN_LOG_NAME,
-                     "wlan_data_message_handler got wrong message type\n");
+                     "wlan_data_message_handler got wrong message type: %u\n", ntohs (hdr->size));
     return;
   }
 }
@@ -2639,7 +2643,6 @@ wlan_process_helper (void *cls, void *client,
     break;
   case GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL:
     //TODO more control messages
-    //TODO use struct wlan_helper_control
     if (ntohs (hdr->size) != sizeof (struct Wlan_Helper_Control_Message))
     {
       GNUNET_break (0);
@@ -2664,6 +2667,10 @@ wlan_process_helper (void *cls, void *client,
                      "Func wlan_process_helper got unknown message with number %u, size %u\n",
                      ntohs (hdr->type),
                      ntohs (hdr->size));
+
+#endif
+#if DEBUG_wlan_msg_dump
+    hexdump(hdr,GNUNET_MIN(ntohs (hdr->size), 256));
 #endif
     GNUNET_break (0);
     return;
