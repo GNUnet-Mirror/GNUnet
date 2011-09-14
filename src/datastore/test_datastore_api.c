@@ -182,6 +182,16 @@ check_value (void *cls, const GNUNET_HashCode * key, size_t size,
   int i;
 
   i = crc->i;
+  if (NULL == key)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Value check failed (got NULL key) in %d/%d\n",
+		crc->phase, crc->i);
+    crc->phase = RP_ERROR;
+    GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
+				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    return;
+  }
 #if 0
   fprintf (stderr, "Check value got `%s' of size %u, type %d, expire %llu\n",
            GNUNET_h2s (key), (unsigned int) size, type,
