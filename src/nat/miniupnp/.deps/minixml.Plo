@@ -1,3 +1,0 @@
-minixml.lo: minixml.c minixml.h
-
-minixml.h:
