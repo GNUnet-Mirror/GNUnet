@@ -31,6 +31,7 @@
  * - use different 'struct DHT_MessageContext' for the different types of
  *   messages (currently rather confusing, especially with things like
  *   peer bloom filters occuring when processing replies).
+ * - why do we have request UIDs again?
  */
 
 #include "platform.h"
