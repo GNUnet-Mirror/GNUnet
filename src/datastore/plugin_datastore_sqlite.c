@@ -326,21 +326,22 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
       (sq_prepare
        (plugin->dbh,
         "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
-        "FROM gn090 INDEXED BY idx_repl_rvalue " "WHERE repl=?2 AND"
-        "      (rvalue>=?1 OR"
-        "        NOT EXISTS (SELECT 1 FROM gn090 INDEXED BY idx_repl_rvalue WHERE repl=?2 AND rvalue>=?1 LIMIT 1))"
-        "     ORDER BY rvalue ASC" "     LIMIT 1",
+        "FROM gn090 INDEXED BY idx_repl_rvalue " 
+	"WHERE repl=?2 AND "
+        " (rvalue>=?1 OR "
+        "  NOT EXISTS (SELECT 1 FROM gn090 INDEXED BY idx_repl_rvalue WHERE repl=?2 AND rvalue>=?1 LIMIT 1) ) "
+        "ORDER BY rvalue ASC LIMIT 1",
         &plugin->selRepl) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "SELECT MAX(repl) " "FROM gn090 INDEXED BY idx_repl_rvalue",
+        "SELECT MAX(repl) FROM gn090 INDEXED BY idx_repl_rvalue",
         &plugin->maxRepl) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
         "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
-        "FROM gn090 INDEXED BY idx_expire"
-        " WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
-        " ORDER BY expire ASC LIMIT 1", &plugin->selExpi) != SQLITE_OK) ||
+        "FROM gn090 INDEXED BY idx_expire "
+        "WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
+        "ORDER BY expire ASC LIMIT 1", &plugin->selExpi) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
         "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
@@ -350,12 +351,12 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
         &plugin->selZeroAnon) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "INSERT INTO gn090 (repl, type, prio, "
-        "anonLevel, expire, rvalue, hash, vhash, value) "
+        "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         &plugin->insertContent) != SQLITE_OK) ||
       (sq_prepare
-       (plugin->dbh, "DELETE FROM gn090 WHERE _ROWID_ = ?",
+       (plugin->dbh, 
+	"DELETE FROM gn090 WHERE _ROWID_ = ?",
         &plugin->delRow) != SQLITE_OK))
   {
     LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR, "precompiling");
