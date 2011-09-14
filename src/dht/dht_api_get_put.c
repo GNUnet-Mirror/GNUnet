@@ -128,7 +128,6 @@ get_reply_iterator (void *cls, const GNUNET_HashCode * key,
   struct GNUNET_DHT_GetHandle *get_handle = cls;
   const struct GNUNET_DHT_GetResultMessage *result;
   const struct GNUNET_PeerIdentity **put_path;
-  size_t payload;
   char *path_offset;
   const struct GNUNET_PeerIdentity *pos;
   unsigned int i;
@@ -147,12 +146,12 @@ get_reply_iterator (void *cls, const GNUNET_HashCode * key,
 
   put_path = NULL;
   put_path_length = ntohs (result->put_path_length);
+  data_size =
+    ntohs (result->header.size) -
+    (put_path_length * sizeof (struct GNUNET_PeerIdentity)) -
+    sizeof (struct GNUNET_DHT_GetResultMessage);
   if (put_path_length > 0)
   {
-    data_size =
-        ntohs (result->header.size) -
-        (put_path_length * sizeof (struct GNUNET_PeerIdentity)) -
-        sizeof (struct GNUNET_DHT_GetResultMessage);
     path_offset = (char *) &result[1];
     //GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "In get_reply_iterator, result->header.size is %d, put_path_length %d, offset is %d, data_size is %d\n", ntohs(result->header.size), put_path_length, ntohs(result->header.size) - (put_path_length * sizeof(struct GNUNET_PeerIdentity)), data_size);
     path_offset += data_size;
@@ -169,10 +168,9 @@ get_reply_iterator (void *cls, const GNUNET_HashCode * key,
     put_path[put_path_length] = NULL;
   }
 
-  payload = ntohs (reply->size) - sizeof (struct GNUNET_DHT_GetResultMessage);
   get_handle->iter (get_handle->iter_cls,
                     GNUNET_TIME_absolute_ntoh (result->expiration), key,
-                    outgoing_path, put_path, ntohs (result->type), payload,
+                    outgoing_path, put_path, ntohs (result->type), data_size,
                     &result[1]);
   GNUNET_free_non_null (put_path);
 }
