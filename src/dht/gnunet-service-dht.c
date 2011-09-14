@@ -3006,7 +3006,7 @@ select_peer (const GNUNET_HashCode * target,
         pos = pos->next;
         continue;               /* Ignore bloomfiltered peers */
       }
-      if (0 == selected)
+      if (0 == selected--)
 	return pos;	
       pos = pos->next;
     }
