@@ -3591,10 +3591,8 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "%s:%s Sending malicious PUT message with hash %s\n", my_short_id,
               "DHT", GNUNET_h2s (&key));
   demultiplex_message (&put_message.header, &msg_ctx);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_MILLISECONDS,
-                                 malicious_put_frequency), &malicious_put_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_delayed (mlicious_put_frequency, 
+				&malicious_put_task, NULL);
 }
 
 
@@ -3890,20 +3888,20 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
 #if HAVE_MALICIOUS
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
     if (ntohs (dht_control_msg->variable) > 0)
-      malicious_get_frequency.value = ntohs (dht_control_msg->variable);
-    if (malicious_get_frequency == 0)
+      malicious_get_frequency.rel_value = ntohs (dht_control_msg->variable);
+    if (malicious_get_frequency.rel_value == 0)
       malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
     if (malicious_getter != GNUNET_YES)
       GNUNET_SCHEDULER_add_now (&malicious_get_task, NULL);
     malicious_getter = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s:%s Initiating malicious GET behavior, frequency %llu\n",
-                my_short_id, "DHT", malicious_get_frequency.value);
+                my_short_id, "DHT", malicious_get_frequency.rel_value);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT:
     if (ntohs (dht_control_msg->variable) > 0)
-      malicious_put_frequency = ntohs (dht_control_msg->variable);
-    if (malicious_put_frequency == 0)
+      malicious_put_frequency.rel_value = ntohs (dht_control_msg->variable);
+    if (malicious_put_frequency.rel_value == 0)
       malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
     if (malicious_putter != GNUNET_YES)
       GNUNET_SCHEDULER_add_now (&malicious_put_task, NULL);
