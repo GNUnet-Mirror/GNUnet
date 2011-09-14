@@ -627,7 +627,8 @@ setup_flood_message (unsigned int slot, struct GNUNET_TIME_Absolute ts)
   fm->timestamp = GNUNET_TIME_absolute_hton (ts);
   fm->pkey = my_public_key;
   fm->proof_of_work = my_proof;
-  GNUNET_CRYPTO_rsa_sign (my_private_key, &fm->purpose, &fm->signature);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CRYPTO_rsa_sign (my_private_key, &fm->purpose, &fm->signature));
 }
 
 
@@ -815,9 +816,10 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         if (ntohl (size_estimate_messages[i].hop_count) == 0)
         {
           size_estimate_messages[i].proof_of_work = my_proof;
-          GNUNET_CRYPTO_rsa_sign (my_private_key,
-                                  &size_estimate_messages[i].purpose,
-                                  &size_estimate_messages[i].signature);
+          GNUNET_assert (GNUNET_OK ==
+			 GNUNET_CRYPTO_rsa_sign (my_private_key,
+						 &size_estimate_messages[i].purpose,
+						 &size_estimate_messages[i].signature));
         }
       write_proof ();
       return;
