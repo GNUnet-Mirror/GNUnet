@@ -27,6 +27,10 @@
  * TODO:
  * - decide which 'benchmark'/test functions to keep (malicious code, kademlia, etc.)
  * - decide on 'stop_on_closest', 'stop_on_found', 'do_find_peer', 'paper_forwarding'
+ * - use OPTION_MULTIPLE instead of linked list ofr the forward_list.hashmap
+ * - use different 'struct DHT_MessageContext' for the different types of
+ *   messages (currently rather confusing, especially with things like
+ *   peer bloom filters occuring when processing replies).
  */
 
 #include "platform.h"
@@ -2667,7 +2671,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
   {
     struct DHTRouteSource *pos;
     struct GNUNET_DHT_GetResultMessage *get_result;
-    struct DHT_MessageContext *new_msg_ctx;
+    struct DHT_MessageContext new_msg_ctx;
     size_t get_size;
 
     pos = record->head;
@@ -2682,21 +2686,16 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
         continue;
       }
 
-      /********** CODE ADAPTED FROM DATACHACHE_GET_ITERATOR BEGIN *************/
-      new_msg_ctx = GNUNET_malloc (sizeof (struct DHT_MessageContext));
-      memcpy (new_msg_ctx, msg_ctx, sizeof (struct DHT_MessageContext));
+      memcpy (&new_msg_ctx, msg_ctx, sizeof (struct DHT_MessageContext));
       if (GNUNET_DHT_RO_RECORD_ROUTE ==
           (msg_ctx->msg_options & GNUNET_DHT_RO_RECORD_ROUTE))
       {
-        new_msg_ctx->msg_options = GNUNET_DHT_RO_RECORD_ROUTE;
-        new_msg_ctx->path_history_len = msg_ctx->path_history_len;
-        /* Assign to previous msg_ctx path history, caller should free after our return */
-        new_msg_ctx->path_history = msg_ctx->path_history;
+        new_msg_ctx.msg_options = GNUNET_DHT_RO_RECORD_ROUTE;
 #if DEBUG_PATH
-        for (i = 0; i < new_msg_ctx->path_history_len; i++)
+        for (i = 0; i < new_msg_ctx.path_history_len; i++)
         {
           path_offset =
-              &new_msg_ctx->path_history[i * sizeof (struct GNUNET_PeerIdentity)];
+              &new_msg_ctx.path_history[i * sizeof (struct GNUNET_PeerIdentity)];
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "(put for active get) Key %s Found peer %d:%s\n",
                       GNUNET_h2s (&msg_ctx->key), i,
@@ -2714,38 +2713,22 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
       get_result->expiration = put_msg->expiration;
       get_result->type = put_msg->type;
       get_result->put_path_length = htons (msg_ctx->path_history_len);
-#if DEBUG_PATH
-      path_offset = msg_ctx->path_history;
-      for (i = 0; i < msg_ctx->path_history_len; i++)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "(get_iterator PUT path) Key %s Found peer %d:%s\n",
-                    GNUNET_h2s (&msg_ctx->key), i,
-                    GNUNET_i2s ((struct GNUNET_PeerIdentity *)
-                                &path_offset[i *
-                                            sizeof (struct
-                                                    GNUNET_PeerIdentity)]));
-      }
-#endif
+
       /* Copy the actual data and the path_history to the end of the get result */
       memcpy (&get_result[1], &put_msg[1], data_size);
       path_offset = (char *) &get_result[1];
       path_offset += data_size;
       memcpy (path_offset, msg_ctx->path_history,
               msg_ctx->path_history_len * sizeof (struct GNUNET_PeerIdentity));
-      new_msg_ctx->peer = &my_identity;
-      new_msg_ctx->bloom =
-          GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
-      new_msg_ctx->hop_count = 0;
+      new_msg_ctx.peer = &my_identity;
+      new_msg_ctx.bloom = NULL;
+      new_msg_ctx.hop_count = 0;
       /* Make result routing a higher priority */
-      new_msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE + 2;
-      new_msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
-      new_msg_ctx->unique_id = pos->uid;
-      send_reply_to_client(pos->client, &get_result->header, new_msg_ctx);
-      // GNUNET_CONTAINER_bloomfilter_free (new_msg_ctx->bloom);
-      GNUNET_free (new_msg_ctx);
+      new_msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 2;
+      new_msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
+      new_msg_ctx.unique_id = pos->uid;
+      send_reply_to_client(pos->client, &get_result->header, &new_msg_ctx);
       GNUNET_free (get_result);
-      /********** CODE ADAPTED FROM DATACHACHE_GET_ITERATOR END ***************/
       pos = pos->next;
     }
   }

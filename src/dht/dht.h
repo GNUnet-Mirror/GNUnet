@@ -440,13 +440,14 @@ struct GNUNET_DHT_GetResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * The type for the data for the GET request
+   * The type for the data for the GET request 
+   * FIXME: use 32-bit types, as in block? What is this type exactly for?
    */
   uint16_t type;
 
   /**
    * The number of peer identities appended to the end of this
-   * message.
+   * message. 
    */
   uint16_t put_path_length;
 
