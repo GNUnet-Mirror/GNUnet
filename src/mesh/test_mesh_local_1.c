@@ -36,8 +36,8 @@ static struct GNUNET_OS_Process *arm_pid;
 static struct GNUNET_MESH_Handle *mesh_peer_1;
 static struct GNUNET_MESH_Handle *mesh_peer_2;
 static struct GNUNET_MESH_Tunnel *t;
-static int one = 1;
-static int two = 2;
+static unsigned int one = 1;
+static unsigned int two = 2;
 
 static int result;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;

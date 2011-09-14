@@ -36,6 +36,8 @@ static struct GNUNET_OS_Process *arm_pid;
 static struct GNUNET_MESH_Handle *mesh_peer_1;
 static struct GNUNET_MESH_Handle *mesh_peer_2;
 static struct GNUNET_MESH_Tunnel *t;
+static unsigned int one = 1;
+static unsigned int two = 2;
 
 static int result;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
@@ -132,7 +134,7 @@ inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
                 const struct GNUNET_PeerIdentity *initiator,
                 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  unsigned int id = (unsigned int) cls;
+  unsigned int id = *(unsigned int *) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: received incoming tunnel\n");
   if (id != 1)
@@ -158,7 +160,7 @@ static void
 inbound_end (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
              void *tunnel_ctx)
 {
-  unsigned int id = (unsigned int) cls;
+  unsigned int id = *(unsigned int *) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: incoming tunnel closed\n");
   if (id != 1)
@@ -177,7 +179,8 @@ inbound_end (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
  * @param peer peer identity the tunnel stopped working with
  */
 static void
-peer_conected (void *cls, const struct GNUNET_PeerIdentity *peer)
+peer_conected (void *cls, const struct GNUNET_PeerIdentity *peer,
+               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer connected\n");
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown, NULL);
@@ -192,8 +195,7 @@ peer_conected (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param atsi performance data for the connection
  */
 static void
-peer_disconnected (void *cls, const struct GNUNET_PeerIdentity *peer,
-                   const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+peer_disconnected (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer disconnected\n");
 }
@@ -226,7 +228,7 @@ do_connect_peer_1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   test_task = GNUNET_SCHEDULER_NO_TASK;
   mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
                                      10,        /* queue size */
-                                     (void *) 1,        /* cls */
+                                     (void *) &one,     /* cls */
                                      &inbound_tunnel,   /* inbound new hndlr */
                                      &inbound_end,      /* inbound end hndlr */
                                      handlers1, /* traffic handlers */
@@ -247,7 +249,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   mesh_peer_2 = GNUNET_MESH_connect (cfg,       /* configuration */
                                      10,        /* queue size */
-                                     (void *) 2,        /* cls */
+                                     (void *) &two,     /* cls */
                                      &inbound_tunnel,   /* inbound new hndlr */
                                      &inbound_end,      /* inbound end hndlr */
                                      handlers2, /* traffic handlers */
@@ -263,7 +265,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   t = GNUNET_MESH_tunnel_create (mesh_peer_2, NULL, &peer_conected,
-                                 &peer_disconnected, (void *) 2);
+                                 &peer_disconnected, (void *) &two);
   GNUNET_MESH_peer_request_connect_by_type (t, 1);
   test_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,

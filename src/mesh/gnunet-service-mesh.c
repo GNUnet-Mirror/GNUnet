@@ -2689,7 +2689,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
 /**
  * Functions to handle messages from clients
  */
-static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
+static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_local_new_client, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
   {&handle_local_tunnel_create, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE,
@@ -2857,7 +2857,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: starting to run\n");
-  GNUNET_SERVER_add_handlers (server, plugin_handlers);
+  GNUNET_SERVER_add_handlers (server, client_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   server_handle = server;
   core_handle = GNUNET_CORE_connect (c, /* Main configuration */
@@ -2897,7 +2897,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   clients = NULL;
   clients_tail = NULL;
 
-  announce_applications_task = 0;
+  announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
 
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
