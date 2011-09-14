@@ -801,6 +801,9 @@ struct PutContext
 
 /**
  * Actually put the data message.
+ *
+ * @param client sender of the message
+ * @param dm message with the data to store
  */
 static void
 execute_put (struct GNUNET_SERVER_Client *client, const struct DataMessage *dm)

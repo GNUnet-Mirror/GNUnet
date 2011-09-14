@@ -376,10 +376,7 @@ main (int argc, char *argv[])
   }
 #endif
 
-
-
   return ret;
-  check ();
 }
 
 /* end of test_transport_api.c */
