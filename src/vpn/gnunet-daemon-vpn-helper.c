@@ -256,8 +256,8 @@ message_token (void *cls __attribute__ ((unused)), void *client
 
     switch (pkt6->ip6_hdr.nxthdr)
     {
-    case 0x06:                 /* TCP */
-    case 0x11:                 /* UDP */
+    case IPPROTO_TCP:
+    case IPPROTO_UDP:
       pkt6_tcp = (struct ip6_tcp *) pkt6;
       pkt6_udp = (struct ip6_udp *) pkt6;
 
@@ -340,7 +340,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
           s->addrlen = me->addrlen;
           memcpy (s->addr, me->addr, me->addrlen);
           s->proto = pkt6->ip6_hdr.nxthdr;
-          if (s->proto == 0x11)
+          if (s->proto == IPPROTO_UDP)
           {
             hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP);
             memcpy (hc + 1, &pkt6_udp->udp_hdr, ntohs (pkt6_udp->udp_hdr.len));
@@ -348,13 +348,16 @@ message_token (void *cls __attribute__ ((unused)), void *client
             if (NULL != udp_tunnel)
               me->tunnel = udp_tunnel;
           }
-          else if (s->proto == 0x06)
+          else if (s->proto == IPPROTO_TCP)
           {
             hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP);
             memcpy (hc + 1, &pkt6_tcp->tcp_hdr, ntohs (pkt6->ip6_hdr.paylgth));
             app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
             if (NULL != tcp_tunnel)
               me->tunnel = tcp_tunnel;
+          } else
+          {
+	    GNUNET_assert (0);
           }
           if (me->tunnel == NULL && NULL != cls)
           {
@@ -450,8 +453,8 @@ message_token (void *cls __attribute__ ((unused)), void *client
                   c[0], c[1], c[2], c[3], pkt->ip_hdr.proto);
       switch (pkt->ip_hdr.proto)
       {
-      case 0x06:               /* TCP */
-      case 0x11:               /* UDP */
+      case IPPROTO_TCP:
+      case IPPROTO_UDP:
         pkt_tcp = (struct ip_tcp *) pkt;
         pkt_udp = (struct ip_udp *) pkt;
 
@@ -486,17 +489,17 @@ message_token (void *cls __attribute__ ((unused)), void *client
             /* This is a mapping to a gnunet-service */
             memcpy (hc, &me->desc.service_descriptor, sizeof (GNUNET_HashCode));
 
-            if (0x11 == pkt->ip_hdr.proto &&
-                (me->desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP)) &&
-                (port_in_ports (me->desc.ports, pkt_udp->udp_hdr.dpt) ||
-                 testBit (me->additional_ports, ntohs (pkt_udp->udp_hdr.dpt))))
+            if ( (IPPROTO_UDP == pkt->ip_hdr.proto) &&
+		 (me->desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP)) &&
+		 (port_in_ports (me->desc.ports, pkt_udp->udp_hdr.dpt) ||
+		  testBit (me->additional_ports, ntohs (pkt_udp->udp_hdr.dpt))) )
             {
               hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP);
 
               memcpy (hc + 1, &pkt_udp->udp_hdr, ntohs (pkt_udp->udp_hdr.len));
 
             }
-            else if (0x06 == pkt->ip_hdr.proto &&
+            else if ( (IPPROTO_TCP == pkt->ip_hdr.proto) &&
                      (me->
                       desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP))
                      && (port_in_ports (me->desc.ports, pkt_tcp->tcp_hdr.dpt)))
