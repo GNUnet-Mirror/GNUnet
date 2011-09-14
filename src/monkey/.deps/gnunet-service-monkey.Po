@@ -1,0 +1,1 @@
+gnunet-service-monkey.o: gnunet-service-monkey.c

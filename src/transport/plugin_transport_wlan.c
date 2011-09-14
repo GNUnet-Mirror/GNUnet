@@ -2754,10 +2754,26 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin, int testmode)
                      filenamehw, plugin->interface, testmode);
 #endif
 
-    plugin->server_proc =
-        GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
-                                 filenamehw, filenamehw, plugin->interface,
-                                 NULL);
+    if (GNUNET_OS_check_helper_binary(filenameloopback) == GNUNET_YES)
+      {
+      plugin->server_proc =
+              GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
+                                       filenamehw, filenamehw, plugin->interface,
+                                       NULL);
+      }
+    else if (GNUNET_OS_check_helper_binary(filenameloopback) == GNUNET_NO)
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                                 "gnunet-transport-wlan-helper is not suid, please change it or look at the doku\n");
+        GNUNET_break(0);
+      }
+    else
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                                 "gnunet-transport-wlan-helper not found, please look if it exists and is the $PATH variable!\n");
+        GNUNET_break(0);
+      }
+
   }
   else if (testmode == 1)
   {
@@ -2768,9 +2784,18 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin, int testmode)
                      filenameloopback, plugin->interface, testmode);
 #endif
 
-    plugin->server_proc =
+    if (GNUNET_OS_check_helper_binary(filenameloopback) != GNUNET_SYSERR)
+      {
+      plugin->server_proc =
         GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
                                  filenameloopback, filenameloopback, "1", NULL);
+      }
+    else
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                           "gnunet-transport-wlan-helper-dummy not found, please look if it exists and is the $PATH variable!\n");
+        GNUNET_break(0);
+      }
   }
   else if (testmode == 2)
   {
@@ -2779,9 +2804,18 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin, int testmode)
                      "Starting gnunet-wlan-helper loopback 2 process cmd: %s %s %i\n",
                      filenameloopback, plugin->interface, testmode);
 #endif
-    plugin->server_proc =
+    if (GNUNET_OS_check_helper_binary(filenameloopback) != GNUNET_SYSERR)
+      {
+        plugin->server_proc =
         GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
                                  filenameloopback, filenameloopback, "2", NULL);
+      }
+    else
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                             "gnunet-transport-wlan-helper-dummy not found, please look if it exists and is in the $PATH variable!\n");
+        GNUNET_break(0);
+      }
   }
   if (plugin->server_proc == NULL)
   {
