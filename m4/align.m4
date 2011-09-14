@@ -14,8 +14,12 @@ AC_DEFUN([AC_UNALIGNED_64_ACCESS],
  ac_cv_unaligned_64_access, 
  [
  AC_RUN_IFELSE(AC_LANG_PROGRAM([[struct S { int a,b,c;};]],
-                               [[struct S s = {0,0,0}; long long * p = &s.b; 
-                                 long long x = *p; return (int) x*x;]]),
+                               [[struct S s = {0,0,0}; long long * p = (long long *) &s.b; 
+			         void *bp = malloc (50); 
+ 				 long long x = *p; 
+				 long long *be = (long long*) &bp[1];
+				 long long y = *be;
+				 return (int) x*y;]]),
  ac_cv_unaligned_64_access=yes,
  ac_cv_unaligned_64_access=no,
  ac_cv_unaligned_64_access=no)
