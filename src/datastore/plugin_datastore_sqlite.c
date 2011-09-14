@@ -326,15 +326,12 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
       (sq_prepare
        (plugin->dbh,
         "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
-        "FROM gn090 INDEXED BY idx_repl_rvalue " 
-	"WHERE repl=?2 AND "
+        "FROM gn090 INDEXED BY idx_repl_rvalue WHERE repl=?2 AND "
         " (rvalue>=?1 OR "
         "  NOT EXISTS (SELECT 1 FROM gn090 INDEXED BY idx_repl_rvalue WHERE repl=?2 AND rvalue>=?1 LIMIT 1) ) "
-        "ORDER BY rvalue ASC LIMIT 1",
-        &plugin->selRepl) != SQLITE_OK) ||
+        "ORDER BY rvalue ASC LIMIT 1", &plugin->selRepl) != SQLITE_OK) ||
       (sq_prepare
-       (plugin->dbh,
-        "SELECT MAX(repl) FROM gn090 INDEXED BY idx_repl_rvalue",
+       (plugin->dbh, "SELECT MAX(repl) FROM gn090 INDEXED BY idx_repl_rvalue",
         &plugin->maxRepl) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
@@ -355,8 +352,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         &plugin->insertContent) != SQLITE_OK) ||
       (sq_prepare
-       (plugin->dbh, 
-	"DELETE FROM gn090 WHERE _ROWID_ = ?",
+       (plugin->dbh, "DELETE FROM gn090 WHERE _ROWID_ = ?",
         &plugin->delRow) != SQLITE_OK))
   {
     LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR, "precompiling");

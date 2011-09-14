@@ -445,9 +445,10 @@ GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
   ncc = GNUNET_malloc (sizeof (struct GNUNET_FS_TEST_ConnectContext));
   ncc->cont = cont;
   ncc->cont_cls = cont_cls;
-  ncc->cc = GNUNET_TESTING_daemons_connect (daemon1->daemon, daemon2->daemon, timeout,
-					    CONNECT_ATTEMPTS, GNUNET_YES,
-					    &notify_connection, ncc);
+  ncc->cc =
+      GNUNET_TESTING_daemons_connect (daemon1->daemon, daemon2->daemon, timeout,
+                                      CONNECT_ATTEMPTS, GNUNET_YES,
+                                      &notify_connection, ncc);
   return ncc;
 }
 

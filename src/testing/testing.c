@@ -88,6 +88,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTING_Daemon *daemon = cls;
   int msize;
+
 #if EMPTY_HACK
   int empty;
 
@@ -1870,7 +1871,8 @@ notify_connect_result (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else if (ctx->connect_attempts > 0)
   {
     ctx->d1core_ready = GNUNET_NO;
-    ctx->timeout_task = GNUNET_SCHEDULER_add_now (&reattempt_daemons_connect, ctx);
+    ctx->timeout_task =
+        GNUNET_SCHEDULER_add_now (&reattempt_daemons_connect, ctx);
     return;
   }
   else
@@ -1907,12 +1909,12 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 != memcmp (&ctx->d2->id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   ctx->connected = GNUNET_YES;
-  ctx->distance = 0;          /* FIXME: distance */
+  ctx->distance = 0;            /* FIXME: distance */
   if (ctx->hello_send_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (ctx->hello_send_task);
-      ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (ctx->hello_send_task);
+    ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_SCHEDULER_cancel (ctx->timeout_task);
   ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result, ctx);
 }
@@ -2130,74 +2132,72 @@ core_initial_iteration (void *cls, const struct GNUNET_PeerIdentity *peer,
     return;
   }
   if (peer != NULL)
-    return; /* ignore other peers */
+    return;                     /* ignore other peers */
   /* peer == NULL: End of iteration over peers */
-  
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == ctx->timeout_task);
-    if (ctx->connected == GNUNET_YES)
-    {
-      ctx->timeout_task =
-          GNUNET_SCHEDULER_add_now (&notify_connect_result, ctx);
-      return;
-    }
 
-    /* Peer not already connected, need to schedule connect request! */
-    if (ctx->d1core == NULL)
-    {
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == ctx->timeout_task);
+  if (ctx->connected == GNUNET_YES)
+  {
+    ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result, ctx);
+    return;
+  }
+
+  /* Peer not already connected, need to schedule connect request! */
+  if (ctx->d1core == NULL)
+  {
 #if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Peers are NOT connected, connecting to core!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peers are NOT connected, connecting to core!\n");
 #endif
-      ctx->d1core =
-          GNUNET_CORE_connect (ctx->d1->cfg, 1, ctx, &core_init_notify,
-                               &connect_notify, NULL, NULL, NULL, GNUNET_NO,
-                               NULL, GNUNET_NO, no_handlers);
-    }
+    ctx->d1core =
+        GNUNET_CORE_connect (ctx->d1->cfg, 1, ctx, &core_init_notify,
+                             &connect_notify, NULL, NULL, NULL, GNUNET_NO, NULL,
+                             GNUNET_NO, no_handlers);
+  }
 
-    if (ctx->d1core == NULL)
+  if (ctx->d1core == NULL)
+  {
+    ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result, ctx);
+    return;
+  }
+
+  if ((NULL == ctx->d2->hello) && (ctx->d2->th == NULL))        /* Do not yet have the second peer's hello, set up a task to get it */
+  {
+    ctx->d2->th =
+        GNUNET_TRANSPORT_connect (ctx->d2->cfg, &ctx->d2->id, NULL, NULL, NULL,
+                                  NULL);
+    if (ctx->d2->th == NULL)
     {
+      GNUNET_CORE_disconnect (ctx->d1core);
+      ctx->d1core = NULL;
       ctx->timeout_task =
           GNUNET_SCHEDULER_add_now (&notify_connect_result, ctx);
       return;
     }
+    ctx->d2->ghh =
+        GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
+  }
 
-    if ((NULL == ctx->d2->hello) && (ctx->d2->th == NULL))      /* Do not yet have the second peer's hello, set up a task to get it */
+  if (ctx->send_hello == GNUNET_YES)
+  {
+    ctx->d1th =
+        GNUNET_TRANSPORT_connect (ctx->d1->cfg, &ctx->d1->id, ctx->d1, NULL,
+                                  NULL, NULL);
+    if (ctx->d1th == NULL)
     {
-      ctx->d2->th =
-          GNUNET_TRANSPORT_connect (ctx->d2->cfg, &ctx->d2->id, NULL, NULL,
-                                    NULL, NULL);
-      if (ctx->d2->th == NULL)
-      {
-        GNUNET_CORE_disconnect (ctx->d1core);
-	ctx->d1core = NULL;
-	ctx->timeout_task =
+      GNUNET_CORE_disconnect (ctx->d1core);
+      ctx->d1core = NULL;
+      ctx->timeout_task =
           GNUNET_SCHEDULER_add_now (&notify_connect_result, ctx);
-        return;
-      }
-      ctx->d2->ghh =
-          GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
+      return;
     }
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == ctx->hello_send_task);
+    ctx->hello_send_task = GNUNET_SCHEDULER_add_now (&send_hello, ctx);
+  }
 
-    if (ctx->send_hello == GNUNET_YES)
-    {
-      ctx->d1th =
-          GNUNET_TRANSPORT_connect (ctx->d1->cfg, &ctx->d1->id, ctx->d1, NULL,
-                                    NULL, NULL);
-      if (ctx->d1th == NULL)
-      {
-        GNUNET_CORE_disconnect (ctx->d1core);
-	ctx->d1core = NULL;
-	ctx->timeout_task =
-          GNUNET_SCHEDULER_add_now (&notify_connect_result, ctx);
-        return;
-      }
-      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == ctx->hello_send_task);
-      ctx->hello_send_task = GNUNET_SCHEDULER_add_now (&send_hello, ctx);
-    }
-
-    ctx->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (ctx->relative_timeout,
-                                      &notify_connect_result, ctx);
+  ctx->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (ctx->relative_timeout,
+                                    &notify_connect_result, ctx);
 
 }
 
@@ -2271,29 +2271,28 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @param cc connect context
  */
 void
-GNUNET_TESTING_daemons_connect_cancel (struct GNUNET_TESTING_ConnectContext
-                                       *cc)
+GNUNET_TESTING_daemons_connect_cancel (struct GNUNET_TESTING_ConnectContext *cc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != cc->timeout_task)
-    {
-      GNUNET_SCHEDULER_cancel (cc->timeout_task);
-      cc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (cc->timeout_task);
+    cc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != cc->hello_send_task)
-    {
-      GNUNET_SCHEDULER_cancel (cc->hello_send_task);
-      cc->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (cc->hello_send_task);
+    cc->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != cc->d1core)
-    {
-      GNUNET_CORE_disconnect (cc->d1core);
-      cc->d1core = NULL;
-    }
+  {
+    GNUNET_CORE_disconnect (cc->d1core);
+    cc->d1core = NULL;
+  }
   if (NULL != cc->d1th)
-    {
-      GNUNET_TRANSPORT_disconnect (cc->d1th);
-      cc->d1th = NULL;
-    }
+  {
+    GNUNET_TRANSPORT_disconnect (cc->d1th);
+    cc->d1th = NULL;
+  }
   GNUNET_free (cc);
 }
 

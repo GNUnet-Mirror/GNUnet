@@ -661,8 +661,8 @@ is_client_subscribed (uint16_t message_type, struct MeshClient *c)
 {
   GNUNET_HashCode hc;
 
-  GNUNET_CRYPTO_hash(&message_type, sizeof(uint16_t), &hc);
-  return GNUNET_CONTAINER_multihashmap_contains(c->types, &hc);
+  GNUNET_CRYPTO_hash (&message_type, sizeof (uint16_t), &hc);
+  return GNUNET_CONTAINER_multihashmap_contains (c->types, &hc);
 }
 
 
@@ -817,9 +817,8 @@ static int
 announce_application (void *cls, const GNUNET_HashCode * key, void *value)
 {
   /* FIXME are hashes in multihash map equal on all aquitectures? */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:  putting in DHT %s\n",
-              GNUNET_h2s_full(key));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  putting in DHT %s\n",
+              GNUNET_h2s_full (key));
   GNUNET_DHT_put (dht_handle, key, 10U, GNUNET_DHT_RO_RECORD_ROUTE,
                   GNUNET_BLOCK_TYPE_TEST, sizeof (struct GNUNET_PeerIdentity),
                   (const char *) &my_full_id,
@@ -851,9 +850,8 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Starting PUT for apps\n");
-  GNUNET_CONTAINER_multihashmap_iterate(applications,
-                                        &announce_application,
-                                        NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (applications, &announce_application,
+                                         NULL);
   announce_applications_task =
       GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME, &announce_applications,
                                     cls);
@@ -884,7 +882,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   &my_full_id.hashPubKey,       /* Key to use */
                   10U,          /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE,   /* DHT options */
-                  GNUNET_BLOCK_TYPE_TEST,        /* Block type */
+                  GNUNET_BLOCK_TYPE_TEST,       /* Block type */
                   0,            /* Size of the data */
                   NULL,         /* Data itself */
                   GNUNET_TIME_absolute_get_forever (),  /* Data expiration */
@@ -1682,7 +1680,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   /* Message for us? */
-  if (0 == memcmp (&msg->oid, &my_full_id, sizeof(struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (&msg->oid, &my_full_id, sizeof (struct GNUNET_PeerIdentity)))
   {
     struct GNUNET_MESH_PeerControl pc;
 
@@ -1772,7 +1770,7 @@ delete_tunnel_entry (void *cls, const GNUNET_HashCode * key, void *value)
 static int
 deregister_app (void *cls, const GNUNET_HashCode * key, void *value)
 {
-  GNUNET_CONTAINER_multihashmap_remove(applications, key, value);
+  GNUNET_CONTAINER_multihashmap_remove (applications, key, value);
   return GNUNET_OK;
 }
 
@@ -1880,12 +1878,10 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_DHT_get_stop (peer_info->dhtget);
     GNUNET_PEER_resolve (peer_info->id, &pi);
     peer_info->dhtget = GNUNET_DHT_get_start (dht_handle,       /* handle */
-                                              GNUNET_TIME_UNIT_FOREVER_REL,
-                                              GNUNET_BLOCK_TYPE_TEST, /* type */
-                                              &pi.hashPubKey, /*key to search */
-                                              4,       /* replication level */
-                                              GNUNET_DHT_RO_RECORD_ROUTE,
-                                              NULL, /* bloom filter */
+                                              GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_BLOCK_TYPE_TEST,     /* type */
+                                              &pi.hashPubKey,   /*key to search */
+                                              4,        /* replication level */
+                                              GNUNET_DHT_RO_RECORD_ROUTE, NULL, /* bloom filter */
                                               0,        /* mutator */
                                               NULL,     /* xquery */
                                               0,        /* xquery bits */
@@ -1966,7 +1962,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     return;
   }
   GNUNET_assert (NULL != t->client);
-  GNUNET_DHT_get_stop(t->client->dht_get_type);
+  GNUNET_DHT_get_stop (t->client->dht_get_type);
   t->client->dht_get_type = NULL;
   peer_info = get_peer_info (pi);
   GNUNET_CONTAINER_multihashmap_put (t->peers, &pi->hashPubKey, peer_info,
@@ -1976,13 +1972,9 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     /* we don't have a route to the peer, let's try a direct lookup */
     if (NULL == peer_info->dhtget)
     {
-      peer_info->dhtget = GNUNET_DHT_get_start (dht_handle, /* handle */
-                                                GNUNET_TIME_UNIT_FOREVER_REL,
-                                                GNUNET_BLOCK_TYPE_TEST,
-                                                &pi->hashPubKey,
-                                                10U,  /* replication level */
-                                                GNUNET_DHT_RO_RECORD_ROUTE,
-                                                NULL,   /* bloom filter */
+      peer_info->dhtget = GNUNET_DHT_get_start (dht_handle,     /* handle */
+                                                GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_BLOCK_TYPE_TEST, &pi->hashPubKey, 10U,     /* replication level */
+                                                GNUNET_DHT_RO_RECORD_ROUTE, NULL,       /* bloom filter */
                                                 0,      /* mutator */
                                                 NULL,   /* xquery */
                                                 0,      /* xquery bits */
@@ -2050,8 +2042,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: matching client found\n");
     if (NULL != c->tunnels)
     {
-      GNUNET_CONTAINER_multihashmap_iterate (c->tunnels,
-                                             &delete_tunnel_entry,
+      GNUNET_CONTAINER_multihashmap_iterate (c->tunnels, &delete_tunnel_entry,
                                              c);
       GNUNET_CONTAINER_multihashmap_destroy (c->tunnels);
     }
@@ -2059,19 +2050,19 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     /* deregister clients applications */
     if (NULL != c->apps)
     {
-      GNUNET_CONTAINER_multihashmap_iterate(c->apps, &deregister_app, NULL);
-      GNUNET_CONTAINER_multihashmap_destroy(c->apps);
+      GNUNET_CONTAINER_multihashmap_iterate (c->apps, &deregister_app, NULL);
+      GNUNET_CONTAINER_multihashmap_destroy (c->apps);
     }
-    if (0 == GNUNET_CONTAINER_multihashmap_size(applications) &&
+    if (0 == GNUNET_CONTAINER_multihashmap_size (applications) &&
         GNUNET_SCHEDULER_NO_TASK != announce_applications_task)
     {
       GNUNET_SCHEDULER_cancel (announce_applications_task);
       announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
     }
     if (NULL != c->types)
-      GNUNET_CONTAINER_multihashmap_destroy(c->types);
+      GNUNET_CONTAINER_multihashmap_destroy (c->types);
     if (NULL != c->dht_get_type)
-      GNUNET_DHT_get_stop(c->dht_get_type);
+      GNUNET_DHT_get_stop (c->dht_get_type);
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     next = c->next;
     GNUNET_free (c);
@@ -2126,27 +2117,21 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_MESH_ApplicationType at;
     GNUNET_HashCode hc;
 
-    c->apps = GNUNET_CONTAINER_multihashmap_create(napps);
+    c->apps = GNUNET_CONTAINER_multihashmap_create (napps);
     for (i = 0; i < napps; i++)
     {
-      at = ntohl(a[i]);
-      GNUNET_CRYPTO_hash(&at, sizeof(at), &hc);
+      at = ntohl (a[i]);
+      GNUNET_CRYPTO_hash (&at, sizeof (at), &hc);
       /* store in clients hashmap */
-      GNUNET_CONTAINER_multihashmap_put(
-          c->apps,
-          &hc,
-          c,
-          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      GNUNET_CONTAINER_multihashmap_put (c->apps, &hc, c,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       /* store in global hashmap, for announcements */
-      GNUNET_CONTAINER_multihashmap_put(
-          applications,
-          &hc,
-          c,
-          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      GNUNET_CONTAINER_multihashmap_put (applications, &hc, c,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
     if (GNUNET_SCHEDULER_NO_TASK == announce_applications_task)
-      announce_applications_task = GNUNET_SCHEDULER_add_now (
-          &announce_applications, NULL);
+      announce_applications_task =
+          GNUNET_SCHEDULER_add_now (&announce_applications, NULL);
 
   }
   if (ntypes > 0)
@@ -2154,24 +2139,19 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     uint16_t u16;
     GNUNET_HashCode hc;
 
-    t = (uint16_t *) &a[napps];
-    c->types = GNUNET_CONTAINER_multihashmap_create(ntypes);
-    for (i =0; i < ntypes; i++)
+    t = (uint16_t *) & a[napps];
+    c->types = GNUNET_CONTAINER_multihashmap_create (ntypes);
+    for (i = 0; i < ntypes; i++)
     {
-      u16 = ntohs(t[i]);
-      GNUNET_CRYPTO_hash(&u16, sizeof(u16), &hc);
+      u16 = ntohs (t[i]);
+      GNUNET_CRYPTO_hash (&u16, sizeof (u16), &hc);
+
       /* store in clients hashmap */
-      GNUNET_CONTAINER_multihashmap_put(
-          c->types,
-          &hc,
-          c,
-          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      GNUNET_CONTAINER_multihashmap_put (c->types, &hc, c,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       /* store in global hashmap */
-      GNUNET_CONTAINER_multihashmap_put(
-          types,
-          &hc,
-          c,
-          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      GNUNET_CONTAINER_multihashmap_put (types, &hc, c,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2383,9 +2363,7 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
   /* Start DHT search if needed */
   if (MESH_PEER_READY != peer_info->state && NULL == peer_info->dhtget)
   {
-    peer_info->dhtget = GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
-                                              GNUNET_BLOCK_TYPE_TEST,
-                                              &peer_msg->peer.hashPubKey, 4,   /* replication level */
+    peer_info->dhtget = GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_BLOCK_TYPE_TEST, &peer_msg->peer.hashPubKey, 4,  /* replication level */
                                               GNUNET_DHT_RO_RECORD_ROUTE, NULL, /* bloom filter */
                                               0,        /* mutator */
                                               NULL,     /* xquery */
@@ -2517,26 +2495,27 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
   type = ntohl (connect_msg->type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  type requested: %u\n", type);
   GNUNET_CRYPTO_hash (&type, sizeof (GNUNET_MESH_ApplicationType), &hash);
-  if (GNUNET_CONTAINER_multihashmap_contains(applications, &hash) == GNUNET_YES)
+  if (GNUNET_CONTAINER_multihashmap_contains (applications, &hash) ==
+      GNUNET_YES)
   {
     /* Yes! Fast forward, add ourselves to the tunnel and send the
-      * good news to the client
-      */
+     * good news to the client
+     */
     struct GNUNET_MESH_PeerControl pc;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  available locally\n");
     pc.peer = my_full_id;
     GNUNET_CONTAINER_multihashmap_put (t->peers, &pc.peer.hashPubKey,
-                                        get_peer_info (&pc.peer),
-                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                       get_peer_info (&pc.peer),
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     pc.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
     pc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD);
     pc.tunnel_id = htonl (t->local_tid);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  notifying client\n");
-    GNUNET_SERVER_notification_context_unicast (nc,   /* context */
-                                                client,       /* dest */
-                                                &pc.header,   /* msg */
-                                                GNUNET_NO);   /* can drop? */
+    GNUNET_SERVER_notification_context_unicast (nc,     /* context */
+                                                client, /* dest */
+                                                &pc.header,     /* msg */
+                                                GNUNET_NO);     /* can drop? */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  Done\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
@@ -2546,22 +2525,13 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_DHT_get_stop (c->dht_get_type);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:  looking in DHT for %s\n",
-              GNUNET_h2s_full(&hash));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  looking in DHT for %s\n",
+              GNUNET_h2s_full (&hash));
   c->dht_get_type =
-      GNUNET_DHT_get_start (dht_handle,
-                            GNUNET_TIME_UNIT_FOREVER_REL,
-                            GNUNET_BLOCK_TYPE_TEST,
-                            &hash,
-                            10U,
-                            GNUNET_DHT_RO_RECORD_ROUTE,
-                            NULL,
-                            0,
-                            NULL,
-                            0,
-                            &dht_get_type_handler,
-                            t);
+      GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
+                            GNUNET_BLOCK_TYPE_TEST, &hash, 10U,
+                            GNUNET_DHT_RO_RECORD_ROUTE, NULL, 0, NULL, 0,
+                            &dht_get_type_handler, t);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -2639,7 +2609,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     /* Work around const limitation */
     memcpy (&copy, data_msg, sizeof (struct GNUNET_MESH_Unicast));
     copy.oid = my_full_id;
-    copy.tid = htonl(t->id.tid);
+    copy.tid = htonl (t->id.tid);
     handle_mesh_data_unicast (NULL, &my_full_id, &copy.header, NULL);
     return;
   }
@@ -2858,7 +2828,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     for (c = clients; NULL != c; c = c->next)
       if (NULL != c->dht_get_type)
-        GNUNET_DHT_get_stop(c->dht_get_type);
+        GNUNET_DHT_get_stop (c->dht_get_type);
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
   }

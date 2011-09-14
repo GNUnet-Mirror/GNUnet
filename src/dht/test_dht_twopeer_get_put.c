@@ -30,7 +30,7 @@
  * "straight line" topology.  On notification that all peers have
  * been properly connected, calls the do_get function which initiates
  * a GNUNET_DHT_get from the *second* peer. Once the GNUNET_DHT_get
- * function starts, runs the do_put function to insert data at the first peer.  
+ * function starts, runs the do_put function to insert data at the first peer.
  *   If the GET is successful, schedules finish_testing
  * to stop the test and shut down peers.  If GET is unsuccessful
  * after GET_TIMEOUT seconds, prints an error message and shuts down

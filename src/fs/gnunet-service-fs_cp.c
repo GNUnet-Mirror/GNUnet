@@ -336,11 +336,12 @@ get_latency (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
   if (ntohl (atsi->type) == GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR)
   {
     static int once;
-    if (! once)
-      {
-	once = 1;
-	GNUNET_break (0);
-      }
+
+    if (!once)
+    {
+      once = 1;
+      GNUNET_break (0);
+    }
     /* how can we not have latency data? */
     return GNUNET_TIME_UNIT_SECONDS;
   }

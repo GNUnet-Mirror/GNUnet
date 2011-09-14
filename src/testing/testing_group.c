@@ -893,7 +893,7 @@ struct ConnectContext
 
   /**
    * Context in 'testing.c', to cancel connection attempt.
-   */ 
+   */
   struct GNUNET_TESTING_ConnectContext *cc;
 
   /**
@@ -3231,10 +3231,9 @@ preschedule_connect (struct GNUNET_TESTING_PeerGroup *pg)
   connect_context->first_index = random_peer;
   connect_context->second_index = connection_iter->index;
   connect_context->ct_ctx = ct_ctx;
-  connect_context->task = GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
-  GNUNET_CONTAINER_DLL_insert (pg->cc_head,
-			       pg->cc_tail,
-			       connect_context);
+  connect_context->task =
+      GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
+  GNUNET_CONTAINER_DLL_insert (pg->cc_head, pg->cc_tail, connect_context);
   GNUNET_CONTAINER_DLL_remove (pg->peers[random_peer].connect_peers_head,
                                pg->peers[random_peer].connect_peers_tail,
                                connection_iter);
@@ -3639,9 +3638,7 @@ internal_connect_notify (void *cls, const struct GNUNET_PeerIdentity *first,
   connect_ctx->cc = NULL;
   GNUNET_assert (0 < pg->outstanding_connects);
   pg->outstanding_connects--;
-  GNUNET_CONTAINER_DLL_remove (pg->cc_head,
-			       pg->cc_tail,
-			       connect_ctx);
+  GNUNET_CONTAINER_DLL_remove (pg->cc_head, pg->cc_tail, connect_ctx);
   /*
    * Check whether the inverse connection has been scheduled yet,
    * if not, we can remove it from the other peers list and avoid
@@ -3719,33 +3716,36 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 _
                 ("Delaying connect, we have too many outstanding connections!\n"));
 #endif
-    connect_context->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-							  (GNUNET_TIME_UNIT_MILLISECONDS, 100),
-							  &schedule_connect, connect_context);
+    connect_context->task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_MILLISECONDS, 100),
+                                      &schedule_connect, connect_context);
     return;
   }
 #if VERBOSE_TESTING
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Creating connection, outstanding_connections is %d (max %d)\n"),
-                pg->outstanding_connects, pg->max_outstanding_connections);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _
+              ("Creating connection, outstanding_connections is %d (max %d)\n"),
+              pg->outstanding_connects, pg->max_outstanding_connections);
 #endif
-    pg->outstanding_connects++;
-    pg->total_connects_scheduled++;
-    GNUNET_assert (NULL == connect_context->cc);
-    connect_context->cc 
-      = GNUNET_TESTING_daemons_connect (pg->
-                                    peers[connect_context->first_index].daemon,
-                                    pg->peers[connect_context->
-                                              second_index].daemon,
-                                    connect_context->ct_ctx->connect_timeout,
-                                    connect_context->ct_ctx->connect_attempts,
+  pg->outstanding_connects++;
+  pg->total_connects_scheduled++;
+  GNUNET_assert (NULL == connect_context->cc);
+  connect_context->cc =
+      GNUNET_TESTING_daemons_connect (pg->
+                                      peers[connect_context->
+                                            first_index].daemon,
+                                      pg->peers[connect_context->
+                                                second_index].daemon,
+                                      connect_context->ct_ctx->connect_timeout,
+                                      connect_context->ct_ctx->connect_attempts,
 #if USE_SEND_HELLOS
-                                    GNUNET_NO,
+                                      GNUNET_NO,
 #else
-                                    GNUNET_YES,
+                                      GNUNET_YES,
 #endif
-                                    &internal_connect_notify, connect_context); 
+                                      &internal_connect_notify,
+                                      connect_context);
 
 }
 
@@ -3772,10 +3772,10 @@ connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
   connect_context->first = first->daemon;
   connect_context->second = second;
   connect_context->ct_ctx = ct_ctx;
-  connect_context->task = GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
-  GNUNET_CONTAINER_DLL_insert (ct_ctx->pg->cc_head,
-			       ct_ctx->pg->cc_tail,
-			       connect_context);
+  connect_context->task =
+      GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
+  GNUNET_CONTAINER_DLL_insert (ct_ctx->pg->cc_head, ct_ctx->pg->cc_tail,
+                               connect_context);
   return GNUNET_YES;
 }
 #endif
@@ -7103,16 +7103,14 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
 
   GNUNET_assert (pg->total > 0);
   while (NULL != (cc = pg->cc_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (pg->cc_head,
-				   pg->cc_tail,
-				   cc);
-      if (GNUNET_SCHEDULER_NO_TASK != cc->task)
-	GNUNET_SCHEDULER_cancel (cc->task);
-      if (NULL != cc->cc)
-	GNUNET_TESTING_daemons_connect_cancel (cc->cc);
-      GNUNET_free (cc);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (pg->cc_head, pg->cc_tail, cc);
+    if (GNUNET_SCHEDULER_NO_TASK != cc->task)
+      GNUNET_SCHEDULER_cancel (cc->task);
+    if (NULL != cc->cc)
+      GNUNET_TESTING_daemons_connect_cancel (cc->cc);
+    GNUNET_free (cc);
+  }
 
   shutdown_ctx = GNUNET_malloc (sizeof (struct ShutdownContext));
   shutdown_ctx->delete_files =

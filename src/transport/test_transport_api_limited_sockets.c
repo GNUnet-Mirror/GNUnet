@@ -284,6 +284,7 @@ main (int argc, char *argv[])
 {
   int ret = 0;
   int nat_res;
+
   test_plugin = NULL;
 
   GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
@@ -299,8 +300,9 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-  if ((test_plugin != NULL) && ((strcmp (test_plugin, "tcp_nat") == 0) ||
-      (strcmp (test_plugin, "udp_nat") == 0)))
+  if ((test_plugin != NULL) &&
+      ((strcmp (test_plugin, "tcp_nat") == 0) ||
+       (strcmp (test_plugin, "udp_nat") == 0)))
   {
     nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
     if (GNUNET_NO == nat_res)
@@ -329,13 +331,17 @@ main (int argc, char *argv[])
   struct rlimit r_file_old;
   struct rlimit r_file_new;
   int res;
-  res = getrlimit(RLIMIT_NOFILE, &r_file_old);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Maximum number of open files was: %u/%u\n", r_file_old.rlim_cur, r_file_old.rlim_max);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting maximum number of open files to: %u\n", MAX_FILES);
+  res = getrlimit (RLIMIT_NOFILE, &r_file_old);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Maximum number of open files was: %u/%u\n", r_file_old.rlim_cur,
+              r_file_old.rlim_max);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Setting maximum number of open files to: %u\n", MAX_FILES);
   r_file_new.rlim_cur = MAX_FILES;
   r_file_new.rlim_max = r_file_old.rlim_max;
-  res = setrlimit(RLIMIT_NOFILE, &r_file_new);
+  res = setrlimit (RLIMIT_NOFILE, &r_file_new);
 
   if (res != 0)
   {
@@ -360,8 +366,9 @@ main (int argc, char *argv[])
   GNUNET_free (test_name);
 
 #if HAVE_SETRLIMIT
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Restoring previous value maximum number of open files\n");
-  res = setrlimit(RLIMIT_NOFILE, &r_file_old);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Restoring previous value maximum number of open files\n");
+  res = setrlimit (RLIMIT_NOFILE, &r_file_old);
   if (res != 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Restoring limit failed!\n");

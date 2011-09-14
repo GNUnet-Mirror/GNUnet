@@ -59,12 +59,12 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Relative del;
   char *fancy;
-  
+
   if (NULL != cc)
-    {
-      GNUNET_FS_TEST_daemons_connect_cancel (cc);
-      cc = NULL;
-    }
+  {
+    GNUNET_FS_TEST_daemons_connect_cancel (cc);
+    cc = NULL;
+  }
   GNUNET_FS_TEST_daemons_stop (2, daemons);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
   {
@@ -173,8 +173,8 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemons started, will now try to connect them\n");
-  cc = GNUNET_FS_TEST_daemons_connect (daemons[0], daemons[1], TIMEOUT, &do_publish,
-				       NULL);
+  cc = GNUNET_FS_TEST_daemons_connect (daemons[0], daemons[1], TIMEOUT,
+                                       &do_publish, NULL);
 }
 
 

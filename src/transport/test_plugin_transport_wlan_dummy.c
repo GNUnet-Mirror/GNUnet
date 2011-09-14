@@ -163,13 +163,13 @@ testmode (int argc, char *argv[])
     erg = mkfifo (FIFO_FILE1, 0666);
     if (0 != erg)
     {
-      fprintf (stderr, "Error at mkfifo1: %s\n", strerror(errno));
+      fprintf (stderr, "Error at mkfifo1: %s\n", strerror (errno));
       //exit(1);
     }
     erg = mkfifo (FIFO_FILE2, 0666);
     if (0 != erg)
     {
-      fprintf (stderr, "Error at mkfifo2: %s\n", strerror(errno));
+      fprintf (stderr, "Error at mkfifo2: %s\n", strerror (errno));
       //exit(1);
     }
 

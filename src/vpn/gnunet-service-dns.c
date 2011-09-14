@@ -1265,16 +1265,14 @@ publish_iterate (void *cls __attribute__ ((unused)), const char *section)
   if ((strlen (section) < 8) ||
       (0 != strcmp (".gnunet.", section + (strlen (section) - 8))))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Parsing dns-name %s\n", 
-	      section);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing dns-name %s\n", section);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, section, "UDP_REDIRECTS",
-					     &udp_redirects))
+                                             &udp_redirects))
     udp_redirects = NULL;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, section, "TCP_REDIRECTS",
-					     &tcp_redirects))
+                                             &tcp_redirects))
     tcp_redirects = NULL;
 
   if (GNUNET_OK !=
@@ -1307,21 +1305,21 @@ publish_iterate (void *cls __attribute__ ((unused)), const char *section)
   publish_name (section, ports, service_type, my_private_key);
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (cfg, section, "ALTERNATIVE_NAMES",
-					     &alternative_names))
+                                             &alternative_names))
+  {
+    for (alternative_name = strtok (alternative_names, " ");
+         alternative_name != NULL; alternative_name = strtok (NULL, " "))
     {
-      for (alternative_name = strtok (alternative_names, " ");
-	   alternative_name != NULL; alternative_name = strtok (NULL, " "))
-	{
-	  char *altname =
-	    alloca (strlen (alternative_name) + strlen (section) + 1 + 1);
-	  strcpy (altname, alternative_name);
-	  strcpy (altname + strlen (alternative_name) + 1, section);
-	  altname[strlen (alternative_name)] = '.';
-	  
-	  publish_name (altname, ports, service_type, my_private_key);
-	}
-      GNUNET_free (alternative_names);
+      char *altname =
+          alloca (strlen (alternative_name) + strlen (section) + 1 + 1);
+      strcpy (altname, alternative_name);
+      strcpy (altname + strlen (alternative_name) + 1, section);
+      altname[strlen (alternative_name)] = '.';
+
+      publish_name (altname, ports, service_type, my_private_key);
     }
+    GNUNET_free (alternative_names);
+  }
   GNUNET_CRYPTO_rsa_key_free (my_private_key);
   GNUNET_free_non_null (udp_redirects);
   GNUNET_free_non_null (tcp_redirects);

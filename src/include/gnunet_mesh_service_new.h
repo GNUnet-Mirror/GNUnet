@@ -116,11 +116,16 @@ struct GNUNET_MESH_MessageHandler
  * @return initial tunnel context for the tunnel
  *         (can be NULL -- that's not an error)
  */
-typedef void* (GNUNET_MESH_InboundTunnelNotificationHandler) (
-    void *cls,
-    struct GNUNET_MESH_Tunnel * tunnel,
-    const struct GNUNET_PeerIdentity * initiator,
-    const struct GNUNET_TRANSPORT_ATS_Information * atsi);
+typedef void *(GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
+                                                              struct
+                                                              GNUNET_MESH_Tunnel
+                                                              * tunnel,
+                                                              const struct
+                                                              GNUNET_PeerIdentity
+                                                              * initiator,
+                                                              const struct
+                                                              GNUNET_TRANSPORT_ATS_Information
+                                                              * atsi);
 
 
 /**
@@ -164,8 +169,7 @@ typedef uint32_t GNUNET_MESH_ApplicationType;
  */
 struct GNUNET_MESH_Handle *
 GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     unsigned int queue_size,
-                     void *cls,
+                     unsigned int queue_size, void *cls,
                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,
@@ -187,9 +191,9 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
  * @param cls closure
  * @param peer peer identity the tunnel stopped working with
  */
-typedef void (*GNUNET_MESH_PeerDisconnectHandler) (
-    void *cls,
-    const struct GNUNET_PeerIdentity * peer);
+typedef void (*GNUNET_MESH_PeerDisconnectHandler) (void *cls,
+                                                   const struct
+                                                   GNUNET_PeerIdentity * peer);
 
 
 /**
@@ -200,10 +204,12 @@ typedef void (*GNUNET_MESH_PeerDisconnectHandler) (
  * @param peer peer identity the tunnel was created to, NULL on timeout
  * @param atsi performance data for the connection
  */
-typedef void (*GNUNET_MESH_PeerConnectHandler) (
-    void *cls,
-    const struct GNUNET_PeerIdentity * peer,
-    const struct GNUNET_TRANSPORT_ATS_Information * atsi);
+typedef void (*GNUNET_MESH_PeerConnectHandler) (void *cls,
+                                                const struct GNUNET_PeerIdentity
+                                                * peer,
+                                                const struct
+                                                GNUNET_TRANSPORT_ATS_Information
+                                                * atsi);
 
 
 
@@ -218,8 +224,7 @@ typedef void (*GNUNET_MESH_PeerConnectHandler) (
  * @param handler_cls closure for connect/disconnect handlers
  */
 struct GNUNET_MESH_Tunnel *
-GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, 
-                           void *tunnel_ctx,
+GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
                            GNUNET_MESH_PeerConnectHandler connect_handler,
                            GNUNET_MESH_PeerDisconnectHandler disconnect_handler,
                            void *handler_cls);
@@ -297,8 +302,7 @@ struct GNUNET_MESH_TransmitHandle;
  *         memory); if NULL is returned, "notify" will NOT be called.
  */
 struct GNUNET_MESH_TransmitHandle *
-GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel,
-                                   int cork,
+GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
                                    uint32_t priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,

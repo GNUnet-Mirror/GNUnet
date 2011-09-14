@@ -638,7 +638,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
 
 /**
  * Handle to cancel a pending address lookup.
- */ 
+ */
 struct GNUNET_TRANSPORT_AddressLookupContext;
 
 
@@ -671,12 +671,14 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param alc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_address_lookup_cancel (struct GNUNET_TRANSPORT_AddressLookupContext *alc);
+GNUNET_TRANSPORT_address_lookup_cancel (struct
+                                        GNUNET_TRANSPORT_AddressLookupContext
+                                        *alc);
 
 
 /**
  * Handle to cancel a pending address lookup.
- */ 
+ */
 struct GNUNET_TRANSPORT_AddressLookupContext;
 
 
@@ -706,7 +708,9 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
  * @param alc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_peer_address_lookup_cancel (struct GNUNET_TRANSPORT_PeerAddressLookupContext *alc);
+GNUNET_TRANSPORT_peer_address_lookup_cancel (struct
+                                             GNUNET_TRANSPORT_PeerAddressLookupContext
+                                             *alc);
 
 
 /**

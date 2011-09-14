@@ -34,12 +34,12 @@
  * @return number of bytes written
  */
 int
-send_mac_to_plugin (char *buffer, struct MacAddress * mac)
+send_mac_to_plugin (char *buffer, struct MacAddress *mac)
 {
 
   struct Wlan_Helper_Control_Message macmsg;
 
-  memcpy (&macmsg.mac,(char *) mac, sizeof (struct MacAddress));
+  memcpy (&macmsg.mac, (char *) mac, sizeof (struct MacAddress));
   macmsg.hdr.size = htons (sizeof (struct Wlan_Helper_Control_Message));
   macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
 

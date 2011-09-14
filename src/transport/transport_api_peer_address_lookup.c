@@ -141,12 +141,13 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
 
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (client == NULL)
-    return NULL;  
+    return NULL;
   msg.header.size = htons (sizeof (struct PeerAddressLookupMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP);
   msg.timeout = GNUNET_TIME_relative_hton (timeout);
   memcpy (&msg.peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  alc = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PeerAddressLookupContext));
+  alc =
+      GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PeerAddressLookupContext));
   alc->cb = peer_address_callback;
   alc->cb_cls = peer_address_callback_cls;
   alc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
@@ -166,7 +167,9 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
  * @param alc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_peer_address_lookup_cancel (struct GNUNET_TRANSPORT_PeerAddressLookupContext *alc)
+GNUNET_TRANSPORT_peer_address_lookup_cancel (struct
+                                             GNUNET_TRANSPORT_PeerAddressLookupContext
+                                             *alc)
 {
   GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
   GNUNET_free (alc);

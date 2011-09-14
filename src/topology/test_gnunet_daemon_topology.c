@@ -81,14 +81,14 @@ clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
-  for (i=0;i<NUM_PEERS;i++)
+  for (i = 0; i < NUM_PEERS; i++)
+  {
+    if (NULL != cc[i])
     {
-      if (NULL != cc[i])
-	{
-	  GNUNET_TESTING_daemons_connect_cancel (cc[i]);
-	  cc[i] = NULL;
-	}
+      GNUNET_TESTING_daemons_connect_cancel (cc[i]);
+      cc[i] = NULL;
     }
+  }
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
   ok = 0;
 }
@@ -111,12 +111,12 @@ notify_connect_complete (void *cls, const struct GNUNET_PeerIdentity *first,
   if (NULL != emsg)
   {
     fprintf (stderr, "Failed to connect two peers: %s\n", emsg);
-    for (i=0;i<NUM_PEERS;i++)
+    for (i = 0; i < NUM_PEERS; i++)
       if (NULL != cc[i])
-	{
-	  GNUNET_TESTING_daemons_connect_cancel (cc[i]);
-	  cc[i] = NULL;
-	}
+      {
+        GNUNET_TESTING_daemons_connect_cancel (cc[i]);
+        cc[i] = NULL;
+      }
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     GNUNET_assert (0);
     return;
@@ -145,13 +145,17 @@ my_cb (void *cls, const struct GNUNET_PeerIdentity *id,
     last = d;
     return;
   }
-  cc[peers_left] = GNUNET_TESTING_daemons_connect (last, d, TIMEOUT, CONNECT_ATTEMPTS,
-						   GNUNET_YES, &notify_connect_complete, &cc[peers_left]);
+  cc[peers_left] =
+      GNUNET_TESTING_daemons_connect (last, d, TIMEOUT, CONNECT_ATTEMPTS,
+                                      GNUNET_YES, &notify_connect_complete,
+                                      &cc[peers_left]);
   if (peers_left == 0)
   {
     /* close circle */
-    cc[NUM_PEERS-1] = GNUNET_TESTING_daemons_connect (d, first, TIMEOUT, CONNECT_ATTEMPTS,
-						      GNUNET_YES, &notify_connect_complete, &cc[NUM_PEERS-1]);
+    cc[NUM_PEERS - 1] =
+        GNUNET_TESTING_daemons_connect (d, first, TIMEOUT, CONNECT_ATTEMPTS,
+                                        GNUNET_YES, &notify_connect_complete,
+                                        &cc[NUM_PEERS - 1]);
   }
 }
 

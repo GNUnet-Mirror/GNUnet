@@ -773,7 +773,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   GNUNET_PEER_Id id;
   uint16_t size;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh: processig peer event\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: processig peer event\n");
   size = ntohs (msg->header.size);
   if (size != sizeof (struct GNUNET_MESH_PeerControl))
   {
@@ -789,9 +789,9 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   id = GNUNET_PEER_search (&msg->peer);
   if ((p = retrieve_peer (t, id)) == NULL)
     p = add_peer_to_tunnel (t, &msg->peer);
-  if (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD == ntohs(msg->header.type))
+  if (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD == ntohs (msg->header.type))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh: adding peer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: adding peer\n");
     if (NULL != t->connect_handler)
     {
       atsi.type = 0;
@@ -802,7 +802,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   }
   else
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh: removing peer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: removing peer\n");
     if (NULL != t->disconnect_handler && p->connected)
     {
       t->disconnect_handler (t->cls, &msg->peer);
@@ -810,7 +810,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
     remove_peer_from_tunnel (p);
     GNUNET_free (p);
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh: processing peer event END\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: processing peer event END\n");
 }
 
 
@@ -1165,12 +1165,13 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
     apps = (GNUNET_MESH_ApplicationType *) &msg[1];
     for (napps = 0; napps < h->n_applications; napps++)
     {
-      apps[napps] = htonl(h->applications[napps]);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh:  app %u\n", h->applications[napps]);
+      apps[napps] = htonl (h->applications[napps]);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:  app %u\n",
+                  h->applications[napps]);
     }
-    types = (uint16_t *) &apps[napps];
+    types = (uint16_t *) & apps[napps];
     for (ntypes = 0; ntypes < h->n_handlers; ntypes++)
-      types[ntypes] = htons(h->message_handlers[ntypes].type);
+      types[ntypes] = htons (h->message_handlers[ntypes].type);
     msg->applications = htons (napps);
     msg->types = htons (ntypes);
 #if DEBUG

@@ -1407,23 +1407,12 @@ add_new_connection (struct FindPeerContext *find_peer_context,
 }
 
 static void
-did_connect (void *cls, 
-	     const struct
-	     GNUNET_PeerIdentity * first,
-	     const struct
-	     GNUNET_PeerIdentity * second,
-	     uint32_t distance,
-	     const struct
-	     GNUNET_CONFIGURATION_Handle *
-	     first_cfg,
-	     const struct
-	     GNUNET_CONFIGURATION_Handle *
-	     second_cfg,
-	     struct GNUNET_TESTING_Daemon *
-	     first_daemon,
-	     struct GNUNET_TESTING_Daemon *
-	     second_daemon,
-	     const char *emsg)
+did_connect (void *cls, const struct GNUNET_PeerIdentity *first,
+             const struct GNUNET_PeerIdentity *second, uint32_t distance,
+             const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+             const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+             struct GNUNET_TESTING_Daemon *first_daemon,
+             struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
 {
   struct FindPeerContext *find_peer_context = cls;
 
@@ -1457,7 +1446,8 @@ iterate_min_heap_peers (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
     d1 = GNUNET_TESTING_daemon_get_by_id (pg, &peer_count->peer_id);
     GNUNET_assert (d1 != NULL);
     d2 = d1;
-    while ((d2 == d1) || (GNUNET_YES != GNUNET_TESTING_test_daemon_running (d2)))
+    while ((d2 == d1) ||
+           (GNUNET_YES != GNUNET_TESTING_test_daemon_running (d2)))
     {
       d2 = GNUNET_TESTING_daemon_get (pg,
                                       GNUNET_CRYPTO_random_u32
@@ -1479,10 +1469,10 @@ iterate_min_heap_peers (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
     }
     if (NULL != find_peer_context->cc)
       GNUNET_TESTING_daemons_connect_cancel (find_peer_context->cc);
-    find_peer_context->cc = GNUNET_TESTING_daemons_connect (d1, d2, timeout, DEFAULT_RECONNECT_ATTEMPTS,
-							    GNUNET_YES, 
-							    &did_connect, 
-							    find_peer_context);
+    find_peer_context->cc =
+        GNUNET_TESTING_daemons_connect (d1, d2, timeout,
+                                        DEFAULT_RECONNECT_ATTEMPTS, GNUNET_YES,
+                                        &did_connect, find_peer_context);
   }
   if (GNUNET_TIME_absolute_get_remaining (find_peer_context->endtime).rel_value
       > 0)
@@ -1602,7 +1592,7 @@ count_peers_churn_cb (void *cls, const struct GNUNET_PeerIdentity *first,
       GNUNET_CONTAINER_multihashmap_destroy (find_peer_context->peer_hash);
       GNUNET_CONTAINER_heap_destroy (find_peer_context->peer_min_heap);
       if (NULL != find_peer_context->cc)
-	GNUNET_TESTING_daemons_connect_cancel (find_peer_context->cc);
+        GNUNET_TESTING_daemons_connect_cancel (find_peer_context->cc);
       GNUNET_free (find_peer_context);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Churn round %u of %llu finished, scheduling next GET round.\n",
@@ -2120,7 +2110,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Set this here in case we are re-running gets */
   test_get->succeeded = GNUNET_NO;
 
-  if (GNUNET_YES != GNUNET_TESTING_test_daemon_running (test_get->daemon))   /* If the peer has been churned off, don't try issuing request from it! */
+  if (GNUNET_YES != GNUNET_TESTING_test_daemon_running (test_get->daemon))      /* If the peer has been churned off, don't try issuing request from it! */
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer we should issue get request from is down, skipping.\n");
@@ -2237,7 +2227,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (test_put == NULL)
     return;                     /* End of list */
 
-  if (GNUNET_YES != GNUNET_TESTING_test_daemon_running (test_put->daemon))   /* If the peer has been churned off, don't try issuing request from it! */
+  if (GNUNET_YES != GNUNET_TESTING_test_daemon_running (test_put->daemon))      /* If the peer has been churned off, don't try issuing request from it! */
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer we should issue put request at is down, skipping.\n");
@@ -2357,7 +2347,7 @@ count_peers_cb (void *cls, const struct GNUNET_PeerIdentity *first,
       GNUNET_CONTAINER_multihashmap_destroy (find_peer_context->peer_hash);
       GNUNET_CONTAINER_heap_destroy (find_peer_context->peer_min_heap);
       if (NULL != find_peer_context->cc)
-	GNUNET_TESTING_daemons_connect_cancel (find_peer_context->cc);
+        GNUNET_TESTING_daemons_connect_cancel (find_peer_context->cc);
       GNUNET_free (find_peer_context);
       fprintf (stderr, "Not sending any more find peer requests.\n");
 

@@ -87,7 +87,8 @@ GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
  * @param cc operation to cancel
  */
 void
-GNUNET_FS_TEST_daemons_connect_cancel (struct GNUNET_FS_TEST_ConnectContext *cc);
+GNUNET_FS_TEST_daemons_connect_cancel (struct GNUNET_FS_TEST_ConnectContext
+                                       *cc);
 
 
 /**

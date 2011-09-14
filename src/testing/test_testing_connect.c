@@ -116,8 +116,8 @@ my_cb2 (void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon `%s' started.\n",
               GNUNET_i2s (id));
 #endif
-  cc = GNUNET_TESTING_daemons_connect (d1, d2, TIMEOUT, CONNECT_ATTEMPTS, GNUNET_YES,
-				       &my_connect_complete, NULL);
+  cc = GNUNET_TESTING_daemons_connect (d1, d2, TIMEOUT, CONNECT_ATTEMPTS,
+                                       GNUNET_YES, &my_connect_complete, NULL);
 }
 
 

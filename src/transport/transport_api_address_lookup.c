@@ -140,8 +140,8 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   }
   client = GNUNET_CLIENT_connect ("transport", cfg);
-  if (client == NULL)    
-    return NULL;  
+  if (client == NULL)
+    return NULL;
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP);
@@ -172,7 +172,9 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param alc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_address_lookup_cancel (struct GNUNET_TRANSPORT_AddressLookupContext *alc)
+GNUNET_TRANSPORT_address_lookup_cancel (struct
+                                        GNUNET_TRANSPORT_AddressLookupContext
+                                        *alc)
 {
   GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
   GNUNET_free (alc);

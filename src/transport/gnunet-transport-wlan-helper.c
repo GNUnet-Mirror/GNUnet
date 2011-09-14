@@ -1026,4 +1026,3 @@ getChannelFromFrequency (int frequency)
   else
     return -1;
 }
-

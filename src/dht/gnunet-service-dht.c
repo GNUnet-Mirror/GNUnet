@@ -858,10 +858,9 @@ static struct GNUNET_NSE_Handle *nse;
  * @param std_dev standard deviation for the estimate
  *
  */
-static void 
-update_network_size_estimate (void *cls,
-			      struct GNUNET_TIME_Absolute timestamp,
-			      double logestimate, double std_dev)
+static void
+update_network_size_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
+                              double logestimate, double std_dev)
 {
   log_of_network_size_estimate = logestimate;
 }
@@ -947,7 +946,7 @@ increment_stats (const char *value)
 {
   if (stats == NULL)
     return;
-  GNUNET_STATISTICS_update (stats, value, 1, GNUNET_NO);  
+  GNUNET_STATISTICS_update (stats, value, 1, GNUNET_NO);
 }
 
 
@@ -956,7 +955,7 @@ decrement_stats (const char *value)
 {
   if (stats == NULL)
     return;
-  GNUNET_STATISTICS_update (stats, value, -1, GNUNET_NO);  
+  GNUNET_STATISTICS_update (stats, value, -1, GNUNET_NO);
 }
 
 
@@ -1630,8 +1629,7 @@ forward_message (const struct GNUNET_MessageHeader *msg, struct PeerInfo *peer,
 static void
 process_pending_messages (struct ClientList *client)
 {
-  if ( (client->pending_head == NULL) ||
-       (client->transmit_handle != NULL) )
+  if ((client->pending_head == NULL) || (client->transmit_handle != NULL))
     return;
   client->transmit_handle =
       GNUNET_SERVER_notify_transmit_ready (client->client_handle,
@@ -2659,7 +2657,8 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
 #endif
 
 //   GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "******************************************************** PUT 1\n");
-  record = GNUNET_CONTAINER_multihashmap_get(forward_list.hashmap, &msg_ctx->key);
+  record =
+      GNUNET_CONTAINER_multihashmap_get (forward_list.hashmap, &msg_ctx->key);
   if (NULL != record)
   {
     struct DHTRouteSource *pos;
@@ -2675,16 +2674,16 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
       if (NULL == pos->client)
         continue;
 
-      gsize = data_size + sizeof(struct GNUNET_DHT_GetMessage);
-      gmsg = GNUNET_malloc(gsize);
-      gmsg->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_GET_RESULT);
-      gmsg->header.size = htons(gsize);
+      gsize = data_size + sizeof (struct GNUNET_DHT_GetMessage);
+      gmsg = GNUNET_malloc (gsize);
+      gmsg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET_RESULT);
+      gmsg->header.size = htons (gsize);
       gmsg->type = put_msg->type;
-      memcpy(&gmsg[1], &put_msg[1], data_size);
+      memcpy (&gmsg[1], &put_msg[1], data_size);
 
       /* TODO: duplicate and reverse order of path_history? */
       send_reply_to_client (pos->client, &gmsg->header, msg_ctx);
-      GNUNET_free(gmsg);
+      GNUNET_free (gmsg);
     }
   }
 //   GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "******************************************************** PUT END\n");
@@ -2783,20 +2782,20 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   {
     if (hop_count == 0)
       return kademlia_replication;
-     if (hop_count < log_of_network_size_estimate * 2.0)
+    if (hop_count < log_of_network_size_estimate * 2.0)
       return 1;
     return 0;
   }
 
   if (hop_count > log_of_network_size_estimate * 2.0)
   {
-    if (GNUNET_YES == paper_forwarding) 
+    if (GNUNET_YES == paper_forwarding)
     {
       /* Once we have reached our ideal number of hops, don't stop forwarding! */
       return 1;
     }
 #if DEBUG_DHT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,		
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Hop count too high (est %f, lowest %d), NOT Forwarding request\n",
                 log_of_network_size_estimate * 2.0, lowest_bucket);
 #endif
@@ -2893,7 +2892,7 @@ am_closest_peer (const GNUNET_HashCode * target,
     {
       if (strict_kademlia != GNUNET_YES)        /* Return that we at as close as any other peer */
         return GNUNET_YES;
-      if (distance (&pos->id.hashPubKey, target) < my_distance)    /* Check all known peers, only return if we are the true closest */
+      if (distance (&pos->id.hashPubKey, target) < my_distance) /* Check all known peers, only return if we are the true closest */
         return GNUNET_NO;
     }
     pos = pos->next;
@@ -2932,8 +2931,7 @@ select_peer (const GNUNET_HashCode * target,
   struct PeerInfo *chosen;
 
   /** If we are doing kademlia routing (saves some cycles) */
-  if ( (strict_kademlia == GNUNET_YES) ||
-       (hops >= log_of_network_size_estimate) )
+  if ((strict_kademlia == GNUNET_YES) || (hops >= log_of_network_size_estimate))
   {
     /* greedy selection (closest peer that is not in bloomfilter) */
     largest_distance = 0;
@@ -2964,7 +2962,7 @@ select_peer (const GNUNET_HashCode * target,
       GNUNET_CONTAINER_bloomfilter_add (bloom, &chosen->id.hashPubKey);
       return chosen;
     }
-    return NULL; /* no peer available or we are the closest */
+    return NULL;                /* no peer available or we are the closest */
   }
 
 
@@ -2986,14 +2984,13 @@ select_peer (const GNUNET_HashCode * target,
       pos = pos->next;
     }
   }
-  if (count == 0)      /* No peers to select from! */
+  if (count == 0)               /* No peers to select from! */
   {
     increment_stats ("# failed to select peer");
     return NULL;
   }
   /* Now actually choose a peer */
-  selected =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, count);
+  selected = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, count);
   count = 0;
   for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
   {
@@ -3007,7 +3004,7 @@ select_peer (const GNUNET_HashCode * target,
         continue;               /* Ignore bloomfiltered peers */
       }
       if (0 == selected--)
-	return pos;	
+        return pos;
       pos = pos->next;
     }
   }
@@ -3105,10 +3102,10 @@ cache_response (struct DHT_MessageContext *msg_ctx)
     pos = record->head;
     while (pos != NULL)
     {
-      if ( (NULL != msg_ctx->peer) &&
-	   (0 ==
-	    memcmp (msg_ctx->peer, &pos->source,
-		    sizeof (struct GNUNET_PeerIdentity))) )
+      if ((NULL != msg_ctx->peer) &&
+          (0 ==
+           memcmp (msg_ctx->peer, &pos->source,
+                   sizeof (struct GNUNET_PeerIdentity))))
         break;                  /* Already have this peer in reply list! */
       pos = pos->next;
     }
@@ -3280,7 +3277,7 @@ route_message (const struct GNUNET_MessageHeader *msg,
     recent_req = GNUNET_CONTAINER_heap_peek (recent.minHeap);
     GNUNET_assert (recent_req != NULL);
     GNUNET_SCHEDULER_cancel (recent_req->remove_task);
-    recent_req->remove_task = 
+    recent_req->remove_task =
         GNUNET_SCHEDULER_add_now (&remove_recent, recent_req);
   }
 
@@ -3591,8 +3588,8 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "%s:%s Sending malicious PUT message with hash %s\n", my_short_id,
               "DHT", GNUNET_h2s (&key));
   demultiplex_message (&put_message.header, &msg_ctx);
-  GNUNET_SCHEDULER_add_delayed (malicious_put_frequency, 
-				&malicious_put_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (malicious_put_frequency, &malicious_put_task,
+                                NULL);
 }
 
 
@@ -3639,8 +3636,8 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "%s:%s Sending malicious GET message with hash %s\n", my_short_id,
               "DHT", GNUNET_h2s (&key));
   demultiplex_message (&get_message.header, &msg_ctx);
-  GNUNET_SCHEDULER_add_delayed (malicious_get_frequency,
-				&malicious_get_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (malicious_get_frequency, &malicious_get_task,
+                                NULL);
 }
 #endif
 
@@ -3811,7 +3808,7 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
     msg_ctx.path_history_len = 1;
   }
   msg_ctx.network_size = log_of_network_size_estimate;
-  msg_ctx.peer = &my_identity; /* FIXME bart NULL? Fix doxygen? */
+  msg_ctx.peer = &my_identity;  /* FIXME bart NULL? Fix doxygen? */
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 4;  /* Make local routing a higher priority */
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
 
@@ -4066,10 +4063,10 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
         ntohl (incoming->outgoing_path_length) *
         sizeof (struct GNUNET_PeerIdentity);
     if (ntohs (message->size) !=
-          (sizeof (struct GNUNET_DHT_P2PRouteMessage) +
-          ntohs (enc_msg->size) + path_size))
+        (sizeof (struct GNUNET_DHT_P2PRouteMessage) + ntohs (enc_msg->size) +
+         path_size))
     {
-      GNUNET_break_op(0);
+      GNUNET_break_op (0);
       return GNUNET_YES;
     }
     route_path = (char *) &incoming[1];
@@ -4524,8 +4521,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   datacache = GNUNET_DATACACHE_create (cfg, "dhtcache");
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  nse = GNUNET_NSE_connect (cfg,
-			    &update_network_size_estimate, NULL);
+  nse = GNUNET_NSE_connect (cfg, &update_network_size_estimate, NULL);
   coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
                                  DEFAULT_CORE_QUEUE_SIZE,       /* queue size */
                                  NULL,  /* Closure passed to DHT functions */
@@ -4587,8 +4583,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     malicious_getter = GNUNET_YES;
     if (GNUNET_NO ==
         GNUNET_CONFIGURATION_get_value_time (cfg, "DHT",
-					     "MALICIOUS_GET_FREQUENCY",
-					     &malicious_get_frequency))
+                                             "MALICIOUS_GET_FREQUENCY",
+                                             &malicious_get_frequency))
       malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
   }
 
@@ -4598,8 +4594,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     malicious_putter = GNUNET_YES;
     if (GNUNET_NO ==
         GNUNET_CONFIGURATION_get_value_time (cfg, "DHT",
-					     "MALICIOUS_PUT_FREQUENCY",
-					     &malicious_put_frequency))
+                                             "MALICIOUS_PUT_FREQUENCY",
+                                             &malicious_put_frequency))
       malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
   }
 
@@ -4721,7 +4717,8 @@ main (int argc, char *const *argv)
   int ret;
 
   recent.hashmap = GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT / 2);
-  recent.minHeap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  recent.minHeap =
+      GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   recent_find_peer_requests =
       GNUNET_CONTAINER_multihashmap_create (MAX_BUCKETS / 8);
   ret =
@@ -4730,12 +4727,12 @@ main (int argc, char *const *argv)
                            NULL)) ? 0 : 1;
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (recent.hashmap));
   GNUNET_CONTAINER_multihashmap_destroy (recent.hashmap);
-  recent.hashmap = NULL;  
+  recent.hashmap = NULL;
   GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (recent.minHeap));
   GNUNET_CONTAINER_heap_destroy (recent.minHeap);
   recent.minHeap = NULL;
   GNUNET_CONTAINER_multihashmap_destroy (recent_find_peer_requests);
-  recent_find_peer_requests = NULL;  
+  recent_find_peer_requests = NULL;
   return ret;
 }
 
