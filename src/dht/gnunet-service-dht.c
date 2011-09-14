@@ -3591,7 +3591,7 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "%s:%s Sending malicious PUT message with hash %s\n", my_short_id,
               "DHT", GNUNET_h2s (&key));
   demultiplex_message (&put_message.header, &msg_ctx);
-  GNUNET_SCHEDULER_add_delayed (mlicious_put_frequency, 
+  GNUNET_SCHEDULER_add_delayed (malicious_put_frequency, 
 				&malicious_put_task, NULL);
 }
 
