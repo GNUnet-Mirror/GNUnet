@@ -49,7 +49,7 @@
 /**
  * Max size of packet
  */
-#define WLAN_MTU 1450
+#define WLAN_MTU 1430
 
 /**
  * time out of a session
@@ -88,6 +88,12 @@
  * max messages in in queue per session/client
  */
 #define MESSAGES_IN_DEFRAG_QUEUE_PER_MAC 1
+
+/**
+ * LLC fields for better compatibility
+ */
+#define WLAN_LLC_DSAP_FIELD 0xf
+#define WLAN_LLC_SSAP_FIELD 0xf
 
 
 /**
@@ -156,8 +162,8 @@ struct ieee80211_frame
   u_int8_t i_addr2[IEEE80211_ADDR_LEN];
   u_int8_t i_addr3[IEEE80211_ADDR_LEN];
   u_int8_t i_seq[2];
-#if DEBUG_wlan_ip_udp_packets_on_air
   u_int8_t llc[4];
+#if DEBUG_wlan_ip_udp_packets_on_air
   struct iph ip;
   struct udphdr udp;
 #endif
@@ -1086,16 +1092,24 @@ get_next_queue_session (struct Plugin *plugin)
     GNUNET_assert (session != NULL);
     pm = session->pending_message_head;
 
-#if DEBUG_wlan
     if (pm == NULL)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "pending message is empty, should not happen. session %p\n",
-                       session);
-    }
+        {
+#if DEBUG_wlan
+          GNUNET_log_from(GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+              "pending message is empty, should not happen. session %p\n",
+              session);
 #endif
+          sessionqueue_alt = sessionqueue;
+          sessionqueue = sessionqueue->next;
+          plugin->pendingsessions--;
+          GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions_head,
+              plugin->pending_Sessions_tail,
+              sessionqueue_alt);
 
-    GNUNET_assert (pm != NULL);
+          GNUNET_free (sessionqueue_alt);
+          continue;
+
+        }
 
     //check for message timeout
     if (GNUNET_TIME_absolute_get_remaining (pm->timeout).rel_value > 0)
@@ -1248,6 +1262,8 @@ getWlanHeader (struct ieee80211_frame *Header,
 
   tmp16 = (uint16_t *) Header->i_dur;
   *tmp16 = (uint16_t) htole16 ((size * 1000000) / rate + 290);
+  Header->llc[0] = WLAN_LLC_DSAP_FIELD;
+  Header->llc[1] = WLAN_LLC_SSAP_FIELD;
 
 #if DEBUG_wlan_ip_udp_packets_on_air
   uint crc = 0;
@@ -1275,8 +1291,6 @@ getWlanHeader (struct ieee80211_frame *Header,
     crc += *(unsigned char *) x;
   crc = (crc & 0xffff) + (crc >> 16);
   Header->ip.ip_sum = htons (~(unsigned short) crc);
-  Header->llc[0] = 6;
-  Header->llc[1] = 6;
   Header->udp.len = htons (size - sizeof (struct ieee80211_frame));
 
 #endif
@@ -2592,13 +2606,17 @@ wlan_process_helper (void *cls, void *client,
          sizeof (struct MacAddress)) == 0)
     {
       //check for broadcast or mac
-      if (memcmp
+      if ((memcmp
           (&(wlanIeeeHeader->i_addr1), &bc_all_mac,
-           sizeof (struct MacAddress) == 0) ||
-          memcmp (&(wlanIeeeHeader->i_addr1), &(plugin->mac_address),
-                  sizeof (struct MacAddress)) == 0)
+           sizeof (struct MacAddress)) == 0) ||
+          (memcmp (&(wlanIeeeHeader->i_addr1), &(plugin->mac_address),
+                  sizeof (struct MacAddress)) == 0))
       {
-
+          //if packet is from us return
+          if ((memcmp (&(wlanIeeeHeader->i_addr2), &(plugin->mac_address),
+                  sizeof (struct MacAddress)) == 0)){
+              return;
+          }
         // process the inner data
 
 
@@ -2983,10 +3001,9 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   }
 
   //start the plugin
-  set_next_beacon_time (plugin);
-
   wlan_transport_start_wlan_helper (plugin, testmode);
-
+  set_next_beacon_time (plugin);
+  set_next_send(plugin);
 #if DEBUG_wlan
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                    "wlan init finished\n");
