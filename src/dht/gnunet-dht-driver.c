@@ -711,7 +711,7 @@ static unsigned long long cumulative_successful_gets;
  */
 static unsigned long long gets_failed;
 
-#ifndef HAVE_MALICIOUS
+#ifdef HAVE_MALICIOUS
 /**
  * How many malicious control messages do
  * we currently have in flight?
