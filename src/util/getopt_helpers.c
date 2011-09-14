@@ -223,8 +223,7 @@ GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   char **val = scls;
 
   GNUNET_assert (value != NULL);
-  if (NULL != *val)
-    GNUNET_free (*val);
+  GNUNET_free_non_null (*val);
   *val = GNUNET_strdup (value);
   return GNUNET_OK;
 }
