@@ -470,7 +470,7 @@ GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
 
 /**
  * Retrieve the MeshPeerInfo stucture associated with the peer, create one
- * and inster it in the appropiate structures if the peer is not known yet.
+ * and insert it in the appropiate structures if the peer is not known yet.
  * @param peer Identity of the peer
  * @return Existing or newly created peer info
  */
@@ -817,8 +817,6 @@ static int
 announce_application (void *cls, const GNUNET_HashCode * key, void *value)
 {
   /* FIXME are hashes in multihash map equal on all aquitectures? */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  putting in DHT %s\n",
-              GNUNET_h2s_full (key));
   GNUNET_DHT_put (dht_handle, key, 10U, GNUNET_DHT_RO_RECORD_ROUTE,
                   GNUNET_BLOCK_TYPE_TEST, sizeof (struct GNUNET_PeerIdentity),
                   (const char *) &my_full_id,
@@ -954,13 +952,23 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf)
       p->length * sizeof (struct GNUNET_PeerIdentity);
   if (size < size_needed)
   {
-    // TODO retry? cancel?
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Retransmitting create path\n");
+    GNUNET_PEER_resolve (get_first_hop (peer_info->path), &id);
+    GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
+                                       GNUNET_TIME_UNIT_FOREVER_REL, &id,
+                                       sizeof (struct
+                                               GNUNET_MESH_ManipulatePath) +
+                                       (peer_info->path->length *
+                                        sizeof (struct GNUNET_PeerIdentity)),
+                                       &send_core_create_path_for_peer,
+                                       peer_info);
     return 0;
   }
 
   msg = (struct GNUNET_MESH_ManipulatePath *) buf;
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
+  msg->tid = 0; /* FIXME */
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
@@ -1147,6 +1155,7 @@ send_core_path_ack (void *cls, size_t size, void *buf)
   GNUNET_PEER_resolve (info->origin->oid, &msg->oid);
   msg->tid = htonl (info->origin->tid);
   msg->peer_id = my_full_id;
+  GNUNET_free(info);
   /* TODO add signature */
 
   return sizeof (struct GNUNET_MESH_PathACK);
@@ -1950,11 +1959,11 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                       const void *data)
 {
   const struct GNUNET_PeerIdentity *pi = data;
+  struct GNUNET_PeerIdentity id;
   struct MeshTunnel *t = cls;
   struct MeshPeerInfo *peer_info;
   struct MeshPath *p;
   int i;
-
 
   if (size != sizeof (struct GNUNET_PeerIdentity))
   {
@@ -1967,21 +1976,27 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   peer_info = get_peer_info (pi);
   GNUNET_CONTAINER_multihashmap_put (t->peers, &pi->hashPubKey, peer_info,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  if ((NULL == get_path || NULL == put_path) && NULL == peer_info->path)
+
+  if ((NULL == get_path || NULL == put_path) &&
+    NULL == peer_info->path &&
+    NULL == peer_info->dhtget)
   {
     /* we don't have a route to the peer, let's try a direct lookup */
-    if (NULL == peer_info->dhtget)
-    {
-      peer_info->dhtget = GNUNET_DHT_get_start (dht_handle,     /* handle */
-                                                GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_BLOCK_TYPE_TEST, &pi->hashPubKey, 10U,     /* replication level */
-                                                GNUNET_DHT_RO_RECORD_ROUTE, NULL,       /* bloom filter */
-                                                0,      /* mutator */
-                                                NULL,   /* xquery */
-                                                0,      /* xquery bits */
-                                                dht_get_id_handler, peer_info);
-    }
+    peer_info->dhtget = GNUNET_DHT_get_start (
+      dht_handle,     /* handle */
+      GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
+      GNUNET_BLOCK_TYPE_TEST, /* block type */
+      &pi->hashPubKey, /* key to look up */
+      10U,     /* replication level */
+      GNUNET_DHT_RO_RECORD_ROUTE, /* option to dht: record route */
+      NULL,   /* bloom filter */
+      0,      /* mutator */
+      NULL,   /* xquery */
+      0,      /* xquery bits */
+      dht_get_id_handler,       /* callback */
+      peer_info);       /* closure */
   }
-  /* TODO refactor */
+
   p = GNUNET_malloc (sizeof (struct MeshPath));
   for (i = 0; get_path[i] != NULL; i++) ;
   for (i--; i >= 0; i--)
@@ -2000,15 +2015,32 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     p->length++;
   }
   add_path_to_peer (peer_info, p);
-  GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-                                     GNUNET_TIME_UNIT_FOREVER_REL, get_path[1],
-                                     sizeof (struct GNUNET_MESH_ManipulatePath)
-                                     +
-                                     (p->length *
-                                      sizeof (struct GNUNET_PeerIdentity)),
-                                     &send_core_create_path_for_peer,
-                                     peer_info);
+#if MESH_DEBUG
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "MESH: new route for tunnel 0x%x found, has %u hops\n",
+             t->local_tid,
+             p->length);
+  for (i = 0; i < p->length; i++)
+  {
+    GNUNET_PEER_resolve(p->peers[0], &id);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:\t%d\t%s\n",
+               i,
+              GNUNET_h2s_full(&id.hashPubKey));
+  }
+#endif
 
+  GNUNET_PEER_resolve (p->peers[1], &id);
+  GNUNET_CORE_notify_transmit_ready (
+    core_handle,       /* handle */
+    0,                 /* cork */
+    0,                 /* priority*/
+    GNUNET_TIME_UNIT_FOREVER_REL,       /* timeout */
+    &id,       /* target */
+    sizeof (struct GNUNET_MESH_ManipulatePath) +
+    (p->length * sizeof (struct GNUNET_PeerIdentity)),          /*size */
+    &send_core_create_path_for_peer,    /* callback */
+    peer_info);        /* cls */
 }
 
 /******************************************************************************/
