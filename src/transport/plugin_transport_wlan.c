@@ -64,7 +64,7 @@
 /**
  * scaling factor for hello beacon
  */
-#define HALLO_BEACON_SCALING_FACTOR 900
+#define HALLO_BEACON_SCALING_FACTOR 1
 
 /**
  * max size of fragment queue
@@ -2754,14 +2754,14 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin, int testmode)
                      filenamehw, plugin->interface, testmode);
 #endif
 
-    if (GNUNET_OS_check_helper_binary(filenameloopback) == GNUNET_YES)
+    if (GNUNET_OS_check_helper_binary(filenamehw) == GNUNET_YES)
       {
       plugin->server_proc =
               GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
                                        filenamehw, filenamehw, plugin->interface,
                                        NULL);
       }
-    else if (GNUNET_OS_check_helper_binary(filenameloopback) == GNUNET_NO)
+    else if (GNUNET_OS_check_helper_binary(filenamehw) == GNUNET_NO)
       {
         GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
                                  "gnunet-transport-wlan-helper is not suid, please change it or look at the doku\n");
