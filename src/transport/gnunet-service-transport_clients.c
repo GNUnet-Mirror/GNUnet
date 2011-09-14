@@ -636,7 +636,7 @@ transmit_address_to_client (void *cls, const char *buf)
     GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
     return;
   }
-  GNUNET_SERVER_transmit_context_append_data (tc, buf, strlen (buf + 1),
+  GNUNET_SERVER_transmit_context_append_data (tc, buf, strlen (buf) + 1,
                                               GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
 }
 

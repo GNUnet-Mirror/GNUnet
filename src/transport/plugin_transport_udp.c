@@ -1065,7 +1065,8 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
     return NULL;
   }
   inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
-  GNUNET_snprintf (rbuf, sizeof (rbuf), "%s:%u", buf, port);
+  GNUNET_snprintf (rbuf, sizeof (rbuf), (af == AF_INET6) ? "[%s]:%u" : "%s:%u",
+		   buf, port);
   return rbuf;
 }
 

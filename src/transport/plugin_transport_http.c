@@ -2905,7 +2905,9 @@ http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
     return NULL;
   }
 
-  res = GNUNET_snprintf (rbuf, sizeof (rbuf), "%s:%u", address, port);
+  res = GNUNET_snprintf (rbuf, sizeof (rbuf), 
+			 (addrlen == sizeof (struct IPv6HttpAddress)) ? "[%s]:%u" : "%s:%u",
+			 address, port);
 
   GNUNET_free (address);
   GNUNET_assert (res != 0);
