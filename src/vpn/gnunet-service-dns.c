@@ -1131,6 +1131,7 @@ get_port_from_redirects (const char *udp_redirects, const char *tcp_redirects)
   int local_port;
   unsigned int count = 0;
 
+  cpy = NULL;
   if (NULL != udp_redirects)
   {
     cpy = GNUNET_strdup (udp_redirects);
