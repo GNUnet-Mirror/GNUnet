@@ -3195,7 +3195,6 @@ cache_response (struct DHT_MessageContext *msg_ctx)
                                     source_info);
   source_info->find_peers_responded =
       GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
-  /* FIXME bart assign instead of memcpy (more explicit) */
   source_info->source = *msg_ctx->peer;
   GNUNET_CONTAINER_DLL_insert_after (record->head, record->tail, record->tail,
                                      source_info);
@@ -3871,7 +3870,7 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
     msg_ctx.path_history_len = 1;
   }
   msg_ctx.network_size = log_of_network_size_estimate;
-  msg_ctx.peer = &my_identity;  /* FIXME bart NULL? Fix doxygen? */
+  msg_ctx.peer = &my_identity;  /* FIXME: use NULL? Fix doxygen? */
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 4;  /* Make local routing a higher priority */
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
 
