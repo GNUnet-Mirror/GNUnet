@@ -551,7 +551,7 @@ check ()
   int ret;
 
   /* Arguments for GNUNET_PROGRAM_run */
-  char *const argv[] = { "test-dht-twopeer-put-get",    /* Name to give running binary */
+  char *const argv[] = { "test-dht-twopeer-get-put",    /* Name to give running binary */
     "-c",
     "test_dht_twopeer_data.conf",       /* Config file to use */
 #if VERBOSE
@@ -565,7 +565,7 @@ check ()
   /* Run the run function as a new program */
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                          "test-dht-twopeer-put-get", "nohelp", options, &run,
+                          "test-dht-twopeer-get-put", "nohelp", options, &run,
                           &ok);
   if (ret != GNUNET_OK)
   {

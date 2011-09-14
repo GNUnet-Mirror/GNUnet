@@ -162,6 +162,7 @@ if ENABLE_TEST_RUN
 TESTS = test_dht_api $(check_SCRIPTS) \
  test_dht_twopeer \
  test_dht_twopeer_put_get \
+ test_dht_twopeer_get_put \
  test_dht_twopeer_path_tracking \
  test_dht_multipeer \
  test_dhtlog
