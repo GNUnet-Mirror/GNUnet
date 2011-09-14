@@ -1123,12 +1123,13 @@ cleanup_task (void *cls
  *
  * @return
  */
-uint64_t
+static uint64_t
 get_port_from_redirects (const char *udp_redirects, const char *tcp_redirects)
 {
   uint64_t ret = 0;
   char *cpy, *hostname, *redirect;
-  int local_port, count = 0;
+  int local_port;
+  unsigned int count = 0;
 
   if (NULL != udp_redirects)
   {
@@ -1197,12 +1198,11 @@ get_port_from_redirects (const char *udp_redirects, const char *tcp_redirects)
   }
 
 out:
-  if (NULL != cpy)
-    GNUNET_free (cpy);
+  GNUNET_free_non_null (cpy);
   return ret;
 }
 
-void
+static void
 publish_name (const char *name, uint64_t ports, uint32_t service_type,
               struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key)
 {
@@ -1245,28 +1245,36 @@ publish_name (const char *name, uint64_t ports, uint32_t service_type,
                   GNUNET_TIME_UNIT_MINUTES, NULL, NULL);
 }
 
+
 /**
  * @brief Publishes the record defined by the section section
  *
  * @param cls closure
  * @param section the current section
  */
-void
+static void
 publish_iterate (void *cls __attribute__ ((unused)), const char *section)
 {
+  char *udp_redirects;
+  char *tcp_redirects;
+  char *alternative_names;
+  char *alternative_name;
+  char *keyfile;
+
   if ((strlen (section) < 8) ||
       (0 != strcmp (".gnunet.", section + (strlen (section) - 8))))
     return;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing dns-name %s\n", section);
-
-  char *udp_redirects, *tcp_redirects, *alternative_names, *alternative_name,
-      *keyfile;
-
-  GNUNET_CONFIGURATION_get_value_string (cfg, section, "UDP_REDIRECTS",
-                                         &udp_redirects);
-  GNUNET_CONFIGURATION_get_value_string (cfg, section, "TCP_REDIRECTS",
-                                         &tcp_redirects);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Parsing dns-name %s\n", 
+	      section);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, section, "UDP_REDIRECTS",
+					     &udp_redirects))
+    udp_redirects = NULL;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, section, "TCP_REDIRECTS",
+					     &tcp_redirects))
+    tcp_redirects = NULL;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
@@ -1296,22 +1304,23 @@ publish_iterate (void *cls __attribute__ ((unused)), const char *section)
 
 
   publish_name (section, ports, service_type, my_private_key);
-
-  GNUNET_CONFIGURATION_get_value_string (cfg, section, "ALTERNATIVE_NAMES",
-                                         &alternative_names);
-  for (alternative_name = strtok (alternative_names, " ");
-       alternative_name != NULL; alternative_name = strtok (NULL, " "))
-  {
-    char *altname =
-        alloca (strlen (alternative_name) + strlen (section) + 1 + 1);
-    strcpy (altname, alternative_name);
-    strcpy (altname + strlen (alternative_name) + 1, section);
-    altname[strlen (alternative_name)] = '.';
-
-    publish_name (altname, ports, service_type, my_private_key);
-  }
-
-  GNUNET_free_non_null (alternative_names);
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, section, "ALTERNATIVE_NAMES",
+					     &alternative_names))
+    {
+      for (alternative_name = strtok (alternative_names, " ");
+	   alternative_name != NULL; alternative_name = strtok (NULL, " "))
+	{
+	  char *altname =
+	    alloca (strlen (alternative_name) + strlen (section) + 1 + 1);
+	  strcpy (altname, alternative_name);
+	  strcpy (altname + strlen (alternative_name) + 1, section);
+	  altname[strlen (alternative_name)] = '.';
+	  
+	  publish_name (altname, ports, service_type, my_private_key);
+	}
+      GNUNET_free (alternative_names);
+    }
   GNUNET_CRYPTO_rsa_key_free (my_private_key);
   GNUNET_free_non_null (udp_redirects);
   GNUNET_free_non_null (tcp_redirects);
@@ -1328,9 +1337,9 @@ publish_names (void *cls
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  GNUNET_CONFIGURATION_iterate_sections (cfg, publish_iterate, NULL);
+  GNUNET_CONFIGURATION_iterate_sections (cfg, &publish_iterate, NULL);
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_HOURS, publish_names, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_HOURS, &publish_names, NULL);
 }
 
 /**

@@ -1,4 +1,6 @@
 0.9.0pre3:
+* make sure transport provides latency in ATS (fs tests are complaining bitterly,
+  on line gnunet-service-fs_cp.c:338).
 * clean buildbots (with new transport)
 
 0.9.0pre4:
