@@ -44,7 +44,7 @@
 #include "gnunet_signatures.h"
 
 /* DEFINES */
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 40)
@@ -227,7 +227,8 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   memset (original_data, 43, sizeof (original_data));
 
 #if DNS
-  if ((0 != memcmp (&data.service_descriptor, key, sizeof (GNUNET_HashCode))) ||
+  if ((sizeof (original_data) != size) ||
+      (0 != memcmp (&data.service_descriptor, key, sizeof (GNUNET_HashCode))) ||
       (0 != memcmp ((char *) &data, result_data, sizeof (original_data))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -238,7 +239,8 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
     return;
   }
 #else
-  if ((0 != memcmp (&original_key, key, sizeof (GNUNET_HashCode))) ||
+  if ((sizeof (original_data) != size) ||
+      (0 != memcmp (&original_key, key, sizeof (GNUNET_HashCode))) ||
       (0 != memcmp (original_data, result_data, sizeof (original_data))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
