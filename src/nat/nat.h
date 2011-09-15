@@ -28,6 +28,8 @@
 #define NAT_H
 #include "gnunet_util_lib.h"
 
+#define DEBUG_NAT GNUNET_NO
+
 /**
  * Request to test NAT traversal.
  */

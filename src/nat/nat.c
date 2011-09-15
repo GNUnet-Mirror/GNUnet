@@ -29,8 +29,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_nat_lib.h"
-
-#define DEBUG_NAT GNUNET_NO
+#include "nat.h"
 
 /**
  * How often do we scan for changes in our IP address from our local

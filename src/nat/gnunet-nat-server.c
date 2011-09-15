@@ -29,7 +29,6 @@
 #include "gnunet_protocols.h"
 #include "nat.h"
 
-#define DEBUG_NAT GNUNET_NO
 
 /**
  * Our server.

@@ -252,7 +252,8 @@ do_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if DEBUG_NAT
     else
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "nat" "Received data mismatches expected value\n");
+                       "nat",
+		       "Received data mismatches expected value\n");
 #endif
   }
 #if DEBUG_NAT

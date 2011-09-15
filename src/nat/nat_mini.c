@@ -28,7 +28,6 @@
 #include "gnunet_nat_lib.h"
 #include "nat.h"
 
-#define DEBUG_NAT GNUNET_NO
 
 /**
  * How long do we give upnpc to create a mapping?
