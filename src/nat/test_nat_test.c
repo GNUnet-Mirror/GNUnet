@@ -108,23 +108,17 @@ main (int argc, char *const argv[])
 #endif
                     NULL);
 
-  nat_res = GNUNET_OS_check_helper_binary ("gnunet-helper-nat-server");
-  if (GNUNET_NO == nat_res)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
-                "gnunet-helper-nat-server", "SUID not set");
-    return 0;
-  }
+  nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
   if (GNUNET_SYSERR == nat_res)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
-                "gnunet-helper-nat-server", "file not found");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' file not found\n",
+                "gnunet-nat-server");
     return 0;
   }
 
   gns =
-      GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-nat-server",
-                               "gnunet-helper-nat-server",
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-nat-server",
+                               "gnunet-nat-server",
 #if VERBOSE
                                "-L", "DEBUG",
 #endif
