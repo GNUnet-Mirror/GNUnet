@@ -408,8 +408,6 @@ GNUNET_TRANSPORT_TESTING_get_test_name (const char *file, char **dest)
   if (NULL != (dotexe = strstr (filename, ".exe")))
     dotexe[0] = '\0';
 
-  if (filename == NULL)
-    goto fail;
   goto suc;
 
 fail:
@@ -518,8 +516,6 @@ GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **dest,
   if (NULL != (dotexe = strstr (filename, ".exe")))
     dotexe[0] = '\0';
 
-  if (filename == NULL)
-    goto fail;
   goto suc;
 
 fail:

@@ -782,7 +782,7 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Could not send message to peer `%s': unknown neighbor",
                   GNUNET_i2s (target));
-    if (GNUNET_YES != n->is_connected)
+    else if (GNUNET_YES != n->is_connected)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Could not send message to peer `%s': not connected\n",
                   GNUNET_i2s (target));
