@@ -163,6 +163,9 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
 {
   struct GNUNET_NAT_ExternalHandle *eh;
 
+  if (GNUNET_SYSERR ==
+      GNUNET_OS_check_helper_binary ("external-ip"))
+    return NULL;
   eh = GNUNET_malloc (sizeof (struct GNUNET_NAT_ExternalHandle));
   eh->cb = cb;
   eh->cb_cls = cb_cls;
