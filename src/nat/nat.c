@@ -293,7 +293,8 @@ struct GNUNET_NAT_Handle
   unsigned int num_local_addrs;
 
   /**
-   * The our external address (according to config, UPnP may disagree...)
+   * Our external address (according to config, UPnP may disagree...),
+   * in dotted decimal notation, IPv4-only. Or NULL if not known.
    */
   char *external_address;
 
@@ -1105,15 +1106,6 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
     (void) GNUNET_CONFIGURATION_get_value_string (cfg, "nat",
                                                   "EXTERNAL_ADDRESS",
                                                   &h->external_address);
-  }
-  if ((h->external_address != NULL) &&
-      (inet_pton (AF_INET, h->external_address, &in_addr) != 1))
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
-                     _("Malformed %s `%s' given in configuration!\n"),
-                     "EXTERNAL_ADDRESS", h->external_address);
-    GNUNET_free (h->external_address);
-    h->external_address = NULL;
   }
   h->behind_nat =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "BEHIND_NAT");
