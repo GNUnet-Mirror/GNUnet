@@ -58,39 +58,6 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
 #endif
 
 int
-client_disconnect (struct Session *s)
-{
-  int res = GNUNET_OK;
-  CURLMcode mret;
-
-#if DEBUG_HTTP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
-                   "Deleting outbound session peer `%s'\n",
-                   GNUNET_i2s (&s->target));
-#endif
-
-  mret = curl_multi_remove_handle (s->plugin->client_mh, s->client_put);
-  if (mret != CURLM_OK)
-  {
-    curl_easy_cleanup (s->client_put);
-    res = GNUNET_SYSERR;
-    GNUNET_break (0);
-  }
-  curl_easy_cleanup (s->client_put);
-
-  mret = curl_multi_remove_handle (s->plugin->client_mh, s->client_get);
-  if (mret != CURLM_OK)
-  {
-    curl_easy_cleanup (s->client_get);
-    res = GNUNET_SYSERR;
-    GNUNET_break (0);
-  }
-  curl_easy_cleanup (s->client_get);
-
-  return res;
-}
-
-int
 client_send (struct Session *s, const char *msgbuf, size_t msgbuf_size)
 {
   return GNUNET_OK;
@@ -102,7 +69,7 @@ client_send (struct Session *s, const char *msgbuf, size_t msgbuf_size)
  * @param tc gnunet scheduler task context
  */
 static void
-client_perform (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Function setting up file descriptors and scheduling task to run
@@ -111,7 +78,7 @@ client_perform (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
 static int
-client_schedule_next_perform (struct Plugin *plugin)
+client_schedule (struct Plugin *plugin)
 {
   fd_set rs;
   fd_set ws;
@@ -165,7 +132,7 @@ client_schedule_next_perform (struct Plugin *plugin)
                                    timeout,
                                    grs,
                                    gws,
-                                   &client_perform,
+                                   &client_run,
                                    plugin);
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);
@@ -179,7 +146,7 @@ client_schedule_next_perform (struct Plugin *plugin)
  * @param tc gnunet scheduler task context
  */
 static void
-client_perform (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
   static unsigned int handles_last_run;
@@ -203,8 +170,52 @@ client_perform (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     handles_last_run = running;
   }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-  client_schedule_next_perform (plugin);
+  client_schedule (plugin);
 }
+
+int
+client_disconnect (struct Session *s)
+{
+  int res = GNUNET_OK;
+  CURLMcode mret;
+  struct Plugin *plugin = s->plugin;
+
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Deleting outbound session peer `%s'\n",
+                   GNUNET_i2s (&s->target));
+#endif
+
+  mret = curl_multi_remove_handle (plugin->client_mh, s->client_put);
+  if (mret != CURLM_OK)
+  {
+    curl_easy_cleanup (s->client_put);
+    res = GNUNET_SYSERR;
+    GNUNET_break (0);
+  }
+  curl_easy_cleanup (s->client_put);
+
+  mret = curl_multi_remove_handle (plugin->client_mh, s->client_get);
+  if (mret != CURLM_OK)
+  {
+    curl_easy_cleanup (s->client_get);
+    res = GNUNET_SYSERR;
+    GNUNET_break (0);
+  }
+  curl_easy_cleanup (s->client_get);
+
+  /* Re-schedule since handles have changed */
+  if (plugin->client_perform_task!= GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
+    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  plugin->client_perform_task = GNUNET_SCHEDULER_add_now(client_run, plugin);
+
+  return res;
+}
+
 
 int
 client_connect (struct Session *s)
@@ -311,7 +322,7 @@ client_connect (struct Session *s)
   }
 
   /* Perform connect */
-  s->plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_perform, s->plugin);
+  s->plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_run, s->plugin);
 
   return res;
 }

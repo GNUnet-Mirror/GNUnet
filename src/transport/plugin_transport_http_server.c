@@ -256,7 +256,7 @@ server_send (struct Session *s, const char *msgbuf, size_t msgbuf_size)
  * @return gnunet task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier
-server_schedule_daemon (struct Plugin *plugin, struct MHD_Daemon *daemon_handle);
+server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle);
 
 /**
  * Call MHD IPv4 to process pending requests and then go back
@@ -265,7 +265,7 @@ server_schedule_daemon (struct Plugin *plugin, struct MHD_Daemon *daemon_handle)
  * @param tc task context
  */
 static void
-http_server_daemon_v4_run (void *cls,
+server_v4_run (void *cls,
                            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
@@ -277,7 +277,7 @@ http_server_daemon_v4_run (void *cls,
     return;
 
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
-  plugin->server_v4_task = server_schedule_daemon (plugin, plugin->server_v4);
+  plugin->server_v4_task = server_schedule (plugin, plugin->server_v4);
 }
 
 
@@ -288,7 +288,7 @@ http_server_daemon_v4_run (void *cls,
  * @param tc task context
  */
 static void
-http_server_daemon_v6_run (void *cls,
+server_v6_run (void *cls,
                            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
@@ -300,7 +300,7 @@ http_server_daemon_v6_run (void *cls,
     return;
 
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
-  plugin->server_v6_task = server_schedule_daemon (plugin, plugin->server_v6);
+  plugin->server_v6_task = server_schedule (plugin, plugin->server_v6);
 }
 
 /**
@@ -311,7 +311,7 @@ http_server_daemon_v6_run (void *cls,
  * @return gnunet task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier
-server_schedule_daemon (struct Plugin *plugin, struct MHD_Daemon *daemon_handle)
+server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle)
 {
   GNUNET_SCHEDULER_TaskIdentifier ret;
   fd_set rs;
@@ -353,7 +353,7 @@ server_schedule_daemon (struct Plugin *plugin, struct MHD_Daemon *daemon_handle)
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                      GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
-                                     &http_server_daemon_v4_run, plugin);
+                                     &server_v4_run, plugin);
   }
   if (daemon_handle == plugin->server_v6)
   {
@@ -366,7 +366,7 @@ server_schedule_daemon (struct Plugin *plugin, struct MHD_Daemon *daemon_handle)
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                      GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
-                                     &http_server_daemon_v6_run, plugin);
+                                     &server_v6_run, plugin);
   }
   GNUNET_NETWORK_fdset_destroy (wrs);
   GNUNET_NETWORK_fdset_destroy (wws);
@@ -468,9 +468,9 @@ server_start (struct Plugin *plugin)
   }
 
   if (plugin->server_v4 != NULL)
-    plugin->server_v4_task = server_schedule_daemon (plugin, plugin->server_v4);
+    plugin->server_v4_task = server_schedule (plugin, plugin->server_v4);
   if (plugin->server_v6 != NULL)
-    plugin->server_v6_task = server_schedule_daemon (plugin, plugin->server_v6);
+    plugin->server_v6_task = server_schedule (plugin, plugin->server_v6);
 
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,

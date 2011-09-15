@@ -421,6 +421,19 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   return s;
 }
 
+void
+notify_session_end (void *cls,
+                    const struct GNUNET_PeerIdentity *
+                    peer, struct Session * s)
+{
+  struct Plugin *plugin = cls;
+
+  plugin->env->session_end (NULL, peer, s);
+  GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+  delete_session (s);
+}
+
+
 /**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.   Note that in the case of a
