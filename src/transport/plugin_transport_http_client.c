@@ -228,6 +228,7 @@ client_disconnect (struct Session *s)
     GNUNET_break (0);
   }
   curl_easy_cleanup (s->client_get);
+  plugin->cur_connections += 2;
 
   /* Re-schedule since handles have changed */
   if (plugin->client_perform_task!= GNUNET_SCHEDULER_NO_TASK)
@@ -257,9 +258,14 @@ client_connect (struct Session *s)
 
   s->inbound = GNUNET_NO;
 
+  s->plugin->last_tag++;
   /* create url */
-  GNUNET_asprintf (&url, "%s", http_plugin_address_to_string (s->plugin, s->addr, s->addrlen));
-
+  GNUNET_asprintf (&url, "%s%s;%u", http_plugin_address_to_string (s->plugin, s->addr, s->addrlen), GNUNET_h2s_full (&s->plugin->env->my_identity->hashPubKey),s->plugin->last_tag);
+#if 0
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+                   "URL `%s'\n",
+                   url);
+#endif
   /* create get connection */
   s->client_get = curl_easy_init ();
 #if VERBOSE_CLIENT
@@ -342,6 +348,7 @@ client_connect (struct Session *s)
   }
 
   /* Perform connect */
+  s->plugin->cur_connections += 2;
   s->plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_run, s->plugin);
 
   return res;

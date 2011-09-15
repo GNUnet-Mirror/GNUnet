@@ -115,10 +115,12 @@ struct Plugin
   int max_connections;
 
 
+
   /* Plugin values */
 
 
   int cur_connections;
+  uint32_t last_tag;
 
   /*
    * Server handles
@@ -133,6 +135,12 @@ struct Plugin
   char *crypto_init;
   char *key;
   char *cert;
+
+  struct Session *server_semi_head;
+
+  struct Session *server_semi_tail;
+
+
 
   /*
    * Client handles
@@ -219,8 +227,17 @@ struct Session
   void *client_put;
   void *client_get;
 
+  void *server_put;
+  void *server_get;
+
+  uint32_t tag;
 
 };
+
+struct Session *
+create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
+                const void *addr, size_t addrlen,
+                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
 
 const char *
 http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen);
