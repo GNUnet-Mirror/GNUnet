@@ -232,16 +232,16 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                   const char *upload_data, size_t * upload_data_size,
                   void **httpSessionCache)
 {
-  //struct Plugin *plugin = cls;
+  struct Plugin *plugin = cls;
   struct Session *s = *httpSessionCache;
   int res = MHD_YES;
-  //struct MHD_Response *response;
+  struct MHD_Response *response;
 
   GNUNET_assert (cls != NULL);
   /* new connection */
   if (s == NULL)
   {
-#if 0
+
     uint32_t tag;
     const union MHD_ConnectionInfo *conn_info;
     size_t addrlen;
@@ -333,7 +333,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
       GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
 #if VERBOSE_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server: Found matching semi-session, merging session for peer `%s' `%s'\n", GNUNET_i2s (&target));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
 #endif
 
       goto found;
@@ -352,7 +352,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
       GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
 #if VERBOSE_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server: Found matching semi-session, merging session for peer `%s' `%s'\n", GNUNET_i2s (&target));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
 #endif
       goto found;
     }
@@ -391,7 +391,6 @@ found:
     (*httpSessionCache) = s;
     return MHD_YES;
 
-#endif
   }
 
 
