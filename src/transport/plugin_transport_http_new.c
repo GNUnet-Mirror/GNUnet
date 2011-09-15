@@ -306,6 +306,8 @@ http_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
 const char *
 http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
+  struct Plugin *plugin = cls;
+
   const struct IPv4HttpAddress *t4;
   const struct IPv6HttpAddress *t6;
   struct sockaddr_in a4;
@@ -314,6 +316,8 @@ http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
   static char rbuf[INET6_ADDRSTRLEN + 13];
   uint16_t port;
   int res;
+
+  GNUNET_assert (plugin != NULL);
 
   if (addrlen == sizeof (struct IPv6HttpAddress))
   {
@@ -338,8 +342,10 @@ http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
   }
 
   GNUNET_assert (strlen (address) + 7 < (INET6_ADDRSTRLEN + 13));
-
-  res = GNUNET_snprintf (rbuf, sizeof (rbuf), "%s:%u", address, port);
+  if (addrlen == sizeof (struct IPv6HttpAddress))
+    res = GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://[%s]:%u/", plugin->protocol, address, port);
+  else if (addrlen == sizeof (struct IPv4HttpAddress))
+    res = GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://%s:%u/", plugin->protocol, address, port);
 
   GNUNET_free (address);
   GNUNET_assert (res != 0);

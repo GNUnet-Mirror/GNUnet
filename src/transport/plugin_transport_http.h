@@ -252,4 +252,9 @@ server_start (struct Plugin *plugin);
 void
 server_stop (struct Plugin *plugin);
 
+void
+notify_session_end (void *cls,
+                    const struct GNUNET_PeerIdentity *
+                    peer, struct Session * s);
+
 /* end of plugin_transport_http.h */
