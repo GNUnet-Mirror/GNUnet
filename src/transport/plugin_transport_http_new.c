@@ -481,9 +481,18 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   /* look for existing connection */
   s = lookup_session (plugin, target, addr, addrlen, force_address);
 
-  /* create new connection */
+  /* create new outbound connection */
   if (s == NULL)
   {
+    if (plugin->max_connections <= plugin->cur_connections)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
+                       "Maximum number of connections reached, "
+                       "cannot connect to peer `%s'\n",
+                       GNUNET_i2s (target));
+      return res;
+    }
+
 #if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                      "Initiiating new connection to peer `%s'\n",
@@ -492,7 +501,12 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     s = create_session (plugin, target, addr, addrlen, cont, cont_cls);
     GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
     // initiate new connection
-    client_connect (s);
+    if (GNUNET_SYSERR == (res = client_connect (s)))
+    {
+      GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+      delete_session (s);
+      return GNUNET_SYSERR;
+    }
   }
   else if (s->inbound == GNUNET_NO)
     res = client_send (s, msgbuf, msgbuf_size);
@@ -838,6 +852,14 @@ configure_plugin (struct Plugin *plugin)
     res = GNUNET_SYSERR;
   }
   plugin->port = port;
+
+  /* Optional parameters */
+  unsigned long long maxneigh;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (plugin->env->cfg, plugin->name,
+                                             "MAX_CONNECTIONS", &maxneigh))
+    maxneigh = 128;
+  plugin->max_connections = maxneigh;
 
   return res;
 }

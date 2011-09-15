@@ -96,6 +96,116 @@ client_send (struct Session *s, const char *msgbuf, size_t msgbuf_size)
   return GNUNET_OK;
 }
 
+/**
+ * Task performing curl operations
+ * @param cls plugin as closure
+ * @param tc gnunet scheduler task context
+ */
+static void
+client_perform (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Function setting up file descriptors and scheduling task to run
+ *
+ * @param  plugin plugin as closure
+ * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
+ */
+static int
+client_schedule_next_perform (struct Plugin *plugin)
+{
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  int max;
+  struct GNUNET_NETWORK_FDSet *grs;
+  struct GNUNET_NETWORK_FDSet *gws;
+  long to;
+  CURLMcode mret;
+  struct GNUNET_TIME_Relative timeout;
+
+  /* Cancel previous scheduled task */
+  if (plugin->client_perform_task!= GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
+    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  max = -1;
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  mret = curl_multi_fdset (plugin->client_mh, &rs, &ws, &es, &max);
+  if (mret != CURLM_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_fdset", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    return GNUNET_SYSERR;
+  }
+  mret = curl_multi_timeout (plugin->client_mh, &to);
+  if (to == -1)
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5);
+  else
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
+  if (mret != CURLM_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_timeout", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    return GNUNET_SYSERR;
+  }
+
+  grs = GNUNET_NETWORK_fdset_create ();
+  gws = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+  plugin->client_perform_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   timeout,
+                                   grs,
+                                   gws,
+                                   &client_perform,
+                                   plugin);
+  GNUNET_NETWORK_fdset_destroy (gws);
+  GNUNET_NETWORK_fdset_destroy (grs);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Task performing curl operations
+ * @param cls plugin as closure
+ * @param tc gnunet scheduler task context
+ */
+static void
+client_perform (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+  static unsigned int handles_last_run;
+  int running;
+  CURLMcode mret;
+
+  GNUNET_assert (cls != NULL);
+
+  plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  do
+  {
+    running = 0;
+    mret = curl_multi_perform (plugin->client_mh, &running);
+    if ((running < handles_last_run) && (running > 0))
+      {
+
+      }
+      //curl_handle_finished (plugin);
+    handles_last_run = running;
+  }
+  while (mret == CURLM_CALL_MULTI_PERFORM);
+  client_schedule_next_perform (plugin);
+}
+
 int
 client_connect (struct Session *s)
 {
@@ -138,10 +248,10 @@ client_connect (struct Session *s)
   //curl_easy_setopt (s->client_get, CURLOPT_READDATA, ps);
   //curl_easy_setopt (s->client_get, CURLOPT_WRITEFUNCTION, curl_receive_cb);
   //curl_easy_setopt (s->client_get, CURLOPT_WRITEDATA, ps);
-  curl_easy_setopt (s->client_get, CURLOPT_TIMEOUT,
+  curl_easy_setopt (s->client_get, CURLOPT_TIMEOUT_MS,
                     (long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
   //curl_easy_setopt (s->client_get, CURLOPT_PRIVATE, ps);
-  curl_easy_setopt (s->client_get, CURLOPT_CONNECTTIMEOUT,
+  curl_easy_setopt (s->client_get, CURLOPT_CONNECTTIMEOUT_MS,
                     (long) HTTP_NOT_VALIDATED_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_get, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -169,10 +279,10 @@ client_connect (struct Session *s)
   //curl_easy_setopt (s->client_put, CURLOPT_READDATA, ps);
   //curl_easy_setopt (s->client_put, CURLOPT_WRITEFUNCTION, curl_receive_cb);
   //curl_easy_setopt (s->client_put, CURLOPT_WRITEDATA, ps);
-  curl_easy_setopt (s->client_put, CURLOPT_TIMEOUT,
+  curl_easy_setopt (s->client_put, CURLOPT_TIMEOUT_MS,
                     (long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
   //curl_easy_setopt (s->client_put, CURLOPT_PRIVATE, ps);
-  curl_easy_setopt (s->client_put, CURLOPT_CONNECTTIMEOUT,
+  curl_easy_setopt (s->client_put, CURLOPT_CONNECTTIMEOUT_MS,
                     (long) HTTP_NOT_VALIDATED_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_put, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -201,6 +311,7 @@ client_connect (struct Session *s)
   }
 
   /* Perform connect */
+  s->plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_perform, s->plugin);
 
   return res;
 }
@@ -227,6 +338,12 @@ client_start (struct Plugin *plugin)
 void
 client_stop (struct Plugin *plugin)
 {
+  if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
+    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   curl_multi_cleanup (plugin->client_mh);
   curl_global_cleanup ();
 }

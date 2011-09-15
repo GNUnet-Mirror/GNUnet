@@ -114,13 +114,21 @@ struct Plugin
 
   int max_connections;
 
+
+  /* Plugin values */
+
+
+  int cur_connections;
+
   /*
    * Server handles
    */
 
   struct MHD_Daemon *server_v4;
+  GNUNET_SCHEDULER_TaskIdentifier server_v4_task;
 
   struct MHD_Daemon *server_v6;
+  GNUNET_SCHEDULER_TaskIdentifier server_v6_task;
 
   char *crypto_init;
   char *key;
@@ -134,6 +142,8 @@ struct Plugin
    * cURL Multihandle
    */
   CURLM *client_mh;
+
+  GNUNET_SCHEDULER_TaskIdentifier client_perform_task;
 
 };
 

@@ -48,7 +48,12 @@ server_log (void *arg, const char *fmt, va_list ap)
 static int
 server_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
 {
-  return 0;
+  struct Plugin * plugin = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "server: server_accept_cb\n");
+  if (plugin->cur_connections <= plugin->max_connections)
+    return MHD_YES;
+  else
+    return MHD_NO;
 }
 
 
@@ -220,6 +225,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                   const char *upload_data, size_t * upload_data_size,
                   void **httpSessionCache)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "server: server_access_cb\n");
   return 0;
 }
 
@@ -227,6 +233,7 @@ static void
 server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                       void **httpSessionCache)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "server: server_disconnect_cb\n");
 }
 
 int
@@ -239,6 +246,132 @@ int
 server_send (struct Session *s, const char *msgbuf, size_t msgbuf_size)
 {
   return GNUNET_OK;
+}
+
+/**
+ * Function that queries MHD's select sets and
+ * starts the task waiting for them.
+ * @param plugin plugin
+ * @param daemon_handle the MHD daemon handle
+ * @return gnunet task identifier
+ */
+static GNUNET_SCHEDULER_TaskIdentifier
+server_schedule_daemon (struct Plugin *plugin, struct MHD_Daemon *daemon_handle);
+
+/**
+ * Call MHD IPv4 to process pending requests and then go back
+ * and schedule the next run.
+ * @param cls plugin as closure
+ * @param tc task context
+ */
+static void
+http_server_daemon_v4_run (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+  GNUNET_assert (cls != NULL);
+
+  plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
+  plugin->server_v4_task = server_schedule_daemon (plugin, plugin->server_v4);
+}
+
+
+/**
+ * Call MHD IPv6 to process pending requests and then go back
+ * and schedule the next run.
+ * @param cls plugin as closure
+ * @param tc task context
+ */
+static void
+http_server_daemon_v6_run (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+  GNUNET_assert (cls != NULL);
+
+  plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
+  plugin->server_v6_task = server_schedule_daemon (plugin, plugin->server_v6);
+}
+
+/**
+ * Function that queries MHD's select sets and
+ * starts the task waiting for them.
+ * @param plugin plugin
+ * @param daemon_handle the MHD daemon handle
+ * @return gnunet task identifier
+ */
+static GNUNET_SCHEDULER_TaskIdentifier
+server_schedule_daemon (struct Plugin *plugin, struct MHD_Daemon *daemon_handle)
+{
+  GNUNET_SCHEDULER_TaskIdentifier ret;
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  struct GNUNET_NETWORK_FDSet *wrs;
+  struct GNUNET_NETWORK_FDSet *wws;
+  struct GNUNET_NETWORK_FDSet *wes;
+  int max;
+  unsigned long long timeout;
+  int haveto;
+  struct GNUNET_TIME_Relative tv;
+
+  ret = GNUNET_SCHEDULER_NO_TASK;
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  wrs = GNUNET_NETWORK_fdset_create ();
+  wes = GNUNET_NETWORK_fdset_create ();
+  wws = GNUNET_NETWORK_fdset_create ();
+  max = -1;
+  GNUNET_assert (MHD_YES == MHD_get_fdset (daemon_handle, &rs, &ws, &es, &max));
+  haveto = MHD_get_timeout (daemon_handle, &timeout);
+  if (haveto == MHD_YES)
+    tv.rel_value = (uint64_t) timeout;
+  else
+    tv = GNUNET_TIME_UNIT_SECONDS;
+  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
+  if (daemon_handle == plugin->server_v4)
+  {
+    if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
+      plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+
+    ret =
+        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                     GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
+                                     &http_server_daemon_v4_run, plugin);
+  }
+  if (daemon_handle == plugin->server_v6)
+  {
+    if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
+      plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+
+    ret =
+        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                     GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
+                                     &http_server_daemon_v6_run, plugin);
+  }
+  GNUNET_NETWORK_fdset_destroy (wrs);
+  GNUNET_NETWORK_fdset_destroy (wws);
+  GNUNET_NETWORK_fdset_destroy (wes);
+  return ret;
 }
 
 int
@@ -334,6 +467,11 @@ server_start (struct Plugin *plugin)
       res = GNUNET_SYSERR;
   }
 
+  if (plugin->server_v4 != NULL)
+    plugin->server_v4_task = server_schedule_daemon (plugin, plugin->server_v4);
+  if (plugin->server_v6 != NULL)
+    plugin->server_v6_task = server_schedule_daemon (plugin, plugin->server_v6);
+
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "%s server component started on port %u\n", plugin->name,
@@ -345,6 +483,17 @@ server_start (struct Plugin *plugin)
 void
 server_stop (struct Plugin *plugin)
 {
+  if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
+    plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
+    plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (plugin->server_v4 != NULL)
   {
