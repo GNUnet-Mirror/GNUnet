@@ -93,7 +93,7 @@ static struct
   uint16_t local_port;
   char *name;
   uint8_t namelen;
-} query_states[UINT16_MAX];
+} query_states[UINT16_MAX+1];
 
 /**
  * A struct used to give more than one value as
@@ -1383,7 +1383,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   unsigned int i;
 
-  for (i = 0; i < 65536; i++)
+  for (i = 0; i < UINT16_MAX + 1; i++)
   {
     query_states[i].valid = GNUNET_NO;
   }
