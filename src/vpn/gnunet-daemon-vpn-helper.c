@@ -199,7 +199,7 @@ helper_write (void *cls
   pkt->ip_hdr.flags = 0;
   pkt->ip_hdr.frag_off = 0;
   pkt->ip_hdr.ttl = 255;
-  pkt->ip_hdr.proto = 0x11;     /* UDP */
+  pkt->ip_hdr.proto = IPPROTO_UDP;
   pkt->ip_hdr.chks = 0;         /* Will be calculated later */
   pkt->ip_hdr.sadr = ans->pkt.from;
   pkt->ip_hdr.dadr = ans->pkt.to;
@@ -291,7 +291,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
           /* This is a mapping to a gnunet-service */
           memcpy (hc, &me->desc.service_descriptor, sizeof (GNUNET_HashCode));
 
-          if (0x11 == pkt6->ip6_hdr.nxthdr &&
+          if (IPPROTO_UDP == pkt6->ip6_hdr.nxthdr &&
               (me->desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP)) &&
               (port_in_ports (me->desc.ports, pkt6_udp->udp_hdr.dpt) ||
                testBit (me->additional_ports, ntohs (pkt6_udp->udp_hdr.dpt))))
@@ -301,7 +301,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
             memcpy (hc + 1, &pkt6_udp->udp_hdr, ntohs (pkt6_udp->udp_hdr.len));
 
           }
-          else if (0x06 == pkt6->ip6_hdr.nxthdr &&
+          else if (IPPROTO_TCP == pkt6->ip6_hdr.nxthdr &&
                    (me->desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP))
                    && (port_in_ports (me->desc.ports, pkt6_tcp->tcp_hdr.dpt)))
           {
@@ -422,7 +422,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
     GNUNET_assert (pkt->ip_hdr.version == 4);
 
     /* Send dns-packets to the service-dns */
-    if (pkt->ip_hdr.proto == 0x11 && ntohs (udp->udp_hdr.dpt) == 53)
+    if (pkt->ip_hdr.proto == IPPROTO_UDP && ntohs (udp->udp_hdr.dpt) == 53)
     {
       /* 9 = 8 for the udp-header + 1 for the unsigned char data[1]; */
       size_t len = sizeof (struct query_packet) + ntohs (udp->udp_hdr.len) - 9;
@@ -543,13 +543,13 @@ message_token (void *cls __attribute__ ((unused)), void *client
             s->addrlen = me->addrlen;
             memcpy (s->addr, me->addr, me->addrlen);
             s->proto = pkt->ip_hdr.proto;
-            if (s->proto == 0x11)
+            if (s->proto == IPPROTO_UDP)
             {
               hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP);
               memcpy (hc + 1, &pkt_udp->udp_hdr, ntohs (pkt_udp->udp_hdr.len));
               app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
             }
-            else if (s->proto == 0x06)
+            else if (s->proto == IPPROTO_TCP)
             {
               hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP);
               memcpy (hc + 1, &pkt_tcp->tcp_hdr,

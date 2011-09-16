@@ -903,7 +903,7 @@ receive_udp_back (void *cls
     pkt6->ip6_hdr.tclass_l = 0;
     pkt6->ip6_hdr.flowlbl = 0;
     pkt6->ip6_hdr.paylgth = pkt->len;
-    pkt6->ip6_hdr.nxthdr = 0x11;
+    pkt6->ip6_hdr.nxthdr = IPPROTO_UDP;
     pkt6->ip6_hdr.hoplmt = 0xff;
 
     {
@@ -995,7 +995,7 @@ receive_udp_back (void *cls
     pkt4->ip_hdr.flags = 0;
     pkt4->ip_hdr.frag_off = 0;
     pkt4->ip_hdr.ttl = 255;
-    pkt4->ip_hdr.proto = 0x11;
+    pkt4->ip_hdr.proto = IPPROTO_UDP;
     pkt4->ip_hdr.chks = 0;      /* Will be calculated later */
 
     {
@@ -1082,7 +1082,7 @@ receive_tcp_back (void *cls
     pkt6->ip6_hdr.tclass_l = 0;
     pkt6->ip6_hdr.flowlbl = 0;
     pkt6->ip6_hdr.paylgth = htons (pktlen);
-    pkt6->ip6_hdr.nxthdr = 0x06;
+    pkt6->ip6_hdr.nxthdr = IPPROTO_TCP;
     pkt6->ip6_hdr.hoplmt = 0xff;
 
     {
@@ -1163,7 +1163,7 @@ receive_tcp_back (void *cls
     pkt4->ip_hdr.flags = 0;
     pkt4->ip_hdr.frag_off = 0;
     pkt4->ip_hdr.ttl = 255;
-    pkt4->ip_hdr.proto = 0x06;
+    pkt4->ip_hdr.proto = IPPROTO_TCP;
     pkt4->ip_hdr.chks = 0;      /* Will be calculated later */
 
     {
@@ -1202,7 +1202,7 @@ receive_tcp_back (void *cls
     tmp = pkt4->ip_hdr.dadr;
     sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
 
-    tmp = (0x06 << 16) | (0xffff & pktlen);
+    tmp = (0x06 << 16) | (0xffff & pktlen); // 0x06 for TCP?
 
     tmp = htonl (tmp);
 

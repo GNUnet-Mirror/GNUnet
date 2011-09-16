@@ -536,10 +536,10 @@ message_token (void *cls __attribute__ ((unused)), void *client
   {
     struct ip6_pkt *pkt6 = (struct ip6_pkt *) pkt_tun;
 
-    if (0x11 == pkt6->ip6_hdr.nxthdr)
+    if (IPPROTO_UDP == pkt6->ip6_hdr.nxthdr)
       udp_from_helper (&((struct ip6_udp *) pkt6)->udp_hdr,
                        (unsigned char *) &pkt6->ip6_hdr.dadr, 16);
-    else if (0x06 == pkt6->ip6_hdr.nxthdr)
+    else if (IPPROTO_TCP == pkt6->ip6_hdr.nxthdr)
       tcp_from_helper (&((struct ip6_tcp *) pkt6)->tcp_hdr,
                        (unsigned char *) &pkt6->ip6_hdr.dadr, 16,
                        ntohs (pkt6->ip6_hdr.paylgth));
@@ -549,10 +549,10 @@ message_token (void *cls __attribute__ ((unused)), void *client
     struct ip_pkt *pkt4 = (struct ip_pkt *) pkt_tun;
     uint32_t tmp = pkt4->ip_hdr.dadr;
 
-    if (0x11 == pkt4->ip_hdr.proto)
+    if (IPPROTO_UDP == pkt4->ip_hdr.proto)
       udp_from_helper (&((struct ip_udp *) pkt4)->udp_hdr,
                        (unsigned char *) &tmp, 4);
-    else if (0x06 == pkt4->ip_hdr.proto)
+    else if (IPPROTO_TCP == pkt4->ip_hdr.proto)
     {
       size_t pktlen = ntohs (pkt4->ip_hdr.tot_lngth);
 
@@ -784,7 +784,7 @@ start_helper_and_schedule (void *cls,
 }
 
 static void
-prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
+prepare_ipv4_packet (ssize_t len, uint16_t pktlen, void *payload,
                      uint16_t protocol, void *ipaddress, void *tunnel,
                      struct redirect_state *state, struct ip_pkt *pkt4)
 {
@@ -834,7 +834,7 @@ prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
   pkt4->ip_hdr.sadr = tmp;
 
   memcpy (&state->redirect_info.addr, &tmp, 4);
-  if (0x11 == protocol)
+  if (IPPROTO_UDP == protocol)
   {
     struct ip_udp *pkt4_udp = (struct ip_udp *) pkt4;
 
@@ -842,7 +842,7 @@ prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
 
     pkt4_udp->udp_hdr.crc = 0;  /* Optional for IPv4 */
   }
-  else if (0x06 == protocol)
+  else if (IPPROTO_TCP == protocol)
   {
     struct ip_tcp *pkt4_tcp = (struct ip_tcp *) pkt4;
 
@@ -876,7 +876,7 @@ prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
 }
 
 static void
-prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
+prepare_ipv6_packet (ssize_t len, uint16_t pktlen, void *payload,
                      uint16_t protocol, void *ipaddress, void *tunnel,
                      struct redirect_state *state, struct ip6_pkt *pkt6)
 {
@@ -927,7 +927,7 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
   /* copy the needed information into the state */
   memcpy (&state->redirect_info.addr, &pkt6->ip6_hdr.sadr, 16);
 
-  if (0x11 == protocol)
+  if (IPPROTO_UDP == protocol)
   {
     struct ip6_udp *pkt6_udp = (struct ip6_udp *) pkt6;
 
@@ -952,7 +952,7 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
                                    ntohs (pkt6_udp->udp_hdr.len));
     pkt6_udp->udp_hdr.crc = calculate_checksum_end (sum);
   }
-  else if (0x06 == protocol)
+  else if (IPPROTO_TCP == protocol)
   {
     struct ip6_tcp *pkt6_tcp = (struct ip6_tcp *) pkt6;
 
@@ -994,7 +994,7 @@ receive_tcp_service (void *cls
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
-  unsigned int pkt_len =
+  uint16_t pkt_len =
       ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
       sizeof (GNUNET_HashCode);
 
@@ -1049,12 +1049,12 @@ receive_tcp_service (void *cls
   switch (serv->version)
   {
   case 4:
-    prepare_ipv4_packet (len, pkt_len, pkt, 0x06,       /* TCP */
+    prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP,
                          &serv->v4.ip4address, tunnel, state,
                          (struct ip_pkt *) buf);
     break;
   case 6:
-    prepare_ipv6_packet (len, pkt_len, pkt, 0x06,       /* TCP */
+    prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP,
                          &serv->v6.ip6address, tunnel, state,
                          (struct ip6_pkt *) buf);
 
@@ -1104,7 +1104,7 @@ receive_tcp_remote (void *cls
   struct remote_addr *s = (struct remote_addr *) desc;
   char *buf;
   size_t len;
-  unsigned int pkt_len =
+  uint16_t pkt_len =
       ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
       sizeof (GNUNET_HashCode);
 
@@ -1125,11 +1125,11 @@ receive_tcp_remote (void *cls
   switch (s->addrlen)
   {
   case 4:
-    prepare_ipv4_packet (len, pkt_len, pkt, 0x06,       /* TCP */
+    prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP,
                          &s->addr, tunnel, state, (struct ip_pkt *) buf);
     break;
   case 16:
-    prepare_ipv6_packet (len, pkt_len, pkt, 0x06,       /* TCP */
+    prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP,
                          &s->addr, tunnel, state, (struct ip6_pkt *) buf);
     break;
   default:
@@ -1206,11 +1206,11 @@ receive_udp_remote (void *cls
   switch (s->addrlen)
   {
   case 4:
-    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
+    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP, 
                          &s->addr, tunnel, state, (struct ip_pkt *) buf);
     break;
   case 16:
-    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
+    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP, 
                          &s->addr, tunnel, state, (struct ip6_pkt *) buf);
     break;
   default:
@@ -1309,12 +1309,12 @@ receive_udp_service (void *cls
   switch (serv->version)
   {
   case 4:
-    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
+    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP,
                          &serv->v4.ip4address, tunnel, state,
                          (struct ip_pkt *) buf);
     break;
   case 6:
-    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, 0x11,      /* UDP */
+    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP,
                          &serv->v6.ip6address, tunnel, state,
                          (struct ip6_pkt *) buf);
 
