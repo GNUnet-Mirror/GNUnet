@@ -581,7 +581,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing",
                                              "num_peers", &num_peers))
   {
-    GNUNET_CONFIGURATION_load (testing_cfg, "test_mesh_small.conf");
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CONFIGURATION_load (testing_cfg, "test_mesh_small.conf"));
     if (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing",
                                                "num_peers", &num_peers))
