@@ -207,7 +207,8 @@ collect_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* FIXME! GNUNET_MESH_close_tunnel(state->tunnel); */
 
-  GNUNET_CONTAINER_multihashmap_remove (state->hashmap, &state->hash, state);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_remove (state->hashmap, &state->hash, state));
 
   GNUNET_free (state);
 }
