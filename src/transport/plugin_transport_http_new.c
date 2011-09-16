@@ -375,6 +375,7 @@ http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 
 struct Session *
 lookup_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
+                struct Session * session,
                 const void *addr, size_t addrlen, int force_address)
 {
   struct Session *s = NULL;
@@ -385,38 +386,78 @@ lookup_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   t = plugin->head;
   if (t == NULL)
     return NULL;
-  while (t->next != NULL)
+  while (t != NULL)
   {
     e_peer = GNUNET_NO;
     e_addr = GNUNET_NO;
+
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Comparing session %X <-> %X\n", session, t);
+#endif
+
     if (0 == memcmp (target, &t->target, sizeof (struct GNUNET_PeerIdentity)))
     {
       e_peer = GNUNET_YES;
       if (addrlen == t->addrlen)
       {
         if (0 == memcmp (addr, &t->addr, addrlen))
+        {
           e_addr = GNUNET_YES;
+        }
+      }
+      if ((t == session))
+      {
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Session %X: %s: \n", t, GNUNET_a2s (t->addr, t->addrlen));
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Session %X: %s: \n", session, GNUNET_a2s (session->addr, session->addrlen));
+
+#endif
+       if(t->addrlen == session->addrlen)
+       {
+         GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                          "length ok\n");
+        if (0 == memcmp (session->addr, t->addr, t->addrlen))
+        {
+          GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                           "equal\n");
+          e_addr = GNUNET_YES;
+        }
+       }
       }
     }
+
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Session %X: E_PEER YES : %i E_ADDR: %i force %u: \n", t, e_peer, e_addr, force_address);
+#endif
 
     if ((e_peer == GNUNET_YES) && (force_address == GNUNET_NO))
     {
       s = t;
       break;
     }
-    else if ((e_peer == GNUNET_YES) && (force_address == GNUNET_YES) &&
-             (e_addr == GNUNET_YES))
+    if ((e_peer == GNUNET_YES) && (force_address == GNUNET_YES) && (e_addr == GNUNET_YES))
+    {
+      s = t;
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Session %X: HERE!\n", t, e_addr, s);
+#endif
+      break;
+    }
+    if ((e_peer == GNUNET_YES) && (force_address == GNUNET_SYSERR))
     {
       s = t;
       break;
     }
-    else if ((e_peer == GNUNET_YES) && (force_address == GNUNET_SYSERR))
-    {
-      s = t;
+    if (s != NULL)
       break;
-    }
     t = t->next;
   }
+
 
   return s;
 }
@@ -514,15 +555,22 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
 
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                   "Sending %u bytes to peer `%s'\n", msgbuf_size,
-                   GNUNET_i2s (target));
+                   "Sending %u bytes to peer `%s' on address `%s' %X %i\n", msgbuf_size,
+                   GNUNET_i2s (target), GNUNET_a2s (addr, addrlen), session, force_address);
 #endif
 
   struct Session *s = NULL;
 
   /* look for existing connection */
-  s = lookup_session (plugin, target, addr, addrlen, force_address);
-
+  s = lookup_session (plugin, target, session, addr, addrlen, 1);
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "%s exisiting session\n", (s!=NULL) ? "Found" : "NOT Found");
+#endif
+  // FIXME DEBUGGING
+  if (session != NULL)
+     s= session;
+  //FIXME END
   /* create new outbound connection */
   if (s == NULL)
   {
@@ -561,10 +609,26 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   memcpy (msg->buf, msgbuf, msgbuf_size);
 
   if (s->inbound == GNUNET_NO)
-    res = client_send (s, msg);
+  {
+#if DEBUG_HTTP
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Using client session to send to `%s'\n",
+                     GNUNET_i2s (target));
+#endif
+     client_send (s, msg);
+     res = msgbuf_size;
+  }
   if (s->inbound == GNUNET_YES)
-    res = server_send (s, msg);
+  {
+    server_send (s, msg);
+    res = msgbuf_size;
+#if DEBUG_HTTP
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Using server session to send to `%s'\n",
+                     GNUNET_i2s (target));
+#endif
 
+  }
   return res;
 }
 
@@ -613,6 +677,8 @@ static void
 nat_connection_reversal (void *cls, const struct sockaddr *addr,
                          socklen_t addrlen)
 {
+
+
 
 }
 
@@ -771,7 +837,7 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
 {
   GNUNET_assert (cls != NULL);
   struct Plugin *plugin = cls;
-
+  static int limit;
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "NPMC called %s to address `%s'\n",
@@ -782,7 +848,11 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
   switch (add_remove)
   {
   case GNUNET_YES:
-    nat_add_address (cls, add_remove, addr, addrlen);
+    // FIXME DEBUGGING
+    if (limit < 1)
+      nat_add_address (cls, add_remove, addr, addrlen);
+    limit++;
+    // FIXME END
     break;
   case GNUNET_NO:
     nat_remove_address (cls, add_remove, addr, addrlen);

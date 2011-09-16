@@ -181,7 +181,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        {
 #if DEBUG_HTTP
          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Connection to '%s'  %s ended\n", GNUNET_i2s(&s->target), http_plugin_address_to_string(plugin, s->addr, s->addrlen));
+                   "Connection to '%s'  %s ended\n", GNUNET_i2s(&s->target), GNUNET_a2s (s->addr, s->addrlen));
 #endif
          client_disconnect(s);
          //GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,"Notifying about ended session to peer `%s' `%s'\n", GNUNET_i2s (&s->target), http_plugin_address_to_string (plugin, s->addr, s->addrlen));
@@ -206,9 +206,9 @@ client_disconnect (struct Session *s)
   struct HTTP_Message * msg;
   struct HTTP_Message * t;
 
-#if 0
+#if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Deleting outbound PUT session to peer `%s'\n",
+                   "Client: Deleting outbound PUT session to peer `%s'\n",
                    GNUNET_i2s (&s->target));
 #endif
 
@@ -227,7 +227,7 @@ client_disconnect (struct Session *s)
 
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Deleting outbound GET session to peer `%s'\n",
+                   "Client: Deleting outbound GET session to peer `%s'\n",
                    GNUNET_i2s (&s->target));
 #endif
 
@@ -304,6 +304,12 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   struct Session *s = cls;
   struct Plugin *plugin = s->plugin;
 
+#if VERBOSE_CLIENT
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: Received %Zu bytes from peer `%s'\n",
+                   size * nmemb,
+                   GNUNET_i2s (&s->target));
+#endif
+
   if (GNUNET_TIME_absolute_get().abs_value < s->delay.abs_value)
   {
 #if DEBUG_CLIENT
@@ -314,17 +320,13 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
     return 0;
   }
 
+
   if (s->msg_tk == NULL)
       s->msg_tk = GNUNET_SERVER_mst_create (&client_receive_mst_cb, s);
 
   GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, size * nmemb, GNUNET_NO,
                              GNUNET_NO);
 
-#if VERBOSE_CLIENT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Received %u bytes from peer `%s'\n",
-                   size * nmemb,
-                   GNUNET_i2s (&s->target));
-#endif
   return (size * nmemb);
 }
 
@@ -389,9 +391,9 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
 
   if (msg->pos == msg->size)
   {
-#if DEBUG_CONNECTIONS
+#if VERBOSE_CLIENT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Connection %X: Message with %u bytes sent, removing message from queue\n",
+                "Message with %u bytes sent, removing message from queue\n",
                 s, msg->pos);
 #endif
     /* Calling transmit continuation  */
@@ -422,6 +424,7 @@ client_connect (struct Session *s)
   plugin->last_tag++;
   /* create url */
   GNUNET_asprintf (&url, "%s%s;%u", http_plugin_address_to_string (plugin, s->addr, s->addrlen), GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey),plugin->last_tag);
+  //GNUNET_asprintf (&url, "http://www.heise.de", http_plugin_address_to_string (plugin, s->addr, s->addrlen), GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey),plugin->last_tag);
 #if 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "URL `%s'\n",
