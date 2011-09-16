@@ -2418,17 +2418,24 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
       NULL == peer_info->dhtget)
   {
     /* we don't have a route to the peer, let's try a direct lookup */
-    peer_info->dhtget = GNUNET_DHT_get_start (dht_handle,       /* handle */
-                                              GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
-                                              GNUNET_BLOCK_TYPE_TEST,   /* block type */
-                                              &pi->hashPubKey,  /* key to look up */
-                                              10U,      /* replication level */
-                                              GNUNET_DHT_RO_RECORD_ROUTE,       /* option to dht: record route */
+    peer_info->dhtget = GNUNET_DHT_get_start (dht_handle,
+                                              /* handle */
+                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                              /* timeout */
+                                              GNUNET_BLOCK_TYPE_TEST,
+                                              /* block type */
+                                              &pi->hashPubKey,
+                                              /* key to look up */
+                                              10U,
+                                              /* replication level */
+                                              GNUNET_DHT_RO_RECORD_ROUTE,
+                                              /* option to dht: record route */
                                               NULL,     /* bloom filter */
                                               0,        /* mutator */
                                               NULL,     /* xquery */
                                               0,        /* xquery bits */
-                                              dht_get_id_handler,       /* callback */
+                                              dht_get_id_handler,
+                                              /* callback */
                                               peer_info);       /* closure */
   }
 
