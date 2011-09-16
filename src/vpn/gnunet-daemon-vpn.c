@@ -182,7 +182,8 @@ collect_mappings (void *cls
 
   /* FIXME! GNUNET_MESH_close_tunnel(me->tunnel); */
 
-  GNUNET_CONTAINER_multihashmap_remove (hashmap, &me->hash, me);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (hashmap, &me->hash, me));
 
   GNUNET_free (me);
 }

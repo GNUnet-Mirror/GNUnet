@@ -369,11 +369,12 @@ task (void *cls, char *const *args, const char *cfgfile,
 #endif
 }
 
+
 static int
 check ()
 {
   char *const argv[] = {
-    "test-arm-api",
+    "test-exponential-backoff",
     "-c", "test_arm_api_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
