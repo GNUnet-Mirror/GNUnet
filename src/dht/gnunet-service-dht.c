@@ -4107,6 +4107,7 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
          path_size))
     {
       GNUNET_break_op (0);
+      GNUNET_free (msg_ctx);
       return GNUNET_YES;
     }
     route_path = (char *) &incoming[1];
