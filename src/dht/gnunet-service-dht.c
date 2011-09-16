@@ -483,7 +483,7 @@ struct DHTRouteSource
   struct DHTRouteSource *prev;
 
   /**
-   * UID of the request
+   * UID of the request, 0 if from another peer.
    */
   uint64_t uid;
 
@@ -623,7 +623,7 @@ struct RecentRequest
   GNUNET_HashCode key;
 
   /**
-   * Unique identifier for this request.
+   * Unique identifier for this request, 0 if from another peer.
    */
   uint64_t uid;
 
@@ -1072,12 +1072,16 @@ forward_result_message (const struct GNUNET_MessageHeader *msg,
   }
   result_message->options = htonl (msg_ctx->msg_options);
   result_message->hop_count = htonl (msg_ctx->hop_count + 1);
+#if HAVE_REPLY_BLOOMFILTER
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_bloomfilter_get_raw_data (msg_ctx->bloom,
                                                             result_message->
                                                             bloomfilter,
                                                             DHT_BLOOM_SIZE));
+#endif
+#if HAVE_UID_FOR_TESTING 
   result_message->unique_id = GNUNET_htonll (msg_ctx->unique_id);
+#endif
   memcpy (&result_message->key, &msg_ctx->key, sizeof (GNUNET_HashCode));
   /* Copy the enc_msg, then the path history as well! */
   memcpy (&result_message[1], msg, ntohs (msg->size));
@@ -1595,7 +1599,9 @@ forward_message (const struct GNUNET_MessageHeader *msg, struct PeerInfo *peer,
   route_message->hop_count = htonl (msg_ctx->hop_count + 1);
   route_message->network_size = htonl (msg_ctx->network_size);
   route_message->desired_replication_level = htonl (msg_ctx->replication);
+#if HAVE_UID_FOR_TESTING 
   route_message->unique_id = GNUNET_htonll (msg_ctx->unique_id);
+#endif
   if (msg_ctx->bloom != NULL)
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_bloomfilter_get_raw_data (msg_ctx->bloom,
@@ -1921,11 +1927,13 @@ route_result_message (struct GNUNET_MessageHeader *msg,
                                    NULL);
     }
 #endif
+#if HAVE_REPLY_BLOOMFILTER
     if (msg_ctx->bloom != NULL)
     {
       GNUNET_CONTAINER_bloomfilter_free (msg_ctx->bloom);
       msg_ctx->bloom = NULL;
     }
+#endif
     return 0;
   }
 
@@ -1992,7 +2000,7 @@ route_result_message (struct GNUNET_MessageHeader *msg,
         pos = pos->next;
         continue;
       }
-
+#if HAVE_REPLY_BLOOMFILTER
       if (msg_ctx->bloom == NULL)
         msg_ctx->bloom =
             GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE,
@@ -2002,48 +2010,44 @@ route_result_message (struct GNUNET_MessageHeader *msg,
       if ((GNUNET_NO ==
            GNUNET_CONTAINER_bloomfilter_test (msg_ctx->bloom,
                                               &peer_info->id.hashPubKey)))
-      {
+	{{{
+#endif
 #if DEBUG_DHT
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "`%s:%s': Forwarding response key %s uid %llu to peer %s\n",
-                    my_short_id, "DHT", GNUNET_h2s (&msg_ctx->key),
-                    msg_ctx->unique_id, GNUNET_i2s (&peer_info->id));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "`%s:%s': Forwarding response key %s uid %llu to peer %s\n",
+		  my_short_id, "DHT", GNUNET_h2s (&msg_ctx->key),
+		  msg_ctx->unique_id, GNUNET_i2s (&peer_info->id));
 #endif
 #if DEBUG_DHT_ROUTING
-        if ((debug_routes_extended) && (dhtlog_handle != NULL))
-        {
-          dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_RESULT,
-                                       msg_ctx->hop_count, GNUNET_NO,
-                                       &my_identity, &msg_ctx->key,
-                                       &msg_ctx->peer, &pos->source);
-        }
-#endif
-        forward_result_message (msg, peer_info, msg_ctx);
-        /* Try removing forward entries after sending once, only allows ONE response per request */
-        if (pos->delete_task != GNUNET_SCHEDULER_NO_TASK)
-        {
-          GNUNET_SCHEDULER_cancel (pos->delete_task);
-          pos->delete_task =
-              GNUNET_SCHEDULER_add_now (&remove_forward_entry, pos);
-        }
-      }
-      else
+      if ((debug_routes_extended) && (dhtlog_handle != NULL))
       {
-#if DEBUG_DHT
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "`%s:%s': NOT Forwarding response (bloom match) key %s uid %llu to peer %s\n",
-                    my_short_id, "DHT", GNUNET_h2s (&msg_ctx->key),
-                    msg_ctx->unique_id, GNUNET_i2s (&peer_info->id));
-#endif
+	dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_RESULT,
+				     msg_ctx->hop_count, GNUNET_NO,
+				     &my_identity, &msg_ctx->key,
+				     &msg_ctx->peer, &pos->source);
       }
+#endif
+      forward_result_message (msg, peer_info, msg_ctx);
+      /* Try removing forward entries after sending once, only allows ONE response per request */
+      if (pos->delete_task != GNUNET_SCHEDULER_NO_TASK)
+      {
+	GNUNET_SCHEDULER_cancel (pos->delete_task);
+	pos->delete_task =
+	  GNUNET_SCHEDULER_add_now (&remove_forward_entry, pos);        
+      }
+#if HAVE_REPLY_BLOOMFILTER
+        }}}
+#endif
     }
     pos = pos->next;
   }
+#if HAVE_REPLY_BLOOMFILTER
   if (msg_ctx->bloom != NULL)
   {
     GNUNET_CONTAINER_bloomfilter_free (msg_ctx->bloom);
     msg_ctx->bloom = NULL;
   }
+#endif
   return 0;
 }
 
@@ -4057,7 +4061,12 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
     if ((debug_routes_extended) && (dhtlog_handle != NULL))
     {
           /** Log routes that die due to high load! */
-      dhtlog_handle->insert_route (NULL, GNUNET_ntohll (incoming->unique_id),
+      dhtlog_handle->insert_route (NULL, 
+#if HAVE_UID_FOR_TESTING
+				   GNUNET_ntohll (incoming->unique_id),
+#else
+				   0,
+#endif
                                    DHTLOG_ROUTE, ntohl (incoming->hop_count),
                                    GNUNET_SYSERR, &my_identity, &incoming->key,
                                    peer, NULL);
@@ -4076,7 +4085,12 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
     if ((debug_routes_extended) && (dhtlog_handle != NULL))
     {
         /** Log routes that die due to high load! */
-      dhtlog_handle->insert_route (NULL, GNUNET_ntohll (incoming->unique_id),
+      dhtlog_handle->insert_route (NULL, 
+#if HAVE_UID_FOR_TESTING
+				   GNUNET_ntohll (incoming->unique_id),
+#else
+				   0,
+#endif
                                    DHTLOG_ROUTE, ntohl (incoming->hop_count),
                                    GNUNET_SYSERR, &my_identity, &incoming->key,
                                    peer, NULL);
@@ -4092,7 +4106,9 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
   msg_ctx->hop_count = ntohl (incoming->hop_count);
   memcpy (&msg_ctx->key, &incoming->key, sizeof (GNUNET_HashCode));
   msg_ctx->replication = ntohl (incoming->desired_replication_level);
+#if HAVE_UID_FOR_TESTING
   msg_ctx->unique_id = GNUNET_ntohll (incoming->unique_id);
+#endif
   msg_ctx->msg_options = ntohl (incoming->options);
   if (GNUNET_DHT_RO_RECORD_ROUTE ==
       (msg_ctx->msg_options & GNUNET_DHT_RO_RECORD_ROUTE))
@@ -4174,7 +4190,12 @@ handle_dht_p2p_route_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     if ((debug_routes_extended) && (dhtlog_handle != NULL))
     {
           /** Log routes that die due to high load! */
-      dhtlog_handle->insert_route (NULL, GNUNET_ntohll (incoming->unique_id),
+      dhtlog_handle->insert_route (NULL, 
+#if HAVE_UID_FOR_TESTING
+				   GNUNET_ntohll (incoming->unique_id),
+#else
+				   0,
+#endif
                                    DHTLOG_ROUTE, ntohl (incoming->hop_count),
                                    GNUNET_SYSERR, &my_identity, &incoming->key,
                                    peer, NULL);
@@ -4185,7 +4206,9 @@ handle_dht_p2p_route_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   memset (&msg_ctx, 0, sizeof (struct DHT_MessageContext));
   memcpy (&msg_ctx.key, &incoming->key, sizeof (GNUNET_HashCode));
+#if HAVE_UID_FOR_TESTING
   msg_ctx.unique_id = GNUNET_ntohll (incoming->unique_id);
+#endif
   msg_ctx.msg_options = ntohl (incoming->options);
   msg_ctx.hop_count = ntohl (incoming->hop_count);
   msg_ctx.peer = *peer;
@@ -4229,10 +4252,12 @@ handle_dht_p2p_route_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
 #endif
   }
+#if HAVE_REPLY_BLOOMFILTER
   msg_ctx.bloom =
       GNUNET_CONTAINER_bloomfilter_init (incoming->bloomfilter, DHT_BLOOM_SIZE,
                                          DHT_BLOOM_K);
   GNUNET_assert (msg_ctx.bloom != NULL);
+#endif
   route_result_message (enc_msg, &msg_ctx);
   return GNUNET_YES;
 }
