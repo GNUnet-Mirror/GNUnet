@@ -61,10 +61,20 @@ static struct PeerContext p2;
 static void
 clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != p1.ghh)
+  {
+    GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
+    p1.ghh = NULL;
+  }
   if (p1.th != NULL)
   {
     GNUNET_TRANSPORT_disconnect (p1.th);
     p1.th = NULL;
+  }
+  if (NULL != p2.ghh)
+  {
+    GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
+    p2.ghh = NULL;
   }
   if (p2.th != NULL)
   {
@@ -123,6 +133,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   struct PeerContext *p = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+  p->ghh = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received HELLO, starting hostlist service.\n");
 }
