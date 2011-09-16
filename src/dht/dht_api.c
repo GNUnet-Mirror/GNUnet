@@ -320,6 +320,9 @@ do_disconnect (struct GNUNET_DHT_Handle *handle)
   if (handle->client == NULL)
     return;
   GNUNET_assert (handle->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+  if (NULL != handle->th)
+      GNUNET_CLIENT_notify_transmit_ready_cancel(handle->th);
+  handle->th = NULL;
   GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
   handle->client = NULL;
   handle->reconnect_task =
