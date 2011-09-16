@@ -2099,8 +2099,6 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param atsi performance data
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
- *
- * FIXME path
  */
 static int
 handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -2109,14 +2107,14 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
 {  
   struct GNUNET_MESH_ToOrigin *msg;
   struct GNUNET_PeerIdentity id;
-  struct MeshTunnel *t;
   struct MeshPeerInfo *peer_info;
+  struct MeshTunnel *t;
   size_t size;
 
   size = ntohs (message->size);
   if (size <
       sizeof (struct GNUNET_MESH_ToOrigin) +
-      sizeof (struct GNUNET_MessageHeader))
+      sizeof (struct GNUNET_MessageHeader)) /* Payload >= header */
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -2138,6 +2136,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break_op (0);
       return GNUNET_OK;
     }
+    /* TODO signature verification */
     GNUNET_SERVER_notification_context_unicast (nc, t->client->handle, message,
                                                 GNUNET_YES);
     return GNUNET_OK;
@@ -2149,7 +2148,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  GNUNET_PEER_resolve (path_get_first_hop (t, peer_info)->id, &id);
+  GNUNET_PEER_resolve (t->paths->me->parent->peer->id, &id);
   msg = GNUNET_malloc (size);
   memcpy (msg, message, size);
   GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
