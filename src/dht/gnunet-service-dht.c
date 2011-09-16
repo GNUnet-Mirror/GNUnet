@@ -369,9 +369,8 @@ struct DHT_MessageContext
 
   /**
    * The peer this request was received from.
-   * (NULL if received from local client)
    */
-  const struct GNUNET_PeerIdentity *peer;
+  struct GNUNET_PeerIdentity peer;
 
   /**
    * Bloomfilter for this routing request.
@@ -1918,7 +1917,7 @@ route_result_message (struct GNUNET_MessageHeader *msg,
     {
       dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_RESULT,
                                    msg_ctx->hop_count, GNUNET_SYSERR,
-                                   &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                   &my_identity, &msg_ctx->key, &msg_ctx->peer,
                                    NULL);
     }
 #endif
@@ -1963,7 +1962,7 @@ route_result_message (struct GNUNET_MessageHeader *msg,
       {
         dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_RESULT,
                                      msg_ctx->hop_count, GNUNET_YES,
-                                     &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                     &my_identity, &msg_ctx->key, &msg_ctx->peer,
                                      NULL);
       }
 #endif
@@ -2016,7 +2015,7 @@ route_result_message (struct GNUNET_MessageHeader *msg,
           dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_RESULT,
                                        msg_ctx->hop_count, GNUNET_NO,
                                        &my_identity, &msg_ctx->key,
-                                       msg_ctx->peer, &pos->source);
+                                       &msg_ctx->peer, &pos->source);
         }
 #endif
         forward_result_message (msg, peer_info, msg_ctx);
@@ -2157,7 +2156,7 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
     memcpy (&get_result[1], &put_entry[1],
             put_entry->data_size +
             (put_entry->path_length * sizeof (struct GNUNET_PeerIdentity)));
-    new_msg_ctx.peer = &my_identity;
+    new_msg_ctx.peer = my_identity;
     new_msg_ctx.bloom = NULL;
     new_msg_ctx.hop_count = 0;
     new_msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 2;   /* Make result routing a higher priority */
@@ -2310,7 +2309,7 @@ handle_dht_get (const struct GNUNET_MessageHeader *msg,
     {
       dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                    msg_ctx->hop_count, GNUNET_YES, &my_identity,
-                                   &msg_ctx->key, msg_ctx->peer, NULL);
+                                   &msg_ctx->key, &msg_ctx->peer, NULL);
     }
 #endif
   }
@@ -2533,7 +2532,7 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
 
   new_msg_ctx = GNUNET_malloc (sizeof (struct DHT_MessageContext));
   memcpy (new_msg_ctx, msg_ctx, sizeof (struct DHT_MessageContext));
-  new_msg_ctx->peer = &my_identity;
+  new_msg_ctx->peer = my_identity;
   new_msg_ctx->bloom =
       GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   new_msg_ctx->hop_count = 0;
@@ -2616,7 +2615,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
     {
       dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                    msg_ctx->hop_count, GNUNET_SYSERR,
-                                   &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                   &my_identity, &msg_ctx->key, &msg_ctx->peer,
                                    NULL);
     }
 #endif
@@ -2632,7 +2631,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
     {
       dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                    msg_ctx->hop_count, GNUNET_SYSERR,
-                                   &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                   &my_identity, &msg_ctx->key, &msg_ctx->peer,
                                    NULL);
     }
 #endif
@@ -2715,7 +2714,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
       path_offset += data_size;
       memcpy (path_offset, msg_ctx->path_history,
               msg_ctx->path_history_len * sizeof (struct GNUNET_PeerIdentity));
-      new_msg_ctx.peer = &my_identity;
+      new_msg_ctx.peer = my_identity;
       new_msg_ctx.bloom = NULL;
       new_msg_ctx.hop_count = 0;
       /* Make result routing a higher priority */
@@ -2746,7 +2745,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
   {
     dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                  msg_ctx->hop_count, GNUNET_YES, &my_identity,
-                                 &msg_ctx->key, msg_ctx->peer, NULL);
+                                 &msg_ctx->key, &msg_ctx->peer, NULL);
   }
 
   if ((debug_routes) && (dhtlog_handle != NULL))
@@ -3142,11 +3141,10 @@ cache_response (struct DHT_MessageContext *msg_ctx)
     pos = record->head;
     while (pos != NULL)
     {
-      if ((NULL != msg_ctx->peer) &&
-          (0 ==
-           memcmp (msg_ctx->peer, &pos->source,
-                   sizeof (struct GNUNET_PeerIdentity))))
-        break;                  /* Already have this peer in reply list! */
+      if (0 ==
+	  memcmp (&msg_ctx->peer, &pos->source,
+		  sizeof (struct GNUNET_PeerIdentity)))
+	break;                  /* Already have this peer in reply list! */
       pos = pos->next;
     }
     if ((pos != NULL) && (pos->client == msg_ctx->client))      /* Seen this already */
@@ -3173,7 +3171,7 @@ cache_response (struct DHT_MessageContext *msg_ctx)
                                     source_info);
   source_info->find_peers_responded =
       GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
-  source_info->source = *msg_ctx->peer;
+  source_info->source = msg_ctx->peer;
   GNUNET_CONTAINER_DLL_insert_after (record->head, record->tail, record->tail,
                                      source_info);
   if (msg_ctx->client != NULL)  /* For local request, set timeout so high it effectively never gets pushed out */
@@ -3230,7 +3228,7 @@ route_message (const struct GNUNET_MessageHeader *msg,
     {
       dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                    msg_ctx->hop_count, GNUNET_SYSERR,
-                                   &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                   &my_identity, &msg_ctx->key, &msg_ctx->peer,
                                    NULL);
     }
 #endif
@@ -3365,7 +3363,7 @@ route_message (const struct GNUNET_MessageHeader *msg,
       {
         dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                      msg_ctx->hop_count, GNUNET_NO,
-                                     &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                     &my_identity, &msg_ctx->key, &msg_ctx->peer,
                                      &selected->id);
       }
 #endif
@@ -3391,7 +3389,7 @@ route_message (const struct GNUNET_MessageHeader *msg,
   {
     dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                  msg_ctx->hop_count, ret, &my_identity,
-                                 &msg_ctx->key, msg_ctx->peer, NULL);
+                                 &msg_ctx->key, &msg_ctx->peer, NULL);
   }
 #endif
 }
@@ -3425,7 +3423,7 @@ demultiplex_message (const struct GNUNET_MessageHeader *msg,
     increment_stats (STAT_FIND_PEER);
     if (((msg_ctx->hop_count > 0) &&
          (0 !=
-          memcmp (msg_ctx->peer, &my_identity,
+          memcmp (&msg_ctx->peer, &my_identity,
                   sizeof (struct GNUNET_PeerIdentity)))) ||
         (msg_ctx->client != NULL))
     {
@@ -3767,7 +3765,7 @@ send_find_peer_message (void *cls,
   msg_ctx.replication = DHT_DEFAULT_FIND_PEER_REPLICATION;
   msg_ctx.msg_options = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
   msg_ctx.network_size = log_of_network_size_estimate;
-  msg_ctx.peer = &my_identity;
+  msg_ctx.peer = my_identity;
   msg_ctx.importance = DHT_DEFAULT_FIND_PEER_IMPORTANCE;
   msg_ctx.timeout = DHT_DEFAULT_FIND_PEER_TIMEOUT;
 
@@ -3848,7 +3846,7 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
     msg_ctx.path_history_len = 1;
   }
   msg_ctx.network_size = log_of_network_size_estimate;
-  msg_ctx.peer = &my_identity;  /* FIXME: use NULL? Fix doxygen? */
+  msg_ctx.peer = my_identity;
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 4;  /* Make local routing a higher priority */
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
 
@@ -4120,7 +4118,7 @@ handle_dht_p2p_route_request (void *cls, const struct GNUNET_PeerIdentity *peer,
     msg_ctx->path_history_len = ntohl (incoming->outgoing_path_length) + 1;
   }
   msg_ctx->network_size = ntohl (incoming->network_size);
-  msg_ctx->peer = peer;
+  msg_ctx->peer = *peer;
   msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE;
   msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
   demultiplex_message (enc_msg, msg_ctx);
@@ -4190,7 +4188,7 @@ handle_dht_p2p_route_result (void *cls, const struct GNUNET_PeerIdentity *peer,
   msg_ctx.unique_id = GNUNET_ntohll (incoming->unique_id);
   msg_ctx.msg_options = ntohl (incoming->options);
   msg_ctx.hop_count = ntohl (incoming->hop_count);
-  msg_ctx.peer = peer;
+  msg_ctx.peer = *peer;
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 2;  /* Make result routing a higher priority */
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
   if ((GNUNET_DHT_RO_RECORD_ROUTE ==
