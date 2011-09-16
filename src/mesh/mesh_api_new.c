@@ -579,6 +579,55 @@ reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
+ * Send a connect packet to the service with the applications and types
+ * requested by the user.
+ * 
+ * @param h The mesh handle.
+ * 
+ */
+static void
+send_connect (struct GNUNET_MESH_Handle *h)
+{
+  size_t size;
+
+  size = sizeof (struct GNUNET_MESH_ClientConnect);
+  size += h->n_applications * sizeof (GNUNET_MESH_ApplicationType);
+  size += h->n_handlers * sizeof (uint16_t);
+  {
+    char buf[size];
+    struct GNUNET_MESH_ClientConnect *msg;
+    GNUNET_MESH_ApplicationType *apps;
+    uint16_t napps;
+    uint16_t *types;
+    uint16_t ntypes;
+
+    /* build connection packet */
+    msg = (struct GNUNET_MESH_ClientConnect *) buf;
+    msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT);
+    msg->header.size = htons (size);
+    apps = (GNUNET_MESH_ApplicationType *) &msg[1];
+    for (napps = 0; napps < h->n_applications; napps++)
+    {
+      apps[napps] = htonl (h->applications[napps]);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:  app %u\n",
+                  h->applications[napps]);
+    }
+    types = (uint16_t *) & apps[napps];
+    for (ntypes = 0; ntypes < h->n_handlers; ntypes++)
+      types[ntypes] = htons (h->message_handlers[ntypes].type);
+    msg->applications = htons (napps);
+    msg->types = htons (ntypes);
+#if DEBUG
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "mesh: Sending %lu bytes long message %d types and %d apps\n",
+                ntohs (msg->header.size), ntypes, napps);
+#endif
+    send_packet (h, &msg->header);
+  }
+}
+
+
+/**
  * Reconnect to the service, retransmit all infomation to try to restore the
  * original state.
  *
@@ -617,6 +666,9 @@ reconnect (struct GNUNET_MESH_Handle *h)
         GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_HOURS,
                                   GNUNET_TIME_relative_multiply
                                   (h->reconnect_time, 2));
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "mesh:   Next retry in %sms\n",
+               GNUNET_TIME_relative_to_string(h->reconnect_time));
     GNUNET_break (0);
     return GNUNET_NO;
   }
@@ -624,6 +676,7 @@ reconnect (struct GNUNET_MESH_Handle *h)
   {
     h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   }
+  send_connect(h);
   /* Rebuild all tunnels */
   for (t = h->tunnels_head; NULL != t; t = t->next)
   {
@@ -1122,12 +1175,6 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const GNUNET_MESH_ApplicationType *stypes)
 {
   struct GNUNET_MESH_Handle *h;
-  struct GNUNET_MESH_ClientConnect *msg;
-  GNUNET_MESH_ApplicationType *apps;
-  uint16_t napps;
-  uint16_t *types;
-  uint16_t ntypes;
-  size_t size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: GNUNET_MESH_connect()\n");
   h = GNUNET_malloc (sizeof (struct GNUNET_MESH_Handle));
@@ -1152,36 +1199,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* count handlers and apps, calculate size */
   for (h->n_applications = 0; stypes[h->n_applications]; h->n_applications++) ;
   for (h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++) ;
-  size = sizeof (struct GNUNET_MESH_ClientConnect);
-  size += h->n_applications * sizeof (GNUNET_MESH_ApplicationType);
-  size += h->n_handlers * sizeof (uint16_t);
-
-  {
-    char buf[size];
-
-    /* build connection packet */
-    msg = (struct GNUNET_MESH_ClientConnect *) buf;
-    msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT);
-    msg->header.size = htons (size);
-    apps = (GNUNET_MESH_ApplicationType *) &msg[1];
-    for (napps = 0; napps < h->n_applications; napps++)
-    {
-      apps[napps] = htonl (h->applications[napps]);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:  app %u\n",
-                  h->applications[napps]);
-    }
-    types = (uint16_t *) & apps[napps];
-    for (ntypes = 0; ntypes < h->n_handlers; ntypes++)
-      types[ntypes] = htons (h->message_handlers[ntypes].type);
-    msg->applications = htons (napps);
-    msg->types = htons (ntypes);
-#if DEBUG
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "mesh: Sending %lu bytes long message %d types and %d apps\n",
-                ntohs (msg->header.size), ntypes, napps);
-#endif
-    send_packet (h, &msg->header);
-  }
+  send_connect(h);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: GNUNET_MESH_connect() END\n");
   return h;
 }
