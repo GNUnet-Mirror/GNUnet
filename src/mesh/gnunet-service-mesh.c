@@ -1123,7 +1123,7 @@ tunnel_find_peer(struct MeshTunnelPathNode *root, struct MeshPeerInfo *peer)
     return root;
   for (i = 0; i < root->nchildren; i++)
   {
-    n = tunnel_find_peer(n, peer);
+    n = tunnel_find_peer(&root->children[i], peer);
     if (NULL != n)
       return n;
   }
@@ -1137,20 +1137,20 @@ tunnel_find_peer(struct MeshTunnelPathNode *root, struct MeshPeerInfo *peer)
  * @param t Tunnel where to add the new path.
  * @param p Path to be integrated.
  *
- * @return GNUNET_OK in case of success.
- *         GNUNET_SYSERR in case of error.
+ * @return pointer to the pathless node, NULL on error
  * 
  * TODO: notify peers of deletion
  */
-static int
+static struct MeshTunnelPathNode *
 tunnel_del_path(struct MeshTunnel *t, struct MeshPeerInfo *peer)
 {
   struct MeshTunnelPathNode *parent;
+  struct MeshTunnelPathNode *node;
   struct MeshTunnelPathNode *n;
 
-  n = tunnel_find_peer(t->paths->me, peer);
+  node = n = tunnel_find_peer(t->paths->me, peer);
   if (NULL == n)
-    return GNUNET_SYSERR;
+    return NULL;
   parent = n->parent;
   n->parent = NULL;
   while (NULL != parent &&
@@ -1162,11 +1162,11 @@ tunnel_del_path(struct MeshTunnel *t, struct MeshPeerInfo *peer)
     parent = parent->parent;
   }
   if (NULL == parent)
-    return GNUNET_SYSERR;
+    return node;
   *n = parent->children[parent->nchildren - 1];
   parent->nchildren--;
   parent->children = GNUNET_realloc (parent->children, parent->nchildren);
-  return GNUNET_OK;
+  return node;
 }
 
 
@@ -1186,6 +1186,7 @@ static int
 tunnel_add_path(struct MeshTunnel *t, struct MeshPeerPath *p)
 {
   struct MeshTunnelPathNode *parent;
+  struct MeshTunnelPathNode *oldnode;
   struct MeshTunnelPathNode *n;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_PeerIdentity hop;
@@ -1201,7 +1202,7 @@ tunnel_add_path(struct MeshTunnel *t, struct MeshPeerPath *p)
   }
   /* Ignore return value, if not found it's ok. */
   GNUNET_PEER_resolve(p->peers[p->length - 1], &id);
-  tunnel_del_path(t, peer_info_get(&id));
+  oldnode = tunnel_del_path(t, peer_info_get(&id));
   /* Look for the first node that is not already present in the tree
    * 
    * Assuming that the tree is somewhat balanced, O(log n * log N).
@@ -1228,23 +1229,38 @@ tunnel_add_path(struct MeshTunnel *t, struct MeshPeerPath *p)
   }
   if (-1 == me)
   {
-    /* New path deviates from tree before reaching us. What happened ?*/
+    /* New path deviates from tree before reaching us. What happened? */
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   /* Add the rest of the path as a branch from parent. */
   while (i < p->length)
   {
-    parent->children = GNUNET_realloc(parent->children, parent->nchildren);
     parent->nchildren++;
-    GNUNET_PEER_resolve(p->peers[i], &id);
-    n->peer = peer_info_get(&id);
+    parent->children = GNUNET_realloc(parent->children, parent->nchildren);
+    n = &parent->children[parent->nchildren - 1];
+    if (i == p->length - 1)
+    {
+      if (NULL != oldnode)
+      {
+        /* Assignation and free can be misleading, using explicit mempcy */
+        memcpy (n, oldnode, sizeof(struct MeshTunnelPathNode));
+        GNUNET_free (oldnode);
+      }
+      n->status = MESH_PEER_WAITING;
+    }
+    else
+    {
+      n->t = t;
+      n->status = MESH_PEER_RELAY;
+      GNUNET_PEER_resolve(p->peers[i], &id);
+      n->peer = peer_info_get(&id);
+    }
     n->parent = parent;
-    n->t = t;
-    n->status = MESH_PEER_RELAY;
     i++;
+    parent = n;
   }
-  n->status = MESH_PEER_SEARCHING;
+
   /* Add info about first hop into hashmap. */
   if (me < p->length - 1)
   {
