@@ -30,6 +30,19 @@
 #define DEBUG_DHT GNUNET_NO
 
 /**
+ * Add a unique ID to every request to make testing/profiling easier.
+ * Should NEVER be enabled in production and makes the DHT incompatible
+ * (since this changes the message format).
+ */
+#define HAVE_UID_FOR_TESTING GNUNET_YES
+
+/**
+ * Include a bf for replies? Should not be needed (see Mantis #1769), but if I remove
+ * this code it stops to work!?
+ */
+#define HAVE_REPLY_BLOOMFILTER GNUNET_YES
+
+/**
  * Needs to be GNUNET_YES for logging to dhtlog to work!
  */
 #define DEBUG_DHT_ROUTING GNUNET_YES
@@ -147,8 +160,7 @@ struct GNUNET_DHT_StopMessage
 
 /**
  * Generic DHT message, indicates that a route request
- * should be issued, if coming from a client.  Shared
- * usage for api->server and P2P message passing.
+ * should be issued.
  */
 struct GNUNET_DHT_RouteMessage
 {
@@ -265,10 +277,12 @@ struct GNUNET_DHT_P2PRouteMessage
    */
   uint32_t outgoing_path_length GNUNET_PACKED;
 
+#if HAVE_UID_FOR_TESTING
   /**
-   * Unique ID identifying this request
+   * Unique ID identifying this request (may not be set)
    */
   uint64_t unique_id GNUNET_PACKED;
+#endif
 
   /**
    * Bloomfilter (for peer identities) to stop circular routes
@@ -313,27 +327,24 @@ struct GNUNET_DHT_P2PRouteResultMessage
    */
   uint32_t hop_count GNUNET_PACKED;
 
+#if HAVE_UID_FOR_TESTING
   /**
    * Unique ID identifying this request (may not be set)
    */
   uint64_t unique_id GNUNET_PACKED;
+#endif
 
+#if HAVE_REPLY_BLOOMFILTER
   /**
    * Bloomfilter to stop circular routes
    */
   char bloomfilter[DHT_BLOOM_SIZE];
+#endif
 
   /**
    * The key that was searched for
    */
   GNUNET_HashCode key;
-
-#if FORWARD_UNKNOWN
-  /**
-   * Network size estimate
-   */
-  uint32_t network_size GNUNET_PACKED;
-#endif
 
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 
