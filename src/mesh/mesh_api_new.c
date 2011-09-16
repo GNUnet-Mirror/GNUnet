@@ -907,14 +907,14 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_MESH_Handle *h = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "mesh: received a message type %hu from MESH\n",
-              ntohs (msg->type));
   if (msg == NULL)
   {
     reconnect (h);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mesh: received a message type %hu from MESH\n",
+              ntohs (msg->type));
   switch (ntohs (msg->type))
   {
     /* Notify of a new incoming tunnel */
