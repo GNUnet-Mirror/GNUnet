@@ -232,6 +232,81 @@ server_load_certificate (struct Plugin *plugin)
 
 
 /**
+ * Callback called by MessageStreamTokenizer when a message has arrived
+ * @param cls current session as closure
+ * @param client clien
+ * @param message the message to be forwarded to transport service
+ */
+static void
+server_receive_mst_cb (void *cls, void *client,
+                  const struct GNUNET_MessageHeader *message)
+{
+  struct Session *s = cls;
+  struct Plugin *plugin = s->plugin;
+  struct GNUNET_TIME_Relative delay;
+
+  delay = http_plugin_receive (s, &s->target, message, s, s->addr, s->addrlen);
+
+  s->delay = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
+
+  if (GNUNET_TIME_absolute_get().abs_value < s->delay.abs_value)
+  {
+#if VERBOSE_CLIENT
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Server: peer `%s' address `%s' next read delayed for %llu ms\n",
+                GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen), delay);
+#endif
+  }
+}
+
+/**
+ * Callback called by MHD when it needs data to send
+ * @param cls current session
+ * @param pos position in buffer
+ * @param buf the buffer to write data to
+ * @param max max number of bytes available in buffer
+ * @return bytes written to buffer
+ */
+static ssize_t
+mhd_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
+{
+  struct Session *s = cls;
+  struct HTTP_Message *msg;
+  int bytes_read = 0;
+
+  msg = s->msg_head;
+  if (msg != NULL)
+  {
+    /* sending */
+    if ((msg->size - msg->pos) <= max)
+    {
+      memcpy (buf, &msg->buf[msg->pos], (msg->size - msg->pos));
+      bytes_read = msg->size - msg->pos;
+      msg->pos += (msg->size - msg->pos);
+    }
+    else
+    {
+      memcpy (buf, &msg->buf[msg->pos], max);
+      msg->pos += max;
+      bytes_read = max;
+    }
+
+    /* removing message */
+    if (msg->pos == msg->size)
+    {
+      if (NULL != msg->transmit_cont)
+        msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK);
+      GNUNET_CONTAINER_DLL_remove(s->msg_head, s->msg_tail, msg);
+      GNUNET_free (msg);
+    }
+  }
+#if DEBUG_CONNECTIONS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection %X: MHD has sent %u bytes\n",
+              s, bytes_read);
+#endif
+  return bytes_read;
+}
+
+/**
  * Process GET or PUT request received via MHD.  For
  * GET, queue response that will send back our pending
  * messages.  For PUT, process incoming data and send
@@ -403,11 +478,7 @@ error:
         res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
         MHD_destroy_response (response);
         return res;
-
-
 found:
-
-
     sc = GNUNET_malloc (sizeof (struct ServerConnection));
     sc->mhd_conn = mhd_connection;
     sc->direction = direction;
@@ -418,8 +489,9 @@ found:
       s->server_recv = sc;
 
     (*httpSessionCache) = sc;
-    return MHD_YES;
   }
+
+
   /* existing connection */
   sc = (*httpSessionCache);
   s = sc->session;
@@ -437,6 +509,67 @@ found:
     return MHD_YES;
   }
 
+  GNUNET_assert (s != NULL);
+  if (sc->direction == _SEND)
+  {
+    response =
+        MHD_create_response_from_callback (-1, 32 * 1024, &mhd_send_callback,
+                                           s, NULL);
+    res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+    MHD_destroy_response (response);
+    return MHD_YES;
+  }
+  if (sc->direction == _RECEIVE)
+  {
+    if (*upload_data_size == 0)
+    {
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Server: peer `%s' PUT on address `%s' connected\n",
+                   GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
+#endif
+      return MHD_YES;
+    }
+
+    /* Recieving data */
+    if ((*upload_data_size > 0))
+    {
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Server: peer `%s' PUT on address `%s' received %u bytes\n",
+                   GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
+#endif
+      if ((GNUNET_TIME_absolute_get().abs_value < s->delay.abs_value))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Connection %X: PUT with %u bytes forwarded to MST\n", s,
+                    *upload_data_size);
+
+        if (s->msg_tk == NULL)
+        {
+          s->msg_tk = GNUNET_SERVER_mst_create (&server_receive_mst_cb, s);
+        }
+        res = GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data, *upload_data_size, GNUNET_NO, GNUNET_NO);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Server: Received %u bytes\n",
+                    *upload_data_size);
+        (*upload_data_size) = 0;
+      }
+      else
+      {
+/*
+#if DEBUG_HTTP
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Connection %X: no inbound bandwidth available! Next read was delayed for  %llu ms\n",
+                    s, ps->peercontext->delay.rel_value);
+#endif
+*/
+      }
+      return MHD_YES;
+    }
+    else
+      return MHD_NO;
+  }
   return res;
 }
 
@@ -484,6 +617,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
       tc = s->server_send;
       tc->disconnect = GNUNET_YES;
     }
+    if (s->msg_tk != NULL)
+       GNUNET_SERVER_mst_destroy(s->msg_tk);
   }
   GNUNET_free (sc);
 
@@ -500,6 +635,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   }
   plugin->cur_connections--;
 
+
   if ((s->server_send == NULL) && (s->server_recv == NULL))
   {
 #if VERBOSE_SERVER
@@ -507,6 +643,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                    "Server: peer `%s' on address `%s' disconnected\n",
                    GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
 #endif
+
     notify_session_end(s->plugin, &s->target, s);
   }
 }
@@ -538,8 +675,9 @@ server_disconnect (struct Session *s)
 }
 
 int
-server_send (struct Session *s, const char *msgbuf, size_t msgbuf_size)
+server_send (struct Session *s, struct HTTP_Message * msg)
 {
+  GNUNET_CONTAINER_DLL_insert (s->msg_head, s->msg_tail, msg);
   return GNUNET_OK;
 }
 
@@ -809,6 +947,8 @@ server_stop (struct Plugin *plugin)
   while (s != NULL)
   {
     t = s->next;
+    if (s->msg_tk != NULL)
+       GNUNET_SERVER_mst_destroy(s->msg_tk);
     delete_session (s);
     s = t;
   }

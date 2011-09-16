@@ -26,7 +26,7 @@
 
 #include "plugin_transport_http.h"
 
-#if VERBOSE_CLIENT
+#if VERBOSE_CURL
 /**
  * Function to log curl debug messages with GNUNET_log
  * @param curl handle
@@ -58,8 +58,9 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
 #endif
 
 int
-client_send (struct Session *s, const char *msgbuf, size_t msgbuf_size)
+client_send (struct Session *s, struct HTTP_Message *msg)
 {
+  GNUNET_CONTAINER_DLL_insert (s->msg_head, s->msg_tail, msg);
   return GNUNET_OK;
 }
 
@@ -183,7 +184,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                    "Connection to '%s'  %s ended\n", GNUNET_i2s(&s->target), http_plugin_address_to_string(plugin, s->addr, s->addrlen));
 #endif
          client_disconnect(s);
-         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,"Notifying about ended session to peer `%s' `%s'\n", GNUNET_i2s (&s->target), http_plugin_address_to_string (plugin, s->addr, s->addrlen));
+         //GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,"Notifying about ended session to peer `%s' `%s'\n", GNUNET_i2s (&s->target), http_plugin_address_to_string (plugin, s->addr, s->addrlen));
          if (s->msg_tk != NULL)
            GNUNET_SERVER_mst_destroy (s->msg_tk);
          notify_session_end (plugin, &s->target, s);
@@ -202,6 +203,8 @@ client_disconnect (struct Session *s)
   int res = GNUNET_OK;
   CURLMcode mret;
   struct Plugin *plugin = s->plugin;
+  struct HTTP_Message * msg;
+  struct HTTP_Message * t;
 
 #if 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
@@ -241,6 +244,17 @@ client_disconnect (struct Session *s)
     s->client_get = NULL;
   }
 
+  msg = s->msg_head;
+  while (msg != NULL)
+  {
+    t = msg->next;
+    if (NULL != msg->transmit_cont)
+      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+    GNUNET_CONTAINER_DLL_remove(s->msg_head, s->msg_tail, msg);
+    GNUNET_free (msg);
+    msg = t;
+  }
+
   plugin->cur_connections -= 2;
   /* Re-schedule since handles have changed */
   if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
@@ -255,20 +269,15 @@ client_disconnect (struct Session *s)
 }
 
 static void
-curl_receive_mst_cb (void *cls, void *client,
+client_receive_mst_cb (void *cls, void *client,
                      const struct GNUNET_MessageHeader *message)
 {
   struct Session *s = cls;
   struct Plugin *plugin = s->plugin;
-  struct GNUNET_TRANSPORT_ATS_Information distance[2];
   struct GNUNET_TIME_Relative delay;
 
-  distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-  distance[0].value = htonl (1);
-  distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  distance[1].value = htonl (0);
+  delay = http_plugin_receive (s, &s->target, message, s, s->addr, s->addrlen);
 
-  delay = plugin->env->receive (plugin->env->cls, &s->target, message, (const struct GNUNET_TRANSPORT_ATS_Information*) &distance, 2, s, s->addr, s->addrlen);
   s->delay = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
 
   if (GNUNET_TIME_absolute_get().abs_value < s->delay.abs_value)
@@ -290,23 +299,23 @@ curl_receive_mst_cb (void *cls, void *client,
 * @return bytes read from stream
 */
 static size_t
-curl_receive_cb (void *stream, size_t size, size_t nmemb, void *cls)
+client_receive (void *stream, size_t size, size_t nmemb, void *cls)
 {
   struct Session *s = cls;
   struct Plugin *plugin = s->plugin;
 
   if (GNUNET_TIME_absolute_get().abs_value < s->delay.abs_value)
   {
-#if DEBUG_HTTP
+#if DEBUG_CLIENT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Connection %X: no inbound bandwidth available! Next read was delayed for  %llu ms\n",
+                "no inbound bandwidth available! Next read was delayed for  %llu ms\n",
                 s, GNUNET_TIME_absolute_get_difference(s->delay, GNUNET_TIME_absolute_get()).rel_value);
 #endif
     return 0;
   }
 
   if (s->msg_tk == NULL)
-      s->msg_tk = GNUNET_SERVER_mst_create (&curl_receive_mst_cb, s);
+      s->msg_tk = GNUNET_SERVER_mst_create (&client_receive_mst_cb, s);
 
   GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, size * nmemb, GNUNET_NO,
                              GNUNET_NO);
@@ -329,30 +338,30 @@ curl_receive_cb (void *stream, size_t size, size_t nmemb, void *cls)
  * @return bytes written to stream
  */
 static size_t
-curl_send_cb (void *stream, size_t size, size_t nmemb, void *ptr)
+client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
 {
+  struct Session *s = cls;
+  //struct Plugin *plugin = s->plugin;
   size_t bytes_sent = 0;
-
-#if 0
-  struct Session *ps = ptr;
-  struct HTTP_Message *msg = ps->pending_msgs_tail;
-
   size_t len;
 
-  if (ps->send_active == GNUNET_NO)
+  struct HTTP_Message *msg = s->msg_head;
+/*
+  if (s->put_paused == GNUNET_NO)
     return CURL_READFUNC_PAUSE;
-  if ((ps->pending_msgs_tail == NULL) && (ps->send_active == GNUNET_YES))
+  if ((s->msg_head == NULL) && (s->put_paused == GNUNET_YES))
   {
-#if DEBUG_CONNECTIONS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Connection %X: No Message to send, pausing connection\n", ps);
+#if VERBOSE_CLIENT
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Suspending handle `%s' `%s'\n",
+                     GNUNET_i2s (&s->target),GNUNET_a2s (s->addr, s->addrlen));
 #endif
-    ps->send_active = GNUNET_NO;
+    s->put_paused = GNUNET_NO;
     return CURL_READFUNC_PAUSE;
   }
-
+*/
+  if (msg == NULL)
+    return bytes_sent;
   GNUNET_assert (msg != NULL);
-
   /* data to send */
   if (msg->pos < msg->size)
   {
@@ -383,17 +392,14 @@ curl_send_cb (void *stream, size_t size, size_t nmemb, void *ptr)
 #if DEBUG_CONNECTIONS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Connection %X: Message with %u bytes sent, removing message from queue\n",
-                ps, msg->pos);
+                s, msg->pos);
 #endif
     /* Calling transmit continuation  */
-    if (NULL != ps->pending_msgs_tail->transmit_cont)
-      msg->transmit_cont (ps->pending_msgs_tail->transmit_cont_cls,
-                          &(ps->peercontext)->identity, GNUNET_OK);
-    ps->queue_length_cur -= msg->size;
-    remove_http_message (ps, msg);
+    if (NULL != msg->transmit_cont)
+      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK);
+    GNUNET_CONTAINER_DLL_remove(s->msg_head, s->msg_tail, msg);
+    GNUNET_free (msg);
   }
-
-#endif
   return bytes_sent;
 }
 
@@ -423,7 +429,7 @@ client_connect (struct Session *s)
 #endif
   /* create get connection */
   s->client_get = curl_easy_init ();
-#if VERBOSE_CLIENT
+#if VERBOSE_CURL
   curl_easy_setopt (s->client_get, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt (s->client_get, CURLOPT_DEBUGFUNCTION, &client_log);
   curl_easy_setopt (s->client_get, CURLOPT_DEBUGDATA, s->client_get);
@@ -436,9 +442,9 @@ client_connect (struct Session *s)
   curl_easy_setopt (s->client_get, CURLOPT_URL, url);
   //curl_easy_setopt (s->client_get, CURLOPT_HEADERFUNCTION, &curl_get_header_cb);
   //curl_easy_setopt (s->client_get, CURLOPT_WRITEHEADER, ps);
-  curl_easy_setopt (s->client_get, CURLOPT_READFUNCTION, curl_send_cb);
+  curl_easy_setopt (s->client_get, CURLOPT_READFUNCTION, client_send_cb);
   curl_easy_setopt (s->client_get, CURLOPT_READDATA, s);
-  curl_easy_setopt (s->client_get, CURLOPT_WRITEFUNCTION, curl_receive_cb);
+  curl_easy_setopt (s->client_get, CURLOPT_WRITEFUNCTION, client_receive);
   curl_easy_setopt (s->client_get, CURLOPT_WRITEDATA, s);
   curl_easy_setopt (s->client_get, CURLOPT_TIMEOUT_MS,
                     (long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
@@ -453,7 +459,7 @@ client_connect (struct Session *s)
 
   /* create put connection */
   s->client_put = curl_easy_init ();
-#if VERBOSE_CLIENT
+#if VERBOSE_CURL
   curl_easy_setopt (s->client_put, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt (s->client_put, CURLOPT_DEBUGFUNCTION, &client_log);
   curl_easy_setopt (s->client_put, CURLOPT_DEBUGDATA, s->client_put);
@@ -467,9 +473,9 @@ client_connect (struct Session *s)
   curl_easy_setopt (s->client_put, CURLOPT_PUT, 1L);
   //curl_easy_setopt (s->client_put, CURLOPT_HEADERFUNCTION, &curl_put_header_cb);
   //curl_easy_setopt (s->client_put, CURLOPT_WRITEHEADER, ps);
-  curl_easy_setopt (s->client_put, CURLOPT_READFUNCTION, curl_send_cb);
+  curl_easy_setopt (s->client_put, CURLOPT_READFUNCTION, client_send_cb);
   curl_easy_setopt (s->client_put, CURLOPT_READDATA, s);
-  curl_easy_setopt (s->client_put, CURLOPT_WRITEFUNCTION, curl_receive_cb);
+  curl_easy_setopt (s->client_put, CURLOPT_WRITEFUNCTION, client_receive);
   curl_easy_setopt (s->client_put, CURLOPT_WRITEDATA, s);
   curl_easy_setopt (s->client_put, CURLOPT_TIMEOUT_MS,
                     (long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);

@@ -292,6 +292,27 @@ http_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
   return GNUNET_SYSERR;
 }
 
+struct GNUNET_TIME_Relative
+http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity * peer,
+    const struct  GNUNET_MessageHeader * message,
+    struct Session * session,
+    const char *sender_address,
+    uint16_t sender_address_len)
+{
+  struct Session *s = cls;
+  struct Plugin *plugin = s->plugin;
+  struct GNUNET_TRANSPORT_ATS_Information distance[2];
+  struct GNUNET_TIME_Relative delay;
+
+  distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance[0].value = htonl (1);
+  distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  distance[1].value = htonl (0);
+
+  delay = plugin->env->receive (plugin->env->cls, &s->target, message, (const struct GNUNET_TRANSPORT_ATS_Information*) &distance, 2, s, s->addr, s->addrlen);
+  return delay;
+}
+
 /**
  * Function called for a quick conversion of the binary address to
  * a numeric address.  Note that the caller must not free the
@@ -425,7 +446,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->transmit_cont = cont;
   s->transmit_cont_cls = cont_cls;
   s->next = NULL;
-
+  s->delay = GNUNET_TIME_absolute_get_forever();
   return s;
 }
 
@@ -486,7 +507,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                   GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Plugin *plugin = cls;
-
+  struct HTTP_Message *msg;
   GNUNET_assert (plugin != NULL);
 
   int res = GNUNET_SYSERR;
@@ -529,10 +550,20 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
       return GNUNET_SYSERR;
     }
   }
-  else if (s->inbound == GNUNET_NO)
-    res = client_send (s, msgbuf, msgbuf_size);
-  else if (s->inbound == GNUNET_YES)
-    res = server_send (s, msgbuf, msgbuf_size);
+
+  msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
+  msg->next = NULL;
+  msg->size = msgbuf_size;
+  msg->pos = 0;
+  msg->buf = (char *) &msg[1];
+  msg->transmit_cont = cont;
+  msg->transmit_cont_cls = cont_cls;
+  memcpy (msg->buf, msgbuf, msgbuf_size);
+
+  if (s->inbound == GNUNET_NO)
+    res = client_send (s, msg);
+  if (s->inbound == GNUNET_YES)
+    res = server_send (s, msg);
 
   return res;
 }

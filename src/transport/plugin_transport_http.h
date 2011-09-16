@@ -45,6 +45,7 @@
 #define DEBUG_HTTP GNUNET_YES
 #define VERBOSE_SERVER GNUNET_YES
 #define VERBOSE_CLIENT GNUNET_YES
+#define VERBOSE_CURL GNUNET_NO
 
 #if BUILD_HTTPS
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_init
@@ -180,6 +181,17 @@ struct Session
   struct Plugin *plugin;
 
   /**
+   * next pointer for double linked list
+   */
+  struct HTTP_Message *msg_head;
+
+  /**
+   * previous pointer for double linked list
+   */
+  struct HTTP_Message *msg_tail;
+
+
+  /**
    * message stream tokenizer for incoming data
    */
   struct GNUNET_SERVER_MessageStreamTokenizer *msg_tk;
@@ -229,6 +241,7 @@ struct Session
 
   void *client_put;
   void *client_get;
+  int put_paused;
 
   void *server_recv;
   void *server_send;
@@ -238,6 +251,49 @@ struct Session
 
 };
 
+/**
+ *  Message to send using http
+ */
+struct HTTP_Message
+{
+  /**
+   * next pointer for double linked list
+   */
+  struct HTTP_Message *next;
+
+  /**
+   * previous pointer for double linked list
+   */
+  struct HTTP_Message *prev;
+
+  /**
+   * buffer containing data to send
+   */
+  char *buf;
+
+  /**
+   * amount of data already sent
+   */
+  size_t pos;
+
+  /**
+   * buffer length
+   */
+  size_t size;
+
+  /**
+   * Continuation function to call once the transmission buffer
+   * has again space available.  NULL if there is no
+   * continuation to call.
+   */
+  GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
+
+  /**
+   * Closure for transmit_cont.
+   */
+  void *transmit_cont_cls;
+};
+
 void
 delete_session (struct Session *s);
 
@@ -245,6 +301,13 @@ struct Session *
 create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
                 const void *addr, size_t addrlen,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
+
+struct GNUNET_TIME_Relative
+http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity * peer,
+    const struct  GNUNET_MessageHeader * message,
+    struct Session * session,
+    const char *sender_address,
+    uint16_t sender_address_len);
 
 const char *
 http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen);
@@ -256,7 +319,7 @@ int
 client_connect (struct Session *s);
 
 int
-client_send (struct Session *s, const char *msgbuf, size_t msgbuf_size);
+client_send (struct Session *s, struct HTTP_Message *msg);
 
 int
 client_start (struct Plugin *plugin);
@@ -268,7 +331,7 @@ int
 server_disconnect (struct Session *s);
 
 int
-server_send (struct Session *s, const char *msgbuf, size_t msgbuf_size);
+server_send (struct Session *s, struct HTTP_Message * msg);
 
 int
 server_start (struct Plugin *plugin);
