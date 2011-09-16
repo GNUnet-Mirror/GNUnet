@@ -881,6 +881,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "MESH: callback caused disconnection\n");
         GNUNET_MESH_disconnect (h);
+	break;
       }
 #if DEBUG
       else
