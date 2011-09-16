@@ -232,7 +232,7 @@ static int ok;
 /**
  * Check whether peers successfully shut down.
  */
-void
+static void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
@@ -394,7 +394,7 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param size number of bytes in data
  * @param data pointer to the result data
  */
-void
+static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *const *get_path,
@@ -982,4 +982,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_dht_twopeer_put_get.c */
+/* end of test_dht_multipeer.c */
