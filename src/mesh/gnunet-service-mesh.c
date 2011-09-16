@@ -966,86 +966,6 @@ path_add_to_origin (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
   path_add_to_peer (peer_info, path);
 }
 
-/**
- * Integrate a stand alone path into the tunnel tree.
- *
- * @param t Tunnel where to add the new path.
- * @param p Path to be integrated.
- *
- * @return GNUNET_OK in case of success.
- *         GNUNET_SYSERR in case of error.
- *
- * FIXME path: remove old path to the same peer if needed
- */
-static int
-path_add_to_tunnel(struct MeshTunnel *t, struct MeshPeerPath *p)
-{
-  struct MeshTunnelPathNode *parent;
-  struct MeshTunnelPathNode *n;
-  struct GNUNET_PeerIdentity id;
-  struct GNUNET_PeerIdentity hop;
-  int me;
-  unsigned int i;
-  unsigned int j;
-
-  n = t->paths->root;
-  if (n->peer->id != p->peers[0])
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  /* Assuming that the tree is somewhat balanced, O((log n * log N).
-   * - Length of the path is expected to be log N (size of whole network).
-   * - Each level of the tree is expected to have log n children (size of tree).
-   */
-  for (i = 1, me = -1; i < p->length; i++)
-  {
-    parent = n;
-    if (p->peers[i] == myid)
-      me = i;
-    for (j = 0; j < n->nchildren; j++)
-    {
-      if (n->children[j].peer->id == p->peers[i])
-      {
-        n = &n->children[j];
-        break;
-      }
-    }
-    /*  If we couldn't find a child equal to path[i], we have reached the end
-     * of the common path. */
-    if (parent == n)
-      break;
-  }
-  if (-1 == me)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  /* Add the rest of the path as a branch from parent. */
-  while (i < p->length)
-  {
-    parent->children = GNUNET_realloc(parent->children, parent->nchildren);
-    parent->nchildren++;
-    GNUNET_PEER_resolve(p->peers[i], &id);
-    n->peer = peer_info_get(&id);
-    n->parent = parent;
-    n->t = t;
-    i++;
-  }
-  /* Add info about first hop into hashmap. */
-  if (me < p->length - 1)
-  {
-    GNUNET_PEER_resolve(p->peers[p->length - 1], &id);
-    GNUNET_PEER_resolve(p->peers[me + 1], &hop);
-    GNUNET_CONTAINER_multihashmap_put(
-      t->paths->first_hops,
-      &id.hashPubKey,
-      peer_info_get(&hop),
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-  }
-  return GNUNET_OK;
-}
-
 
 /**
  * Build a PeerPath from the paths returned from the DHT, reversing the paths
@@ -1186,6 +1106,161 @@ tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 
 
 /**
+ * Recursively find the given peer in the tree.
+ *
+ * @param t Tunnel where to add the new path.
+ * @param p Path to look for.
+ *
+ * @return Pointer to the node of the peer. NULL if not found.
+ */
+static struct MeshTunnelPathNode *
+tunnel_find_peer(struct MeshTunnelPathNode *root, struct MeshPeerInfo *peer)
+{
+  struct MeshTunnelPathNode *n;
+  unsigned int i;
+
+  if (root->peer == peer)
+    return root;
+  for (i = 0; i < root->nchildren; i++)
+  {
+    n = tunnel_find_peer(n, peer);
+    if (NULL != n)
+      return n;
+  }
+  return NULL;
+}
+
+
+/**
+ * Delete the current path to the peer, including all now unused relays.
+ *
+ * @param t Tunnel where to add the new path.
+ * @param p Path to be integrated.
+ *
+ * @return GNUNET_OK in case of success.
+ *         GNUNET_SYSERR in case of error.
+ * 
+ * TODO: notify peers of deletion
+ */
+static int
+tunnel_del_path(struct MeshTunnel *t, struct MeshPeerInfo *peer)
+{
+  struct MeshTunnelPathNode *parent;
+  struct MeshTunnelPathNode *n;
+
+  n = tunnel_find_peer(t->paths->me, peer);
+  if (NULL == n)
+    return GNUNET_SYSERR;
+  parent = n->parent;
+  n->parent = NULL;
+  while (NULL != parent &&
+    MESH_PEER_RELAY == parent->status &&
+    1 == parent->nchildren)
+  {
+    n = parent;
+    GNUNET_free(parent->children);
+    parent = parent->parent;
+  }
+  if (NULL == parent)
+    return GNUNET_SYSERR;
+  *n = parent->children[parent->nchildren - 1];
+  parent->nchildren--;
+  parent->children = GNUNET_realloc (parent->children, parent->nchildren);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Integrate a stand alone path into the tunnel tree.
+ *
+ * @param t Tunnel where to add the new path.
+ * @param p Path to be integrated.
+ *
+ * @return GNUNET_OK in case of success.
+ *         GNUNET_SYSERR in case of error.
+ * 
+ * TODO: optimize
+ * - go backwards on path looking for each peer in the present tree
+ */
+static int
+tunnel_add_path(struct MeshTunnel *t, struct MeshPeerPath *p)
+{
+  struct MeshTunnelPathNode *parent;
+  struct MeshTunnelPathNode *n;
+  struct GNUNET_PeerIdentity id;
+  struct GNUNET_PeerIdentity hop;
+  int me;
+  unsigned int i;
+  unsigned int j;
+
+  n = t->paths->root;
+  if (n->peer->id != p->peers[0])
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  /* Ignore return value, if not found it's ok. */
+  GNUNET_PEER_resolve(p->peers[p->length - 1], &id);
+  tunnel_del_path(t, peer_info_get(&id));
+  /* Look for the first node that is not already present in the tree
+   * 
+   * Assuming that the tree is somewhat balanced, O(log n * log N).
+   * - Length of the path is expected to be log N (size of whole network).
+   * - Each level of the tree is expected to have log n children (size of tree).
+   */
+  for (i = 1, me = -1; i < p->length; i++)
+  {
+    parent = n;
+    if (p->peers[i] == myid)
+      me = i;
+    for (j = 0; j < n->nchildren; j++)
+    {
+      if (n->children[j].peer->id == p->peers[i])
+      {
+        n = &n->children[j];
+        break;
+      }
+    }
+    /*  If we couldn't find a child equal to path[i], we have reached the end
+     * of the common path. */
+    if (parent == n)
+      break;
+  }
+  if (-1 == me)
+  {
+    /* New path deviates from tree before reaching us. What happened ?*/
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  /* Add the rest of the path as a branch from parent. */
+  while (i < p->length)
+  {
+    parent->children = GNUNET_realloc(parent->children, parent->nchildren);
+    parent->nchildren++;
+    GNUNET_PEER_resolve(p->peers[i], &id);
+    n->peer = peer_info_get(&id);
+    n->parent = parent;
+    n->t = t;
+    n->status = MESH_PEER_RELAY;
+    i++;
+  }
+  n->status = MESH_PEER_SEARCHING;
+  /* Add info about first hop into hashmap. */
+  if (me < p->length - 1)
+  {
+    GNUNET_PEER_resolve(p->peers[p->length - 1], &id);
+    GNUNET_PEER_resolve(p->peers[me + 1], &hop);
+    GNUNET_CONTAINER_multihashmap_put(
+      t->paths->first_hops,
+      &id.hashPubKey,
+      peer_info_get(&hop),
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Add a peer to a tunnel, accomodating paths accordingly and initializing all
  * needed rescources.
  *
@@ -1216,7 +1291,7 @@ tunnel_add_peer(struct MeshTunnel *t, struct MeshPeerInfo *peer)
     }
     p = p->next;
   }
-  path_add_to_tunnel(t, best_p);
+  tunnel_add_path(t, best_p);
   if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
     t->path_refresh_task = GNUNET_SCHEDULER_add_delayed (REFRESH_PATH_TIME,
                                                          &path_refresh, t);
