@@ -784,7 +784,7 @@ start_helper_and_schedule (void *cls,
 }
 
 static void
-prepare_ipv4_packet (ssize_t len, uint16_t pktlen, void *payload,
+prepare_ipv4_packet (size_t len, uint16_t pktlen, void *payload,
                      uint16_t protocol, void *ipaddress, void *tunnel,
                      struct redirect_state *state, struct ip_pkt *pkt4)
 {
@@ -876,7 +876,7 @@ prepare_ipv4_packet (ssize_t len, uint16_t pktlen, void *payload,
 }
 
 static void
-prepare_ipv6_packet (ssize_t len, uint16_t pktlen, void *payload,
+prepare_ipv6_packet (size_t len, uint16_t pktlen, void *payload,
                      uint16_t protocol, void *ipaddress, void *tunnel,
                      struct redirect_state *state, struct ip6_pkt *pkt6)
 {
