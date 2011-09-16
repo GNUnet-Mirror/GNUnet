@@ -1412,6 +1412,27 @@ tunnel_notify_connection_broken (struct MeshTunnel *t,
 
 
 /**
+ * Recursively destory the path tree of a tunnel.
+ * Note: it does not liberate memory for itself, parent must do it!
+ *
+ * @param n The node to destroy, along with children.
+ *
+ * @return GNUNET_OK on success
+ */
+static void
+tunnel_destroy_tree_node (struct MeshTunnelPathNode *n)
+{
+  unsigned int i;
+
+  for (i = 0; i < n->nchildren; i++)
+  {
+    tunnel_destroy_tree_node(&n->children[i]);
+  }
+  GNUNET_free (n->children);
+}
+
+
+/**
  * Destroy the tunnel and free any allocated resources linked to it
  *
  * @param t the tunnel to destroy
@@ -1458,6 +1479,11 @@ tunnel_destroy (struct MeshTunnel *t)
     q = qn;
     /* TODO cancel core transmit ready in case it was active */
   }
+
+  GNUNET_CONTAINER_multihashmap_destroy(t->paths->first_hops);
+  tunnel_destroy_tree_node(t->paths->root);
+  GNUNET_free(t->paths->root);
+  GNUNET_free (t->paths);
   GNUNET_free (t);
   return r;
 }
@@ -1478,7 +1504,6 @@ tunnel_destroy_iterator (void *cls, const GNUNET_HashCode * key, void *value)
 {
   int r;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: D %p\n", value);
   r = tunnel_destroy ((struct MeshTunnel *) value);
   return r;
 }
@@ -2797,6 +2822,14 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  t->paths = GNUNET_malloc (sizeof(struct MeshTunnelPath));
+  t->paths->first_hops = GNUNET_CONTAINER_multihashmap_create(32);
+  t->paths->t = t;
+  t->paths->root = GNUNET_malloc(sizeof(struct MeshTunnelPathNode));
+  t->paths->root->status = MESH_PEER_READY;
+  t->paths->root->t = t;
+  t->paths->root->peer = peer_info_get(&my_full_id);
+  t->paths->me = t->paths->root;
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
