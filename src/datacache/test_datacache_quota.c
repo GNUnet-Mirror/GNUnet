@@ -64,8 +64,7 @@ run (void *cls, char *const *args, const char *cfgfile,
              "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
     return;
   }
-  exp = GNUNET_TIME_absolute_get ();
-  exp.abs_value += 20 * 60 * 1000;
+  exp = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS);
   memset (buf, 1, sizeof (buf));
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 10; i++)
