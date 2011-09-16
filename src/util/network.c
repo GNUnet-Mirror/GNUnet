@@ -285,12 +285,12 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
   if (desc->af == AF_INET6)
     if (0 != setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)))
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
-#if 0
-  /* is this needed or desired? or done elsewhere? */
+#endif
+#endif
+#ifndef WINDOWS
+  /* This is required, and required here, but only on UNIX */
   if (0 != setsockopt (desc->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
-#endif
-#endif
 #endif
 #ifndef LINUX
 #ifndef MINGW
