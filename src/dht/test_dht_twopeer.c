@@ -105,7 +105,6 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (peer2dht != NULL);
   GNUNET_DHT_disconnect (peer1dht);
   GNUNET_DHT_disconnect (peer2dht);
-  fprintf (stderr, "Testing STOP! - finished\n");
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
   pg = NULL;
   ok = 0;
@@ -120,7 +119,6 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (peer2dht != NULL)
     GNUNET_DHT_disconnect (peer2dht);
 
-  fprintf (stderr, "Testing STOP - Badly!\n");
   if (pg != NULL)
   {
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
