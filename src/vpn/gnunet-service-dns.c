@@ -1380,18 +1380,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, mesh_handlers, apptypes);
 
   cfg = cfg_;
-
-  unsigned int i;
-
-  for (i = 0; i < UINT16_MAX + 1; i++)
-  {
-    query_states[i].valid = GNUNET_NO;
-  }
-
   dht = GNUNET_DHT_connect (cfg, 1024);
-
   GNUNET_SCHEDULER_add_now (publish_names, NULL);
-
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 cls);
