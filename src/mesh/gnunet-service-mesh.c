@@ -1132,6 +1132,32 @@ tunnel_find_peer(struct MeshTunnelPathNode *root, struct MeshPeerInfo *peer)
 
 
 /**
+ * Recusively mark peer and children as disconnected, notify client
+ * 
+ * @param parent Node to be clean, potentially with children
+ */
+static void
+tunnel_mark_peers_disconnected (struct MeshTunnelPathNode *parent)
+{
+  struct GNUNET_MESH_PeerControl msg;
+  unsigned int i;
+
+  parent->status = MESH_PEER_RECONNECTING;
+  for (i = 0; i < parent->nchildren; i++)
+  {
+    tunnel_mark_peers_disconnected (&parent->children[i]);
+  }
+  if (NULL == parent->t->client)
+    return;
+  msg.header.size = htons(sizeof(msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL);
+  msg.tunnel_id = htonl(parent->t->local_tid);
+  GNUNET_PEER_resolve(parent->peer->id, &msg.peer);
+  GNUNET_SERVER_notification_context_unicast (nc, parent->t->client->handle,
+                                              &msg.header, GNUNET_NO);
+}
+
+/**
  * Delete the current path to the peer, including all now unused relays.
  *
  * @param t Tunnel where to add the new path.
@@ -1166,6 +1192,9 @@ tunnel_del_path(struct MeshTunnel *t, struct MeshPeerInfo *peer)
   *n = parent->children[parent->nchildren - 1];
   parent->nchildren--;
   parent->children = GNUNET_realloc (parent->children, parent->nchildren);
+
+  tunnel_mark_peers_disconnected(node);
+
   return node;
 }
 
@@ -1247,7 +1276,6 @@ tunnel_add_path(struct MeshTunnel *t, struct MeshPeerPath *p)
         memcpy (n, oldnode, sizeof(struct MeshTunnelPathNode));
         GNUNET_free (oldnode);
       }
-      n->status = MESH_PEER_WAITING;
     }
     else
     {
