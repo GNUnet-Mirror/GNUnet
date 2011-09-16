@@ -1397,6 +1397,7 @@ connect_to_mesh ()
   mesh_handle = GNUNET_MESH_connect (cfg, NULL, NULL, handlers, apptypes);
 }
 
+
 /**
  * @brief Main function that will be run by the scheduler.
  *
@@ -1422,19 +1423,22 @@ run (void *cls, char *const *args __attribute__ ((unused)), const char *cfgfile
   udp_services = GNUNET_CONTAINER_multihashmap_create (65536);
   tcp_services = GNUNET_CONTAINER_multihashmap_create (65536);
 
-  GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_UDP_CONNECTIONS",
-                                         &max_udp_connections);
-  GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_TCP_CONNECTIONS",
-                                         &max_tcp_connections);
-
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_UDP_CONNECTIONS",
+					     &max_udp_connections))
+    max_udp_connections = 1024;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_TCP_CONNECTIONS",
+					     &max_tcp_connections))
+    max_tcp_connections = 256;
   GNUNET_CONFIGURATION_iterate_sections (cfg, read_service_conf, NULL);
-
   GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 }
 
+
 /**
- * The main function to obtain template from gnunetd.
+ * The main function 
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -1448,8 +1452,10 @@ main (int argc, char *const *argv)
   };
 
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "exit", gettext_noop ("help text"),
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-exit", 
+			      gettext_noop ("Daemon to run to provide an IP exit node for the VPN"),
                               options, &run, NULL)) ? ret : 1;
 }
+
 
 /* end of gnunet-daemon-exit.c */
