@@ -417,7 +417,6 @@ src/include/gnunet_server_lib.h
 src/include/gnunet_service_lib.h
 src/include/gnunet_statistics_service.h
 src/include/gnunet_peer_lib.h
-src/util/.#resolver.h
 src/util/resolver.h
 src/util/disk.h
 src/fs/gnunet-service-fs_indexing.h
