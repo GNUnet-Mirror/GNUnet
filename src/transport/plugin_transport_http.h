@@ -54,6 +54,9 @@
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_http_done
 #endif
 
+#define INBOUND  GNUNET_YES
+#define OUTBOUND GNUNET_NO
+
 
 #define HTTP_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
@@ -227,12 +230,15 @@ struct Session
   void *client_put;
   void *client_get;
 
-  void *server_put;
-  void *server_get;
+  void *server_recv;
+  void *server_send;
 
   uint32_t tag;
 
 };
+
+void
+delete_session (struct Session *s);
 
 struct Session *
 create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,

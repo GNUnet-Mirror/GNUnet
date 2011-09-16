@@ -40,6 +40,18 @@ server_log (void *arg, const char *fmt, va_list ap)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "server: %s\n", text);
 }
 
+struct ServerConnection
+{
+  /* _RECV or _SEND */
+  int direction;
+
+  /* should this connection get disconnected? GNUNET_YES/NO  */
+  int disconnect;
+
+  struct Session *session;
+  struct MHD_Connection * mhd_conn;
+};
+
 /**
  * Check if incoming connection is accepted.
  * NOTE: Here every connection is accepted
@@ -233,15 +245,16 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                   void **httpSessionCache)
 {
   struct Plugin *plugin = cls;
-  struct Session *s = *httpSessionCache;
+  struct ServerConnection *sc = *httpSessionCache;
+  struct Session *s = NULL;
+
   int res = MHD_YES;
   struct MHD_Response *response;
 
   GNUNET_assert (cls != NULL);
   /* new connection */
-  if (s == NULL)
-  {
-
+  if (sc == NULL)
+    {
     uint32_t tag;
     const union MHD_ConnectionInfo *conn_info;
     size_t addrlen;
@@ -319,7 +332,11 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     if (t == NULL)
       goto create;
 
-    if ((direction == _SEND) && (t->server_get != NULL))
+#if VERBOSE_SERVER
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server: Found existing semi-session for `%s'\n", GNUNET_i2s (&target));
+#endif
+
+    if ((direction == _SEND) && (t->server_send != NULL))
     {
 #if VERBOSE_SERVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server: Duplicate GET session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
@@ -329,7 +346,6 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     else
     {
       s = t;
-      s->server_get = s;
       GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
       GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
 #if VERBOSE_SERVER
@@ -338,7 +354,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
 
       goto found;
     }
-    if ((direction == _RECEIVE) && (t->server_put != NULL))
+    if ((direction == _RECEIVE) && (t->server_recv != NULL))
     {
 #if VERBOSE_SERVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server: Duplicate PUT session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
@@ -348,7 +364,6 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     else
     {
       s = t;
-      s->server_put = s;
       GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
       GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
 #if VERBOSE_SERVER
@@ -373,9 +388,9 @@ create:
     s->inbound = GNUNET_YES;
     s->tag= tag;
     if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
-      s->server_put = s;
+      s->server_recv = s;
     if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
-      s->server_get = s;
+      s->server_send = s;
     GNUNET_CONTAINER_DLL_insert (plugin->server_semi_head, plugin->server_semi_tail, s);
 
     goto found;
@@ -388,11 +403,36 @@ error:
 
 
 found:
-    (*httpSessionCache) = s;
+
+
+    sc = GNUNET_malloc (sizeof (struct ServerConnection));
+    sc->mhd_conn = mhd_connection;
+    sc->direction = direction;
+    sc->session = s;
+    if (direction == _SEND)
+      s->server_send = sc;
+    if (direction == _RECEIVE)
+      s->server_recv = sc;
+
+    (*httpSessionCache) = sc;
     return MHD_YES;
-
   }
+  /* existing connection */
+  sc = (*httpSessionCache);
+  s = sc->session;
 
+  /* connection is to be disconnected*/
+  if (sc->disconnect == GNUNET_YES)
+  {
+    response = MHD_create_response_from_data (strlen ("Thank you!"), "Thank you!", MHD_NO, MHD_NO);
+    res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+#if VERBOSE_SERVER
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sent HTTP/1.1: 200 OK as PUT Response\n");
+#endif
+    MHD_destroy_response (response);
+    return MHD_YES;
+  }
 
   return res;
 }
@@ -401,20 +441,95 @@ static void
 server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                       void **httpSessionCache)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "server: server_disconnect_cb\n");
-  /*
-  struct Session *s = *httpSessionCache;
+  struct ServerConnection *sc = *httpSessionCache;
+  struct ServerConnection *tc = *httpSessionCache;
+  struct Session * s = NULL;
+  struct Session * t = NULL;
+  struct Plugin * plugin = NULL;
 
-  if (s != NULL)
+  if (sc == NULL)
+    return;
+
+  s = sc->session;
+  plugin = s-> plugin;
+  if (sc->direction == _SEND)
   {
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Server: peer `%s' PUT on address `%s' disconnected\n",
+                   GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
+#endif
+    s->server_send = NULL;
+    /* FIXME miminimize timeout here */
+    if (s->server_recv != NULL)
+    {
+      tc = s->server_recv;
+      tc->disconnect = GNUNET_YES;
+    }
+  }
+  if (sc->direction == _RECEIVE)
+  {
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Server: peer `%s' GET on address `%s' disconnected\n",
+                   GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
+#endif
+    s->server_recv = NULL;
+    //MHD_
+    if (s->server_send != NULL)
+    {
+      tc = s->server_send;
+      tc->disconnect = GNUNET_YES;
+    }
+  }
+  GNUNET_free (sc);
+
+  t = plugin->server_semi_head;
+  while (t != NULL)
+  {
+    if (t == s)
+    {
+      GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
+      GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
+      break;
+    }
+    t = t->next;
+  }
+
+  if ((s->server_send == NULL) && (s->server_recv == NULL))
+  {
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Server: peer `%s' on address `%s' disconnected\n",
+                   GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
+#endif
     notify_session_end(s->plugin, &s->target, s);
   }
-*/
 }
 
 int
 server_disconnect (struct Session *s)
 {
+  struct Plugin *plugin = s->plugin;
+  struct Session *t = plugin->head;
+
+  while (t != NULL)
+  {
+    if (t->inbound == GNUNET_YES)
+    {
+      if (t->server_send != NULL)
+      {
+        ((struct ServerConnection *) t->server_send)->disconnect = GNUNET_YES;
+      }
+      if (t->server_send != NULL)
+      {
+        ((struct ServerConnection *) t->server_send)->disconnect = GNUNET_YES;
+      }
+    }
+    t = t->next;
+  }
+
+
   return GNUNET_OK;
 }
 
@@ -659,6 +774,9 @@ server_start (struct Plugin *plugin)
 void
 server_stop (struct Plugin *plugin)
 {
+  struct Session *s = NULL;
+  struct Session *t = NULL;
+
   if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
@@ -680,6 +798,15 @@ server_stop (struct Plugin *plugin)
   {
     MHD_stop_daemon (plugin->server_v6);
     plugin->server_v6 = NULL;
+  }
+
+  /* cleaning up semi-sessions never propagated */
+  s = plugin->server_semi_head;
+  while (s != NULL)
+  {
+    t = s->next;
+    delete_session (s);
+    s = t;
   }
 
 #if BUILD_HTTPS

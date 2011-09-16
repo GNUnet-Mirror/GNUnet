@@ -126,6 +126,7 @@ client_schedule (struct Plugin *plugin)
   gws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+
   plugin->client_perform_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
@@ -179,10 +180,10 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        {
 #if DEBUG_HTTP
          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Connection to '%s'  %s ended\n", GNUNET_i2s(&s->target), http_plugin_address_to_string(s->plugin, s->addr, s->addrlen));
+                   "Connection to '%s'  %s ended\n", GNUNET_i2s(&s->target), http_plugin_address_to_string(plugin, s->addr, s->addrlen));
 #endif
          client_disconnect(s);
-         notify_session_end (s->plugin, &s->target, s);
+         notify_session_end (plugin, &s->target, s);
        }
     }
 
@@ -197,7 +198,7 @@ client_disconnect (struct Session *s)
 {
   int res = GNUNET_OK;
   CURLMcode mret;
-  struct Plugin *plugin = s->plugin;
+  struct Plugin *plugin = plugin;
 
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
@@ -205,14 +206,18 @@ client_disconnect (struct Session *s)
                    GNUNET_i2s (&s->target));
 #endif
 
-  mret = curl_multi_remove_handle (plugin->client_mh, s->client_put);
-  if (mret != CURLM_OK)
+  if (s->client_put != NULL)
   {
+    mret = curl_multi_remove_handle (plugin->client_mh, s->client_put);
+    if (mret != CURLM_OK)
+    {
+      curl_easy_cleanup (s->client_put);
+      res = GNUNET_SYSERR;
+      GNUNET_break (0);
+    }
     curl_easy_cleanup (s->client_put);
-    res = GNUNET_SYSERR;
-    GNUNET_break (0);
+    s->client_put = NULL;
   }
-  curl_easy_cleanup (s->client_put);
 
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
@@ -220,15 +225,20 @@ client_disconnect (struct Session *s)
                    GNUNET_i2s (&s->target));
 #endif
 
-  mret = curl_multi_remove_handle (plugin->client_mh, s->client_get);
-  if (mret != CURLM_OK)
+  if (s->client_get != NULL)
   {
+    mret = curl_multi_remove_handle (plugin->client_mh, s->client_get);
+    if (mret != CURLM_OK)
+    {
+      curl_easy_cleanup (s->client_get);
+      res = GNUNET_SYSERR;
+      GNUNET_break (0);
+    }
     curl_easy_cleanup (s->client_get);
-    res = GNUNET_SYSERR;
-    GNUNET_break (0);
+    s->client_get = NULL;
   }
-  curl_easy_cleanup (s->client_get);
-  plugin->cur_connections += 2;
+
+  plugin->cur_connections -= 2;
 
   /* Re-schedule since handles have changed */
   if (plugin->client_perform_task!= GNUNET_SCHEDULER_NO_TASK)
@@ -236,7 +246,6 @@ client_disconnect (struct Session *s)
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
     plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   plugin->client_perform_task = GNUNET_SCHEDULER_add_now(client_run, plugin);
 
   return res;
@@ -246,23 +255,24 @@ client_disconnect (struct Session *s)
 int
 client_connect (struct Session *s)
 {
+  struct Plugin *plugin = s->plugin;
   int res = GNUNET_OK;
   char *url;
   CURLMcode mret;
 
-#if DEBUG_HTTP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+#if VERBOSE_CLIENT
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Initiating outbound session peer `%s'\n",
                    GNUNET_i2s (&s->target));
 #endif
 
   s->inbound = GNUNET_NO;
 
-  s->plugin->last_tag++;
+  plugin->last_tag++;
   /* create url */
-  GNUNET_asprintf (&url, "%s%s;%u", http_plugin_address_to_string (s->plugin, s->addr, s->addrlen), GNUNET_h2s_full (&s->plugin->env->my_identity->hashPubKey),s->plugin->last_tag);
+  GNUNET_asprintf (&url, "%s%s;%u", http_plugin_address_to_string (plugin, s->addr, s->addrlen), GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey),plugin->last_tag);
 #if 0
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "URL `%s'\n",
                    url);
 #endif
@@ -329,7 +339,7 @@ client_connect (struct Session *s)
 
   GNUNET_free (url);
 
-  mret = curl_multi_add_handle (s->plugin->client_mh, s->client_get);
+  mret = curl_multi_add_handle (plugin->client_mh, s->client_get);
   if (mret != CURLM_OK)
   {
     curl_easy_cleanup (s->client_get);
@@ -337,10 +347,10 @@ client_connect (struct Session *s)
     GNUNET_break (0);
   }
 
-  mret = curl_multi_add_handle (s->plugin->client_mh, s->client_put);
+  mret = curl_multi_add_handle (plugin->client_mh, s->client_put);
   if (mret != CURLM_OK)
   {
-    curl_multi_remove_handle (s->plugin->client_mh, s->client_get);
+    curl_multi_remove_handle (plugin->client_mh, s->client_get);
     curl_easy_cleanup (s->client_get);
     curl_easy_cleanup (s->client_put);
     res = GNUNET_SYSERR;
@@ -348,8 +358,15 @@ client_connect (struct Session *s)
   }
 
   /* Perform connect */
-  s->plugin->cur_connections += 2;
-  s->plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_run, s->plugin);
+  plugin->cur_connections += 2;
+
+  /* Re-schedule since handles have changed */
+  if (plugin->client_perform_task!= GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
+    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_run, plugin);
 
   return res;
 }

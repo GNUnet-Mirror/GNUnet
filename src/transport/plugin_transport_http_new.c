@@ -404,6 +404,8 @@ void
 delete_session (struct Session *s)
 {
   GNUNET_free (s->addr);
+  GNUNET_free_non_null(s->server_recv);
+  GNUNET_free_non_null(s->server_send);
   GNUNET_free (s);
 }
 
@@ -972,7 +974,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   while (s != NULL)
   {
     struct Session *t = s->next;
-
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Disconnecting `%s' \n", GNUNET_i2s (&s->target));
+#endif
     if (s->inbound == GNUNET_NO)
       GNUNET_assert (GNUNET_OK == client_disconnect (s));
     else
