@@ -331,7 +331,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   /* new connection */
   if (sc == NULL)
     {
-    uint32_t tag;
+    uint32_t tag = 0;
     const union MHD_ConnectionInfo *conn_info;
     size_t addrlen;
     struct GNUNET_PeerIdentity target;

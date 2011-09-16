@@ -327,8 +327,6 @@ http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity * peer,
 const char *
 http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
-  struct Plugin *plugin = cls;
-
   const struct IPv4HttpAddress *t4;
   const struct IPv6HttpAddress *t6;
   struct sockaddr_in a4;
@@ -336,9 +334,7 @@ http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
   char *address;
   static char rbuf[INET6_ADDRSTRLEN + 13];
   uint16_t port;
-  int res;
-
-  GNUNET_assert (plugin != NULL);
+  int res = 0;
 
   if (addrlen == sizeof (struct IPv6HttpAddress))
   {
@@ -361,12 +357,17 @@ http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
     /* invalid address */
     return NULL;
   }
+#if !BUILD_HTTPS  
+  char * protocol = "http";
+#else
+  char * protocol = "https";
+#endif
 
   GNUNET_assert (strlen (address) + 7 < (INET6_ADDRSTRLEN + 13));
-  if (addrlen == sizeof (struct IPv6HttpAddress))
-    res = GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://[%s]:%u/", plugin->protocol, address, port);
+  if (addrlen == sizeof (struct IPv6HttpAddress))  
+    res = GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://[%s]:%u/", protocol, address, port);
   else if (addrlen == sizeof (struct IPv4HttpAddress))
-    res = GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://%s:%u/", plugin->protocol, address, port);
+    res = GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://%s:%u/", protocol, address, port);
 
   GNUNET_free (address);
   GNUNET_assert (res != 0);

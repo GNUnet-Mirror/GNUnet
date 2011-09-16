@@ -171,10 +171,12 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     while ((msg = curl_multi_info_read(plugin->client_mh, &msgs_left)))
     {
        CURL *easy_h  = msg->easy_handle;
-       struct Session *s;
+       struct Session *s =  NULL;
+       char * d = (char *) s;
        GNUNET_assert (easy_h != NULL);
 
-       GNUNET_assert (CURLE_OK == curl_easy_getinfo(easy_h, CURLINFO_PRIVATE, &s));
+       GNUNET_assert (CURLE_OK == curl_easy_getinfo(easy_h, CURLINFO_PRIVATE, &d));
+       s = (struct Session *) d;
        GNUNET_assert (s != NULL);
 
        if (msg->msg == CURLMSG_DONE)
