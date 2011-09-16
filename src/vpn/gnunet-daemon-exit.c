@@ -644,7 +644,6 @@ read_service_conf (void *cls __attribute__ ((unused)), const char *section)
 
       struct redirect_service *serv =
           GNUNET_malloc (sizeof (struct redirect_service));
-      memset (serv, 0, sizeof (struct redirect_service));
       serv->my_port = local_port;
 
       if (0 == strcmp ("localhost4", hostname))
@@ -1034,7 +1033,6 @@ receive_tcp_service (void *cls
    */
   struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
 
-  memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
   state->type = SERVICE;
@@ -1112,7 +1110,6 @@ receive_tcp_remote (void *cls
 
   struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
 
-  memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->type = REMOTE;
   state->hashmap = tcp_connections;
@@ -1194,7 +1191,6 @@ receive_udp_remote (void *cls
    */
   struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
 
-  memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->hashmap = udp_connections;
   state->type = REMOTE;
@@ -1297,7 +1293,6 @@ receive_udp_service (void *cls
    */
   struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
 
-  memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
   state->type = SERVICE;

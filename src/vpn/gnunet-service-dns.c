@@ -445,7 +445,6 @@ receive_mesh_answer (void *cls
 
   struct answer_packet_list *answer =
       GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
-  memset (answer, 0, len + 2 * sizeof (struct answer_packet_list *));
 
   answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
   answer->pkt.hdr.size = htons (len);
@@ -457,6 +456,7 @@ receive_mesh_answer (void *cls
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Answer only contains %d answers.\n",
                 ntohs (pdns->s.ancount));
     free_parsed_dns_packet (pdns);
+    GNUNET_free (answer);
     return GNUNET_OK;
   }
 
@@ -564,7 +564,6 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   struct answer_packet_list *answer =
       GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
-  memset (answer, 0, len + 2 * sizeof (struct answer_packet_list *));
 
   answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
   answer->pkt.hdr.size = htons (len);
@@ -661,7 +660,6 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
 
   struct answer_packet_list *answer =
       GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
-  memset (answer, 0, len + 2 * sizeof (struct answer_packet_list *));
 
   answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
   answer->pkt.hdr.size = htons (len);
