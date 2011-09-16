@@ -82,6 +82,7 @@ struct Plugin
    */
   struct GNUNET_NAT_Handle *nat;
 
+
   /**
    * ipv4 DLL head
    */
@@ -124,7 +125,6 @@ struct Plugin
 
   int cur_connections;
   uint32_t last_tag;
-
   /*
    * Server handles
    */
@@ -180,9 +180,9 @@ struct Session
   struct Plugin *plugin;
 
   /**
-   * The client (used to identify this connection)
+   * message stream tokenizer for incoming data
    */
-  /* void *client; */
+  struct GNUNET_SERVER_MessageStreamTokenizer *msg_tk;
 
   /**
    * Continuation function to call once the transmission buffer
@@ -232,7 +232,8 @@ struct Session
 
   void *server_recv;
   void *server_send;
-
+  struct GNUNET_TIME_Absolute delay;
+  GNUNET_SCHEDULER_TaskIdentifier reset_task;
   uint32_t tag;
 
 };

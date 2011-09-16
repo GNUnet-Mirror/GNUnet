@@ -292,6 +292,9 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
 
     if (check == GNUNET_NO)
       goto error;
+
+    plugin->cur_connections++;
+
 #if VERBOSE_SERVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "server: New inbound connection from %s with tag %u\n", GNUNET_h2s_full(&(target.hashPubKey)), tag);
 #endif
@@ -495,6 +498,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     }
     t = t->next;
   }
+  plugin->cur_connections--;
 
   if ((s->server_send == NULL) && (s->server_recv == NULL))
   {
