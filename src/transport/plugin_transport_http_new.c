@@ -988,9 +988,17 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     s = t;
   }
 
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Stopping server\n");
+#endif
   /* Stop server */
   server_stop (plugin);
 
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Stopping client\n");
+#endif
   /* Stop client */
   client_stop (plugin);
 

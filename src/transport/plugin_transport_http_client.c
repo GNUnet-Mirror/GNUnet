@@ -183,6 +183,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                    "Connection to '%s'  %s ended\n", GNUNET_i2s(&s->target), http_plugin_address_to_string(plugin, s->addr, s->addrlen));
 #endif
          client_disconnect(s);
+         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,"Notifying about ended session to peer `%s' `%s'\n", GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
          notify_session_end (plugin, &s->target, s);
        }
     }
@@ -198,9 +199,9 @@ client_disconnect (struct Session *s)
 {
   int res = GNUNET_OK;
   CURLMcode mret;
-  struct Plugin *plugin = plugin;
+  struct Plugin *plugin = s->plugin;
 
-#if DEBUG_HTTP
+#if 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Deleting outbound PUT session to peer `%s'\n",
                    GNUNET_i2s (&s->target));
@@ -239,13 +240,13 @@ client_disconnect (struct Session *s)
   }
 
   plugin->cur_connections -= 2;
-
   /* Re-schedule since handles have changed */
-  if (plugin->client_perform_task!= GNUNET_SCHEDULER_NO_TASK)
+  if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
     plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
   plugin->client_perform_task = GNUNET_SCHEDULER_add_now(client_run, plugin);
 
   return res;
