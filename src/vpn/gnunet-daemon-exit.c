@@ -1133,8 +1133,8 @@ receive_tcp_remote (void *cls
                          &s->addr, tunnel, state, (struct ip6_pkt *) buf);
     break;
   default:
+    GNUNET_free (state);
     return GNUNET_SYSERR;
-    break;
   }
 
   hash_redirect_info (&state->hash, &state->redirect_info, s->addrlen);
