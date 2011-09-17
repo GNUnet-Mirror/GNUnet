@@ -433,12 +433,14 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   char *path_offset;
 
   uid = GNUNET_ntohll (dht_msg->unique_id);
+#if HAVE_UID_FOR_TESTING
   if (uid != rh->uid)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Reply UID did not match request UID\n");
     return GNUNET_YES;
   }
+#endif
   enc_msg = (const struct GNUNET_MessageHeader *) &dht_msg[1];
   enc_size = ntohs (enc_msg->size);
   if (enc_size < sizeof (struct GNUNET_MessageHeader))

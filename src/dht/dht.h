@@ -34,7 +34,7 @@
  * Should NEVER be enabled in production and makes the DHT incompatible
  * (since this changes the message format).
  */
-#define HAVE_UID_FOR_TESTING GNUNET_YES
+#define HAVE_UID_FOR_TESTING GNUNET_NO
 
 /**
  * Needs to be GNUNET_YES for logging to dhtlog to work!

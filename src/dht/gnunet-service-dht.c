@@ -568,16 +568,16 @@ struct FindPeerMessageContext
  */
 struct DHTResults
 {
-  /*
+  /**
    * Min heap for removal upon reaching limit
    */
   struct GNUNET_CONTAINER_Heap *minHeap;
 
-  /*
+
+  /**
    * Hashmap for fast key based lookup
    */
   struct GNUNET_CONTAINER_MultiHashMap *hashmap;
-
 };
 
 
@@ -586,15 +586,18 @@ struct DHTResults
  */
 struct RecentRequests
 {
-  /*
+  /**
    * Min heap for removal upon reaching limit
    */
   struct GNUNET_CONTAINER_Heap *minHeap;
 
-  /*
+#if HAVE_UID_FOR_TESTING > 1
+  /**
    * Hashmap for key based lookup
    */
   struct GNUNET_CONTAINER_MultiHashMap *hashmap;
+#endif
+
 };
 
 
@@ -3035,9 +3038,11 @@ remove_recent (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (req != NULL);
   hash_from_uid (req->uid, &hash);
+#if HAVE_UID_FOR_TESTING > 1
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (recent.hashmap, &hash,
                                                        req));
+#endif
   GNUNET_CONTAINER_heap_remove_node (req->heap_node);
   GNUNET_CONTAINER_bloomfilter_free (req->bloom);
   GNUNET_free (req);
@@ -3181,7 +3186,9 @@ route_message (const struct GNUNET_MessageHeader *msg,
   unsigned int target_forward_count;
   unsigned int forward_count;
   struct RecentRequest *recent_req;
+#if HAVE_UID_FOR_TESTING > 1
   GNUNET_HashCode unique_hash;
+#endif
   char *stat_forward_count;
   char *temp_stat_str;
 
@@ -3245,8 +3252,9 @@ route_message (const struct GNUNET_MessageHeader *msg,
 
 
   GNUNET_CONTAINER_bloomfilter_add (msg_ctx->bloom, &my_identity.hashPubKey);
+#if HAVE_UID_FOR_TESTING > 1
   /* BUG HERE: recent uses unique_id! So if all unique-IDs are 0, we get
-     easily into trouble!!! FIXME! */
+     easily into trouble!!! Also, this should not even be necessary... */
   hash_from_uid (msg_ctx->unique_id, &unique_hash);
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multihashmap_contains (recent.hashmap, &unique_hash))
@@ -3264,6 +3272,7 @@ route_message (const struct GNUNET_MessageHeader *msg,
     }
   }
   else
+#endif
   {
     recent_req = GNUNET_malloc (sizeof (struct RecentRequest));
     recent_req->uid = msg_ctx->unique_id;
@@ -3276,11 +3285,13 @@ route_message (const struct GNUNET_MessageHeader *msg,
                                       GNUNET_TIME_absolute_get ().abs_value);
     recent_req->bloom =
         GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
+#if HAVE_UID_FOR_TESTING > 1
     GNUNET_CONTAINER_multihashmap_put (recent.hashmap, &unique_hash, recent_req,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+#endif
   }
 
-  if (GNUNET_CONTAINER_multihashmap_size (recent.hashmap) > DHT_MAX_RECENT)
+  if (GNUNET_CONTAINER_heap_get_size (recent.minHeap) > DHT_MAX_RECENT)
   {
     recent_req = GNUNET_CONTAINER_heap_peek (recent.minHeap);
     GNUNET_assert (recent_req != NULL);
@@ -4740,7 +4751,9 @@ main (int argc, char *const *argv)
 {
   int ret;
 
+#if HAVE_UID_FOR_TESTING > 1
   recent.hashmap = GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT / 2);
+#endif
   recent.minHeap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   recent_find_peer_requests =
@@ -4749,9 +4762,11 @@ main (int argc, char *const *argv)
       (GNUNET_OK ==
        GNUNET_SERVICE_run (argc, argv, "dht", GNUNET_SERVICE_OPTION_NONE, &run,
                            NULL)) ? 0 : 1;
+#if HAVE_UID_FOR_TESTING > 1
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (recent.hashmap));
   GNUNET_CONTAINER_multihashmap_destroy (recent.hashmap);
   recent.hashmap = NULL;
+#endif
   GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (recent.minHeap));
   GNUNET_CONTAINER_heap_destroy (recent.minHeap);
   recent.minHeap = NULL;
