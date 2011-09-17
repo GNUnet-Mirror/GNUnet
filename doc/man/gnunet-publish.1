@@ -24,7 +24,7 @@ It is possible to update content in GNUnet if that content was placed and obtain
 .PP
 You can use automatic meta\-data extraction (based on libextractor) or the command\-line option \-m to specify meta-data.  For the \-m option you need to use the form keyword\-type:value.  For example, use "\-m os:Linux" to specify that the operating system is Linux.  Common meta\-data types are "author", "title" , "mimetype", "filename", "language", "subject" and "keywords".  A full list can be obtained from the extract tool using the option \-\-list.  The meta\-data is used to help users in searching for files on the network.  The keywords are case\-sensitive.
 .PP
-GNUnet supports two styles of publishing files on the network. Publishing a file means that a copy of the file is made in the local (!) database of the node.  Indexing a file means that an index is added to the local (!)  database with symbolic links to the file itself.  The links will use the SHA-512 hash of the entire file as the filename.  Indexing is generally significantly more efficient and the default choice.  However, indexing only works if the indexed file can be read (using the same absolute path) by gnunetd.  If this is not the case, indexing will fail (and gnunet\-publish will automatically revert to publishing instead).  Regardless of which method is used to publish the file, the file will be slowly (depending on how often it is requested and on how much bandwidth is available) dispersed into the network.  If you publish or index a file and then leave the network, it will almost always NOT be available anymore.
+GNUnet supports two styles of publishing files on the network. Publishing a file means that a copy of the file is made in the local (!) database of the node.  Indexing a file means that an index is added to the local (!)  database with symbolic links to the file itself.  The links will use the SHA-512 hash of the entire file as the filename.  Indexing is generally significantly more efficient and the default choice.  However, indexing only works if the indexed file can be read (using the same absolute path) by gnunet-service-fs.  If this is not the case, indexing will fail (and gnunet\-publish will automatically revert to publishing instead).  Regardless of which method is used to publish the file, the file will be slowly (depending on how often it is requested and on how much bandwidth is available) dispersed into the network.  If you publish or index a file and then leave the network, it will almost always NOT be available anymore.
 
 \fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
 Use alternate config file (if this option is not specified, the default is ~/.gnunet/gnunet.conf).
@@ -41,9 +41,6 @@ Print the list of keywords that will be used for each file given the current opt
 \fB\-h\fR, \fB\-\-help\fR
 Print a brief help page with all the options.
 
-.TP
-\fB\-H \fIHOSTNAME\fR, \fB\-\-host=\fIHOSTNAME\fR
-on which host is gnunetd running (default: localhost).  You can also specify a port using the syntax HOSTNAME:PORT.  The default port is 2087. 
 .TP
 \fB\-k \fIKEYWORD\fR, \fB\-\-key=KEYWORD\fR
 additional key to index the content with (to add multiple keys, specify multiple times). Each additional key is case\-sensitive. Can be specified multiple times.  The keyword is only applied to the top\-level file or directory.
@@ -165,4 +162,4 @@ GNUnet configuration file
 .SH "REPORTING BUGS"
 Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 .SH "SEE ALSO"
-\fBgnunet\-auto\-share\fP(1), \fBgnunet\-gtk\fP(1), \fBgnunet\-pseudonym\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBgnunetd\fP(1), \fBextract\fP(1)
+\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-pseudonym\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBextract\fP(1)
