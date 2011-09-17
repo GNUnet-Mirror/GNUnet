@@ -34,13 +34,7 @@
  * Should NEVER be enabled in production and makes the DHT incompatible
  * (since this changes the message format).
  */
-#define HAVE_UID_FOR_TESTING GNUNET_NO
-
-/**
- * Include a bf for replies? Should not be needed (see Mantis #1769), but if I remove
- * this code it stops to work!?
- */
-#define HAVE_REPLY_BLOOMFILTER GNUNET_YES
+#define HAVE_UID_FOR_TESTING GNUNET_YES
 
 /**
  * Needs to be GNUNET_YES for logging to dhtlog to work!
@@ -332,13 +326,6 @@ struct GNUNET_DHT_P2PRouteResultMessage
    * Unique ID identifying this request (may not be set)
    */
   uint64_t unique_id GNUNET_PACKED;
-#endif
-
-#if HAVE_REPLY_BLOOMFILTER
-  /**
-   * Bloomfilter to stop circular routes
-   */
-  char bloomfilter[DHT_BLOOM_SIZE];
 #endif
 
   /**

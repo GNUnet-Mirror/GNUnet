@@ -1072,13 +1072,6 @@ forward_result_message (const struct GNUNET_MessageHeader *msg,
   }
   result_message->options = htonl (msg_ctx->msg_options);
   result_message->hop_count = htonl (msg_ctx->hop_count + 1);
-#if HAVE_REPLY_BLOOMFILTER
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_bloomfilter_get_raw_data (msg_ctx->bloom,
-                                                            result_message->
-                                                            bloomfilter,
-                                                            DHT_BLOOM_SIZE));
-#endif
 #if HAVE_UID_FOR_TESTING 
   result_message->unique_id = GNUNET_htonll (msg_ctx->unique_id);
 #endif
@@ -1927,13 +1920,6 @@ route_result_message (struct GNUNET_MessageHeader *msg,
                                    NULL);
     }
 #endif
-#if HAVE_REPLY_BLOOMFILTER
-    if (msg_ctx->bloom != NULL)
-    {
-      GNUNET_CONTAINER_bloomfilter_free (msg_ctx->bloom);
-      msg_ctx->bloom = NULL;
-    }
-#endif
     return 0;
   }
 
@@ -2000,18 +1986,6 @@ route_result_message (struct GNUNET_MessageHeader *msg,
         pos = pos->next;
         continue;
       }
-#if HAVE_REPLY_BLOOMFILTER
-      if (msg_ctx->bloom == NULL)
-        msg_ctx->bloom =
-            GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE,
-                                               DHT_BLOOM_K);
-      GNUNET_CONTAINER_bloomfilter_add (msg_ctx->bloom,
-                                        &my_identity.hashPubKey);
-      if ((GNUNET_NO ==
-           GNUNET_CONTAINER_bloomfilter_test (msg_ctx->bloom,
-                                              &peer_info->id.hashPubKey)))
-	{{{
-#endif
 #if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "`%s:%s': Forwarding response key %s uid %llu to peer %s\n",
@@ -2035,19 +2009,9 @@ route_result_message (struct GNUNET_MessageHeader *msg,
 	pos->delete_task =
 	  GNUNET_SCHEDULER_add_now (&remove_forward_entry, pos);        
       }
-#if HAVE_REPLY_BLOOMFILTER
-        }}}
-#endif
     }
     pos = pos->next;
   }
-#if HAVE_REPLY_BLOOMFILTER
-  if (msg_ctx->bloom != NULL)
-  {
-    GNUNET_CONTAINER_bloomfilter_free (msg_ctx->bloom);
-    msg_ctx->bloom = NULL;
-  }
-#endif
   return 0;
 }
 
@@ -3281,6 +3245,8 @@ route_message (const struct GNUNET_MessageHeader *msg,
 
 
   GNUNET_CONTAINER_bloomfilter_add (msg_ctx->bloom, &my_identity.hashPubKey);
+  /* BUG HERE: recent uses unique_id! So if all unique-IDs are 0, we get
+     easily into trouble!!! FIXME! */
   hash_from_uid (msg_ctx->unique_id, &unique_hash);
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multihashmap_contains (recent.hashmap, &unique_hash))
@@ -4252,12 +4218,6 @@ handle_dht_p2p_route_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
 #endif
   }
-#if HAVE_REPLY_BLOOMFILTER
-  msg_ctx.bloom =
-      GNUNET_CONTAINER_bloomfilter_init (incoming->bloomfilter, DHT_BLOOM_SIZE,
-                                         DHT_BLOOM_K);
-  GNUNET_assert (msg_ctx.bloom != NULL);
-#endif
   route_result_message (enc_msg, &msg_ctx);
   return GNUNET_YES;
 }
