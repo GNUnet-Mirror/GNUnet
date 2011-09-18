@@ -660,6 +660,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
+  struct ServiceList *nxt;
 
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Stopping all services\n"));
@@ -674,13 +675,18 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   pos = running_head;
   while (NULL != pos)
   {
+    nxt = pos->next;
     if (pos->proc != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping service `%s'\n", pos->name);
       if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     }
-    pos = pos->next;
+    else
+    {
+      free_service (pos);
+    }
+    pos = nxt;
   }
   if (running_head == NULL)
     do_shutdown ();
