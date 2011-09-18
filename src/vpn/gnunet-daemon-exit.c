@@ -285,7 +285,6 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
  * @param udp A pointer to the Packet
  * @param dadr The IP-Destination-address
  * @param addrlen The length of the address
- * @param version 4 or 6
  */
 static void
 udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
@@ -410,7 +409,6 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
  * @param tcp A pointer to the Packet
  * @param dadr The IP-Destination-address
  * @param addrlen The length of the address
- * @param version 4 or 6
  * @param pktlen the length of the packet, including its header
  */
 static void
