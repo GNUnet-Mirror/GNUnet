@@ -674,8 +674,45 @@ read_service_conf (void *cls __attribute__ ((unused)), const char *section)
       }
       else
       {
-        // TODO Lookup, yadayadayada
-        GNUNET_assert (0);
+        struct addrinfo* res;
+        struct addrinfo hints;
+
+        hints.ai_flags |= AI_NUMERICHOST;
+
+        int ret = getaddrinfo(hostname, NULL, NULL, &res);
+
+        if (ret != 0)
+          {
+            GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No addresses found for %s!\n", hostname);
+            continue;
+          }
+        else
+          {
+            char buf[256];
+            struct addrinfo* c = res;
+
+            if(c)
+              {
+                if (c->ai_family == AF_INET)
+                  {
+                    serv->version = 4;
+                    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Found %s as address for %s\n", inet_ntop(c->ai_family, &((struct sockaddr_in *)(c->ai_addr))->sin_addr, (char*)&buf, 256), hostname);
+                    memcpy(serv->v4.ip4address, &((struct sockaddr_in *)(c->ai_addr))->sin_addr, 4);
+                  }
+                else if (c->ai_family == AF_INET6)
+                  {
+                    serv->version = 6;
+                    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Found %s as address for %s\n", inet_ntop(c->ai_family, &((struct sockaddr_in6*)(c->ai_addr))->sin6_addr, (char*)&buf, 256), hostname);
+                    memcpy(serv->v6.ip6address, &((struct sockaddr_in6 *)(c->ai_addr))->sin6_addr, 16);
+                  }
+              }
+            else
+              {
+                freeaddrinfo(res);
+                continue;
+              }
+            freeaddrinfo(res);
+          }
       }
       serv->remote_port = atoi (hostport);
       if (UDP == proto)
