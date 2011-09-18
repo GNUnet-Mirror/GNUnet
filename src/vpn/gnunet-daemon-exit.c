@@ -515,8 +515,8 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
     element->len = len;
 
     GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
-    GNUNET_MESH_tunnel_set_head (*tunnel, head);
-    GNUNET_MESH_tunnel_set_tail (*tunnel, tail);
+    GNUNET_MESH_tunnel_set_head (tunnel, head);
+    GNUNET_MESH_tunnel_set_tail (tunnel, tail);
   }
 }
 
