@@ -768,7 +768,7 @@ GNUNET_NETWORK_socket_disable_corking (struct GNUNET_NETWORK_Handle *desc)
        setsockopt (desc->fd, SOL_SOCKET, SO_RCVBUF, (char *) &value,
                    sizeof (value))))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
-#else
+#elif LINUX
   if (0 !=
       (ret =
        setsockopt (desc->fd, SOL_SOCKET, SO_SNDBUF, &value, sizeof (value))))
