@@ -218,8 +218,7 @@ GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
   if ((-1 ==
        (ret =
         GNUNET_GETOPT_run (binaryName, allopts, (unsigned int) argc, argv))) ||
-      ((GNUNET_OK != GNUNET_log_setup (lpfx, loglev, logfile)) ||
-       (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cc.cfgfile))))
+      (GNUNET_OK != GNUNET_log_setup (lpfx, loglev, logfile)) )
   {
     GNUNET_CONFIGURATION_destroy (cfg);
     GNUNET_free_non_null (cc.cfgfile);
@@ -229,6 +228,7 @@ GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
     GNUNET_free (lpfx);
     return GNUNET_SYSERR;
   }
+  (void) GNUNET_CONFIGURATION_load (cfg, cc.cfgfile);
   GNUNET_free (allopts);
   GNUNET_free (lpfx);
   if (GNUNET_OK ==
