@@ -754,10 +754,10 @@ GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc, int how)
 int
 GNUNET_NETWORK_socket_disable_corking (struct GNUNET_NETWORK_Handle *desc)
 {
-  int value = 0;
   int ret = 0;
-
 #if WINDOWS
+  int value = 0;
+
   if (0 !=
       (ret =
        setsockopt (desc->fd, SOL_SOCKET, SO_SNDBUF, (char *) &value,
@@ -769,6 +769,8 @@ GNUNET_NETWORK_socket_disable_corking (struct GNUNET_NETWORK_Handle *desc)
                    sizeof (value))))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 #elif LINUX
+  int value = 0;
+
   if (0 !=
       (ret =
        setsockopt (desc->fd, SOL_SOCKET, SO_SNDBUF, &value, sizeof (value))))
@@ -778,7 +780,6 @@ GNUNET_NETWORK_socket_disable_corking (struct GNUNET_NETWORK_Handle *desc)
        setsockopt (desc->fd, SOL_SOCKET, SO_RCVBUF, &value, sizeof (value))))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 #endif
-
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
