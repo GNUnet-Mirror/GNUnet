@@ -296,7 +296,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
               (port_in_ports (me->desc.ports, pkt6_udp->udp_hdr.dpt) ||
                testBit (me->additional_ports, ntohs (pkt6_udp->udp_hdr.dpt))))
           {
-            hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP);
+            hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP);
 
             memcpy (hc + 1, &pkt6_udp->udp_hdr, ntohs (pkt6_udp->udp_hdr.len));
 
@@ -305,10 +305,15 @@ message_token (void *cls __attribute__ ((unused)), void *client
                    (me->desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP))
                    && (port_in_ports (me->desc.ports, pkt6_tcp->tcp_hdr.dpt)))
           {
-            hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP);
+            hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP);
 
             memcpy (hc + 1, &pkt6_tcp->tcp_hdr, ntohs (pkt6->ip6_hdr.paylgth));
 
+          }
+          else
+          {
+            GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "pip: %d\n", port_in_ports(me->desc.ports, pkt6_tcp->tcp_hdr.dpt));
+              GNUNET_assert(0);
           }
           if (me->tunnel == NULL && NULL != cls)
           {
@@ -328,7 +333,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
             *cls = me->tunnel;
             send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Queued to send to peer %x, type %d\n",
+                        "Queued to send IPv6 to peer %x, type %d\n",
                         *((unsigned int *) &me->desc.peer), ntohs (hdr->type));
           }
         }
@@ -495,7 +500,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
                 (port_in_ports (me->desc.ports, pkt_udp->udp_hdr.dpt) ||
                  testBit (me->additional_ports, ntohs (pkt_udp->udp_hdr.dpt))))
             {
-              hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP);
+              hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP);
 
               memcpy (hc + 1, &pkt_udp->udp_hdr, ntohs (pkt_udp->udp_hdr.len));
 
@@ -505,7 +510,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
                       desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP))
                      && (port_in_ports (me->desc.ports, pkt_tcp->tcp_hdr.dpt)))
             {
-              hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP);
+              hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP);
 
               memcpy (hc + 1, &pkt_tcp->tcp_hdr,
                       ntohs (pkt->ip_hdr.tot_lngth) -
@@ -530,7 +535,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
               *cls = me->tunnel;
               send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "Queued to send to peer %x, type %d\n",
+                          "Queued to send IPv4 to peer %x, type %d\n",
                           *((unsigned int *) &me->desc.peer),
                           ntohs (hdr->type));
             }

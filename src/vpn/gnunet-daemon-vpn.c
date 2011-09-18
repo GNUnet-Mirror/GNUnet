@@ -329,7 +329,7 @@ port_in_ports (uint64_t ports, uint16_t port)
 {
   uint16_t *ps = (uint16_t *) & ports;
 
-  return ps[0] == port || ps[1] == port || ps[2] == port || ps[3] == port;
+  return ports == 0 || ps[0] == port || ps[1] == port || ps[2] == port || ps[3] == port;
 }
 
 void
@@ -1056,7 +1056,10 @@ receive_tcp_back (void *cls
       ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
       sizeof (GNUNET_HashCode);
 
-  if (s->addrlen == 16)
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet back, addrlen = %d\n", s->addrlen);
+
+  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK ||
+      s->addrlen == 16)
   {
     size_t size = pktlen + sizeof (struct ip6_tcp) - 1;
 
