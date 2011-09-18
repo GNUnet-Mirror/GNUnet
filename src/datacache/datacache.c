@@ -237,7 +237,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                             GNUNET_NO);
   GNUNET_CONTAINER_bloomfilter_add (h->filter, key);
   while (h->utilization + used > h->env.quota)
-    GNUNET_assert (GNUNET_OK == h->api->del (h->api->cls));
+    GNUNET_assert (GNUNET_OK == h->api->del (h->api->cls));    
   h->utilization += used;
   return GNUNET_OK;
 }
