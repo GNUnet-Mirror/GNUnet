@@ -782,7 +782,7 @@ GNUNET_CLIENT_service_test (const char *service,
   }
 
   if (0 == strcmp ("localhost", hostname)
-#if WINDOWS
+#if !LINUX
       && 0
 #endif
       )
@@ -816,7 +816,7 @@ GNUNET_CLIENT_service_test (const char *service,
   }
 
   if (0 == strcmp ("ip6-localhost", hostname)
-#if WINDOWS
+#if !LINUX
       && 0
 #endif
       )
@@ -851,7 +851,7 @@ GNUNET_CLIENT_service_test (const char *service,
 
   if (((0 == strcmp ("localhost", hostname)) ||
        (0 == strcmp ("ip6-localhost", hostname)))
-#if WINDOWS
+#if !LINUX
       && 0
 #endif
       )
