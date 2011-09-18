@@ -179,7 +179,10 @@ unhijack (unsigned short port)
        GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-hijack-dns",
                                 "gnunet-hijack-dns", "-d", port_s, virt_dns,
                                 NULL)))
-    GNUNET_OS_process_close (proc);
+    {
+      GNUNET_OS_process_wait (proc);
+      GNUNET_OS_process_close (proc);
+    }
   GNUNET_free (virt_dns);
 }
 
