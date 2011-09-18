@@ -75,6 +75,7 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                        &build_msg, client);
 }
 
+
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -95,12 +96,11 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *client,
   ok = 0;
 }
 
+
 static struct GNUNET_SERVER_MessageHandler myhandlers[] = {
   {&recv_cb, NULL, MY_TYPE, sizeof (struct GNUNET_MessageHeader)},
   {NULL, NULL, 0, 0}
 };
-
-
 
 
 static void

@@ -1514,7 +1514,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
                     enum GNUNET_SERVICE_Options opt, GNUNET_SERVICE_Main task,
                     void *task_cls)
 {
-#define HANDLE_ERROR do { err = 1; GNUNET_break (0); goto shutdown; } while (0)
+#define HANDLE_ERROR do { GNUNET_break (0); goto shutdown; } while (0)
 
   int err;
   char *cfg_fn;
@@ -1539,7 +1539,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
     GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION),
     GNUNET_GETOPT_OPTION_END
   };
-  err = 0;
+  err = 1;
   do_daemonize = 0;
   logfile = NULL;
   loglev = GNUNET_strdup ("WARNING");
@@ -1587,6 +1587,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
 #endif
   }
   /* actually run service */
+  err = 0;
   GNUNET_SCHEDULER_run (&service_task, &sctx);
 
   /* shutdown */
