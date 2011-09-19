@@ -86,7 +86,9 @@ test_mesh_small_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 if ENABLE_TEST_RUN
+if HAVE_EXPERIMENTAL
 TESTS = test_mesh_api test_mesh_local_1 test_mesh_local_2
+endif
 endif
 
 EXTRA_DIST = \
