@@ -335,14 +335,9 @@ get_latency (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
     atsi++;
   if (ntohl (atsi->type) == GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR)
   {
-    static int once;
-
-    if (!once)
-    {
-      once = 1;
-      GNUNET_break (0);
-    }
-    /* how can we not have latency data? */
+    /* We sometime have no latency data, i.e. if the address came from 
+       peerinfo and we never had a chance to play transport-level 
+       PING/PONG yet. Assume 1s in that case. */
     return GNUNET_TIME_UNIT_SECONDS;
   }
   return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
