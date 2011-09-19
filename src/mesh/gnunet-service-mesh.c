@@ -3419,12 +3419,12 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Peer connected\n");
   peer_info = peer_info_get (peer);
-  path = GNUNET_malloc (sizeof (struct MeshPeerPath));
   if (myid == peer_info->id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      (self)\n");
     return;
   }
+  path = GNUNET_malloc (sizeof (struct MeshPeerPath));
   path->length = 2;
   path->peers = GNUNET_malloc (sizeof (GNUNET_PEER_Id) * 2);
   path->peers[0] = myid;
