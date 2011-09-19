@@ -3529,10 +3529,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_full_id.hashPubKey);
   myid = GNUNET_PEER_intern (&my_full_id);
-  /* Create a peer_info for the local peer */
-  peer_info_get(&my_full_id);
-
-  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
 
   dht_handle = GNUNET_DHT_connect (c, 64);
   if (dht_handle == NULL)
@@ -3566,6 +3562,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 #endif
 
   announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
+  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
+
+  /* Create a peer_info for the local peer */
+  peer_info_get(&my_full_id);
 
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
