@@ -332,16 +332,13 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
                    "Looking up suggested address for peer `%s'\n",
                    GNUNET_i2s (peer));
 #endif
-  int count = 0;
-
   asc = GNUNET_malloc (sizeof (struct GNUNET_ATS_SuggestionContext));
   asc->cb = cb;
   asc->cb_cls = cb_cls;
   asc->atc = atc;
   asc->target = *peer;
-  count =
-      GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers, &peer->hashPubKey,
-                                                  &suggest_address, asc);
+  (void) GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers, &peer->hashPubKey,
+						     &suggest_address, asc);
 
   if (NULL == asc->cb)
   {
@@ -589,7 +586,7 @@ create_allocation_record (const char *plugin_name, struct Session *session,
   ar->plugin_addr = &ar[1];
   memcpy (&ar[1], plugin_addr, plugin_addr_len);
   ar->session = session;
-  ar->plugin_addr_len = plugin_addr_len;
+  ar->plugin_addr_len = plugin_addr_len;  
   GNUNET_assert (ats_count > 0);
   GNUNET_array_grow (ar->ats, ar->ats_count, ats_count);
   memcpy (ar->ats, ats,
@@ -808,13 +805,11 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
   struct AllocationRecord *ar;
   struct UpdateSessionContext usc;
 
-
 #if DEBUG_ATS
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
                    "Updating address for peer `%s', plugin `%s'\n",
                    GNUNET_i2s (peer), plugin_name);
 #endif
-
   ar = create_allocation_record (plugin_name, session, plugin_addr,
                                  plugin_addr_len, ats, ats_count);
   usc.atc = atc;
