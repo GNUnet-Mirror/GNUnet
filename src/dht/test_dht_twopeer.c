@@ -129,9 +129,15 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (curr_get_ctx.retry_task);
 }
 
+
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  const char *emsg = cls;
+
+  fprintf (stderr,
+	   "Error: %s\n",
+	   emsg);
   if (curr_get_ctx.retry_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (curr_get_ctx.retry_task);
 
@@ -143,6 +149,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_add_now (&end_badly_cont, NULL);
   ok = 1;
 }
+
 
 /* Forward declaration */
 static void
@@ -279,7 +286,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-void
+static void
 topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second, uint32_t distance,
                    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
@@ -316,7 +323,8 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
 #endif
     GNUNET_SCHEDULER_cancel (die_task);
     die_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from test gets");
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT, 
+				      &end_badly, "Timeout trying to GET");
 
     curr_get_ctx.dht_handle = peer1dht;
     curr_get_ctx.peer = &peer2id;
@@ -332,6 +340,7 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                                   "from topology_callback (too many failed connections)");
   }
 }
+
 
 static void
 connect_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -354,6 +363,7 @@ connect_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                       "from connect topology (timeout)");
 }
 
+
 static void
 peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
                         const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -361,8 +371,9 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 {
   if (emsg != NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to start daemon with error: `%s'\n", emsg);
+    fprintf (stderr,
+	     "Failed to start daemon: `%s'\n", 
+	     emsg);
     return;
   }
   GNUNET_assert (id != NULL);
@@ -409,6 +420,7 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
     ok = 0;
   }
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
