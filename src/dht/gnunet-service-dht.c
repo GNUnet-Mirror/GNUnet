@@ -2567,7 +2567,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
           /** Log routes that die due to high load! */
       dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                    msg_ctx->hop_count, GNUNET_SYSERR,
-                                   &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                   &my_identity, &msg_ctx->key, &msg_ctx->peer,
                                    NULL);
     }
 #endif
@@ -3595,7 +3595,7 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg_ctx.replication = ntohl (DHT_DEFAULT_FIND_PEER_REPLICATION);
   msg_ctx.msg_options = ntohl (0);
   msg_ctx.network_size = log_of_network_size_estimate;
-  msg_ctx.peer = &my_identity;
+  msg_ctx.peer = my_identity;
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE;
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
 #if DEBUG_DHT_ROUTING
@@ -3643,7 +3643,7 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg_ctx.replication = ntohl (DHT_DEFAULT_FIND_PEER_REPLICATION);
   msg_ctx.msg_options = ntohl (0);
   msg_ctx.network_size = log_of_network_size_estimate;
-  msg_ctx.peer = &my_identity;
+  msg_ctx.peer = my_identity;
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE;
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
 #if DEBUG_DHT_ROUTING
