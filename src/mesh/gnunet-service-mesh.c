@@ -1176,9 +1176,11 @@ tunnel_mark_peers_disconnected (struct MeshTunnelPathNode *parent)
 
 /**
  * Delete the current path to the peer, including all now unused relays.
+ * The destination peer is NOT destroyed, it is returned in order to either set
+ * a new path to it or destroy it explicitly, taking care of it's child nodes.
  *
- * @param t Tunnel where to add the new path.
- * @param p Path to be integrated.
+ * @param t Tunnel where to delete the path from.
+ * @param peer Destination peer whose path we want to remove.
  *
  * @return pointer to the pathless node, NULL on error
  *
@@ -1278,6 +1280,19 @@ tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p)
   n = t->paths->root;
   if (n->peer->id != p->peers[0])
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+               "local id's: %u %s\n",
+               myid,
+               GNUNET_h2s_full(&my_full_id.hashPubKey));
+    GNUNET_PEER_resolve(n->peer->id, &id);
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+               "root:  %s\n",
+               GNUNET_h2s_full(&id.hashPubKey));
+    GNUNET_PEER_resolve (p->peers[0], &id);
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+               "first: %s\n",
+               GNUNET_h2s_full(&id.hashPubKey));
+
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -1318,16 +1333,15 @@ tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p)
   while (i < p->length)
   {
     parent->nchildren++;
-    parent->children = GNUNET_realloc (parent->children, parent->nchildren);
+    parent->children = GNUNET_realloc (parent->children,
+                                       parent->nchildren *
+                                       sizeof(struct MeshTunnelPathNode));
     n = &parent->children[parent->nchildren - 1];
-    if (i == p->length - 1)
+    if (i == p->length - 1 && NULL != oldnode)
     {
-      if (NULL != oldnode)
-      {
-        /* Assignation and free can be misleading, using explicit mempcy */
-        memcpy (n, oldnode, sizeof (struct MeshTunnelPathNode));
-        GNUNET_free (oldnode);
-      }
+      /* Assignation and free can be misleading, using explicit mempcy */
+      memcpy (n, oldnode, sizeof (struct MeshTunnelPathNode));
+      GNUNET_free (oldnode);
     }
     else
     {
@@ -1428,7 +1442,8 @@ tunnel_destroy_tree_node (struct MeshTunnelPathNode *n)
   {
     tunnel_destroy_tree_node(&n->children[i]);
   }
-  GNUNET_free (n->children);
+  if (NULL != n->children)
+    GNUNET_free (n->children);
 }
 
 
@@ -2829,6 +2844,14 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   t->paths->root->status = MESH_PEER_READY;
   t->paths->root->t = t;
   t->paths->root->peer = peer_info_get(&my_full_id);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:  adding root node id %u\n",
+             t->paths->root->peer->id);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:  own id is %s\n",
+             GNUNET_h2s_full(&my_full_id.hashPubKey));
+  struct GNUNET_PeerIdentity id;
+  GNUNET_PEER_resolve(t->paths->root->peer->id, &id);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:  id of peer is %s\n",
+             GNUNET_h2s_full(&id.hashPubKey));
   t->paths->me = t->paths->root;
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -3324,7 +3347,15 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   core_handle = server;
   my_full_id = *identity;
   myid = GNUNET_PEER_intern (identity);
+  peer_info_get(identity);
   announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
+  GNUNET_SERVER_add_handlers (server_handle, client_handlers);
+  nc = GNUNET_SERVER_notification_context_create (server_handle,
+                                                  LOCAL_QUEUE_SIZE);
+  GNUNET_SERVER_disconnect_notify (server_handle,
+                                   &handle_local_client_disconnect,
+                                   NULL);
+  
   return;
 }
 
@@ -3449,10 +3480,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: starting to run\n");
-  GNUNET_SERVER_add_handlers (server, client_handlers);
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &handle_local_client_disconnect,
-                                   NULL);
   server_handle = server;
   core_handle = GNUNET_CORE_connect (c, /* Main configuration */
                                      CORE_QUEUE_SIZE,   /* queue size */
@@ -3486,8 +3513,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   peers = GNUNET_CONTAINER_multihashmap_create (32);
   applications = GNUNET_CONTAINER_multihashmap_create (32);
   types = GNUNET_CONTAINER_multihashmap_create (32);
-  nc = GNUNET_SERVER_notification_context_create (server_handle,
-                                                  LOCAL_QUEUE_SIZE);
+
   clients = NULL;
   clients_tail = NULL;
 #if MESH_DEBUG
@@ -3515,11 +3541,17 @@ main (int argc, char *const *argv)
 {
   int ret;
 
+#if MESH_DEBUG
+  fprintf (stderr, "main ()\n");
+#endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: main()\n");
   ret =
       (GNUNET_OK ==
        GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
                            NULL)) ? 0 : 1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: main() END\n");
+#if MESH_DEBUG
+  fprintf (stderr, "main () END\n");
+#endif
   return ret;
 }

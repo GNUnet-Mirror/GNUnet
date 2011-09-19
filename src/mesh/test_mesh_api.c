@@ -57,7 +57,7 @@ callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
           const struct GNUNET_MessageHeader *message,
           const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  return 0;
+  return GNUNET_OK;
 }
 
 static struct GNUNET_MESH_MessageHandler handlers[] = { {&callback, 1, 0},
