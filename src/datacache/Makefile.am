@@ -177,7 +177,6 @@ perf_datacache_postgres_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
- test_defaults.conf \
  test_datacache_data_sqlite.conf \
  perf_datacache_data_sqlite.conf \
  test_datacache_data_mysql.conf \
