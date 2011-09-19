@@ -87,7 +87,7 @@ static struct GNUNET_DHT_Handle *peer2dht;
 /**
  * Check whether peers successfully shut down.
  */
-void
+static void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
@@ -178,14 +178,8 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   if (0 !=
       memcmp (&get_context->peer->hashPubKey, key, sizeof (GNUNET_HashCode)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Key returned is not the same key as was searched for!\n");
-    fprintf (stderr,
-	     "Looked for key `%s'\n",
-	     GNUNET_h2s (&get_context->peer->hashPubKey));
-    fprintf (stderr,
-	     "Got key `%s'\n",
-	     GNUNET_h2s (key));
     GNUNET_SCHEDULER_cancel (die_task);
     die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
@@ -233,13 +227,13 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 get_context->get_attempts);
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Too many attempts failed, ending test!\n",
                 get_context->get_attempts);
     GNUNET_SCHEDULER_cancel (die_task);
     die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
-                                  "key mismatch in get response!\n");
+                                  "GET attempt failed, ending test!\n");
     return;
   }
   get_context->get_attempts++;
