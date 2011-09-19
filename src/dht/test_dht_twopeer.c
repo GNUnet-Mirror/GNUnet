@@ -166,7 +166,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param size number of bytes in data
  * @param data pointer to the result data
  */
-void
+static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *const *get_path,
@@ -180,6 +180,12 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Key returned is not the same key as was searched for!\n");
+    fprintf (stderr,
+	     "Looked for key `%s'\n",
+	     GNUNET_h2s (&get_context->peer->hashPubKey));
+    fprintf (stderr,
+	     "Got key `%s'\n",
+	     GNUNET_h2s (key));
     GNUNET_SCHEDULER_cancel (die_task);
     die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
