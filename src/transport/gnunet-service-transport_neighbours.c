@@ -78,6 +78,39 @@ struct SessionConnectMessage
 };
 
 
+struct SessionDisconnectMessage
+{
+  /**
+   * Header of type 'GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT'
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Purpose of the signature.  Extends over the timestamp.
+   * Purpose should be GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DISCONNECT.
+   */
+  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+
+  /**
+   * Absolute time at the sender.  Only the most recent connect
+   * message implies which session is preferred by the sender.
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
+
+  /**
+   * Signature of the peer that sends us the disconnect.  Only
+   * valid if the timestamp is AFTER the timestamp from the
+   * corresponding 'CONNECT' message.
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
+};
+
+
 /**
  * For each neighbour we keep a list of messages
  * that we still want to transmit to the neighbour.
@@ -1023,7 +1056,7 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
 {
   struct NeighbourMapEntry *n;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_MessageHeader disconnect_msg;
+  struct SessionDisconnectMessage disconnect_msg;
 
   GNUNET_assert (neighbours != NULL);
 
@@ -1033,8 +1066,17 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
   if (GNUNET_YES == n->is_connected)
   {
     /* we're actually connected, send DISCONNECT message */
-    disconnect_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-    disconnect_msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
+    disconnect_msg.header.size = htons (sizeof (struct SessionDisconnectMessage));
+    disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
+    disconnect_msg.reserved = htonl (0);
+    disconnect_msg.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+					 sizeof (struct GNUNET_TIME_AbsoluteNBO));
+    disconnect_msg.purpose.purpose = htonl (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT);
+    disconnect_msg.timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CRYPTO_rsa_sign (GST_my_private_key,
+					   &disconnect_msg.purpose,
+					   &disconnect_msg.signature));
     papi = GST_plugins_find (n->plugin_name);
     if (papi != NULL)
       papi->send (papi->cls, target, (const void *) &disconnect_msg,

@@ -48,11 +48,9 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN 1
 
 /**
- * Signature for confirming that this peer connected to another peer
- * using a particular address (LEGACY)
+ * Signature for confirming that this peer intends to disconnect.
  */
-#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING 2
-
+#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DISCONNECT 2
 
 /**
  * Purpose is to set a session key.
