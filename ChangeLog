@@ -3,12 +3,14 @@
 	in order of minor flaws to major issues, by module:
 
 	* FS still has a few missing features, but largely works
-	* TESTING does not support incremental HELLO changes
 	* TRANSPORT ATS is not used for actual bandwidth assignment,
 	          important options to make it truly useful are still missing
-	* MESH does not work (mock API emulates for VPN)
+	* TESTING does not support incremental HELLO changes, 
+	          code has known shutdown issues (can crash)
 	* VPN is experimental, but has been shown to work to some degree
+	* MESH does not work (mock API emulates for VPN)
         * TRANSPORT-WLAN is experimental
+        * TRANSPORT-HTTP is experimental, has known bugs
 	* TRANSPORT-DV is experimental, has known bugs, protocol may still change
 	* CHAT is experimental, has known bugs and was not reviewed yet
 
