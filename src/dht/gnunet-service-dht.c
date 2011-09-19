@@ -27,7 +27,7 @@
  * TODO:
  * - decide which 'benchmark'/test functions to keep (malicious code, kademlia, etc.)
  * - decide on 'stop_on_closest', 'stop_on_found', 'do_find_peer', 'paper_forwarding'
- * - use OPTION_MULTIPLE instead of linked list ofr the forward_list.hashmap
+ * - use OPTION_MULTIPLE instead of linked list for the forward_list.hashmap
  * - use different 'struct DHT_MessageContext' for the different types of
  *   messages (currently rather confusing, especially with things like
  *   peer bloom filters occuring when processing replies).
