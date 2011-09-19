@@ -241,13 +241,17 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
       break;
     }
   }
-
   GNUNET_assert ((ats_count > 0) && (ats != NULL));
-
+  /*
+     FIXME: this gives an address that might not have been validated to
+     ATS for 'selection', which is probably not what we want; this 
+     might be particularly wrong (as in, possibly hiding bugs with address
+     validation) as 'GNUNET_ATS_address_update' currently ignores
+     the expiration given.
+  */
   GNUNET_ATS_address_update (GST_ats, peer, GNUNET_TIME_absolute_get (),        /* valid at least until right now... */
                              plugin_name, session, sender_address,
                              sender_address_len, ats, ats_count);
-
   return ret;
 }
 
