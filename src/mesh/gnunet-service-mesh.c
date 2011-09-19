@@ -553,6 +553,16 @@ static GNUNET_PEER_Id myid;
 static struct GNUNET_PeerIdentity my_full_id;
 
 /**
+ * Own private key
+ */
+static struct GNUNET_CRYPTO_RsaPrivateKey* my_private_key;
+
+/**
+ * Own public key.
+ */
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+
+/**
  * Tunnel ID for the next created tunnel (global tunnel number)
  */
 static MESH_TunnelNumber next_tid;
@@ -3345,17 +3355,11 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Core init\n");
   core_handle = server;
-  my_full_id = *identity;
-  myid = GNUNET_PEER_intern (identity);
-  peer_info_get(identity);
-  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
-  GNUNET_SERVER_add_handlers (server_handle, client_handlers);
-  nc = GNUNET_SERVER_notification_context_create (server_handle,
-                                                  LOCAL_QUEUE_SIZE);
-  GNUNET_SERVER_disconnect_notify (server_handle,
-                                   &handle_local_client_disconnect,
-                                   NULL);
-  
+  if (0 != memcmp(identity, &my_full_id, sizeof(my_full_id)) || NULL == server)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("MESH: Wrong CORE service\n"));
+    GNUNET_SCHEDULER_shutdown();   
+  }
   return;
 }
 
@@ -3479,6 +3483,8 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  char *keyfile;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: starting to run\n");
   server_handle = server;
   core_handle = GNUNET_CORE_connect (c, /* Main configuration */
@@ -3496,7 +3502,38 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   if (core_handle == NULL)
   {
     GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
+
+  if (GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
+                                                &keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Mesh service is lacking key configuration settings.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GNUNET_free (keyfile);
+  if (my_private_key == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Mesh service could not access hostkey.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
+                      &my_full_id.hashPubKey);
+  myid = GNUNET_PEER_intern (&my_full_id);
+  /* Create a peer_info for the local peer */
+  peer_info_get(&my_full_id);
+
+  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
+
   dht_handle = GNUNET_DHT_connect (c, 64);
   if (dht_handle == NULL)
   {
@@ -3513,6 +3550,14 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   peers = GNUNET_CONTAINER_multihashmap_create (32);
   applications = GNUNET_CONTAINER_multihashmap_create (32);
   types = GNUNET_CONTAINER_multihashmap_create (32);
+
+  GNUNET_SERVER_add_handlers (server_handle, client_handlers);
+  nc = GNUNET_SERVER_notification_context_create (server_handle,
+                                                  LOCAL_QUEUE_SIZE);
+  GNUNET_SERVER_disconnect_notify (server_handle,
+                                   &handle_local_client_disconnect,
+                                   NULL);
+
 
   clients = NULL;
   clients_tail = NULL;
