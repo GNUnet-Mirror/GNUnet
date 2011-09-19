@@ -241,10 +241,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 10),
                                     &stop_retry_get, get_context);
-   fprintf (stderr,
-	    "Looking for key `%s'\n",
-	    GNUNET_h2s (&get_context->peer->hashPubKey));
-   get_context->get_handle =
+  get_context->get_handle =
       GNUNET_DHT_get_start (get_context->dht_handle,
                             GNUNET_TIME_relative_multiply
                             (GNUNET_TIME_UNIT_SECONDS, 5),
@@ -278,10 +275,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     (GNUNET_TIME_UNIT_SECONDS, 10),
                                     &stop_retry_get, get_context);
 
-   fprintf (stderr,
-	    "Looking for key `%s'\n",
-	    GNUNET_h2s (&get_context->peer->hashPubKey));
-   get_context->get_handle =
+  get_context->get_handle =
       GNUNET_DHT_get_start (get_context->dht_handle,
                             GNUNET_TIME_relative_multiply
                             (GNUNET_TIME_UNIT_SECONDS, 5),
