@@ -37,7 +37,7 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * How long until we give up on transmitting the message?

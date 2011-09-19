@@ -30,7 +30,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
 
-#define DEBUG_TRANSPORT GNUNET_YES
+#define DEBUG_TRANSPORT GNUNET_NO
 
 #define DEBUG_TRANSPORT_TIMEOUT GNUNET_NO
 
