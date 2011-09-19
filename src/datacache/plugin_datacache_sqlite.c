@@ -400,6 +400,7 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
                 "  key BLOB NOT NULL DEFAULT '',"
                 "  value BLOB NOT NULL DEFAULT '')");
   SQLITE3_EXEC (dbh, "CREATE INDEX idx_hashidx ON ds090 (key,type,expire)");
+  SQLITE3_EXEC (dbh, "CREATE INDEX idx_expire ON ds090 (expire)");
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   plugin->dbh = dbh;
