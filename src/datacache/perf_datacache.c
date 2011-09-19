@@ -31,7 +31,7 @@
 
 #define ASSERT(x) do { if (! (x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE;} } while (0)
 
-#define ITERATIONS 50000
+#define ITERATIONS 10000
 
 static int ok;
 
