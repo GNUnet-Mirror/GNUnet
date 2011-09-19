@@ -1,16 +1,11 @@
 0.9.0pre3:
 * make sure transport provides latency in ATS (fs tests are complaining bitterly,
-  on line gnunet-service-fs_cp.c:338).
-* clean buildbots (with new transport)
+  on line gnunet-service-fs_cp.c:338). 
 
 0.9.0pre4:
 * GNUNET-GTK: [CG]
-  - figure out where in the GUI we should show active upload operations and allow aborts
-  - handle events:
-    + search error
-    + publish error
-* NAT:
-  - support HOSTNAME given for external-IP address (dyndns!)
+  - provide context menus to allow aborts of downloads/uploads
+  - provide way to handle errors (search, download, publish errors)
 * FS [CG]
   - implement multi-peer FS performance tests + gauger them!
     + insert
@@ -25,7 +20,7 @@
   - write chapter on DHT/block [Nate] 
   - make a NICE download page 
 * big code review
-* Determine RC bugs and fix those  (release should have no known real bugs)
+* Determine RC bugs and fix those (release should have no known real bugs)
 
 0.9.1:
 * TRANSPORT: [MW]
