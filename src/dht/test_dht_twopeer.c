@@ -178,6 +178,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   if (0 !=
       memcmp (&get_context->peer->hashPubKey, key, sizeof (GNUNET_HashCode)))
   {
+    fprintf (stderr, "??\n");
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Key returned is not the same key as was searched for!\n");
     GNUNET_SCHEDULER_cancel (die_task);
@@ -186,7 +187,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                                   "key mismatch in get response!\n");
     return;
   }
-
+  fprintf (stderr, "!\n");
   if (get_context->retry_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (get_context->retry_task);
@@ -216,6 +217,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 static void
 stop_retry_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+
 static void
 get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -227,6 +229,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 get_context->get_attempts);
   else
   {
+    fprintf (stderr, "?\n");
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Too many attempts failed, ending test!\n",
                 get_context->get_attempts);
@@ -236,6 +239,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   "GET attempt failed, ending test!\n");
     return;
   }
+  fprintf (stderr, ".");
   get_context->get_attempts++;
   get_context->retry_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -251,6 +255,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             0, NULL, 0, &get_result_iterator, get_context);
 }
 
+
 static void
 stop_retry_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -264,6 +269,7 @@ stop_retry_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   get_context->get_handle = NULL;
   GNUNET_SCHEDULER_add_now (&get_stop_finished, get_context);
 }
+
 
 static void
 do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)

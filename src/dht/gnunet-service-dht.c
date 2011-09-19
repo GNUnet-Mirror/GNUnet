@@ -1941,8 +1941,10 @@ route_result_message (struct GNUNET_MessageHeader *msg,
         continue;
       }
       else
+      {
         GNUNET_CONTAINER_bloomfilter_add (pos->find_peers_responded,
                                           &new_peer.hashPubKey);
+      }
     }
 #endif
 
@@ -2988,6 +2990,7 @@ select_peer (const GNUNET_HashCode * target,
           GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
       {
         pos = pos->next;
+	increment_stats ("# peer blocked from selection by Bloom filter");
         continue;               /* Ignore bloomfiltered peers */
       }
       count++;
@@ -3250,8 +3253,6 @@ route_message (const struct GNUNET_MessageHeader *msg,
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER))
     target_forward_count = 0;
 
-
-  GNUNET_CONTAINER_bloomfilter_add (msg_ctx->bloom, &my_identity.hashPubKey);
 #if HAVE_UID_FOR_TESTING > 1
   /* BUG HERE: recent uses unique_id! So if all unique-IDs are 0, we get
      easily into trouble!!! Also, this should not even be necessary... */
@@ -3304,52 +3305,50 @@ route_message (const struct GNUNET_MessageHeader *msg,
   for (i = 0; i < target_forward_count; i++)
   {
     selected = select_peer (&msg_ctx->key, msg_ctx->bloom, msg_ctx->hop_count);
-
-    if (selected != NULL)
+    if (selected == NULL)
+      break;    
+    forward_count++;
+    if (GNUNET_CRYPTO_hash_matching_bits
+	(&selected->id.hashPubKey,
+	 &msg_ctx->key) >=
+	GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey,
+					  &msg_ctx->key))
+      GNUNET_asprintf (&temp_stat_str,
+		       "# requests routed to close(r) peer hop %u",
+		       msg_ctx->hop_count);
+    else
+      GNUNET_asprintf (&temp_stat_str,
+		       "# requests routed to less close peer hop %u",
+		       msg_ctx->hop_count);
+    if (temp_stat_str != NULL)
     {
-      forward_count++;
-      if (GNUNET_CRYPTO_hash_matching_bits
-          (&selected->id.hashPubKey,
-           &msg_ctx->key) >=
-          GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey,
-                                            &msg_ctx->key))
-        GNUNET_asprintf (&temp_stat_str,
-                         "# requests routed to close(r) peer hop %u",
-                         msg_ctx->hop_count);
-      else
-        GNUNET_asprintf (&temp_stat_str,
-                         "# requests routed to less close peer hop %u",
-                         msg_ctx->hop_count);
-      if (temp_stat_str != NULL)
-      {
-        increment_stats (temp_stat_str);
-        GNUNET_free (temp_stat_str);
-      }
-      GNUNET_CONTAINER_bloomfilter_add (msg_ctx->bloom,
-                                        &selected->id.hashPubKey);
+      increment_stats (temp_stat_str);
+      GNUNET_free (temp_stat_str);
+    }
+    GNUNET_CONTAINER_bloomfilter_add (msg_ctx->bloom,
+				      &selected->id.hashPubKey);
 #if DEBUG_DHT_ROUTING > 1
-      nearest = find_closest_peer (&msg_ctx->key);
-      nearest_buf = GNUNET_strdup (GNUNET_i2s (&nearest->id));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "`%s:%s': Forwarding request key %s uid %llu to peer %s (closest %s, bits %d, distance %u)\n",
-                  my_short_id, "DHT", GNUNET_h2s (&msg_ctx->key),
-                  msg_ctx->unique_id, GNUNET_i2s (&selected->id), nearest_buf,
-                  GNUNET_CRYPTO_hash_matching_bits (&nearest->id.hashPubKey,
-                                                    msg_ctx->key),
-                  distance (&nearest->id.hashPubKey, msg_ctx->key));
-      GNUNET_free (nearest_buf);
+    nearest = find_closest_peer (&msg_ctx->key);
+    nearest_buf = GNUNET_strdup (GNUNET_i2s (&nearest->id));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"`%s:%s': Forwarding request key %s uid %llu to peer %s (closest %s, bits %d, distance %u)\n",
+		my_short_id, "DHT", GNUNET_h2s (&msg_ctx->key),
+		msg_ctx->unique_id, GNUNET_i2s (&selected->id), nearest_buf,
+		GNUNET_CRYPTO_hash_matching_bits (&nearest->id.hashPubKey,
+						  msg_ctx->key),
+		distance (&nearest->id.hashPubKey, msg_ctx->key));
+    GNUNET_free (nearest_buf);
 #endif
 #if DEBUG_DHT_ROUTING
-      if ((debug_routes_extended) && (dhtlog_handle != NULL))
-      {
-        dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
-                                     msg_ctx->hop_count, GNUNET_NO,
-                                     &my_identity, &msg_ctx->key, &msg_ctx->peer,
-                                     &selected->id);
-      }
-#endif
-      forward_message (msg, selected, msg_ctx);
+    if ((debug_routes_extended) && (dhtlog_handle != NULL))
+    {
+      dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
+				   msg_ctx->hop_count, GNUNET_NO,
+				   &my_identity, &msg_ctx->key, &msg_ctx->peer,
+				   &selected->id);
     }
+#endif
+    forward_message (msg, selected, msg_ctx);    
   }
 
   if (msg_ctx->bloom != NULL)
@@ -4343,7 +4342,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param identity the public identity of this peer
  * @param publicKey the public key of this peer
  */
-void
+static void
 core_init (void *cls, struct GNUNET_CORE_Handle *server,
            const struct GNUNET_PeerIdentity *identity,
            const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
