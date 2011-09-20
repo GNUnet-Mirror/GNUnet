@@ -30,12 +30,14 @@ libgnunetmesh_la_LDFLAGS = \
 
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c mesh_tunnel_tree.c
-
 gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la\
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/util/libgnunetutil.la
-
+ gnunet_service_mesh_DEPENDENCIES = \
+  $(top_builddir)/src/core/libgnunetcore.la\
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 libgnunetmeshnew_la_SOURCES = \
   mesh_api_new.c mesh.h
@@ -48,6 +50,7 @@ libgnunetmeshnew_la_LDFLAGS = \
 
 check_PROGRAMS = \
  test_mesh_api \
+ test_mesh_path_api \
  test_mesh_local_1 \
  test_mesh_local_2 \
  test_mesh_small
@@ -58,7 +61,17 @@ test_mesh_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/mesh/libgnunetmeshnew.la
 test_mesh_api_DEPENDENCIES = \
-  libgnunetmeshnew.la
+  libgnunetmeshnew.la \
+   $(top_builddir)/src/util/libgnunetutil.la
+
+test_mesh_path_api_SOURCES = \
+ test_mesh_path_api.c
+test_mesh_path_api_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/dht/libgnunetdht.la
+test_mesh_path_api_DEPENDENCIES = \
+  libgnunetmeshnew.la \
+  $(top_builddir)/src/dht/libgnunetdht.la
 
 test_mesh_local_1_SOURCES = \
  test_mesh_local_1.c
@@ -87,9 +100,10 @@ test_mesh_small_DEPENDENCIES = \
 
 if ENABLE_TEST_RUN
 if HAVE_EXPERIMENTAL
-TESTS = test_mesh_api test_mesh_local_1 test_mesh_local_2
+TESTS = test_mesh_api test_mesh_path_api test_mesh_local_1 test_mesh_local_2
 endif
 endif
 
 EXTRA_DIST = \
-  test_mesh.conf
+  test_mesh.conf \
+  test_mesh_path.conf
