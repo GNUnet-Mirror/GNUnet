@@ -29,7 +29,7 @@ libgnunetmesh_la_LDFLAGS = \
   -version-info 0:0:0
 
 gnunet_service_mesh_SOURCES = \
- gnunet-service-mesh.c
+ gnunet-service-mesh.c mesh_tunnel_tree.c
 
 gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la\
