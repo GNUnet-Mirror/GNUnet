@@ -51,7 +51,6 @@ int
 main (int argc, char *argv[])
 {
   struct GNUNET_PeerIdentity* pi;
-//   struct MeshTunnel *t;
   int result;
 
   GNUNET_log_setup ("test_mesh_api_path",
@@ -61,6 +60,7 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
+
   pi = get_pi(1);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Peer 1: %s\n", GNUNET_h2s(&pi->hashPubKey));
 

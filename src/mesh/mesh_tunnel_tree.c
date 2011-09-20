@@ -28,10 +28,6 @@
 #include "mesh_tunnel_tree.h"
 
 
-extern GNUNET_PEER_Id myid;
-extern struct GNUNET_PeerIdentity my_full_id;
-
-
 /**
  * Invert the path
  *
@@ -72,19 +68,19 @@ path_destroy (struct MeshPeerPath *p)
 /**
  * Find the first peer whom to send a packet to go down this path
  *
- * @param t The tunnel to use
+ * @param t The tunnel tree to use
  * @param peer The peerinfo of the peer we are trying to reach
  *
  * @return peerinfo of the peer who is the first hop in the tunnel
  *         NULL on error
  */
 struct GNUNET_PeerIdentity *
-path_get_first_hop (struct MeshTunnel *t, struct MeshPeerInfo *peer)
+path_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
 {
   struct GNUNET_PeerIdentity id;
 
-  GNUNET_PEER_resolve (peer->id, &id);
-  return GNUNET_CONTAINER_multihashmap_get (t->tree->first_hops,
+  GNUNET_PEER_resolve (peer, &id);
+  return GNUNET_CONTAINER_multihashmap_get (t->first_hops,
                                             &id.hashPubKey);
 }
 
@@ -109,7 +105,7 @@ path_get_length (struct MeshPeerPath *path)
 /**
  * Get the cost of the path relative to the already built tunnel tree
  *
- * @param t The tunnel to which compare
+ * @param t The tunnel tree to which compare
  * @param path The individual path to reach a peer
  *
  * @return Number of hops to reach destination, UINT_MAX in case the peer is not
@@ -118,94 +114,10 @@ path_get_length (struct MeshPeerPath *path)
  * TODO: remove dummy implementation, look into the tunnel tree
  */
 unsigned int
-path_get_cost (struct MeshTunnel *t, struct MeshPeerPath *path)
+path_get_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path)
 {
   return path_get_length (path);
 }
-
-
-/**
- * Add the path to the peer and update the path used to reach it in case this
- * is the shortest.
- *
- * @param peer_info Destination peer to add the path to.
- * @param path New path to add. Last peer must be the peer in arg 1.
- *             Path will be either used of freed if already known.
- *
- * TODO: trim the part from origin to us? Add it as path to origin?
- */
-void
-path_add_to_peer (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
-{
-  struct MeshPeerPath *aux;
-  unsigned int l;
-  unsigned int l2;
-
-  if (NULL == peer_info || NULL == path)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  l = path_get_length (path);
-
-  for (aux = peer_info->path_head; aux != NULL; aux = aux->next)
-  {
-    l2 = path_get_length (aux);
-    if (l2 > l)
-    {
-      GNUNET_CONTAINER_DLL_insert_before (peer_info->path_head,
-                                          peer_info->path_tail, aux, path);
-    }
-    else
-    {
-      if (l2 == l && memcmp(path->peers, aux->peers, l) == 0)
-      {
-        path_destroy(path);
-        return;
-      }
-    }
-  }
-  GNUNET_CONTAINER_DLL_insert_tail (peer_info->path_head, peer_info->path_tail,
-                                    path);
-  return;
-}
-
-
-/**
- * Send keepalive packets for a peer
- *
- * @param cls unused
- * @param tc unused
- *
- * FIXME path
- */
-void
-path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct MeshTunnel *t = cls;
-
-//   struct GNUNET_PeerIdentity id;
-
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
-  {
-    return;
-  }
-  /* FIXME implement multicast keepalive. Just an empty multicast packet? */
-//   GNUNET_PEER_resolve (path_get_first_hop (path->t, path->peer)->id, &id);
-//   GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-//                                      GNUNET_TIME_UNIT_FOREVER_REL, &id,
-//                                      sizeof (struct GNUNET_MESH_ManipulatePath)
-//                                      +
-//                                      (path->path->length *
-//                                       sizeof (struct GNUNET_PeerIdentity)),
-//                                      &send_core_create_path,
-//                                      t);
-  t->path_refresh_task =
-      GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
-  return;
-}
-
 
 
 /**
@@ -216,10 +128,10 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @return Pointer to the node of the peer. NULL if not found.
  */
-struct MeshTunnelPathNode *
-tunnel_find_peer (struct MeshTunnelPathNode *root, GNUNET_PEER_Id peer_id)
+struct MeshTunnelTreeNode *
+tunnel_find_peer (struct MeshTunnelTreeNode *root, GNUNET_PEER_Id peer_id)
 {
-  struct MeshTunnelPathNode *n;
+  struct MeshTunnelTreeNode *n;
   unsigned int i;
 
   if (root->peer == peer_id)
@@ -238,30 +150,34 @@ tunnel_find_peer (struct MeshTunnelPathNode *root, GNUNET_PEER_Id peer_id)
  * Recusively mark peer and children as disconnected, notify client
  *
  * @param parent Node to be clean, potentially with children
- * @param nc Notification context to use to alert the client
+ * @param cb Callback to use to notify about disconnected peers.
  */
 void
-tunnel_mark_peers_disconnected (struct MeshTunnelPathNode *parent,
-                                struct GNUNET_SERVER_NotificationContext *nc)
+tunnel_mark_peers_disconnected (struct MeshTunnelTreeNode *parent,
+                                MeshNodeDisconnectCB cb)
 {
-  struct GNUNET_MESH_PeerControl msg;
   unsigned int i;
 
+  if (MESH_PEER_READY == parent->status)
+  {
+    cb (parent);
+  }
   parent->status = MESH_PEER_RECONNECTING;
   for (i = 0; i < parent->nchildren; i++)
   {
-    tunnel_mark_peers_disconnected (&parent->children[i], nc);
+    tunnel_mark_peers_disconnected (&parent->children[i], cb);
   }
-  if (NULL == parent->t->client)
-    return;
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL);
-  msg.tunnel_id = htonl (parent->t->local_tid);
-  GNUNET_PEER_resolve (parent->peer, &msg.peer);
-  if (NULL == nc)
-    return;
-  GNUNET_SERVER_notification_context_unicast (nc, parent->t->client->handle,
-                                              &msg.header, GNUNET_NO);
+//   struct GNUNET_MESH_PeerControl msg;
+//   if (NULL == parent->t->client)
+//     return;
+//   msg.header.size = htons (sizeof (msg));
+//   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL);
+//   msg.tunnel_id = htonl (parent->t->local_tid);
+//   GNUNET_PEER_resolve (parent->peer, &msg.peer);
+//   if (NULL == nc)
+//     return;
+//   GNUNET_SERVER_notification_context_unicast (nc, parent->t->client->handle,
+//                                               &msg.header, GNUNET_NO);
 }
 
 
@@ -272,23 +188,23 @@ tunnel_mark_peers_disconnected (struct MeshTunnelPathNode *parent,
  * The destination peer is NOT destroyed, it is returned in order to either set
  * a new path to it or destroy it explicitly, taking care of it's child nodes.
  *
- * @param t Tunnel where to delete the path from.
+ * @param t Tunnel tree where to delete the path from.
  * @param peer Destination peer whose path we want to remove.
- * @param nc Notification context to alert the client of disconnected peers.
+ * @param cb Callback to use to notify about disconnected peers.
  *
  * @return pointer to the pathless node, NULL on error
  */
-struct MeshTunnelPathNode *
-tunnel_del_path (struct MeshTunnel *t, GNUNET_PEER_Id peer_id,
-                 struct GNUNET_SERVER_NotificationContext *nc)
+struct MeshTunnelTreeNode *
+tunnel_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
+                 MeshNodeDisconnectCB cb)
 {
-  struct MeshTunnelPathNode *parent;
-  struct MeshTunnelPathNode *node;
-  struct MeshTunnelPathNode *n;
+  struct MeshTunnelTreeNode *parent;
+  struct MeshTunnelTreeNode *node;
+  struct MeshTunnelTreeNode *n;
 
-  if (peer_id == t->tree->root->peer)
+  if (peer_id == t->root->peer)
     return NULL;
-  node = n = tunnel_find_peer (t->tree->me, peer_id);
+  node = n = tunnel_find_peer (t->me, peer_id);
   if (NULL == n)
     return NULL;
   parent = n->parent;
@@ -306,7 +222,7 @@ tunnel_del_path (struct MeshTunnel *t, GNUNET_PEER_Id peer_id,
   parent->nchildren--;
   parent->children = GNUNET_realloc (parent->children, parent->nchildren);
 
-  tunnel_mark_peers_disconnected (node, nc);
+  tunnel_mark_peers_disconnected (node, cb);
 
   return node;
 }
@@ -323,13 +239,13 @@ tunnel_del_path (struct MeshTunnel *t, GNUNET_PEER_Id peer_id,
  *         Path must be destroyed afterwards.
  */
 struct MeshPeerPath *
-tunnel_get_path_to_peer(struct MeshTunnel *t, struct MeshPeerInfo *peer_info)
+tunnel_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
 {
-  struct MeshTunnelPathNode *n;
+  struct MeshTunnelTreeNode *n;
   struct MeshPeerPath *p;
-  GNUNET_PEER_Id myid = t->tree->me->peer;
+  GNUNET_PEER_Id myid = t->me->peer;
 
-  n = tunnel_find_peer(t->tree->me, peer_info->id);
+  n = tunnel_find_peer(t->me, peer);
   p = GNUNET_malloc(sizeof(struct MeshPeerPath));
 
   /* Building the path (inverted!) */
@@ -354,8 +270,7 @@ tunnel_get_path_to_peer(struct MeshTunnel *t, struct MeshPeerInfo *peer_info)
  *
  * @param t Tunnel where to add the new path.
  * @param p Path to be integrated.
- * @param nc Notification context to alert clients of peers
- *           temporarily disconnected
+ * @param cb Callback to use to notify about peers temporarily disconnecting
  *
  * @return GNUNET_OK in case of success.
  *         GNUNET_SYSERR in case of error.
@@ -365,20 +280,21 @@ tunnel_get_path_to_peer(struct MeshTunnel *t, struct MeshPeerInfo *peer_info)
  * - do not disconnect peers until new path is created & connected
  */
 int
-tunnel_add_path (struct MeshTunnel *t, const struct MeshPeerPath *p)
+tunnel_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
+                 MeshNodeDisconnectCB cb)
 {
-  struct MeshTunnelPathNode *parent;
-  struct MeshTunnelPathNode *oldnode;
-  struct MeshTunnelPathNode *n;
+  struct MeshTunnelTreeNode *parent;
+  struct MeshTunnelTreeNode *oldnode;
+  struct MeshTunnelTreeNode *n;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_PeerIdentity *hop;
-  GNUNET_PEER_Id myid = t->tree->me->peer;
+  GNUNET_PEER_Id myid = t->me->peer;
   int me;
   unsigned int i;
   unsigned int j;
 
   GNUNET_assert(0 != p->length);
-  n = t->tree->root;
+  n = t->root;
   if (n->peer != p->peers[0])
   {
     GNUNET_break (0);
@@ -386,7 +302,7 @@ tunnel_add_path (struct MeshTunnel *t, const struct MeshPeerPath *p)
   }
   if (1 == p->length)
     return GNUNET_OK;
-  oldnode = tunnel_del_path (t, p->peers[p->length - 1], NULL);
+  oldnode = tunnel_del_path (t, p->peers[p->length - 1], cb);
   /* Look for the first node that is not already present in the tree
    *
    * Assuming that the tree is somewhat balanced, O(log n * log N).
@@ -423,17 +339,17 @@ tunnel_add_path (struct MeshTunnel *t, const struct MeshPeerPath *p)
     parent->nchildren++;
     parent->children = GNUNET_realloc (parent->children,
                                        parent->nchildren *
-                                       sizeof(struct MeshTunnelPathNode));
+                                       sizeof(struct MeshTunnelTreeNode));
     n = &parent->children[parent->nchildren - 1];
     if (i == p->length - 1 && NULL != oldnode)
     {
       /* Assignation and free can be misleading, using explicit mempcy */
-      memcpy (n, oldnode, sizeof (struct MeshTunnelPathNode));
+      memcpy (n, oldnode, sizeof (struct MeshTunnelTreeNode));
       GNUNET_free (oldnode);
     }
     else
     {
-      n->t = t;
+      n->t = t->t;
       n->status = MESH_PEER_RELAY;
       n->peer = p->peers[i];
     }
@@ -448,47 +364,9 @@ tunnel_add_path (struct MeshTunnel *t, const struct MeshPeerPath *p)
     GNUNET_PEER_resolve (p->peers[p->length - 1], &id);
     hop = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
     GNUNET_PEER_resolve (p->peers[me + 1], hop);
-    GNUNET_CONTAINER_multihashmap_put (t->tree->first_hops, &id.hashPubKey,
+    GNUNET_CONTAINER_multihashmap_put (t->first_hops, &id.hashPubKey,
                                        hop,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
   return GNUNET_OK;
-}
-
-
-/**
- * Add a peer to a tunnel, accomodating paths accordingly and initializing all
- * needed rescources.
- *
- * @param t Tunnel we want to add a new peer to
- * @param peer PeerInfo of the peer being added
- *
- */
-void
-tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
-{
-  struct MeshPeerPath *p;
-  struct MeshPeerPath *best_p;
-  unsigned int best_cost;
-  unsigned int cost;
-
-  GNUNET_array_append (peer->tunnels, peer->ntunnels, t);
-  if (NULL == (p = peer->path_head))
-    return;
-
-  best_p = p;
-  best_cost = UINT_MAX;
-  while (NULL != p)
-  {
-    if ((cost = path_get_cost (t, p)) < best_cost)
-    {
-      best_cost = cost;
-      best_p = p;
-    }
-    p = p->next;
-  }
-  tunnel_add_path (t, best_p);
-  if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
-    t->path_refresh_task =
-        GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
 }
