@@ -293,8 +293,13 @@ tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
   unsigned int i;
   unsigned int j;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "test: Adding path [%u] towards peer %u to peer %u.\n",
+             p->length,
+             p->peers[p->length - 1],
+             t->me->peer);
   GNUNET_assert(0 != p->length);
-  n = t->root;
+  parent = n = t->root;
   if (n->peer != p->peers[0])
   {
     GNUNET_break (0);
@@ -309,13 +314,21 @@ tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
    * - Length of the path is expected to be log N (size of whole network).
    * - Each level of the tree is expected to have log n children (size of tree).
    */
-  for (i = 0, me = -1; i < p->length; i++)
+  me = t->root->peer == myid ? 0 : -1;
+  for (i = 1; i < p->length; i++)
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "test: Looking for peer %u.\n",
+             p->peers[i]);
     parent = n;
     if (p->peers[i] == myid)
       me = i;
     for (j = 0; j < n->nchildren; j++)
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "test: Child %u. is %u\n",
+             j,
+             n->children[j].peer);
       if (n->children[j].peer == p->peers[i])
       {
         n = &n->children[j];
@@ -327,6 +340,8 @@ tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
     if (parent == n)
       break;
   }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "test: All childen visited.\n");
   if (-1 == me)
   {
     /* New path deviates from tree before reaching us. What happened? */
@@ -336,22 +351,38 @@ tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
   /* Add the rest of the path as a branch from parent. */
   while (i < p->length)
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "test: Adding  peer %u, to %u.\n",
+               p->peers[i],
+               parent->peer);
     parent->nchildren++;
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "test: realloc %p, %u\n", parent->children,
+                                       parent->nchildren *
+                                       sizeof(struct MeshTunnelTreeNode));
     parent->children = GNUNET_realloc (parent->children,
                                        parent->nchildren *
                                        sizeof(struct MeshTunnelTreeNode));
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "test: done: %p\n", parent->children);
     n = &parent->children[parent->nchildren - 1];
     if (i == p->length - 1 && NULL != oldnode)
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "test: Putting old note into place.\n");
       /* Assignation and free can be misleading, using explicit mempcy */
       memcpy (n, oldnode, sizeof (struct MeshTunnelTreeNode));
-      GNUNET_free (oldnode);
+      tree_node_destroy(oldnode);
     }
     else
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "test: Creating new node.\n");
       n->t = t->t;
       n->status = MESH_PEER_RELAY;
       n->peer = p->peers[i];
+      n->nchildren = 0;
+      n->children = NULL;
     }
     n->parent = parent;
     i++;
@@ -421,5 +452,4 @@ tree_destroy (struct MeshTunnelTree *t)
   GNUNET_free(t->root);
   GNUNET_CONTAINER_multihashmap_iterate(t->first_hops, &iterate_free, NULL);
   GNUNET_CONTAINER_multihashmap_destroy(t->first_hops);
-  
 }

@@ -84,7 +84,8 @@ main (int argc, char *argv[])
 {
   struct MeshTunnelTreeNode *node;
   struct MeshTunnelTreeNode *node2;
-  struct MeshPeerPath *path[10];
+  struct MeshPeerPath *path;
+  struct MeshPeerPath *path1;
   unsigned int i;
 
   failed = 0;
@@ -108,24 +109,24 @@ main (int argc, char *argv[])
   tree->root = GNUNET_malloc(sizeof(struct MeshTunnelTreeNode));
   tree->root->peer = 0;
   tree->me = tree->root;
-  path[0] = GNUNET_malloc(sizeof(struct MeshPeerPath));
-  path[0]->peers = GNUNET_malloc(sizeof(GNUNET_PEER_Id) * 4);
-  path[0]->peers[0] = 0;
-  path[0]->peers[1] = 1;
-  path[0]->peers[2] = 2;
-  path[0]->peers[3] = 3;
-  path[0]->length = 4;
+  path = GNUNET_malloc(sizeof(struct MeshPeerPath));
+  path->peers = GNUNET_malloc(sizeof(GNUNET_PEER_Id) * 4);
+  path->peers[0] = 0;
+  path->peers[1] = 1;
+  path->peers[2] = 2;
+  path->peers[3] = 3;
+  path->length = 4;
 
+  tree_add_path(tree, path, &cb);
   finish();
-  tree_add_path(tree, path[0], &cb);
-  path[1] = tree_get_path_to_peer(tree, 3);
-  if (path[0]->length != path[1]->length ||
-      memcmp(path[0]->peers, path[1]->peers, path[0]->length) != 0)
+  path1 = tree_get_path_to_peer(tree, 3);
+  if (path->length != path1->length ||
+      memcmp(path->peers, path1->peers, path->length) != 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved path != original\n");
     failed++;
   }
-  path_destroy(path[1]);
+  path_destroy(path1);
   node = tree_find_peer(tree->root, 3);
   if (node->peer != 3)
   {
@@ -184,8 +185,8 @@ main (int argc, char *argv[])
     failed++;
   }
 
-  path[0]->length--;
-  tree_add_path(tree, path[0], &cb);
+  path->length--;
+  tree_add_path(tree, path, &cb);
 
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
@@ -231,9 +232,9 @@ main (int argc, char *argv[])
     failed++;
   }
 
-  path[0]->length++;
-  path[0]->peers[3] = 4;
-  tree_add_path(tree, path[0], &cb);
+  path->length++;
+  path->peers[3] = 4;
+  tree_add_path(tree, path, &cb);
 
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
@@ -316,10 +317,10 @@ main (int argc, char *argv[])
     failed++;
   }
 
-  path[0]->length = 2;
-  path[0]->peers[1] = 3;
+  path->length = 2;
+  path->peers[1] = 3;
   cb_call = 1;
-  tree_add_path(tree, path[0], cb);
+  tree_add_path(tree, path, cb);
   if (cb_call != 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%u callbacks missed!\n", cb_call);

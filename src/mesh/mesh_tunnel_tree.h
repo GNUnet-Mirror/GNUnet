@@ -266,6 +266,16 @@ int
 tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
                  MeshNodeDisconnectCB cb);
 
+
+/**
+ * Destroy the node and all children
+ * 
+ * @param n Parent node to be destroyed
+ */
+void
+tree_node_destroy (struct MeshTunnelTreeNode *n);
+
+
 /**
  * Destroy the whole tree and free all used memory and Peer_Ids
  * 
