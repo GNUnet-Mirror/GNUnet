@@ -173,7 +173,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
     case GNUNET_MESSAGE_TYPE_HELLO:
       GST_validation_handle_hello (message);
-      break;
+      return ret;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,

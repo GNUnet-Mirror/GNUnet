@@ -99,7 +99,7 @@
 /**
  * DEBUG switch
  */
-#define DEBUG_wlan GNUNET_NO
+#define DEBUG_wlan GNUNET_YES
 #define DEBUG_wlan_retransmission GNUNET_NO
 #define DEBUG_wlan_ip_udp_packets_on_air GNUNET_NO
 #define DEBUG_wlan_msg_dump GNUNET_NO
@@ -1407,8 +1407,7 @@ send_hello_beacon (struct Plugin *plugin)
   GNUNET_assert (sizeof (struct WlanHeader) + hallo_size <= WLAN_MTU);
   size =
       sizeof (struct GNUNET_MessageHeader) + sizeof (struct Radiotap_Send) +
-      sizeof (struct ieee80211_frame) + sizeof (struct GNUNET_MessageHeader) +
-      hallo_size;
+      sizeof (struct ieee80211_frame) + hallo_size;
 
   msgheader = GNUNET_malloc (size);
   msgheader->size = htons (size);
@@ -1420,12 +1419,12 @@ send_hello_beacon (struct Plugin *plugin)
   getWlanHeader (ieeewlanheader, &bc_all_mac, plugin, size);
 
   msgheader2 = (struct GNUNET_MessageHeader *) &ieeewlanheader[1];
-  msgheader2->size =
+  /*msgheader2->size =
       htons (GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello) +
              sizeof (struct GNUNET_MessageHeader));
 
-  msgheader2->type = htons (GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT);
-  memcpy (&msgheader2[1], hello, hallo_size);
+  msgheader2->type = htons (GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT);*/
+  memcpy (msgheader2, hello, hallo_size);
 
   bytes = GNUNET_DISK_file_write (plugin->server_stdin_handle, msgheader, size);
 
@@ -2316,7 +2315,7 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
   struct FragmentMessage *fm2;
 
   //ADVERTISEMENT
-  if (ntohs (hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT)
+  if (ntohs (hdr->type) == GNUNET_MESSAGE_TYPE_HELLO)
   {
 
     //TODO better DOS protection, error handling
@@ -2331,15 +2330,7 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
                                                                        mac, 6));
 #endif
 
-    if (session_light->macendpoint == NULL)
-    {
-      session_light->macendpoint =
-          get_macendpoint (plugin, &session_light->addr, GNUNET_NO);
-    }
-    GNUNET_assert (GNUNET_HELLO_get_id
-                   ((const struct GNUNET_HELLO_Message *) &hdr[1],
-                    &(session_light->session->target)) != GNUNET_SYSERR);
-
+    plugin->env->receive(NULL,NULL,hdr, NULL, 0, NULL, NULL, 0);
   }
 
   //FRAGMENT
@@ -2581,7 +2572,7 @@ wlan_process_helper (void *cls, void *client,
 
     //call wlan_process_helper with the message inside, later with wlan: analyze signal
     if (ntohs (hdr->size) <
-        sizeof (struct ieee80211_frame) + sizeof (struct GNUNET_MessageHeader) +
+        sizeof (struct ieee80211_frame) + 2*sizeof (struct GNUNET_MessageHeader) +
         sizeof (struct Radiotap_rx))
     {
 #if DEBUG_wlan
@@ -2595,6 +2586,7 @@ wlan_process_helper (void *cls, void *client,
       /* FIXME: restart SUID process */
       return;
     }
+
     rxinfo = (struct Radiotap_rx *) &hdr[1];
     wlanIeeeHeader = (struct ieee80211_frame *) &rxinfo[1];
 
@@ -2633,8 +2625,18 @@ wlan_process_helper (void *cls, void *client,
         while (pos < datasize)
         {
           temp_hdr = (struct GNUNET_MessageHeader *) &wlanIeeeHeader[1] + pos;
-
-          wlan_data_helper (plugin, session_light, temp_hdr, rxinfo);
+          if (ntohs(temp_hdr->size) <= datasize + pos)
+            {
+            wlan_data_helper (plugin, session_light, temp_hdr, rxinfo);
+            }
+          else
+            {
+#if DEBUG_wlan
+            GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                       "Size of packet is too small; size: %u > size of packet: %u\n",
+                       ntohs(temp_hdr->size),datasize + pos);
+#endif
+            }
           pos += ntohs (temp_hdr->size);
 
         }
