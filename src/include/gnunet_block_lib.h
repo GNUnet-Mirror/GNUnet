@@ -232,6 +232,23 @@ GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
                       size_t block_size, GNUNET_HashCode * key);
 
 
+
+/**
+ * Construct a bloom filter that would filter out the given
+ * results.
+ *
+ * @param bf_mutator mutation value to use
+ * @param seen_results results already seen
+ * @param seen_results_count number of entries in 'seen_results'
+ * @return NULL if seen_results_count is 0, otherwise a BF
+ *         that would match the given results.
+ */
+struct GNUNET_CONTAINER_BloomFilter *
+GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
+				    const GNUNET_HashCode *seen_results,
+				    unsigned int seen_results_count);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

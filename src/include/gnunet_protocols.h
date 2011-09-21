@@ -628,11 +628,13 @@ extern "C"
  * Local DHT route request type
  */
 #define GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE 142
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET 142
 
 /**
  * Local generic DHT route result type
  */
 #define GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT 143
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT 142
 
 /**
  * P2P DHT route request type
@@ -648,12 +650,14 @@ extern "C"
  * Local generic DHT message stop type
  */
 #define GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_STOP 146
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_STOP 146
 
 /**
  * Local and P2P DHT PUT message
  * (encapsulated in DHT_ROUTE message)
  */
 #define GNUNET_MESSAGE_TYPE_DHT_PUT 147
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT 147
 
 /**
  * Local and P2P DHT GET message
