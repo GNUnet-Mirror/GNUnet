@@ -1003,10 +1003,26 @@ tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 }
 
 
+/**
+ * Callback used to notify a client owner of a tunnel that a peer has
+ * disconnected, most likely because of a path change.
+ *
+ * @param n Node in the tree representing the disconnected peer
+ */
 void
 notify_peer_disconnected (const struct MeshTunnelTreeNode *n)
 {
-  
+  struct GNUNET_MESH_PeerControl msg;
+
+  if (NULL == n->t->client || NULL == nc)
+    return;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL);
+  msg.tunnel_id = htonl (n->t->local_tid);
+  GNUNET_PEER_resolve (n->peer, &msg.peer);
+  GNUNET_SERVER_notification_context_unicast (nc, n->t->client->handle,
+                                              &msg.header, GNUNET_NO);
 }
 
 
