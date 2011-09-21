@@ -249,4 +249,25 @@ GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
 }
 
 
+
+/**
+ * Construct a bloom filter that would filter out the given
+ * results.
+ *
+ * @param bf_mutator mutation value to use
+ * @param seen_results results already seen
+ * @param seen_results_count number of entries in 'seen_results'
+ * @return NULL if seen_results_count is 0, otherwise a BF
+ *         that would match the given results.
+ */
+struct GNUNET_CONTAINER_BloomFilter *
+GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
+				    const GNUNET_HashCode *seen_results,
+				    unsigned int seen_results_count)
+{
+  GNUNET_break (0);
+  return NULL;
+}
+
+
 /* end of block.c */
