@@ -189,7 +189,7 @@ path_get_length (struct MeshPeerPath *path);
 /**
  * Get the cost of the path relative to the already built tunnel tree
  *
- * @param t The tunnel to which compare
+ * @param t The tunnel tree to which compare
  * @param path The individual path to reach a peer
  *
  * @return Number of hops to reach destination, UINT_MAX in case the peer is not
@@ -209,19 +209,6 @@ path_get_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path);
  */
 struct MeshTunnelTreeNode *
 tree_find_peer (struct MeshTunnelTreeNode *root, GNUNET_PEER_Id peer_id);
-
-
-/**
- * Recusively mark peer and children as disconnected, notify client
- *
- * @param tree Tree this node belongs to
- * @param parent Node to be clean, potentially with children
- * @param cb Callback to use to notify about disconnected peers
- */
-void
-tree_mark_peers_disconnected (struct MeshTunnelTree *tree,
-                              struct MeshTunnelTreeNode *parent,
-                              MeshNodeDisconnectCB cb);
 
 
 /**

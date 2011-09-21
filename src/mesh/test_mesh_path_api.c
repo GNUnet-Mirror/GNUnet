@@ -57,6 +57,7 @@ finish(void)
 {
   unsigned int i;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test:  Finishing...\n");
   for (i = 0; i < 10; i++)
   {
     GNUNET_free(pi[i]);
@@ -117,6 +118,7 @@ main (int argc, char *argv[])
   path->peers[3] = 3;
   path->length = 4;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding first path: 0 1 2 3\n");
   tree_add_path(tree, path, &cb);
   path1 = tree_get_path_to_peer(tree, 3);
   if (path->length != path1->length ||
@@ -182,11 +184,9 @@ main (int argc, char *argv[])
     failed++;
   }
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding second path: 0 1 2\n");
   path->length--;
   tree_add_path(tree, path, &cb);
-  path->length++;
-  path_destroy(path);
-  finish();
   
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
@@ -207,11 +207,13 @@ main (int argc, char *argv[])
   if (GNUNET_PEER_search(path_get_first_hop(tree, 3)) != 1)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Wrong first hop!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "3 GOT: %u\n", GNUNET_PEER_search(path_get_first_hop(tree, 3)));
     failed++;
   }
   if (GNUNET_PEER_search(path_get_first_hop(tree, 2)) != 1)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Wrong first hop!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "2 GOT: %u\n", GNUNET_PEER_search(path_get_first_hop(tree, 2)));
     failed++;
   }
 
@@ -231,7 +233,11 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
   }
+  path->length++;
+  path_destroy(path);
+  finish();
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding third path...\n");
   path->length++;
   path->peers[3] = 4;
   tree_add_path(tree, path, &cb);
@@ -286,6 +292,8 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
     failed++;
   }
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Deleting third path...\n");
   node->status = MESH_PEER_READY;
   cb_call = 1;
   node2 = tree_del_path(tree, 4, &cb);
@@ -299,7 +307,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
     failed++;
   }
-//   GNUNET_free(node2); FIXME destroy
+  
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {
@@ -317,6 +325,10 @@ main (int argc, char *argv[])
     failed++;
   }
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Destroying node copy...\n");
+  tree_node_destroy(node2);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding new shorter first path...\n");
   path->length = 2;
   path->peers[1] = 3;
   cb_call = 1;
