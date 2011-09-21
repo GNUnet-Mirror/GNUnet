@@ -42,7 +42,7 @@ struct MeshTunnelTree *tree;
 void
 cb (const struct MeshTunnelTreeNode *n)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Desconnected %u\n", n->peer);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Disconnected %u\n", n->peer);
   if(0 == cb_call)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test:    and it shouldn't!\n");
@@ -118,7 +118,6 @@ main (int argc, char *argv[])
   path->length = 4;
 
   tree_add_path(tree, path, &cb);
-  finish();
   path1 = tree_get_path_to_peer(tree, 3);
   if (path->length != path1->length ||
       memcmp(path->peers, path1->peers, path->length) != 0)
@@ -138,13 +137,11 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  node->status = MESH_PEER_READY;
   if (GNUNET_PEER_search(path_get_first_hop(tree, 3)) != 1)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Wrong first hop!\n");
     failed++;
   }
-  return 0;
 
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
@@ -187,7 +184,10 @@ main (int argc, char *argv[])
 
   path->length--;
   tree_add_path(tree, path, &cb);
-
+  path->length++;
+  path_destroy(path);
+  finish();
+  
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {

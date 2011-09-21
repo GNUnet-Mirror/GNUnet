@@ -119,7 +119,7 @@ struct MeshTunnelTree
 
   /**
    * Cache of all peers and the first hop to them.
-   * Indexed by Peer_Identity, contains a pointer to the PeerIdentity
+   * Indexed by PeerIdentity, contains a pointer to the PeerIdentity
    * of 1st hop.
    */
   struct GNUNET_CONTAINER_MultiHashMap *first_hops;
@@ -214,12 +214,14 @@ tree_find_peer (struct MeshTunnelTreeNode *root, GNUNET_PEER_Id peer_id);
 /**
  * Recusively mark peer and children as disconnected, notify client
  *
+ * @param tree Tree this node belongs to
  * @param parent Node to be clean, potentially with children
  * @param cb Callback to use to notify about disconnected peers
  */
 void
-tree_mark_peers_disconnected (struct MeshTunnelTreeNode *parent,
-                                MeshNodeDisconnectCB cb);
+tree_mark_peers_disconnected (struct MeshTunnelTree *tree,
+                              struct MeshTunnelTreeNode *parent,
+                              MeshNodeDisconnectCB cb);
 
 
 /**
