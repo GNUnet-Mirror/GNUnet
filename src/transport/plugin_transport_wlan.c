@@ -817,6 +817,11 @@ wlan_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
   GNUNET_snprintf (ret, sizeof (ret), "%s Mac-Address %X:%X:%X:%X:%X:%X",
                    PROTOCOL_PREFIX, mac->mac[0], mac->mac[1], mac->mac[2],
                    mac->mac[3], mac->mac[4], mac->mac[5]);
+#if DEBUG_wlan
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                   "Func wlan_plugin_address_to_string made string: %s\n",
+                   ret);
+#endif
   return ret;
 }
 
@@ -1808,9 +1813,16 @@ wlan_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
   if (addrlen == 6)
   {
     /* TODO check for bad addresses like multicast, broadcast, etc */
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                         "wlan_plugin_address_suggested got good address, size %u!\n", addrlen);
+#endif
     return GNUNET_OK;
   }
-
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                         "wlan_plugin_address_suggested got bad address, size %u!\n", addrlen);
+#endif
   return GNUNET_SYSERR;
 }
 
@@ -2097,23 +2109,38 @@ wlan_plugin_address_pretty_printer (void *cls, const char *type,
                                     GNUNET_TRANSPORT_AddressStringCallback asc,
                                     void *asc_cls)
 {
-  char ret[92];
+  char *ret;
   const unsigned char *input;
 
   //GNUNET_assert(cls !=NULL);
-  if (addrlen != 6)
+  if (addrlen != sizeof(struct MacAddress))
   {
-    /* invalid address (MAC addresses have 6 bytes) */ GNUNET_break (0);
-    asc (asc_cls, NULL);
+    /* invalid address (MAC addresses have 6 bytes) */
+    //GNUNET_break (0);
+#if DEBUG_wlan
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                   "Func wlan_plugin_address_pretty_printer got size: %u, worng size!\n",
+                   addrlen);
+#endif
+    asc(asc_cls, NULL);
     return;
   }
   input = (const unsigned char *) addr;
-  GNUNET_snprintf (ret, sizeof (ret),
-                   "%s Mac-Address %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+  GNUNET_asprintf (&ret,
+                   "Transport %s: %s Mac-Address %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",type,
                    PROTOCOL_PREFIX, input[0], input[1], input[2], input[3],
                    input[4], input[5]);
-  asc (asc_cls, ret);
+#if DEBUG_wlan
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                   "Func wlan_plugin_address_pretty_printer got size: %u, nummeric %u, type %s; made string: %s\n",
+                   addrlen, numeric, type, ret);
+#endif
+  asc ( asc_cls, ret);
+  //only one mac address per plugin
+  asc ( asc_cls, NULL);
 }
+
+
 
 /**
  * handels the data after all fragments are put together
@@ -2128,7 +2155,6 @@ wlan_data_message_handler (void *cls, const struct GNUNET_MessageHeader *hdr)
   struct WlanHeader *wlanheader;
   struct Session *session;
 
-  //const char * tempmsg;
   const struct GNUNET_MessageHeader *temp_hdr;
   struct GNUNET_PeerIdentity tmpsource;
   int crc;
@@ -2153,7 +2179,6 @@ wlan_data_message_handler (void *cls, const struct GNUNET_MessageHeader *hdr)
 
     session = search_session (plugin, endpoint, &wlanheader->source);
 
-    //tempmsg = (char*) &wlanheader[1];
     temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
     crc = ntohl (wlanheader->crc);
     wlanheader->crc = 0;
@@ -2313,6 +2338,7 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
   struct Plugin *plugin = cls;
   struct FragmentMessage *fm;
   struct FragmentMessage *fm2;
+  struct GNUNET_PeerIdentity tmpsource;
 
   //ADVERTISEMENT
   if (ntohs (hdr->type) == GNUNET_MESSAGE_TYPE_HELLO)
@@ -2324,13 +2350,34 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
 
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT size: %u; %s\n",
+                     "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_HELLO size: %u; %s\n",
                      ntohs (hdr->size), wlan_plugin_address_to_string (NULL,
                                                                        session_light->addr.
                                                                        mac, 6));
 #endif
 
-    plugin->env->receive(NULL,NULL,hdr, NULL, 0, NULL, NULL, 0);
+    if (session_light->macendpoint == NULL)
+    {
+      session_light->macendpoint =
+          get_macendpoint (plugin, &session_light->addr, GNUNET_YES);
+    }
+
+
+    if (GNUNET_HELLO_get_id
+        ((const struct GNUNET_HELLO_Message *) hdr,
+         &tmpsource) == GNUNET_OK)
+    {
+      session_light->session = create_session (plugin, session_light->macendpoint, &tmpsource);
+      plugin->env->receive(plugin->env->cls,&session_light->session->target,hdr, NULL, 0, session_light->session,
+          (const char *) &session_light->session->mac->addr,
+          sizeof (session_light->session->mac->addr));
+    }
+    else
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, PLUGIN_LOG_NAME,
+                       "WLAN client not in session list and hello message is not okay\n");
+      return;
+    }
   }
 
   //FRAGMENT
