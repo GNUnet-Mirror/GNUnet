@@ -272,3 +272,7 @@ tree_node_destroy (struct MeshTunnelTreeNode *n);
  */
 void
 tree_destroy (struct MeshTunnelTree *t);
+
+
+void
+tree_debug(struct MeshTunnelTree *t);

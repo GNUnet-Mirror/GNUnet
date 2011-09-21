@@ -233,14 +233,15 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
   }
-  path->length++;
-  path_destroy(path);
-  finish();
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding third path...\n");
   path->length++;
   path->peers[3] = 4;
   tree_add_path(tree, path, &cb);
+
+  path_destroy(path);
+  tree_debug(tree);
+  finish();
 
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)

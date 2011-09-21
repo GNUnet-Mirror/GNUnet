@@ -28,6 +28,28 @@
 #include "mesh_tunnel_tree.h"
 
 
+static void
+debug_node(struct MeshTunnelTreeNode *n, uint16_t level)
+{
+  uint16_t i;
+
+  for (i = 0; i < level; i++)
+    fprintf(stderr, " ");
+  fprintf(stderr, "%u\n", n->peer);
+  for (i = 0; i < n->nchildren; i++)
+    debug_node(&n->children[i], level + 1);
+}
+
+
+
+void
+tree_debug(struct MeshTunnelTree *t)
+{
+  debug_node(t->root, 0);
+}
+
+
+
 /**
  * Invert the path
  *
