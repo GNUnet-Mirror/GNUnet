@@ -43,6 +43,8 @@
 
 struct GNUNET_MESH_Handle *mesh_handle;
 
+struct GNUNET_CONNECTION_TransmitHandle *server_notify;
+
 /**
  * The UDP-Socket through which DNS-Resolves will be sent if they are not to be
  * sent through gnunet. The port of this socket will not be hijacked.
@@ -193,6 +195,7 @@ unhijack (unsigned short port)
 static size_t
 send_answer (void *cls, size_t size, void *buf)
 {
+  server_notify = NULL;
   struct answer_packet_list *query = head;
   size_t len = ntohs (query->pkt.hdr.size);
 
@@ -206,9 +209,9 @@ send_answer (void *cls, size_t size, void *buf)
 
   /* When more data is to be sent, reschedule */
   if (head != NULL)
-    GNUNET_SERVER_notify_transmit_ready (cls, ntohs (head->pkt.hdr.size),
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         &send_answer, cls);
+    server_notify = GNUNET_SERVER_notify_transmit_ready (cls, ntohs (head->pkt.hdr.size),
+                                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                                         &send_answer, cls);
 
   return len;
 }
@@ -230,6 +233,8 @@ mesh_send_response (void *cls, size_t size, void *buf)
   uint32_t *sz = cls;
   struct GNUNET_MESH_Tunnel **tunnel = (struct GNUNET_MESH_Tunnel **) (sz + 1);
   struct dns_pkt *dns = (struct dns_pkt *) (tunnel + 1);
+
+  GNUNET_MESH_tunnel_set_data (*tunnel, NULL);
 
   hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_REMOTE_ANSWER_DNS);
   hdr->size = htons (*sz + sizeof (struct GNUNET_MessageHeader));
@@ -530,10 +535,11 @@ receive_mesh_answer (void *cls
 
   GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
-  GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client, len,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       &send_answer,
-                                       query_states[dns->s.id].client);
+  if (server_notify == NULL)
+    server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client, len,
+                                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                                         &send_answer,
+                                                         query_states[dns->s.id].client);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sent answer of length %d on to client, addroffset = %d\n", len,
@@ -622,9 +628,10 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
-  GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       &send_answer, query_states[id].client);
+  if (server_notify == NULL)
+    server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
+                                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                                         &send_answer, query_states[id].client);
 }
 
 /**
@@ -731,9 +738,10 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
 
   GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
-  GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       &send_answer, query_states[id].client);
+  if (server_notify == NULL)
+    server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
+                                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                                         &send_answer, query_states[id].client);
 
   GNUNET_DHT_get_stop (handle);
 }
@@ -1088,10 +1096,11 @@ read_response (void *cls
 
         GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
-        GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
-                                             len, GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &send_answer,
-                                             query_states[dns->s.id].client);
+        if (server_notify == NULL)
+          server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
+                                                               len, GNUNET_TIME_UNIT_FOREVER_REL,
+                                                               &send_answer,
+                                                               query_states[dns->s.id].client);
       }
     }
   }
