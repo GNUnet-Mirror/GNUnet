@@ -357,6 +357,7 @@ tunnel_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
     i++;
     parent = n;
   }
+  n->status = MESH_PEER_SEARCHING;
 
   /* Add info about first hop into hashmap. */
   if (me < p->length - 1)

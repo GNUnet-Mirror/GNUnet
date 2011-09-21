@@ -65,7 +65,7 @@ test_mesh_api_DEPENDENCIES = \
    $(top_builddir)/src/util/libgnunetutil.la
 
 test_mesh_path_api_SOURCES = \
- test_mesh_path_api.c
+ test_mesh_path_api.c mesh_tunnel_tree.c
 test_mesh_path_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la

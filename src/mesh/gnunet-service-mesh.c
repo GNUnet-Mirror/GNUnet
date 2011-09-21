@@ -1004,7 +1004,7 @@ tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 
 
 void
-notify_peer_disconnected (struct MeshTunnelTreeNode *n)
+notify_peer_disconnected (const struct MeshTunnelTreeNode *n)
 {
   
 }
