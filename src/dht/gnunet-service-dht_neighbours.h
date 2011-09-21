@@ -56,7 +56,6 @@ GST_NEIGHBOURS_handle_put (uint32_t type,
 /**
  * Perform a GET operation.
  *
- *
  * @param type type of the block
  * @param options routing options
  * @param desired_replication_level desired replication count
