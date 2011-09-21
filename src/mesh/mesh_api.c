@@ -336,7 +336,8 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
                                    tail);
       GNUNET_free (tail);
     }
-    GNUNET_CORE_notify_transmit_ready_cancel (element->hello);
+    if (element->hello != NULL)
+      GNUNET_CORE_notify_transmit_ready_cancel (element->hello);
     GNUNET_SCHEDULER_cancel (element->sched);
     GNUNET_free (element);
   }
