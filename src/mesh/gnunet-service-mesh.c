@@ -1041,7 +1041,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
     }
     p = p->next;
   }
-  tunnel_add_path (t->tree, best_p, &notify_peer_disconnected);
+  tree_add_path (t->tree, best_p, &notify_peer_disconnected);
   if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
     t->path_refresh_task =
         GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
@@ -2177,7 +2177,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   p = path_build_from_dht (get_path, put_path);
   path_add_to_peer (peer_info, p);
   tunnel_add_peer(t, peer_info);
-  p = tunnel_get_path_to_peer(t->tree, peer_info->id);
+  p = tree_get_path_to_peer(t->tree, peer_info->id);
 #if MESH_DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH: new route for tunnel 0x%x found, has %u hops\n",

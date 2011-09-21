@@ -61,10 +61,7 @@ finish(void)
   {
     GNUNET_free(pi[i]);
   }
-  if (tree->root->nchildren > 0)
-    GNUNET_free(tree->root->children);
-  GNUNET_free(tree->root);
-  GNUNET_free(tree);
+  tree_destroy(tree);
   exit(0);
 }
 
@@ -120,8 +117,8 @@ main (int argc, char *argv[])
   path[0]->length = 4;
 
   finish();
-  tunnel_add_path(tree, path[0], &cb);
-  path[1] = tunnel_get_path_to_peer(tree, 3);
+  tree_add_path(tree, path[0], &cb);
+  path[1] = tree_get_path_to_peer(tree, 3);
   if (path[0]->length != path[1]->length ||
       memcmp(path[0]->peers, path[1]->peers, path[0]->length) != 0)
   {
@@ -129,7 +126,7 @@ main (int argc, char *argv[])
     failed++;
   }
   path_destroy(path[1]);
-  node = tunnel_find_peer(tree->root, 3);
+  node = tree_find_peer(tree->root, 3);
   if (node->peer != 3)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -148,7 +145,7 @@ main (int argc, char *argv[])
   }
   return 0;
 
-  node = tunnel_find_peer(tree->root, 2);
+  node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -170,7 +167,7 @@ main (int argc, char *argv[])
     failed++;
   }
 
-  node = tunnel_find_peer(tree->root, 1);
+  node = tree_find_peer(tree->root, 1);
   if (node->peer != 1)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -188,9 +185,9 @@ main (int argc, char *argv[])
   }
 
   path[0]->length--;
-  tunnel_add_path(tree, path[0], &cb);
+  tree_add_path(tree, path[0], &cb);
 
-  node = tunnel_find_peer(tree->root, 2);
+  node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -217,7 +214,7 @@ main (int argc, char *argv[])
     failed++;
   }
 
-  node = tunnel_find_peer(tree->root, 1);
+  node = tree_find_peer(tree->root, 1);
   if (node->peer != 1)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -236,9 +233,9 @@ main (int argc, char *argv[])
 
   path[0]->length++;
   path[0]->peers[3] = 4;
-  tunnel_add_path(tree, path[0], &cb);
+  tree_add_path(tree, path[0], &cb);
 
-  node = tunnel_find_peer(tree->root, 2);
+  node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -265,7 +262,7 @@ main (int argc, char *argv[])
     failed++;
   }
 
-  node = tunnel_find_peer(tree->root, 1);
+  node = tree_find_peer(tree->root, 1);
   if (node->peer != 1)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -282,7 +279,7 @@ main (int argc, char *argv[])
     failed++;
   }
 
-  node = tunnel_find_peer(tree->root, 4);
+  node = tree_find_peer(tree->root, 4);
   if (node->peer != 4)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -290,7 +287,7 @@ main (int argc, char *argv[])
   }
   node->status = MESH_PEER_READY;
   cb_call = 1;
-  node2 = tunnel_del_path(tree, 4, &cb);
+  node2 = tree_del_path(tree, 4, &cb);
   if (cb_call != 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%u callbacks missed!\n", cb_call);
@@ -302,7 +299,7 @@ main (int argc, char *argv[])
     failed++;
   }
 //   GNUNET_free(node2); FIXME destroy
-  node = tunnel_find_peer(tree->root, 2);
+  node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -322,13 +319,13 @@ main (int argc, char *argv[])
   path[0]->length = 2;
   path[0]->peers[1] = 3;
   cb_call = 1;
-  tunnel_add_path(tree, path[0], cb);
+  tree_add_path(tree, path[0], cb);
   if (cb_call != 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%u callbacks missed!\n", cb_call);
     failed++;
   }
-  node = tunnel_find_peer(tree->root, 2);
+  node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
@@ -344,7 +341,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
   }
-  node = tunnel_find_peer(tree->root, 3);
+  node = tree_find_peer(tree->root, 3);
   if (node->peer != 3)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");

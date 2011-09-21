@@ -19,7 +19,7 @@
 */
 
 /**
- * @file mesh/mesh_tunnel_tree.h
+ * @file mesh/mesh_tree_tree.h
  * @brief Tunnel tree handling functions
  * @author Bartlomiej Polot
  */
@@ -208,7 +208,7 @@ path_get_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path);
  * @return Pointer to the node of the peer. NULL if not found.
  */
 struct MeshTunnelTreeNode *
-tunnel_find_peer (struct MeshTunnelTreeNode *root, GNUNET_PEER_Id peer_id);
+tree_find_peer (struct MeshTunnelTreeNode *root, GNUNET_PEER_Id peer_id);
 
 
 /**
@@ -218,7 +218,7 @@ tunnel_find_peer (struct MeshTunnelTreeNode *root, GNUNET_PEER_Id peer_id);
  * @param cb Callback to use to notify about disconnected peers
  */
 void
-tunnel_mark_peers_disconnected (struct MeshTunnelTreeNode *parent,
+tree_mark_peers_disconnected (struct MeshTunnelTreeNode *parent,
                                 MeshNodeDisconnectCB cb);
 
 
@@ -234,7 +234,7 @@ tunnel_mark_peers_disconnected (struct MeshTunnelTreeNode *parent,
  * @return pointer to the pathless node, NULL on error
  */
 struct MeshTunnelTreeNode *
-tunnel_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
+tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
                  MeshNodeDisconnectCB cb);
 
 
@@ -249,7 +249,7 @@ tunnel_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
  *         Path must be destroyed afterwards.
  */
 struct MeshPeerPath *
-tunnel_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
+tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
 
 
 /**
@@ -263,5 +263,13 @@ tunnel_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
  *         GNUNET_SYSERR in case of error.
  */
 int
-tunnel_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
+tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
                  MeshNodeDisconnectCB cb);
+
+/**
+ * Destroy the whole tree and free all used memory and Peer_Ids
+ * 
+ * @param t Tree to be destroyed
+ */
+void
+tree_destroy (struct MeshTunnelTree *t);
