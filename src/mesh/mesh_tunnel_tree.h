@@ -76,14 +76,24 @@ struct MeshTunnelTreeNode
   struct MeshTunnelTreeNode *parent;
 
   /**
-   * Array of children
+   * DLL of siblings
    */
-  struct MeshTunnelTreeNode *children;
+  struct MeshTunnelTreeNode *next;
 
   /**
-   * Number of children
+   * DLL of siblings
    */
-  unsigned int nchildren;
+  struct MeshTunnelTreeNode *prev;
+
+  /**
+   * DLL of children
+   */
+  struct MeshTunnelTreeNode *children_head;
+
+  /**
+   * DLL of children
+   */
+  struct MeshTunnelTreeNode *children_tail;
 
     /**
      * Status of the peer in the tunnel
@@ -254,6 +264,19 @@ tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
 int
 tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
                  MeshNodeDisconnectCB cb);
+
+
+/**
+ * Allocates and initializes a new node.
+ * Sets ID and parent of the new node and inserts it in the DLL of the parent
+ *
+ * @param parent Node that will be the parent from the new node, NULL for root
+ * @param id Short Id of the new node
+ *
+ * @return Newly allocated node
+ */
+struct MeshTunnelTreeNode *
+tree_node_new(struct MeshTunnelTreeNode *parent, GNUNET_PEER_Id id);
 
 
 /**

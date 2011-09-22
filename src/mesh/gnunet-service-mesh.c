@@ -1084,28 +1084,6 @@ tunnel_notify_connection_broken (struct MeshTunnel *t,
 
 
 /**
- * Recursively destory the path tree of a tunnel.
- * Note: it does not liberate memory for itself, parent must do it!
- *
- * @param n The node to destroy, along with children.
- *
- * @return GNUNET_OK on success
- */
-static void
-tunnel_destroy_tree_node (struct MeshTunnelTreeNode *n)
-{
-  unsigned int i;
-
-  for (i = 0; i < n->nchildren; i++)
-  {
-    tunnel_destroy_tree_node(&n->children[i]);
-  }
-  if (NULL != n->children)
-    GNUNET_free (n->children);
-}
-
-
-/**
  * Destroy the tunnel and free any allocated resources linked to it
  *
  * @param t the tunnel to destroy
@@ -1155,9 +1133,7 @@ tunnel_destroy (struct MeshTunnel *t)
 
   GNUNET_CONTAINER_multihashmap_iterate(t->tree->first_hops, &iterate_free, t);
   GNUNET_CONTAINER_multihashmap_destroy(t->tree->first_hops);
-  tunnel_destroy_tree_node(t->tree->root);
-  GNUNET_free(t->tree->root);
-  GNUNET_free (t->tree);
+  tree_destroy(t->tree);
   GNUNET_free (t);
   return r;
 }

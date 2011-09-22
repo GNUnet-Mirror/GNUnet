@@ -42,10 +42,10 @@ struct MeshTunnelTree *tree;
 void
 cb (const struct MeshTunnelTreeNode *n)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Disconnected %u\n", n->peer);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: CB: Disconnected %u\n", n->peer);
   if(0 == cb_call)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test:    and it shouldn't!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test:      and it shouldn't!\n");
     failed++;
   }
   cb_call--;
@@ -120,6 +120,7 @@ main (int argc, char *argv[])
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding first path: 0 1 2 3\n");
   tree_add_path(tree, path, &cb);
+  tree_debug(tree);
   path1 = tree_get_path_to_peer(tree, 3);
   if (path->length != path1->length ||
       memcmp(path->peers, path1->peers, path->length) != 0)
@@ -156,7 +157,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  if (node->nchildren != 1)
+  if (node->children_head != node->children_tail)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
@@ -178,7 +179,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  if (node->nchildren != 1)
+  if (node->children_head != node->children_tail)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
@@ -187,7 +188,8 @@ main (int argc, char *argv[])
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding second path: 0 1 2\n");
   path->length--;
   tree_add_path(tree, path, &cb);
-  
+  tree_debug(tree);
+
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {
@@ -199,7 +201,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  if (node->nchildren != 1)
+  if (node->children_head != node->children_tail)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
@@ -228,7 +230,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  if (node->nchildren != 1)
+  if (node->children_head != node->children_tail)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
@@ -238,10 +240,7 @@ main (int argc, char *argv[])
   path->length++;
   path->peers[3] = 4;
   tree_add_path(tree, path, &cb);
-
-  path_destroy(path);
   tree_debug(tree);
-  finish();
 
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
@@ -254,7 +253,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  if (node->nchildren != 2)
+  if (node->children_head->next != node->children_tail)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
@@ -281,7 +280,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  if (node->nchildren != 1)
+  if (node->children_head != node->children_tail)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
@@ -293,11 +292,12 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
     failed++;
   }
-  
+
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Deleting third path...\n");
   node->status = MESH_PEER_READY;
   cb_call = 1;
   node2 = tree_del_path(tree, 4, &cb);
+  tree_debug(tree);
   if (cb_call != 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%u callbacks missed!\n", cb_call);
@@ -320,25 +320,31 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  if (node->nchildren != 1)
+  if (node->children_head != node->children_tail)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
   }
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Destroying node copy...\n");
-  tree_node_destroy(node2);
+  GNUNET_free (node2);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding new shorter first path...\n");
   path->length = 2;
   path->peers[1] = 3;
   cb_call = 1;
+  tree_find_peer(tree->root, 3)->status = MESH_PEER_READY;
   tree_add_path(tree, path, cb);
+  tree_debug(tree);
   if (cb_call != 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%u callbacks missed!\n", cb_call);
     failed++;
   }
+
+  path_destroy(path);
+  finish();
+  
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {
@@ -350,7 +356,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  if (node->nchildren != 0)
+  if (node->children_head != NULL)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
@@ -366,7 +372,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
     failed++;
   }
-  if (node->nchildren != 0)
+  if (node->children_head != NULL)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
