@@ -294,6 +294,12 @@ static void
 plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
                         struct Session *session)
 {
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Session %X to peer `%s' ended \n",
+              session, GNUNET_i2s (peer));
+#endif
+  GNUNET_ATS_session_destroyed(GST_ats, peer, session);
   GST_neighbours_session_terminated (peer, session);
 }
 
