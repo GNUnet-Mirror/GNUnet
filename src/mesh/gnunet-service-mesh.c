@@ -818,7 +818,7 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *const *get_path,
   GNUNET_PEER_Id id;
   int i;
 
-  p = GNUNET_malloc (sizeof (struct MeshPeerPath));
+  p = path_new (0);
   for (i = 0; get_path[i] != NULL; i++) ;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:    GET has %d hops.\n", i);
   for (i--; i >= 0; i--)
@@ -1606,9 +1606,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
 
-  path = GNUNET_malloc (sizeof (struct MeshPeerPath));
-  path->length = size;
-  path->peers = GNUNET_malloc (size * sizeof (GNUNET_PEER_Id));
+  path = path_new (size);
   own_pos = 0;
   for (i = 0; i < size; i++)
   {
@@ -1781,7 +1779,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
    * Using path here as just a collection of peers, not a path per se.
    */
   neighbors.t = t;
-  neighbors.path = GNUNET_malloc (sizeof (struct MeshPeerPath));
+  neighbors.path = path_new (0);
   GNUNET_CONTAINER_multihashmap_iterate (t->peers, &iterate_collect_neighbors,
                                          &neighbors);
   if (0 == neighbors.path->length)
@@ -2459,14 +2457,9 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  t->tree = GNUNET_malloc (sizeof(struct MeshTunnelTree));
-  t->tree->first_hops = GNUNET_CONTAINER_multihashmap_create(32);
-  t->tree->t = t;
+  t->tree = tree_new (t, myid);
   t->tree->refresh = REFRESH_PATH_TIME;
-  t->tree->root = GNUNET_malloc(sizeof(struct MeshTunnelTreeNode));
   t->tree->root->status = MESH_PEER_READY;
-  t->tree->root->t = t;
-  t->tree->root->peer = myid;
   t->tree->me = t->tree->root;
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -2981,9 +2974,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      (self)\n");
     return;
   }
-  path = GNUNET_malloc (sizeof (struct MeshPeerPath));
-  path->length = 2;
-  path->peers = GNUNET_malloc (sizeof (GNUNET_PEER_Id) * 2);
+  path = path_new (2);
   path->peers[0] = myid;
   path->peers[1] = peer_info->id;
   path_add_to_peer (peer_info, path);
@@ -3165,9 +3156,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   /* Create a peer_info for the local peer */
   peer = peer_info_get(&my_full_id);
-  p = GNUNET_malloc (sizeof (struct MeshPeerPath));
-  p->peers = GNUNET_malloc (sizeof (GNUNET_PEER_Id));
-  p->length = 1;
+  p = path_new (1);
   p->peers[0] = myid;
   path_add_to_peer(peer, p);
 

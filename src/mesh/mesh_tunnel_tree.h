@@ -141,13 +141,15 @@ struct MeshTunnelTree
 /*************************        FUNCTIONS       *****************************/
 /******************************************************************************/
 
-
 /**
- * Method called whenever a node has been marked as disconnected.
+ * Create a new path
  *
- * @param node peer identity the tunnel stopped working with
+ * @param lenght How many hops will the path have.
+ *
+ * @return A newly allocated path with a peer array of the specified length.
  */
-typedef void (*MeshNodeDisconnectCB) (const struct MeshTunnelTreeNode * node);
+struct MeshPeerPath *
+path_new (unsigned int length);
 
 
 /**
@@ -156,8 +158,47 @@ typedef void (*MeshNodeDisconnectCB) (const struct MeshTunnelTreeNode * node);
  * @param p the path to invert
  */
 void
-path_invert (struct MeshPeerPath *path);
+path_invert (struct MeshPeerPath *p);
 
+
+/**
+ * Find the first peer whom to send a packet to go down this path
+ *
+ * @param t The tunnel tree to use
+ * @param peer The peerinfo of the peer we are trying to reach
+ *
+ * @return peerinfo of the peer who is the first hop in the tunnel
+ *         NULL on error
+ */
+struct GNUNET_PeerIdentity *
+path_get_first_hop (struct MeshTunnelTree *t,
+                    GNUNET_PEER_Id peer);
+
+
+/**
+ * Get the length of a path
+ *
+ * @param p The path to measure, with the local peer at any point of it
+ *
+ * @return Number of hops to reach destination
+ *         UINT_MAX in case the peer is not in the path
+ */
+unsigned int
+path_get_length (struct MeshPeerPath *p);
+
+
+/**
+ * Get the cost of the path relative to the already built tunnel tree
+ *
+ * @param t The tunnel tree to which compare
+ * @param path The individual path to reach a peer
+ *
+ * @return Number of hops to reach destination, UINT_MAX in case the peer is not
+ * in the path
+ */
+unsigned int
+path_get_cost (struct MeshTunnelTree *t,
+               struct MeshPeerPath *path);
 
 
 /**
@@ -171,54 +212,39 @@ int
 path_destroy (struct MeshPeerPath *p);
 
 
+/******************************************************************************/
+
 /**
- * Find the first peer whom to send a packet to go down this path
+ * Method called whenever a node has been marked as disconnected.
  *
- * @param t The tunnel to use
- * @param peer The peerinfo of the peer we are trying to reach
- *
- * @return peerinfo of the peer who is the first hop in the tunnel
- *         NULL on error
+ * @param node peer identity the tunnel stopped working with
  */
-struct GNUNET_PeerIdentity *
-path_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
+typedef void (*MeshNodeDisconnectCB) (const struct MeshTunnelTreeNode * node);
 
 
 /**
- * Get the length of a path
+ * Create a new tunnel tree associated to a tunnel
  *
- * @param path The path to measure, with the local peer at any point of it
+ * @param t Tunnel this tree will represent
+ * @param peer A short peer id of the root of the tree
  *
- * @return Number of hops to reach destination
- *         UINT_MAX in case the peer is not in the path
+ * @return A newly allocated and initialized tunnel tree
  */
-unsigned int
-path_get_length (struct MeshPeerPath *path);
-
-
-/**
- * Get the cost of the path relative to the already built tunnel tree
- *
- * @param t The tunnel tree to which compare
- * @param path The individual path to reach a peer
- *
- * @return Number of hops to reach destination, UINT_MAX in case the peer is not
- * in the path
- */
-unsigned int
-path_get_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path);
+struct MeshTunnelTree *
+tree_new (struct MeshTunnel *t, GNUNET_PEER_Id peer);
 
 
 /**
  * Recursively find the given peer in the tree.
  *
- * @param t Tunnel where to look for the peer.
- * @param peer Peer to find
+ * @param parent Parent node where to start looking.
+ * @param peer Short ID of peer to find.
  *
  * @return Pointer to the node of the peer. NULL if not found.
  */
 struct MeshTunnelTreeNode *
-tree_find_peer (struct MeshTunnelTreeNode *root, GNUNET_PEER_Id peer_id);
+tree_find_peer (struct MeshTunnelTreeNode *parent,
+                GNUNET_PEER_Id peer);
 
 
 /**
@@ -226,15 +252,18 @@ tree_find_peer (struct MeshTunnelTreeNode *root, GNUNET_PEER_Id peer_id);
  * The destination peer is NOT destroyed, it is returned in order to either set
  * a new path to it or destroy it explicitly, taking care of it's child nodes.
  *
- * @param t Tunnel where to delete the path from.
+ * @param t Tunnel tree where to delete the path from.
  * @param peer Destination peer whose path we want to remove.
- * @param cb Callback to use to notify about disconnected peers
+ * @param cb Callback to use to notify about which peers are going to be
+ *           disconnected.
  *
- * @return pointer to the pathless node, NULL on error
+ * @return pointer to the pathless node.
+ *         NULL when not found
  */
 struct MeshTunnelTreeNode *
-tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
-                 MeshNodeDisconnectCB cb);
+tree_del_path (struct MeshTunnelTree *t,
+               GNUNET_PEER_Id peer,
+               MeshNodeDisconnectCB cb);
 
 
 /**
@@ -242,13 +271,14 @@ tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
  * according to the path tree of some tunnel.
  *
  * @param t Tunnel from which to read the path tree
- * @param peer_info Destination peer to whom we want a path
+ * @param peer Destination peer to whom we want a path
  *
  * @return A newly allocated individual path to reach the destination peer.
  *         Path must be destroyed afterwards.
  */
 struct MeshPeerPath *
-tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
+tree_get_path_to_peer(struct MeshTunnelTree *t,
+                      GNUNET_PEER_Id peer);
 
 
 /**
@@ -262,40 +292,24 @@ tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
  *         GNUNET_SYSERR in case of error.
  */
 int
-tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
-                 MeshNodeDisconnectCB cb);
+tree_add_path (struct MeshTunnelTree *t,
+               const struct MeshPeerPath *p,
+               MeshNodeDisconnectCB cb);
 
 
 /**
- * Allocates and initializes a new node.
- * Sets ID and parent of the new node and inserts it in the DLL of the parent
+ * Print the tree on stderr
  *
- * @param parent Node that will be the parent from the new node, NULL for root
- * @param id Short Id of the new node
- *
- * @return Newly allocated node
- */
-struct MeshTunnelTreeNode *
-tree_node_new(struct MeshTunnelTreeNode *parent, GNUNET_PEER_Id id);
-
-
-/**
- * Destroy the node and all children
- * 
- * @param n Parent node to be destroyed
+ * @param t The tree
  */
 void
-tree_node_destroy (struct MeshTunnelTreeNode *n);
+tree_debug(struct MeshTunnelTree *t);
 
 
 /**
  * Destroy the whole tree and free all used memory and Peer_Ids
- * 
+ *
  * @param t Tree to be destroyed
  */
 void
 tree_destroy (struct MeshTunnelTree *t);
-
-
-void
-tree_debug(struct MeshTunnelTree *t);

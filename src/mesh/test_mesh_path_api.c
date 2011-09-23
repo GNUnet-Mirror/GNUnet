@@ -57,7 +57,7 @@ finish(void)
 {
   unsigned int i;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test:  Finishing...\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Finishing...\n");
   for (i = 0; i < 10; i++)
   {
     GNUNET_free(pi[i]);
@@ -340,11 +340,7 @@ main (int argc, char *argv[])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%u callbacks missed!\n", cb_call);
     failed++;
-  }
-
-  path_destroy(path);
-  finish();
-  
+  }  
   node = tree_find_peer(tree->root, 2);
   if (node->peer != 2)
   {
@@ -394,6 +390,9 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%u tests failed\n", failed);
     return 1;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test ok\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: OK\n");
+  path_destroy(path);
+  finish();
+
   return 0;
 }
