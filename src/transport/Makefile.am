@@ -215,7 +215,7 @@ libgnunet_plugin_transport_unix_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_http_la_SOURCES = \
-  plugin_transport_http.c
+  plugin_transport_http_new.c plugin_transport_http_client.c plugin_transport_http_server.c
 libgnunet_plugin_transport_http_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -232,7 +232,7 @@ libgnunet_plugin_transport_http_la_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@
 
 libgnunet_plugin_transport_https_la_SOURCES = \
-  plugin_transport_http.c
+  plugin_transport_http_new.c plugin_transport_http_client.c plugin_transport_http_server.c
 libgnunet_plugin_transport_https_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -268,6 +268,7 @@ check_PROGRAMS = \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
+ test_transport_api_unreliability_constant_udp \
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
@@ -302,6 +303,7 @@ TESTS = \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
+ test_transport_api_unreliability_constant_udp \
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
@@ -502,6 +504,13 @@ test_transport_api_unreliability_udp_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
+test_transport_api_unreliability_constant_udp_SOURCES = \
+ test_transport_api_unreliability_constant.c
+test_transport_api_unreliability_constant_udp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 if LINUX
 test_transport_api_wlan_SOURCES = \
