@@ -505,23 +505,6 @@ iterate_collect_neighbors (void *cls, const GNUNET_HashCode * key, void *value)
 }
 
 
-/**
- * Iterator over hash map peer entries and frees all data in it.
- * Used prior to destroying a hashmap. Makes you miss anonymous functions in C.
- *
- * @param cls closure
- * @param key current key code (will no longer contain valid data!!)
- * @param value value in the hash map (treated as void *)
- * @return GNUNET_YES if we should continue to iterate, GNUNET_NO if not.
- */
-static int
-iterate_free (void *cls, const GNUNET_HashCode * key, void *value)
-{
-  GNUNET_free(value);
-  return GNUNET_YES;
-}
-
-
 /******************************************************************************/
 /************************    PERIODIC FUNCTIONS    ****************************/
 /******************************************************************************/
@@ -1130,9 +1113,6 @@ tunnel_destroy (struct MeshTunnel *t)
     q = qn;
     /* TODO cancel core transmit ready in case it was active */
   }
-
-  GNUNET_CONTAINER_multihashmap_iterate(t->tree->first_hops, &iterate_free, t);
-  GNUNET_CONTAINER_multihashmap_destroy(t->tree->first_hops);
   tree_destroy(t->tree);
   GNUNET_free (t);
   return r;
