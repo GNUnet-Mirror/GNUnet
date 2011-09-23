@@ -382,6 +382,15 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   n->is_active = mq;
   mq->n = n;
 
+  if  (((n->session == NULL) && (n->addr == NULL) && (n->addrlen == 0)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No address peer for peer `%s'\n",
+                GNUNET_i2s (&n->id));
+    transmit_send_continuation (mq, &n->id, GNUNET_SYSERR);
+    n->transmission_task = GNUNET_SCHEDULER_add_now (&transmission_task, n);
+    return;
+  }
+
   ret =
       papi->send (papi->cls, &n->id, mq->message_buf, mq->message_buf_size,
                   0 /* priority -- remove from plugin API? */ ,
@@ -758,14 +767,29 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_assert (neighbours != NULL);
 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Session %X to peer `%s' ended \n",
+              session, GNUNET_i2s (peer));
+#endif
+
   n = lookup_neighbour (peer);
   if (NULL == n)
     return;
   if (session != n->session)
     return;                     /* doesn't affect us */
+
   n->session = NULL;
+  GNUNET_free (n->addr);
+  n->addr = NULL;
+  n->addrlen = 0;
+
+
   if (GNUNET_YES != n->is_connected)
     return;                     /* not connected anymore anyway, shouldn't matter */
+
+  /* we are not connected until ATS suggests a new address */
+  //n->is_connected = GNUNET_NO;
 
   GNUNET_SCHEDULER_cancel (n->timeout_task);
   n->timeout_task =
@@ -824,6 +848,24 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
       cont (cont_cls, GNUNET_SYSERR);
     return;
   }
+
+  if ((n->session == NULL) && (n->addr == NULL) && (n->addrlen ==0))
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# messages not sent (no such peer or not connected)"),
+                              1, GNUNET_NO);
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Could not send message to peer `%s': no address available\n",
+                  GNUNET_i2s (target));
+#endif
+
+    if (NULL != cont)
+      cont (cont_cls, GNUNET_SYSERR);
+    return;
+  }
+
 
   GNUNET_assert (msg_size >= sizeof (struct GNUNET_MessageHeader));
   GNUNET_STATISTICS_update (GST_stats,
