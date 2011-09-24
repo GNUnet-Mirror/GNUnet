@@ -653,6 +653,8 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
       ((struct receive_dht_cls *) cls)->handle;
   GNUNET_free (cls);
 
+  GNUNET_DHT_get_stop (handle);
+
   GNUNET_assert (type == GNUNET_BLOCK_TYPE_DNS);
 
   /* If no query with this id is pending, ignore the block */
@@ -742,8 +744,6 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
     server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
                                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                                          &send_answer, query_states[id].client);
-
-  GNUNET_DHT_get_stop (handle);
 }
 
 /**
