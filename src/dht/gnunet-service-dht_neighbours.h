@@ -29,12 +29,18 @@
 
 
 /**
- * Perform a PUT operation.
+ * Perform a PUT operation.  Forwards the given request to other
+ * peers.   Does not store the data locally.  Does not give the
+ * data to local clients.  May do nothing if this is the only
+ * peer in the network (or if we are the closest peer in the
+ * network).
  *
  * @param type type of the block
  * @param options routing options
- * @param desired_replication_level desired replication count
+ * @param desired_replication_level desired replication level
  * @param expiration_time when does the content expire
+ * @param hop_count how many hops has this message traversed so far
+ * @param bf Bloom filter of peers this PUT has already traversed
  * @param key key for the content
  * @param put_path_length number of entries in put_path
  * @param put_path peers this request has traversed so far (if tracked)
@@ -42,10 +48,12 @@
  * @param data_size number of bytes in data
  */
 void
-GST_NEIGHBOURS_handle_put (uint32_t type,
+GDS_NEIGHBOURS_handle_put (uint32_t type,
 			   uint32_t options,
 			   uint32_t desired_replication_level,
 			   GNUNET_TIME_Absolute expiration_time,
+			   uint32_t hop_count,
+			   struct GNUNET_CONTAINER_BloomFilter *bf,
 			   const GNUNET_HashCode *key,
 			   unsigned int put_path_length,
 			   struct GNUNET_PeerIdentity *put_path,
@@ -54,11 +62,15 @@ GST_NEIGHBOURS_handle_put (uint32_t type,
 
 
 /**
- * Perform a GET operation.
+ * Perform a GET operation.  Forwards the given request to other
+ * peers.  Does not lookup the key locally.  May do nothing if this is
+ * the only peer in the network (or if we are the closest peer in the
+ * network).
  *
  * @param type type of the block
  * @param options routing options
  * @param desired_replication_level desired replication count
+ * @param hop_count how many hops did this request traverse so far?
  * @param key key for the content
  * @param xquery extended query
  * @param xquery_size number of bytes in xquery
@@ -67,9 +79,10 @@ GST_NEIGHBOURS_handle_put (uint32_t type,
  * @param peer_bf filter for peers not to select (again)
  */
 void
-GST_NEIGHBOURS_handle_get (uint32_t type,
+GDS_NEIGHBOURS_handle_get (uint32_t type,
 			   uint32_t options,
 			   uint32_t desired_replication_level,
+			   uint32_t hop_count,
 			   const GNUNET_HashCode *key,
 			   const void *xquery,
 			   size_t xquery_size,
@@ -79,10 +92,11 @@ GST_NEIGHBOURS_handle_get (uint32_t type,
 
 
 /**
- * Handle a reply (route to origin).
+ * Handle a reply (route to origin).  Only forwards the reply back to
+ * other peers waiting for it.  Does not do local caching or
+ * forwarding to local clients.
  *
  * @param type type of the block
- * @param options routing options
  * @param expiration_time when does the content expire
  * @param key key for the content
  * @param put_path_length number of entries in put_path
@@ -93,8 +107,7 @@ GST_NEIGHBOURS_handle_get (uint32_t type,
  * @param data_size number of bytes in data
  */
 void
-GST_NEIGHBOURS_handle_reply (uint32_t type,
-			     uint32_t options,
+GDS_NEIGHBOURS_handle_reply (uint32_t type,
 			     GNUNET_TIME_Absolute expiration_time,
 			     const GNUNET_HashCode *key,
 			     unsigned int put_path_length,
@@ -109,13 +122,13 @@ GST_NEIGHBOURS_handle_reply (uint32_t type,
  * Initialize neighbours subsystem.
  */
 void
-GST_NEIGHBOURS_init (void);
+GDS_NEIGHBOURS_init (void);
 
 /**
  * Shutdown neighbours subsystem.
  */
 void
-GST_NEIGHBOURS_done (void);
+GDS_NEIGHBOURS_done (void);
 
 
 #endif

@@ -39,6 +39,7 @@
 #include "dht_new.h"
 #include <fenv.h>
 #include "gnunet-service-dht_clients.h"
+#include "gnunet-service-dht_datacache.h"
 #include "gnunet-service-dht_neighbours.h"
 
 
@@ -403,6 +404,22 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     }
   dht_msg = (const struct GNUNET_DHT_ClientPutMessage *) message;
+  /* give to local clients */
+  GDS_CLIENT_handle_reply (GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
+			   &dht_msg->key,
+			   0, NULL,
+			   0, NULL,
+			   ntohl (dht_msg->type),
+			   size - sizeof (struct GNUNET_DHT_ClientPutMessage),
+			   &dht_msg[1]);
+  /* store locally */
+  GST_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
+			    &dht_msg->key,
+			    0, NULL,
+			    ntohl (dht_msg->type),
+			    size - sizeof (struct GNUNET_DHT_ClientPutMessage),
+			    &dht_msg[1]);
+  /* route to other peers */
   GST_NEIGHBOURS_handle_put (ntohl (dht_msg->type),
 			     ntohl (dht_msg->options),
 			     ntohl (dht_msg->desired_replication_level),
@@ -446,6 +463,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   get = (const struct GNUNET_DHT_ClientGetMessage *) message;
   xquery = (const char*) &get[1];
 
+  
   cqr = GNUNET_malloc (sizeof (struct ClientQueryRecord) + xquery_size);
   cqr->key = get->key;
   cqr->client = find_active_client (client);
@@ -458,12 +476,19 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   cqr->xquery_size = xquery_size;
   cqr->replication = ntohl (get->desired_replication_level);
   cqr->msg_options = ntohl (get->options);
-  cqr->msg_type = ntohl (get->type);
+  cqr->msg_type = ntohl (get->type);  
   GNUNET_CONTAINER_multihashmap_put (forward_map, KEY, cqr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  /* start remote requests */
   if (GNUNET_SCHEDULER_NO_TASK != retry_task)
     GNUNET_SCHEDULER_cancel (retry_task);
   retry_task = GNUNET_SCHEDULER_add_now (&transmit_next_request_task, NULL);
+  /* perform local lookup */
+  GDS_DATACACHE_handle_get (&get->key,
+			    cqr->msg_type,
+			    cqr->xquery,
+			    xquery_size,
+			    NULL, 0);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

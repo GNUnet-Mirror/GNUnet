@@ -19,24 +19,20 @@
 */
 
 /**
- * @file dht/gnunet-service-dht_clients.h
- * @brief GNUnet DHT service's client management code
+ * @file dht/gnunet-service-dht_datacache.h
+ * @brief GNUnet DHT service's datacache integration
  * @author Christian Grothoff
  * @author Nathan Evans
  */
-#ifndef GNUNET_SERVICE_DHT_CLIENTS_H
-#define GNUNET_SERVICE_DHT_CLIENTS_H
-
+#ifndef GNUNET_SERVICE_DHT_DATACACHE_H
+#define GNUNET_SERVICE_DHT_DATACACHE_H
 
 /**
- * Handle a reply we've received from another peer.  If the reply
- * matches any of our pending queries, forward it to the respective
- * client(s).
+ * Handle a datum we've received from another peer.  Cache if
+ * possible.
  *
  * @param expiration when will the reply expire
  * @param key the query this reply is for
- * @param get_path_length number of peers in 'get_path'
- * @param get_path path the reply took on get
  * @param put_path_length number of peers in 'put_path'
  * @param put_path path the reply took on put
  * @param type type of the reply
@@ -44,30 +40,45 @@
  * @param data application payload data
  */
 void
-GDS_CLIENT_handle_reply (struct GNUNET_TIME_Absolute expiration,
-			 const GNUNET_HashCode *key,
-			 unsigned int get_path_length,
-			 const struct GNUNET_PeerIdentity *get_path,
-			 unsigned int put_path_length,
-			 const struct GNUNET_PeerIdentity *put_path,
-			 uint32_t type,
-			 size_t data_size,
-			 const void *data);
+GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
+			  const GNUNET_HashCode *key,
+			  unsigned int put_path_length,
+			  const struct GNUNET_PeerIdentity *put_path,
+			  uint32_t type,
+			  size_t data_size,
+			  const void *data);
 
 
 /**
- * Initialize client subsystem.
+ * Handle a GET request we've received from another peer.
  *
- * @param server the initialized server
- */
-void 
-GDS_CLIENT_init (struct GNUNET_SERVER_Handle *server);
-
-
-/**
- * Shutdown client subsystem.
+ * @param key the query 
+ * @param type requested data type
+ * @param xquery extended query
+ * @param xquery_size number of bytes in xquery
+ * @param reply_bf where the reply bf is (to be) stored, possibly updated!, can be NULL
+ * @param reply_bf_mutator mutation value for reply_bf
  */
 void
-GDS_CLIENT_done (void);
+GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
+			  uint32_t type,
+			  const void *xquery,
+			  size_t xquery_size,
+			  struct GNUNET_CONTAINER_BloomFilter **reply_bf,
+			  uint32_t reply_bf_mutator);
+
+
+/**
+ * Initialize datacache subsystem.
+ */
+void 
+GDS_DATACACHE_init (void);
+
+
+/**
+ * Shutdown datacache subsystem.
+ */
+void
+GDS_DATACACHE_done (void);
 
 #endif

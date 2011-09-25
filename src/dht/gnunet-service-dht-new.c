@@ -391,11 +391,6 @@ static struct FindPeerMessageContext find_peer_context;
 static unsigned int newly_found_peers;
 
 /**
- * Handle to the datacache service (for inserting/retrieving data)
- */
-static struct GNUNET_DATACACHE_Handle *datacache;
-
-/**
  * Handle for the statistics service.
  */
 struct GNUNET_STATISTICS_Handle *stats;
@@ -1260,130 +1255,6 @@ route_result_message (struct GNUNET_MessageHeader *msg,
 }
 
 
-/**
- * Iterator for local get request results,
- *
- * @param cls closure for iterator, a DatacacheGetContext
- * @param exp when does this value expire?
- * @param key the key this data is stored under
- * @param size the size of the data identified by key
- * @param data the actual data
- * @param type the type of the data
- *
- * @return GNUNET_OK to continue iteration, anything else
- * to stop iteration.
- */
-static int
-datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                        const GNUNET_HashCode * key, size_t size,
-                        const char *data, enum GNUNET_BLOCK_Type type)
-{
-  struct DHT_MessageContext *msg_ctx = cls;
-  struct DHT_MessageContext new_msg_ctx;
-  struct GNUNET_DHT_GetResultMessage *get_result;
-  enum GNUNET_BLOCK_EvaluationResult eval;
-  const struct DHTPutEntry *put_entry;
-  int get_size;
-  char *path_offset;
-
-#if DEBUG_DHT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s:%s': Received `%s' response from datacache\n", my_short_id,
-              "DHT", "GET");
-#endif
-
-  put_entry = (const struct DHTPutEntry *) data;
-
-  if (size !=
-      sizeof (struct DHTPutEntry) + put_entry->data_size +
-      (put_entry->path_length * sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Path + data size doesn't add up for data inserted into datacache!\nData size %d, path length %d, expected %d, got %d\n",
-                put_entry->data_size, put_entry->path_length,
-                sizeof (struct DHTPutEntry) + put_entry->data_size +
-                (put_entry->path_length * sizeof (struct GNUNET_PeerIdentity)),
-                size);
-    msg_ctx->do_forward = GNUNET_NO;
-    return GNUNET_OK;
-  }
-
-  eval =
-      GNUNET_BLOCK_evaluate (block_context, type, key, &msg_ctx->reply_bf,
-                             msg_ctx->reply_bf_mutator, msg_ctx->xquery,
-                             msg_ctx->xquery_size, &put_entry[1],
-                             put_entry->data_size);
-
-  switch (eval)
-  {
-  case GNUNET_BLOCK_EVALUATION_OK_LAST:
-    msg_ctx->do_forward = GNUNET_NO;
-  case GNUNET_BLOCK_EVALUATION_OK_MORE:
-    memcpy (&new_msg_ctx, msg_ctx, sizeof (struct DHT_MessageContext));
-    if (GNUNET_DHT_RO_RECORD_ROUTE ==
-        (msg_ctx->msg_options & GNUNET_DHT_RO_RECORD_ROUTE))
-    {
-      new_msg_ctx.msg_options = GNUNET_DHT_RO_RECORD_ROUTE;
-    }
-
-    get_size =
-        sizeof (struct GNUNET_DHT_GetResultMessage) + put_entry->data_size +
-        (put_entry->path_length * sizeof (struct GNUNET_PeerIdentity));
-    get_result = GNUNET_malloc (get_size);
-    get_result->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET_RESULT);
-    get_result->header.size = htons (get_size);
-    get_result->expiration = GNUNET_TIME_absolute_hton (exp);
-    get_result->type = htons (type);
-    get_result->put_path_length = htons (put_entry->path_length);
-    path_offset = (char *) &put_entry[1];
-    path_offset += put_entry->data_size;
-    /* Copy the actual data and the path_history to the end of the get result */
-    memcpy (&get_result[1], &put_entry[1],
-            put_entry->data_size +
-            (put_entry->path_length * sizeof (struct GNUNET_PeerIdentity)));
-    new_msg_ctx.peer = my_identity;
-    new_msg_ctx.bloom = NULL;
-    new_msg_ctx.hop_count = 0;
-    new_msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 2;   /* Make result routing a higher priority */
-    new_msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
-    increment_stats (STAT_GET_RESPONSE_START);
-    route_result_message (&get_result->header, &new_msg_ctx);
-    GNUNET_free (get_result);
-    break;
-  case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
-#if DEBUG_DHT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s:%s': Duplicate block error\n",
-                my_short_id, "DHT");
-#endif
-    break;
-  case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
-#if DEBUG_DHT
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "`%s:%s': Invalid request error\n",
-                my_short_id, "DHT");
-#endif
-    break;
-  case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
-#if DEBUG_DHT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "`%s:%s': Valid request, no results.\n", my_short_id, "DHT");
-#endif
-    GNUNET_break (0);
-    break;
-  case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
-    GNUNET_break_op (0);
-    msg_ctx->do_forward = GNUNET_NO;
-    break;
-  case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
-#if DEBUG_DHT
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "`%s:%s': Unsupported block type (%u) in response!\n",
-                my_short_id, "DHT", type);
-#endif
-    /* msg_ctx->do_forward = GNUNET_NO;  // not sure... */
-    break;
-  }
-  return GNUNET_OK;
-}
 
 
 /**
@@ -1464,10 +1335,6 @@ handle_dht_get (const struct GNUNET_MessageHeader *msg,
   increment_stats (STAT_GETS);
   results = 0;
   msg_ctx->do_forward = GNUNET_YES;
-  if (datacache != NULL)
-    results =
-        GNUNET_DATACACHE_get (datacache, &msg_ctx->key, type,
-                              &datacache_get_iterator, msg_ctx);
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Found %d results for `%s' request uid %llu\n",
@@ -1826,36 +1693,6 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
 #endif
 
   increment_stats (STAT_PUTS_INSERTED);
-  if (datacache != NULL)
-  {
-    /* Put size is actual data size plus struct overhead plus path length (if any) */
-    put_size =
-        data_size + sizeof (struct DHTPutEntry) +
-        (msg_ctx->path_history_len * sizeof (struct GNUNET_PeerIdentity));
-    put_entry = GNUNET_malloc (put_size);
-    put_entry->data_size = data_size;
-    put_entry->path_length = msg_ctx->path_history_len;
-    /* Copy data to end of put entry */
-    memcpy (&put_entry[1], &put_msg[1], data_size);
-    if (msg_ctx->path_history_len > 0)
-    {
-      /* Copy path after data */
-      path_offset = (char *) &put_entry[1];
-      path_offset += data_size;
-      memcpy (path_offset, msg_ctx->path_history,
-              msg_ctx->path_history_len * sizeof (struct GNUNET_PeerIdentity));
-    }
-
-    ret =
-        GNUNET_DATACACHE_put (datacache, &msg_ctx->key, put_size,
-                              (const char *) put_entry, put_type,
-                              GNUNET_TIME_absolute_ntoh (put_msg->expiration));
-    GNUNET_free (put_entry);
-  }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "`%s:%s': %s request received, but have no datacache!\n",
-                my_short_id, "DHT", "PUT");
 
   route_message (msg, msg_ctx);
 }
@@ -2366,6 +2203,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     transport_handle = NULL;
   }
   GDS_NEIGHBOURS_done ();
+  GDS_DATACACHE_done ();
   GDS_NSE_done ();
   for (bucket_count = lowest_bucket; bucket_count < MAX_BUCKETS; bucket_count++)
   {
@@ -2379,15 +2217,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
       delete_peer (pos, bucket_count);
     }
-  }
-  if (datacache != NULL)
-  {
-#if DEBUG_DHT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s:%s Destroying datacache!\n",
-                my_short_id, "DHT");
-#endif
-    GNUNET_DATACACHE_destroy (datacache);
-    datacache = NULL;
   }
   if (stats != NULL)
   {
@@ -2418,7 +2247,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   unsigned long long temp_config_num;
 
   cfg = c;
-  datacache = GNUNET_DATACACHE_create (cfg, "dhtcache");
+  GDS_DATACACHE_init ();
   coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
                                  DEFAULT_CORE_QUEUE_SIZE,       /* queue size */
                                  NULL,  /* Closure passed to DHT functions */
