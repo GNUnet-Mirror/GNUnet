@@ -616,8 +616,6 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
- *
- * FIXME path
  */
 static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
@@ -781,6 +779,8 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
     {
       struct MeshPathInfo *path_info;
 
+      if (NULL != peer_d->dhtget)
+        return;
       path_info = GNUNET_malloc(sizeof(struct MeshPathInfo));
       path_info->path = p;
       path_info->peer = peer_d;
@@ -1143,8 +1143,6 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
  *
  * @return Short ID of the peer disconnected (either p1 or p2).
  *         0 if the tunnel remained unaffected.
- *
- * FIXME working on it
  */
 static GNUNET_PEER_Id
 tunnel_notify_connection_broken (struct MeshTunnel *t,
@@ -2118,7 +2116,7 @@ notify_client_connection_failure (void *cls, size_t size, void *buf)
  * @param size number of bytes in data
  * @param data pointer to the result data
  *
- * FIXME path
+ * TODO: re-issue the request after certain time? cancel after X results?
  */
 static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
