@@ -1977,8 +1977,6 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
- *
- * FIXME path change state
  */
 static int
 handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -1986,8 +1984,9 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct GNUNET_MESH_PathACK *msg;
-  struct MeshTunnel *t;
+  struct MeshTunnelTreeNode *n;
   struct MeshPeerInfo *peer_info;
+  struct MeshTunnel *t;
 
   msg = (struct GNUNET_MESH_PathACK *) message;
   t = tunnel_get (&msg->oid, msg->tid);
@@ -2000,10 +1999,9 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Message for us? */
   if (0 == memcmp (&msg->oid, &my_full_id, sizeof (struct GNUNET_PeerIdentity)))
   {
-
     if (NULL == t->client)
     {
-      GNUNET_break (0);
+      GNUNET_break_op (0);
       return GNUNET_OK;
     }
     peer_info = peer_info_get (&msg->peer_id);
@@ -2012,7 +2010,13 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break_op (0);
       return GNUNET_OK;
     }
-    /* FIXME change state of peer */
+    n = tree_find_peer(t->tree, peer_info->id);
+    if (NULL == n)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_OK;
+    }
+    n->status = MESH_PEER_READY;
     send_client_peer_connected(t, peer_info->id);
     return GNUNET_OK;
   }
