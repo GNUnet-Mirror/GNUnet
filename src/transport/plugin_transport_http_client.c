@@ -446,6 +446,7 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   /* no data to send */
   else
   {
+    GNUNET_assert (0);
     bytes_sent = 0;
   }
 
