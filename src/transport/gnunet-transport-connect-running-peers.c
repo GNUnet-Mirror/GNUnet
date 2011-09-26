@@ -92,7 +92,7 @@ disconnect_from_peer (struct PeerContext *p)
 }
 
 static void
-end ()
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
@@ -152,13 +152,13 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
   {
     ok = 0;
-    end ();
+    end (NULL, NULL);
   }
   else
   {
     GNUNET_break (0);
     ok = 1;
-    end ();
+    end (NULL, NULL);
   }
 }
 
@@ -168,10 +168,20 @@ notify_ready (void *cls, size_t size, void *buf)
 {
   struct PeerContext *p = cls;
   struct GNUNET_MessageHeader *hdr;
+  char t;
 
   th = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Press <q> to quit or any key to transmit a message\n");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  scanf("%c", &t);
+  if (t == 'q')
+  {
+    GNUNET_SCHEDULER_add_now(&end, NULL);
+    return 0;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Transmitting message with %u bytes to peer %s\n",
               sizeof (struct GNUNET_MessageHeader), GNUNET_i2s (&p->id));
   GNUNET_assert (size >= 256);
@@ -182,6 +192,10 @@ notify_ready (void *cls, size_t size, void *buf)
     hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
     hdr->type = htons (MTYPE);
   }
+
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0, TIMEOUT,
+                                               &notify_ready, p1);
+
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -278,6 +292,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   GNUNET_free (p1_c);
 
   // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
+
   send_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
 }
