@@ -1105,14 +1105,25 @@ notify_peer_disconnected (const struct MeshTunnelTreeNode *n)
 void
 tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
 {
+//   struct MeshTunnelTreeNode *n;
   struct MeshPeerPath *p;
   struct MeshPeerPath *best_p;
   unsigned int best_cost;
   unsigned int cost;
 
+  if (NULL != tree_find_peer(t->tree->root, peer->id))
+  {
+    /* Already have it, nothing to do. */
+    return;
+  }
+
+  t->peers_total++;
   GNUNET_array_append (peer->tunnels, peer->ntunnels, t);
   if (NULL == (p = peer->path_head))
+  {
+    GNUNET_break (0);
     return;
+  }
 
   best_p = p;
   best_cost = UINT_MAX;
@@ -2599,8 +2610,6 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message (PeerControl)
- *
- * FIXME path
  */
 static void
 handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
@@ -2648,21 +2657,33 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  t->peers_total++;
   peer_info = peer_info_get (&peer_msg->peer);
 
-  /* Start DHT search if needed FIXME: if not already connected */
-  if (NULL == peer_info->dhtget)
+  /* Start DHT search if needed, otherwise just add peer to tunnel. */
+  if (NULL == peer_info->dhtget && NULL == peer_info->path_head)
   {
-    peer_info->dhtget = GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_BLOCK_TYPE_TEST, &peer_msg->peer.hashPubKey, 4,  /* replication level */
-                                              GNUNET_DHT_RO_RECORD_ROUTE, NULL, /* bloom filter */
-                                              0,        /* mutator */
-                                              NULL,     /* xquery */
-                                              0,        /* xquery bits */
-                                              dht_get_id_handler,
-                                              (void *) peer_info);
-  }
+    struct MeshPathInfo *path_info;
 
+    path_info = GNUNET_malloc(sizeof(struct MeshPathInfo));
+    path_info->peer = peer_info;
+    path_info->t = t;
+    peer_info->dhtget = GNUNET_DHT_get_start(dht_handle,       /* handle */
+                                            GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
+                                            GNUNET_BLOCK_TYPE_TEST,   /* type */
+                                            &peer_msg->peer.hashPubKey,   /*key to search */
+                                            4,        /* replication level */
+                                            GNUNET_DHT_RO_RECORD_ROUTE,
+                                            NULL,     /* bloom filter */
+                                            0,        /* mutator */
+                                            NULL,     /* xquery */
+                                            0,        /* xquery bits */
+                                            dht_get_id_handler,
+                                            (void *) path_info);
+  }
+  if (NULL != peer_info->path_head)
+  {
+    tunnel_add_peer(t, peer_info);
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
