@@ -862,9 +862,9 @@ server_start (struct Plugin *plugin)
                                            MHD_NO_FLAG, plugin->port,
                                            &server_accept_cb, plugin,
                                            &server_access_cb, plugin,
-                                           //MHD_OPTION_SOCK_ADDR,
-                                           //(struct sockaddr_in *)
-                                           //plugin->bind4_address,
+                                           MHD_OPTION_SOCK_ADDR,
+                                           (struct sockaddr_in *)
+                                           plugin->server_addr_v4,
                                            MHD_OPTION_CONNECTION_LIMIT,
                                            (unsigned int)
                                            plugin->max_connections,
@@ -901,8 +901,9 @@ server_start (struct Plugin *plugin)
                                            MHD_USE_IPv6, plugin->port,
                                            &server_accept_cb, plugin,
                                            &server_access_cb, plugin,
-                                           //MHD_OPTION_SOCK_ADDR,
-                                           //tmp,
+                                           MHD_OPTION_SOCK_ADDR,
+                                           (struct sockaddr_in6 *)
+                                           plugin->server_addr_v6,
                                            MHD_OPTION_CONNECTION_LIMIT,
                                            (unsigned int)
                                            plugin->max_connections,

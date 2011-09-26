@@ -136,6 +136,9 @@ struct Plugin
   struct MHD_Daemon *server_v6;
   GNUNET_SCHEDULER_TaskIdentifier server_v6_task;
 
+  struct sockaddr_in * server_addr_v4;
+  struct sockaddr_in6 * server_addr_v6;
+
   char *crypto_init;
   char *key;
   char *cert;

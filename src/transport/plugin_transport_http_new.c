@@ -665,24 +665,6 @@ http_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   }
 }
 
-/**
- * Function called by the NAT subsystem suggesting another peer wants
- * to connect to us via connection reversal.  Try to connect back to the
- * given IP.
- *
- * @param cls closure
- * @param addr address to try
- * @param addrlen number of bytes in addr
- */
-static void
-nat_connection_reversal (void *cls, const struct sockaddr *addr,
-                         socklen_t addrlen)
-{
-
-
-
-}
-
 static void
 nat_add_address (void *cls, int add_remove, const struct sockaddr *addr,
                  socklen_t addrlen)
@@ -879,7 +861,7 @@ start_report_addresses (struct Plugin *plugin)
         GNUNET_NAT_register (plugin->env->cfg, GNUNET_YES, plugin->port,
                              (unsigned int) res,
                              (const struct sockaddr **) addrs, addrlens,
-                             &nat_port_map_callback, &nat_connection_reversal,
+                             &nat_port_map_callback, NULL,
                              plugin);
     while (res > 0)
     {
@@ -894,7 +876,7 @@ start_report_addresses (struct Plugin *plugin)
   {
     plugin->nat =
         GNUNET_NAT_register (plugin->env->cfg, GNUNET_YES, 0, 0, NULL, NULL,
-                             NULL, &nat_connection_reversal, plugin);
+                             NULL, NULL, plugin);
   }
 }
 
@@ -962,6 +944,7 @@ configure_plugin (struct Plugin *plugin)
                      plugin->name);
     res = GNUNET_SYSERR;
   }
+
   /* Reading port number from config file */
   unsigned long long port;
 
@@ -973,8 +956,62 @@ configure_plugin (struct Plugin *plugin)
                      _("Port is required! Fix in configuration\n"),
                      plugin->name);
     res = GNUNET_SYSERR;
+    goto fail;
   }
   plugin->port = port;
+
+
+  char * bind4_address = NULL;
+  if ((plugin->ipv4 == GNUNET_YES) && (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg, plugin->name,
+                                             "BINDTO", &bind4_address)))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                "Binding %s plugin to specific IPv4 address: `%s'\n",
+                plugin->protocol, bind4_address);
+    plugin->server_addr_v4 = GNUNET_malloc (sizeof (struct sockaddr_in));
+    if (1 != inet_pton (AF_INET, bind4_address, &plugin->server_addr_v4->sin_addr))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                  _("Specific IPv4 address `%s' for plugin %s in configuration file is invalid! Binding to all addresses!\n"),
+                  bind4_address, plugin->protocol);
+      GNUNET_free (plugin->server_addr_v4);
+      plugin->server_addr_v4 = NULL;
+    }
+    else
+    {
+      plugin->server_addr_v4->sin_family = AF_INET;
+      plugin->server_addr_v4->sin_port = htons (plugin->port);
+    }
+    GNUNET_free (bind4_address);
+  }
+
+
+  char * bind6_address = NULL;
+  if ((plugin->ipv6 == GNUNET_YES) && (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg, plugin->name,
+                                             "BINDTO6", &bind6_address)))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                "Binding %s plugin to specific IPv6 address: `%s'\n",
+                plugin->protocol, bind6_address);
+    plugin->server_addr_v6 = GNUNET_malloc (sizeof (struct sockaddr_in6));
+    if (1 != inet_pton (AF_INET6, bind6_address, &plugin->server_addr_v6->sin6_addr))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                  _("Specific IPv6 address `%s' for plugin %s in configuration file is invalid! Binding to all addresses!\n"),
+                  bind6_address, plugin->protocol);
+      GNUNET_free (plugin->server_addr_v6);
+      plugin->server_addr_v6 = NULL;
+    }
+    else
+    {
+      plugin->server_addr_v6->sin6_family = AF_INET6;
+      plugin->server_addr_v6->sin6_port = htons (plugin->port);
+    }
+    GNUNET_free (bind6_address);
+  }
+
 
   /* Optional parameters */
   unsigned long long maxneigh;
@@ -984,6 +1021,7 @@ configure_plugin (struct Plugin *plugin)
     maxneigh = 128;
   plugin->max_connections = maxneigh;
 
+fail:
   return res;
 }
 
@@ -1020,6 +1058,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   res = configure_plugin (plugin);
   if (res == GNUNET_SYSERR)
   {
+    GNUNET_free_non_null (plugin->server_addr_v4);
+    GNUNET_free_non_null (plugin->server_addr_v6);
     GNUNET_free (plugin);
     GNUNET_free (api);
     return NULL;
@@ -1029,6 +1069,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   res = client_start (plugin);
   if (res == GNUNET_SYSERR)
   {
+    GNUNET_free_non_null (plugin->server_addr_v4);
+    GNUNET_free_non_null (plugin->server_addr_v6);
     GNUNET_free (plugin);
     GNUNET_free (api);
     return NULL;
@@ -1041,6 +1083,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     server_stop (plugin);
     client_stop (plugin);
 
+    GNUNET_free_non_null (plugin->server_addr_v4);
+    GNUNET_free_non_null (plugin->server_addr_v6);
     GNUNET_free (plugin);
     GNUNET_free (api);
     return NULL;
@@ -1110,6 +1154,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
                    "Plugin `%s' unloaded\n", plugin->name);
 #endif
 
+  GNUNET_free_non_null (plugin->server_addr_v4);
+  GNUNET_free_non_null (plugin->server_addr_v6);
   GNUNET_free (plugin);
   GNUNET_free (api);
 
