@@ -244,7 +244,7 @@ struct Session
 
   void *client_put;
   void *client_get;
-  int put_paused;
+  int client_put_paused;
 
   void *server_recv;
   void *server_send;

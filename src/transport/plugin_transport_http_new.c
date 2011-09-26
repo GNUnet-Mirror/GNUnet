@@ -340,6 +340,12 @@ lookup_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     return NULL;
   while (t != NULL)
   {
+#if 0
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Comparing peer `%s' address `%s' len %i session %X to \n", GNUNET_i2s(target), GNUNET_a2s(addr,addrlen), addrlen, session);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,"peer `%s' address `%s' len %i session %X \n\n", GNUNET_i2s(&t->target), GNUNET_a2s(t->addr,t->addrlen), t->addrlen, t);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,"memcmp %i \n", memcmp (addr, t->addr, addrlen));
+#endif
     e_peer = GNUNET_NO;
     e_addr = GNUNET_NO;
 
@@ -348,7 +354,7 @@ lookup_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
       e_peer = GNUNET_YES;
       if (addrlen == t->addrlen)
       {
-        if (0 == memcmp (addr, &t->addr, addrlen))
+        if (0 == memcmp (addr, t->addr, addrlen))
         {
           e_addr = GNUNET_YES;
         }
@@ -492,7 +498,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   s = lookup_session (plugin, target, session, addr, addrlen, 1);
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                   "%s exisiting session\n", (s!=NULL) ? "Found" : "NOT Found");
+                   "%s existing session: %s\n", (s!=NULL) ? "Found" : "NOT Found", ((s != NULL) && (s->inbound == GNUNET_YES)) ? "inbound" : "outbound");
 #endif
 
   /* create new outbound connection */
@@ -749,7 +755,7 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
 {
   GNUNET_assert (cls != NULL);
   struct Plugin *plugin = cls;
-  //static int limit;
+  static int limit;
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "NPMC called %s to address `%s'\n",
@@ -761,9 +767,9 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
   {
   case GNUNET_YES:
     // FIXME DEBUGGING
-    //if (limit < 1)
+    if (limit < 1)
       nat_add_address (cls, add_remove, addr, addrlen);
-    //limit++;
+    limit++;
     // FIXME END
     break;
   case GNUNET_NO:

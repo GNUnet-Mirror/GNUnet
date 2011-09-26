@@ -61,15 +61,6 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
 }
 #endif
 
-int
-client_send (struct Session *s, struct HTTP_Message *msg)
-{
-  GNUNET_CONTAINER_DLL_insert (s->msg_head, s->msg_tail, msg);
-  if (s != NULL)
-    curl_easy_pause(s->client_put, CURLPAUSE_CONT);
-  return GNUNET_OK;
-}
-
 /**
  * Task performing curl operations
  * @param cls plugin as closure
@@ -146,6 +137,25 @@ client_schedule (struct Plugin *plugin)
   GNUNET_NETWORK_fdset_destroy (grs);
   return GNUNET_OK;
 }
+
+
+int
+client_send (struct Session *s, struct HTTP_Message *msg)
+{
+  GNUNET_CONTAINER_DLL_insert (s->msg_head, s->msg_tail, msg);
+
+  if ((s != NULL) && (s->client_put_paused == GNUNET_YES))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name, "Client: %X was suspended, unpausing\n", s->client_put);
+    s->client_put_paused = GNUNET_NO;
+    curl_easy_pause(s->client_put, CURLPAUSE_CONT);
+  }
+
+  client_schedule (s->plugin);
+
+  return GNUNET_OK;
+}
+
 
 
 /**
@@ -335,16 +345,19 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   struct Session *s = cls;
   struct Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Absolute now;
+  size_t len = size * nmemb;
+
 
 #if VERBOSE_CLIENT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: Received %Zu bytes from peer `%s'\n",
-                   size * nmemb,
+                   len,
                    GNUNET_i2s (&s->target));
 #endif
 
   now = GNUNET_TIME_absolute_get();
   if (now.abs_value < s->delay.abs_value)
   {
+#if 0
 #if DEBUG_CLIENT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No inbound bandwidth available! Next read was delayed for  %llu ms\n",
@@ -357,16 +370,19 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
     }
     s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed( GNUNET_TIME_absolute_get_difference(s->delay, now), &client_wake_up, s);
     return CURLPAUSE_ALL;
+#endif
   }
 
 
   if (s->msg_tk == NULL)
       s->msg_tk = GNUNET_SERVER_mst_create (&client_receive_mst_cb, s);
 
-  GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, size * nmemb, GNUNET_NO,
+  GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, len, GNUNET_NO,
                              GNUNET_NO);
 
-  return (size * nmemb);
+  return len;
+
+  client_wake_up (NULL, NULL);
 }
 
 /**
@@ -376,7 +392,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
  * @param size size of an individual element
  * @param nmemb count of elements that can be written to the buffer
  * @param ptr source pointer, passed to the libcurl handle
- * @return bytes written to stream
+ * @return bytes written to stream, returning 0 will terminate connection!
  */
 static size_t
 client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
@@ -401,7 +417,12 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   }
 */
   if (msg == NULL)
-    return bytes_sent;
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: %X Nothing to send! Suspending PUT handle!\n", s->client_put);
+    s->client_put_paused = GNUNET_YES;
+    return CURL_READFUNC_PAUSE;
+  }
+
   GNUNET_assert (msg != NULL);
   /* data to send */
   if (msg->pos < msg->size)
