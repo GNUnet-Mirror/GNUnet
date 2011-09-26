@@ -90,13 +90,6 @@ enum GNUNET_BLOCK_Type
      */
   GNUNET_BLOCK_TYPE_TEST = 8,
 
-#if HAVE_MALICIOUS
-    /**
-     * Block for simulating malicious peers.
-     */
-  GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE = 9,
-#endif
-
     /**
      * Block for storing .gnunet-domains
      */
