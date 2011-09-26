@@ -386,9 +386,22 @@ tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
   struct MeshTunnelTreeNode *node;
   struct MeshTunnelTreeNode *n;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "tree:   Deleting path to %u.\n", peer_id);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "tree:   Deleting path to %u.\n", peer_id);
   if (peer_id == t->root->peer)
     return NULL;
+
+  for (n = t->disconnected_head; NULL != n; n = n->next)
+  {
+    if (n->peer == peer_id)
+    {
+      /* Was already pathless, waiting for reconnection */
+      GNUNET_CONTAINER_DLL_remove (t->disconnected_head,
+                                   t->disconnected_tail,
+                                   n);
+      return n;
+    }
+  }
   n = tree_find_peer (t->me, peer_id);
   if (NULL == n)
     return NULL;
@@ -470,8 +483,9 @@ tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
  * - do not disconnect peers until new path is created & connected
  */
 int
-tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
-                 MeshNodeDisconnectCB cb)
+tree_add_path (struct MeshTunnelTree *t,
+               const struct MeshPeerPath *p,
+               MeshNodeDisconnectCB cb)
 {
   struct MeshTunnelTreeNode *parent;
   struct MeshTunnelTreeNode *oldnode;
@@ -584,6 +598,95 @@ tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "tree:   New node added.\n");
+  return GNUNET_OK;
+}
+
+
+/**
+ * Notifies a tree that a connection it might be using is broken.
+ * Marks all peers down the paths as disconnected and notifies the client.
+ *
+ * @param t Tree to use.
+ * @param p1 Short id of one of the peers (order unimportant)
+ * @param p2 Short id of one of the peers (order unimportant)
+ * @param cb Function to call for every peer that is marked as disconnected.
+ *
+ * @return Short ID of the first disconnected peer in the tree.
+ */
+GNUNET_PEER_Id
+tree_notify_connection_broken (struct MeshTunnelTree *t,
+                               GNUNET_PEER_Id p1,
+                               GNUNET_PEER_Id p2,
+                               MeshNodeDisconnectCB cb)
+{
+  struct MeshTunnelTreeNode *n;
+  struct MeshTunnelTreeNode *c;
+
+  n = tree_find_peer(t->me, p1);
+  if (NULL == n)
+    return 0;
+  if (NULL != n->parent && n->parent->peer == p2)
+  {
+    tree_mark_peers_disconnected(t, n, cb);
+    GNUNET_CONTAINER_DLL_remove(n->parent->children_head,
+                                n->parent->children_tail,
+                                n);
+    GNUNET_CONTAINER_DLL_insert(t->disconnected_head,
+                                t->disconnected_tail,
+                                n);
+    return p1;
+  }
+  for (c = n->children_head; NULL != c; c = c->next)
+  {
+    if (c->peer == p2)
+    {
+      tree_mark_peers_disconnected(t, c, cb);
+      GNUNET_CONTAINER_DLL_remove(n->children_head,
+                                  n->children_tail,
+                                  c);
+      GNUNET_CONTAINER_DLL_insert(t->disconnected_head,
+                                  t->disconnected_tail,
+                                  c);
+      return p2;
+    }
+  }
+  return 0;
+}
+
+
+/**
+ * Deletes a peer from a tunnel, marking its children as disconnected.
+ *
+ * @param t Tunnel tree to use.
+ * @param peer Short ID of the peer to remove from the tunnel tree.
+ * @param cb Callback to notify client of disconnected peers.
+ *
+ * @return GNUNET_OK or GNUNET_SYSERR
+ */
+int
+tree_del_peer (struct MeshTunnelTree *t,
+               GNUNET_PEER_Id peer,
+               MeshNodeDisconnectCB cb)
+{
+  struct MeshTunnelTreeNode *n;
+  struct MeshTunnelTreeNode *c;
+  struct MeshTunnelTreeNode *aux;
+
+  n = tree_del_path(t, peer, cb);
+  c = n->children_head;
+  while (NULL != c)
+  {
+    aux = c->next;
+    GNUNET_CONTAINER_DLL_remove(n->children_head,
+                                n->children_tail,
+                                c);
+    GNUNET_CONTAINER_DLL_insert(t->disconnected_head,
+                                t->disconnected_tail,
+                                c);
+    cb (c);
+    c = aux;
+  }
+  tree_node_destroy(n);
   return GNUNET_OK;
 }
 

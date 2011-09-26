@@ -601,6 +601,32 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/**
+ * Function to process paths received for a new peer addition. The recorded
+ * paths form the initial tunnel, which can be optimized later.
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path NULL-terminated array of pointers
+ *                 to the peers on reverse GET path (or NULL if not recorded)
+ * @param put_path NULL-terminated array of pointers
+ *                 to the peers on the PUT path (or NULL if not recorded)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ *
+ * FIXME path
+ */
+static void
+dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                    const GNUNET_HashCode * key,
+                    const struct GNUNET_PeerIdentity *const *get_path,
+                    const struct GNUNET_PeerIdentity *const *put_path,
+                    enum GNUNET_BLOCK_Type type, size_t size, const void *data);
+
+
 /******************************************************************************/
 /******************      GENERAL HELPER FUNCTIONS      ************************/
 /******************************************************************************/
@@ -661,33 +687,43 @@ peer_info_destroy (struct MeshPeerInfo *pi)
  * Notify a tunnel that a connection has broken that affects at least
  * some of its peers.
  *
- * @param t Tunnel affected
- * @param peer Peer that (at least) has been affected by the disconnection
- * @param p1 Peer that got disconnected from p2
- * @param p2 Peer that got disconnected from p1
+ * @param t Tunnel affected.
+ * @param peer Peer that (at least) has been affected by the disconnection.
+ * @param p1 Peer that got disconnected from p2.
+ * @param p2 Peer that got disconnected from p1.
+ *
+ * @return Short ID of the peer disconnected (either p1 or p2).
+ *         0 if the tunnel remained unaffected.
  */
-static void
+static GNUNET_PEER_Id
 tunnel_notify_connection_broken (struct MeshTunnel *t,
                                  struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
                                  GNUNET_PEER_Id p2);
-
 
 /**
  * Remove all paths that rely on a direct connection between p1 and p2
  * from the peer itself and notify all tunnels about it.
  *
- * @param pi PeerInfo of affected peer
+ * @param peer PeerInfo of affected peer.
  * @param p1 GNUNET_PEER_Id of one peer.
  * @param p2 GNUNET_PEER_Id of another peer that was connected to the first and
  *           no longer is.
+ *
+ * TODO: optimize (see below)
  */
 static void
-path_remove_from_peer (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
+path_remove_from_peer (struct MeshPeerInfo *peer,
+                       GNUNET_PEER_Id p1,
                        GNUNET_PEER_Id p2)
 {
+  struct GNUNET_PeerIdentity id;
   struct MeshPeerPath *p;
   struct MeshPeerPath *aux;
+  struct MeshPeerInfo *peer_d;
+  GNUNET_PEER_Id d;
   unsigned int destroyed;
+  unsigned int best;
+  unsigned int cost;
   unsigned int i;
 
   destroyed = 0;
@@ -712,7 +748,56 @@ path_remove_from_peer (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
 
   for (i = 0; i < peer->ntunnels; i++)
   {
-    tunnel_notify_connection_broken (peer->tunnels[i], peer, p1, p2);
+    d = tunnel_notify_connection_broken (peer->tunnels[i], peer, p1, p2);
+    /* TODO
+     * Problem: one or more peers have been deleted from the tunnel tree.
+     * We don't know who they are to try to add them again.
+     * We need to try to find a new path for each of the disconnected peers.
+     * Some of them might already have a path to reach them that does not
+     * involve p1 and p2. Adding all anew might render in a better tree than
+     * the trivial immediate fix.
+     * 
+     * Trivial immiediate fix: try to reconnect to the disconnected node. All
+     * its children will be reachable trough him.
+     */
+    GNUNET_PEER_resolve(d, &id);
+    peer_d = peer_info_get(&id);
+    best = UINT_MAX;
+    aux = NULL;
+    for (p = peer_d->path_head; NULL != p; p = p->next)
+    {
+      if ((cost = path_get_cost(peer->tunnels[i]->tree, p)) < best)
+      {
+        best = cost;
+        aux = p;
+      }
+    }
+    if (NULL != aux)
+    {
+      /* No callback, as peer will be already disconnected */
+      tree_add_path(peer->tunnels[i]->tree, aux, NULL);
+    }
+    else
+    {
+      struct MeshPathInfo *path_info;
+
+      path_info = GNUNET_malloc(sizeof(struct MeshPathInfo));
+      path_info->path = p;
+      path_info->peer = peer_d;
+      path_info->t = peer->tunnels[i];
+      peer_d->dhtget = GNUNET_DHT_get_start(dht_handle,       /* handle */
+                                            GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
+                                            GNUNET_BLOCK_TYPE_TEST,   /* type */
+                                            &id.hashPubKey,   /*key to search */
+                                            4,        /* replication level */
+                                            GNUNET_DHT_RO_RECORD_ROUTE,
+                                            NULL,     /* bloom filter */
+                                            0,        /* mutator */
+                                            NULL,     /* xquery */
+                                            0,        /* xquery bits */
+                                            dht_get_id_handler,
+                                            (void *) path_info);
+    }
   }
 }
 
@@ -1051,18 +1136,24 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
  * Notify a tunnel that a connection has broken that affects at least
  * some of its peers.
  *
- * @param t Tunnel affected
- * @param peer Peer that (at least) has been affected by the disconnection
- * @param p1 Peer that got disconnected from p2
- * @param p2 Peer that got disconnected from p1
- * 
- * FIXME path
+ * @param t Tunnel affected.
+ * @param peer Peer that (at least) has been affected by the disconnection.
+ * @param p1 Peer that got disconnected from p2.
+ * @param p2 Peer that got disconnected from p1.
+ *
+ * @return Short ID of the peer disconnected (either p1 or p2).
+ *         0 if the tunnel remained unaffected.
+ *
+ * FIXME working on it
  */
-static void
+static GNUNET_PEER_Id
 tunnel_notify_connection_broken (struct MeshTunnel *t,
-                                 struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
+                                 struct MeshPeerInfo *peer,
+                                 GNUNET_PEER_Id p1,
                                  GNUNET_PEER_Id p2)
 {
+  return tree_notify_connection_broken (t->tree, p1, p2,
+                                        &notify_peer_disconnected);
 }
 
 

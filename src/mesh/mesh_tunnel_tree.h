@@ -128,6 +128,16 @@ struct MeshTunnelTree
   struct MeshTunnelTreeNode *me;
 
   /**
+   * DLL of disconneted nodes
+   */
+  struct MeshTunnelTreeNode *disconnected_head;
+
+  /**
+   * DLL of disconneted nodes
+   */
+  struct MeshTunnelTreeNode *disconnected_tail;
+
+  /**
    * Cache of all peers and the first hop to them.
    * Indexed by PeerIdentity, contains a pointer to the PeerIdentity
    * of 1st hop.
@@ -295,6 +305,24 @@ int
 tree_add_path (struct MeshTunnelTree *t,
                const struct MeshPeerPath *p,
                MeshNodeDisconnectCB cb);
+
+
+/**
+ * Notifies a tree that a connection it might be using is broken.
+ * Marks all peers down the paths as disconnected and notifies the client.
+ *
+ * @param t Tree to use.
+ * @param p1 Short id of one of the peers (order unimportant)
+ * @param p2 Short id of one of the peers (order unimportant)
+ * @param cb Function to call for every peer that is marked as disconnected.
+ *
+ * @return Short ID of the first disconnected peer in the tree.
+ */
+GNUNET_PEER_Id
+tree_notify_connection_broken (struct MeshTunnelTree *t,
+                               GNUNET_PEER_Id p1,
+                               GNUNET_PEER_Id p2,
+                               MeshNodeDisconnectCB cb);
 
 
 /**
