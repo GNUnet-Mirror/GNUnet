@@ -28,13 +28,13 @@
 
 
 double
-GDS_nse_get (void);
+GDS_NSE_get (void);
 
 
 void
-GDS_nse_init (void);
+GDS_NSE_init (void);
 
 void
-GDS_nse_done (void);
+GDS_NSE_done (void);
 
 #endif

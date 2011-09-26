@@ -48,8 +48,8 @@
  * @param data_size number of bytes in data
  */
 void
-GDS_NEIGHBOURS_handle_put (uint32_t type,
-			   uint32_t options,
+GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
+			   enum GNUNET_DHT_RouteOption options,
 			   uint32_t desired_replication_level,
 			   GNUNET_TIME_Absolute expiration_time,
 			   uint32_t hop_count,
@@ -79,8 +79,8 @@ GDS_NEIGHBOURS_handle_put (uint32_t type,
  * @param peer_bf filter for peers not to select (again)
  */
 void
-GDS_NEIGHBOURS_handle_get (uint32_t type,
-			   uint32_t options,
+GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
+			   enum GNUNET_DHT_RouteOption options,
 			   uint32_t desired_replication_level,
 			   uint32_t hop_count,
 			   const GNUNET_HashCode *key,
@@ -96,6 +96,7 @@ GDS_NEIGHBOURS_handle_get (uint32_t type,
  * other peers waiting for it.  Does not do local caching or
  * forwarding to local clients.
  *
+ * @param target neighbour that should receive the block (if still connected)
  * @param type type of the block
  * @param expiration_time when does the content expire
  * @param key key for the content
@@ -107,7 +108,8 @@ GDS_NEIGHBOURS_handle_get (uint32_t type,
  * @param data_size number of bytes in data
  */
 void
-GDS_NEIGHBOURS_handle_reply (uint32_t type,
+GDS_NEIGHBOURS_handle_reply (const GNUNET_PeerIdentity *target,
+			     enum GNUNET_BLOCK_Type type,
 			     GNUNET_TIME_Absolute expiration_time,
 			     const GNUNET_HashCode *key,
 			     unsigned int put_path_length,

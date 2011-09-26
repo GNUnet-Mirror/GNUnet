@@ -58,21 +58,21 @@ update_network_size_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
 
 
 double
-GDS_nse_get ()
+GDS_NSE_get ()
 {
   return log_of_network_size_estimate;
 }
 
 
 void
-GDS_nse_init ()
+GDS_NSE_init ()
 {
   nse = GNUNET_NSE_connect (GDS_cfg, &update_network_size_estimate, NULL);
 }
 
 
 void
-GDS_nse_done ()
+GDS_NSE_done ()
 {  
   if (NULL != nse)
     {

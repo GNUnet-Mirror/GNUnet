@@ -177,10 +177,9 @@ struct ClientQueryRecord
   uint32_t msg_options;
 
   /**
-   * The type for the data for the GET request; actually an 'enum
-   * GNUNET_BLOCK_Type'.
+   * The type for the data for the GET request.
    */
-  uint32_t msg_type;
+  enum GNUNET_BLOCK_Type msg_type;
 
 };
 
@@ -662,7 +661,7 @@ struct ForwardReplyContext
   /**
    * Type of the data.
    */
-  uint32_t type;
+  enum GNUNET_BLOCK_Type type;
 
   /**
    * Number of bytes in data.
@@ -795,7 +794,7 @@ GDS_CLIENT_handle_reply (struct GNUNET_TIME_Absolute expiration,
 			 const struct GNUNET_PeerIdentity *get_path,
 			 unsigned int put_path_length,
 			 const struct GNUNET_PeerIdentity *put_path,
-			 uint32_t type,
+			 enum GNUNET_BLOCK_Type type,
 			 size_t data_size,
 			 const void *data)
 {

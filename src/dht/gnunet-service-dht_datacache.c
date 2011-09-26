@@ -72,7 +72,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
 			  const GNUNET_HashCode *key,
 			  unsigned int put_path_length,
 			  const struct GNUNET_PeerIdentity *put_path,
-			  uint32_t type,
+			  enum GNUNET_BLOCK_Type type,
 			  size_t data_size,
 			  const void *data)
 {
@@ -268,7 +268,7 @@ struct GetRequestContext
  */
 void
 GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
-			  uint32_t type,
+			  enum GNUNET_BLOCK_Type type,
 			  const void *xquery,
 			  size_t xquery_size,
 			  struct GNUNET_CONTAINER_BloomFilter **reply_bf,
