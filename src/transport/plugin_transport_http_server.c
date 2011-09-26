@@ -270,6 +270,7 @@ static ssize_t
 server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 {
   struct Session *s = cls;
+  struct Plugin *plugin = s->plugin;
   struct HTTP_Message *msg;
   int bytes_read = 0;
   //static int c = 0;
@@ -301,8 +302,9 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   }
 
 #if VERBOSE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection %X: MHD has sent %u bytes\n",
-              s, bytes_read);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Server: %X: sent %u bytes\n",
+                   s, bytes_read);
 #endif
   return bytes_read;
 }
@@ -372,7 +374,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     plugin->cur_connections++;
 
 #if VERBOSE_SERVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: New inbound connection from %s with tag %u\n", GNUNET_i2s(&target), tag);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: New inbound connection from %s with tag %u\n", GNUNET_i2s(&target), tag);
 #endif
     /* find duplicate session */
 
@@ -389,7 +392,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     if (t != NULL)
     {
 #if VERBOSE_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: Duplicate session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Server: Duplicate session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
 #endif
       goto error;
     }
@@ -412,13 +416,15 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       goto create;
 
 #if VERBOSE_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: Found existing semi-session for `%s'\n", GNUNET_i2s (&target));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Found existing semi-session for `%s'\n", GNUNET_i2s (&target));
 #endif
 
     if ((direction == _SEND) && (t->server_send != NULL))
     {
 #if VERBOSE_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: Duplicate GET session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Server: Duplicate GET session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
 #endif
       goto error;
     }
@@ -428,7 +434,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
       GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
 #if VERBOSE_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
 #endif
 
       goto found;
@@ -436,7 +443,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     if ((direction == _RECEIVE) && (t->server_recv != NULL))
     {
 #if VERBOSE_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: Duplicate PUT session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Server: Duplicate PUT session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
 #endif
       goto error;
     }
@@ -446,7 +454,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
       GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
 #if VERBOSE_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
 #endif
       goto found;
     }
@@ -454,10 +463,11 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
 create:
 /* create new session */
 #if VERBOSE_SERVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: Creating new session for peer `%s' \n", GNUNET_i2s (&target));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                 "Server: Creating new session for peer `%s' \n", GNUNET_i2s (&target));
 #endif
 
-    s = create_session(plugin,
+    s = create_session (plugin,
                         &target,
                         conn_info->client_addr,
                         addrlen,
@@ -474,7 +484,10 @@ create:
 
     goto found;
 error:
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Server: Invalid connection request\n");
+#if VERBOSE_SERVER
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                 "Server: Invalid connection request\n");
+#endif
         response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
         res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
         MHD_destroy_response (response);
@@ -490,8 +503,11 @@ found:
       s->server_recv = sc;
 
     int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Server: Setting Timeout to %u\n", to);
-    //MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
+#if VERBOSE_SERVER
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Setting Timeout to %u\n", to);
+#endif
+    MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
 
     (*httpSessionCache) = sc;
   }
@@ -529,7 +545,7 @@ found:
     {
 #if VERBOSE_SERVER
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Server: peer `%s' PUT on address `%s' connected\n",
+                   "Server: Peer `%s' PUT on address `%s' connected\n",
                    GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
 #endif
       return MHD_YES;
@@ -545,17 +561,18 @@ found:
 #endif
       if ((GNUNET_TIME_absolute_get().abs_value < s->delay.abs_value))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Connection %X: PUT with %u bytes forwarded to MST\n", s,
+#if VERBOSE_SERVER
+        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                    "Server: %X: PUT with %u bytes forwarded to MST\n", s,
                     *upload_data_size);
-
+#endif
         if (s->msg_tk == NULL)
         {
           s->msg_tk = GNUNET_SERVER_mst_create (&server_receive_mst_cb, s);
         }
         res = GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data, *upload_data_size, GNUNET_NO, GNUNET_NO);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Server: Received %Zu bytes\n",
+        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                         "Server: Received %Zu bytes\n",
                     *upload_data_size);
         (*upload_data_size) = 0;
       }
@@ -652,7 +669,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     t = t->next;
   }
   plugin->cur_connections--;
-
+/*
   if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(plugin->server_v4_task);
@@ -666,7 +683,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
      plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
    }
    plugin->server_v6_task = server_schedule (plugin, plugin->server_v6);
-
+*/
   if ((s->server_send == NULL) && (s->server_recv == NULL))
   {
 #if VERBOSE_SERVER

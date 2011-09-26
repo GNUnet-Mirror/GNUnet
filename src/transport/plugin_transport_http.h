@@ -249,7 +249,7 @@ struct Session
   void *server_recv;
   void *server_send;
   struct GNUNET_TIME_Absolute delay;
-  GNUNET_SCHEDULER_TaskIdentifier reset_task;
+  GNUNET_SCHEDULER_TaskIdentifier recv_wakeup_task;
   uint32_t tag;
 
 };
