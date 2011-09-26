@@ -189,7 +189,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        {
 #if DEBUG_HTTP
          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Client: %X connection to '%s'  %s ended\n", s, GNUNET_i2s(&s->target), GNUNET_a2s (s->addr, s->addrlen));
+                   "Client: %X connection to '%s'  %s ended\n", msg->easy_handle, GNUNET_i2s(&s->target), GNUNET_a2s (s->addr, s->addrlen));
 #endif
          client_disconnect(s);
          //GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,"Notifying about ended session to peer `%s' `%s'\n", GNUNET_i2s (&s->target), http_plugin_address_to_string (plugin, s->addr, s->addrlen));
@@ -214,15 +214,17 @@ client_disconnect (struct Session *s)
   struct HTTP_Message * msg;
   struct HTTP_Message * t;
 
-#if DEBUG_HTTP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Client: %X Deleting outbound PUT session to peer `%s'\n",
-                   s,
-                   GNUNET_i2s (&s->target));
-#endif
+
 
   if (s->client_put != NULL)
   {
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Client: %X Deleting outbound PUT session to peer `%s'\n",
+                   s->client_put,
+                   GNUNET_i2s (&s->target));
+#endif
+
     mret = curl_multi_remove_handle (plugin->client_mh, s->client_put);
     if (mret != CURLM_OK)
     {
@@ -234,12 +236,7 @@ client_disconnect (struct Session *s)
     s->client_put = NULL;
   }
 
-#if DEBUG_HTTP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Client: %X Deleting outbound GET session to peer `%s'\n",
-                   s,
-                   GNUNET_i2s (&s->target));
-#endif
+
   if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
   {
    GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
@@ -248,6 +245,13 @@ client_disconnect (struct Session *s)
 
   if (s->client_get != NULL)
   {
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Client: %X Deleting outbound GET session to peer `%s'\n",
+                   s->client_get,
+                   GNUNET_i2s (&s->target));
+#endif
+
     mret = curl_multi_remove_handle (plugin->client_mh, s->client_get);
     if (mret != CURLM_OK)
     {
@@ -429,7 +433,7 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
 #if VERBOSE_CLIENT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                 "Client: %X Message with %u bytes sent, removing message from queue\n",
-                s, msg->size, msg->pos);
+                s->client_put, msg->size, msg->pos);
 #endif
     /* Calling transmit continuation  */
     if (NULL != msg->transmit_cont)

@@ -494,10 +494,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                    "%s exisiting session\n", (s!=NULL) ? "Found" : "NOT Found");
 #endif
-  // FIXME DEBUGGING
-  if (session != NULL)
-     s= session;
-  //FIXME END
+
   /* create new outbound connection */
   if (s == NULL)
   {
@@ -656,7 +653,7 @@ nat_add_address (void *cls, int add_remove, const struct sockaddr *addr,
 #if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Notifying transport to add IPv6 address `%s'\n",
-                     http_plugin_address_to_string(NULL, &w_t6->addr, sizeof (struct sockaddr_in)));
+                     http_plugin_address_to_string(NULL, &w_t6->addr, sizeof (struct sockaddr_in6)));
 #endif
     plugin->env->notify_address (plugin->env->cls, add_remove, &w_t6->addr, sizeof (struct sockaddr_in6));
     break;
@@ -722,7 +719,7 @@ nat_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
 #if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Notifying transport to remove IPv6 address `%s'\n",
-                     http_plugin_address_to_string(NULL, &w_t4->addr, sizeof (struct sockaddr_in)));
+                     http_plugin_address_to_string(NULL, &w_t6->addr, sizeof (struct sockaddr_in6)));
 #endif
     plugin->env->notify_address (plugin->env->cls, add_remove, &w_t6->addr,
                                  sizeof (struct sockaddr_in6 ));
@@ -786,6 +783,10 @@ start_report_addresses (struct Plugin *plugin)
   res =
       GNUNET_SERVICE_get_server_addresses (plugin->name, plugin->env->cfg,
                                            &addrs, &addrlens);
+#if 0
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   _("FOUND %u addresses\n"),res);
+#endif
 
   if (res != GNUNET_SYSERR)
   {
@@ -798,6 +799,11 @@ start_report_addresses (struct Plugin *plugin)
     while (res > 0)
     {
       res--;
+#if 0
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       _("FREEING %s\n"),
+                       GNUNET_a2s (addrs[res], addrlens[res]));
+#endif
       GNUNET_assert (addrs[res] != NULL);
       GNUNET_free (addrs[res]);
     }
