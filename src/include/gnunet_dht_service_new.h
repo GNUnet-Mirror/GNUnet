@@ -203,49 +203,6 @@ void
 GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle);
 
 
-/* ******** Special high-level API for finding peers *********** */
-
-/**
- * Iterator called on each result obtained from a find peer
- * operation
- *
- * @param cls closure
- * @param peer hello of a target (peer near key)
- */
-typedef void (*GNUNET_DHT_FindPeerProcessor) (void *cls,
-                                              const struct GNUNET_HELLO_Message
-                                              * peer);
-
-
-/**
- * Perform an asynchronous FIND PEER operation on the DHT.
- *
- * @param handle handle to the DHT service
- * @param timeout timeout for this request to be sent to the
- *        service
- * @param key the key to look up
- * @param options routing options for this message
- * @param proc function to call on each result
- * @param proc_cls closure for proc
- * @return handle to stop the async get, NULL on error
- */
-struct GNUNET_DHT_FindPeerHandle *
-GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
-                            struct GNUNET_TIME_Relative timeout,
-                            const GNUNET_HashCode * key,
-                            enum GNUNET_DHT_RouteOption options,
-                            GNUNET_DHT_FindPeerProcessor proc, void *proc_cls);
-
-
-/**
- * Stop async find peer.  Frees associated resources.
- *
- * @param find_peer_handle GET operation to stop.
- */
-void
-GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle);
-
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
