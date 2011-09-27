@@ -146,7 +146,9 @@ client_send (struct Session *s, struct HTTP_Message *msg)
 
   if ((s != NULL) && (s->client_put_paused == GNUNET_YES))
   {
+#if VERBOSE_CLIENT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name, "Client: %X was suspended, unpausing\n", s->client_put);
+#endif
     s->client_put_paused = GNUNET_NO;
     curl_easy_pause(s->client_put, CURLPAUSE_CONT);
   }
@@ -306,10 +308,13 @@ client_receive_mst_cb (void *cls, void *client,
   struct GNUNET_TIME_Relative delay;
 
   delay = http_plugin_receive (s, &s->target, message, s, s->addr, s->addrlen);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "CLIENT: CLIENT DELAY %llu ms\n",
+              delay.rel_value);
 
-  s->delay = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
 
-  if (GNUNET_TIME_absolute_get().abs_value < s->delay.abs_value)
+  s->next_receive = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
+
+  if (GNUNET_TIME_absolute_get().abs_value < s->next_receive.abs_value)
   {
 #if VERBOSE_CLIENT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: peer `%s' address `%s' next read delayed for %llu ms\n",
@@ -343,32 +348,32 @@ static size_t
 client_receive (void *stream, size_t size, size_t nmemb, void *cls)
 {
   struct Session *s = cls;
-  struct Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Absolute now;
   size_t len = size * nmemb;
 
 
 #if VERBOSE_CLIENT
+  struct Plugin *plugin = s->plugin;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: Received %Zu bytes from peer `%s'\n",
                    len,
                    GNUNET_i2s (&s->target));
 #endif
 
   now = GNUNET_TIME_absolute_get();
-  if (now.abs_value < s->delay.abs_value)
+  if (now.abs_value < s->next_receive.abs_value)
   {
-#if 0
 #if DEBUG_CLIENT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No inbound bandwidth available! Next read was delayed for  %llu ms\n",
-                s, GNUNET_TIME_absolute_get_difference(s->delay, GNUNET_TIME_absolute_get()).rel_value);
+                s, GNUNET_TIME_absolute_get_difference(s->next_receive, GNUNET_TIME_absolute_get()).rel_value);
 #endif
+#if 0
     if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
       s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed( GNUNET_TIME_absolute_get_difference(s->delay, now), &client_wake_up, s);
+    s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed( GNUNET_TIME_absolute_get_difference(s->next_receive, now), &client_wake_up, s);
     return CURLPAUSE_ALL;
 #endif
   }
@@ -398,27 +403,19 @@ static size_t
 client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
 {
   struct Session *s = cls;
+#if VERBOSE_CLIENT
   struct Plugin *plugin = s->plugin;
+#endif
   size_t bytes_sent = 0;
   size_t len;
 
   struct HTTP_Message *msg = s->msg_head;
-/*
-  if (s->put_paused == GNUNET_NO)
-    return CURL_READFUNC_PAUSE;
-  if ((s->msg_head == NULL) && (s->put_paused == GNUNET_YES))
-  {
-#if VERBOSE_CLIENT
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Suspending handle `%s' `%s'\n",
-                     GNUNET_i2s (&s->target),GNUNET_a2s (s->addr, s->addrlen));
-#endif
-    s->put_paused = GNUNET_NO;
-    return CURL_READFUNC_PAUSE;
-  }
-*/
+
   if (msg == NULL)
   {
+#if VERBOSE_CLIENT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: %X Nothing to send! Suspending PUT handle!\n", s->client_put);
+#endif
     s->client_put_paused = GNUNET_YES;
     return CURL_READFUNC_PAUSE;
   }

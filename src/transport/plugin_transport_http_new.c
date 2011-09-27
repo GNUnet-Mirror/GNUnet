@@ -420,7 +420,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->transmit_cont = cont;
   s->transmit_cont_cls = cont_cls;
   s->next = NULL;
-  s->delay = GNUNET_TIME_absolute_get_forever();
+  s->next_receive = GNUNET_TIME_absolute_get_forever();
   return s;
 }
 
@@ -487,7 +487,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   int res = GNUNET_SYSERR;
 
 #if DEBUG_HTTP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Sending %u bytes to peer `%s' on address `%s' %X %i\n", msgbuf_size,
                    GNUNET_i2s (target), ((addr != NULL) && (addrlen != 0)) ? http_plugin_address_to_string(plugin, addr, addrlen) : "<inbound>", session, force_address);
 #endif
@@ -497,7 +497,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   /* look for existing connection */
   s = lookup_session (plugin, target, session, addr, addrlen, 1);
 #if DEBUG_HTTP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "%s existing session: %s\n", (s!=NULL) ? "Found" : "NOT Found", ((s != NULL) && (s->inbound == GNUNET_YES)) ? "inbound" : "outbound");
 #endif
 
@@ -514,7 +514,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     }
 
 #if DEBUG_HTTP
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Initiiating new connection to peer `%s'\n",
                      GNUNET_i2s (target));
 #endif
@@ -541,7 +541,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   if (s->inbound == GNUNET_NO)
   {
 #if DEBUG_HTTP
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Using outbound client session to send to `%s'\n",
                      GNUNET_i2s (target));
 #endif
@@ -553,7 +553,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     server_send (s, msg);
     res = msgbuf_size;
 #if DEBUG_HTTP
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Using inbound server session to send to `%s'\n",
                      GNUNET_i2s (target));
 #endif
@@ -754,7 +754,9 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
                        socklen_t addrlen)
 {
   GNUNET_assert (cls != NULL);
+#if DEBUG_HTTP
   struct Plugin *plugin = cls;
+#endif
   static int limit;
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
@@ -790,7 +792,7 @@ start_report_addresses (struct Plugin *plugin)
       GNUNET_SERVICE_get_server_addresses (plugin->name, plugin->env->cfg,
                                            &addrs, &addrlens);
 #if 0
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    _("FOUND %u addresses\n"),res);
 #endif
 

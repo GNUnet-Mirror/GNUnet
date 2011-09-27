@@ -42,10 +42,10 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_HTTP GNUNET_YES
-#define VERBOSE_SERVER GNUNET_YES
-#define VERBOSE_CLIENT GNUNET_YES
-#define VERBOSE_CURL GNUNET_YES
+#define DEBUG_HTTP GNUNET_NO
+#define VERBOSE_SERVER GNUNET_NO
+#define VERBOSE_CLIENT GNUNET_NO
+#define VERBOSE_CURL GNUNET_NO
 
 #if BUILD_HTTPS
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_init
@@ -248,7 +248,7 @@ struct Session
 
   void *server_recv;
   void *server_send;
-  struct GNUNET_TIME_Absolute delay;
+  struct GNUNET_TIME_Absolute next_receive;
   GNUNET_SCHEDULER_TaskIdentifier recv_wakeup_task;
   uint32_t tag;
 

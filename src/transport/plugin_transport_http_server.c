@@ -242,16 +242,16 @@ server_receive_mst_cb (void *cls, void *client,
                   const struct GNUNET_MessageHeader *message)
 {
   struct Session *s = cls;
+#if VERBOSE_SERVER
   struct Plugin *plugin = s->plugin;
+#endif
   struct GNUNET_TIME_Relative delay;
 
   delay = http_plugin_receive (s, &s->target, message, s, s->addr, s->addrlen);
 
-  s->delay = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Server: SERVER DELAY %llu ms\n",
-              delay.rel_value);
+  s->next_receive = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
 
-  if (GNUNET_TIME_absolute_get().abs_value < s->delay.abs_value)
+  if (delay.rel_value > 0)
   {
 #if VERBOSE_CLIENT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Server: peer `%s' address `%s' next read delayed for %llu ms\n",
@@ -272,7 +272,7 @@ static ssize_t
 server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 {
   struct Session *s = cls;
-  struct Plugin *plugin = s->plugin;
+
   struct HTTP_Message *msg;
   int bytes_read = 0;
   //static int c = 0;
@@ -304,6 +304,7 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   }
 
 #if VERBOSE_CLIENT
+  struct Plugin *plugin = s->plugin;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Server: %X: sent %u bytes\n",
                    s, bytes_read);
@@ -324,6 +325,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                   const char *upload_data, size_t * upload_data_size,
                   void **httpSessionCache)
 {
+
   struct Plugin *plugin = cls;
   struct ServerConnection *sc = *httpSessionCache;
   struct Session *s = NULL;
@@ -477,7 +479,7 @@ create:
                         NULL);
 
     s->inbound = GNUNET_YES;
-    s->delay = GNUNET_TIME_absolute_get_zero();
+    s->next_receive = GNUNET_TIME_absolute_get_zero();
     s->tag= tag;
     if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
       s->server_recv = s;
@@ -563,7 +565,7 @@ found:
                    GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen), *upload_data_size);
 #endif
       struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
-      if (( s->delay.abs_value < now.abs_value))
+      if (( s->next_receive.abs_value <= now.abs_value))
       {
 #if VERBOSE_SERVER
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
@@ -575,19 +577,18 @@ found:
           s->msg_tk = GNUNET_SERVER_mst_create (&server_receive_mst_cb, s);
         }
         res = GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data, *upload_data_size, GNUNET_NO, GNUNET_NO);
+#if VERBOSE_SERVER
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "Server: Received %Zu bytes\n",
-                    *upload_data_size);
+                         "Server: Received %Zu bytes\n", *upload_data_size);
+#endif
         (*upload_data_size) = 0;
       }
       else
       {
-
 #if DEBUG_HTTP
        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Connection %X: no inbound bandwidth available! Next read was delayed by %llu ms\n", s, now.abs_value - s->delay.abs_value);
+                  "Server: %X no inbound bandwidth available! Next read was delayed by %llu ms\n", s, now.abs_value - s->next_receive.abs_value);
 #endif
-
       }
       return MHD_YES;
     }
