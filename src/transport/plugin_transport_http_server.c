@@ -512,7 +512,7 @@ found:
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Server: Setting Timeout to %u\n", to);
 #endif
-    MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
+//    MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
 
     (*httpSessionCache) = sc;
   }
@@ -636,7 +636,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     {
       tc = s->server_recv;
       tc->disconnect = GNUNET_YES;
-      MHD_set_connection_option (sc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, 1);
+//      MHD_set_connection_option (sc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, 1);
     }
   }
   if (sc->direction == _RECEIVE)
@@ -651,7 +651,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     {
       tc = s->server_send;
       tc->disconnect = GNUNET_YES;
-      MHD_set_connection_option (sc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, 1);
+//      MHD_set_connection_option (sc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, 1);
     }
     if (s->msg_tk != NULL)
     {
