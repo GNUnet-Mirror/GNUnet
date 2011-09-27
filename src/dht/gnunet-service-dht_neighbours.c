@@ -66,6 +66,11 @@
 #define FIND_PEER_REPLICATION_LEVEL 4
 
 /**
+ * Maximum allowed replication level for all requests.
+ */
+#define MAXIMUM_REPLICATION_LEVEL 16
+
+/**
  * How often to update our preference levels for peers in our routing tables.
  */
 #define DHT_DEFAULT_PREFERENCE_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
@@ -79,6 +84,11 @@
  * How long at most to wait before sending another find peer request.
  */
 #define DHT_MAXIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 8)
+
+/**
+ * How long at most to wait for transmission of a GET request to another peer?
+ */
+#define GET_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
 
 
 /**
@@ -548,9 +558,8 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   ret->distance = distance;
 #endif
   ret->id = *peer;
-  GNUNET_CONTAINER_DLL_insert_after (k_buckets[peer_bucket].head,
-                                     k_buckets[peer_bucket].tail,
-                                     k_buckets[peer_bucket].tail, ret);
+  GNUNET_CONTAINER_DLL_insert_tail (k_buckets[peer_bucket].head,
+				    k_buckets[peer_bucket].tail, ret);
   k_buckets[peer_bucket].peers_size++;
   closest_bucket = GNUNET_MAX (closest_bucket,
 			       peer_bucket);
@@ -723,7 +732,7 @@ get_forward_count (uint32_t hop_count,
     return 1;
   }
   /* bound by system-wide maximum */
-  target_replication = GNUNET_MIN (16 /* FIXME: use named constant */,
+  target_replication = GNUNET_MIN (MAXIMUM_REPLICATION_LEVEL,
 				   target_replication);
   target_value =
     1 + (target_replication - 1.0) / (GDS_NSE_get () +
@@ -1086,9 +1095,9 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
     pp = (struct GNUNET_PeerIdentity*) &ppm[1];
     memcpy (pp, put_path, sizeof (struct GNUNET_PeerIdentity) * put_path_length);
     memcpy (&pp[put_path_length], data, data_size);
-    GNUNET_CONTAINER_DLL_insert (target->head,
-				 target->tail,
-				 pending);
+    GNUNET_CONTAINER_DLL_insert_tail (target->head,
+				      target->tail,
+				      pending);
     target->pending_count++;
     process_peer_queue (target);
   }
@@ -1153,7 +1162,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
     target = targets[i];
     pending = GNUNET_malloc (sizeof (struct P2PPendingMessage) + msize); 
     pending->importance = 0; /* FIXME */
-    pending->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS); /* FIXME */
+    pending->timeout = GNUNET_TIME_relative_to_absolute (GET_TIMEOUT);
     pgm = (struct PeerGetMessage*) &pending[1];
     pending->msg = &pgm->header;
     pgm->header.size = htons (msize);
@@ -1175,9 +1184,9 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
 		   GNUNET_CONTAINER_bloomfilter_get_raw_data (reply_bf,
 							      &xq[xquery_size],
 							      reply_bf_size));
-    GNUNET_CONTAINER_DLL_insert (target->head,
-				 target->tail,
-				 pending);
+    GNUNET_CONTAINER_DLL_insert_tail (target->head,
+				      target->tail,
+				      pending);
     target->pending_count++;
     process_peer_queue (target);
   }
