@@ -67,13 +67,19 @@
 struct Plugin
 {
   /**
+   * General handles
+   * ---------------
+   */
+
+  /**
    * Our environment.
    */
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * List of open sessions.
+   * Linked list of open sessions.
    */
+
   struct Session *head;
 
   struct Session *tail;
@@ -83,71 +89,154 @@ struct Plugin
    */
   struct GNUNET_NAT_Handle *nat;
 
+  /**
+   * List of own addresses
+   */
 
   /**
-   * ipv4 DLL head
+   * IPv4 addresses DLL head
    */
   struct IPv4HttpAddressWrapper *ipv4_addr_head;
 
   /**
-   * ipv4 DLL tail
+   * IPv4 addresses DLL tail
    */
   struct IPv4HttpAddressWrapper *ipv4_addr_tail;
 
   /**
-   * ipv6 DLL head
+   * IPv6 addresses DLL head
    */
   struct IPv6HttpAddressWrapper *ipv6_addr_head;
 
   /**
-   * ipv6 DLL tail
+   * IPv6 addresses DLL tail
    */
   struct IPv6HttpAddressWrapper *ipv6_addr_tail;
 
-
-  /* Plugin configuration */
-
-  char *name;
-
-  char *protocol;
-
-  int ipv4;
-
-  int ipv6;
-
-  uint16_t port;
-
-  int max_connections;
-
-
-
-  /* Plugin values */
-
-
-  int cur_connections;
-  uint32_t last_tag;
-  /*
-   * Server handles
+  /**
+   * Plugin configuration
+   * --------------------
    */
 
-  struct MHD_Daemon *server_v4;
-  GNUNET_SCHEDULER_TaskIdentifier server_v4_task;
+  /**
+   * Plugin name
+   * Equals configuration section: transport-http, transport-https
+   */
+  char *name;
 
-  struct MHD_Daemon *server_v6;
-  GNUNET_SCHEDULER_TaskIdentifier server_v6_task;
+  /**
+   * Plugin protocol
+   * http, https
+   */
+  char *protocol;
 
-  struct sockaddr_in * server_addr_v4;
-  struct sockaddr_in6 * server_addr_v6;
+  /**
+   * Use IPv4?
+   * GNUNET_YES or GNUNET_NO
+   */
+  int ipv4;
 
+  /**
+   * Use IPv6?
+   * GNUNET_YES or GNUNET_NO
+   */
+  int ipv6;
+
+  /**
+   * Port used
+   */
+  uint16_t port;
+
+  /**
+   * Maximum number of sockets the plugin can use
+   * Each http inbound /outbound connections are two connections
+   */
+  int max_connections;
+
+  /**
+   * Plugin HTTPS SSL/TLS options
+   * ----------------------------
+   */
+
+  /**
+   * libCurl TLS crypto init string, can be set to enhance performance
+   *
+   * Example:
+   *
+   * Use RC4-128 instead of AES:
+   * NONE:+VERS-TLS1.0:+ARCFOUR-128:+SHA1:+RSA:+COMP-NULL
+   *
+   */
   char *crypto_init;
+
+  /**
+   * TLS key
+   */
   char *key;
+
+  /**
+   * TLS certificate
+   */
   char *cert;
 
+  /**
+   * Plugin values
+   * -------------
+   */
+
+  /**
+   * Current number of establishes connections
+   */
+  int cur_connections;
+
+  /**
+   * Last used unique HTTP connection tag
+   */
+  uint32_t last_tag;
+
+  /**
+   * Server handles
+   * --------------
+   */
+
+  /**
+   * MHD IPv4 daemon
+   */
+  struct MHD_Daemon *server_v4;
+
+  /**
+   * MHD IPv4 task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier server_v4_task;
+
+  /**
+   * MHD IPv6 daemon
+   */
+  struct MHD_Daemon *server_v6;
+
+  /**
+   * MHD IPv4 task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier server_v6_task;
+
+  /**
+   * IPv4 server socket to bind to
+   */
+  struct sockaddr_in * server_addr_v4;
+
+  /**
+   * IPv6 server socket to bind to
+   */
+  struct sockaddr_in6 * server_addr_v6;
+
+  /**
+   * Server semi connections
+   * A full session consists of 2 semi-connections: send and receive
+   * If not both directions are established the server keeps this sessions here
+   */
   struct Session *server_semi_head;
 
   struct Session *server_semi_tail;
-
-
 
   /*
    * Client handles
@@ -158,6 +247,9 @@ struct Plugin
    */
   CURLM *client_mh;
 
+  /**
+   * curl perform task
+   */
   GNUNET_SCHEDULER_TaskIdentifier client_perform_task;
 
 };
@@ -184,6 +276,21 @@ struct Session
   struct Plugin *plugin;
 
   /**
+   * Address
+   */
+  void *addr;
+
+  /**
+   * Address length
+   */
+  size_t addrlen;
+
+  /**
+   * To whom are we talking to
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
    * next pointer for double linked list
    */
   struct HTTP_Message *msg_head;
@@ -195,63 +302,66 @@ struct Session
 
 
   /**
-   * message stream tokenizer for incoming data
+   * Message stream tokenizer for incoming data
    */
   struct GNUNET_SERVER_MessageStreamTokenizer *msg_tk;
 
   /**
-   * Continuation function to call once the transmission buffer
-   * has again space available.  NULL if there is no
-   * continuation to call.
+   * Absolute time when to receive data again
+   * Used for receive throttling
    */
-  GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
-
-
-  void *addr;
-
-  size_t addrlen;
+  struct GNUNET_TIME_Absolute next_receive;
 
   /**
-   * Closure for transmit_cont.
+   * Inbound or outbound connection
+   * Outbound: GNUNET_NO (client is used to send and receive)
+   * Inbound : GNUNET_YES (server is used to send and receive)
    */
-  void *transmit_cont_cls;
-
-  /**
-   * To whom are we talking to (set to our identity
-   * if we are still waiting for the welcome message)
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
-   * At what time did we reset last_received last?
-   */
-  //struct GNUNET_TIME_Absolute last_quota_update;
-
-  /**
-   * How many bytes have we received since the "last_quota_update"
-   * timestamp?
-   */
-  //uint64_t last_received;
-
-  /**
-   * Number of bytes per ms that this peer is allowed
-   * to send to us.
-   */
-  //uint32_t quota;
-
-
   int inbound;
 
-  void *client_put;
-  void *client_get;
-  int client_put_paused;
-
-  void *server_recv;
-  void *server_send;
-  struct GNUNET_TIME_Absolute next_receive;
-  GNUNET_SCHEDULER_TaskIdentifier recv_wakeup_task;
+  /**
+   * Unique HTTP/S connection tag for this connection
+   */
   uint32_t tag;
 
+  /**
+   * Client handles
+   */
+
+  /**
+   * Client send handle
+   */
+  void *client_put;
+
+  /**
+   * Client receive handle
+   */
+  void *client_get;
+
+  /**
+   * Task to wake up client receive handle when receiving is allowed again
+   */
+  GNUNET_SCHEDULER_TaskIdentifier recv_wakeup_task;
+
+  /**
+   * Is client send handle paused since there are no data to send?
+   * GNUNET_YES/NO
+   */
+  int client_put_paused;
+
+  /**
+   * Server handles
+   */
+
+  /**
+   * Client send handle
+   */
+  void *server_recv;
+
+  /**
+   * Client send handle
+   */
+  void *server_send;
 };
 
 /**
