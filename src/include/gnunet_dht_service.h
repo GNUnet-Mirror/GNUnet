@@ -46,10 +46,10 @@ extern "C"
 #define GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 60)
 
 /**
- * K-value that must be used for the bloom filter 'GET'
+ * K-value that must be used for the bloom filters in 'GET'
  * queries.
  */
-#define GNUNET_DHT_GET_BLOOMFILTER_K 16
+#define GNUNET_DHT_GET_BLOOMFILTER_K GNUNET_CONSTANTS_BLOOMFILTER_K
 
 /**
  * Non-intelligent default DHT GET replication.

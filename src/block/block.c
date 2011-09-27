@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_constants.h"
 #include "gnunet_signatures.h"
 #include "gnunet_block_lib.h"
 #include "gnunet_block_plugin.h"
@@ -249,6 +250,35 @@ GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
 }
 
 
+/**
+ * How many bytes should a bloomfilter be if we have already seen
+ * entry_count responses?  Note that GNUNET_CONSTANTS_BLOOMFILTER_K gives us the number
+ * of bits set per entry.  Furthermore, we should not re-size the
+ * filter too often (to keep it cheap).
+ *
+ * Since other peers will also add entries but not resize the filter,
+ * we should generally pick a slightly larger size than what the
+ * strict math would suggest.
+ *
+ * @return must be a power of two and smaller or equal to 2^15.
+ */
+static size_t
+compute_bloomfilter_size (unsigned int entry_count)
+{
+  size_t size;
+  unsigned int ideal = (entry_count * GNUNET_CONSTANTS_BLOOMFILTER_K) / 4;
+  uint16_t max = 1 << 15;
+
+  if (entry_count > max)
+    return max;
+  size = 8;
+  while ((size < max) && (size < ideal))
+    size *= 2;
+  if (size > max)
+    return max;
+  return size;
+}
+
 
 /**
  * Construct a bloom filter that would filter out the given
@@ -265,8 +295,19 @@ GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
 				    const GNUNET_HashCode *seen_results,
 				    unsigned int seen_results_count)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct GNUNET_CONTAINER_BloomFilter *bf;
+  GNUNET_HashCode mhash;
+  unsigned int i;
+  size_t nsize;
+
+  nsize = compute_bloomfilter_size (seen_results_count);
+  bf = GNUNET_CONTAINER_bloomfilter_init (NULL, nsize, GNUNET_CONSTANTS_BLOOMFILTER_K);
+  for (i = 0; i < seen_results_count; i++)
+  {
+    GNUNET_BLOCK_mingle_hash (&seen_results[i], bf_mutator, &mhash);
+    GNUNET_CONTAINER_bloomfilter_add (bf, &mhash);
+  }
+  return bf;
 }
 
 

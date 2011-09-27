@@ -128,6 +128,13 @@ extern "C"
 #define GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE (63 * 1024)
 
 
+/**
+ * K-value that must be used for the bloom filters in 'GET'
+ * queries.
+ */
+#define GNUNET_CONSTANTS_BLOOMFILTER_K 16
+
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

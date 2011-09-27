@@ -625,16 +625,51 @@ extern "C"
  ******************************************************************************/
 
 /**
+ * Client wants to store item in DHT.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT 142
+
+/**
+ * Client wants to lookup item in DHT.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET 143
+
+/**
+ * Client wants to stop search in DHT.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_STOP 144
+
+/**
+ * Service returns result to client.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT 145
+
+/**
+ * Peer is storing data in DHT.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_PUT 146
+
+/**
+ * Peer tries to find data in DHT.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_GET 147
+
+/**
+ * Data is returned to peer from DHT.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT 148
+
+// LEGACY types follow (pre3)......
+
+/**
  * Local DHT route request type
  */
 #define GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE 142
-#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET 142
 
 /**
  * Local generic DHT route result type
  */
 #define GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT 143
-#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT 142
 
 /**
  * P2P DHT route request type
@@ -650,14 +685,12 @@ extern "C"
  * Local generic DHT message stop type
  */
 #define GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_STOP 146
-#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_STOP 146
 
 /**
  * Local and P2P DHT PUT message
  * (encapsulated in DHT_ROUTE message)
  */
 #define GNUNET_MESSAGE_TYPE_DHT_PUT 147
-#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT 147
 
 /**
  * Local and P2P DHT GET message

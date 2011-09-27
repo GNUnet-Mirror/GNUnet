@@ -188,35 +188,6 @@ static struct GNUNET_CONTAINER_Heap *requests_by_expiration_heap;
 static unsigned long long max_pending_requests = (32 * 1024);
 
 
-/**
- * How many bytes should a bloomfilter be if we have already seen
- * entry_count responses?  Note that BLOOMFILTER_K gives us the number
- * of bits set per entry.  Furthermore, we should not re-size the
- * filter too often (to keep it cheap).
- *
- * Since other peers will also add entries but not resize the filter,
- * we should generally pick a slightly larger size than what the
- * strict math would suggest.
- *
- * @return must be a power of two and smaller or equal to 2^15.
- */
-static size_t
-compute_bloomfilter_size (unsigned int entry_count)
-{
-  size_t size;
-  unsigned int ideal = (entry_count * BLOOMFILTER_K) / 4;
-  uint16_t max = 1 << 15;
-
-  if (entry_count > max)
-    return max;
-  size = 8;
-  while ((size < max) && (size < ideal))
-    size *= 2;
-  if (size > max)
-    return max;
-  return size;
-}
-
 
 /**
  * Recalculate our bloom filter for filtering replies.  This function
@@ -226,30 +197,17 @@ compute_bloomfilter_size (unsigned int entry_count)
  * initiator (in which case we may resize to larger than mimimum size).
  *
  * @param pr request for which the BF is to be recomputed
- * @return GNUNET_YES if a refresh actually happened
  */
-static int
+static void
 refresh_bloomfilter (struct GSF_PendingRequest *pr)
 {
-  unsigned int i;
-  size_t nsize;
-  GNUNET_HashCode mhash;
-
-  nsize = compute_bloomfilter_size (pr->replies_seen_count);
-  if ((pr->bf != NULL) &&
-      (nsize == GNUNET_CONTAINER_bloomfilter_get_size (pr->bf)))
-    return GNUNET_NO;           /* size not changed */
   if (pr->bf != NULL)
     GNUNET_CONTAINER_bloomfilter_free (pr->bf);
   pr->mingle =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
-  pr->bf = GNUNET_CONTAINER_bloomfilter_init (NULL, nsize, BLOOMFILTER_K);
-  for (i = 0; i < pr->replies_seen_count; i++)
-  {
-    GNUNET_BLOCK_mingle_hash (&pr->replies_seen[i], pr->mingle, &mhash);
-    GNUNET_CONTAINER_bloomfilter_add (pr->bf, &mhash);
-  }
-  return GNUNET_YES;
+    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+  pr->bf = GNUNET_BLOCK_construct_bloomfilter (pr->mingle,
+					       pr->replies_seen,
+					       pr->replies_seen_count);
 }
 
 
@@ -346,13 +304,13 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   if (NULL != bf_data)
   {
     pr->bf =
-        GNUNET_CONTAINER_bloomfilter_init (bf_data, bf_size, BLOOMFILTER_K);
+        GNUNET_CONTAINER_bloomfilter_init (bf_data, bf_size, GNUNET_CONSTANTS_BLOOMFILTER_K);
     pr->mingle = mingle;
   }
   else if ((replies_seen_count > 0) &&
            (0 != (options & GSF_PRO_BLOOMFILTER_FULL_REFRESH)))
   {
-    GNUNET_assert (GNUNET_YES == refresh_bloomfilter (pr));
+    refresh_bloomfilter (pr);
   }
   GNUNET_CONTAINER_multihashmap_put (pr_map, query, pr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -449,15 +407,7 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
     memcpy (&pr->replies_seen[pr->replies_seen_count], replies_seen,
             sizeof (GNUNET_HashCode) * replies_seen_count);
     pr->replies_seen_count += replies_seen_count;
-    if (GNUNET_NO == refresh_bloomfilter (pr))
-    {
-      /* bf not recalculated, simply extend it with new bits */
-      for (i = 0; i < replies_seen_count; i++)
-      {
-        GNUNET_BLOCK_mingle_hash (&replies_seen[i], pr->mingle, &mhash);
-        GNUNET_CONTAINER_bloomfilter_add (pr->bf, &mhash);
-      }
-    }
+    refresh_bloomfilter (pr);
   }
   else
   {
@@ -468,15 +418,17 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
       pr->mingle =
           GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
       pr->bf =
-          GNUNET_CONTAINER_bloomfilter_init (NULL,
-                                             compute_bloomfilter_size
-                                             (replies_seen_count),
-                                             BLOOMFILTER_K);
-    }
-    for (i = 0; i < pr->replies_seen_count; i++)
+	GNUNET_BLOCK_construct_bloomfilter (pr->mingle,
+					    replies_seen,
+					    replies_seen_count);
+    } 
+    else
     {
-      GNUNET_BLOCK_mingle_hash (&replies_seen[i], pr->mingle, &mhash);
-      GNUNET_CONTAINER_bloomfilter_add (pr->bf, &mhash);
+      for (i = 0; i < pr->replies_seen_count; i++)
+	{
+	  GNUNET_BLOCK_mingle_hash (&replies_seen[i], pr->mingle, &mhash);
+	  GNUNET_CONTAINER_bloomfilter_add (pr->bf, &mhash);
+	}
     }
   }
 }

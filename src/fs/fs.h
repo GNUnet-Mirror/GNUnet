@@ -132,12 +132,6 @@
 #define HASHING_BLOCKSIZE (1024 * 128)
 
 /**
- * Number of bits we set per entry in the bloomfilter.
- * Do not change!
- */
-#define BLOOMFILTER_K GNUNET_DHT_GET_BLOOMFILTER_K
-
-/**
  * Number of availability trials we perform per search result.
  */
 #define AVAILABILITY_TRIALS_MAX 8
