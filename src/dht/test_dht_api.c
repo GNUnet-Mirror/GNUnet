@@ -197,7 +197,7 @@ test_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-void
+static void
 test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *peer = cls;
@@ -234,7 +234,7 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-void
+static void
 test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *peer = cls;

@@ -305,7 +305,7 @@ transmit_request (struct ClientQueryRecord *cqr)
   struct GNUNET_CONTAINER_BloomFilter *reply_bf;
 
   GNUNET_STATISTICS_update (GDS_stats,
-                            gettext_noop ("# GET requests from clients injected into P2P network"), 1,
+                            gettext_noop ("# GET requests from clients injected"), 1,
                             GNUNET_NO);
   reply_bf_mutator = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 							 UINT32_MAX);

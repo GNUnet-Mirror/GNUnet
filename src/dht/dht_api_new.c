@@ -135,7 +135,7 @@ struct GNUNET_DHT_GetHandle
   /**
    * Unique identifier for this request (for key collisions).
    */
-  uint64_t uid;
+  uint64_t unique_id;
 
 };
 
@@ -420,7 +420,7 @@ static int
 process_reply (void *cls, const GNUNET_HashCode * key, void *value)
 {
   const struct GNUNET_DHT_ClientResultMessage *dht_msg = cls;
-  struct GNUNET_DHT_GetHandle *rh = value;
+  struct GNUNET_DHT_GetHandle *get_handle = value;
   const struct GNUNET_PeerIdentity *put_path;
   const struct GNUNET_PeerIdentity *get_path;
   uint32_t put_path_length;
@@ -430,9 +430,13 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   size_t meta_length;
   const void *data;
 
-  if (dht_msg->unique_id != rh->uid)
+  if (dht_msg->unique_id != get_handle->unique_id)
   {
     /* UID mismatch */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Ignoring reply (UID mismatch: %llu/%llu)\n",
+		dht_msg->unique_id,
+		get_handle->unique_id);  
     return GNUNET_YES;
   }
   msize = ntohs (dht_msg->header.size);
@@ -451,13 +455,13 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   put_path = (const struct GNUNET_PeerIdentity *) &dht_msg[1];
   get_path = &put_path[put_path_length];
   data = &get_path[get_path_length];
-  rh->iter (rh->iter_cls,
-	    GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
-	    key,
-	    get_path, get_path_length,
-	    put_path, put_path_length,
-	    ntohl (dht_msg->type),
-	    data_length, data);
+  get_handle->iter (get_handle->iter_cls,
+		    GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
+		    key,
+		    get_path, get_path_length,
+		    put_path, put_path_length,
+		    ntohl (dht_msg->type),
+		    data_length, data);
   return GNUNET_YES;
 }
 
@@ -494,6 +498,8 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     do_disconnect (handle);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received reply from DHT service\n");  
   dht_msg = (const struct GNUNET_DHT_ClientResultMessage *) msg;
   GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
                                               &dht_msg->key, &process_reply,
@@ -717,6 +723,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   get_handle->iter = iter;
   get_handle->iter_cls = iter_cls;
   get_handle->message = pending;  
+  get_handle->unique_id = get_msg->unique_id;
   GNUNET_CONTAINER_multihashmap_put (handle->active_requests,
 				     key, get_handle,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
