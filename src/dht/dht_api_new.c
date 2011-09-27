@@ -735,10 +735,28 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
 {
   struct GNUNET_DHT_Handle *handle;
   const struct GNUNET_DHT_ClientGetMessage *get_msg;
+  struct GNUNET_DHT_ClientGetStopMessage *stop_msg;
+  struct PendingMessage *pending;
 
-  /* FIXME: send STOP to service! */
   handle = get_handle->message->handle;
   get_msg = (const struct GNUNET_DHT_ClientGetMessage*) get_handle->message->msg;
+
+  /* generate STOP */
+  pending = GNUNET_malloc (sizeof (struct PendingMessage) + sizeof (struct GNUNET_DHT_ClientGetStopMessage));
+  stop_msg = (struct GNUNET_DHT_ClientGetStopMessage *) &pending[1];
+  pending->msg = &stop_msg->header;
+  pending->handle = handle;
+  pending->free_on_send = GNUNET_YES;
+  stop_msg->header.size = htons (sizeof (struct GNUNET_DHT_ClientGetStopMessage));
+  stop_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_STOP);
+  stop_msg->reserved = htonl (0);
+  stop_msg->unique_id = get_msg->unique_id;
+  stop_msg->key = get_msg->key;
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                               pending);
+  pending->in_pending_queue = GNUNET_YES;
+
+  /* remove 'GET' from active status */
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (handle->active_requests,
 						       &get_msg->key, get_handle));
@@ -751,6 +769,8 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
     }
   GNUNET_free (get_handle->message);
   GNUNET_free (get_handle);
+
+  process_pending_messages (handle);
 }
 
 
