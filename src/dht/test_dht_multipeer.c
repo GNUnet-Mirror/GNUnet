@@ -397,8 +397,10 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
-                     const struct GNUNET_PeerIdentity *const *get_path,
-                     const struct GNUNET_PeerIdentity *const *put_path,
+                     const struct GNUNET_PeerIdentity *get_path,
+		     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+		     unsigned int put_path_length,
                      enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
   struct TestGetContext *test_get = cls;
@@ -416,15 +418,15 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   if (put_path != NULL)
   {
     fprintf (stderr, "PUT Path: ");
-    for (i = 0; put_path[i] != NULL; i++)
-      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (put_path[i]));
+    for (i = 0; i<put_path_length; i++)
+      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&put_path[i]));
     fprintf (stderr, "\n");
   }
   if (get_path != NULL)
   {
     fprintf (stderr, "GET Path: ");
-    for (i = 0; get_path[i] != NULL; i++)
-      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (get_path[i]));
+    for (i = 0; i < get_path_length; i++)
+      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&get_path[i]));
     fprintf (stderr, "\n");
   }
 #endif
@@ -476,8 +478,8 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   test_get->get_handle =
       GNUNET_DHT_get_start (test_get->dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
                             GNUNET_BLOCK_TYPE_TEST, &key,
-                            DEFAULT_GET_REPLICATION, route_option, NULL, 0,
-                            NULL, 0, &get_result_iterator, test_get);
+                            1, route_option, NULL, 0,
+                            &get_result_iterator, test_get);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting get for uid %u from peer %s\n",
               test_get->uid, test_get->daemon->shortname);
@@ -542,7 +544,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (test_put->dht_handle != NULL);
   outstanding_puts++;
-  GNUNET_DHT_put (test_put->dht_handle, &key, DEFAULT_PUT_REPLICATION,
+  GNUNET_DHT_put (test_put->dht_handle, &key, 1,
                   route_option, GNUNET_BLOCK_TYPE_TEST, sizeof (data), data,
                   GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_REL,
                   &put_finished, test_put);
