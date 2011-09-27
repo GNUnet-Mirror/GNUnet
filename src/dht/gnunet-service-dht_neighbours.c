@@ -1763,6 +1763,8 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
   data = (const void*) &get_path[get_path_length];
   data_size = msize - (sizeof (struct PeerResultMessage) + 
 		       (get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity));
+
+  /* if we got a HELLO, consider it for our own routing table */
   if (type == GNUNET_BLOCK_TYPE_DHT_HELLO)
   {
     const struct GNUNET_MessageHeader *h;
@@ -1850,7 +1852,11 @@ process_hello (void *cls,
 	       const struct GNUNET_HELLO_Message *
 	       hello, const char *err_msg)
 {
-  // FIXME: track HELLOs, possibly ask core to establish connections
+  // FIXME: consider moving HELLO processing to another file!
+  // FIXME: first, filter HELLOs without addresses (!)
+  // FIXME: track HELLOs (for responding to FIND PEER requests)
+  // FIXME: add code to possibly ask core to establish connections
+  //        (using our own peerinfo is better than using FIND PEER!)
 }
 
 

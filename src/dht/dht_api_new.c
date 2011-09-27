@@ -137,7 +137,7 @@ struct GNUNET_DHT_RouteHandle
   GNUNET_HashCode key;
 
   /**
-   * Unique identifier for this request (for key collisions). FIXME: redundant!?
+   * Unique identifier for this request (for key collisions).
    */
   uint64_t uid;
 
