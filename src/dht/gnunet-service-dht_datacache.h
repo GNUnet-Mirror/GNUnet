@@ -27,6 +27,9 @@
 #ifndef GNUNET_SERVICE_DHT_DATACACHE_H
 #define GNUNET_SERVICE_DHT_DATACACHE_H
 
+#include "gnunet_util_lib.h"
+#include "gnunet_block_lib.h"
+
 /**
  * Handle a datum we've received from another peer.  Cache if
  * possible.

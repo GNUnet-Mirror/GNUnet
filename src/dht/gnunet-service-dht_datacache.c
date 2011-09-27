@@ -24,7 +24,12 @@
  * @author Christian Grothoff
  * @author Nathan Evans
  */
+#include "platform.h"
+#include "gnunet_datacache_lib.h"
+#include "gnunet-service-dht_clients.h"
 #include "gnunet-service-dht_datacache.h"
+#include "gnunet-service-dht_routing.h"
+#include "gnunet-service-dht.h"
 
 
 /**
@@ -80,7 +85,6 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   char buf[plen];
   struct DHTPutEntry *pe;
   struct GNUNET_PeerIdentity *pp;
-  char *path_offset;
 
   if (datacache == NULL)
     {
@@ -162,32 +166,32 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   struct GetRequestContext *ctx = cls;
   const struct DHTPutEntry *pe;
   const struct GNUNET_PeerIdentity *pp;
-  const char *data;
-  size_t data_size;
+  const char *rdata;
+  size_t rdata_size;
   uint16_t put_path_length;
   enum GNUNET_BLOCK_EvaluationResult eval;
 
   pe = (const struct DHTPutEntry *) data;
   put_path_length = ntohs (pe->path_length);
-  data_size = ntohs (pe->data_size);
+  rdata_size = ntohs (pe->data_size);
 
   if (size !=
-      sizeof (struct DHTPutEntry) + data_size +
+      sizeof (struct DHTPutEntry) + rdata_size +
       (put_path_length * sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
     return GNUNET_OK;
   }
   pp = (const struct GNUNET_PeerIdentity *) &pe[1];
-  data = (const char*) &pp[put_path_length];
+  rdata = (const char*) &pp[put_path_length];
   eval =
-      GNUNET_BLOCK_evaluate (block_context, type, key, 
+      GNUNET_BLOCK_evaluate (GDS_block_context, type, key, 
 			     ctx->reply_bf,
                              ctx->reply_bf_mutator,
 			     ctx->xquery,
                              ctx->xquery_size, 
-			     data,
-                             data_size);
+			     rdata,
+                             rdata_size);
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_LAST:
@@ -197,11 +201,11 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 			     key,
 			     0, NULL,
 			     put_path_length, pp,
-			     type, data_size, data);
+			     type, rdata_size, rdata);
     /* forward to other peers */
-    GDS_NEIGHBOURS_handle_reply (type, exp,
-				 key, put_path_length, pp, 
-				 0, NULL, data, data_size);
+    GDS_ROUTING_process (type, exp,
+			 key, put_path_length, pp, 
+			 0, NULL, rdata, rdata_size);
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
     break;
@@ -221,39 +225,6 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   }
   return GNUNET_OK;
 }
-
-
-/**
- * Context containing information about a GET request.
- */
-struct GetRequestContext
-{
-  /**
-   * extended query (see gnunet_block_lib.h).
-   */
-  const void *xquery;
-
-  /**
-   * Bloomfilter to filter out duplicate replies (updated)
-   */
-  struct GNUNET_CONTAINER_BloomFilter **reply_bf;
-
-  /**
-   * The key this request was about
-   */
-  GNUNET_HashCode key;
-
-  /**
-   * Number of bytes in xquery.
-   */
-  size_t xquery_size;
-
-  /**
-   * Mutator value for the reply_bf, see gnunet_block_lib.h
-   */
-  uint32_t reply_bf_mutator;
-
-};
 
 
 /**
@@ -283,7 +254,7 @@ GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
   ctx.xquery_size = xquery_size;
   ctx.reply_bf = reply_bf;
   ctx.reply_bf_mutator = reply_bf_mutator;
-  (void) GNUNET_DATACACHE_get (datacache, &msg_ctx->key, type,
+  (void) GNUNET_DATACACHE_get (datacache, key, type,
 			       &datacache_get_iterator, &ctx);
 }
 
@@ -294,7 +265,7 @@ GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
 void 
 GDS_DATACACHE_init ()
 {
-  datacache = GNUNET_DATACACHE_create (cfg, "dhtcache");
+  datacache = GNUNET_DATACACHE_create (GDS_cfg, "dhtcache");
 }
 
 

@@ -79,7 +79,7 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
  * @param xquery_size number of bytes in xquery
  * @param reply_bf bloomfilter to filter duplicates
  * @param reply_bf_mutator mutator for reply_bf
- * @param peer_bf filter for peers not to select (again)
+ * @param peer_bf filter for peers not to select (again, updated)
  */
 void
 GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
@@ -91,7 +91,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
 			   size_t xquery_size,
 			   const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
 			   uint32_t reply_bf_mutator,
-			   const struct GNUNET_CONTAINER_BloomFilter *peer_bf);
+			   struct GNUNET_CONTAINER_BloomFilter *peer_bf);
 
 
 /**
@@ -116,9 +116,9 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
 			     struct GNUNET_TIME_Absolute expiration_time,
 			     const GNUNET_HashCode *key,
 			     unsigned int put_path_length,
-			     struct GNUNET_PeerIdentity *put_path,
+			     const struct GNUNET_PeerIdentity *put_path,
 			     unsigned int get_path_length,
-			     struct GNUNET_PeerIdentity *get_path,
+			     const struct GNUNET_PeerIdentity *get_path,
 			     const void *data,
 			     size_t data_size);
 

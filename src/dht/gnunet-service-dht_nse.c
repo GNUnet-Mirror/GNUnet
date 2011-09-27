@@ -59,6 +59,11 @@ update_network_size_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
 }
 
 
+/**
+ * Return the log of the current network size estimate.
+ *
+ * @return log of NSE
+ */
 double
 GDS_NSE_get ()
 {
@@ -66,6 +71,9 @@ GDS_NSE_get ()
 }
 
 
+/**
+ * Initialize NSE subsystem.
+ */
 void
 GDS_NSE_init ()
 {
@@ -73,6 +81,9 @@ GDS_NSE_init ()
 }
 
 
+/**
+ * Shutdown NSE subsystem.
+ */
 void
 GDS_NSE_done ()
 {  

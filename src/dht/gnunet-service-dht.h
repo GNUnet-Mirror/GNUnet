@@ -46,11 +46,6 @@ extern struct GNUNET_BLOCK_Context *GDS_block_context;
 extern struct GNUNET_STATISTICS_Handle *GDS_stats;
 
 /**
- * The identity of our peer.
- */
-extern struct GNUNET_PeerIdentity GDS_my_identity;
-
-/**
  * Our HELLO
  */
 extern struct GNUNET_MessageHeader *GDS_my_hello;

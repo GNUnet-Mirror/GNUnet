@@ -23,8 +23,10 @@
  * @brief GNUnet DHT tracking of requests for routing replies
  * @author Christian Grothoff
  */
-
+#include "platform.h"
+#include "gnunet-service-dht_neighbours.h"
 #include "gnunet-service-dht_routing.h"
+#include "gnunet-service-dht.h"
 
 
 /**
@@ -118,7 +120,7 @@ struct ProcessContext
   /**
    * Expiration time of the result.
    */
-  GNUNET_TIME_Absolute expiration_time;
+  struct GNUNET_TIME_Absolute expiration_time;
 
   /**
    * Number of entries in 'put_path'.
@@ -164,7 +166,7 @@ process (void *cls,
   if ( (rr->type != GNUNET_BLOCK_TYPE_ANY) &&
        (rr->type != pc->type) )
     return GNUNET_OK; /* type missmatch */
-  eval = GNUNET_BLOCK_evaluate (block_context,
+  eval = GNUNET_BLOCK_evaluate (GDS_block_context,
 				pc->type,
 				key,
 				&rr->reply_bf,
@@ -177,7 +179,7 @@ process (void *cls,
   {
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
   case GNUNET_BLOCK_EVALUATION_OK_LAST:
-    GDS_NEIGHBOURS_handle_reply (&rr->target,
+    GDS_NEIGHBOURS_handle_reply (&rr->peer,
 				 pc->type,
 				 pc->expiration_time,
 				 key,
@@ -194,7 +196,7 @@ process (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
-  case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
+  case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
     GNUNET_break (0);
     return GNUNET_OK;
   case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
@@ -226,7 +228,7 @@ process (void *cls,
  */
 void
 GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
-		     GNUNET_TIME_Absolute expiration_time,
+		     struct GNUNET_TIME_Absolute expiration_time,
 		     const GNUNET_HashCode *key,
 		     unsigned int put_path_length,
 		     const struct GNUNET_PeerIdentity *put_path,
@@ -245,10 +247,10 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
   pc.get_path = get_path;
   pc.data = data;
   pc.data_size = data_size;
-  GNUNET_CONTAINER_multihashmap_iterate (recent_map,
-					 key,
-					 &process,
-					 &pc);
+  GNUNET_CONTAINER_multihashmap_get_multiple (recent_map,
+					      key,
+					      &process,
+					      &pc);
 }
 
 
@@ -264,7 +266,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
  * @param reply_bf_mutator mutator for reply_bf
 */
 void
-GDS_ROUTING_add (const GNUNET_PeerIdentity *sender,
+GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
 		 enum GNUNET_BLOCK_Type type,
 		 const GNUNET_HashCode *key,
 		 const void *xquery,
@@ -279,7 +281,7 @@ GDS_ROUTING_add (const GNUNET_PeerIdentity *sender,
     recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
     GNUNET_assert (recent_req != NULL);
     GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);
-    GNUNET_CONTAINER_bloomfilter_free (recent_req->bloom);
+    GNUNET_CONTAINER_bloomfilter_free (recent_req->reply_bf);
     GNUNET_free (recent_req);
   }
 
@@ -313,7 +315,7 @@ GDS_ROUTING_init ()
   recent_heap =
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   recent_map =
-      GNUNET_CONTAINER_multihashmap_create (MAX_BUCKETS / 8);
+      GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT * 4 / 3);
 }
 
 
@@ -330,10 +332,10 @@ GDS_ROUTING_done ()
     recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
     GNUNET_assert (recent_req != NULL);
     GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);
-    GNUNET_CONTAINER_bloomfilter_free (recent_req->bloom);
+    GNUNET_CONTAINER_bloomfilter_free (recent_req->reply_bf);
     GNUNET_free (recent_req);
   }
-  GNUNET_assert (0 == GNUNET_CONTAINER_heap_size (recent_heap));
+  GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (recent_heap));
   GNUNET_CONTAINER_heap_destroy (recent_heap);
   recent_heap = NULL;
   GNUNET_CONTAINER_multihashmap_destroy (recent_map);
