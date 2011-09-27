@@ -27,6 +27,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_constants.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_block_plugin.h"
 
@@ -56,18 +57,40 @@ block_plugin_dht_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                            size_t xquery_size, const void *reply_block,
                            size_t reply_block_size)
 {
-  switch (type)
-  {
-  case GNUNET_BLOCK_TYPE_DHT_HELLO:
-    if (xquery_size != 0)
-      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-    if (reply_block_size == 0)
-      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    GNUNET_break (NULL == *bf);
-    return GNUNET_BLOCK_EVALUATION_OK_LAST;
-  default:
+  GNUNET_HashCode mhash;
+  const struct GNUNET_HELLO_Message *hello;
+  struct GNUNET_PeerIdentity pid;
+  const struct GNUNET_MessageHeader *msg;
+
+  if (type != GNUNET_BLOCK_TYPE_DHT_HELLO)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  }
+  if (xquery_size != 0)
+    return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+  if (reply_block_size == 0)
+    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+  if (reply_block_size < sizeof (struct GNUNET_MessageHeader))
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  msg = reply_block;
+  if (reply_block_size != ntohs (msg->size))
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  hello = reply_block;
+  if (GNUNET_OK != GNUNET_HELLO_get_id (hello, &pid))
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  if (NULL != bf)
+    {
+      GNUNET_BLOCK_mingle_hash (&pid.hashPubKey, bf_mutator, &mhash);
+      if (NULL != *bf)
+	{
+	  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+	    return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+	}
+      else
+	{
+	  *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, GNUNET_CONSTANTS_BLOOMFILTER_K);
+	}
+      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
+    }
+  return GNUNET_BLOCK_EVALUATION_OK_MORE;
 }
 
 
