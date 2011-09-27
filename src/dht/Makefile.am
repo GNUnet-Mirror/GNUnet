@@ -239,7 +239,7 @@ test_dht_twopeer_get_put_SOURCES = \
 test_dht_twopeer_get_put_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/dht/libgnunetdht.la   
+ $(top_builddir)/src/dht/libgnunetdhtnew.la   
 
 test_dht_twopeer_path_tracking_SOURCES = \
  test_dht_twopeer_path_tracking.c

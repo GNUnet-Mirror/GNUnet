@@ -1288,7 +1288,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
 				   desired_replication_level,
 				   &targets);
   if (0 == target_count)
-    return;  
+    return;
   reply_bf_size = GNUNET_CONTAINER_bloomfilter_get_size (reply_bf);
   msize = xquery_size + sizeof (struct PeerGetMessage) + reply_bf_size;
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -1843,22 +1843,20 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break_op (0);
       return GNUNET_YES;
     }
-    if (0 == memcmp (&my_identity, &pid, sizeof (struct GNUNET_PeerIdentity)))
+    if (0 != memcmp (&my_identity, &pid, sizeof (struct GNUNET_PeerIdentity)))
     {
-      /* got my own HELLO */
-      return GNUNET_YES;
+      bucket = find_bucket (&pid.hashPubKey);
+      if ( (bucket >= 0) &&
+	   (k_buckets[bucket].peers_size < bucket_size) )
+	{    
+	  if (NULL != GDS_transport_handle)
+	    GNUNET_TRANSPORT_offer_hello (GDS_transport_handle,
+					  h, NULL, NULL);
+	  (void) GNUNET_CORE_peer_request_connect (coreAPI,
+						   &pid, 
+						   NULL, NULL);
+	}   
     }
-    bucket = find_bucket (&pid.hashPubKey);
-    if ( (bucket >= 0) &&
-	 (k_buckets[bucket].peers_size < bucket_size) )
-    {    
-      if (NULL != GDS_transport_handle)
-	GNUNET_TRANSPORT_offer_hello (GDS_transport_handle,
-				      h, NULL, NULL);
-      (void) GNUNET_CORE_peer_request_connect (coreAPI,
-					       &pid, 
-					       NULL, NULL);
-    }   
   }
 
   /* append 'peer' to 'get_path' */

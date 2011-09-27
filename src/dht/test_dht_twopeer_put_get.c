@@ -44,7 +44,7 @@
 #include "gnunet_signatures.h"
 
 /* DEFINES */
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
@@ -254,10 +254,10 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
   global_get_handle =
-      GNUNET_DHT_get_start (peer2dht, GNUNET_TIME_relative_get_forever (),
-                            GNUNET_BLOCK_TYPE_TEST,
-                            &key, 1, GNUNET_DHT_RO_NONE,
-                            NULL, 0, &get_result_iterator, NULL);
+    GNUNET_DHT_get_start (peer2dht, GNUNET_TIME_UNIT_FOREVER_REL,
+			  GNUNET_BLOCK_TYPE_TEST,
+			  &key, 1, GNUNET_DHT_RO_NONE,
+			  NULL, 0, &get_result_iterator, NULL);
 }
 
 
