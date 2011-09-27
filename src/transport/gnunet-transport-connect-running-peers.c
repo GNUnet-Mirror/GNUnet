@@ -138,48 +138,13 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static void
-notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                uint32_t ats_count)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received message of type %d from peer %s!\n",
-              ntohs (message->type), GNUNET_i2s (peer));
-
-  if ((MTYPE == ntohs (message->type)) &&
-      (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
-  {
-    ok = 0;
-    end (NULL, NULL);
-  }
-  else
-  {
-    GNUNET_break (0);
-    ok = 1;
-    end (NULL, NULL);
-  }
-}
-
-
 static size_t
 notify_ready (void *cls, size_t size, void *buf)
 {
   struct PeerContext *p = cls;
   struct GNUNET_MessageHeader *hdr;
-  char t;
 
   th = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Press <q> to quit or any key to transmit a message\n");
-
-  scanf("%c", &t);
-  if (t == 'q')
-  {
-    GNUNET_SCHEDULER_add_now(&end, NULL);
-    return 0;
-  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Transmitting message with %u bytes to peer %s\n",
@@ -193,12 +158,64 @@ notify_ready (void *cls, size_t size, void *buf)
     hdr->type = htons (MTYPE);
   }
 
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0, TIMEOUT,
-                                               &notify_ready, p1);
-
   return sizeof (struct GNUNET_MessageHeader);
 }
 
+static void
+sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  send_task = GNUNET_SCHEDULER_NO_TASK;
+  static char t;
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Press <q> to quit or <1> to send from p1 to p2, <2> to send from p2 to p1, <enter> repeat\n");
+
+read:
+  t = getchar();
+  if (t == '1')
+  {
+    th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0, TIMEOUT,
+                                                 &notify_ready, p1);
+    return;
+  }
+  if (t == '2')
+  {
+    th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, 256, 0, TIMEOUT,
+                                                 &notify_ready, p2);
+    return;
+  }
+  if (t == 'q')
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Exiting %c!\n", t);
+    GNUNET_SCHEDULER_add_now(&end, NULL);
+    return;
+  }
+  goto read;
+}
+
+static void
+notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message,
+                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                uint32_t ats_count)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received message of type %d from peer %s!\n",
+              ntohs (message->type), GNUNET_i2s (peer));
+
+  if ((MTYPE == ntohs (message->type)) &&
+      (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Successfully received message\n");
+
+    send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
+  }
+}
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -267,18 +284,6 @@ connect_to_peer (const char *cfgname, GNUNET_TRANSPORT_ReceiveCallback rec,
                                 &notify_connect, &notify_disconnect);
   GNUNET_assert (p->th != NULL);
   return p;
-}
-
-static void
-sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  send_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0, TIMEOUT,
-                                               &notify_ready, &p1);
 }
 
 static void
