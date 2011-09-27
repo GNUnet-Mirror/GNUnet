@@ -79,25 +79,27 @@ struct MeshDataDescriptor
     /** ID of the tunnel this packet travels in */
   struct MESH_TunnelID *origin;
 
+    /** Data itself */
+  void *data;
+
+    /** Client that asked for the transmission, if any */
+  struct GNUNET_SERVER_Client *client;
+
+    /** Who was this message being sent to */
+  struct MeshPeerInfo *peer;
+
     /** Ultimate destination of the packet */
   GNUNET_PEER_Id destination;
 
     /** Number of identical messages sent to different hops (multicast) */
   unsigned int copies;
 
-    /** Size of the data */
-  size_t size;
-
-    /** Client that asked for the transmission, if any */
-  struct GNUNET_SERVER_Client *client;
-
-    /** Who was is message being sent to */
-  struct MeshPeerInfo *peer;
-
     /** Which handler was used to request the transmission */
   unsigned int handler_n;
 
-  /* Data at the end */
+    /** Size of the data */
+  size_t size;
+
 };
 
 
@@ -468,41 +470,7 @@ unsigned int next_client_id;
 /************************         ITERATORS        ****************************/
 /******************************************************************************/
 
-
-/**
- * Iterator over hash map peer entries collect all neighbors who to resend the
- * data to.
- *
- * @param cls closure (**GNUNET_PEER_Id to store hops to send packet)
- * @param key current key code (peer id hash)
- * @param value value in the hash map (peer_info)
- * @return GNUNET_YES if we should continue to iterate, GNUNET_NO if not.
- */
-static int
-iterate_collect_neighbors (void *cls, const GNUNET_HashCode * key, void *value)
-{
-  struct MeshPeerInfo *peer_info = value;
-  struct MeshPathInfo *neighbors = cls;
-  struct GNUNET_PeerIdentity *id;
-  GNUNET_PEER_Id peer_id;
-  unsigned int i;
-
-  if (peer_info->id == myid)
-  {
-    return GNUNET_YES;
-  }
-  id = path_get_first_hop (neighbors->t->tree, peer_info->id);
-  peer_id = GNUNET_PEER_search(id);
-  for (i = 0; i < neighbors->path->length; i++)
-  {
-    if (neighbors->path->peers[i] == peer_id)
-      return GNUNET_YES;
-  }
-  GNUNET_array_append (neighbors->path->peers, neighbors->path->length,
-                       peer_id);
-
-  return GNUNET_YES;
-}
+/* FIXME move iterators here */
 
 
 /******************************************************************************/
@@ -941,32 +909,25 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *const *get_path,
 /**
  * Send keepalive packets for a peer
  *
- * @param cls unused
- * @param tc unused
- *
- * FIXME path
+ * @param cls Closure (tunnel for which to send the keepalive).
+ * @param tc Notification context.
  */
 void
 path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel *t = cls;
 
-//   struct GNUNET_PeerIdentity id;
-
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
   {
     return;
   }
-  /* FIXME implement multicast keepalive. Just an empty multicast packet? */
-//   GNUNET_PEER_resolve (path_get_first_hop (path->t, path->peer)->id, &id);
-//   GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-//                                      GNUNET_TIME_UNIT_FOREVER_REL, &id,
-//                                      sizeof (struct GNUNET_MESH_ManipulatePath)
-//                                      +
-//                                      (path->path->length *
-//                                       sizeof (struct GNUNET_PeerIdentity)),
-//                                      &send_core_create_path,
-//                                      t);
+  /* FIXME path
+   * TODO: implement explicit multicast keepalive? */
+  GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
+                                     GNUNET_TIME_UNIT_FOREVER_REL, NULL,
+                                     sizeof (struct GNUNET_MESH_ManipulatePath),
+                                     NULL, //&send_core_data_multicast,
+                                     t);
   t->path_refresh_task =
       GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
   return;
@@ -1401,7 +1362,10 @@ send_core_data_unicast (void *cls, size_t size, void *buf)
  * @param cls closure (data itself)
  * @param size number of bytes available in buf
  * @param buf where the callee should write the message
+ * 
  * @return number of bytes written to buf
+ *
+ * FIXME path
  */
 static size_t
 send_core_data_multicast (void *cls, size_t size, void *buf)
@@ -1816,6 +1780,8 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param atsi performance data
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
+ *
+ * TODO: Check who we got this from, to validate route.
  */
 static int
 handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -1825,17 +1791,14 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_MESH_Multicast *msg;
   struct GNUNET_PeerIdentity id;
   struct MeshDataDescriptor *info;
-  struct MeshPathInfo neighbors;
+  struct MeshTunnelTreeNode *n;
   struct MeshTunnel *t;
+  unsigned int copies;
+  unsigned int i;
   size_t size;
-  uint16_t i;
-  uint16_t j;
 
-
-  size = ntohs (message->size);
-  if (size <
-      sizeof (struct GNUNET_MESH_Multicast) +
-      sizeof (struct GNUNET_MessageHeader))
+  size = ntohs (message->size) - sizeof (struct GNUNET_MESH_Multicast);
+  if (size < sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -1846,6 +1809,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == t)
   {
     /* TODO notify that we dont know that tunnel */
+    GNUNET_break_op (0);
     return GNUNET_OK;
   }
 
@@ -1854,46 +1818,41 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     send_subscribed_clients ((struct GNUNET_MessageHeader *) &msg[1]);
   }
-
-  /* Retransmit to other peers.
-   * Using path here as just a collection of peers, not a path per se.
-   */
-  neighbors.t = t;
-  neighbors.path = path_new (0);
-  GNUNET_CONTAINER_multihashmap_iterate (t->peers, &iterate_collect_neighbors,
-                                         &neighbors);
-  if (0 == neighbors.path->length)
-  {
-    GNUNET_free (neighbors.path);
+  n = t->tree->me->children_head;
+  if (NULL == n)
     return GNUNET_OK;
-  }
-  size -= sizeof (struct GNUNET_MESH_Multicast);
-  info = GNUNET_malloc (sizeof (struct MeshDataDescriptor) + size);
+  for (copies = 0; NULL != n; n = n->next)
+    copies++;
+  n = t->tree->me->children_head;
+  info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
+  info->data = GNUNET_malloc (size);
+  memcpy(info->data, &msg[1], size);
   info->origin = &t->id;
-  info->copies = neighbors.path->length;
-  for (i = 0; i < info->copies; i++)
+  info->copies = copies;
+  info->size = size;
+  info->client = t->client->handle;
+  while (NULL != n)
   {
-    GNUNET_PEER_resolve (neighbors.path->peers[i], &id);
-    info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &id.hashPubKey);
+    GNUNET_PEER_resolve (n->peer, &id);
+    info->peer = peer_info_get(&id);
     GNUNET_assert (NULL != info->peer);
-    for (j = 0; 0 != info->peer->core_transmit[j]; j++)
+    for (i = 0; NULL != info->peer->core_transmit[i]; i++)
     {
-      if (j == (CORE_QUEUE_SIZE - 1))
+      if (i == (CORE_QUEUE_SIZE - 1))
       {
         GNUNET_break (0);
         return GNUNET_OK;
       }
     }
-    info->handler_n = j;
-    info->peer->infos[j] = info;
-    info->peer->core_transmit[j] =
+    info->handler_n = i;
+    info->peer->infos[i] = info;
+    info->peer->core_transmit[i] =
         GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
                                            GNUNET_TIME_UNIT_FOREVER_REL, &id,
                                            ntohs (msg->header.size),
                                            &send_core_data_multicast, info);
   }
-  GNUNET_free (neighbors.path->peers);
-  GNUNET_free (neighbors.path);
+
   return GNUNET_OK;
 }
 
@@ -2010,7 +1969,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break_op (0);
       return GNUNET_OK;
     }
-    n = tree_find_peer(t->tree, peer_info->id);
+    n = tree_find_peer(t->tree->root, peer_info->id);
     if (NULL == n)
     {
       GNUNET_break_op (0);
