@@ -169,7 +169,6 @@ static void
 client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
-  static unsigned int handles_last_run;
   int running;
   CURLMcode mret;
 
@@ -208,8 +207,6 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          notify_session_end (plugin, &s->target, s);
        }
     }
-
-    handles_last_run = running;
   }
   while (mret == CURLM_CALL_MULTI_PERFORM);
   client_schedule (plugin);
