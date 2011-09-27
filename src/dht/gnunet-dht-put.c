@@ -24,7 +24,7 @@
  * @author Nathan Evans
  */
 #include "platform.h"
-#include "gnunet_dht_service.h"
+#include "gnunet_dht_service_new.h"
 
 /**
  * The type of the query
@@ -45,6 +45,11 @@ static unsigned long long timeout_request = 5;
  * User supplied expiration value
  */
 static unsigned long long expiration_seconds = 3600;
+
+/**
+ * Desired replication level.
+ */
+static unsigned int replication = 5;
 
 /**
  * Be verbose
@@ -146,7 +151,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (verbose)
     fprintf (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
              query_key, data);
-  GNUNET_DHT_put (dht_handle, &key, DEFAULT_PUT_REPLICATION, GNUNET_DHT_RO_NONE,
+  GNUNET_DHT_put (dht_handle, &key, replication, GNUNET_DHT_RO_NONE,
                   query_type, strlen (data), data, expiration, timeout,
                   &message_sent_cont, NULL);
 
@@ -157,21 +162,24 @@ run (void *cls, char *const *args, const char *cfgfile,
  * gnunet-dht-put command line options
  */
 static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'k', "key", "KEY",
-   gettext_noop ("the query key"),
-   1, &GNUNET_GETOPT_set_string, &query_key},
   {'d', "data", "DATA",
    gettext_noop ("the data to insert under the key"),
    1, &GNUNET_GETOPT_set_string, &data},
+  {'e', "expiration", "EXPIRATION",
+   gettext_noop ("how long to store this entry in the dht (in seconds)"),
+   1, &GNUNET_GETOPT_set_ulong, &expiration_seconds},
+  {'k', "key", "KEY",
+   gettext_noop ("the query key"),
+   1, &GNUNET_GETOPT_set_string, &query_key},
+  {'r', "replication", "LEVEL",
+   gettext_noop ("how many replicas to create"),
+   1, &GNUNET_GETOPT_set_uint, &replication},
   {'t', "type", "TYPE",
    gettext_noop ("the type to insert data as"),
    1, &GNUNET_GETOPT_set_uint, &query_type},
   {'T', "timeout", "TIMEOUT",
    gettext_noop ("how long to execute this query before giving up?"),
    1, &GNUNET_GETOPT_set_ulong, &timeout_request},
-  {'e', "expiration", "EXPIRATION",
-   gettext_noop ("how long to store this entry in the dht (in seconds)"),
-   1, &GNUNET_GETOPT_set_ulong, &expiration_seconds},
   {'V', "verbose", NULL,
    gettext_noop ("be verbose (print progress information)"),
    0, &GNUNET_GETOPT_set_one, &verbose},

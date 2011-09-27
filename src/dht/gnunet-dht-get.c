@@ -24,12 +24,17 @@
  * @author Nathan Evans
  */
 #include "platform.h"
-#include "gnunet_dht_service.h"
+#include "gnunet_dht_service_new.h"
 
 /**
  * The type of the query
  */
 static unsigned int query_type;
+
+/**
+ * Desired replication level
+ */
+static unsigned int replication = 5;
 
 /**
  * The key for the query
@@ -108,10 +113,10 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
- * @param get_path NULL-terminated array of pointers
- *                 to the peers on reverse GET path (or NULL if not recorded)
- * @param put_path NULL-terminated array of pointers
- *                 to the peers on the PUT path (or NULL if not recorded)
+ * @param get_path peers on reply path (or NULL if not recorded)
+ * @param get_path_length number of entries in get_path
+ * @param put_path peers on the PUT path (or NULL if not recorded)
+ * @param put_path_length number of entries in get_path
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -119,8 +124,10 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
-                     const struct GNUNET_PeerIdentity *const *get_path,
-                     const struct GNUNET_PeerIdentity *const *put_path,
+                     const struct GNUNET_PeerIdentity *get_path,
+		     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+		     unsigned int put_path_length,
                      enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
   fprintf (stdout, "Result %d, type %d:\n%.*s\n", result_count, type,
@@ -181,8 +188,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                 (absolute_timeout), &cleanup_task, NULL);
   get_handle =
       GNUNET_DHT_get_start (dht_handle, timeout, query_type, &key,
-                            DEFAULT_GET_REPLICATION, GNUNET_DHT_RO_NONE, NULL,
-                            0, NULL, 0, &get_result_iterator, NULL);
+                            replication, GNUNET_DHT_RO_NONE, NULL,
+                            0, &get_result_iterator, NULL);
 
 }
 
@@ -194,6 +201,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'k', "key", "KEY",
    gettext_noop ("the query key"),
    1, &GNUNET_GETOPT_set_string, &query_key},
+  {'r', "replication", "LEVEL",
+   gettext_noop ("how many parallel requests (replicas) to create"),
+   1, &GNUNET_GETOPT_set_uint, &replication},
   {'t', "type", "TYPE",
    gettext_noop ("the type of data to look for"),
    1, &GNUNET_GETOPT_set_uint, &query_type},
