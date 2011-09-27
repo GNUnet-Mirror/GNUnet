@@ -61,6 +61,11 @@
 #define DHT_BLOOM_SIZE 128
 
 /**
+ * Desired replication level for FIND PEER requests
+ */
+#define FIND_PEER_REPLICATION_LEVEL 4
+
+/**
  * How often to update our preference levels for peers in our routing tables.
  */
 #define DHT_DEFAULT_PREFERENCE_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
@@ -663,7 +668,6 @@ core_transmit_notify (void *cls, size_t size, void *buf)
                                            GNUNET_TIME_absolute_get_remaining (pending->timeout),
 					   &peer->id, msize,
                                            &core_transmit_notify, peer);
-
   return off;
 }
 
@@ -747,7 +751,7 @@ get_forward_count (uint32_t hop_count,
  *           the two hash codes increases
  */
 static unsigned int
-distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
+get_distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
 {
   unsigned int bucket;
   unsigned int msb;
@@ -797,34 +801,16 @@ distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
 
 
 /**
- * Return a number that is larger the closer the
- * "have" GNUNET_hash code is to the "target".
- *
- * @return inverse distance metric, non-zero.
- *         Must fudge the value if NO bits match.
- */
-static unsigned int
-inverse_distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
-{
-  if (GNUNET_CRYPTO_hash_matching_bits (target, have) == 0)
-    return 1;                   /* Never return 0! */
-  return ((unsigned int) -1) - distance (target, have);
-}
-
-
-/**
  * Check whether my identity is closer than any known peers.  If a
  * non-null bloomfilter is given, check if this is the closest peer
  * that hasn't already been routed to.
- * FIXME: needed?
  *
  * @param key hash code to check closeness to
  * @param bloom bloomfilter, exclude these entries from the decision
  * @return GNUNET_YES if node location is closest,
  *         GNUNET_NO otherwise.
  */
-/* static */
-int
+static int
 am_closest_peer (const GNUNET_HashCode *key,
                  const struct GNUNET_CONTAINER_BloomFilter *bloom)
 {
@@ -839,7 +825,7 @@ am_closest_peer (const GNUNET_HashCode *key,
     return GNUNET_YES;
   bucket_num = find_bucket (key);
   bits = GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, key);
-  my_distance = distance (&my_identity.hashPubKey, key);
+  my_distance = get_distance (&my_identity.hashPubKey, key);
   pos = k_buckets[bucket_num].head;
   count = 0;
   while ((pos != NULL) && (count < bucket_size))
@@ -889,14 +875,14 @@ select_peer (const GNUNET_HashCode *key,
   unsigned int count;
   unsigned int selected;
   struct PeerInfo *pos;
-  unsigned int distance;
-  unsigned int largest_distance;
+  unsigned int dist;
+  unsigned int smallest_distance;
   struct PeerInfo *chosen;
 
   if (hops >= GDS_NSE_get ())
   {
     /* greedy selection (closest peer that is not in bloomfilter) */
-    largest_distance = 0;
+    smallest_distance = UINT_MAX;
     chosen = NULL;
     for (bc = closest_bucket; bc < MAX_BUCKETS; bc++)
     {
@@ -904,15 +890,14 @@ select_peer (const GNUNET_HashCode *key,
       count = 0;
       while ((pos != NULL) && (count < bucket_size))
       {
-        /* If we are doing strict Kademlia routing, then checking the bloomfilter is basically cheating! */
         if (GNUNET_NO ==
             GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
         {
-          distance = inverse_distance (key, &pos->id.hashPubKey);
-          if (distance > largest_distance)
+          dist = get_distance (key, &pos->id.hashPubKey);
+          if (dist < smallest_distance)
           {
             chosen = pos;
-            largest_distance = distance;
+            smallest_distance = dist;
           }
         }
         count++;
@@ -1350,7 +1335,7 @@ send_find_peer_message (void *cls,
   // FIXME: pass priority!?
   GDS_NEIGHBOURS_handle_get (GNUNET_BLOCK_TYPE_DHT_HELLO,
 			     GNUNET_DHT_RO_FIND_PEER,
-			     16 /* FIXME: replication level? */,
+			     FIND_PEER_REPLICATION_LEVEL,
 			     0,
 			     &my_identity.hashPubKey,
 			     NULL, 0,
@@ -1422,6 +1407,7 @@ handle_dht_p2p_put (void *cls,
   uint32_t putlen;
   uint16_t msize;
   size_t payload_size;
+  enum GNUNET_DHT_RouteOption options;
   struct GNUNET_CONTAINER_BloomFilter *bf;
   GNUNET_HashCode test_key;
   
@@ -1441,6 +1427,7 @@ handle_dht_p2p_put (void *cls,
     }
   put_path = (const struct GNUNET_PeerIdentity*) &put[1];  
   payload = &put_path[putlen];
+  options = ntohl (put->options);
   payload_size = msize - (sizeof (struct PeerPutMessage) + 
 			  putlen * sizeof (struct GNUNET_PeerIdentity));
   switch (GNUNET_BLOCK_get_key (GDS_block_context,
@@ -1469,34 +1456,43 @@ handle_dht_p2p_put (void *cls,
     struct GNUNET_PeerIdentity pp[putlen+1];
   
     /* extend 'put path' by sender */
-    memcpy (pp, put_path, putlen * sizeof (struct GNUNET_PeerIdentity));
-    pp[putlen] = *peer;
-
+    if (0 != (options & GNUNET_DHT_RO_RECORD_ROUTE))
+    {
+      memcpy (pp, put_path, putlen * sizeof (struct GNUNET_PeerIdentity));
+      pp[putlen] = *peer;
+      putlen++;
+    }
+    else
+      putlen = 0;
+    
     /* give to local clients */
     GDS_CLIENT_handle_reply (GNUNET_TIME_absolute_ntoh (put->expiration_time),
 			     &put->key,
 			     0, NULL,
-			     putlen + 1,
+			     putlen,
 			     pp,
 			     ntohl (put->type),
 			     payload_size,
 			     payload);
     /* store locally */
-    GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
-			      &put->key,
-			      putlen + 1, pp,
-			      ntohl (put->type),
-			      payload_size,
-			      payload);
+    if ( (0 != (options & GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE)) ||
+	 (am_closest_peer (&put->key,
+			   bf) ) )
+      GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
+				&put->key,
+				putlen, pp,
+				ntohl (put->type),
+				payload_size,
+				payload);
     /* route to other peers */
     GDS_NEIGHBOURS_handle_put (ntohl (put->type),
-			       ntohl (put->options),
+			       options,
 			       ntohl (put->desired_replication_level),
 			       GNUNET_TIME_absolute_ntoh (put->expiration_time),
 			       ntohl (put->hop_count) + 1 /* who adds +1? */,
 			       bf,
 			       &put->key,
-			       putlen + 1, pp,
+			       putlen, pp,
 			       payload,
 			       payload_size);
   }
@@ -1579,21 +1575,25 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* remember request for routing replies */
   GDS_ROUTING_add (peer,
 		   type,
+		   options,
 		   &get->key,
 		   xquery, xquery_size,
 		   reply_bf, get->bf_mutator);
   /* FIXME: check options (find peer, local-processing-only-if-nearest, etc.!) */
 
   /* local lookup (this may update the reply_bf) */
-  GDS_DATACACHE_handle_get (&get->key,
-			    type,
-			    xquery, xquery_size,
-			    &reply_bf, 
-			    get->bf_mutator);
+  if ( (0 != (options & GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE)) ||
+       (am_closest_peer (&get->key,
+			 peer_bf) ) )
+    GDS_DATACACHE_handle_get (&get->key,
+			      type,
+			      xquery, xquery_size,
+			      &reply_bf, 
+			      get->bf_mutator);
   /* FIXME: should track if the local lookup resulted in a
      definitive result and then NOT do P2P forwarding */
-    
-  /* P2P forwarding */
+  
+    /* P2P forwarding */
   GDS_NEIGHBOURS_handle_get (type,
 			     options,
 			     ntohl (get->desired_replication_level),
@@ -1663,14 +1663,15 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* append 'peer' to 'get_path' */
   {    
     struct GNUNET_PeerIdentity xget_path[get_path_length+1];
-    
+
     memcpy (xget_path, get_path, get_path_length * sizeof (struct GNUNET_PeerIdentity));
     xget_path[get_path_length] = *peer;
+    get_path_length++;
 
     /* forward to local clients */   
     GDS_CLIENT_handle_reply (GNUNET_TIME_absolute_ntoh (prm->expiration_time),
 			     &prm->key,
-			     get_path_length + 1,
+			     get_path_length,
 			     xget_path,
 			     put_path_length,
 			     put_path,
@@ -1684,7 +1685,7 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 			 &prm->key,
 			 put_path_length,
 			 put_path,
-			 get_path_length + 1,
+			 get_path_length,
 			 xget_path,
 			 data,
 			 data_size);			 

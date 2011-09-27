@@ -83,6 +83,11 @@ struct RecentRequest
    */
   uint32_t reply_bf_mutator;
 
+  /**
+   * Request options.
+   */
+  enum GNUNET_DHT_RouteOption options;
+
 };
 
 
@@ -162,10 +167,23 @@ process (void *cls,
   struct ProcessContext *pc = cls;
   struct RecentRequest *rr = value;
   enum GNUNET_BLOCK_EvaluationResult eval;
+  unsigned int gpl;
+  unsigned int ppl;
 
   if ( (rr->type != GNUNET_BLOCK_TYPE_ANY) &&
        (rr->type != pc->type) )
     return GNUNET_OK; /* type missmatch */
+
+  if (0 != (rr->options & GNUNET_DHT_RO_RECORD_ROUTE))
+  {
+    gpl = pc->get_path_length;
+    ppl = pc->put_path_length;
+  }
+  else
+  {
+    gpl = 0;
+    ppl = 0;
+  }
   eval = GNUNET_BLOCK_evaluate (GDS_block_context,
 				pc->type,
 				key,
@@ -183,9 +201,9 @@ process (void *cls,
 				 pc->type,
 				 pc->expiration_time,
 				 key,
-				 pc->put_path_length,
+				 ppl,
 				 pc->put_path,
-				 pc->get_path_length,
+				 gpl,
 				 pc->get_path,
 				 pc->data,
 				 pc->data_size);
@@ -259,6 +277,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
  *
  * @param sender peer that originated the request
  * @param type type of the block
+ * @param options options for processing
  * @param key key for the content
  * @param xquery extended query
  * @param xquery_size number of bytes in xquery
@@ -268,6 +287,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
 void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
 		 enum GNUNET_BLOCK_Type type,
+		 enum GNUNET_DHT_RouteOption options,
 		 const GNUNET_HashCode *key,
 		 const void *xquery,
 		 size_t xquery_size,
@@ -294,6 +314,7 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
   recent_req->reply_bf =
     GNUNET_CONTAINER_bloomfilter_copy (reply_bf);
   recent_req->type = type;
+  recent_req->options = options;
   recent_req->xquery = &recent_req[1];
   recent_req->xquery_size = xquery_size;
   recent_req->reply_bf_mutator = reply_bf_mutator;

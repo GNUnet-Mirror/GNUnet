@@ -28,6 +28,7 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
+#include "gnunet_dht_service.h"
 
 
 /**
@@ -64,6 +65,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
  *
  * @param sender peer that originated the request
  * @param type type of the block
+ * @param options options for processing
  * @param key key for the content
  * @param xquery extended query
  * @param xquery_size number of bytes in xquery
@@ -73,6 +75,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
 void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
 		 enum GNUNET_BLOCK_Type type,
+		 enum GNUNET_DHT_RouteOption options,
 		 const GNUNET_HashCode *key,
 		 const void *xquery,
 		 size_t xquery_size,
