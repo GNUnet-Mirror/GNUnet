@@ -422,10 +422,8 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->addr = GNUNET_malloc (addrlen);
   memcpy (s->addr, addr, addrlen);
   s->addrlen = addrlen;
-  s->transmit_cont = cont;
-  s->transmit_cont_cls = cont_cls;
   s->next = NULL;
-  s->next_receive = GNUNET_TIME_absolute_get_forever();
+  s->next_receive = GNUNET_TIME_absolute_get_zero();
   return s;
 }
 
@@ -762,7 +760,7 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
 #if DEBUG_HTTP
   struct Plugin *plugin = cls;
 #endif
-  static int limit;
+  //static int limit;
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "NPMC called %s to address `%s'\n",
@@ -774,9 +772,9 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
   {
   case GNUNET_YES:
     // FIXME DEBUGGING
-    if (limit < 1)
+    //if (limit < 1)
       nat_add_address (cls, add_remove, addr, addrlen);
-    limit++;
+    //limit++;
     // FIXME END
     break;
   case GNUNET_NO:
