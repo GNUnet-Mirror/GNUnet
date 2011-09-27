@@ -205,7 +205,7 @@ test_dht_api_SOURCES = \
 test_dht_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/dht/libgnunetdht.la
+ $(top_builddir)/src/dht/libgnunetdhtnew.la
 test_dht_api_DEPENDENCIES = \
   libgnunetdht.la			    
 

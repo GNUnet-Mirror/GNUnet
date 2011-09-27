@@ -99,6 +99,9 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
       return;
     }
   /* Put size is actual data size plus struct overhead plus path length (if any) */
+  GNUNET_STATISTICS_update (GDS_stats,
+			    gettext_noop ("# ITEMS stored in datacache"), 1,
+			    GNUNET_NO);
   pe = (struct DHTPutEntry *) buf;
   pe->data_size = htons (data_size);
   pe->path_length = htons ((uint16_t) put_path_length);
@@ -202,6 +205,9 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   case GNUNET_BLOCK_EVALUATION_OK_LAST:
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
     /* forward to local clients */
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Good RESULTS found in datacache"), 1,
+			      GNUNET_NO);
     GDS_CLIENTS_handle_reply (exp,
 			     key,
 			     0, NULL,
@@ -213,8 +219,14 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 			 0, NULL, rdata, rdata_size);
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Duplicate RESULTS found in datacache"), 1,
+			      GNUNET_NO);
     break;
   case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Invalid RESULTS found in datacache"), 1,
+			      GNUNET_NO);
     break;
   case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
     GNUNET_break (0);
@@ -223,6 +235,9 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Unsupported RESULTS found in datacache"), 1,
+			      GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Unsupported block type (%u) in local response!\n",
                 type);
@@ -255,6 +270,9 @@ GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
 
   if (datacache == NULL)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# GET requests given to datacache"), 1,
+                            GNUNET_NO);
   ctx.eval = GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   ctx.key = *key;
   ctx.xquery = xquery;

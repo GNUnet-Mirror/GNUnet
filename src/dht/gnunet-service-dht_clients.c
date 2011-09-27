@@ -304,6 +304,9 @@ transmit_request (struct ClientQueryRecord *cqr)
   int32_t reply_bf_mutator;
   struct GNUNET_CONTAINER_BloomFilter *reply_bf;
 
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# GET requests from clients injected into P2P network"), 1,
+                            GNUNET_NO);
   reply_bf_mutator = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 							 UINT32_MAX);
   reply_bf = GNUNET_BLOCK_construct_bloomfilter (reply_bf_mutator,
@@ -385,6 +388,9 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     }
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# PUT requests received from clients"), 1,
+                            GNUNET_NO);
   dht_msg = (const struct GNUNET_DHT_ClientPutMessage *) message;
   /* give to local clients */
   GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
@@ -445,7 +451,9 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   xquery_size = size - sizeof (struct GNUNET_DHT_ClientGetMessage);
   get = (const struct GNUNET_DHT_ClientGetMessage *) message;
   xquery = (const char*) &get[1];
-
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# GET requests received from clients"), 1,
+                            GNUNET_NO);
   
   cqr = GNUNET_malloc (sizeof (struct ClientQueryRecord) + xquery_size);
   cqr->key = get->key;
@@ -531,6 +539,9 @@ handle_dht_local_get_stop (void *cls, struct GNUNET_SERVER_Client *client,
     (const struct GNUNET_DHT_ClientGetStopMessage *) message;
   struct RemoveByUniqueIdContext ctx;
   
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# GET STOP requests received from clients"), 1,
+                            GNUNET_NO);
   ctx.client = find_active_client (client);
   ctx.unique_id = dht_stop_msg->unique_id;
   GNUNET_CONTAINER_multihashmap_get_multiple (forward_map,
@@ -748,6 +759,9 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
 	      sizeof (struct PendingMessage) + ntohs (frc->pm->msg->size));
       pm->next = pm->prev = NULL;
     }
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# RESULTS queued for clients"), 1,
+                            GNUNET_NO);
   reply = (struct GNUNET_DHT_ClientResultMessage*) &pm[1];  
   reply->unique_id = record->unique_id;
   add_pending_message (record->client, pm);

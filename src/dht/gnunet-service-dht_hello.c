@@ -80,6 +80,9 @@ process_hello (void *cls,
   ex = GNUNET_HELLO_get_last_expiration (hello);
   if (GNUNET_TIME_absolute_get_remaining (ex).rel_value == 0)
     return;
+  GNUNET_STATISTICS_update (GDS_stats,
+			    gettext_noop ("# HELLOs obtained from peerinfo"), 1,
+			    GNUNET_NO);
   hm = GNUNET_CONTAINER_multihashmap_get (peer_to_hello,
 					  &peer->hashPubKey);
   GNUNET_free_non_null (hm);

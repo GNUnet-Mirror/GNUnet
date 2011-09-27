@@ -67,7 +67,6 @@ struct GNUNET_MessageHeader *GDS_my_hello;
 struct GNUNET_TRANSPORT_Handle *GDS_transport_handle;
 
 
-
 /**
  * Handle to get our current HELLO.
  */

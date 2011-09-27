@@ -27,6 +27,8 @@
 #define GNUNET_SERVICE_DHT_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
+#include "gnunet_transport_service.h"
 
 /**
  * Configuration we use.
@@ -38,7 +40,6 @@ extern const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
  * Our handle to the BLOCK library.
  */
 extern struct GNUNET_BLOCK_Context *GDS_block_context;
-
 
 /**
  * Handle for the statistics service.

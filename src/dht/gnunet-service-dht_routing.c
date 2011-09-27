@@ -216,6 +216,9 @@ process (void *cls,
   {
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
   case GNUNET_BLOCK_EVALUATION_OK_LAST:
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Good REPLIES matched against routing table"), 1,
+			      GNUNET_NO);
     GDS_NEIGHBOURS_handle_reply (&rr->peer,
 				 pc->type,
 				 pc->expiration_time,
@@ -228,15 +231,23 @@ process (void *cls,
 				 pc->data_size);
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Duplicate REPLIES matched against routing table"), 1,
+			      GNUNET_NO);
     return GNUNET_OK;
   case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
-    GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Invalid REPLIES matched against routing table"), 1,
+			      GNUNET_NO);
     return GNUNET_SYSERR;
   case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
   case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
     GNUNET_break (0);
     return GNUNET_OK;
   case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Unsupported REPLIES matched against routing table"), 1,
+			      GNUNET_NO);
     return GNUNET_SYSERR;
   default:
     GNUNET_break (0);
@@ -317,6 +328,9 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
 
   while (GNUNET_CONTAINER_heap_get_size (recent_heap) >= DHT_MAX_RECENT)
   {
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Entries removed from routing table"), 1,
+			      GNUNET_NO);
     recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
     GNUNET_assert (recent_req != NULL);
     GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);
@@ -324,6 +338,9 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
     GNUNET_free (recent_req);
   }
 
+  GNUNET_STATISTICS_update (GDS_stats,
+			    gettext_noop ("# Entries added to routing table"), 1,
+			    GNUNET_NO);
   recent_req = GNUNET_malloc (sizeof (struct RecentRequest) + xquery_size);
   recent_req->peer = *sender;
   recent_req->key = *key;
@@ -369,6 +386,9 @@ GDS_ROUTING_done ()
 
   while (GNUNET_CONTAINER_heap_get_size (recent_heap) > 0)
   {
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# Entries removed from routing table"), 1,
+			      GNUNET_NO);
     recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
     GNUNET_assert (recent_req != NULL);
     GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);
