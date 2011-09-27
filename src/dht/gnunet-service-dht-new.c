@@ -184,7 +184,7 @@ main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
 	  GNUNET_SERVICE_run (argc, argv, 
-			      "gnunet-service-dht", 
+			      "dht", 
 			      GNUNET_SERVICE_OPTION_NONE,
 			      &run, NULL)) ? 0 : 1;
 }

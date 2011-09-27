@@ -250,10 +250,11 @@ remove_client_records (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (forward_map,
 						       key, record));
-  GNUNET_CONTAINER_heap_remove_node (record->hnode);
-  GNUNET_array_append (record->seen_replies,
-		       record->seen_replies_count,
-		       *key);
+  if (NULL != record->hnode)
+    GNUNET_CONTAINER_heap_remove_node (record->hnode);
+  GNUNET_array_grow (record->seen_replies,
+		     record->seen_replies_count,
+		     0);
   GNUNET_free (record);
   return GNUNET_YES;
 }
