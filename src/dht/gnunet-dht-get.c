@@ -61,7 +61,6 @@ static int verbose;
  */
 static struct GNUNET_DHT_Handle *dht_handle;
 
-
 /**
  * Global handle of the configuration
  */
@@ -121,7 +120,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param size number of bytes in data
  * @param data pointer to the result data
  */
-void
+static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *get_path,

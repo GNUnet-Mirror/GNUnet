@@ -5,10 +5,6 @@ endif
 
 plugindir = $(libdir)/gnunet
 
-if HAVE_MYSQL
- MYSQL_PLUGIN = libgnunet_plugin_dhtlog_mysql.la
-endif
-
 if HAVE_ZLIB
  ZLIB_LNK = -lz
 endif
@@ -20,56 +16,8 @@ endif
 
 lib_LTLIBRARIES = \
  libgnunetdht.la \
- libgnunetdhtnew.la \
- libgnunetdhtlog.la
+ libgnunetdhtnew.la 
 
-plugin_LTLIBRARIES = \
- $(MYSQL_PLUGIN) \
- libgnunet_plugin_dhtlog_dummy.la \
- libgnunet_plugin_dhtlog_mysql_dump.la \
- libgnunet_plugin_dhtlog_mysql_dump_load.la  
-
-
-libgnunet_plugin_dhtlog_mysql_la_SOURCES = \
-  plugin_dhtlog_mysql.c
-libgnunet_plugin_dhtlog_mysql_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lz -lsqlite3
-libgnunet_plugin_dhtlog_mysql_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS) $(MYSQL_LDFLAGS) -lmysqlclient
-libgnunet_plugin_dhtlog_mysql_la_CPFLAGS = \
- $(MYSQL_CPPFLAGS)
-
-libgnunet_plugin_dhtlog_dummy_la_SOURCES = \
-  plugin_dhtlog_dummy.c
-libgnunet_plugin_dhtlog_dummy_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB)
-libgnunet_plugin_dhtlog_dummy_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_dhtlog_mysql_dump_la_SOURCES = \
-  plugin_dhtlog_mysql_dump.c
-libgnunet_plugin_dhtlog_mysql_dump_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB)
-libgnunet_plugin_dhtlog_mysql_dump_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_dhtlog_mysql_dump_load_la_SOURCES = \
-  plugin_dhtlog_mysql_dump_load.c
-libgnunet_plugin_dhtlog_mysql_dump_load_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB)
-libgnunet_plugin_dhtlog_mysql_dump_load_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-libgnunetdhtlog_la_SOURCES = \
-  dhtlog.c dhtlog.h
-libgnunetdhtlog_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
-libgnunetdhtlog_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 0:0:0
 
 libgnunetdht_la_SOURCES = \
   dht_api.c dht.h \
@@ -92,7 +40,6 @@ libgnunetdhtnew_la_LDFLAGS = \
   -version-info 0:0:0
 
 bin_PROGRAMS = \
- gnunet-service-dht \
  gnunet-service-dht-new \
  gnunet-dht-get \
  gnunet-dht-put
@@ -101,21 +48,6 @@ if HAVE_MALICIOUS
 noinst_PROGRAMS = \
  gnunet-dht-driver 
 endif
-
-gnunet_service_dht_SOURCES = \
- gnunet-service-dht.c         
-gnunet_service_dht_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/nse/libgnunetnse.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/dht/libgnunetdhtlog.la -lm
-gnunet_service_dht_DEPENDENCIES = \
-  libgnunetdhtlog.la				  
 
 gnunet_service_dht_new_SOURCES = \
  gnunet-service-dht-new.c gnunet-service-dht.h \
