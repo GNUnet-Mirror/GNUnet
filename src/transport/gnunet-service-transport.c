@@ -92,7 +92,7 @@ transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
   const struct GNUNET_MessageHeader *hello = cls;
 
   GST_neighbours_send (target, (const char *) hello, ntohs (hello->size),
-                       GST_HELLO_ADDRESS_EXPIRATION, NULL, NULL);
+                       GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION, NULL, NULL);
 }
 
 

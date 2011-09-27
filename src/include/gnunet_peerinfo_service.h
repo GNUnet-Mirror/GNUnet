@@ -111,8 +111,8 @@ struct GNUNET_PEERINFO_IteratorContext;
 
 
 /**
- * Call a method for each known matching host and change its trust
- * value.  The callback method will be invoked once for each matching
+ * Call a method for each known matching host to get its HELLO.
+ * The callback method will be invoked once for each matching
  * host and then finally once with a NULL pointer.  After that final
  * invocation, the iterator context must no longer be used.
  *

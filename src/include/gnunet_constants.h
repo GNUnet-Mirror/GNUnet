@@ -98,6 +98,14 @@ extern "C"
 #define GNUNET_CONSTANTS_IDLE_LOAD_THRESHOLD 70
 
 /**
+ * After how long do we expire an address in a HELLO that we just
+ * validated?  This value is also used for our own addresses when we
+ * create a HELLO.
+ */
+#define GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
+
+
+/**
  * Size of the 'struct EncryptedMessage' of the core (which
  * is the per-message overhead of the core).
  */

@@ -50,5 +50,9 @@ extern struct GNUNET_STATISTICS_Handle *GDS_stats;
  */
 extern struct GNUNET_MessageHeader *GDS_my_hello;
 
+/**
+ * Handle to the transport service, for getting our hello
+ */
+extern struct GNUNET_TRANSPORT_Handle *GDS_transport_handle;
 
 #endif

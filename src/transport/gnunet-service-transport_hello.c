@@ -24,6 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_constants.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_statistics_service.h"
@@ -165,7 +166,7 @@ refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   hello_task = GNUNET_SCHEDULER_NO_TASK;
   gc.addr_pos = oal_head;
   gc.expiration =
-      GNUNET_TIME_relative_to_absolute (GST_HELLO_ADDRESS_EXPIRATION);
+      GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION);
   GNUNET_free (our_hello);
   our_hello = GNUNET_HELLO_create (&GST_my_public_key, &address_generator, &gc);
 #if DEBUG_TRANSPORT
