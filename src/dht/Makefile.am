@@ -80,8 +80,18 @@ libgnunetdht_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
+libgnunetdhtnew_la_SOURCES = \
+  dht_api_new.c dht_new.h 
+libgnunetdhtnew_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB)
+libgnunetdhtnew_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
+
 bin_PROGRAMS = \
  gnunet-service-dht \
+ gnunet-service-dht-new \
  gnunet-dht-get \
  gnunet-dht-get-peer \
  gnunet-dht-put
@@ -105,6 +115,24 @@ gnunet_service_dht_LDADD = \
   $(top_builddir)/src/dht/libgnunetdhtlog.la -lm
 gnunet_service_dht_DEPENDENCIES = \
   libgnunetdhtlog.la				  
+
+gnunet_service_dht_new_SOURCES = \
+ gnunet-service-dht-new.c gnunet-service-dht.h \
+ gnunet-service-dht_clients.c gnunet-service-dht_clients.h \
+ gnunet-service-dht_datacache.c gnunet-service-dht_datacache.h \
+ gnunet-service-dht_nse.c gnunet-service-dht_nse.h \
+ gnunet-service-dht_neighbours.c gnunet-service-dht_neighbours.h \
+ gnunet-service-dht_routing.c gnunet-service-dht_routing.h 
+gnunet_service_dht_new_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/nse/libgnunetnse.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/datacache/libgnunetdatacache.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  -lm
 
 gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c         
