@@ -49,9 +49,9 @@ GDS_ROUTING_process (uint32_t type,
 		     GNUNET_TIME_Absolute expiration_time,
 		     const GNUNET_HashCode *key,
 		     unsigned int put_path_length,
-		     struct GNUNET_PeerIdentity *put_path,
+		     const struct GNUNET_PeerIdentity *put_path,
 		     unsigned int get_path_length,
-		     struct GNUNET_PeerIdentity *get_path,
+		     const struct GNUNET_PeerIdentity *get_path,
 		     const void *data,
 		     size_t data_size);
 

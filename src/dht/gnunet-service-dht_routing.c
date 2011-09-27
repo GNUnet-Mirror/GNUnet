@@ -46,6 +46,11 @@ struct RecentRequest
   struct GNUNET_PeerIdentity peer;
 
   /**
+   * Key of this request.
+   */
+  GNUNET_HashCode key;
+
+  /**
    * Position of this node in the min heap.
    */
   struct GNUNET_CONTAINER_HeapNode *heap_node;
@@ -54,12 +59,6 @@ struct RecentRequest
    * Bloomfilter for replies to drop.
    */
   struct GNUNET_CONTAINER_BloomFilter *reply_bf;
-
-  /**
-   * Timestamp of this request, for ordering
-   * the min heap.
-   */
-  struct GNUNET_TIME_Absolute timestamp;
 
   /**
    * Type of the requested block.
@@ -82,11 +81,6 @@ struct RecentRequest
    */
   uint32_t reply_bf_mutator;
 
-  /**
-   * Key of this request.
-   */
-  GNUNET_HashCode key;
-
 };
 
 
@@ -99,6 +93,118 @@ static struct GNUNET_CONTAINER_Heap *recent_heap;
  * Recently seen requests by key.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *recent_map;
+
+
+/**
+ * Closure for the 'process' function.
+ */
+struct ProcessContext
+{
+  /**
+   * Path of the original PUT
+   */
+  const struct GNUNET_PeerIdentity *put_path;
+
+  /**
+   * Path of the reply.
+   */ 
+  const struct GNUNET_PeerIdentity *get_path;
+
+  /**
+   * Payload of the reply.
+   */
+  const void *data;
+
+  /**
+   * Expiration time of the result.
+   */
+  GNUNET_TIME_Absolute expiration_time;
+
+  /**
+   * Number of entries in 'put_path'.
+   */
+  unsigned int put_path_length;
+
+  /**
+   * Number of entries in 'get_path'.
+   */
+  unsigned int get_path_length;
+
+  /**
+   * Number of bytes in 'data'.
+   */
+  size_t data_size;
+
+  /**
+   * Type of the reply.
+   */
+  enum GNUNET_BLOCK_Type type;
+
+};
+
+
+/**
+ * Forward the result to the given peer if it matches the request.
+ *
+ * @param cls the 'struct ProcessContext' with the result
+ * @param key the query
+ * @param value the 'struct RecentRequest' with the request
+ * @return GNUNET_OK (continue to iterate), 
+ *         GNUNET_SYSERR if the result is malformed or type unsupported
+ */
+static int
+process (void *cls,
+	 const GNUNET_HashCode *key,
+	 void *value)
+{
+  struct ProcessContext *pc = cls;
+  struct RecentRequest *rr = value;
+  enum GNUNET_BLOCK_EvaluationResult eval;
+
+  if ( (rr->type != GNUNET_BLOCK_TYPE_ANY) &&
+       (rr->type != pc->type) )
+    return GNUNET_OK; /* type missmatch */
+  eval = GNUNET_BLOCK_evaluate (block_context,
+				pc->type,
+				key,
+				&rr->reply_bf,
+				rr->reply_bf_mutator,
+				rr->xquery,
+				rr->xquery_size,
+				pc->data,
+				pc->data_size);
+  switch (eval)
+  {
+  case GNUNET_BLOCK_EVALUATION_OK_MORE:
+  case GNUNET_BLOCK_EVALUATION_OK_LAST:
+    GDS_NEIGHBOURS_handle_reply (&rr->target,
+				 pc->type,
+				 pc->expiration_time,
+				 key,
+				 pc->put_path_length,
+				 pc->put_path,
+				 pc->get_path_length,
+				 pc->get_path,
+				 pc->data,
+				 pc->data_size);
+    break;
+  case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
+    return GNUNET_OK;
+  case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
+  case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
+    GNUNET_break (0);
+    return GNUNET_OK;
+  case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
+    return GNUNET_SYSERR;
+  default:
+    GNUNET_break (0);
+    return GNUNET_SYSERR;  
+  }
+  return GNUNET_OK;
+}
 
 
 /**
@@ -123,12 +229,26 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
 		     GNUNET_TIME_Absolute expiration_time,
 		     const GNUNET_HashCode *key,
 		     unsigned int put_path_length,
-		     struct GNUNET_PeerIdentity *put_path,
+		     const struct GNUNET_PeerIdentity *put_path,
 		     unsigned int get_path_length,
-		     struct GNUNET_PeerIdentity *get_path,
+		     const struct GNUNET_PeerIdentity *get_path,
 		     const void *data,
 		     size_t data_size)
 {
+  struct ProcessContext pc;
+
+  pc.type = type;
+  pc.expiration_time = expiration_time;
+  pc.put_path_length = put_path_length;
+  pc.put_path = put_path;
+  pc.get_path_length = get_path_length;
+  pc.get_path = get_path;
+  pc.data = data;
+  pc.data_size = data_size;
+  GNUNET_CONTAINER_multihashmap_iterate (recent_map,
+					 key,
+					 &process,
+					 &pc);
 }
 
 
@@ -152,24 +272,33 @@ GDS_ROUTING_add (const GNUNET_PeerIdentity *sender,
 		 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
 		 uint32_t reply_bf_mutator)
 {
-  if (GNUNET_CONTAINER_heap_get_size (recent_heap) >= DHT_MAX_RECENT)
+  struct RecentRequest *recent_req;
+
+  while (GNUNET_CONTAINER_heap_get_size (recent_heap) >= DHT_MAX_RECENT)
   {
     recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
     GNUNET_assert (recent_req != NULL);
-    GNUNET_SCHEDULER_cancel (recent_req->remove_task);
     GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);
     GNUNET_CONTAINER_bloomfilter_free (recent_req->bloom);
     GNUNET_free (recent_req);
   }
 
-  recent_req = GNUNET_malloc (sizeof (struct RecentRequest));
-  recent_req->uid = msg_ctx->unique_id;
-  memcpy (&recent_req->key, &msg_ctx->key, sizeof (GNUNET_HashCode));
+  recent_req = GNUNET_malloc (sizeof (struct RecentRequest) + xquery_size);
+  recent_req->peer = *sender;
+  recent_req->key = *key;
   recent_req->heap_node =
     GNUNET_CONTAINER_heap_insert (recent_heap, recent_req,
 				  GNUNET_TIME_absolute_get ().abs_value);
-  recent_req->bloom =
-    GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
+  recent_req->reply_bf =
+    GNUNET_CONTAINER_bloomfilter_copy (reply_bf);
+  recent_req->type = type;
+  recent_req->xquery = &recent_req[1];
+  recent_req->xquery_size = xquery_size;
+  recent_req->reply_bf_mutator = reply_bf_mutator;
+  GNUNET_CONTAINER_multihashmap_put (recent_map,
+				     key,
+				     recent_req,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
 
 }
@@ -194,6 +323,8 @@ GDS_ROUTING_init ()
 void
 GDS_ROUTING_done ()
 {
+  struct RecentRequest *recent_req;
+
   while (GNUNET_CONTAINER_heap_get_size (recent_heap) > 0)
   {
     recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
@@ -202,6 +333,7 @@ GDS_ROUTING_done ()
     GNUNET_CONTAINER_bloomfilter_free (recent_req->bloom);
     GNUNET_free (recent_req);
   }
+  GNUNET_assert (0 == GNUNET_CONTAINER_heap_size (recent_heap));
   GNUNET_CONTAINER_heap_destroy (recent_heap);
   recent_heap = NULL;
   GNUNET_CONTAINER_multihashmap_destroy (recent_map);

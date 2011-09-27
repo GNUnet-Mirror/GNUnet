@@ -1053,7 +1053,8 @@ GDS_NEIGHBOURS_handle_reply (const GNUNET_PeerIdentity *target,
   msize = data_size + sizeof (struct PeerResultMessage) + 
     (get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity);
   if ( (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-       (get_path_length + put_path_length > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
+       (get_path_length > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
+       (put_path_length > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
        (data_size > GNUNET_SERVER_MAX_MESSAGE_SIZE) )
   {
     GNUNET_break (0);
@@ -1439,19 +1440,69 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 		       const struct GNUNET_TRANSPORT_ATS_Information
 		       *atsi)
 {
-  // FIXME!
-  // 1) validate result format
-  // 2) append 'peer' to put path
-  // 3) forward to local clients
-  // 4) p2p routing
-  const struct GNUNET_DHT_P2PRouteResultMessage *incoming =
-      (const struct GNUNET_DHT_P2PRouteResultMessage *) message;
-  struct GNUNET_MessageHeader *enc_msg =
-      (struct GNUNET_MessageHeader *) &incoming[1];
-  struct DHT_MessageContext msg_ctx;
+  const struct PeerResultMessage *prm;
+  const struct GNUNET_PeerIdentity *put_path;
+  const struct GNUNET_PeerIdentity *get_path;
+  const void *data;
+  uint32_t get_path_length;
+  uint32_t put_path_length;
+  uint16_t msize;
+  size_t data_size;
+  enum GNUNET_BLOCK_Type type;
+                       
+  /* parse and validate message */
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct PeerResultMessage))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_YES;
+  }
+  prm = (struct PeerResultMessage *) message;
+  put_path_length = ntohl (prm->put_path_length);
+  get_path_length = ntohl (prm->get_path_length);
+  if ( (msize < sizeof (struct PeerResultMessage) + 
+	(get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity)) ||
+       (get_path_length > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
+       (put_path_length > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) )
+  {
+    GNUNET_break_op (0);
+    return GNUNET_YES;
+  } 
+  put_path = (const struct GNUNET_PeerIdentity*) &prm[1];
+  get_path = &put_path[put_path_length];
+  type = ntohl (prm->type);
+  data = (const void*) &get_path[get_path_length];
+  data_size = msize - (sizeof (struct PeerResultMessage) + 
+		       (get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity));
+  /* append 'peer' to 'get_path' */
+  {    
+    struct GNUNET_PeerIdentity xget_path[get_path_length+1];
+    
+    memcpy (xget_path, get_path, get_path_length * sizeof (struct GNUNET_PeerIdentity));
+    xget_path[get_path_length] = *peer;
 
+    /* forward to local clients */   
+    GDS_CLIENT_handle_reply (GNUNET_TIME_absolute_ntoh (prm->expiration),
+			     &prm->key,
+			     get_path_length + 1,
+			     xget_path,
+			     put_path_length,
+			     put_path,
+			     type,
+			     data_size, 
+			     data);
 
-
+    /* forward to other peers */
+    GDS_ROUTING_process (type,
+			 GNUNET_TIME_absolute_ntoh (prm->expiration),
+			 &prm->key,
+			 put_path_length,
+			 put_path,
+			 get_path_length + 1,
+			 xget_path,
+			 data,
+			 data_size);			 
+  }
   return GNUNET_YES;
 }
 
