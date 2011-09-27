@@ -61,8 +61,9 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
  * @param xquery_size number of bytes in xquery
  * @param reply_bf where the reply bf is (to be) stored, possibly updated!, can be NULL
  * @param reply_bf_mutator mutation value for reply_bf
+ * @return evaluation result for the local replies
  */
-void
+enum GNUNET_BLOCK_EvaluationResult 
 GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
 			  enum GNUNET_BLOCK_Type type,
 			  const void *xquery,

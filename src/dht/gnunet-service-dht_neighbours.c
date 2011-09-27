@@ -43,6 +43,7 @@
 #include "gnunet-service-dht.h"
 #include "gnunet-service-dht_clients.h"
 #include "gnunet-service-dht_datacache.h"
+#include "gnunet-service-dht_neighbours.h"
 #include "gnunet-service-dht_nse.h"
 #include "gnunet-service-dht_routing.h"
 #include <fenv.h>
@@ -535,6 +536,97 @@ update_core_preference (void *cls,
 
 
 /**
+ * Closure for 'add_known_to_bloom'.
+ */
+struct BloomConstructorContext
+{
+  /**
+   * Bloom filter under construction.
+   */
+  struct GNUNET_CONTAINER_BloomFilter *bloom;
+
+  /**
+   * Mutator to use.
+   */
+  uint32_t bf_mutator;
+};
+
+
+/**
+ * Add each of the peers we already know to the bloom filter of
+ * the request so that we don't get duplicate HELLOs.
+ *
+ * @param cls the 'struct BloomConstructorContext'.
+ * @param key peer identity to add to the bloom filter
+ * @param value value the peer information (unused)
+ * @return GNUNET_YES (we should continue to iterate)
+ */
+static int
+add_known_to_bloom (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct BloomConstructorContext *ctx = cls;
+  GNUNET_HashCode mh;
+
+  GNUNET_BLOCK_mingle_hash (key, ctx->bf_mutator, &mh);
+  GNUNET_CONTAINER_bloomfilter_add (ctx->bloom, &mh);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Task to send a find peer message for our own peer identifier
+ * so that we can find the closest peers in the network to ourselves
+ * and attempt to connect to them.
+ *
+ * @param cls closure for this task
+ * @param tc the context under which the task is running
+ */
+static void
+send_find_peer_message (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TIME_Relative next_send_time;
+  struct BloomConstructorContext bcc;
+
+  find_peer_task = GNUNET_SCHEDULER_NO_TASK;
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+  if (newly_found_peers > bucket_size) 
+  {
+    /* If we are finding many peers already, no need to send out our request right now! */
+    find_peer_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+						   &send_find_peer_message, NULL);
+    newly_found_peers = 0;
+    return;
+  }
+  bcc.bf_mutator = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+  bcc.bloom =
+    GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
+  GNUNET_CONTAINER_multihashmap_iterate (all_known_peers, 
+					 &add_known_to_bloom,
+                                         &bcc);
+  // FIXME: pass priority!?
+  GDS_NEIGHBOURS_handle_get (GNUNET_BLOCK_TYPE_DHT_HELLO,
+			     GNUNET_DHT_RO_FIND_PEER,
+			     FIND_PEER_REPLICATION_LEVEL,
+			     0,
+			     &my_identity.hashPubKey,
+			     NULL, 0,
+			     bcc.bloom, bcc.bf_mutator, NULL);
+  GNUNET_CONTAINER_bloomfilter_free (bcc.bloom);
+  /* schedule next round */
+  newly_found_peers = 0;
+  next_send_time.rel_value =
+    (DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2) +
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
+			      DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2);
+  find_peer_task = GNUNET_SCHEDULER_add_delayed (next_send_time, 
+						 &send_find_peer_message,
+						 NULL);  
+}
+
+
+/**
  * Method called whenever a peer connects.
  *
  * @param cls closure
@@ -579,6 +671,12 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 		 GNUNET_CONTAINER_multihashmap_put (all_known_peers, 
 						    &peer->hashPubKey, ret,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  if (1 == GNUNET_CONTAINER_multihashmap_size (all_known_peers))
+  {
+    /* got a first connection, good time to start with FIND PEER requests... */
+    find_peer_task = GNUNET_SCHEDULER_add_now (&send_find_peer_message,
+					       NULL);    
+  }
 }
 
 
@@ -1224,9 +1322,9 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
 			     struct GNUNET_TIME_Absolute expiration_time,
 			     const GNUNET_HashCode *key,
 			     unsigned int put_path_length,
-			     struct GNUNET_PeerIdentity *put_path,
+			     const struct GNUNET_PeerIdentity *put_path,
 			     unsigned int get_path_length,
-			     struct GNUNET_PeerIdentity *get_path,
+			     const struct GNUNET_PeerIdentity *get_path,
 			     const void *data,
 			     size_t data_size)
 {
@@ -1280,97 +1378,6 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
 
 
 /**
- * Closure for 'add_known_to_bloom'.
- */
-struct BloomConstructorContext
-{
-  /**
-   * Bloom filter under construction.
-   */
-  struct GNUNET_CONTAINER_BloomFilter *bloom;
-
-  /**
-   * Mutator to use.
-   */
-  uint32_t bf_mutator;
-};
-
-
-/**
- * Add each of the peers we already know to the bloom filter of
- * the request so that we don't get duplicate HELLOs.
- *
- * @param cls the 'struct BloomConstructorContext'.
- * @param key peer identity to add to the bloom filter
- * @param value value the peer information (unused)
- * @return GNUNET_YES (we should continue to iterate)
- */
-static int
-add_known_to_bloom (void *cls, const GNUNET_HashCode * key, void *value)
-{
-  struct BloomConstructorContext *ctx = cls;
-  GNUNET_HashCode mh;
-
-  GNUNET_BLOCK_mingle_hash (key, ctx->bf_mutator, &mh);
-  GNUNET_CONTAINER_bloomfilter_add (ctx->bloom, &mh);
-  return GNUNET_YES;
-}
-
-
-/**
- * Task to send a find peer message for our own peer identifier
- * so that we can find the closest peers in the network to ourselves
- * and attempt to connect to them.
- *
- * @param cls closure for this task
- * @param tc the context under which the task is running
- */
-static void
-send_find_peer_message (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_TIME_Relative next_send_time;
-  struct BloomConstructorContext bcc;
-
-  find_peer_task = GNUNET_SCHEDULER_NO_TASK;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-  if (newly_found_peers > bucket_size) 
-  {
-    /* If we are finding many peers already, no need to send out our request right now! */
-    find_peer_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-						   &send_find_peer_message, NULL);
-    newly_found_peers = 0;
-    return;
-  }
-  bcc.bf_mutator = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
-  bcc.bloom =
-    GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
-  GNUNET_CONTAINER_multihashmap_iterate (all_known_peers, 
-					 &add_known_to_bloom,
-                                         &bcc);
-  // FIXME: pass priority!?
-  GDS_NEIGHBOURS_handle_get (GNUNET_BLOCK_TYPE_DHT_HELLO,
-			     GNUNET_DHT_RO_FIND_PEER,
-			     FIND_PEER_REPLICATION_LEVEL,
-			     0,
-			     &my_identity.hashPubKey,
-			     NULL, 0,
-			     bcc.bloom, bcc.bf_mutator, NULL);
-  GNUNET_CONTAINER_bloomfilter_free (bcc.bloom);
-  /* schedule next round */
-  newly_found_peers = 0;
-  next_send_time.rel_value =
-    (DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2) +
-    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-			      DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2);
-  find_peer_task = GNUNET_SCHEDULER_add_delayed (next_send_time, 
-						 &send_find_peer_message,
-						 NULL);  
-}
-
-
-/**
  * To be called on core init/fail.
  *
  * @param cls service closure
@@ -1383,20 +1390,8 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
            const struct GNUNET_PeerIdentity *identity,
            const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
-  struct GNUNET_TIME_Relative next_send_time;
-
   GNUNET_assert (server != NULL);
   my_identity = *identity;
-  /* FIXME: do upon 1st connect instead! */
-  next_send_time.rel_value =
-    DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value +
-    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-			      (DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value /
-			       2) -
-			      DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value);
-  find_peer_task = GNUNET_SCHEDULER_add_delayed (next_send_time,
-						 &send_find_peer_message,
-						 NULL);
 }
 
 
@@ -1686,26 +1681,25 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     else
     {
-      GDS_DATACACHE_handle_get (&get->key,
-				type,
-				xquery, xquery_size,
-				&reply_bf, 
-				get->bf_mutator);
-      /* FIXME: should track if the local lookup resulted in a
-	 definitive result and then NOT do P2P forwarding */
+      eval = GDS_DATACACHE_handle_get (&get->key,
+				       type,
+				       xquery, xquery_size,
+				       &reply_bf, 
+				       get->bf_mutator);
     }
   }
   
-    /* P2P forwarding */
-  GDS_NEIGHBOURS_handle_get (type,
-			     options,
-			     ntohl (get->desired_replication_level),
-			     ntohl (get->hop_count) + 1, /* CHECK: where (else) do we do +1? */
-			     &get->key,
-			     xquery, xquery_size,
-			     reply_bf,
-			     get->bf_mutator,
-			     peer_bf);
+  /* P2P forwarding */
+  if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
+    GDS_NEIGHBOURS_handle_get (type,
+			       options,
+			       ntohl (get->desired_replication_level),
+			       ntohl (get->hop_count) + 1, /* CHECK: where (else) do we do +1? */
+			       &get->key,
+			       xquery, xquery_size,
+			       reply_bf,
+			       get->bf_mutator,
+			       peer_bf);
   /* clean up */
   if (NULL != reply_bf)
     GNUNET_CONTAINER_bloomfilter_free (reply_bf);

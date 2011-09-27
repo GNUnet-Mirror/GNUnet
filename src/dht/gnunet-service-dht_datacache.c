@@ -142,6 +142,10 @@ struct GetRequestContext
    */
   uint32_t reply_bf_mutator;
 
+  /**
+   * Return value to give back.
+   */
+  enum GNUNET_BLOCK_EvaluationResult eval;
 };
 
 
@@ -192,6 +196,7 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                              ctx->xquery_size, 
 			     rdata,
                              rdata_size);
+  ctx->eval = eval;      
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_LAST:
@@ -223,7 +228,7 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                 type);
     break;
   }
-  return GNUNET_OK;
+  return (eval == GNUNET_BLOCK_EVALUATION_OK_LAST) ? GNUNET_NO : GNUNET_OK;
 }
 
 
@@ -236,8 +241,9 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
  * @param xquery_size number of bytes in xquery
  * @param reply_bf where the reply bf is (to be) stored, possibly updated, can be NULL
  * @param reply_bf_mutator mutation value for reply_bf
+ * @return evaluation result for the local replies
  */
-void
+enum GNUNET_BLOCK_EvaluationResult
 GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
 			  enum GNUNET_BLOCK_Type type,
 			  const void *xquery,
@@ -248,7 +254,8 @@ GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
   struct GetRequestContext ctx;
 
   if (datacache == NULL)
-    return;
+    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+  ctx.eval = GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   ctx.key = *key;
   ctx.xquery = xquery;
   ctx.xquery_size = xquery_size;
@@ -256,6 +263,7 @@ GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
   ctx.reply_bf_mutator = reply_bf_mutator;
   (void) GNUNET_DATACACHE_get (datacache, key, type,
 			       &datacache_get_iterator, &ctx);
+  return ctx.eval;
 }
 
 
