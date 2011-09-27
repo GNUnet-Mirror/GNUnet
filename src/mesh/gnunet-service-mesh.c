@@ -577,10 +577,6 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
- * @param get_path NULL-terminated array of pointers
- *                 to the peers on reverse GET path (or NULL if not recorded)
- * @param put_path NULL-terminated array of pointers
- *                 to the peers on the PUT path (or NULL if not recorded)
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -588,8 +584,10 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     const GNUNET_HashCode * key,
-                    const struct GNUNET_PeerIdentity *const *get_path,
-                    const struct GNUNET_PeerIdentity *const *put_path,
+                    const struct GNUNET_PeerIdentity *get_path,
+		    unsigned int get_path_length,
+                    const struct GNUNET_PeerIdentity *put_path,
+		    unsigned int put_path_length,
                     enum GNUNET_BLOCK_Type type, size_t size, const void *data);
 
 
@@ -759,11 +757,9 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
                                             &id.hashPubKey,   /*key to search */
                                             4,        /* replication level */
                                             GNUNET_DHT_RO_RECORD_ROUTE,
-                                            NULL,     /* bloom filter */
-                                            0,        /* mutator */
                                             NULL,     /* xquery */
                                             0,        /* xquery bits */
-                                            dht_get_id_handler,
+                                            &dht_get_id_handler,
                                             (void *) path_info);
     }
   }
@@ -839,27 +835,24 @@ path_add_to_origin (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
  * Build a PeerPath from the paths returned from the DHT, reversing the paths
  * to obtain a local peer -> destination path and interning the peer ids.
  *
- * @param get_path NULL-terminated array of pointers
- *                 to the peers on reverse GET path (or NULL if not recorded)
- * @param put_path NULL-terminated array of pointers
- *                 to the peers on the PUT path (or NULL if not recorded)
- *
  * @return Newly allocated and created path
  */
 static struct MeshPeerPath *
-path_build_from_dht (const struct GNUNET_PeerIdentity *const *get_path,
-                     const struct GNUNET_PeerIdentity *const *put_path)
+path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
+		     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+		     unsigned int put_path_length)
 {
   struct MeshPeerPath *p;
   GNUNET_PEER_Id id;
   int i;
 
   p = path_new (0);
-  for (i = 0; get_path[i] != NULL; i++) ;
+  i = get_path_length;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:    GET has %d hops.\n", i);
   for (i--; i >= 0; i--)
   {
-    id = GNUNET_PEER_intern (get_path[i]);
+    id = GNUNET_PEER_intern (&get_path[i]);
     if (p->length > 0 && id == p->peers[p->length - 1])
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:    Optimizing 1 hop out.\n");
@@ -873,11 +866,11 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *const *get_path,
       p->length++;
     }
   }
-  for (i = 0; put_path[i] != NULL; i++) ;
+  i = put_path_length;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:    PUT has %d hops.\n", i);
   for (i--; i >= 0; i--)
   {
-    id = GNUNET_PEER_intern (put_path[i]);
+    id = GNUNET_PEER_intern (&put_path[i]);
     if (p->length > 0 && id == p->peers[p->length - 1])
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:    Optimizing 1 hop out.\n");
@@ -894,10 +887,10 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *const *get_path,
 #if MESH_DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:    (first of GET: %s)\n",
-              GNUNET_h2s_full(&get_path[0]->hashPubKey));
+              GNUNET_h2s_full(&get_path[0].hashPubKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:    (first of PUT: %s)\n",
-              GNUNET_h2s_full(&put_path[0]->hashPubKey));
+              GNUNET_h2s_full(&put_path[0].hashPubKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:    In total: %d hops\n",
               p->length);
@@ -2046,10 +2039,6 @@ notify_client_connection_failure (void *cls, size_t size, void *buf)
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
- * @param get_path NULL-terminated array of pointers
- *                 to the peers on reverse GET path (or NULL if not recorded)
- * @param put_path NULL-terminated array of pointers
- *                 to the peers on the PUT path (or NULL if not recorded)
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -2059,8 +2048,10 @@ notify_client_connection_failure (void *cls, size_t size, void *buf)
 static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     const GNUNET_HashCode * key,
-                    const struct GNUNET_PeerIdentity *const *get_path,
-                    const struct GNUNET_PeerIdentity *const *put_path,
+                    const struct GNUNET_PeerIdentity *get_path,
+		    unsigned int get_path_length,
+                    const struct GNUNET_PeerIdentity *put_path,
+		    unsigned int put_path_length,
                     enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
   struct MeshPathInfo *path_info = cls;
@@ -2080,17 +2071,16 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                                                       GNUNET_BLOCK_TYPE_TEST,   /* type */
                                                       &pi.hashPubKey,   /*key to search */
                                                       4,        /* replication level */
-                                                      GNUNET_DHT_RO_RECORD_ROUTE, NULL, /* bloom filter */
-                                                      0,        /* mutator */
+                                                      GNUNET_DHT_RO_RECORD_ROUTE, 
                                                       NULL,     /* xquery */
                                                       0,        /* xquery bits */
-                                                      dht_get_id_handler,
+                                                      &dht_get_id_handler,
                                                       (void *) path_info);
       return;
     }
   }
 
-  p = path_build_from_dht (get_path, put_path);
+  p = path_build_from_dht (get_path, get_path_length, put_path, put_path_length);
   path_add_to_peer (path_info->peer, p);
   for (i = 0; i < path_info->peer->ntunnels; i++)
   {
@@ -2110,10 +2100,6 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
- * @param get_path NULL-terminated array of pointers
- *                 to the peers on reverse GET path (or NULL if not recorded)
- * @param put_path NULL-terminated array of pointers
- *                 to the peers on the PUT path (or NULL if not recorded)
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -2121,8 +2107,10 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 static void
 dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                       const GNUNET_HashCode * key,
-                      const struct GNUNET_PeerIdentity *const *get_path,
-                      const struct GNUNET_PeerIdentity *const *put_path,
+                      const struct GNUNET_PeerIdentity *get_path,
+		      unsigned int get_path_length,
+                      const struct GNUNET_PeerIdentity *put_path,
+		      unsigned int put_path_length,
                       enum GNUNET_BLOCK_Type type, size_t size,
                       const void *data)
 {
@@ -2162,8 +2150,6 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                                               /* replication level */
                                               GNUNET_DHT_RO_RECORD_ROUTE,
                                               /* option to dht: record route */
-                                              NULL,     /* bloom filter */
-                                              0,        /* mutator */
                                               NULL,     /* xquery */
                                               0,        /* xquery bits */
                                               dht_get_id_handler,
@@ -2171,7 +2157,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                                               peer_info);       /* closure */
   }
 
-  p = path_build_from_dht (get_path, put_path);
+  p = path_build_from_dht (get_path, get_path_length, put_path, put_path_length);
   path_add_to_peer (peer_info, p);
   tunnel_add_peer(t, peer_info);
   p = tree_get_path_to_peer(t->tree, peer_info->id);
@@ -2595,17 +2581,15 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
     path_info->peer = peer_info;
     path_info->t = t;
     peer_info->dhtget = GNUNET_DHT_get_start(dht_handle,       /* handle */
-                                            GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
-                                            GNUNET_BLOCK_TYPE_TEST,   /* type */
-                                            &peer_msg->peer.hashPubKey,   /*key to search */
-                                            4,        /* replication level */
-                                            GNUNET_DHT_RO_RECORD_ROUTE,
-                                            NULL,     /* bloom filter */
-                                            0,        /* mutator */
-                                            NULL,     /* xquery */
-                                            0,        /* xquery bits */
-                                            dht_get_id_handler,
-                                            (void *) path_info);
+					     GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
+					     GNUNET_BLOCK_TYPE_TEST,   /* type */
+					     &peer_msg->peer.hashPubKey,   /*key to search */
+					     4,        /* replication level */
+					     GNUNET_DHT_RO_RECORD_ROUTE,
+					     NULL,     /* xquery */
+					     0,        /* xquery bits */
+					     &dht_get_id_handler,
+					     (void *) path_info);
   }
   if (NULL != peer_info->path_head)
   {
@@ -2761,7 +2745,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
   c->dht_get_type =
       GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
                             GNUNET_BLOCK_TYPE_TEST, &hash, 10U,
-                            GNUNET_DHT_RO_RECORD_ROUTE, NULL, 0, NULL, 0,
+                            GNUNET_DHT_RO_RECORD_ROUTE, NULL, 0,
                             &dht_get_type_handler, t);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

@@ -941,10 +941,10 @@ test_put_load_too_high (uint32_t priority)
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
- * @param get_path NULL-terminated array of pointers
- *                 to the peers on reverse GET path (or NULL if not recorded)
- * @param put_path NULL-terminated array of pointers
- *                 to the peers on the PUT path (or NULL if not recorded)
+ * @param get_path peers on reply path (or NULL if not recorded)
+ * @param get_path_length number of entries in get_path
+ * @param put_path peers on the PUT path (or NULL if not recorded)
+ * @param put_path_length number of entries in get_path
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -952,8 +952,10 @@ test_put_load_too_high (uint32_t priority)
 static void
 handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
                   const GNUNET_HashCode * key,
-                  const struct GNUNET_PeerIdentity *const *get_path,
-                  const struct GNUNET_PeerIdentity *const *put_path,
+                  const struct GNUNET_PeerIdentity *get_path,
+		  unsigned int get_path_length,
+                  const struct GNUNET_PeerIdentity *put_path,
+		  unsigned int put_path_length,
                   enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
   struct GSF_PendingRequest *pr = cls;
@@ -1032,9 +1034,10 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
   pr->gh =
       GNUNET_DHT_get_start (GSF_dht, GNUNET_TIME_UNIT_FOREVER_REL,
                             pr->public_data.type, &pr->public_data.query,
-                            DEFAULT_GET_REPLICATION,
-                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, pr->bf,
-                            pr->mingle, xquery, xquery_size, &handle_dht_reply,
+                            5 /* DEFAULT_GET_REPLICATION */,
+                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, 
+			    /* FIXME: can no longer pass pr->bf/pr->mingle... */
+                            xquery, xquery_size, &handle_dht_reply,
                             pr);
 }
 

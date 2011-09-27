@@ -161,7 +161,7 @@ process_dht_put_content (void *cls, const GNUNET_HashCode * key, size_t size,
               "Retrieved block `%s' of type %u for DHT PUT\n", GNUNET_h2s (key),
               type);
 #endif
-  GNUNET_DHT_put (GSF_dht, key, DEFAULT_PUT_REPLICATION, GNUNET_DHT_RO_NONE,
+  GNUNET_DHT_put (GSF_dht, key, 5 /* DEFAULT_PUT_REPLICATION */, GNUNET_DHT_RO_NONE,
                   type, size, data, expiration, GNUNET_TIME_UNIT_FOREVER_REL,
                   &delay_dht_put_blocks, po);
 }

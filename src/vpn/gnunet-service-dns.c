@@ -641,10 +641,11 @@ static void
 receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
              __attribute__ ((unused)), const GNUNET_HashCode * key
              __attribute__ ((unused)),
-             const struct GNUNET_PeerIdentity *const *get_path
-             __attribute__ ((unused)),
-             const struct GNUNET_PeerIdentity *const *put_path
-             __attribute__ ((unused)), enum GNUNET_BLOCK_Type type, size_t size,
+             const struct GNUNET_PeerIdentity *get_path __attribute__ ((unused)),
+	     unsigned int get_path_length __attribute__ ((unused)),
+             const struct GNUNET_PeerIdentity *put_path __attribute__ ((unused)),
+	     unsigned int put_path_length __attribute__ ((unused)),
+             enum GNUNET_BLOCK_Type type, size_t size,
              const void *data)
 {
 
@@ -806,8 +807,8 @@ receive_query (void *cls
     cls->handle =
         GNUNET_DHT_get_start (dht, GNUNET_TIME_UNIT_MINUTES,
                               GNUNET_BLOCK_TYPE_DNS, &key,
-                              DEFAULT_GET_REPLICATION, GNUNET_DHT_RO_NONE, NULL,
-                              0, NULL, 0, receive_dht, cls);
+                              5 /* DEFAULT_GET_REPLICATION */, GNUNET_DHT_RO_NONE, NULL,
+                              0, &receive_dht, cls);
 
     goto outfree;
   }
@@ -1251,7 +1252,7 @@ publish_name (const char *name, uint64_t ports, uint32_t service_type,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Putting with key %08x, size = %d\n",
               *((unsigned int *) &data.service_descriptor), size);
 
-  GNUNET_DHT_put (dht, &data.service_descriptor, DEFAULT_PUT_REPLICATION,
+  GNUNET_DHT_put (dht, &data.service_descriptor, 5 /* DEFAULT_PUT_REPLICATION */,
                   GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_DNS, size,
                   (char *) &data,
                   GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS),
