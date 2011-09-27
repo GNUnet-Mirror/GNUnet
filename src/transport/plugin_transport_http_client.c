@@ -326,11 +326,17 @@ client_wake_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Session *s = cls;
 
   s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
+
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+      "Client: %X Waking up receive handle\n",
+              s->client_get);
+
   if (s->client_get != NULL)
     curl_easy_pause(s->client_get, CURLPAUSE_CONT);
+
 }
 
 /**
@@ -360,20 +366,20 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   now = GNUNET_TIME_absolute_get();
   if (now.abs_value < s->next_receive.abs_value)
   {
+    struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
+    struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference(now, s->next_receive);
 #if DEBUG_CLIENT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No inbound bandwidth available! Next read was delayed for  %llu ms\n",
-                s, GNUNET_TIME_absolute_get_difference(s->next_receive, GNUNET_TIME_absolute_get()).rel_value);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+        "Client: %X No inbound bandwidth available! Next read was delayed for %llu ms\n",
+                s->client_get, delta.rel_value);
 #endif
-#if 0
     if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
       s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed( GNUNET_TIME_absolute_get_difference(s->next_receive, now), &client_wake_up, s);
+    s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed (delta, &client_wake_up, s);
     return CURLPAUSE_ALL;
-#endif
   }
 
 
@@ -384,8 +390,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
                              GNUNET_NO);
 
   return len;
-
-  client_wake_up (NULL, NULL);
+  client_wake_up(NULL,NULL);
 }
 
 /**
