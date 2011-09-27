@@ -15,20 +15,8 @@ if USE_COVERAGE
 endif
 
 lib_LTLIBRARIES = \
- libgnunetdht.la \
  libgnunetdhtnew.la 
 
-
-libgnunetdht_la_SOURCES = \
-  dht_api.c dht.h \
-  dht_api_get_put.c \
-  dht_api_find_peer.c 
-libgnunetdht_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB)
-libgnunetdht_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 0:0:0
 
 libgnunetdhtnew_la_SOURCES = \
   dht_api_new.c dht_new.h 
@@ -43,11 +31,6 @@ bin_PROGRAMS = \
  gnunet-service-dht-new \
  gnunet-dht-get \
  gnunet-dht-put
-
-if HAVE_MALICIOUS
-noinst_PROGRAMS = \
- gnunet-dht-driver 
-endif
 
 gnunet_service_dht_new_SOURCES = \
  gnunet-service-dht-new.c gnunet-service-dht.h \

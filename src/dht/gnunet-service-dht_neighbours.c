@@ -38,7 +38,6 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_dht_service_new.h"
 #include "gnunet_statistics_service.h"
-#include "dht.h"
 #include "gnunet-service-dht.h"
 #include "gnunet-service-dht_clients.h"
 #include "gnunet-service-dht_datacache.h"
@@ -593,7 +592,7 @@ send_find_peer_message (void *cls,
   }
   bcc.bf_mutator = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
   bcc.bloom =
-    GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
+    GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, GNUNET_CONSTANTS_BLOOMFILTER_K);
   GNUNET_CONTAINER_multihashmap_iterate (all_known_peers, 
 					 &add_known_to_bloom,
                                          &bcc);
@@ -1508,7 +1507,7 @@ handle_dht_p2p_put (void *cls,
   }
   bf = GNUNET_CONTAINER_bloomfilter_init (put->bloomfilter,
 					  DHT_BLOOM_SIZE,
-					  DHT_BLOOM_K);
+					  GNUNET_CONSTANTS_BLOOMFILTER_K);
   {
     struct GNUNET_PeerIdentity pp[putlen+1];
   
@@ -1710,7 +1709,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   peer_bf =
     GNUNET_CONTAINER_bloomfilter_init (get->bloomfilter, 
 				       DHT_BLOOM_SIZE,
-				       DHT_BLOOM_K);
+				       GNUNET_CONSTANTS_BLOOMFILTER_K);
 
   /* remember request for routing replies */
   GDS_ROUTING_add (peer,
