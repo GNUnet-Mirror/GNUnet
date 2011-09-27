@@ -126,7 +126,10 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   if (curr_get_ctx.retry_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (curr_get_ctx.retry_task);
+    curr_get_ctx.retry_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 }
 
 
@@ -139,8 +142,10 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	   "Error: %s\n",
 	   emsg);
   if (curr_get_ctx.retry_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (curr_get_ctx.retry_task);
-
+    curr_get_ctx.retry_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (curr_get_ctx.get_handle != NULL)
   {
     GNUNET_DHT_get_stop (curr_get_ctx.get_handle);
