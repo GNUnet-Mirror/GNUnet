@@ -31,7 +31,7 @@
 #include "gnunet_os_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
-#include "gnunet_dht_service_new.h"
+#include "gnunet_dht_service.h"
 #include "gnunet_hello_lib.h"
 
 #define VERBOSE GNUNET_NO

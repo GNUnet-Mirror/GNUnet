@@ -32,7 +32,7 @@
 #include "gnunet-service-dht_clients.h"
 #include "gnunet-service-dht_datacache.h"
 #include "gnunet-service-dht_neighbours.h"
-#include "dht_new.h"
+#include "dht.h"
 
 
 /**

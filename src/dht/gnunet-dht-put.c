@@ -24,7 +24,7 @@
  * @author Nathan Evans
  */
 #include "platform.h"
-#include "gnunet_dht_service_new.h"
+#include "gnunet_dht_service.h"
 
 /**
  * The type of the query

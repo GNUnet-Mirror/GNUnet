@@ -31,8 +31,8 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_dht_service_new.h"
-#include "dht_new.h"
+#include "gnunet_dht_service.h"
+#include "dht.h"
 
 #define DEBUG_DHT_API GNUNET_NO
 

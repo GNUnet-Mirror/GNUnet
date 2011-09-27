@@ -39,7 +39,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
-#include "gnunet_dht_service_new.h"
+#include "gnunet_dht_service.h"
 #include "block_dns.h"
 #include "gnunet_signatures.h"
 
