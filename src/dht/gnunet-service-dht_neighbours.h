@@ -27,6 +27,9 @@
 #ifndef GNUNET_SERVICE_DHT_NEIGHBOURS_H
 #define GNUNET_SERVICE_DHT_NEIGHBOURS_H
 
+#include "gnunet_util_lib.h"
+#include "gnunet_block_lib.h"
+#include "gnunet_dht_service.h"
 
 /**
  * Perform a PUT operation.  Forwards the given request to other
@@ -51,7 +54,7 @@ void
 GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
 			   enum GNUNET_DHT_RouteOption options,
 			   uint32_t desired_replication_level,
-			   GNUNET_TIME_Absolute expiration_time,
+			   struct GNUNET_TIME_Absolute expiration_time,
 			   uint32_t hop_count,
 			   struct GNUNET_CONTAINER_BloomFilter *bf,
 			   const GNUNET_HashCode *key,
@@ -108,9 +111,9 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
  * @param data_size number of bytes in data
  */
 void
-GDS_NEIGHBOURS_handle_reply (const GNUNET_PeerIdentity *target,
+GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
 			     enum GNUNET_BLOCK_Type type,
-			     GNUNET_TIME_Absolute expiration_time,
+			     struct GNUNET_TIME_Absolute expiration_time,
 			     const GNUNET_HashCode *key,
 			     unsigned int put_path_length,
 			     struct GNUNET_PeerIdentity *put_path,
@@ -122,9 +125,12 @@ GDS_NEIGHBOURS_handle_reply (const GNUNET_PeerIdentity *target,
 
 /**
  * Initialize neighbours subsystem.
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-void
+int
 GDS_NEIGHBOURS_init (void);
+
 
 /**
  * Shutdown neighbours subsystem.

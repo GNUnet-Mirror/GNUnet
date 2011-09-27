@@ -27,6 +27,8 @@
 #ifndef GNUNET_SERVICE_DHT_CLIENTS_H
 #define GNUNET_SERVICE_DHT_CLIENTS_H
 
+#include "gnunet_util_lib.h"
+#include "gnunet_block_lib.h"
 
 /**
  * Handle a reply we've received from another peer.  If the reply

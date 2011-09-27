@@ -23,6 +23,8 @@
  * @brief GNUnet DHT integration with NSE
  * @author Christian Grothoff
  */
+#include "platform.h"
+#include "gnunet_nse_service.h"
 #include "gnunet-service-dht.h"
 #include "gnunet-service-dht_nse.h"
 

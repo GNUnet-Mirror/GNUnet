@@ -26,6 +26,9 @@
 #ifndef GNUNET_SERVICE_DHT_ROUTING_H
 #define GNUNET_SERVICE_DHT_ROUTING_H
 
+#include "gnunet_util_lib.h"
+#include "gnunet_block_lib.h"
+
 
 /**
  * Handle a reply (route to origin).  Only forwards the reply back to
@@ -45,8 +48,8 @@
  * @param data_size number of bytes in data
  */
 void
-GDS_ROUTING_process (uint32_t type,
-		     GNUNET_TIME_Absolute expiration_time,
+GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
+		     struct GNUNET_TIME_Absolute expiration_time,
 		     const GNUNET_HashCode *key,
 		     unsigned int put_path_length,
 		     const struct GNUNET_PeerIdentity *put_path,
@@ -68,8 +71,8 @@ GDS_ROUTING_process (uint32_t type,
  * @param reply_bf_mutator mutator for reply_bf
 */
 void
-GDS_ROUTING_add (const GNUNET_PeerIdentity *sender,
-		 uint32_t type,
+GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
+		 enum GNUNET_BLOCK_Type type,
 		 const GNUNET_HashCode *key,
 		 const void *xquery,
 		 size_t xquery_size,

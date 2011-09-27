@@ -1509,6 +1509,8 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 /**
  * Initialize neighbours subsystem.
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
 GDS_NEIGHBOURS_init ()
@@ -1527,7 +1529,7 @@ GDS_NEIGHBOURS_init ()
                                              &temp_config_num))
     bucket_size = (unsigned int) temp_config_num;  
   coreAPI = GNUNET_CORE_connect (GDS_cfg,
-                                 DEFAULT_CORE_QUEUE_SIZE,
+                                 1,
                                  NULL,
                                  &core_init,
                                  &handle_core_connect,
@@ -1539,6 +1541,18 @@ GDS_NEIGHBOURS_init ()
   if (coreAPI == NULL)
     return GNUNET_SYSERR;
   all_known_peers = GNUNET_CONTAINER_multihashmap_create (256);
+#if 0
+  // FIXME!
+  next_send_time.rel_value =
+    DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value +
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
+			      (DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value /
+			       2) -
+			      DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value);
+  find_peer_task = GNUNET_SCHEDULER_add_delayed (next_send_time, 
+						 &send_find_peer_message,
+						 &find_peer_context);  
+#endif
   return GNUNET_OK;
 }
 
@@ -1549,7 +1563,8 @@ GDS_NEIGHBOURS_init ()
 void
 GDS_NEIGHBOURS_done ()
 {
-  GNUNET_assert (coreAPI != NULL);
+  if (coreAPI == NULL)
+    return;
   GNUNET_CORE_disconnect (coreAPI);
   coreAPI = NULL;    
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_get_size (all_known_peers));
@@ -1564,3 +1579,76 @@ GDS_NEIGHBOURS_done ()
 
 
 /* end of gnunet-service-dht_neighbours.c */
+
+
+#if 0
+
+/* Forward declaration */
+static void
+update_core_preference (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Function called with statistics about the given peer.
+ *
+ * @param cls closure
+ * @param peer identifies the peer
+ * @param bpm_out set to the current bandwidth limit (sending) for this peer
+ * @param amount set to the amount that was actually reserved or unreserved;
+ *               either the full requested amount or zero (no partial reservations)
+ * @param res_delay if the reservation could not be satisfied (amount was 0), how
+ *        long should the client wait until re-trying?
+ * @param preference current traffic preference for the given peer
+ */
+static void
+update_core_preference_finish (void *cls,
+                               const struct GNUNET_PeerIdentity *peer,
+                               struct GNUNET_BANDWIDTH_Value32NBO bpm_out,
+                               int32_t amount,
+                               struct GNUNET_TIME_Relative res_delay,
+                               uint64_t preference)
+{
+  struct PeerInfo *peer_info = cls;
+
+  peer_info->info_ctx = NULL;
+  GNUNET_SCHEDULER_add_delayed (DHT_DEFAULT_PREFERENCE_INTERVAL,
+                                &update_core_preference, peer_info);
+}
+
+
+static void
+update_core_preference (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerInfo *peer = cls;
+  uint64_t preference;
+  unsigned int matching;
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  {
+    return;
+  }
+  matching =
+      GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey,
+                                        &peer->id.hashPubKey);
+  if (matching >= 64)
+  {
+#if DEBUG_DHT
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Peer identifier matches by %u bits, only shifting as much as we can!\n",
+                matching);
+#endif
+    matching = 63;
+  }
+  preference = 1LL << matching;
+  peer->info_ctx =
+      GNUNET_CORE_peer_change_preference (core_api, &peer->id,
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          GNUNET_BANDWIDTH_VALUE_MAX, 0,
+                                          preference,
+                                          &update_core_preference_finish, peer);
+}
+
+
+#endif
