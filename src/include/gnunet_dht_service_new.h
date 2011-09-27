@@ -78,10 +78,15 @@ enum GNUNET_DHT_RouteOption
      */
   GNUNET_DHT_RO_RECORD_ROUTE = 2,
 
+  /**
+   * This is a 'FIND-PEER' request, so approximate results are fine.
+   */
+  GNUNET_DHT_RO_FIND_PEER = 4,
+
     /**
      * Possible message option for query key randomization.
      */
-  GNUNET_DHT_RO_BART = 4
+  GNUNET_DHT_RO_BART = 8
 };
 
 
