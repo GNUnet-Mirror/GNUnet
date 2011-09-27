@@ -122,6 +122,7 @@ gnunet_service_dht_new_SOURCES = \
  gnunet-service-dht-new.c gnunet-service-dht.h \
  gnunet-service-dht_clients.c gnunet-service-dht_clients.h \
  gnunet-service-dht_datacache.c gnunet-service-dht_datacache.h \
+ gnunet-service-dht_hello.c gnunet-service-dht_hello.h \
  gnunet-service-dht_nse.c gnunet-service-dht_nse.h \
  gnunet-service-dht_neighbours.c gnunet-service-dht_neighbours.h \
  gnunet-service-dht_routing.c gnunet-service-dht_routing.h 

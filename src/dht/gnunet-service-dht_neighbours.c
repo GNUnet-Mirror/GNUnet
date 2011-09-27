@@ -38,11 +38,11 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_peerinfo_service.h"
 #include "dht.h"
 #include "gnunet-service-dht.h"
 #include "gnunet-service-dht_clients.h"
 #include "gnunet-service-dht_datacache.h"
+#include "gnunet-service-dht_hello.h"
 #include "gnunet-service-dht_neighbours.h"
 #include "gnunet-service-dht_nse.h"
 #include "gnunet-service-dht_routing.h"
@@ -329,12 +329,6 @@ struct PeerInfo
   struct GNUNET_CORE_InformationRequestContext *info_ctx;
 
   /**
-   * HELLO message for the peer, NULL if not known.  FIXME: track
-   * separately? FIXME: free!?
-   */
-  struct GNUNET_HELLO_Message *hello;
-
-  /**
    * Task for scheduling preference updates
    */
   GNUNET_SCHEDULER_TaskIdentifier preference_task;
@@ -421,11 +415,6 @@ static struct GNUNET_PeerIdentity my_identity;
  * Handle to GNUnet core.
  */
 static struct GNUNET_CORE_Handle *coreAPI;
-
-/**
- * Handle for peerinfo notifications.
- */
-static struct GNUNET_PEERINFO_NotifyContext *pnc;
 
 
 /**
@@ -1533,6 +1522,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
   struct PeerInfo *peer;
   unsigned int choice;
   GNUNET_HashCode mhash;
+  const struct GNUNET_HELLO_Message *hello;
 
   /* first, check about our own HELLO */
   if (NULL != GDS_my_hello)
@@ -1574,8 +1564,9 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
       if (peer == NULL)
 	peer = bucket->head;
       GNUNET_BLOCK_mingle_hash (&peer->id.hashPubKey, bf_mutator, &mhash);
+      hello = GDS_HELLO_get (&peer->id);
     }
-  while ( (peer->hello == NULL) ||
+  while ( (hello == NULL) ||
 	  (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bf, &mhash)) );
   GDS_NEIGHBOURS_handle_reply (sender,
 			       GNUNET_BLOCK_TYPE_DHT_HELLO,
@@ -1583,8 +1574,8 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
 			       key,
 			       0, NULL,
 			       0, NULL,
-			       peer->hello,
-			       GNUNET_HELLO_size (peer->hello));    
+			       hello,
+			       GNUNET_HELLO_size (hello));    
 }
 
 
@@ -1832,29 +1823,6 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Function called for each HELLO known to PEERINFO.
- *
- * @param cls closure
- * @param peer id of the peer, NULL for last call
- * @param hello hello message for the peer (can be NULL)
- * @param error message
- */
-static void
-process_hello (void *cls,
-	       const struct GNUNET_PeerIdentity *
-	       peer,
-	       const struct GNUNET_HELLO_Message *
-	       hello, const char *err_msg)
-{
-  // FIXME: consider moving HELLO processing to another file!
-  // FIXME: first, filter HELLOs without addresses (!)
-  // FIXME: track HELLOs (for responding to FIND PEER requests)
-  // FIXME: add code to possibly ask core to establish connections
-  //        (using our own peerinfo is better than using FIND PEER!)
-}
-
-
-/**
  * Initialize neighbours subsystem.
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
@@ -1887,9 +1855,6 @@ GDS_NEIGHBOURS_init ()
   if (coreAPI == NULL)
     return GNUNET_SYSERR;
   all_known_peers = GNUNET_CONTAINER_multihashmap_create (256);
-  pnc = GNUNET_PEERINFO_notify (GDS_cfg,
-				&process_hello,
-				NULL);
   return GNUNET_OK;
 }
 
@@ -1902,11 +1867,6 @@ GDS_NEIGHBOURS_done ()
 {
   if (coreAPI == NULL)
     return;
-  if (NULL != pnc)
-  {
-    GNUNET_PEERINFO_notify_cancel (pnc);
-    pnc = NULL;
-  }
   GNUNET_CORE_disconnect (coreAPI);
   coreAPI = NULL;    
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (all_known_peers));

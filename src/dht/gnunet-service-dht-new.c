@@ -34,6 +34,7 @@
 #include "gnunet-service-dht.h"
 #include "gnunet-service-dht_clients.h"
 #include "gnunet-service-dht_datacache.h"
+#include "gnunet-service-dht_hello.h"
 #include "gnunet-service-dht_neighbours.h"
 #include "gnunet-service-dht_nse.h"
 #include "gnunet-service-dht_routing.h"
@@ -114,6 +115,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GDS_DATACACHE_done ();
   GDS_ROUTING_done ();
   GDS_CLIENTS_done ();
+  GDS_HELLO_done ();
   GDS_NSE_done ();
   if (GDS_block_context != NULL)
   {
@@ -147,6 +149,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GDS_ROUTING_init ();
   GDS_NSE_init ();
   GDS_DATACACHE_init ();
+  GDS_HELLO_init ();
   GDS_CLIENTS_init (server);
   if (GNUNET_OK !=
       GDS_NEIGHBOURS_init ())
