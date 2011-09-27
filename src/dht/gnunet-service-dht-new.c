@@ -114,7 +114,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GDS_NEIGHBOURS_done ();
   GDS_DATACACHE_done ();
   GDS_ROUTING_done ();
-  GDS_CLIENTS_done ();
   GDS_HELLO_done ();
   GDS_NSE_done ();
   if (GDS_block_context != NULL)
@@ -182,11 +181,15 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 int
 main (int argc, char *const *argv)
 {
-  return (GNUNET_OK ==
-	  GNUNET_SERVICE_run (argc, argv, 
-			      "dht", 
-			      GNUNET_SERVICE_OPTION_NONE,
-			      &run, NULL)) ? 0 : 1;
+  int ret;
+  
+  ret = (GNUNET_OK ==
+	 GNUNET_SERVICE_run (argc, argv, 
+			     "dht", 
+			     GNUNET_SERVICE_OPTION_NONE,
+			     &run, NULL)) ? 0 : 1;
+  GDS_CLIENTS_done ();
+  return ret;
 }
 
 /* end of gnunet-service-dht.c */
