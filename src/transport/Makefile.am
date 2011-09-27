@@ -215,7 +215,7 @@ libgnunet_plugin_transport_unix_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_http_la_SOURCES = \
-  plugin_transport_http_new.c plugin_transport_http_client.c plugin_transport_http_server.c
+  plugin_transport_http.c plugin_transport_http_client.c plugin_transport_http_server.c
 libgnunet_plugin_transport_http_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
