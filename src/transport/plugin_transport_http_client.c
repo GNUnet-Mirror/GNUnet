@@ -205,8 +205,6 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
          client_disconnect(s);
          //GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,"Notifying about ended session to peer `%s' `%s'\n", GNUNET_i2s (&s->target), http_plugin_address_to_string (plugin, s->addr, s->addrlen));
-         if (s->msg_tk != NULL)
-           GNUNET_SERVER_mst_destroy (s->msg_tk);
          notify_session_end (plugin, &s->target, s);
        }
     }

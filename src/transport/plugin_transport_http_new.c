@@ -398,6 +398,11 @@ lookup_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
 void
 delete_session (struct Session *s)
 {
+  if (s->msg_tk != NULL)
+  {
+    GNUNET_SERVER_mst_destroy (s->msg_tk);
+    s->msg_tk = NULL;
+  }
   GNUNET_free (s->addr);
   GNUNET_free_non_null(s->server_recv);
   GNUNET_free_non_null(s->server_send);
