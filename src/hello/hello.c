@@ -590,6 +590,7 @@ find_matching (void *cls, const char *tname,
   return GNUNET_OK;
 }
 
+
 /**
  * Test if two HELLO messages contain the same addresses.
  * If they only differ in expiration time, the lowest
@@ -626,6 +627,35 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
   ec.h2 = h1;
   GNUNET_HELLO_iterate_addresses (h2, GNUNET_NO, &find_matching, &ec);
   return ec.result;
+}
+
+
+static int
+find_min_expire (void *cls, const char *tname,
+		 struct GNUNET_TIME_Absolute expiration, const void *addr,
+		 uint16_t addrlen)
+{
+  struct GNUNET_TIME_Absolute *min = cls;
+
+  *min = GNUNET_TIME_absolute_min (*min, expiration);
+  return GNUNET_OK;
+}
+
+
+/**
+ * When does the last address in the given HELLO expire?
+ *
+ * @param msg HELLO to inspect
+ * @return time the last address expires, 0 if there are no addresses in the HELLO
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
+{
+  struct GNUNET_TIME_Absolute ret;
+
+  ret.abs_value = 0;
+  GNUNET_HELLO_iterate_addresses (msg, GNUNET_NO, &find_min_expire, &ret);
+  return ret;
 }
 
 

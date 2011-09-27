@@ -161,6 +161,16 @@ typedef int (*GNUNET_HELLO_AddressIterator) (void *cls, const char *tname,
 
 
 /**
+ * When does the last address in the given HELLO expire?
+ *
+ * @param msg HELLO to inspect
+ * @return time the last address expires, 0 if there are no addresses in the HELLO
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg);
+
+
+/**
  * Iterate over all of the addresses in the HELLO.
  *
  * @param msg HELLO to iterate over; client does not need to
