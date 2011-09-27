@@ -1478,7 +1478,7 @@ handle_dht_p2p_put (void *cls,
       putlen = 0;
     
     /* give to local clients */
-    GDS_CLIENT_handle_reply (GNUNET_TIME_absolute_ntoh (put->expiration_time),
+    GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (put->expiration_time),
 			     &put->key,
 			     0, NULL,
 			     putlen,
@@ -1806,7 +1806,7 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     get_path_length++;
 
     /* forward to local clients */   
-    GDS_CLIENT_handle_reply (GNUNET_TIME_absolute_ntoh (prm->expiration_time),
+    GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (prm->expiration_time),
 			     &prm->key,
 			     get_path_length,
 			     xget_path,

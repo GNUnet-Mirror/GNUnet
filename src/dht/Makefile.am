@@ -18,7 +18,9 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-lib_LTLIBRARIES = libgnunetdht.la \
+lib_LTLIBRARIES = \
+ libgnunetdht.la \
+ libgnunetdhtnew.la \
  libgnunetdhtlog.la
 
 plugin_LTLIBRARIES = \

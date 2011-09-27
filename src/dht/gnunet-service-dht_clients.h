@@ -24,8 +24,8 @@
  * @author Christian Grothoff
  * @author Nathan Evans
  */
-#ifndef GNUNET_SERVICE_DHT_CLIENTS_H
-#define GNUNET_SERVICE_DHT_CLIENTS_H
+#ifndef GNUNET_SERVICE_DHT_CLIENT_H
+#define GNUNET_SERVICE_DHT_CLIENT_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
@@ -46,7 +46,7 @@
  * @param data application payload data
  */
 void
-GDS_CLIENT_handle_reply (struct GNUNET_TIME_Absolute expiration,
+GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
 			 const GNUNET_HashCode *key,
 			 unsigned int get_path_length,
 			 const struct GNUNET_PeerIdentity *get_path,
@@ -63,13 +63,13 @@ GDS_CLIENT_handle_reply (struct GNUNET_TIME_Absolute expiration,
  * @param server the initialized server
  */
 void 
-GDS_CLIENT_init (struct GNUNET_SERVER_Handle *server);
+GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server);
 
 
 /**
  * Shutdown client subsystem.
  */
 void
-GDS_CLIENT_done (void);
+GDS_CLIENTS_done (void);
 
 #endif

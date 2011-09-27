@@ -386,7 +386,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
     }
   dht_msg = (const struct GNUNET_DHT_ClientPutMessage *) message;
   /* give to local clients */
-  GDS_CLIENT_handle_reply (GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
+  GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
 			   &dht_msg->key,
 			   0, NULL,
 			   0, NULL,
@@ -772,7 +772,7 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
  * @param data application payload data
  */
 void
-GDS_CLIENT_handle_reply (struct GNUNET_TIME_Absolute expiration,
+GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
 			 const GNUNET_HashCode *key,
 			 unsigned int get_path_length,
 			 const struct GNUNET_PeerIdentity *get_path,
@@ -840,7 +840,7 @@ GDS_CLIENT_handle_reply (struct GNUNET_TIME_Absolute expiration,
  * @param server the initialized server
  */
 void 
-GDS_CLIENT_init (struct GNUNET_SERVER_Handle *server)
+GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
 {
   static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
     {&handle_dht_local_put, NULL, 
@@ -863,7 +863,7 @@ GDS_CLIENT_init (struct GNUNET_SERVER_Handle *server)
  * Shutdown client subsystem.
  */
 void
-GDS_CLIENT_done ()
+GDS_CLIENTS_done ()
 {
   GNUNET_assert (client_head == NULL);
   GNUNET_assert (client_tail == NULL);

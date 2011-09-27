@@ -113,7 +113,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GDS_NEIGHBOURS_done ();
   GDS_DATACACHE_done ();
   GDS_ROUTING_done ();
-  GDS_CLIENT_done ();
+  GDS_CLIENTS_done ();
   GDS_NSE_done ();
   if (GDS_block_context != NULL)
   {
@@ -147,7 +147,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GDS_ROUTING_init ();
   GDS_NSE_init ();
   GDS_DATACACHE_init ();
-  GDS_CLIENT_init (server);
+  GDS_CLIENTS_init (server);
   if (GNUNET_OK !=
       GDS_NEIGHBOURS_init ())
     {

@@ -202,7 +202,7 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   case GNUNET_BLOCK_EVALUATION_OK_LAST:
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
     /* forward to local clients */
-    GDS_CLIENT_handle_reply (exp,
+    GDS_CLIENTS_handle_reply (exp,
 			     key,
 			     0, NULL,
 			     put_path_length, pp,

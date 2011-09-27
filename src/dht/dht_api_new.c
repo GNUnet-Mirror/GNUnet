@@ -26,17 +26,13 @@
  */
 
 #include "platform.h"
-#include "gnunet_bandwidth_lib.h"
-#include "gnunet_client_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
-#include "gnunet_container_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_time_lib.h"
-#include "gnunet_dht_service.h"
-#include "dht.h"
+#include "gnunet_dht_service_new.h"
+#include "dht_new.h"
 
 #define DEBUG_DHT_API GNUNET_NO
 
@@ -104,9 +100,9 @@ struct PendingMessage
 
 
 /**
- * Handle to a route request
+ * Handle to a GET request
  */
-struct GNUNET_DHT_RouteHandle
+struct GNUNET_DHT_GetHandle
 {
 
   /**
@@ -242,14 +238,14 @@ try_connect (struct GNUNET_DHT_Handle *handle)
  *
  * @param cls the 'struct GNUNET_DHT_Handle*'
  * @param key key for the request (not used)
- * @param value the 'struct GNUNET_DHT_RouteHandle*'
+ * @param value the 'struct GNUNET_DHT_GetHandle*'
  * @return GNUNET_YES (always)
  */
 static int
 add_request_to_pending (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_DHT_Handle *handle = cls;
-  struct GNUNET_DHT_RouteHandle *rh = value;
+  struct GNUNET_DHT_GetHandle *rh = value;
 
   if (GNUNET_NO == rh->message->in_pending_queue)
   {
@@ -424,7 +420,7 @@ static int
 process_reply (void *cls, const GNUNET_HashCode * key, void *value)
 {
   const struct GNUNET_DHT_ClientResultMessage *dht_msg = cls;
-  struct GNUNET_DHT_RouteHandle *rh = value;
+  struct GNUNET_DHT_GetHandle *rh = value;
   const struct GNUNET_PeerIdentity *put_path;
   const struct GNUNET_PeerIdentity *get_path;
   uint32_t put_path_length;
@@ -440,10 +436,10 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
     return GNUNET_YES;
   }
   msize = ntohs (dht_msg->header.size);
-  meta_length = sizeof (struct GNUNET_DHT_ClientResultMessage) +
-    sizeof (struct GNUNET_PeerIdentity) * (get_path_length + put_path_length);
   put_path_length = ntohl (dht_msg->put_path_length);
   get_path_length = ntohl (dht_msg->get_path_length);
+  meta_length = sizeof (struct GNUNET_DHT_ClientResultMessage) +
+    sizeof (struct GNUNET_PeerIdentity) * (get_path_length + put_path_length);
   if ( (msize < meta_length) ||
        (get_path_length > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
        (put_path_length > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) )
@@ -461,7 +457,7 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
 	    get_path, get_path_length,
 	    put_path, put_path_length,
 	    ntohl (dht_msg->type),
-	    data_size, data);
+	    data_length, data);
   return GNUNET_YES;
 }
 
@@ -477,7 +473,7 @@ static void
 service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_DHT_Handle *handle = cls;
-  const struct GNUNET_DHT_RouteResultMessage *dht_msg;
+  const struct GNUNET_DHT_ClientResultMessage *dht_msg;
 
   if (msg == NULL)
   {
@@ -492,13 +488,13 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     do_disconnect (handle);
     return;
   }
-  if (ntohs (msg->size) < sizeof (struct GNUNET_DHT_RouteResultMessage))
+  if (ntohs (msg->size) < sizeof (struct GNUNET_DHT_ClientResultMessage))
   {
     GNUNET_break (0);
     do_disconnect (handle);
     return;
   }
-  dht_msg = (const struct GNUNET_DHT_RouteResultMessage *) msg;
+  dht_msg = (const struct GNUNET_DHT_ClientResultMessage *) msg;
   GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
                                               &dht_msg->key, &process_reply,
                                               (void *) dht_msg);
@@ -626,9 +622,12 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, const GNUNET_HashCode * key,
                 void *cont_cls)
 {
   struct GNUNET_DHT_ClientPutMessage *put_msg;
+  size_t msize;
+  struct PendingMessage *pending;
 
   msize = sizeof (struct GNUNET_DHT_ClientPutMessage) + size;
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if ( (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+       (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE) )
     {
       GNUNET_break (0);
       if (NULL != cont)
@@ -636,24 +635,22 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, const GNUNET_HashCode * key,
       return;
     }
   pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-  message = (struct GNUNET_DHT_ClientPutMessage *) &pending[1];
-  pending->msg = &message->header;
+  put_msg = (struct GNUNET_DHT_ClientPutMessage *) &pending[1];
+  pending->msg = &put_msg->header;
   pending->handle = handle;
   pending->cont = cont;
   pending->cont_cls = cont_cls;
   pending->free_on_send = GNUNET_YES;
   pending->timeout_task =
     GNUNET_SCHEDULER_add_delayed (timeout, &timeout_put_request, pending);
-  message->header.size = htons (msize);
-  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT);
-  message->type = htonl (type);
-  message->options = htonl ((uint32_t) options);
-  message->desired_replication_level = htonl (desired_replication_level);
-  message->expiration = GNUNET_TIME_absolute_hton (exp);
-  message->key = *key;
-  handle->uid_gen++;
-  message->unique_id = handle->uid_gen;
-  memcpy (&message[1], data, size);
+  put_msg->header.size = htons (msize);
+  put_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT);
+  put_msg->type = htonl (type);
+  put_msg->options = htonl ((uint32_t) options);
+  put_msg->desired_replication_level = htonl (desired_replication_level);
+  put_msg->expiration = GNUNET_TIME_absolute_hton (exp);
+  put_msg->key = *key;
+  memcpy (&put_msg[1], data, size);
   GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
                                pending);
   pending->in_pending_queue = GNUNET_YES;
@@ -689,37 +686,40 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
 {
   struct GNUNET_DHT_ClientGetMessage *get_msg;
   struct GNUNET_DHT_GetHandle *get_handle;
+  size_t msize;
+  struct PendingMessage *pending;
 
   msize = sizeof (struct GNUNET_DHT_ClientGetMessage) + xquery_size;
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if ( (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+       (xquery_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE) )
     {
       GNUNET_break (0);
       return NULL;
     }
   pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-  message = (struct GNUNET_DHT_ClientGetMessage *) &pending[1];
-  pending->msg = &message->header;
+  get_msg = (struct GNUNET_DHT_ClientGetMessage *) &pending[1];
+  pending->msg = &get_msg->header;
   pending->handle = handle;
   pending->free_on_send = GNUNET_NO;
-  message->header.size = htons (msize);
-  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET);
-  message->options = htonl ((uint32_t) options);
-  message->desired_replication_level = htonl (desired_replication_level);
-  message->type = htonl (type);
-  message->key = *key;
+  get_msg->header.size = htons (msize);
+  get_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET);
+  get_msg->options = htonl ((uint32_t) options);
+  get_msg->desired_replication_level = htonl (desired_replication_level);
+  get_msg->type = htonl (type);
+  get_msg->key = *key;
   handle->uid_gen++;
-  message->unique_id = handle->uid_gen;
-  memcpy (&message[1], xquery, xquery_size);
+  get_msg->unique_id = handle->uid_gen;
+  memcpy (&get_msg[1], xquery, xquery_size);
   GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
                                pending);
   pending->in_pending_queue = GNUNET_YES;
   get_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_GetHandle));
   get_handle->iter = iter;
   get_handle->iter_cls = iter_cls;
-  get_handle->route_handle = pending;  
+  get_handle->message = pending;  
   GNUNET_CONTAINER_multihashmap_put (handle->active_requests,
 				     key, get_handle,
-				     GNUNET_CONTAINER_MULITHASHMAPOPTION_MULTIPLE);
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   process_pending_messages (handle);
   return get_handle;
 }
@@ -736,19 +736,20 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
   struct GNUNET_DHT_Handle *handle;
   const struct GNUNET_DHT_ClientGetMessage *get_msg;
 
-  handle = get_handle->pending->handle;
-  get_msg = (const struct GNUNET_DHT_ClientGetMessage*) get_handle->pending->msg;
+  /* FIXME: send STOP to service! */
+  handle = get_handle->message->handle;
+  get_msg = (const struct GNUNET_DHT_ClientGetMessage*) get_handle->message->msg;
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (handle->active_requests,
 						       &get_msg->key, get_handle));
-  if (GNUNET_YES == get_handle->pending->in_pending_queue)
+  if (GNUNET_YES == get_handle->message->in_pending_queue)
     {
       GNUNET_CONTAINER_DLL_remove (handle->pending_head,
 				   handle->pending_tail,
-				   get_handle->pending);
-      get_handle->pending->in_pending_queue = GNUNET_NO;
+				   get_handle->message);
+      get_handle->message->in_pending_queue = GNUNET_NO;
     }
-  GNUNET_free (get_handle->pending);
+  GNUNET_free (get_handle->message);
   GNUNET_free (get_handle);
 }
 
