@@ -425,15 +425,15 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   struct GNUNET_DHT_RouteHandle *rh = value;
   const struct GNUNET_MessageHeader *enc_msg;
   size_t enc_size;
-  uint64_t uid;
   const struct GNUNET_PeerIdentity **outgoing_path;
   const struct GNUNET_PeerIdentity *pos;
   uint32_t outgoing_path_length;
   unsigned int i;
   char *path_offset;
+#if HAVE_UID_FOR_TESTING
+  uint64_t uid;
 
   uid = GNUNET_ntohll (dht_msg->unique_id);
-#if HAVE_UID_FOR_TESTING
   if (uid != rh->uid)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

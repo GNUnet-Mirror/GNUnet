@@ -923,13 +923,11 @@ am_closest_peer (const GNUNET_HashCode *key,
   int bucket_num;
   int count;
   struct PeerInfo *pos;
-  unsigned int my_distance;
 
   if (0 == memcmp (&my_identity.hashPubKey, key, sizeof (GNUNET_HashCode)))
     return GNUNET_YES;
   bucket_num = find_bucket (key);
   bits = GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, key);
-  my_distance = get_distance (&my_identity.hashPubKey, key);
   pos = k_buckets[bucket_num].head;
   count = 0;
   while ((pos != NULL) && (count < bucket_size))
