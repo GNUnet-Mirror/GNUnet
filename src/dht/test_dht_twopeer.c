@@ -25,7 +25,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
-#include "gnunet_dht_service.h"
+#include "gnunet_dht_service_new.h"
 
 /* DEFINES */
 #define VERBOSE GNUNET_NO
@@ -169,8 +169,10 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
-                     const struct GNUNET_PeerIdentity *const *get_path,
-                     const struct GNUNET_PeerIdentity *const *put_path,
+                     const struct GNUNET_PeerIdentity *get_path,
+		     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+		     unsigned int put_path_length,
                      enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
   struct PeerGetContext *get_context = cls;
@@ -251,8 +253,8 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             (GNUNET_TIME_UNIT_SECONDS, 5),
                             GNUNET_BLOCK_TYPE_DHT_HELLO,
                             &get_context->peer->hashPubKey,
-                            DEFAULT_GET_REPLICATION, GNUNET_DHT_RO_NONE, NULL,
-                            0, NULL, 0, &get_result_iterator, get_context);
+                            1, GNUNET_DHT_RO_NONE, NULL,
+                            0, &get_result_iterator, get_context);
 }
 
 
@@ -287,8 +289,8 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             (GNUNET_TIME_UNIT_SECONDS, 5),
                             GNUNET_BLOCK_TYPE_DHT_HELLO,
                             &get_context->peer->hashPubKey,
-                            DEFAULT_GET_REPLICATION, GNUNET_DHT_RO_NONE, NULL,
-                            0, NULL, 0, &get_result_iterator, get_context);
+                            1, GNUNET_DHT_RO_NONE, NULL,
+                            0, &get_result_iterator, get_context);
 }
 
 

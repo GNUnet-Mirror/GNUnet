@@ -29,7 +29,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_hello_lib.h"
-#include "gnunet_dht_service.h"
+#include "gnunet_dht_service_new.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-dht.h"
 #include "gnunet-service-dht_clients.h"
