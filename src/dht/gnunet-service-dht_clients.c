@@ -765,6 +765,9 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
                 _("Unsupported block type (%u) in request!\n"),
                 record->type);
     return GNUNET_NO;
+  default:
+    GNUNET_break (0);
+    return GNUNET_NO;
   }
   if (GNUNET_NO == frc->do_copy)
     {
