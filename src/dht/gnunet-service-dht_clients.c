@@ -26,6 +26,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_constants.h"
 #include "gnunet_protocols.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-dht.h"
@@ -303,6 +304,7 @@ transmit_request (struct ClientQueryRecord *cqr)
 {
   int32_t reply_bf_mutator;
   struct GNUNET_CONTAINER_BloomFilter *reply_bf;
+  struct GNUNET_CONTAINER_BloomFilter *peer_bf;
 
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# GET requests from clients injected"), 1,
@@ -312,6 +314,9 @@ transmit_request (struct ClientQueryRecord *cqr)
   reply_bf = GNUNET_BLOCK_construct_bloomfilter (reply_bf_mutator,
 						 cqr->seen_replies,
 						 cqr->seen_replies_count);
+  peer_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
+					       DHT_BLOOM_SIZE,
+					       GNUNET_CONSTANTS_BLOOMFILTER_K);
   GDS_NEIGHBOURS_handle_get (cqr->type,
 			     cqr->msg_options,
 			     cqr->replication,
@@ -321,8 +326,9 @@ transmit_request (struct ClientQueryRecord *cqr)
 			     cqr->xquery_size,
 			     reply_bf,
 			     reply_bf_mutator,
-			     NULL /* no peers blocked initially */);
+			     peer_bf);
   GNUNET_CONTAINER_bloomfilter_free (reply_bf);
+  GNUNET_CONTAINER_bloomfilter_free (peer_bf);
 
   /* exponential back-off for retries, max 1h */
   cqr->retry_frequency = 
@@ -380,6 +386,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
 		      const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_DHT_ClientPutMessage *dht_msg;
+  struct GNUNET_CONTAINER_BloomFilter *peer_bf;
   uint16_t size;
   
   size = ntohs (message->size);
@@ -409,16 +416,20 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
 			    size - sizeof (struct GNUNET_DHT_ClientPutMessage),
 			    &dht_msg[1]);
   /* route to other peers */
+  peer_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
+					       DHT_BLOOM_SIZE,
+					       GNUNET_CONSTANTS_BLOOMFILTER_K);
   GDS_NEIGHBOURS_handle_put (ntohl (dht_msg->type),
 			     ntohl (dht_msg->options),
 			     ntohl (dht_msg->desired_replication_level),
 			     GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
 			     0 /* hop count */,
-			     NULL /* peer bloom filter */,
+			     peer_bf,
 			     &dht_msg->key,
 			     0, NULL,
 			     &dht_msg[1],
 			     size - sizeof (struct GNUNET_DHT_ClientPutMessage));
+  GNUNET_CONTAINER_bloomfilter_free (peer_bf);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -698,7 +709,12 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
   
   if ( (record->type != GNUNET_BLOCK_TYPE_ANY) &&
        (record->type != frc->type) )
-    return GNUNET_YES; /* type mismatch */
+    {
+      GNUNET_STATISTICS_update (GDS_stats,
+				gettext_noop ("# Key match, type mismatches in REPLY to CLIENT"), 1,
+				GNUNET_NO);
+      return GNUNET_YES; /* type mismatch */
+    }
   GNUNET_CRYPTO_hash (frc->data,
 		      frc->data_size,
 		      &ch);
@@ -706,7 +722,12 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
     if (0 == memcmp (&record->seen_replies[i],
 		     &ch,
 		     sizeof (GNUNET_HashCode)))
-      return GNUNET_YES; /* duplicate */             
+      {
+	GNUNET_STATISTICS_update (GDS_stats,
+				  gettext_noop ("# Duplicate REPLIES to CLIENT request dropped"), 1,
+				  GNUNET_NO);
+	return GNUNET_YES; /* duplicate */             
+      }
   eval =
     GNUNET_BLOCK_evaluate (GDS_block_context, 
 			   record->type, key, 
@@ -741,7 +762,7 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
     return GNUNET_NO;
   case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Unsupported block type (%u) in request!\n",
+                _("Unsupported block type (%u) in request!\n"),
                 record->type);
     return GNUNET_NO;
   }
@@ -806,7 +827,12 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
 
   if (NULL ==
       GNUNET_CONTAINER_multihashmap_get (forward_map, key))
+  {
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# REPLIES ignored for CLIENTS (no match)"), 1,
+			      GNUNET_NO);
     return; /* no matching request, fast exit! */
+  }
   msize = sizeof(struct GNUNET_DHT_ClientResultMessage) + data_size + 
     (get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity);
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)

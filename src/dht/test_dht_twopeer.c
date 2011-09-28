@@ -287,14 +287,13 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 10),
                                     &stop_retry_get, get_context);
-
   get_context->get_handle =
       GNUNET_DHT_get_start (get_context->dht_handle,
                             GNUNET_TIME_relative_multiply
                             (GNUNET_TIME_UNIT_SECONDS, 5),
                             GNUNET_BLOCK_TYPE_DHT_HELLO,
                             &get_context->peer->hashPubKey,
-                            1, GNUNET_DHT_RO_NONE, NULL,
+                            1, GNUNET_DHT_RO_FIND_PEER, NULL,
                             0, &get_result_iterator, get_context);
 }
 

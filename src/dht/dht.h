@@ -24,8 +24,14 @@
  * @file dht/dht.h
  */
 
-#ifndef DHT_H_
-#define DHT_H_
+#ifndef DHT_H
+#define DHT_H
+
+
+/**
+ * Size of the bloom filter the DHT uses to filter peers.
+ */
+#define DHT_BLOOM_SIZE 128
 
 
 /**

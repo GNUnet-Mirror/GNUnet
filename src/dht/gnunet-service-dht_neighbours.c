@@ -46,6 +46,7 @@
 #include "gnunet-service-dht_nse.h"
 #include "gnunet-service-dht_routing.h"
 #include <fenv.h>
+#include "dht.h"
 
 /**
  * How many buckets will we allow total.
@@ -56,11 +57,6 @@
  * What is the maximum number of peers in a given bucket.
  */
 #define DEFAULT_BUCKET_SIZE 4
-
-/**
- * Size of the bloom filter the DHT uses to filter peers.
- */
-#define DHT_BLOOM_SIZE 128
 
 /**
  * Desired replication level for FIND PEER requests
@@ -578,6 +574,7 @@ send_find_peer_message (void *cls,
 {
   struct GNUNET_TIME_Relative next_send_time;
   struct BloomConstructorContext bcc;
+  struct GNUNET_CONTAINER_BloomFilter *peer_bf;
 
   find_peer_task = GNUNET_SCHEDULER_NO_TASK;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
@@ -599,6 +596,9 @@ send_find_peer_message (void *cls,
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# FIND PEER messages initiated"), 1,
 			    GNUNET_NO);
+  peer_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
+					       DHT_BLOOM_SIZE,
+					       GNUNET_CONSTANTS_BLOOMFILTER_K);
   // FIXME: pass priority!?
   GDS_NEIGHBOURS_handle_get (GNUNET_BLOCK_TYPE_DHT_HELLO,
 			     GNUNET_DHT_RO_FIND_PEER,
@@ -606,7 +606,9 @@ send_find_peer_message (void *cls,
 			     0,
 			     &my_identity.hashPubKey,
 			     NULL, 0,
-			     bcc.bloom, bcc.bf_mutator, NULL);
+			     bcc.bloom, bcc.bf_mutator, 
+			     peer_bf);
+  GNUNET_CONTAINER_bloomfilter_free (peer_bf);
   GNUNET_CONTAINER_bloomfilter_free (bcc.bloom);
   /* schedule next round */
   newly_found_peers = 0;
@@ -780,12 +782,14 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     GNUNET_free (pending);
   }
   if (peer->head != NULL)
-    peer->th 
-      = GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_YES,
-                                           pending->importance,
-                                           GNUNET_TIME_absolute_get_remaining (pending->timeout),
-					   &peer->id, msize,
-                                           &core_transmit_notify, peer);
+    {
+      peer->th 
+	= GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_YES,
+					     pending->importance,
+					     GNUNET_TIME_absolute_get_remaining (pending->timeout),
+					     &peer->id, msize,
+					     &core_transmit_notify, peer);
+    }
   return off;
 }
 
@@ -1116,6 +1120,7 @@ get_target_peers (const GNUNET_HashCode *key,
   struct PeerInfo **rtargets;
   struct PeerInfo *nxt;
 
+  GNUNET_assert (NULL != bloom);
   ret = get_forward_count (hop_count, target_replication);
   if (ret == 0)
   {
@@ -1130,6 +1135,8 @@ get_target_peers (const GNUNET_HashCode *key,
     if (nxt == NULL)
       break;      
     rtargets[off++] = nxt;
+    GNUNET_break (GNUNET_NO ==
+		  GNUNET_CONTAINER_bloomfilter_test (bloom, &nxt->id.hashPubKey));
     GNUNET_CONTAINER_bloomfilter_add (bloom, &nxt->id.hashPubKey);
   }
   if (0 == off)
@@ -1184,6 +1191,8 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
   struct PeerPutMessage *ppm;
   struct GNUNET_PeerIdentity *pp;
   
+  GNUNET_assert (NULL != bf);
+  GNUNET_CONTAINER_bloomfilter_add (bf, &my_identity.hashPubKey);
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# PUT requests routed"), 1,
 			    GNUNET_NO);
@@ -1222,11 +1231,11 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
     ppm->desired_replication_level = htonl (desired_replication_level);
     ppm->put_path_length = htonl (put_path_length);
     ppm->expiration_time = GNUNET_TIME_absolute_hton (expiration_time);
-    if (NULL != bf)
-      GNUNET_assert (GNUNET_OK ==
-		     GNUNET_CONTAINER_bloomfilter_get_raw_data (bf,
-								ppm->bloomfilter,
-								DHT_BLOOM_SIZE));
+    GNUNET_break (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bf, &target->id.hashPubKey));
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CONTAINER_bloomfilter_get_raw_data (bf,
+							      ppm->bloomfilter,
+							      DHT_BLOOM_SIZE));
     ppm->key = *key;
     pp = (struct GNUNET_PeerIdentity*) &ppm[1];
     memcpy (pp, put_path, sizeof (struct GNUNET_PeerIdentity) * put_path_length);
@@ -1279,7 +1288,9 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
   struct PeerGetMessage *pgm;
   char *xq;
   size_t reply_bf_size;
-  
+
+  GNUNET_assert (NULL != peer_bf);  
+  GNUNET_CONTAINER_bloomfilter_add (peer_bf, &my_identity.hashPubKey);
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# GET requests routed"), 1,
 			    GNUNET_NO);
@@ -1315,11 +1326,11 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
     pgm->desired_replication_level = htonl (desired_replication_level);
     pgm->xquery_size = htonl (xquery_size);
     pgm->bf_mutator = reply_bf_mutator; 
-    if (NULL != peer_bf)
-      GNUNET_assert (GNUNET_OK ==
-		     GNUNET_CONTAINER_bloomfilter_get_raw_data (peer_bf,
-								pgm->bloomfilter,
-								DHT_BLOOM_SIZE));
+    GNUNET_break (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (peer_bf, &target->id.hashPubKey));
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CONTAINER_bloomfilter_get_raw_data (peer_bf,
+							      pgm->bloomfilter,
+							      DHT_BLOOM_SIZE));
     pgm->key = *key;
     xq = (char *) &pgm[1];
     memcpy (xq, xquery, xquery_size);
@@ -1508,6 +1519,7 @@ handle_dht_p2p_put (void *cls,
   bf = GNUNET_CONTAINER_bloomfilter_init (put->bloomfilter,
 					  DHT_BLOOM_SIZE,
 					  GNUNET_CONSTANTS_BLOOMFILTER_K);
+  GNUNET_break_op (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bf, &peer->hashPubKey));
   {
     struct GNUNET_PeerIdentity pp[putlen+1];
   
@@ -1678,7 +1690,8 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_CONTAINER_BloomFilter *reply_bf;
   struct GNUNET_CONTAINER_BloomFilter *peer_bf;
   const char *xquery;
-                      
+
+  GNUNET_break (0 != memcmp (peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)));
   /* parse and validate message */
   msize = ntohs (message->size);
   if (msize < sizeof (struct PeerGetMessage))
@@ -1724,7 +1737,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_CONTAINER_bloomfilter_init (get->bloomfilter, 
 				       DHT_BLOOM_SIZE,
 				       GNUNET_CONSTANTS_BLOOMFILTER_K);
-
+  GNUNET_break_op (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (peer_bf, &peer->hashPubKey));
   /* remember request for routing replies */
   GDS_ROUTING_add (peer,
 		   type,
