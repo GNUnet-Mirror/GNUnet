@@ -320,7 +320,7 @@ transmission_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param receiver intended receiver
  * @param success whether it worked or not
  */
-void
+static void
 transmit_send_continuation (void *cls,
                             const struct GNUNET_PeerIdentity *receiver,
                             int success)
