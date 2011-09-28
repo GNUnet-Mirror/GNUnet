@@ -904,27 +904,11 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
  *
  * @param cls Closure (tunnel for which to send the keepalive).
  * @param tc Notification context.
+ *
+ * TODO: implement explicit multicast keepalive?
  */
 void
-path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct MeshTunnel *t = cls;
-
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
-  {
-    return;
-  }
-  /* FIXME path
-   * TODO: implement explicit multicast keepalive? */
-  GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-                                     GNUNET_TIME_UNIT_FOREVER_REL, NULL,
-                                     sizeof (struct GNUNET_MESH_ManipulatePath),
-                                     NULL, //&send_core_data_multicast,
-                                     t);
-  t->path_refresh_task =
-      GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
-  return;
-}
+path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -1699,6 +1683,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == t)
   {
     /* TODO notify back: we don't know this tunnel */
+    GNUNET_break_op (0);
     return GNUNET_OK;
   }
   pi = GNUNET_CONTAINER_multihashmap_get (t->peers,
@@ -1706,6 +1691,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == pi)
   {
     /* TODO maybe feedback, log to statistics */
+    GNUNET_break_op (0);
     return GNUNET_OK;
   }
   if (pi->id == myid)
@@ -2029,6 +2015,51 @@ notify_client_connection_failure (void *cls, size_t size, void *buf)
   return size_needed;
 }
 #endif
+
+
+/**
+ * Send keepalive packets for a peer
+ *
+ * @param cls Closure (tunnel for which to send the keepalive).
+ * @param tc Notification context.
+ *
+ * TODO: implement explicit multicast keepalive?
+ */
+void
+path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshTunnel *t = cls;
+  struct GNUNET_MessageHeader *payload;
+  struct GNUNET_MESH_Multicast *msg;
+  size_t size;
+
+  t->path_refresh_task = GNUNET_SCHEDULER_NO_TASK;
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  {
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: sending keepalive for tunnel %d\n",
+              t->id.tid);
+
+  size = sizeof(struct GNUNET_MESH_Multicast) +
+         sizeof(struct GNUNET_MessageHeader);
+  msg = GNUNET_malloc (size);
+  msg->header.size = htons (size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
+  msg->oid = my_full_id;
+  msg->tid = htonl(t->id.tid);
+  payload = (struct GNUNET_MessageHeader *) &msg[1];
+  payload->size = htons (sizeof(struct GNUNET_MessageHeader));
+  payload->type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
+  handle_mesh_data_multicast (NULL, &my_full_id, &msg->header, NULL);
+
+  GNUNET_free (msg);
+  t->path_refresh_task =
+      GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
+  return;
+}
 
 
 /**
@@ -2830,8 +2861,8 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
     handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
   }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
 
@@ -2885,9 +2916,18 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  /*  TODO */
+  {
+    char buf[ntohs(message->size)];
+    struct GNUNET_MESH_Multicast *copy;
 
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    copy = (struct GNUNET_MESH_Multicast *)buf;
+    memcpy(buf, message, ntohs(message->size));
+    copy->oid = my_full_id;
+    copy->tid = htonl(t->id.tid);
+    handle_mesh_data_multicast(client, &my_full_id, &copy->header, NULL);
+  }
+
+  /* receive done gets called when last copy is sent */
   return;
 }
 
@@ -3172,7 +3212,7 @@ main (int argc, char *const *argv)
   int ret;
 
 #if MESH_DEBUG
-  fprintf (stderr, "main ()\n");
+//   fprintf (stderr, "main ()\n");
 #endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: main()\n");
   ret =
@@ -3181,7 +3221,7 @@ main (int argc, char *const *argv)
                            NULL)) ? 0 : 1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: main() END\n");
 #if MESH_DEBUG
-  fprintf (stderr, "main () END\n");
+//   fprintf (stderr, "main () END\n");
 #endif
   return ret;
 }
