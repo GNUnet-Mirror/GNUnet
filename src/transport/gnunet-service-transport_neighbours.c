@@ -361,12 +361,12 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
     return;                     /* transmission already pending */
   if (n->transmission_task != GNUNET_SCHEDULER_NO_TASK)
     return;                     /* currently waiting for bandwidth */
-  mq = n->messages_head;
   while (NULL != (mq = n->messages_head))
   {
     timeout = GNUNET_TIME_absolute_get_remaining (mq->timeout);
     if (timeout.rel_value > 0)
       break;
+    GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
     transmit_send_continuation (mq, &n->id, GNUNET_SYSERR);     /* timeout */
   }
   if (NULL == mq)
