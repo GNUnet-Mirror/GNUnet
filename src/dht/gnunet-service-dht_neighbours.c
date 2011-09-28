@@ -1583,8 +1583,9 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
   if (NULL != GDS_my_hello)
   {
     GNUNET_BLOCK_mingle_hash (&my_identity.hashPubKey, bf_mutator, &mhash);
-    if (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (bf, &mhash))
-      
+    if ( (NULL == bf) ||
+	 (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (bf, &mhash)) )
+    {
       GDS_NEIGHBOURS_handle_reply (sender,
 				   GNUNET_BLOCK_TYPE_DHT_HELLO,
 				   GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION),
@@ -1593,6 +1594,19 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
 				   0, NULL,
 				   GDS_my_hello,
 				   GNUNET_HELLO_size ((const struct GNUNET_HELLO_Message*) GDS_my_hello));
+    }
+    else
+    {
+      GNUNET_STATISTICS_update (GDS_stats,
+				gettext_noop ("# FIND PEER requests ignored due to Bloomfilter"), 1,
+				GNUNET_NO);
+    }
+  }
+  else
+  {
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# FIND PEER requests ignored due to lack of HELLO"), 1,
+			      GNUNET_NO);
   }
 
   /* then, also consider sending a random HELLO from the closest bucket */
@@ -1742,6 +1756,12 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 				       &reply_bf, 
 				       get->bf_mutator);
     }
+  }
+  else
+  {
+    GNUNET_STATISTICS_update (GDS_stats,
+			      gettext_noop ("# P2P GET requests ONLY routed"), 1,
+			      GNUNET_NO);
   }
   
   /* P2P forwarding */

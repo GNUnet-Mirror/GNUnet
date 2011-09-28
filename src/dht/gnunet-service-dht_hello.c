@@ -52,6 +52,8 @@ static struct GNUNET_CONTAINER_MultiHashMap *peer_to_hello;
 const struct GNUNET_HELLO_Message *
 GDS_HELLO_get (const struct GNUNET_PeerIdentity *peer)
 {
+  if (NULL == peer_to_hello)
+    return NULL;
   return GNUNET_CONTAINER_multihashmap_get (peer_to_hello,
 					    &peer->hashPubKey);
 }
@@ -133,10 +135,13 @@ GDS_HELLO_done ()
     GNUNET_PEERINFO_notify_cancel (pnc);
     pnc = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (peer_to_hello,
-					 &free_hello,
-					 NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (peer_to_hello);
+  if (NULL != peer_to_hello)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (peer_to_hello,
+					   &free_hello,
+					   NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (peer_to_hello);
+  }
 }
 
 /* end of gnunet-service-dht_hello.c */
