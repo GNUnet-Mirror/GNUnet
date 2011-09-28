@@ -396,40 +396,14 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (cls == p1)
   {
-    char * sec;
-    long long unsigned int l_bps;
-
-    GNUNET_asprintf(&sec, "transport-%s", test_plugin);
-    if (GNUNET_CONFIGURATION_have_value (p1->cfg, sec, "MAX_BPS"))
-    {
-      GNUNET_CONFIGURATION_get_value_number (p1->cfg, sec, "MAX_BPS",
-                                             &l_bps);
-      max_bps_p1 = l_bps;
-    }
-    else
-      max_bps_p1 = 1024 * 1024 * 1024;
-    GNUNET_free (sec);
-
+    max_bps_p1 = 1024 * 1024 * 1024;
     GNUNET_TRANSPORT_set_quota (p1->th, &p2->id,
                                 GNUNET_BANDWIDTH_value_init (max_bps_p1),
                                 GNUNET_BANDWIDTH_value_init (max_bps_p1));
   }
   else if (cls == p2)
   {
-    char * sec;
-    long long unsigned int l_bps;
-
-    GNUNET_asprintf(&sec, "transport-%s", test_plugin);
-    if (GNUNET_CONFIGURATION_have_value (p2->cfg, sec, "MAX_BPS"))
-    {
-      GNUNET_CONFIGURATION_get_value_number (p2->cfg, sec, "MAX_BPS",
-                                             &l_bps);
-      max_bps_p2 = l_bps;
-    }
-    else
-      max_bps_p2 = 1024 * 1024 * 1024;
-    GNUNET_free (sec);
-
+    max_bps_p2 = 1024 * 1024 * 1024;
     GNUNET_TRANSPORT_set_quota (p2->th, &p1->id,
                                 GNUNET_BANDWIDTH_value_init (max_bps_p2),
                                 GNUNET_BANDWIDTH_value_init (max_bps_p2));

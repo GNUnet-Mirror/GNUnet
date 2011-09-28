@@ -232,7 +232,6 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
         im->ats_count = htonl (0);
         memcpy (&(im->peer), peer, sizeof (struct GNUNET_PeerIdentity));
         memcpy (&im[1], message, ntohs (message->size));
-
         GST_clients_broadcast ((const struct GNUNET_MessageHeader *) im,
                                GNUNET_YES);
 
