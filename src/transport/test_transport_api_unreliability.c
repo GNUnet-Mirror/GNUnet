@@ -122,7 +122,7 @@ static char bitmap[TOTAL_MSGS / 8];
 #define OKPP do { ok++; } while (0)
 #endif
 
-int
+static int
 get_bit (const char *map, unsigned int bit);
 
 static void
@@ -231,7 +231,7 @@ set_bit (unsigned int bitIdx)
  *
  * @return Bit \a bit from hashcode \a code
  */
-int
+static int
 get_bit (const char *map, unsigned int bit)
 {
   if (bit >= TOTAL_MSGS)
