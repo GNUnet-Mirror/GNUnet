@@ -187,7 +187,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param size number of bytes in data
  * @param data pointer to the result data
  */
-void
+static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *get_path,
@@ -239,21 +239,6 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
 }
 
-/**
- * Start the GET request for the same key/data that was inserted.
- */
-static void
-do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_HashCode key;          /* Key for data lookup */
-
-  memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
-  global_get_handle =
-      GNUNET_DHT_get_start (peer2dht, GNUNET_TIME_relative_get_forever (),
-                            GNUNET_BLOCK_TYPE_TEST, &key,
-                            1, GNUNET_DHT_RO_RECORD_ROUTE,
-                            NULL, 0, &get_result_iterator, NULL);
-}
 
 /**
  * Called when the PUT request has been transmitted to the DHT service.
@@ -262,12 +247,18 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_HashCode key;          /* Key for data lookup */
+
   GNUNET_SCHEDULER_cancel (die_task);
   die_task =
       GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &end_badly,
                                     "waiting for get response (data not found)");
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 10), &do_get, NULL);
+  memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
+  global_get_handle =
+      GNUNET_DHT_get_start (peer2dht, GNUNET_TIME_relative_get_forever (),
+                            GNUNET_BLOCK_TYPE_TEST, &key,
+                            1, GNUNET_DHT_RO_RECORD_ROUTE,
+                            NULL, 0, &get_result_iterator, NULL);
 }
 
 /**
@@ -298,7 +289,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * The emsg variable is NULL on success (peers connected), and non-NULL on
  * failure (peers failed to connect).
  */
-void
+static void
 topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second, uint32_t distance,
                    const struct GNUNET_CONFIGURATION_Handle *first_cfg,

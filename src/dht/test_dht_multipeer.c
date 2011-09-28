@@ -28,7 +28,7 @@
 #include "gnunet_dht_service.h"
 
 /* DEFINES */
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
@@ -549,8 +549,8 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_REL,
                   &put_finished, test_put);
   test_put->disconnect_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_get_forever (),
-                                    &put_disconnect_task, test_put);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				  &put_disconnect_task, test_put);
   GNUNET_SCHEDULER_add_now (&do_put, test_put->next);
 }
 
@@ -609,7 +609,7 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * The emsg variable is NULL on success (peers connected), and non-NULL on
  * failure (peers failed to connect).
  */
-void
+static void
 topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second, uint32_t distance,
                    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
@@ -752,7 +752,7 @@ create_topology ()
  * @param d the daemon handle (pretty useless at this point, remove?)
  * @param emsg non-null on failure
  */
-void
+static void
 hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
                   struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {

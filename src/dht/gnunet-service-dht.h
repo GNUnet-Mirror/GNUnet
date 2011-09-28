@@ -35,7 +35,6 @@
  */
 extern const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
 
-
 /**
  * Our handle to the BLOCK library.
  */
