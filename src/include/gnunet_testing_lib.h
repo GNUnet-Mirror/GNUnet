@@ -591,7 +591,7 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg,
  */
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_get_by_id (struct GNUNET_TESTING_PeerGroup *pg,
-                                 struct GNUNET_PeerIdentity *peer_id);
+                                 const struct GNUNET_PeerIdentity *peer_id);
 
 
 /**
