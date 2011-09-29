@@ -317,12 +317,18 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
  * @param peer identity of the neighbour
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param transport plugin
+ * @param addr address
+ * @param addrlen address length
  */
 static void
 notify_client_about_neighbour (void *cls,
                                const struct GNUNET_PeerIdentity *peer,
                                const struct GNUNET_TRANSPORT_ATS_Information
-                               *ats, uint32_t ats_count)
+                               *ats, uint32_t ats_count,
+                               const char * transport,
+                               const void * addr,
+                               size_t addrlen)
 {
   struct TransportClient *tc = cls;
   struct ConnectInfoMessage *cim;
@@ -803,24 +809,32 @@ clients_handle_peer_address_lookup (void *cls,
  * @param neighbour identity of the neighbour
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param transport plugin
+ * @param addr address
+ * @param addrlen address length
  */
 static void
 output_addresses (void *cls, const struct GNUNET_PeerIdentity *peer,
                   const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                  uint32_t ats_count)
+                  uint32_t ats_count,
+                  const char * transport,
+                  const void * addr,
+                  size_t addrlen)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
-  struct AddressIterateResponseMessage msg;
+  struct AddressIterateResponseMessage * msg;
   size_t size;
 
   size =
-      sizeof (struct AddressIterateResponseMessage) -
-      sizeof (struct GNUNET_MessageHeader);
-  memcpy (&msg.peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  msg.addrlen = ntohs (0);
-  msg.pluginlen = ntohs (0);
+      (sizeof (struct AddressIterateResponseMessage) + strlen(transport) + 1);
+  msg = GNUNET_malloc (size);
+  memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&msg[0], transport, strlen(transport)+1);
+  msg->addrlen = ntohs (addrlen);
+  msg->pluginlen = ntohs (strlen(transport)+1);
 
-  transmit_binary_to_client (tc, &msg, size);
+  transmit_binary_to_client (tc, msg, size);
+  GNUNET_free(msg);
 }
 
 

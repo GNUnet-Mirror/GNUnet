@@ -1064,7 +1064,7 @@ neighbours_iterate (void *cls, const GNUNET_HashCode * key, void *value)
     return GNUNET_OK;
 
   GNUNET_assert (n->ats_count > 0);
-  ic->cb (ic->cb_cls, &n->id, n->ats, n->ats_count);
+  ic->cb (ic->cb_cls, &n->id, n->ats, n->ats_count, n->plugin_name, n->addr, n->addrlen);
   return GNUNET_OK;
 }
 

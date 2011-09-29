@@ -80,7 +80,10 @@ peer_address_response_processor (void *cls,
   struct AddressLookupCtx *alucb = cls;
   struct AddressIterateResponseMessage *address;
   uint16_t size;
-
+  char * transport;
+  size_t transport_len;
+  //void * addr;
+  size_t addrlen;
 
   if (msg == NULL)
   {
@@ -103,7 +106,7 @@ peer_address_response_processor (void *cls,
     GNUNET_free (alucb);
     return;
   }
-  if (size != sizeof (struct AddressIterateResponseMessage))
+  if (size < sizeof (struct AddressIterateResponseMessage))
   {
     /* invalid reply */
     GNUNET_break (0);
@@ -113,15 +116,16 @@ peer_address_response_processor (void *cls,
     return;
   }
 
-  address = (struct AddressIterateResponseMessage *) msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PEER: %s\n",
-              GNUNET_i2s (&address->peer));
+  address = (struct AddressIterateResponseMessage *) &msg[1];
 
+  transport = (char *) &address[0];
+  transport_len = ntohs(address->pluginlen);
+  addrlen = ntohs(address->addrlen);
 
   /* expect more replies */
   GNUNET_CLIENT_receive (alucb->client, &peer_address_response_processor, alucb,
                          GNUNET_TIME_absolute_get_remaining (alucb->timeout));
-  alucb->cb (alucb->cb_cls, &address->peer, NULL, NULL, 0);
+  alucb->cb (alucb->cb_cls, &address->peer, transport, NULL, addrlen);
 }
 
 

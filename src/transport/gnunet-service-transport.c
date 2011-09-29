@@ -83,11 +83,17 @@ struct GNUNET_ATS_Handle *GST_ats;
  * @param target a connected neighbour
  * @param ats performance information (unused)
  * @param ats_count number of records in ats (unused)
+ * @param transport plugin
+ * @param addr address
+ * @param addrlen address length
  */
 static void
 transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
                     const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                    uint32_t ats_count)
+                    uint32_t ats_count,
+                    const char * transport,
+                    const void * addr,
+                    size_t addrlen)
 {
   const struct GNUNET_MessageHeader *hello = cls;
 

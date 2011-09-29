@@ -152,13 +152,19 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
  * @param neighbour identity of the neighbour
  * @param ats performance data
  * @param ats_count number of entries in ats (including 0-termination)
+ * @param transport plugin
+ * @param addr address
+ * @param addrlen address length
  */
 typedef void (*GST_NeighbourIterator) (void *cls,
                                        const struct GNUNET_PeerIdentity *
                                        neighbour,
                                        const struct
                                        GNUNET_TRANSPORT_ATS_Information * ats,
-                                       uint32_t ats_count);
+                                       uint32_t ats_count,
+                                       const char * transport,
+                                       const void * addr,
+                                       size_t addrlen);
 
 
 /**
