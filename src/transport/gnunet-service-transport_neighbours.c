@@ -523,6 +523,10 @@ neighbour_timeout_task (void *cls,
   struct NeighbourMapEntry *n = cls;
 
   n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_YES == n->is_connected)
+    GNUNET_STATISTICS_update (GST_stats,
+			      gettext_noop ("# peers disconnected due to timeout"), 1,
+			      GNUNET_NO);
   disconnect_neighbour (n);
 }
 
@@ -543,6 +547,10 @@ disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting peer `%4s', %s\n",
               GNUNET_i2s (&n->id), "SHUTDOWN_TASK");
 #endif
+  if (GNUNET_YES == n->is_connected)
+    GNUNET_STATISTICS_update (GST_stats,
+			      gettext_noop ("# peers disconnected due to global disconnect"), 1,
+			      GNUNET_NO);
   disconnect_neighbour (n);
   return GNUNET_OK;
 }
@@ -1022,9 +1030,10 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting peer `%4s' due to `%s'\n",
               GNUNET_i2s (&n->id), "SET_QUOTA");
 #endif
-  GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# disconnects due to quota of 0"), 1,
-                            GNUNET_NO);
+  if (GNUNET_YES == n->is_connected)
+    GNUNET_STATISTICS_update (GST_stats,
+			      gettext_noop ("# disconnects due to quota of 0"), 1,
+			      GNUNET_NO);
   disconnect_neighbour (n);
 }
 
@@ -1126,6 +1135,9 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
                   UINT32_MAX /* priority */ ,
                   GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->addr, n->addrlen,
                   GNUNET_YES, NULL, NULL);
+    GNUNET_STATISTICS_update (GST_stats,
+			      gettext_noop ("# peers disconnected due to external request"), 1,
+			      GNUNET_NO);
   }
   disconnect_neighbour (n);
 }
