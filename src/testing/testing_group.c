@@ -2668,8 +2668,10 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg, char *filename,
         GNUNET_free (data);
         return connect_attempts;
       }
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Read %u total peers in topology\n", total_peers);
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Found %u total peers in topology\n", total_peers);
+#endif
       GNUNET_assert (total_peers == pg->total);
       curr_state = PEER_INDEX;
       while ((buf[count] != '\n') && (count < frstat.st_size - 1))
@@ -6333,7 +6335,7 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg,
  */
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_get_by_id (struct GNUNET_TESTING_PeerGroup *pg,
-                                 struct GNUNET_PeerIdentity *peer_id)
+                                 const struct GNUNET_PeerIdentity *peer_id)
 {
   unsigned int i;
 
