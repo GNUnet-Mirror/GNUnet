@@ -714,6 +714,11 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_CORE_peer_change_preference_cancel (to_remove->info_ctx);
     to_remove->info_ctx = NULL;
   }
+  if (GNUNET_SCHEDULER_NO_TASK != to_remove->preference_task)
+  {
+    GNUNET_SCHEDULER_cancel (to_remove->preference_task);
+    to_remove->preference_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   current_bucket = find_bucket (&to_remove->id.hashPubKey);
   GNUNET_CONTAINER_DLL_remove (k_buckets[current_bucket].head,
 			       k_buckets[current_bucket].tail,
