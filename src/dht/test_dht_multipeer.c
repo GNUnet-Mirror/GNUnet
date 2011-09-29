@@ -445,7 +445,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (outstanding_gets > MAX_OUTSTANDING_GETS)
   {
-    GNUNET_SCHEDULER_add_delayed (GET_DELAY, &do_get, test_get);
+    test_get->task = GNUNET_SCHEDULER_add_delayed (GET_DELAY, &do_get, test_get);
     return;
   }
   memset (data, test_get->uid, sizeof (data));
