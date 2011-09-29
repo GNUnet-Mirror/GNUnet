@@ -45,6 +45,14 @@
  */
 #define QUOTA_VIOLATION_DROP_THRESHOLD 10
 
+/**
+ * How often do we send KEEPALIVE messages to each of our neighbours?
+ * (idle timeout is 5 minutes or 300 seconds, so with 90s interval we
+ * send 3 keepalives in each interval, so 3 messages would need to be
+ * lost in a row for a disconnect).
+ */
+#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
+
 
 /**
  * Entry in neighbours.
@@ -227,6 +235,11 @@ struct NeighbourMapEntry
    * time out (will free resources associated with the peer).
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * ID of task scheduled to send keepalives.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier keepalive_task;
 
   /**
    * ID of task scheduled to run when we should try transmitting
@@ -467,10 +480,11 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   if (GNUNET_YES == n->is_connected)
   {
     n->is_connected = GNUNET_NO;
-
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->keepalive_task);
+    GNUNET_SCHEDULER_cancel (n->keepalive_task);
+    n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;  
     GNUNET_assert (neighbours_connected > 0);
     neighbours_connected--;
-
     GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
                               GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
@@ -528,6 +542,41 @@ neighbour_timeout_task (void *cls,
 			      gettext_noop ("# peers disconnected due to timeout"), 1,
 			      GNUNET_NO);
   disconnect_neighbour (n);
+}
+
+
+/**
+ * Send another keepalive message.
+ *
+ * @param cls the 'struct NeighbourMapEntry' of the neighbour that went idle
+ * @param tc scheduler context
+ */
+static void
+neighbour_keepalive_task (void *cls,
+			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct NeighbourMapEntry *n = cls;
+  struct GNUNET_MessageHeader m;
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+
+  n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (GNUNET_YES == n->is_connected);
+  GNUNET_STATISTICS_update (GST_stats,
+			    gettext_noop ("# keepalives sent"), 1,
+			    GNUNET_NO);
+  m.size = htons (sizeof (struct GNUNET_MessageHeader));
+  m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE);
+  papi = GST_plugins_find (n->plugin_name);
+  if (papi != NULL)
+    papi->send (papi->cls, 
+		&n->id, (const void *) &m,
+		sizeof (m),
+		UINT32_MAX /* priority */ ,
+		GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->addr, n->addrlen,
+		GNUNET_YES, NULL, NULL);
+  n->keepalive_task = GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
+						    &neighbour_keepalive_task,
+						    n);
 }
 
 
@@ -674,7 +723,8 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
                                     ats_count);
   if (GNUNET_YES == was_connected)
     return;
-
+  n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task,
+						n);
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                             GNUNET_NO);
@@ -796,12 +846,12 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_YES != n->is_connected)
     return;                     /* not connected anymore anyway, shouldn't matter */
 
-  /* we are not connected until ATS suggests a new address */
   //n->is_connected = GNUNET_NO;
 
+  /* fast disconnect unless ATS suggests a new address */
   GNUNET_SCHEDULER_cancel (n->timeout_task);
   n->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT,
                                     &neighbour_timeout_task, n);
   /* try QUICKLY to re-establish a connection, reduce timeout! */
   if (NULL != n->ats)
@@ -1131,7 +1181,7 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
     papi = GST_plugins_find (n->plugin_name);
     if (papi != NULL)
       papi->send (papi->cls, target, (const void *) &disconnect_msg,
-                  sizeof (struct GNUNET_MessageHeader),
+                  sizeof (disconnect_msg),
                   UINT32_MAX /* priority */ ,
                   GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->addr, n->addrlen,
                   GNUNET_YES, NULL, NULL);
