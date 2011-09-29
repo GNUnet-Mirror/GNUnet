@@ -385,7 +385,8 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 	     test_get->uid);
     for (i = 0; i < get_path_length; i++)
       fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&get_path[i]));
-    fprintf (stderr, "->%s\n",
+    fprintf (stderr, "%s%s\n",
+	     get_path_length > 0 ? "->":"",
 	     GNUNET_i2s (&test_get->daemon->id));
   }
 #endif

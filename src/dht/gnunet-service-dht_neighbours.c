@@ -692,6 +692,9 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   int current_bucket;
   struct P2PPendingMessage *pos;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Peer `%s' disconnected!\n",
+	      GNUNET_i2s (peer));
   /* Check for disconnect from self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
