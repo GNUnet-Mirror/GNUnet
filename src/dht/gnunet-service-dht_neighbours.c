@@ -1215,9 +1215,10 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
   if (0 == target_count)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Not forwarding PUT for `%s' after %u hops!\n",
+		  "Not forwarding PUT for `%s' after %u hops (NSE: %f)!\n",
 		  GNUNET_h2s (key),
-		  hop_count);
+		  hop_count,
+		  GDS_NSE_get());
       return;
     }
   msize = put_path_length * sizeof (struct GNUNET_PeerIdentity) + data_size + sizeof (struct PeerPutMessage);
@@ -1319,7 +1320,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
   if (0 == target_count)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Not forwarding PUT for `%s' after %u hops!\n",
+		  "Not forwarding GET for `%s' after %u hops!\n",
 		  GNUNET_h2s (key),
 		  hop_count);
       return;

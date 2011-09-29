@@ -109,6 +109,10 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   memcpy (pp, put_path, put_path_length * sizeof (struct GNUNET_PeerIdentity));
   memcpy (&pp[put_path_length],
 	  data, data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Storing data for `%s' after put path of %u hops!\n",
+	      GNUNET_h2s (key),
+	      put_path_length);
   (void) GNUNET_DATACACHE_put (datacache, key, 
 			       plen, (const char *) pe, type,
 			       expiration);
