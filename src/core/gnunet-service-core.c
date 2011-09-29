@@ -4338,6 +4338,9 @@ neighbour_quota_update (void *cls,
                 "Forcing disconnect of `%4s' due to inactivity\n",
                 GNUNET_i2s (&n->peer));
 #endif
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# peers disconnected due to inactivity"), 1,
+			      GNUNET_NO);
     q_in = GNUNET_BANDWIDTH_value_init (0);     /* force disconnect */
   }
 #if DEBUG_CORE_QUOTA
@@ -4447,6 +4450,9 @@ handle_transport_notify_disconnect (void *cls,
   GNUNET_break (n->is_connected == GNUNET_YES);
   if (n->status == PEER_STATE_KEY_CONFIRMED)
   {
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# peers disconnected due to transport disconnect"), 1,
+			      GNUNET_NO);
     cnm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
     cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
     cnm.reserved = htonl (0);
