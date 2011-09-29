@@ -332,7 +332,7 @@ transmit_request (struct ClientQueryRecord *cqr)
 
   /* exponential back-off for retries, max 1h */
   cqr->retry_frequency = 
-    GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_HOURS,
+    GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_HOURS,
 			      GNUNET_TIME_relative_multiply (cqr->retry_frequency, 2));
   cqr->retry_time = GNUNET_TIME_relative_to_absolute (cqr->retry_frequency);
 }
@@ -370,6 +370,12 @@ transmit_next_request_task (void *cls,
 	  return;
 	}
       transmit_request (cqr);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Retrying request %s in %llu ms\n",
+		  GNUNET_h2s (&cqr->key),
+		  cqr->retry_frequency.rel_value);
+      cqr->hnode = GNUNET_CONTAINER_heap_insert (retry_heap, cqr,
+						 cqr->retry_time.abs_value);
     }
 }
 
