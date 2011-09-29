@@ -861,7 +861,7 @@ server_start (struct Plugin *plugin)
 
 
 #if MHD_VERSION >= 0x00090E00
-  timeout = 3;
+  timeout = GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT.rel_value / 1000;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
       "MHD can set timeout per connection! Default time out %u sec.\n", timeout);
 #else
@@ -869,7 +869,6 @@ server_start (struct Plugin *plugin)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
       "MHD cannot set timeout per connection! Default time out %u sec.\n", timeout);
 #endif
-
   plugin->server_v4 = NULL;
   if (plugin->ipv4 == GNUNET_YES)
   {
