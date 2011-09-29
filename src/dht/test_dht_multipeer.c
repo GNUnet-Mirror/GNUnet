@@ -498,7 +498,7 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_cancel (test_put->task);
   test_put->task =
       GNUNET_SCHEDULER_add_now (&put_disconnect_task, test_put);
-  if (puts_completed != num_peers)
+  if (puts_completed != num_peers * num_peers)
     return;
 
   GNUNET_assert (outstanding_puts == 0);
@@ -509,7 +509,7 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for (j = 0; j < num_peers; j++)
       {
 	test_get = GNUNET_malloc (sizeof (struct TestGetContext));
-	test_get->uid = i;
+	test_get->uid = i + j*num_peers;
 	test_get->daemon = GNUNET_TESTING_daemon_get (pg, j);
 	GNUNET_CONTAINER_DLL_insert (all_gets_head,
 				     all_gets_tail,
@@ -590,11 +590,11 @@ run_dht_test (void *cls, const char *emsg)
   fprintf (stderr, 
 	   "Issuing %llu PUTs (one per peer)\n", 
 	   num_peers);
-  for (i = 0; i < num_peers; i++)
+  for (i = 0; i < num_peers * num_peers; i++)
   {
     test_put = GNUNET_malloc (sizeof (struct TestPutContext));
     test_put->uid = i;
-    test_put->daemon = GNUNET_TESTING_daemon_get (pg, i);    
+    test_put->daemon = GNUNET_TESTING_daemon_get (pg, i % num_peers);    
     test_put->task = GNUNET_SCHEDULER_add_now (&do_put, test_put);
     GNUNET_CONTAINER_DLL_insert (all_puts_head,
 				 all_puts_tail,
