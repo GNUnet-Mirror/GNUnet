@@ -76,12 +76,12 @@
 /**
  * How long at least to wait before sending another find peer request.
  */
-#define DHT_MINIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
+#define DHT_MINIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * How long at most to wait before sending another find peer request.
  */
-#define DHT_MAXIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 8)
+#define DHT_MAXIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 10)
 
 /**
  * How long at most to wait for transmission of a GET request to another peer?
@@ -611,11 +611,11 @@ send_find_peer_message (void *cls,
   GNUNET_CONTAINER_bloomfilter_free (peer_bf);
   GNUNET_CONTAINER_bloomfilter_free (bcc.bloom);
   /* schedule next round */
-  newly_found_peers = 0;
   next_send_time.rel_value =
-    (DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2) +
-    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-			      DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2);
+    DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value +
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+			      DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / (newly_found_peers+1));
+  newly_found_peers = 0;
   find_peer_task = GNUNET_SCHEDULER_add_delayed (next_send_time, 
 						 &send_find_peer_message,
 						 NULL);  
@@ -646,6 +646,9 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Peer `%s' connected!\n",
+	      GNUNET_i2s (peer));
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# Peers connected"), 1,
 			    GNUNET_NO);
@@ -664,8 +667,10 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 			       peer_bucket);
   if ( (peer_bucket > 0) &&
        (k_buckets[peer_bucket].peers_size <= bucket_size) )
+  {
     ret->preference_task = GNUNET_SCHEDULER_add_now (&update_core_preference, ret);
-  newly_found_peers++;
+    newly_found_peers++;
+  }
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (all_known_peers, 
 						    &peer->hashPubKey, ret,
@@ -692,9 +697,6 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   int current_bucket;
   struct P2PPendingMessage *pos;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      "Peer `%s' disconnected!\n",
-	      GNUNET_i2s (peer));
   /* Check for disconnect from self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
@@ -705,6 +707,9 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
       GNUNET_break (0);
       return;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Peer `%s' disconnected!\n",
+	      GNUNET_i2s (peer));
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# Peers connected"), -1,
 			    GNUNET_NO);
@@ -1208,7 +1213,13 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
 				   desired_replication_level,
 				   &targets);
   if (0 == target_count)
-    return;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Not forwarding PUT for `%s' after %u hops!\n",
+		  GNUNET_h2s (key),
+		  hop_count);
+      return;
+    }
   msize = put_path_length * sizeof (struct GNUNET_PeerIdentity) + data_size + sizeof (struct PeerPutMessage);
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -1306,7 +1317,13 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
 				   desired_replication_level,
 				   &targets);
   if (0 == target_count)
-    return;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Not forwarding PUT for `%s' after %u hops!\n",
+		  GNUNET_h2s (key),
+		  hop_count);
+      return;
+    }
   reply_bf_size = GNUNET_CONTAINER_bloomfilter_get_size (reply_bf);
   msize = xquery_size + sizeof (struct PeerGetMessage) + reply_bf_size;
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -1406,6 +1423,9 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
   if (NULL == pi)
   {
     /* peer disconnected in the meantime, drop reply */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Not forwarding REPLY for `%s' due to predecessor disconnect\n",
+		GNUNET_h2s (key));
     return;
   }
   GNUNET_STATISTICS_update (GDS_stats,
