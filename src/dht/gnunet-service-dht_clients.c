@@ -370,10 +370,6 @@ transmit_next_request_task (void *cls,
 	  return;
 	}
       transmit_request (cqr);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Retrying request %s in %llu ms\n",
-		  GNUNET_h2s (&cqr->key),
-		  cqr->retry_frequency.rel_value);
       cqr->hnode = GNUNET_CONTAINER_heap_insert (retry_heap, cqr,
 						 cqr->retry_time.abs_value);
     }
