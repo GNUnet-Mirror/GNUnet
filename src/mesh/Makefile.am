@@ -53,7 +53,8 @@ check_PROGRAMS = \
  test_mesh_path_api \
  test_mesh_local_1 \
  test_mesh_local_2 \
- test_mesh_small
+ test_mesh_small \
+ test_mesh_small_unicast
 
 test_mesh_api_SOURCES = \
  test_mesh_api.c
@@ -96,6 +97,15 @@ test_mesh_small_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 test_mesh_small_DEPENDENCIES = \
+  libgnunetmeshnew.la
+
+test_mesh_small_unicast_SOURCES = \
+ test_mesh_small_unicast.c
+test_mesh_small_unicast_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
+test_mesh_small_unicast_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 if ENABLE_TEST_RUN
