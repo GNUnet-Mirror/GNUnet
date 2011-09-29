@@ -373,17 +373,20 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 #if PATH_TRACKING
   if (put_path != NULL)
   {
-    fprintf (stderr, "PUT Path: ");
+    fprintf (stderr, "PUT (%u) Path: ",
+	     test_get->uid);
     for (i = 0; i<put_path_length; i++)
       fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&put_path[i]));
     fprintf (stderr, "\n");
   }
   if (get_path != NULL)
   {
-    fprintf (stderr, "GET Path: ");
+    fprintf (stderr, "GET (%u) Path: ",
+	     test_get->uid);
     for (i = 0; i < get_path_length; i++)
       fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&get_path[i]));
-    fprintf (stderr, "\n");
+    fprintf (stderr, "->%s\n",
+	     GNUNET_i2s (&test_get->daemon->id));
   }
 #endif
 
@@ -395,7 +398,6 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   }
   else
   {
-    fprintf (stderr, "GET successful!\n");
     gets_completed++;
     test_get->succeeded = GNUNET_YES;
   }
@@ -500,6 +502,9 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (test_put->dht_handle != NULL);
   outstanding_puts++;
+  fprintf (stderr, "PUT %u at `%s'\n",
+	   test_put->uid,
+	   GNUNET_i2s (&test_put->daemon->id));
   GNUNET_DHT_put (test_put->dht_handle, &key, 1,
                   route_option, GNUNET_BLOCK_TYPE_TEST, sizeof (data), data,
                   GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_REL,
@@ -524,7 +529,6 @@ run_dht_test (void *cls, const char *emsg)
 {
   unsigned long long i;
   unsigned long long j;
-  uint32_t temp_daemon;
   struct TestPutContext *test_put;
   struct TestGetContext *test_get;
 
@@ -568,8 +572,7 @@ run_dht_test (void *cls, const char *emsg)
       {
 	test_get = GNUNET_malloc (sizeof (struct TestGetContext));
 	test_get->uid = i;
-	temp_daemon = j;
-	test_get->daemon = GNUNET_TESTING_daemon_get (pg, temp_daemon);
+	test_get->daemon = GNUNET_TESTING_daemon_get (pg, j);
 	test_get->next = all_gets;
 	all_gets = test_get;
       }
