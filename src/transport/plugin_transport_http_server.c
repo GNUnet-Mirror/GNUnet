@@ -76,24 +76,6 @@ server_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
 }
 
 
-/**
- * Callback called by MHD when it needs data to send
- * @param cls current session
- * @param pos position in buffer
- * @param buf the buffer to write data to
- * @param max max number of bytes available in buffer
- * @return bytes written to buffer
- */
-#if 0
-static ssize_t
-server_send_cb (void *cls, uint64_t pos, char *buf, size_t max)
-{
-
-  return 0;
-}
-#endif
-
-
 #if BUILD_HTTPS
 static char *
 server_load_file (const char *file)
@@ -865,14 +847,27 @@ int
 server_start (struct Plugin *plugin)
 {
   int res = GNUNET_OK;
+  unsigned int timeout;
 
 #if BUILD_HTTPS
   res = server_load_certificate (plugin);
   if (res == GNUNET_SYSERR)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TABORT\n");
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+        "Could not load or create server certificate! Loading plugin failed!\n");
     return res;
   }
+#endif
+
+
+#if MHD_VERSION >= 0x00090E00
+  timeout = 3;
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+      "MHD can set timeout per connection! Default time out %u sec.\n", timeout);
+#else
+  timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000;
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+      "MHD cannot set timeout per connection! Default time out %u sec.\n", timeout);
 #endif
 
   plugin->server_v4 = NULL;
@@ -903,7 +898,7 @@ server_start (struct Plugin *plugin)
                                            plugin->cert,
 #endif
                                            MHD_OPTION_CONNECTION_TIMEOUT,
-                                           (unsigned int) 3,
+                                           timeout ,
                                            MHD_OPTION_CONNECTION_MEMORY_LIMIT,
                                            (size_t) (2 *
                                                      GNUNET_SERVER_MAX_MESSAGE_SIZE),
@@ -942,7 +937,7 @@ server_start (struct Plugin *plugin)
                                            plugin->cert,
 #endif
                                            MHD_OPTION_CONNECTION_TIMEOUT,
-                                           (unsigned int) 3,
+                                           timeout,
                                            MHD_OPTION_CONNECTION_MEMORY_LIMIT,
                                            (size_t) (2 *
                                                      GNUNET_SERVER_MAX_MESSAGE_SIZE),
