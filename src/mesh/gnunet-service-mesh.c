@@ -557,7 +557,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_DHT_RO_RECORD_ROUTE,   /* DHT options */
                   GNUNET_BLOCK_TYPE_TEST,       /* Block type */
                   sizeof(my_full_id),   /* Size of the data */
-                  &my_full_id,          /* Data itself */
+                  (char *)&my_full_id,  /* Data itself */
                   GNUNET_TIME_absolute_get_forever (),  /* Data expiration */
                   GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
 #if MESH_DEBUG
@@ -1042,10 +1042,9 @@ notify_peer_disconnected (const struct MeshTunnelTreeNode *n)
  * @param peer PeerInfo of the peer being added
  *
  */
-void
+static void
 tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
 {
-//   struct MeshTunnelTreeNode *n;
   struct MeshPeerPath *p;
   struct MeshPeerPath *best_p;
   unsigned int best_cost;
@@ -1080,6 +1079,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
   if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
     t->path_refresh_task =
         GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
+   
 }
 
 
@@ -1298,8 +1298,6 @@ send_core_data_to_origin (void *cls, size_t size, void *buf)
  * @param buf where the callee should write the message
  * 
  * @return number of bytes written to buf
- *
- * FIXME path
  */
 static size_t
 send_core_data_multicast (void *cls, size_t size, void *buf)
@@ -1309,31 +1307,44 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
   size_t total_size;
 
   GNUNET_assert (NULL != info);
+  GNUNET_assert (NULL != info->peer);
   total_size = info->size + sizeof (struct GNUNET_MESH_Multicast);
   GNUNET_assert (total_size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
-  if (info->peer)
-  {
-    info->peer->core_transmit[info->handler_n] = NULL;
-    info->peer->infos[info->handler_n] = NULL;
-  }
   if (total_size > size)
   {
-    GNUNET_break (0);
-    total_size = 0;
+    /* Retry */
+    struct GNUNET_PeerIdentity id;
+
+    GNUNET_PEER_resolve(info->peer->id, &id);
+    info->peer->infos[info->handler_n] = info;
+    info->peer->core_transmit[info->handler_n] =
+      GNUNET_CORE_notify_transmit_ready (core_handle,
+                                         0,
+                                         0,
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         &id,
+                                         total_size,
+                                         &send_core_data_multicast,
+                                         info);
+    return 0;
   }
-  else
-  {
-    msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
-    msg->header.size = htons (total_size);
-    GNUNET_PEER_resolve (info->origin->oid, &msg->oid);
-    msg->tid = htonl (info->origin->tid);
-    memcpy (&msg[1], info->data, total_size);
-  }
+  info->peer->core_transmit[info->handler_n] = NULL;
+  info->peer->infos[info->handler_n] = NULL;
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
+  msg->header.size = htons (total_size);
+  GNUNET_PEER_resolve (info->origin->oid, &msg->oid);
+  msg->tid = htonl (info->origin->tid);
+  memcpy (&msg[1], info->data, info->size);
   if (0 == --(*info->copies))
   {
     if (NULL != info->client)
     {
+      /* FIXME One unresponsive neighbor (who doesn't "call" tmt_rdy) can lock
+       *       the client from sending anything else to the service.
+       *       - Call receive_done after certain timeout.
+       *       - Here cancel the timeout.
+       */
       GNUNET_SERVER_receive_done (info->client, GNUNET_OK);
     }
     GNUNET_free (info->data);
@@ -2088,7 +2099,9 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
   struct MeshPathInfo *path_info = cls;
+  struct MeshPathInfo *path_info_aux;
   struct MeshPeerPath *p;
+  struct MeshPeerPath *aux;
   struct GNUNET_PeerIdentity pi;
   int i;
 
@@ -2121,6 +2134,36 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   for (i = 0; i < path_info->peer->ntunnels; i++)
   {
     tunnel_add_peer (path_info->peer->tunnels[i], path_info->peer);
+    aux = tree_get_path_to_peer(path_info->peer->tunnels[i]->tree,
+                                path_info->peer->id);
+    if (aux->length > 1)
+    {
+      struct GNUNET_PeerIdentity id;
+
+      path_info_aux = GNUNET_malloc (sizeof (struct MeshPathInfo));
+      path_info_aux->path = aux;
+      path_info_aux->peer = path_info->peer;
+      path_info_aux->t = path_info->t;
+      GNUNET_PEER_resolve (p->peers[1], &id);
+      GNUNET_CORE_notify_transmit_ready (core_handle, /* handle */
+                                      0, /* cork */
+                                      0, /* priority */
+                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                      /* timeout */
+                                      &id, /* target */
+                                      sizeof (struct GNUNET_MESH_ManipulatePath)
+                                      +
+                                      (aux->length *
+                                        sizeof (struct GNUNET_PeerIdentity)),
+                                      /*size */
+                                      &send_core_create_path,
+                                      /* callback */
+                                      path_info_aux);        /* cls */
+    }
+    else
+    {
+      send_client_peer_connected(path_info->t, myid);
+    }
   }
   GNUNET_free (path_info);
 
@@ -2173,6 +2216,9 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   if ((NULL == get_path || NULL == put_path) && NULL == peer_info->path_head &&
       NULL == peer_info->dhtget)
   {
+    path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
+    path_info->peer = peer_info;
+    path_info->t = t;
     /* we don't have a route to the peer, let's try a direct lookup */
     peer_info->dhtget = GNUNET_DHT_get_start (dht_handle,
                                               /* handle */
@@ -2190,7 +2236,8 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                                               0,        /* xquery bits */
                                               dht_get_id_handler,
                                               /* callback */
-                                              peer_info);       /* closure */
+                                              path_info);       /* closure */
+    return;
   }
 
   p = path_build_from_dht (get_path, get_path_length, put_path, put_path_length);
