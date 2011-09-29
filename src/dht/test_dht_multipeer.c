@@ -580,9 +580,9 @@ run_dht_test (void *cls, const char *emsg)
   }
 
 #if PATH_TRACKING
-  route_option = GNUNET_DHT_RO_RECORD_ROUTE;
+  route_option = GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
 #else
-  route_option = GNUNET_DHT_RO_NONE;
+  route_option = GNUNET_DHT_RO_NONE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
 #endif
   die_task =
     GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
