@@ -412,6 +412,7 @@ static struct GNUNET_PeerIdentity my_identity;
 static struct GNUNET_CORE_Handle *coreAPI;
 
 
+
 /**
  * Find the optimal bucket for this key.
  *
@@ -646,9 +647,6 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      "Peer `%s' connected!\n",
-	      GNUNET_i2s (peer));
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# Peers connected"), 1,
 			    GNUNET_NO);
@@ -707,9 +705,6 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
       GNUNET_break (0);
       return;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      "Peer `%s' disconnected!\n",
-	      GNUNET_i2s (peer));
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# Peers connected"), -1,
 			    GNUNET_NO);
@@ -1021,7 +1016,7 @@ select_peer (const GNUNET_HashCode *key,
     /* greedy selection (closest peer that is not in bloomfilter) */
     smallest_distance = UINT_MAX;
     chosen = NULL;
-    for (bc = closest_bucket; bc < MAX_BUCKETS; bc++)
+    for (bc = 0; bc < closest_bucket; bc++)
     {
       pos = k_buckets[bc].head;
       count = 0;
@@ -1141,13 +1136,12 @@ get_target_peers (const GNUNET_HashCode *key,
     return 0;
   }
   rtargets = GNUNET_malloc (sizeof (struct PeerInfo*) * ret);
-  off = 0;
-  while (ret-- > 0)
+  for (off = 0; off < ret; off++)
   {
     nxt = select_peer (key, bloom, hop_count);
     if (nxt == NULL)
       break;      
-    rtargets[off++] = nxt;
+    rtargets[off] = nxt;
     GNUNET_break (GNUNET_NO ==
 		  GNUNET_CONTAINER_bloomfilter_test (bloom, &nxt->id.hashPubKey));
     GNUNET_CONTAINER_bloomfilter_add (bloom, &nxt->id.hashPubKey);
@@ -1214,11 +1208,6 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
 				   &targets);
   if (0 == target_count)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Not forwarding PUT for `%s' after %u hops (NSE: %f)!\n",
-		  GNUNET_h2s (key),
-		  hop_count,
-		  GDS_NSE_get());
       return;
     }
   msize = put_path_length * sizeof (struct GNUNET_PeerIdentity) + data_size + sizeof (struct PeerPutMessage);
@@ -1319,10 +1308,6 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
 				   &targets);
   if (0 == target_count)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Not forwarding GET for `%s' after %u hops!\n",
-		  GNUNET_h2s (key),
-		  hop_count);
       return;
     }
   reply_bf_size = GNUNET_CONTAINER_bloomfilter_get_size (reply_bf);
@@ -1424,9 +1409,6 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
   if (NULL == pi)
   {
     /* peer disconnected in the meantime, drop reply */
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Not forwarding REPLY for `%s' due to predecessor disconnect\n",
-		GNUNET_h2s (key));
     return;
   }
   GNUNET_STATISTICS_update (GDS_stats,
@@ -1667,6 +1649,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
   {
     GNUNET_assert (peer != NULL);
     peer = peer->next;
+    choice--;
   }
   choice = bucket->peers_size;
   do
