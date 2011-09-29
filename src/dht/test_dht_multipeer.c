@@ -45,7 +45,7 @@
 #define SECONDS_PER_PEER_START 45
 
 /* If number of peers not in config file, use this number */
-#define DEFAULT_NUM_PEERS 5
+#define DEFAULT_NUM_PEERS 10
 
 #define TEST_DATA_SIZE 8
 
@@ -158,16 +158,6 @@ static struct GNUNET_TESTING_PeerGroup *pg;
  * Total number of peers to run, set based on config file.
  */
 static unsigned long long num_peers;
-
-/**
- * Total number of items to insert.
- */
-static unsigned long long num_puts;
-
-/**
- * Total number of items to attempt to get.
- */
-static unsigned long long num_gets;
 
 /**
  * How many puts do we currently have in flight?
@@ -365,7 +355,7 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fprintf (stderr,
 	   "%llu gets succeeded, %llu gets failed!\n",
 	   gets_completed, gets_failed);
-  if ((gets_completed + gets_failed == num_gets) && (outstanding_gets == 0))       /* Had some failures */
+  if ((gets_failed > 0) && (outstanding_gets == 0))       /* Had some failures */
   {
       GNUNET_SCHEDULER_cancel (die_task);
       die_task =
@@ -373,7 +363,8 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
   }
 
-  if ( (gets_completed == num_gets) && (outstanding_gets == 0) )  /* All gets successful */
+  if ( (gets_completed == num_peers * num_peers) && 
+       (outstanding_gets == 0) )  /* All gets successful */
   {
     GNUNET_SCHEDULER_cancel (die_task);
     //GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5), &get_topology, NULL);
@@ -501,7 +492,7 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_cancel (test_put->disconnect_task);
   test_put->disconnect_task =
       GNUNET_SCHEDULER_add_now (&put_disconnect_task, test_put);
-  if (puts_completed == num_puts)
+  if (puts_completed == num_peers)
   {
     GNUNET_assert (outstanding_puts == 0);
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -572,10 +563,10 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                    const char *emsg)
 {
   unsigned long long i;
+  unsigned long long j;
   uint32_t temp_daemon;
   struct TestPutContext *test_put;
   struct TestGetContext *test_get;
-  int remember[num_puts][num_peers];
 
   if (emsg == NULL)
   {
@@ -608,42 +599,31 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
 				  "from setup puts/gets");
   fprintf (stderr, 
-	   "Issuing %llu PUTs at random locations\n", 
-	   num_puts);
-  for (i = 0; i < num_puts; i++)
+	   "Issuing %llu PUTs (one per peer)\n", 
+	   num_peers);
+  for (i = 0; i < num_peers; i++)
   {
     test_put = GNUNET_malloc (sizeof (struct TestPutContext));
     test_put->uid = i;
-    temp_daemon =
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
-    test_put->daemon = GNUNET_TESTING_daemon_get (pg, temp_daemon);
-    
+    test_put->daemon = GNUNET_TESTING_daemon_get (pg, i);    
     test_put->next = all_puts;
     all_puts = test_put;
   }
   GNUNET_SCHEDULER_add_now (&do_put, all_puts);
 
   fprintf (stderr, 
-	   "Issuing %llu GETs at random locations for random PUT data\n",
-	   num_gets);
-  memset (remember, 0, sizeof (remember));
-  for (i = 0; i < num_gets; i++)
-  {
-    test_get = GNUNET_malloc (sizeof (struct TestGetContext));
-    test_get->uid =
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_puts);
-    temp_daemon =
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
-    while (remember[test_get->uid][temp_daemon] == 1)
-      temp_daemon =
-          GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
-    test_get->daemon = GNUNET_TESTING_daemon_get (pg, temp_daemon);
-    remember[test_get->uid][temp_daemon] = 1;
-    test_get->next = all_gets;
-    all_gets = test_get;
-  }
-
-
+	   "Issuing %llu GETs\n",
+	   num_peers * num_peers);
+  for (i = 0; i < num_peers; i++)
+    for (j = 0; j < num_peers; j++)
+      {
+	test_get = GNUNET_malloc (sizeof (struct TestGetContext));
+	test_get->uid = i;
+	temp_daemon = j;
+	test_get->daemon = GNUNET_TESTING_daemon_get (pg, temp_daemon);
+	test_get->next = all_gets;
+	all_gets = test_get;
+      }
 }
 
 
@@ -878,16 +858,6 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
-
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "num_puts",
-                                             &num_puts))
-    num_puts = DEFAULT_NUM_PEERS;
-
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "num_gets",
-                                             &num_gets))
-    num_gets = DEFAULT_NUM_PEERS;
 
   /* Set peers_left so we know when all peers started */
   peers_left = num_peers;
