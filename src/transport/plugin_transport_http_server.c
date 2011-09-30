@@ -30,16 +30,6 @@
 #define _RECEIVE 0
 #define _SEND 1
 
-static void
-server_log (void *arg, const char *fmt, va_list ap)
-{
-  char text[1024];
-
-  vsnprintf (text, sizeof (text), fmt, ap);
-  va_end (ap);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Server: %s\n", text);
-}
-
 struct ServerConnection
 {
   /* _RECV or _SEND */
@@ -51,6 +41,26 @@ struct ServerConnection
   struct Session *session;
   struct MHD_Connection * mhd_conn;
 };
+
+/**
+ * Function that queries MHD's select sets and
+ * starts the task waiting for them.
+ * @param plugin plugin
+ * @param daemon_handle the MHD daemon handle
+ * @return gnunet task identifier
+ */
+static GNUNET_SCHEDULER_TaskIdentifier
+server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle, int now);
+
+static void
+server_log (void *arg, const char *fmt, va_list ap)
+{
+  char text[1024];
+
+  vsnprintf (text, sizeof (text), fmt, ap);
+  va_end (ap);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Server: %s\n", text);
+}
 
 /**
  * Check if incoming connection is accepted.
@@ -212,6 +222,36 @@ server_load_certificate (struct Plugin *plugin)
 }
 #endif
 
+/**
+ * Reschedule the execution of both IPv4 and IPv6 server
+ * @param plugin the plugin
+ * @param now GNUNET_YES to schedule execution immediately, GNUNET_NO to wait
+ * until timeout
+ */
+
+static void
+server_reschedule (struct Plugin *plugin, int now)
+{
+  if (plugin->server_v4 != NULL)
+  {
+    if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel(plugin->server_v4_task);
+      plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    plugin->server_v4_task = server_schedule (plugin, plugin->server_v4, now);
+  }
+
+  if (plugin->server_v6 != NULL)
+  {
+  if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
+   {
+     GNUNET_SCHEDULER_cancel(plugin->server_v6_task);
+     plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
+   }
+   plugin->server_v6_task = server_schedule (plugin, plugin->server_v6, now);
+  }
+}
 
 /**
  * Callback called by MessageStreamTokenizer when a message has arrived
@@ -453,7 +493,6 @@ create:
   if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
     s->server_send = s;
   GNUNET_CONTAINER_DLL_insert (plugin->server_semi_head, plugin->server_semi_tail, s);
-
   goto found;
 
 error:
@@ -473,22 +512,18 @@ found:
   if (direction == _RECEIVE)
     s->server_recv = sc;
 
+#if MHD_VERSION >= 0x00090E00
   int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
 #if VERBOSE_SERVER
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Server: Setting Timeout to %u\n", to);
 #endif
-#if MHD_VERSION >= 0x00090E00
-#if 0
-  struct ServerConnection *stc = NULL;
-  stc = s->server_send;
-  /* Set timeout for this connection */
-  MHD_set_connection_option (stc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, to);
-  /* set timeout for other semi connection */
-  stc = s->server_recv;
-  MHD_set_connection_option (stc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, to);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Server: Setting timeout for %X to %u sec.\n", sc, to);
+
+  MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
+  server_reschedule (plugin, GNUNET_NO);
 #endif
-#endif
+
+
   return sc;
 }
 
@@ -610,16 +645,6 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   return res;
 }
 
-/**
- * Function that queries MHD's select sets and
- * starts the task waiting for them.
- * @param plugin plugin
- * @param daemon_handle the MHD daemon handle
- * @return gnunet task identifier
- */
-static GNUNET_SCHEDULER_TaskIdentifier
-server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle);
-
 static void
 server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                       void **httpSessionCache)
@@ -638,8 +663,9 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   if (sc->direction == _SEND)
   {
 #if VERBOSE_SERVER
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Server: peer `%s' GET on address `%s' disconnected\n",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Server: %X peer `%s' GET on address `%s' disconnected\n",
+                   s->server_send,
                    GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
 #endif
     s->server_send = NULL;
@@ -656,8 +682,9 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   if (sc->direction == _RECEIVE)
   {
 #if VERBOSE_SERVER
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Server: peer `%s' PUT on address `%s' disconnected\n",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Server: %X peer `%s' PUT on address `%s' disconnected\n",
+                   s->server_recv,
                    GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
 #endif
     s->server_recv = NULL;
@@ -689,21 +716,9 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     t = t->next;
   }
   plugin->cur_connections--;
-/*
-  if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel(plugin->server_v4_task);
-    plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  plugin->server_v4_task = server_schedule (plugin, plugin->server_v4);
 
-  if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
-   {
-     GNUNET_SCHEDULER_cancel(plugin->server_v6_task);
-     plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
-   }
-   plugin->server_v6_task = server_schedule (plugin, plugin->server_v6);
-*/
+  server_reschedule (plugin, GNUNET_NO);
+
   if ((s->server_send == NULL) && (s->server_recv == NULL))
   {
 #if VERBOSE_SERVER
@@ -751,6 +766,7 @@ int
 server_send (struct Session *s, struct HTTP_Message * msg)
 {
   GNUNET_CONTAINER_DLL_insert (s->msg_head, s->msg_tail, msg);
+  server_reschedule (s->plugin, GNUNET_YES);
   return GNUNET_OK;
 }
 
@@ -775,7 +791,7 @@ server_v4_run (void *cls,
     return;
 
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
-  plugin->server_v4_task = server_schedule (plugin, plugin->server_v4);
+  plugin->server_v4_task = server_schedule (plugin, plugin->server_v4, GNUNET_NO);
 }
 
 
@@ -798,7 +814,7 @@ server_v6_run (void *cls,
     return;
 
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
-  plugin->server_v6_task = server_schedule (plugin, plugin->server_v6);
+  plugin->server_v6_task = server_schedule (plugin, plugin->server_v6, GNUNET_NO);
 }
 
 /**
@@ -809,7 +825,7 @@ server_v6_run (void *cls,
  * @return gnunet task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier
-server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle)
+server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle, int now)
 {
   GNUNET_SCHEDULER_TaskIdentifier ret;
   fd_set rs;
@@ -820,7 +836,9 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle)
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
   unsigned long long timeout;
+  static unsigned long long last_timeout = 0;
   int haveto;
+
   struct GNUNET_TIME_Relative tv;
 
   ret = GNUNET_SCHEDULER_NO_TASK;
@@ -834,9 +852,21 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle)
   GNUNET_assert (MHD_YES == MHD_get_fdset (daemon_handle, &rs, &ws, &es, &max));
   haveto = MHD_get_timeout (daemon_handle, &timeout);
   if (haveto == MHD_YES)
+    {
+    if (timeout != last_timeout)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "SELECT Timeout changed from %llu to %llu\n",
+                       last_timeout, timeout);
+      last_timeout = timeout;
+    }
     tv.rel_value = (uint64_t) timeout;
+    }
   else
     tv = GNUNET_TIME_UNIT_SECONDS;
+  /* Force immediate run, since we have outbound data to send */
+  if (now == GNUNET_YES)
+    tv = GNUNET_TIME_UNIT_MILLISECONDS;
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
@@ -978,10 +1008,7 @@ server_start (struct Plugin *plugin)
       res = GNUNET_SYSERR;
   }
 
-  if (plugin->server_v4 != NULL)
-    plugin->server_v4_task = server_schedule (plugin, plugin->server_v4);
-  if (plugin->server_v6 != NULL)
-    plugin->server_v6_task = server_schedule (plugin, plugin->server_v6);
+  server_reschedule (plugin, GNUNET_NO);
 
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
