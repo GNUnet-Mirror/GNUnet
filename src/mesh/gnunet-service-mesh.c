@@ -146,7 +146,12 @@ struct MeshPeerInfo
     /**
      * Pointer to info stuctures used as cls for queued transmissions
      */
-  struct MeshDataDescriptor *infos[CORE_QUEUE_SIZE];
+  void *infos[CORE_QUEUE_SIZE];
+
+    /**
+     * Type of message being in each transmission
+     */
+  uint16_t types[CORE_QUEUE_SIZE];
 
     /**
      * Array of tunnels this peer participates in
@@ -1318,6 +1323,7 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
 
     GNUNET_PEER_resolve(info->peer->id, &id);
     info->peer->infos[info->handler_n] = info;
+    info->peer->types[info->handler_n] = GNUNET_MESSAGE_TYPE_MESH_MULTICAST;
     info->peer->core_transmit[info->handler_n] =
       GNUNET_CORE_notify_transmit_ready (core_handle,
                                          0,
@@ -1802,6 +1808,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     info->handler_n = i;
     info->peer->infos[i] = info;
+    info->peer->types[i] = GNUNET_MESSAGE_TYPE_MESH_MULTICAST;
     info->peer->core_transmit[i] =
         GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
                                            GNUNET_TIME_UNIT_FOREVER_REL, id,
@@ -2612,10 +2619,11 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_PeerControl *peer_msg;
+  struct MeshPathInfo *path_info;
+  struct MeshPeerInfo *peer_info;
   struct MeshClient *c;
   struct MeshTunnel *t;
   MESH_TunnelNumber tid;
-  struct MeshPeerInfo *peer_info;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH: Got connection request\n");
   /* Sanity check for client registration */
@@ -2659,8 +2667,6 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
   /* Start DHT search if needed, otherwise just add peer to tunnel. */
   if (NULL == peer_info->dhtget && NULL == peer_info->path_head)
   {
-    struct MeshPathInfo *path_info;
-
     path_info = GNUNET_malloc(sizeof(struct MeshPathInfo));
     path_info->peer = peer_info;
     path_info->t = t;
@@ -2675,10 +2681,37 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
 					     &dht_get_id_handler,
 					     (void *) path_info);
   }
-  if (NULL != peer_info->path_head)
+  else if (NULL != peer_info->path_head)
   {
+    unsigned int i;
+    for (i = 0; i < CORE_QUEUE_SIZE; i++)
+    {
+      if (NULL == peer_info->core_transmit[i])
+        break;
+    }
+    if (CORE_QUEUE_SIZE == i)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
+    path_info = GNUNET_malloc(sizeof(struct MeshPathInfo));
+    path_info->peer = peer_info;
+    path_info->t = t;
     tunnel_add_peer(t, peer_info);
+    path_info->path = tree_get_path_to_peer(t->tree, peer_info->id);
+    peer_info = peer_info_get(path_get_first_hop(t->tree, path_info->peer->id));
+    peer_info->infos[i] = path_info;
+    peer_info->types[i] = GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE;
+    peer_info->core_transmit[i] =
+      GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         path_get_first_hop(t->tree,
+                                                            path_info->peer->id),
+                                         sizeof (struct GNUNET_MessageHeader),
+                                         &send_core_create_path, path_info);
   }
+  /* Otherwise: there is no path yet, but there is a DHT_get active already. */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
@@ -3095,8 +3128,27 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   {
     if (pi->core_transmit[i])
     {
+      struct MeshDataDescriptor *dd;
+      struct MeshPathInfo *path_info;
       GNUNET_CORE_notify_transmit_ready_cancel (pi->core_transmit[i]);
       /* TODO: notify that tranmission has failed */
+      switch (pi->types[i])
+      {
+        case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+        case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+        case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+          dd = pi->infos[i];
+          if (0 == --(*dd->copies))
+          {
+            GNUNET_free (dd->copies);
+            GNUNET_free (dd->data);
+          }
+          break;
+        case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
+          path_info = pi->infos[i];
+          path_destroy(path_info->path);
+          break;
+      }
       GNUNET_free (pi->infos[i]);
     }
   }
