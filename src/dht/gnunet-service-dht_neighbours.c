@@ -503,7 +503,10 @@ update_core_preference (void *cls,
   if (bucket == GNUNET_SYSERR)
     preference = 0;
   else
+  {
+    GNUNET_assert (k_buckets[bucket].peers_size != 0);
     preference = (1LL << matching) / k_buckets[bucket].peers_size;
+  }
   if (preference == 0)
     {
       peer->preference_task
