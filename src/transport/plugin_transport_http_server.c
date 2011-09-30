@@ -294,6 +294,204 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   return bytes_read;
 }
 
+static struct ServerConnection *
+server_lookup_session (struct Plugin *plugin,
+    struct MHD_Connection *mhd_connection,
+    const char * url,
+    const char *method)
+{
+  struct Session *s = NULL;
+  struct Session * t;
+  struct ServerConnection *sc = NULL;
+  const union MHD_ConnectionInfo *conn_info;
+
+  struct GNUNET_PeerIdentity target;
+  size_t addrlen;
+  int check = GNUNET_NO;
+  uint32_t tag = 0;
+  int direction;
+
+  conn_info = MHD_get_connection_info (mhd_connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS);
+  if (conn_info->client_addr->sa_family == AF_INET)
+    addrlen = sizeof (struct sockaddr_in);
+  else if (conn_info->client_addr->sa_family == AF_INET6)
+    addrlen = sizeof (struct sockaddr_in6);
+  else
+    return MHD_NO;
+
+  if ((strlen(&url[1]) >= 105)  && (url[104] == ';'))
+  {
+    char hash[104];
+    char * tagc = (char *) &url[105];
+    memcpy(&hash, &url[1], 103);
+    hash [103] = '\0';
+    if (GNUNET_OK == GNUNET_CRYPTO_hash_from_string ((const char *) &hash,
+          &(target.hashPubKey)))
+    {
+      tag = strtoul (tagc, NULL, 10);
+      if (tagc > 0)
+        check = GNUNET_YES;
+    }
+  }
+
+  if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
+    direction = _RECEIVE;
+  if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
+    direction = _SEND;
+
+  if (check == GNUNET_NO)
+    goto error;
+
+  plugin->cur_connections++;
+
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Server: New inbound connection from %s with tag %u\n", GNUNET_i2s(&target), tag);
+#endif
+  /* find duplicate session */
+
+  t = plugin->head;
+
+  while (t != NULL)
+  {
+    if ((t->inbound) && (0 == memcmp (&t->target, &target, sizeof (struct GNUNET_PeerIdentity))) &&
+        /* FIXME add source address comparison */
+        (t->tag == tag))
+    break;
+    t = t->next;
+  }
+  if (t != NULL)
+  {
+#if VERBOSE_SERVER
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Duplicate session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
+#endif
+    goto error;
+  }
+
+  /* find semi-session */
+  t = plugin->server_semi_head;
+
+  while (t != NULL)
+  {
+    /* FIXME add source address comparison */
+    if ((0 == memcmp (&t->target, &target, sizeof (struct GNUNET_PeerIdentity))) &&
+        (t->tag == tag))
+    {
+      break;
+    }
+    t = t->next;
+  }
+
+  if (t == NULL)
+    goto create;
+
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Server: Found existing semi-session for `%s'\n", GNUNET_i2s (&target));
+#endif
+
+  if ((direction == _SEND) && (t->server_send != NULL))
+  {
+#if VERBOSE_SERVER
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Duplicate GET session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
+#endif
+    goto error;
+  }
+  else
+  {
+    s = t;
+    GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
+    GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
+#if VERBOSE_SERVER
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
+#endif
+
+    goto found;
+  }
+  if ((direction == _RECEIVE) && (t->server_recv != NULL))
+  {
+#if VERBOSE_SERVER
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Duplicate PUT session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
+#endif
+    goto error;
+  }
+  else
+  {
+    s = t;
+    GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
+    GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
+#if VERBOSE_SERVER
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
+#endif
+    goto found;
+  }
+
+create:
+/* create new session */
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+               "Server: Creating new session for peer `%s' \n", GNUNET_i2s (&target));
+#endif
+
+  s = create_session (plugin,
+                      &target,
+                      conn_info->client_addr,
+                      addrlen,
+                      NULL,
+                      NULL);
+
+  s->inbound = GNUNET_YES;
+  s->next_receive = GNUNET_TIME_absolute_get_zero();
+  s->tag= tag;
+  if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
+    s->server_recv = s;
+  if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
+    s->server_send = s;
+  GNUNET_CONTAINER_DLL_insert (plugin->server_semi_head, plugin->server_semi_tail, s);
+
+  goto found;
+
+error:
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+               "Server: Invalid connection request\n");
+#endif
+  return NULL;
+
+found:
+  sc = GNUNET_malloc (sizeof (struct ServerConnection));
+  sc->mhd_conn = mhd_connection;
+  sc->direction = direction;
+  sc->session = s;
+  if (direction == _SEND)
+    s->server_send = sc;
+  if (direction == _RECEIVE)
+    s->server_recv = sc;
+
+  int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Server: Setting Timeout to %u\n", to);
+#endif
+#if MHD_VERSION >= 0x00090E00
+#if 0
+  struct ServerConnection *stc = NULL;
+  stc = s->server_send;
+  /* Set timeout for this connection */
+  MHD_set_connection_option (stc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, to);
+  /* set timeout for other semi connection */
+  stc = s->server_recv;
+  MHD_set_connection_option (stc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, to);
+#endif
+#endif
+  return sc;
+}
+
 /**
  * Process GET or PUT request received via MHD.  For
  * GET, queue response that will send back our pending
@@ -318,186 +516,17 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   GNUNET_assert (cls != NULL);
   /* new connection */
   if (sc == NULL)
-    {
-    uint32_t tag = 0;
-    const union MHD_ConnectionInfo *conn_info;
-    size_t addrlen;
-    struct GNUNET_PeerIdentity target;
-    int check = GNUNET_NO;
-    struct Session * t;
-    int direction;
-
-    conn_info = MHD_get_connection_info (mhd_connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS);
-    if (conn_info->client_addr->sa_family == AF_INET)
-      addrlen = sizeof (struct sockaddr_in);
-    else if (conn_info->client_addr->sa_family == AF_INET6)
-      addrlen = sizeof (struct sockaddr_in6);
-    else
-      return MHD_NO;
-
-    if ((strlen(&url[1]) >= 105)  && (url[104] == ';'))
-    {
-      char hash[104];
-      char * tagc = (char *) &url[105];
-      memcpy(&hash, &url[1], 103);
-      hash [103] = '\0';
-      if (GNUNET_OK == GNUNET_CRYPTO_hash_from_string ((const char *) &hash, &(target.hashPubKey)))
-      {
-        tag = strtoul (tagc, NULL, 10);
-        if (tagc > 0)
-          check = GNUNET_YES;
-      }
-    }
-
-    if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
-      direction = _RECEIVE;
-    if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
-      direction = _SEND;
-
-    if (check == GNUNET_NO)
-      goto error;
-
-    plugin->cur_connections++;
-
-#if VERBOSE_SERVER
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Server: New inbound connection from %s with tag %u\n", GNUNET_i2s(&target), tag);
-#endif
-    /* find duplicate session */
-
-    t = plugin->head;
-
-    while (t != NULL)
-    {
-      if ((t->inbound) && (0 == memcmp (&t->target, &target, sizeof (struct GNUNET_PeerIdentity))) &&
-          /* FIXME add source address comparison */
-          (t->tag == tag))
-      break;
-      t = t->next;
-    }
-    if (t != NULL)
-    {
-#if VERBOSE_SERVER
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Server: Duplicate session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
-#endif
-      goto error;
-    }
-
-    /* find semi-session */
-    t = plugin->server_semi_head;
-
-    while (t != NULL)
-    {
-      /* FIXME add source address comparison */
-      if ((0 == memcmp (&t->target, &target, sizeof (struct GNUNET_PeerIdentity))) &&
-          (t->tag == tag))
-      {
-        break;
-      }
-      t = t->next;
-    }
-
-    if (t == NULL)
-      goto create;
-
-#if VERBOSE_SERVER
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Server: Found existing semi-session for `%s'\n", GNUNET_i2s (&target));
-#endif
-
-    if ((direction == _SEND) && (t->server_send != NULL))
-    {
-#if VERBOSE_SERVER
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Server: Duplicate GET session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
-#endif
-      goto error;
-    }
+  {
+    sc = server_lookup_session(plugin, mhd_connection, url, method);
+    if (sc != NULL)
+      (*httpSessionCache) = sc;
     else
     {
-      s = t;
-      GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
-      GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
-#if VERBOSE_SERVER
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
-#endif
-
-      goto found;
+      response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
+      res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
+      MHD_destroy_response (response);
+      return res;
     }
-    if ((direction == _RECEIVE) && (t->server_recv != NULL))
-    {
-#if VERBOSE_SERVER
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Server: Duplicate PUT session, dismissing new connection from peer `%s'\n", GNUNET_i2s (&target));
-#endif
-      goto error;
-    }
-    else
-    {
-      s = t;
-      GNUNET_CONTAINER_DLL_remove(plugin->server_semi_head, plugin->server_semi_tail, s);
-      GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, s);
-#if VERBOSE_SERVER
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Server: Found matching semi-session, merging session for peer `%s'\n", GNUNET_i2s (&target));
-#endif
-      goto found;
-    }
-
-create:
-/* create new session */
-#if VERBOSE_SERVER
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                 "Server: Creating new session for peer `%s' \n", GNUNET_i2s (&target));
-#endif
-
-    s = create_session (plugin,
-                        &target,
-                        conn_info->client_addr,
-                        addrlen,
-                        NULL,
-                        NULL);
-
-    s->inbound = GNUNET_YES;
-    s->next_receive = GNUNET_TIME_absolute_get_zero();
-    s->tag= tag;
-    if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
-      s->server_recv = s;
-    if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
-      s->server_send = s;
-    GNUNET_CONTAINER_DLL_insert (plugin->server_semi_head, plugin->server_semi_tail, s);
-
-    goto found;
-error:
-#if VERBOSE_SERVER
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                 "Server: Invalid connection request\n");
-#endif
-        response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
-        res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
-        MHD_destroy_response (response);
-        return res;
-found:
-    sc = GNUNET_malloc (sizeof (struct ServerConnection));
-    sc->mhd_conn = mhd_connection;
-    sc->direction = direction;
-    sc->session = s;
-    if (direction == _SEND)
-      s->server_send = sc;
-    if (direction == _RECEIVE)
-      s->server_recv = sc;
-
-    int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
-#if VERBOSE_SERVER
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Server: Setting Timeout to %u\n", to);
-#endif
-#if MHD_VERSION >= 0x00090E00
-    MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
-#endif
-    (*httpSessionCache) = sc;
   }
 
 
