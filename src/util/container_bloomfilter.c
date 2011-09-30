@@ -340,7 +340,7 @@ iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
   unsigned int slot = 0;
 
   bitCount = bf->addressesPerElement;
-  memcpy (&tmp[0], key, sizeof (GNUNET_HashCode));
+  tmp[0] = *key;
   round = 0;
   while (bitCount > 0)
   {
