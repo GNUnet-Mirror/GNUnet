@@ -196,6 +196,9 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' disconnected (%p)!\n",
               GNUNET_i2s (peer), cls);
+  if (th != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
+  th = NULL;
 }
 
 static void
