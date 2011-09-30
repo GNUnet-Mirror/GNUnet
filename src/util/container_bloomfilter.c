@@ -316,10 +316,11 @@ makeEmptyFile (const struct GNUNET_DISK_FileHandle *fh, size_t size)
  * @param cls closure
  * @param bf the filter to manipulate
  * @param bit the current bit
+ * @return GNUNET_YES to continue, GNUNET_NO to stop early
  */
-typedef void (*BitIterator) (void *cls,
-                             const struct GNUNET_CONTAINER_BloomFilter * bf,
-                             unsigned int bit);
+typedef int (*BitIterator) (void *cls,
+			    const struct GNUNET_CONTAINER_BloomFilter * bf,
+			    unsigned int bit);
 
 /**
  * Call an iterator for each bit that the bloomfilter
@@ -336,7 +337,7 @@ iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
 {
   GNUNET_HashCode tmp[2];
   int bitCount;
-  int round;
+  unsigned int round;
   unsigned int slot = 0;
 
   bitCount = bf->addressesPerElement;
@@ -346,9 +347,11 @@ iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
   {
     while (slot < (sizeof (GNUNET_HashCode) / sizeof (uint32_t)))
     {
-      callback (arg, bf,
-                (((uint32_t *) & tmp[round & 1])[slot]) &
-                ((bf->bitArraySize * 8) - 1));
+      if (GNUNET_YES !=
+	  callback (arg, bf,
+		    (((uint32_t *) & tmp[round & 1])[slot]) &
+		    ((bf->bitArraySize * 8) - 1)))
+	return;
       slot++;
       bitCount--;
       if (bitCount == 0)
@@ -370,14 +373,16 @@ iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
  * @param cls pointer to writeable form of bf
  * @param bf the filter to manipulate
  * @param bit the bit to increment
+ * @return GNUNET_YES
  */
-static void
+static int
 incrementBitCallback (void *cls, const struct GNUNET_CONTAINER_BloomFilter *bf,
                       unsigned int bit)
 {
   struct GNUNET_CONTAINER_BloomFilter *b = cls;
 
   incrementBit (b->bitArray, bit, bf->fh);
+  return GNUNET_YES;
 }
 
 /**
@@ -386,14 +391,16 @@ incrementBitCallback (void *cls, const struct GNUNET_CONTAINER_BloomFilter *bf,
  * @param cls pointer to writeable form of bf
  * @param bf the filter to manipulate
  * @param bit the bit to decrement
+ * @return GNUNET_YES
  */
-static void
+static int
 decrementBitCallback (void *cls, const struct GNUNET_CONTAINER_BloomFilter *bf,
                       unsigned int bit)
 {
   struct GNUNET_CONTAINER_BloomFilter *b = cls;
 
   decrementBit (b->bitArray, bit, bf->fh);
+  return GNUNET_YES;
 }
 
 /**
@@ -402,15 +409,20 @@ decrementBitCallback (void *cls, const struct GNUNET_CONTAINER_BloomFilter *bf,
  * @param cls pointer set to GNUNET_NO if bit is not set
  * @param bf the filter
  * @param bit the bit to test
+ * @return YES if the bit is set, NO if not
  */
-static void
+static int
 testBitCallback (void *cls, const struct GNUNET_CONTAINER_BloomFilter *bf,
                  unsigned int bit)
 {
   int *arg = cls;
 
   if (GNUNET_NO == testBit (bf->bitArray, bit))
+  {
     *arg = GNUNET_NO;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
 }
 
 /* *********************** INTERFACE **************** */
