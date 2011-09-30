@@ -1178,7 +1178,7 @@ get_target_peers (const GNUNET_HashCode *key,
   }
   *targets = rtargets;
   for (ret = 0; ret < off; ret++)
-    GNUNET_CONTAINER_bloomfilter_add (bloom, &rtargets[ret].hashPubKey);
+    GNUNET_CONTAINER_bloomfilter_add (bloom, &rtargets[ret]->id.hashPubKey);
   return off;
 }
 
