@@ -273,6 +273,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     /* because of starting with 0 */
     msg_recv++;
+    fprintf (stderr, "\n");
     end ();
   }
 }
@@ -337,6 +338,7 @@ notify_ready (void *cls, size_t size, void *buf)
   }
   else
   {
+    fprintf (stderr, "\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All messages scheduled to be sent!!\n");
     if (GNUNET_SCHEDULER_NO_TASK != die_task)

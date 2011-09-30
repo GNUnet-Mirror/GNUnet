@@ -312,7 +312,10 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   }
   if (n == TOTAL_MSGS)
+  {
+    fprintf (stderr, "\n");
     end ();
+  }
 }
 
 
@@ -376,6 +379,7 @@ notify_ready (void *cls, size_t size, void *buf)
   }
   else
   {
+    fprintf (stderr, "\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All messages scheduled to be sent!!\n");
     if (GNUNET_SCHEDULER_NO_TASK != die_task)

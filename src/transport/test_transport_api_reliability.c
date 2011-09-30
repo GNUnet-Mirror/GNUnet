@@ -38,7 +38,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -248,6 +248,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (n == TOTAL_MSGS)
   {
     ok = 0;
+    fprintf (stderr, "\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All messages received\n");
     end ();
   }
@@ -319,6 +320,7 @@ notify_ready (void *cls, size_t size, void *buf)
   total_bytes += ret;
   if (n == TOTAL_MSGS)
   {
+    fprintf (stderr, "\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All messages sent\n");
   }
   return ret;
