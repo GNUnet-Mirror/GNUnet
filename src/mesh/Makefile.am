@@ -110,7 +110,7 @@ test_mesh_small_unicast_DEPENDENCIES = \
 
 if ENABLE_TEST_RUN
 if HAVE_EXPERIMENTAL
-TESTS = test_mesh_api test_mesh_path_api test_mesh_local_1 test_mesh_local_2
+TESTS = test_mesh_api test_mesh_path_api test_mesh_local_1
 endif
 endif
 
