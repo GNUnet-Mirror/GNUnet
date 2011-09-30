@@ -64,6 +64,7 @@ static struct PeerContext p2;
 static int ok;
 
 static int peers_connected = 0;
+
 static int counter;
 static int msgs_recv;
 
@@ -312,8 +313,6 @@ peers_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
-
-  //while (peers_connected > 0);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from Transport \n");
 

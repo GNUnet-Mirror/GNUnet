@@ -104,6 +104,7 @@ static int msg_sent;
 static int msg_recv_expected;
 static int msg_recv;
 
+static int test_connected;
 static int test_failed;
 
 static unsigned long long total_bytes;
@@ -171,6 +172,11 @@ end_badly ()
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+
+  if (test_connected == GNUNET_NO)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got connected\n");
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got NOT connected\n");
 
   if (test_failed == GNUNET_NO)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testcase timeout\n");
@@ -324,7 +330,8 @@ notify_ready (void *cls, size_t size, void *buf)
   if (buf == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Timeout occurred while waiting for transmit_ready\n");
+                "Timeout occurred while waiting for transmit_ready for msg %u of %u\n",
+                msg_scheduled, TOTAL_MSGS);
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
@@ -439,6 +446,8 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
               GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
+  test_connected = GNUNET_YES;
+
   // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
 }
@@ -465,6 +474,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
+  test_connected = GNUNET_NO;
   GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
 }
 
