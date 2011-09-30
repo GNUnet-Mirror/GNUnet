@@ -322,6 +322,7 @@ typedef int (*BitIterator) (void *cls,
 			    const struct GNUNET_CONTAINER_BloomFilter * bf,
 			    unsigned int bit);
 
+
 /**
  * Call an iterator for each bit that the bloomfilter
  * must test or set for this element.
@@ -367,6 +368,7 @@ iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
   }
 }
 
+
 /**
  * Callback: increment bit
  *
@@ -385,6 +387,7 @@ incrementBitCallback (void *cls, const struct GNUNET_CONTAINER_BloomFilter *bf,
   return GNUNET_YES;
 }
 
+
 /**
  * Callback: decrement bit
  *
@@ -402,6 +405,7 @@ decrementBitCallback (void *cls, const struct GNUNET_CONTAINER_BloomFilter *bf,
   decrementBit (b->bitArray, bit, bf->fh);
   return GNUNET_YES;
 }
+
 
 /**
  * Callback: test if all bits are set
@@ -587,6 +591,7 @@ GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct
   return GNUNET_OK;
 }
 
+
 /**
  * Free the space associated with a filter
  * in memory, flush to drive if needed (do not
@@ -605,6 +610,7 @@ GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter *bf)
   GNUNET_free (bf->bitArray);
   GNUNET_free (bf);
 }
+
 
 /**
  * Reset a bloom filter to empty. Clears the file on disk.
@@ -643,6 +649,7 @@ GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter
   return res;
 }
 
+
 /**
  * Add an element to the filter
  *
@@ -653,7 +660,6 @@ void
 GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter *bf,
                                   const GNUNET_HashCode * e)
 {
-
   if (NULL == bf)
     return;
   iterateBits (bf, &incrementBitCallback, bf, e);
