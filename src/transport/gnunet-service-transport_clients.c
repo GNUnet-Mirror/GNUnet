@@ -157,8 +157,12 @@ setup_client (struct GNUNET_SERVER_Client *client)
   GNUNET_assert (lookup_client (client) == NULL);
   tc = GNUNET_malloc (sizeof (struct TransportClient));
   tc->client = client;
-
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, tc);
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "Client %X connected\n", tc);
+#endif
   return tc;
 }
 
@@ -177,11 +181,29 @@ static size_t
 transmit_to_client_callback (void *cls, size_t size, void *buf)
 {
   struct TransportClient *tc = cls;
+  struct TransportClient *tmp;
   struct ClientMessageQueueEntry *q;
   const struct GNUNET_MessageHeader *msg;
   char *cbuf;
   uint16_t msize;
   size_t tsize;
+
+  tmp = clients_head;
+  while (tmp != NULL)
+  {
+    if (tc == tmp)
+      break;
+    tmp = tmp->next;
+  }
+
+  if (tc == NULL)
+  {
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmission to client failed, client already disconnected.\n");
+#endif
+    return 0;
+  }
 
   tc->th = NULL;
   if (buf == NULL)
@@ -455,6 +477,7 @@ handle_send_transmit_continuation (void *cls, int success)
 {
   struct SendTransmitContinuationContext *stcc = cls;
   struct SendOkMessage send_ok_msg;
+  struct TransportClient *tc;
 
   send_ok_msg.header.size = htons (sizeof (send_ok_msg));
   send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
@@ -462,8 +485,18 @@ handle_send_transmit_continuation (void *cls, int success)
   send_ok_msg.latency =
       GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_FOREVER_REL);
   send_ok_msg.peer = stcc->target;
-  GST_clients_unicast (stcc->client, &send_ok_msg.header, GNUNET_NO);
-  GNUNET_SERVER_client_drop (stcc->client);
+  tc = lookup_client(stcc->client);
+  if (tc != NULL)
+  {
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+                "Sending `%s' to client %X\n",
+                "GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK",
+                tc);
+#endif
+    GST_clients_unicast (stcc->client, &send_ok_msg.header, GNUNET_NO);
+    GNUNET_SERVER_client_drop (stcc->client);
+  }
   GNUNET_free (stcc);
 }
 
