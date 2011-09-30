@@ -31,7 +31,7 @@
 /**
  * Size of the bloom filter the DHT uses to filter peers.
  */
-#define DHT_BLOOM_SIZE 128
+#define DHT_BLOOM_SIZE 1024
 
 
 /**

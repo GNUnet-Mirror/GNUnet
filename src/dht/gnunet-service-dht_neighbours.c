@@ -640,6 +640,10 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Check for connect to self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Connected %s to %s\n",
+	      GNUNET_i2s (&my_identity),
+	      GNUNET_h2s (&peer->hashPubKey));
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multihashmap_contains (all_known_peers,
                                               &peer->hashPubKey))
@@ -698,6 +702,10 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   /* Check for disconnect from self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Disconnected %s from %s\n",
+	      GNUNET_i2s (&my_identity),
+	      GNUNET_h2s (&peer->hashPubKey));
   to_remove =
       GNUNET_CONTAINER_multihashmap_get (all_known_peers, &peer->hashPubKey);
   if (NULL == to_remove)
@@ -1022,9 +1030,10 @@ select_peer (const GNUNET_HashCode *key,
       count = 0;
       while ((pos != NULL) && (count < bucket_size))
       {
-        if (GNUNET_NO ==
-            GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-        {
+        if ( (bloom == NULL) ||
+	     (GNUNET_NO ==
+	      GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey)) )
+	{
           dist = get_distance (key, &pos->id.hashPubKey);
           if (dist < smallest_distance)
           {
@@ -1033,7 +1042,11 @@ select_peer (const GNUNET_HashCode *key,
           }
         }
         else
-        {
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Excluded peer `%s' due to BF match in greedy routing for %s\n",
+		      GNUNET_i2s (&pos->id),
+		      GNUNET_h2s (key));
 	  GNUNET_STATISTICS_update (GDS_stats,
 				    gettext_noop ("# Peers excluded from routing due to Bloomfilter"), 1,
 				    GNUNET_NO);
@@ -1064,6 +1077,10 @@ select_peer (const GNUNET_HashCode *key,
 	GNUNET_STATISTICS_update (GDS_stats,
 				  gettext_noop ("# Peers excluded from routing due to Bloomfilter"), 1,
 				  GNUNET_NO);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    "Excluded peer `%s' due to BF match in random routing for %s\n",
+		    GNUNET_i2s (&pos->id),
+		    GNUNET_h2s (key));
         pos = pos->next;
         continue;               /* Ignore bloomfiltered peers */
       }
@@ -1144,8 +1161,15 @@ get_target_peers (const GNUNET_HashCode *key,
     rtargets[off] = nxt;
     GNUNET_break (GNUNET_NO ==
 		  GNUNET_CONTAINER_bloomfilter_test (bloom, &nxt->id.hashPubKey));
-    GNUNET_CONTAINER_bloomfilter_add (bloom, &nxt->id.hashPubKey);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Selected %u/%u peers at hop %u for %s (target was %u)\n",
+	      off,
+	      GNUNET_CONTAINER_multihashmap_size (all_known_peers),
+	      (unsigned int) hop_count,
+	      GNUNET_h2s (key),
+	      ret);
+
   if (0 == off)
   {
     GNUNET_free (rtargets);
@@ -1153,6 +1177,8 @@ get_target_peers (const GNUNET_HashCode *key,
     return 0;
   }
   *targets = rtargets;
+  for (ret = 0; ret < off; ret++)
+    GNUNET_CONTAINER_bloomfilter_add (bloom, &rtargets[ret].hashPubKey);
   return off;
 }
 
@@ -1207,7 +1233,12 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
 				   desired_replication_level,
 				   &targets);
   if (0 == target_count)
-    {
+    { 
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Routing PUT for %s terminates after %u hops at %s\n",
+		  GNUNET_h2s (key),
+		  (unsigned int) hop_count,
+		  GNUNET_i2s (&my_identity));
       return;
     }
   msize = put_path_length * sizeof (struct GNUNET_PeerIdentity) + data_size + sizeof (struct PeerPutMessage);
@@ -1227,6 +1258,11 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
   for (i=0;i<target_count;i++)
   {
     target = targets[i];
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Routing PUT for %s after %u hops to %s\n",
+		GNUNET_h2s (key),
+		(unsigned int) hop_count,
+		GNUNET_i2s (&target->id));
     pending = GNUNET_malloc (sizeof (struct P2PPendingMessage) + msize);
     pending->importance = 0; /* FIXME */
     pending->timeout = expiration_time;   
@@ -1299,15 +1335,20 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
   size_t reply_bf_size;
 
   GNUNET_assert (NULL != peer_bf);  
-  GNUNET_CONTAINER_bloomfilter_add (peer_bf, &my_identity.hashPubKey);
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# GET requests routed"), 1,
 			    GNUNET_NO);
   target_count = get_target_peers (key, peer_bf, hop_count,
 				   desired_replication_level,
 				   &targets);
+  GNUNET_CONTAINER_bloomfilter_add (peer_bf, &my_identity.hashPubKey);
   if (0 == target_count)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Routing GET for %s terminates after %u hops at %s\n",
+		  GNUNET_h2s (key),
+		  (unsigned int) hop_count,
+		  GNUNET_i2s (&my_identity));
       return;
     }
   reply_bf_size = GNUNET_CONTAINER_bloomfilter_get_size (reply_bf);
@@ -1324,6 +1365,11 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
   for (i=0;i<target_count;i++)
   {
     target = targets[i];
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Routing GET for %s after %u hops to %s\n",
+		GNUNET_h2s (key),
+		(unsigned int) hop_count,
+		GNUNET_i2s (&target->id));
     pending = GNUNET_malloc (sizeof (struct P2PPendingMessage) + msize); 
     pending->importance = 0; /* FIXME */
     pending->timeout = GNUNET_TIME_relative_to_absolute (GET_TIMEOUT);
@@ -1527,6 +1573,10 @@ handle_dht_p2p_put (void *cls,
     /* cannot verify, good luck */
     break;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "PUT for %s at %s\n",
+	      GNUNET_h2s (&put->key),
+	      GNUNET_i2s (&my_identity));
   bf = GNUNET_CONTAINER_bloomfilter_init (put->bloomfilter,
 					  DHT_BLOOM_SIZE,
 					  GNUNET_CONSTANTS_BLOOMFILTER_K);
@@ -1757,12 +1807,16 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 		   &get->key,
 		   xquery, xquery_size,
 		   reply_bf, get->bf_mutator);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "GET for %s at %s after %u hops\n",
+	      GNUNET_h2s (&get->key),
+	      GNUNET_i2s (&my_identity),
+	      (unsigned int) ntohl (get->hop_count));
   /* local lookup (this may update the reply_bf) */
   if ( (0 != (options & GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE)) ||
        (am_closest_peer (&get->key,
 			 peer_bf) ) )
-  {
+    {
     if ( (0 != (options & GNUNET_DHT_RO_FIND_PEER)))
     {
       GNUNET_STATISTICS_update (GDS_stats,

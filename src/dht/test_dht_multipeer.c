@@ -36,6 +36,9 @@
 /* Timeout for waiting for replies to get requests */
 #define GET_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
 
+/* */
+#define START_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
+
 /* Timeout for waiting for gets to complete */
 #define GET_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 50)
 
@@ -554,35 +557,16 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
-/**
- * This function is called once testing has finished setting up the topology.
- *
- * @param cls unused
- * @param emsg variable is NULL on success (peers connected), and non-NULL on
- * failure (peers failed to connect).
- */
 static void
-run_dht_test (void *cls, const char *emsg)
-{
+run_dht_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{  
   unsigned long long i;
   struct TestPutContext *test_put;
-
-  if (emsg != NULL)
-  {
-    fprintf (stderr,
-	     "Failed to setup topology: %s\n",
-	     emsg);
-    die_task =
-      GNUNET_SCHEDULER_add_now (&end_badly,
-				"topology setup failed");
-    return;
-  }
 
 #if PATH_TRACKING
   route_option = GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
 #else
-  route_option = GNUNET_DHT_RO_NONE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
+  route_option = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
 #endif
   die_task =
     GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
@@ -600,6 +584,32 @@ run_dht_test (void *cls, const char *emsg)
 				 all_puts_tail,
 				 test_put);
   }
+}
+
+
+/**
+ * This function is called once testing has finished setting up the topology.
+ *
+ * @param cls unused
+ * @param emsg variable is NULL on success (peers connected), and non-NULL on
+ * failure (peers failed to connect).
+ */
+static void
+startup_done (void *cls, const char *emsg)
+{
+  if (emsg != NULL)
+  {
+    fprintf (stderr,
+	     "Failed to setup topology: %s\n",
+	     emsg);
+    die_task =
+      GNUNET_SCHEDULER_add_now (&end_badly,
+				"topology setup failed");
+    return;
+  }
+  die_task =
+    GNUNET_SCHEDULER_add_delayed (START_DELAY, &run_dht_test,
+				  "from setup puts/gets");
 }
 
 
@@ -624,7 +634,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 				       num_peers,
 				       TIMEOUT,
 				       NULL,
-				       &run_dht_test,
+				       &startup_done,
 				       NULL,
 				       NULL);
   GNUNET_assert (NULL != pg);
