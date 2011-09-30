@@ -555,8 +555,8 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * - Set data expiration in function of X
    * - Adapt X to churn
    */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: DHT_put for ID %s started.\n",
-              GNUNET_h2s_full (&my_full_id.hashPubKey));
+//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: DHT_put for ID %s started.\n",
+//               GNUNET_h2s_full (&my_full_id.hashPubKey));
 //   GNUNET_DHT_put (dht_handle,   /* DHT handle */ FIXME DHT
 //                   &my_full_id.hashPubKey,       /* Key to use */
 //                   10U,          /* Replication level */
@@ -1546,7 +1546,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshTunnel *t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: Received a MESH path create msg\n");
+              "MESH: Received a path create msg\n");
   size = ntohs (message->size);
   if (size < sizeof (struct GNUNET_MESH_ManipulatePath))
   {
@@ -1566,15 +1566,21 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:     path as %u hops.\n",
+              size);
   msg = (struct GNUNET_MESH_ManipulatePath *) message;
 
   tid = ntohl (msg->tid);
   pi = (struct GNUNET_PeerIdentity *) &msg[1];
   t = tunnel_get (pi, tid);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:     path as for tunnel %s [%X].\n",
+              GNUNET_i2s(pi),
+              tid);
   if (NULL == t)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Creating tunnel\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   Creating tunnel\n");
     t = GNUNET_malloc (sizeof (struct MeshTunnel));
     t->id.oid = GNUNET_PEER_intern (pi);
     t->id.tid = tid;
@@ -1588,7 +1594,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (0);
       return GNUNET_OK;
     }
-
   }
   dest_peer_info =
       GNUNET_CONTAINER_multihashmap_get (peers, &pi[size - 1].hashPubKey);
@@ -1635,7 +1640,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
     info->origin = &t->id;
     info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &id.hashPubKey);
-    GNUNET_assert (info->peer);
+    GNUNET_assert (NULL != info->peer);
     for (j = 0; info->peer->core_transmit[j]; j++)
     {
       if (j == 9)
