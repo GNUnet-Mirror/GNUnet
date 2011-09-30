@@ -561,9 +561,11 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   test_put->dht_handle = GNUNET_DHT_connect (test_put->daemon->cfg, 10);
   GNUNET_assert (test_put->dht_handle != NULL);
   outstanding_puts++;
+#if VERBOSE > 2
   fprintf (stderr, "PUT %u at `%s'\n",
 	   test_put->uid,
 	   GNUNET_i2s (&test_put->daemon->id));
+#endif
   GNUNET_DHT_put (test_put->dht_handle, &key, 1,
                   route_option, GNUNET_BLOCK_TYPE_TEST, sizeof (data), data,
                   GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_REL,
