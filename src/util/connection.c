@@ -810,7 +810,8 @@ try_connect_using_address (void *cls, const struct sockaddr *addr,
   if (addr == NULL)
   {
     h->dns_active = NULL;
-    if (NULL == h->ap_head)
+    if ( (NULL == h->ap_head) &&
+	 (NULL == h->sock) )
       connect_fail_continuation (h);
     return;
   }
@@ -901,7 +902,7 @@ GNUNET_CONNECTION_create_from_connect (const struct GNUNET_CONFIGURATION_Handle
                                        uint16_t port)
 {
   struct GNUNET_CONNECTION_Handle *ret;
-
+ 
   GNUNET_assert (0 < strlen (hostname));        /* sanity check */
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
   ret->cfg = cfg;
