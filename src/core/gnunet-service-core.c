@@ -2492,13 +2492,16 @@ discard_expired_messages (struct Neighbour *n)
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_TIME_Relative delta;
   int disc;
+  unsigned int queue_length;
 
   disc = GNUNET_NO;
   now = GNUNET_TIME_absolute_get ();
   prev = NULL;
+  queue_length = 0;
   pos = n->messages;
   while (pos != NULL)
   {
+    queue_length++;
     next = pos->next;
     delta = GNUNET_TIME_absolute_get_difference (pos->deadline, now);
     if (delta.rel_value > PAST_EXPIRATION_DISCARD_TIME.rel_value)
@@ -2523,7 +2526,8 @@ discard_expired_messages (struct Neighbour *n)
       prev = pos;
     pos = next;
   }
-  if (GNUNET_YES == disc)
+  if ( (GNUNET_YES == disc) &&
+       (queue_length == MAX_PEER_QUEUE_SIZE) )
     schedule_peer_messages (n);
 }
 
