@@ -1249,7 +1249,7 @@ send_core_create_path (void *cls, size_t size, void *buf)
   GNUNET_free (info);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: %u bytes long create path sent!\n",
+              "MESH: CREATE PATH (%u bytes long) sent!\n",
               size_needed);
   return size_needed;
 }
@@ -1406,6 +1406,7 @@ send_core_path_ack (void *cls, size_t size, void *buf)
   GNUNET_free (info);
   /* TODO add signature */
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: PATH ACK sent!\n");
   return sizeof (struct GNUNET_MESH_PathACK);
 }
 
