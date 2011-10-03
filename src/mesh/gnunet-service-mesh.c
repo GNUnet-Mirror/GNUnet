@@ -1228,7 +1228,8 @@ send_core_create_path (void *cls, size_t size, void *buf)
     GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        path_get_first_hop (t->tree, peer->id),
-                                       size_needed, &send_core_create_path,
+                                       size_needed,
+                                       &send_core_create_path,
                                        info);
     return 0;
   }
@@ -1247,6 +1248,9 @@ send_core_create_path (void *cls, size_t size, void *buf)
   path_destroy (p);
   GNUNET_free (info);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: %u bytes long create path sent!\n",
+              size_needed);
   return size_needed;
 }
 
@@ -1656,7 +1660,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     info->peer->core_transmit[j] =
         GNUNET_CORE_notify_transmit_ready (core_handle, 0, 100,
                                            GNUNET_TIME_UNIT_FOREVER_REL, peer,
-                                           sizeof (struct GNUNET_MessageHeader),
+                                           sizeof (struct GNUNET_MESH_PathACK),
                                            &send_core_path_ack, info);
   }
   else
@@ -1671,10 +1675,16 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     path_add_to_peer (dest_peer_info, path);
     GNUNET_PEER_resolve (path->peers[own_pos + 1], &id);
-    GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-                                       GNUNET_TIME_UNIT_FOREVER_REL, &id,
-                                       sizeof (struct GNUNET_MessageHeader),
-                                       &send_core_create_path, path_info);
+    GNUNET_CORE_notify_transmit_ready (
+        core_handle,
+        0,
+        0,
+        GNUNET_TIME_UNIT_FOREVER_REL,
+        &id,
+        sizeof (struct GNUNET_MESH_ManipulatePath) +
+        path->length * sizeof(struct GNUNET_PeerIdentity),
+        &send_core_create_path,
+        path_info);
   }
   return GNUNET_OK;
 }
@@ -2717,12 +2727,16 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
     peer_info->infos[i] = path_info;
     peer_info->types[i] = GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE;
     peer_info->core_transmit[i] =
-      GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         path_get_first_hop(t->tree,
-                                                            path_info->peer->id),
-                                         sizeof (struct GNUNET_MessageHeader),
-                                         &send_core_create_path, path_info);
+      GNUNET_CORE_notify_transmit_ready (
+        core_handle,
+        0,
+        0,
+        GNUNET_TIME_UNIT_FOREVER_REL,
+        path_get_first_hop(t->tree, path_info->peer->id),
+        sizeof (struct GNUNET_MESH_ManipulatePath)
+        + path_info->path->length * sizeof(struct GNUNET_PeerIdentity),
+        &send_core_create_path,
+        path_info);
   }
   /* Otherwise: there is no path yet, but there is a DHT_get active already. */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
