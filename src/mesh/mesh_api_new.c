@@ -105,7 +105,7 @@ struct GNUNET_MESH_TransmitHandle
   uint32_t priority;
 
     /**
-     * Target of the message, 0 for broadcast.  This field
+     * Target of the message, 0 for multicast.  This field
      * is only valid if 'notify' is non-NULL.
      */
   GNUNET_PEER_Id target;

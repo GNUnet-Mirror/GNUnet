@@ -1221,7 +1221,10 @@ send_core_create_path (void *cls, size_t size, void *buf)
 
   if (size < size_needed || NULL == buf)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Retransmitting create path\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: create path retransmit!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   buf:  %p\n", buf);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   size: (%u/%u)\n",
+                size, size_needed);
     GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        path_get_first_hop (t->tree, peer->id),
@@ -1639,11 +1642,11 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     path_add_to_origin (orig_peer_info, path);  /* inverts path!  */
     info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
     info->origin = &t->id;
-    info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &id.hashPubKey);
+    info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
     GNUNET_assert (NULL != info->peer);
     for (j = 0; info->peer->core_transmit[j]; j++)
     {
-      if (j == 9)
+      if (j == (CORE_QUEUE_SIZE - 1))
       {
         GNUNET_break (0);
         return GNUNET_OK;
