@@ -183,6 +183,19 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
 };
 
 
+static void
+disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: disconnecting mesh service of peers\n");
+  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_MESH_disconnect(h1);
+  GNUNET_MESH_disconnect(h2);
+  GNUNET_SCHEDULER_cancel (shutdown_handle);
+  shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
+}
+
+
 /**
  * Method called whenever another peer has added us to a tunnel
  * the other peer initiated.
@@ -202,8 +215,9 @@ incoming_tunnel (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: Incoming tunnel from %s\n",
-              GNUNET_h2s(&initiator->hashPubKey));
-  GNUNET_MESH_tunnel_destroy(t);
+              GNUNET_i2s(initiator));
+  GNUNET_SCHEDULER_cancel (disconnect_task);
+  disconnect_task = GNUNET_SCHEDULER_add_now(&disconnect_mesh_peers, NULL);
   ok = 0;
   return NULL;
 }
@@ -237,7 +251,9 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
 static void
 dh (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer disconnected\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: peer %s disconnected\n",
+              GNUNET_i2s(peer));
   return;
 }
 
@@ -253,21 +269,10 @@ static void
 ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer connected\n");
-  return;
-}
-
-
-static void
-disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: disconnecting mesh service of peers\n");
-  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_MESH_disconnect(h1);
-  GNUNET_MESH_disconnect(h2);
-  GNUNET_SCHEDULER_cancel (shutdown_handle);
-  shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
+              "test: peer %s connected\n",
+              GNUNET_i2s(peer));
+  return;
 }
 
 
@@ -300,12 +305,19 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: connecting to mesh service of peer %s\n", GNUNET_i2s (&d1->id));
+              "test: connecting to mesh service of peer %s\n",
+              GNUNET_i2s (&d1->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: connecting to mesh service of peer %s\n", GNUNET_i2s (&d2->id));
+              "test: connecting to mesh service of peer %s\n",
+              GNUNET_i2s (&d2->id));
 #endif
-  h1 = GNUNET_MESH_connect (d1->cfg, 10, NULL, NULL, &tunnel_cleaner, handlers,
-                           &app);
+  h1 = GNUNET_MESH_connect (d1->cfg,
+                            10,
+                            NULL,
+                            NULL,
+                            &tunnel_cleaner,
+                            handlers,
+                            &app);
   h2 = GNUNET_MESH_connect (d2->cfg,
                             10,
                             NULL,
@@ -314,15 +326,17 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             handlers,
                             &app);
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: connected to mesh service of peer %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: connected to mesh service of peer %s\n",
               GNUNET_i2s (&d1->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: connected to mesh service of peer %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: connected to mesh service of peer %s\n",
               GNUNET_i2s (&d2->id));
 #endif
   t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, NULL);
   test_task =
       GNUNET_SCHEDULER_add_delayed(
-          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
+          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3),
           &do_test, NULL);
 }
 
@@ -371,7 +385,7 @@ peergroup_ready (void *cls, const char *emsg)
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
                                     GNUNET_TIME_UNIT_SECONDS,
-                                    5),
+                                    2),
                                 &connect_mesh_service,
                                 NULL);
   disconnect_task =
