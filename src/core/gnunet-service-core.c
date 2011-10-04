@@ -4650,14 +4650,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                 &handle_transport_notify_disconnect);
   GNUNET_assert (NULL != transport);
   stats = GNUNET_STATISTICS_create ("core", cfg);
-
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# discarded CORE_SEND requests"),
-                         0, GNUNET_NO);
-  GNUNET_STATISTICS_set (stats,
-                         gettext_noop
-                         ("# discarded lower priority CORE_SEND requests"), 0,
-                         GNUNET_NO);
-
   mst = GNUNET_SERVER_mst_create (&deliver_message, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleaning_task,
                                 NULL);
