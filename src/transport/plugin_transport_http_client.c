@@ -507,12 +507,10 @@ client_connect (struct Session *s)
   curl_easy_setopt (s->client_get, CURLOPT_WRITEFUNCTION, client_receive);
   curl_easy_setopt (s->client_get, CURLOPT_WRITEDATA, s);
   curl_easy_setopt (s->client_get, CURLOPT_TIMEOUT_MS,
-      30000);
-                    //(long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+                    (long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_get, CURLOPT_PRIVATE, s);
   curl_easy_setopt (s->client_get, CURLOPT_CONNECTTIMEOUT_MS,
-      30000);
-                    //(long) HTTP_NOT_VALIDATED_TIMEOUT.rel_value);
+                    (long) HTTP_NOT_VALIDATED_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_get, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
@@ -540,12 +538,10 @@ client_connect (struct Session *s)
   curl_easy_setopt (s->client_put, CURLOPT_WRITEFUNCTION, client_receive);
   curl_easy_setopt (s->client_put, CURLOPT_WRITEDATA, s);
   curl_easy_setopt (s->client_put, CURLOPT_TIMEOUT_MS,
-      300000);
-                    //(long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+                    (long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_put, CURLOPT_PRIVATE, s);
   curl_easy_setopt (s->client_put, CURLOPT_CONNECTTIMEOUT_MS,
-      300000);
-                    //(long) HTTP_NOT_VALIDATED_TIMEOUT.rel_value);
+                    (long) HTTP_NOT_VALIDATED_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_put, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
