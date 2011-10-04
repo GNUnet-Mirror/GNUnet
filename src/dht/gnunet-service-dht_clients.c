@@ -876,6 +876,9 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   if (GNUNET_NO == frc.do_copy)
     {
       /* did not match any of the requests, free! */
+      GNUNET_STATISTICS_update (GDS_stats,
+				gettext_noop ("# REPLIES ignored for CLIENTS (no match)"), 1,
+				GNUNET_NO);
       GNUNET_free (pm);
     }
 }
