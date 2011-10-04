@@ -447,6 +447,11 @@ static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
 static MESH_TunnelNumber next_tid;
 
 /**
+ * Tunnel ID for the next incoming tunnel (local tunnel number)
+ */
+static MESH_TunnelNumber next_local_tid;
+
+/**
  * All application types provided by this peer
  */
 static struct GNUNET_CONTAINER_MultiHashMap *applications;
@@ -1583,7 +1588,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   pi = (struct GNUNET_PeerIdentity *) &msg[1];
   t = tunnel_get (pi, tid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:     path as for tunnel %s [%X].\n",
+              "MESH:     path is for tunnel %s [%X].\n",
               GNUNET_i2s(pi),
               tid);
   if (NULL == t)
@@ -1593,6 +1598,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     t->id.oid = GNUNET_PEER_intern (pi);
     t->id.tid = tid;
     t->peers = GNUNET_CONTAINER_multihashmap_create (32);
+    t->local_tid = next_local_tid++;
+    next_local_tid |= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
 
     GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
     if (GNUNET_OK !=
@@ -1641,6 +1648,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (own_pos == size - 1)
   {
     /* It is for us! Send ack. */
+    struct GNUNET_MESH_TunnelNotification cmsg;
     struct MeshDataDescriptor *info;
     unsigned int j;
 
@@ -1663,6 +1671,11 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                                            GNUNET_TIME_UNIT_FOREVER_REL, peer,
                                            sizeof (struct GNUNET_MESH_PathACK),
                                            &send_core_path_ack, info);
+    cmsg.header.size = htons(sizeof(cmsg));
+    cmsg.header.type = htons(GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
+    GNUNET_PEER_resolve(t->id.oid, &cmsg.peer);
+    cmsg.tunnel_id = htonl(t->local_tid);
+    GNUNET_SERVER_notification_context_broadcast(nc, &cmsg.header, GNUNET_NO);
   }
   else
   {
@@ -3129,6 +3142,8 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   path = path_new (2);
   path->peers[0] = myid;
   path->peers[1] = peer_info->id;
+  GNUNET_PEER_change_rc(myid, 1);
+  GNUNET_PEER_change_rc(peer_info->id, 1);
   path_add_to_peer (peer_info, path);
   return;
 }
@@ -3147,7 +3162,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Peer disconnected\n");
   pi = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
-  if (!pi)
+  if (NULL == pi)
   {
     GNUNET_break (0);
     return;
@@ -3160,11 +3175,13 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
       struct MeshPathInfo *path_info;
       GNUNET_CORE_notify_transmit_ready_cancel (pi->core_transmit[i]);
       /* TODO: notify that tranmission has failed */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   data at %u\n", i);
       switch (pi->types[i])
       {
         case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
         case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
         case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    type payload\n");
           dd = pi->infos[i];
           if (0 == --(*dd->copies))
           {
@@ -3173,6 +3190,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
           }
           break;
         case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    type create path\n");
           path_info = pi->infos[i];
           path_destroy(path_info->path);
           break;
@@ -3298,6 +3316,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 //   }
 
   next_tid = 0;
+  next_local_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
 
   tunnels = GNUNET_CONTAINER_multihashmap_create (32);
   peers = GNUNET_CONTAINER_multihashmap_create (32);
