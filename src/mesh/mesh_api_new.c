@@ -774,7 +774,6 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     atsi.value = 0;
     t->ctx = h->new_tunnel (h->cls, t, &msg->peer, &atsi);
   }
-  GNUNET_CONTAINER_DLL_insert (h->tunnels_head, h->tunnels_tail, t);
   return;
 }
 
