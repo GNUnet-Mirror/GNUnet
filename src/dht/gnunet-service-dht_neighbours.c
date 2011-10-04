@@ -705,6 +705,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct PeerInfo *to_remove;
   int current_bucket;
   struct P2PPendingMessage *pos;
+  unsigned int discarded;
 
   /* Check for disconnect from self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
@@ -752,13 +753,18 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_CORE_notify_transmit_ready_cancel (to_remove->th);
     to_remove->th = NULL;
   }
+  discarded = 0;
   while (NULL != (pos = to_remove->head))
   {
     GNUNET_CONTAINER_DLL_remove (to_remove->head,
 				 to_remove->tail,
 				 pos);
+    discarded++;
     GNUNET_free (pos);
   }
+  GNUNET_STATISTICS_update (GDS_stats,
+			    gettext_noop ("# Queued messages discarded (peer disconnected)"), discarded,
+			    GNUNET_NO);
   GNUNET_free (to_remove);
 }
 
