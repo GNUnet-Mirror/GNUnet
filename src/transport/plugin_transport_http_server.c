@@ -185,8 +185,11 @@ server_load_certificate (struct Plugin *plugin)
       GNUNET_free (cert_file);
 
       GNUNET_free_non_null (plugin->key);
+      plugin->key = NULL;
       GNUNET_free_non_null (plugin->cert);
+      plugin->cert = NULL;
       GNUNET_free_non_null (plugin->crypto_init);
+      plugin->crypto_init = NULL;
 
       return GNUNET_SYSERR;
     }
@@ -207,8 +210,11 @@ server_load_certificate (struct Plugin *plugin)
     GNUNET_free (cert_file);
 
     GNUNET_free_non_null (plugin->key);
+    plugin->key = NULL;
     GNUNET_free_non_null (plugin->cert);
+    plugin->cert = NULL;
     GNUNET_free_non_null (plugin->crypto_init);
+    plugin->crypto_init = NULL;
 
     return GNUNET_SYSERR;
   }
@@ -221,6 +227,7 @@ server_load_certificate (struct Plugin *plugin)
   return res;
 }
 #endif
+
 
 /**
  * Reschedule the execution of both IPv4 and IPv6 server
@@ -515,15 +522,12 @@ found:
 #if MHD_VERSION >= 0x00090E00
   int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
 #if VERBOSE_SERVER
-#endif
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Server: Setting timeout for %X to %u sec.\n", sc, to);
-
+#endif
   MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
   server_reschedule (plugin, GNUNET_NO);
 #endif
-
-
   return sc;
 }
 
@@ -563,7 +567,6 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       return res;
     }
   }
-
 
   /* existing connection */
   sc = (*httpSessionCache);
@@ -624,10 +627,38 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
           s->msg_tk = GNUNET_SERVER_mst_create (&server_receive_mst_cb, s);
         }
         res = GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data, *upload_data_size, GNUNET_NO, GNUNET_NO);
+
+#if MHD_VERSION >= 0x00090E00
+#endif
+        int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
+        struct ServerConnection *t = NULL;
+
 #if VERBOSE_SERVER
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                          "Server: Received %Zu bytes\n", *upload_data_size);
 #endif
+
+        /* Setting timeouts for other connections */
+        if (s->server_recv != NULL)
+        {
+          t = s->server_recv;
+#if VERBOSE_SERVER
+          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Setting timeout for %X to %u sec.\n", t, to);
+#endif
+          MHD_set_connection_option (t->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, to);
+        }
+        if (s->server_send != NULL)
+        {
+          t = s->server_send;
+#if VERBOSE_SERVER
+          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Setting timeout for %X to %u sec.\n", t, to);
+#endif
+          MHD_set_connection_option (t->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, to);
+        }
+        server_reschedule (plugin, GNUNET_NO);
+
         (*upload_data_size) = 0;
       }
       else
@@ -855,9 +886,11 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle, int no
     {
     if (timeout != last_timeout)
     {
+#if VERBOSE_SERVER
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                        "SELECT Timeout changed from %llu to %llu\n",
                        last_timeout, timeout);
+#endif
       last_timeout = timeout;
     }
     tv.rel_value = (uint64_t) timeout;
@@ -1052,8 +1085,6 @@ server_stop (struct Plugin *plugin)
   while (s != NULL)
   {
     t = s->next;
-    if (s->msg_tk != NULL)
-       GNUNET_SERVER_mst_destroy(s->msg_tk);
     delete_session (s);
     s = t;
   }
