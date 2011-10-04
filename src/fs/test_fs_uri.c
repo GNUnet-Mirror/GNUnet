@@ -92,7 +92,7 @@ testLocation ()
   GNUNET_assert (baseURI != NULL);
   GNUNET_assert (emsg == NULL);
   cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, "test_fs_uri_data.conf"))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, "test_fs_uri_data.conf"))
   {
     fprintf (stderr, "Failed to parse configuration file\n");
     GNUNET_FS_uri_destroy (baseURI);
