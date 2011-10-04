@@ -8,12 +8,14 @@ if HAVE_EXPERIMENTAL
  GN_LIBMHD = -lmicrohttpd
  HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
  HTTP_API_TEST = test_transport_api_http
+ HTTP_NAT_API_TEST = test_transport_api_http_nat
  HTTP_API_TIMEOUT_TEST = test_transport_api_timeout_http
  HTTP_REL_TEST = test_transport_api_reliability_http
  HTTP_QUOTA_TEST = test_quota_compliance_http \
 		   test_quota_compliance_http_asymmetric_recv_constant
  HTTPS_PLUGIN_LA = libgnunet_plugin_transport_https.la
  HTTPS_API_TEST = test_transport_api_https
+ HTTPS_NAT_API_TEST = test_transport_api_https_nat
  HTTPS_API_TIMEOUT_TEST = test_transport_api_timeout_https
  HTTPS_REL_TEST = test_transport_api_reliability_https
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
@@ -261,8 +263,10 @@ check_PROGRAMS = \
  $(UNIX_PLUGIN_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
+ $(HTTP_NAT_API_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TEST) \
+ $(HTTPS_NAT_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
@@ -296,8 +300,10 @@ TESTS = \
  $(UNIX_PLUGIN_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
+ $(HTTP_NAT_API_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TEST) \
+ $(HTTPS_NAT_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
@@ -471,6 +477,14 @@ test_transport_api_http_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
+ 
+ test_transport_api_http_nat_SOURCES = \
+ test_transport_api.c
+test_transport_api_http_nat_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_api_reliability_http_SOURCES = \
  test_transport_api_reliability.c
@@ -486,6 +500,14 @@ test_transport_api_https_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_transport_api_https_nat_SOURCES = \
+ test_transport_api.c
+test_transport_api_https_nat_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_api_reliability_https_SOURCES = \
