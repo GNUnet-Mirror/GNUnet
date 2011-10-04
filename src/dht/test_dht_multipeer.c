@@ -228,6 +228,13 @@ shutdown_callback (void *cls, const char *emsg)
   }
 }
 
+static void
+do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+  pg = NULL;
+}
+
 
 /**
  * Function scheduled to be run on the successful completion of this
@@ -265,10 +272,8 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				 test_get);
     GNUNET_free (test_get);
   }
-
-  ok = 0;
-  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-  pg = NULL;
+  ok = 0; 
+  GNUNET_SCHEDULER_add_now (&do_stop, NULL);
 }
 
 
