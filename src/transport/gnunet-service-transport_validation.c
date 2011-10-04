@@ -1021,6 +1021,7 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
   const struct GNUNET_HELLO_Message *hm =
       (const struct GNUNET_HELLO_Message *) hello;
   struct ValidateAddressContext vac;
+  struct GNUNET_HELLO_Message *h;
 
   if ((GNUNET_OK != GNUNET_HELLO_get_id (hm, &vac.pid)) ||
       (GNUNET_OK != GNUNET_HELLO_get_key (hm, &vac.public_key)))
@@ -1029,6 +1030,18 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
     GNUNET_break (0);
     return;
   }
+  /* Add peer identity without addresses to peerinfo service */
+  h = GNUNET_HELLO_create (&vac.public_key, NULL, NULL);
+  GNUNET_PEERINFO_add_peer (GST_peerinfo, h);
+#if VERBOSE_VALIDATION
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _
+              ("Adding `%s' without addresses for peer `%s'\n"),
+              "HELLO",
+              GNUNET_i2s(&vac.pid));
+#endif
+  GNUNET_free (h);
+
   GNUNET_assert (NULL ==
                  GNUNET_HELLO_iterate_addresses (hm, GNUNET_NO,
                                                  &validate_address, &vac));
