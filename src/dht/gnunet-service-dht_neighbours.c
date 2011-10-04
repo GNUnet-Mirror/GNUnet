@@ -759,6 +759,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 				 pos);
     GNUNET_free (pos);
   }
+  GNUNET_free (to_remove);
 }
 
 
