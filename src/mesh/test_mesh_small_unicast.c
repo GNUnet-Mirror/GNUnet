@@ -402,13 +402,14 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
             struct GNUNET_TESTING_Daemon *first_daemon,
             struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
 {
-  GNUNET_PEER_Id f;
-  GNUNET_PEER_Id s;
+//   GNUNET_PEER_Id f;
+//   GNUNET_PEER_Id s;
 
   if (emsg == NULL)
+  {
     total_connections++;
-  f = GNUNET_PEER_intern(first);
-  s = GNUNET_PEER_intern(second);
+    /*f = */GNUNET_PEER_intern(first);
+    /*s = */GNUNET_PEER_intern(second);
 //   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: New connection!\n");
 //   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 //               "test:     %s (%u)\n",
@@ -418,6 +419,14 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
 //               "test:     %s (%u)\n",
 //               GNUNET_h2s(&second->hashPubKey),
 //               s);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "test: Problem with new connection (%s)\n",
+                emsg);
+  }
+
 }
 
 
