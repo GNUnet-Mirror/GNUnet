@@ -581,6 +581,9 @@ http_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   struct Session *next = NULL;
   struct Session *s = plugin->head;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Transport tells me to disconnect `%s'\n",
+                   GNUNET_i2s (target));
   while (s != NULL)
   {
     next = s->next;
@@ -907,6 +910,13 @@ configure_plugin (struct Plugin *plugin)
   }
   plugin->port = port;
 
+  plugin->client_only = GNUNET_NO;
+  if (plugin->port == 0)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   _("Port 0, client only mode\n"));
+    plugin->client_only = GNUNET_YES;
+  }
 
   char * bind4_address = NULL;
   if ((plugin->ipv4 == GNUNET_YES) && (GNUNET_YES ==
@@ -1024,19 +1034,21 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   }
 
   /* Start server */
-  res = server_start (plugin);
-  if (res == GNUNET_SYSERR)
+  if (plugin->client_only == GNUNET_NO)
   {
-    server_stop (plugin);
-    client_stop (plugin);
+    res = server_start (plugin);
+    if (res == GNUNET_SYSERR)
+    {
+      server_stop (plugin);
+      client_stop (plugin);
 
-    GNUNET_free_non_null (plugin->server_addr_v4);
-    GNUNET_free_non_null (plugin->server_addr_v6);
-    GNUNET_free (plugin);
-    GNUNET_free (api);
-    return NULL;
+      GNUNET_free_non_null (plugin->server_addr_v4);
+      GNUNET_free_non_null (plugin->server_addr_v6);
+      GNUNET_free (plugin);
+      GNUNET_free (api);
+      return NULL;
+    }
   }
-
   /* Report addresses to transport service */
   start_report_addresses (plugin);
 

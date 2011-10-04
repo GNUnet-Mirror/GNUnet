@@ -42,9 +42,9 @@
 #include <curl/curl.h>
 
 
-#define DEBUG_HTTP GNUNET_YES
-#define VERBOSE_SERVER GNUNET_YES
-#define VERBOSE_CLIENT GNUNET_YES
+#define DEBUG_HTTP GNUNET_NO
+#define VERBOSE_SERVER GNUNET_NO
+#define VERBOSE_CLIENT GNUNET_NO
 #define VERBOSE_CURL GNUNET_EXTRA_LOGGING
 
 #if BUILD_HTTPS
@@ -141,6 +141,12 @@ struct Plugin
    * GNUNET_YES or GNUNET_NO
    */
   int ipv6;
+
+  /**
+   * Does plugin just use outbound connections and not accept inbound?
+   */
+
+  int client_only;
 
   /**
    * Port used
