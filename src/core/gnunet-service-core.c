@@ -2079,7 +2079,7 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
               GNUNET_TIME_absolute_get_remaining (m->deadline).rel_value);
 #endif
   n->th =
-      GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size,
+       GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size,
                                               m->priority,
                                               GNUNET_TIME_absolute_get_remaining
                                               (m->deadline),

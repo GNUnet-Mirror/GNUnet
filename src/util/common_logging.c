@@ -115,6 +115,11 @@ static char last_bulk_comp[COMP_TRACK_SIZE + 1];
 static char *component;
 
 /**
+ * Running component (without pid).
+ */
+static char *component_nopid;
+
+/**
  * Minimum log level.
  */
 static enum GNUNET_ErrorType min_level;
@@ -127,12 +132,93 @@ static struct CustomLogger *loggers;
 /**
  * Number of log calls to ignore.
  */
-static unsigned int skip_log;
+unsigned int skip_log;
 
 /**
  * File descriptor to use for "stderr", or NULL for none.
  */
 static FILE *GNUNET_stderr;
+
+/**
+ * Represents a single logging definition
+ */
+struct LogDef
+{
+  /**
+   * Component name. NULL means that this definition matches any component
+   */
+  char *component;
+
+  /**
+   * File name. NULL means that this definition matches any file
+   */
+  char *file;
+
+  /**
+   * Stores strlen(file)
+   */
+  int strlen_file;
+
+  /**
+   * Function name. NULL means that this definition matches any function
+   */
+  char *function;
+
+  /**
+   * Lowest line at which this definition matches.
+   * Defaults to 0. Must be <= to_line.
+   */
+  int from_line;
+
+  /**
+   * Highest line at which this definition matches.
+   * Defaults to INT_MAX. Must be >= from_line.
+   */
+  int to_line;
+
+  /**
+   * Maximal log level allowed for calls that match this definition.
+   * Calls with higher log level will be disabled.
+   * Must be >= 0
+   */
+  int level;
+
+  /**
+   * 1 if this definition comes from GNUNET_FORCE_LOG, which means that it
+   * overrides any configuration options. 0 otherwise.
+   */
+  int force;
+};
+
+/**
+ * Dynamic array of logging definitions
+ */
+struct LogDef *logdefs = NULL;
+
+/**
+ * Allocated size of logdefs array (in units)
+ */
+int logdefs_size = 0;
+
+/**
+ * The number of units used in logdefs array.
+ */
+int logdefs_len = 0;
+
+/**
+ * GNUNET_YES if GNUNET_LOG environment variable is already parsed.
+ */
+int gnunet_log_parsed = GNUNET_NO;
+
+/**
+ * GNUNET_YES if GNUNET_FORCE_LOG environment variable is already parsed.
+ */
+int gnunet_force_log_parsed = GNUNET_NO;
+
+/**
+ * GNUNET_YES if at least one definition with forced == 1 is available.
+ */
+int gnunet_force_log_present = GNUNET_NO;
 
 #ifdef WINDOWS
 /**
@@ -151,6 +237,8 @@ LARGE_INTEGER performance_frequency;
 static enum GNUNET_ErrorType
 get_type (const char *log)
 {
+  if (log == NULL)
+    return GNUNET_ERROR_TYPE_UNSPECIFIED;
   if (0 == strcasecmp (log, _("DEBUG")))
     return GNUNET_ERROR_TYPE_DEBUG;
   if (0 == strcasecmp (log, _("INFO")))
@@ -163,8 +251,263 @@ get_type (const char *log)
     return GNUNET_ERROR_TYPE_NONE;
   return GNUNET_ERROR_TYPE_INVALID;
 }
+#if !defined(GNUNET_CULL_LOGGING)
+/**
+ * Utility function - reallocates logdefs array to be twice as large.
+ */
+static void
+resize_logdefs ()
+{
+  logdefs_size  = (logdefs_size + 1) * 2;
+  logdefs = GNUNET_realloc (logdefs, logdefs_size * sizeof (struct LogDef));  
+}
+
+/**
+ * Utility function - adds a parsed definition to logdefs array.
+ *
+ * @param component see struct LogDef, can't be NULL
+ * @param file see struct LogDef, can't be NULL
+ * @param function see struct LogDef, can't be NULL
+ * @param from_line see struct LogDef
+ * @param to_line see struct LogDef
+ * @param level see struct LogDef, must be >= 0
+ * @param force see struct LogDef
+ */
+static void
+add_definition (char *component, char *file, char *function, int from_line, int to_line, int level, int force)
+{
+  if (logdefs_size == logdefs_len)
+    resize_logdefs ();
+  struct LogDef n;
+  memset (&n, 0, sizeof (n));
+  if (strlen (component) > 0 && component[0] != '*')
+    n.component = strdup (component);
+  if (strlen (file) > 0 && file[0] != '*')
+  {
+    n.file = strdup (file);
+    n.strlen_file = strlen (file);
+  }
+  if (strlen (function) > 0 && function[0] != '*')
+    n.function = strdup (function);
+  n.from_line = from_line;
+  n.to_line = to_line;
+  n.level = level;
+  n.force = force;
+  logdefs[logdefs_len++] = n;
+}
 
 
+/**
+ * Decides whether a particular logging call should or should not be allowed
+ * to be made. Used internally by GNUNET_log*()
+ *
+ * @param caller_level loglevel the caller wants to use
+ * @param comp component name the caller uses (NULL means that global
+ *   component name is used)
+ * @param file file name containing the logging call, usually __FILE__
+ * @param function function which tries to make a logging call,
+ *   usually __FUNCTION__
+ * @param line line at which the call is made, usually __LINE__
+ * @return 0 to disallow the call, 1 to allow it
+ */
+int 
+GNUNET_get_log_call_status (int caller_level, const char *comp, const char *file, const char *function, int line)
+{
+  struct LogDef *ld;
+  int i;
+  int force_only;
+  size_t strlen_file;
+  int matches = 0;
+
+  if (comp == NULL)
+    /* Use default component */
+    comp = component_nopid;
+
+  /* We have no definitions to override globally configured log level,
+   * so just use it right away.
+   */
+  if (min_level >= 0 && gnunet_force_log_present == GNUNET_NO)
+    return caller_level <= min_level;
+
+  /* Only look for forced definitions? */
+  force_only = min_level >= 0;
+  strlen_file = strlen (file);
+  for (i = 0; i < logdefs_len; i++)
+  {
+    ld = &logdefs[i];
+    if ((!force_only || ld->force) &&
+        (line >= ld->from_line && line <= ld->to_line) &&
+        (ld->component == NULL || strcmp (comp, ld->component) == 0) &&
+        (ld->file == NULL ||
+         (ld->strlen_file <= strlen_file &&
+          strcmp (&file[strlen_file - ld->strlen_file], ld->file) == 0)) &&
+        (ld->function == NULL || strcmp (function, ld->function) == 0)
+       )
+    {
+      /* This definition matched! */
+      matches += 1;
+      /* And if it allows the call to be made, then we're finished */
+      if (caller_level <= ld->level)
+        return 1;
+    }
+  }
+  /* If some definitions did match, but had too low loglevel to allow logging,
+   * don't check any further.
+   */
+  if (matches > 0)
+    return 0;
+  /* Otherwise use global level, if defined */
+  if (min_level >= 0)
+    return caller_level <= min_level;
+  /* All programs/services previously defaulted to WARNING.
+   * Now WE default to WARNING, and THEY default to NULL.
+   */
+  return caller_level <= GNUNET_ERROR_TYPE_WARNING;
+}
+
+
+/**
+ * Utility function - parses a definition
+ *
+ * Definition format:
+ * component;file;function;from_line-to_line;level[/component...]
+ * All entries are mandatory, but may be empty.
+ * Empty entries for component, file and function are treated as
+ * "matches anything".
+ * Empty line entry is treated as "from 0 to INT_MAX"
+ * Line entry with only one line is treated as "this line only"
+ * Entry for level MUST NOT be empty.
+ * Entries for component, file and function that consist of a
+ * single character "*" are treated (at the moment) the same way
+ * empty entries are treated (wildcard matching is not implemented (yet?)).
+ * file entry is matched to the end of __FILE__. That is, it might be
+ * a base name, or a base name with leading directory names (some compilers
+ * define __FILE__ to absolute file path).
+ *
+ * @param constname name of the environment variable from which to get the
+ *   string to be parsed
+ * @param force 1 if definitions found in @constname are to be forced
+ * @return number of added definitions
+ */
+static int
+parse_definitions (const char *constname, int force)
+{
+  char *def;
+  const char *tmp;
+  char *comp = NULL;
+  char *file = NULL;
+  char *function = NULL;
+  char *p;
+  char *start;
+  char *t;
+  short state;
+  int level;
+  int from_line, to_line;
+  int counter = 0;
+  int keep_looking = 1;
+  tmp = getenv (constname);
+  if (tmp == NULL)
+    return 0;
+  def = strdup (tmp);
+  level = -1;
+  from_line = 0;
+  to_line = INT_MAX;
+  for (p = def, state = 0, start = def; keep_looking; p++)
+  {
+    switch (p[0])
+    {
+    case ';': /* found a field separator */
+      p[0] = '\0';
+      switch (state)
+      {
+      case 0: /* within a component name */
+        comp = start;
+        break;
+      case 1: /* within a file name */
+        file = start;
+        break;
+      case 2: /* within a function name */
+        /* after a file name there must be a function name */
+        function = start;
+        break;
+      case 3: /* within a from-to line range */
+        if (strlen (start) > 0)
+        {
+          errno = 0;
+          from_line = strtol (start, &t, 10);
+          if (errno != 0 || from_line < 0)
+          {
+            free (def);
+            return counter;
+          }
+          if (t < p && t[0] == '-')
+          {
+            errno = 0;
+            start = t + 1;
+            to_line = strtol (start, &t, 10);
+            if (errno != 0 || to_line < 0 || t != p)
+            {
+              free (def);
+              return counter;
+            }
+          }
+          else /* one number means "match this line only" */
+            to_line = from_line;
+        }
+        else /* default to 0-max */
+        {
+          from_line = 0;
+          to_line = INT_MAX;
+        }
+        break;
+      }
+      start = p + 1;
+      state += 1;
+      break;
+    case '\0': /* found EOL */
+      keep_looking = 0;
+      /* fall through to '/' */
+    case '/': /* found a definition separator */
+      switch (state)
+      {
+      case 4: /* within a log level */
+        p[0] = '\0';
+        state = 0;
+        level = get_type ((const char *) start);
+        if (level == GNUNET_ERROR_TYPE_INVALID || level == GNUNET_ERROR_TYPE_UNSPECIFIED)
+        {
+          free (def);
+          return counter;
+        }
+        add_definition (comp, file, function, from_line, to_line, level, force);
+        counter += 1;
+        start = p + 1;
+        break;
+      default:
+        break;
+      }
+    default:
+      break;
+    }
+  }
+  free (def);
+  return counter;
+}
+
+/**
+ * Utility function - parses GNUNET_LOG and GNUNET_FORCE_LOG.
+ */
+static void
+parse_all_definitions ()
+{
+  if (gnunet_log_parsed == GNUNET_NO)
+    parse_definitions ("GNUNET_LOG", 0);
+  gnunet_log_parsed = GNUNET_YES;
+  if (gnunet_force_log_parsed == GNUNET_NO)
+    gnunet_force_log_present = parse_definitions ("GNUNET_FORCE_LOG", 1) > 0 ? GNUNET_YES : GNUNET_NO;
+  gnunet_force_log_parsed = GNUNET_YES;
+}
+#endif
 /**
  * Setup logging.
  *
@@ -179,26 +522,24 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   FILE *altlog;
   int dirwarn;
   char *fn;
-  const char *env_loglevel;
-  int env_minlevel = 0;
-  int env_min_force_level = 100000;
+  const char *env_logfile = NULL;
 
+  min_level = get_type (loglevel);
+#if !defined(GNUNET_CULL_LOGGING)
+  parse_all_definitions ();
+#endif
 #ifdef WINDOWS
   QueryPerformanceFrequency (&performance_frequency);
 #endif
   GNUNET_free_non_null (component);
   GNUNET_asprintf (&component, "%s-%d", comp, getpid ());
-  env_loglevel = getenv ("GNUNET_LOGLEVEL");
-  if (env_loglevel != NULL)
-    env_minlevel = get_type (env_loglevel);
-  env_loglevel = getenv ("GNUNET_FORCE_LOGLEVEL");
-  if (env_loglevel != NULL)
-    env_min_force_level = get_type (env_loglevel);
-  min_level = get_type (loglevel);
-  if (env_minlevel > min_level)
-    min_level = env_minlevel;
-  if (env_min_force_level < min_level)
-    min_level = env_min_force_level;
+  GNUNET_free_non_null (component_nopid);
+  component_nopid = strdup (comp);
+
+  env_logfile = getenv ("GNUNET_FORCE_LOGFILE");
+  if (env_logfile != NULL)
+    logfile = env_logfile;
+
   if (logfile == NULL)
     return GNUNET_OK;
   fn = GNUNET_STRINGS_filename_expand (logfile);
@@ -383,13 +724,6 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
   char *buf;
   va_list vacp;
 
-  if (skip_log > 0)
-  {
-    skip_log--;
-    return;
-  }
-  if ((kind & (~GNUNET_ERROR_TYPE_BULK)) > min_level)
-    return;
   va_copy (vacp, va);
   size = VSNPRINTF (NULL, 0, message, vacp) + 1;
   va_end (vacp);
@@ -448,7 +782,7 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
  * @param ... arguments for format string
  */
 void
-GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...)
+GNUNET_log_nocheck (enum GNUNET_ErrorType kind, const char *message, ...)
 {
   va_list va;
 
@@ -468,11 +802,14 @@ GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...)
  * @param ... arguments for format string
  */
 void
-GNUNET_log_from (enum GNUNET_ErrorType kind, const char *comp,
+GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
                  const char *message, ...)
 {
   va_list va;
   char comp_w_pid[128];
+
+  if (comp == NULL)
+    comp = component_nopid;
 
   va_start (va, message);
   GNUNET_snprintf (comp_w_pid, sizeof (comp_w_pid), "%s-%d", comp, getpid ());
@@ -498,6 +835,8 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind)
     return _("INFO");
   if ((kind & GNUNET_ERROR_TYPE_DEBUG) > 0)
     return _("DEBUG");
+  if ((kind & ~GNUNET_ERROR_TYPE_BULK) == 0)
+    return _("NONE");
   return _("INVALID");
 }
 

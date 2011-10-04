@@ -138,6 +138,7 @@ typedef int (*GNUNET_FileNameCallback) (void *cls, const char *filename);
  */
 enum GNUNET_ErrorType
 {
+  GNUNET_ERROR_TYPE_UNSPECIFIED = -1,
   GNUNET_ERROR_TYPE_NONE = 0,
   GNUNET_ERROR_TYPE_ERROR = 1,
   GNUNET_ERROR_TYPE_WARNING = 2,
@@ -161,6 +162,15 @@ typedef void (*GNUNET_Logger) (void *cls, enum GNUNET_ErrorType kind,
                                const char *component, const char *date,
                                const char *message);
 
+
+/**
+ * Number of log calls to ignore.
+ */
+extern unsigned int skip_log;
+#if !defined(GNUNET_CULL_LOGGING)
+int 
+GNUNET_get_log_call_status (int caller_level, const char *comp, const char *file, const char *function, int line);
+#endif
 /**
  * Main log function.
  *
@@ -169,9 +179,29 @@ typedef void (*GNUNET_Logger) (void *cls, enum GNUNET_ErrorType kind,
  * @param ... arguments for format string
  */
 void
-GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...);
+GNUNET_log_nocheck (enum GNUNET_ErrorType kind, const char *message, ...);
 
+/* from glib */
+#if defined(__GNUC__) && (__GNUC__ > 2) && defined(__OPTIMIZE__)
+#define _GNUNET_BOOLEAN_EXPR(expr)              \
+ __extension__ ({                               \
+   int _gnunet_boolean_var_;                    \
+   if (expr)                                    \
+      _gnunet_boolean_var_ = 1;                 \
+   else                                         \
+      _gnunet_boolean_var_ = 0;                 \
+   _gnunet_boolean_var_;                        \
+})
+#define GN_LIKELY(expr) (__builtin_expect (_GNUNET_BOOLEAN_EXPR(expr), 1))
+#define GN_UNLIKELY(expr) (__builtin_expect (_GNUNET_BOOLEAN_EXPR(expr), 0))
+#else
+#define GN_LIKELY(expr) (expr)
+#define GN_UNLIKELY(expr) (expr)
+#endif
 
+#if !defined(GNUNET_LOG_CALL_STATUS)
+#define GNUNET_LOG_CALL_STATUS -1
+#endif
 
 /**
  * Log function that specifies an alternative component.
@@ -183,9 +213,35 @@ GNUNET_log (enum GNUNET_ErrorType kind, const char *message, ...);
  * @param ... arguments for format string
  */
 void
-GNUNET_log_from (enum GNUNET_ErrorType kind, const char *comp,
+GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
                  const char *message, ...);
 
+#if !defined(GNUNET_CULL_LOGGING)
+#define GNUNET_log_from(kind,comp,...) do { int log_line = __LINE__;\
+  static int log_call_enabled = GNUNET_LOG_CALL_STATUS;\
+  if (GN_UNLIKELY(log_call_enabled == -1))\
+    log_call_enabled = GNUNET_get_log_call_status ((kind) & (~GNUNET_ERROR_TYPE_BULK), comp, __FILE__, __FUNCTION__, log_line);\
+  if (GN_UNLIKELY(skip_log > 0)) {skip_log--;}\
+  else {\
+    if (GN_UNLIKELY(log_call_enabled))\
+      GNUNET_log_from_nocheck (kind, comp, __VA_ARGS__);\
+  }\
+} while (0)
+
+#define GNUNET_log(kind,...) do { int log_line = __LINE__;\
+  static int log_call_enabled = GNUNET_LOG_CALL_STATUS;\
+  if (GN_UNLIKELY(log_call_enabled == -1))\
+    log_call_enabled = GNUNET_get_log_call_status ((kind) & (~GNUNET_ERROR_TYPE_BULK), NULL, __FILE__, __FUNCTION__, log_line);\
+  if (GN_UNLIKELY(skip_log > 0)) {skip_log--;}\
+  else {\
+    if (GN_UNLIKELY(log_call_enabled))\
+      GNUNET_log_nocheck (kind, __VA_ARGS__);\
+  }\
+} while (0)
+#else
+#define GNUNET_log(...)
+#define GNUNET_log_from(...)
+#endif
 
 /**
  * Ignore the next n calls to the log function.

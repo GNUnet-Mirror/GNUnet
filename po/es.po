@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0e\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-09-13 14:44+0200\n"
+"POT-Creation-Date: 2011-09-19 13:28+0200\n"
 "PO-Revision-Date: 2006-06-29 12:05+0200\n"
 "Last-Translator: Miguel Angel Arruga <miguel.13@telefonica.net>\n"
 "Language-Team: Spanish\n"
@@ -77,61 +77,65 @@ msgstr ""
 msgid "Failed to start %s\n"
 msgstr "Falló al comenzar la recolección.\n"
 
-#: src/nat/nat.c:1096 src/nat/nat.c:1113
+#: src/nat/nat.c:1096
 #, fuzzy, c-format
 msgid "Malformed %s `%s' given in configuration!\n"
 msgstr "Imposible guardar la configuración"
 
-#: src/nat/nat.c:1167 src/nat/nat.c:1177
+#: src/nat/nat.c:1158 src/nat/nat.c:1168
 #, c-format
 msgid ""
 "Configuration requires `%s', but binary is not installed properly (SUID bit "
 "not set).  Option disabled.\n"
 msgstr ""
 
-#: src/nat/nat.c:1309
+#: src/nat/nat.c:1300
 msgid "Internal IP address not known, cannot use ICMP NAT traversal method\n"
 msgstr ""
 
-#: src/nat/nat.c:1321
+#: src/nat/nat.c:1312
 #, c-format
 msgid "Running gnunet-helper-nat-client %s %s %u\n"
 msgstr ""
 
-#: src/nat/gnunet-nat-server.c:290
+#: src/nat/gnunet-nat-server.c:289
 #, c-format
 msgid "Please pass valid port number as the first argument! (got `%s')\n"
 msgstr ""
 
-#: src/nat/gnunet-nat-server.c:329
+#: src/nat/gnunet-nat-server.c:328
 msgid "GNUnet NAT traversal test helper daemon"
 msgstr ""
 
-#: src/nat/nat_test.c:348
+#: src/nat/nat_test.c:349
 #, fuzzy
 msgid "Failed to connect to `gnunet-nat-server'\n"
 msgstr "Fallo al conectar a gnunetd.\n"
 
-#: src/nat/nat_test.c:418
+#: src/nat/nat_test.c:419
 #, c-format
 msgid "Failed to create listen socket bound to `%s' for NAT test: %s\n"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-vpn.c:1275 src/vpn/gnunet-daemon-exit.c:1455
-#: src/template/gnunet-template.c:68 src/core/test_core_api_send_to_self.c:217
+#: src/vpn/gnunet-daemon-vpn.c:1279 src/template/gnunet-template.c:68
+#: src/core/test_core_api_send_to_self.c:217
 #, fuzzy
 msgid "help text"
 msgstr "texto de ayuda para -t"
 
+#: src/vpn/gnunet-daemon-exit.c:1493
+msgid "Daemon to run to provide an IP exit node for the VPN"
+msgstr ""
+
 #: src/datacache/datacache.c:108 src/datacache/datacache.c:236
-#: src/datastore/gnunet-service-datastore.c:821
+#: src/datastore/gnunet-service-datastore.c:824
 #, fuzzy
 msgid "# bytes stored"
 msgstr "# bytes en la base de datos"
 
 #: src/datacache/datacache.c:134 src/datacache/datacache.c:142
-#: src/datastore/gnunet-service-datastore.c:1292
-#: src/datastore/gnunet-service-datastore.c:1483
+#: src/datastore/gnunet-service-datastore.c:1295
+#: src/datastore/gnunet-service-datastore.c:1486
 #: src/datastore/test_plugin_datastore.c:192
 #: src/datastore/test_plugin_datastore.c:315
 #: src/datastore/perf_plugin_datastore.c:309
@@ -168,13 +172,13 @@ msgstr ""
 #: src/datacache/plugin_datacache_sqlite.c:122
 #: src/datacache/plugin_datacache_sqlite.c:191
 #: src/datacache/plugin_datacache_sqlite.c:232
-#: src/datacache/plugin_datacache_sqlite.c:296
-#: src/datacache/plugin_datacache_sqlite.c:305
-#: src/datacache/plugin_datacache_sqlite.c:318
-#: src/datacache/plugin_datacache_sqlite.c:325
-#: src/datacache/plugin_datacache_sqlite.c:338
-#: src/datacache/plugin_datacache_sqlite.c:346
-#: src/datacache/plugin_datacache_sqlite.c:354
+#: src/datacache/plugin_datacache_sqlite.c:295
+#: src/datacache/plugin_datacache_sqlite.c:304
+#: src/datacache/plugin_datacache_sqlite.c:315
+#: src/datacache/plugin_datacache_sqlite.c:322
+#: src/datacache/plugin_datacache_sqlite.c:332
+#: src/datacache/plugin_datacache_sqlite.c:340
+#: src/datacache/plugin_datacache_sqlite.c:348
 #: src/datacache/plugin_datacache_mysql.c:103
 #: src/datacache/plugin_datacache_mysql.c:110
 #: src/datacache/plugin_datacache_mysql.c:517
@@ -194,12 +198,12 @@ msgstr ""
 msgid "`%s' failed at %s:%d with error: %s\n"
 msgstr "'%s' falló en %s: %d con el error: %s\n"
 
-#: src/datacache/plugin_datacache_sqlite.c:419
+#: src/datacache/plugin_datacache_sqlite.c:413
 msgid "Sqlite datacache running\n"
 msgstr ""
 
-#: src/datacache/plugin_datacache_sqlite.c:454
-#: src/datastore/plugin_datastore_sqlite.c:405
+#: src/datacache/plugin_datacache_sqlite.c:446
+#: src/datastore/plugin_datastore_sqlite.c:420
 msgid "Tried to close sqlite without finalizing all prepared statements.\n"
 msgstr ""
 
@@ -241,7 +245,7 @@ msgstr ""
 #: src/testing/test_testing_topology_blacklist.c:448
 #: src/testing/testing_peergroup.c:876
 #: src/testing/test_testing_large_topology.c:1022
-#: src/dht/test_dht_multipeer.c:864 src/dht/gnunet-dht-driver.c:3907
+#: src/dht/test_dht_multipeer.c:864 src/dht/gnunet-dht-driver.c:3897
 #: src/dv/test_transport_api_dv.c:1132
 #, c-format
 msgid "Invalid value `%s' for option `%s' in section `%s': expected float\n"
@@ -319,23 +323,23 @@ msgstr ""
 msgid "Finished copying all blacklist files!\n"
 msgstr ""
 
-#: src/testing/testing_group.c:3581 src/testing/testing_group.c:3720
+#: src/testing/testing_group.c:3580 src/testing/testing_group.c:3717
 #: src/testing/testing_group.c:4925 src/testing/testing_group.c:5066
 msgid "Delaying connect, we have too many outstanding connections!\n"
 msgstr ""
 
-#: src/testing/testing_group.c:3591 src/testing/testing_group.c:4935
+#: src/testing/testing_group.c:3590 src/testing/testing_group.c:4935
 #: src/testing/testing_group.c:5076
 #, c-format
 msgid "Creating connection, outstanding_connections is %d\n"
 msgstr ""
 
-#: src/testing/testing_group.c:3603
+#: src/testing/testing_group.c:3602
 #, fuzzy, c-format
 msgid "Offering Hello of peer %s to peer %s\n"
 msgstr "Imposible conectar a %u.%u.%u.%u:%u: %s\n"
 
-#: src/testing/testing_group.c:3730
+#: src/testing/testing_group.c:3728
 #, c-format
 msgid "Creating connection, outstanding_connections is %d (max %d)\n"
 msgstr ""
@@ -510,148 +514,148 @@ msgstr "Imposible inicializar la aplicación '%s'\n"
 msgid "Could not create configuration for peer number %u on `%s'!\n"
 msgstr ""
 
-#: src/testing/testing_group.c:6298 src/testing/testing.c:1272
+#: src/testing/testing_group.c:6298 src/testing/testing.c:1273
 #, c-format
 msgid "Could not start `%s' process to copy configuration directory.\n"
 msgstr ""
 
-#: src/testing/testing.c:208
+#: src/testing/testing.c:209
 msgid "`scp' does not seem to terminate (timeout copying config).\n"
 msgstr ""
 
-#: src/testing/testing.c:222 src/testing/testing.c:822
+#: src/testing/testing.c:223 src/testing/testing.c:823
 #, fuzzy
 msgid "`scp' did not complete cleanly.\n"
 msgstr "'%s' no esta conectado a ningún par.\n"
 
-#: src/testing/testing.c:245
+#: src/testing/testing.c:246
 msgid "Failed to create pipe for `gnunet-peerinfo' process.\n"
 msgstr ""
 
-#: src/testing/testing.c:246
+#: src/testing/testing.c:247
 #, fuzzy
 msgid "Failed to create pipe for `ssh' process.\n"
 msgstr "Error en el formato del fichero (¿no es un directorio de GNUnet?)\n"
 
-#: src/testing/testing.c:302
+#: src/testing/testing.c:303
 #, c-format
 msgid "Could not start `%s' process to create hostkey.\n"
 msgstr ""
 
-#: src/testing/testing.c:309
+#: src/testing/testing.c:310
 #, fuzzy
 msgid "Failed to start `gnunet-peerinfo' process.\n"
 msgstr "Falló al comenzar la recolección.\n"
 
-#: src/testing/testing.c:310 src/testing/testing.c:508
+#: src/testing/testing.c:311 src/testing/testing.c:509
 #, fuzzy
 msgid "Failed to start `ssh' process.\n"
 msgstr "Falló al comenzar la recolección.\n"
 
-#: src/testing/testing.c:372
+#: src/testing/testing.c:373
 #, fuzzy, c-format
 msgid "Error reading from gnunet-peerinfo: %s\n"
 msgstr "Se produjo un error leyendo información de gnunetd.\n"
 
-#: src/testing/testing.c:376
+#: src/testing/testing.c:377
 msgid "Malformed output from gnunet-peerinfo!\n"
 msgstr ""
 
-#: src/testing/testing.c:386
+#: src/testing/testing.c:387
 #, fuzzy
 msgid "`Failed to get hostkey!\n"
 msgstr "Fallo en las estadísticas del tráfico.\n"
 
-#: src/testing/testing.c:420
+#: src/testing/testing.c:421
 msgid "`Failed while waiting for topology setup!\n"
 msgstr ""
 
-#: src/testing/testing.c:500
+#: src/testing/testing.c:501
 #, c-format
 msgid "Could not start `%s' process to start GNUnet.\n"
 msgstr ""
 
-#: src/testing/testing.c:507
+#: src/testing/testing.c:508
 #, fuzzy
 msgid "Failed to start `gnunet-arm' process.\n"
 msgstr "Fallo al conectar a gnunetd.\n"
 
-#: src/testing/testing.c:531 src/testing/testing.c:630
+#: src/testing/testing.c:532 src/testing/testing.c:631
 msgid "`gnunet-arm' does not seem to terminate.\n"
 msgstr ""
 
-#: src/testing/testing.c:532 src/testing/testing.c:631
-#: src/testing/testing.c:651
+#: src/testing/testing.c:533 src/testing/testing.c:632
+#: src/testing/testing.c:652
 msgid "`ssh' does not seem to terminate.\n"
 msgstr ""
 
-#: src/testing/testing.c:571 src/testing/testing.c:2072
-#: src/testing/testing.c:2091
+#: src/testing/testing.c:572 src/testing/testing.c:2074
+#: src/testing/testing.c:2093
 #, fuzzy
 msgid "Failed to connect to transport service!\n"
 msgstr "Fallo al conectar a gnunetd.\n"
 
-#: src/testing/testing.c:600
+#: src/testing/testing.c:601
 msgid "Unable to get HELLO for peer!\n"
 msgstr ""
 
-#: src/testing/testing.c:650
+#: src/testing/testing.c:651
 msgid "`gnunet-arm' terminated with non-zero exit status (or timed out)!\n"
 msgstr ""
 
-#: src/testing/testing.c:673 src/testing/testing.c:707
+#: src/testing/testing.c:674 src/testing/testing.c:708
 msgid "either `gnunet-arm' or `ssh' does not seem to terminate.\n"
 msgstr ""
 
-#: src/testing/testing.c:688 src/testing/testing.c:737
+#: src/testing/testing.c:689 src/testing/testing.c:738
 msgid "shutdown (either `gnunet-arm' or `ssh') did not complete cleanly.\n"
 msgstr ""
 
-#: src/testing/testing.c:810
+#: src/testing/testing.c:811
 msgid "`scp' does not seem to terminate.\n"
 msgstr ""
 
-#: src/testing/testing.c:988
+#: src/testing/testing.c:989
 #, fuzzy, c-format
 msgid "Starting service %s for peer `%4s'\n"
 msgstr "Iniciada colección '%s'.\n"
 
-#: src/testing/testing.c:1360 src/testing/testing.c:1443
-#: src/testing/testing.c:1581
+#: src/testing/testing.c:1361 src/testing/testing.c:1444
+#: src/testing/testing.c:1582
 #, fuzzy, c-format
 msgid "Terminating peer `%4s'\n"
 msgstr "Permiso denegado para '%s' en %s:%d.\n"
 
-#: src/testing/testing.c:1533
+#: src/testing/testing.c:1534
 #, fuzzy, c-format
 msgid "Setting d->dead on peer `%4s'\n"
 msgstr "Iniciada colección '%s'.\n"
 
-#: src/testing/testing.c:1668
+#: src/testing/testing.c:1669
 msgid "Peer not yet running, can not change configuration at this point."
 msgstr ""
 
-#: src/testing/testing.c:1676
+#: src/testing/testing.c:1677
 #, fuzzy
 msgid "Failed to write new configuration to disk."
 msgstr "Imposible guardar la configuración"
 
-#: src/testing/testing.c:1707
+#: src/testing/testing.c:1708
 #, c-format
 msgid "Could not start `%s' process to copy configuration file.\n"
 msgstr ""
 
-#: src/testing/testing.c:1710
+#: src/testing/testing.c:1711
 #, fuzzy
 msgid "Failed to copy new configuration to remote machine."
 msgstr "Imposible guardar la configuración"
 
-#: src/testing/testing.c:1881
+#: src/testing/testing.c:1883
 #, fuzzy
 msgid "Peers failed to connect"
 msgstr "Fallo al conectar a gnunetd.\n"
 
-#: src/testing/testing.c:2036
+#: src/testing/testing.c:2038
 #, fuzzy
 msgid "Failed to connect to core service of first peer!\n"
 msgstr "Fallo al conectar a gnunetd.\n"
@@ -845,7 +849,7 @@ msgid "Advertisement message could not be queued by core\n"
 msgstr ""
 
 #: src/hostlist/hostlist-server.c:556
-#: src/transport/gnunet-service-transport.c:458
+#: src/transport/gnunet-service-transport.c:462
 #: src/peerinfo-tool/gnunet-peerinfo.c:208 src/core/gnunet-service-core.c:4607
 #, fuzzy, c-format
 msgid "Could not access PEERINFO service.  Exiting.\n"
@@ -1070,8 +1074,8 @@ msgstr "# mensajes PONG encriptados recibidos"
 
 #: src/topology/gnunet-daemon-topology.c:676
 #: src/topology/gnunet-daemon-topology.c:778
-#: src/transport/gnunet-service-transport_neighbours.c:432
-#: src/transport/gnunet-service-transport_neighbours.c:627
+#: src/transport/gnunet-service-transport_neighbours.c:465
+#: src/transport/gnunet-service-transport_neighbours.c:662
 #, fuzzy
 msgid "# peers connected"
 msgstr "# de pares conectados"
@@ -1332,24 +1336,29 @@ msgid ""
 "Failed to establish TCP connection to `%s:%u', no further addresses to try.\n"
 msgstr "Se produjo un error estableciendo conexión con gnunetd.\n"
 
-#: src/util/connection.c:852 src/util/connection.c:1023
+#: src/util/connection.c:852 src/util/connection.c:1028
 #, fuzzy, c-format
 msgid "Trying to connect to `%s' (%p)\n"
 msgstr "Fallo al conectar a gnunetd.\n"
 
-#: src/util/connection.c:1013
+#: src/util/connection.c:863
+#, fuzzy, c-format
+msgid "Failed to connect to `%s' (%p)\n"
+msgstr "Fallo al conectar a gnunetd.\n"
+
+#: src/util/connection.c:1018
 #, fuzzy, c-format
 msgid "Attempt to connect to `%s' failed\n"
 msgstr "Fallo al conectar a gnunetd.\n"
 
-#: src/util/connection.c:1529
+#: src/util/connection.c:1534
 #, c-format
 msgid ""
 "Could not satisfy pending transmission request, socket closed or connect "
 "failed (%p).\n"
 msgstr ""
 
-#: src/util/connection.c:1565
+#: src/util/connection.c:1570
 #, fuzzy, c-format
 msgid "Failed to send to `%s': %s\n"
 msgstr "Fichero almacenado en '%s'.\n"
@@ -1464,7 +1473,7 @@ msgid ""
 "GNUNET_SERVER_receive_done after %llums\n"
 msgstr ""
 
-#: src/util/network.c:1193
+#: src/util/network.c:1194
 #, c-format
 msgid ""
 "Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"
@@ -1755,7 +1764,7 @@ msgid ""
 "Arguments mandatory for long options are also mandatory for short options.\n"
 msgstr ""
 
-#: src/util/getopt_helpers.c:254 src/util/getopt_helpers.c:282
+#: src/util/getopt_helpers.c:253 src/util/getopt_helpers.c:281
 #, c-format
 msgid "You must pass a number to the `%s' option.\n"
 msgstr "Tienes que introducir un número en la opción '%s'.\n"
@@ -2156,7 +2165,7 @@ msgstr "descarga un directorio de GNUnet recursivamente"
 
 #: src/fs/gnunet-download.c:263 src/fs/gnunet-unindex.c:169
 #: src/fs/gnunet-search.c:297 src/fs/gnunet-publish.c:585
-#: src/mesh/test_mesh_small.c:674 src/dht/gnunet-dht-get-peer.c:190
+#: src/mesh/test_mesh_small.c:676 src/dht/gnunet-dht-get-peer.c:190
 #: src/dht/gnunet-dht-put.c:176 src/dht/gnunet-dht-get.c:204
 #: src/nse/gnunet-nse-profiler.c:655
 msgid "be verbose (print progress information)"
@@ -2626,79 +2635,79 @@ msgstr ""
 msgid "MAGIC mismatch.  This is not a GNUnet directory.\n"
 msgstr "Error en el formato del fichero (¿no es un directorio de GNUnet?)\n"
 
-#: src/fs/gnunet-service-fs_cp.c:693
+#: src/fs/gnunet-service-fs_cp.c:694
 #, c-format
 msgid "Migration of content to peer `%s' blocked for %llu ms\n"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:728
+#: src/fs/gnunet-service-fs_cp.c:729
 msgid "# replies transmitted to other peers"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:734
+#: src/fs/gnunet-service-fs_cp.c:735
 msgid "# replies dropped"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:763 src/fs/gnunet-service-fs_cp.c:879
-#: src/fs/gnunet-service-fs_cp.c:1289 src/fs/gnunet-service-fs_cp.c:1326
+#: src/fs/gnunet-service-fs_cp.c:764 src/fs/gnunet-service-fs_cp.c:880
+#: src/fs/gnunet-service-fs_cp.c:1290 src/fs/gnunet-service-fs_cp.c:1327
 msgid "# P2P searches active"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:836
+#: src/fs/gnunet-service-fs_cp.c:837
 msgid "# artificial delays introduced (ms)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:899
+#: src/fs/gnunet-service-fs_cp.c:900
 msgid "# replies received for other peers"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:913
+#: src/fs/gnunet-service-fs_cp.c:914
 msgid "# replies dropped due to insufficient cover traffic"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:951
+#: src/fs/gnunet-service-fs_cp.c:952
 msgid "# P2P searches destroyed due to ultimate reply"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1018
+#: src/fs/gnunet-service-fs_cp.c:1019
 #, fuzzy
 msgid "# requests done for free (low load)"
 msgstr "# Anuncios de los pares recibidos"
 
-#: src/fs/gnunet-service-fs_cp.c:1042
+#: src/fs/gnunet-service-fs_cp.c:1043
 msgid "# request dropped, priority insufficient"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1052
+#: src/fs/gnunet-service-fs_cp.c:1053
 #, fuzzy
 msgid "# requests done for a price (normal load)"
 msgstr "# Anuncios de los pares recibidos"
 
-#: src/fs/gnunet-service-fs_cp.c:1131
+#: src/fs/gnunet-service-fs_cp.c:1132
 msgid "# GET requests received (from other peers)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1165
+#: src/fs/gnunet-service-fs_cp.c:1166
 #, fuzzy
 msgid "# requests dropped due to initiator not being connected"
 msgstr "# Anuncios de los pares recibidos"
 
-#: src/fs/gnunet-service-fs_cp.c:1189
+#: src/fs/gnunet-service-fs_cp.c:1190
 #, fuzzy
 msgid "# requests dropped due to missing reverse route"
 msgstr "# Anuncios de los pares recibidos"
 
-#: src/fs/gnunet-service-fs_cp.c:1255
+#: src/fs/gnunet-service-fs_cp.c:1256
 #, fuzzy
 msgid "# requests dropped due TTL underflow"
 msgstr "# Anuncios de los pares recibidos"
 
-#: src/fs/gnunet-service-fs_cp.c:1283
+#: src/fs/gnunet-service-fs_cp.c:1284
 #, fuzzy
 msgid "# requests dropped due to higher-TTL request"
 msgstr "# Anuncios de los pares recibidos"
 
-#: src/fs/gnunet-service-fs_cp.c:1324
+#: src/fs/gnunet-service-fs_cp.c:1325
 #, fuzzy
 msgid "# P2P query messages received and processed"
 msgstr "# mensajes PONG encriptados recibidos"
@@ -3024,20 +3033,20 @@ msgstr "Probando transporte(s) %s\n"
 msgid "Failed to load block plugin `%s'\n"
 msgstr "Imposible inicializar la aplicación '%s'\n"
 
-#: src/mesh/test_mesh_small.c:687
+#: src/mesh/test_mesh_small.c:689
 msgid "Test mesh in a small network."
 msgstr ""
 
-#: src/arm/mockup-service.c:41 src/arm/gnunet-service-arm.c:859
+#: src/arm/mockup-service.c:41 src/arm/gnunet-service-arm.c:865
 #, fuzzy
 msgid "Failed to transmit shutdown ACK.\n"
 msgstr "Falló al comenzar la recolección.\n"
 
-#: src/arm/mockup-service.c:46 src/arm/gnunet-service-arm.c:864
+#: src/arm/mockup-service.c:46 src/arm/gnunet-service-arm.c:870
 msgid "Transmitting shutdown ACK.\n"
 msgstr ""
 
-#: src/arm/mockup-service.c:69 src/arm/gnunet-service-arm.c:892
+#: src/arm/mockup-service.c:69 src/arm/gnunet-service-arm.c:898
 msgid "Initiating shutdown as requested by client.\n"
 msgstr ""
 
@@ -3090,34 +3099,34 @@ msgstr "Fichero de configuración '%s' creado.\n"
 msgid "Preparing to stop `%s'\n"
 msgstr "Iniciada colección '%s'.\n"
 
-#: src/arm/gnunet-service-arm.c:665
+#: src/arm/gnunet-service-arm.c:666
 #, fuzzy
 msgid "Stopping all services\n"
 msgstr "Deteniendo cron\n"
 
-#: src/arm/gnunet-service-arm.c:717
+#: src/arm/gnunet-service-arm.c:723
 #, fuzzy, c-format
 msgid "Restarting service `%s'.\n"
 msgstr "Iniciada colección '%s'.\n"
 
-#: src/arm/gnunet-service-arm.c:790
+#: src/arm/gnunet-service-arm.c:796
 msgid "exit"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:795
+#: src/arm/gnunet-service-arm.c:801
 msgid "signal"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:800
+#: src/arm/gnunet-service-arm.c:806
 msgid "unknown"
 msgstr "desconocido"
 
-#: src/arm/gnunet-service-arm.c:807
+#: src/arm/gnunet-service-arm.c:813
 #, fuzzy, c-format
 msgid "Service `%s' stopped\n"
 msgstr "Servicio eliminado.\n"
 
-#: src/arm/gnunet-service-arm.c:821
+#: src/arm/gnunet-service-arm.c:827
 #, c-format
 msgid "Service `%s' terminated with status %s/%d, will try to restart it!\n"
 msgstr ""
@@ -3424,7 +3433,7 @@ msgstr "Imposible inicializar SQLite.\n"
 #: src/transport/test_plugin_transport_udp.c:185
 #: src/transport/test_plugin_transport_https.c:1271
 #: src/transport/test_plugin_transport.c:202
-#: src/transport/gnunet-service-transport.c:435
+#: src/transport/gnunet-service-transport.c:439
 #: src/transport/test_plugin_transport_http.c:1232
 msgid "Transport service is lacking key configuration settings.  Exiting.\n"
 msgstr ""
@@ -3432,7 +3441,7 @@ msgstr ""
 #: src/transport/test_plugin_transport_udp.c:195
 #: src/transport/test_plugin_transport_https.c:1335
 #: src/transport/test_plugin_transport.c:212
-#: src/transport/gnunet-service-transport.c:444
+#: src/transport/gnunet-service-transport.c:448
 #: src/transport/test_plugin_transport_http.c:1255
 msgid "Transport service could not access hostkey.  Exiting.\n"
 msgstr ""
@@ -3447,19 +3456,19 @@ msgstr "Probando transporte(s) %s\n"
 msgid "Failed to load transport plugin for udp\n"
 msgstr "Imposible inicializar la aplicación '%s'\n"
 
-#: src/transport/plugin_transport_wlan.c:1422
-#: src/transport/plugin_transport_wlan.c:1617
-#: src/transport/plugin_transport_wlan.c:1736
+#: src/transport/plugin_transport_wlan.c:1436
+#: src/transport/plugin_transport_wlan.c:1631
+#: src/transport/plugin_transport_wlan.c:1750
 #, c-format
 msgid "Error writing to wlan healper. errno == %d, ERROR: %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1854
+#: src/transport/plugin_transport_wlan.c:1868
 #, c-format
 msgid "Wlan Address len %d is wrong\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2710
+#: src/transport/plugin_transport_wlan.c:2728
 #, c-format
 msgid "Finished reading from wlan-helper stdout with code: %d\n"
 msgstr ""
@@ -3498,34 +3507,34 @@ msgstr "# mensajes PONG encriptados recibidos"
 msgid "# SET QUOTA messages received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/transport/gnunet-service-transport_neighbours.c:776
+#: src/transport/gnunet-service-transport_neighbours.c:811
 #, fuzzy
 msgid "# messages not sent (no such peer or not connected)"
 msgstr "# mensajes defragmentados"
 
-#: src/transport/gnunet-service-transport_neighbours.c:796
+#: src/transport/gnunet-service-transport_neighbours.c:831
 #, fuzzy
 msgid "# bytes in message queue for other peers"
 msgstr "# bytes de mensajes salientes omitidos"
 
-#: src/transport/gnunet-service-transport_neighbours.c:864
+#: src/transport/gnunet-service-transport_neighbours.c:899
 msgid "# bandwidth quota violations by other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:882
+#: src/transport/gnunet-service-transport_neighbours.c:917
 msgid "# ms throttling suggested"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:907
+#: src/transport/gnunet-service-transport_neighbours.c:942
 #, fuzzy
 msgid "# KEEPALIVE messages discarded (not connected)"
 msgstr "# mensajes defragmentados"
 
-#: src/transport/gnunet-service-transport_neighbours.c:937
+#: src/transport/gnunet-service-transport_neighbours.c:972
 msgid "# SET QUOTA messages ignored (no such peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:949
+#: src/transport/gnunet-service-transport_neighbours.c:984
 msgid "# disconnects due to quota of 0"
 msgstr ""
 
@@ -3648,7 +3657,7 @@ msgid "Phase 3: sending messages\n"
 msgstr "Falló al entregar el mensaje '%s'.\n"
 
 #: src/transport/test_plugin_transport_https.c:1284
-#: src/transport/plugin_transport_http.c:3321
+#: src/transport/plugin_transport_http.c:3323
 #: src/transport/test_plugin_transport_http.c:1245
 #, c-format
 msgid "Require valid port number for transport plugin `%s' in configuration!\n"
@@ -3683,6 +3692,11 @@ msgid ""
 "delete\n"
 "\n"
 msgstr ""
+
+#: src/transport/test_transport_api.c:120
+#, fuzzy
+msgid "Fail! Could not connect peers\n"
+msgstr "'%s': Imposible conectar.\n"
 
 #: src/transport/gnunet-transport-list-connections.c:91
 #: src/peerinfo-tool/gnunet-peerinfo.c:200
@@ -3749,34 +3763,34 @@ msgstr "'%s' falló en %s: %d con error: '%s'.\n"
 msgid "# HTTP outbound sessions for peers active"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:3349
-#: src/transport/plugin_transport_http.c:3378
+#: src/transport/plugin_transport_http.c:3351
+#: src/transport/plugin_transport_http.c:3380
 #, fuzzy
 msgid "Misconfigured address to bind to in configuration!\n"
 msgstr "¡Ninguna aplicación definida en la configuración!\n"
 
-#: src/transport/plugin_transport_http.c:3404
+#: src/transport/plugin_transport_http.c:3406
 #, c-format
 msgid "Required configuration options missing in section `%s'\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:3442
+#: src/transport/plugin_transport_http.c:3444
 msgid ""
 "Could not create a new TLS certificate, program `gnunet-transport-"
 "certificate-creation' could not be started!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:3458
+#: src/transport/plugin_transport_http.c:3460
 msgid "No usable TLS certificate found and creating one failed!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:3610
+#: src/transport/plugin_transport_http.c:3612
 #, c-format
 msgid ""
 "HTTP Server with %s could not be started on port %u! %s plugin failed!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:3626
+#: src/transport/plugin_transport_http.c:3628
 #, c-format
 msgid "Could not initialize curl multi handle, failed to start %s plugin!\n"
 msgstr ""
@@ -3881,58 +3895,58 @@ msgstr ""
 msgid "TCP transport advertises itself as being on port %llu\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:520
+#: src/transport/gnunet-service-transport_validation.c:518
 msgid "# address records discarded"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:606
+#: src/transport/gnunet-service-transport_validation.c:604
 #: src/core/gnunet-service-core.c:4187
 #, fuzzy
 msgid "# PING messages received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/transport/gnunet-service-transport_validation.c:628
+#: src/transport/gnunet-service-transport_validation.c:626
 #, c-format
 msgid ""
 "Not confirming PING with address `%s' since I cannot confirm having this "
 "address.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:685
+#: src/transport/gnunet-service-transport_validation.c:683
 msgid "# PONGs unicast via reliable transport"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:694
+#: src/transport/gnunet-service-transport_validation.c:692
 msgid "# PONGs multicast to all available addresses"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:758
+#: src/transport/gnunet-service-transport_validation.c:756
 #, c-format
 msgid ""
 "Not transmitting `%s' with `%s', message too big (%u bytes!). This should "
 "not happen.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:792
+#: src/transport/gnunet-service-transport_validation.c:790
 #, fuzzy
 msgid "# PING without HELLO messages sent"
 msgstr "# mensajes de texto mandados por PING"
 
-#: src/transport/gnunet-service-transport_validation.c:864
+#: src/transport/gnunet-service-transport_validation.c:862
 msgid "# address revalidations started"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:923
+#: src/transport/gnunet-service-transport_validation.c:921
 #: src/core/gnunet-service-core.c:4210
 #, fuzzy
 msgid "# PONG messages received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/transport/gnunet-service-transport_validation.c:945
+#: src/transport/gnunet-service-transport_validation.c:943
 msgid "# PONGs dropped, no matching pending validation"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:961
+#: src/transport/gnunet-service-transport_validation.c:959
 msgid "# PONGs dropped, signature expired"
 msgstr ""
 
@@ -3997,17 +4011,17 @@ msgid ""
 "\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:1279
+#: src/transport/plugin_transport_udp.c:1280
 #, c-format
 msgid "Given `%s' option is out of range: %llu > %u\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:1329
+#: src/transport/plugin_transport_udp.c:1330
 #, fuzzy, c-format
 msgid "Invalid IPv6 address: `%s'\n"
 msgstr "Argumento no válido: '%s'\n"
 
-#: src/transport/plugin_transport_udp.c:1455
+#: src/transport/plugin_transport_udp.c:1456
 #, fuzzy
 msgid "Failed to open UDP sockets\n"
 msgstr "Fichero almacenado en '%s'.\n"
@@ -4380,23 +4394,23 @@ msgstr "¡Ninguna aplicación definida en la configuración!\n"
 msgid "Unable to initialize SQLite: %s.\n"
 msgstr "Imposible inicializar SQLite.\n"
 
-#: src/datastore/plugin_datastore_sqlite.c:662
+#: src/datastore/plugin_datastore_sqlite.c:677
 #, fuzzy
 msgid "Invalid data in database.  Trying to fix (by deletion).\n"
 msgstr "Datos no válidos en %s.  Intentando fijar (por borrado).\n"
 
-#: src/datastore/plugin_datastore_sqlite.c:1115
+#: src/datastore/plugin_datastore_sqlite.c:1130
 msgid "sqlite version to old to determine size, assuming zero\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_sqlite.c:1134
+#: src/datastore/plugin_datastore_sqlite.c:1149
 #, c-format
 msgid ""
 "Using sqlite page utilization to estimate payload (%llu pages of size %llu "
 "bytes)\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_sqlite.c:1173
+#: src/datastore/plugin_datastore_sqlite.c:1188
 #, fuzzy
 msgid "Sqlite database running\n"
 msgstr "base de datos sqlite"
@@ -4449,8 +4463,8 @@ msgstr ""
 
 #: src/datastore/gnunet-service-datastore.c:681
 #: src/datastore/gnunet-service-datastore.c:735
-#: src/datastore/gnunet-service-datastore.c:953
-#: src/datastore/gnunet-service-datastore.c:1438
+#: src/datastore/gnunet-service-datastore.c:956
+#: src/datastore/gnunet-service-datastore.c:1441
 msgid "# reserved"
 msgstr ""
 
@@ -4458,80 +4472,80 @@ msgstr ""
 msgid "Could not find matching reservation"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:835
+#: src/datastore/gnunet-service-datastore.c:838
 #, c-format
 msgid "Need %llu bytes more space (%llu allowed, using %llu)\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1001
+#: src/datastore/gnunet-service-datastore.c:1004
 #, fuzzy
 msgid "# GET requests received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/datastore/gnunet-service-datastore.c:1015
+#: src/datastore/gnunet-service-datastore.c:1018
 msgid "# requests filtered by bloomfilter"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1043
+#: src/datastore/gnunet-service-datastore.c:1046
 #, fuzzy
 msgid "# UPDATE requests received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/datastore/gnunet-service-datastore.c:1077
+#: src/datastore/gnunet-service-datastore.c:1080
 #, fuzzy
 msgid "# GET REPLICATION requests received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/datastore/gnunet-service-datastore.c:1112
+#: src/datastore/gnunet-service-datastore.c:1115
 #, fuzzy
 msgid "# GET ZERO ANONYMITY requests received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/datastore/gnunet-service-datastore.c:1139
+#: src/datastore/gnunet-service-datastore.c:1142
 #, fuzzy
 msgid "Content not found"
 msgstr "¡Comando '%s' no encontrado!\n"
 
-#: src/datastore/gnunet-service-datastore.c:1149
+#: src/datastore/gnunet-service-datastore.c:1152
 msgid "# bytes removed (explicit request)"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1183
+#: src/datastore/gnunet-service-datastore.c:1186
 #, fuzzy
 msgid "# REMOVE requests received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/datastore/gnunet-service-datastore.c:1227
+#: src/datastore/gnunet-service-datastore.c:1230
 #, c-format
 msgid "Datastore payload inaccurate (%lld < %lld).  Trying to fix.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1300
+#: src/datastore/gnunet-service-datastore.c:1303
 #: src/datastore/test_plugin_datastore.c:322
 #: src/datastore/perf_plugin_datastore.c:420
 #, c-format
 msgid "Loading `%s' datastore plugin\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1309
+#: src/datastore/gnunet-service-datastore.c:1312
 #, fuzzy, c-format
 msgid "Failed to load datastore plugin for `%s'\n"
 msgstr "Imposible inicializar la aplicación '%s'\n"
 
-#: src/datastore/gnunet-service-datastore.c:1488
+#: src/datastore/gnunet-service-datastore.c:1491
 msgid "# quota"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1490
+#: src/datastore/gnunet-service-datastore.c:1493
 msgid "# cache size"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1500
+#: src/datastore/gnunet-service-datastore.c:1503
 #, c-format
 msgid "Could not use specified filename `%s' for bloomfilter.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1513
+#: src/datastore/gnunet-service-datastore.c:1516
 #, fuzzy
 msgid "Failed to initialize bloomfilter.\n"
 msgstr "Imposible inicializar SQLite.\n"
@@ -4686,22 +4700,22 @@ msgstr "Recibido mensaje corrupto del par '%s' en %s:%d.\n"
 msgid "Failed to connect to the dv service!\n"
 msgstr "Fallo al conectar a gnunetd.\n"
 
-#: src/nse/gnunet-service-nse.c:864
+#: src/nse/gnunet-service-nse.c:866
 #, c-format
 msgid "Proof of work invalid: %llu!\n"
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1286 src/nse/gnunet-service-nse.c:1305
-#: src/nse/gnunet-service-nse.c:1326
+#: src/nse/gnunet-service-nse.c:1288 src/nse/gnunet-service-nse.c:1307
+#: src/nse/gnunet-service-nse.c:1328
 msgid "NSE service is lacking key configuration settings.  Exiting.\n"
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1293
+#: src/nse/gnunet-service-nse.c:1295
 #, fuzzy
 msgid "Invalid work requirement for NSE service. Exiting.\n"
 msgstr "Argumentos no válidos. Saliendo.\n"
 
-#: src/nse/gnunet-service-nse.c:1314
+#: src/nse/gnunet-service-nse.c:1316
 #, fuzzy
 msgid "NSE service could not access hostkey.  Exiting.\n"
 msgstr "Imposible acceder a la información del espacio.\n"
@@ -6352,9 +6366,6 @@ msgstr "usa el fichero de configuración FILENAME"
 
 #~ msgid "`%s': Could not create hello.\n"
 #~ msgstr "'%s': Imposible crear saludo.\n"
-
-#~ msgid "`%s': Could not connect.\n"
-#~ msgstr "'%s': Imposible conectar.\n"
 
 #~ msgid "`%s': Could not send.\n"
 #~ msgstr "'%s': Imposible mandar.\n"

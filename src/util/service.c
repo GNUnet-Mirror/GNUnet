@@ -1542,7 +1542,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
   err = 1;
   do_daemonize = 0;
   logfile = NULL;
-  loglev = GNUNET_strdup ("WARNING");
+  loglev = NULL;
   cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
   memset (&sctx, 0, sizeof (sctx));
   sctx.options = opt;
@@ -1611,7 +1611,7 @@ shutdown:
   GNUNET_free_non_null (sctx.addrs);
   GNUNET_free_non_null (sctx.addrlens);
   GNUNET_free_non_null (logfile);
-  GNUNET_free (loglev);
+  GNUNET_free_non_null (loglev);
   GNUNET_free (cfg_fn);
   GNUNET_free_non_null (sctx.v4_denied);
   GNUNET_free_non_null (sctx.v6_denied);

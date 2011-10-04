@@ -250,19 +250,23 @@ struct StatValues
 {
   const char *subsystem;
   const char *name;
+  unsigned long long total;
 };
 
 /**
  * Statistics we print out.
  */
 static struct StatValues stats[] = {
-  {"core", "# bytes decrypted"},
-  {"core", "# bytes encrypted"},
-  {"core", "# discarded CORE_SEND requests"},
-  {"core", "# discarded lower priority CORE_SEND requests"},
-  {"transport", "# bytes received via TCP"},
-  {"transport", "# bytes transmitted via TCP"},
-  {"dht", "# FIXME"},
+  {"core", "# bytes decrypted", 0},
+  {"core", "# bytes encrypted", 0},
+  {"transport", "# bytes received via TCP", 0},
+  {"transport", "# bytes transmitted via TCP", 0},
+  {"dht", "# PUT messages queued for transmission"},
+  {"dht", "# P2P PUT requests received"},
+  {"dht", "# GET messages queued for transmission"},
+  {"dht", "# P2P GET requests received"},
+  {"dht", "# RESULT messages queued for transmission"},
+  {"dht", "# P2P RESULTS received"},
   {NULL, NULL}
 };
 
@@ -283,6 +287,7 @@ print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
 {
   struct StatMaster *sm = cls;
 
+  stats[sm->value].total += value;
   fprintf (stderr, "Peer %2u: %12s/%50s = %12llu\n", sm->daemon, subsystem,
            name, (unsigned long long) value);
   return GNUNET_OK;
@@ -317,7 +322,9 @@ static void
 stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct StatMaster *sm = cls;
+  unsigned int i;
 
+  die_task = GNUNET_SCHEDULER_NO_TASK;
   if (stats[sm->value].name != NULL)
   {
     GNUNET_STATISTICS_get (sm->stat,
@@ -336,14 +343,21 @@ stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (sm->daemon == num_peers)
   {
     GNUNET_free (sm);
-    GNUNET_SCHEDULER_add_now (&do_stop, NULL);
+    i = 0;
+    while (stats[i].name != NULL)
+      {
+	fprintf (stderr, "Total  : %12s/%50s = %12llu\n", stats[i].subsystem,
+		 stats[i].name, (unsigned long long) stats[i].total);
+	i++;
+      }
+    die_task = GNUNET_SCHEDULER_add_now (&do_stop, NULL);
     return;
   }
   sm->stat =
       GNUNET_STATISTICS_create ("<driver>",
                                 GNUNET_TESTING_daemon_get (pg, 
 							   sm->daemon)->cfg);
-  GNUNET_SCHEDULER_add_now (&stat_run, sm);
+  die_task = GNUNET_SCHEDULER_add_now (&stat_run, sm);
 }
 
 
@@ -384,13 +398,12 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				 test_get);
     GNUNET_free (test_get);
   }
-  ok = 0; 
   sm = GNUNET_malloc (sizeof (struct StatMaster));
   sm->stat =
     GNUNET_STATISTICS_create ("<driver>",
 			      GNUNET_TESTING_daemon_get (pg, 
 							 sm->daemon)->cfg);
-  GNUNET_SCHEDULER_add_now (&stat_run, sm);
+  die_task = GNUNET_SCHEDULER_add_now (&stat_run, sm);
 }
 
 
@@ -474,21 +487,25 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			       all_gets_tail,
 			       test_get);
   GNUNET_free (test_get);
-
-  if ((gets_failed > 0) && (outstanding_gets == 0))       /* Had some failures */
+  if ((gets_failed > 10) && (outstanding_gets == 0))       
+  {
+    /* Had more than 10% failures */
+    fprintf (stderr,
+	     "%llu gets succeeded, %llu gets failed!\n",
+	     gets_completed, gets_failed);
+    GNUNET_SCHEDULER_cancel (die_task);
+    ok = 1; 
+    die_task = GNUNET_SCHEDULER_add_now (&finish_testing, "not all gets succeeded");
+    return;
+  }
+  if ( (gets_completed + gets_failed == num_peers * num_peers) && 
+       (outstanding_gets == 0) )  /* All gets successful */
   {
     fprintf (stderr,
 	     "%llu gets succeeded, %llu gets failed!\n",
 	     gets_completed, gets_failed);
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, "not all gets succeeded");
-    return;
-  }
-
-  if ( (gets_completed == num_peers * num_peers) && 
-       (outstanding_gets == 0) )  /* All gets successful */
-  {
-    GNUNET_SCHEDULER_cancel (die_task);
+    ok = 0; 
     die_task = GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
   }
 }

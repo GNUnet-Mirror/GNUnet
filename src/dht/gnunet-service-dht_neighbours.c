@@ -1274,7 +1274,7 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
     return;
   }
   GNUNET_STATISTICS_update (GDS_stats,
-			    gettext_noop ("# Peers selected as targets for PUT requests"), target_count,
+			    gettext_noop ("# PUT messages queued for transmission"), target_count,
 			    GNUNET_NO);
   for (i=0;i<target_count;i++)
   {
@@ -1384,7 +1384,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
     return;
   }
   GNUNET_STATISTICS_update (GDS_stats,
-			    gettext_noop ("# Peers selected as targets for GET requests"), target_count,
+			    gettext_noop ("# GET messages queued for transmission"), target_count,
 			    GNUNET_NO);
   /* forward request */
   for (i=0;i<target_count;i++)
@@ -1483,7 +1483,7 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
     return;
   }
   GNUNET_STATISTICS_update (GDS_stats,
-			    gettext_noop ("# REPLIES routed"), 1,
+			    gettext_noop ("# RESULT messages queued for transmission"), 1,
 			    GNUNET_NO);
   pending = GNUNET_malloc (sizeof (struct P2PPendingMessage) + msize); 
   pending->importance = 0; /* FIXME */

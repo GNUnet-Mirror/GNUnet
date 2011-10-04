@@ -193,6 +193,16 @@ then
   AC_MSG_ERROR([GNUnet needs libgcrypt])
 fi
 
+extra_logging=GNUNET_NO
+AC_ARG_ENABLE([logging],
+   AS_HELP_STRING([--enable-logging@<:@=value@:>@],[Enable logging calls. Possible values: yes,no,verbose,veryverbose ('yes' is the default)]),
+   [AS_IF([test "x$enableval" = "xyes"], [],
+          [test "x$enableval" = "xno"], [AC_DEFINE([GNUNET_CULL_LOGGING],[],[Define to cull all logging calls])],
+          [test "x$enableval" = "xverbose"], [extra_logging=GNUNET_YES]
+          [test "x$enableval" = "xveryverbose"], [extra_logging=\(GNUNET_YES+1\)])
+   ], [])
+AC_DEFINE_UNQUOTED([GNUNET_EXTRA_LOGGING],[$extra_logging],[1 if extra logging is enabled, 2 for very verbose extra logging, 0 otherwise])
+
 if test $build = $target
 then
 AC_MSG_CHECKING([for working HMAC])

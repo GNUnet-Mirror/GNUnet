@@ -210,7 +210,7 @@ GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
   cnt += sizeof (defoptions) / sizeof (struct GNUNET_GETOPT_CommandLineOption);
   qsort (allopts, cnt, sizeof (struct GNUNET_GETOPT_CommandLineOption),
          &cmd_sorter);
-  loglev = GNUNET_strdup ("WARNING");
+  loglev = NULL;
   cc.cfgfile = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
   lpfx = GNUNET_strdup (binaryName);
   if (NULL != (spc = strstr (lpfx, " ")))
@@ -248,7 +248,7 @@ GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
   /* clean up */
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (cc.cfgfile);
-  GNUNET_free (loglev);
+  GNUNET_free_non_null (loglev);
   GNUNET_free_non_null (logfile);
   return GNUNET_OK;
 }

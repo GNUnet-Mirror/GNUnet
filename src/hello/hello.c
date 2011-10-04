@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
+#include "gnunet_util_lib.h"
 
 /**
  * A HELLO message is used to exchange information about
