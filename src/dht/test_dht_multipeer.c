@@ -267,6 +267,7 @@ static struct StatValues stats[] = {
   {"dht", "# P2P GET requests received"},
   {"dht", "# RESULT messages queued for transmission"},
   {"dht", "# P2P RESULTS received"},
+  {"dht", "# Queued messages discarded (peer disconnected)"},
   {NULL, NULL}
 };
 
