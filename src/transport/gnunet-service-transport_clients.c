@@ -181,29 +181,11 @@ static size_t
 transmit_to_client_callback (void *cls, size_t size, void *buf)
 {
   struct TransportClient *tc = cls;
-  struct TransportClient *tmp;
   struct ClientMessageQueueEntry *q;
   const struct GNUNET_MessageHeader *msg;
   char *cbuf;
   uint16_t msize;
   size_t tsize;
-
-  tmp = clients_head;
-  while (tmp != NULL)
-  {
-    if (tc == tmp)
-      break;
-    tmp = tmp->next;
-  }
-
-  if (tc == NULL)
-  {
-#if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmission to client failed, client already disconnected.\n");
-#endif
-    return 0;
-  }
 
   tc->th = NULL;
   if (buf == NULL)
@@ -485,18 +467,8 @@ handle_send_transmit_continuation (void *cls, int success)
   send_ok_msg.latency =
       GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_FOREVER_REL);
   send_ok_msg.peer = stcc->target;
-  tc = lookup_client(stcc->client);
-  if (tc != NULL)
-  {
-#if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "Sending `%s' to client %X\n",
-                "GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK",
-                tc);
-#endif
-    GST_clients_unicast (stcc->client, &send_ok_msg.header, GNUNET_NO);
-    GNUNET_SERVER_client_drop (stcc->client);
-  }
+  GST_clients_unicast (stcc->client, &send_ok_msg.header, GNUNET_NO);
+  GNUNET_SERVER_client_drop (stcc->client);
   GNUNET_free (stcc);
 }
 
