@@ -237,6 +237,117 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Master context for 'stat_run'.
+ */
+struct StatMaster
+{
+  struct GNUNET_STATISTICS_Handle *stat;
+  unsigned int daemon;
+  unsigned int value;
+};
+
+struct StatValues
+{
+  const char *subsystem;
+  const char *name;
+};
+
+/**
+ * Statistics we print out.
+ */
+static struct StatValues stats[] = {
+  {"core", "# bytes decrypted"},
+  {"core", "# bytes encrypted"},
+  {"core", "# discarded CORE_SEND requests"},
+  {"core", "# discarded lower priority CORE_SEND requests"},
+  {"transport", "# bytes received via TCP"},
+  {"transport", "# bytes transmitted via TCP"},
+  {"dht", "# FIXME"},
+  {NULL, NULL}
+};
+
+
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls closure
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
+            int is_persistent)
+{
+  struct StatMaster *sm = cls;
+
+  fprintf (stderr, "Peer %2u: %12s/%50s = %12llu\n", sm->daemon, subsystem,
+           name, (unsigned long long) value);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function that gathers stats from all daemons.
+ */
+static void
+stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Function called when GET operation on stats is done.
+ */
+static void
+get_done (void *cls, int success)
+{
+  struct StatMaster *sm = cls;
+
+  GNUNET_break (GNUNET_OK == success);
+  sm->value++;
+  GNUNET_SCHEDULER_add_now (&stat_run, sm);
+}
+
+
+/**
+ * Function that gathers stats from all daemons.
+ */
+static void
+stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct StatMaster *sm = cls;
+
+  if (stats[sm->value].name != NULL)
+  {
+    GNUNET_STATISTICS_get (sm->stat,
+#if 0
+                           NULL, NULL,
+#else
+                           stats[sm->value].subsystem, stats[sm->value].name,
+#endif
+                           GNUNET_TIME_UNIT_FOREVER_REL, &get_done, &print_stat,
+                           sm);
+    return;
+  }
+  GNUNET_STATISTICS_destroy (sm->stat, GNUNET_NO);
+  sm->value = 0;
+  sm->daemon++;
+  if (sm->daemon == num_peers)
+  {
+    GNUNET_free (sm);
+    GNUNET_SCHEDULER_add_now (&do_stop, NULL);
+    return;
+  }
+  sm->stat =
+      GNUNET_STATISTICS_create ("<driver>",
+                                GNUNET_TESTING_daemon_get (pg, 
+							   sm->daemon)->cfg);
+  GNUNET_SCHEDULER_add_now (&stat_run, sm);
+}
+
+
+/**
  * Function scheduled to be run on the successful completion of this
  * testcase.
  */
@@ -245,6 +356,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestPutContext *test_put;
   struct TestGetContext *test_get;
+  struct StatMaster *sm;
 
   die_task = GNUNET_SCHEDULER_NO_TASK;
   while (NULL != (test_put = all_puts_head))
@@ -273,7 +385,12 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (test_get);
   }
   ok = 0; 
-  GNUNET_SCHEDULER_add_now (&do_stop, NULL);
+  sm = GNUNET_malloc (sizeof (struct StatMaster));
+  sm->stat =
+    GNUNET_STATISTICS_create ("<driver>",
+			      GNUNET_TESTING_daemon_get (pg, 
+							 sm->daemon)->cfg);
+  GNUNET_SCHEDULER_add_now (&stat_run, sm);
 }
 
 

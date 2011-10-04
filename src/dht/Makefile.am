@@ -130,6 +130,7 @@ test_dht_multipeer_SOURCES = \
  test_dht_multipeer.c
 test_dht_multipeer_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la  
 test_dht_multipeer_DEPENDENCIES = \
