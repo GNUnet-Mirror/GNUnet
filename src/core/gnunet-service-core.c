@@ -3838,6 +3838,7 @@ send_p2p_message_to_client (struct Neighbour *sender, struct Client *client,
   struct GNUNET_TRANSPORT_ATS_Information *ats;
 
   GNUNET_assert (GNUNET_YES == sender->is_connected);
+  GNUNET_break (sender->status == PEER_STATE_KEY_CONFIRMED);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
@@ -3888,6 +3889,7 @@ deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
   int deliver_full;
   int dropped;
 
+  GNUNET_break (sender->status == PEER_STATE_KEY_CONFIRMED);
   type = ntohs (m->type);
 #if DEBUG_CORE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
