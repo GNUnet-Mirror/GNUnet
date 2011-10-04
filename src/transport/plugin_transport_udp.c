@@ -38,7 +38,7 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_UDP GNUNET_NO
+#define DEBUG_UDP GNUNET_EXTRA_LOGGING
 
 /**
  * MTU for fragmentation subsystem.  Should be conservative since

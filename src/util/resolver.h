@@ -27,7 +27,7 @@
 
 #include "gnunet_common.h"
 
-#define DEBUG_RESOLVER GNUNET_NO
+#define DEBUG_RESOLVER GNUNET_EXTRA_LOGGING
 
 /**
  * Request for the resolver.  Followed by either

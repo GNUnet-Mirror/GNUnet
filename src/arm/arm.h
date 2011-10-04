@@ -31,6 +31,6 @@
  * This option will turn on the DEBUG loglevel for
  * all processes controlled by this ARM!
  */
-#define DEBUG_ARM GNUNET_NO
+#define DEBUG_ARM GNUNET_EXTRA_LOGGING
 
 #endif

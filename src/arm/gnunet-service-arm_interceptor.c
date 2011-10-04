@@ -37,7 +37,7 @@
 #include "gnunet-service-arm.h"
 
 
-#define DEBUG_SERVICE_MANAGER GNUNET_NO
+#define DEBUG_SERVICE_MANAGER GNUNET_EXTRA_LOGGING
 
 #define BUFFER_SIZE (64 * 1024)
 

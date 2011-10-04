@@ -28,7 +28,7 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_disk_lib.h"
 
-#define DEBUG GNUNET_NO
+#define DEBUG GNUNET_EXTRA_LOGGING
 
 /* Test Configuration Diffs Options */
 enum

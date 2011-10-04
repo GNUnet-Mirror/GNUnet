@@ -34,7 +34,7 @@
 #include "gnunet_dht_service.h"
 #include "dht.h"
 
-#define DEBUG_DHT_API GNUNET_NO
+#define DEBUG_DHT_API GNUNET_EXTRA_LOGGING
 
 /**
  * Entry in our list of messages to be (re-)transmitted.

@@ -121,7 +121,7 @@
 #include "gnunet_util_lib.h"
 #include <mysql/mysql.h>
 
-#define DEBUG_MYSQL GNUNET_NO
+#define DEBUG_MYSQL GNUNET_EXTRA_LOGGING
 
 #define MAX_DATUM_SIZE 65536
 

@@ -31,7 +31,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_block_plugin.h"
 
-#define DEBUG_DHT GNUNET_NO
+#define DEBUG_DHT GNUNET_EXTRA_LOGGING
 
 
 /**

@@ -28,7 +28,7 @@
 #define NAT_H
 #include "gnunet_util_lib.h"
 
-#define DEBUG_NAT GNUNET_NO
+#define DEBUG_NAT GNUNET_EXTRA_LOGGING
 
 /**
  * Request to test NAT traversal.

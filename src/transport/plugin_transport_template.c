@@ -33,7 +33,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_plugin.h"
 
-#define DEBUG_TEMPLATE GNUNET_NO
+#define DEBUG_TEMPLATE GNUNET_EXTRA_LOGGING
 
 /**
  * After how long do we expire an address that we

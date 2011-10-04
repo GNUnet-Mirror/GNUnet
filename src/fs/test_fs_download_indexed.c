@@ -30,7 +30,7 @@
 #include "gnunet_fs_service.h"
 #include <gauger.h>
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define START_ARM GNUNET_YES
 

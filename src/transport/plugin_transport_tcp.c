@@ -39,9 +39,9 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_EXTRA_LOGGING
 
-#define DEBUG_TCP_NAT GNUNET_NO
+#define DEBUG_TCP_NAT GNUNET_EXTRA_LOGGING
 
 /**
  * Initial handshake message for a session.

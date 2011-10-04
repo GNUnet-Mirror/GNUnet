@@ -33,7 +33,7 @@
 #include "platform.h"
 #include "gnunet_ats_service.h"
 
-#define DEBUG_ATS GNUNET_NO
+#define DEBUG_ATS GNUNET_EXTRA_LOGGING
 
 // NOTE: this implementation is simply supposed
 // to implement a simplistic strategy in-process;

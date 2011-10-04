@@ -32,7 +32,7 @@
 #include "gnunet-daemon-hostlist.h"
 #include "gnunet_resolver_service.h"
 
-#define DEBUG_HOSTLIST_SERVER GNUNET_NO
+#define DEBUG_HOSTLIST_SERVER GNUNET_EXTRA_LOGGING
 
 /**
  * Handle to the HTTP server as provided by libmicrohttpd for IPv6.

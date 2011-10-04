@@ -30,7 +30,7 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define START_ARM GNUNET_YES
 

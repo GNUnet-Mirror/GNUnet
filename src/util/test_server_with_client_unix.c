@@ -30,7 +30,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define MY_TYPE 128
 

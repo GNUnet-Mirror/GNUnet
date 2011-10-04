@@ -47,7 +47,7 @@
 #include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 /**
  * File-size we use for testing.

@@ -28,7 +28,7 @@
 #include "gnunet_datacache_plugin.h"
 #include <postgresql/libpq-fe.h>
 
-#define DEBUG_POSTGRES GNUNET_NO
+#define DEBUG_POSTGRES GNUNET_EXTRA_LOGGING
 
 /**
  * Per-entry overhead estimate

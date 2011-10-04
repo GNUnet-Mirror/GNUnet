@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "gnunet_load_lib.h"
 
-#define DEBUG_LOAD GNUNET_NO
+#define DEBUG_LOAD GNUNET_EXTRA_LOGGING
 
 /**
  * Values we track for load calculations.

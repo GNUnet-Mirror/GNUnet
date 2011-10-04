@@ -29,7 +29,7 @@
 #include "block_fs.h"
 #include "gnunet_signatures.h"
 
-#define DEBUG_FS_BLOCK GNUNET_NO
+#define DEBUG_FS_BLOCK GNUNET_EXTRA_LOGGING
 
 /**
  * Number of bits we set per entry in the bloomfilter.

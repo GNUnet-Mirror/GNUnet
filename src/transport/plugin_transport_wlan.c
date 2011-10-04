@@ -101,9 +101,9 @@
  * DEBUG switch
  */
 #define DEBUG_wlan GNUNET_YES
-#define DEBUG_wlan_retransmission GNUNET_NO
-#define DEBUG_wlan_ip_udp_packets_on_air GNUNET_NO
-#define DEBUG_wlan_msg_dump GNUNET_NO
+#define DEBUG_wlan_retransmission GNUNET_EXTRA_LOGGING
+#define DEBUG_wlan_ip_udp_packets_on_air GNUNET_EXTRA_LOGGING
+#define DEBUG_wlan_msg_dump GNUNET_EXTRA_LOGGING
 
 
 #define IEEE80211_ADDR_LEN      6       /* size of 802.11 address */

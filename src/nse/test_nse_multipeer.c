@@ -29,7 +29,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_nse_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define NUM_PEERS 4
 

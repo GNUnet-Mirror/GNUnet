@@ -30,7 +30,7 @@
 #include "gnunet_protocols.h"
 #include "fs.h"
 
-#define DEBUG_SEARCH GNUNET_NO
+#define DEBUG_SEARCH GNUNET_EXTRA_LOGGING
 
 /**
  * Fill in all of the generic fields for a search event and

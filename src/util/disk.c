@@ -34,9 +34,9 @@
 #include "gnunet_crypto_lib.h"
 #include "disk.h"
 
-#define DEBUG_NPIPE GNUNET_NO
+#define DEBUG_NPIPE GNUNET_EXTRA_LOGGING
 
-#define DEBUG_PIPE GNUNET_NO
+#define DEBUG_PIPE GNUNET_EXTRA_LOGGING
 
 /**
  * Block size for IO for copying files.

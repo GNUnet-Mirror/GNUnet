@@ -32,7 +32,7 @@
 #include "gnunet_signatures.h"
 #include "chat.h"
 
-#define DEBUG_CHAT GNUNET_NO
+#define DEBUG_CHAT GNUNET_EXTRA_LOGGING
 #define NICK_IDENTITY_PREFIX ".chat_identity_"
 
 

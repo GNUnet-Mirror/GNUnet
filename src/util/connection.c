@@ -39,7 +39,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_server_lib.h"
 
-#define DEBUG_CONNECTION GNUNET_NO
+#define DEBUG_CONNECTION GNUNET_EXTRA_LOGGING
 
 /**
  * Possible functions to call after connect failed or succeeded.

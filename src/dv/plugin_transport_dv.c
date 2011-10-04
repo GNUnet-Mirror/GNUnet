@@ -37,7 +37,7 @@
 #include "gnunet_transport_plugin.h"
 #include "dv.h"
 
-#define DEBUG_TEMPLATE GNUNET_NO
+#define DEBUG_TEMPLATE GNUNET_EXTRA_LOGGING
 
 /**
  * Encapsulation of all of the state of the plugin.

@@ -30,7 +30,7 @@
 #include "gnunet_fs_service.h"
 #include "fs.h"
 
-#define DEBUG_NAMESPACE GNUNET_NO
+#define DEBUG_NAMESPACE GNUNET_EXTRA_LOGGING
 
 /**
  * Return the name of the directory in which we store

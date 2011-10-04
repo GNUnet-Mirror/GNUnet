@@ -42,7 +42,7 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_UNIX GNUNET_NO
+#define DEBUG_UNIX GNUNET_EXTRA_LOGGING
 #define DETAILS GNUNET_NO
 
 #define MAX_PROBES 20

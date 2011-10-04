@@ -31,7 +31,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_UNINDEX GNUNET_NO
+#define DEBUG_UNINDEX GNUNET_EXTRA_LOGGING
 
 /**
  * Function called by the tree encoder to obtain

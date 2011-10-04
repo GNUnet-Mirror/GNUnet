@@ -27,7 +27,7 @@
 
 #include "gnunet_common.h"
 
-#define DEBUG_STATISTICS GNUNET_NO
+#define DEBUG_STATISTICS GNUNET_EXTRA_LOGGING
 
 /**
  * Statistics message. Contains how long the system is up

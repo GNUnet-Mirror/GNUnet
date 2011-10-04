@@ -30,7 +30,7 @@
 #include "gauger.h"
 #include "gnunet-service-transport_ats.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define NUM_PEERS 11
 #define MEASUREMENTS 5

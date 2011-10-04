@@ -38,7 +38,7 @@
 #include "gnunet_datastore_service.h"
 #include <gauger.h>
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 /**
  * How long until we give up on transmitting the message?

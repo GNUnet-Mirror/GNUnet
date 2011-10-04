@@ -34,7 +34,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_PUBLISH GNUNET_NO
+#define DEBUG_PUBLISH GNUNET_EXTRA_LOGGING
 
 
 /**

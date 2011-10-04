@@ -25,9 +25,9 @@
 #include "platform.h"
 #include "gnunet_block_lib.h"
 
-#define DEBUG GNUNET_NO
+#define DEBUG GNUNET_EXTRA_LOGGING
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 static int
 test_fs (struct GNUNET_BLOCK_Context *ctx)

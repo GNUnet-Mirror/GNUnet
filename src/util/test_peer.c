@@ -29,7 +29,7 @@
 
 #define NUMBER_OF_PEERS 10
 
-#define DEBUG GNUNET_NO
+#define DEBUG GNUNET_EXTRA_LOGGING
 
 /**
  * A list of Peer ID's to play with

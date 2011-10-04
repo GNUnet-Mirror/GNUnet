@@ -27,7 +27,7 @@
 #include "gnunet_bandwidth_lib.h"
 #include "gnunet_server_lib.h"
 
-#define DEBUG_BANDWIDTH GNUNET_NO
+#define DEBUG_BANDWIDTH GNUNET_EXTRA_LOGGING
 
 /**
  * Create a new bandwidth value.

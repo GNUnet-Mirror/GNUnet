@@ -28,7 +28,7 @@
 #include "gnunet_datacache_plugin.h"
 #include <sqlite3.h>
 
-#define DEBUG_DATACACHE_SQLITE GNUNET_NO
+#define DEBUG_DATACACHE_SQLITE GNUNET_EXTRA_LOGGING
 
 /**
  * How much overhead do we assume per entry in the

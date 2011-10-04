@@ -31,7 +31,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
 
-#define DEBUG_SERVER_MST GNUNET_NO
+#define DEBUG_SERVER_MST GNUNET_EXTRA_LOGGING
 
 #if HAVE_UNALIGNED_64_ACCESS
 #define ALIGN_FACTOR 4

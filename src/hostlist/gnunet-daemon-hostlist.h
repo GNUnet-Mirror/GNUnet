@@ -39,7 +39,7 @@
 /**
  * General hostlist daemon debugging.
  */
-#define DEBUG_HOSTLIST GNUNET_NO
+#define DEBUG_HOSTLIST GNUNET_EXTRA_LOGGING
 
 #define MAX_URL_LEN 1000
 #define MAX_BYTES_PER_HOSTLISTS 500000

@@ -31,7 +31,7 @@
 #include "gnunet-service-fs_push.h"
 
 
-#define DEBUG_FS_MIGRATION GNUNET_NO
+#define DEBUG_FS_MIGRATION GNUNET_EXTRA_LOGGING
 
 /**
  * How long must content remain valid for us to consider it for migration?

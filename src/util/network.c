@@ -29,9 +29,9 @@
 #include "disk.h"
 #include "gnunet_container_lib.h"
 
-#define DEBUG_NETWORK GNUNET_NO
+#define DEBUG_NETWORK GNUNET_EXTRA_LOGGING
 
-#define DEBUG_W32_CYCLES GNUNET_NO
+#define DEBUG_W32_CYCLES GNUNET_EXTRA_LOGGING
 
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1

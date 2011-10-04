@@ -34,7 +34,7 @@
 #include "gnunet_time_lib.h"
 
 
-#define DEBUG_SERVER_NC GNUNET_NO
+#define DEBUG_SERVER_NC GNUNET_EXTRA_LOGGING
 
 /**
  * Entry in list of messages pending to be transmitted.

@@ -33,7 +33,7 @@
 /**
  * Generate debug-level log messages?
  */
-#define DEBUG_NSE GNUNET_NO
+#define DEBUG_NSE GNUNET_EXTRA_LOGGING
 
 /**
  * Network size estimate sent from the service

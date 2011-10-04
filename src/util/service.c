@@ -36,7 +36,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_service_lib.h"
 
-#define DEBUG_SERVICE GNUNET_NO
+#define DEBUG_SERVICE GNUNET_EXTRA_LOGGING
 
 /* ******************* access control ******************** */
 

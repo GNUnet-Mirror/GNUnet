@@ -37,9 +37,9 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_hello_lib.h"
 
-#define DEBUG_TESTING GNUNET_NO
+#define DEBUG_TESTING GNUNET_EXTRA_LOGGING
 
-#define DEBUG_TESTING_RECONNECT GNUNET_NO
+#define DEBUG_TESTING_RECONNECT GNUNET_EXTRA_LOGGING
 
 /**
  * Hack to deal with initial HELLO's being often devoid of addresses.

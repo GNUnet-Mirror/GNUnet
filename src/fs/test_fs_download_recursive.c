@@ -29,7 +29,7 @@
 #include "gnunet_util.h"
 #include "gnunet_fsui_lib.h"
 
-#define DEBUG_VERBOSE GNUNET_NO
+#define DEBUG_VERBOSE GNUNET_EXTRA_LOGGING
 
 #define CHECK(a) if (!(a)) { ok = GNUNET_NO; GNUNET_GE_BREAK(ectx, 0); goto FAILURE; }
 

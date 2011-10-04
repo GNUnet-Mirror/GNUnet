@@ -29,7 +29,7 @@
 #include "block_dns.h"
 #include "gnunet_signatures.h"
 
-#define DEBUG_DHT GNUNET_NO
+#define DEBUG_DHT GNUNET_EXTRA_LOGGING
 
 /**
  * Function called to validate a reply or a request.  For

@@ -33,7 +33,7 @@
 #include "gnunet_signatures.h"
 #include "chat.h"
 
-#define DEBUG_CHAT_SERVICE GNUNET_NO
+#define DEBUG_CHAT_SERVICE GNUNET_EXTRA_LOGGING
 #define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 #define EXPECTED_NEIGHBOUR_COUNT 16
 #define QUEUE_SIZE 16

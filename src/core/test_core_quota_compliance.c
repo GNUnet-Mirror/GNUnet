@@ -33,8 +33,8 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_NO
-#define DEBUG_TRANSMISSION GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
+#define DEBUG_TRANSMISSION GNUNET_EXTRA_LOGGING
 
 #define SYMMETRIC 0
 #define ASYMMETRIC_SEND_LIMITED 1

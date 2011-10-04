@@ -33,7 +33,7 @@
 #include "gnunet_disk_lib.h"
 #include "gnunet_protocols.h"
 
-#define DEBUG_SERVER GNUNET_NO
+#define DEBUG_SERVER GNUNET_EXTRA_LOGGING
 
 /**
  * List of arrays of message handlers.

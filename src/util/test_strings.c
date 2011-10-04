@@ -25,7 +25,7 @@
 #include "gnunet_common.h"
 #include "gnunet_strings_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define WANT(a,b) if (0 != strcmp(a,b)) { fprintf(stderr, "Got `%s', wanted `%s'\n", b, a); GNUNET_free(b); GNUNET_break(0); return 1;} else { GNUNET_free (b); }
 #define WANTB(a,b,l) if (0 != memcmp(a,b,l)) { GNUNET_break(0); return 1;} else { }

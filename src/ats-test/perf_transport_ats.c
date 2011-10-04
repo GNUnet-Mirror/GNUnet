@@ -26,7 +26,7 @@
 #include "gauger.h"
 #include <glpk.h>
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define EXECS 5
 

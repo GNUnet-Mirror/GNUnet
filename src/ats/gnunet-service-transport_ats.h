@@ -41,8 +41,8 @@
  *  ATS defines
  */
 
-#define DEBUG_ATS GNUNET_NO
-#define VERBOSE_ATS GNUNET_NO
+#define DEBUG_ATS GNUNET_EXTRA_LOGGING
+#define VERBOSE_ATS GNUNET_EXTRA_LOGGING
 
 
 /* Minimum time between to calculations*/

@@ -29,7 +29,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_statistics_service.h"
 
-#define DEBUG_STATISTICS GNUNET_NO
+#define DEBUG_STATISTICS GNUNET_EXTRA_LOGGING
 
 #define START_SERVICE GNUNET_YES
 

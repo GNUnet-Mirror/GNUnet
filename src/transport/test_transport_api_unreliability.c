@@ -39,9 +39,9 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
-#define VERBOSE_ARM GNUNET_NO
+#define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
 #define START_ARM GNUNET_YES
 

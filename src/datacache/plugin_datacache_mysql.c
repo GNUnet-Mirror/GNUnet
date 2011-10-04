@@ -82,7 +82,7 @@
 #include "gnunet_datacache_plugin.h"
 #include <mysql/mysql.h>
 
-#define DEBUG_DATACACHE_MYSQL GNUNET_NO
+#define DEBUG_DATACACHE_MYSQL GNUNET_EXTRA_LOGGING
 
 /**
  * Estimate of the per-entry overhead (including indices).

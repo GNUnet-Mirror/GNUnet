@@ -48,7 +48,7 @@
 /**
  * Check each file descriptor before adding
  */
-#define DEBUG_FDS GNUNET_NO
+#define DEBUG_FDS GNUNET_EXTRA_LOGGING
 
 /**
  * Depth of the traces collected via EXECINFO.
@@ -56,7 +56,7 @@
 #define MAX_TRACE_DEPTH 50
 #endif
 
-#define DEBUG_TASKS GNUNET_NO
+#define DEBUG_TASKS GNUNET_EXTRA_LOGGING
 
 /**
  * Should we figure out which tasks are delayed for a while

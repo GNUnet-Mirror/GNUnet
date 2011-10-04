@@ -28,7 +28,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_protocols.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
 #define START_ARM GNUNET_YES
 #define LOG_BACKOFF GNUNET_NO
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)

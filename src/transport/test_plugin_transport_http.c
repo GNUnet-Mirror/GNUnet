@@ -42,8 +42,8 @@
 #include "transport.h"
 #include <curl/curl.h>
 
-#define VERBOSE GNUNET_NO
-#define DEBUG_CURL GNUNET_NO
+#define VERBOSE GNUNET_EXTRA_LOGGING
+#define DEBUG_CURL GNUNET_EXTRA_LOGGING
 #define HTTP_BUFFER_SIZE 2048
 
 #define PROTOCOL_PREFIX "http"

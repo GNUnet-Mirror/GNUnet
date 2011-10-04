@@ -28,7 +28,7 @@
 #include "platform.h"
 #include "gnunet_block_plugin.h"
 
-#define DEBUG_TEST GNUNET_NO
+#define DEBUG_TEST GNUNET_EXTRA_LOGGING
 
 
 /**

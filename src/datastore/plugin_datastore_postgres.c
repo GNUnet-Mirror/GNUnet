@@ -28,7 +28,7 @@
 #include "gnunet_datastore_plugin.h"
 #include <postgresql/libpq-fe.h>
 
-#define DEBUG_POSTGRES GNUNET_NO
+#define DEBUG_POSTGRES GNUNET_EXTRA_LOGGING
 
 /**
  * After how many ms "busy" should a DB operation fail for good?
