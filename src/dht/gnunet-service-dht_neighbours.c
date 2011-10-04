@@ -801,7 +801,8 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 					   pending->importance,
 					   GNUNET_TIME_absolute_get_remaining (pending->timeout),
 					   &peer->id, ntohs (pending->msg->size),
-					   &core_transmit_notify, peer);  
+					   &core_transmit_notify, peer);
+    GNUNET_break (NULL != peer->th);
     return 0;
   }
   off = 0;
@@ -818,14 +819,15 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     GNUNET_free (pending);
   }
   if (peer->head != NULL)
-    {
-      peer->th 
-	= GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_YES,
-					     pending->importance,
-					     GNUNET_TIME_absolute_get_remaining (pending->timeout),
-					     &peer->id, msize,
-					     &core_transmit_notify, peer);
-    }
+  {
+    peer->th 
+      = GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_YES,
+					   pending->importance,
+					   GNUNET_TIME_absolute_get_remaining (pending->timeout),
+					   &peer->id, msize,
+					   &core_transmit_notify, peer);
+    GNUNET_break (NULL != peer->th);
+  }
   return off;
 }
 
@@ -855,6 +857,7 @@ process_peer_queue (struct PeerInfo *peer)
 					 &peer->id,
 					 ntohs (pending->msg->size),
 					 &core_transmit_notify, peer);
+  GNUNET_break (NULL != peer->th);
 }
 
 
