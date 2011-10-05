@@ -38,7 +38,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
@@ -68,6 +68,10 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 struct PeerContext *p1;
 
 struct PeerContext *p2;
+
+struct PeerContext * sender;
+
+struct PeerContext * receiver;
 
 struct GNUNET_TRANSPORT_TransmitHandle *th;
 
@@ -189,6 +193,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   unsigned int s;
   char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const struct TestMessage *hdr;
+  struct PeerContext * p = cls;
 
   hdr = (const struct TestMessage *) message;
   s = get_size (n);
@@ -233,8 +238,10 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if VERBOSE
   if (ntohl (hdr->num) % 5000 == 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got message %u of size %u\n",
-                ntohl (hdr->num), ntohs (message->size));
+    char * ps = strdup(GNUNET_i2s(&p->id));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
+                p->no, ps, ntohl (hdr->num), ntohs (message->size), GNUNET_i2s(peer));
+    GNUNET_free (ps);
   }
 #endif
   n++;
@@ -294,8 +301,14 @@ notify_ready (void *cls, size_t size, void *buf)
 #if VERBOSE
     if (n % 5000 == 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending message %u of size %u\n", n,
-                  s);
+
+      char * receiver_s = strdup(GNUNET_i2s (&receiver->id));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Sending message of size %u from peer %u (`%4s') -> peer %u (`%s') !\n",
+                  n,
+                  sender->no,
+                  GNUNET_i2s (&sender->id), receiver->no, receiver_s);
+      GNUNET_free (receiver_s);
     }
 #endif
     n++;
@@ -333,8 +346,9 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 uint32_t ats_count)
 {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
-              GNUNET_i2s (peer), cls);
+  struct PeerContext *p = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') connected to us!\n",
+              p->no, GNUNET_i2s (peer));
 
   if (cls == p1)
   {
@@ -358,8 +372,9 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' disconnected (%p)!\n",
-              GNUNET_i2s (peer), cls);
+  struct PeerContext *p = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') disconnected!\n",
+              p->no, GNUNET_i2s (peer));
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
@@ -379,9 +394,9 @@ static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   char *p1_c = strdup (GNUNET_i2s (&p1->id));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n", p1_c,
-              GNUNET_i2s (&p2->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %u (%s) <-> %u (%s)\n",
+              p1->no, p1_c,
+              p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
   // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
@@ -394,12 +409,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p1, &notify_receive,
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p1,
+                                            &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             NULL);
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2, &notify_receive,
+  p1->no = 1;
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer (cfg_file_p2,
+                                            &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             NULL);
+  p2->no = 2;
 
   if ((p1 == NULL) || (p2 == NULL))
   {
@@ -410,6 +429,21 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   test_connected = GNUNET_NO;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u: `%s' using configuration file `%s'\n",
+       p1->no,
+       GNUNET_i2s (&p1->id), cfg_file_p1);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u: `%s' using configuration file `%s'\n",
+       p2->no,
+       GNUNET_i2s (&p2->id), cfg_file_p2);
+
+  sender = p2;
+  receiver = p1;
+
+  char *sender_c = strdup (GNUNET_i2s (&sender->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test triest to send from %u (%s) -> peer %u (%s)\n",
+              sender->no, sender_c,
+              receiver->no, GNUNET_i2s (&receiver->id));
 
   GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb, NULL);
 }
