@@ -237,7 +237,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if VERBOSE
   if (ntohl (hdr->num) % 5000 == 0)
   {
-    char * ps = strdup(GNUNET_i2s(&p->id));
+    char * ps = strdup(GNUNET_i2s(&n->id));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
                 p->no, ps, ntohl (hdr->num), ntohs (message->size), GNUNET_i2s(peer));
     GNUNET_free (ps);
