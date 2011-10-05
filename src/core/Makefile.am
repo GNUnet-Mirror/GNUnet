@@ -38,6 +38,16 @@ gnunet_service_core_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) -lz
 
+gnunet_service_core_new_SOURCES = \
+ gnunet-service-core-new.c 
+gnunet_service_core_new_LDADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) -lz
+
 
 gnunet_core_list_connections_SOURCES = \
  gnunet-core-list-connections.c         
