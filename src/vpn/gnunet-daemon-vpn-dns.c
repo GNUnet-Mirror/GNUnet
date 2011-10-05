@@ -46,6 +46,8 @@ unsigned char restart_hijack;
 struct answer_packet_list *answer_proc_head;
 struct answer_packet_list *answer_proc_tail;
 
+struct GNUNET_CLIENT_TransmitHandle *dns_transmit_handle;
+
 /**
  * Callback called by notify_transmit_ready; sends dns-queries or rehijack-messages
  * to the service-dns
@@ -55,6 +57,7 @@ size_t
 send_query (void *cls __attribute__ ((unused)), size_t size, void *buf)
 {
   size_t len;
+  dns_transmit_handle = NULL;
 
   /*
    * Send the rehijack-message
@@ -97,14 +100,14 @@ send_query (void *cls __attribute__ ((unused)), size_t size, void *buf)
    */
   if (head != NULL)
   {
-    GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
                                          ntohs (head->pkt.hdr.size),
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          GNUNET_YES, &send_query, NULL);
   }
   else if (restart_hijack == 1)
   {
-    GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
                                          sizeof (struct GNUNET_MessageHeader),
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          GNUNET_YES, &send_query, NULL);
@@ -140,14 +143,14 @@ connect_to_service_dns (void *cls
     return;
 
   /* If a packet is already in the list, schedule to send it */
-  if (head != NULL)
-    GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+  if (dns_transmit_handle == NULL && head != NULL)
+    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
                                          ntohs (head->pkt.hdr.size),
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          GNUNET_YES, &send_query, NULL);
-  else if (restart_hijack == 1)
+  else if (dns_transmit_handle == NULL && restart_hijack == 1)
   {
-    GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
                                          sizeof (struct GNUNET_MessageHeader),
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          GNUNET_YES, &send_query, NULL);
@@ -166,6 +169,9 @@ dns_answer_handler (void *cls
   /* the service disconnected, reconnect after short wait */
   if (msg == NULL)
   {
+    if (dns_transmit_handle != NULL)
+      GNUNET_CLIENT_notify_transmit_ready_cancel(dns_transmit_handle);
+    dns_transmit_handle = NULL;
     GNUNET_CLIENT_disconnect (dns_connection, GNUNET_NO);
     dns_connection = NULL;
     conn_task =

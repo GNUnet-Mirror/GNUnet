@@ -45,6 +45,8 @@
 
 struct GNUNET_VPN_HELPER_Handle *helper_handle;
 
+extern struct GNUNET_CLIENT_TransmitHandle* dns_transmit_handle;
+
 /**
  * The tunnels that will be used to send tcp- and udp-packets
  */
@@ -137,8 +139,8 @@ start_helper_and_schedule (void *cls,
    * The routing-table gets flushed if an interface disappears.
    */
   restart_hijack = 1;
-  if (NULL != dns_connection)
-    GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+  if (NULL != dns_connection && dns_transmit_handle == NULL)
+    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
                                          sizeof (struct GNUNET_MessageHeader),
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          GNUNET_YES, &send_query, NULL);
@@ -445,10 +447,10 @@ message_token (void *cls __attribute__ ((unused)), void *client
 
       GNUNET_assert (head != NULL);
 
-      if (dns_connection != NULL)
-        GNUNET_CLIENT_notify_transmit_ready (dns_connection, len,
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_query, NULL);
+      if (dns_connection != NULL && dns_transmit_handle == NULL)
+        dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection, len,
+                                                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                   GNUNET_YES, &send_query, NULL);
     }
     else
     {
