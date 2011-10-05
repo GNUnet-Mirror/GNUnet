@@ -58,7 +58,8 @@ update_network_size_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# Network size estimates received"), 1,
 			    GNUNET_NO);
-  log_of_network_size_estimate = logestimate;
+  /* do not allow estimates < 0.5 */
+  log_of_network_size_estimate = GNUNET_MAX (0.5, logestimate);  
 }
 
 
