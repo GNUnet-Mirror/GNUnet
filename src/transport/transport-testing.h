@@ -59,6 +59,8 @@ struct PeerContext
   void *cb_cls;
 
   char *servicehome;
+
+  unsigned int no;
 };
 
 /**
