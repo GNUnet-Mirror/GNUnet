@@ -382,7 +382,7 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
     ask_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                       &ask_connect_task, NULL);
-    GNUNET_CORE_peer_request_connect (p1.ch, &p2.id, NULL, NULL);
+    GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
   }
 }
 
