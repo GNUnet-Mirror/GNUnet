@@ -34,7 +34,8 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE 2 
+// GNUNET_EXTRA_LOGGING
 
 #define START_ARM GNUNET_YES
 
@@ -79,7 +80,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received (my) `%s' from transport service\n", "HELLO");
   GNUNET_assert (message != NULL);
-  if ((p == &p1) && (p2.th != NULL))
+  if ((p == &p1) && (p2.th != NULL))  
     GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
   if ((p == &p2) && (p1.th != NULL))
     GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
