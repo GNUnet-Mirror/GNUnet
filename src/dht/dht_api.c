@@ -399,9 +399,11 @@ transmit_pending (void *cls, size_t size, void *buf)
   if (GNUNET_YES == head->free_on_send)
     GNUNET_free (head);
   process_pending_messages (handle);
+#if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Forwarded request of %u bytes to DHT service\n",
               (unsigned int) tsize);
+#endif
   return tsize;
 }
 
