@@ -535,6 +535,7 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
                 GNUNET_i2s (&p2.id));
 #endif
     GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
+    GNUNET_TRANSPORT_try_connect (p2.th, &p1.id);
   }
 }
 

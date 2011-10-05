@@ -91,11 +91,22 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (ok == 6);
   GNUNET_CORE_disconnect (p1.ch);
+  p1.ch = NULL;
   GNUNET_CORE_disconnect (p2.ch);
+  p2.ch = NULL;
   GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
+  p1.ghh = NULL;
   GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
+  p2.ghh = NULL;
   GNUNET_TRANSPORT_disconnect (p1.th);
+  p1.th = NULL;
   GNUNET_TRANSPORT_disconnect (p2.th);
+  p2.th = NULL;
+  if (GNUNET_SCHEDULER_NO_TASK != con_task)
+  {
+    GNUNET_SCHEDULER_cancel (con_task);
+    con_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   ok = 0;
 }
 
@@ -128,6 +139,11 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
     GNUNET_TRANSPORT_disconnect (p2.th);
     p2.th = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != con_task)
+  {
+    GNUNET_SCHEDULER_cancel (con_task);
+    con_task = GNUNET_SCHEDULER_NO_TASK;
   }
   ok = 42;
 }
@@ -259,10 +275,11 @@ connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &connect_task,
                                     NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking core (1) to connect to peer `%4s'\n",
+              "Asking transport (1) to connect to peer `%4s'\n",
               GNUNET_i2s (&p2.id));
   GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
 }
+
 
 static void
 init_notify (void *cls, struct GNUNET_CORE_Handle *server,
@@ -334,6 +351,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                            &disconnect_notify, NULL, &inbound_notify,
                            GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
 }
+
 
 static void
 stop_arm (struct PeerContext *p)
