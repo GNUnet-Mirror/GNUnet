@@ -34,8 +34,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE 2 
-// GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define START_ARM GNUNET_YES
 
