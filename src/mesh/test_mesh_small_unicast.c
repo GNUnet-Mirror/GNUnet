@@ -336,7 +336,7 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, NULL);
   test_task =
       GNUNET_SCHEDULER_add_delayed(
-          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3),
+          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 6),
           &do_test, NULL);
 }
 
