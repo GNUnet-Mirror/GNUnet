@@ -110,9 +110,7 @@ test_mesh_small_unicast_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 if ENABLE_TEST_RUN
-if HAVE_EXPERIMENTAL
-TESTS = test_mesh_api test_mesh_path_api test_mesh_local_1 test_mesh_local_2 test_mesh_small_unicast
-endif
+TESTS = test_mesh_api test_mesh_path_api test_mesh_local_1 test_mesh_local_2 test_mesh_small
 endif
 
 EXTRA_DIST = \

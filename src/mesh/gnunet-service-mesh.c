@@ -2278,7 +2278,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     return;
   }
   GNUNET_assert (NULL != t->client);
-      GNUNET_DHT_get_stop (t->dht_get_type); /* FIXME move to task? */
+  GNUNET_DHT_get_stop (t->dht_get_type);
   t->dht_get_type = NULL;
   peer_info = peer_info_get (pi);
   GNUNET_CONTAINER_multihashmap_put (t->peers, &pi->hashPubKey, peer_info,
