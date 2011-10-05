@@ -1238,8 +1238,8 @@ publish_name (const char *name, uint64_t ports, uint32_t service_type,
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &data.peer);
 
   data.expiration_time =
-      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
-                                        (GNUNET_TIME_UNIT_HOURS, 2));
+    GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
+								 (GNUNET_TIME_UNIT_HOURS, 2)));
 
   /* Sign the block */
   if (GNUNET_OK !=
