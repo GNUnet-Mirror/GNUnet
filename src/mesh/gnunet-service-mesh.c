@@ -139,6 +139,11 @@ struct MeshPeerInfo
   struct GNUNET_DHT_GetHandle *dhtget;
 
     /**
+     * Task to reissue the DHT get request a path for this peer
+     */
+  GNUNET_SCHEDULER_TaskIdentifier dhtget_task;
+
+    /**
      * Handles to stop queued transmissions for this peer
      */
   struct GNUNET_CORE_TransmitHandle *core_transmit[CORE_QUEUE_SIZE];
@@ -345,6 +350,11 @@ struct MeshClient
      * Used to search peers offering a service
      */
   struct GNUNET_DHT_GetHandle *dht_get_type;
+
+    /**
+     * Task to reissue the DHT get request for a type
+     */
+  GNUNET_SCHEDULER_TaskIdentifier dht_get_type_task;
 
 #if MESH_DEBUG
     /**
@@ -764,7 +774,7 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
       path_info->peer = peer_d;
       path_info->t = peer->tunnels[i];
       peer_d->dhtget = GNUNET_DHT_get_start(dht_handle,       /* handle */
-                                            GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
+                                            GNUNET_TIME_UNIT_SECONDS,     /* timeout */
                                             GNUNET_BLOCK_TYPE_TEST,   /* type */
                                             &id.hashPubKey,   /*key to search */
                                             4,        /* replication level */
@@ -859,7 +869,9 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
   GNUNET_PEER_Id id;
   int i;
 
-  p = path_new (0);
+  p = path_new (1);
+  p->peers[0] = myid;
+  GNUNET_PEER_change_rc(myid, 1);
   i = get_path_length;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:    GET has %d hops.\n", i);
   for (i--; i >= 0; i--)
@@ -872,10 +884,9 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
     }
     else
     {
-      p->peers =
-        GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * (p->length + 1));
-      p->peers[p->length] = id;
       p->length++;
+      p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
+      p->peers[p->length] = id;
     }
   }
   i = put_path_length;
@@ -883,6 +894,14 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
   for (i--; i >= 0; i--)
   {
     id = GNUNET_PEER_intern (&put_path[i]);
+    if (id == myid)
+    {
+      /* PUT path went through us, so discard the path up until now and start
+       * from here to get a much shorter (and loop-free) path.
+       */
+      path_destroy (p);
+      p = path_new (0);
+    }
     if (p->length > 0 && id == p->peers[p->length - 1])
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:    Optimizing 1 hop out.\n");
@@ -890,10 +909,9 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
     }
     else
     {
-      p->peers =
-        GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * (p->length + 1));
-      p->peers[p->length] = id;
       p->length++;
+      p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
+      p->peers[p->length] = id;
     }
   }
 #if MESH_DEBUG
@@ -2132,9 +2150,9 @@ static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     const GNUNET_HashCode * key,
                     const struct GNUNET_PeerIdentity *get_path,
-		    unsigned int get_path_length,
+                    unsigned int get_path_length,
                     const struct GNUNET_PeerIdentity *put_path,
-		    unsigned int put_path_length,
+                    unsigned int put_path_length,
                     enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
   struct MeshPathInfo *path_info = cls;
@@ -2155,7 +2173,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
       // Find ourselves some alternate initial path to the destination: retry
       GNUNET_DHT_get_stop (path_info->peer->dhtget);
       path_info->peer->dhtget = GNUNET_DHT_get_start (dht_handle,       /* handle */
-                                                      GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
+                                                      GNUNET_TIME_UNIT_SECONDS,     /* timeout */
                                                       GNUNET_BLOCK_TYPE_TEST,   /* type */
                                                       &pi.hashPubKey,   /*key to search */
                                                       4,        /* replication level */
@@ -2246,7 +2264,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     return;
   }
   GNUNET_assert (NULL != t->client);
-  GNUNET_DHT_get_stop (t->client->dht_get_type);
+  GNUNET_DHT_get_stop (t->client->dht_get_type); /* FIXME move to task? */
   t->client->dht_get_type = NULL;
   peer_info = peer_info_get (pi);
   GNUNET_CONTAINER_multihashmap_put (t->peers, &pi->hashPubKey, peer_info,
@@ -2261,7 +2279,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     /* we don't have a route to the peer, let's try a direct lookup */
     peer_info->dhtget = GNUNET_DHT_get_start (dht_handle,
                                               /* handle */
-                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                              GNUNET_TIME_UNIT_SECONDS,
                                               /* timeout */
                                               GNUNET_BLOCK_TYPE_TEST,
                                               /* block type */
@@ -2327,6 +2345,18 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 }
 
 
+/**
+ * Task run during shutdown.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+static void
+dht_get_type_restart (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+
+}
+
 /******************************************************************************/
 /*********************       MESH LOCAL HANDLES      **************************/
 /******************************************************************************/
@@ -2381,7 +2411,10 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     if (NULL != c->types)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
     if (NULL != c->dht_get_type)
+    {
+      GNUNET_SCHEDULER_cancel (c->dht_get_type_task);
       GNUNET_DHT_get_stop (c->dht_get_type);
+    }
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     next = c->next;
     GNUNET_free (c);
@@ -2704,7 +2737,7 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
     path_info->peer = peer_info;
     path_info->t = t;
     peer_info->dhtget = GNUNET_DHT_get_start(dht_handle,       /* handle */
-					     GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
+					     GNUNET_TIME_UNIT_SECONDS,     /* timeout */
 					     GNUNET_BLOCK_TYPE_TEST,   /* type */
 					     &peer_msg->peer.hashPubKey,   /*key to search */
 					     4,        /* replication level */
@@ -2892,6 +2925,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
   /* Ok, lets find a peer offering the service */
   if (c->dht_get_type)
   {
+    GNUNET_SCHEDULER_cancel (c->dht_get_type_task);
     GNUNET_DHT_get_stop (c->dht_get_type);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  looking in DHT for %s\n",
@@ -2901,6 +2935,9 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
                             GNUNET_BLOCK_TYPE_TEST, &hash, 10U,
                             GNUNET_DHT_RO_RECORD_ROUTE, NULL, 0,
                             &dht_get_type_handler, t);
+  c->dht_get_type_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                                      &dht_get_type_restart,
+                                                      NULL);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -3228,7 +3265,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     for (c = clients; NULL != c; c = c->next)
       if (NULL != c->dht_get_type)
+      {
+        GNUNET_SCHEDULER_cancel(c->dht_get_type_task);
         GNUNET_DHT_get_stop (c->dht_get_type);
+      }
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
   }
