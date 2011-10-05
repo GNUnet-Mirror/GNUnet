@@ -1983,11 +1983,12 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 	   (k_buckets[bucket].peers_size < bucket_size) )
 	{    
 	  if (NULL != GDS_transport_handle)
+	  {
 	    GNUNET_TRANSPORT_offer_hello (GDS_transport_handle,
 					  h, NULL, NULL);
-	  (void) GNUNET_CORE_peer_request_connect (coreAPI,
-						   &pid, 
-						   NULL, NULL);
+	    GNUNET_TRANSPORT_try_connect (GDS_transport_handle,
+					  &pid);
+	  }
 	}   
     }
   }
