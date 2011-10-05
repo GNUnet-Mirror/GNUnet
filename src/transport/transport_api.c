@@ -893,10 +893,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (h->control_tail == NULL);
   h->client = GNUNET_CLIENT_connect ("transport", h->cfg);
   GNUNET_assert (h->client != NULL);
-  if ( (h->rec != NULL) ||
-       (h->nc_cb != NULL) ||
-       (h->nd_cb != NULL) )
-    schedule_control_transmit (h, sizeof (struct StartMessage), &send_start, h);
+  schedule_control_transmit (h, sizeof (struct StartMessage), &send_start, h);
 }
 
 
