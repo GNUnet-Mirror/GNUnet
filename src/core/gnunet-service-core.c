@@ -2970,52 +2970,6 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Handle CORE_REQUEST_CONNECT request.
- *
- * @param cls unused
- * @param client the client issuing the request
- * @param message the "struct ConnectMessage"
- */
-static void
-handle_client_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
-                               const struct GNUNET_MessageHeader *message)
-{
-  const struct ConnectMessage *cm = (const struct ConnectMessage *) message;
-  struct Neighbour *n;
-
-  if (0 ==
-      memcmp (&cm->peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
-  {
-    /* In this case a client has asked us to connect to ourselves, not really an error! */
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-  GNUNET_break (ntohl (cm->reserved) == 0);
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core received `%s' request for `%4s', will try to establish connection\n",
-              "REQUEST_CONNECT", GNUNET_i2s (&cm->peer));
-#endif
-  GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# connection requests received"), 1,
-                            GNUNET_NO);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  n = find_neighbour (&cm->peer);
-  if ((n == NULL) || (GNUNET_YES != n->is_connected))
-  {
-    GNUNET_TRANSPORT_try_connect (transport, &cm->peer);
-  }
-  else
-  {
-    GNUNET_STATISTICS_update (stats,
-                              gettext_noop
-                              ("# connection requests ignored (already connected)"),
-                              1, GNUNET_NO);
-  }
-}
-
-
-/**
  * PEERINFO is giving us a HELLO for a peer.  Add the public key to
  * the neighbour's struct and retry send_key.  Or, if we did not get a
  * HELLO, just do nothing.
@@ -4587,9 +4541,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct SendMessageRequest)},
     {&handle_client_send, NULL,
      GNUNET_MESSAGE_TYPE_CORE_SEND, 0},
-    {&handle_client_request_connect, NULL,
-     GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT,
-     sizeof (struct ConnectMessage)},
     {NULL, NULL, 0, 0}
   };
   char *keyfile;

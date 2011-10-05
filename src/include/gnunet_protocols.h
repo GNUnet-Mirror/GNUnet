@@ -208,11 +208,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 33
 
-/**
- * Message for transport service from a client asking that a
- * connection be initiated with another peer.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT 34
 
 /**
  * Transport CONNECT message exchanged between transport services to
