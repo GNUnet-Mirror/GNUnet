@@ -675,6 +675,9 @@ core_notify (void *cls, size_t size, void *buf)
   struct notify_cls *ncls = cls;
   struct GNUNET_MESH_Tunnel *tunnel = ncls->tunnel;
 
+  if (NULL == buf)
+    return ncls->notify (ncls->notify_cls, 0, NULL);
+
   tunnel->notify_handle = NULL;
   struct tunnel_message *message = buf;
   void *cbuf = (void *) &message[1];

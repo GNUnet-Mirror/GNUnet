@@ -283,15 +283,21 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
   struct GNUNET_MESH_Tunnel **tunnel = cls;
 
   GNUNET_MESH_tunnel_set_data (*tunnel, NULL);
-  struct GNUNET_MessageHeader *hdr =
-      (struct GNUNET_MessageHeader *) (tunnel + 1);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "send_pkt_to_peer_notify_callback: buf = %x; size = %u;\n", buf,
-              size);
-  GNUNET_assert (size >= ntohs (hdr->size));
-  memcpy (buf, hdr, ntohs (hdr->size));
-  size = ntohs (hdr->size);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent!\n");
+
+  if (NULL != buf)
+    {
+      struct GNUNET_MessageHeader *hdr =
+        (struct GNUNET_MessageHeader *) (tunnel + 1);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "send_pkt_to_peer_notify_callback: buf = %x; size = %u;\n", buf,
+                  size);
+      GNUNET_assert (size >= ntohs (hdr->size));
+      memcpy (buf, hdr, ntohs (hdr->size));
+      size = ntohs (hdr->size);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent!\n");
+    }
+  else
+    size = 0;
 
   if (NULL != GNUNET_MESH_tunnel_get_head (*tunnel))
   {
