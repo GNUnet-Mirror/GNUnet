@@ -534,7 +534,7 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
                 "Asking core (1) to connect to peer `%4s'\n",
                 GNUNET_i2s (&p2.id));
 #endif
-    GNUNET_CORE_peer_request_connect (p1.ch, &p2.id, NULL, NULL);
+    GNUNET_TRANSPORT_try_connect (p1.ch, &p2.id);
   }
 }
 

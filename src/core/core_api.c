@@ -121,6 +121,19 @@ struct PeerRecord
 
 
 /**
+ * Type of function called upon completion.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK on success (which for request_connect
+ *        ONLY means that we transmitted the connect request to CORE,
+ *        it does not mean that we are actually now connected!);
+ *        GNUNET_NO on timeout,
+ *        GNUNET_SYSERR if core was shut down
+ */
+typedef void (*GNUNET_CORE_ControlContinuation) (void *cls, int success);
+
+
+/**
  * Entry in a doubly-linked list of control messages to be transmitted
  * to the core service.  Control messages include traffic allocation,
  * connection requests and of course our initial 'init' request.
@@ -1620,143 +1633,6 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
     }
     request_next_transmission (pr);
   }
-}
-
-
-/* ****************** GNUNET_CORE_peer_request_connect ******************** */
-
-/**
- * Handle for a request to the core to connect to
- * a particular peer.  Can be used to cancel the request
- * (before the 'cont'inuation is called).
- */
-struct GNUNET_CORE_PeerRequestHandle
-{
-
-  /**
-   * Link to control message.
-   */
-  struct ControlMessage *cm;
-
-  /**
-   * Core handle used.
-   */
-  struct GNUNET_CORE_Handle *h;
-
-  /**
-   * Continuation to run when done.
-   */
-  GNUNET_CORE_ControlContinuation cont;
-
-  /**
-   * Closure for 'cont'.
-   */
-  void *cont_cls;
-
-};
-
-
-/**
- * Continuation called when the control message was transmitted.
- * Calls the original continuation and frees the remaining
- * resources.
- *
- * @param cls the 'struct GNUNET_CORE_PeerRequestHandle'
- * @param success was the request transmitted?
- */
-static void
-peer_request_connect_cont (void *cls, int success)
-{
-  struct GNUNET_CORE_PeerRequestHandle *ret = cls;
-
-  if (ret->cont != NULL)
-    ret->cont (ret->cont_cls, success);
-  GNUNET_free (ret);
-}
-
-
-/**
- * Request that the core should try to connect to a particular peer.
- * Once the request has been transmitted to the core, the continuation
- * function will be called.  Note that this does NOT mean that a
- * connection was successfully established -- it only means that the
- * core will now try.  Successful establishment of the connection
- * will be signalled to the 'connects' callback argument of
- * 'GNUNET_CORE_connect' only.  If the core service does not respond
- * to our connection attempt within the given time frame, 'cont' will
- * be called with the TIMEOUT reason code.
- *
- * @param h core handle
- * @param peer who should we connect to
- * @param cont function to call once the request has been completed (or timed out)
- * @param cont_cls closure for cont
- *
- * @return NULL on error or already connected,
- *         otherwise handle for cancellation
- */
-struct GNUNET_CORE_PeerRequestHandle *
-GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
-                                  const struct GNUNET_PeerIdentity *peer,
-                                  GNUNET_CORE_ControlContinuation cont,
-                                  void *cont_cls)
-{
-  struct GNUNET_CORE_PeerRequestHandle *ret;
-  struct ControlMessage *cm;
-  struct ConnectMessage *msg;
-
-  if (NULL != GNUNET_CONTAINER_multihashmap_get (h->peers, &peer->hashPubKey))
-  {
-#if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers are already connected!\n");
-#endif
-    return NULL;
-  }
-
-  cm = GNUNET_malloc (sizeof (struct ControlMessage) +
-                      sizeof (struct ConnectMessage));
-  msg = (struct ConnectMessage *) &cm[1];
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT);
-  msg->header.size = htons (sizeof (struct ConnectMessage));
-  msg->reserved = htonl (0);
-  msg->peer = *peer;
-  GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
-                                    h->control_pending_tail, cm);
-  ret = GNUNET_malloc (sizeof (struct GNUNET_CORE_PeerRequestHandle));
-  ret->h = h;
-  ret->cm = cm;
-  ret->cont = cont;
-  ret->cont_cls = cont_cls;
-  cm->cont = &peer_request_connect_cont;
-  cm->cont_cls = ret;
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Queueing REQUEST_CONNECT request\n");
-#endif
-  trigger_next_request (h, GNUNET_NO);
-  return ret;
-}
-
-
-/**
- * Cancel a pending request to connect to a particular peer.  Must not
- * be called after the 'cont' function was invoked.
- *
- * @param req request handle that was returned for the original request
- */
-void
-GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle
-                                         *req)
-{
-  struct GNUNET_CORE_Handle *h = req->h;
-  struct ControlMessage *cm = req->cm;
-
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "A CHANGE PREFERENCE request was cancelled!\n");
-#endif
-  GNUNET_CONTAINER_DLL_remove (h->control_pending_head, h->control_pending_tail,
-                               cm);
-  GNUNET_free (cm);
-  GNUNET_free (req);
 }
 
 
