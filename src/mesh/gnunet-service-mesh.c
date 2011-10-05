@@ -62,6 +62,9 @@
                                     GNUNET_TIME_UNIT_SECONDS,\
                                     10)
 
+#define GET_RESTART_TIME        GNUNET_TIME_relative_multiply(\
+                                    GNUNET_TIME_UNIT_SECONDS,\
+                                    5)
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
@@ -286,6 +289,16 @@ struct MeshTunnel
    */
   struct MeshTunnelTree *tree;
 
+    /**
+     * Used to search peers offering a service
+     */
+  struct GNUNET_DHT_GetHandle *dht_get_type;
+
+    /**
+     * Task to reissue the DHT get request for a type
+     */
+  GNUNET_SCHEDULER_TaskIdentifier dht_get_type_task;
+
   /**
    * Task to keep the used paths alive
    */
@@ -345,16 +358,6 @@ struct MeshClient
      * Messages that this client has declared interest in
      */
   struct GNUNET_CONTAINER_MultiHashMap *types;
-
-    /**
-     * Used to search peers offering a service
-     */
-  struct GNUNET_DHT_GetHandle *dht_get_type;
-
-    /**
-     * Task to reissue the DHT get request for a type
-     */
-  GNUNET_SCHEDULER_TaskIdentifier dht_get_type_task;
 
 #if MESH_DEBUG
     /**
@@ -1200,9 +1203,15 @@ tunnel_destroy (struct MeshTunnel *t)
 static int
 tunnel_destroy_iterator (void *cls, const GNUNET_HashCode * key, void *value)
 {
+  struct MeshTunnel *t = value;
   int r;
 
-  r = tunnel_destroy ((struct MeshTunnel *) value);
+  if (NULL != t->dht_get_type)
+  {
+    GNUNET_SCHEDULER_cancel (t->dht_get_type_task);
+    GNUNET_DHT_get_stop (t->dht_get_type);
+  }
+  r = tunnel_destroy (t);
   return r;
 }
 
@@ -2264,8 +2273,8 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     return;
   }
   GNUNET_assert (NULL != t->client);
-  GNUNET_DHT_get_stop (t->client->dht_get_type); /* FIXME move to task? */
-  t->client->dht_get_type = NULL;
+      GNUNET_DHT_get_stop (t->dht_get_type); /* FIXME move to task? */
+  t->dht_get_type = NULL;
   peer_info = peer_info_get (pi);
   GNUNET_CONTAINER_multihashmap_put (t->peers, &pi->hashPubKey, peer_info,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
@@ -2346,7 +2355,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
 
 /**
- * Task run during shutdown.
+ * Task to restart the DHT get search for a peer offering a type.
  *
  * @param cls unused
  * @param tc unused
@@ -2354,7 +2363,20 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 static void
 dht_get_type_restart (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct MeshTunnel *t = cls;
+  GNUNET_HashCode hash;
 
+  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+    return;
+  GNUNET_DHT_get_stop(t->dht_get_type);
+  /* FIXME: calculate hash */
+  t->dht_get_type = GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
+                            GNUNET_BLOCK_TYPE_TEST, &hash, 10U,
+                            GNUNET_DHT_RO_RECORD_ROUTE, NULL, 0,
+                            &dht_get_type_handler, t);
+  t->dht_get_type_task = GNUNET_SCHEDULER_add_delayed(GET_RESTART_TIME,
+                                                      &dht_get_type_restart,
+                                                      t);
 }
 
 /******************************************************************************/
@@ -2410,11 +2432,6 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     }
     if (NULL != c->types)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
-    if (NULL != c->dht_get_type)
-    {
-      GNUNET_SCHEDULER_cancel (c->dht_get_type_task);
-      GNUNET_DHT_get_stop (c->dht_get_type);
-    }
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     next = c->next;
     GNUNET_free (c);
@@ -2923,21 +2940,21 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   /* Ok, lets find a peer offering the service */
-  if (c->dht_get_type)
+  if (t->dht_get_type)
   {
-    GNUNET_SCHEDULER_cancel (c->dht_get_type_task);
-    GNUNET_DHT_get_stop (c->dht_get_type);
+    GNUNET_SCHEDULER_cancel (t->dht_get_type_task);
+    GNUNET_DHT_get_stop (t->dht_get_type);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  looking in DHT for %s\n",
               GNUNET_h2s_full (&hash));
-  c->dht_get_type =
+  t->dht_get_type =
       GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
                             GNUNET_BLOCK_TYPE_TEST, &hash, 10U,
                             GNUNET_DHT_RO_RECORD_ROUTE, NULL, 0,
                             &dht_get_type_handler, t);
-  c->dht_get_type_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+  t->dht_get_type_task = GNUNET_SCHEDULER_add_delayed(GET_RESTART_TIME,
                                                       &dht_get_type_restart,
-                                                      NULL);
+                                                      t);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -3253,9 +3270,8 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshClient *c;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: shutting down\n");
+  /* TODO: destroy tunnels? */
   if (core_handle != NULL)
   {
     GNUNET_CORE_disconnect (core_handle);
@@ -3263,12 +3279,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (dht_handle != NULL)
   {
-    for (c = clients; NULL != c; c = c->next)
-      if (NULL != c->dht_get_type)
-      {
-        GNUNET_SCHEDULER_cancel(c->dht_get_type_task);
-        GNUNET_DHT_get_stop (c->dht_get_type);
-      }
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
   }
