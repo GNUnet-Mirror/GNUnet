@@ -67,16 +67,6 @@ struct Session
   struct GNUNET_TIME_Absolute last_activity;
 
   /**
-   * Tracking bandwidth for sending to this peer.
-   */
-  struct GNUNET_BANDWIDTH_Tracker available_send_window;
-
-  /**
-   * Tracking bandwidth for receiving from this peer.
-   */
-  struct GNUNET_BANDWIDTH_Tracker available_recv_window;
-
-  /**
    * How valueable were the messages of this peer recently?
    */
   unsigned long long current_preference;
