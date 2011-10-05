@@ -148,7 +148,7 @@ struct GNUNET_NSE_FloodMessage
   /**
    * Number of hops this message has taken so far.
    */
-  uint32_t hop_count;
+  uint32_t hop_count GNUNET_PACKED;
 
   /**
    * Purpose.
@@ -166,7 +166,7 @@ struct GNUNET_NSE_FloodMessage
    * of timestamp and the initiator's public
    * key.
    */
-  uint32_t matching_bits;
+  uint32_t matching_bits GNUNET_PACKED;
 
   /**
    * Public key of the originator.
@@ -176,7 +176,7 @@ struct GNUNET_NSE_FloodMessage
   /**
    * Proof of work, causing leading zeros when hashed with pkey.
    */
-  uint64_t proof_of_work;
+  uint64_t proof_of_work GNUNET_PACKED;
 
   /**
    * Signature (over range specified in purpose).
