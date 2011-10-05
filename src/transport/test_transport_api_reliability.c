@@ -193,7 +193,6 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   unsigned int s;
   char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const struct TestMessage *hdr;
-  struct PeerContext * p = cls;
 
   hdr = (const struct TestMessage *) message;
   s = get_size (n);

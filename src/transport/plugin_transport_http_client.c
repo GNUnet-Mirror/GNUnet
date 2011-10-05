@@ -299,14 +299,10 @@ client_receive_mst_cb (void *cls, void *client,
                      const struct GNUNET_MessageHeader *message)
 {
   struct Session *s = cls;
-  struct Plugin *plugin = s->plugin;
+  //struct Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Relative delay;
 
   delay = http_plugin_receive (s, &s->target, message, s, s->addr, s->addrlen);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "CLIENT: CLIENT DELAY %llu ms\n",
-              delay.rel_value);
-
-
   s->next_receive = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
 
   if (GNUNET_TIME_absolute_get().abs_value < s->next_receive.abs_value)
