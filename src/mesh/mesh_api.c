@@ -28,6 +28,7 @@
 #include <gnunet_constants.h>
 #include <gnunet_mesh_service.h>
 #include <gnunet_core_service.h>
+#include <gnunet_transport_service.h>
 #include <gnunet_container_lib.h>
 #include <gnunet_applications.h>
 
@@ -129,6 +130,7 @@ struct peer_list
 struct GNUNET_MESH_Handle
 {
   struct GNUNET_CORE_Handle *core;
+  struct GNUNET_TRANSPORT_Handle *transport;
   struct GNUNET_MESH_MessageHandler *handlers;
   struct GNUNET_PeerIdentity myself;
   unsigned int connected_to_core;
@@ -657,7 +659,7 @@ GNUNET_MESH_peer_request_connect_all (struct GNUNET_MESH_Handle *handle,
     GNUNET_CONTAINER_DLL_insert_after (handle->pending_tunnels.head,
                                        handle->pending_tunnels.tail,
                                        handle->pending_tunnels.tail, tunnel);
-    (void) GNUNET_CORE_peer_request_connect (handle->core, peers, NULL, NULL);
+    GNUNET_TRANSPORT_try_connect (handle->transport, peers);
   }
 
   return &tunnel->tunnel;
@@ -874,6 +876,8 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
       GNUNET_CORE_connect (cfg, 42, ret, &core_startup, &core_connect,
                            &core_disconnect, NULL, NULL, GNUNET_NO, NULL,
                            GNUNET_NO, core_handlers);
+  ret->transport =
+    GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
   return ret;
 }
 
@@ -883,6 +887,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
   GNUNET_free (handle->handlers);
   GNUNET_free (handle->hello_message);
   GNUNET_CORE_disconnect (handle->core);
+  GNUNET_TRANSPORT_disconnect (handle->transport);
 
   struct peer_list_element *element = handle->connected_peers.head;
 
