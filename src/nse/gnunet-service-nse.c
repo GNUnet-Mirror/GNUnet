@@ -308,6 +308,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   double q;
   double r;
   double temp;
+  double nsize;
 
   /* Weighted incremental algorithm for stddev according to West (1979) */
   mean = 0.0;
@@ -333,12 +334,15 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   std_dev = sqrt (variance);
   current_std_dev = std_dev;
   current_size_estimate = mean;
-
+  
   em->header.size = htons (sizeof (struct GNUNET_NSE_ClientMessage));
   em->header.type = htons (GNUNET_MESSAGE_TYPE_NSE_ESTIMATE);
   em->reserved = htonl (0);
   em->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-  em->size_estimate = mean - 1.0 / 3.0;
+  em->size_estimate = mean - 0.332747;
+  nsize = log2 (GNUNET_CONTAINER_multihashmap_size (peers) + 1);
+  if (em->size_estimate < nsize)
+    em->size_estimate = nsize;
   em->std_deviation = std_dev;
   GNUNET_STATISTICS_set (stats, "# nodes in the network (estimate)",
                          (uint64_t) pow (2, mean - 1.0 / 3.0), GNUNET_NO);
