@@ -629,7 +629,6 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
         res = GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data, *upload_data_size, GNUNET_NO, GNUNET_NO);
 
 #if MHD_VERSION >= 0x00090E00
-#endif
         int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
         struct ServerConnection *t = NULL;
 
@@ -658,7 +657,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
           MHD_set_connection_option (t->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT, to);
         }
         server_reschedule (plugin, GNUNET_NO);
-
+#endif
         (*upload_data_size) = 0;
       }
       else
