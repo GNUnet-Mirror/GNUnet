@@ -3347,11 +3347,8 @@ send_core_connect_requests (void *cls,
     conn = send_hello_context->peer->connect_peers_head;
     while (conn != NULL)
     {
-      GNUNET_CORE_peer_request_connect (send_hello_context->peer->
-                                        daemon->server,
-                                        &send_hello_context->pg->
-                                        peers[conn->index].daemon->id, NULL,
-                                        NULL);
+      GNUNET_TRANSPORT_try_connect (send_hello_context->peer->daemon->th,
+				    &send_hello_context->pg->peers[conn->index].daemon->id);
       conn = conn->next;
     }
     send_hello_context->core_connect_task =

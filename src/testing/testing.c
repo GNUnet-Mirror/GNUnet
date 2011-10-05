@@ -1746,11 +1746,6 @@ struct GNUNET_TESTING_ConnectContext
   struct GNUNET_TESTING_Daemon *d2;
 
   /**
-   * Handler for the request to core to connect to this peer.
-   */
-  struct GNUNET_CORE_PeerRequestHandle *connect_request_handle;
-
-  /**
    * Transport handle to the first daemon (to offer the HELLO of the second daemon to).
    */
   struct GNUNET_TRANSPORT_Handle *d1th;
@@ -1835,12 +1830,6 @@ notify_connect_result (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if (ctx->connect_request_handle != NULL)
-  {
-    GNUNET_CORE_peer_request_connect_cancel (ctx->connect_request_handle);
-    ctx->connect_request_handle = NULL;
-  }
-
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
   {
     if (ctx->d1th != NULL)
@@ -1919,19 +1908,6 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
   ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result, ctx);
 }
 
-/**
- * Task called once a core connect request has been transmitted.
- *
- * @param cls struct GNUNET_TESTING_ConnectContext
- * @param success was the request successful?
- */
-void
-core_connect_request_cont (void *cls, int success)
-{
-  struct GNUNET_TESTING_ConnectContext *ctx = cls;
-
-  ctx->connect_request_handle = NULL;
-}
 
 static void
 send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -1954,10 +1930,7 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
     GNUNET_TRANSPORT_offer_hello (ctx->d1th, hello, NULL, NULL);
     GNUNET_assert (ctx->d1core != NULL);
-    ctx->connect_request_handle =
-        GNUNET_CORE_peer_request_connect (ctx->d1core, &ctx->d2->id,
-                                          &core_connect_request_cont, ctx);
-
+    GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id);
 #if DEBUG_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Sending connect request to CORE of %s for peer %s\n",
@@ -1993,15 +1966,11 @@ core_init_notify (void *cls, struct GNUNET_CORE_Handle *server,
 
   if (connect_ctx->send_hello == GNUNET_NO)
   {
-    connect_ctx->connect_request_handle =
-        GNUNET_CORE_peer_request_connect (connect_ctx->d1core,
-                                          &connect_ctx->d2->id,
-                                          &core_connect_request_cont,
-                                          connect_ctx);
-    GNUNET_assert (connect_ctx->connect_request_handle != NULL);
+    GNUNET_TRANSPORT_try_connect (connect_ctx->d1th,
+				  &connect_ctx->d2->id);
 #if DEBUG_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending connect request to CORE of %s for peer %s\n",
+                "Sending connect request to TRANSPORT of %s for peer %s\n",
                 connect_ctx->d1->shortname, connect_ctx->d2->shortname);
 #endif
   }
@@ -2098,9 +2067,7 @@ reattempt_daemons_connect (void *cls,
   }
   else
   {
-    ctx->connect_request_handle =
-        GNUNET_CORE_peer_request_connect (ctx->d1core, &ctx->d2->id,
-                                          &core_connect_request_cont, ctx);
+    GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id);
   }
   ctx->timeout_task =
       GNUNET_SCHEDULER_add_delayed (ctx->relative_timeout,
