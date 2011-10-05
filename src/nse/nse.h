@@ -52,7 +52,7 @@ struct GNUNET_NSE_ClientMessage
   /**
    * For alignment.
    */
-  uint32_t reserved;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Timestamp at which the server received the message.
@@ -62,14 +62,14 @@ struct GNUNET_NSE_ClientMessage
   /**
    * The current estimated network size.
    */
-  double size_estimate;
+  double size_estimate GNUNET_PACKED;
 
   /**
    * The standard deviation (rounded down
    * to the nearest integer) of size
    * estimations.
    */
-  double std_deviation;
+  double std_deviation GNUNET_PACKED;
 };
 
 
