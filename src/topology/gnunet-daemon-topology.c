@@ -89,12 +89,6 @@ struct Peer
   struct GNUNET_CORE_TransmitHandle *hello_req;
 
   /**
-   * Our handle for the request to connect to this peer; NULL if no
-   * such request is pending.
-   */
-  struct GNUNET_CORE_PeerRequestHandle *connect_req;
-
-  /**
    * Pointer to the HELLO message of this peer; can be NULL.
    */
   struct GNUNET_HELLO_Message *hello;
@@ -269,21 +263,6 @@ whitelist_peers ()
 
 
 /**
- * Function called by core when our request to connect was transmitted.
- *
- * @param cls the 'struct Peer' for which we issued the connect request
- * @param success was the request transmitted
- */
-static void
-connect_completed_callback (void *cls, int success)
-{
-  struct Peer *pos = cls;
-
-  pos->connect_req = NULL;
-}
-
-
-/**
  * Check if an additional connection from the given peer is allowed.
  *
  * @param peer connection to check
@@ -334,8 +313,6 @@ free_peer (void *cls, const GNUNET_HashCode * pid, void *value)
                 GNUNET_CONTAINER_multihashmap_remove (peers, pid, pos));
   if (pos->hello_req != NULL)
     GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
-  if (pos->connect_req != NULL)
-    GNUNET_CORE_peer_request_connect_cancel (pos->connect_req);
   if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
   if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
@@ -399,11 +376,9 @@ attempt_connect (struct Peer *pos)
               GNUNET_i2s (&pos->pid));
 #endif
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# connect requests issued to core"),
+                            gettext_noop ("# connect requests issued to transport"),
                             1, GNUNET_NO);
-  pos->connect_req =
-      GNUNET_CORE_peer_request_connect (handle, &pos->pid,
-                                        &connect_completed_callback, pos);
+  GNUNET_TRANSPORT_try_connect (transport, &pos->pid);
 }
 
 
