@@ -65,7 +65,7 @@
 /**
  * scaling factor for hello beacon
  */
-#define HALLO_BEACON_SCALING_FACTOR 1
+#define HALLO_BEACON_SCALING_FACTOR 30
 
 /**
  * max size of fragment queue
@@ -100,9 +100,9 @@
 /**
  * DEBUG switch
  */
-#define DEBUG_wlan GNUNET_YES
+#define DEBUG_wlan GNUNET_EXTRA_LOGGING
 #define DEBUG_wlan_retransmission GNUNET_EXTRA_LOGGING
-#define DEBUG_wlan_ip_udp_packets_on_air GNUNET_EXTRA_LOGGING
+#define DEBUG_wlan_ip_udp_packets_on_air GNUNET_NO
 #define DEBUG_wlan_msg_dump GNUNET_EXTRA_LOGGING
 
 
@@ -164,7 +164,7 @@ struct ieee80211_frame
   u_int8_t i_addr3[IEEE80211_ADDR_LEN];
   u_int8_t i_seq[2];
   u_int8_t llc[4];
-#if DEBUG_wlan_ip_udp_packets_on_air
+#if DEBUG_wlan_ip_udp_packets_on_air > 1
   struct iph ip;
   struct udphdr udp;
 #endif
@@ -1278,7 +1278,7 @@ getWlanHeader (struct ieee80211_frame *Header,
   Header->llc[0] = WLAN_LLC_DSAP_FIELD;
   Header->llc[1] = WLAN_LLC_SSAP_FIELD;
 
-#if DEBUG_wlan_ip_udp_packets_on_air
+#if DEBUG_wlan_ip_udp_packets_on_air > 1
   uint crc = 0;
   uint16_t *x;
   int count;
@@ -1364,7 +1364,7 @@ add_message_for_send (void *cls, const struct GNUNET_MessageHeader *hdr)
   struct GNUNET_MessageHeader *msgheader2;
   uint16_t size;
 
-#if DEBUG_wlan_retransmission
+#if DEBUG_wlan_retransmission > 1
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                    "Adding fragment of message %p to send, session %p, endpoint %p, type %u\n",
                    fm, fm->session, endpoint, hdr->type);
@@ -1509,7 +1509,7 @@ add_ack_for_send (void *cls, uint32_t msg_id,
   GNUNET_CONTAINER_DLL_insert_tail (plugin->ack_send_queue_head,
                                     plugin->ack_send_queue_tail, ack);
 
-#if DEBUG_wlan_retransmission
+#if DEBUG_wlan_retransmission > 1
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                    "Adding ack with message id %u to send, AckSendQueue %p, endpoint %p\n",
                    msg_id, ack, endpoint);
@@ -1909,7 +1909,7 @@ wlan_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   if (session->pending_message_head != NULL)
   {
     newmsg = session->pending_message_head;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                      "wlan_plugin_send: a pending message is already in the queue for this client\n remaining time to send this message is %u, queued fragment messages for this mac connection %u\n",
                      GNUNET_TIME_absolute_get_remaining (newmsg->
                                                          timeout).rel_value,
@@ -1949,7 +1949,7 @@ wlan_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                    "New message for %p with size (incl wlan header) %u added\n",
                    session, newmsg->message_size);
 #endif
-#if DEBUG_wlan_msg_dump
+#if DEBUG_wlan_msg_dump > 1
   hexdump (msgbuf, GNUNET_MIN (msgbuf_size, 256));
 #endif
   //queue session
@@ -2491,7 +2491,7 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
 
       if (ret == GNUNET_OK)
       {
-#if DEBUG_wlan_retransmission
+#if DEBUG_wlan_retransmission > 1
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                          "Got last ack, finished fragment message %p\n", fm);
 #endif
@@ -2504,7 +2504,7 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
       }
       if (ret == GNUNET_NO)
       {
-#if DEBUG_wlan_retransmission
+#if DEBUG_wlan_retransmission > 1
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                          "Got ack for: %p\n", fm);
 #endif
@@ -2519,7 +2519,7 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
       fm = fm2;
     }
 
-#if DEBUG_wlan_retransmission
+#if DEBUG_wlan_retransmission > 1
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                      "WLAN fragment not in fragment list\n");
 #endif
@@ -2779,7 +2779,7 @@ wlan_process_helper (void *cls, void *client,
                      ntohs (hdr->type), ntohs (hdr->size));
 
 #endif
-#if DEBUG_wlan_msg_dump
+#if DEBUG_wlan_msg_dump > 1
     hexdump (hdr, GNUNET_MIN (ntohs (hdr->size), 256));
 #endif
     GNUNET_break (0);
