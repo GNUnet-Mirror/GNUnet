@@ -222,7 +222,7 @@ GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
   {
     GNUNET_CONFIGURATION_destroy (cfg);
     GNUNET_free_non_null (cc.cfgfile);
-    GNUNET_free (loglev);
+    GNUNET_free_non_null (loglev);
     GNUNET_free_non_null (logfile);
     GNUNET_free (allopts);
     GNUNET_free (lpfx);
