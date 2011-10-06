@@ -764,7 +764,7 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
   struct Plugin *plugin = cls;
 #endif
 #if DEBUG_HTTP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "NPMC called %s to address `%s'\n",
                    (add_remove == GNUNET_NO) ? "remove" : "add",
                    GNUNET_a2s (addr, addrlen));
@@ -780,6 +780,204 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
   }
 }
 
+int
+http_get_addresses (struct Plugin *plugin,
+                    const char *serviceName,
+                    const struct GNUNET_CONFIGURATION_Handle
+                    *cfg, struct sockaddr ***addrs,
+                    socklen_t ** addr_lens)
+{
+  int disablev6;
+  struct GNUNET_NETWORK_Handle *desc;
+  unsigned long long port;
+  struct addrinfo hints;
+  struct addrinfo *res;
+  struct addrinfo *pos;
+  struct addrinfo *next;
+  unsigned int i;
+  int resi;
+  int ret;
+  struct sockaddr **saddrs;
+  socklen_t *saddrlens;
+  char *hostname;
+
+  *addrs = NULL;
+  *addr_lens = NULL;
+  desc = NULL;
+
+  disablev6 = !plugin->ipv6;
+
+  if (!disablev6)
+  {
+    /* probe IPv6 support */
+    desc = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
+    if (NULL == desc)
+    {
+      if ((errno == ENOBUFS) || (errno == ENOMEM) || (errno == ENFILE) ||
+          (errno == EACCES))
+      {
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+        return GNUNET_SYSERR;
+      }
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _
+                  ("Disabling IPv6 since it is not supported on this system\n"),
+                  serviceName, STRERROR (errno));
+      disablev6 = GNUNET_YES;
+      plugin->ipv6 = GNUNET_NO;
+    }
+    else
+    {
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
+      desc = NULL;
+    }
+  }
+
+  port = 0;
+  if (GNUNET_CONFIGURATION_have_value (cfg, serviceName, "PORT"))
+  {
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONFIGURATION_get_value_number (cfg, serviceName,
+                                                         "PORT", &port));
+    if (port > 65535)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _
+                  ("Require valid port number for service in configuration!\n"));
+      return GNUNET_SYSERR;
+    }
+  }
+
+  if (GNUNET_CONFIGURATION_have_value (cfg, serviceName, "BINDTO"))
+  {
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONFIGURATION_get_value_string (cfg, serviceName,
+                                                         "BINDTO", &hostname));
+  }
+  else
+    hostname = NULL;
+
+  if (hostname != NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                "Resolving `%s' since that is where `%s' will bind to.\n",
+                hostname, serviceName);
+    memset (&hints, 0, sizeof (struct addrinfo));
+    if (disablev6)
+      hints.ai_family = AF_INET;
+    if ((0 != (ret = getaddrinfo (hostname, NULL, &hints, &res))) ||
+        (res == NULL))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to resolve `%s': %s\n"),
+                  hostname, gai_strerror (ret));
+      GNUNET_free (hostname);
+      return GNUNET_SYSERR;
+    }
+    next = res;
+    i = 0;
+    while (NULL != (pos = next))
+    {
+      next = pos->ai_next;
+      if ((disablev6) && (pos->ai_family == AF_INET6))
+        continue;
+      i++;
+    }
+    if (0 == i)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to find %saddress for `%s'.\n"),
+                  disablev6 ? "IPv4 " : "", hostname);
+      freeaddrinfo (res);
+      GNUNET_free (hostname);
+      return GNUNET_SYSERR;
+    }
+    resi = i;
+    saddrs = GNUNET_malloc ((resi + 1) * sizeof (struct sockaddr *));
+    saddrlens = GNUNET_malloc ((resi + 1) * sizeof (socklen_t));
+    i = 0;
+    next = res;
+    while (NULL != (pos = next))
+    {
+      next = pos->ai_next;
+      if ((disablev6) && (pos->ai_family == AF_INET6))
+        continue;
+      if ((pos->ai_protocol != IPPROTO_TCP) && (pos->ai_protocol != 0))
+        continue;               /* not TCP */
+      if ((pos->ai_socktype != SOCK_STREAM) && (pos->ai_socktype != 0))
+        continue;               /* huh? */
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                  "Service will bind to `%s'\n",
+                  GNUNET_a2s (pos->ai_addr, pos->ai_addrlen));
+      if (pos->ai_family == AF_INET)
+      {
+        GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in));
+        saddrlens[i] = pos->ai_addrlen;
+        saddrs[i] = GNUNET_malloc (saddrlens[i]);
+        memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
+        ((struct sockaddr_in *) saddrs[i])->sin_port = htons (port);
+      }
+      else
+      {
+        GNUNET_assert (pos->ai_family == AF_INET6);
+        GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in6));
+        saddrlens[i] = pos->ai_addrlen;
+        saddrs[i] = GNUNET_malloc (saddrlens[i]);
+        memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
+        ((struct sockaddr_in6 *) saddrs[i])->sin6_port = htons (port);
+      }
+      i++;
+    }
+    GNUNET_free (hostname);
+    freeaddrinfo (res);
+    resi = i;
+  }
+  else
+  {
+    /* will bind against everything, just set port */
+    if (disablev6)
+    {
+      /* V4-only */
+      resi = 1;
+      i = 0;
+      saddrs = GNUNET_malloc ((resi + 1) * sizeof (struct sockaddr *));
+      saddrlens = GNUNET_malloc ((resi + 1) * sizeof (socklen_t));
+
+      saddrlens[i] = sizeof (struct sockaddr_in);
+      saddrs[i] = GNUNET_malloc (saddrlens[i]);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      ((struct sockaddr_in *) saddrs[i])->sin_len = saddrlens[i];
+#endif
+      ((struct sockaddr_in *) saddrs[i])->sin_family = AF_INET;
+      ((struct sockaddr_in *) saddrs[i])->sin_port = htons (port);
+    }
+    else
+    {
+      /* dual stack */
+      resi = 2;
+      saddrs = GNUNET_malloc ((resi + 1) * sizeof (struct sockaddr *));
+      saddrlens = GNUNET_malloc ((resi + 1) * sizeof (socklen_t));
+      i = 0;
+      saddrlens[i] = sizeof (struct sockaddr_in6);
+      saddrs[i] = GNUNET_malloc (saddrlens[i]);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      ((struct sockaddr_in6 *) saddrs[i])->sin6_len = saddrlens[0];
+#endif
+      ((struct sockaddr_in6 *) saddrs[i])->sin6_family = AF_INET6;
+      ((struct sockaddr_in6 *) saddrs[i])->sin6_port = htons (port);
+      i++;
+      saddrlens[i] = sizeof (struct sockaddr_in);
+      saddrs[i] = GNUNET_malloc (saddrlens[i]);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      ((struct sockaddr_in *) saddrs[i])->sin_len = saddrlens[1];
+#endif
+      ((struct sockaddr_in *) saddrs[i])->sin_family = AF_INET;
+      ((struct sockaddr_in *) saddrs[i])->sin_port = htons (port);
+    }
+  }
+  *addrs = saddrs;
+  *addr_lens = saddrlens;
+  return resi;
+}
 
 static void
 start_report_addresses (struct Plugin *plugin)
@@ -789,12 +987,10 @@ start_report_addresses (struct Plugin *plugin)
   socklen_t *addrlens;
 
   res =
-      GNUNET_SERVICE_get_server_addresses (plugin->name, plugin->env->cfg,
+      http_get_addresses (plugin, plugin->name, plugin->env->cfg,
                                            &addrs, &addrlens);
-#if 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("FOUND %u addresses\n"),res);
-#endif
+                   _("Found %u addresses to report to NAT service\n"),res);
 
   if (res != GNUNET_SYSERR)
   {
@@ -907,7 +1103,7 @@ configure_plugin (struct Plugin *plugin)
   plugin->client_only = GNUNET_NO;
   if (plugin->port == 0)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    _("Port 0, client only mode\n"));
     plugin->client_only = GNUNET_YES;
   }
