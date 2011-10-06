@@ -82,10 +82,7 @@ transmit_response (void *cls, size_t size, void *buf)
 
   if (buf == NULL)
   {
-    GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
-    GNUNET_SERVER_client_drop (tc->client);
-    GNUNET_free_non_null (tc->buf);
-    GNUNET_free (tc);
+    GNUNET_SERVER_transmit_context_destroy (tc, GNUNET_SYSERR);
     return 0;
   }
   if (tc->total - tc->off > size)
@@ -96,6 +93,7 @@ transmit_response (void *cls, size_t size, void *buf)
   tc->off += msize;
   if (tc->total == tc->off)
   {
+
     GNUNET_SERVER_receive_done (tc->client, GNUNET_OK);
     GNUNET_SERVER_client_drop (tc->client);
     GNUNET_free_non_null (tc->buf);
@@ -112,10 +110,7 @@ transmit_response (void *cls, size_t size, void *buf)
                                              tc))
     {
       GNUNET_break (0);
-      GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
-      GNUNET_SERVER_client_drop (tc->client);
-      GNUNET_free_non_null (tc->buf);
-      GNUNET_free (tc);
+      GNUNET_SERVER_transmit_context_destroy (tc, GNUNET_SYSERR);
     }
   }
   return msize;
@@ -219,11 +214,33 @@ GNUNET_SERVER_transmit_context_run (struct GNUNET_SERVER_TransmitContext *tc,
                                            &transmit_response, tc))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (tc->client, GNUNET_SYSERR);
-    GNUNET_SERVER_client_drop (tc->client);
-    GNUNET_free_non_null (tc->buf);
-    GNUNET_free (tc);
+    GNUNET_SERVER_transmit_context_destroy (tc, GNUNET_SYSERR);
   }
 }
+
+
+/**
+ * Destroy a transmission context. This function must not be called
+ * after 'GNUNET_SERVER_transmit_context_run'.
+ *
+ * @param tc transmission context to destroy
+ * @param success code to give to 'GNUNET_SERVER_receive_done' for
+ *        the client:  GNUNET_OK to keep the connection open and
+ *                          continue to receive
+ *                GNUNET_NO to close the connection (normal behavior)
+ *                GNUNET_SYSERR to close the connection (signal
+ *                          serious error)
+ */
+void
+GNUNET_SERVER_transmit_context_destroy (struct GNUNET_SERVER_TransmitContext
+                                        *tc,
+					int success)
+{
+  GNUNET_SERVER_receive_done (tc->client, success);
+  GNUNET_SERVER_client_drop (tc->client);
+  GNUNET_free_non_null (tc->buf);
+  GNUNET_free (tc);
+}
+
 
 /* end of server_tc.c */
