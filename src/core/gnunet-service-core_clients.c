@@ -29,6 +29,8 @@
 #include "gnunet_service_core.h"
 #include "gnunet_service_core_clients.h"
 #include "gnunet_service_core_sessions.h"
+#include "gnunet_service_core_typemap.h"
+
 
 
 /**
@@ -80,74 +82,42 @@ struct Client
 
 
 /**
- * Record kept for each request for transmission issued by a
- * client that is still pending.
+ * Head of linked list of our clients.
  */
-struct ClientActiveRequest
-{
-
-  /**
-   * Active requests are kept in a doubly-linked list of
-   * the respective target peer.
-   */
-  struct ClientActiveRequest *next;
-
-  /**
-   * Active requests are kept in a doubly-linked list of
-   * the respective target peer.
-   */
-  struct ClientActiveRequest *prev;
-
-  /**
-   * Handle to the client.
-   */
-  struct Client *client;
-
-  /**
-   * By what time would the client want to see this message out?
-   */
-  struct GNUNET_TIME_Absolute deadline;
-
-  /**
-   * How important is this request.
-   */
-  uint32_t priority;
-
-  /**
-   * How many more requests does this client have?
-   */
-  uint32_t queue_size;
-
-  /**
-   * How many bytes does the client intend to send?
-   */
-  uint16_t msize;
-
-  /**
-   * Unique request ID (in big endian).
-   */
-  uint16_t smr_id;
-
-};
-
-
+static struct Client *client_head;
 
 /**
- * Linked list of our clients.
+ * Tail of linked list of our clients.
  */
-static struct Client *clients;
+static struct Client *client_tail;
 
 /**
  * Context for notifications we need to send to our clients.
  */
 static struct GNUNET_SERVER_NotificationContext *notifier;
 
+/**
+ * Tokenizer for messages received from clients.
+ */
+static struct GNUNET_SERVER_MessageStreamTokenizer *client_mst;
+
 
 /**
- * Our message stream tokenizer (for encrypted payload).
+ * Lookup our client struct given the server's client handle.
+ *
+ * @param client server client handle to look up
+ * @return our client handle for the client
  */
-static struct GNUNET_SERVER_MessageStreamTokenizer *mst;
+static struct Client *
+find_client (struct GNUNET_SERVER_Client *client)
+{
+  struct Client *c;
 
+  c = client_head;
+  while ((c != NULL) && (c->client_handle != client))
+    c = c->next;
+  return c;
+}
 
 
 /**
@@ -159,7 +129,8 @@ static struct GNUNET_SERVER_MessageStreamTokenizer *mst;
  *        client's queue is getting too large?
  */
 static void
-send_to_client (struct Client *client, const struct GNUNET_MessageHeader *msg,
+send_to_client (struct Client *client, 
+		const struct GNUNET_MessageHeader *msg,
                 int can_drop)
 {
 #if DEBUG_CORE_CLIENT
@@ -173,79 +144,142 @@ send_to_client (struct Client *client, const struct GNUNET_MessageHeader *msg,
 }
 
 
+/**
+ * Test if the client is interested in messages of the given type.
+ *
+ * @param type message type
+ * @param c client to test
+ * @return GNUNET_YES if 'c' is interested, GNUNET_NO if not.
+ */
+static int
+type_match (uint16_t type,
+	    struct Client *c)
+{
+  unsigned int i;
 
+  for (i=0;i<c->tcnt;i++)
+    if (type == c->types[i])
+      return GNUNET_YES;
+  return GNUNET_NO;
+}
 
 
 /**
- * Send a message to all of our current clients that have
- * the right options set.
+ * Send a message to all of our current clients that have the right
+ * options set.
  *
  * @param msg message to multicast
  * @param can_drop can this message be discarded if the queue is too long
  * @param options mask to use
+ * @param type type of the embedded message, 0 for none
  */
 static void
-send_to_all_clients (const struct GNUNET_MessageHeader *msg, int can_drop,
-                     int options)
+send_to_all_clients (const struct GNUNET_MessageHeader *msg, 
+		     int can_drop,
+                     int options,
+		     uint16_t type)
 {
   struct Client *c;
 
-  c = clients;
-  while (c != NULL)
+  for (c = client_head; c != NULL; c = c->next)
   {
-    if (0 != (c->options & options))
-    {
+    if ( (0 == (c->options & options)) &&
+	 (GNUNET_YES != type_match (type, c)) )
+      continue;
 #if DEBUG_CORE_CLIENT > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending message of type %u to client.\n",
-                  (unsigned int) ntohs (msg->type));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Sending message of type %u to client.\n",
+		(unsigned int) ntohs (msg->type));
 #endif
-      send_to_client (c, msg, can_drop);
-    }
-    c = c->next;
+    send_to_client (c, msg, can_drop);
   }
 }
 
 
+/**
+ * Handle CORE_INIT request.
+ *
+ * @param cls unused
+ * @param client new client that sent INIT
+ * @param message the 'struct InitMessage' (presumably)
+ */
+static void
+handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *message)
+{
+  const struct InitMessage *im;
+  struct InitReplyMessage irm;
+  struct Client *c;
+  uint16_t msize;
+  const uint16_t *types;
+  uint16_t *wtypes;
+  unsigned int i;
+
+  /* check that we don't have an entry already */
+  c = find_client (client);
+  if (NULL != c)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct InitMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_SERVER_notification_context_add (notifier, client);
+  im = (const struct InitMessage *) message;
+  types = (const uint16_t *) &im[1];
+  msize -= sizeof (struct InitMessage);
+  c = GNUNET_malloc (sizeof (struct Client) + msize);
+  c->client_handle = client;
+  c->tcnt = msize / sizeof (uint16_t);
+  c->options = ntohl (im->options);
+  c->types = (const uint16_t *) &c[1];
+  wtypes = (uint16_t *) & c[1];
+  for (i = 0; i < c->tcnt; i++)
+    wtypes[i] = ntohs (types[i]);
+  GSC_TYPEMAP_add (wtypes, c->tcnt);
+  GNUNET_CONTAINER_DLL_insert (client_head,
+			       client_tail,
+			       c);
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client connecting to core service is interested in %u message types\n", 
+              (unsigned int) c->tcnt);
+#endif
+  /* send init reply message */
+  irm.header.size = htons (sizeof (struct InitReplyMessage));
+  irm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY);
+  irm.reserved = htonl (0);
+  irm.publicKey = GSC_my_public_key;
+  send_to_client (c, &irm.header, GNUNET_NO);
+  if (0 != (c->options & GNUNET_CORE_OPTION_SEND_CONNECT))
+    GSC_SESSIONS_notify_client_about_sessions (c);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
 
 /**
  * Handle CORE_SEND_REQUEST message.
+ *
+ * @param cls unused
+ * @param client new client that sent CORE_SEND_REQUEST
+ * @param message the 'struct InitMessage' (presumably)
  */
 static void
 handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct SendMessageRequest *req;
-  struct Neighbour *n;
   struct Client *c;
   struct ClientActiveRequest *car;
 
   req = (const struct SendMessageRequest *) message;
-  if (0 ==
-      memcmp (&req->peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
-    n = &self;
-  else
-    n = find_neighbour (&req->peer);
-  if ((n == NULL) || (GNUNET_YES != n->is_connected) ||
-      (n->status != PEER_STATE_KEY_CONFIRMED))
-  {
-    /* neighbour must have disconnected since request was issued,
-     * ignore (client will realize it once it processes the
-     * disconnect notification) */
-#if DEBUG_CORE_CLIENT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Dropped client request for transmission (am disconnected)\n");
-#endif
-    GNUNET_STATISTICS_update (stats,
-                              gettext_noop
-                              ("# send requests dropped (disconnected)"), 1,
-                              GNUNET_NO);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-  c = clients;
-  while ((c != NULL) && (c->client_handle != client))
-    c = c->next;
+  c = find_client (client);
   if (c == NULL)
   {
     /* client did not send INIT first! */
@@ -255,10 +289,6 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
   }
   if (c->requests == NULL)
     c->requests = GNUNET_CONTAINER_multihashmap_create (16);
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received client transmission request. queueing\n");
-#endif
   car = GNUNET_CONTAINER_multihashmap_get (c->requests, &req->peer.hashPubKey);
   if (car == NULL)
   {
@@ -269,18 +299,199 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
                                                       &req->peer.hashPubKey,
                                                       car,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-    GNUNET_CONTAINER_DLL_insert (n->active_client_request_head,
-                                 n->active_client_request_tail, car);
     car->client = c;
   }
+  car->target = req->peer;
+  GNUNET_SERVER_client_keep (client);
+  car->client_handle = client;
   car->deadline = GNUNET_TIME_absolute_ntoh (req->deadline);
   car->priority = ntohl (req->priority);
-  car->queue_size = ntohl (req->queue_size);
   car->msize = ntohs (req->size);
   car->smr_id = req->smr_id;
-  schedule_peer_messages (n);
+  if (0 ==
+      memcmp (&req->peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+    GSC_CLIENTS_solicit_request (car);
+  else
+    GSC_SESSIONS_queue_request (car);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
+
+
+/**
+ * Handle CORE_SEND request.
+ *
+ * @param cls unused
+ * @param client the client issuing the request
+ * @param message the "struct SendMessage"
+ */
+static void
+handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *message)
+{
+  const struct SendMessage *sm;
+  struct Client *c;
+  struct ClientActiveRequest *car;
+  uint16_t msize;
+
+  msize = ntohs (message->size);
+  if (msize <
+      sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  sm = (const struct SendMessage *) message;
+  msize -= sizeof (struct SendMessage);
+  GNUNET_break (0 == ntohl (sm->reserved));
+  c = find_client (client);
+  if (c == NULL)
+  {
+    /* client did not send INIT first! */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  car = GNUNET_CONTAINER_multihashmap_get (c->requests, &sm->peer.hashPubKey);
+  if (NULL == car)
+  {
+    /* client did not request transmission first! */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (c->requests, 
+						       &sm->peer.hashPubKey,
+						       car));
+  GNUNET_SERVER_mst_receive (client_mst,
+			     car, 
+			     &sm[1], msize,
+			     GNUNET_YES,
+			     GNUNET_NO);
+  if (0 !=
+      memcmp (&car->peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
+    GSC_SESSIONS_dequeue_request (car);
+  GNUNET_free (car);  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Functions with this signature are called whenever a complete
+ * message is received by the tokenizer.  Used by the 'client_mst' for
+ * dispatching messages from clients to either the SESSION subsystem
+ * or other CLIENT (for loopback).
+ *
+ * @param cls closure
+ * @param client reservation request ('struct ClientActiveRequest')
+ * @param message the actual message
+ */
+static void
+client_tokenizer_callback (void *cls, void *client,
+			   const struct GNUNET_MessageHeader *message)
+{
+  struct ClientActiveRequest *car = client;
+
+  if (0 ==
+      memcmp (&car->peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
+    GDS_CLIENTS_deliver_message (&GSC_my_identity, &payload->header);  
+  else
+    GSC_SESSIONS_transmit (car, &payload->header);
+}
+
+
+/**
+ * Free client request records.
+ *
+ * @param cls NULL
+ * @param key identity of peer for which this is an active request
+ * @param value the 'struct ClientActiveRequest' to free
+ * @return GNUNET_YES (continue iteration)
+ */
+static int
+destroy_active_client_request (void *cls, const GNUNET_HashCode * key,
+                               void *value)
+{
+  struct ClientActiveRequest *car = value;
+
+  GSC_SESSIONS_dequeue_request (car);
+  GNUNET_free (car);
+  return GNUNET_YES;
+}
+
+
+/**
+ * A client disconnected, clean up.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ */
+static void
+handle_client_disconnect (void *cls,
+			  struct GNUNET_SERVER_Client *client)
+{
+  struct Client *c;
+
+  if (client == NULL)
+    return;
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p has disconnected from core service.\n", client);
+#endif
+  c = find_client (client);
+  if (c == NULL)
+    return; /* client never sent INIT */
+  GNUNET_CONTAINER_DLL_remove (client_head,
+			       client_tail,
+			       c);
+  if (c->requests != NULL)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (c->requests,
+                                           &destroy_active_client_request,
+                                           NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (c->requests);
+  }
+  GSC_TYPEMAP_remove (c->types, c->tcnt);
+  GNUNET_free (c);
+}
+
+
+
+
+
+
+// FIXME from here.......................................
+
+
+
+/**
+ * Tell a client that we are ready to receive the message.
+ *
+ * @param car request that is now ready; the responsibility
+ *        for the handle remains shared between CLIENTS
+ *        and SESSIONS after this call.
+ */
+void
+GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
+{
+}
+
+
+/**
+ * Tell a client that we will never be ready to receive the
+ * given message in time (disconnect or timeout).
+ *
+ * @param car request that now permanently failed; the
+ *        responsibility for the handle is now returned
+ *        to CLIENTS (SESSIONS is done with it).
+ */
+void
+GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
+{
+}
+
+
 
 
 /**
@@ -330,343 +541,6 @@ notify_client_about_neighbour (void *cls, const GNUNET_HashCode * key,
   return GNUNET_OK;
 }
 
-
-
-/**
- * Handle CORE_INIT request.
- */
-static void
-handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
-                    const struct GNUNET_MessageHeader *message)
-{
-  const struct InitMessage *im;
-  struct InitReplyMessage irm;
-  struct Client *c;
-  uint16_t msize;
-  const uint16_t *types;
-  uint16_t *wtypes;
-  unsigned int i;
-
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client connecting to core service with `%s' message\n", "INIT");
-#endif
-  /* check that we don't have an entry already */
-  c = clients;
-  while (c != NULL)
-  {
-    if (client == c->client_handle)
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-    c = c->next;
-  }
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct InitMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  GNUNET_SERVER_notification_context_add (notifier, client);
-  im = (const struct InitMessage *) message;
-  types = (const uint16_t *) &im[1];
-  msize -= sizeof (struct InitMessage);
-  c = GNUNET_malloc (sizeof (struct Client) + msize);
-  c->client_handle = client;
-  c->next = clients;
-  clients = c;
-  c->tcnt = msize / sizeof (uint16_t);
-  c->types = (const uint16_t *) &c[1];
-  wtypes = (uint16_t *) & c[1];
-  for (i = 0; i < c->tcnt; i++)
-  {
-    wtypes[i] = ntohs (types[i]);
-    my_type_map[wtypes[i] / 32] |= (1 << (wtypes[i] % 32));
-  }
-  if (c->tcnt > 0)
-    broadcast_my_type_map ();
-  c->options = ntohl (im->options);
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client %p is interested in %u message types\n", c,
-              (unsigned int) c->tcnt);
-#endif
-  /* send init reply message */
-  irm.header.size = htons (sizeof (struct InitReplyMessage));
-  irm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY);
-  irm.reserved = htonl (0);
-  memcpy (&irm.publicKey, &my_public_key,
-          sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
-              "INIT_REPLY");
-#endif
-  send_to_client (c, &irm.header, GNUNET_NO);
-  if (0 != (c->options & GNUNET_CORE_OPTION_SEND_CONNECT))
-  {
-    /* notify new client about existing neighbours */
-    GNUNET_CONTAINER_multihashmap_iterate (neighbours,
-                                           &notify_client_about_neighbour, c);
-  }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
- * Free client request records.
- *
- * @param cls NULL
- * @param key identity of peer for which this is an active request
- * @param value the 'struct ClientActiveRequest' to free
- * @return GNUNET_YES (continue iteration)
- */
-static int
-destroy_active_client_request (void *cls, const GNUNET_HashCode * key,
-                               void *value)
-{
-  struct ClientActiveRequest *car = value;
-  struct Neighbour *n;
-  struct GNUNET_PeerIdentity peer;
-
-  peer.hashPubKey = *key;
-  n = find_neighbour (&peer);
-  GNUNET_assert (NULL != n);
-  GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
-                               n->active_client_request_tail, car);
-  GNUNET_free (car);
-  return GNUNET_YES;
-}
-
-
-/**
- * A client disconnected, clean up.
- *
- * @param cls closure
- * @param client identification of the client
- */
-static void
-handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
-{
-  struct Client *pos;
-  struct Client *prev;
-  unsigned int i;
-  const uint16_t *wtypes;
-
-  if (client == NULL)
-    return;
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client %p has disconnected from core service.\n", client);
-#endif
-  prev = NULL;
-  pos = clients;
-  while (pos != NULL)
-  {
-    if (client == pos->client_handle)
-      break;
-    prev = pos;
-    pos = pos->next;
-  }
-  if (pos == NULL)
-  {
-    /* client never sent INIT */
-    return;
-  }
-  if (prev == NULL)
-    clients = pos->next;
-  else
-    prev->next = pos->next;
-  if (pos->requests != NULL)
-  {
-    GNUNET_CONTAINER_multihashmap_iterate (pos->requests,
-                                           &destroy_active_client_request,
-                                           NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (pos->requests);
-  }
-  GNUNET_free (pos);
-
-  /* rebuild my_type_map */
-  memset (my_type_map, 0, sizeof (my_type_map));
-  for (pos = clients; NULL != pos; pos = pos->next)
-  {
-    wtypes = (const uint16_t *) &pos[1];
-    for (i = 0; i < pos->tcnt; i++)
-      my_type_map[wtypes[i] / 32] |= (1 << (wtypes[i] % 32));
-  }
-  broadcast_my_type_map ();
-}
-
-
-
-
-
-/**
- * Handle CORE_SEND request.
- *
- * @param cls unused
- * @param client the client issuing the request
- * @param message the "struct SendMessage"
- */
-static void
-handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
-                    const struct GNUNET_MessageHeader *message)
-{
-  const struct SendMessage *sm;
-  struct Neighbour *n;
-  struct MessageEntry *prev;
-  struct MessageEntry *pos;
-  struct MessageEntry *e;
-  struct MessageEntry *min_prio_entry;
-  struct MessageEntry *min_prio_prev;
-  unsigned int min_prio;
-  unsigned int queue_size;
-  uint16_t msize;
-
-  msize = ntohs (message->size);
-  if (msize <
-      sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "msize is %u, should be at least %u (in %s:%d)\n", msize,
-                sizeof (struct SendMessage) +
-                sizeof (struct GNUNET_MessageHeader), __FILE__, __LINE__);
-    GNUNET_break (0);
-    if (client != NULL)
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  sm = (const struct SendMessage *) message;
-  msize -= sizeof (struct SendMessage);
-  if (0 ==
-      memcmp (&sm->peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
-  {
-    /* loopback */
-    GNUNET_SERVER_mst_receive (mst, &self, (const char *) &sm[1], msize,
-                               GNUNET_YES, GNUNET_NO);
-    if (client != NULL)
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-  n = find_neighbour (&sm->peer);
-  if ((n == NULL) || (GNUNET_YES != n->is_connected) ||
-      (n->status != PEER_STATE_KEY_CONFIRMED))
-  {
-    /* attempt to send message to peer that is not connected anymore
-     * (can happen due to asynchrony) */
-    GNUNET_STATISTICS_update (stats,
-                              gettext_noop
-                              ("# messages discarded (disconnected)"), 1,
-                              GNUNET_NO);
-    if (client != NULL)
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core received `%s' request, queueing %u bytes of plaintext data for transmission to `%4s'.\n",
-              "SEND", (unsigned int) msize, GNUNET_i2s (&sm->peer));
-#endif
-  discard_expired_messages (n);
-  /* bound queue size */
-  /* NOTE: this entire block to bound the queue size should be
-   * obsolete with the new client-request code and the
-   * 'schedule_peer_messages' mechanism; we still have this code in
-   * here for now as a sanity check for the new mechanmism;
-   * ultimately, we should probably simply reject SEND messages that
-   * are not 'approved' (or provide a new core API for very unreliable
-   * delivery that always sends with priority 0).  Food for thought. */
-  min_prio = UINT32_MAX;
-  min_prio_entry = NULL;
-  min_prio_prev = NULL;
-  queue_size = 0;
-  prev = NULL;
-  pos = n->messages;
-  while (pos != NULL)
-  {
-    if (pos->priority <= min_prio)
-    {
-      min_prio_entry = pos;
-      min_prio_prev = prev;
-      min_prio = pos->priority;
-    }
-    queue_size++;
-    prev = pos;
-    pos = pos->next;
-  }
-  if (queue_size >= MAX_PEER_QUEUE_SIZE)
-  {
-    /* queue full */
-    if (ntohl (sm->priority) <= min_prio)
-    {
-      /* discard new entry; this should no longer happen! */
-      GNUNET_break (0);
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Queue full (%u/%u), discarding new request (%u bytes of type %u)\n",
-                  queue_size, (unsigned int) MAX_PEER_QUEUE_SIZE,
-                  (unsigned int) msize, (unsigned int) ntohs (message->type));
-#endif
-      GNUNET_STATISTICS_update (stats,
-                                gettext_noop ("# discarded CORE_SEND requests"),
-                                1, GNUNET_NO);
-
-      if (client != NULL)
-        GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
-    GNUNET_assert (min_prio_entry != NULL);
-    /* discard "min_prio_entry" */
-#if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Queue full, discarding existing older request\n");
-#endif
-    GNUNET_STATISTICS_update (stats,
-                              gettext_noop
-                              ("# discarded lower priority CORE_SEND requests"),
-                              1, GNUNET_NO);
-    if (min_prio_prev == NULL)
-      n->messages = min_prio_entry->next;
-    else
-      min_prio_prev->next = min_prio_entry->next;
-    GNUNET_free (min_prio_entry);
-  }
-
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding transmission request for `%4s' of size %u to queue\n",
-              GNUNET_i2s (&sm->peer), (unsigned int) msize);
-#endif
-  GNUNET_break (0 == ntohl (sm->reserved));
-  e = GNUNET_malloc (sizeof (struct MessageEntry) + msize);
-  e->deadline = GNUNET_TIME_absolute_ntoh (sm->deadline);
-  e->priority = ntohl (sm->priority);
-  e->size = msize;
-  if (GNUNET_YES != (int) ntohl (sm->cork))
-    e->got_slack = GNUNET_YES;
-  memcpy (&e[1], &sm[1], msize);
-
-  /* insert, keep list sorted by deadline */
-  prev = NULL;
-  pos = n->messages;
-  while ((pos != NULL) && (pos->deadline.abs_value < e->deadline.abs_value))
-  {
-    prev = pos;
-    pos = pos->next;
-  }
-  if (prev == NULL)
-    n->messages = e;
-  else
-    prev->next = e;
-  e->next = pos;
-
-  /* consider scheduling now */
-  process_plaintext_neighbour_queue (n);
-  if (client != NULL)
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
 
 
 /**
@@ -956,16 +830,36 @@ send_p2p_message_to_client (struct Neighbour *sender, struct Client *client,
 
 
 
+/**
+ * Notify a particular client about a change to existing connection to
+ * one of our neighbours (check if the client is interested).  Called
+ * from 'GSC_SESSIONS_notify_client_about_sessions'.
+ *
+ * @param client client to notify
+ * @param neighbour identity of the neighbour that changed status
+ * @param tmap_old previous type map for the neighbour, NULL for disconnect
+ * @param tmap_new updated type map for the neighbour, NULL for disconnect
+ */
+void
+GDS_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
+					   const struct GNUNET_PeerIdentity *neighbour,
+					   const struct GSC_TypeMap *tmap_old,
+					   const struct GSC_TypeMap *tmap_new)
+{
+}
+
 
 /**
  * Notify client about a change to existing connection to one of our neighbours.
  *
  * @param neighbour identity of the neighbour that changed status
- * @param tmap updated type map for the neighbour, NULL for disconnect
+ * @param tmap_old previous type map for the neighbour, NULL for disconnect
+ * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
 GDS_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
-					    const struct GSC_TypeMap *tmap)
+					    const struct GSC_TypeMap *tmap_old,
+					    const struct GSC_TypeMap *tmap_new)
 {
 }
 
@@ -1050,7 +944,11 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
 }
 
 
-
+/**
+ * Initialize clients subsystem.
+ *
+ * @param server handle to server clients connect to
+ */
 void
 GSC_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
 {
@@ -1076,27 +974,28 @@ GSC_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
   };
 
   /* setup notification */
+  client_mst = GNUNET_SERVER_mst_create (&client_tokenizer_callback, NULL);
   notifier =
       GNUNET_SERVER_notification_context_create (server, MAX_NOTIFY_QUEUE);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
-  mst = GNUNET_SERVER_mst_create (&deliver_message, NULL);
 }
 
 
+/**
+ * Shutdown clients subsystem.
+ */
 void
 GSC_CLIENTS_done ()
 {
   struct Client *c;
 
-  while (NULL != (c = clients))
+  while (NULL != (c = client_head))  
     handle_client_disconnect (NULL, c->client_handle);
   GNUNET_SERVER_notification_context_destroy (notifier);
   notifier = NULL;
-  if (mst != NULL)
-    {
-      GNUNET_SERVER_mst_destroy (mst);
-      mst = NULL;
-    }
-
+  GNUNET_SERVER_MST_destroy (client_mst);
+  client_mst = NULL;
 }
+
+/* end of gnunet-service-core_clients.c */

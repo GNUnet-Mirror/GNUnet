@@ -32,7 +32,7 @@
 
 /**
  * End the session with the given peer (we are no longer
- * connected).
+ * connected). 
  *
  * @param pid identity of peer to kill session with
  */
@@ -41,14 +41,58 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid);
 
 
 /**
- * Traffic is being solicited for the given peer.  This means that
- * the message queue on the transport-level is now empty and it
- * is now OK to transmit another (non-control) message.
+ * Traffic is being solicited for the given peer.  This means that the
+ * message queue on the transport-level (NEIGHBOURS subsystem) is now
+ * empty and it is now OK to transmit another (non-control) message.
  *
  * @param pid identity of peer ready to receive data
  */
 void
 GSC_SESSIONS_solicit (const struct GNUNET_PeerIdentity *pid);
+
+
+/**
+ * Queue a request from a client for transmission to a particular peer.
+ *
+ * @param car request to queue; this handle is then shared between
+ *         the caller (CLIENTS subsystem) and SESSIONS and must not
+ *         be released by either until either 'GNUNET_SESSIONS_dequeue',
+ *         or 'GNUNET_CLIENTS_failed'
+ *         have been invoked on it
+ */
+void
+GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car);
+
+
+/**
+ * Dequeue a request from a client from transmission to a particular peer.
+ *
+ * @param car request to dequeue; this handle will then be 'owned' by
+ *        the caller (CLIENTS sysbsystem)
+ */
+void
+GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car);
+
+
+/**
+ * Transmit a message to a particular peer.
+ *
+ * @param car original request that was queued and then solicited,
+ *            ownership does not change (dequeue will be called soon).
+ * @param msg message to transmit
+ */
+void
+GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
+		       const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * We have a new client, notify it about all current sessions.
+ *
+ * @param client the new client
+ */
+void
+GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client);
 
 
 /**

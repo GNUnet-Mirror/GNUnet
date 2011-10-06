@@ -199,8 +199,10 @@ const struct GNUNET_CONFIGURATION_Handle *GSC_cfg;
  */
 struct GNUNET_STATISTICS_Handle *GSC_stats;
 
-
-
+/**
+ * Our message stream tokenizer (for encrypted payload).
+ */
+struct GNUNET_SERVER_MessageStreamTokenizer *GSC_mst;
 
 
 /**
@@ -211,10 +213,22 @@ static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service shutting down.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Core service shutting down.\n");
 #endif
-  if (stats != NULL)
-    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+  GSC_CLIENTS_done ();
+
+  if (GSC_mst != NULL)
+  {
+    GNUNET_SERVER_mst_destroy (GSC_mst);
+    GSC_mst = NULL;
+  }
+  if (GSC_stats != NULL)
+  {
+    GNUNET_STATISTICS_destroy (GSC_stats, GNUNET_NO);
+    GSC_stats = NULL;
+  }
+  GSC_cfg = NULL;
 }
 
 
@@ -229,12 +243,13 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  cfg = c;
-  /* setup transport connection */
-  stats = GNUNET_STATISTICS_create ("core", cfg);
+  GSC_cfg = c;  
+  GSC_mst = GNUNET_SERVER_mst_create (&deliver_message, NULL);
+  GSC_stats = GNUNET_STATISTICS_create ("core", cfg);
+
+  GSC_CLIENTS_init (server);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleaning_task,
                                 NULL);
-  /* process client requests */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Core service of `%4s' ready.\n"),
               GNUNET_i2s (&my_identity));
 }

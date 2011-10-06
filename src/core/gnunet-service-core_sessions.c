@@ -1161,6 +1161,219 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
 }
 
 
+
+/**
+ * We have a new client, notify it about all current sessions.
+ *
+ * @param client the new client
+ */
+void
+GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client)
+{
+  /* notify new client about existing neighbours */
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &notify_client_about_neighbour, client);
+}
+
+
+/**
+ * Queue a request from a client for transmission to a particular peer.
+ *
+ * @param car request to queue; this handle is then shared between
+ *         the caller (CLIENTS subsystem) and SESSIONS and must not
+ *         be released by either until either 'GNUNET_SESSIONS_dequeue',
+ *         'GNUNET_SESSIONS_transmit' or 'GNUNET_CLIENTS_failed'
+ *         have been invoked on it
+ */
+void
+GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
+{
+  struct Neighbour *n; // FIXME: session...
+
+  n = find_neighbour (&car->peer);
+  if ((n == NULL) || (GNUNET_YES != n->is_connected) ||
+      (n->status != PEER_STATE_KEY_CONFIRMED))
+  {
+    /* neighbour must have disconnected since request was issued,
+     * ignore (client will realize it once it processes the
+     * disconnect notification) */
+#if DEBUG_CORE_CLIENT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Dropped client request for transmission (am disconnected)\n");
+#endif
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop
+                              ("# send requests dropped (disconnected)"), 1,
+                              GNUNET_NO);
+    GSC_CLIENTS_reject_requests (car);
+    return;
+  }
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received client transmission request. queueing\n");
+#endif
+    GNUNET_CONTAINER_DLL_insert (n->active_client_request_head,
+                                 n->active_client_request_tail, car);
+
+  // schedule_peer_messages (n);
+}
+
+
+/**
+ * Dequeue a request from a client from transmission to a particular peer.
+ *
+ * @param car request to dequeue; this handle will then be 'owned' by
+ *        the caller (CLIENTS sysbsystem)
+ */
+void
+GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car)
+{
+  struct Session *s;
+
+  s = find_session (&car->peer);
+  GNUNET_CONTAINER_DLL_remove (s->active_client_request_head,
+                               s->active_client_request_tail, car);
+}
+
+
+
+/**
+ * Transmit a message to a particular peer.
+ *
+ * @param car original request that was queued and then solicited;
+ *            this handle will now be 'owned' by the SESSIONS subsystem
+ * @param msg message to transmit
+ */
+void
+GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
+		       const struct GNUNET_MessageHeader *msg)
+{
+  struct MessageEntry *prev;
+  struct MessageEntry *pos;
+  struct MessageEntry *e;
+  struct MessageEntry *min_prio_entry;
+  struct MessageEntry *min_prio_prev;
+  unsigned int min_prio;
+  unsigned int queue_size;
+
+  n = find_neighbour (&sm->peer);
+  if ((n == NULL) || (GNUNET_YES != n->is_connected) ||
+      (n->status != PEER_STATE_KEY_CONFIRMED))
+  {
+    /* attempt to send message to peer that is not connected anymore
+     * (can happen due to asynchrony) */
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop
+                              ("# messages discarded (disconnected)"), 1,
+                              GNUNET_NO);
+    if (client != NULL)
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core received `%s' request, queueing %u bytes of plaintext data for transmission to `%4s'.\n",
+              "SEND", (unsigned int) msize, GNUNET_i2s (&sm->peer));
+#endif
+  discard_expired_messages (n);
+  /* bound queue size */
+  /* NOTE: this entire block to bound the queue size should be
+   * obsolete with the new client-request code and the
+   * 'schedule_peer_messages' mechanism; we still have this code in
+   * here for now as a sanity check for the new mechanmism;
+   * ultimately, we should probably simply reject SEND messages that
+   * are not 'approved' (or provide a new core API for very unreliable
+   * delivery that always sends with priority 0).  Food for thought. */
+  min_prio = UINT32_MAX;
+  min_prio_entry = NULL;
+  min_prio_prev = NULL;
+  queue_size = 0;
+  prev = NULL;
+  pos = n->messages;
+  while (pos != NULL)
+  {
+    if (pos->priority <= min_prio)
+    {
+      min_prio_entry = pos;
+      min_prio_prev = prev;
+      min_prio = pos->priority;
+    }
+    queue_size++;
+    prev = pos;
+    pos = pos->next;
+  }
+  if (queue_size >= MAX_PEER_QUEUE_SIZE)
+  {
+    /* queue full */
+    if (ntohl (sm->priority) <= min_prio)
+    {
+      /* discard new entry; this should no longer happen! */
+      GNUNET_break (0);
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Queue full (%u/%u), discarding new request (%u bytes of type %u)\n",
+                  queue_size, (unsigned int) MAX_PEER_QUEUE_SIZE,
+                  (unsigned int) msize, (unsigned int) ntohs (message->type));
+#endif
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# discarded CORE_SEND requests"),
+                                1, GNUNET_NO);
+
+      if (client != NULL)
+        GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
+    GNUNET_assert (min_prio_entry != NULL);
+    /* discard "min_prio_entry" */
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Queue full, discarding existing older request\n");
+#endif
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop
+                              ("# discarded lower priority CORE_SEND requests"),
+                              1, GNUNET_NO);
+    if (min_prio_prev == NULL)
+      n->messages = min_prio_entry->next;
+    else
+      min_prio_prev->next = min_prio_entry->next;
+    GNUNET_free (min_prio_entry);
+  }
+
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding transmission request for `%4s' of size %u to queue\n",
+              GNUNET_i2s (&sm->peer), (unsigned int) msize);
+#endif
+  e = GNUNET_malloc (sizeof (struct MessageEntry) + msize);
+  e->deadline = GNUNET_TIME_absolute_ntoh (sm->deadline);
+  e->priority = ntohl (sm->priority);
+  e->size = msize;
+  if (GNUNET_YES != (int) ntohl (sm->cork))
+    e->got_slack = GNUNET_YES;
+  memcpy (&e[1], &sm[1], msize);
+
+  /* insert, keep list sorted by deadline */
+  prev = NULL;
+  pos = n->messages;
+  while ((pos != NULL) && (pos->deadline.abs_value < e->deadline.abs_value))
+  {
+    prev = pos;
+    pos = pos->next;
+  }
+  if (prev == NULL)
+    n->messages = e;
+  else
+    prev->next = e;
+  e->next = pos;
+
+  /* consider scheduling now */
+  process_plaintext_neighbour_queue (n);
+
+}
+
+
+
 int
 GSC_NEIGHBOURS_init ()
 {

@@ -16,6 +16,41 @@ static uint32_t my_type_map[(UINT16_MAX + 1) / 32];
 
 
 /**
+ * Add a set of types to our type map.
+ */
+void
+GSC_TYPEMAP_add (const uint16_t *types,
+		 unsigned int tlen)
+{
+  unsigned int i;
+
+  for (i=0;i<tlen;i++)
+    my_type_map[types[i] / 32] |= (1 << (types[i] % 32));
+  if (tlen > 0)
+    broadcast_my_type_map ();
+}
+
+
+/**
+ * Remove a set of types from our type map.
+ */
+void
+GSC_TYPEMAP_remove (const uint16_t *types,
+		    unsigned int tlen)
+{
+  /* rebuild my_type_map */
+  memset (my_type_map, 0, sizeof (my_type_map));
+  for (pos = clients; NULL != pos; pos = pos->next)
+  {
+    wtypes = (const uint16_t *) &pos[1];
+    for (i = 0; i < pos->tcnt; i++)
+      my_type_map[wtypes[i] / 32] |= (1 << (wtypes[i] % 32));
+  }
+  broadcast_my_type_map ();
+}
+
+
+/**
  * Compute a type map message for this peer.
  *
  * @return this peers current type map message.
