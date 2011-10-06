@@ -1531,7 +1531,12 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                     "Peek at read pipe %d (0x%x) returned %d (%d bytes available) GLE %u\n",
                     i, readArray[i]->h, bret, waitstatus, error);
 #endif
-        if (bret == 0 || waitstatus <= 0)
+        if (bret == 0)
+        {
+          if (error != ERROR_BROKEN_PIPE)
+            continue;
+        }
+        else if (waitstatus <= 0)
           continue;
         GNUNET_CONTAINER_slist_add (handles_read,
                                     GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
