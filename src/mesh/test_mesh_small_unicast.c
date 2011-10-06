@@ -300,7 +300,7 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: connect_mesh_service\n");
 
   d1 = GNUNET_TESTING_daemon_get (pg, 1);
-  d2 = GNUNET_TESTING_daemon_get (pg, 13);
+  d2 = GNUNET_TESTING_daemon_get (pg, 3);
   app = (GNUNET_MESH_ApplicationType) 0;
 
 #if VERBOSE
