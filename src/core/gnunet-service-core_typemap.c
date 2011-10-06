@@ -51,6 +51,24 @@ GSC_TYPEMAP_remove (const uint16_t *types,
 
 
 /**
+ * Test if any of the types from the types array is in the
+ * given type map.
+ *
+ * @param map map to test
+ * @param types array of types
+ * @param tcnt number of entries in types
+ * @return GNUNET_YES if a type is in the map, GNUNET_NO if not
+ */ 
+int
+GSC_TYPEMAP_test_match (struct GSC_TypeMap *tmap,
+			const uint16_t *types,
+			unsigned int tcnt)
+{
+  return GNUNET_YES; /* FIXME */
+}
+
+
+/**
  * Compute a type map message for this peer.
  *
  * @return this peers current type map message.

@@ -31,44 +31,79 @@
 
 
 /**
+ * Send a message to one of our clients.
+ *
+ * @param client target for the message
+ * @param msg message to transmit
+ * @param can_drop could this message be dropped if the
+ *        client's queue is getting too large?
+ */
+void
+GSC_CLIENTS_send_to_client (struct GNUNET_SERVER_Client *client,
+			    const struct GNUNET_MessageHeader *msg,
+			    int can_drop);
+
+
+/**
  * Notify a particular client about a change to existing connection to
  * one of our neighbours (check if the client is interested).  Called
  * from 'GSC_SESSIONS_notify_client_about_sessions'.
  *
  * @param client client to notify
  * @param neighbour identity of the neighbour that changed status
+ * @param atsi performance information about neighbour
+ * @param atsi_count number of entries in 'ats' array
  * @param tmap_old previous type map for the neighbour, NULL for disconnect
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
 GDS_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
 					   const struct GNUNET_PeerIdentity *neighbour,
+					   const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+					   unsigned int atsi_count,
 					   const struct GSC_TypeMap *tmap_old,
 					   const struct GSC_TypeMap *tmap_new);
 
 
 /**
- * Notify client about a change to existing connection to one of our neighbours.
+ * Notify all clients about a change to existing session.
+ * Called from SESSIONS whenever there is a change in sessions
+ * or types processed by the respective peer.
  *
  * @param neighbour identity of the neighbour that changed status
+ * @param atsi performance information about neighbour
+ * @param atsi_count number of entries in 'ats' array
  * @param tmap_old previous type map for the neighbour, NULL for disconnect
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
 GDS_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
+					    const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+					    unsigned int atsi_count,
 					    const struct GSC_TypeMap *tmap_old,
 					    const struct GSC_TypeMap *tmap_new);
 
 
 /**
- * Deliver P2P message to interested clients.
+ * Deliver P2P message to interested clients. Caller must have checked
+ * that the sending peer actually lists the given message type as one 
+ * of its types.
  *
  * @param sender peer who sent us the message 
- * @param m the message
+ * @param atsi performance information about neighbour
+ * @param atsi_count number of entries in 'ats' array
+ * @param msg the message
+ * @param msize number of bytes to transmit
+ * @param options options for checking which clients should
+ *        receive the message
  */
 void
 GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
-			     const struct GNUNET_MessageHeader *m);
+			     const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+			     unsigned int atsi_count,
+			     const struct GNUNET_MessageHeader *msg,
+			     uint16_t msize,
+			     int options);
 
 
 /**

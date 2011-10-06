@@ -1360,6 +1360,222 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
 
 
 
+
+/**
+ * Helper function for GSC_SESSIONS_handle_client_iterate_peers.
+ *
+ * @param cls the 'struct GNUNET_SERVER_TransmitContext' to queue replies
+ * @param key identity of the connected peer
+ * @param value the 'struct Neighbour' for the peer
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+queue_connect_message (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  struct Neighbour *n = value;
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  size_t size;
+  struct ConnectNotifyMessage *cnm;
+
+  cnm = (struct ConnectNotifyMessage *) buf;
+  if (n->status != PEER_STATE_KEY_CONFIRMED)
+    return GNUNET_OK;
+  size =
+      sizeof (struct ConnectNotifyMessage) +
+      (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    /* recovery strategy: throw away performance data */
+    GNUNET_array_grow (n->ats, n->ats_count, 0);
+    size =
+        sizeof (struct PeerStatusNotifyMessage) +
+        n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  }
+  cnm = (struct ConnectNotifyMessage *) buf;
+  cnm->header.size = htons (size);
+  cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+  cnm->ats_count = htonl (n->ats_count);
+  ats = &cnm->ats;
+  memcpy (ats, n->ats,
+          n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  ats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  ats[n->ats_count].value = htonl (0);
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
+              "NOTIFY_CONNECT");
+#endif
+  cnm->peer = n->peer;
+  GNUNET_SERVER_transmit_context_append_message (tc, &cnm->header);
+  return GNUNET_OK;
+}
+
+
+
+/**
+ * Handle CORE_ITERATE_PEERS request.
+ *
+ * @param cls unused
+ * @param client client sending the iteration request
+ * @param message iteration request message
+ */
+void
+GSC_SESSIONS_handle_client_iterate_peers (void *cls, struct GNUNET_SERVER_Client *client,
+					  const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MessageHeader done_msg;
+  struct GNUNET_SERVER_TransmitContext *tc;
+
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours, &queue_connect_message,
+					 tc);
+  done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+  done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
+  GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
+  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+
+/**
+ * Handle CORE_PEER_CONNECTED request.  Notify client about existing neighbours.
+ *
+ * @param cls unused
+ * @param client client sending the iteration request
+ * @param message iteration request message
+ */
+void
+GSC_SESSIONS_handle_client_have_peer (void *cls, struct GNUNET_SERVER_Client *client,
+				      const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MessageHeader done_msg;
+  struct GNUNET_SERVER_TransmitContext *tc;
+  const struct GNUNET_PeerIdentity *peer;
+
+  peer = (const struct GNUNET_PeerIdentity *) &message[1]; // YUCK!
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  GNUNET_CONTAINER_multihashmap_get_multiple (neighbours, &peer->hashPubKey,
+                                              &queue_connect_message, tc);
+  done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+  done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
+  GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
+  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+
+
+/**
+ * Handle REQUEST_INFO request.
+ *
+ * @param cls unused
+ * @param client client sending the request
+ * @param message iteration request message
+ */
+void
+GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
+					 const struct GNUNET_MessageHeader *message)
+{
+  const struct RequestInfoMessage *rcm;
+  struct GSC_Client *pos;
+  struct Neighbour *n;
+  struct ConfigurationInfoMessage cim;
+  int32_t want_reserv;
+  int32_t got_reserv;
+  unsigned long long old_preference;
+  struct GNUNET_TIME_Relative rdelay;
+
+  rdelay = GNUNET_TIME_relative_get_zero ();
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service receives `%s' request.\n",
+              "REQUEST_INFO");
+#endif
+  rcm = (const struct RequestInfoMessage *) message;
+  n = find_neighbour (&rcm->peer);
+  memset (&cim, 0, sizeof (cim));
+  if ((n != NULL) && (GNUNET_YES == n->is_connected))
+  {
+    want_reserv = ntohl (rcm->reserve_inbound);
+    if (n->bw_out_internal_limit.value__ != rcm->limit_outbound.value__)
+    {
+      n->bw_out_internal_limit = rcm->limit_outbound;
+      if (n->bw_out.value__ !=
+          GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
+                                      n->bw_out_external_limit).value__)
+      {
+        n->bw_out =
+            GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
+                                        n->bw_out_external_limit);
+        GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
+                                               n->bw_out);
+        GNUNET_TRANSPORT_set_quota (transport, &n->peer, n->bw_in, n->bw_out);
+        handle_peer_status_change (n);
+      }
+    }
+    if (want_reserv < 0)
+    {
+      got_reserv = want_reserv;
+    }
+    else if (want_reserv > 0)
+    {
+      rdelay =
+          GNUNET_BANDWIDTH_tracker_get_delay (&n->available_recv_window,
+                                              want_reserv);
+      if (rdelay.rel_value == 0)
+        got_reserv = want_reserv;
+      else
+        got_reserv = 0;         /* all or nothing */
+    }
+    else
+      got_reserv = 0;
+    GNUNET_BANDWIDTH_tracker_consume (&n->available_recv_window, got_reserv);
+    old_preference = n->current_preference;
+    n->current_preference += GNUNET_ntohll (rcm->preference_change);
+    if (old_preference > n->current_preference)
+    {
+      /* overflow; cap at maximum value */
+      n->current_preference = ULLONG_MAX;
+    }
+    update_preference_sum (n->current_preference - old_preference);
+#if DEBUG_CORE_QUOTA
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received reservation request for %d bytes for peer `%4s', reserved %d bytes, suggesting delay of %llu ms\n",
+                (int) want_reserv, GNUNET_i2s (&rcm->peer), (int) got_reserv,
+                (unsigned long long) rdelay.rel_value);
+#endif
+    cim.reserved_amount = htonl (got_reserv);
+    cim.reserve_delay = GNUNET_TIME_relative_hton (rdelay);
+    cim.bw_out = n->bw_out;
+    cim.preference = n->current_preference;
+  }
+  else
+  {
+    /* Technically, this COULD happen (due to asynchronous behavior),
+     * but it should be rare, so we should generate an info event
+     * to help diagnosis of serious errors that might be masked by this */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _
+                ("Client asked for preference change with peer `%s', which is not connected!\n"),
+                GNUNET_i2s (&rcm->peer));
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  cim.header.size = htons (sizeof (struct ConfigurationInfoMessage));
+  cim.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO);
+  cim.peer = rcm->peer;
+  cim.rim_id = rcm->rim_id;
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
+              "CONFIGURATION_INFO");
+#endif
+  GSC_CLIENTS_send_to_client (client, &cim.header, GNUNET_NO);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+
+
+
 int
 GSC_NEIGHBOURS_init ()
 {
