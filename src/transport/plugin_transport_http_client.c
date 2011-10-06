@@ -299,7 +299,6 @@ client_receive_mst_cb (void *cls, void *client,
                      const struct GNUNET_MessageHeader *message)
 {
   struct Session *s = cls;
-  //struct Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Relative delay;
 
   delay = http_plugin_receive (s, &s->target, message, s, s->addr, s->addrlen);
@@ -308,6 +307,7 @@ client_receive_mst_cb (void *cls, void *client,
   if (GNUNET_TIME_absolute_get().abs_value < s->next_receive.abs_value)
   {
 #if VERBOSE_CLIENT
+    struct Plugin *plugin = s->plugin;
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: peer `%s' address `%s' next read delayed for %llu ms\n",
                 GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen), delay);
 #endif
