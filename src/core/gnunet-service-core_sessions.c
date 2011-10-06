@@ -19,7 +19,7 @@
 */
 
 /**
- * @file core/gnunet-service-core_neighbours.c
+ * @file core/gnunet-service-core_sessions.c
  * @brief code for managing of 'encrypted' sessions (key exchange done) 
  * @author Christian Grothoff
  */
@@ -33,7 +33,7 @@
  * Record kept for each request for transmission issued by a
  * client that is still pending.
  */
-struct ClientActiveRequest;
+struct GSC_ClientActiveRequest;
 
 /**
  * Data kept per session.
@@ -49,13 +49,13 @@ struct Session
    * Head of list of requests from clients for transmission to
    * this peer.
    */
-  struct ClientActiveRequest *active_client_request_head;
+  struct GSC_ClientActiveRequest *active_client_request_head;
 
   /**
    * Tail of list of requests from clients for transmission to
    * this peer.
    */
-  struct ClientActiveRequest *active_client_request_tail;
+  struct GSC_ClientActiveRequest *active_client_request_tail;
 
   /**
    * Performance data for the peer.
@@ -294,8 +294,8 @@ handle_peer_status_change (struct Neighbour *n)
 static void
 schedule_peer_messages (struct Neighbour *n)
 {
-  struct ClientActiveRequest *car;
-  struct ClientActiveRequest *pos;
+  struct GSC_ClientActiveRequest *car;
+  struct GSC_ClientActiveRequest *pos;
   struct Client *c;
   struct MessageEntry *mqe;
   unsigned int queue_size;
@@ -354,7 +354,7 @@ static void
 free_neighbour (struct Neighbour *n)
 {
   struct MessageEntry *m;
-  struct ClientActiveRequest *car;
+  struct GSC_ClientActiveRequest *car;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1360,6 +1360,51 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
 
 
 
+/**
+ * Send a message to the neighbour.
+ *
+ * @param cls the message
+ * @param key neighbour's identity
+ * @param value 'struct Neighbour' of the target
+ * @return always GNUNET_OK
+ */
+static int
+do_send_message (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct GNUNET_MessageHeader *hdr = cls;
+  struct Neighbour *n = value;
+  struct MessageEntry *m;
+  uint16_t size;
+
+  size = ntohs (hdr->size);
+  m = GNUNET_malloc (sizeof (struct MessageEntry) + size);
+  memcpy (&m[1], hdr, size);
+  m->deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
+  m->slack_deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
+  m->priority = UINT_MAX;
+  m->sender_status = n->status;
+  m->size = size;
+  GNUNET_CONTAINER_DLL_insert (n->message_head,
+			       n->message_tail,
+			       m);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Broadcast a message to all neighbours.
+ *
+ * @param msg message to transmit
+ */
+void
+GSC_SESSIONS_broadcast (const struct GNUNET_MessageHeader *msg)
+{
+  if (NULL == sessions)
+    return;
+  GNUNET_CONTAINER_multihashmap_iterate (sessions,
+                                         &do_send_message, msg);
+}
+
 
 /**
  * Helper function for GSC_SESSIONS_handle_client_iterate_peers.
@@ -1413,9 +1458,60 @@ queue_connect_message (void *cls, const GNUNET_HashCode * key, void *value)
 }
 
 
+/**
+ * End the session with the given peer (we are no longer
+ * connected). 
+ *
+ * @param pid identity of peer to kill session with
+ */
+void
+GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
+{
+}
+
 
 /**
- * Handle CORE_ITERATE_PEERS request.
+ * Traffic is being solicited for the given peer.  This means that the
+ * message queue on the transport-level (NEIGHBOURS subsystem) is now
+ * empty and it is now OK to transmit another (non-control) message.
+ *
+ * @param pid identity of peer ready to receive data
+ */
+void
+GSC_SESSIONS_solicit (const struct GNUNET_PeerIdentity *pid)
+{
+}
+
+
+/**
+ * Transmit a message to a particular peer.
+ *
+ * @param car original request that was queued and then solicited,
+ *            ownership does not change (dequeue will be called soon).
+ * @param msg message to transmit
+ */
+void
+GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
+		       const struct GNUNET_MessageHeader *msg)
+{
+}
+
+
+/**
+ * We have a new client, notify it about all current sessions.
+ *
+ * @param client the new client
+ */
+void
+GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client)
+{
+}
+
+
+/**
+ * Handle CORE_ITERATE_PEERS request. For this request type, the client
+ * does not have to have transmitted an INIT request.  All current peers
+ * are returned, regardless of which message types they accept. 
  *
  * @param cls unused
  * @param client client sending the iteration request
@@ -1439,7 +1535,10 @@ GSC_SESSIONS_handle_client_iterate_peers (void *cls, struct GNUNET_SERVER_Client
 
 
 /**
- * Handle CORE_PEER_CONNECTED request.  Notify client about existing neighbours.
+ * Handle CORE_PEER_CONNECTED request.   Notify client about connection
+ * to the given neighbour.  For this request type, the client does not
+ * have to have transmitted an INIT request.  All current peers are
+ * returned, regardless of which message types they accept.
  *
  * @param cls unused
  * @param client client sending the iteration request
@@ -1466,7 +1565,8 @@ GSC_SESSIONS_handle_client_have_peer (void *cls, struct GNUNET_SERVER_Client *cl
 
 
 /**
- * Handle REQUEST_INFO request.
+ * Handle REQUEST_INFO request. For this request type, the client must
+ * have transmitted an INIT first.
  *
  * @param cls unused
  * @param client client sending the request
@@ -1576,8 +1676,11 @@ GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client 
 
 
 
+/**
+ * Initialize sessions subsystem.
+ */
 int
-GSC_NEIGHBOURS_init ()
+GSC_SESSIONS_init ()
 {
   neighbours = GNUNET_CONTAINER_multihashmap_create (128);
   self.public_key = &my_public_key;
@@ -1589,8 +1692,11 @@ GSC_NEIGHBOURS_init ()
 }
 
 
+/**
+ * Shutdown sessions subsystem.
+ */
 void
-GSC_NEIGHBOURS_done ()
+GSC_SESSIONS_done ()
 {
   GNUNET_CONTAINER_multihashmap_iterate (neighbours, &free_neighbour_helper,
                                          NULL);

@@ -87,12 +87,63 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
 
 
 /**
+ * Broadcast a message to all neighbours.
+ *
+ * @param msg message to transmit
+ */
+void
+GSC_SESSIONS_broadcast (const struct GNUNET_MessageHeader *msg);
+
+
+/**
  * We have a new client, notify it about all current sessions.
  *
  * @param client the new client
  */
 void
 GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client);
+
+
+/**
+ * Handle CORE_ITERATE_PEERS request.  For this request type, the client
+ * does not have to have transmitted an INIT request.  All current peers
+ * are returned, regardless of which message types they accept.
+ *
+ * @param cls unused
+ * @param client client sending the iteration request
+ * @param message iteration request message
+ */
+void
+GSC_SESSIONS_handle_client_iterate_peers (void *cls, struct GNUNET_SERVER_Client *client,
+					  const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Handle CORE_PEER_CONNECTED request.  Notify client about connection
+ * to the given neighbour.  For this request type, the client does not
+ * have to have transmitted an INIT request.  All current peers are
+ * returned, regardless of which message types they accept.
+ *
+ * @param cls unused
+ * @param client client sending the iteration request
+ * @param message iteration request message
+ */
+void
+GSC_SESSIONS_handle_client_have_peer (void *cls, struct GNUNET_SERVER_Client *client,
+				      const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Handle REQUEST_INFO request.  For this request type, the client must have
+ * transmitted an INIT first.
+ *
+ * @param cls unused
+ * @param client client sending the request
+ * @param message iteration request message
+ */
+void
+GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
+					 const struct GNUNET_MessageHeader *message);
 
 
 /**
