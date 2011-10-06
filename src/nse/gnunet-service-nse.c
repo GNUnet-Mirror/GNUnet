@@ -76,6 +76,10 @@
  */
 #define NSE_PRIORITY 5
 
+#if FREEBSD
+#define log2(a) (log(a)/log(2))
+#endif
+
 /**
  * Amount of work required (W-bit collisions) for NSE proofs, in collision-bits.
  */
