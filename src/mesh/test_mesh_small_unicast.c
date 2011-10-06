@@ -289,6 +289,61 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Prototype of a callback function indicating that two peers
+ * are currently connected.
+ *
+ * @param cls closure
+ * @param first peer id for first daemon
+ * @param second peer id for the second daemon
+ * @param distance distance between the connected peers
+ * @param emsg error message (NULL on success)
+ */
+void
+topo_cb (void *cls,
+         const struct GNUNET_PeerIdentity* first,
+         const struct GNUNET_PeerIdentity* second,
+         const char *emsg)
+{
+  GNUNET_PEER_Id p1;
+  GNUNET_PEER_Id p2;
+  uint16_t *connections = cls;
+  struct GNUNET_PeerIdentity id;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: :::::::::::::::::::::::::: %u\n",
+              connections[0]);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: ###################### %p\n", connections);
+  GNUNET_PEER_resolve(connections[0], &id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "test: looking for %s...\n",
+                GNUNET_i2s(&id));
+  p1 = GNUNET_PEER_search(first);
+  if (p1 == connections[0])
+  {
+    p2 = GNUNET_PEER_search(second);
+    GNUNET_assert(p2 < num_peers);
+    if (0 == p2) return;
+    connections[p2]++;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "test: %s IS a neighbor\n",
+                GNUNET_i2s(second));
+    return;
+  }
+  p1 = GNUNET_PEER_search(second);
+  if (p1 == connections[0])
+  {
+    p2 = GNUNET_PEER_search(first);
+    GNUNET_assert(p2 < num_peers);
+    if (0 == p2) return;
+    connections[p2]++;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "test: %s IS a neighbor\n",
+                GNUNET_i2s(first));
+    return;
+  }
+}
+
+/**
  * connect_mesh_service: connect to the mesh service of one of the peers
  *
  */
@@ -296,20 +351,39 @@ static void
 connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_MESH_ApplicationType app;
+  uint16_t connections[num_peers];
+  uint16_t i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: connect_mesh_service\n");
 
-  d1 = GNUNET_TESTING_daemon_get (pg, 1);
-  d2 = GNUNET_TESTING_daemon_get (pg, 3);
+  for (i = 0; i < num_peers; i++)
+  {
+    d1 = GNUNET_TESTING_daemon_get (pg, i);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "test:   %u: %s\n",
+                GNUNET_PEER_intern(&d1->id),
+                GNUNET_i2s (&d1->id));
+    connections[i] = 0;
+  }
+  connections[0] = GNUNET_PEER_intern(&d1->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: ###################### %p\n", connections);
+  GNUNET_TESTING_get_topology(pg, &topo_cb, connections);
+  for (i = 1; i < num_peers; i++)
+    if (connections[i] == 0)
+      break;
+  GNUNET_assert (i < num_peers);
+  d2 = GNUNET_TESTING_daemon_get (pg, i);
   app = (GNUNET_MESH_ApplicationType) 0;
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: connecting to mesh service of peer %s\n",
-              GNUNET_i2s (&d1->id));
+              "test: connecting to mesh service of peer %s (%u)\n",
+              GNUNET_i2s (&d1->id),
+              connections[0]);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: connecting to mesh service of peer %s\n",
-              GNUNET_i2s (&d2->id));
+              "test: connecting to mesh service of peer %s (%u)\n",
+              GNUNET_i2s (&d2->id),
+              i);
 #endif
   h1 = GNUNET_MESH_connect (d1->cfg,
                             10,
