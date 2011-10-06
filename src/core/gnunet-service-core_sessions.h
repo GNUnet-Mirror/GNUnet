@@ -148,9 +148,14 @@ GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client 
 
 /**
  * Create a session, a key exchange was just completed.
+ *
+ * @param peer peer that is now connected
+ * @param kx key exchange that completed
  */
 void
-GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer);
+GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
+		     struct GSC_KeyExchangeInfo *kx);
+
 
 /**
  * Update information about a session.

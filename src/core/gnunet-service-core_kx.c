@@ -185,6 +185,152 @@ struct EncryptedMessage
 
 
 /**
+ * State machine for our P2P encryption handshake.  Everyone starts in
+ * "DOWN", if we receive the other peer's key (other peer initiated)
+ * we start in state RECEIVED (since we will immediately send our
+ * own); otherwise we start in SENT.  If we get back a PONG from
+ * within either state, we move up to CONFIRMED (the PONG will always
+ * be sent back encrypted with the key we sent to the other peer).
+ */
+enum KxStateMachine
+{
+  /**
+   * No handshake yet.
+   */
+  KX_STATE_DOWN,
+
+  /**
+   * We've sent our session key.
+   */
+  KX_STATE_KEY_SENT,
+
+  /**
+   * We've received the other peers session key.
+   */
+  KX_STATE_KEY_RECEIVED,
+
+  /**
+   * The other peer has confirmed our session key with a message
+   * encrypted with his session key (which we got).  Key exchange
+   * is done.
+   */
+  KX_STATE_UP
+};
+
+
+/**
+ * Information about the status of a key exchange with another peer.
+ */
+struct GSC_KeyExchangeInfo
+{
+  /**
+   * Identity of the peer.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * SetKeyMessage to transmit (initialized the first
+   * time our status goes past 'KX_STATE_KEY_SENT').
+   */
+  struct SetKeyMessage skm;
+
+  /**
+   * PING message we transmit to the other peer.
+   */
+  struct PingMessage ping;
+
+  /**
+   * SetKeyMessage we received and did not process yet.
+   */
+  struct SetKeyMessage *skm_received;
+
+  /**
+   * PING message we received from the other peer and
+   * did not process yet (or NULL).
+   */
+  struct PingMessage *ping_received;
+
+  /**
+   * PONG message we received from the other peer and
+   * did not process yet (or NULL).
+   */
+  struct PongMessage *pong_received;
+
+  /**
+   * Non-NULL if we are currently looking up HELLOs for this peer.
+   * for this peer.
+   */
+  struct GNUNET_PEERINFO_IteratorContext *pitr;
+
+  /**
+   * Public key of the neighbour, NULL if we don't have it yet.
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
+
+  /**
+   * We received a PONG message before we got the "public_key"
+   * (or the SET_KEY).  We keep it here until we have a key
+   * to decrypt it.  NULL if no PONG is pending.
+   */
+  struct PongMessage *pending_pong;
+
+  /**
+   * Key we use to encrypt our messages for the other peer
+   * (initialized by us when we do the handshake).
+   */
+  struct GNUNET_CRYPTO_AesSessionKey encrypt_key;
+
+  /**
+   * Key we use to decrypt messages from the other peer
+   * (given to us by the other peer during the handshake).
+   */
+  struct GNUNET_CRYPTO_AesSessionKey decrypt_key;
+
+  /**
+   * At what time did we generate our encryption key?
+   */
+  struct GNUNET_TIME_Absolute encrypt_key_created;
+
+  /**
+   * At what time did the other peer generate the decryption key?
+   */
+  struct GNUNET_TIME_Absolute decrypt_key_created;
+
+  /**
+   * When should the session time out (if there are no PONGs)?
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * At what frequency are we currently re-trying SET_KEY messages?
+   */
+  struct GNUNET_TIME_Relative set_key_retry_frequency;
+
+  /**
+   * ID of task used for re-trying SET_KEY and PING message.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier retry_set_key_task;
+
+  /**
+   * ID of task used for sending keep-alive pings.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier keep_alive_task;
+
+  /**
+   * What was our PING challenge number (for this peer)?
+   */
+  uint32_t ping_challenge;
+
+  /**
+   * What is our connection status?
+   */
+  enum KxStateMachine status;
+
+};
+
+
+
+/**
  * Handle to peerinfo service.
  */
 static struct GNUNET_PEERINFO_Handle *peerinfo;

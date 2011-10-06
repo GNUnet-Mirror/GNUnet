@@ -67,7 +67,6 @@ struct Session
    */
   struct GSC_KeyExchangeInfo *kxinfo;
 
-
   /**
    * ID of task used for cleaning up dead neighbour entries.
    */
@@ -1671,9 +1670,13 @@ GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client 
 
 /**
  * Create a session, a key exchange was just completed.
+ *
+ * @param peer peer that is now connected
+ * @param kx key exchange that completed
  */
 void
-GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer)
+GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
+		     struct GSC_KeyExchangeInfo *kx)
 {
     {
       struct GNUNET_MessageHeader *hdr;

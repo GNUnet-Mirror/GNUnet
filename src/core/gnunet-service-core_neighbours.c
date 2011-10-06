@@ -169,8 +169,8 @@ free_neighbour (struct Neighbour *n)
   GSC_SESSIONS_end (&n->peer);
   if (NULL != n->kx)
   {
-    GSC_KX_stop (n->kx);
-    n->kx = NULL;
+    GSC_KX_stop (n->kxinfo);
+    n->kxinfo = NULL;
   }
   if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -357,7 +357,7 @@ handle_transport_notify_connect (void *cls,
   GNUNET_TRANSPORT_set_quota (transport, peer, 
 			      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT, 
 			      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT);
-  n->kx = GSC_KX_start (pid);
+  n->kxinfo = GSC_KX_start (pid);
 }
 
 
