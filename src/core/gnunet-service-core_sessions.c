@@ -340,20 +340,7 @@ schedule_peer_messages (struct Neighbour *n)
               "Permitting client transmission request to `%s'\n",
               GNUNET_i2s (&n->peer));
 #endif
-  c = car->client;
-  GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
-                               n->active_client_request_tail, car);
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (c->requests,
-                                                       &n->peer.hashPubKey,
-                                                       car));
-  smr.header.size = htons (sizeof (struct SendMessageReady));
-  smr.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_READY);
-  smr.size = htons (car->msize);
-  smr.smr_id = car->smr_id;
-  smr.peer = n->peer;
-  send_to_client (c, &smr.header, GNUNET_NO);
-  GNUNET_free (car);
+  GSC_CLIENTS_solicite_request (car);
 }
 
 

@@ -36,17 +36,17 @@
 /**
  * Data structure for each client connected to the core service.
  */
-struct Client
+struct GSC_Client
 {
   /**
    * Clients are kept in a linked list.
    */
-  struct Client *next;
+  struct GSC_Client *next;
 
   /**
    * Clients are kept in a linked list.
    */
-  struct Client *prev;
+  struct GSC_Client *prev;
 
   /**
    * Handle for the client with the server API.
@@ -62,7 +62,7 @@ struct Client
 
   /**
    * Map of peer identities to active transmission requests of this
-   * client to the peer (of type 'struct ClientActiveRequest').
+   * client to the peer (of type 'struct GSC_ClientActiveRequest').
    */
   struct GNUNET_CONTAINER_MultiHashMap *requests;
 
@@ -84,12 +84,12 @@ struct Client
 /**
  * Head of linked list of our clients.
  */
-static struct Client *client_head;
+static struct GSC_Client *client_head;
 
 /**
  * Tail of linked list of our clients.
  */
-static struct Client *client_tail;
+static struct GSC_Client *client_tail;
 
 /**
  * Context for notifications we need to send to our clients.
@@ -108,10 +108,10 @@ static struct GNUNET_SERVER_MessageStreamTokenizer *client_mst;
  * @param client server client handle to look up
  * @return our client handle for the client
  */
-static struct Client *
+static struct GSC_Client *
 find_client (struct GNUNET_SERVER_Client *client)
 {
-  struct Client *c;
+  struct GSC_Client *c;
 
   c = client_head;
   while ((c != NULL) && (c->client_handle != client))
@@ -129,7 +129,7 @@ find_client (struct GNUNET_SERVER_Client *client)
  *        client's queue is getting too large?
  */
 static void
-send_to_client (struct Client *client, 
+send_to_client (struct GSC_Client *client, 
 		const struct GNUNET_MessageHeader *msg,
                 int can_drop)
 {
@@ -153,7 +153,7 @@ send_to_client (struct Client *client,
  */
 static int
 type_match (uint16_t type,
-	    struct Client *c)
+	    struct GSC_Client *c)
 {
   unsigned int i;
 
@@ -179,7 +179,7 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
                      int options,
 		     uint16_t type)
 {
-  struct Client *c;
+  struct GSC_Client *c;
 
   for (c = client_head; c != NULL; c = c->next)
   {
@@ -209,7 +209,7 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct InitMessage *im;
   struct InitReplyMessage irm;
-  struct Client *c;
+  struct GSC_Client *c;
   uint16_t msize;
   const uint16_t *types;
   uint16_t *wtypes;
@@ -234,7 +234,7 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
   im = (const struct InitMessage *) message;
   types = (const uint16_t *) &im[1];
   msize -= sizeof (struct InitMessage);
-  c = GNUNET_malloc (sizeof (struct Client) + msize);
+  c = GNUNET_malloc (sizeof (struct GSC_Client) + msize);
   c->client_handle = client;
   c->tcnt = msize / sizeof (uint16_t);
   c->options = ntohl (im->options);
@@ -275,8 +275,8 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct SendMessageRequest *req;
-  struct Client *c;
-  struct ClientActiveRequest *car;
+  struct GSC_Client *c;
+  struct GSC_ClientActiveRequest *car;
 
   req = (const struct SendMessageRequest *) message;
   c = find_client (client);
@@ -293,7 +293,7 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
   if (car == NULL)
   {
     /* create new entry */
-    car = GNUNET_malloc (sizeof (struct ClientActiveRequest));
+    car = GNUNET_malloc (sizeof (struct GSC_ClientActiveRequest));
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multihashmap_put (c->requests,
                                                       &req->peer.hashPubKey,
@@ -329,8 +329,8 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct SendMessage *sm;
-  struct Client *c;
-  struct ClientActiveRequest *car;
+  struct GSC_Client *c;
+  struct GSC_ClientActiveRequest *car;
   uint16_t msize;
 
   msize = ntohs (message->size);
@@ -384,14 +384,14 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
  * or other CLIENT (for loopback).
  *
  * @param cls closure
- * @param client reservation request ('struct ClientActiveRequest')
+ * @param client reservation request ('struct GSC_ClientActiveRequest')
  * @param message the actual message
  */
 static void
 client_tokenizer_callback (void *cls, void *client,
 			   const struct GNUNET_MessageHeader *message)
 {
-  struct ClientActiveRequest *car = client;
+  struct GSC_ClientActiveRequest *car = client;
 
   if (0 ==
       memcmp (&car->peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
@@ -406,15 +406,19 @@ client_tokenizer_callback (void *cls, void *client,
  *
  * @param cls NULL
  * @param key identity of peer for which this is an active request
- * @param value the 'struct ClientActiveRequest' to free
+ * @param value the 'struct GSC_ClientActiveRequest' to free
  * @return GNUNET_YES (continue iteration)
  */
 static int
 destroy_active_client_request (void *cls, const GNUNET_HashCode * key,
                                void *value)
 {
-  struct ClientActiveRequest *car = value;
+  struct GSC_ClientActiveRequest *car = value;
 
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (car->client->requests,
+						       &car->peer,
+						       car);
   GSC_SESSIONS_dequeue_request (car);
   GNUNET_free (car);
   return GNUNET_YES;
@@ -431,7 +435,7 @@ static void
 handle_client_disconnect (void *cls,
 			  struct GNUNET_SERVER_Client *client)
 {
-  struct Client *c;
+  struct GSC_Client *c;
 
   if (client == NULL)
     return;
@@ -457,14 +461,6 @@ handle_client_disconnect (void *cls,
 }
 
 
-
-
-
-
-// FIXME from here.......................................
-
-
-
 /**
  * Tell a client that we are ready to receive the message.
  *
@@ -475,6 +471,16 @@ handle_client_disconnect (void *cls,
 void
 GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
 {
+  struct GSC_Client *c;
+  struct SendMessageReady smr;
+
+  c = car->client;
+  smr.header.size = htons (sizeof (struct SendMessageReady));
+  smr.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_READY);
+  smr.size = htons (car->msize);
+  smr.smr_id = car->smr_id;
+  smr.peer = n->peer;
+  send_to_client (c, &smr.header, GNUNET_NO);
 }
 
 
@@ -489,7 +495,15 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
 void
 GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
 {
+  GNUNET_assert (GNUNET_YES ==
+		 destroy_active_client_request (NULL, &car->peer.hashPubKey, car));  
 }
+
+
+
+// FIXME from here.......................................
+
+
 
 
 
@@ -501,7 +515,7 @@ static int
 notify_client_about_neighbour (void *cls, const GNUNET_HashCode * key,
                                void *value)
 {
-  struct Client *c = cls;
+  struct GSC_Client *c = cls;
   struct Neighbour *n = value;
   size_t size;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
@@ -595,6 +609,177 @@ queue_connect_message (void *cls, const GNUNET_HashCode * key, void *value)
 }
 
 
+
+
+/**
+ * Send a P2P message to a client.
+ *
+ * @param sender who sent us the message?
+ * @param client who should we give the message to?
+ * @param m contains the message to transmit
+ * @param msize number of bytes in buf to transmit
+ */
+static void
+send_p2p_message_to_client (struct Neighbour *sender, struct GSC_Client *client,
+                            const void *m, size_t msize)
+{
+  size_t size =
+      msize + sizeof (struct NotifyTrafficMessage) +
+      (sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  char buf[size];
+  struct NotifyTrafficMessage *ntm;
+  struct GNUNET_TRANSPORT_ATS_Information *ats;
+
+  GNUNET_assert (GNUNET_YES == sender->is_connected);
+  GNUNET_break (sender->status == PEER_STATE_KEY_CONFIRMED);
+  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    /* recovery strategy: throw performance data away... */
+    GNUNET_array_grow (sender->ats, sender->ats_count, 0);
+    size =
+        msize + sizeof (struct NotifyTrafficMessage) +
+        (sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core service passes message from `%4s' of type %u to client.\n",
+              GNUNET_i2s (&sender->peer),
+              (unsigned int)
+              ntohs (((const struct GNUNET_MessageHeader *) m)->type));
+#endif
+  ntm = (struct NotifyTrafficMessage *) buf;
+  ntm->header.size = htons (size);
+  ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND);
+  ntm->ats_count = htonl (sender->ats_count);
+  ntm->peer = sender->peer;
+  ats = &ntm->ats;
+  memcpy (ats, sender->ats,
+          sizeof (struct GNUNET_TRANSPORT_ATS_Information) * sender->ats_count);
+  ats[sender->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  ats[sender->ats_count].value = htonl (0);
+  memcpy (&ats[sender->ats_count + 1], m, msize);
+  send_to_client (client, &ntm->header, GNUNET_YES);
+}
+
+
+
+/**
+ * Notify a particular client about a change to existing connection to
+ * one of our neighbours (check if the client is interested).  Called
+ * from 'GSC_SESSIONS_notify_client_about_sessions'.
+ *
+ * @param client client to notify
+ * @param neighbour identity of the neighbour that changed status
+ * @param tmap_old previous type map for the neighbour, NULL for disconnect
+ * @param tmap_new updated type map for the neighbour, NULL for disconnect
+ */
+void
+GDS_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
+					   const struct GNUNET_PeerIdentity *neighbour,
+					   const struct GSC_TypeMap *tmap_old,
+					   const struct GSC_TypeMap *tmap_new)
+{
+}
+
+
+/**
+ * Notify client about a change to existing connection to one of our neighbours.
+ *
+ * @param neighbour identity of the neighbour that changed status
+ * @param tmap_old previous type map for the neighbour, NULL for disconnect
+ * @param tmap_new updated type map for the neighbour, NULL for disconnect
+ */
+void
+GDS_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
+					    const struct GSC_TypeMap *tmap_old,
+					    const struct GSC_TypeMap *tmap_new)
+{
+}
+
+
+/**
+ * Deliver P2P message to interested clients.
+ *
+ * @param sender peer who sent us the message 
+ * @param m the message
+ */
+void
+GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
+			     const struct GNUNET_MessageHeader *m)
+{
+  struct Neighbour *sender = client;
+  size_t msize = ntohs (m->size);
+  char buf[256];
+  struct GSC_Client *cpos;
+  uint16_t type;
+  unsigned int tpos;
+  int deliver_full;
+  int dropped;
+
+  GNUNET_break (sender->status == PEER_STATE_KEY_CONFIRMED);
+  type = ntohs (m->type);
+#if DEBUG_CORE > 1
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received encapsulated message of type %u and size %u from `%4s'\n",
+              (unsigned int) type, ntohs (m->size), GNUNET_i2s (&sender->peer));
+#endif
+  GNUNET_snprintf (buf, sizeof (buf),
+                   gettext_noop ("# bytes of messages of type %u received"),
+                   (unsigned int) type);
+  GNUNET_STATISTICS_update (stats, buf, msize, GNUNET_NO);
+  if ((GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP == type) ||
+      (GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP == type))
+  {
+    /* FIXME: update message type map for 'Neighbour' */
+    return;
+  }
+  dropped = GNUNET_YES;
+  cpos = clients;
+  while (cpos != NULL)
+  {
+    deliver_full = GNUNET_NO;
+    if (0 != (cpos->options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND))
+      deliver_full = GNUNET_YES;
+    else
+    {
+      for (tpos = 0; tpos < cpos->tcnt; tpos++)
+      {
+        if (type != cpos->types[tpos])
+          continue;
+        deliver_full = GNUNET_YES;
+        break;
+      }
+    }
+    if (GNUNET_YES == deliver_full)
+    {
+      send_p2p_message_to_client (sender, cpos, m, msize);
+      dropped = GNUNET_NO;
+    }
+    else if (cpos->options & GNUNET_CORE_OPTION_SEND_HDR_INBOUND)
+    {
+      send_p2p_message_to_client (sender, cpos, m,
+                                  sizeof (struct GNUNET_MessageHeader));
+    }
+    cpos = cpos->next;
+  }
+  if (dropped == GNUNET_YES)
+  {
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Message of type %u from `%4s' not delivered to any client.\n",
+                (unsigned int) type, GNUNET_i2s (&sender->peer));
+#endif
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop
+                              ("# messages not delivered to any client"), 1,
+                              GNUNET_NO);
+  }
+}
+
+
+
+
 /**
  * Handle CORE_ITERATE_PEERS request.
  *
@@ -665,7 +850,7 @@ handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct RequestInfoMessage *rcm;
-  struct Client *pos;
+  struct GSC_Client *pos;
   struct Neighbour *n;
   struct ConfigurationInfoMessage cim;
   int32_t want_reserv;
@@ -778,173 +963,6 @@ handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Send a P2P message to a client.
- *
- * @param sender who sent us the message?
- * @param client who should we give the message to?
- * @param m contains the message to transmit
- * @param msize number of bytes in buf to transmit
- */
-static void
-send_p2p_message_to_client (struct Neighbour *sender, struct Client *client,
-                            const void *m, size_t msize)
-{
-  size_t size =
-      msize + sizeof (struct NotifyTrafficMessage) +
-      (sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-  char buf[size];
-  struct NotifyTrafficMessage *ntm;
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
-
-  GNUNET_assert (GNUNET_YES == sender->is_connected);
-  GNUNET_break (sender->status == PEER_STATE_KEY_CONFIRMED);
-  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {
-    GNUNET_break (0);
-    /* recovery strategy: throw performance data away... */
-    GNUNET_array_grow (sender->ats, sender->ats_count, 0);
-    size =
-        msize + sizeof (struct NotifyTrafficMessage) +
-        (sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-  }
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service passes message from `%4s' of type %u to client.\n",
-              GNUNET_i2s (&sender->peer),
-              (unsigned int)
-              ntohs (((const struct GNUNET_MessageHeader *) m)->type));
-#endif
-  ntm = (struct NotifyTrafficMessage *) buf;
-  ntm->header.size = htons (size);
-  ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND);
-  ntm->ats_count = htonl (sender->ats_count);
-  ntm->peer = sender->peer;
-  ats = &ntm->ats;
-  memcpy (ats, sender->ats,
-          sizeof (struct GNUNET_TRANSPORT_ATS_Information) * sender->ats_count);
-  ats[sender->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  ats[sender->ats_count].value = htonl (0);
-  memcpy (&ats[sender->ats_count + 1], m, msize);
-  send_to_client (client, &ntm->header, GNUNET_YES);
-}
-
-
-
-/**
- * Notify a particular client about a change to existing connection to
- * one of our neighbours (check if the client is interested).  Called
- * from 'GSC_SESSIONS_notify_client_about_sessions'.
- *
- * @param client client to notify
- * @param neighbour identity of the neighbour that changed status
- * @param tmap_old previous type map for the neighbour, NULL for disconnect
- * @param tmap_new updated type map for the neighbour, NULL for disconnect
- */
-void
-GDS_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
-					   const struct GNUNET_PeerIdentity *neighbour,
-					   const struct GSC_TypeMap *tmap_old,
-					   const struct GSC_TypeMap *tmap_new)
-{
-}
-
-
-/**
- * Notify client about a change to existing connection to one of our neighbours.
- *
- * @param neighbour identity of the neighbour that changed status
- * @param tmap_old previous type map for the neighbour, NULL for disconnect
- * @param tmap_new updated type map for the neighbour, NULL for disconnect
- */
-void
-GDS_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
-					    const struct GSC_TypeMap *tmap_old,
-					    const struct GSC_TypeMap *tmap_new)
-{
-}
-
-
-/**
- * Deliver P2P message to interested clients.
- *
- * @param sender peer who sent us the message 
- * @param m the message
- */
-void
-GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
-			     const struct GNUNET_MessageHeader *m)
-{
-  struct Neighbour *sender = client;
-  size_t msize = ntohs (m->size);
-  char buf[256];
-  struct Client *cpos;
-  uint16_t type;
-  unsigned int tpos;
-  int deliver_full;
-  int dropped;
-
-  GNUNET_break (sender->status == PEER_STATE_KEY_CONFIRMED);
-  type = ntohs (m->type);
-#if DEBUG_CORE > 1
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received encapsulated message of type %u and size %u from `%4s'\n",
-              (unsigned int) type, ntohs (m->size), GNUNET_i2s (&sender->peer));
-#endif
-  GNUNET_snprintf (buf, sizeof (buf),
-                   gettext_noop ("# bytes of messages of type %u received"),
-                   (unsigned int) type);
-  GNUNET_STATISTICS_update (stats, buf, msize, GNUNET_NO);
-  if ((GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP == type) ||
-      (GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP == type))
-  {
-    /* FIXME: update message type map for 'Neighbour' */
-    return;
-  }
-  dropped = GNUNET_YES;
-  cpos = clients;
-  while (cpos != NULL)
-  {
-    deliver_full = GNUNET_NO;
-    if (0 != (cpos->options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND))
-      deliver_full = GNUNET_YES;
-    else
-    {
-      for (tpos = 0; tpos < cpos->tcnt; tpos++)
-      {
-        if (type != cpos->types[tpos])
-          continue;
-        deliver_full = GNUNET_YES;
-        break;
-      }
-    }
-    if (GNUNET_YES == deliver_full)
-    {
-      send_p2p_message_to_client (sender, cpos, m, msize);
-      dropped = GNUNET_NO;
-    }
-    else if (cpos->options & GNUNET_CORE_OPTION_SEND_HDR_INBOUND)
-    {
-      send_p2p_message_to_client (sender, cpos, m,
-                                  sizeof (struct GNUNET_MessageHeader));
-    }
-    cpos = cpos->next;
-  }
-  if (dropped == GNUNET_YES)
-  {
-#if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Message of type %u from `%4s' not delivered to any client.\n",
-                (unsigned int) type, GNUNET_i2s (&sender->peer));
-#endif
-    GNUNET_STATISTICS_update (stats,
-                              gettext_noop
-                              ("# messages not delivered to any client"), 1,
-                              GNUNET_NO);
-  }
-}
-
-
-/**
  * Initialize clients subsystem.
  *
  * @param server handle to server clients connect to
@@ -988,7 +1006,7 @@ GSC_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
 void
 GSC_CLIENTS_done ()
 {
-  struct Client *c;
+  struct GSC_Client *c;
 
   while (NULL != (c = client_head))  
     handle_client_disconnect (NULL, c->client_handle);
