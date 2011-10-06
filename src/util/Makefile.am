@@ -26,7 +26,8 @@ if USE_COVERAGE
 endif
 
 noinst_PROGRAMS = \
- gnunet-config-diff
+ gnunet-config-diff \
+ test_common_logging_dummy
 
 gnunet_config_diff_SOURCES = \
  gnunet-config-diff.c
@@ -35,6 +36,12 @@ gnunet_config_diff_LDADD = \
 gnunet_config_diff_DEPENDENCIES = \
  libgnunetutil.la
 
+test_common_logging_dummy_SOURCES = \
+ test_common_logging_dummy.c
+test_common_logging_dummy_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
+test_common_logging_dummy_DEPENDENCIES = \
+ libgnunetutil.la
 
 lib_LTLIBRARIES = libgnunetutil.la
 
@@ -175,7 +182,8 @@ check_PROGRAMS = \
  test_strings \
  test_time \
  $(BENCHMARKS) \
- test_os_start_process 
+ test_os_start_process \
+ test_common_logging_runtime_loglevels
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -211,6 +219,11 @@ test_common_logging_SOURCES = \
  test_common_logging.c
 test_common_logging_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_common_logging_runtime_loglevels_SOURCES = \
+ test_common_logging_runtime_loglevels.c
+test_common_logging_runtime_loglevels_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_configuration_SOURCES = \
  test_configuration.c
