@@ -223,10 +223,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 runone ()
 {
-  char *fn;
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;
-
-  GNUNET_asprintf (&fn, "test_common_logging_dummy");
 
   pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
 
@@ -275,9 +272,9 @@ runone ()
   }
 
   proc =
-      GNUNET_OS_start_process (NULL, pipe_stdout, fn,
+      GNUNET_OS_start_process (NULL, pipe_stdout, 
+			       "./test_common_logging_dummy",
                                "test_common_logging_dummy", NULL);
-  GNUNET_free (fn);
   putenv ("GNUNET_FORCE_LOG=");
   putenv ("GNUNET_LOG=");
 
