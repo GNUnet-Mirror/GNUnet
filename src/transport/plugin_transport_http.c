@@ -763,22 +763,16 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
 #if DEBUG_HTTP
   struct Plugin *plugin = cls;
 #endif
-  //static int limit;
 #if DEBUG_HTTP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                    "NPMC called %s to address `%s'\n",
                    (add_remove == GNUNET_NO) ? "remove" : "add",
                    GNUNET_a2s (addr, addrlen));
 #endif
-  /* convert 'addr' to our internal format */
   switch (add_remove)
   {
   case GNUNET_YES:
-    // FIXME DEBUGGING
-    //if (limit < 1)
       nat_add_address (cls, add_remove, addr, addrlen);
-    //limit++;
-    // FIXME END
     break;
   case GNUNET_NO:
     nat_remove_address (cls, add_remove, addr, addrlen);
