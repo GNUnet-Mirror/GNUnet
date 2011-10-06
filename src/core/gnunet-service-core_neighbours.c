@@ -428,13 +428,13 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_CORE_SET_KEY:
-    GSC_KX_handle_set_key (n->kxinfo, message, ats, ats_count);
+    GSC_KX_handle_set_key (n->kxinfo, message);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_PING:
-    GSC_KX_handle_ping (n->kxinfo, message, ats, ats_count);
+    GSC_KX_handle_ping (n->kxinfo, message);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_PONG:
-    GSC_KX_handle_pong (n->kxinfo, message, ats, ats_count);
+    GSC_KX_handle_pong (n->kxinfo, message);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
     GSC_KX_handle_encrypted_message (peer,

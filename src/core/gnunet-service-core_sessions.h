@@ -147,6 +147,28 @@ GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client 
 
 
 /**
+ * Create a session, a key exchange was just completed.
+ */
+void
+GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer);
+
+/**
+ * Update information about a session.
+ *
+ * @param peer peer who's session should be updated
+ * @param bw_out new outbound bandwidth limit for the peer
+ * @param atsi performance information
+ * @param atsi_count number of performance records supplied
+ */
+void
+GSC_SESSIONS_update (const struct GNUNET_PeerIdentity *peer,
+		     struct GNUNET_BANDWIDTH_Value32NBO bw_out,
+		     const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+		     uint32_t atsi_count);
+
+
+
+/**
  * Initialize sessions subsystem.
  */
 void

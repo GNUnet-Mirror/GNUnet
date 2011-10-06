@@ -145,37 +145,6 @@
 #define MAX_MESSAGE_AGE GNUNET_TIME_UNIT_DAYS
 
 
-/**
- * State machine for our P2P encryption handshake.  Everyone starts in
- * "DOWN", if we receive the other peer's key (other peer initiated)
- * we start in state RECEIVED (since we will immediately send our
- * own); otherwise we start in SENT.  If we get back a PONG from
- * within either state, we move up to CONFIRMED (the PONG will always
- * be sent back encrypted with the key we sent to the other peer).
- */
-enum PeerStateMachine
-{
-  /**
-   * No handshake yet.
-   */
-  PEER_STATE_DOWN,
-
-  /**
-   * We've sent our session key.
-   */
-  PEER_STATE_KEY_SENT,
-
-  /**
-   * We've received the other peers session key.
-   */
-  PEER_STATE_KEY_RECEIVED,
-
-  /**
-   * The other peer has confirmed our session key with a message
-   * encrypted with his session key (which we got).  Session is now fully up.
-   */
-  PEER_STATE_KEY_CONFIRMED
-};
 
 /**
  * Number of bytes (at the beginning) of "struct EncryptedMessage"

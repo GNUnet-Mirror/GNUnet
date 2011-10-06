@@ -30,16 +30,76 @@
 
 
 /**
+ * State machine for our P2P encryption handshake.  Everyone starts in
+ * "DOWN", if we receive the other peer's key (other peer initiated)
+ * we start in state RECEIVED (since we will immediately send our
+ * own); otherwise we start in SENT.  If we get back a PONG from
+ * within either state, we move up to CONFIRMED (the PONG will always
+ * be sent back encrypted with the key we sent to the other peer).
+ */
+enum KxStateMachine
+{
+  /**
+   * No handshake yet.
+   */
+  KX_STATE_DOWN,
+
+  /**
+   * We've sent our session key.
+   */
+  KX_STATE_KEY_SENT,
+
+  /**
+   * We've received the other peers session key.
+   */
+  KX_STATE_KEY_RECEIVED,
+
+  /**
+   * The other peer has confirmed our session key with a message
+   * encrypted with his session key (which we got).  Key exchange
+   * is done.
+   */
+  KX_STATE_UP
+};
+
+
+/**
  * Information about the status of a key exchange with another peer.
  */
 struct GSC_KeyExchangeInfo
 {
+  /**
+   * Identity of the peer.
+   */
+  struct GNUNET_PeerIdentity peer;
 
   /**
-   * SetKeyMessage to transmit, NULL if we are not currently trying
-   * to send one.
+   * SetKeyMessage to transmit (initialized the first
+   * time our status goes past 'KX_STATE_KEY_SENT').
    */
-  struct SetKeyMessage *skm;
+  struct SetKeyMessage skm;
+
+  /**
+   * PING message we transmit to the other peer.
+   */
+  struct PingMessage ping;
+
+  /**
+   * SetKeyMessage we received and did not process yet.
+   */
+  struct SetKeyMessage *skm_received;
+
+  /**
+   * PING message we received from the other peer and
+   * did not process yet (or NULL).
+   */
+  struct PingMessage *ping_received;
+
+  /**
+   * PONG message we received from the other peer and
+   * did not process yet (or NULL).
+   */
+  struct PongMessage *pong_received;
 
   /**
    * Non-NULL if we are currently looking up HELLOs for this peer.
@@ -51,13 +111,6 @@ struct GSC_KeyExchangeInfo
    * Public key of the neighbour, NULL if we don't have it yet.
    */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
-
-  /**
-   * We received a PING message before we got the "public_key"
-   * (or the SET_KEY).  We keep it here until we have a key
-   * to decrypt it.  NULL if no PING is pending.
-   */
-  struct PingMessage *pending_ping;
 
   /**
    * We received a PONG message before we got the "public_key"
@@ -89,6 +142,11 @@ struct GSC_KeyExchangeInfo
   struct GNUNET_TIME_Absolute decrypt_key_created;
 
   /**
+   * When should the session time out (if there are no PONGs)?
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
    * At what frequency are we currently re-trying SET_KEY messages?
    */
   struct GNUNET_TIME_Relative set_key_retry_frequency;
@@ -111,7 +169,7 @@ struct GSC_KeyExchangeInfo
   /**
    * What is our connection status?
    */
-  enum PeerStateMachine status;
+  enum KxStateMachine status;
 
 };
 
@@ -122,14 +180,10 @@ struct GSC_KeyExchangeInfo
  *
  * @param kx key exchange status for the corresponding peer
  * @param msg the set key message we received
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 void
-GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *n, 
-		       const struct GNUNET_MessageHandler *msg,
-		       const struct GNUNET_TRANSPORT_ATS_Information *ats,
-		       uint32_t ats_count);
+GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx, 
+		       const struct GNUNET_MessageHandler *msg);
 
 
 /**
@@ -138,14 +192,10 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *n,
  *
  * @param kx key exchange status for the corresponding peer
  * @param msg the encrypted PING message itself
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 void
 GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx, 
-		    const struct GNUNET_MessageHeader *msg,
-		    const struct GNUNET_TRANSPORT_ATS_Information *ats,
-		    uint32_t ats_count);
+		    const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -153,25 +203,25 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
  *
  * @param kx key exchange status for the corresponding peer
  * @param msg the encrypted PONG message itself
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 void
 GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
-		    const struct GNUNET_MessageHeader *msg,
-		    const struct GNUNET_TRANSPORT_ATS_Information *ats,
-		    uint32_t ats_count);
+		    const struct GNUNET_MessageHeader *msg);
 
 
 /**
  * Encrypt and transmit a message with the given payload.
  *
  * @param kx key exchange context
+ * @param bw_in bandwidth limit to transmit to the other peer;
+ *              the other peer shall not send us more than the
+ *              given rate
  * @param payload payload of the message
  * @param payload_size number of bytes in 'payload'
  */
 void
 GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
+			     struct GNUNET_BANDWIDTH_Value32NBO bw_in,
 			     const void *payload,
 			     size_t payload_size);
 
@@ -182,14 +232,14 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
  *
  * @param kx key exchange information context
  * @param msg encrypted message
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param atsi performance data
+ * @param atsi_count number of entries in ats (excluding 0-termination)
  */
 void
 GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx, 
 				 const struct GNUNET_MessageHeader *msg,
-				 const struct GNUNET_TRANSPORT_ATS_Information *ats,
-				 uint32_t ats_count);
+				 const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+				 uint32_t atsi_count);
 
 
 /**

@@ -1123,11 +1123,7 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
 #endif
   n = GNUNET_malloc (sizeof (struct Neighbour));
   n->peer = *pid;
-  GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
-  now = GNUNET_TIME_absolute_get ();
-  n->encrypt_key_created = now;
-  n->last_activity = now;
-  n->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
+  n->last_activity = GNUNET_TIME_absolute_get ();
   n->bw_in = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->bw_out = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->bw_out_internal_limit = GNUNET_BANDWIDTH_value_init (UINT32_MAX);
@@ -1673,7 +1669,118 @@ GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client 
 }
 
 
+/**
+ * Create a session, a key exchange was just completed.
+ */
+void
+GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer)
+{
+    {
+      struct GNUNET_MessageHeader *hdr;
 
+      hdr = compute_type_map_message ();
+      send_type_map_to_neighbour (hdr, &n->peer.hashPubKey, n);
+      GNUNET_free (hdr);
+    }
+    if (n->bw_out_external_limit.value__ != t.inbound_bw_limit.value__)
+    {
+      n->bw_out_external_limit = t.inbound_bw_limit;
+      n->bw_out =
+          GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
+                                      n->bw_out_internal_limit);
+      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
+                                             n->bw_out);
+      GNUNET_TRANSPORT_set_quota (transport, &n->peer, n->bw_in, n->bw_out);
+    }
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Confirmed key via `%s' message for peer `%4s'\n", "PONG",
+                GNUNET_i2s (&n->peer));
+#endif
+
+
+    size =
+        sizeof (struct ConnectNotifyMessage) +
+        (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+    if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break (0);
+      /* recovery strategy: throw away performance data */
+      GNUNET_array_grow (n->ats, n->ats_count, 0);
+      size =
+          sizeof (struct PeerStatusNotifyMessage) +
+          n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+    }
+    cnm = (struct ConnectNotifyMessage *) buf;
+    cnm->header.size = htons (size);
+    cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+    cnm->ats_count = htonl (n->ats_count);
+    cnm->peer = n->peer;
+    mats = &cnm->ats;
+    memcpy (mats, n->ats,
+            n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+    mats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+    mats[n->ats_count].value = htonl (0);
+    send_to_all_clients (&cnm->header, GNUNET_NO,
+                         GNUNET_CORE_OPTION_SEND_CONNECT);
+    process_encrypted_neighbour_queue (n);
+    n->last_activity = GNUNET_TIME_absolute_get ();
+
+  if (n->status == PEER_STATE_KEY_CONFIRMED)
+  {
+    now = GNUNET_TIME_absolute_get ();
+    n->last_activity = now;
+    changed = GNUNET_YES;
+    if (!up)
+    {
+      GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"),
+                                1, GNUNET_NO);
+      n->time_established = now;
+    }
+    if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (n->keep_alive_task);
+    n->keep_alive_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
+                                      (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                       2), &send_keep_alive, n);
+  }
+
+
+}
+
+
+/**
+ * Update information about a session.
+ *
+ * @param peer peer who's session should be updated
+ * @param bw_out new outbound bandwidth limit for the peer
+ * @param atsi performance information
+ * @param atsi_count number of performance records supplied
+ */
+void
+GSC_SESSIONS_update (const struct GNUNET_PeerIdentity *peer,
+		     struct GNUNET_BANDWIDTH_Value32NBO bw_out,
+		     const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+		     uint32_t atsi_count)
+{
+  if (bw_out_external_limit.value__ != pt->inbound_bw_limit.value__)
+  {
+#if DEBUG_CORE_SET_QUOTA
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received %u b/s as new inbound limit for peer `%4s'\n",
+                (unsigned int) ntohl (pt->inbound_bw_limit.value__),
+                GNUNET_i2s (&n->peer));
+#endif
+    n->bw_out_external_limit = pt->inbound_bw_limit;
+    n->bw_out =
+        GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
+                                    n->bw_out_internal_limit);
+    GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
+                                           n->bw_out);
+    GNUNET_TRANSPORT_set_quota (transport, &n->peer, n->bw_in, n->bw_out);
+  }
+
+}
 
 
 /**

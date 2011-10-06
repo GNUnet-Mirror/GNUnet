@@ -41,7 +41,7 @@
  * @param timeout by when should the transmission be done?
  */
 void
-GDS_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
+GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
 			 const struct GNUNET_MessageHeader *msg,
 			 struct GNUNET_TIME_Relative timeout);
 
