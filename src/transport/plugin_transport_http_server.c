@@ -996,8 +996,6 @@ server_start (struct Plugin *plugin)
                                            &server_disconnect_cb, plugin,
                                            MHD_OPTION_EXTERNAL_LOGGER,
                                            server_log, NULL, MHD_OPTION_END);
-    if (plugin->server_v4 == NULL)
-      res = GNUNET_SYSERR;
   }
   plugin->server_v6 = NULL;
   if (plugin->ipv6 == GNUNET_YES)
@@ -1036,8 +1034,21 @@ server_start (struct Plugin *plugin)
                                            MHD_OPTION_EXTERNAL_LOGGER,
                                            server_log, NULL, MHD_OPTION_END);
 
-    if (plugin->server_v6 == NULL)
-      res = GNUNET_SYSERR;
+  }
+
+  if ((plugin->ipv4 == GNUNET_YES) && (plugin->server_v4 == NULL))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Failed to start %s IPv4 server component on port %u\n", plugin->name,
+                     plugin->port);
+    return GNUNET_SYSERR;
+  }
+  if ((plugin->ipv6 == GNUNET_YES) && (plugin->server_v6 == NULL))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Failed to start %s IPv6 server component on port %u\n", plugin->name,
+                     plugin->port);
+    return GNUNET_SYSERR;
   }
 
   server_reschedule (plugin, GNUNET_NO);
