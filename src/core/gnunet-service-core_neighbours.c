@@ -166,7 +166,7 @@ free_neighbour (struct Neighbour *n)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
     n->th = NULL;
   }
-  GSC_SESSION_end (&n->peer);
+  GSC_SESSIONS_end (&n->peer);
   if (NULL != n->kx)
   {
     GSC_KX_stop (n->kx);

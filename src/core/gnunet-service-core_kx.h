@@ -99,6 +99,11 @@ struct GSC_KeyExchangeInfo
   GNUNET_SCHEDULER_TaskIdentifier retry_set_key_task;
 
   /**
+   * ID of task used for sending keep-alive pings.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier keep_alive_task;
+
+  /**
    * What was our PING challenge number (for this peer)?
    */
   uint32_t ping_challenge;

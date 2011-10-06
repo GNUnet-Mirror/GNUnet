@@ -371,6 +371,9 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
     GNUNET_PEERINFO_iterate_cancel (kx->pitr);
     kx->pitr = NULL;
   }
+
+    GNUNET_SCHEDULER_cancel (n->dead_clean_task);
+  if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
   if (kx->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
   GNUNET_free_non_null (kx->public_key);
@@ -1511,6 +1514,66 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *n,
                                  GNUNET_YES, GNUNET_NO))
     GNUNET_break_op (0);
 }
+
+
+/**
+ * Task triggered when a neighbour entry is about to time out
+ * (and we should prevent this by sending a PING).
+ *
+ * @param cls the 'struct Neighbour'
+ * @param tc scheduler context (not used)
+ */
+static void
+send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Neighbour *n = cls;
+  struct GNUNET_TIME_Relative retry;
+  struct GNUNET_TIME_Relative left;
+  struct MessageEntry *me;
+  struct PingMessage pp;
+  struct PingMessage *pm;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+
+  n->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
+  /* send PING */
+  me = GNUNET_malloc (sizeof (struct MessageEntry) +
+                      sizeof (struct PingMessage));
+  me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PING_DELAY);
+  me->priority = PING_PRIORITY;
+  me->size = sizeof (struct PingMessage);
+  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head, n->encrypted_tail,
+                                     n->encrypted_tail, me);
+  pm = (struct PingMessage *) &me[1];
+  pm->header.size = htons (sizeof (struct PingMessage));
+  pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
+  pm->iv_seed =
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  derive_iv (&iv, &n->encrypt_key, pm->iv_seed, &n->peer);
+  pp.challenge = n->ping_challenge;
+  pp.target = n->peer;
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Encrypting `%s' message with challenge %u for `%4s' using key %u, IV %u (salt %u).\n",
+              "PING", (unsigned int) n->ping_challenge, GNUNET_i2s (&n->peer),
+              (unsigned int) n->encrypt_key.crc32, GNUNET_CRYPTO_crc32_n (&iv,
+                                                                          sizeof
+                                                                          (iv)),
+              pm->iv_seed);
+#endif
+  do_encrypt (n, &iv, &pp.target, &pm->target,
+              sizeof (struct PingMessage) - ((void *) &pm->target -
+                                             (void *) pm));
+  process_encrypted_neighbour_queue (n);
+  /* reschedule PING job */
+  left = GNUNET_TIME_absolute_get_remaining (get_neighbour_timeout (n));
+  retry =
+      GNUNET_TIME_relative_max (GNUNET_TIME_relative_divide (left, 2),
+                                MIN_PING_FREQUENCY);
+  n->keep_alive_task =
+      GNUNET_SCHEDULER_add_delayed (retry, &send_keep_alive, n);
+
+}
+
 
 
 

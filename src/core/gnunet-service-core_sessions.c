@@ -1,5 +1,33 @@
-/* code for managing of 'encrypted' sessions (key exchange done) */
+/*
+     This file is part of GNUnet.
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 3, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+
+/**
+ * @file core/gnunet-service-core_neighbours.c
+ * @brief code for managing of 'encrypted' sessions (key exchange done) 
+ * @author Christian Grothoff
+ */
+#include "platform.h"
+#include "gnunet_service_core.h"
+#include "gnunet_service_core_neighbours.h"
+#include "gnunet_service_core_kx.h"
+#include "gnunet_service_core_sessions.h"
 
 /**
  * Record kept for each request for transmission issued by a
@@ -39,10 +67,6 @@ struct Session
    */
   struct GSC_KeyExchangeInfo *kxinfo;
 
-  /**
-   * ID of task used for sending keep-alive pings.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier keep_alive_task;
 
   /**
    * ID of task used for cleaning up dead neighbour entries.
@@ -386,8 +410,6 @@ free_neighbour (struct Neighbour *n)
   if (n->quota_update_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (n->quota_update_task);
   if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (n->dead_clean_task);
-  if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (n->keep_alive_task);
   if (n->status == PEER_STATE_KEY_CONFIRMED)
     GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"),
@@ -399,64 +421,6 @@ free_neighbour (struct Neighbour *n)
 }
 
 
-
-/**
- * Task triggered when a neighbour entry is about to time out
- * (and we should prevent this by sending a PING).
- *
- * @param cls the 'struct Neighbour'
- * @param tc scheduler context (not used)
- */
-static void
-send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Neighbour *n = cls;
-  struct GNUNET_TIME_Relative retry;
-  struct GNUNET_TIME_Relative left;
-  struct MessageEntry *me;
-  struct PingMessage pp;
-  struct PingMessage *pm;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
-
-  n->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
-  /* send PING */
-  me = GNUNET_malloc (sizeof (struct MessageEntry) +
-                      sizeof (struct PingMessage));
-  me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PING_DELAY);
-  me->priority = PING_PRIORITY;
-  me->size = sizeof (struct PingMessage);
-  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head, n->encrypted_tail,
-                                     n->encrypted_tail, me);
-  pm = (struct PingMessage *) &me[1];
-  pm->header.size = htons (sizeof (struct PingMessage));
-  pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
-  pm->iv_seed =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  derive_iv (&iv, &n->encrypt_key, pm->iv_seed, &n->peer);
-  pp.challenge = n->ping_challenge;
-  pp.target = n->peer;
-#if DEBUG_HANDSHAKE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting `%s' message with challenge %u for `%4s' using key %u, IV %u (salt %u).\n",
-              "PING", (unsigned int) n->ping_challenge, GNUNET_i2s (&n->peer),
-              (unsigned int) n->encrypt_key.crc32, GNUNET_CRYPTO_crc32_n (&iv,
-                                                                          sizeof
-                                                                          (iv)),
-              pm->iv_seed);
-#endif
-  do_encrypt (n, &iv, &pp.target, &pm->target,
-              sizeof (struct PingMessage) - ((void *) &pm->target -
-                                             (void *) pm));
-  process_encrypted_neighbour_queue (n);
-  /* reschedule PING job */
-  left = GNUNET_TIME_absolute_get_remaining (get_neighbour_timeout (n));
-  retry =
-      GNUNET_TIME_relative_max (GNUNET_TIME_relative_divide (left, 2),
-                                MIN_PING_FREQUENCY);
-  n->keep_alive_task =
-      GNUNET_SCHEDULER_add_delayed (retry, &send_keep_alive, n);
-
-}
 
 /**
  * Consider freeing the given neighbour since we may not need
