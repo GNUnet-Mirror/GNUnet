@@ -780,6 +780,36 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
   }
 }
 
+void
+http_check_ipv6 (struct Plugin *plugin)
+{
+  struct GNUNET_NETWORK_Handle *desc = NULL;
+  if (plugin->ipv6 == GNUNET_YES)
+  {
+    /* probe IPv6 support */
+    desc = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
+    if (NULL == desc)
+    {
+      if ((errno == ENOBUFS) || (errno == ENOMEM) || (errno == ENFILE) ||
+          (errno == EACCES))
+      {
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+      }
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
+                  _
+                  ("Disabling IPv6 since it is not supported on this system\n"));
+      plugin->ipv6 = GNUNET_NO;
+    }
+    else
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                  _("Enabling IPv6 on this system\n"));
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
+      desc = NULL;
+    }
+  }
+}
+
 int
 http_get_addresses (struct Plugin *plugin,
                     const char *serviceName,
@@ -788,7 +818,6 @@ http_get_addresses (struct Plugin *plugin,
                     socklen_t ** addr_lens)
 {
   int disablev6;
-  struct GNUNET_NETWORK_Handle *desc;
   unsigned long long port;
   struct addrinfo hints;
   struct addrinfo *res;
@@ -803,35 +832,8 @@ http_get_addresses (struct Plugin *plugin,
 
   *addrs = NULL;
   *addr_lens = NULL;
-  desc = NULL;
 
   disablev6 = !plugin->ipv6;
-
-  if (!disablev6)
-  {
-    /* probe IPv6 support */
-    desc = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
-    if (NULL == desc)
-    {
-      if ((errno == ENOBUFS) || (errno == ENOMEM) || (errno == ENFILE) ||
-          (errno == EACCES))
-      {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
-        return GNUNET_SYSERR;
-      }
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _
-                  ("Disabling IPv6 since it is not supported on this system\n"),
-                  serviceName, STRERROR (errno));
-      disablev6 = GNUNET_YES;
-      plugin->ipv6 = GNUNET_NO;
-    }
-    else
-    {
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
-      desc = NULL;
-    }
-  }
 
   port = 0;
   if (GNUNET_CONFIGURATION_have_value (cfg, serviceName, "PORT"))
@@ -1201,6 +1203,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->protocol = "http";
 #endif
   /* Configure plugin from configuration */
+
+  http_check_ipv6 (plugin);
 
   res = configure_plugin (plugin);
   if (res == GNUNET_SYSERR)
