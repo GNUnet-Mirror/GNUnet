@@ -42,6 +42,11 @@ struct Client
   struct Client *next;
 
   /**
+   * Clients are kept in a linked list.
+   */
+  struct Client *prev;
+
+  /**
    * Handle for the client with the server API.
    */
   struct GNUNET_SERVER_Client *client_handle;
@@ -950,6 +955,19 @@ send_p2p_message_to_client (struct Neighbour *sender, struct Client *client,
 }
 
 
+
+
+/**
+ * Notify client about a change to existing connection to one of our neighbours.
+ *
+ * @param neighbour identity of the neighbour that changed status
+ * @param tmap updated type map for the neighbour, NULL for disconnect
+ */
+void
+GDS_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
+					    const struct GSC_TypeMap *tmap)
+{
+}
 
 
 /**
