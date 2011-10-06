@@ -1187,6 +1187,9 @@ tunnel_destroy (struct MeshTunnel *t)
     /* TODO cancel core transmit ready in case it was active */
   }
   tree_destroy(t->tree);
+  if (NULL != t->dht_get_type)
+    GNUNET_DHT_get_stop(t->dht_get_type);
+  t->dht_get_type = NULL;
   GNUNET_free (t);
   return r;
 }
@@ -3240,6 +3243,24 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 /******************************************************************************/
 
 /**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+int
+shutdown_tunnel (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct MeshTunnel *t = value;
+  tunnel_destroy(t);
+  return GNUNET_YES;
+}
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -3255,6 +3276,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
   }
+  GNUNET_CONTAINER_multihashmap_iterate(tunnels, &shutdown_tunnel, NULL);
   if (dht_handle != NULL)
   {
     GNUNET_DHT_disconnect (dht_handle);
