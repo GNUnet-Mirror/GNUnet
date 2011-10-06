@@ -231,7 +231,6 @@ runone ()
   {
     GNUNET_break (0);
     ok = 2;
-    GNUNET_free (fn);
     return;
   }
 
