@@ -957,7 +957,7 @@ server_start (struct Plugin *plugin)
       "MHD can set timeout per connection! Default time out %u sec.\n", timeout);
 #else
   timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
       "MHD cannot set timeout per connection! Default time out %u sec.\n", timeout);
 #endif
   plugin->server_v4 = NULL;
@@ -1070,13 +1070,15 @@ server_stop (struct Plugin *plugin)
 
   if (plugin->server_v4 != NULL)
   {
-    MHD_stop_daemon (plugin->server_v4);
+    struct MHD_Daemon *server_v4_tmp = plugin->server_v4;
     plugin->server_v4 = NULL;
+    MHD_stop_daemon (server_v4_tmp);
   }
   if (plugin->server_v6 != NULL)
   {
-    MHD_stop_daemon (plugin->server_v6);
+    struct MHD_Daemon *server_v6_tmp = plugin->server_v6;
     plugin->server_v6 = NULL;
+    MHD_stop_daemon (server_v6_tmp);
   }
 
   /* cleaning up semi-sessions never propagated */
