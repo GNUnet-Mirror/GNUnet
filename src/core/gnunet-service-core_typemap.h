@@ -1,4 +1,4 @@
-*
+/*
      This file is part of GNUnet.
      (C) 2011 Christian Grothoff (and other contributing authors)
 
