@@ -27,8 +27,9 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_service_core.h"
-#include "gnunet_service_core-neighbours.h"
-#include "gnunet_service_core-kx.h"
+#include "gnunet_service_core_neighbours.h"
+#include "gnunet_service_core_kx.h"
+#include "gnunet_service_core_sessions.h"
 
 
 /**
@@ -112,7 +113,6 @@ struct Neighbour
    */
   struct GNUNET_BANDWIDTH_Tracker available_recv_window;
 
-
 };
 
 
@@ -125,7 +125,6 @@ static struct GNUNET_CONTAINER_MultiHashMap *neighbours;
  * Transport service.
  */
 static struct GNUNET_TRANSPORT_Handle *transport;
-
 
 
 /**
@@ -167,6 +166,7 @@ free_neighbour (struct Neighbour *n)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
     n->th = NULL;
   }
+  GSC_SESSION_end (&n->peer);
   if (NULL != n->kx)
   {
     GSC_KX_stop (n->kx);
@@ -219,11 +219,7 @@ transmit_ready (void *cls, size_t size, void *buf)
   m = n->message_head;
   if (m == NULL)
   {
-#if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Encrypted message queue empty, no messages added to buffer for `%4s'\n",
-                GNUNET_i2s (&n->peer));
-#endif
+    GNUNET_break (0);
     return 0;
   }
   GNUNET_CONTAINER_DLL_remove (n->encrypted_head, n->encrypted_tail, m);
@@ -278,7 +274,12 @@ process_queue (struct Neighbour *n)
     return;                     /* request already pending */
   m = n->message_head;
   if (m == NULL)
+  {
+    /* notify sessions that the queue is empty and more messages
+       could thus be queued now */
+    GSC_SESSIONS_solicit (&n->peer);
     return;
+  }
 #if DEBUG_CORE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport for transmission of %u bytes to `%4s' in next %llu ms\n",
@@ -404,11 +405,7 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                           uint32_t ats_count)
 {
   struct Neighbour *n;
-  struct GNUNET_TIME_Absolute now;
-  int up;
   uint16_t type;
-  uint16_t size;
-  int changed;
 
 #if DEBUG_CORE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -427,89 +424,23 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-
-
-  changed = GNUNET_NO;
-  up = (n->status == PEER_STATE_KEY_CONFIRMED);
   type = ntohs (message->type);
-  size = ntohs (message->size);
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_CORE_SET_KEY:
-    if (size != sizeof (struct SetKeyMessage))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    GNUNET_STATISTICS_update (stats, gettext_noop ("# session keys received"),
-                              1, GNUNET_NO);
-    handle_set_key (n, (const struct SetKeyMessage *) message, ats, ats_count);
-    break;
-  case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
-    if (size <
-        sizeof (struct EncryptedMessage) + sizeof (struct GNUNET_MessageHeader))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    if ((n->status != PEER_STATE_KEY_RECEIVED) &&
-        (n->status != PEER_STATE_KEY_CONFIRMED))
-    {
-      GNUNET_STATISTICS_update (stats,
-                                gettext_noop
-                                ("# failed to decrypt message (no session key)"),
-                                1, GNUNET_NO);
-      send_key (n);
-      return;
-    }
-    handle_encrypted_message (n, (const struct EncryptedMessage *) message, ats,
-                              ats_count);
+    GSC_KX_handle_set_key (n->kxinfo, message, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_PING:
-    if (size != sizeof (struct PingMessage))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    GNUNET_STATISTICS_update (stats, gettext_noop ("# PING messages received"),
-                              1, GNUNET_NO);
-    if ((n->status != PEER_STATE_KEY_RECEIVED) &&
-        (n->status != PEER_STATE_KEY_CONFIRMED))
-    {
-#if DEBUG_CORE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Core service receives `%s' request from `%4s' but have not processed key; marking as pending.\n",
-                  "PING", GNUNET_i2s (&n->peer));
-#endif
-      GNUNET_free_non_null (n->pending_ping);
-      n->pending_ping = GNUNET_malloc (sizeof (struct PingMessage));
-      memcpy (n->pending_ping, message, sizeof (struct PingMessage));
-      return;
-    }
-    handle_ping (n, (const struct PingMessage *) message, ats, ats_count);
+    GSC_KX_handle_ping (n->kxinfo, message, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_PONG:
-    if (size != sizeof (struct PongMessage))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    GNUNET_STATISTICS_update (stats, gettext_noop ("# PONG messages received"),
-                              1, GNUNET_NO);
-    if ((n->status != PEER_STATE_KEY_RECEIVED) &&
-        (n->status != PEER_STATE_KEY_CONFIRMED))
-    {
-#if DEBUG_CORE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Core service receives `%s' request from `%4s' but have not processed key; marking as pending.\n",
-                  "PONG", GNUNET_i2s (&n->peer));
-#endif
-      GNUNET_free_non_null (n->pending_pong);
-      n->pending_pong = GNUNET_malloc (sizeof (struct PongMessage));
-      memcpy (n->pending_pong, message, sizeof (struct PongMessage));
-      return;
-    }
-    handle_pong (n, (const struct PongMessage *) message, ats, ats_count);
+    GSC_KX_handle_pong (n->kxinfo, message, ats, ats_count);
+    break;
+  case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
+    GSC_KX_handle_encrypted_message (peer,
+				     n->kxinfo,
+				     message, ats,
+				     ats_count);
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -517,26 +448,6 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 (unsigned int) type);
     return;
   }
-  if (n->status == PEER_STATE_KEY_CONFIRMED)
-  {
-    now = GNUNET_TIME_absolute_get ();
-    n->last_activity = now;
-    changed = GNUNET_YES;
-    if (!up)
-    {
-      GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"),
-                                1, GNUNET_NO);
-      n->time_established = now;
-    }
-    if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (n->keep_alive_task);
-    n->keep_alive_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
-                                      (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                       2), &send_keep_alive, n);
-  }
-  if (changed)
-    handle_peer_status_change (n);
 }
 
 
@@ -552,7 +463,25 @@ GDS_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
 			 const struct GNUNET_MessageHeader *msg,
 			 struct GNUNET_TIME_Relative timeout)
 {
-  
+  struct MessageEntry *me;
+  struct Neighbour *n;
+  size_t msize;
+
+  n = find_neighbour (target);
+  if (NULL == n)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  msize = ntohs (msg->size);
+  me = GNUNET_malloc (sizeof (struct MessageEntry) + msize);
+  me->deadline = GNUNET_TIME_relative_to_absolute (timeout);
+  me->size = msize;
+  memcpy (&me[1], msg, msize);
+  GNUNET_CONTAINER_DLL_insert (n->message_head,
+			       n->message_tail,
+			       me);
+  process_queue (n);
 }
 
 

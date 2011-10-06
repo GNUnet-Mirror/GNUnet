@@ -177,52 +177,6 @@ enum PeerStateMachine
   PEER_STATE_KEY_CONFIRMED
 };
 
-
-/**
- * Encapsulation for encrypted messages exchanged between
- * peers.  Followed by the actual encrypted data.
- */
-struct EncryptedMessage
-{
-  /**
-   * Message type is either CORE_ENCRYPTED_MESSAGE.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Random value used for IV generation.
-   */
-  uint32_t iv_seed GNUNET_PACKED;
-
-  /**
-   * MAC of the encrypted message (starting at 'sequence_number'),
-   * used to verify message integrity. Everything after this value
-   * (excluding this value itself) will be encrypted and authenticated.
-   * ENCRYPTED_HEADER_SIZE must be set to the offset of the *next* field.
-   */
-  GNUNET_HashCode hmac;
-
-  /**
-   * Sequence number, in network byte order.  This field
-   * must be the first encrypted/decrypted field
-   */
-  uint32_t sequence_number GNUNET_PACKED;
-
-  /**
-   * Desired bandwidth (how much we should send to this peer / how
-   * much is the sender willing to receive)?
-   */
-  struct GNUNET_BANDWIDTH_Value32NBO inbound_bw_limit;
-
-  /**
-   * Timestamp.  Used to prevent reply of ancient messages
-   * (recent messages are caught with the sequence number).
-   */
-  struct GNUNET_TIME_AbsoluteNBO timestamp;
-
-};
-
-
 /**
  * Number of bytes (at the beginning) of "struct EncryptedMessage"
  * that are NOT encrypted.

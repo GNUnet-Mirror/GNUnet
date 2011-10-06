@@ -1,5 +1,15 @@
 
 /**
+ * A type map describing which messages a given neighbour is able
+ * to process.
+ */
+struct GSC_TypeMap 
+{
+  uint32_t bits[(UINT16_MAX + 1) / 32];
+};
+
+
+/**
  * Bitmap of message types this peer is able to handle.
  */
 static uint32_t my_type_map[(UINT16_MAX + 1) / 32];

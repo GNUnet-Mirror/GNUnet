@@ -1,3 +1,35 @@
+/*
+     This file is part of GNUnet.
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 3, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+
+/**
+ * @file core/gnunet-service-core_clients.c
+ * @brief code for managing interactions with clients of core service
+ * @author Christian Grothoff
+ */
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_transport_service.h"
+#include "gnunet_service_core.h"
+#include "gnunet_service_core_clients.h"
+#include "gnunet_service_core_sessions.h"
+
 
 /**
  * Data structure for each client connected to the core service.
@@ -923,12 +955,12 @@ send_p2p_message_to_client (struct Neighbour *sender, struct Client *client,
 /**
  * Deliver P2P message to interested clients.
  *
- * @param cls always NULL
- * @param client who sent us the message (struct Neighbour)
+ * @param sender peer who sent us the message 
  * @param m the message
  */
-static void
-deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
+void
+GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
+			     const struct GNUNET_MessageHeader *m)
 {
   struct Neighbour *sender = client;
   size_t msize = ntohs (m->size);

@@ -1,3 +1,32 @@
+/*
+     This file is part of GNUnet.
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 3, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+
+/**
+ * @file core/gnunet-service-core_kx.c
+ * @brief code for managing the key exchange (SET_KEY, PING, PONG) with other peers
+ * @author Christian Grothoff
+ */
+#include "platform.h"
+#include "gnunet-service-core_kx.h"
+#include "gnunet-service-core_neighbours.h"
+
 
 /**
  * We're sending an (encrypted) PING to the other peer to check if he
@@ -27,7 +56,6 @@ struct PingMessage
    */
   uint32_t challenge GNUNET_PACKED;
 };
-
 
 
 /**
@@ -112,251 +140,241 @@ struct SetKeyMessage
 
 
 /**
+ * Encapsulation for encrypted messages exchanged between
+ * peers.  Followed by the actual encrypted data.
+ */
+struct EncryptedMessage
+{
+  /**
+   * Message type is either CORE_ENCRYPTED_MESSAGE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Random value used for IV generation.
+   */
+  uint32_t iv_seed GNUNET_PACKED;
+
+  /**
+   * MAC of the encrypted message (starting at 'sequence_number'),
+   * used to verify message integrity. Everything after this value
+   * (excluding this value itself) will be encrypted and authenticated.
+   * ENCRYPTED_HEADER_SIZE must be set to the offset of the *next* field.
+   */
+  GNUNET_HashCode hmac;
+
+  /**
+   * Sequence number, in network byte order.  This field
+   * must be the first encrypted/decrypted field
+   */
+  uint32_t sequence_number GNUNET_PACKED;
+
+  /**
+   * Desired bandwidth (how much we should send to this peer / how
+   * much is the sender willing to receive)?
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO inbound_bw_limit;
+
+  /**
+   * Timestamp.  Used to prevent reply of ancient messages
+   * (recent messages are caught with the sequence number).
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
+
+};
+
+
+/**
  * Handle to peerinfo service.
  */
 static struct GNUNET_PEERINFO_Handle *peerinfo;
 
+/**
+ * Our private key.
+ */
+static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+
+/**
+ * Our public key.
+ */
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+
+
 
 
 /**
- * We received a PING message.  Validate and transmit
- * PONG.
- *
- * @param n sender of the PING
- * @param m the encrypted PING message itself
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
+ * Derive an authentication key from "set key" information
  */
 static void
-handle_ping (struct Neighbour *n, const struct PingMessage *m,
-             const struct GNUNET_TRANSPORT_ATS_Information *ats,
-             uint32_t ats_count)
+derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
+                 const struct GNUNET_CRYPTO_AesSessionKey *skey, uint32_t seed,
+                 struct GNUNET_TIME_Absolute creation_time)
 {
-  struct PingMessage t;
-  struct PongMessage tx;
-  struct PongMessage *tp;
-  struct MessageEntry *me;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  static const char ctx[] = "authentication key";
+  struct GNUNET_TIME_AbsoluteNBO ctbe;
 
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' request from `%4s'.\n", "PING",
-              GNUNET_i2s (&n->peer));
-#endif
-  derive_iv (&iv, &n->decrypt_key, m->iv_seed, &my_identity);
-  if (GNUNET_OK !=
-      do_decrypt (n, &iv, &m->target, &t.target,
-                  sizeof (struct PingMessage) - ((void *) &m->target -
-                                                 (void *) m)))
-    return;
-#if DEBUG_HANDSHAKE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Decrypted `%s' to `%4s' with challenge %u decrypted using key %u, IV %u (salt %u)\n",
-              "PING", GNUNET_i2s (&t.target), (unsigned int) t.challenge,
-              (unsigned int) n->decrypt_key.crc32, GNUNET_CRYPTO_crc32_n (&iv,
-                                                                          sizeof
-                                                                          (iv)),
-              m->iv_seed);
-#endif
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# PING messages decrypted"),
-                            1, GNUNET_NO);
-  if (0 !=
-      memcmp (&t.target, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
-  {
-    char sender[9];
-    char peer[9];
 
-    GNUNET_snprintf (sender, sizeof (sender), "%8s", GNUNET_i2s (&n->peer));
-    GNUNET_snprintf (peer, sizeof (peer), "%8s", GNUNET_i2s (&t.target));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Received PING from `%s' for different identity: I am `%s', PONG identity: `%s'\n"),
-                sender, GNUNET_i2s (&my_identity), peer);
-    GNUNET_break_op (0);
-    return;
-  }
-  update_neighbour_performance (n, ats, ats_count);
-  me = GNUNET_malloc (sizeof (struct MessageEntry) +
-                      sizeof (struct PongMessage));
-  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head, n->encrypted_tail,
-                                     n->encrypted_tail, me);
-  me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PONG_DELAY);
-  me->priority = PONG_PRIORITY;
-  me->size = sizeof (struct PongMessage);
-  tx.inbound_bw_limit = n->bw_in;
-  tx.challenge = t.challenge;
-  tx.target = t.target;
-  tp = (struct PongMessage *) &me[1];
-  tp->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PONG);
-  tp->header.size = htons (sizeof (struct PongMessage));
-  tp->iv_seed =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  derive_pong_iv (&iv, &n->encrypt_key, tp->iv_seed, t.challenge, &n->peer);
-  do_encrypt (n, &iv, &tx.challenge, &tp->challenge,
-              sizeof (struct PongMessage) - ((void *) &tp->challenge -
-                                             (void *) tp));
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# PONG messages created"), 1,
-                            GNUNET_NO);
-#if DEBUG_HANDSHAKE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting `%s' with challenge %u using key %u, IV %u (salt %u)\n",
-              "PONG", (unsigned int) t.challenge,
-              (unsigned int) n->encrypt_key.crc32, GNUNET_CRYPTO_crc32_n (&iv,
-                                                                          sizeof
-                                                                          (iv)),
-              tp->iv_seed);
-#endif
-  /* trigger queue processing */
-  process_encrypted_neighbour_queue (n);
+  ctbe = GNUNET_TIME_absolute_hton (creation_time);
+  GNUNET_CRYPTO_hmac_derive_key (akey, skey, &seed, sizeof (seed), &skey->key,
+                                 sizeof (skey->key), &ctbe, sizeof (ctbe), ctx,
+                                 sizeof (ctx), NULL);
 }
 
 
 /**
- * We received a PONG message.  Validate and update our status.
- *
- * @param n sender of the PONG
- * @param m the encrypted PONG message itself
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
+ * Derive an IV from packet information
  */
 static void
-handle_pong (struct Neighbour *n, const struct PongMessage *m,
-             const struct GNUNET_TRANSPORT_ATS_Information *ats,
-             uint32_t ats_count)
+derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
+           const struct GNUNET_CRYPTO_AesSessionKey *skey, uint32_t seed,
+           const struct GNUNET_PeerIdentity *identity)
 {
-  struct PongMessage t;
-  struct ConnectNotifyMessage *cnm;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  struct GNUNET_TRANSPORT_ATS_Information *mats;
-  size_t size;
+  static const char ctx[] = "initialization vector";
 
-#if DEBUG_HANDSHAKE
+  GNUNET_CRYPTO_aes_derive_iv (iv, skey, &seed, sizeof (seed),
+                               &identity->hashPubKey.bits,
+                               sizeof (identity->hashPubKey.bits), ctx,
+                               sizeof (ctx), NULL);
+}
+
+/**
+ * Derive an IV from pong packet information
+ */
+static void
+derive_pong_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
+                const struct GNUNET_CRYPTO_AesSessionKey *skey, uint32_t seed,
+                uint32_t challenge, const struct GNUNET_PeerIdentity *identity)
+{
+  static const char ctx[] = "pong initialization vector";
+
+  GNUNET_CRYPTO_aes_derive_iv (iv, skey, &seed, sizeof (seed),
+                               &identity->hashPubKey.bits,
+                               sizeof (identity->hashPubKey.bits), &challenge,
+                               sizeof (challenge), ctx, sizeof (ctx), NULL);
+}
+
+
+/**
+ * Encrypt size bytes from in and write the result to out.  Use the
+ * key for outbound traffic of the given neighbour.
+ *
+ * @param n neighbour we are sending to
+ * @param iv initialization vector to use
+ * @param in ciphertext
+ * @param out plaintext
+ * @param size size of in/out
+ * @return GNUNET_OK on success
+ */
+static int
+do_encrypt (struct Neighbour *n,
+            const struct GNUNET_CRYPTO_AesInitializationVector *iv,
+            const void *in, void *out, size_t size)
+{
+  if (size != (uint16_t) size)
+  {
+    GNUNET_break (0);
+    return GNUNET_NO;
+  }
+  GNUNET_assert (size ==
+                 GNUNET_CRYPTO_aes_encrypt (in, (uint16_t) size,
+                                            &n->encrypt_key, iv, out));
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes encrypted"), size,
+                            GNUNET_NO);
+#if DEBUG_CORE > 2
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' response from `%4s'.\n", "PONG",
-              GNUNET_i2s (&n->peer));
+              "Encrypted %u bytes for `%4s' using key %u, IV %u\n",
+              (unsigned int) size, GNUNET_i2s (&n->peer),
+              (unsigned int) n->encrypt_key.crc32, GNUNET_CRYPTO_crc32_n (iv,
+                                                                          sizeof
+                                                                          (iv)));
 #endif
-  /* mark as garbage, just to be sure */
-  memset (&t, 255, sizeof (t));
-  derive_pong_iv (&iv, &n->decrypt_key, m->iv_seed, n->ping_challenge,
-                  &my_identity);
-  if (GNUNET_OK !=
-      do_decrypt (n, &iv, &m->challenge, &t.challenge,
-                  sizeof (struct PongMessage) - ((void *) &m->challenge -
-                                                 (void *) m)))
+  return GNUNET_OK;
+}
+
+
+
+
+/**
+ * Decrypt size bytes from in and write the result to out.  Use the
+ * key for inbound traffic of the given neighbour.  This function does
+ * NOT do any integrity-checks on the result.
+ *
+ * @param n neighbour we are receiving from
+ * @param iv initialization vector to use
+ * @param in ciphertext
+ * @param out plaintext
+ * @param size size of in/out
+ * @return GNUNET_OK on success
+ */
+static int
+do_decrypt (struct Neighbour *n,
+            const struct GNUNET_CRYPTO_AesInitializationVector *iv,
+            const void *in, void *out, size_t size)
+{
+  if (size != (uint16_t) size)
+  {
+    GNUNET_break (0);
+    return GNUNET_NO;
+  }
+  if ((n->status != PEER_STATE_KEY_RECEIVED) &&
+      (n->status != PEER_STATE_KEY_CONFIRMED))
   {
     GNUNET_break_op (0);
-    return;
+    return GNUNET_SYSERR;
   }
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# PONG messages decrypted"),
-                            1, GNUNET_NO);
-#if DEBUG_HANDSHAKE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Decrypted `%s' from `%4s' with challenge %u using key %u, IV %u (salt %u)\n",
-              "PONG", GNUNET_i2s (&t.target), (unsigned int) t.challenge,
-              (unsigned int) n->decrypt_key.crc32, GNUNET_CRYPTO_crc32_n (&iv,
-                                                                          sizeof
-                                                                          (iv)),
-              m->iv_seed);
-#endif
-  if ((0 != memcmp (&t.target, &n->peer, sizeof (struct GNUNET_PeerIdentity)))
-      || (n->ping_challenge != t.challenge))
+  if (size !=
+      GNUNET_CRYPTO_aes_decrypt (in, (uint16_t) size, &n->decrypt_key, iv, out))
   {
-    /* PONG malformed */
-#if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received malformed `%s' wanted sender `%4s' with challenge %u\n",
-                "PONG", GNUNET_i2s (&n->peer),
-                (unsigned int) n->ping_challenge);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received malformed `%s' received from `%4s' with challenge %u\n",
-                "PONG", GNUNET_i2s (&t.target), (unsigned int) t.challenge);
-#endif
-    GNUNET_break_op (n->ping_challenge != t.challenge);
-    return;
-  }
-  switch (n->status)
-  {
-  case PEER_STATE_DOWN:
-    GNUNET_break (0);           /* should be impossible */
-    return;
-  case PEER_STATE_KEY_SENT:
-    GNUNET_break (0);           /* should be impossible, how did we decrypt? */
-    return;
-  case PEER_STATE_KEY_RECEIVED:
-    GNUNET_STATISTICS_update (stats,
-                              gettext_noop
-                              ("# Session keys confirmed via PONG"), 1,
-                              GNUNET_NO);
-    n->status = PEER_STATE_KEY_CONFIRMED;
-    {
-      struct GNUNET_MessageHeader *hdr;
-
-      hdr = compute_type_map_message ();
-      send_type_map_to_neighbour (hdr, &n->peer.hashPubKey, n);
-      GNUNET_free (hdr);
-    }
-    if (n->bw_out_external_limit.value__ != t.inbound_bw_limit.value__)
-    {
-      n->bw_out_external_limit = t.inbound_bw_limit;
-      n->bw_out =
-          GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
-                                      n->bw_out_internal_limit);
-      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
-                                             n->bw_out);
-      GNUNET_TRANSPORT_set_quota (transport, &n->peer, n->bw_in, n->bw_out);
-    }
-#if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Confirmed key via `%s' message for peer `%4s'\n", "PONG",
-                GNUNET_i2s (&n->peer));
-#endif
-    if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (n->retry_set_key_task);
-      n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-    update_neighbour_performance (n, ats, ats_count);
-    size =
-        sizeof (struct ConnectNotifyMessage) +
-        (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-    if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break (0);
-      /* recovery strategy: throw away performance data */
-      GNUNET_array_grow (n->ats, n->ats_count, 0);
-      size =
-          sizeof (struct PeerStatusNotifyMessage) +
-          n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-    }
-    cnm = (struct ConnectNotifyMessage *) buf;
-    cnm->header.size = htons (size);
-    cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-    cnm->ats_count = htonl (n->ats_count);
-    cnm->peer = n->peer;
-    mats = &cnm->ats;
-    memcpy (mats, n->ats,
-            n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-    mats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-    mats[n->ats_count].value = htonl (0);
-    send_to_all_clients (&cnm->header, GNUNET_NO,
-                         GNUNET_CORE_OPTION_SEND_CONNECT);
-    process_encrypted_neighbour_queue (n);
-    /* fall-through! */
-  case PEER_STATE_KEY_CONFIRMED:
-    n->last_activity = GNUNET_TIME_absolute_get ();
-    if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (n->keep_alive_task);
-    n->keep_alive_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
-                                      (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                       2), &send_keep_alive, n);
-    handle_peer_status_change (n);
-    break;
-  default:
     GNUNET_break (0);
-    break;
+    return GNUNET_SYSERR;
   }
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes decrypted"), size,
+                            GNUNET_NO);
+#if DEBUG_CORE > 1
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Decrypted %u bytes from `%4s' using key %u, IV %u\n",
+              (unsigned int) size, GNUNET_i2s (&n->peer),
+              (unsigned int) n->decrypt_key.crc32, GNUNET_CRYPTO_crc32_n (iv,
+                                                                          sizeof
+                                                                          (*iv)));
+#endif
+  return GNUNET_OK;
+}
+
+
+/**
+ * Start the key exchange with the given peer.
+ *
+ * @param pid identity of the peer to do a key exchange with
+ * @return key exchange information context
+ */
+struct GSC_KeyExchangeInfo *
+GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
+{
+  struct GSC_KeyExchangeInfo *kx;
+
+  kx = NULL;
+  return kx;
+}
+
+
+/**
+ * Stop key exchange with the given peer.  Clean up key material.
+ *
+ * @param kx key exchange to stop
+ */
+void
+GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
+{
+  if (kx->pitr != NULL)
+  {
+    GNUNET_PEERINFO_iterate_cancel (kx->pitr);
+    kx->pitr = NULL;
+  }
+  if (kx->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
+  GNUNET_free_non_null (kx->public_key);
+  GNUNET_free (kx);
 }
 
 
@@ -369,17 +387,29 @@ handle_pong (struct Neighbour *n, const struct PongMessage *m,
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
-static void
-handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                uint32_t ats_count)
+void
+GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *n, const struct GNUNET_MessageHandler *msg,
+		       const struct GNUNET_TRANSPORT_ATS_Information *ats,
+		       uint32_t ats_count)
 {
+  const struct SetKeyMessage *m;
   struct SetKeyMessage *m_cpy;
   struct GNUNET_TIME_Absolute t;
   struct GNUNET_CRYPTO_AesSessionKey k;
   struct PingMessage *ping;
   struct PongMessage *pong;
   enum PeerStateMachine sender_status;
+  uint16_t size;
+  
+  size = ntohs (msg->header);
+  if (size != sizeof (struct SetKeyMessage))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+  m = (const struct SetKeyMessage*) msg;
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# session keys received"),
+			    1, GNUNET_NO);
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -528,6 +558,326 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m,
     handle_pong (n, pong, NULL, 0);
     GNUNET_free (pong);
   }
+}
+
+
+/**
+ * We received a PING message.  Validate and transmit
+ * PONG.
+ *
+ * @param n sender of the PING
+ * @param m the encrypted PING message itself
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+void
+GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *n, const struct GNUNET_MessageHeader *msg,
+		    const struct GNUNET_TRANSPORT_ATS_Information *ats,
+		    uint32_t ats_count)
+{
+  const struct PingMessage *m;
+  struct PingMessage t;
+  struct PongMessage tx;
+  struct PongMessage *tp;
+  struct MessageEntry *me;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  size_t size;
+
+  msize = ntohs (msg->size);
+  if (msize != sizeof (struct PingMessage))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# PING messages received"),
+			    1, GNUNET_NO);
+
+#if FIXME
+    if ((n->status != PEER_STATE_KEY_RECEIVED) &&
+        (n->status != PEER_STATE_KEY_CONFIRMED))
+    {
+#if DEBUG_CORE > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Core service receives `%s' request from `%4s' but have not processed key; marking as pending.\n",
+                  "PING", GNUNET_i2s (&n->peer));
+#endif
+      GNUNET_free_non_null (n->pending_ping);
+      n->pending_ping = GNUNET_malloc (sizeof (struct PingMessage));
+      memcpy (n->pending_ping, message, sizeof (struct PingMessage));
+      return;
+    }
+#endif
+    m = (const struct PingMessage*) msg;
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core service receives `%s' request from `%4s'.\n", "PING",
+              GNUNET_i2s (&n->peer));
+#endif
+  derive_iv (&iv, &n->decrypt_key, m->iv_seed, &my_identity);
+  if (GNUNET_OK !=
+      do_decrypt (n, &iv, &m->target, &t.target,
+                  sizeof (struct PingMessage) - ((void *) &m->target -
+                                                 (void *) m)))
+    return;
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Decrypted `%s' to `%4s' with challenge %u decrypted using key %u, IV %u (salt %u)\n",
+              "PING", GNUNET_i2s (&t.target), (unsigned int) t.challenge,
+              (unsigned int) n->decrypt_key.crc32, GNUNET_CRYPTO_crc32_n (&iv,
+                                                                          sizeof
+                                                                          (iv)),
+              m->iv_seed);
+#endif
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# PING messages decrypted"),
+                            1, GNUNET_NO);
+  if (0 !=
+      memcmp (&t.target, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    char sender[9];
+    char peer[9];
+
+    GNUNET_snprintf (sender, sizeof (sender), "%8s", GNUNET_i2s (&n->peer));
+    GNUNET_snprintf (peer, sizeof (peer), "%8s", GNUNET_i2s (&t.target));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Received PING from `%s' for different identity: I am `%s', PONG identity: `%s'\n"),
+                sender, GNUNET_i2s (&my_identity), peer);
+    GNUNET_break_op (0);
+    return;
+  }
+  update_neighbour_performance (n, ats, ats_count);
+  me = GNUNET_malloc (sizeof (struct MessageEntry) +
+                      sizeof (struct PongMessage));
+  GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head, n->encrypted_tail,
+                                     n->encrypted_tail, me);
+  me->deadline = GNUNET_TIME_relative_to_absolute (MAX_PONG_DELAY);
+  me->priority = PONG_PRIORITY;
+  me->size = sizeof (struct PongMessage);
+  tx.inbound_bw_limit = n->bw_in;
+  tx.challenge = t.challenge;
+  tx.target = t.target;
+  tp = (struct PongMessage *) &me[1];
+  tp->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PONG);
+  tp->header.size = htons (sizeof (struct PongMessage));
+  tp->iv_seed =
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  derive_pong_iv (&iv, &n->encrypt_key, tp->iv_seed, t.challenge, &n->peer);
+  do_encrypt (n, &iv, &tx.challenge, &tp->challenge,
+              sizeof (struct PongMessage) - ((void *) &tp->challenge -
+                                             (void *) tp));
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# PONG messages created"), 1,
+                            GNUNET_NO);
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Encrypting `%s' with challenge %u using key %u, IV %u (salt %u)\n",
+              "PONG", (unsigned int) t.challenge,
+              (unsigned int) n->encrypt_key.crc32, GNUNET_CRYPTO_crc32_n (&iv,
+                                                                          sizeof
+                                                                          (iv)),
+              tp->iv_seed);
+#endif
+  /* trigger queue processing */
+  process_encrypted_neighbour_queue (n);
+}
+
+
+/**
+ * We received a PONG message.  Validate and update our status.
+ *
+ * @param n sender of the PONG
+ * @param m the encrypted PONG message itself
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+void
+GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *n, const struct GNUNET_MessageHeader *msg,
+		    const struct GNUNET_TRANSPORT_ATS_Information *ats,
+		    uint32_t ats_count)
+{
+  const struct PongMessage *m;
+  struct PongMessage t;
+  struct ConnectNotifyMessage *cnm;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  struct GNUNET_TRANSPORT_ATS_Information *mats;
+  uint16_t msize;
+  size_t size;
+
+  msize = ntohs (msg->size);
+  if (msize != sizeof (struct PongMessage))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# PONG messages received"),
+			    1, GNUNET_NO);
+
+#if FIXME
+    if ((n->status != PEER_STATE_KEY_RECEIVED) &&
+        (n->status != PEER_STATE_KEY_CONFIRMED))
+    {
+#if DEBUG_CORE > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Core service receives `%s' request from `%4s' but have not processed key; marking as pending.\n",
+                  "PONG", GNUNET_i2s (&n->peer));
+#endif
+      GNUNET_free_non_null (n->pending_pong);
+      n->pending_pong = GNUNET_malloc (sizeof (struct PongMessage));
+      memcpy (n->pending_pong, message, sizeof (struct PongMessage));
+      return;
+    }
+#endif
+
+  m = (const struct PongMessage*) msg;
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core service receives `%s' response from `%4s'.\n", "PONG",
+              GNUNET_i2s (&n->peer));
+#endif
+  /* mark as garbage, just to be sure */
+  memset (&t, 255, sizeof (t));
+  derive_pong_iv (&iv, &n->decrypt_key, m->iv_seed, n->ping_challenge,
+                  &my_identity);
+  if (GNUNET_OK !=
+      do_decrypt (n, &iv, &m->challenge, &t.challenge,
+                  sizeof (struct PongMessage) - ((void *) &m->challenge -
+                                                 (void *) m)))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# PONG messages decrypted"),
+                            1, GNUNET_NO);
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Decrypted `%s' from `%4s' with challenge %u using key %u, IV %u (salt %u)\n",
+              "PONG", GNUNET_i2s (&t.target), (unsigned int) t.challenge,
+              (unsigned int) n->decrypt_key.crc32, GNUNET_CRYPTO_crc32_n (&iv,
+                                                                          sizeof
+                                                                          (iv)),
+              m->iv_seed);
+#endif
+  if ((0 != memcmp (&t.target, &n->peer, sizeof (struct GNUNET_PeerIdentity)))
+      || (n->ping_challenge != t.challenge))
+  {
+    /* PONG malformed */
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received malformed `%s' wanted sender `%4s' with challenge %u\n",
+                "PONG", GNUNET_i2s (&n->peer),
+                (unsigned int) n->ping_challenge);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received malformed `%s' received from `%4s' with challenge %u\n",
+                "PONG", GNUNET_i2s (&t.target), (unsigned int) t.challenge);
+#endif
+    GNUNET_break_op (n->ping_challenge != t.challenge);
+    return;
+  }
+  switch (n->status)
+  {
+  case PEER_STATE_DOWN:
+    GNUNET_break (0);           /* should be impossible */
+    return;
+  case PEER_STATE_KEY_SENT:
+    GNUNET_break (0);           /* should be impossible, how did we decrypt? */
+    return;
+  case PEER_STATE_KEY_RECEIVED:
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop
+                              ("# Session keys confirmed via PONG"), 1,
+                              GNUNET_NO);
+    n->status = PEER_STATE_KEY_CONFIRMED;
+    {
+      struct GNUNET_MessageHeader *hdr;
+
+      hdr = compute_type_map_message ();
+      send_type_map_to_neighbour (hdr, &n->peer.hashPubKey, n);
+      GNUNET_free (hdr);
+    }
+    if (n->bw_out_external_limit.value__ != t.inbound_bw_limit.value__)
+    {
+      n->bw_out_external_limit = t.inbound_bw_limit;
+      n->bw_out =
+          GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
+                                      n->bw_out_internal_limit);
+      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
+                                             n->bw_out);
+      GNUNET_TRANSPORT_set_quota (transport, &n->peer, n->bw_in, n->bw_out);
+    }
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Confirmed key via `%s' message for peer `%4s'\n", "PONG",
+                GNUNET_i2s (&n->peer));
+#endif
+    if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (n->retry_set_key_task);
+      n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    update_neighbour_performance (n, ats, ats_count);
+    size =
+        sizeof (struct ConnectNotifyMessage) +
+        (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+    if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break (0);
+      /* recovery strategy: throw away performance data */
+      GNUNET_array_grow (n->ats, n->ats_count, 0);
+      size =
+          sizeof (struct PeerStatusNotifyMessage) +
+          n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+    }
+    cnm = (struct ConnectNotifyMessage *) buf;
+    cnm->header.size = htons (size);
+    cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+    cnm->ats_count = htonl (n->ats_count);
+    cnm->peer = n->peer;
+    mats = &cnm->ats;
+    memcpy (mats, n->ats,
+            n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+    mats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+    mats[n->ats_count].value = htonl (0);
+    send_to_all_clients (&cnm->header, GNUNET_NO,
+                         GNUNET_CORE_OPTION_SEND_CONNECT);
+    process_encrypted_neighbour_queue (n);
+    /* fall-through! */
+  case PEER_STATE_KEY_CONFIRMED:
+    n->last_activity = GNUNET_TIME_absolute_get ();
+    if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (n->keep_alive_task);
+    n->keep_alive_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
+                                      (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                       2), &send_keep_alive, n);
+    handle_peer_status_change (n);
+    break;
+  default:
+    GNUNET_break (0);
+    break;
+  }
+
+#if FIXME
+  if (n->status == PEER_STATE_KEY_CONFIRMED)
+  {
+    now = GNUNET_TIME_absolute_get ();
+    n->last_activity = now;
+    changed = GNUNET_YES;
+    if (!up)
+    {
+      GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"),
+                                1, GNUNET_NO);
+      n->time_established = now;
+    }
+    if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (n->keep_alive_task);
+    n->keep_alive_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
+                                      (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                       2), &send_keep_alive, n);
+  }
+  if (changed)
+    handle_peer_status_change (n);
+#endif
 }
 
 
@@ -907,52 +1257,322 @@ set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-struct GSC_KeyExchangeInfo *
-GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
-{
-  struct GSC_KeyExchangeInfo *kx;
-
-  kx = NULL;
-  return kx;
-}
-
-
+/**
+ * Encrypt and transmit a message with the given payload.
+ *
+ * @param kx key exchange context
+ * @param payload payload of the message
+ * @param payload_size number of bytes in 'payload'
+ */
 void
-GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
+GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
+			     const void *payload,
+			     size_t payload_size)
 {
-  if (kx->pitr != NULL)
+  char pbuf[GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE + sizeof (struct EncryptedMessage)];    /* plaintext */
+  size_t used;
+  struct EncryptedMessage *em;  /* encrypted message */
+  struct EncryptedMessage *ph;  /* plaintext header */
+  struct MessageEntry *me;
+  unsigned int priority;
+  struct GNUNET_TIME_Absolute deadline;
+  struct GNUNET_TIME_Relative retry_time;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_AuthKey auth_key;
+
+#if DEBUG_CORE_QUOTA
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending %u b/s as new limit to peer `%4s'\n",
+              (unsigned int) ntohl (n->bw_in.value__), GNUNET_i2s (&n->peer));
+#endif
+  ph->iv_seed =
+      htonl (GNUNET_CRYPTO_random_u32
+             (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
+  ph->sequence_number = htonl (++n->last_sequence_number_sent);
+  ph->inbound_bw_limit = n->bw_in;
+  ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+
+  /* setup encryption message header */
+  me = GNUNET_malloc (sizeof (struct MessageEntry) + used);
+  me->deadline = deadline;
+  me->priority = priority;
+  me->size = used;
+  em = (struct EncryptedMessage *) &me[1];
+  em->header.size = htons (used);
+  em->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE);
+  em->iv_seed = ph->iv_seed;
+  derive_iv (&iv, &n->encrypt_key, ph->iv_seed, &n->peer);
+  /* encrypt */
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Encrypting %u bytes of plaintext messages for `%4s' for transmission in %llums.\n",
+              (unsigned int) used - ENCRYPTED_HEADER_SIZE,
+              GNUNET_i2s (&n->peer),
+              (unsigned long long)
+              GNUNET_TIME_absolute_get_remaining (deadline).rel_value);
+#endif
+  GNUNET_assert (GNUNET_OK ==
+                 do_encrypt (n, &iv, &ph->sequence_number, &em->sequence_number,
+                             used - ENCRYPTED_HEADER_SIZE));
+  derive_auth_key (&auth_key, &n->encrypt_key, ph->iv_seed,
+                   n->encrypt_key_created);
+  GNUNET_CRYPTO_hmac (&auth_key, &em->sequence_number,
+                      used - ENCRYPTED_HEADER_SIZE, &em->hmac);
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Authenticated %u bytes of ciphertext %u: `%s'\n",
+              used - ENCRYPTED_HEADER_SIZE,
+              GNUNET_CRYPTO_crc32_n (&em->sequence_number,
+                                     used - ENCRYPTED_HEADER_SIZE),
+              GNUNET_h2s (&em->hmac));
+#endif
+  GDS_NEIGHBOURS_transmit (&kx->peer,
+			   &em->header,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+}		   
+
+
+/**
+ * We received an encrypted message.  Decrypt, validate and
+ * pass on to the appropriate clients.
+ *
+ * @param n target of the message
+ * @param m encrypted message
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+void
+GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *n, 
+				 const struct GNUNET_MessageHeader *msg,
+				 const struct GNUNET_TRANSPORT_ATS_Information *ats,
+				 uint32_t ats_count)
+{
+  const struct EncryptedMessage *m;
+  char buf[size];
+  struct EncryptedMessage *pt;  /* plaintext */
+  GNUNET_HashCode ph;
+  uint32_t snum;
+  struct GNUNET_TIME_Absolute t;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_AuthKey auth_key;
+  uint16_t size = ntohs (msg->size);
+
+  if (size <
+      sizeof (struct EncryptedMessage) + sizeof (struct GNUNET_MessageHeader))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+  m = (const struct EncryptedMessage*) msg;
+#if FIXME  
+  if ((n->status != PEER_STATE_KEY_RECEIVED) &&
+      (n->status != PEER_STATE_KEY_CONFIRMED))
+    {
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop
+                                ("# failed to decrypt message (no session key)"),
+                                1, GNUNET_NO);
+      send_key (n);
+      return;
+    }
+#endif
+
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core service receives `%s' request from `%4s'.\n",
+              "ENCRYPTED_MESSAGE", GNUNET_i2s (&n->peer));
+#endif
+  /* validate hash */
+  derive_auth_key (&auth_key, &n->decrypt_key, m->iv_seed,
+                   n->decrypt_key_created);
+  GNUNET_CRYPTO_hmac (&auth_key, &m->sequence_number,
+                      size - ENCRYPTED_HEADER_SIZE, &ph);
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Re-Authenticated %u bytes of ciphertext (`%u'): `%s'\n",
+              (unsigned int) size - ENCRYPTED_HEADER_SIZE,
+              GNUNET_CRYPTO_crc32_n (&m->sequence_number,
+                                     size - ENCRYPTED_HEADER_SIZE),
+              GNUNET_h2s (&ph));
+#endif
+
+  if (0 != memcmp (&ph, &m->hmac, sizeof (GNUNET_HashCode)))
   {
-    GNUNET_PEERINFO_iterate_cancel (kx->pitr);
-    kx->pitr = NULL;
+    /* checksum failed */
+    GNUNET_break_op (0);
+    return;
   }
-  if (kx->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
-  GNUNET_free_non_null (kx->public_key);
-  GNUNET_free (kx);
+  derive_iv (&iv, &n->decrypt_key, m->iv_seed, &my_identity);
+  /* decrypt */
+  if (GNUNET_OK !=
+      do_decrypt (n, &iv, &m->sequence_number, &buf[ENCRYPTED_HEADER_SIZE],
+                  size - ENCRYPTED_HEADER_SIZE))
+    return;
+  pt = (struct EncryptedMessage *) buf;
+
+  /* validate sequence number */
+  snum = ntohl (pt->sequence_number);
+  if (n->last_sequence_number_received == snum)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Received duplicate message, ignoring.\n");
+    /* duplicate, ignore */
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop ("# bytes dropped (duplicates)"),
+                              size, GNUNET_NO);
+    return;
+  }
+  if ((n->last_sequence_number_received > snum) &&
+      (n->last_sequence_number_received - snum > 32))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Received ancient out of sequence message, ignoring.\n");
+    /* ancient out of sequence, ignore */
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop
+                              ("# bytes dropped (out of sequence)"), size,
+                              GNUNET_NO);
+    return;
+  }
+  if (n->last_sequence_number_received > snum)
+  {
+    unsigned int rotbit = 1 << (n->last_sequence_number_received - snum - 1);
+
+    if ((n->last_packets_bitmap & rotbit) != 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Received duplicate message, ignoring.\n");
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# bytes dropped (duplicates)"),
+                                size, GNUNET_NO);
+      /* duplicate, ignore */
+      return;
+    }
+    n->last_packets_bitmap |= rotbit;
+  }
+  if (n->last_sequence_number_received < snum)
+  {
+    int shift = (snum - n->last_sequence_number_received);
+
+    if (shift >= 8 * sizeof (n->last_packets_bitmap))
+      n->last_packets_bitmap = 0;
+    else
+      n->last_packets_bitmap <<= shift;
+    n->last_sequence_number_received = snum;
+  }
+
+  /* check timestamp */
+  t = GNUNET_TIME_absolute_ntoh (pt->timestamp);
+  if (GNUNET_TIME_absolute_get_duration (t).rel_value >
+      MAX_MESSAGE_AGE.rel_value)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Message received far too old (%llu ms). Content ignored.\n"),
+                GNUNET_TIME_absolute_get_duration (t).rel_value);
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop
+                              ("# bytes dropped (ancient message)"), size,
+                              GNUNET_NO);
+    return;
+  }
+
+  /* process decrypted message(s) */
+  if (n->bw_out_external_limit.value__ != pt->inbound_bw_limit.value__)
+  {
+#if DEBUG_CORE_SET_QUOTA
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received %u b/s as new inbound limit for peer `%4s'\n",
+                (unsigned int) ntohl (pt->inbound_bw_limit.value__),
+                GNUNET_i2s (&n->peer));
+#endif
+    n->bw_out_external_limit = pt->inbound_bw_limit;
+    n->bw_out =
+        GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit,
+                                    n->bw_out_internal_limit);
+    GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window,
+                                           n->bw_out);
+    GNUNET_TRANSPORT_set_quota (transport, &n->peer, n->bw_in, n->bw_out);
+  }
+  n->last_activity = GNUNET_TIME_absolute_get ();
+  if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (n->keep_alive_task);
+  n->keep_alive_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
+                                    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                     2), &send_keep_alive, n);
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# bytes of payload decrypted"),
+                            size - sizeof (struct EncryptedMessage), GNUNET_NO);
+  handle_peer_status_change (n);
+  update_neighbour_performance (n, ats, ats_count);
+  if (GNUNET_OK !=
+      GNUNET_SERVER_mst_receive (mst, n, &buf[sizeof (struct EncryptedMessage)],
+                                 size - sizeof (struct EncryptedMessage),
+                                 GNUNET_YES, GNUNET_NO))
+    GNUNET_break_op (0);
 }
 
 
+
+
+/**
+ * Initialize KX subsystem.
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
 int 
 GSC_KX_init ()
 {
+  char *keyfile;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (GSC_cfg, "GNUNETD", "HOSTKEY",
+					       &keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Core service is lacking HOSTKEY configuration setting.  Exiting.\n"));
+    return GNUNET_SYSERR;
+  }
+  my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GNUNET_free (keyfile);
+  if (my_private_key == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Core service could not access hostkey.  Exiting.\n"));
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
+                      &my_identity.hashPubKey);
   peerinfo = GNUNET_PEERINFO_connect (cfg);
   if (NULL == peerinfo)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not access PEERINFO service.  Exiting.\n"));
+    GNUNET_CRYPTO_rsa_key_free (my_private_key);
+    my_private_key = NULL;
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
 }
 
 
+/**
+ * Shutdown KX subsystem.
+ */
 void 
 GSC_KX_done ()
 {
+  if (my_private_key != NULL)
+  {
+    GNUNET_CRYPTO_rsa_key_free (my_private_key);
+    my_private_key = NULL;
+  }
   if (peerinfo != NULL)
     {
       GNUNET_PEERINFO_disconnect (peerinfo);
       peerinfo = NULL;
     }
-
 }
+
+/* end of gnunet-service-core_kx.c */
