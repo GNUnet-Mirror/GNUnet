@@ -886,7 +886,7 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle, int no
     if (timeout != last_timeout)
     {
 #if VERBOSE_SERVER
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "SELECT Timeout changed from %llu to %llu\n",
                        last_timeout, timeout);
 #endif
