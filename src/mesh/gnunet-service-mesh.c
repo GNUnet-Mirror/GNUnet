@@ -165,7 +165,7 @@ struct MeshPeerInfo
   struct MeshTunnel **tunnels;
 
     /**
-     * Number of tunnels above
+     * Number of tunnels this peers participates in
      */
   unsigned int ntunnels;
 };
@@ -889,9 +889,12 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
     }
     else
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "MESH:    Adding from GET: %s.\n",
+                 GNUNET_i2s(&get_path[i]));
       p->length++;
       p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
-      p->peers[p->length] = id;
+      p->peers[p->length - 1] = id;
     }
   }
   i = put_path_length;
@@ -914,9 +917,12 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
     }
     else
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+            "MESH:    Adding from PUT: %s.\n",
+            GNUNET_i2s(&put_path[i]));
       p->length++;
       p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
-      p->peers[p->length] = id;
+      p->peers[p->length - 1] = id;
     }
   }
 #if MESH_DEBUG
@@ -929,6 +935,16 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:    In total: %d hops\n",
               p->length);
+  for (i = 0; i < p->length; i++)
+  {
+    struct GNUNET_PeerIdentity peer_id;
+
+    GNUNET_PEER_resolve(p->peers[i], &peer_id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:        %u: %s\n",
+              p->peers[i],
+              GNUNET_h2s_full(&peer_id.hashPubKey));
+  }
 #endif
   return p;
 }
@@ -1070,6 +1086,7 @@ notify_peer_disconnected (const struct MeshTunnelTreeNode *n)
 /**
  * Add a peer to a tunnel, accomodating paths accordingly and initializing all
  * needed rescources.
+ * If peer already exists, do nothing.
  *
  * @param t Tunnel we want to add a new peer to
  * @param peer PeerInfo of the peer being added
@@ -1112,7 +1129,6 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
   if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
     t->path_refresh_task =
         GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
-   
 }
 
 
