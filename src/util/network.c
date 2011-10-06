@@ -208,7 +208,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 #if DEBUG_NETWORK
   {
     struct sockaddr name;
-    int namelen = sizeof (name);
+    socklen_t namelen = sizeof (name);
     int gsn = getsockname (desc->fd, &name, &namelen);
 
     if (gsn == 0)
