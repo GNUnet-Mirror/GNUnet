@@ -194,29 +194,6 @@ notify_ready (void *cls, size_t size, void *buf)
   return sizeof (struct GNUNET_MessageHeader);
 }
 
-
-static void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                uint32_t ats_count)
-{
-  struct PeerContext *p = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') connected to us!\n",
-              p->no, GNUNET_i2s (peer));
-}
-
-
-static void
-notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  struct PeerContext *p = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') disconnected!\n",
-              p->no, GNUNET_i2s (peer));
-  if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
-}
-
 struct PeerContext * sender;
 struct PeerContext * receiver;
 
@@ -239,6 +216,34 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                receiver);
 }
 
+
+static void
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                uint32_t ats_count)
+{
+  static int c;
+  c++;
+  struct PeerContext *p = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') connected to us!\n",
+              p->no, GNUNET_i2s (peer));
+  if (c == 2)
+      send_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
+}
+
+
+static void
+notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  struct PeerContext *p = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') disconnected!\n",
+              p->no, GNUNET_i2s (peer));
+  if (th != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
+  th = NULL;
+}
+
+
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
@@ -249,10 +254,6 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
               p1->no, p1_c,
               p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
-
-  // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
-  send_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
 }
 
 static void
