@@ -294,7 +294,6 @@ handle_peer_status_change (struct Neighbour *n)
 static void
 schedule_peer_messages (struct Neighbour *n)
 {
-  struct SendMessageReady smr;
   struct ClientActiveRequest *car;
   struct ClientActiveRequest *pos;
   struct Client *c;
