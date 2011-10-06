@@ -124,6 +124,8 @@ static char *data_filename;
 
 static struct GNUNET_TESTING_Daemon *d1;
 
+static GNUNET_PEER_Id pid1;
+
 static struct GNUNET_TESTING_Daemon *d2;
 
 static struct GNUNET_MESH_Handle *h1;
@@ -132,7 +134,7 @@ static struct GNUNET_MESH_Handle *h2;
 
 static struct GNUNET_MESH_Tunnel *t;
 
-static uint16_t mesh_peers[16];
+static uint16_t *mesh_peers;
 
 /**
  * Check whether peers successfully shut down.
@@ -312,11 +314,11 @@ topo_cb (void *cls,
 
   GNUNET_PEER_resolve(1, &id);
   p1 = GNUNET_PEER_search(first);
-  if (p1 == 1)
+  if (p1 == pid1)
   {
     p2 = GNUNET_PEER_search(second);
     GNUNET_assert(p2 < num_peers);
-    if (0 == p2) return;
+    GNUNET_assert(p2 > 0);
     mesh_peers[p2]++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: %s IS a neighbor\n",
@@ -324,11 +326,11 @@ topo_cb (void *cls,
     return;
   }
   p1 = GNUNET_PEER_search(second);
-  if (p1 == 1)
+  if (p1 == pid1)
   {
     p2 = GNUNET_PEER_search(first);
     GNUNET_assert(p2 < num_peers);
-    if (0 == p2) return;
+    GNUNET_assert(p2 > 0);
     mesh_peers[p2]++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: %s IS a neighbor\n",
@@ -346,14 +348,25 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_MESH_ApplicationType app;
   unsigned int i;
+  struct GNUNET_PeerIdentity id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: connect_mesh_service\n");
 
-  for (i = 1; i < num_peers; i++)
+  for (i = 1; i <= num_peers; i++)
+  {
+    GNUNET_PEER_resolve(i, &id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test:   peer %s has %u conns to d1\n",
+              GNUNET_i2s (&id),
+              mesh_peers[i]);
     if (mesh_peers[i] == 0)
       break;
+  }
   GNUNET_assert (i < num_peers);
-  d2 = GNUNET_TESTING_daemon_get (pg, i);
+  d2 = GNUNET_TESTING_daemon_get_by_id (pg, &id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: Peer searched: %s\n",
+              GNUNET_i2s (&d2->id));
   app = (GNUNET_MESH_ApplicationType) 0;
 
 #if VERBOSE
@@ -445,8 +458,13 @@ peergroup_ready (void *cls, const char *emsg)
                 "test:   %u: %s\n",
                 GNUNET_PEER_intern(&d1->id),
                 GNUNET_i2s (&d1->id));
-    mesh_peers[i] = 0;
   }
+  d1 = GNUNET_TESTING_daemon_get (pg, 0);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: Peer looking: %s\n",
+              GNUNET_i2s (&d1->id));
+  pid1 = GNUNET_PEER_intern(&d1->id);
+  mesh_peers[pid1] = 100;
   GNUNET_TESTING_get_topology(pg, &topo_cb, NULL);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
@@ -482,23 +500,9 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
             struct GNUNET_TESTING_Daemon *first_daemon,
             struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
 {
-//   GNUNET_PEER_Id f;
-//   GNUNET_PEER_Id s;
-
   if (emsg == NULL)
   {
     total_connections++;
-    /*f = */GNUNET_PEER_intern(first);
-    /*s = */GNUNET_PEER_intern(second);
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: New connection!\n");
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//               "test:     %s (%u)\n",
-//               GNUNET_h2s(&first->hashPubKey),
-//               f);
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//               "test:     %s (%u)\n",
-//               GNUNET_h2s(&second->hashPubKey),
-//               s);
   }
   else
   {
@@ -558,6 +562,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
   }
+
+  mesh_peers = GNUNET_malloc (sizeof(GNUNET_PEER_Id) * (num_peers + 1));
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (testing_cfg, "test_mesh_small",
