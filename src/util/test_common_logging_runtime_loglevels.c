@@ -47,7 +47,7 @@ static void runone ();
 static void
 end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending phase %d, ok is %d\n", phase, ok);
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
@@ -84,7 +84,7 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
   if (!(phase >= phase_from1 && phase <= phase_to1) &&
      !(phase >= phase_from2 && phase <= phase_to2))
     return p;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to match '%c%s \\d\\r\\n' on %s", c, expect_level, p);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to match '%c%s \\d\\r\\n' on %s\n", c, expect_level, p);
   for (i = 0; i < *len && !stop; i++)
   {
     switch (stage)
@@ -160,21 +160,13 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     buf_ptr += rd;
     bytes += rd;
-    while (rd > 0)
-    {
-      rd = GNUNET_DISK_file_read (stdout_read_handle, buf_ptr, sizeof (buf) - bytes);
-      if (rd == -1 && errno == EWOULDBLOCK)
-      {
-        GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        stdout_read_handle, &read_call,
-                                        (void *) stdout_read_handle);
-        return;
-      }
-      else if (rd == -1)
-        rd = 0;
-      buf_ptr += rd;
-      bytes += rd;
-    }
+#if VERBOSE
+    fprintf (stderr, "got %d bytes, reading more\n", rd);
+#endif
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    stdout_read_handle, &read_call,
+                                    (void *) stdout_read_handle);
+    return;
   }
 
 #if VERBOSE
