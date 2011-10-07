@@ -795,7 +795,7 @@ http_check_ipv6 (struct Plugin *plugin)
       {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
       }
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
                   _
                   ("Disabling IPv6 since it is not supported on this system!\n"));
       plugin->ipv6 = GNUNET_NO;
