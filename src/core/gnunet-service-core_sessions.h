@@ -26,8 +26,8 @@
 #ifndef GNUNET_SERVICE_CORE_SESSIONS_H
 #define GNUNET_SERVICE_CORE_SESSIONS_H
 
-#include "gnunet_service_core_kx.h"
-#include "gnunet_service_core_sessions.h"
+#include "gnunet-service-core.h"
+#include "gnunet-service-core_kx.h"
 
 
 /**
@@ -162,15 +162,10 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
  *
  * @param peer peer who's session should be updated
  * @param bw_out new outbound bandwidth limit for the peer
- * @param atsi performance information
- * @param atsi_count number of performance records supplied
  */
 void
 GSC_SESSIONS_update (const struct GNUNET_PeerIdentity *peer,
-		     struct GNUNET_BANDWIDTH_Value32NBO bw_out,
-		     const struct GNUNET_TRANSPORT_ATS_Information *atsi,
-		     uint32_t atsi_count);
-
+		     struct GNUNET_BANDWIDTH_Value32NBO bw_out);
 
 
 /**

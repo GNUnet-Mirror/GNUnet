@@ -142,7 +142,7 @@ GSC_TYPEMAP_remove (const uint16_t *types,
  * @return GNUNET_YES if a type is in the map, GNUNET_NO if not
  */ 
 int
-GSC_TYPEMAP_test_match (struct GSC_TypeMap *tmap,
+GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
 			const uint16_t *types,
 			unsigned int tcnt)
 {  

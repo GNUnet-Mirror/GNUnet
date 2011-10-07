@@ -27,7 +27,8 @@
 #define GNUNET_SERVICE_CORE_CLIENTS_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_service_core.h"
+#include "gnunet-service-core.h"
+#include "gnunet-service-core_typemap.h"
 
 
 /**

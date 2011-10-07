@@ -25,11 +25,20 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_service_core.h"
-#include "gnunet_service_core_clients.h"
-#include "gnunet_service_core_sessions.h"
-#include "gnunet_service_core_typemap.h"
+#include "gnunet-service-core.h"
+#include "gnunet-service-core_clients.h"
+#include "gnunet-service-core_sessions.h"
+#include "gnunet-service-core_typemap.h"
+#include "core.h"
+
+/**
+ * How many messages do we queue up at most for optional
+ * notifications to a client?  (this can cause notifications
+ * about outgoing messages to be dropped).
+ */
+#define MAX_NOTIFY_QUEUE 1024
 
 
 /**
@@ -207,12 +216,10 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
 
   for (c = client_head; c != NULL; c = c->next)
   {
-    if ( (0 != (c->options & options)) &&
-	 (GNUNET_YES == type_match (type, c)) )
-      continue; /* both match, wait for only type match */
-    if ( (0 == (c->options & options)) &&
-	 (GNUNET_YES != type_match (type, c)) )
-      continue; /* neither match, skip entirely */
+    if (! ( (0 != (c->options & options)) ||
+	    ( (0 != (options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) &&
+	      (GNUNET_YES == type_match (type, c)) ) ) )
+      continue; /* skip */
 #if DEBUG_CORE_CLIENT > 1
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Sending message of type %u to client.\n",
@@ -326,11 +333,9 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
                                                       &req->peer.hashPubKey,
                                                       car,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-    car->client = c;
+    car->client_handle = c;
   }
   car->target = req->peer;
-  GNUNET_SERVER_client_keep (client);
-  car->client_handle = client;
   car->deadline = GNUNET_TIME_absolute_ntoh (req->deadline);
   car->priority = ntohl (req->priority);
   car->msize = ntohs (req->size);
@@ -393,11 +398,11 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
 						       car));
   GNUNET_SERVER_mst_receive (client_mst,
 			     car, 
-			     &sm[1], msize,
+			     (const char*) &sm[1], msize,
 			     GNUNET_YES,
 			     GNUNET_NO);
   if (0 !=
-      memcmp (&car->peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
+      memcmp (&car->target, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
     GSC_SESSIONS_dequeue_request (car);
   GNUNET_free (car);  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -421,10 +426,21 @@ client_tokenizer_callback (void *cls, void *client,
   struct GSC_ClientActiveRequest *car = client;
 
   if (0 ==
-      memcmp (&car->peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
-    GDS_CLIENTS_deliver_message (&GSC_my_identity, &payload->header);  
+      memcmp (&car->target, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
+  {
+    GSC_CLIENTS_deliver_message (&GSC_my_identity, 
+				 NULL, 0,
+				 message,
+				 ntohs (message->size),
+				 GNUNET_CORE_OPTION_SEND_FULL_INBOUND | GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND);  
+    GSC_CLIENTS_deliver_message (&GSC_my_identity, 
+				 NULL, 0,
+				 message,
+				 sizeof (struct GNUNET_MessageHeader),
+				 GNUNET_CORE_OPTION_SEND_HDR_INBOUND | GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);  
+  }
   else
-    GSC_SESSIONS_transmit (car, &payload->header);
+    GSC_SESSIONS_transmit (car, message);
 }
 
 
@@ -443,9 +459,9 @@ destroy_active_client_request (void *cls, const GNUNET_HashCode * key,
   struct GSC_ClientActiveRequest *car = value;
 
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (car->client->requests,
-						       &car->peer,
-						       car);
+		 GNUNET_CONTAINER_multihashmap_remove (car->client_handle->requests,
+						       &car->target.hashPubKey,
+						       car));
   GSC_SESSIONS_dequeue_request (car);
   GNUNET_free (car);
   return GNUNET_YES;
@@ -501,12 +517,12 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
   struct GSC_Client *c;
   struct SendMessageReady smr;
 
-  c = car->client;
+  c = car->client_handle;
   smr.header.size = htons (sizeof (struct SendMessageReady));
   smr.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_READY);
   smr.size = htons (car->msize);
   smr.smr_id = car->smr_id;
-  smr.peer = n->peer;
+  smr.peer = car->target;
   send_to_client (c, &smr.header, GNUNET_NO);
 }
 
@@ -523,7 +539,7 @@ void
 GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
 {
   GNUNET_assert (GNUNET_YES ==
-		 destroy_active_client_request (NULL, &car->peer.hashPubKey, car));  
+		 destroy_active_client_request (NULL, &car->target.hashPubKey, car));  
 }
 
 
@@ -564,31 +580,29 @@ GDS_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     /* send connect */  
     size =
       sizeof (struct ConnectNotifyMessage) +
-      (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      (atsi_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
     if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	/* recovery strategy: throw away performance data */
-	GNUNET_array_grow (n->ats, n->ats_count, 0);
-	size =
-	  sizeof (struct ConnectNotifyMessage) +
-	  (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+	atsi_count = 0;
+	size = sizeof (struct ConnectNotifyMessage);
       }
     cnm = (struct ConnectNotifyMessage *) buf;
     cnm->header.size = htons (size);
     cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-    cnm->ats_count = htonl (atsi);
-    a = &cnm->atsi;
+    cnm->ats_count = htonl (atsi_count);
+    a = &cnm->ats;
     memcpy (a, atsi,
 	    sizeof (struct GNUNET_TRANSPORT_ATS_Information) * atsi_count);
-    a[ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-    a[ats_count].value = htonl (0);
+    a[atsi_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+    a[atsi_count].value = htonl (0);
 #if DEBUG_CORE_CLIENT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Sending `%s' message to client.\n",
                 "NOTIFY_CONNECT");
 #endif
-    cnm->peer = n->peer;
+    cnm->peer = *neighbour;
     send_to_client (client, &cnm->header, GNUNET_NO);
   }
   else
@@ -597,8 +611,8 @@ GDS_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     dcm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
     dcm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
     dcm.reserved = htonl (0);
-    dcm.peer = *peer;
-    send_to_client (client, &cnm.header, GNUNET_NO);
+    dcm.peer = *neighbour;
+    send_to_client (client, &dcm.header, GNUNET_NO);
   }
 }
 
@@ -652,29 +666,24 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
 			     int options)
 {
   size_t size = msize + sizeof (struct NotifyTrafficMessage) +
-      (sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
   char buf[size];
   struct NotifyTrafficMessage *ntm;
   struct GNUNET_TRANSPORT_ATS_Information *a;
-  int dropped;
 
   if (0 == options)
   {
     GNUNET_snprintf (buf, sizeof (buf),
 		     gettext_noop ("# bytes of messages of type %u received"),
 		     (unsigned int) ntohs (msg->type));
-    GNUNET_STATISTICS_update (stats, buf, msize, GNUNET_NO);
+    GNUNET_STATISTICS_update (GSC_stats, buf, msize, GNUNET_NO);
   }
-  GNUNET_assert (GNUNET_YES == sender->is_connected);
-  GNUNET_break (sender->status == PEER_STATE_KEY_CONFIRMED);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     /* recovery strategy: throw performance data away... */
-    GNUNET_array_grow (sender->ats, sender->ats_count, 0);
-    size =
-        msize + sizeof (struct NotifyTrafficMessage) +
-        (sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+    atsi_count = 0;
+    size = msize + sizeof (struct NotifyTrafficMessage);
   }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -686,13 +695,13 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
   ntm->header.size = htons (size);
   ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND);
   ntm->ats_count = htonl (atsi_count);
-  ntm->peer = sender->peer;
+  ntm->peer = *sender;
   a = &ntm->ats;
   memcpy (a, atsi,
-          sizeof (struct GNUNET_TRANSPORT_ATS_Information) * sender->atsi_count);
+          sizeof (struct GNUNET_TRANSPORT_ATS_Information) * atsi_count);
   a[atsi_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
   a[atsi_count].value = htonl (0);
-  memcpy (&ats[atsi_count + 1], msg, msize);
+  memcpy (&a[atsi_count + 1], msg, msize);
   send_to_all_clients (&ntm->header, GNUNET_YES, 
 		       options, ntohs (msg->type));
 }
@@ -748,7 +757,7 @@ GSC_CLIENTS_done ()
     handle_client_disconnect (NULL, c->client_handle);
   GNUNET_SERVER_notification_context_destroy (notifier);
   notifier = NULL;
-  GNUNET_SERVER_MST_destroy (client_mst);
+  GNUNET_SERVER_mst_destroy (client_mst);
   client_mst = NULL;
 }
 

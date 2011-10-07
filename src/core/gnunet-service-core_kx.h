@@ -44,7 +44,7 @@ struct GSC_KeyExchangeInfo;
  */
 void
 GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx, 
-		       const struct GNUNET_MessageHandler *msg);
+		       const struct GNUNET_MessageHeader *msg);
 
 
 /**

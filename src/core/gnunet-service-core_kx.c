@@ -1202,6 +1202,29 @@ update_timeout (struct GSC_KeyExchangeInfo *kx)
 
 
 /**
+ * Closure for 'deliver_message'
+ */
+struct DeliverMessageContext
+{
+  
+  /**
+   * Performance information for the connection.
+   */
+  const struct GNUNET_TRANSPORT_ATS_Information *atsi;
+
+  /**
+   * Sender of the message.
+   */
+  const struct GNUNET_PeerIdentity *peer;
+
+  /**
+   * Number of entries in 'atsi' array.
+   */
+  uint32_t atsi_count;
+}
+
+
+/**
  * We received an encrypted message.  Decrypt, validate and
  * pass on to the appropriate clients.
  *
@@ -1217,14 +1240,15 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *n,
 				 uint32_t atsi_count)
 {
   const struct EncryptedMessage *m;
-  char buf[size];
   struct EncryptedMessage *pt;  /* plaintext */
   GNUNET_HashCode ph;
   uint32_t snum;
   struct GNUNET_TIME_Absolute t;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_CRYPTO_AuthKey auth_key;
+  struct DeliverMessageContext dmc;
   uint16_t size = ntohs (msg->size);
+  char buf[size];
 
   if (size <
       sizeof (struct EncryptedMessage) + sizeof (struct GNUNET_MessageHeader))
@@ -1330,23 +1354,25 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *n,
   /* process decrypted message(s) */
   update_timeout (kx);
   GSC_SESSIONS_update (&kx->peer,
-		       pt->inbound_bw_limit,
-		       atsi, atsi_count); // FIXME: does 'SESSIONS' need atsi!?
+		       pt->inbound_bw_limit);
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# bytes of payload decrypted"),
                             size - sizeof (struct EncryptedMessage), GNUNET_NO);
+  dmc.atsi = atsi;
+  dmc.atsi_count = atsi_count;
+  dmc.peer = &kx->peer;
   if (GNUNET_OK !=
-      GNUNET_SERVER_mst_receive (mst, kx, &buf[sizeof (struct EncryptedMessage)],
+      GNUNET_SERVER_mst_receive (mst, &dmc, &buf[sizeof (struct EncryptedMessage)],
                                  size - sizeof (struct EncryptedMessage),
                                  GNUNET_YES, GNUNET_NO))
     GNUNET_break_op (0);
 }
 
 
-
-
 /**
  * Deliver P2P message to interested clients.
+ * Invokes send twice, once for clients that want the full message, and once
+ * for clients that only want the header 
  *
  * @param cls always NULL
  * @param client who sent us the message (struct GSC_KeyExchangeInfo)
@@ -1355,21 +1381,20 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *n,
 static void
 deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
 {
-  struct GSC_KeyExchangeInfo *kx = client;
+  struct DeliverMessageContext *dmc = client;
 
-  // FIXME (need to check stuff, need ATSI, etc.)
-  // FIXME: does clients work properly if never called with option 'NOTHING'!?
-  GSC_CLIENTS_deliver_message (&kx->peer,
-			       NULL, 0, // kx->atsi...
+  GSC_CLIENTS_deliver_message (dmc->peer,
+			       dmc->atsi, dmc->atsi_count,
 			       m,
 			       ntohs (m->size),
 			       GNUNET_CORE_OPTION_SEND_FULL_INBOUND);
-  GSC_CLIENTS_deliver_message (&kx->peer,
-			       NULL, 0, // kx->atsi...
+  GSC_CLIENTS_deliver_message (dmc->peer,
+			       dmc->atsi, dmc->atsi_count,
 			       m,
 			       sizeof (struct GNUNET_MessageHeader),
 			       GNUNET_CORE_OPTION_SEND_HDR_INBOUND);
 }
+
 
 /**
  * Initialize KX subsystem.

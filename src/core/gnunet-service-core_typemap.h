@@ -28,7 +28,11 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_service_core.h"
+
+/**
+ * Map specifying which message types a peer supports.
+ */
+struct GSC_TypeMap;
 
 
 /**
@@ -57,10 +61,17 @@ GSC_TYPEMAP_remove (const uint16_t *types,
  * @return GNUNET_YES if a type is in the map, GNUNET_NO if not
  */ 
 int
-GSC_TYPEMAP_test_match (struct GSC_TypeMap *tmap,
+GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
 			const uint16_t *types,
 			unsigned int tcnt);
 
+
+void
+GSC_TYPEMAP_init ();
+
+
+void
+GSC_TYPEMAP_done ();
 
 #endif
 /* end of gnunet-service-core_typemap.h */

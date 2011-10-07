@@ -41,7 +41,12 @@
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
-#include "core.h"
+#include "gnunet-service-core.h"
+#include "gnunet-service-core_clients.h"
+#include "gnunet-service-core_kx.h"
+#include "gnunet-service-core_neighbours.h"
+#include "gnunet-service-core_sessions.h"
+#include "gnunet-service-core_typemap.h"
 
 
 #define DEBUG_HANDSHAKE GNUNET_EXTRA_LOGGING
@@ -168,11 +173,6 @@ const struct GNUNET_CONFIGURATION_Handle *GSC_cfg;
  */
 struct GNUNET_STATISTICS_Handle *GSC_stats;
 
-/**
- * Our message stream tokenizer (for encrypted payload).
- */
-struct GNUNET_SERVER_MessageStreamTokenizer *GSC_mst;
-
 
 /**
  * Last task run during shutdown.  Disconnects us from
@@ -186,12 +186,10 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      "Core service shutting down.\n");
 #endif
   GSC_CLIENTS_done ();
-
-  if (GSC_mst != NULL)
-  {
-    GNUNET_SERVER_mst_destroy (GSC_mst);
-    GSC_mst = NULL;
-  }
+  GSC_SESSIONS_done ();
+  GSC_NEIGHBOURS_done ();
+  GSC_KX_done ();
+  GSC_TYPEMAP_done ();
   if (GSC_stats != NULL)
   {
     GNUNET_STATISTICS_destroy (GSC_stats, GNUNET_NO);
@@ -213,14 +211,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GSC_cfg = c;  
-  GSC_mst = GNUNET_SERVER_mst_create (&deliver_message, NULL);
-  GSC_stats = GNUNET_STATISTICS_create ("core", cfg);
-
-  GSC_CLIENTS_init (server);
+  GSC_stats = GNUNET_STATISTICS_create ("core", GSC_cfg);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleaning_task,
                                 NULL);
+  GSC_TYPEMAP_init ();
+  if ( (GNUNET_OK != GSC_KX_init ()) ||
+       (GNUNET_OK != GSC_NEIGHBOURS_init ()) )
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GSC_SESSIONS_init ();
+  GSC_CLIENTS_init (server);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Core service of `%4s' ready.\n"),
-              GNUNET_i2s (&my_identity));
+              GNUNET_i2s (&GSC_my_identity));
 }
 
 

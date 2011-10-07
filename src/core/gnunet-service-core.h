@@ -102,10 +102,5 @@ extern struct GNUNET_STATISTICS_Handle *GSC_stats;
  */
 extern struct GNUNET_PeerIdentity GSC_my_identity;
 
-/**
- * Our message stream tokenizer (for encrypted payload).
- */
-extern struct GNUNET_SERVER_MessageStreamTokenizer *GSC_mst;
-
 
 #endif
