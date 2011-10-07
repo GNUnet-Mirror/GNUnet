@@ -119,8 +119,7 @@ send_message (void *cls, size_t size, void *buf)
 
 static void
 init (void *cls, struct GNUNET_CORE_Handle *core,
-      const struct GNUNET_PeerIdentity *my_identity,
-      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pk)
+      const struct GNUNET_PeerIdentity *my_identity)
 {
   if (core == NULL)
   {
