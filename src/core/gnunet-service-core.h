@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,7 +26,10 @@
 #ifndef GNUNET_SERVICE_CORE_H
 #define GNUNET_SERVICE_CORE_H
 
+#include "gnunet_statistics_service.h"
 
+
+#define DEBUG_CORE GNUNET_EXTRA_LOGGING
 
 /**
  * Opaque handle to a client.

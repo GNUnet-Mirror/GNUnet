@@ -26,7 +26,10 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_service_core.h"
+#include "gnunet-service-core.h"
+#include "gnunet-service-core_sessions.h"
+#include "gnunet-service-core_typemap.h"
+#include <zlib.h>
 
 
 /**

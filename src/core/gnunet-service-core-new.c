@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,140 +22,15 @@
  * @file core/gnunet-service-core.c
  * @brief high-level P2P messaging
  * @author Christian Grothoff
- *
- * Type map implementation:
- * - track type maps for neighbours (can wait)
- * - only notify clients about peers with matching type maps (can wait)
- *
- * Considerations for later:
- * - check that hostkey used by transport (for HELLOs) is the
- *   same as the hostkey that we are using!
  */
 #include "platform.h"
-#include <zlib.h>
-#include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_hello_lib.h"
-#include "gnunet_peerinfo_service.h"
-#include "gnunet_protocols.h"
-#include "gnunet_signatures.h"
-#include "gnunet_statistics_service.h"
-#include "gnunet_transport_service.h"
 #include "gnunet-service-core.h"
 #include "gnunet-service-core_clients.h"
 #include "gnunet-service-core_kx.h"
 #include "gnunet-service-core_neighbours.h"
 #include "gnunet-service-core_sessions.h"
 #include "gnunet-service-core_typemap.h"
-
-
-#define DEBUG_HANDSHAKE GNUNET_EXTRA_LOGGING
-
-#define DEBUG_CORE_QUOTA GNUNET_EXTRA_LOGGING
-
-/**
- * Receive and send buffer windows grow over time.  For
- * how long can 'unused' bandwidth accumulate before we
- * need to cap it?  (specified in seconds).
- */
-#define MAX_WINDOW_TIME_S (5 * 60)
-
-/**
- * How many messages do we queue up at most for optional
- * notifications to a client?  (this can cause notifications
- * about outgoing messages to be dropped).
- */
-#define MAX_NOTIFY_QUEUE 1024
-
-/**
- * Minimum bandwidth (out) to assign to any connected peer.
- * Should be rather low; values larger than DEFAULT_BW_IN_OUT make no
- * sense.
- */
-#define MIN_BANDWIDTH_PER_PEER GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT
-
-/**
- * After how much time past the "official" expiration time do
- * we discard messages?  Should not be zero since we may
- * intentionally defer transmission until close to the deadline
- * and then may be slightly past the deadline due to inaccuracy
- * in sleep and our own CPU consumption.
- */
-#define PAST_EXPIRATION_DISCARD_TIME GNUNET_TIME_UNIT_SECONDS
-
-/**
- * What is the maximum delay for a SET_KEY message?
- */
-#define MAX_SET_KEY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-
-/**
- * How long do we wait for SET_KEY confirmation initially?
- */
-#define INITIAL_SET_KEY_RETRY_FREQUENCY GNUNET_TIME_relative_multiply (MAX_SET_KEY_DELAY, 1)
-
-/**
- * What is the maximum delay for a PING message?
- */
-#define MAX_PING_DELAY GNUNET_TIME_relative_multiply (MAX_SET_KEY_DELAY, 2)
-
-/**
- * What is the maximum delay for a PONG message?
- */
-#define MAX_PONG_DELAY GNUNET_TIME_relative_multiply (MAX_PING_DELAY, 2)
-
-/**
- * What is the minimum frequency for a PING message?
- */
-#define MIN_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-/**
- * How often do we recalculate bandwidth quotas?
- */
-#define QUOTA_UPDATE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-/**
- * What is the priority for a SET_KEY message?
- */
-#define SET_KEY_PRIORITY 0xFFFFFF
-
-/**
- * What is the priority for a PING message?
- */
-#define PING_PRIORITY 0xFFFFFF
-
-/**
- * What is the priority for a PONG message?
- */
-#define PONG_PRIORITY 0xFFFFFF
-
-/**
- * How many messages do we queue per peer at most?  Must be at
- * least two.
- */
-#define MAX_PEER_QUEUE_SIZE 16
-
-/**
- * How many non-mandatory messages do we queue per client at most?
- */
-#define MAX_CLIENT_QUEUE_SIZE 32
-
-/**
- * What is the maximum age of a message for us to consider
- * processing it?  Note that this looks at the timestamp used
- * by the other peer, so clock skew between machines does
- * come into play here.  So this should be picked high enough
- * so that a little bit of clock skew does not prevent peers
- * from connecting to us.
- */
-#define MAX_MESSAGE_AGE GNUNET_TIME_UNIT_DAYS
-
-
-
-/**
- * Number of bytes (at the beginning) of "struct EncryptedMessage"
- * that are NOT encrypted.
- */
-#define ENCRYPTED_HEADER_SIZE (offsetof(struct EncryptedMessage, sequence_number))
 
 
 /**
