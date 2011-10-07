@@ -821,7 +821,8 @@ server_v4_run (void *cls,
     return;
 
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
-  plugin->server_v4_task = server_schedule (plugin, plugin->server_v4, GNUNET_NO);
+  if (plugin->server_v4 != NULL)
+    plugin->server_v4_task = server_schedule (plugin, plugin->server_v4, GNUNET_NO);
 }
 
 
@@ -844,7 +845,8 @@ server_v6_run (void *cls,
     return;
 
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
-  plugin->server_v6_task = server_schedule (plugin, plugin->server_v6, GNUNET_NO);
+  if (plugin->server_v6 != NULL)
+    plugin->server_v6_task = server_schedule (plugin, plugin->server_v6, GNUNET_NO);
 }
 
 /**
@@ -1067,6 +1069,11 @@ server_stop (struct Plugin *plugin)
   struct Session *s = NULL;
   struct Session *t = NULL;
 
+  struct MHD_Daemon *server_v4_tmp = plugin->server_v4;
+  plugin->server_v4 = NULL;
+  struct MHD_Daemon *server_v6_tmp = plugin->server_v6;
+  plugin->server_v6 = NULL;
+
   if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
@@ -1079,16 +1086,12 @@ server_stop (struct Plugin *plugin)
     plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if (plugin->server_v4 != NULL)
+  if (server_v6_tmp != NULL)
   {
-    struct MHD_Daemon *server_v4_tmp = plugin->server_v4;
-    plugin->server_v4 = NULL;
     MHD_stop_daemon (server_v4_tmp);
   }
-  if (plugin->server_v6 != NULL)
+  if (server_v6_tmp != NULL)
   {
-    struct MHD_Daemon *server_v6_tmp = plugin->server_v6;
-    plugin->server_v6 = NULL;
     MHD_stop_daemon (server_v6_tmp);
   }
 
