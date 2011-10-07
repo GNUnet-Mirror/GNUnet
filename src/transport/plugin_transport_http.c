@@ -1272,7 +1272,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   s = plugin->head;
   while (s != NULL)
   {
-    struct Session *t = s->next;
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Disconnecting `%s' \n", GNUNET_i2s (&s->target));
@@ -1281,10 +1280,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
       GNUNET_assert (GNUNET_OK == client_disconnect (s));
     else
       GNUNET_assert (GNUNET_OK == server_disconnect (s));
-
-    GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
-    delete_session (s);
-    s = t;
+    s = s->next;
   }
 
 #if DEBUG_HTTP
@@ -1300,6 +1296,16 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 #endif
   /* Stop client */
   client_stop (plugin);
+
+  /* deleting up sessions */
+  s = plugin->head;
+  while (s != NULL)
+  {
+    struct Session *t = s->next;
+    GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+    delete_session (s);
+    s = t;
+  }
 
 
 #if DEBUG_HTTP
