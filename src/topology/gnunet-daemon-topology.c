@@ -938,12 +938,10 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param server handle to the server, NULL if we failed
  * @param my_id ID of this peer, NULL if we failed
- * @param publicKey public key of this peer, NULL if we failed
  */
 static void
 core_init (void *cls, struct GNUNET_CORE_Handle *server,
-           const struct GNUNET_PeerIdentity *my_id,
-           const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+           const struct GNUNET_PeerIdentity *my_id)
 {
   if (server == NULL)
   {

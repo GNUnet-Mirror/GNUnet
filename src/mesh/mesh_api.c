@@ -182,9 +182,7 @@ call_connect_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 core_startup (void *cls, struct GNUNET_CORE_Handle *core
               __attribute__ ((unused)),
-              const struct GNUNET_PeerIdentity *my_identity,
-              const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey
-              __attribute__ ((unused)))
+              const struct GNUNET_PeerIdentity *my_identity)
 {
   struct GNUNET_MESH_Handle *handle = cls;
 

@@ -153,24 +153,19 @@ struct GNUNET_CORE_MessageHandler
 
 
 /**
- * Function called after GNUNET_CORE_connect has succeeded
- * (or failed for good).  Note that the private key of the
- * peer is intentionally not exposed here; if you need it,
- * your process should try to read the private key file
- * directly (which should work if you are authorized...).
+ * Function called after GNUNET_CORE_connect has succeeded (or failed
+ * for good).  Note that the private key of the peer is intentionally
+ * not exposed here; if you need it, your process should try to read
+ * the private key file directly (which should work if you are
+ * authorized...).
  *
  * @param cls closure
  * @param server handle to the server, NULL if we failed
  * @param my_identity ID of this peer, NULL if we failed
- * @param publicKey public key of this peer, NULL if we failed
  */
 typedef void (*GNUNET_CORE_StartupCallback) (void *cls,
                                              struct GNUNET_CORE_Handle * server,
-                                             const struct GNUNET_PeerIdentity *
-                                             my_identity,
-                                             const struct
-                                             GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                                             * publicKey);
+                                             const struct GNUNET_PeerIdentity *my_identity);
 
 
 /**

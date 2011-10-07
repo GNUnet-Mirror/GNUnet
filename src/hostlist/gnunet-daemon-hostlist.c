@@ -129,8 +129,7 @@ static struct GNUNET_PeerIdentity me;
 
 static void
 core_init (void *cls, struct GNUNET_CORE_Handle *server,
-           const struct GNUNET_PeerIdentity *my_identity,
-           const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+           const struct GNUNET_PeerIdentity *my_identity)
 {
   me = *my_identity;
 }

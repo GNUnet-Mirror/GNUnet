@@ -560,9 +560,7 @@ connect_notify_peer2 (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 static void
 init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
-                   const struct GNUNET_PeerIdentity *my_identity,
-                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                   *publicKey)
+                   const struct GNUNET_PeerIdentity *my_identity)
 {
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -605,9 +603,7 @@ connect_notify_peer1 (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 static void
 init_notify_peer1 (void *cls, struct GNUNET_CORE_Handle *server,
-                   const struct GNUNET_PeerIdentity *my_identity,
-                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                   *publicKey)
+                   const struct GNUNET_PeerIdentity *my_identity)
 {
   total_server_connections++;
 #if VERBOSE

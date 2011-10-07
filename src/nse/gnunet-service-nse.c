@@ -1211,12 +1211,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls service closure
  * @param server handle to the server for this service
  * @param identity the public identity of this peer
- * @param publicKey the public key of this peer
  */
 static void
 core_init (void *cls, struct GNUNET_CORE_Handle *server,
-           const struct GNUNET_PeerIdentity *identity,
-           const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+           const struct GNUNET_PeerIdentity *identity)
 {
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_TIME_Absolute prev_time;

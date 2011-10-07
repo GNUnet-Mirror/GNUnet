@@ -95,7 +95,7 @@ struct InitReplyMessage
   /**
    * Public key of the local peer.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey;
+  struct GNUNET_PeerIdentity my_identity;
 
 };
 

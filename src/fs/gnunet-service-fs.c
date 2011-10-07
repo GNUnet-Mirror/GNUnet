@@ -462,13 +462,10 @@ peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param server handle to the server, NULL if we failed
  * @param my_identity ID of this peer, NULL if we failed
- * @param publicKey public key of this peer, NULL if we failed
  */
 static void
 peer_init_handler (void *cls, struct GNUNET_CORE_Handle *server,
-                   const struct GNUNET_PeerIdentity *my_identity,
-                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                   *publicKey)
+                   const struct GNUNET_PeerIdentity *my_identity)
 {
   my_id = *my_identity;
 }

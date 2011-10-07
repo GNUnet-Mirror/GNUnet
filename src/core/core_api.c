@@ -870,9 +870,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       trigger_next_request (h, GNUNET_NO);
     }
     h->retry_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-    GNUNET_CRYPTO_hash (&m->publicKey,
-                        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                        &h->me.hashPubKey);
+    h->me = m->my_identity;
     if (NULL != (init = h->init))
     {
       /* mark so we don't call init on reconnect */
@@ -882,7 +880,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                   "Connected to core service of peer `%s'.\n",
                   GNUNET_i2s (&h->me));
 #endif
-      init (h->cls, h, &h->me, &m->publicKey);
+      init (h->cls, h, &h->me);
     }
     else
     {

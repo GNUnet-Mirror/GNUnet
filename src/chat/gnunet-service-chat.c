@@ -1641,12 +1641,10 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure, NULL
  * @param server handle to the server for this service
  * @param my_identity the public identity of this peer
- * @param publicKey the public key of this peer
  */
 static void
 core_init (void *cls, struct GNUNET_CORE_Handle *server,
-           const struct GNUNET_PeerIdentity *my_identity,
-           const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+           const struct GNUNET_PeerIdentity *my_identity)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Core initialized\n");
   me = my_identity;

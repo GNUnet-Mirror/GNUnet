@@ -3483,12 +3483,10 @@ core_connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls a struct SendHelloContext *
  * @param server handle to the core service
  * @param my_identity the peer identity of this peer
- * @param publicKey the public key of the peer
  */
 void
 core_init (void *cls, struct GNUNET_CORE_Handle *server,
-           const struct GNUNET_PeerIdentity *my_identity,
-           const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+	   struct GNUNET_PeerIdentity *my_identity)
 {
   struct SendHelloContext *send_hello_context = cls;
 

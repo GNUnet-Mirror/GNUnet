@@ -1393,8 +1393,7 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
   irm.header.size = htons (sizeof (struct InitReplyMessage));
   irm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY);
   irm.reserved = htonl (0);
-  memcpy (&irm.publicKey, &my_public_key,
-          sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  irm.my_identity = my_identity;
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
               "INIT_REPLY");

@@ -289,7 +289,7 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
   irm.header.size = htons (sizeof (struct InitReplyMessage));
   irm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY);
   irm.reserved = htonl (0);
-  irm.publicKey = GSC_my_public_key;
+  irm.my_identity = GSC_my_identity;
   send_to_client (c, &irm.header, GNUNET_NO);
   if (0 != (c->options & GNUNET_CORE_OPTION_SEND_CONNECT))
     GSC_SESSIONS_notify_client_about_sessions (c);
