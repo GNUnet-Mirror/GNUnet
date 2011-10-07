@@ -154,8 +154,8 @@ transmit_ready (void *cls, size_t size, void *buf)
 
 static void
 preference_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
-               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out, int32_t amount,
-               struct GNUNET_TIME_Relative res_delay, uint64_t preference);
+               int32_t amount,
+               struct GNUNET_TIME_Relative res_delay);
 
 static void
 do_reserve (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -173,16 +173,14 @@ do_reserve (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "Requesting reservatin of 32k from core in 1s!\n");
   irc =
       GNUNET_CORE_peer_change_preference (p1.ch, &p2.id,
-                                          GNUNET_TIME_UNIT_SECONDS,
-                                          GNUNET_BANDWIDTH_VALUE_MAX,
                                           1000000 /* bandwidth for 1s */ ,
                                           0, &preference_cb, pc);
 }
 
 static void
 preference_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
-               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out, int32_t amount,
-               struct GNUNET_TIME_Relative res_delay, uint64_t preference)
+               int32_t amount,
+               struct GNUNET_TIME_Relative res_delay)
 {
   struct PeerContext *pc = cls;
 

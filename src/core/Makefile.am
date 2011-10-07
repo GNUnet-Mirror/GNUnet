@@ -43,7 +43,8 @@ gnunet_service_core_new_SOURCES = \
  gnunet-service-core_clients.c gnunet-service-core_clients.h \
  gnunet-service-core_neighbours.c gnunet-service-core_neighbours.h \
  gnunet-service-core_kx.c gnunet-service-core_kx.h \
- gnunet-service-core_sessions.c gnunet-service-core_sessions.h 
+ gnunet-service-core_sessions.c gnunet-service-core_sessions.h \
+ gnunet-service-core_typemap.c gnunet-service-core_typemap.h
 gnunet_service_core_new_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \

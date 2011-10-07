@@ -244,25 +244,19 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
  *
  * @param cls closure
  * @param peer identifies the peer
- * @param bandwidth_out available amount of outbound bandwidth
  * @param amount set to the amount that was actually reserved or unreserved;
  *               either the full requested amount or zero (no partial reservations)
  * @param res_delay if the reservation could not be satisfied (amount was 0), how
  *        long should the client wait until re-trying?
- * @param preference current traffic preference for the given peer
  */
 typedef void (*GNUNET_CORE_PeerConfigurationInfoCallback) (void *cls,
                                                            const struct
                                                            GNUNET_PeerIdentity *
                                                            peer,
-                                                           struct
-                                                           GNUNET_BANDWIDTH_Value32NBO
-                                                           bandwidth_out,
                                                            int32_t amount,
                                                            struct
                                                            GNUNET_TIME_Relative
-                                                           res_delay,
-                                                           uint64_t preference);
+                                                           res_delay);
 
 
 
@@ -278,15 +272,6 @@ struct GNUNET_CORE_InformationRequestContext;
  *
  * @param h core handle
  * @param peer identifies the peer
- * @param timeout after how long should we give up (and call "info" with NULL
- *                for "peer" to signal an error)?
- * @param bw_out set to the current bandwidth limit (sending) for this peer,
- *                caller should set "bpm_out" to "GNUNET_BANDWIDTH_VALUE_MAX" to avoid changing
- *                the current value; otherwise "bw_out" will be lowered to
- *                the specified value; passing a pointer to "0" can be used to force
- *                us to disconnect from the peer; "bw_out" might not increase
- *                as specified since the upper bound is generally
- *                determined by the other peer!
  * @param amount reserve N bytes for receiving, negative
  *                amounts can be used to undo a (recent) reservation;
  * @param preference increase incoming traffic share preference by this amount;
@@ -300,8 +285,6 @@ struct GNUNET_CORE_InformationRequestContext;
 struct GNUNET_CORE_InformationRequestContext *
 GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
                                     const struct GNUNET_PeerIdentity *peer,
-                                    struct GNUNET_TIME_Relative timeout,
-                                    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
                                     int32_t amount, uint64_t preference,
                                     GNUNET_CORE_PeerConfigurationInfoCallback
                                     info, void *info_cls);

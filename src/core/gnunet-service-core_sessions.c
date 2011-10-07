@@ -710,102 +710,86 @@ void
 GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
 					 const struct GNUNET_MessageHeader *message)
 {
-#if 0
-  // FIXME!
   const struct RequestInfoMessage *rcm;
-  struct GSC_Client *pos;
-  struct Neighbour *n;
+  struct Session *session;
   struct ConfigurationInfoMessage cim;
   int32_t want_reserv;
   int32_t got_reserv;
-  unsigned long long old_preference;
   struct GNUNET_TIME_Relative rdelay;
 
   rdelay = GNUNET_TIME_UNIT_ZERO;
 #if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service receives `%s' request.\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Core service receives `%s' request.\n",
               "REQUEST_INFO");
 #endif
   rcm = (const struct RequestInfoMessage *) message;
-  n = find_neighbour (&rcm->peer);
-  memset (&cim, 0, sizeof (cim));
-  if ((n != NULL) && (GNUNET_YES == n->is_connected))
-  {
-    want_reserv = ntohl (rcm->reserve_inbound);
-    if (n->bw_out_internal_limit.value__ != rcm->limit_outbound.value__)
-    {
-      n->bw_out_internal_limit = rcm->limit_outbound;
-      if (n->bw_out.value__ !=
-          GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
-                                      n->bw_out_external_limit).value__)
-      {
-        n->bw_out =
-            GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
-                                        n->bw_out_external_limit);
-        GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
-                                               n->bw_out);
-        GNUNET_TRANSPORT_set_quota (transport, &n->peer, n->bw_in, n->bw_out);
-        handle_peer_status_change (n);
-      }
-    }
-    if (want_reserv < 0)
-    {
-      got_reserv = want_reserv;
-    }
-    else if (want_reserv > 0)
-    {
-      rdelay =
-          GNUNET_BANDWIDTH_tracker_get_delay (&n->available_recv_window,
-                                              want_reserv);
-      if (rdelay.rel_value == 0)
-        got_reserv = want_reserv;
-      else
-        got_reserv = 0;         /* all or nothing */
-    }
-    else
-      got_reserv = 0;
-    GNUNET_BANDWIDTH_tracker_consume (&n->available_recv_window, got_reserv);
-    old_preference = n->current_preference;
-    n->current_preference += GNUNET_ntohll (rcm->preference_change);
-    if (old_preference > n->current_preference)
-    {
-      /* overflow; cap at maximum value */
-      n->current_preference = ULLONG_MAX;
-    }
-    update_preference_sum (n->current_preference - old_preference);
-#if DEBUG_CORE_QUOTA
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received reservation request for %d bytes for peer `%4s', reserved %d bytes, suggesting delay of %llu ms\n",
-                (int) want_reserv, GNUNET_i2s (&rcm->peer), (int) got_reserv,
-                (unsigned long long) rdelay.rel_value);
-#endif
-    cim.reserved_amount = htonl (got_reserv);
-    cim.reserve_delay = GNUNET_TIME_relative_hton (rdelay);
-    cim.bw_out = n->bw_out;
-    cim.preference = n->current_preference;
-  }
-  else
+  session = find_session (&rcm->peer);
+  if (NULL == session)
   {
     /* Technically, this COULD happen (due to asynchronous behavior),
      * but it should be rare, so we should generate an info event
      * to help diagnosis of serious errors that might be masked by this */
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Client asked for preference change with peer `%s', which is not connected!\n"),
+                _("Client asked for preference change with peer `%s', which is not connected!\n"),
                 GNUNET_i2s (&rcm->peer));
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+
+  want_reserv = ntohl (rcm->reserve_inbound);
+  if (session->bw_out_internal_limit.value__ != rcm->limit_outbound.value__)
+  {
+    session->bw_out_internal_limit = rcm->limit_outbound;
+    if (session->bw_out.value__ !=
+	GNUNET_BANDWIDTH_value_min (session->bw_out_internal_limit,
+				    session->bw_out_external_limit).value__)
+    {
+      session->bw_out =
+	GNUNET_BANDWIDTH_value_min (session->bw_out_internal_limit,
+				    session->bw_out_external_limit);
+      GNUNET_BANDWIDTH_tracker_update_quota (&session->available_recv_window,
+					     session->bw_out);
+#if 0
+      // FIXME: who does this?
+      GNUNET_TRANSPORT_set_quota (transport, &session->peer, 
+				  session->bw_in, 
+				  session->bw_out);
+#endif
+    }
+  }
+  if (want_reserv < 0)
+  {
+    got_reserv = want_reserv;
+  }
+  else if (want_reserv > 0)
+  {
+    rdelay =
+      GNUNET_BANDWIDTH_tracker_get_delay (&session->available_recv_window,
+					  want_reserv);
+    if (rdelay.rel_value == 0)
+      got_reserv = want_reserv;
+    else
+      got_reserv = 0;         /* all or nothing */
+  }
+  else
+    got_reserv = 0;
+  GNUNET_BANDWIDTH_tracker_consume (&session->available_recv_window, got_reserv);
+#if DEBUG_CORE_QUOTA
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received reservation request for %d bytes for peer `%4s', reserved %d bytes, suggesting delay of %llu ms\n",
+	      (int) want_reserv, GNUNET_i2s (&rcm->peer), (int) got_reserv,
+	      (unsigned long long) rdelay.rel_value);
+#endif
   cim.header.size = htons (sizeof (struct ConfigurationInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO);
-  cim.peer = rcm->peer;
+  cim.reserved_amount = htonl (got_reserv);
+  cim.reserve_delay = GNUNET_TIME_relative_hton (rdelay);
   cim.rim_id = rcm->rim_id;
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
-              "CONFIGURATION_INFO");
-#endif
+  cim.bw_out = session->bw_out;
+  cim.preference = 0; /* FIXME: remove */
+  cim.peer = rcm->peer;
   GSC_CLIENTS_send_to_client (client, &cim.header, GNUNET_NO);
-#endif
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

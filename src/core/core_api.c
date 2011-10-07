@@ -421,7 +421,6 @@ static int
 disconnect_and_free_peer_entry (void *cls, const GNUNET_HashCode * key,
                                 void *value)
 {
-  static struct GNUNET_BANDWIDTH_Value32NBO zero;
   struct GNUNET_CORE_Handle *h = cls;
   struct GNUNET_CORE_TransmitHandle *th;
   struct PeerRecord *pr = value;
@@ -449,7 +448,7 @@ disconnect_and_free_peer_entry (void *cls, const GNUNET_HashCode * key,
     GNUNET_break (0);
     pcic_cls = pr->pcic_cls;
     GNUNET_CORE_peer_change_preference_cancel (pr->pcic_ptr);
-    pcic (pcic_cls, &pr->peer, zero, 0, GNUNET_TIME_UNIT_FOREVER_REL, 0);
+    pcic (pcic_cls, &pr->peer, 0, GNUNET_TIME_UNIT_FOREVER_REL);
   }
   while (NULL != (th = pr->pending_head))
   {
@@ -1230,9 +1229,8 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_free_non_null (pr->pcic_ptr);
     pr->pcic_ptr = NULL;
     if (pcic != NULL)
-      pcic (pr->pcic_cls, &pr->peer, cim->bw_out, ntohl (cim->reserved_amount),
-            GNUNET_TIME_relative_ntoh (cim->reserve_delay),
-            GNUNET_ntohll (cim->preference));
+      pcic (pr->pcic_cls, &pr->peer, ntohl (cim->reserved_amount),
+            GNUNET_TIME_relative_ntoh (cim->reserve_delay));
     break;
   default:
     reconnect_later (h);
@@ -1677,15 +1675,6 @@ change_preference_send_continuation (void *cls, int success)
  *
  * @param h core handle
  * @param peer identifies the peer
- * @param timeout after how long should we give up (and call "info" with NULL
- *                for "peer" to signal an error)?
- * @param bw_out set to the current bandwidth limit (sending) for this peer,
- *                caller should set "bw_out" to "-1" to avoid changing
- *                the current value; otherwise "bw_out" will be lowered to
- *                the specified value; passing a pointer to "0" can be used to force
- *                us to disconnect from the peer; "bw_out" might not increase
- *                as specified since the upper bound is generally
- *                determined by the other peer!
  * @param amount reserve N bytes for receiving, negative
  *                amounts can be used to undo a (recent) reservation;
  * @param preference increase incoming traffic share preference by this amount;
@@ -1699,8 +1688,6 @@ change_preference_send_continuation (void *cls, int success)
 struct GNUNET_CORE_InformationRequestContext *
 GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
                                     const struct GNUNET_PeerIdentity *peer,
-                                    struct GNUNET_TIME_Relative timeout,
-                                    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
                                     int32_t amount, uint64_t preference,
                                     GNUNET_CORE_PeerConfigurationInfoCallback
                                     info, void *info_cls)
@@ -1735,7 +1722,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   rim->header.size = htons (sizeof (struct RequestInfoMessage));
   rim->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO);
   rim->rim_id = htonl (pr->rim_id = h->rim_id_gen++);
-  rim->limit_outbound = bw_out;
+  rim->limit_outbound = GNUNET_BANDWIDTH_VALUE_MAX; // FIXME: remove entirely soon...
   rim->reserve_inbound = htonl (amount);
   rim->preference_change = GNUNET_htonll (preference);
   rim->peer = *peer;
