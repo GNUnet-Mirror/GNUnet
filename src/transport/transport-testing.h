@@ -31,15 +31,45 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_os_lib.h"
 #include "gnunet_program_lib.h"
+#include "gnunet_container_lib.h"
 #include "gnunet_transport_service.h"
 
 #define GNUNET_TRANSPORT_TESTING_ConnectRequest void *
+
+
+/**
+ * Context for a single peer
+ */
+struct PeerContext;
+
+/**
+ * Callback when two peers are connected and both have called the connect callback
+ * to notify clients about a new peer
+ */
+typedef void (*GNUNET_TRANSPORT_TESTING_start_cb) (struct PeerContext * p,
+                                                   void *cls);
+
+/**
+ * Callback when two peers are connected and both have called the connect callback
+ * to notify clients about a new peer
+ */
+typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1,
+                                                     struct PeerContext * p2,
+                                                     void *cls);
+
+
+struct TransportTestingHandle;
 
 /**
  * Context for a single peer
  */
 struct PeerContext
 {
+  struct PeerContext * next;
+  struct PeerContext * prev;
+
+  struct TransportTestingHandle * tth;
+
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   struct GNUNET_TRANSPORT_Handle *th;
@@ -56,6 +86,10 @@ struct PeerContext
 
   GNUNET_TRANSPORT_NotifyDisconnect nd;
 
+  GNUNET_TRANSPORT_TESTING_start_cb start_cb;
+
+  struct GNUNET_HELLO_Message *hello;
+
   void *cb_cls;
 
   char *servicehome;
@@ -63,13 +97,31 @@ struct PeerContext
   unsigned int no;
 };
 
-/**
- * Callback when two peers are connected and both have called the connect callback
- * to notify clients about a new peer
- */
-typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1,
-                                                     struct PeerContext * p2,
-                                                     void *cls);
+
+struct ConnectingContext
+{
+  struct ConnectingContext * next;
+  struct ConnectingContext * prev;
+  struct PeerContext *p1;
+  struct PeerContext *p2;
+  GNUNET_SCHEDULER_TaskIdentifier tct;
+  GNUNET_TRANSPORT_TESTING_connect_cb cb;
+  void *cb_cls;
+  struct GNUNET_TRANSPORT_Handle *th_p1;
+  struct GNUNET_TRANSPORT_Handle *th_p2;
+  int p1_c;
+  int p2_c;
+};
+
+struct TransportTestingHandle
+{
+  struct ConnectingContext * cc_head;
+  struct ConnectingContext * cc_tail;
+
+  struct PeerContext * p_head;
+  struct PeerContext * p_tail;
+};
+
 
 
 /**
@@ -82,10 +134,13 @@ typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1,
  * @return the peer context
  */
 struct PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (const char *cfgname,
+GNUNET_TRANSPORT_TESTING_start_peer (struct TransportTestingHandle * tth,
+                                     const char *cfgname,
+                                     int peer_id,
                                      GNUNET_TRANSPORT_ReceiveCallback rec,
                                      GNUNET_TRANSPORT_NotifyConnect nc,
                                      GNUNET_TRANSPORT_NotifyDisconnect nd,
+                                     GNUNET_TRANSPORT_TESTING_start_cb start_cb,
                                      void *cb_cls);
 
 
@@ -95,7 +150,8 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char *cfgname,
  */
 
 void
-GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext *pc);
+GNUNET_TRANSPORT_TESTING_stop_peer (struct TransportTestingHandle * tth,
+                                    struct PeerContext *pc);
 
 
 /**
@@ -109,7 +165,8 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext *pc);
  * @return a connect request handle
  */
 GNUNET_TRANSPORT_TESTING_ConnectRequest
-GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
+GNUNET_TRANSPORT_TESTING_connect_peers (struct TransportTestingHandle * tth,
+                                        struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
                                         void *cls);
@@ -120,7 +177,15 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext *p1,
  * @param cc a connect request handle
  */
 void
-GNUNET_TRANSPORT_TESTING_connect_peers_cancel (void *cc);
+GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct TransportTestingHandle *,
+                                               void *cc);
+
+
+void
+GNUNET_TRANSPORT_TESTING_done (struct TransportTestingHandle * tth);
+
+struct TransportTestingHandle *
+GNUNET_TRANSPORT_TESTING_init ();
 
 /*
  * Some utility functions

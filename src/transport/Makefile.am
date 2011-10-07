@@ -56,8 +56,8 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
 endif
 
 noinst_PROGRAMS = \
- $(WLAN_BIN_DUMMY) \
- gnunet-transport-connect-running-peers
+ $(WLAN_BIN_DUMMY)
+# gnunet-transport-connect-running-peers
 
 lib_LTLIBRARIES = \
   libgnunettransport.la \
@@ -337,13 +337,13 @@ test_transport_testing_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
-gnunet_transport_connect_running_peers_SOURCES = \
- gnunet-transport-connect-running-peers.c
-gnunet_transport_connect_running_peers_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
+#gnunet_transport_connect_running_peers_SOURCES = \
+# gnunet-transport-connect-running-peers.c
+#gnunet_transport_connect_running_peers_LDADD = \
+# $(top_builddir)/src/transport/libgnunettransport.la \
+# $(top_builddir)/src/hello/libgnunethello.la \
+# $(top_builddir)/src/util/libgnunetutil.la \
+# $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_api_disconnect_SOURCES = \
  test_transport_api_disconnect.c

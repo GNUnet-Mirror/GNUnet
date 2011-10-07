@@ -324,6 +324,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb,
                                                NULL);
+
 }
 
 
