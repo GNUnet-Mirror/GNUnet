@@ -49,13 +49,13 @@ struct GSC_ClientActiveRequest
    * Active requests are kept in a doubly-linked list of
    * the respective target peer.
    */
-  struct ClientActiveRequest *next;
+  struct GSC_ClientActiveRequest *next;
 
   /**
    * Active requests are kept in a doubly-linked list of
    * the respective target peer.
    */
-  struct ClientActiveRequest *prev;
+  struct GSC_ClientActiveRequest *prev;
 
   /**
    * Which peer is the message going to be for?
@@ -76,6 +76,11 @@ struct GSC_ClientActiveRequest
    * How important is this request.
    */
   uint32_t priority;
+
+  /**
+   * Has this request been solicited yet?
+   */
+  int was_solicited;
 
   /**
    * How many bytes does the client intend to send?

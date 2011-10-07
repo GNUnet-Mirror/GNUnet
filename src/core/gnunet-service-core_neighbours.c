@@ -46,18 +46,18 @@
  * Message ready for transmission via transport service.  This struct
  * is followed by the actual content of the message.
  */
-struct MessageEntry
+struct NeighbourMessageEntry
 {
 
   /**
    * We keep messages in a doubly linked list.
    */
-  struct MessageEntry *next;
+  struct NeighbourMessageEntry *next;
 
   /**
    * We keep messages in a doubly linked list.
    */
-  struct MessageEntry *prev;
+  struct NeighbourMessageEntry *prev;
 
   /**
    * By when are we supposed to transmit this message?
@@ -84,13 +84,13 @@ struct Neighbour
    * Head of the batched message queue (already ordered, transmit
    * starting with the head).
    */
-  struct MessageEntry *message_head;
+  struct NeighbourMessageEntry *message_head;
 
   /**
    * Tail of the batched message queue (already ordered, append new
    * messages to tail).
    */
-  struct MessageEntry *message_tail;
+  struct NeighbourMessageEntry *message_tail;
 
   /**
    * Handle for pending requests for transmission to this peer
@@ -159,7 +159,7 @@ find_neighbour (const struct GNUNET_PeerIdentity *peer)
 static void
 free_neighbour (struct Neighbour *n)
 {
-  struct MessageEntry *m;
+  struct NeighbourMessageEntry *m;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -221,7 +221,7 @@ static size_t
 transmit_ready (void *cls, size_t size, void *buf)
 {
   struct Neighbour *n = cls;
-  struct MessageEntry *m;
+  struct NeighbourMessageEntry *m;
   size_t ret;
   char *cbuf;
 
@@ -278,7 +278,7 @@ transmit_ready (void *cls, size_t size, void *buf)
 static void
 process_queue (struct Neighbour *n)
 {
-  struct MessageEntry *m;
+  struct NeighbourMessageEntry *m;
 
   if (n->th != NULL)
     return;                     /* request already pending */
@@ -468,11 +468,11 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param timeout by when should the transmission be done?
  */
 void
-GDS_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
+GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
 			 const struct GNUNET_MessageHeader *msg,
 			 struct GNUNET_TIME_Relative timeout)
 {
-  struct MessageEntry *me;
+  struct NeighbourMessageEntry *me;
   struct Neighbour *n;
   size_t msize;
 
@@ -483,7 +483,7 @@ GDS_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
     return;
   }
   msize = ntohs (msg->size);
-  me = GNUNET_malloc (sizeof (struct MessageEntry) + msize);
+  me = GNUNET_malloc (sizeof (struct NeighbourMessageEntry) + msize);
   me->deadline = GNUNET_TIME_relative_to_absolute (timeout);
   me->size = msize;
   memcpy (&me[1], msg, msize);

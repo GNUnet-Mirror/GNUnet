@@ -57,8 +57,8 @@ static uint8_t map_counters[UINT16_MAX + 1];
  *
  * @return this peers current type map message.
  */
-static struct GNUNET_MessageHeader *
-compute_type_map_message ()
+struct GNUNET_MessageHeader *
+GSC_TYPEMAP_compute_type_map_message ()
 {
   char *tmp;
   uLongf dlen;
@@ -98,7 +98,7 @@ broadcast_my_type_map ()
 {
   struct GNUNET_MessageHeader *hdr;
 
-  hdr = compute_type_map_message ();
+  hdr = GSC_TYPEMAP_compute_type_map_message ();
   GSC_SESSIONS_broadcast (hdr);
   GNUNET_free (hdr);
 }

@@ -412,7 +412,7 @@ struct SendMessageReady
 
 /**
  * Client asking core to transmit a particular message to a particular
- * target (responsde to GNUNET_MESSAGE_TYPE_CORE_SEND_READY).
+ * target (response to GNUNET_MESSAGE_TYPE_CORE_SEND_READY).
  */
 struct SendMessage
 {

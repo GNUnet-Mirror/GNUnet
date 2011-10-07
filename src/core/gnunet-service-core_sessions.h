@@ -31,6 +31,28 @@
 
 
 /**
+ * Create a session, a key exchange was just completed.
+ *
+ * @param peer peer that is now connected
+ * @param kx key exchange that completed
+ */
+void
+GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
+		     struct GSC_KeyExchangeInfo *kx);
+
+
+/**
+ * Update information about a session.
+ *
+ * @param peer peer who's session should be updated
+ * @param bw_out new outbound bandwidth limit for the peer
+ */
+void
+GSC_SESSIONS_update (const struct GNUNET_PeerIdentity *peer,
+		     struct GNUNET_BANDWIDTH_Value32NBO bw_out);
+
+
+/**
  * End the session with the given peer (we are no longer
  * connected). 
  *
@@ -80,10 +102,12 @@ GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car);
  * @param car original request that was queued and then solicited,
  *            ownership does not change (dequeue will be called soon).
  * @param msg message to transmit
+ * @param cork is corking allowed?
  */
 void
 GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
-		       const struct GNUNET_MessageHeader *msg);
+		       const struct GNUNET_MessageHeader *msg,
+		       int cork);
 
 
 /**
@@ -144,28 +168,6 @@ GSC_SESSIONS_handle_client_have_peer (void *cls, struct GNUNET_SERVER_Client *cl
 void
 GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
 					 const struct GNUNET_MessageHeader *message);
-
-
-/**
- * Create a session, a key exchange was just completed.
- *
- * @param peer peer that is now connected
- * @param kx key exchange that completed
- */
-void
-GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
-		     struct GSC_KeyExchangeInfo *kx);
-
-
-/**
- * Update information about a session.
- *
- * @param peer peer who's session should be updated
- * @param bw_out new outbound bandwidth limit for the peer
- */
-void
-GSC_SESSIONS_update (const struct GNUNET_PeerIdentity *peer,
-		     struct GNUNET_BANDWIDTH_Value32NBO bw_out);
 
 
 /**

@@ -340,6 +340,7 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
   car->priority = ntohl (req->priority);
   car->msize = ntohs (req->size);
   car->smr_id = req->smr_id;
+  car->was_solicited = GNUNET_NO;
   if (0 ==
       memcmp (&req->peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
     GSC_CLIENTS_solicit_request (car);
@@ -440,7 +441,7 @@ client_tokenizer_callback (void *cls, void *client,
 				 GNUNET_CORE_OPTION_SEND_HDR_INBOUND | GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);  
   }
   else
-    GSC_SESSIONS_transmit (car, message);
+    GSC_SESSIONS_transmit (car, message, GNUNET_NO /* FIXME: get cork flag form 'struct SendMessage'! */);
 }
 
 

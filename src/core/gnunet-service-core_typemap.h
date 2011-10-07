@@ -52,6 +52,15 @@ GSC_TYPEMAP_remove (const uint16_t *types,
 
 
 /**
+ * Compute a type map message for this peer.
+ *
+ * @return this peers current type map message.
+ */
+struct GNUNET_MessageHeader *
+GSC_TYPEMAP_compute_type_map_message (void);
+
+
+/**
  * Test if any of the types from the types array is in the
  * given type map.
  *
