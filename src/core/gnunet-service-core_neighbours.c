@@ -25,11 +25,21 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_service_core.h"
-#include "gnunet_service_core_neighbours.h"
-#include "gnunet_service_core_kx.h"
-#include "gnunet_service_core_sessions.h"
+#include "gnunet-service-core.h"
+#include "gnunet-service-core_neighbours.h"
+#include "gnunet-service-core_kx.h"
+#include "gnunet-service-core_sessions.h"
+#include "gnunet_constants.h"
+
+
+/**
+ * Receive and send buffer windows grow over time.  For
+ * how long can 'unused' bandwidth accumulate before we
+ * need to cap it?  (specified in seconds).
+ */
+#define MAX_WINDOW_TIME_S (5 * 60)
 
 
 /**
@@ -167,7 +177,7 @@ free_neighbour (struct Neighbour *n)
     n->th = NULL;
   }
   GSC_SESSIONS_end (&n->peer);
-  if (NULL != n->kx)
+  if (NULL != n->kxinfo)
   {
     GSC_KX_stop (n->kxinfo);
     n->kxinfo = NULL;
@@ -180,7 +190,7 @@ free_neighbour (struct Neighbour *n)
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_remove (neighbours,
 						       &n->peer.hashPubKey, n));
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbour entries allocated"),
+  GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# neighbour entries allocated"),
                          GNUNET_CONTAINER_multihashmap_size (neighbours),
                          GNUNET_NO);
   GNUNET_free (n);
@@ -222,7 +232,7 @@ transmit_ready (void *cls, size_t size, void *buf)
     GNUNET_break (0);
     return 0;
   }
-  GNUNET_CONTAINER_DLL_remove (n->encrypted_head, n->encrypted_tail, m);
+  GNUNET_CONTAINER_DLL_remove (n->message_head, n->message_tail, m);
   if (buf == NULL)
   {
 #if DEBUG_CORE
@@ -289,7 +299,7 @@ process_queue (struct Neighbour *n)
 #endif
   n->th =
        GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size,
-					       m->priority,
+					       0,
 					       GNUNET_TIME_absolute_get_remaining
 					       (m->deadline),
 					       &transmit_ready,
@@ -299,7 +309,7 @@ process_queue (struct Neighbour *n)
   /* message request too large or duplicate request */
   GNUNET_break (0);
   /* discard encrypted message */
-  GNUNET_CONTAINER_DLL_remove (n->encrypted_head, n->encrypted_tail, m);
+  GNUNET_CONTAINER_DLL_remove (n->message_head, n->message_tail, m);
   GNUNET_free (m);
   process_queue (n);
 }
@@ -323,7 +333,7 @@ handle_transport_notify_connect (void *cls,
 {
   struct Neighbour *n;
 
-  if (0 == memcmp (peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
     return;
@@ -340,7 +350,7 @@ handle_transport_notify_connect (void *cls,
               GNUNET_i2s (peer));
 #endif
   n = GNUNET_malloc (sizeof (struct Neighbour));
-  n->peer = *pid;
+  n->peer = *peer;
   GNUNET_BANDWIDTH_tracker_init (&n->available_send_window, 
 				 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_WINDOW_TIME_S);
@@ -351,13 +361,13 @@ handle_transport_notify_connect (void *cls,
                  GNUNET_CONTAINER_multihashmap_put (neighbours,
                                                     &n->peer.hashPubKey, n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbour entries allocated"),
+  GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# neighbour entries allocated"),
                          GNUNET_CONTAINER_multihashmap_size (neighbours),
                          GNUNET_NO);
   GNUNET_TRANSPORT_set_quota (transport, peer, 
 			      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT, 
 			      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT);
-  n->kxinfo = GSC_KX_start (pid);
+  n->kxinfo = GSC_KX_start (peer);
 }
 
 
@@ -412,7 +422,7 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
               "Received message of type %u from `%4s', demultiplexing.\n",
               (unsigned int) ntohs (message->type), GNUNET_i2s (peer));
 #endif
-  if (0 == memcmp (peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
     return;
@@ -437,8 +447,7 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     GSC_KX_handle_pong (n->kxinfo, message);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
-    GSC_KX_handle_encrypted_message (peer,
-				     n->kxinfo,
+    GSC_KX_handle_encrypted_message (n->kxinfo,
 				     message, ats,
 				     ats_count);
     break;

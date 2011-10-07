@@ -909,7 +909,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   derive_pong_iv (&iv, &kx->encrypt_key, tp.iv_seed, t.challenge, &kx->peer);
   do_encrypt (kx, &iv, &tx.challenge, &tp.challenge,
               sizeof (struct PongMessage) - ((void *) &tp.challenge -
-                                             (void *) tp));
+                                             (void *) &tp));
   GNUNET_STATISTICS_update (GSC_stats, 
 			    gettext_noop ("# PONG messages created"), 1,
                             GNUNET_NO);
