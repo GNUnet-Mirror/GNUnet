@@ -24,10 +24,10 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_service_core.h"
-#include "gnunet_service_core_neighbours.h"
-#include "gnunet_service_core_kx.h"
-#include "gnunet_service_core_sessions.h"
+#include "gnunet-service-core.h"
+#include "gnunet-service-core_neighbours.h"
+#include "gnunet-service-core_kx.h"
+#include "gnunet-service-core_sessions.h"
 
 /**
  * Record kept for each request for transmission issued by a

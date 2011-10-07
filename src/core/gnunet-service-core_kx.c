@@ -899,7 +899,9 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   /* construct PONG */
-  tx.inbound_bw_limit = kx->bw_in; // FIXME!
+  tx.inbound_bw_limit = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT; 
+  /* FIXME: here we should ideally ask ATS about unassigned bandwidth and fill in 
+     a value based on that; using the minimum here results in a rather slow start... */
   tx.challenge = t.challenge;
   tx.target = t.target;
   tp.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PONG);
@@ -1122,9 +1124,13 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx, const struct GNUNET_MessageH
     kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
     GNUNET_assert (kx->keep_alive_task == GNUNET_SCHEDULER_NO_TASK);
     update_timeout (kx);
+    GSC_SESSIONS_update (&kx->peer,
+			 t.inbound_bw_limit);
     break;
   case KX_STATE_UP:
     update_timeout (kx);
+    GSC_SESSIONS_update (&kx->peer,
+			 t.inbound_bw_limit);
     break;
   default:
     GNUNET_break (0);
