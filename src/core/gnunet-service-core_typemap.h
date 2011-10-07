@@ -66,12 +66,18 @@ GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
 			unsigned int tcnt);
 
 
+/**
+ * Initialize typemap subsystem.
+ */
 void
-GSC_TYPEMAP_init ();
+GSC_TYPEMAP_init (void);
 
 
+/**
+ * Shutdown typemap subsystem.
+ */
 void
-GSC_TYPEMAP_done ();
+GSC_TYPEMAP_done (void);
 
 #endif
 /* end of gnunet-service-core_typemap.h */

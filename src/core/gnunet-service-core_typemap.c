@@ -41,11 +41,15 @@ struct GSC_TypeMap
   uint32_t bits[(UINT16_MAX + 1) / 32];
 };
 
-
 /**
  * Bitmap of message types this peer is able to handle.
  */
-static uint32_t my_type_map[(UINT16_MAX + 1) / 32];
+static struct GSC_TypeMap my_type_map;
+
+/**
+ * Counters for message types this peer is able to handle.
+ */
+static uint8_t map_counters[UINT16_MAX + 1];
 
 
 /**
@@ -71,11 +75,11 @@ compute_type_map_message ()
   hdr->size = htons ((uint16_t) dlen + sizeof (struct GNUNET_MessageHeader));
   tmp = (char *) &hdr[1];
   if ((Z_OK !=
-       compress2 ((Bytef *) tmp, &dlen, (const Bytef *) my_type_map,
+       compress2 ((Bytef *) tmp, &dlen, (const Bytef *) &my_type_map,
                   sizeof (my_type_map), 9)) || (dlen >= sizeof (my_type_map)))
   {
     dlen = sizeof (my_type_map);
-    memcpy (tmp, my_type_map, sizeof (my_type_map));
+    memcpy (tmp, &my_type_map, sizeof (my_type_map));
     hdr->type = htons (GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP);
   }
   else
@@ -95,7 +99,7 @@ broadcast_my_type_map ()
   struct GNUNET_MessageHeader *hdr;
 
   hdr = compute_type_map_message ();
-  GSC_SESSIONS_broadcast (hdr);x
+  GSC_SESSIONS_broadcast (hdr);
   GNUNET_free (hdr);
 }
 
@@ -108,10 +112,18 @@ GSC_TYPEMAP_add (const uint16_t *types,
 		 unsigned int tlen)
 {
   unsigned int i;
+  int changed;
 
+  changed = GNUNET_NO;
   for (i=0;i<tlen;i++)
-    my_type_map[types[i] / 32] |= (1 << (types[i] % 32));
-  if (tlen > 0)
+  {
+    if (0 == map_counters[types[i]]++)
+    {
+      my_type_map.bits[types[i] / 32] |= (1 << (types[i] % 32));
+      changed = GNUNET_YES;
+    }
+  }
+  if (GNUNET_YES == changed)
     broadcast_my_type_map ();
 }
 
@@ -123,15 +135,20 @@ void
 GSC_TYPEMAP_remove (const uint16_t *types,
 		    unsigned int tlen)
 {
-  /* rebuild my_type_map */
-  memset (my_type_map, 0, sizeof (my_type_map));
-  for (pos = clients; NULL != pos; pos = pos->next)
+  unsigned int i;
+  int changed;
+
+  changed = GNUNET_NO;
+  for (i=0;i<tlen;i++)
   {
-    wtypes = (const uint16_t *) &pos[1];
-    for (i = 0; i < pos->tcnt; i++)
-      my_type_map[wtypes[i] / 32] |= (1 << (wtypes[i] % 32));
+    if (0 == --map_counters[types[i]])
+    {
+      my_type_map.bits[types[i] / 32] &= ~(1 << (types[i] % 32));
+      changed = GNUNET_YES;
+    }
   }
-  broadcast_my_type_map ();
+  if (GNUNET_YES == changed)
+    broadcast_my_type_map ();
 }
 
 
@@ -149,19 +166,32 @@ GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
 			const uint16_t *types,
 			unsigned int tcnt)
 {  
-  return GNUNET_YES; /* FIXME */
+  unsigned int i;
+
+  for (i=0;i<tcnt;i++) 
+    if (0 != (my_type_map.bits[types[i] / 32] & (1 << (types[i] % 32))))
+      return GNUNET_YES;
+  return GNUNET_NO;
 }
 
 
+/**
+ * Initialize typemap subsystem.
+ */
 void
 GSC_TYPEMAP_init ()
 {
+  /* nothing to do */
 }
 
 
+/**
+ * Shutdown typemap subsystem.
+ */
 void
 GSC_TYPEMAP_done ()
 {
+  /* nothing to do */
 }
 
 /* end of gnunet-service-core_typemap.c */

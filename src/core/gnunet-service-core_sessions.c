@@ -100,23 +100,6 @@ struct Session
   unsigned int ats_count;
 
   /**
-   * Bit map indicating which of the 32 sequence numbers before the last
-   * were received (good for accepting out-of-order packets and
-   * estimating reliability of the connection)
-   */
-  unsigned int last_packets_bitmap;
-
-  /**
-   * last sequence number received on this connection (highest)
-   */
-  uint32_t last_sequence_number_received;
-
-  /**
-   * last sequence number transmitted
-   */
-  uint32_t last_sequence_number_sent;
-
-  /**
    * Available bandwidth in for this peer (current target).
    */
   struct GNUNET_BANDWIDTH_Value32NBO bw_in;
