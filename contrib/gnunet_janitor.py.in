@@ -55,12 +55,20 @@ def main ():
       gnunet_procs.append (p)
   for p in gnunet_procs:
     if re.match (r'gnunet-service-arm', p[1]):
-      print ("killing arm {0:5} {1}".format (p[0], p[1]))
-      os.kill (p[0], signal.SIGTERM)
+      print ("killing arm process {0:5} {1}".format (p[0], p[1]))
+      try:
+        os.kill (p[0], signal.SIGTERM)
+      except OSError as e:
+        print ("failed: {0}".format (e))
+        pass
   for p in gnunet_procs:
     if not re.match (r'gnunet-service-arm', p[1]):
-      print ("killing arm {0:5} {1}".format (p[0], p[1]))
-      os.kill (p[0], signal.SIGTERM)
+      print ("killing non-arm process {0:5} {1}".format (p[0], p[1]))
+      try:
+        os.kill (p[0], signal.SIGTERM)
+      except OSError as e:
+        print ("failed: {0}".format (e))
+        pass
 
 if __name__ == '__main__':
   sys.exit (main ())

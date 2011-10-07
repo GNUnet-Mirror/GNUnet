@@ -281,6 +281,7 @@ struct GNUNET_CORE_InformationRequestContext;
  * @param info function to call with the resulting configuration information
  * @param info_cls closure for info
  * @return NULL on error
+ * @deprecated will be replaced soon
  */
 struct GNUNET_CORE_InformationRequestContext *
 GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
@@ -300,6 +301,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
  * from the original request will no longer be called.
  *
  * @param irc context returned by the original GNUNET_CORE_peer_get_info call
+ * @deprecated will be replaced soon
  */
 void
 GNUNET_CORE_peer_change_preference_cancel (struct
@@ -308,7 +310,9 @@ GNUNET_CORE_peer_change_preference_cancel (struct
 
 
 /**
- * Iterate over all connected peers.
+ * Iterate over all connected peers.  Calls peer_cb with each
+ * connected peer, and then once with NULL to indicate that all peers
+ * have been handled.
  *
  * @param cfg configuration handle
  * @param peer_cb function to call with the peer information
@@ -320,11 +324,10 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            GNUNET_CORE_ConnectEventHandler peer_cb,
                            void *cb_cls);
 
+
 /**
- * Iterate over all currently connected peers.
- * Calls peer_cb with each connected peer, and then
- * once with NULL to indicate that all peers have
- * been handled.
+ * Check if the given peer is currently connected and return information
+ * about the session if so.
  *
  * @param cfg configuration to use
  * @param peer the specific peer to check for

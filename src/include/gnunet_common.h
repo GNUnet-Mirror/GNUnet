@@ -569,7 +569,6 @@ void *
 GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
 
 
-
 /**
  * Allocate and initialize memory. Checks the return value, aborts if no more
  * memory is available.  Don't use GNUNET_xmemdup_ directly. Use the
@@ -664,6 +663,14 @@ GNUNET_xgrow_ (void **old, size_t elementSize, unsigned int *oldCount,
                unsigned int newCount, const char *filename, int linenumber);
 
 
+/**
+ * Create a copy of the given message.
+ *
+ * @param msg message to copy
+ * @return duplicate of the message
+ */
+struct GNUNET_MessageHeader *
+GNUNET_copy_message (const struct GNUNET_MessageHeader *msg);
 
 
 #if __STDC_VERSION__ < 199901L

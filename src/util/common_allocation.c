@@ -332,4 +332,25 @@ GNUNET_snprintf (char *buf, size_t size, const char *format, ...)
   return ret;
 }
 
+
+/**
+ * Create a copy of the given message.
+ *
+ * @param msg message to copy
+ * @return duplicate of the message
+ */
+struct GNUNET_MessageHeader *
+GNUNET_copy_message (const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_MessageHeader *ret;
+  uint16_t msize;
+
+  msize = ntohs (msg->size);
+  GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
+  ret = GNUNET_malloc (msize);
+  memcpy (ret, msg, msize);
+  return ret;
+}
+
+
 /* end of common_allocation.c */
