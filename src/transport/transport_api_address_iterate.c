@@ -81,7 +81,7 @@ peer_address_response_processor (void *cls,
   struct AddressIterateResponseMessage *address;
   uint16_t size;
   char * transport;
-  size_t transport_len;
+  //size_t transport_len;
   //void * addr;
   size_t addrlen;
 
@@ -119,7 +119,7 @@ peer_address_response_processor (void *cls,
   address = (struct AddressIterateResponseMessage *) &msg[1];
 
   transport = (char *) &address[0];
-  transport_len = ntohs(address->pluginlen);
+  //transport_len = ntohs(address->pluginlen);
   addrlen = ntohs(address->addrlen);
 
   /* expect more replies */
