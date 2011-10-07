@@ -27,6 +27,7 @@
 #define GNUNET_SERVICE_CORE_KX_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_transport_service.h"
 
 
 /**
