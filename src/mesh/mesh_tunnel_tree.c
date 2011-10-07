@@ -470,6 +470,12 @@ tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
 
 /**
  * Integrate a stand alone path into the tunnel tree.
+ * If the peer toward which the new path is already in the tree, the peer
+ * and its children will be maked as disconnected and the callback
+ * will be called on each one of them. They will be maked as online only after
+ * receiving a PATH ACK for the new path for each one of them, so the caller
+ * should take care of sending a new CREATE PATH message for each disconnected
+ * peer.
  *
  * @param t Tunnel where to add the new path.
  * @param p Path to be integrated.
