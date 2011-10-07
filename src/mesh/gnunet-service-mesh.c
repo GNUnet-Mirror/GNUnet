@@ -716,6 +716,20 @@ send_client_peer_connected (const struct MeshTunnel *t, const GNUNET_PEER_Id id)
 
 
 /**
+ * Function called to notify a client about the socket
+ * being ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+send_core_create_path (void *cls, size_t size, void *buf);
+
+/**
  * Cancel a core transmission that was already requested and free all resources
  * associated to the request.
  * 
@@ -826,18 +840,44 @@ peer_info_get_short (const GNUNET_PEER_Id peer)
 
 
 /**
- * Function called to notify a client about the socket
- * being ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
- * writing in the meantime.
- *
- * @param cls closure
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * Sends a CREATE PATH message for a path to a peer, properly registrating
+ * all used resources.
+ * 
+ * @param peer PeerInfo of the final peer for whom this path is being created.
+ * @param p Path itself.
+ * @param t Tunnel for which the path is created.
  */
-static size_t
-send_core_create_path (void *cls, size_t size, void *buf);
+static void
+send_create_path (struct MeshPeerInfo *peer,
+                  struct MeshPeerPath *p,
+                  struct MeshTunnel *t)
+{
+  struct GNUNET_PeerIdentity *id;
+  struct MeshPathInfo *path_info;
+  struct MeshPeerInfo *neighbor;
+
+  path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
+  path_info->path = p;
+  path_info->peer = peer;
+  path_info->t = t;
+  id = path_get_first_hop(t->tree, peer->id);
+  neighbor = peer_info_get(id);
+  path_info->pos = peer_info_transmit_position(neighbor);
+  neighbor->types[path_info->pos] = GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE;
+  neighbor->infos[path_info->pos] = path_info;
+  neighbor->core_transmit[path_info->pos] = 
+      GNUNET_CORE_notify_transmit_ready (
+          core_handle, /* handle */
+          0, /* cork */
+          0, /* priority */
+          GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
+          id, /* target */
+          sizeof (struct GNUNET_MESH_ManipulatePath)
+          + (p->length * sizeof (struct GNUNET_PeerIdentity)), /*size */
+          &send_core_create_path, /* callback */
+          path_info);        /* cls */
+  
+}
 
 
 /**
@@ -854,35 +894,13 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
 {
   struct MeshPeerPath *p;
   struct MeshPathInfo *path_info;
-  struct MeshPeerInfo *neighbor;
 
   if (NULL != peer->path_head)
   {
     p = tree_get_path_to_peer(t->tree, peer->id);
     if (p->length > 1)
     {
-      struct GNUNET_PeerIdentity *id;
-
-      path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
-      path_info->path = p;
-      path_info->peer = peer;
-      path_info->t = t;
-      id = path_get_first_hop(t->tree, peer->id);
-      neighbor = peer_info_get(id);
-      path_info->pos = peer_info_transmit_position(neighbor);
-      neighbor->types[path_info->pos] = GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE;
-      neighbor->infos[path_info->pos] = path_info;
-      neighbor->core_transmit[path_info->pos] = 
-          GNUNET_CORE_notify_transmit_ready (
-              core_handle, /* handle */
-              0, /* cork */
-              0, /* priority */
-              GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
-              id, /* target */
-              sizeof (struct GNUNET_MESH_ManipulatePath)
-              + (p->length * sizeof (struct GNUNET_PeerIdentity)), /*size */
-              &send_core_create_path, /* callback */
-              path_info);        /* cls */
+      send_create_path(peer, p, t);
     }
     else
     {
