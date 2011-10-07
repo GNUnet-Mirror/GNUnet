@@ -797,16 +797,17 @@ http_check_ipv6 (struct Plugin *plugin)
       }
       GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
                   _
-                  ("Disabling IPv6 since it is not supported on this system\n"));
+                  ("Disabling IPv6 since it is not supported on this system!\n"));
       plugin->ipv6 = GNUNET_NO;
     }
     else
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                  _("Enabling IPv6 on this system\n"));
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
       desc = NULL;
     }
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+              "Testing IPv6 on this system: %s\n", (plugin->ipv6 == GNUNET_YES) ? "successful" : "failed");
   }
 }
 
@@ -1203,9 +1204,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->protocol = "http";
 #endif
   /* Configure plugin from configuration */
-
-  http_check_ipv6 (plugin);
-
   res = configure_plugin (plugin);
   if (res == GNUNET_SYSERR)
   {
@@ -1215,6 +1213,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     GNUNET_free (api);
     return NULL;
   }
+
+  /* checking IPv6 support */
+  http_check_ipv6 (plugin);
 
   /* Start client */
   res = client_start (plugin);
