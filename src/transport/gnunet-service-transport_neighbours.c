@@ -470,7 +470,8 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   while (NULL != (mq = n->messages_head))
   {
     GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
-    mq->cont (mq->cont_cls, GNUNET_SYSERR);
+    if (NULL != mq->cont)
+      mq->cont (mq->cont_cls, GNUNET_SYSERR);
     GNUNET_free (mq);
   }
   if (NULL != n->is_active)
