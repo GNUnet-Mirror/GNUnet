@@ -38,7 +38,6 @@
 #include "transport-testing.h"
 
 #define VERBOSE GNUNET_EXTRA_LOGGING
-
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
 #define START_ARM GNUNET_YES
@@ -92,55 +91,7 @@ static void
 end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
-#if 0
-static void
-get_hello_p2 (void *cb_cls, const struct GNUNET_MessageHeader *message);
 
-static void
-get_hello_p1 (void *cb_cls, const struct GNUNET_MessageHeader *message);
-
-static void
-notify_connect_internal (void *cls, const struct GNUNET_PeerIdentity *peer,
-                         const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                         uint32_t ats_count)
-{
-  struct ConnectingContext *cc = cls;
-
-  GNUNET_assert (cc != NULL);
-
-  if (0 ==
-      memcmp (&(*peer).hashPubKey, &cc->p1->id.hashPubKey,
-              sizeof (GNUNET_HashCode)))
-  {
-    if (cc->p1_c == GNUNET_NO)
-      cc->p1_c = GNUNET_YES;
-  }
-  if (0 ==
-      memcmp (&(*peer).hashPubKey, &cc->p2->id.hashPubKey,
-              sizeof (GNUNET_HashCode)))
-  {
-    if (cc->p2_c == GNUNET_NO)
-      cc->p2_c = GNUNET_YES;
-  }
-
-  if ((cc->p2_c == GNUNET_YES) && (cc->p2_c == GNUNET_YES))
-  {
-    /* clean up */
-    if (cc->tct != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (cc->tct);
-
-    cc->tct = GNUNET_SCHEDULER_NO_TASK;
-
-    GNUNET_TRANSPORT_disconnect (cc->th_p1);
-    GNUNET_TRANSPORT_disconnect (cc->th_p2);
-
-    if (cc->cb != NULL)
-      cc->cb (cc->p1, cc->p2, cc->cb_cls);
-
-    GNUNET_free (cc);
-  }
-}
-#endif
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (send_task);
 
@@ -170,6 +121,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Fail! Could not connect peers\n"));
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
+    cc = NULL;
   }
 
   if (th != NULL)
@@ -180,8 +132,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   if (p2 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
-
-  GNUNET_TRANSPORT_TESTING_done (tth);
 
   ok = GNUNET_SYSERR;
 }
