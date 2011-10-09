@@ -160,7 +160,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct TransportTestingHandle * tth,
  * before.
  * @param p1 peer 1
  * @param p2 peer 2
- * @param cb the callback to call
+ * @param cb the callback to call when both peers notified that they are connected
  * @param cb_cls callback cls
  * @return a connect request handle
  */
@@ -180,10 +180,17 @@ void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct TransportTestingHandle *,
                                                void *cc);
 
-
+/**
+ * Clean up the transport testing
+ * @param tth transport testing handle
+ */
 void
 GNUNET_TRANSPORT_TESTING_done (struct TransportTestingHandle * tth);
 
+/**
+ * Initialize the transport testing
+ * @return transport testing handle
+ */
 struct TransportTestingHandle *
 GNUNET_TRANSPORT_TESTING_init ();
 
