@@ -317,7 +317,6 @@ GNUNET_get_log_call_status (int caller_level, const char *comp, const char *file
   int i;
   int force_only;
   size_t strlen_file;
-  int matches = 0;
 
   if (comp == NULL)
     /* Use default component */
@@ -344,19 +343,11 @@ GNUNET_get_log_call_status (int caller_level, const char *comp, const char *file
         (ld->function == NULL || strcmp (function, ld->function) == 0)
        )
     {
-      /* This definition matched! */
-      matches += 1;
-      /* And if it allows the call to be made, then we're finished */
-      if (caller_level <= ld->level)
-        return 1;
+      /* We're finished */
+      return caller_level <= ld->level;
     }
   }
-  /* If some definitions did match, but had too low loglevel to allow logging,
-   * don't check any further.
-   */
-  if (matches > 0)
-    return 0;
-  /* Otherwise use global level, if defined */
+  /* No matches - use global level, if defined */
   if (min_level >= 0)
     return caller_level <= min_level;
   /* All programs/services previously defaulted to WARNING.
