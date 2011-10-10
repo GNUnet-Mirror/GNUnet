@@ -3289,7 +3289,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   coreAPI = GNUNET_CORE_connect (cfg, 1, NULL,  /* FIXME: anything we want to pass around? */
                                  &core_init, &handle_core_connect,
-                                 &handle_core_disconnect, NULL, NULL, GNUNET_NO,
+                                 &handle_core_disconnect, NULL, GNUNET_NO,
                                  NULL, GNUNET_NO, core_handlers);
 
   if (coreAPI == NULL)
