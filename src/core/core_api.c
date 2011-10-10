@@ -29,6 +29,7 @@
 #include "gnunet_core_service.h"
 #include "core.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "core-api",__VA_ARGS__)
 
 /**
  * Information we track for each peer.
@@ -367,8 +368,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connecting to CORE service after delay\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CORE service after delay\n");
 #endif
   reconnect (h);
 }
@@ -547,9 +547,9 @@ request_next_transmission (struct PeerRecord *pr)
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
                                     h->control_pending_tail, cm);
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding SEND REQUEST for peer `%s' to message queue\n",
-              GNUNET_i2s (&pr->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding SEND REQUEST for peer `%s' to message queue\n",
+       GNUNET_i2s (&pr->peer));
 #endif
   trigger_next_request (h, GNUNET_NO);
 }
@@ -581,8 +581,8 @@ transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
   }
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Signalling timeout of request for transmission to CORE service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Signalling timeout of request for transmission to CORE service\n");
 #endif
   request_next_transmission (pr);
   GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
@@ -610,8 +610,8 @@ transmit_message (void *cls, size_t size, void *buf)
   if (buf == NULL)
   {
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmission failed, initiating reconnect\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Transmission failed, initiating reconnect\n");
 #endif
     reconnect_later (h);
     return 0;
@@ -627,9 +627,9 @@ transmit_message (void *cls, size_t size, void *buf)
       return 0;
     }
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmitting control message with %u bytes of type %u to core.\n",
-                (unsigned int) msize, (unsigned int) ntohs (hdr->type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Transmitting control message with %u bytes of type %u to core.\n",
+         (unsigned int) msize, (unsigned int) ntohs (hdr->type));
 #endif
     memcpy (buf, hdr, msize);
     GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
@@ -661,9 +661,9 @@ transmit_message (void *cls, size_t size, void *buf)
       pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmitting SEND request to `%s' with %u bytes.\n",
-                GNUNET_i2s (&pr->peer), (unsigned int) th->msize);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Transmitting SEND request to `%s' with %u bytes.\n",
+         GNUNET_i2s (&pr->peer), (unsigned int) th->msize);
 #endif
     sm = (struct SendMessage *) buf;
     sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
@@ -677,26 +677,26 @@ transmit_message (void *cls, size_t size, void *buf)
                          size - sizeof (struct SendMessage), &sm[1]);
 
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmitting SEND request to `%s' yielded %u bytes.\n",
-                GNUNET_i2s (&pr->peer), ret);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Transmitting SEND request to `%s' yielded %u bytes.\n",
+         GNUNET_i2s (&pr->peer), ret);
 #endif
     GNUNET_free (th);
     if (0 == ret)
     {
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Size of clients message to peer %s is 0!\n",
-                  GNUNET_i2s (&pr->peer));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Size of clients message to peer %s is 0!\n",
+           GNUNET_i2s (&pr->peer));
 #endif
       /* client decided to send nothing! */
       request_next_transmission (pr);
       return 0;
     }
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Produced SEND message to core with %u bytes payload\n",
-                (unsigned int) ret);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Produced SEND message to core with %u bytes payload\n",
+         (unsigned int) ret);
 #endif
     GNUNET_assert (ret >= sizeof (struct GNUNET_MessageHeader));
     if (ret + sizeof (struct SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -730,16 +730,15 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
   if ((GNUNET_YES == h->currently_down) && (ignore_currently_down == GNUNET_NO))
   {
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Core connection down, not processing queue\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Core connection down, not processing queue\n");
 #endif
     return;
   }
   if (NULL != h->cth)
   {
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Request pending, not processing queue\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Request pending, not processing queue\n");
 #endif
     return;
   }
@@ -753,8 +752,8 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
   else
   {
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Request queue empty, not processing queue\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Request queue empty, not processing queue\n");
 #endif
     return;                     /* no pending message */
   }
@@ -793,17 +792,17 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Client was disconnected from core service, trying to reconnect.\n"));
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _
+         ("Client was disconnected from core service, trying to reconnect.\n"));
     reconnect_later (h);
     return;
   }
   msize = ntohs (msg->size);
 #if DEBUG_CORE > 2
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing message of type %u and size %u from core service\n",
-              ntohs (msg->type), msize);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Processing message of type %u and size %u from core service\n",
+       ntohs (msg->type), msize);
 #endif
   switch (ntohs (msg->type))
   {
@@ -829,17 +828,16 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       /* mark so we don't call init on reconnect */
       h->init = NULL;
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Connected to core service of peer `%s'.\n",
-                  GNUNET_i2s (&h->me));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to core service of peer `%s'.\n",
+           GNUNET_i2s (&h->me));
 #endif
       init (h->cls, h, &h->me);
     }
     else
     {
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Successfully reconnected to core service.\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Successfully reconnected to core service.\n");
 #endif
     }
     /* fake 'connect to self' */
@@ -875,9 +873,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received notification about connection from `%s'.\n",
-                GNUNET_i2s (&cnm->peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received notification about connection from `%s'.\n",
+         GNUNET_i2s (&cnm->peer));
 #endif
     if (0 == memcmp (&h->me, &cnm->peer, sizeof (struct GNUNET_PeerIdentity)))
     {
@@ -918,9 +916,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     GNUNET_break (0 == ntohl (dnm->reserved));
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received notification about disconnect from `%s'.\n",
-                GNUNET_i2s (&dnm->peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received notification about disconnect from `%s'.\n",
+         GNUNET_i2s (&dnm->peer));
 #endif
     pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &dnm->peer.hashPubKey);
     if (pr == NULL)
@@ -958,9 +956,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     em = (const struct GNUNET_MessageHeader *) &(&ntm->ats)[ats_count + 1];
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received message of type %u and size %u from peer `%4s'\n",
-                ntohs (em->type), ntohs (em->size), GNUNET_i2s (&ntm->peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received message of type %u and size %u from peer `%4s'\n",
+         ntohs (em->type), ntohs (em->size), GNUNET_i2s (&ntm->peer));
 #endif
     pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &ntm->peer.hashPubKey);
     if (pr == NULL)
@@ -1034,9 +1032,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received notification about transmission to `%s'.\n",
-                GNUNET_i2s (&ntm->peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received notification about transmission to `%s'.\n",
+         GNUNET_i2s (&ntm->peer));
 #endif
     if ((GNUNET_NO == h->outbound_hdr_only) &&
         (msize !=
@@ -1070,9 +1068,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received notification about transmission readiness to `%s'.\n",
-                GNUNET_i2s (&smr->peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received notification about transmission readiness to `%s'.\n",
+         GNUNET_i2s (&smr->peer));
 #endif
     if (pr->pending_head == NULL)
     {
@@ -1124,8 +1122,8 @@ init_done_task (void *cls, int success)
   if (success == GNUNET_NO)
   {
 #if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Failed to exchange INIT with core, retrying\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to exchange INIT with core, retrying\n");
 #endif
     if (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK)
       reconnect_later (h);
@@ -1153,7 +1151,7 @@ reconnect (struct GNUNET_CORE_Handle *h)
   unsigned int hpos;
 
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting to CORE service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting to CORE service\n");
 #endif
   GNUNET_assert (h->client == NULL);
   GNUNET_assert (h->currently_down == GNUNET_YES);
@@ -1256,7 +1254,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                  (GNUNET_SERVER_MAX_MESSAGE_SIZE -
                   sizeof (struct InitMessage)) / sizeof (uint16_t));
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CORE service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CORE service\n");
 #endif
   reconnect (h);
   return h;
@@ -1276,7 +1274,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   struct ControlMessage *cm;
 
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from CORE service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from CORE service\n");
 #endif
   if (handle->cth != NULL)
   {
@@ -1368,9 +1366,9 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   if (NULL == pr)
   {
     /* attempt to send to peer that is not connected */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Attempting to send to peer `%s' from peer `%s', but not connected!\n",
-                GNUNET_i2s (target), GNUNET_h2s (&handle->me.hashPubKey));
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Attempting to send to peer `%s' from peer `%s', but not connected!\n",
+         GNUNET_i2s (target), GNUNET_h2s (&handle->me.hashPubKey));
     GNUNET_break (0);
     return NULL;
   }
@@ -1403,16 +1401,16 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
       GNUNET_break (pr->queue_size == 1);
       GNUNET_free (th);
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Dropping transmission request: cannot drop queue head and limit is one\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Dropping transmission request: cannot drop queue head and limit is one\n");
 #endif
       return NULL;
     }
     if (priority <= minp->priority)
     {
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Dropping transmission request: priority too low\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Dropping transmission request: priority too low\n");
 #endif
       GNUNET_free (th);
       return NULL;              /* priority too low */
@@ -1445,7 +1443,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   pr->queue_size++;
   /* was the request queue previously empty? */
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission request added to queue\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmission request added to queue\n");
 #endif
   if ((pr->pending_head == th) && (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK) &&
       (pr->next == NULL) && (pr->prev == NULL) &&
