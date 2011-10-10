@@ -31,6 +31,8 @@
 #include "gnunet_nat_lib.h"
 #include "nat.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "nat", __VA_ARGS__)
+
 /**
  * How often do we scan for changes in our IP address from our local
  * interfaces?
@@ -416,10 +418,8 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
   lal->source = src;
   GNUNET_CONTAINER_DLL_insert (h->lal_head, h->lal_tail, lal);
 #if DEBUG_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
-                   "Adding address `%s' from source %d\n", GNUNET_a2s (arg,
-                                                                       arg_size),
-                   src);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding address `%s' from source %d\n",
+       GNUNET_a2s (arg, arg_size), src);
 #endif
   if (NULL != h->address_callback)
     h->address_callback (h->callback_cls, GNUNET_YES, arg, arg_size);
@@ -724,12 +724,11 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (bytes < 1)
   {
 #if DEBUG_NAT
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
-                     "Finished reading from server stdout with code: %d\n",
-                     bytes);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Finished reading from server stdout with code: %d\n", bytes);
 #endif
     if (0 != GNUNET_OS_process_kill (h->server_proc, SIGTERM))
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+      GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "kill");
     GNUNET_OS_process_wait (h->server_proc);
     GNUNET_OS_process_close (h->server_proc);
     h->server_proc = NULL;
@@ -773,10 +772,9 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       (-1 == inet_pton (AF_INET, mybuf, &sin_addr.sin_addr)))
   {
     /* should we restart gnunet-helper-nat-server? */
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
-                     _
-                     ("gnunet-helper-nat-server generated malformed address `%s'\n"),
-                     mybuf);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "nat",
+         _("gnunet-helper-nat-server generated malformed address `%s'\n"),
+         mybuf);
     h->server_read_task =
         GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                         h->server_stdout_handle,
@@ -785,8 +783,8 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   sin_addr.sin_port = htons ((uint16_t) port);
 #if DEBUG_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
-                   "gnunet-helper-nat-server read: %s:%d\n", mybuf, port);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "gnunet-helper-nat-server read: %s:%d\n", mybuf,
+       port);
 #endif
   h->reversal_callback (h->callback_cls, (const struct sockaddr *) &sin_addr,
                         sizeof (sin_addr));
@@ -813,8 +811,8 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
         GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES))))
   {
 #if DEBUG_NAT
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat" "Starting %s at `%s'\n",
-                     "gnunet-helper-nat-server", h->internal_address);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting `%s' at `%s'\n",
+         "gnunet-helper-nat-server", h->internal_address);
 #endif
     /* Start the server process */
     h->server_proc =
@@ -824,8 +822,8 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
                                  h->internal_address, NULL);
     if (h->server_proc == NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
-                       _("Failed to start %s\n"), "gnunet-helper-nat-server");
+      LOG (GNUNET_ERROR_TYPE_WARNING, "nat", _("Failed to start %s\n"),
+           "gnunet-helper-nat-server");
       GNUNET_DISK_pipe_close (h->server_stdout);
       h->server_stdout = NULL;
     }
@@ -1055,9 +1053,9 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
   unsigned int i;
 
 #if DEBUG_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
-                   "Registered with NAT service at port %u with %u IP bound local addresses\n",
-                   (unsigned int) adv_port, num_addrs);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Registered with NAT service at port %u with %u IP bound local addresses\n",
+       (unsigned int) adv_port, num_addrs);
 #endif
   h = GNUNET_malloc (sizeof (struct GNUNET_NAT_Handle));
   h->server_retry_delay = GNUNET_TIME_UNIT_SECONDS;
@@ -1092,9 +1090,9 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
   if ((h->internal_address != NULL) &&
       (inet_pton (AF_INET, h->internal_address, &in_addr) != 1))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
-                     _("Malformed %s `%s' given in configuration!\n"),
-                     "INTERNAL_ADDRESS", h->internal_address);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "nat",
+         _("Malformed %s `%s' given in configuration!\n"), "INTERNAL_ADDRESS",
+         h->internal_address);
     GNUNET_free (h->internal_address);
     h->internal_address = NULL;
   }
@@ -1153,20 +1151,20 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
        GNUNET_OS_check_helper_binary ("gnunet-helper-nat-server")))
   {
     h->enable_nat_server = GNUNET_NO;
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
-                "gnunet-helper-nat-server");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _
+         ("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
+         "gnunet-helper-nat-server");
   }
   if ((GNUNET_YES == h->enable_nat_client) &&
       (GNUNET_YES !=
        GNUNET_OS_check_helper_binary ("gnunet-helper-nat-client")))
   {
     h->enable_nat_client = GNUNET_NO;
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
-                "gnunet-helper-nat-client");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _
+         ("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
+         "gnunet-helper-nat-client");
   }
 
   start_gnunet_nat_server (h);
@@ -1242,7 +1240,7 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
   if (NULL != h->server_proc)
   {
     if (0 != GNUNET_OS_process_kill (h->server_proc, SIGTERM))
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+      GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "kill");
     GNUNET_OS_process_wait (h->server_proc);
     GNUNET_OS_process_close (h->server_proc);
     h->server_proc = NULL;
@@ -1295,22 +1293,22 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
 
   if (h->internal_address == NULL)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "nat",
-                     _
-                     ("Internal IP address not known, cannot use ICMP NAT traversal method\n"));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "nat",
+         _
+         ("Internal IP address not known, cannot use ICMP NAT traversal method\n"));
     return;
   }
   GNUNET_assert (sa->sin_family == AF_INET);
   if (NULL == inet_ntop (AF_INET, &sa->sin_addr, inet4, INET_ADDRSTRLEN))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+    GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "inet_ntop");
     return;
   }
   GNUNET_snprintf (port_as_string, sizeof (port_as_string), "%d", h->adv_port);
 #if DEBUG_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
-                   _("Running gnunet-helper-nat-client %s %s %u\n"),
-                   h->internal_address, inet4, (unsigned int) h->adv_port);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       _("Running gnunet-helper-nat-client %s %s %u\n"), h->internal_address,
+       inet4, (unsigned int) h->adv_port);
 #endif
   proc =
       GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-nat-client",
@@ -1372,8 +1370,8 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h, const void *addr,
     }
     pos = pos->next;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Asked to validate one of my addresses and validation failed!\n");
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Asked to validate one of my addresses and validation failed!\n");
   return GNUNET_NO;
 }
 
