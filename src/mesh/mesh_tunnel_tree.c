@@ -70,6 +70,24 @@ path_invert (struct MeshPeerPath *path)
 }
 
 
+/**
+ * Duplicate a path, incrementing short peer's rc.
+ *
+ * @param p The path to duplicate.
+ */
+struct MeshPeerPath *
+path_duplicate (struct MeshPeerPath *path)
+{
+  struct MeshPeerPath *aux;
+  unsigned int i;
+
+  aux = path_new(path->length);
+  memcpy (aux->peers, path->peers, path->length * sizeof(GNUNET_PEER_Id));
+  for (i = 0; i < path->length; i++)
+    GNUNET_PEER_change_rc(path->peers[i], 1);
+  return aux;
+}
+
 
 /**
  * Find the first peer whom to send a packet to go down this path
@@ -499,7 +517,7 @@ tree_add_path (struct MeshTunnelTree *t,
   struct MeshTunnelTreeNode *c;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_PeerIdentity *hop;
-  GNUNET_PEER_Id myid = t->me->peer;
+  GNUNET_PEER_Id myid;
   int me;
   unsigned int i;
 
@@ -508,6 +526,9 @@ tree_add_path (struct MeshTunnelTree *t,
              p->length,
              p->peers[p->length - 1],
              t->me->peer);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: %p %p %p\n", t, t->root, t->me);
+
+  myid = t->me->peer;
   GNUNET_assert(0 != p->length);
   parent = n = t->root;
   if (n->peer != p->peers[0])

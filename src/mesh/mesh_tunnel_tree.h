@@ -172,6 +172,15 @@ path_invert (struct MeshPeerPath *p);
 
 
 /**
+ * Duplicate a path, incrementing short peer's rc.
+ *
+ * @param p The path to duplicate.
+ */
+struct MeshPeerPath *
+path_duplicate (struct MeshPeerPath *path);
+
+
+/**
  * Find the first peer whom to send a packet to go down this path
  *
  * @param t The tunnel tree to use
