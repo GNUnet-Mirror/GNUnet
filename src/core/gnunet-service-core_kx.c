@@ -113,12 +113,11 @@ struct PongMessage
    * first field after header (this is where we start to encrypt!).
    */
   uint32_t challenge GNUNET_PACKED;
-
+ 
   /**
-   * Desired bandwidth (how much we should send to this
-   * peer / how much is the sender willing to receive).
+   * Reserved, always 'GNUNET_BANDWIDTH_VALUE_MAX'.
    */
-  struct GNUNET_BANDWIDTH_Value32NBO inbound_bw_limit;
+  struct GNUNET_BANDWIDTH_Value32NBO reserved;
 
   /**
    * Intended target of the PING, used primarily to check
@@ -204,10 +203,9 @@ struct EncryptedMessage
   uint32_t sequence_number GNUNET_PACKED;
 
   /**
-   * Desired bandwidth (how much we should send to this peer / how
-   * much is the sender willing to receive)?
+   * Reserved, always 'GNUNET_BANDWIDTH_VALUE_MAX'.
    */
-  struct GNUNET_BANDWIDTH_Value32NBO inbound_bw_limit;
+  struct GNUNET_BANDWIDTH_Value32NBO reserved;
 
   /**
    * Timestamp.  Used to prevent reply of ancient messages
@@ -899,7 +897,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   /* construct PONG */
-  tx.inbound_bw_limit = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT; 
+  tx.reserved = GNUNET_BANDWIDTH_VALUE_MAX;
   /* FIXME: here we should ideally ask ATS about unassigned bandwidth and fill in 
      a value based on that; using the minimum here results in a rather slow start... */
   tx.challenge = t.challenge;
@@ -1124,13 +1122,9 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx, const struct GNUNET_MessageH
     kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
     GNUNET_assert (kx->keep_alive_task == GNUNET_SCHEDULER_NO_TASK);
     update_timeout (kx);
-    GSC_SESSIONS_update (&kx->peer,
-			 t.inbound_bw_limit);
     break;
   case KX_STATE_UP:
     update_timeout (kx);
-    GSC_SESSIONS_update (&kx->peer,
-			 t.inbound_bw_limit);
     break;
   default:
     GNUNET_break (0);
@@ -1204,15 +1198,11 @@ send_key (struct GSC_KeyExchangeInfo *kx)
  * Encrypt and transmit a message with the given payload.
  *
  * @param kx key exchange context
- * @param bw_in bandwidth limit to transmit to the other peer;
- *              the other peer shall not send us more than the
- *              given rate
  * @param payload payload of the message
  * @param payload_size number of bytes in 'payload'
  */
 void
 GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
-			     struct GNUNET_BANDWIDTH_Value32NBO bw_in,
 			     const void *payload,
 			     size_t payload_size)
 {
@@ -1224,18 +1214,12 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_CRYPTO_AuthKey auth_key;
 
-#if DEBUG_CORE_QUOTA
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending %u b/s as new limit to peer `%4s'\n",
-              (unsigned int) ntohl (bw_in.value__),
-	      GNUNET_i2s (&kx->peer));
-#endif
   ph = (struct EncryptedMessage*) pbuf;
   ph->iv_seed =
       htonl (GNUNET_CRYPTO_random_u32
              (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
   ph->sequence_number = htonl (++kx->last_sequence_number_sent);
-  ph->inbound_bw_limit = bw_in;
+  ph->reserved = GNUNET_BANDWIDTH_VALUE_MAX;
   ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   memcpy (&ph[1], payload, payload_size);
 
@@ -1409,8 +1393,6 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
 
   /* process decrypted message(s) */
   update_timeout (kx);
-  GSC_SESSIONS_update (&kx->peer,
-		       pt->inbound_bw_limit);
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# bytes of payload decrypted"),
                             size - sizeof (struct EncryptedMessage), GNUNET_NO);

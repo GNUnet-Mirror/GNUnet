@@ -42,17 +42,6 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Update information about a session.
- *
- * @param peer peer who's session should be updated
- * @param bw_out new outbound bandwidth limit for the peer
- */
-void
-GSC_SESSIONS_update (const struct GNUNET_PeerIdentity *peer,
-		     struct GNUNET_BANDWIDTH_Value32NBO bw_out);
-
-
-/**
  * End the session with the given peer (we are no longer
  * connected). 
  *

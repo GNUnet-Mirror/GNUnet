@@ -122,33 +122,6 @@ struct Session
   GNUNET_SCHEDULER_TaskIdentifier cork_task;
 
   /**
-   * Available bandwidth out for this peer (current target).  This
-   * value should be the 'MIN' of 'bw_out_internal_limit' and
-   * 'bw_out_external_limit'.
-   */
-  struct GNUNET_BANDWIDTH_Value32NBO bw_out;
-
-  /**
-   * Internal bandwidth limit set for this peer (initially typically
-   * set to "MAX_INT").  Actual "bw_out" is MIN of
-   * "bpm_out_internal_limit" and "bw_out_external_limit".
-   *
-   * 
-   *
-   * // FIXME: check usage
-   */
-  struct GNUNET_BANDWIDTH_Value32NBO bw_out_internal_limit;
-
-  /**
-   * External bandwidth limit set for this peer by the
-   * peer that we are communicating with.  "bw_out" is MIN of
-   * "bw_out_internal_limit" and "bw_out_external_limit".
-   * // FIXME: check usage
-   */
-  struct GNUNET_BANDWIDTH_Value32NBO bw_out_external_limit;
-
-
-  /**
    * Is the neighbour queue empty and thus ready for us
    * to transmit an encrypted message?  
    */
@@ -249,19 +222,10 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 			    gettext_noop ("# established sessions"),
 			    GNUNET_CONTAINER_multihashmap_size (sessions), 
 			    GNUNET_NO);
-#if 0
-  /* FIXME: integration with ATS for quota calculations... */
-  /* FIXME: who should do this? Neighbours!? */
-  GNUNET_TRANSPORT_set_quota (transport, 
-			      peer, 
-			      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT, 
-			      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT);
-#endif
   /* FIXME: we should probably do this periodically (in case
      type map message is lost...) */
   hdr = GSC_TYPEMAP_compute_type_map_message ();
   GSC_KX_encrypt_and_transmit (kx, 
-			       GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT, 
 			       hdr,
 			       ntohs (hdr->size));
   GNUNET_free (hdr);
@@ -539,7 +503,6 @@ try_transmission (struct Session *session)
     /* now actually transmit... */
     session->ready_to_transmit = GNUNET_NO;
     GSC_KX_encrypt_and_transmit (session->kxinfo,
-				 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT /* FIXME! */,
 				 pbuf,
 				 used);
   }
@@ -722,23 +685,6 @@ GSC_SESSIONS_handle_client_have_peer (void *cls, struct GNUNET_SERVER_Client *cl
   done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
   GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
-}
-
-
-/**
- * Update information about a session.
- *
- * @param peer peer who's session should be updated
- * @param bw_out new outbound bandwidth limit for the peer
- * @param atsi performance information
- * @param atsi_count number of performance records supplied
- */
-void
-GSC_SESSIONS_update (const struct GNUNET_PeerIdentity *peer,
-		     struct GNUNET_BANDWIDTH_Value32NBO bw_out)
-{
-  // FIXME
-  /* not implemented */
 }
 
 

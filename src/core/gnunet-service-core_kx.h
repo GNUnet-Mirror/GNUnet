@@ -75,15 +75,11 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
  * Encrypt and transmit a message with the given payload.
  *
  * @param kx key exchange context
- * @param bw_in bandwidth limit to transmit to the other peer;
- *              the other peer shall not send us more than the
- *              given rate
  * @param payload payload of the message
  * @param payload_size number of bytes in 'payload'
  */
 void
 GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
-			     struct GNUNET_BANDWIDTH_Value32NBO bw_in,
 			     const void *payload,
 			     size_t payload_size);
 
