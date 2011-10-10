@@ -351,6 +351,25 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Closure for the 'client_tokenizer_callback'.
+ */
+struct TokenizerContext
+{
+
+  /**
+   * Active request handle for the message.
+   */ 
+  struct GSC_ClientActiveRequest *car;
+
+  /**
+   * Is corking allowed (set only once we have the real message).
+   */
+  int cork;
+
+};
+
+
+/**
  * Handle CORE_SEND request.
  *
  * @param cls unused
@@ -363,7 +382,7 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct SendMessage *sm;
   struct GSC_Client *c;
-  struct GSC_ClientActiveRequest *car;
+  struct TokenizerContext tc;
   uint16_t msize;
 
   msize = ntohs (message->size);
@@ -385,8 +404,8 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  car = GNUNET_CONTAINER_multihashmap_get (c->requests, &sm->peer.hashPubKey);
-  if (NULL == car)
+  tc.car = GNUNET_CONTAINER_multihashmap_get (c->requests, &sm->peer.hashPubKey);
+  if (NULL == tc.car)
   {
     /* client did not request transmission first! */
     GNUNET_break (0);
@@ -396,17 +415,17 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (c->requests, 
 						       &sm->peer.hashPubKey,
-						       car));
-  car->cork = ntohl (sm->cork);
+						       tc.car));
+  tc.cork = ntohl (sm->cork);
   GNUNET_SERVER_mst_receive (client_mst,
-			     car, 
+			     &tc, 
 			     (const char*) &sm[1], msize,
 			     GNUNET_YES,
 			     GNUNET_NO);
   if (0 !=
-      memcmp (&car->target, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
-    GSC_SESSIONS_dequeue_request (car);
-  GNUNET_free (car);  
+      memcmp (&tc.car->target, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
+    GSC_SESSIONS_dequeue_request (tc.car);
+  GNUNET_free (tc.car);  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -425,7 +444,8 @@ static void
 client_tokenizer_callback (void *cls, void *client,
 			   const struct GNUNET_MessageHeader *message)
 {
-  struct GSC_ClientActiveRequest *car = client;
+  struct TokenizerContext *tc = cls;
+  struct GSC_ClientActiveRequest *car = tc->car;
 
   if (0 ==
       memcmp (&car->target, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
@@ -442,7 +462,7 @@ client_tokenizer_callback (void *cls, void *client,
 				 GNUNET_CORE_OPTION_SEND_HDR_INBOUND | GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);  
   }
   else
-    GSC_SESSIONS_transmit (car, message, car->cork);
+    GSC_SESSIONS_transmit (car, message, tc->cork);
 }
 
 
