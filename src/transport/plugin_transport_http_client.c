@@ -76,7 +76,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
 static int
-client_schedule (struct Plugin *plugin)
+client_schedule (struct Plugin *plugin, int now)
 {
   fd_set rs;
   fd_set ws;
@@ -112,6 +112,9 @@ client_schedule (struct Plugin *plugin)
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
   else
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
+  if (now == GNUNET_YES)
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 1);
+
   if (mret != CURLM_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
@@ -153,7 +156,7 @@ client_send (struct Session *s, struct HTTP_Message *msg)
     curl_easy_pause(s->client_put, CURLPAUSE_CONT);
   }
 
-  client_schedule (s->plugin);
+  client_schedule (s->plugin, GNUNET_YES);
 
   return GNUNET_OK;
 }
@@ -209,7 +212,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-  client_schedule (plugin);
+  client_schedule (plugin, GNUNET_NO);
 }
 
 int
@@ -289,7 +292,7 @@ client_disconnect (struct Session *s)
     plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  plugin->client_perform_task = GNUNET_SCHEDULER_add_now(client_run, plugin);
+  client_schedule (plugin, GNUNET_YES);
 
   return res;
 }
