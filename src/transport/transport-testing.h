@@ -58,7 +58,7 @@ typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1,
                                                      void *cls);
 
 
-struct TransportTestingHandle;
+struct GNUNET_TRANSPORT_TESTING_handle;
 
 /**
  * Context for a single peer
@@ -68,7 +68,7 @@ struct PeerContext
   struct PeerContext * next;
   struct PeerContext * prev;
 
-  struct TransportTestingHandle * tth;
+  struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -113,7 +113,7 @@ struct ConnectingContext
   int p2_c;
 };
 
-struct TransportTestingHandle
+struct GNUNET_TRANSPORT_TESTING_handle
 {
   struct ConnectingContext * cc_head;
   struct ConnectingContext * cc_tail;
@@ -134,7 +134,7 @@ struct TransportTestingHandle
  * @return the peer context
  */
 struct PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (struct TransportTestingHandle * tth,
+GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth,
                                      const char *cfgname,
                                      int peer_id,
                                      GNUNET_TRANSPORT_ReceiveCallback rec,
@@ -150,7 +150,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct TransportTestingHandle * tth,
  */
 
 void
-GNUNET_TRANSPORT_TESTING_stop_peer (struct TransportTestingHandle * tth,
+GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth,
                                     struct PeerContext *pc);
 
 
@@ -165,7 +165,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct TransportTestingHandle * tth,
  * @return a connect request handle
  */
 GNUNET_TRANSPORT_TESTING_ConnectRequest
-GNUNET_TRANSPORT_TESTING_connect_peers (struct TransportTestingHandle * tth,
+GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle * tth,
                                         struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
@@ -177,7 +177,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct TransportTestingHandle * tth,
  * @param cc a connect request handle
  */
 void
-GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct TransportTestingHandle *,
+GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct GNUNET_TRANSPORT_TESTING_handle *,
                                                void *cc);
 
 /**
@@ -185,13 +185,13 @@ GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct TransportTestingHandle *,
  * @param tth transport testing handle
  */
 void
-GNUNET_TRANSPORT_TESTING_done (struct TransportTestingHandle * tth);
+GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle * tth);
 
 /**
  * Initialize the transport testing
  * @return transport testing handle
  */
-struct TransportTestingHandle *
+struct GNUNET_TRANSPORT_TESTING_handle *
 GNUNET_TRANSPORT_TESTING_init ();
 
 /*

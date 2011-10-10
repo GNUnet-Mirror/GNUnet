@@ -54,7 +54,7 @@ GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 static struct PeerContext *p1;
 
-struct TransportTestingHandle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
 static int connected = GNUNET_NO;
 

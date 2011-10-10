@@ -71,7 +71,7 @@ struct PeerContext *p2;
 
 struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-struct TransportTestingHandle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
 char *cfg_file_p1;
 

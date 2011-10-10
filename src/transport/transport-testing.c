@@ -27,10 +27,10 @@
 
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_YES
 
 struct PeerContext *
-find_peer_context_by_pc ( struct TransportTestingHandle *tth,
+find_peer_context_by_pc ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
                           struct PeerContext *p)
 {
   GNUNET_assert (tth != NULL);
@@ -48,7 +48,7 @@ find_peer_context_by_pc ( struct TransportTestingHandle *tth,
 
 
 struct PeerContext *
-find_peer_context ( struct TransportTestingHandle *tth,
+find_peer_context ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
                     const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_assert (tth != NULL);
@@ -65,7 +65,7 @@ find_peer_context ( struct TransportTestingHandle *tth,
 }
 
 struct ConnectingContext *
-find_connecting_context ( struct TransportTestingHandle *tth,
+find_connecting_context ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
                           struct PeerContext *p1,
                           struct PeerContext * p2)
 {
@@ -243,7 +243,7 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return the peer context
  */
 struct PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (struct TransportTestingHandle * tth,
+GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth,
                                      const char *cfgname,
                                      int peer_id,
                                      GNUNET_TRANSPORT_ReceiveCallback rec,
@@ -309,7 +309,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct TransportTestingHandle * tth,
  * @param p the peer
  */
 void
-GNUNET_TRANSPORT_TESTING_stop_peer (struct TransportTestingHandle * tth,
+GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth,
                                     struct PeerContext *p)
 {
   GNUNET_assert (p != NULL);
@@ -359,7 +359,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct TransportTestingHandle * tth,
  * @return connect context
  */
 GNUNET_TRANSPORT_TESTING_ConnectRequest
-GNUNET_TRANSPORT_TESTING_connect_peers (struct TransportTestingHandle * tth,
+GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle * tth,
                                         struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
@@ -389,8 +389,8 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct TransportTestingHandle * tth,
   GNUNET_CONTAINER_DLL_insert (tth->cc_head, tth->cc_tail, cc);
 
   cc->tct = GNUNET_SCHEDULER_add_now (&try_connect, cc);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-      "connect request %X!\n", cc);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+      "New connect request %X\n", cc);
 
   return cc;
 }
@@ -401,7 +401,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct TransportTestingHandle * tth,
  * @param cc a connect request handle
  */
 void GNUNET_TRANSPORT_TESTING_connect_peers_cancel
-    (struct TransportTestingHandle * tth,
+    (struct GNUNET_TRANSPORT_TESTING_handle * tth,
         GNUNET_TRANSPORT_TESTING_ConnectRequest ccr)
 {
   struct ConnectingContext *cc = ccr;
@@ -425,7 +425,7 @@ void GNUNET_TRANSPORT_TESTING_connect_peers_cancel
  * @param tth transport testing handle
  */
 void
-GNUNET_TRANSPORT_TESTING_done (struct TransportTestingHandle * tth)
+GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle * tth)
 {
   struct ConnectingContext *cc = tth->cc_head;
   struct ConnectingContext *ct = NULL;
@@ -460,10 +460,10 @@ GNUNET_TRANSPORT_TESTING_done (struct TransportTestingHandle * tth)
  * Initialize the transport testing
  * @return transport testing handle
  */
-struct TransportTestingHandle *
+struct GNUNET_TRANSPORT_TESTING_handle *
 GNUNET_TRANSPORT_TESTING_init ()
 {
-  struct TransportTestingHandle * tth = GNUNET_malloc (sizeof (struct TransportTestingHandle));
+  struct GNUNET_TRANSPORT_TESTING_handle * tth = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TESTING_handle));
 
   return tth;
 }

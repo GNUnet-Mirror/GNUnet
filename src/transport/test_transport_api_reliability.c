@@ -79,7 +79,7 @@ char *cfg_file_p1;
 
 char *cfg_file_p2;
 
-struct TransportTestingHandle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
 /*
  * Testcase specific declarations

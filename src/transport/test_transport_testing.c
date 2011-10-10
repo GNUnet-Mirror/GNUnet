@@ -55,7 +55,7 @@ static struct PeerContext *p2;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
-struct TransportTestingHandle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
 static int connected = GNUNET_NO;
 

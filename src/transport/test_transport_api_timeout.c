@@ -65,7 +65,7 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier timer_task;
 
-struct TransportTestingHandle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
 struct PeerContext *p1;
 

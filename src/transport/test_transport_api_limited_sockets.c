@@ -77,7 +77,7 @@ static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
 struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-struct TransportTestingHandle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
 char *cfg_file_p1;
 
