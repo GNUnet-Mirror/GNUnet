@@ -141,7 +141,7 @@ send_to_client (struct GSC_Client *client,
 		const struct GNUNET_MessageHeader *msg,
                 int can_drop)
 {
-#if DEBUG_CORE_CLIENT
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Preparing to send %u bytes of message of type %u to client.\n",
               (unsigned int) ntohs (msg->size),
@@ -220,7 +220,7 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
 	    ( (0 != (options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) &&
 	      (GNUNET_YES == type_match (type, c)) ) ) )
       continue; /* skip */
-#if DEBUG_CORE_CLIENT > 1
+#if DEBUG_CORE > 1
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Sending message of type %u to client.\n",
 		(unsigned int) ntohs (msg->type));
@@ -280,7 +280,7 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_CONTAINER_DLL_insert (client_head,
 			       client_tail,
 			       c);
-#if DEBUG_CORE_CLIENT
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client connecting to core service is interested in %u message types\n", 
               (unsigned int) c->tcnt);
@@ -504,7 +504,7 @@ handle_client_disconnect (void *cls,
 
   if (client == NULL)
     return;
-#if DEBUG_CORE_CLIENT
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p has disconnected from core service.\n", client);
 #endif
@@ -619,7 +619,7 @@ GDS_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
 	    sizeof (struct GNUNET_TRANSPORT_ATS_Information) * atsi_count);
     a[atsi_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
     a[atsi_count].value = htonl (0);
-#if DEBUG_CORE_CLIENT
+#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Sending `%s' message to client.\n",
                 "NOTIFY_CONNECT");

@@ -32,7 +32,6 @@
 #include "gnunet-service-core_clients.h"
 #include "gnunet_constants.h"
 
-
 /**
  * Message ready for encryption.  This struct is followed by the
  * actual content of the message.
@@ -301,7 +300,7 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
     /* neighbour must have disconnected since request was issued,
      * ignore (client will realize it once it processes the
      * disconnect notification) */
-#if DEBUG_CORE_CLIENT
+#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Dropped client request for transmission (am disconnected)\n");
 #endif
@@ -318,7 +317,7 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
     GSC_CLIENTS_reject_request (car);
     return;
   }
-#if DEBUG_CORE_CLIENT
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received client transmission request. queueing\n");
 #endif

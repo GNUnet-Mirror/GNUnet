@@ -27,9 +27,7 @@
 #define GNUNET_SERVICE_CORE_H
 
 #include "gnunet_statistics_service.h"
-
-
-#define DEBUG_CORE GNUNET_EXTRA_LOGGING
+#include "core.h"
 
 /**
  * Opaque handle to a client.

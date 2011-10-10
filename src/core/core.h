@@ -23,7 +23,11 @@
  * @brief common internal definitions for core service
  * @author Christian Grothoff
  */
+#ifndef CORE_H
+#define CORE_H
+
 #include "gnunet_bandwidth_lib.h"
+#include "gnunet_transport_service.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_time_lib.h"
 
@@ -31,11 +35,6 @@
  * General core debugging.
  */
 #define DEBUG_CORE GNUNET_EXTRA_LOGGING
-
-/**
- * Debugging interaction core-clients.
- */
-#define DEBUG_CORE_CLIENT GNUNET_EXTRA_LOGGING
 
 /**
  * Definition of bits in the InitMessage's options field that specify
@@ -383,4 +382,5 @@ struct ConnectMessage
 
 };
 
+#endif
 /* end of core.h */
