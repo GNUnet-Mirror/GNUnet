@@ -243,5 +243,77 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
                            uint32_t ats_count);
 
 
+
+/**
+ * Function called with perference change information about the given peer.
+ *
+ * @param cls closure
+ * @param peer identifies the peer
+ * @param amount set to the amount that was actually reserved or unreserved;
+ *               either the full requested amount or zero (no partial reservations)
+ * @param res_delay if the reservation could not be satisfied (amount was 0), how
+ *        long should the client wait until re-trying?
+ */
+typedef void (*GNUNET_ATS_PeerConfigurationInfoCallback) (void *cls,
+							  const struct
+							  GNUNET_PeerIdentity *
+							  peer,
+							  int32_t amount,
+							  struct
+							  GNUNET_TIME_Relative
+							  res_delay);
+
+
+
+/**
+ * Context that can be used to cancel a peer information request.
+ */
+struct GNUNET_ATS_InformationRequestContext;
+
+
+/**
+ * Obtain statistics and/or change preferences for the given peer.
+ * You can only have one such pending request per peer.
+ *
+ * @param h core handle
+ * @param peer identifies the peer
+ * @param amount reserve N bytes for receiving, negative
+ *                amounts can be used to undo a (recent) reservation;
+ * @param preference increase incoming traffic share preference by this amount;
+ *                in the absence of "amount" reservations, we use this
+ *                preference value to assign proportional bandwidth shares
+ *                to all connected peers
+ * @param info function to call with the resulting configuration information
+ * @param info_cls closure for info
+ * @return NULL on error
+ * @deprecated will be replaced soon
+ */
+struct GNUNET_ATS_InformationRequestContext *
+GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_Handle *h,
+				   const struct GNUNET_PeerIdentity *peer,
+				   int32_t amount, uint64_t preference,
+				   GNUNET_ATS_PeerConfigurationInfoCallback
+				   info, void *info_cls);
+
+
+/**
+ * Cancel request for getting information about a peer.
+ * Note that an eventual change in preference, trust or bandwidth
+ * assignment MAY have already been committed at the time,
+ * so cancelling a request is NOT sure to undo the original
+ * request.  The original request may or may not still commit.
+ * The only thing cancellation ensures is that the callback
+ * from the original request will no longer be called.
+ *
+ * @param irc context returned by the original GNUNET_ATS_peer_get_info call
+ * @deprecated will be replaced soon
+ */
+void
+GNUNET_ATS_peer_change_preference_cancel (struct
+					  GNUNET_ATS_InformationRequestContext
+					  *irc);
+
+
+
 #endif
 /* end of file gnunet-service-transport_ats.h */

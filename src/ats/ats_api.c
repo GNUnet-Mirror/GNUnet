@@ -32,66 +32,21 @@
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
+#include "ats_api.h"
 
 #define DEBUG_ATS GNUNET_EXTRA_LOGGING
+
+/**
+ * Receive and send buffer windows grow over time.  For
+ * how long can 'unused' bandwidth accumulate before we
+ * need to cap it?  (specified in seconds).
+ */
+#define MAX_WINDOW_TIME_S (5 * 60)
 
 // NOTE: this implementation is simply supposed
 // to implement a simplistic strategy in-process;
 // in the future, we plan to replace it with a real
 // service implementation
-
-/**
- * Allocation record for a peer's address.
- */
-struct AllocationRecord
-{
-
-  /**
-   * Performance information associated with this address (array).
-   */
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
-
-  /**
-   * Name of the plugin
-   */
-  char *plugin_name;
-
-  /**
-   * Address this record represents, allocated at the end of this struct.
-   */
-  const void *plugin_addr;
-
-  /**
-   * Session associated with this record.
-   */
-  struct Session *session;
-
-  /**
-   * Number of bytes in plugin_addr.
-   */
-  size_t plugin_addr_len;
-
-  /**
-   * Number of entries in 'ats'.
-   */
-  uint32_t ats_count;
-
-  /**
-   * Inbound bandwidth assigned to this address right now, 0 for none.
-   */
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
-
-  /**
-   * Outbound bandwidth assigned to this address right now, 0 for none.
-   */
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
-
-  /**
-   * Set to GNUNET_YES if this is the connected address of a connected peer.
-   */
-  int connected;
-
-};
 
 
 /**
@@ -120,55 +75,6 @@ struct GNUNET_ATS_SuggestionContext
    */
   struct GNUNET_PeerIdentity target;
 
-};
-
-
-/**
- * Handle to the ATS subsystem.
- */
-struct GNUNET_ATS_Handle
-{
-  /**
-   * Configuration.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Function to call when the allocation changes.
-   */
-  GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb;
-
-  /**
-   * Closure for 'alloc_cb'.
-   */
-  void *alloc_cb_cls;
-
-  /**
-   * Information about all connected peers.  Maps peer identities
-   * to one or more 'struct AllocationRecord' values.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *peers;
-
-  /**
-   * Map of PeerIdentities to 'struct GNUNET_ATS_SuggestionContext's.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *notify_map;
-
-
-  /**
-   * Task scheduled to update our bandwidth assignment.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier ba_task;
-
-  /**
-   * Total inbound bandwidth per configuration.
-   */
-  unsigned long long total_bps_in;
-
-  /**
-   * Total outbound bandwidth per configuration.
-   */
-  unsigned long long total_bps_out;
 };
 
 
@@ -232,6 +138,8 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
   {
     ar->bandwidth_in = sbc->bw_in;
     ar->bandwidth_out = sbc->bw_out;
+    GNUNET_BANDWIDTH_tracker_update_quota (&ar->available_recv_window,
+					   ar->bandwidth_in);
     sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                         (const struct GNUNET_PeerIdentity *) key,
                         ar->plugin_name, ar->session, ar->plugin_addr,
@@ -609,6 +517,9 @@ create_allocation_record (const char *plugin_name, struct Session *session,
   memcpy (&ar[1], plugin_addr, plugin_addr_len);
   ar->session = session;
   ar->plugin_addr_len = plugin_addr_len;  
+  GNUNET_BANDWIDTH_tracker_init (&ar->available_recv_window, 
+				 ar->bandwidth_in,
+                                 MAX_WINDOW_TIME_S);
   GNUNET_assert (ats_count > 0);
   GNUNET_array_grow (ar->ats, ar->ats_count, ats_count);
   memcpy (ar->ats, ats,
