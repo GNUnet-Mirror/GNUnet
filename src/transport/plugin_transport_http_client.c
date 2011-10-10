@@ -109,7 +109,7 @@ client_schedule (struct Plugin *plugin)
   }
   mret = curl_multi_timeout (plugin->client_mh, &to);
   if (to == -1)
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5);
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
   else
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
   if (mret != CURLM_OK)
