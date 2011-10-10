@@ -835,6 +835,5 @@ configuration file:
 	touch $HOME/.gnunet/gnunet.conf
 	
 Optionally, download and compile:
-- gnunet-gtk to get a GUI for file-sharing.
-- gnunet-setup to get a GUI for configuration.
+- gnunet-gtk to get a GUI for file-sharing and configuration.
 ********************************************])
