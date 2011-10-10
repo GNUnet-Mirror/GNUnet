@@ -30,6 +30,8 @@
 #include "gnunet_time_lib.h"
 #include "peerinfo.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "nse-api",__VA_ARGS__)
+
 /**
  * Context for the info handler.
  */
@@ -160,9 +162,9 @@ process_notification (void *cls, const struct GNUNET_MessageHeader *msg)
     }
   }
 #if DEBUG_PEERINFO
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received information about peer `%s' from peerinfo database\n",
-              GNUNET_i2s (&im->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received information about peer `%s' from peerinfo database\n",
+       GNUNET_i2s (&im->peer));
 #endif
   nc->callback (nc->callback_cls, &im->peer, hello, NULL);
   receive_notifications (nc);
@@ -253,8 +255,8 @@ GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
   client = GNUNET_CLIENT_connect ("peerinfo", cfg);
   if (client == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Could not connect to `%s' service.\n"), "peerinfo");
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("Could not connect to `%s' service.\n"),
+         "peerinfo");
     return NULL;
   }
   nc = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_NotifyContext));
