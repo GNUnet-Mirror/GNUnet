@@ -207,7 +207,7 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Creating session for peer `%4s'\n", GNUNET_i2s (pid));
+              "Creating session for peer `%4s'\n", GNUNET_i2s (peer));
 #endif
   session = GNUNET_malloc (sizeof (struct Session));
   session->peer = *peer;
