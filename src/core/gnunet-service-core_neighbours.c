@@ -339,9 +339,6 @@ handle_transport_notify_connect (void *cls,
   GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# neighbour entries allocated"),
                          GNUNET_CONTAINER_multihashmap_size (neighbours),
                          GNUNET_NO);
-  GNUNET_TRANSPORT_set_quota (transport, peer, 
-			      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT, 
-			      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT);
   n->kxinfo = GSC_KX_start (peer);
 }
 
