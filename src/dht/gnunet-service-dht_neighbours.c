@@ -32,6 +32,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
 #include "gnunet_nse_service.h"
+#include "gnunet_ats_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_datacache_lib.h"
 #include "gnunet_transport_service.h"
@@ -321,7 +322,7 @@ struct PeerInfo
   /**
    * Preference update context
    */
-  struct GNUNET_CORE_InformationRequestContext *info_ctx;
+  struct GNUNET_ATS_InformationRequestContext *info_ctx;
 
   /**
    * Task for scheduling preference updates
@@ -407,9 +408,14 @@ static GNUNET_SCHEDULER_TaskIdentifier find_peer_task;
 static struct GNUNET_PeerIdentity my_identity;
 
 /**
- * Handle to GNUnet core.
+ * Handle to CORE.
  */
 static struct GNUNET_CORE_Handle *coreAPI;
+
+/**
+ * Handle to ATS.
+ */
+static struct GNUNET_ATS_Handle *atsAPI;
 
 
 
@@ -514,10 +520,10 @@ update_core_preference (void *cls,
 			    gettext_noop ("# Preference updates given to core"), 1,
 			    GNUNET_NO);
   peer->info_ctx =
-    GNUNET_CORE_peer_change_preference (coreAPI, &peer->id,
-					0,
-					preference,
-					&update_core_preference_finish, peer);
+    GNUNET_ATS_peer_change_preference (atsAPI, &peer->id,
+				       0,
+				       preference,
+				       &update_core_preference_finish, peer);
 }
 
 
@@ -725,7 +731,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
                                                        to_remove));
   if (NULL != to_remove->info_ctx)
   {
-    GNUNET_CORE_peer_change_preference_cancel (to_remove->info_ctx);
+    GNUNET_ATS_peer_change_preference_cancel (to_remove->info_ctx);
     to_remove->info_ctx = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != to_remove->preference_task)
@@ -2040,6 +2046,7 @@ GDS_NEIGHBOURS_init ()
       GNUNET_CONFIGURATION_get_value_number (GDS_cfg, "DHT", "bucket_size",
                                              &temp_config_num))
     bucket_size = (unsigned int) temp_config_num;  
+  atsAPI = GNUNET_ATS_init (GDS_cfg, NULL, NULL);
   coreAPI = GNUNET_CORE_connect (GDS_cfg,
                                  1,
                                  NULL,
@@ -2067,6 +2074,8 @@ GDS_NEIGHBOURS_done ()
     return;
   GNUNET_CORE_disconnect (coreAPI);
   coreAPI = NULL;    
+  GNUNET_ATS_shutdown (atsAPI);
+  atsAPI = NULL;    
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (all_known_peers));
   GNUNET_CONTAINER_multihashmap_destroy (all_known_peers);
   all_known_peers = NULL;
