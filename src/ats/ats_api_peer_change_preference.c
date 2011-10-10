@@ -42,11 +42,6 @@ struct GNUNET_ATS_InformationRequestContext
    */
   struct GNUNET_ATS_Handle *h;
 
-  /**
-   * Link to peer record.
-   */
-  struct AllocationRecord *ar;
-
   int32_t amount;
 
   uint64_t preference;
