@@ -737,7 +737,7 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
   if (kx->public_key == NULL)
   {
     GNUNET_free_non_null (kx->skm_received);
-    kx->skm_received = GNUNET_copy_message (msg);
+    kx->skm_received = (struct SetKeyMessage*) GNUNET_copy_message (msg);
     return;
   }
   if (0 !=
@@ -866,7 +866,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     {
       /* defer */
       GNUNET_free_non_null (kx->ping_received);
-      kx->ping_received = GNUNET_copy_message (msg);
+      kx->ping_received = (struct PingMessage*) GNUNET_copy_message (msg);
       return;
     }
   m = (const struct PingMessage*) msg;
@@ -1065,7 +1065,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx, const struct GNUNET_MessageH
     if (kx->status == KX_STATE_KEY_SENT)
     {
       GNUNET_free_non_null (kx->pong_received);
-      kx->pong_received = GNUNET_copy_message (msg);
+      kx->pong_received = (struct PongMessage*) GNUNET_copy_message (msg);
     }
     return;
   }

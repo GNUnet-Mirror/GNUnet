@@ -26,6 +26,7 @@ libgnunetcore_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-service-core \
+ gnunet-service-core-new \
  gnunet-core-list-connections
 
 gnunet_service_core_SOURCES = \

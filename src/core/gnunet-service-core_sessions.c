@@ -122,6 +122,41 @@ struct Session
   GNUNET_SCHEDULER_TaskIdentifier cork_task;
 
   /**
+   * Tracking bandwidth for sending to this peer.
+   * // FIXME: unused! should it be used?
+   */
+  struct GNUNET_BANDWIDTH_Tracker available_send_window;
+
+  /**
+   * Tracking bandwidth for receiving from this peer.
+   * // FIXME: need to set it!
+   */
+  struct GNUNET_BANDWIDTH_Tracker available_recv_window;
+
+  /**
+   * Available bandwidth out for this peer (current target).
+   * // FIXME: check usage!
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bw_out;
+
+  /**
+   * Internal bandwidth limit set for this peer (initially typically
+   * set to "-1").  Actual "bw_out" is MIN of
+   * "bpm_out_internal_limit" and "bw_out_external_limit".
+   * // FIXME: check usage
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bw_out_internal_limit;
+
+  /**
+   * External bandwidth limit set for this peer by the
+   * peer that we are communicating with.  "bw_out" is MIN of
+   * "bw_out_internal_limit" and "bw_out_external_limit".
+   * // FIXME: check usage
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bw_out_external_limit;
+
+
+  /**
    * Is the neighbour queue empty and thus ready for us
    * to transmit an encrypted message?  
    */
