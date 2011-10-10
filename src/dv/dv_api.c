@@ -38,6 +38,8 @@
 #include "dv.h"
 #include "gnunet_transport_plugin.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "dv-api",__VA_ARGS__)
+
 /**
  * Store ready to send messages
  */
@@ -174,8 +176,7 @@ try_connect (struct GNUNET_DV_Handle *ret)
   if (ret->client != NULL)
     return GNUNET_YES;
 #if DEBUG_DV_MESSAGES
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Failed to connect to the dv service!\n"));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, _("Failed to connect to the dv service!\n"));
 #endif
   return GNUNET_NO;
 }
@@ -219,16 +220,15 @@ transmit_pending (void *cls, size_t size, void *buf)
 
 #if DEBUG_DV
   if (handle->current != NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "DV API: Transmit pending called with message type %d\n",
-                ntohs (handle->current->msg->header.type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "DV API: Transmit pending called with message type %d\n",
+         ntohs (handle->current->msg->header.type));
 #endif
 
   if (buf == NULL)
   {
 #if DEBUG_DV
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "DV API: Transmit pending FAILED!\n\n\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "DV API: Transmit pending FAILED!\n\n\n");
 #endif
     finish (handle, GNUNET_SYSERR);
     return 0;
@@ -244,8 +244,8 @@ transmit_pending (void *cls, size_t size, void *buf)
     {
       memcpy (buf, handle->current->msg, tsize);
 #if DEBUG_DV
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "DV API: Copied %d bytes into buffer!\n\n\n", tsize);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "DV API: Copied %d bytes into buffer!\n\n\n", tsize);
 #endif
       finish (handle, GNUNET_OK);
       return tsize;
@@ -292,8 +292,8 @@ process_pending_message (struct GNUNET_DV_Handle *handle)
                                             handle)))
   {
 #if DEBUG_DV
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Failed to transmit request to dv service.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to transmit request to dv service.\n");
 #endif
     finish (handle, GNUNET_SYSERR);
   }
@@ -357,7 +357,7 @@ handle_message_receipt (void *cls, const struct GNUNET_MessageHeader *msg)
   if (msg == NULL)
   {
 #if DEBUG_DV_MESSAGES
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: connection closed\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: connection closed\n");
 #endif
     return;                     /* Connection closed? */
   }
@@ -385,15 +385,15 @@ handle_message_receipt (void *cls, const struct GNUNET_MessageHeader *msg)
     memcpy (packed_msg, &packed_msg_start[sender_address_len], packed_msg_len);
 
 #if DEBUG_DV_MESSAGES
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "DV_API receive: packed message type: %d or %d\n",
-                ntohs (((struct GNUNET_MessageHeader *) packed_msg)->type),
-                ((struct GNUNET_MessageHeader *) packed_msg)->type);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "DV_API receive: message sender reported as %s\n",
-                GNUNET_i2s (&received_msg->sender));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: distance is %u\n",
-                ntohl (received_msg->distance));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "DV_API receive: packed message type: %d or %d\n",
+         ntohs (((struct GNUNET_MessageHeader *) packed_msg)->type),
+         ((struct GNUNET_MessageHeader *) packed_msg)->type);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "DV_API receive: message sender reported as %s\n",
+         GNUNET_i2s (&received_msg->sender));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: distance is %u\n",
+         ntohl (received_msg->distance));
 #endif
 
     handle->receive_handler (handle->receive_cls, &received_msg->sender,
@@ -513,8 +513,7 @@ transmit_start (void *cls, size_t size, void *buf)
   size_t tsize;
 
 #if DEBUG_DV
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "DV API: sending start request to service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "DV API: sending start request to service\n");
 #endif
   if (buf == NULL)
   {
