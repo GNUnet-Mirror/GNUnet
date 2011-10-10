@@ -501,6 +501,8 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   }
   mpc.merged = GNUNET_NO;
   mpc.pr = pr;
+  /* FIXME: O(n) call here, LRN reports this is a performance
+     problem.  Try using hash map!? */
   GNUNET_CONTAINER_heap_iterate (pp->priority_heap, &merge_pr, &mpc);
   if (mpc.merged != GNUNET_NO)
     return;
