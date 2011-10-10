@@ -89,7 +89,7 @@ exec_pcp (void *cls,
   else if (want_reserv > 0)
   {
     rdelay =
-      GNUNET_BANDWIDTH_tracker_get_delay (&irc->ar->available_recv_window,
+      GNUNET_BANDWIDTH_tracker_get_delay (&ar->available_recv_window,
 					  want_reserv);
     if (rdelay.rel_value == 0)
       got_reserv = want_reserv;
@@ -98,7 +98,7 @@ exec_pcp (void *cls,
   }
   else
     got_reserv = 0;
-  GNUNET_BANDWIDTH_tracker_consume (&irc->ar->available_recv_window, got_reserv);
+  GNUNET_BANDWIDTH_tracker_consume (&ar->available_recv_window, got_reserv);
 
   irc->info (irc->info_cls,
 	     &irc->peer,
