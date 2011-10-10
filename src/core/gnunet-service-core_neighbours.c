@@ -35,14 +35,6 @@
 
 
 /**
- * Receive and send buffer windows grow over time.  For
- * how long can 'unused' bandwidth accumulate before we
- * need to cap it?  (specified in seconds).
- */
-#define MAX_WINDOW_TIME_S (5 * 60)
-
-
-/**
  * Message ready for transmission via transport service.  This struct
  * is followed by the actual content of the message.
  */

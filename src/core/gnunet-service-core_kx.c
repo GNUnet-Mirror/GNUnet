@@ -93,8 +93,7 @@ struct PingMessage
 
 
 /**
- * Response to a PING.  Includes data from the original PING
- * plus initial bandwidth quota information.
+ * Response to a PING.  Includes data from the original PING.
  */
 struct PongMessage
 {
@@ -898,8 +897,6 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   }
   /* construct PONG */
   tx.reserved = GNUNET_BANDWIDTH_VALUE_MAX;
-  /* FIXME: here we should ideally ask ATS about unassigned bandwidth and fill in 
-     a value based on that; using the minimum here results in a rather slow start... */
   tx.challenge = t.challenge;
   tx.target = t.target;
   tp.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PONG);
