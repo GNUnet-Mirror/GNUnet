@@ -36,6 +36,8 @@
 
 #define DEBUG_ATS GNUNET_EXTRA_LOGGING
 
+#define LOG(kind,...) GNUNET_log_from (kind, "ats-api", __VA_ARGS__)
+
 /**
  * Receive and send buffer windows grow over time.  For
  * how long can 'unused' bandwidth accumulate before we
@@ -139,12 +141,13 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
     ar->bandwidth_in = sbc->bw_in;
     ar->bandwidth_out = sbc->bw_out;
     GNUNET_BANDWIDTH_tracker_update_quota (&ar->available_recv_window,
-					   ar->bandwidth_in);
+                                           ar->bandwidth_in);
     if (NULL != sbc->atc->alloc_cb)
       sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
-			  (const struct GNUNET_PeerIdentity *) key,
-			  ar->plugin_name, ar->session, ar->plugin_addr,
-			  ar->plugin_addr_len, ar->bandwidth_out, ar->bandwidth_in);
+                          (const struct GNUNET_PeerIdentity *) key,
+                          ar->plugin_name, ar->session, ar->plugin_addr,
+                          ar->plugin_addr_len, ar->bandwidth_out,
+                          ar->bandwidth_in);
   }
   else if (ntohl (ar->bandwidth_out.value__) > 0)
   {
@@ -152,9 +155,10 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
     ar->bandwidth_out = GNUNET_BANDWIDTH_value_init (0);
     if (NULL != sbc->atc->alloc_cb)
       sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
-			  (const struct GNUNET_PeerIdentity *) key,
-			  ar->plugin_name, ar->session, ar->plugin_addr,
-			  ar->plugin_addr_len, ar->bandwidth_out, ar->bandwidth_in);
+                          (const struct GNUNET_PeerIdentity *) key,
+                          ar->plugin_name, ar->session, ar->plugin_addr,
+                          ar->plugin_addr_len, ar->bandwidth_out,
+                          ar->bandwidth_in);
   }
   return GNUNET_YES;
 }
@@ -217,16 +221,15 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
   struct AllocationRecord *ar = value;
 
 #if DEBUG_ATS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
-                   "Suggesting address for peer `%s'\n", GNUNET_h2s (key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting address for peer `%s'\n",
+       GNUNET_h2s (key));
 #endif
 
   /* trivial strategy: pick first available address... */
   asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
            ar->plugin_addr_len, ar->session,
-           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_out / 32), 
-           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_in / 32), 
-	   ar->ats,
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_out / 32),
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_in / 32), ar->ats,
            ar->ats_count);
   asc->cb = NULL;
   return GNUNET_NO;
@@ -235,8 +238,7 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
 int
 map_it (void *cls, const GNUNET_HashCode * key, void *value)
 {
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api", "Found entry for %s\n",
-                   GNUNET_h2s (key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Found entry for %s\n", GNUNET_h2s (key));
   return GNUNET_YES;
 }
 
@@ -258,17 +260,17 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
   struct GNUNET_ATS_SuggestionContext *asc;
 
 #if DEBUG_ATS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
-                   "Looking up suggested address for peer `%s'\n",
-                   GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+       "Looking up suggested address for peer `%s'\n", GNUNET_i2s (peer));
 #endif
   asc = GNUNET_malloc (sizeof (struct GNUNET_ATS_SuggestionContext));
   asc->cb = cb;
   asc->cb_cls = cb_cls;
   asc->atc = atc;
   asc->target = *peer;
-  (void) GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers, &peer->hashPubKey,
-						     &suggest_address, asc);
+  (void) GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers,
+                                                     &peer->hashPubKey,
+                                                     &suggest_address, asc);
 
   if (NULL == asc->cb)
   {
@@ -313,7 +315,7 @@ GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_ATS_Handle *atc;
 
 #if DEBUG_ATS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api", "ATS init\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "ATS init\n");
 #endif
   atc = GNUNET_malloc (sizeof (struct GNUNET_ATS_Handle));
   atc->cfg = cfg;
@@ -358,7 +360,7 @@ void
 GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc)
 {
 #if DEBUG_ATS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api", "ATS shutdown\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "ATS shutdown\n");
 #endif
   if (GNUNET_SCHEDULER_NO_TASK != atc->ba_task)
   {
@@ -414,9 +416,9 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
 
 
 #if DEBUG_ATS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
-                   "Updating session for peer `%s' plugin `%s'\n",
-                   GNUNET_h2s (key), arold->plugin_name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+       "Updating session for peer `%s' plugin `%s'\n", GNUNET_h2s (key),
+       arold->plugin_name);
 #endif
 
   if (0 != strcmp (arnew->plugin_name, arold->plugin_name))
@@ -452,11 +454,10 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
         if (arold->ats[c_old].type == arnew->ats[c_new].type)
         {
 #if DEBUG_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Found type %i, old value=%i new value=%i\n",
-                      ntohl (arold->ats[c_old].type),
-                      ntohl (arold->ats[c_old].value),
-                      ntohl (arnew->ats[c_new].value));
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+               "Found type %i, old value=%i new value=%i\n",
+               ntohl (arold->ats[c_old].type), ntohl (arold->ats[c_old].value),
+               ntohl (arnew->ats[c_new].value));
 #endif
           arold->ats[c_old].value = arnew->ats[c_new].value;
           found = GNUNET_YES;
@@ -467,11 +468,9 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
       if (found == GNUNET_NO)
       {
 #if DEBUG_ATS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new type %i new value=%i\n",
-                    ntohl (arnew->ats[c_new].type),
-                    ntohl (arnew->ats[c_new].value));
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Old array size: %u\n",
-                    arold->ats_count);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Added new type %i new value=%i\n",
+             ntohl (arnew->ats[c_new].type), ntohl (arnew->ats[c_new].value));
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Old array size: %u\n", arold->ats_count);
 #endif
         GNUNET_array_grow (arold->ats, arold->ats_count, arold->ats_count + 1);
         GNUNET_assert (arold->ats_count >= 2);
@@ -480,8 +479,7 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
         arold->ats[arold->ats_count - 1].type = htonl (0);
         arold->ats[arold->ats_count - 1].value = htonl (0);
 #if DEBUG_ATS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New array size: %i\n",
-                    arold->ats_count);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "New array size: %i\n", arold->ats_count);
 #endif
       }
       c_new++;
@@ -518,9 +516,8 @@ create_allocation_record (const char *plugin_name, struct Session *session,
   ar->plugin_addr = &ar[1];
   memcpy (&ar[1], plugin_addr, plugin_addr_len);
   ar->session = session;
-  ar->plugin_addr_len = plugin_addr_len;  
-  GNUNET_BANDWIDTH_tracker_init (&ar->available_recv_window, 
-				 ar->bandwidth_in,
+  ar->plugin_addr_len = plugin_addr_len;
+  GNUNET_BANDWIDTH_tracker_init (&ar->available_recv_window, ar->bandwidth_in,
                                  MAX_WINDOW_TIME_S);
   GNUNET_assert (ats_count > 0);
   GNUNET_array_grow (ar->ats, ar->ats_count, ats_count);
@@ -702,9 +699,9 @@ notify_valid (void *cls, const GNUNET_HashCode * key, void *value)
 
   asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
            ar->plugin_addr_len, ar->session,
-           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_out / 32), 
-           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_in / 32), 
-	   ar->ats, ar->ats_count);
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_out / 32),
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_in / 32), ar->ats,
+           ar->ats_count);
   GNUNET_ATS_suggest_address_cancel (asc);
   asc = NULL;
   return GNUNET_OK;
@@ -742,9 +739,9 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
   struct UpdateSessionContext usc;
 
 #if DEBUG_ATS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
-                   "Updating address for peer `%s', plugin `%s'\n",
-                   GNUNET_i2s (peer), plugin_name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+       "Updating address for peer `%s', plugin `%s'\n", GNUNET_i2s (peer),
+       plugin_name);
 #endif
   ar = create_allocation_record (plugin_name, session, plugin_addr,
                                  plugin_addr_len, ats, ats_count);
@@ -757,9 +754,9 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
     return;
   }
 #if DEBUG_ATS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
-                   "Adding new address for peer `%s', plugin `%s'\n",
-                   GNUNET_i2s (peer), plugin_name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "ats-api",
+       "Adding new address for peer `%s', plugin `%s'\n", GNUNET_i2s (peer),
+       plugin_name);
 #endif
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (atc->peers,
