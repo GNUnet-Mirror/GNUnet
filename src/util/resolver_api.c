@@ -33,7 +33,7 @@
 #include "gnunet_server_lib.h"
 #include "resolver.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "resolver-api",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "resolver-api", __VA_ARGS__)
 
 /**
  * Maximum supported length for a hostname
