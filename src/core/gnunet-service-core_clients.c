@@ -397,7 +397,7 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
 		 GNUNET_CONTAINER_multihashmap_remove (c->requests, 
 						       &sm->peer.hashPubKey,
 						       car));
-  car->cork = ntohs (sm->cork);
+  car->cork = ntohl (sm->cork);
   GNUNET_SERVER_mst_receive (client_mst,
 			     car, 
 			     (const char*) &sm[1], msize,
