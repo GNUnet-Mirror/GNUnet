@@ -47,6 +47,8 @@ extern "C"
 
 #define DEBUG GNUNET_YES
 
+#define LOG(kind,...) GNUNET_log_from (kind, "mesh-api",__VA_ARGS__)
+
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
 /******************************************************************************/
@@ -581,9 +583,9 @@ reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 /**
  * Send a connect packet to the service with the applications and types
  * requested by the user.
- * 
+ *
  * @param h The mesh handle.
- * 
+ *
  */
 static void
 send_connect (struct GNUNET_MESH_Handle *h)
@@ -609,8 +611,7 @@ send_connect (struct GNUNET_MESH_Handle *h)
     for (napps = 0; napps < h->n_applications; napps++)
     {
       apps[napps] = htonl (h->applications[napps]);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:  app %u\n",
-                  h->applications[napps]);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:  app %u\n", h->applications[napps]);
     }
     types = (uint16_t *) & apps[napps];
     for (ntypes = 0; ntypes < h->n_handlers; ntypes++)
@@ -618,9 +619,9 @@ send_connect (struct GNUNET_MESH_Handle *h)
     msg->applications = htons (napps);
     msg->types = htons (ntypes);
 #if DEBUG
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "mesh: Sending %lu bytes long message %d types and %d apps\n",
-                ntohs (msg->header.size), ntypes, napps);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "mesh: Sending %lu bytes long message %d types and %d apps\n",
+         ntohs (msg->header.size), ntypes, napps);
 #endif
     send_packet (h, &msg->header);
   }
@@ -642,9 +643,9 @@ reconnect (struct GNUNET_MESH_Handle *h)
   unsigned int i;
 
 #if DEBUG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: *******   RECONNECT   *******\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: *******   RECONNECT   *******\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
 #endif
   h->in_receive = GNUNET_NO;
   /* disconnect */
@@ -666,9 +667,8 @@ reconnect (struct GNUNET_MESH_Handle *h)
         GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_HOURS,
                                   GNUNET_TIME_relative_multiply
                                   (h->reconnect_time, 2));
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "mesh:   Next retry in %sms\n",
-               GNUNET_TIME_relative_to_string(h->reconnect_time));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   Next retry in %sms\n",
+         GNUNET_TIME_relative_to_string (h->reconnect_time));
     GNUNET_break (0);
     return GNUNET_NO;
   }
@@ -676,7 +676,7 @@ reconnect (struct GNUNET_MESH_Handle *h)
   {
     h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   }
-  send_connect(h);
+  send_connect (h);
   /* Rebuild all tunnels */
   for (t = h->tunnels_head; NULL != t; t = t->next)
   {
@@ -825,7 +825,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   GNUNET_PEER_Id id;
   uint16_t size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: processig peer event\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: processig peer event\n");
   size = ntohs (msg->header.size);
   if (size != sizeof (struct GNUNET_MESH_PeerControl))
   {
@@ -843,7 +843,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
     p = add_peer_to_tunnel (t, &msg->peer);
   if (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD == ntohs (msg->header.type))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: adding peer\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: adding peer\n");
     if (NULL != t->connect_handler)
     {
       atsi.type = 0;
@@ -854,7 +854,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: removing peer\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: removing peer\n");
     if (NULL != t->disconnect_handler && p->connected)
     {
       t->disconnect_handler (t->cls, &msg->peer);
@@ -862,7 +862,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
     remove_peer_from_tunnel (p);
     GNUNET_free (p);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: processing peer event END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: processing peer event END\n");
 }
 
 
@@ -930,16 +930,15 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
       if (GNUNET_OK !=
           handler->callback (h->cls, t, &t->ctx, peer, payload, &atsi))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "MESH: callback caused disconnection\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "MESH: callback caused disconnection\n");
         GNUNET_MESH_disconnect (h);
         return;
       }
 #if DEBUG
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "MESH: callback completed successfully\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "MESH: callback completed successfully\n");
 
       }
 #endif
@@ -964,9 +963,8 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     reconnect (h);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "mesh: received a message type %hu from MESH\n",
-              ntohs (msg->type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: received a message type %hu from MESH\n",
+       ntohs (msg->type));
   switch (ntohs (msg->type))
   {
     /* Notify of a new incoming tunnel */
@@ -990,11 +988,11 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
     /* We shouldn't get any other packages, log and ignore */
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "MESH: unsolicited message form service (type %d)\n",
-                ntohs (msg->type));
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "MESH: unsolicited message form service (type %d)\n",
+         ntohs (msg->type));
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: message processed\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: message processed\n");
   GNUNET_CLIENT_receive (h->client, &msg_received, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 }
@@ -1023,7 +1021,7 @@ send_callback (void *cls, size_t size, void *buf)
   size_t tsize;
   size_t psize;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Send packet() Buffer %u\n", size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: Send packet() Buffer %u\n", size);
   h->th = NULL;
   if ((0 == size) || (NULL == buf))
   {
@@ -1034,10 +1032,10 @@ send_callback (void *cls, size_t size, void *buf)
   while ((NULL != (th = h->th_head)) && (size >= th->size))
   {
 #if DEBUG
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     type: %u\n",
-                ntohs (((struct GNUNET_MessageHeader *) &th[1])->type));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     size: %u\n",
-                ntohs (((struct GNUNET_MessageHeader *) &th[1])->size));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:     type: %u\n",
+         ntohs (((struct GNUNET_MessageHeader *) &th[1])->type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:     size: %u\n",
+         ntohs (((struct GNUNET_MessageHeader *) &th[1])->size));
 #endif
     if (NULL != th->notify)
     {
@@ -1092,16 +1090,16 @@ send_callback (void *cls, size_t size, void *buf)
     size -= psize;
     tsize += psize;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   total size: %u\n", tsize);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   total size: %u\n", tsize);
   if (NULL != (th = h->th_head))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   next size: %u\n", th->size);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   next size: %u\n", th->size);
     h->th =
         GNUNET_CLIENT_notify_transmit_ready (h->client, th->size,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              GNUNET_YES, &send_callback, h);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Send packet() END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: Send packet() END\n");
   if (GNUNET_NO == h->in_receive)
   {
     h->in_receive = GNUNET_YES;
@@ -1175,7 +1173,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_MESH_Handle *h;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: GNUNET_MESH_connect()\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: GNUNET_MESH_connect()\n");
   h = GNUNET_malloc (sizeof (struct GNUNET_MESH_Handle));
   h->cfg = cfg;
   h->max_queue_size = queue_size;
@@ -1198,8 +1196,8 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* count handlers and apps, calculate size */
   for (h->n_applications = 0; stypes[h->n_applications]; h->n_applications++) ;
   for (h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++) ;
-  send_connect(h);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: GNUNET_MESH_connect() END\n");
+  send_connect (h);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: GNUNET_MESH_connect() END\n");
   return h;
 }
 
@@ -1253,7 +1251,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_TunnelMessage msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Creating new tunnel\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: Creating new tunnel\n");
   t = create_tunnel (h, 0);
   t->connect_handler = connect_handler;
   t->disconnect_handler = disconnect_handler;
@@ -1278,7 +1276,7 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
   struct GNUNET_MESH_Handle *h;
   struct GNUNET_MESH_TunnelMessage msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Destroying tunnel\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: Destroying tunnel\n");
   h = tunnel->mesh;
 
   if (0 != tunnel->owner)

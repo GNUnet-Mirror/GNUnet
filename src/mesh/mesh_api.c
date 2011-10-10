@@ -32,6 +32,8 @@
 #include <gnunet_container_lib.h>
 #include <gnunet_applications.h>
 
+#define LOG(kind,...) GNUNET_log_from (kind, "mesh-api",__VA_ARGS__)
+
 struct tunnel_id
 {
   uint32_t id GNUNET_PACKED;
@@ -196,7 +198,7 @@ send_hello_message (void *cls, size_t size, void *buf)
   if (cls == NULL)
     return 0;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending hello\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending hello\n");
 
   struct peer_list_element *element = cls;
   struct GNUNET_MESH_Handle *handle = element->handle;
@@ -256,8 +258,8 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_Handle *handle = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core tells us we are connected to peer %s\n", GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Core tells us we are connected to peer %s\n",
+       GNUNET_i2s (peer));
 
   /* put the new peer into the list of connected peers */
   struct peer_list_element *element =
@@ -312,9 +314,9 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_MESH_Handle *handle = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core tells us we are no longer connected to peer %s\n",
-              GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Core tells us we are no longer connected to peer %s\n",
+       GNUNET_i2s (peer));
 
   struct peer_list_element *element = handle->connected_peers.head;
 
@@ -389,9 +391,9 @@ receive_hello (void *cls, const struct GNUNET_PeerIdentity *other,
       (GNUNET_MESH_ApplicationType *) (num + 1);
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "The peer %s tells us he supports %d application-types.\n",
-              GNUNET_i2s (other), ntohs (*num));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "The peer %s tells us he supports %d application-types.\n",
+       GNUNET_i2s (other), ntohs (*num));
 
   struct peer_list_element *element = handle->connected_peers.head;
 
@@ -407,9 +409,9 @@ receive_hello (void *cls, const struct GNUNET_PeerIdentity *other,
 
   for (i = 0; i < ntohs (*num); i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "The peer %s newly supports the application-type %d\n",
-                GNUNET_i2s (other), ntohs (ports[i]));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "The peer %s newly supports the application-type %d\n",
+         GNUNET_i2s (other), ntohs (ports[i]));
     if (GNUNET_APPLICATION_TYPE_END == ntohs (ports[i]))
       continue;
     struct type_list_element *new_type = GNUNET_malloc (sizeof *new_type);
@@ -423,9 +425,9 @@ receive_hello (void *cls, const struct GNUNET_PeerIdentity *other,
 
   for (type = element->type_head; type != NULL; type = type->next)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "The peer %s supports the application-type %d\n",
-                GNUNET_i2s (other), type->type);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "The peer %s supports the application-type %d\n", GNUNET_i2s (other),
+         type->type);
   }
 
   struct tunnel_list_element *tunnel = handle->pending_by_type_tunnels.head;
@@ -491,9 +493,9 @@ core_receive (void *cls, const struct GNUNET_PeerIdentity *other,
   /* If no handler was found, drop the message but keep the channel open */
   if (handler->callback == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received message of type %d from peer %s; dropping it.\n",
-                ntohs (rmessage->type), GNUNET_i2s (other));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received message of type %d from peer %s; dropping it.\n",
+         ntohs (rmessage->type), GNUNET_i2s (other));
     return GNUNET_OK;
   }
 
@@ -515,9 +517,9 @@ core_receive (void *cls, const struct GNUNET_PeerIdentity *other,
   /* if no tunnel was found: create a new inbound tunnel */
   if (tunnel == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "New inbound tunnel from peer %s; first message has type %d.\n",
-                GNUNET_i2s (other), ntohs (rmessage->type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "New inbound tunnel from peer %s; first message has type %d.\n",
+         GNUNET_i2s (other), ntohs (rmessage->type));
     tunnel = GNUNET_malloc (sizeof (struct tunnel_list_element));
     tunnel->tunnel.connect_handler = NULL;
     tunnel->tunnel.disconnect_handler = NULL;
@@ -533,9 +535,8 @@ core_receive (void *cls, const struct GNUNET_PeerIdentity *other,
                                        tunnel);
   }
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Inbound message from peer %s; type %d.\n", GNUNET_i2s (other),
-                ntohs (rmessage->type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Inbound message from peer %s; type %d.\n",
+         GNUNET_i2s (other), ntohs (rmessage->type));
 
   return handler->callback (handle->cls, &tunnel->tunnel, &tunnel->tunnel.ctx,
                             other, rmessage, atsi);
@@ -568,8 +569,8 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *handle,
     element = element->next;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect by tupe %d.\n",
-              application_type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect by tupe %d.\n",
+       application_type);
 
   /* Put into pending list */
   struct tunnel_list_element *tunnel =
@@ -809,7 +810,7 @@ build_hello_message (struct GNUNET_MESH_Handle *handle,
 
   for (t = stypes; *t != GNUNET_APPLICATION_TYPE_END; t++, num++) ;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "I can handle %d app-types.\n", num);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "I can handle %d app-types.\n", num);
 
   handle->hello_message_size = sizeof (uint16_t) +      /* For the number of types */
       num * sizeof (GNUNET_MESH_ApplicationType);       /* For the types */
@@ -824,8 +825,7 @@ build_hello_message (struct GNUNET_MESH_Handle *handle,
 
   for (i = 0; i < num; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "I can handle the app-type %d\n",
-                stypes[i]);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "I can handle the app-type %d\n", stypes[i]);
     types[i] = htons (stypes[i]);
   }
 
@@ -872,10 +872,9 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
 
   ret->core =
       GNUNET_CORE_connect (cfg, 42, ret, &core_startup, &core_connect,
-                           &core_disconnect, NULL, GNUNET_NO, NULL,
-                           GNUNET_NO, core_handlers);
-  ret->transport =
-    GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
+                           &core_disconnect, NULL, GNUNET_NO, NULL, GNUNET_NO,
+                           core_handlers);
+  ret->transport = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
   return ret;
 }
 
