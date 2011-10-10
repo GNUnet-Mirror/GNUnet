@@ -35,6 +35,7 @@
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "nse-api",__VA_ARGS__)
 
 /**
  * Handle for the service.
@@ -119,8 +120,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   client_msg = (const struct GNUNET_NSE_ClientMessage *) msg;
   h->recv_cb (h->recv_cb_cls, GNUNET_TIME_absolute_ntoh (client_msg->timestamp),
-              client_msg->size_estimate,
-	      client_msg->std_deviation);
+              client_msg->size_estimate, client_msg->std_deviation);
   GNUNET_CLIENT_receive (h->client, &message_handler, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 }
@@ -149,9 +149,9 @@ reschedule_connect (struct GNUNET_NSE_Handle *h)
   }
 
 #if DEBUG_NSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Scheduling task to reconnect to nse service in %llu ms.\n",
-              h->reconnect_delay.rel_value);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Scheduling task to reconnect to nse service in %llu ms.\n",
+       h->reconnect_delay.rel_value);
 #endif
   h->reconnect_task =
       GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
@@ -187,14 +187,14 @@ send_start (void *cls, size_t size, void *buf)
   {
     /* Connect error... */
 #if DEBUG_NSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Shutdown while trying to transmit `%s' request.\n", "START");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Shutdown while trying to transmit `%s' request.\n", "START");
 #endif
     reschedule_connect (h);
     return 0;
   }
 #if DEBUG_NSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting `%s' request.\n", "START");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting `%s' request.\n", "START");
 #endif
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
 
@@ -225,8 +225,8 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 #if DEBUG_NSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connecting to network size estimation service.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to network size estimation service.\n");
 #endif
   GNUNET_assert (h->client == NULL);
   h->client = GNUNET_CLIENT_connect ("nse", h->cfg);
