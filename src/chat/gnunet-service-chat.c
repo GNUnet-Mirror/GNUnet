@@ -1704,7 +1704,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   core =
       GNUNET_CORE_connect (cfg, QUEUE_SIZE, NULL, &core_init,
                            &peer_connect_handler, &peer_disconnect_handler,
-                           NULL, NULL, GNUNET_NO, NULL, GNUNET_NO,
+                           NULL, GNUNET_NO, NULL, GNUNET_NO,
                            p2p_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
