@@ -444,10 +444,10 @@ try_transmission (struct Session *session)
   min_deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
   /* check 'ready' messages */
   pos = session->sme_head;
-  GNUNET_assert (pos->size < GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
   while ( (NULL != pos) &&
 	  (msize + pos->size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE) )
   {
+    GNUNET_assert (pos->size < GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
     msize += pos->size;
     min_deadline = GNUNET_TIME_absolute_min (min_deadline,
 					     pos->deadline);
@@ -565,6 +565,8 @@ GSC_SESSIONS_solicit (const struct GNUNET_PeerIdentity *pid)
   struct Session *session;
 
   session = find_session (pid);
+  if (NULL == session)
+    return;
   session->ready_to_transmit = GNUNET_YES;
   try_transmission (session);
 }

@@ -590,7 +590,6 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GSC_KeyExchangeInfo *kx = cls;
   struct SetKeyMessage *skm;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->retry_set_key_task);
   if (err_msg != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -623,6 +622,7 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->retry_set_key_task);
   kx->public_key =
       GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   if (GNUNET_OK != GNUNET_HELLO_get_key (hello, kx->public_key))
