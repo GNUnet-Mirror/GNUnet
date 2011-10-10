@@ -28,6 +28,7 @@
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport_validation.h"
+#include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_constants.h"
@@ -722,6 +723,7 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
   n->asc = NULL;
   was_connected = n->is_connected;
   n->is_connected = GNUNET_YES;
+
   GST_neighbours_switch_to_address (target, plugin_name, plugin_address,
                                     plugin_address_len, session, ats,
                                     ats_count);
@@ -729,6 +731,28 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
     return;
   n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task,
 						n);
+
+  /* ATS told us inbound quota for this peer */
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting inbound quota of %u for peer `%s' to \n",
+              ntohl (bandwidth_in), GNUNET_i2s (target));
+#endif
+
+
+  GST_neighbours_set_incoming_quota (&n->id, bandwidth_in);
+  /* ATS told us outbound quota for this peer, tell all clients */
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
+              ntohl (bandwidth_out), GNUNET_i2s (target));
+#endif
+
+  struct QuotaSetMessage msg;
+  msg.header.size = htons (sizeof (struct QuotaSetMessage));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
+  msg.quota = bandwidth_out;
+  msg.peer = (*target);
+  GST_clients_broadcast ((struct GNUNET_MessageHeader *) &msg, GNUNET_NO);
+
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                             GNUNET_NO);
