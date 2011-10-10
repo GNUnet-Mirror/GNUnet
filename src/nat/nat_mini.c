@@ -28,6 +28,7 @@
 #include "gnunet_nat_lib.h"
 #include "nat.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "nat", __VA_ARGS__)
 
 /**
  * How long do we give upnpc to create a mapping?
@@ -163,8 +164,7 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
 {
   struct GNUNET_NAT_ExternalHandle *eh;
 
-  if (GNUNET_SYSERR ==
-      GNUNET_OS_check_helper_binary ("external-ip"))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("external-ip"))
     return NULL;
   eh = GNUNET_malloc (sizeof (struct GNUNET_NAT_ExternalHandle));
   eh->cb = cb;
@@ -525,7 +525,7 @@ process_unmap_output (void *cls, const char *line)
   if (NULL == line)
   {
 #if DEBUG_NAT
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat", "UPnP unmap done\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "UPnP unmap done\n");
 #endif
     GNUNET_OS_command_stop (mini->unmap_cmd);
     mini->unmap_cmd = NULL;
@@ -578,9 +578,8 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
   GNUNET_snprintf (pstr, sizeof (pstr), "%u",
                    (unsigned int) ntohs (mini->current_addr.sin_port));
 #if DEBUG_NAT
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "nat",
-                   "Unmapping port %u with UPnP\n",
-                   ntohs (mini->current_addr.sin_port));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Unmapping port %u with UPnP\n",
+       ntohs (mini->current_addr.sin_port));
 #endif
   mini->unmap_cmd =
       GNUNET_OS_command_run (&process_unmap_output, mini, UNMAP_TIMEOUT,
