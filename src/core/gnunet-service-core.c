@@ -1649,22 +1649,6 @@ handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
   if ((n != NULL) && (GNUNET_YES == n->is_connected))
   {
     want_reserv = ntohl (rcm->reserve_inbound);
-    if (n->bw_out_internal_limit.value__ != rcm->limit_outbound.value__)
-    {
-      n->bw_out_internal_limit = rcm->limit_outbound;
-      if (n->bw_out.value__ !=
-          GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
-                                      n->bw_out_external_limit).value__)
-      {
-        n->bw_out =
-            GNUNET_BANDWIDTH_value_min (n->bw_out_internal_limit,
-                                        n->bw_out_external_limit);
-        GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
-                                               n->bw_out);
-        GNUNET_TRANSPORT_set_quota (transport, &n->peer, n->bw_in, n->bw_out);
-        handle_peer_status_change (n);
-      }
-    }
     if (want_reserv < 0)
     {
       got_reserv = want_reserv;
@@ -4313,8 +4297,12 @@ neighbour_quota_update (void *cls,
   if ((n->bw_in.value__ != q_in.value__) ||
       (n->bw_out.value__ != q_out_min.value__))
   {
-    if (n->bw_in.value__ != q_in.value__)
+    if (n->bw_in.value__ != q_in.value__) 
+    {
       n->bw_in = q_in;
+      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
+					     n->bw_in);
+    }
     if (n->bw_out.value__ != q_out_min.value__)
       n->bw_out = q_out_min;
     if (GNUNET_YES == n->is_connected)
