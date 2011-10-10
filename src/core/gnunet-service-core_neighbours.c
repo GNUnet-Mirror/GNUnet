@@ -116,11 +116,6 @@ struct Neighbour
   /**
    * Tracking bandwidth for sending to this peer.
    */
-  struct GNUNET_BANDWIDTH_Tracker available_send_window;
-
-  /**
-   * Tracking bandwidth for sending to this peer.
-   */
   struct GNUNET_BANDWIDTH_Tracker available_recv_window;
 
 };
@@ -251,7 +246,6 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= m->size);
   memcpy (cbuf, &m[1], m->size);
   ret = m->size;
-  GNUNET_BANDWIDTH_tracker_consume (&n->available_send_window, m->size);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Copied message of type %u and size %u into transport buffer for `%4s'\n",
@@ -351,9 +345,6 @@ handle_transport_notify_connect (void *cls,
 #endif
   n = GNUNET_malloc (sizeof (struct Neighbour));
   n->peer = *peer;
-  GNUNET_BANDWIDTH_tracker_init (&n->available_send_window, 
-				 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
-                                 MAX_WINDOW_TIME_S);
   GNUNET_BANDWIDTH_tracker_init (&n->available_recv_window, 
 				 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_WINDOW_TIME_S);

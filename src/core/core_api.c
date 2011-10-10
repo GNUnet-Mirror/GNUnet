@@ -1722,7 +1722,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   rim->header.size = htons (sizeof (struct RequestInfoMessage));
   rim->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO);
   rim->rim_id = htonl (pr->rim_id = h->rim_id_gen++);
-  rim->limit_outbound = GNUNET_BANDWIDTH_VALUE_MAX; // FIXME: remove entirely soon...
+  rim->reserved = htonl (0);
   rim->reserve_inbound = htonl (amount);
   rim->preference_change = GNUNET_htonll (preference);
   rim->peer = *peer;

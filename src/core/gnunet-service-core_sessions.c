@@ -122,27 +122,25 @@ struct Session
   GNUNET_SCHEDULER_TaskIdentifier cork_task;
 
   /**
-   * Tracking bandwidth for sending to this peer.
-   * // FIXME: unused! should it be used?
-   */
-  struct GNUNET_BANDWIDTH_Tracker available_send_window;
-
-  /**
    * Tracking bandwidth for receiving from this peer.
    * // FIXME: need to set it!
    */
   struct GNUNET_BANDWIDTH_Tracker available_recv_window;
 
   /**
-   * Available bandwidth out for this peer (current target).
-   * // FIXME: check usage!
+   * Available bandwidth out for this peer (current target).  This
+   * value should be the 'MIN' of 'bw_out_internal_limit' and
+   * 'bw_out_external_limit'.
    */
   struct GNUNET_BANDWIDTH_Value32NBO bw_out;
 
   /**
    * Internal bandwidth limit set for this peer (initially typically
-   * set to "-1").  Actual "bw_out" is MIN of
+   * set to "MAX_INT").  Actual "bw_out" is MIN of
    * "bpm_out_internal_limit" and "bw_out_external_limit".
+   *
+   * 
+   *
    * // FIXME: check usage
    */
   struct GNUNET_BANDWIDTH_Value32NBO bw_out_internal_limit;
@@ -773,26 +771,6 @@ GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client 
   }
 
   want_reserv = ntohl (rcm->reserve_inbound);
-  if (session->bw_out_internal_limit.value__ != rcm->limit_outbound.value__)
-  {
-    session->bw_out_internal_limit = rcm->limit_outbound;
-    if (session->bw_out.value__ !=
-	GNUNET_BANDWIDTH_value_min (session->bw_out_internal_limit,
-				    session->bw_out_external_limit).value__)
-    {
-      session->bw_out =
-	GNUNET_BANDWIDTH_value_min (session->bw_out_internal_limit,
-				    session->bw_out_external_limit);
-      GNUNET_BANDWIDTH_tracker_update_quota (&session->available_recv_window,
-					     session->bw_out);
-#if 0
-      // FIXME: who does this?
-      GNUNET_TRANSPORT_set_quota (transport, &session->peer, 
-				  session->bw_in, 
-				  session->bw_out);
-#endif
-    }
-  }
   if (want_reserv < 0)
   {
     got_reserv = want_reserv;

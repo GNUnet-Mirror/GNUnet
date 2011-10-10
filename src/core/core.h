@@ -255,11 +255,9 @@ struct RequestInfoMessage
   uint32_t rim_id GNUNET_PACKED;
 
   /**
-   * Limit the number of bytes of outbound traffic to this
-   * peer to at most the specified amount (naturally, the
-   * amount is also limited by the receiving peer).
+   * Reserved, always zero.
    */
-  struct GNUNET_BANDWIDTH_Value32NBO limit_outbound;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Number of bytes of inbound traffic to reserve, can
