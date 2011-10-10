@@ -567,11 +567,6 @@ struct Neighbour
   struct GNUNET_BANDWIDTH_Tracker available_send_window;
 
   /**
-   * Tracking bandwidth for receiving from this peer.
-   */
-  struct GNUNET_BANDWIDTH_Tracker available_recv_window;
-
-  /**
    * How valueable were the messages of this peer recently?
    */
   unsigned long long current_preference;
@@ -880,45 +875,6 @@ get_neighbour_timeout (struct Neighbour *n)
 {
   return GNUNET_TIME_absolute_add (n->last_activity,
                                    GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-}
-
-
-/**
- * Helper function for update_preference_sum.
- */
-static int
-update_preference (void *cls, const GNUNET_HashCode * key, void *value)
-{
-  unsigned long long *ps = cls;
-  struct Neighbour *n = value;
-
-  n->current_preference /= 2;
-  *ps += n->current_preference;
-  return GNUNET_OK;
-}
-
-
-/**
- * A preference value for a neighbour was update.  Update
- * the preference sum accordingly.
- *
- * @param inc how much was a preference value increased?
- */
-static void
-update_preference_sum (unsigned long long inc)
-{
-  unsigned long long os;
-
-  os = preference_sum;
-  preference_sum += inc;
-  if (preference_sum >= os)
-    return;                     /* done! */
-  /* overflow! compensate by cutting all values in half! */
-  preference_sum = 0;
-  GNUNET_CONTAINER_multihashmap_iterate (neighbours, &update_preference,
-                                         &preference_sum);
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# total peer preference"),
-                         preference_sum, GNUNET_NO);
 }
 
 
@@ -1601,112 +1557,6 @@ handle_client_have_peer (void *cls, struct GNUNET_SERVER_Client *client,
   done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
   GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
-}
-
-
-/**
- * Handle REQUEST_INFO request.
- *
- * @param cls unused
- * @param client client sending the request
- * @param message iteration request message
- */
-static void
-handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
-                            const struct GNUNET_MessageHeader *message)
-{
-  const struct RequestInfoMessage *rcm;
-  struct Client *pos;
-  struct Neighbour *n;
-  struct ConfigurationInfoMessage cim;
-  int32_t want_reserv;
-  int32_t got_reserv;
-  unsigned long long old_preference;
-  struct GNUNET_TIME_Relative rdelay;
-
-  rdelay = GNUNET_TIME_relative_get_zero ();
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service receives `%s' request.\n",
-              "REQUEST_INFO");
-#endif
-  pos = clients;
-  while (pos != NULL)
-  {
-    if (client == pos->client_handle)
-      break;
-    pos = pos->next;
-  }
-  if (pos == NULL)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-
-  rcm = (const struct RequestInfoMessage *) message;
-  n = find_neighbour (&rcm->peer);
-  memset (&cim, 0, sizeof (cim));
-  if ((n != NULL) && (GNUNET_YES == n->is_connected))
-  {
-    want_reserv = ntohl (rcm->reserve_inbound);
-    if (want_reserv < 0)
-    {
-      got_reserv = want_reserv;
-    }
-    else if (want_reserv > 0)
-    {
-      rdelay =
-          GNUNET_BANDWIDTH_tracker_get_delay (&n->available_recv_window,
-                                              want_reserv);
-      if (rdelay.rel_value == 0)
-        got_reserv = want_reserv;
-      else
-        got_reserv = 0;         /* all or nothing */
-    }
-    else
-      got_reserv = 0;
-    GNUNET_BANDWIDTH_tracker_consume (&n->available_recv_window, got_reserv);
-    old_preference = n->current_preference;
-    n->current_preference += GNUNET_ntohll (rcm->preference_change);
-    if (old_preference > n->current_preference)
-    {
-      /* overflow; cap at maximum value */
-      n->current_preference = ULLONG_MAX;
-    }
-    update_preference_sum (n->current_preference - old_preference);
-#if DEBUG_CORE_QUOTA
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received reservation request for %d bytes for peer `%4s', reserved %d bytes, suggesting delay of %llu ms\n",
-                (int) want_reserv, GNUNET_i2s (&rcm->peer), (int) got_reserv,
-                (unsigned long long) rdelay.rel_value);
-#endif
-    cim.reserved_amount = htonl (got_reserv);
-    cim.reserve_delay = GNUNET_TIME_relative_hton (rdelay);
-    cim.bw_out = n->bw_out;
-    cim.preference = n->current_preference;
-  }
-  else
-  {
-    /* Technically, this COULD happen (due to asynchronous behavior),
-     * but it should be rare, so we should generate an info event
-     * to help diagnosis of serious errors that might be masked by this */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Client asked for preference change with peer `%s', which is not connected!\n"),
-                GNUNET_i2s (&rcm->peer));
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-  cim.header.size = htons (sizeof (struct ConfigurationInfoMessage));
-  cim.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO);
-  cim.peer = rcm->peer;
-  cim.rim_id = rcm->rim_id;
-#if DEBUG_CORE_CLIENT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
-              "CONFIGURATION_INFO");
-#endif
-  send_to_client (pos, &cim.header, GNUNET_NO);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -4298,11 +4148,7 @@ neighbour_quota_update (void *cls,
       (n->bw_out.value__ != q_out_min.value__))
   {
     if (n->bw_in.value__ != q_in.value__) 
-    {
       n->bw_in = q_in;
-      GNUNET_BANDWIDTH_tracker_update_quota (&n->available_recv_window,
-					     n->bw_in);
-    }
     if (n->bw_out.value__ != q_out_min.value__)
       n->bw_out = q_out_min;
     if (GNUNET_YES == n->is_connected)
@@ -4355,8 +4201,6 @@ handle_transport_notify_connect (void *cls,
   n->is_connected = GNUNET_YES;
   update_neighbour_performance (n, ats, ats_count);
   GNUNET_BANDWIDTH_tracker_init (&n->available_send_window, n->bw_out,
-                                 MAX_WINDOW_TIME_S);
-  GNUNET_BANDWIDTH_tracker_init (&n->available_recv_window, n->bw_in,
                                  MAX_WINDOW_TIME_S);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received connection from `%4s'.\n",
@@ -4520,9 +4364,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      GNUNET_MESSAGE_TYPE_CORE_PEER_CONNECTED,
      sizeof (struct GNUNET_MessageHeader) +
      sizeof (struct GNUNET_PeerIdentity)},
-    {&handle_client_request_info, NULL,
-     GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO,
-     sizeof (struct RequestInfoMessage)},
     {&handle_client_send_request, NULL,
      GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST,
      sizeof (struct SendMessageRequest)},

@@ -68,7 +68,6 @@ gnunet_core_list_connections_DEPENDENCIES = \
 check_PROGRAMS = \
  test_core_api_start_only \
  test_core_api \
- test_core_api_preferences \
  test_core_api_reliability \
  test_core_quota_compliance_symmetric \
  test_core_quota_compliance_asymmetric_send_limited \

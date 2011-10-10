@@ -140,19 +140,21 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
     ar->bandwidth_out = sbc->bw_out;
     GNUNET_BANDWIDTH_tracker_update_quota (&ar->available_recv_window,
 					   ar->bandwidth_in);
-    sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
-                        (const struct GNUNET_PeerIdentity *) key,
-                        ar->plugin_name, ar->session, ar->plugin_addr,
-                        ar->plugin_addr_len, ar->bandwidth_out, ar->bandwidth_in);
+    if (NULL != sbc->atc->alloc_cb)
+      sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
+			  (const struct GNUNET_PeerIdentity *) key,
+			  ar->plugin_name, ar->session, ar->plugin_addr,
+			  ar->plugin_addr_len, ar->bandwidth_out, ar->bandwidth_in);
   }
   else if (ntohl (ar->bandwidth_out.value__) > 0)
   {
     ar->bandwidth_in = GNUNET_BANDWIDTH_value_init (0);
     ar->bandwidth_out = GNUNET_BANDWIDTH_value_init (0);
-    sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
-                        (const struct GNUNET_PeerIdentity *) key,
-                        ar->plugin_name, ar->session, ar->plugin_addr,
-                        ar->plugin_addr_len, ar->bandwidth_out, ar->bandwidth_in);
+    if (NULL != sbc->atc->alloc_cb)
+      sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
+			  (const struct GNUNET_PeerIdentity *) key,
+			  ar->plugin_name, ar->session, ar->plugin_addr,
+			  ar->plugin_addr_len, ar->bandwidth_out, ar->bandwidth_in);
   }
   return GNUNET_YES;
 }

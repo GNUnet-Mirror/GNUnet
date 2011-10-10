@@ -73,30 +73,6 @@ struct PeerRecord
   struct GNUNET_CORE_TransmitHandle *pending_tail;
 
   /**
-   * Pending callback waiting for peer information, or NULL for none.
-   */
-  GNUNET_CORE_PeerConfigurationInfoCallback pcic;
-
-  /**
-   * Closure for pcic.
-   */
-  void *pcic_cls;
-
-  /**
-   * Pointer to free when we call pcic and to use to cancel
-   * preference change on disconnect.
-   */
-  struct GNUNET_CORE_InformationRequestContext *pcic_ptr;
-
-  /**
-   * Request information ID for the given pcic (needed in case a
-   * request is cancelled after being submitted to core and a new
-   * one is generated; in this case, we need to avoid matching the
-   * reply to the first (cancelled) request to the second request).
-   */
-  uint32_t rim_id;
-
-  /**
    * ID of timeout task for the 'pending_head' handle
    * which is the one with the smallest timeout.
    */
@@ -275,11 +251,6 @@ struct GNUNET_CORE_Handle
   struct GNUNET_TIME_Relative retry_backoff;
 
   /**
-   * Request information ID generator.
-   */
-  uint32_t rim_id_gen;
-
-  /**
    * Number of messages we are allowed to queue per target.
    */
   unsigned int queue_size;
@@ -424,8 +395,6 @@ disconnect_and_free_peer_entry (void *cls, const GNUNET_HashCode * key,
   struct GNUNET_CORE_Handle *h = cls;
   struct GNUNET_CORE_TransmitHandle *th;
   struct PeerRecord *pr = value;
-  GNUNET_CORE_PeerConfigurationInfoCallback pcic;
-  void *pcic_cls;
 
   if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -443,13 +412,6 @@ disconnect_and_free_peer_entry (void *cls, const GNUNET_HashCode * key,
     h->disconnects (h->cls, &pr->peer);
   /* all requests should have been cancelled, clean up anyway, just in case */
   GNUNET_break (pr->queue_size == 0);
-  if (NULL != (pcic = pr->pcic))
-  {
-    GNUNET_break (0);
-    pcic_cls = pr->pcic_cls;
-    GNUNET_CORE_peer_change_preference_cancel (pr->pcic_ptr);
-    pcic (pcic_cls, &pr->peer, 0, GNUNET_TIME_UNIT_FOREVER_REL);
-  }
   while (NULL != (th = pr->pending_head))
   {
     GNUNET_break (0);
@@ -823,12 +785,10 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct DisconnectNotifyMessage *dnm;
   const struct NotifyTrafficMessage *ntm;
   const struct GNUNET_MessageHeader *em;
-  const struct ConfigurationInfoMessage *cim;
   const struct PeerStatusNotifyMessage *psnm;
   const struct SendMessageReady *smr;
   const struct GNUNET_CORE_MessageHandler *mh;
   GNUNET_CORE_StartupCallback init;
-  GNUNET_CORE_PeerConfigurationInfoCallback pcic;
   struct PeerRecord *pr;
   struct GNUNET_CORE_TransmitHandle *th;
   unsigned int hpos;
@@ -1189,48 +1149,6 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     GNUNET_CONTAINER_DLL_insert (h->ready_peer_head, h->ready_peer_tail, pr);
     trigger_next_request (h, GNUNET_NO);
-    break;
-  case GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO:
-    if (ntohs (msg->size) != sizeof (struct ConfigurationInfoMessage))
-    {
-      GNUNET_break (0);
-      reconnect_later (h);
-      return;
-    }
-    cim = (const struct ConfigurationInfoMessage *) msg;
-    if (0 == memcmp (&h->me, &cim->peer, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      /* self-change!? */
-      GNUNET_break (0);
-      return;
-    }
-#if DEBUG_CORE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received notification about configuration update for `%s' with RIM %u.\n",
-                GNUNET_i2s (&cim->peer), (unsigned int) ntohl (cim->rim_id));
-#endif
-    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &cim->peer.hashPubKey);
-    if (pr == NULL)
-    {
-      GNUNET_break (0);
-      reconnect_later (h);
-      return;
-    }
-    if (pr->rim_id != ntohl (cim->rim_id))
-    {
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Reservation ID mismatch in notification...\n");
-#endif
-      break;
-    }
-    pcic = pr->pcic;
-    pr->pcic = NULL;
-    GNUNET_free_non_null (pr->pcic_ptr);
-    pr->pcic_ptr = NULL;
-    if (pcic != NULL)
-      pcic (pr->pcic_cls, &pr->peer, ntohl (cim->reserved_amount),
-            GNUNET_TIME_relative_ntoh (cim->reserve_delay));
     break;
   default:
     reconnect_later (h);
@@ -1629,149 +1547,6 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
     }
     request_next_transmission (pr);
   }
-}
-
-
-/* ****************** GNUNET_CORE_peer_change_preference ******************** */
-
-
-struct GNUNET_CORE_InformationRequestContext
-{
-
-  /**
-   * Our connection to the service.
-   */
-  struct GNUNET_CORE_Handle *h;
-
-  /**
-   * Link to control message, NULL if CM was sent.
-   */
-  struct ControlMessage *cm;
-
-  /**
-   * Link to peer record.
-   */
-  struct PeerRecord *pr;
-};
-
-
-/**
- * CM was sent, remove link so we don't double-free.
- *
- * @param cls the 'struct GNUNET_CORE_InformationRequestContext'
- * @param success were we successful?
- */
-static void
-change_preference_send_continuation (void *cls, int success)
-{
-  struct GNUNET_CORE_InformationRequestContext *irc = cls;
-
-  irc->cm = NULL;
-}
-
-
-/**
- * Obtain statistics and/or change preferences for the given peer.
- *
- * @param h core handle
- * @param peer identifies the peer
- * @param amount reserve N bytes for receiving, negative
- *                amounts can be used to undo a (recent) reservation;
- * @param preference increase incoming traffic share preference by this amount;
- *                in the absence of "amount" reservations, we use this
- *                preference value to assign proportional bandwidth shares
- *                to all connected peers
- * @param info function to call with the resulting configuration information
- * @param info_cls closure for info
- * @return NULL on error
- */
-struct GNUNET_CORE_InformationRequestContext *
-GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
-                                    const struct GNUNET_PeerIdentity *peer,
-                                    int32_t amount, uint64_t preference,
-                                    GNUNET_CORE_PeerConfigurationInfoCallback
-                                    info, void *info_cls)
-{
-  struct GNUNET_CORE_InformationRequestContext *irc;
-  struct PeerRecord *pr;
-  struct RequestInfoMessage *rim;
-  struct ControlMessage *cm;
-
-  pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &peer->hashPubKey);
-  if (NULL == pr)
-  {
-    /* attempt to change preference on peer that is not connected */
-    GNUNET_assert (0);
-    return NULL;
-  }
-  if (pr->pcic != NULL)
-  {
-    /* second change before first one is done */
-    GNUNET_break (0);
-    return NULL;
-  }
-  irc = GNUNET_malloc (sizeof (struct GNUNET_CORE_InformationRequestContext));
-  irc->h = h;
-  irc->pr = pr;
-  cm = GNUNET_malloc (sizeof (struct ControlMessage) +
-                      sizeof (struct RequestInfoMessage));
-  cm->cont = &change_preference_send_continuation;
-  cm->cont_cls = irc;
-  irc->cm = cm;
-  rim = (struct RequestInfoMessage *) &cm[1];
-  rim->header.size = htons (sizeof (struct RequestInfoMessage));
-  rim->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO);
-  rim->rim_id = htonl (pr->rim_id = h->rim_id_gen++);
-  rim->reserved = htonl (0);
-  rim->reserve_inbound = htonl (amount);
-  rim->preference_change = GNUNET_htonll (preference);
-  rim->peer = *peer;
-#if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Queueing CHANGE PREFERENCE request for peer `%s' with RIM %u\n",
-              GNUNET_i2s (peer), (unsigned int) pr->rim_id);
-#endif
-  GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
-                                    h->control_pending_tail, cm);
-  pr->pcic = info;
-  pr->pcic_cls = info_cls;
-  pr->pcic_ptr = irc;           /* for free'ing irc */
-  if (NULL != h->client)
-    trigger_next_request (h, GNUNET_NO);
-  return irc;
-}
-
-
-/**
- * Cancel request for getting information about a peer.
- * Note that an eventual change in preference, trust or bandwidth
- * assignment MAY have already been committed at the time,
- * so cancelling a request is NOT sure to undo the original
- * request.  The original request may or may not still commit.
- * The only thing cancellation ensures is that the callback
- * from the original request will no longer be called.
- *
- * @param irc context returned by the original GNUNET_CORE_peer_get_info call
- */
-void
-GNUNET_CORE_peer_change_preference_cancel (struct
-                                           GNUNET_CORE_InformationRequestContext
-                                           *irc)
-{
-  struct GNUNET_CORE_Handle *h = irc->h;
-  struct PeerRecord *pr = irc->pr;
-
-  GNUNET_assert (pr->pcic_ptr == irc);
-  if (irc->cm != NULL)
-  {
-    GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-                                 h->control_pending_tail, irc->cm);
-    GNUNET_free (irc->cm);
-  }
-  pr->pcic = NULL;
-  pr->pcic_cls = NULL;
-  pr->pcic_ptr = NULL;
-  GNUNET_free (irc);
 }
 
 

@@ -726,9 +726,6 @@ GSC_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
      GNUNET_MESSAGE_TYPE_CORE_PEER_CONNECTED,
      sizeof (struct GNUNET_MessageHeader) +
      sizeof (struct GNUNET_PeerIdentity)},
-    {&GSC_SESSIONS_handle_client_request_info, NULL,
-     GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO,
-     sizeof (struct RequestInfoMessage)},
     {&handle_client_send_request, NULL,
      GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST,
      sizeof (struct SendMessageRequest)},

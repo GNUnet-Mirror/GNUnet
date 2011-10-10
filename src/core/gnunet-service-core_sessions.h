@@ -157,18 +157,6 @@ GSC_SESSIONS_handle_client_have_peer (void *cls, struct GNUNET_SERVER_Client *cl
 				      const struct GNUNET_MessageHeader *message);
 
 
-/**
- * Handle REQUEST_INFO request.  For this request type, the client must have
- * transmitted an INIT first.
- *
- * @param cls unused
- * @param client client sending the request
- * @param message iteration request message
- */
-void
-GSC_SESSIONS_handle_client_request_info (void *cls, struct GNUNET_SERVER_Client *client,
-					 const struct GNUNET_MessageHeader *message);
-
 
 /**
  * Initialize sessions subsystem.

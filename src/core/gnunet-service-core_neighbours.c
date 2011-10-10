@@ -113,11 +113,6 @@ struct Neighbour
    */
   GNUNET_SCHEDULER_TaskIdentifier retry_plaintext_task;
 
-  /**
-   * Tracking bandwidth for sending to this peer.
-   */
-  struct GNUNET_BANDWIDTH_Tracker available_recv_window;
-
 };
 
 
@@ -345,9 +340,6 @@ handle_transport_notify_connect (void *cls,
 #endif
   n = GNUNET_malloc (sizeof (struct Neighbour));
   n->peer = *peer;
-  GNUNET_BANDWIDTH_tracker_init (&n->available_recv_window, 
-				 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
-                                 MAX_WINDOW_TIME_S);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (neighbours,
                                                     &n->peer.hashPubKey, n,
