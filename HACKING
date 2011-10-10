@@ -22,6 +22,7 @@ binaries:
 - libgnunet_plugin_xxx_yyy.so: plugin for API xxx
 - libgnunetxxx.so: library for API xxx
 
+
 logging:
 - services and daemons use their directory name in GNUNET_log_setup (i.e. 'core')
   and log using plain 'GNUNET_log'.
@@ -32,6 +33,9 @@ logging:
 - pure libraries (without associated service) use 'GNUNET_log_from' with
   the component set to their library name (without lib
   or '.so'), which should also be their directory name (i.e. 'nat')
+- logging should be unified per-file by defining a LOG macro with the
+  appropriate arguments, along these lines:
+  #define LOG(kind,...) GNUNET_log_from (kind, "example-api",__VA_ARGS__)
 
 
 configuration:
