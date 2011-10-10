@@ -33,6 +33,8 @@ logging:
 - pure libraries (without associated service) use 'GNUNET_log_from' with
   the component set to their library name (without lib
   or '.so'), which should also be their directory name (i.e. 'nat')
+- plugins should use 'GNUNET_log_from' with the directory name
+  and the plugin name combined to produce the component name (i.e. 'transport-tcp').
 - logging should be unified per-file by defining a LOG macro with the
   appropriate arguments, along these lines:
   #define LOG(kind,...) GNUNET_log_from (kind, "example-api",__VA_ARGS__)
