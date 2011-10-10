@@ -702,7 +702,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
  * @param plugin_address binary address
  * @param plugin_address_len length of address
  * @param session session to use
- * @param bandwidth available bandwidth
+ * @param bandwidth_out available outbound bandwidth
+ * @param bandwidth_in available inbound bandwidth
  * @param ats performance data for the address (as far as known)
  * @param ats_count number of performance records in 'ats'
  */
@@ -710,7 +711,8 @@ static void
 try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
                            const char *plugin_name, const void *plugin_address,
                            size_t plugin_address_len, struct Session *session,
-                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth,
+                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                            const struct GNUNET_TRANSPORT_ATS_Information *ats,
                            uint32_t ats_count)
 {

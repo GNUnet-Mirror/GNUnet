@@ -56,7 +56,8 @@ struct GNUNET_ATS_Handle;
  * @param session session to use (if available)
  * @param plugin_addr address to use (if available)
  * @param plugin_addr_len number of bytes in addr
- * @param bandwidth assigned outbound bandwidth for the connection
+ * @param bandwidth_out assigned outbound bandwidth for the connection
+ * @param bandwidth_in assigned inbound bandwidth for the connection
  */
 typedef void (*GNUNET_TRANSPORT_ATS_AllocationNotification) (void *cls,
                                                              const struct
@@ -72,7 +73,10 @@ typedef void (*GNUNET_TRANSPORT_ATS_AllocationNotification) (void *cls,
                                                              plugin_addr_len,
                                                              struct
                                                              GNUNET_BANDWIDTH_Value32NBO
-                                                             bandwidth);
+                                                             bandwidth_out,
+                                                             struct
+                                                             GNUNET_BANDWIDTH_Value32NBO
+                                                             bandwidth_in);
 
 
 /**
@@ -106,7 +110,8 @@ GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
  * @param plugin_name name of the plugin, NULL if we have no suggestion
  * @param plugin_addr suggested address, NULL if we have no suggestion
  * @param plugin_addr_len number of bytes in plugin_addr
- * @param bandwidth assigned outbound bandwidth for the connection
+ * @param bandwidth_out assigned outbound bandwidth for the connection
+ * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
  * @param ats_count number of performance records in 'ats'
  */
@@ -120,7 +125,10 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                                       struct Session * session,
                                                       struct
                                                       GNUNET_BANDWIDTH_Value32NBO
-                                                      bandwidth,
+                                                      bandwidth_out,
+                                                      struct
+                                                      GNUNET_BANDWIDTH_Value32NBO
+                                                      bandwidth_in,
                                                       const struct
                                                       GNUNET_TRANSPORT_ATS_Information
                                                       * ats,

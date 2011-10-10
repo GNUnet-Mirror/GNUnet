@@ -322,17 +322,20 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param session session to use (if available)
  * @param plugin_addr address to use (if available)
  * @param plugin_addr_len number of bytes in addr
- * @param bandwidth assigned outbound bandwidth for the connection
+ * @param bandwidth_out assigned outbound bandwidth for the connection
+ * @param bandwidth_in assigned inbound bandwidth for the connection
  */
 static void
 ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
                             const char *plugin_name, struct Session *session,
                             const void *plugin_addr, size_t plugin_addr_len,
-                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth)
+                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GST_neighbours_switch_to_address (peer, plugin_name, plugin_addr,
                                     plugin_addr_len, session, NULL, 0);
-  GST_neighbours_set_incoming_quota (peer, bandwidth);
+  GST_neighbours_set_incoming_quota (peer, bandwidth_in);
+  // FIXME: use 'bandwidth_out'!
 }
 
 

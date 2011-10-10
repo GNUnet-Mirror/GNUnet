@@ -77,9 +77,14 @@ struct AllocationRecord
   uint32_t ats_count;
 
   /**
-   * Bandwidth assigned to this address right now, 0 for none.
+   * Inbound bandwidth assigned to this address right now, 0 for none.
    */
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
+
+  /**
+   * Outbound bandwidth assigned to this address right now, 0 for none.
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 
   /**
    * Set to GNUNET_YES if this is the connected address of a connected peer.
@@ -156,9 +161,14 @@ struct GNUNET_ATS_Handle
   GNUNET_SCHEDULER_TaskIdentifier ba_task;
 
   /**
-   * Total bandwidth per configuration.
+   * Total inbound bandwidth per configuration.
    */
-  unsigned long long total_bps;
+  unsigned long long total_bps_in;
+
+  /**
+   * Total outbound bandwidth per configuration.
+   */
+  unsigned long long total_bps_out;
 };
 
 
@@ -193,9 +203,14 @@ struct SetBandwidthContext
   struct GNUNET_ATS_Handle *atc;
 
   /**
-   * Bandwidth to assign.
+   * Inbound bandwidth to assign.
    */
-  struct GNUNET_BANDWIDTH_Value32NBO bw;
+  struct GNUNET_BANDWIDTH_Value32NBO bw_in;
+
+  /**
+   * Outbound bandwidth to assign.
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bw_out;
 };
 
 
@@ -215,19 +230,21 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (GNUNET_YES == ar->connected)
   {
-    ar->bandwidth = sbc->bw;
+    ar->bandwidth_in = sbc->bw_in;
+    ar->bandwidth_out = sbc->bw_out;
     sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                         (const struct GNUNET_PeerIdentity *) key,
                         ar->plugin_name, ar->session, ar->plugin_addr,
-                        ar->plugin_addr_len, ar->bandwidth);
+                        ar->plugin_addr_len, ar->bandwidth_out, ar->bandwidth_in);
   }
-  else if (ntohl (ar->bandwidth.value__) > 0)
+  else if (ntohl (ar->bandwidth_out.value__) > 0)
   {
-    ar->bandwidth = GNUNET_BANDWIDTH_value_init (0);
+    ar->bandwidth_in = GNUNET_BANDWIDTH_value_init (0);
+    ar->bandwidth_out = GNUNET_BANDWIDTH_value_init (0);
     sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                         (const struct GNUNET_PeerIdentity *) key,
                         ar->plugin_name, ar->session, ar->plugin_addr,
-                        ar->plugin_addr_len, ar->bandwidth);
+                        ar->plugin_addr_len, ar->bandwidth_out, ar->bandwidth_in);
   }
   return GNUNET_YES;
 }
@@ -253,7 +270,8 @@ update_bandwidth_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (ac == 0)
     ac++;
   GNUNET_assert (ac > 0);
-  bwc.bw = GNUNET_BANDWIDTH_value_init (atc->total_bps / ac);
+  bwc.bw_in = GNUNET_BANDWIDTH_value_init (atc->total_bps_in / ac);
+  bwc.bw_out = GNUNET_BANDWIDTH_value_init (atc->total_bps_out / ac);
   GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &set_bw_connections, &bwc);
 }
 
@@ -296,7 +314,9 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
   /* trivial strategy: pick first available address... */
   asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
            ar->plugin_addr_len, ar->session,
-           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32), ar->ats,
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_out / 32), 
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_in / 32), 
+	   ar->ats,
            ar->ats_count);
   asc->cb = NULL;
   return GNUNET_NO;
@@ -392,7 +412,9 @@ GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   atc->peers = GNUNET_CONTAINER_multihashmap_create (256);
   atc->notify_map = GNUNET_CONTAINER_multihashmap_create (256);
   GNUNET_CONFIGURATION_get_value_number (cfg, "core", "TOTAL_QUOTA_OUT",
-                                         &atc->total_bps);
+                                         &atc->total_bps_out);
+  GNUNET_CONFIGURATION_get_value_number (cfg, "core", "TOTAL_QUOTA_IN",
+                                         &atc->total_bps_in);
   return atc;
 }
 
@@ -767,8 +789,9 @@ notify_valid (void *cls, const GNUNET_HashCode * key, void *value)
 
   asc->cb (asc->cb_cls, &asc->target, ar->plugin_name, ar->plugin_addr,
            ar->plugin_addr_len, ar->session,
-           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32), ar->ats,
-           ar->ats_count);
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_out / 32), 
+           GNUNET_BANDWIDTH_value_init (asc->atc->total_bps_in / 32), 
+	   ar->ats, ar->ats_count);
   GNUNET_ATS_suggest_address_cancel (asc);
   asc = NULL;
   return GNUNET_OK;
