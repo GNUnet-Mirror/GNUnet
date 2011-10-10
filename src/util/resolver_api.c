@@ -33,6 +33,8 @@
 #include "gnunet_server_lib.h"
 #include "resolver.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "resolver-api",__VA_ARGS__)
+
 /**
  * Maximum supported length for a hostname
  */
@@ -194,9 +196,9 @@ check_config ()
       GNUNET_CONFIGURATION_get_value_string (resolver_cfg, "resolver",
                                              "HOSTNAME", &hostname))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Must specify `%s' for `%s' in configuration!\n"), "HOSTNAME",
-                "resolver");
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Must specify `%s' for `%s' in configuration!\n"), "HOSTNAME",
+         "resolver");
     GNUNET_assert (0);
   }
   if ((1 != inet_pton (AF_INET, hostname, &v4)) ||
@@ -212,10 +214,10 @@ check_config ()
       GNUNET_free (hostname);
       return;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              _
-              ("Must specify `%s' or numeric IP address for `%s' of `%s' in configuration!\n"),
-              "localhost", "HOSTNAME", "resolver");
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       _
+       ("Must specify `%s' or numeric IP address for `%s' of `%s' in configuration!\n"),
+       "localhost", "HOSTNAME", "resolver");
   GNUNET_free (hostname);
   GNUNET_assert (0);
 }
@@ -247,7 +249,7 @@ GNUNET_RESOLVER_disconnect ()
   if (NULL != client)
   {
 #if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from DNS service\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from DNS service\n");
 #endif
     GNUNET_CLIENT_disconnect (client, GNUNET_NO);
     client = NULL;
@@ -290,7 +292,8 @@ no_resolve (const struct sockaddr *sa, socklen_t salen)
         inet_ntop (AF_INET, &((struct sockaddr_in *) sa)->sin_addr, inet4,
                    INET_ADDRSTRLEN))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+      GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "resolver-api",
+                                "inet_ntop");
       return NULL;
     }
     ret = GNUNET_strdup (inet4);
@@ -302,7 +305,8 @@ no_resolve (const struct sockaddr *sa, socklen_t salen)
         inet_ntop (AF_INET6, &((struct sockaddr_in6 *) sa)->sin6_addr, inet6,
                    INET6_ADDRSTRLEN))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+      GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "resolver-api",
+                                "inet_ntop");
       return NULL;
     }
     ret = GNUNET_strdup (inet6);
@@ -345,18 +349,18 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
   socklen_t salen;
 
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving response from DNS service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving response from DNS service\n");
 #endif
   if (msg == NULL)
   {
     if (NULL != rh->name_callback)
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Timeout trying to resolve IP address `%s'.\n"),
-                  GNUNET_a2s ((const void *) &rh[1], rh->data_len));
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           _("Timeout trying to resolve IP address `%s'.\n"),
+           GNUNET_a2s ((const void *) &rh[1], rh->data_len));
     else
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Timeout trying to resolve hostname `%s'.\n"),
-                  (const char *) &rh[1]);
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           _("Timeout trying to resolve hostname `%s'.\n"),
+           (const char *) &rh[1]);
     /* check if request was canceled */
     if (rh->was_transmitted != GNUNET_SYSERR)
     {
@@ -423,9 +427,8 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
 #if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Resolver returns `%s' for IP `%s'.\n"), hostname,
-                GNUNET_a2s ((const void *) &rh[1], rh->data_len));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, _("Resolver returns `%s' for IP `%s'.\n"),
+         hostname, GNUNET_a2s ((const void *) &rh[1], rh->data_len));
 #endif
     if (rh->was_transmitted != GNUNET_SYSERR)
       rh->name_callback (rh->cls, hostname);
@@ -454,8 +457,8 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       char *ips = no_resolve (sa, salen);
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Resolver returns `%s' for `%s'.\n",
-                  ips, (const char *) &rh[1]);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Resolver returns `%s' for `%s'.\n", ips,
+           (const char *) &rh[1]);
       GNUNET_free (ips);
     }
 #endif
@@ -615,8 +618,8 @@ process_requests ()
   msg->domain = htonl (rh->domain);
   memcpy (&msg[1], &rh[1], rh->data_len);
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting DNS resolution request to DNS service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting DNS resolution request to DNS service\n");
 #endif
   if (GNUNET_OK !=
       GNUNET_CLIENT_transmit_and_get_response (client, &msg->header,
@@ -648,13 +651,12 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to DNS service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to DNS service\n");
 #endif
   client = GNUNET_CLIENT_connect ("resolver", resolver_cfg);
   if (NULL == client)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Failed to connect, will try again later\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to connect, will try again later\n");
     reconnect ();
     return;
   }
@@ -695,9 +697,9 @@ reconnect ()
     }
   }
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Will try to connect to DNS service in %llu ms\n",
-              (unsigned long long) backoff.rel_value);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Will try to connect to DNS service in %llu ms\n",
+       (unsigned long long) backoff.rel_value);
 #endif
   GNUNET_assert (NULL != resolver_cfg);
   r_task = GNUNET_SCHEDULER_add_delayed (backoff, &reconnect_task, NULL);
@@ -786,7 +788,7 @@ numeric_reverse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   result = no_resolve ((const struct sockaddr *) &rh[1], rh->data_len);
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolver returns `%s'.\n"), result);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, _("Resolver returns `%s'.\n"), result);
 #endif
   if (result != NULL)
   {
@@ -865,19 +867,18 @@ GNUNET_RESOLVER_local_fqdn_get ()
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                         "gethostname");
+    GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                              "resolver-api", "gethostname");
     return NULL;
   }
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our FQDN `%s'\n"),
-              hostname);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our FQDN `%s'\n"), hostname);
 #endif
   host = gethostbyname (hostname);
   if (NULL == host)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not resolve our FQDN : %s\n"),
-                hstrerror (h_errno));
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Could not resolve our FQDN : %s\n"),
+         hstrerror (h_errno));
     return NULL;
   }
   return GNUNET_strdup (host->h_name);
@@ -903,13 +904,12 @@ GNUNET_RESOLVER_hostname_resolve (int domain,
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                         "gethostname");
+    GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                              "resolver-api", "gethostname");
     return NULL;
   }
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our hostname `%s'\n"),
-              hostname);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our hostname `%s'\n"), hostname);
 #endif
   return GNUNET_RESOLVER_ip_get (hostname, domain, timeout, callback, cls);
 }
