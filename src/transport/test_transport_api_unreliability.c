@@ -39,7 +39,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
@@ -78,7 +78,7 @@ char *cfg_file_p2;
 uint32_t max_bps_p1;
 uint32_t max_bps_p2;
 
-struct TransportTestingHandle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
 /*
  * Testcase specific declarations
@@ -114,6 +114,8 @@ static unsigned long long total_bytes;
 static struct GNUNET_TIME_Absolute start_time;
 
 static char bitmap[TOTAL_MSGS / 8];
+
+static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
 /*
  * END Testcase specific declarations
@@ -151,6 +153,10 @@ end ()
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
+
+  if (cc != NULL)
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+  cc = NULL;
 
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
@@ -192,6 +198,10 @@ end_badly ()
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
+
+  if (cc != NULL)
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+  cc = NULL;
 
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
@@ -319,7 +329,6 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   if (n == TOTAL_MSGS)
   {
-    fprintf (stderr, "\n");
     end ();
   }
 }
@@ -387,7 +396,7 @@ notify_ready (void *cls, size_t size, void *buf)
   {
     fprintf (stderr, "\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "All messages scheduled to be sent!!\n");
+                "All messages scheduled to be sent\n");
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
@@ -451,15 +460,14 @@ static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   char *p1_c = strdup (GNUNET_i2s (&p1->id));
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n", p1_c,
               GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
   test_connected = GNUNET_YES;
+  cc = NULL;
 
-  // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
+  GNUNET_SCHEDULER_add_now (&sendtask, NULL);
 }
 
 void start_cb (struct PeerContext * p,
@@ -476,9 +484,7 @@ void start_cb (struct PeerContext * p,
     return;
 
   test_connected = GNUNET_NO;
-
-  test_connected = GNUNET_NO;
-  GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb, NULL);
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb, NULL);
 
 }
 

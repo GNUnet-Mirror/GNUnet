@@ -81,6 +81,9 @@ char *cfg_file_p2;
 
 struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
+static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
+
+
 /*
  * Testcase specific declarations
  */
@@ -147,8 +150,13 @@ end ()
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
 
+  if (cc != NULL)
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+
+  GNUNET_TRANSPORT_TESTING_done (tth);
 }
 
 static void
@@ -165,6 +173,9 @@ end_badly ()
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
+
+  if (cc != NULL)
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
 
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
@@ -402,7 +413,10 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
               p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
+  cc = NULL;
+
   GNUNET_SCHEDULER_add_now (&sendtask, NULL);
+
 }
 
 void start_cb (struct PeerContext * p,
@@ -435,7 +449,7 @@ void start_cb (struct PeerContext * p,
               sender->no, sender_c,
               receiver->no, GNUNET_i2s (&receiver->id));
 
-  GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb, NULL);
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb, NULL);
 
 }
 
