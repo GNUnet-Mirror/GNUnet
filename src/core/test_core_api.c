@@ -20,9 +20,6 @@
 /**
  * @file core/test_core_api.c
  * @brief testcase for core_api.c
- *
- * FIXME:
- * - make sure connect callback is invoked properly as well!
  */
 #include "platform.h"
 #include "gnunet_common.h"

@@ -20,9 +20,6 @@
 /**
  * @file core/test_core_api_reliability.c
  * @brief testcase for core_api.c focusing on reliable transmission (with TCP)
- *
- * FIXME:
- * - make sure connect callback is invoked properly as well!
  */
 #include "platform.h"
 #include "gnunet_common.h"
