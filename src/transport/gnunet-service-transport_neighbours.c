@@ -735,7 +735,7 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
   /* ATS told us inbound quota for this peer */
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting inbound quota of %u for peer `%s' to \n",
-              ntohl (bandwidth_in), GNUNET_i2s (target));
+              ntohl (bandwidth_in.value__), GNUNET_i2s (target));
 #endif
   GST_neighbours_set_incoming_quota (&n->id, bandwidth_in);
 
@@ -748,7 +748,7 @@ try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
   /* ... then send outbound quota for this peer to all clients */
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (bandwidth_out), GNUNET_i2s (target));
+              ntohl (bandwidth_out.value__), GNUNET_i2s (target));
 #endif
 
   struct QuotaSetMessage msg;
