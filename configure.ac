@@ -695,21 +695,6 @@ AC_ARG_ENABLE([experimental],
 AC_MSG_RESULT($enable_experimental)
 AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 
-# should malicious code be compiled (code used for testing with malicious peers)
-AC_MSG_CHECKING(whether to compile malicious code)
-AC_ARG_ENABLE([malicious],
-   [AS_HELP_STRING([--enable-malicious], [enable compiling malicious code (only for developers for testing)])],
-   [enable_malicious=${enableval}],
-   [enable_malicious=no])
-AC_MSG_RESULT($enable_malicious)
-AM_CONDITIONAL([HAVE_MALICIOUS], [test "x$enable_malicious" = "xyes"])
-if test "$enable_malicious" = "yes"
-then
- AC_DEFINE([HAVE_MALICIOUS],[1],[include malicious code])
-else
- AC_DEFINE([HAVE_MALICIOUS],[0],[disable malicious code])
-fi
-
 # should code be enabled that works around missing OS functionality on Windows?
 # used for test cases
 if test $build_target = "mingw"
