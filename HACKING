@@ -22,6 +22,17 @@ binaries:
 - libgnunet_plugin_xxx_yyy.so: plugin for API xxx
 - libgnunetxxx.so: library for API xxx
 
+logging:
+- services and daemons use their directory name in GNUNET_log_setup (i.e. 'core')
+  and log using plain 'GNUNET_log'.
+- command-line tools use their full name in GNUNET_log_setup (i.e. 'gnunet-publish')
+  and log using plain 'GNUNET_log'.
+- service access libraries log using 'GNUNET_log_from' and use 
+  'DIRNAME-api' for the component (i.e. 'core-api')
+- pure libraries (without associated service) use 'GNUNET_log_from' with
+  the component set to their library name (without lib
+  or '.so'), which should also be their directory name (i.e. 'nat')
+
 
 configuration:
 - paths (that are substituted in all filenames) are in PATHS (have as few as possible)
