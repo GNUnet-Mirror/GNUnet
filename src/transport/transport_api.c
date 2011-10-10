@@ -401,6 +401,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct InboundMessage *im;
   const struct GNUNET_MessageHeader *imm;
   const struct SendOkMessage *okm;
+  const struct QuotaSetMessage *qm;
   struct GNUNET_TRANSPORT_GetHelloHandle *hwl;
   struct GNUNET_TRANSPORT_GetHelloHandle *next_hwl;
   struct Neighbour *n;
@@ -564,6 +565,24 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     if (h->rec != NULL)
       h->rec (h->cls, &im->peer, imm, &im->ats, ats_count);
+    break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA:
+#if DEBUG_TRANSPORT_API
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving `%s' message.\n", "SET_QUOTA");
+#endif
+    if (size != sizeof (struct QuotaSetMessage))
+    {
+      GNUNET_break (0);
+      break;
+    }
+    qm = (const struct QuotaSetMessage *) msg;
+    n = neighbour_find (h, &qm->peer);
+    if (n == NULL)
+    {
+      GNUNET_break (0);
+      break;
+    }
+    GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, qm->quota);
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
