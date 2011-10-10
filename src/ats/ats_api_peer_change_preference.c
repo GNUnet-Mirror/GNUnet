@@ -70,9 +70,23 @@ exec_pcp (void *cls,
   int32_t want_reserv;
   int32_t got_reserv;
   struct GNUNET_TIME_Relative rdelay;
+  struct AllocationRecord *ar;
 
   rdelay = GNUNET_TIME_UNIT_ZERO;
   want_reserv = irc->amount;
+  ar = GNUNET_CONTAINER_multihashmap_get (irc->h->peers, &irc->peer.hashPubKey);  
+  if (NULL == ar)
+  {
+    /* attempt to change preference on peer that is not connected */
+    /* FIXME: this can happen if the 'service' didn't yet tell us about
+       a new connection, fake it! */
+    irc->info (irc->info_cls,
+	       &irc->peer,
+	       want_reserv,
+	       rdelay);
+    GNUNET_free (irc);
+    return;
+  }
   if (want_reserv < 0)
   {
     got_reserv = want_reserv;
@@ -122,19 +136,10 @@ GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_Handle *h,
                                     info, void *info_cls)
 {
   struct GNUNET_ATS_InformationRequestContext *irc;
-  struct AllocationRecord *ar;
 
-  ar = GNUNET_CONTAINER_multihashmap_get (h->peers, &peer->hashPubKey);
-  if (NULL == ar)
-  {
-    /* attempt to change preference on peer that is not connected */
-    GNUNET_assert (0);
-    return NULL;
-  }
   irc = GNUNET_malloc (sizeof (struct GNUNET_ATS_InformationRequestContext));
   irc->h = h;
   irc->peer = *peer;
-  irc->ar = ar;
   irc->amount = amount;
   irc->preference = preference;
   irc->info = info;
