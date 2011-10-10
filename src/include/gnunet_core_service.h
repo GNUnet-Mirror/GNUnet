@@ -211,40 +211,6 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
 
 
 /**
- * Iterate over all connected peers.  Calls peer_cb with each
- * connected peer, and then once with NULL to indicate that all peers
- * have been handled.
- *
- * @param cfg configuration handle
- * @param peer_cb function to call with the peer information
- * @param cb_cls closure for peer_cb
- * @return GNUNET_OK on success, GNUNET_SYSERR on errors
- */
-int
-GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_CORE_ConnectEventHandler peer_cb,
-                           void *cb_cls);
-
-
-/**
- * Check if the given peer is currently connected and return information
- * about the session if so.
- *
- * @param cfg configuration to use
- * @param peer the specific peer to check for
- * @param peer_cb function to call with the peer information
- * @param cb_cls closure for peer_cb
- *
- * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
- */
-int
-GNUNET_CORE_is_peer_connected (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               struct GNUNET_PeerIdentity *peer,
-                               GNUNET_CORE_ConnectEventHandler peer_cb,
-                               void *cb_cls);
-
-
-/**
  * Handle for a transmission request.
  */
 struct GNUNET_CORE_TransmitHandle;
@@ -296,6 +262,56 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
 void
 GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
                                           *th);
+
+
+
+
+
+/**
+ * Iterate over all connected peers.  Calls peer_cb with each
+ * connected peer, and then once with NULL to indicate that all peers
+ * have been handled.  Normal users of the CORE API are not expected
+ * to use this function.  It is different in that it truly lists
+ * all connections, not just those relevant to the application.  This
+ * function is used by special applications for diagnostics.  This
+ * function is NOT part of the 'versioned', 'official' API.
+ *
+ * FIXME: we should probably make it possible to 'cancel' the
+ * operation...
+ *
+ * @param cfg configuration handle
+ * @param peer_cb function to call with the peer information
+ * @param cb_cls closure for peer_cb
+ * @return GNUNET_OK on success, GNUNET_SYSERR on errors
+ */
+int
+GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_CORE_ConnectEventHandler peer_cb,
+                           void *cb_cls);
+
+
+/**
+ * Check if the given peer is currently connected and return information
+ * about the session if so.  This function is for special cirumstances
+ * (GNUNET_TESTING uses it), normal users of the CORE API are
+ * expected to track which peers are connected based on the
+ * connect/disconnect callbacks from GNUNET_CORE_connect.  This
+ * function is NOT part of the 'versioned', 'official' API.
+ *
+ * FIXME: we should probably make it possible to 'cancel' the
+ * operation...
+ *
+ * @param cfg configuration to use
+ * @param peer the specific peer to check for
+ * @param peer_cb function to call with the peer information
+ * @param cb_cls closure for peer_cb
+ * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CORE_is_peer_connected (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                               struct GNUNET_PeerIdentity *peer,
+                               GNUNET_CORE_ConnectEventHandler peer_cb,
+                               void *cb_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

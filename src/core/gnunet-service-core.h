@@ -83,6 +83,11 @@ struct GSC_ClientActiveRequest
   int was_solicited;
 
   /**
+   * Is corking allowed (set only once we have the real message).
+   */
+  int cork;
+
+  /**
    * How many bytes does the client intend to send?
    */
   uint16_t msize;

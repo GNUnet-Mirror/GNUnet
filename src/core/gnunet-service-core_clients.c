@@ -397,6 +397,7 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
 		 GNUNET_CONTAINER_multihashmap_remove (c->requests, 
 						       &sm->peer.hashPubKey,
 						       car));
+  car->cork = ntohs (sm->cork);
   GNUNET_SERVER_mst_receive (client_mst,
 			     car, 
 			     (const char*) &sm[1], msize,
@@ -441,7 +442,7 @@ client_tokenizer_callback (void *cls, void *client,
 				 GNUNET_CORE_OPTION_SEND_HDR_INBOUND | GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);  
   }
   else
-    GSC_SESSIONS_transmit (car, message, GNUNET_NO /* FIXME: get cork flag form 'struct SendMessage'! */);
+    GSC_SESSIONS_transmit (car, message, car->cork);
 }
 
 
