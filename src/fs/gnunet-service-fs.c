@@ -508,7 +508,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
                                   NULL, &peer_init_handler,
                                   &peer_connect_handler,
                                   &GSF_peer_disconnect_handler_,
-                                  &GSF_peer_status_handler_, NULL, GNUNET_NO,
+                                  NULL, GNUNET_NO,
                                   NULL, GNUNET_NO, p2p_handlers);
   if (NULL == GSF_core)
   {

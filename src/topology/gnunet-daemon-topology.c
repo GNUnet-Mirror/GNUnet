@@ -1278,7 +1278,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   transport = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
   handle =
       GNUNET_CORE_connect (cfg, 1, NULL, &core_init, &connect_notify,
-                           &disconnect_notify, NULL, NULL, GNUNET_NO, NULL,
+                           &disconnect_notify, NULL, GNUNET_NO, NULL,
                            GNUNET_NO, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleaning_task,
                                 NULL);

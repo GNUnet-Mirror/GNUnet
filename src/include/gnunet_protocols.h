@@ -402,12 +402,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND 71
 
 /**
- * Response from server about (possibly updated) P2P
- * connection configuration.
- */
-#define GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO 73
-
-/**
  * Request from client to transmit message.
  */
 #define GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST 74

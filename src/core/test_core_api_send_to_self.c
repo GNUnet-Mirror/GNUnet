@@ -182,7 +182,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             "test_core_api_peer1.conf"));
 
   core =
-      GNUNET_CORE_connect (core_cfg, 42, NULL, &init, &connect_cb, NULL, NULL,
+      GNUNET_CORE_connect (core_cfg, 42, NULL, &init, &connect_cb, NULL,
                            NULL, 0, NULL, 0, handlers);
 
   die_task =

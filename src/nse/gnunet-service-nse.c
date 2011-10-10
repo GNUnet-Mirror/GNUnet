@@ -1360,7 +1360,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                  &core_init,    /* Call core_init once connected */
                                  &handle_core_connect,  /* Handle connects */
                                  &handle_core_disconnect,       /* Handle disconnects */
-                                 NULL,  /* Do we care about "status" updates? */
                                  NULL,  /* Don't want notified about all incoming messages */
                                  GNUNET_NO,     /* For header only inbound notification */
                                  NULL,  /* Don't want notified about all outbound messages */

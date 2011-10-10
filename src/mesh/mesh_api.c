@@ -872,7 +872,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
 
   ret->core =
       GNUNET_CORE_connect (cfg, 42, ret, &core_startup, &core_connect,
-                           &core_disconnect, NULL, NULL, GNUNET_NO, NULL,
+                           &core_disconnect, NULL, GNUNET_NO, NULL,
                            GNUNET_NO, core_handlers);
   ret->transport =
     GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);

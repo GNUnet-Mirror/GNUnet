@@ -2053,7 +2053,6 @@ GDS_NEIGHBOURS_init ()
                                  &core_init,
                                  &handle_core_connect,
                                  &handle_core_disconnect, 
-                                 NULL,  /* Do we care about "status" updates? */
                                  NULL, GNUNET_NO,
                                  NULL, GNUNET_NO,
                                  core_handlers);

@@ -3370,7 +3370,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                      &core_init,        /* Call core_init once connected */
                                      &core_connect,     /* Handle connects */
                                      &core_disconnect,  /* remove peers on disconnects */
-                                     NULL,      /* Do we care about "status" updates? */
                                      NULL,      /* Don't notify about all incoming messages */
                                      GNUNET_NO, /* For header only in notification */
                                      NULL,      /* Don't notify about all outbound messages */

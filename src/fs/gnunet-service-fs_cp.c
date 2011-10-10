@@ -1503,32 +1503,6 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
 
 
 /**
- * Method called whenever a given peer has a status change.
- *
- * @param cls closure
- * @param peer peer identity this notification is about
- * @param bandwidth_in available amount of inbound bandwidth
- * @param bandwidth_out available amount of outbound bandwidth
- * @param timeout absolute time when this peer will time out
- *        unless we see some further activity from it
- * @param atsi status information
- */
-void
-GSF_peer_status_handler_ (void *cls, const struct GNUNET_PeerIdentity *peer,
-                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                          struct GNUNET_TIME_Absolute timeout,
-                          const struct GNUNET_TRANSPORT_ATS_Information *atsi)
-{
-  struct GSF_ConnectedPeer *cp;
-
-  cp = GNUNET_CONTAINER_multihashmap_get (cp_map, &peer->hashPubKey);
-  GNUNET_assert (NULL != cp);
-  update_atsi (cp, atsi);
-}
-
-
-/**
  * A peer disconnected from us.  Tear down the connected peer
  * record.
  *

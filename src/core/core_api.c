@@ -178,11 +178,6 @@ struct GNUNET_CORE_Handle
   GNUNET_CORE_DisconnectEventHandler disconnects;
 
   /**
-   * Function to call whenever we're notified about a peer changing status.
-   */
-  GNUNET_CORE_PeerStatusEventHandler status_events;
-
-  /**
    * Function to call whenever we receive an inbound message.
    */
   GNUNET_CORE_MessageCallback inbound_notify;
@@ -785,7 +780,6 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct DisconnectNotifyMessage *dnm;
   const struct NotifyTrafficMessage *ntm;
   const struct GNUNET_MessageHeader *em;
-  const struct PeerStatusNotifyMessage *psnm;
   const struct SendMessageReady *smr;
   const struct GNUNET_CORE_MessageHandler *mh;
   GNUNET_CORE_StartupCallback init;
@@ -940,52 +934,6 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     disconnect_and_free_peer_entry (h, &dnm->peer.hashPubKey, pr);
     if (trigger)
       trigger_next_request (h, GNUNET_NO);
-    break;
-  case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_STATUS_CHANGE:
-    if (NULL == h->status_events)
-    {
-      GNUNET_break (0);
-      return;
-    }
-    if (msize < sizeof (struct PeerStatusNotifyMessage))
-    {
-      GNUNET_break (0);
-      reconnect_later (h);
-      return;
-    }
-    psnm = (const struct PeerStatusNotifyMessage *) msg;
-    if (0 == memcmp (&h->me, &psnm->peer, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      /* self-change!? */
-      GNUNET_break (0);
-      return;
-    }
-    ats_count = ntohl (psnm->ats_count);
-    if ((msize !=
-         sizeof (struct PeerStatusNotifyMessage) +
-         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
-        (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR !=
-         ntohl ((&psnm->ats)[ats_count].type)))
-    {
-      GNUNET_break (0);
-      reconnect_later (h);
-      return;
-    }
-#if DEBUG_CORE > 1
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received notification about status change by `%s'.\n",
-                GNUNET_i2s (&psnm->peer));
-#endif
-    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &psnm->peer.hashPubKey);
-    if (pr == NULL)
-    {
-      GNUNET_break (0);
-      reconnect_later (h);
-      return;
-    }
-    h->status_events (h->cls, &psnm->peer, psnm->bandwidth_in,
-                      psnm->bandwidth_out,
-                      GNUNET_TIME_absolute_ntoh (psnm->timeout), &psnm->ats);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND:
     if (msize < sizeof (struct NotifyTrafficMessage))
@@ -1223,8 +1171,6 @@ reconnect (struct GNUNET_CORE_Handle *h)
   init->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT);
   init->header.size = htons (msize);
   opt = GNUNET_CORE_OPTION_SEND_CONNECT | GNUNET_CORE_OPTION_SEND_DISCONNECT;
-  if (h->status_events != NULL)
-    opt |= GNUNET_CORE_OPTION_SEND_STATUS_CHANGE;
   if (h->inbound_notify != NULL)
   {
     if (h->inbound_hdr_only)
@@ -1261,7 +1207,6 @@ reconnect (struct GNUNET_CORE_Handle *h)
  *        connected to the core service; note that timeout is only meaningful if init is not NULL
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
- * @param status_events function to call on changes to peer connection status, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
  * @param inbound_hdr_only set to GNUNET_YES if inbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message;
@@ -1280,7 +1225,6 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
-                     GNUNET_CORE_PeerStatusEventHandler status_events,
                      GNUNET_CORE_MessageCallback inbound_notify,
                      int inbound_hdr_only,
                      GNUNET_CORE_MessageCallback outbound_notify,
@@ -1296,7 +1240,6 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->init = init;
   h->connects = connects;
   h->disconnects = disconnects;
-  h->status_events = status_events;
   h->inbound_notify = inbound_notify;
   h->outbound_notify = outbound_notify;
   h->inbound_hdr_only = inbound_hdr_only;

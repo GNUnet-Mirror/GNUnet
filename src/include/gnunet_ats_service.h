@@ -282,7 +282,8 @@ struct GNUNET_ATS_InformationRequestContext;
  * @param preference increase incoming traffic share preference by this amount;
  *                in the absence of "amount" reservations, we use this
  *                preference value to assign proportional bandwidth shares
- *                to all connected peers
+ *                to all connected peers; in the future, this should be
+ *                replaced with more specific QoS expressions...
  * @param info function to call with the resulting configuration information
  * @param info_cls closure for info
  * @return NULL on error

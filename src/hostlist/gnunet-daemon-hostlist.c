@@ -259,7 +259,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   core =
       GNUNET_CORE_connect (cfg, 1, NULL, &core_init, &connect_handler,
-                           &disconnect_handler, NULL, NULL, GNUNET_NO, NULL,
+                           &disconnect_handler, NULL, GNUNET_NO, NULL,
                            GNUNET_NO,
                            learning ? learn_handlers : no_learn_handlers);
 
