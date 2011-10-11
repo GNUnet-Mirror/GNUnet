@@ -1235,12 +1235,14 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
     }
   }
 #if MESH_DEBUG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:    (first of GET: %s)\n",
-              GNUNET_h2s_full(&get_path[0].hashPubKey));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:    (first of PUT: %s)\n",
-              GNUNET_h2s_full(&put_path[0].hashPubKey));
+  if (get_path_length > 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:    (first of GET: %s)\n",
+                GNUNET_h2s_full(&get_path[0].hashPubKey));
+  if (put_path_length > 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:    (first of PUT: %s)\n",
+                GNUNET_h2s_full(&put_path[0].hashPubKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:    In total: %d hops\n",
               p->length);
@@ -1412,8 +1414,6 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
  * Add a path to a tunnel which we don't own, just to remember the next hop.
  * If destination node was already in the tunnel, the first hop information
  * will be replaced with the new path.
- * The local node shouldn't be the first or last node in the path, just an
- * intermediate hop.
  *
  * @param t Tunnel we want to add a new peer to
  * @param p Path to add
@@ -1425,20 +1425,8 @@ tunnel_add_path (struct MeshTunnel *t,
                  struct MeshPeerPath *p,
                  unsigned int own_pos)
 {
-  struct GNUNET_PeerIdentity id;
-  struct GNUNET_PeerIdentity *hop;
-
-  GNUNET_assert (own_pos < p->length - 1);
-  hop = GNUNET_CONTAINER_multihashmap_get (t->tree->first_hops, &id.hashPubKey);
-  if (NULL == hop)
-    hop = GNUNET_malloc (sizeof(struct GNUNET_PeerIdentity));
-  GNUNET_PEER_resolve(p->peers[own_pos + 1], hop);
-  GNUNET_PEER_resolve(p->peers[p->length - 1], &id);
-  GNUNET_CONTAINER_multihashmap_put(
-      t->tree->first_hops,
-      &id.hashPubKey,
-      hop,
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  GNUNET_assert (0 != own_pos);
+  tree_add_path(t->tree, p, NULL);
 }
 
 
@@ -1963,6 +1951,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* FIXME error. destroy tunnel? leave for timeout? */
     return 0;
   }
+  tunnel_add_path (t, path, own_pos);
+  t->tree->me = tree_find_peer(t->tree->root, myid);
   if (own_pos == size - 1)
   {
     /* It is for us! Send ack. */
@@ -1972,7 +1962,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   It's for us!\n");
-    path_add_to_origin (orig_peer_info, path);  /* inverts path!  */
+    path_add_to_origin (orig_peer_info, path);
     info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
     info->origin = &t->id;
     info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
@@ -1986,6 +1976,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       }
     }
     info->handler_n = j;
+    info->peer->types[j] = GNUNET_MESSAGE_TYPE_MESH_PATH_ACK;
+    info->peer->infos[j] = info;
     info->peer->core_transmit[j] =
         GNUNET_CORE_notify_transmit_ready (core_handle, 0, 100,
                                            GNUNET_TIME_UNIT_FOREVER_REL, peer,
@@ -2001,12 +1993,11 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     struct MeshPeerPath *path2;
 
-    path2 = path_duplicate(path);
     /* It's for somebody else! Retransmit. */
+    path2 = path_duplicate(path);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   Retransmitting.\n");
     path_add_to_peer(dest_peer_info, path);
-    tunnel_add_path (t, path, own_pos);
     path = path_duplicate(path2);
     path_add_to_origin(orig_peer_info, path2);
     send_create_path(dest_peer_info, path, t);

@@ -313,7 +313,7 @@ tree_mark_peers_disconnected (struct MeshTunnelTree *tree,
   {
     tree_mark_peers_disconnected (tree, n, cb);
   }
-  if (MESH_PEER_READY == parent->status)
+  if (MESH_PEER_READY == parent->status && NULL != cb)
   {
     cb (parent);
   }
@@ -420,7 +420,7 @@ tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
       return n;
     }
   }
-  n = tree_find_peer (t->me, peer_id);
+  n = tree_find_peer (t->root, peer_id);
   if (NULL == n)
     return NULL;
   node = n;
@@ -522,12 +522,14 @@ tree_add_path (struct MeshTunnelTree *t,
   unsigned int i;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "tree:   Adding path [%u] towards peer %u to peer %u.\n",
+             "tree:   Adding path [%u] towards peer %u.\n",
              p->length,
-             p->peers[p->length - 1],
-             t->me->peer);
+             p->peers[p->length - 1]);
 
-  myid = t->me->peer;
+  if (NULL != t->me)
+    myid = t->me->peer;
+  else
+    myid = 0;
   GNUNET_assert(0 != p->length);
   parent = n = t->root;
   if (n->peer != p->peers[0])
@@ -571,12 +573,6 @@ tree_add_path (struct MeshTunnelTree *t,
   }
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "tree:   All childen visited.\n");
-  if (-1 == me)
-  {
-    /* New path deviates from tree before reaching us. What happened? */
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
   /* Add the rest of the path as a branch from parent. */
   while (i < p->length)
   {
