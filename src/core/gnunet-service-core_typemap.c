@@ -213,6 +213,8 @@ GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
 {  
   unsigned int i;
 
+  if (NULL == tmap)
+    return GNUNET_NO;
   for (i=0;i<tcnt;i++) 
     if (0 != (tmap->bits[types[i] / 32] & (1 << (types[i] % 32))))
       return GNUNET_YES;

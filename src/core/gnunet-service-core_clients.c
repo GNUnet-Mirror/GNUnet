@@ -444,7 +444,7 @@ static void
 client_tokenizer_callback (void *cls, void *client,
 			   const struct GNUNET_MessageHeader *message)
 {
-  struct TokenizerContext *tc = cls;
+  struct TokenizerContext *tc = client;
   struct GSC_ClientActiveRequest *car = tc->car;
 
   if (0 ==
