@@ -685,8 +685,6 @@ unix_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   struct Plugin *plugin = cls;
   ssize_t sent;
 
-  if (force_address == GNUNET_SYSERR)
-    return GNUNET_SYSERR;
   GNUNET_assert (NULL == session);
 
 #if DEBUG_UNIX
