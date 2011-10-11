@@ -424,7 +424,7 @@ udp_send (struct Plugin *plugin, const struct sockaddr *sa,
   }
   if (GNUNET_SYSERR == sent)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
-  LOG (GNUNET_ERROR_TYPE_ERROR,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "UDP transmited %u-byte message to %s (%d: %s)\n",
               (unsigned int) ntohs (msg->size), GNUNET_a2s (sa, slen),
               (int) sent, (sent < 0) ? STRERROR (errno) : "ok");
@@ -553,6 +553,8 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   struct Plugin *plugin = cls;
   struct PeerSession *peer_session;
   struct PeerSession *inbound_session;
+  const struct IPv4UdpAddress *t4;
+  const struct IPv6UdpAddress *t6;
   size_t mlen = msgbuf_size + sizeof (struct UDPMessage);
   char mbuf[mlen];
   struct UDPMessage *udp;
@@ -563,17 +565,56 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     return GNUNET_SYSERR;
   }
 
-  if (force_address == GNUNET_SYSERR)
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "UDP transmits %u-byte message to `%s' using address `%s' session 0x%X mode %i\n",
+              msgbuf_size, GNUNET_i2s (target), udp_address_to_string (NULL, addr, addrlen), session, force_address);
+
+  if ((force_address == GNUNET_SYSERR) && (session == NULL))
     return GNUNET_SYSERR;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "UDP transmits %u-byte message to `%s' using address `%s' session 0x%X\n",
-              msgbuf_size, GNUNET_i2s (target), udp_address_to_string (NULL, addr, addrlen), session);
-
-  if (session != NULL)
+  /* safety check: comparing address to address stored in session */
+  if ((session != NULL) && (addr != NULL) && (addrlen != 0))
   {
     inbound_session = (struct PeerSession *) session;
-    GNUNET_assert (0 == memcmp (&inbound_session->target, target, sizeof (struct GNUNET_PeerIdentity)));
+    if  (0 != memcmp (&inbound_session->target, target, sizeof (struct GNUNET_PeerIdentity)))
+      return GNUNET_SYSERR;
+    switch (addrlen)
+    {
+    case sizeof (struct IPv4UdpAddress):
+      if (NULL == plugin->sockv4)
+      {
+        if (cont != NULL)
+          cont (cont_cls, target, GNUNET_SYSERR);
+        return GNUNET_SYSERR;
+      }
+      t4 = addr;
+      if (inbound_session->addrlen != (sizeof (struct sockaddr_in)))
+        return GNUNET_SYSERR;
+      struct sockaddr_in *a4 = (struct sockaddr_in *) inbound_session->sock_addr;
+      GNUNET_assert (a4->sin_port == t4->u4_port);
+      GNUNET_assert (0 == memcmp(&a4->sin_addr, &t4->ipv4_addr, sizeof (struct in_addr)));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  "Session 0x%X successfully checked!\n", session);
+      break;
+    case sizeof (struct IPv6UdpAddress):
+      if (NULL == plugin->sockv6)
+      {
+        if (cont != NULL)
+          cont (cont_cls, target, GNUNET_SYSERR);
+        return GNUNET_SYSERR;
+      }
+      t6 = addr;
+      GNUNET_assert (inbound_session->addrlen == sizeof (struct sockaddr_in6));
+      struct sockaddr_in6 *a6 = (struct sockaddr_in6 *) inbound_session->sock_addr;
+      GNUNET_assert (a6->sin6_port == t6->u6_port);
+      GNUNET_assert (0 == memcmp(&a6->sin6_addr, &t6->ipv6_addr, sizeof (struct in6_addr)));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  "Session 0x%X successfully checked!\n", session);
+      break;
+    default:
+      /* Must have a valid address to send to */
+      GNUNET_break_op (0);
+    }
   }
 
   peer_session = create_session (plugin, target, addr, addrlen, cont, cont_cls);
