@@ -216,13 +216,15 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
 
   for (c = client_head; c != NULL; c = c->next)
   {
-    if (! ( (0 != (c->options & options)) ||
-	    ( (0 != (options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) &&
-	      (GNUNET_YES == type_match (type, c)) ) ) )
-      continue; /* skip */
+    if ( (0 == (options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) &&
+	 (GNUNET_YES == type_match (type, c)) )
+      continue; /* not the full message, but we'd like the full one! */
+    if ( (0 == (c->options & options)) &&
+	 (GNUNET_YES != type_match (type, c)) )
+      continue; /* neither options nor type match permit the message */
 #if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Sending message to all clients interested in messages of type %u.\n",
+		"Sending message to client interested in messages of type %u.\n",
 		(unsigned int) type);
 #endif
     send_to_client (c, msg, can_drop);
