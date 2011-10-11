@@ -858,10 +858,10 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   reply->expiration = GNUNET_TIME_absolute_hton (expiration);
   reply->key = *key;
   paths = (struct GNUNET_PeerIdentity*) &reply[1];
-  memcpy (paths, get_path, 
-	  sizeof (struct GNUNET_PeerIdentity) * get_path_length);
-  memcpy (&paths[get_path_length], 
-	  put_path, sizeof (struct GNUNET_PeerIdentity) * put_path_length);
+  memcpy (paths, put_path, 
+	  sizeof (struct GNUNET_PeerIdentity) * put_path_length);
+  memcpy (&paths[put_path_length], 
+	  get_path, sizeof (struct GNUNET_PeerIdentity) * get_path_length);
   memcpy (&paths[get_path_length + put_path_length],
 	  data, 
 	  data_size);
