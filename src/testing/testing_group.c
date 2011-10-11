@@ -3393,7 +3393,7 @@ core_connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct PeerData *other_peer;
 #endif
 #if DEBUG_TESTING
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Connected peer %s to peer %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peer %s to peer %s\n",
               ctx->d1->shortname, GNUNET_i2s (peer));
 #endif
 
@@ -3417,7 +3417,7 @@ core_connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (connection == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Connected peer %s to %s, not in list (no problem(?))\n",
                 GNUNET_i2s (peer), send_hello_context->peer->daemon->shortname);
   }
@@ -3515,7 +3515,7 @@ hello_sent_callback (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   send_hello_context->pg->remaining_hellos--;
 #if DEBUG_TESTING
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Sent HELLO, have %d remaining!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent HELLO, have %d remaining!\n",
               send_hello_context->pg->remaining_hellos);
 #endif
   if (send_hello_context->peer_pos == NULL)     /* All HELLOs (for this peer!) have been transmitted! */
@@ -3595,8 +3595,8 @@ schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     send_hello_context, NULL, NULL, NULL);
     }
 #if DEBUG_TESTING
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Offering Hello of peer %s to peer %s\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                _("Offering HELLO of peer %s to peer %s\n"),
                 send_hello_context->peer->daemon->shortname,
                 pg->peers[send_hello_context->peer_pos->index].
                 daemon->shortname);
@@ -3709,7 +3709,7 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       (pg->stop_connects == GNUNET_YES))
   {
 #if VERBOSE_TESTING
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _
                 ("Delaying connect, we have too many outstanding connections!\n"));
 #endif
@@ -3720,7 +3720,7 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 #if VERBOSE_TESTING
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _
               ("Creating connection, outstanding_connections is %d (max %d)\n"),
               pg->outstanding_connects, pg->max_outstanding_connections);
@@ -4199,8 +4199,10 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
 
   if ((unblacklisted_connections > 0) && (restrict_transports != NULL))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Creating blacklist with `%s'\n",
+#if DEBUG_TESTING
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating blacklist with `%s'\n",
                 restrict_transports);
+#endif
     ret = create_and_copy_blacklist_files (pg, restrict_transports);
     if (ret != GNUNET_OK)
     {
@@ -5831,9 +5833,11 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", arg,
                                "peerStartHelper.pl", tempdir, NULL);
   GNUNET_assert (helper->proc != NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "starting peers with cmd ssh %s %s %s\n", arg,
               "peerStartHelper.pl", tempdir);
+#endif
   GNUNET_SCHEDULER_add_now (&check_peers_started, helper);
   GNUNET_free (tempdir);
   GNUNET_free (baseservicehome);
@@ -6102,11 +6106,11 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       if (GNUNET_YES != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES))
         fs = 0;
-
+#if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Found file size %llu for hostkeys, expect hostkeys to be size %d\n",
-                  fs, HOSTKEYFILESIZE);
-
+                  "Found file size %llu for hostkeys\n",
+                  fs);
+#endif
       if (0 != (fs % HOSTKEYFILESIZE))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -6249,8 +6253,10 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME",
                                                  &baseservicehome))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "baseservice home is %s\n",
+#if DEBUG_TESTING
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "baseservice home is %s\n",
                     baseservicehome);
+#endif
         if (hostname != NULL)
           GNUNET_asprintf (&newservicehome, "%s/%s/", baseservicehome,
                            hostname);
@@ -6282,10 +6288,11 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       proc =
           GNUNET_OS_start_process (NULL, NULL, "rsync", "rsync", "-r",
                                    newservicehome, arg, NULL);
-
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "copying directory with command rsync -r %s %s\n",
                   newservicehome, arg);
+#endif
       GNUNET_free (newservicehome);
       GNUNET_free (arg);
       if (NULL == proc)
@@ -6702,7 +6709,7 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   for (i = 0; i < voff; i++)
   {
 #if DEBUG_CHURN
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Stopping peer %d!\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer %d!\n",
                 running_arr[running_permute[i]]);
 #endif
     GNUNET_assert (running_arr != NULL);
@@ -6724,7 +6731,7 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   for (i = 0; i < von; i++)
   {
 #if DEBUG_CHURN
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting up peer %d!\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting up peer %d!\n",
                 stopped_arr[stopped_permute[i]]);
 #endif
     GNUNET_assert (stopped_arr != NULL);
@@ -6776,7 +6783,7 @@ GNUNET_TESTING_daemons_start_service (struct GNUNET_TESTING_PeerGroup *pg,
   for (i = 0; i < pg->total; i++)
   {
 #if DEBUG_START
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting up service %s on peer %d!\n", service,
                 stopped_arr[stopped_permute[i]]);
 #endif

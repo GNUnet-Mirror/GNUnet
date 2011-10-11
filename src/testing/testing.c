@@ -431,7 +431,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL == d->hostname)
     {
 #if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Starting `%s', with command `%s %s %s %s %s %s'.\n",
                   "gnunet-arm", "gnunet-arm", "-c", d->cfgfile, "-L", "DEBUG",
                   "-s");
@@ -546,13 +546,13 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
 #if DEBUG_TESTING
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Successfully started `%s'.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully started `%s'.\n",
                 "gnunet-arm");
 #endif
     GNUNET_free (d->proc);
     d->phase = SP_START_CORE;
 #if DEBUG_TESTING
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Calling CORE_connect\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Calling CORE_connect\n");
 #endif
     /* Fall through */
   case SP_START_CORE:
@@ -1891,7 +1891,7 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_TESTING_ConnectContext *ctx = cls;
 
 #if DEBUG_TESTING
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Connected peer %s to peer %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peer %s to peer %s\n",
               ctx->d1->shortname, GNUNET_i2s (peer));
 #endif
 
@@ -1930,13 +1930,13 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
     GNUNET_TRANSPORT_offer_hello (ctx->d1th, hello, NULL, NULL);
     GNUNET_assert (ctx->d1core != NULL);
-    GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id);
 #if DEBUG_TESTING
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Sending connect request to CORE of %s for peer %s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending connect request to TRANSPORT of %s for peer %s\n",
                 GNUNET_i2s (&ctx->d1->id),
                 GNUNET_h2s (&ctx->d2->id.hashPubKey));
 #endif
+    GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id);
     ctx->timeout_hello =
         GNUNET_TIME_relative_add (ctx->timeout_hello,
                                   GNUNET_TIME_relative_multiply
@@ -1985,7 +1985,7 @@ reattempt_daemons_connect (void *cls,
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 #if DEBUG_TESTING_RECONNECT
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "re-attempting connect of peer %s to peer %s\n",
               ctx->d1->shortname, ctx->d2->shortname);
 #endif
