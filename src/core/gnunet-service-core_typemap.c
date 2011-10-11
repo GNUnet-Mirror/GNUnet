@@ -104,7 +104,7 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
   uLongf dlen;
 
   size = ntohs (msg->size);
-  switch (msg->type)
+  switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
     if (size != sizeof (struct GSC_TypeMap))
