@@ -594,7 +594,10 @@ void
 GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
 {
   GNUNET_assert (GNUNET_YES ==
-		 destroy_active_client_request (NULL, &car->target.hashPubKey, car));  
+		 GNUNET_CONTAINER_multihashmap_remove (car->client_handle->requests,
+						       &car->target.hashPubKey,
+						       car));
+  GNUNET_free (car);
 }
 
 

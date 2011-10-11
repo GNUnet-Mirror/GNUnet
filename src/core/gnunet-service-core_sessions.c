@@ -174,9 +174,6 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
     GNUNET_SCHEDULER_cancel (session->cork_task);
     session->cork_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (sessions,
-                                                       &session->peer.hashPubKey, session));
   while (NULL != (car = session->active_client_request_head))
   {
     GNUNET_CONTAINER_DLL_remove (session->active_client_request_head,
@@ -184,6 +181,9 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
 				 car);
     GSC_CLIENTS_reject_request (car);
   }
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (sessions,
+                                                       &session->peer.hashPubKey, session));
   GNUNET_STATISTICS_set (GSC_stats, 
 			 gettext_noop ("# established sessions"),
 			 GNUNET_CONTAINER_multihashmap_size (sessions), 
