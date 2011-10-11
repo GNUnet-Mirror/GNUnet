@@ -190,6 +190,8 @@ type_match (uint16_t type,
 {
   unsigned int i;
 
+  if (c->tcnt == 0)
+    return GNUNET_YES; /* peer without handlers matches ALL */
   for (i=0;i<c->tcnt;i++)
     if (type == c->types[i])
       return GNUNET_YES;
@@ -622,6 +624,8 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
 
   old_match = GSC_TYPEMAP_test_match (tmap_old, client->types, client->tcnt);
   new_match = GSC_TYPEMAP_test_match (tmap_new, client->types, client->tcnt);
+  if (client->tcnt == 0)
+    new_match = GNUNET_YES; /* empty list matches ALL */
   if (old_match == new_match)
     return; /* no change */
   if (old_match == GNUNET_NO)
