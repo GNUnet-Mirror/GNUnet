@@ -133,7 +133,7 @@ diffsCallBack (void *cls, const char *section, const char *option,
 	GNUNET_free_non_null (diffValue);
 	break;
       }
-#if DEBUG
+#if 0
     case PRINT:
       if (NULL == cbData->section)
 	{
@@ -254,7 +254,7 @@ checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfgDefault, int option)
 	     "Incorrect Configuration Diffs: Data may be missing in diffs\n");
 
 housekeeping:
-#if DEBUG
+#if 0
   cbData.section = NULL;
   cbData.callBackOption = PRINT;
   printf ("\nExpected Diffs:\n");
