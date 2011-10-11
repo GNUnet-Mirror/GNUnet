@@ -1409,15 +1409,36 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
 }
 
 /**
- * Add a path to a tunnel, without evaluating costs.
+ * Add a path to a tunnel which we don't own, just to remember the next hop.
+ * If destination node was already in the tunnel, the first hop information
+ * will be replaced with the new path.
+ * The local node shouldn't be the first or last node in the path, just an
+ * intermediate hop.
  *
  * @param t Tunnel we want to add a new peer to
  * @param p Path to add
+ * @param own_pos Position of local node in path.
  *
  */
 static void
-tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p)
+tunnel_add_path (struct MeshTunnel *t,
+                 struct MeshPeerPath *p,
+                 unsigned int own_pos)
 {
+  struct GNUNET_PeerIdentity id;
+  struct GNUNET_PeerIdentity *hop;
+
+  GNUNET_assert (own_pos < p->length - 1);
+  hop = GNUNET_CONTAINER_multihashmap_get (t->tree->first_hops, &id.hashPubKey);
+  if (NULL == hop)
+    hop = GNUNET_malloc (sizeof(struct GNUNET_PeerIdentity));
+  GNUNET_PEER_resolve(p->peers[own_pos + 1], hop);
+  GNUNET_PEER_resolve(p->peers[p->length - 1], &id);
+  GNUNET_CONTAINER_multihashmap_put(
+      t->tree->first_hops,
+      &id.hashPubKey,
+      hop,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 }
 
 
@@ -1985,7 +2006,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   Retransmitting.\n");
     path_add_to_peer(dest_peer_info, path);
-    tunnel_add_path (t, path);
+    tunnel_add_path (t, path, own_pos);
     path = path_duplicate(path2);
     path_add_to_origin(orig_peer_info, path2);
     send_create_path(dest_peer_info, path, t);
