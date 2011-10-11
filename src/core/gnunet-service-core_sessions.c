@@ -484,12 +484,15 @@ try_transmission (struct Session *session)
     size_t used;
 
     used = 0;
-    pos = session->sme_head;
-    while ( (NULL != pos) &&
+    while ( (NULL != (pos = session->sme_head)) &&
 	    (used + pos->size <= msize) )
     {
       memcpy (&pbuf[used], &pos[1], pos->size);
       used += pos->size;
+      GNUNET_CONTAINER_DLL_remove (session->sme_head,
+				   session->sme_tail,
+				   pos);      
+      GNUNET_free (pos);
     }
     /* compute average payload size */
     total_bytes += used;
@@ -737,7 +740,10 @@ GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
   struct Session *session;
   struct GSC_TypeMap *nmap;
 
+  if (0 == memcmp (peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+    return;
   session = find_session (peer);
+  GNUNET_assert (NULL != session);
   if (GNUNET_YES ==
       GSC_TYPEMAP_test_match (session->tmap,
 			      &type, 1))
