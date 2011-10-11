@@ -601,7 +601,7 @@ init_notify_peer1 (void *cls, struct GNUNET_CORE_Handle *server,
    */
   pos->peer2handle =
       GNUNET_CORE_connect (pos->peer2->cfg, 1, pos, &init_notify_peer2, NULL,
-                           NULL, NULL, NULL, GNUNET_YES, NULL, GNUNET_YES,
+                           NULL, NULL, GNUNET_YES, NULL, GNUNET_YES,
                            handlers);
 
 }
@@ -640,7 +640,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    */
   pos->peer1handle =
       GNUNET_CORE_connect (pos->peer1->cfg, 1, pos, &init_notify_peer1,
-                           &connect_notify_peers, NULL, NULL, NULL, GNUNET_NO,
+                           &connect_notify_peers, NULL, NULL, GNUNET_NO,
                            NULL, GNUNET_NO, no_handlers);
 
   GNUNET_assert (pos->peer1handle != NULL);
