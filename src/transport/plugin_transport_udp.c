@@ -33,6 +33,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_signatures.h"
+#include "gnunet_constants.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_plugin.h"
@@ -169,6 +170,8 @@ struct PeerSession
    * Current outgoing message to this peer.
    */
   struct GNUNET_FRAGMENT_Context *frag;
+
+  struct GNUNET_TIME_Absolute valid_until;
 
 };
 
@@ -576,6 +579,13 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   if ((session != NULL) && (addr != NULL) && (addrlen != 0))
   {
     inbound_session = (struct PeerSession *) session;
+    /* session timed out */
+    if (GNUNET_TIME_absolute_get().abs_value > inbound_session->valid_until.abs_value)
+    {
+        /* TODO: remove session */
+      if (force_address == GNUNET_SYSERR)
+        return GNUNET_SYSERR;
+    }
     if  (0 != memcmp (&inbound_session->target, target, sizeof (struct GNUNET_PeerIdentity)))
       return GNUNET_SYSERR;
     switch (addrlen)
@@ -802,6 +812,7 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
                                                       s,
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   }
+  s->valid_until = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 
   /* iterate over all embedded messages */
   si.sender = msg->sender;
