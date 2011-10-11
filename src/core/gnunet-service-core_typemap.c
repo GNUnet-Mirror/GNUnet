@@ -72,7 +72,6 @@ GSC_TYPEMAP_compute_type_map_message ()
    * should be able to overshoot by more to be safe */
 #endif
   hdr = GNUNET_malloc (dlen + sizeof (struct GNUNET_MessageHeader));
-  hdr->size = htons ((uint16_t) dlen + sizeof (struct GNUNET_MessageHeader));
   tmp = (char *) &hdr[1];
   if ((Z_OK !=
        compress2 ((Bytef *) tmp, &dlen, (const Bytef *) &my_type_map,
@@ -86,7 +85,53 @@ GSC_TYPEMAP_compute_type_map_message ()
   {
     hdr->type = htons (GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP);
   }
+  hdr->size = htons ((uint16_t) dlen + sizeof (struct GNUNET_MessageHeader));
   return hdr;
+}
+
+
+/**
+ * Extract a type map from a TYPE_MAP message.
+ *
+ * @param msg a type map message
+ * @return NULL on error
+ */
+struct GSC_TypeMap *
+GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
+{
+  struct GSC_TypeMap *ret;
+  uint16_t size;
+  uLongf dlen;
+
+  size = ntohs (msg->size);
+  switch (msg->type)
+  {
+  case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
+    if (size != sizeof (struct GSC_TypeMap))
+    {
+      GNUNET_break_op (0);
+      return NULL;
+    }
+    ret = GNUNET_malloc (sizeof (struct GSC_TypeMap));
+    memcpy (ret, &msg[1], sizeof (struct GSC_TypeMap));
+    return ret;
+  case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
+    ret = GNUNET_malloc (sizeof (struct GSC_TypeMap));
+    dlen = sizeof (struct GSC_TypeMap);
+    if ( (Z_OK !=
+	  uncompress ((Bytef*) ret, &dlen,
+		      (const Bytef*) &msg[1], (uLong) size)) ||
+	 (dlen != sizeof (struct GSC_TypeMap) ) )
+    {
+      GNUNET_break_op (0);
+      GNUNET_free (ret);
+      return NULL;
+    }
+    return ret;
+  default:
+    GNUNET_break (0);
+    return NULL;
+  }
 }
 
 
@@ -169,9 +214,46 @@ GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
   unsigned int i;
 
   for (i=0;i<tcnt;i++) 
-    if (0 != (my_type_map.bits[types[i] / 32] & (1 << (types[i] % 32))))
+    if (0 != (tmap->bits[types[i] / 32] & (1 << (types[i] % 32))))
       return GNUNET_YES;
   return GNUNET_NO;
+}
+
+
+/**
+ * Add additional types to a given typemap.
+ *
+ * @param map map to extend (not changed)
+ * @param types array of types to add
+ * @param tcnt number of entries in types
+ * @return updated type map (fresh copy)
+ */ 
+struct GSC_TypeMap *
+GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
+		    const uint16_t *types,
+		    unsigned int tcnt)
+{
+  struct GSC_TypeMap *ret;
+  unsigned int i;
+
+  ret = GNUNET_malloc (sizeof (struct GSC_TypeMap));
+  if (NULL != tmap)
+    memcpy (ret, tmap, sizeof (struct GSC_TypeMap));
+  for (i=0;i<tcnt;i++)
+    ret->bits[types[i] / 32] |= (1 << (types[i] % 32));
+  return ret;
+}
+
+
+/**
+ * Free the given type map.
+ *
+ * @param map a type map
+ */
+void
+GSC_TYPEMAP_destroy (struct GSC_TypeMap *tmap)
+{
+  GNUNET_free (tmap);
 }
 
 

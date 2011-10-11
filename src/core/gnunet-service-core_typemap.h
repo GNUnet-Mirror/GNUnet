@@ -61,6 +61,16 @@ GSC_TYPEMAP_compute_type_map_message (void);
 
 
 /**
+ * Extract a type map from a TYPE_MAP message.
+ *
+ * @param msg a type map message
+ * @return NULL on error
+ */
+struct GSC_TypeMap *
+GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg);
+
+
+/**
  * Test if any of the types from the types array is in the
  * given type map.
  *
@@ -73,6 +83,29 @@ int
 GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
 			const uint16_t *types,
 			unsigned int tcnt);
+
+
+/**
+ * Add additional types to a given typemap.
+ *
+ * @param map map to extend (not changed)
+ * @param types array of types to add
+ * @param tcnt number of entries in types
+ * @return updated type map (fresh copy)
+ */ 
+struct GSC_TypeMap *
+GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
+		    const uint16_t *types,
+		    unsigned int tcnt);
+
+
+/**
+ * Free the given type map.
+ *
+ * @param map a type map
+ */
+void
+GSC_TYPEMAP_destroy (struct GSC_TypeMap *tmap);
 
 
 /**

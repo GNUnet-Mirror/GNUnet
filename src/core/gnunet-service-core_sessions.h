@@ -116,6 +116,30 @@ GSC_SESSIONS_broadcast (const struct GNUNET_MessageHeader *msg);
 void
 GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client);
 
+/**
+ * We've received a typemap message from a peer, update ours.
+ * Notifies clients about the session.
+ *
+ * @param peer peer this is about
+ * @param msg typemap update message
+ */
+void
+GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
+			  const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * The given peer send a message of the specified type.  Make sure the
+ * respective bit is set in its type-map and that clients are notified
+ * about the session.
+ *
+ * @param peer peer this is about
+ * @param type type of the message
+ */
+void
+GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
+			     uint16_t type);
+
 
 /**
  * Handle CORE_ITERATE_PEERS request.  For this request type, the client

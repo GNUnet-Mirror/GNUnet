@@ -188,6 +188,11 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
 			 gettext_noop ("# established sessions"),
 			 GNUNET_CONTAINER_multihashmap_size (sessions), 
 			 GNUNET_NO);
+  if (NULL != session->tmap)
+  {
+    GSC_TYPEMAP_destroy (session->tmap);
+    session->tmap = NULL;
+  }
   GNUNET_free (session);
 }
 
@@ -247,7 +252,7 @@ notify_client_about_session (void *cls,
   struct GSC_Client *client = cls;
   struct Session *session = value;
 
-  GDS_CLIENTS_notify_client_about_neighbour (client,
+  GSC_CLIENTS_notify_client_about_neighbour (client,
 					     &session->peer,
 					     NULL, 0, /* FIXME: ATS!? */
 					     NULL, /* old TMAP: none */
@@ -686,6 +691,66 @@ GSC_SESSIONS_handle_client_have_peer (void *cls, struct GNUNET_SERVER_Client *cl
   done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
   GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+
+/**
+ * We've received a typemap message from a peer, update ours.
+ * Notifies clients about the session.
+ *
+ * @param peer peer this is about
+ * @param msg typemap update message
+ */
+void
+GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
+			  const struct GNUNET_MessageHeader *msg)
+{
+  struct Session *session;
+  struct GSC_TypeMap *nmap;
+
+  nmap = GSC_TYPEMAP_get_from_message (msg);
+  if (NULL == nmap)
+    return; /* malformed */
+  session = find_session (peer);
+  GSC_CLIENTS_notify_clients_about_neighbour (peer,
+					      NULL, 0, /* FIXME: ATS */
+					      session->tmap,
+					      nmap);
+  if (NULL != session->tmap)
+    GSC_TYPEMAP_destroy (session->tmap);
+  session->tmap = nmap;
+}
+
+
+/**
+ * The given peer send a message of the specified type.  Make sure the
+ * respective bit is set in its type-map and that clients are notified
+ * about the session.
+ *
+ * @param peer peer this is about
+ * @param type type of the message
+ */
+void
+GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
+			     uint16_t type)
+{
+  struct Session *session;
+  struct GSC_TypeMap *nmap;
+
+  session = find_session (peer);
+  if (GNUNET_YES ==
+      GSC_TYPEMAP_test_match (session->tmap,
+			      &type, 1))
+    return; /* already in it */
+  nmap = GSC_TYPEMAP_extend (session->tmap,
+			     &type, 1);
+  GSC_CLIENTS_notify_clients_about_neighbour (peer,
+					      NULL, 0, /* FIXME: ATS */
+					      session->tmap,
+					      nmap);
+  if (NULL != session->tmap)
+    GSC_TYPEMAP_destroy (session->tmap);
+  session->tmap = nmap;
 }
 
 

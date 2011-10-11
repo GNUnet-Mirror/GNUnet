@@ -1418,16 +1418,25 @@ deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
 {
   struct DeliverMessageContext *dmc = client;
 
-  GSC_CLIENTS_deliver_message (dmc->peer,
-			       dmc->atsi, dmc->atsi_count,
-			       m,
-			       ntohs (m->size),
-			       GNUNET_CORE_OPTION_SEND_FULL_INBOUND);
-  GSC_CLIENTS_deliver_message (dmc->peer,
-			       dmc->atsi, dmc->atsi_count,
-			       m,
-			       sizeof (struct GNUNET_MessageHeader),
-			       GNUNET_CORE_OPTION_SEND_HDR_INBOUND);
+  switch (ntohs (m->type))
+  {
+  case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
+  case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
+    GSC_SESSIONS_set_typemap (dmc->peer,
+			      m); 
+    return;
+  default:
+    GSC_CLIENTS_deliver_message (dmc->peer,
+				 dmc->atsi, dmc->atsi_count,
+				 m,
+				 ntohs (m->size),
+				 GNUNET_CORE_OPTION_SEND_FULL_INBOUND);
+    GSC_CLIENTS_deliver_message (dmc->peer,
+				 dmc->atsi, dmc->atsi_count,
+				 m,
+				 sizeof (struct GNUNET_MessageHeader),
+				 GNUNET_CORE_OPTION_SEND_HDR_INBOUND);
+  }
 }
 
 
