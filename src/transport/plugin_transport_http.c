@@ -160,6 +160,7 @@ http_plugin_address_pretty_printer (void *cls, const char *type,
   size_t sbs;
   uint16_t port = 0 ;
 
+  // BUG! Transport addrs over the network must NOT be 'struct sockaddr*'s!
   if (addrlen == sizeof (struct sockaddr_in6))
   {
     sb = addr;
