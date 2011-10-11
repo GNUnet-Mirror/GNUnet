@@ -294,6 +294,12 @@ struct GSC_KeyExchangeInfo
   struct PongMessage *pong_received;
 
   /**
+   * Encrypted message we received from the other peer and
+   * did not process yet (or NULL).
+   */
+  struct EncryptedMessage *emsg_received;
+
+  /**
    * Non-NULL if we are currently looking up HELLOs for this peer.
    * for this peer.
    */
@@ -697,6 +703,7 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
   GNUNET_free_non_null (kx->skm_received);
   GNUNET_free_non_null (kx->ping_received);
   GNUNET_free_non_null (kx->pong_received);
+  GNUNET_free_non_null (kx->emsg_received);
   GNUNET_free_non_null (kx->public_key);
   GNUNET_free (kx);
 }
@@ -1062,6 +1069,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx, const struct GNUNET_MessageH
 {
   const struct PongMessage *m;
   struct PongMessage t;
+  struct EncryptedMessage *emsg;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   uint16_t msize;
 
@@ -1142,6 +1150,13 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx, const struct GNUNET_MessageH
     GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
     kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
     GNUNET_assert (kx->keep_alive_task == GNUNET_SCHEDULER_NO_TASK);
+    if (kx->emsg_received != NULL)
+    {
+      emsg = kx->emsg_received;
+      kx->emsg_received = NULL;
+      GSC_KX_handle_encrypted_message (kx, &emsg->header, NULL, 0 /* FIXME: ATSI */);
+      GNUNET_free (emsg);
+    }
     update_timeout (kx);
     break;
   case KX_STATE_UP:
@@ -1340,6 +1355,13 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
 			      gettext_noop
 			      ("# failed to decrypt message (no session key)"),
 			      1, GNUNET_NO);
+    return;
+  }
+  if (kx->status == KX_STATE_KEY_RECEIVED)
+  {
+    /* defer */
+    GNUNET_free_non_null (kx->ping_received);
+    kx->emsg_received = (struct EncryptedMessage*) GNUNET_copy_message (msg);
     return;
   }
   /* validate hash */

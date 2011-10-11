@@ -715,6 +715,11 @@ GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
   if (NULL == nmap)
     return; /* malformed */
   session = find_session (peer);
+  if (NULL == session)
+  {
+    GNUNET_break (0);
+    return;
+  }
   GSC_CLIENTS_notify_clients_about_neighbour (peer,
 					      NULL, 0, /* FIXME: ATS */
 					      session->tmap,

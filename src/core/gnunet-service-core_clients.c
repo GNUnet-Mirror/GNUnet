@@ -344,6 +344,10 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
     car->client_handle = c;
   }
+  else
+  {
+    GSC_SESSIONS_dequeue_request (car);
+  }
   car->target = req->peer;
   car->deadline = GNUNET_TIME_absolute_ntoh (req->deadline);
   car->priority = ntohl (req->priority);
