@@ -526,7 +526,6 @@ tree_add_path (struct MeshTunnelTree *t,
              p->length,
              p->peers[p->length - 1],
              t->me->peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: %p %p %p\n", t, t->root, t->me);
 
   myid = t->me->peer;
   GNUNET_assert(0 != p->length);

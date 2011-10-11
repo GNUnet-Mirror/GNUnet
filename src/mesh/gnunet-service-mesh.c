@@ -776,7 +776,7 @@ peer_info_cancel_transmission(struct MeshPeerInfo *peer, unsigned int i)
  * 
  */
 static unsigned int
-peer_info_transmit_position (struct MeshPeerInfo *peer)
+peer_info_transmit_slot (struct MeshPeerInfo *peer)
 {
   unsigned int i;
 
@@ -858,7 +858,14 @@ send_create_path (struct MeshPeerInfo *peer,
   unsigned int i;
 
   if (NULL == p)
+  {
     p = tree_get_path_to_peer(t->tree, peer->id);
+    if (NULL == p)
+    {
+      GNUNET_break (0);
+      return;
+    }
+  }
   for (i = 0; i < p->length; i++)
   {
     if (p->peers[i] == myid)
@@ -876,7 +883,7 @@ send_create_path (struct MeshPeerInfo *peer,
   path_info->peer = peer;
   path_info->t = t;
   neighbor = peer_info_get(&id);
-  path_info->pos = peer_info_transmit_position(neighbor);
+  path_info->pos = peer_info_transmit_slot(neighbor);
   neighbor->types[path_info->pos] = GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE;
   neighbor->infos[path_info->pos] = path_info;
   neighbor->core_transmit[path_info->pos] = 
@@ -890,7 +897,6 @@ send_create_path (struct MeshPeerInfo *peer,
           + (p->length * sizeof (struct GNUNET_PeerIdentity)), /*size */
           &send_core_create_path, /* callback */
           path_info);        /* cls */
-  
 }
 
 
@@ -1400,6 +1406,18 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
     /* Start a DHT get if necessary */
     peer_info_connect(peer, t);
   }
+}
+
+/**
+ * Add a path to a tunnel, without evaluating costs.
+ *
+ * @param t Tunnel we want to add a new peer to
+ * @param p Path to add
+ *
+ */
+static void
+tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p)
+{
 }
 
 
@@ -1967,7 +1985,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   Retransmitting.\n");
     path_add_to_peer(dest_peer_info, path);
-    tunnel_add_peer(t, dest_peer_info);
+    tunnel_add_path (t, path);
     path = path_duplicate(path2);
     path_add_to_origin(orig_peer_info, path2);
     send_create_path(dest_peer_info, path, t);
