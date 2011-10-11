@@ -377,23 +377,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 uint32_t ats_count)
 {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (GNUNET_TIME_UNIT_SECONDS%p)!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
               GNUNET_i2s (peer), cls);
-
-  if (cls == p1)
-  {
-    max_bps_p1 = 1024 * 1024 * 1024;
-    GNUNET_TRANSPORT_set_quota (p1->th, &p2->id,
-                                GNUNET_BANDWIDTH_value_init (max_bps_p1),
-                                GNUNET_BANDWIDTH_value_init (max_bps_p1));
-  }
-  else if (cls == p2)
-  {
-    max_bps_p2 = 1024 * 1024 * 1024;
-    GNUNET_TRANSPORT_set_quota (p2->th, &p1->id,
-                                GNUNET_BANDWIDTH_value_init (max_bps_p2),
-                                GNUNET_BANDWIDTH_value_init (max_bps_p2));
-  }
 }
 
 
