@@ -38,6 +38,9 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
+
+
 #define DEBUG_UDP GNUNET_EXTRA_LOGGING
 
 /**
@@ -150,6 +153,8 @@ struct PeerSession
    */
   const struct sockaddr *sock_addr;
 
+  size_t addrlen;
+
   /**
    * Function to call upon completion of the transmission.
    */
@@ -222,6 +227,12 @@ struct Plugin
   struct GNUNET_CONTAINER_MultiHashMap *sessions;
 
   /**
+   * Session of peers with whom we are currently connected,
+   * map of peer identity to 'struct PeerSession'.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *inbound_sessions;
+
+  /**
    * Heap with all of our defragmentation activities.
    */
   struct GNUNET_CONTAINER_Heap *defrags;
@@ -288,6 +299,13 @@ struct Plugin
 
 };
 
+struct PeerSessionIteratorContext
+{
+  struct PeerSession * result;
+  const void * addr;
+  size_t addrlen;
+};
+
 
 /**
  * Lookup the session for the given peer.
@@ -301,6 +319,44 @@ find_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *peer)
 {
   return GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
                                             &peer->hashPubKey);
+}
+
+int inbound_session_iterator (void *cls,
+                             const GNUNET_HashCode * key,
+                             void *value)
+{
+  struct PeerSessionIteratorContext *psc = cls;
+  struct PeerSession *s = value;
+  if (s->addrlen == psc->addrlen)
+  {
+    if (0 == memcmp (&s[1], psc->addr, s->addrlen))
+      psc->result = s;
+  }
+  if (psc->result != NULL)
+    return GNUNET_NO;
+  else
+    return GNUNET_YES;
+};
+
+/**
+ * Lookup the session for the given peer.
+ *
+ * @param plugin the plugin
+ * @param peer peer's identity
+ * @return NULL if we have no session
+ */
+struct PeerSession *
+find_inbound_session (struct Plugin *plugin,
+                      const struct GNUNET_PeerIdentity *peer,
+                      const void * addr, size_t addrlen)
+{
+  struct PeerSessionIteratorContext psc;
+  psc.result = NULL;
+  psc.addrlen = addrlen;
+  psc.addr = addr;
+
+  GNUNET_CONTAINER_multihashmap_get_multiple(plugin->inbound_sessions, &peer->hashPubKey, &inbound_session_iterator, &psc);
+  return psc.result;
 }
 
 
@@ -367,13 +423,11 @@ udp_send (struct Plugin *plugin, const struct sockaddr *sa,
     return 0;
   }
   if (GNUNET_SYSERR == sent)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_INFO, "sendto");
-#if DEBUG_UDP
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
+  LOG (GNUNET_ERROR_TYPE_ERROR,
               "UDP transmited %u-byte message to %s (%d: %s)\n",
               (unsigned int) ntohs (msg->size), GNUNET_a2s (sa, slen),
               (int) sent, (sent < 0) ? STRERROR (errno) : "ok");
-#endif
   return sent;
 }
 
@@ -394,6 +448,72 @@ send_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
 
   udp_send (session->plugin, session->sock_addr, msg);
   GNUNET_FRAGMENT_context_transmission_done (session->frag);
+}
+
+static struct PeerSession *
+create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
+    const void *addr, size_t addrlen,
+    GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+{
+  struct PeerSession * peer_session;
+  const struct IPv4UdpAddress *t4;
+  const struct IPv6UdpAddress *t6;
+  struct sockaddr_in *v4;
+  struct sockaddr_in6 *v6;
+  size_t len;
+
+  switch (addrlen)
+  {
+  case sizeof (struct IPv4UdpAddress):
+    if (NULL == plugin->sockv4)
+    {
+      return NULL;
+    }
+    t4 = addr;
+    peer_session =
+        GNUNET_malloc (sizeof (struct PeerSession) +
+                       sizeof (struct sockaddr_in));
+    len = sizeof (struct sockaddr_in);
+    v4 = (struct sockaddr_in *) &peer_session[1];
+    v4->sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    v4->sin_len = sizeof (struct sockaddr_in);
+#endif
+    v4->sin_port = t4->u4_port;
+    v4->sin_addr.s_addr = t4->ipv4_addr;
+    break;
+  case sizeof (struct IPv6UdpAddress):
+    if (NULL == plugin->sockv6)
+    {
+      return NULL;
+    }
+    t6 = addr;
+    peer_session =
+        GNUNET_malloc (sizeof (struct PeerSession) +
+                       sizeof (struct sockaddr_in6));
+    len = sizeof (struct sockaddr_in6);
+    v6 = (struct sockaddr_in6 *) &peer_session[1];
+    v6->sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    v6->sin6_len = sizeof (struct sockaddr_in6);
+#endif
+    v6->sin6_port = t6->u6_port;
+    v6->sin6_addr = t6->ipv6_addr;
+    break;
+  default:
+    /* Must have a valid address to send to */
+    GNUNET_break_op (0);
+    return NULL;
+  }
+
+  peer_session->addrlen = len;
+  peer_session->target = *target;
+  peer_session->plugin = plugin;
+  peer_session->sock_addr = (const struct sockaddr *) &peer_session[1];
+  peer_session->cont = cont;
+  peer_session->cont_cls = cont_cls;
+
+  return peer_session;
 }
 
 static const char *
@@ -432,78 +552,45 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
 {
   struct Plugin *plugin = cls;
   struct PeerSession *peer_session;
-  const struct IPv4UdpAddress *t4;
-  const struct IPv6UdpAddress *t6;
-  struct sockaddr_in *v4;
-  struct sockaddr_in6 *v6;
+  struct PeerSession *inbound_session;
   size_t mlen = msgbuf_size + sizeof (struct UDPMessage);
   char mbuf[mlen];
   struct UDPMessage *udp;
 
-  if (force_address == GNUNET_SYSERR)
-    return GNUNET_SYSERR;
-  GNUNET_assert (NULL == session);
   if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  switch (addrlen)
-  {
-  case sizeof (struct IPv4UdpAddress):
-    if (NULL == plugin->sockv4)
-    {
-      if (cont != NULL)
-        cont (cont_cls, target, GNUNET_SYSERR);
-      return 0;
-    }
-    t4 = addr;
-    peer_session =
-        GNUNET_malloc (sizeof (struct PeerSession) +
-                       sizeof (struct sockaddr_in));
-    v4 = (struct sockaddr_in *) &peer_session[1];
-    v4->sin_family = AF_INET;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    v4->sin_len = sizeof (struct sockaddr_in);
-#endif
-    v4->sin_port = t4->u4_port;
-    v4->sin_addr.s_addr = t4->ipv4_addr;
-    break;
-  case sizeof (struct IPv6UdpAddress):
-    if (NULL == plugin->sockv6)
-    {
-      if (cont != NULL)
-        cont (cont_cls, target, GNUNET_SYSERR);
-      return 0;
-    }
-    t6 = addr;
-    peer_session =
-        GNUNET_malloc (sizeof (struct PeerSession) +
-                       sizeof (struct sockaddr_in6));
-    v6 = (struct sockaddr_in6 *) &peer_session[1];
-    v6->sin6_family = AF_INET6;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    v6->sin6_len = sizeof (struct sockaddr_in6);
-#endif
-    v6->sin6_port = t6->u6_port;
-    v6->sin6_addr = t6->ipv6_addr;
-    break;
-  default:
-    /* Must have a valid address to send to */
-    GNUNET_break_op (0);
+
+  if (force_address == GNUNET_SYSERR)
     return GNUNET_SYSERR;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "UDP transmits %u-byte message to `%s' using address `%s' session 0x%X\n",
+              msgbuf_size, GNUNET_i2s (target), udp_address_to_string (NULL, addr, addrlen), session);
+
+  if (session != NULL)
+  {
+    inbound_session = (struct PeerSession *) session;
+    GNUNET_assert (0 == memcmp (&inbound_session->target, target, sizeof (struct GNUNET_PeerIdentity)));
   }
+
+  peer_session = create_session (plugin, target, addr, addrlen, cont, cont_cls);
+  if (peer_session == NULL)
+  {
+    if (cont != NULL)
+      cont (cont_cls, target, GNUNET_SYSERR);
+  }
+
+  /* Message */
   udp = (struct UDPMessage *) mbuf;
   udp->header.size = htons (mlen);
   udp->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE);
   udp->reserved = htonl (0);
   udp->sender = *plugin->env->my_identity;
   memcpy (&udp[1], msgbuf, msgbuf_size);
-  peer_session->target = *target;
-  peer_session->plugin = plugin;
-  peer_session->sock_addr = (const struct sockaddr *) &peer_session[1];
-  peer_session->cont = cont;
-  peer_session->cont_cls = cont_cls;
+
   if (mlen <= UDP_MTU)
   {
     mlen = udp_send (plugin, peer_session->sock_addr, &udp->header);
@@ -548,6 +635,8 @@ struct SourceInformation
    * Number of bytes in source address.
    */
   size_t args;
+
+  struct PeerSession * session;
 };
 
 
@@ -573,7 +662,9 @@ process_inbound_tokenized_messages (void *cls, void *client,
   distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
   distance[1].value = htonl (0);
 
-  plugin->env->receive (plugin->env->cls, &si->sender, hdr, distance, 2, NULL,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+                   "Giving Session %X %s  to transport\n", (struct Session *) si->session, GNUNET_i2s(&si->session->target));
+  plugin->env->receive (plugin->env->cls, &si->sender, hdr, distance, 2, (struct Session *) si->session,
                         si->arg, si->args);
 }
 
@@ -631,17 +722,51 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
     return;
   }
 #if DEBUG_UDP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
                    "Received message with %u bytes from peer `%s' at `%s'\n",
                    (unsigned int) ntohs (msg->header.size),
                    GNUNET_i2s (&msg->sender), GNUNET_a2s (sender_addr,
                                                           sender_addr_len));
 #endif
 
+  /* create a session for inbound connections */
+  const struct UDPMessage * udp_msg = (const struct UDPMessage *) msg;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "Lookup inbound UDP sessions for peer `%s' address `%s'\n",
+              GNUNET_i2s (&udp_msg->sender),
+              udp_address_to_string(NULL, arg, args));
+
+  struct PeerSession * s = NULL;
+  s = find_inbound_session (plugin, &udp_msg->sender, sender_addr, sender_addr_len);
+
+  if (s != NULL)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+                "Found existing inbound UDP sessions 0x%X for peer `%s' address `%s'\n",
+                s,
+                GNUNET_i2s (&s->target),
+                udp_address_to_string(NULL, arg, args));
+  }
+  else
+  {
+    s = create_session (plugin, &udp_msg->sender, arg, args, NULL, NULL);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+                "Creating inbound UDP sessions 0x%X for peer `%s' address `%s'\n",
+                s,
+                GNUNET_i2s (&s->target),
+                udp_address_to_string(NULL, arg, args));
+
+    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (plugin->inbound_sessions,
+                                                      &s->target.hashPubKey,
+                                                      s,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  }
+
   /* iterate over all embedded messages */
   si.sender = msg->sender;
   si.arg = arg;
   si.args = args;
+  si.session = s;
   GNUNET_SERVER_mst_receive (plugin->mst, &si, (const char *) &msg[1],
                              ntohs (msg->header.size) -
                              sizeof (struct UDPMessage), GNUNET_YES, GNUNET_NO);
@@ -690,7 +815,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   struct UDPMessage *udp;
 
 #if DEBUG_UDP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "udp", "Sending ACK to `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending ACK to `%s'\n",
                    GNUNET_a2s (rc->src_addr,
                                (rc->src_addr->sa_family ==
                                 AF_INET) ? sizeof (struct sockaddr_in) :
@@ -787,7 +912,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     return;
   }
 #if DEBUG_UDP
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "UDP received %u-byte message from `%s'\n", (unsigned int) ret,
               GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
 #endif
@@ -828,7 +953,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
       return;
     }
 #if DEBUG_UDP
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "UDP processes %u-byte acknowledgement from `%s' at `%s'\n",
                 (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp->sender),
                 GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
@@ -838,7 +963,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     if (NULL == peer_session)
     {
 #if DEBUG_UDP
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "Session for ACK not found, dropping ACK!\n");
 #endif
       return;
@@ -882,7 +1007,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
                                         now.abs_value);
     }
 #if DEBUG_UDP
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "UDP processes %u-byte fragment from `%s'\n",
                 (unsigned int) ntohs (msg->size),
                 GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
@@ -1276,7 +1401,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     aport = port;
   if (port > 65535)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
                 _("Given `%s' option is out of range: %llu > %u\n"), "PORT",
                 port, 65535);
     return NULL;
@@ -1305,7 +1430,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       GNUNET_CONFIGURATION_get_value_string (env->cfg, "transport-udp",
                                              "BINDTO", &plugin->bind4_address))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "Binding udp plugin to specific address: `%s'\n",
                 plugin->bind4_address);
     if (1 != inet_pton (AF_INET, plugin->bind4_address, &serverAddrv4.sin_addr))
@@ -1321,13 +1446,13 @@ libgnunet_plugin_transport_udp_init (void *cls)
       GNUNET_CONFIGURATION_get_value_string (env->cfg, "transport-udp",
                                              "BINDTO6", &plugin->bind6_address))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "Binding udp plugin to specific address: `%s'\n",
                 plugin->bind6_address);
     if (1 !=
         inet_pton (AF_INET6, plugin->bind6_address, &serverAddrv6.sin6_addr))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Invalid IPv6 address: `%s'\n"),
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid IPv6 address: `%s'\n"),
                   plugin->bind6_address);
       GNUNET_free_non_null (plugin->bind4_address);
       GNUNET_free (plugin->bind6_address);
@@ -1340,6 +1465,9 @@ libgnunet_plugin_transport_udp_init (void *cls)
   plugin->defrags =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   plugin->sessions =
+      GNUNET_CONTAINER_multihashmap_create (UDP_MAX_SENDER_ADDRESSES_WITH_DEFRAG
+                                            * 2);
+  plugin->inbound_sessions =
       GNUNET_CONTAINER_multihashmap_create (UDP_MAX_SENDER_ADDRESSES_WITH_DEFRAG
                                             * 2);
   sockets_created = 0;
@@ -1363,7 +1491,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       addrlen = sizeof (serverAddrv6);
       serverAddr = (struct sockaddr *) &serverAddrv6;
 #if DEBUG_UDP
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv6 port %d\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv6 port %d\n",
                   ntohs (serverAddrv6.sin6_port));
 #endif
       tries = 0;
@@ -1372,7 +1500,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       {
         serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);        /* Find a good, non-root port */
 #if DEBUG_UDP
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
                     "IPv6 Binding failed, trying new port %d\n",
                     ntohs (serverAddrv6.sin6_port));
 #endif
@@ -1411,7 +1539,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     addrlen = sizeof (serverAddrv4);
     serverAddr = (struct sockaddr *) &serverAddrv4;
 #if DEBUG_UDP
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv4 port %d\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv4 port %d\n",
                 ntohs (serverAddrv4.sin_port));
 #endif
     tries = 0;
@@ -1420,7 +1548,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     {
       serverAddrv4.sin_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);   /* Find a good, non-root port */
 #if DEBUG_UDP
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "IPv4 Binding failed, trying new port %d\n",
                   ntohs (serverAddrv4.sin_port));
 #endif
@@ -1499,6 +1627,10 @@ libgnunet_plugin_transport_udp_done (void *cls)
                                          NULL);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
   plugin->sessions = NULL;
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->inbound_sessions, &destroy_session,
+                                         NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (plugin->inbound_sessions);
+  plugin->inbound_sessions = NULL;
   while (NULL != (rc = GNUNET_CONTAINER_heap_remove_root (plugin->defrags)))
   {
     GNUNET_DEFRAGMENT_context_destroy (rc->defrag);
