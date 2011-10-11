@@ -510,7 +510,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
 #if DEBUG_TESTING
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Started `%s', waiting for `%s' to be up.\n", "gnunet-arm",
                 "gnunet-service-core");
 #endif
