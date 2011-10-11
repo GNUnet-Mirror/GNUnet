@@ -26,6 +26,8 @@
 #include "platform.h"
 #include "gnunet_time_lib.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
 static long long timestamp_offset;
 
 /**
@@ -53,8 +55,8 @@ GNUNET_TIME_absolute_get ()
 
   GETTIMEOFDAY (&tv, NULL);
   ret.abs_value =
-      (uint64_t) (((uint64_t) tv.tv_sec * 1000LL) +
-                  ((uint64_t) tv.tv_usec / 1000LL)) + timestamp_offset;
+    (uint64_t) (((uint64_t) tv.tv_sec * 1000LL) +
+		((uint64_t) tv.tv_usec / 1000LL)) + timestamp_offset;
   return ret;
 }
 
@@ -128,10 +130,10 @@ GNUNET_TIME_relative_to_absolute (struct GNUNET_TIME_Relative rel)
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
 
   if (rel.rel_value + now.abs_value < rel.rel_value)
-  {
-    GNUNET_break (0);           /* overflow... */
-    return GNUNET_TIME_absolute_get_forever ();
-  }
+    {
+      GNUNET_break (0);		/* overflow... */
+      return GNUNET_TIME_absolute_get_forever ();
+    }
   ret.abs_value = rel.rel_value + now.abs_value;
   return ret;
 }
@@ -146,7 +148,7 @@ GNUNET_TIME_relative_to_absolute (struct GNUNET_TIME_Relative rel)
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_min (struct GNUNET_TIME_Relative t1,
-                          struct GNUNET_TIME_Relative t2)
+			  struct GNUNET_TIME_Relative t2)
 {
   return (t1.rel_value < t2.rel_value) ? t1 : t2;
 }
@@ -161,7 +163,7 @@ GNUNET_TIME_relative_min (struct GNUNET_TIME_Relative t1,
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_max (struct GNUNET_TIME_Relative t1,
-                          struct GNUNET_TIME_Relative t2)
+			  struct GNUNET_TIME_Relative t2)
 {
   return (t1.rel_value > t2.rel_value) ? t1 : t2;
 }
@@ -177,7 +179,7 @@ GNUNET_TIME_relative_max (struct GNUNET_TIME_Relative t1,
  */
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_min (struct GNUNET_TIME_Absolute t1,
-                          struct GNUNET_TIME_Absolute t2)
+			  struct GNUNET_TIME_Absolute t2)
 {
   return (t1.abs_value < t2.abs_value) ? t1 : t2;
 }
@@ -192,7 +194,7 @@ GNUNET_TIME_absolute_min (struct GNUNET_TIME_Absolute t1,
  */
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_max (struct GNUNET_TIME_Absolute t1,
-                          struct GNUNET_TIME_Absolute t2)
+			  struct GNUNET_TIME_Absolute t2)
 {
   return (t1.abs_value > t2.abs_value) ? t1 : t2;
 }
@@ -228,7 +230,7 @@ GNUNET_TIME_absolute_get_remaining (struct GNUNET_TIME_Absolute future)
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_absolute_get_difference (struct GNUNET_TIME_Absolute start,
-                                     struct GNUNET_TIME_Absolute end)
+				     struct GNUNET_TIME_Absolute end)
 {
   struct GNUNET_TIME_Relative ret;
 
@@ -269,17 +271,17 @@ GNUNET_TIME_absolute_get_duration (struct GNUNET_TIME_Absolute whence)
  */
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_add (struct GNUNET_TIME_Absolute start,
-                          struct GNUNET_TIME_Relative duration)
+			  struct GNUNET_TIME_Relative duration)
 {
   struct GNUNET_TIME_Absolute ret;
 
   if ((start.abs_value == UINT64_MAX) || (duration.rel_value == UINT64_MAX))
     return GNUNET_TIME_absolute_get_forever ();
   if (start.abs_value + duration.rel_value < start.abs_value)
-  {
-    GNUNET_break (0);
-    return GNUNET_TIME_absolute_get_forever ();
-  }
+    {
+      GNUNET_break (0);
+      return GNUNET_TIME_absolute_get_forever ();
+    }
   ret.abs_value = start.abs_value + duration.rel_value;
   return ret;
 }
@@ -295,7 +297,7 @@ GNUNET_TIME_absolute_add (struct GNUNET_TIME_Absolute start,
  */
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_subtract (struct GNUNET_TIME_Absolute start,
-                               struct GNUNET_TIME_Relative duration)
+			       struct GNUNET_TIME_Relative duration)
 {
   struct GNUNET_TIME_Absolute ret;
 
@@ -315,7 +317,7 @@ GNUNET_TIME_absolute_subtract (struct GNUNET_TIME_Absolute start,
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
-                               unsigned int factor)
+			       unsigned int factor)
 {
   struct GNUNET_TIME_Relative ret;
 
@@ -323,10 +325,10 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
     return GNUNET_TIME_relative_get_zero ();
   ret.rel_value = rel.rel_value * (unsigned long long) factor;
   if (ret.rel_value / factor != rel.rel_value)
-  {
-    GNUNET_break (0);
-    return GNUNET_TIME_relative_get_forever ();
-  }
+    {
+      GNUNET_break (0);
+      return GNUNET_TIME_relative_get_forever ();
+    }
   return ret;
 }
 
@@ -340,7 +342,7 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_divide (struct GNUNET_TIME_Relative rel,
-                             unsigned int factor)
+			     unsigned int factor)
 {
   struct GNUNET_TIME_Relative ret;
 
@@ -363,8 +365,8 @@ GNUNET_TIME_relative_divide (struct GNUNET_TIME_Relative rel,
  *        assuming it continues at the same speed
  */
 struct GNUNET_TIME_Relative
-GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start, uint64_t finished,
-                           uint64_t total)
+GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start,
+			   uint64_t finished, uint64_t total)
 {
   struct GNUNET_TIME_Relative dur;
   double exp;
@@ -391,17 +393,17 @@ GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start, uint64_t finished,
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_add (struct GNUNET_TIME_Relative a1,
-                          struct GNUNET_TIME_Relative a2)
+			  struct GNUNET_TIME_Relative a2)
 {
   struct GNUNET_TIME_Relative ret;
 
   if ((a1.rel_value == UINT64_MAX) || (a2.rel_value == UINT64_MAX))
     return GNUNET_TIME_relative_get_forever ();
   if (a1.rel_value + a2.rel_value < a1.rel_value)
-  {
-    GNUNET_break (0);
-    return GNUNET_TIME_relative_get_forever ();
-  }
+    {
+      GNUNET_break (0);
+      return GNUNET_TIME_relative_get_forever ();
+    }
   ret.rel_value = a1.rel_value + a2.rel_value;
   return ret;
 }
@@ -416,7 +418,7 @@ GNUNET_TIME_relative_add (struct GNUNET_TIME_Relative a1,
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_subtract (struct GNUNET_TIME_Relative a1,
-                               struct GNUNET_TIME_Relative a2)
+			       struct GNUNET_TIME_Relative a2)
 {
   struct GNUNET_TIME_Relative ret;
 

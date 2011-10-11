@@ -81,13 +81,14 @@ server_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 recv_cb (void *cls, struct GNUNET_SERVER_Client *client,
-         const struct GNUNET_MessageHeader *message)
+	 const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ok == 2);
   ok = 3;
   GNUNET_SERVER_client_keep (client);
   GNUNET_SCHEDULER_add_now (&server_disconnect, client);
-  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size));
+  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
+		 ntohs (message->size));
   GNUNET_assert (MY_TYPE == ntohs (message->type));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -138,18 +139,18 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_number (cfg, "test-server", "PORT", PORT);
   GNUNET_CONFIGURATION_set_value_string (cfg, "test-server", "HOSTNAME",
-                                         "localhost");
+					 "localhost");
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
-                                         "localhost");
+					 "localhost");
   cc = GNUNET_CLIENT_connect ("test-server", cfg);
   GNUNET_assert (cc != NULL);
   GNUNET_assert (NULL !=
-                 GNUNET_CLIENT_notify_transmit_ready (cc,
-                                                      sizeof (struct
-                                                              GNUNET_MessageHeader),
-                                                      TIMEOUT, GNUNET_YES,
-                                                      &transmit_initial_message,
-                                                      NULL));
+		 GNUNET_CLIENT_notify_transmit_ready (cc,
+						      sizeof (struct
+							      GNUNET_MessageHeader),
+						      TIMEOUT, GNUNET_YES,
+						      &transmit_initial_message,
+						      NULL));
 }
 
 

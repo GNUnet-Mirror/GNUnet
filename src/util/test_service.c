@@ -68,11 +68,11 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   client = GNUNET_CLIENT_connect ("test_service", cfg);
   GNUNET_assert (client != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client connecting, waiting to transmit\n");
+	      "Client connecting, waiting to transmit\n");
   GNUNET_CLIENT_notify_transmit_ready (client,
-                                       sizeof (struct GNUNET_MessageHeader),
-                                       GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
-                                       &build_msg, client);
+				       sizeof (struct GNUNET_MessageHeader),
+				       GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
+				       &build_msg, client);
 }
 
 
@@ -85,7 +85,7 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 recv_cb (void *cls, struct GNUNET_SERVER_Client *client,
-         const struct GNUNET_MessageHeader *message)
+	 const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving client message...\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -105,12 +105,12 @@ static struct GNUNET_SERVER_MessageHandler myhandlers[] = {
 
 static void
 runner (void *cls, struct GNUNET_SERVER_Handle *server,
-        const struct GNUNET_CONFIGURATION_Handle *cfg)
+	const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service initializing\n");
   GNUNET_SERVER_add_handlers (server, myhandlers);
   GNUNET_CLIENT_service_test ("test_service", cfg, GNUNET_TIME_UNIT_SECONDS,
-                              &ready, (void *) cfg);
+			      &ready, (void *) cfg);
 }
 
 
@@ -136,8 +136,9 @@ check ()
   };
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting service\n");
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_SERVICE_run (5, argv, "test_service",
-                                     GNUNET_SERVICE_OPTION_NONE, &runner, &ok));
+		 GNUNET_SERVICE_run (5, argv, "test_service",
+				     GNUNET_SERVICE_OPTION_NONE, &runner,
+				     &ok));
   GNUNET_assert (0 == ok);
   return ok;
 }
@@ -154,19 +155,19 @@ ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (client != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "V6 client connected\n");
   GNUNET_CLIENT_notify_transmit_ready (client,
-                                       sizeof (struct GNUNET_MessageHeader),
-                                       GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
-                                       &build_msg, client);
+				       sizeof (struct GNUNET_MessageHeader),
+				       GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
+				       &build_msg, client);
 }
 
 static void
 runner6 (void *cls, struct GNUNET_SERVER_Handle *server,
-         const struct GNUNET_CONFIGURATION_Handle *cfg)
+	 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Initializing v6 service\n");
   GNUNET_SERVER_add_handlers (server, myhandlers);
   GNUNET_CLIENT_service_test ("test_service6", cfg, GNUNET_TIME_UNIT_SECONDS,
-                              &ready6, (void *) cfg);
+			      &ready6, (void *) cfg);
 }
 
 /**
@@ -190,9 +191,9 @@ check6 ()
   };
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting v6 service\n");
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_SERVICE_run (5, argv, "test_service6",
-                                     GNUNET_SERVICE_OPTION_NONE, &runner6,
-                                     &ok));
+		 GNUNET_SERVICE_run (5, argv, "test_service6",
+				     GNUNET_SERVICE_OPTION_NONE, &runner6,
+				     &ok));
   GNUNET_assert (0 == ok);
   return ok;
 }
@@ -201,11 +202,12 @@ check6 ()
 
 static void
 start_stop_main (void *cls, char *const *args, const char *cfgfile,
-                 const struct GNUNET_CONFIGURATION_Handle *cfg)
+		 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ret = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting service using start method\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting service using start method\n");
   sctx = GNUNET_SERVICE_start ("test_service", cfg);
   GNUNET_assert (NULL != sctx);
   runner (cls, GNUNET_SERVICE_get_server (sctx), cfg);
@@ -234,8 +236,9 @@ check_start_stop ()
   int ret = 1;
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_PROGRAM_run (5, argv, "test-service-program", "no help",
-                                     options, &start_stop_main, &ret));
+		 GNUNET_PROGRAM_run (5, argv, "test-service-program",
+				     "no help", options, &start_stop_main,
+				     &ret));
 
   GNUNET_break (0 == ret);
   return ret;
@@ -250,11 +253,11 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-service",
 #if VERBOSE
-                    "DEBUG",
+		    "DEBUG",
 #else
-                    "WARNING",
+		    "WARNING",
 #endif
-                    NULL);
+		    NULL);
   ret += check ();
   ret += check ();
 
@@ -263,22 +266,22 @@ main (int argc, char *argv[])
   s = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
 #endif
   if (NULL == s)
-  {
-    if ((errno == ENOBUFS) || (errno == ENOMEM) || (errno == ENFILE) ||
-        (errno == EACCES))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
-      return 1;
+      if ((errno == ENOBUFS) || (errno == ENOMEM) || (errno == ENFILE) ||
+	  (errno == EACCES))
+	{
+	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+	  return 1;
+	}
+      fprintf (stderr,
+	       "IPv6 support seems to not be available (%s), not testing it!\n",
+	       strerror (errno));
     }
-    fprintf (stderr,
-             "IPv6 support seems to not be available (%s), not testing it!\n",
-             strerror (errno));
-  }
   else
-  {
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
-    ret += check6 ();
-  }
+    {
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
+      ret += check6 ();
+    }
   ret += check_start_stop ();
 
   return ret;

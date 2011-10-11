@@ -29,6 +29,8 @@
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
 /**
  * @brief Derive key
  * @param result buffer for the derived key, allocated by caller
@@ -42,8 +44,8 @@
  */
 int
 GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
-                     size_t xts_len, const void *skm, size_t skm_len,
-                     va_list argp)
+		     size_t xts_len, const void *skm, size_t skm_len,
+		     va_list argp)
 {
   /*
    * "Finally, we point out to a particularly advantageous instantiation using
@@ -57,8 +59,9 @@ GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
    * http://eprint.iacr.org/2010/264
    */
 
-  return GNUNET_CRYPTO_hkdf_v (result, out_len, GCRY_MD_SHA512, GCRY_MD_SHA256,
-                               xts, xts_len, skm, skm_len, argp);
+  return GNUNET_CRYPTO_hkdf_v (result, out_len, GCRY_MD_SHA512,
+			       GCRY_MD_SHA256, xts, xts_len, skm, skm_len,
+			       argp);
 }
 
 /**
@@ -74,13 +77,14 @@ GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
  */
 int
 GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
-                   size_t xts_len, const void *skm, size_t skm_len, ...)
+		   size_t xts_len, const void *skm, size_t skm_len, ...)
 {
   va_list argp;
   int ret;
 
   va_start (argp, skm_len);
-  ret = GNUNET_CRYPTO_kdf_v (result, out_len, xts, xts_len, skm, skm_len, argp);
+  ret =
+    GNUNET_CRYPTO_kdf_v (result, out_len, xts, xts_len, skm, skm_len, argp);
   va_end (argp);
 
   return ret;

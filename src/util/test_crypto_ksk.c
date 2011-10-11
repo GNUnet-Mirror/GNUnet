@@ -39,7 +39,7 @@ static int
 testCorrectKey ()
 {
   const char *want =
-      "010601000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b73c215f7a5e6b09bec55713c901786c09324a150980e014bdb0d04426934929c3b4971a9711af5455536cd6eeb8bfa004ee904972a737455f53c752987d8c82b755bc02882b44950c4acdc1672ba74c3b94d81a4c1ea3d74e7700ae5594c3a4f3c559e4bff2df6844fac302e4b66175e14dc8bad3ce44281d2fec1a1abef06301010000";
+    "010601000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b73c215f7a5e6b09bec55713c901786c09324a150980e014bdb0d04426934929c3b4971a9711af5455536cd6eeb8bfa004ee904972a737455f53c752987d8c82b755bc02882b44950c4acdc1672ba74c3b94d81a4c1ea3d74e7700ae5594c3a4f3c559e4bff2df6844fac302e4b66175e14dc8bad3ce44281d2fec1a1abef06301010000";
   GNUNET_HashCode in;
   struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
@@ -50,27 +50,29 @@ testCorrectKey ()
   GNUNET_CRYPTO_hash ("X", strlen ("X"), &in);
   hostkey = GNUNET_CRYPTO_rsa_key_create_from_hash (&in);
   if (hostkey == NULL)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
 #if 0
-  for (i = 0; i < sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded); i++)
+  for (i = 0; i < sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
+       i++)
     printf ("%02x", ((unsigned char *) &pkey)[i]);
   printf ("\n");
 #endif
-  for (i = 0; i < sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded); i++)
-  {
-    snprintf (out, sizeof (out), "%02x", ((unsigned char *) &pkey)[i]);
-    if (0 != strncmp (out, &want[i * 2], 2))
+  for (i = 0; i < sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
+       i++)
     {
-      fprintf (stderr, " Failed! Wanted %.2s but got %2s at %d\n", &want[i * 2],
-               out, i);
-      return GNUNET_SYSERR;
+      snprintf (out, sizeof (out), "%02x", ((unsigned char *) &pkey)[i]);
+      if (0 != strncmp (out, &want[i * 2], 2))
+	{
+	  fprintf (stderr, " Failed! Wanted %.2s but got %2s at %d\n",
+		   &want[i * 2], out, i);
+	  return GNUNET_SYSERR;
+	}
     }
-  }
   fprintf (stderr, " OK\n");
   return GNUNET_OK;
 }
@@ -89,10 +91,10 @@ testMultiKey (const char *word)
   GNUNET_CRYPTO_hash (word, strlen (word), &in);
   hostkey = GNUNET_CRYPTO_rsa_key_create_from_hash (&in);
   if (hostkey == NULL)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
   /*
    * for (i=0;i<sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);i++)
@@ -100,26 +102,26 @@ testMultiKey (const char *word)
    * printf("\n"); */
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   for (i = 0; i < UNIQUE_ITER; i++)
-  {
-    fprintf (stderr, ".");
-    hostkey = GNUNET_CRYPTO_rsa_key_create_from_hash (&in);
-    if (hostkey == NULL)
     {
-      GNUNET_break (0);
-      fprintf (stderr, " ERROR\n");
-      return GNUNET_SYSERR;
+      fprintf (stderr, ".");
+      hostkey = GNUNET_CRYPTO_rsa_key_create_from_hash (&in);
+      if (hostkey == NULL)
+	{
+	  GNUNET_break (0);
+	  fprintf (stderr, " ERROR\n");
+	  return GNUNET_SYSERR;
+	}
+      GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey1);
+      GNUNET_CRYPTO_rsa_key_free (hostkey);
+      if (0 !=
+	  memcmp (&pkey, &pkey1,
+		  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+	{
+	  GNUNET_break (0);
+	  fprintf (stderr, " ERROR\n");
+	  return GNUNET_SYSERR;
+	}
     }
-    GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey1);
-    GNUNET_CRYPTO_rsa_key_free (hostkey);
-    if (0 !=
-        memcmp (&pkey, &pkey1,
-                sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
-    {
-      GNUNET_break (0);
-      fprintf (stderr, " ERROR\n");
-      return GNUNET_SYSERR;
-    }
-  }
   fprintf (stderr, " OK\n");
   return GNUNET_OK;
 }
@@ -141,35 +143,35 @@ testEncryptDecrypt (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
   ok = 0;
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
-  {
-    fprintf (stderr, ".");
-    if (GNUNET_SYSERR ==
-        GNUNET_CRYPTO_rsa_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &pkey,
-                                   &target))
     {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
-      ok++;
-      continue;
+      fprintf (stderr, ".");
+      if (GNUNET_SYSERR ==
+	  GNUNET_CRYPTO_rsa_encrypt (TESTSTRING, strlen (TESTSTRING) + 1,
+				     &pkey, &target))
+	{
+	  fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
+	  ok++;
+	  continue;
+	}
+      if (-1 ==
+	  GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, result,
+				     strlen (TESTSTRING) + 1))
+	{
+	  fprintf (stderr, "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
+	  ok++;
+	  continue;
+	}
+      if (strncmp (TESTSTRING, result, strlen (TESTSTRING)) != 0)
+	{
+	  printf ("%s != %.*s - testEncryptDecrypt failed!\n", TESTSTRING,
+		  MAX_TESTVAL, result);
+	  ok++;
+	  continue;
+	}
     }
-    if (-1 ==
-        GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, result,
-                                   strlen (TESTSTRING) + 1))
-    {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
-      ok++;
-      continue;
-    }
-    if (strncmp (TESTSTRING, result, strlen (TESTSTRING)) != 0)
-    {
-      printf ("%s != %.*s - testEncryptDecrypt failed!\n", TESTSTRING,
-              MAX_TESTVAL, result);
-      ok++;
-      continue;
-    }
-  }
   printf ("%d RSA encrypt/decrypt operations %llums (%d failures)\n", ITER,
-          (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
+	  (unsigned long long)
+	  GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
   if (ok == 0)
     return GNUNET_OK;
   else
@@ -192,34 +194,34 @@ testSignVerify (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
   for (i = 0; i < ITER; i++)
-  {
-    fprintf (stderr, ".");
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
     {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
-      ok = GNUNET_SYSERR;
-      continue;
+      fprintf (stderr, ".");
+      if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
+	{
+	  fprintf (stderr, "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
+	  ok = GNUNET_SYSERR;
+	  continue;
+	}
+      if (GNUNET_SYSERR ==
+	  GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST, &purp,
+				    &sig, &pkey))
+	{
+	  printf ("GNUNET_CRYPTO_rsa_verify failed!\n");
+	  ok = GNUNET_SYSERR;
+	  continue;
+	}
+      if (GNUNET_SYSERR !=
+	  GNUNET_CRYPTO_rsa_verify
+	  (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN, &purp, &sig, &pkey))
+	{
+	  printf ("GNUNET_CRYPTO_rsa_verify failed to fail!\n");
+	  ok = GNUNET_SYSERR;
+	  continue;
+	}
     }
-    if (GNUNET_SYSERR ==
-        GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST, &purp, &sig,
-                                  &pkey))
-    {
-      printf ("GNUNET_CRYPTO_rsa_verify failed!\n");
-      ok = GNUNET_SYSERR;
-      continue;
-    }
-    if (GNUNET_SYSERR !=
-        GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-                                  &purp, &sig, &pkey))
-    {
-      printf ("GNUNET_CRYPTO_rsa_verify failed to fail!\n");
-      ok = GNUNET_SYSERR;
-      continue;
-    }
-  }
   printf ("%d RSA sign/verify operations %llums\n", ITER,
-          (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).rel_value);
+	  (unsigned long long)
+	  GNUNET_TIME_absolute_get_duration (start).rel_value);
   return ok;
 }
 
@@ -237,10 +239,10 @@ main (int argc, char *argv[])
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &in);
   hostkey = GNUNET_CRYPTO_rsa_key_create_from_hash (&in);
   if (hostkey == NULL)
-  {
-    printf ("\nGNUNET_CRYPTO_rsa_key_create_from_hash failed!\n");
-    return 1;
-  }
+    {
+      printf ("\nGNUNET_CRYPTO_rsa_key_create_from_hash failed!\n");
+      return 1;
+    }
   if (GNUNET_OK != testMultiKey ("foo"))
     failureCount++;
   if (GNUNET_OK != testMultiKey ("bar"))
@@ -252,9 +254,9 @@ main (int argc, char *argv[])
   GNUNET_CRYPTO_rsa_key_free (hostkey);
 
   if (failureCount != 0)
-  {
-    printf ("\n\n%d TESTS FAILED!\n\n", failureCount);
-    return -1;
-  }
+    {
+      printf ("\n\n%d TESTS FAILED!\n\n", failureCount);
+      return -1;
+    }
   return 0;
 }

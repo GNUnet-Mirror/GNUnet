@@ -33,7 +33,7 @@
 
 static void
 my_log (void *ctx, enum GNUNET_ErrorType kind, const char *component,
-        const char *date, const char *msg)
+	const char *date, const char *msg)
 {
   if (strncmp ("test-common-logging-dummy", component, 25) != 0)
     return;
@@ -87,6 +87,6 @@ main (int argc, char *argv[])
   pr2 (GNUNET_ERROR_TYPE_INFO, "INFO");
   pr2 (GNUNET_ERROR_TYPE_DEBUG, "DEBUG");
   return 0;
-} /* end of main */
+}				/* end of main */
 
 /* end of test_common_logging_dummy.c */

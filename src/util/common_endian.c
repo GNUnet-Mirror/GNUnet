@@ -27,6 +27,8 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
+
 unsigned long long
 GNUNET_ntohll (unsigned long long n)
 {

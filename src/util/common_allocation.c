@@ -27,6 +27,10 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
+
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+
 #ifndef INT_MAX
 #define INT_MAX 0x7FFFFFFF
 #endif
@@ -61,10 +65,10 @@ GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber)
   GNUNET_assert_at (size <= GNUNET_MAX_MALLOC_CHECKED, filename, linenumber);
   ret = GNUNET_xmalloc_unchecked_ (size, filename, linenumber);
   if (ret == NULL)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
-    abort ();
-  }
+    {
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "malloc");
+      abort ();
+    }
   return ret;
 }
 
@@ -82,7 +86,7 @@ GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber)
  */
 void *
 GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
-                 int linenumber)
+		 int linenumber)
 {
   void *ret;
 
@@ -97,10 +101,10 @@ GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
   GNUNET_assert_at (size < INT_MAX, filename, linenumber);
   ret = malloc (size);
   if (ret == NULL)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
-    abort ();
-  }
+    {
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "malloc");
+      abort ();
+    }
 #ifdef W32_MEM_LIMIT
   *((size_t *) ret) = size;
   ret = &((size_t *) ret)[1];
@@ -168,10 +172,10 @@ GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber)
 #endif
   ptr = realloc (ptr, n);
   if ((NULL == ptr) && (n > 0))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "realloc");
-    abort ();
-  }
+    {
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "realloc");
+      abort ();
+    }
 #ifdef W32_MEM_LIMIT
   ptr = &((size_t *) ptr)[1];
 #endif
@@ -229,7 +233,7 @@ GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber)
  */
 char *
 GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
-                  int linenumber)
+		  int linenumber)
 {
   char *res;
 
@@ -256,7 +260,7 @@ GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
  */
 void
 GNUNET_xgrow_ (void **old, size_t elementSize, unsigned int *oldCount,
-               unsigned int newCount, const char *filename, int linenumber)
+	       unsigned int newCount, const char *filename, int linenumber)
 {
   void *tmp;
   size_t size;
@@ -264,22 +268,22 @@ GNUNET_xgrow_ (void **old, size_t elementSize, unsigned int *oldCount,
   GNUNET_assert_at (INT_MAX / elementSize > newCount, filename, linenumber);
   size = newCount * elementSize;
   if (size == 0)
-  {
-    tmp = NULL;
-  }
+    {
+      tmp = NULL;
+    }
   else
-  {
-    tmp = GNUNET_xmalloc_ (size, filename, linenumber);
-    memset (tmp, 0, size);      /* client code should not rely on this, though... */
-    if (*oldCount > newCount)
-      *oldCount = newCount;     /* shrink is also allowed! */
-    memcpy (tmp, *old, elementSize * (*oldCount));
-  }
+    {
+      tmp = GNUNET_xmalloc_ (size, filename, linenumber);
+      memset (tmp, 0, size);	/* client code should not rely on this, though... */
+      if (*oldCount > newCount)
+	*oldCount = newCount;	/* shrink is also allowed! */
+      memcpy (tmp, *old, elementSize * (*oldCount));
+    }
 
   if (*old != NULL)
-  {
-    GNUNET_xfree_ (*old, filename, linenumber);
-  }
+    {
+      GNUNET_xfree_ (*old, filename, linenumber);
+    }
   *old = tmp;
   *oldCount = newCount;
 }

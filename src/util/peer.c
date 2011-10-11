@@ -27,6 +27,8 @@
 #include "platform.h"
 #include "gnunet_peer_lib.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
 
 struct PeerEntry
 {
@@ -105,7 +107,7 @@ GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid)
  * @return the interned identity.
  */
 GNUNET_PEER_Id
-GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
+GNUNET_PEER_intern (const struct GNUNET_PeerIdentity * pid)
 {
   GNUNET_PEER_Id ret;
   struct PeerEntry *e;
@@ -119,24 +121,24 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
   off = (long) GNUNET_CONTAINER_multihashmap_get (map, &pid->hashPubKey);
   e = (off == 0) ? NULL : &table[off];
   if (e != NULL)
-  {
-    GNUNET_assert (e->rc > 0);
-    e->rc++;
-    return e->pid;
-  }
+    {
+      GNUNET_assert (e->rc > 0);
+      e->rc++;
+      return e->pid;
+    }
   ret = free_list_start;
   if (ret == size)
-  {
-    GNUNET_array_grow (table, size, size + 16);
-    for (i = ret; i < size; i++)
-      table[i].pid = i + 1;
-  }
+    {
+      GNUNET_array_grow (table, size, size + 16);
+      for (i = ret; i < size; i++)
+	table[i].pid = i + 1;
+    }
   if (ret == 0)
-  {
-    table[0].pid = 0;
-    table[0].rc = 1;
-    ret = 1;
-  }
+    {
+      table[0].pid = 0;
+      table[0].rc = 1;
+      ret = 1;
+    }
   GNUNET_assert (ret < size);
   GNUNET_assert (table[ret].rc == 0);
   free_list_start = table[ret].pid;
@@ -144,9 +146,9 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
   table[ret].rc = 1;
   table[ret].pid = ret;
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_put (map, &pid->hashPubKey,
-                                                   (void *) (long) ret,
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+		GNUNET_CONTAINER_multihashmap_put (map, &pid->hashPubKey,
+						   (void *) (long) ret,
+						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return ret;
 }
 
@@ -158,7 +160,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
  * @param count size of the ids array
  */
 void
-GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count)
+GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id * ids, unsigned int count)
 {
   int i;
   GNUNET_PEER_Id id;
@@ -166,24 +168,25 @@ GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count)
   if (count == 0)
     return;
   for (i = count - 1; i >= 0; i--)
-  {
-    id = ids[i];
-    if (id == 0)
-      continue;
-    GNUNET_assert (id < size);
-    GNUNET_assert (table[id].rc > 0);
-    table[id].rc--;
-    if (table[id].rc == 0)
     {
-      GNUNET_break (GNUNET_OK ==
-                    GNUNET_CONTAINER_multihashmap_remove (map,
-                                                          &table[id].
-                                                          id.hashPubKey,
-                                                          (void *) (long) id));
-      table[id].pid = free_list_start;
-      free_list_start = id;
+      id = ids[i];
+      if (id == 0)
+	continue;
+      GNUNET_assert (id < size);
+      GNUNET_assert (table[id].rc > 0);
+      table[id].rc--;
+      if (table[id].rc == 0)
+	{
+	  GNUNET_break (GNUNET_OK ==
+			GNUNET_CONTAINER_multihashmap_remove (map,
+							      &table[id].
+							      id.hashPubKey,
+							      (void *) (long)
+							      id));
+	  table[id].pid = free_list_start;
+	  free_list_start = id;
+	}
     }
-  }
 }
 
 
@@ -203,15 +206,16 @@ GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta)
   GNUNET_assert ((delta >= 0) || (table[id].rc >= -delta));
   table[id].rc += delta;
   if (table[id].rc == 0)
-  {
-    GNUNET_break (GNUNET_OK ==
-                  GNUNET_CONTAINER_multihashmap_remove (map,
-                                                        &table[id].
-                                                        id.hashPubKey,
-                                                        (void *) (long) id));
-    table[id].pid = free_list_start;
-    free_list_start = id;
-  }
+    {
+      GNUNET_break (GNUNET_OK ==
+		    GNUNET_CONTAINER_multihashmap_remove (map,
+							  &table[id].
+							  id.hashPubKey,
+							  (void *) (long)
+							  id));
+      table[id].pid = free_list_start;
+      free_list_start = id;
+    }
 }
 
 
@@ -225,11 +229,11 @@ void
 GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid)
 {
   if (id == 0)
-  {
-    memset (pid, 0, sizeof (struct GNUNET_PeerIdentity));
-    GNUNET_break (0);
-    return;
-  }
+    {
+      memset (pid, 0, sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_break (0);
+      return;
+    }
   GNUNET_assert (id < size);
   GNUNET_assert (table[id].rc > 0);
   *pid = table[id].id;

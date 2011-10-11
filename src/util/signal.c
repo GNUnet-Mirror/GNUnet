@@ -28,6 +28,9 @@
 #include "gnunet_common.h"
 #include "gnunet_signal_lib.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
+
 struct GNUNET_SIGNAL_Context
 {
   int sig;
@@ -60,7 +63,7 @@ GNUNET_SIGNAL_handler_install (int signum, GNUNET_SIGNAL_Handler handler)
   sig.sa_handler = (void *) handler;
   sigemptyset (&sig.sa_mask);
 #ifdef SA_INTERRUPT
-  sig.sa_flags = SA_INTERRUPT;  /* SunOS */
+  sig.sa_flags = SA_INTERRUPT;	/* SunOS */
 #else
   sig.sa_flags = SA_RESTART;
 #endif
@@ -69,15 +72,15 @@ GNUNET_SIGNAL_handler_install (int signum, GNUNET_SIGNAL_Handler handler)
   if (signum == GNUNET_SIGCHLD)
     w32_sigchld_handler = handler;
   else
-  {
-    __p_sig_fn_t sigret = signal (signum, (__p_sig_fn_t) handler);
-
-    if (sigret == SIG_ERR)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("signal (%d, %p) returned %d.\n"), signum, handler, sigret);
+      __p_sig_fn_t sigret = signal (signum, (__p_sig_fn_t) handler);
+
+      if (sigret == SIG_ERR)
+	{
+	  LOG (GNUNET_ERROR_TYPE_WARNING,
+	       _("signal (%d, %p) returned %d.\n"), signum, handler, sigret);
+	}
     }
-  }
 #endif
   return ret;
 }

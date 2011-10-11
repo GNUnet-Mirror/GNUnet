@@ -52,38 +52,41 @@ testMap (int i)
   CHECK (0 == GNUNET_CONTAINER_multihashmap_remove_all (m, &k1));
   CHECK (0 == GNUNET_CONTAINER_multihashmap_size (m));
   CHECK (0 == GNUNET_CONTAINER_multihashmap_iterate (m, NULL, NULL));
-  CHECK (0 == GNUNET_CONTAINER_multihashmap_get_multiple (m, &k1, NULL, NULL));
+  CHECK (0 ==
+	 GNUNET_CONTAINER_multihashmap_get_multiple (m, &k1, NULL, NULL));
 
   CHECK (GNUNET_OK ==
-         GNUNET_CONTAINER_multihashmap_put (m, &k1, "v1",
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
+	 GNUNET_CONTAINER_multihashmap_put (m, &k1, "v1",
+					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
   CHECK (1 == GNUNET_CONTAINER_multihashmap_size (m));
   ret = GNUNET_CONTAINER_multihashmap_get (m, &k1);
   GNUNET_assert (ret != NULL);
   CHECK (0 == strcmp ("v1", ret));
   CHECK (GNUNET_NO ==
-         GNUNET_CONTAINER_multihashmap_put (m, &k1, "v1",
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
+	 GNUNET_CONTAINER_multihashmap_put (m, &k1, "v1",
+					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
   CHECK (1 == GNUNET_CONTAINER_multihashmap_size (m));
   CHECK (GNUNET_OK ==
-         GNUNET_CONTAINER_multihashmap_put (m, &k1, "v2",
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+	 GNUNET_CONTAINER_multihashmap_put (m, &k1, "v2",
+					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   CHECK (GNUNET_OK ==
-         GNUNET_CONTAINER_multihashmap_put (m, &k1, "v3",
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+	 GNUNET_CONTAINER_multihashmap_put (m, &k1, "v3",
+					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   CHECK (3 == GNUNET_CONTAINER_multihashmap_size (m));
   CHECK (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove (m, &k1, "v3"));
   CHECK (2 == GNUNET_CONTAINER_multihashmap_size (m));
   CHECK (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (m, &k1));
   CHECK (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (m, &k2));
-  CHECK (2 == GNUNET_CONTAINER_multihashmap_get_multiple (m, &k1, NULL, NULL));
-  CHECK (0 == GNUNET_CONTAINER_multihashmap_get_multiple (m, &k2, NULL, NULL));
+  CHECK (2 ==
+	 GNUNET_CONTAINER_multihashmap_get_multiple (m, &k1, NULL, NULL));
+  CHECK (0 ==
+	 GNUNET_CONTAINER_multihashmap_get_multiple (m, &k2, NULL, NULL));
   CHECK (2 == GNUNET_CONTAINER_multihashmap_iterate (m, NULL, NULL));
   CHECK (2 == GNUNET_CONTAINER_multihashmap_remove_all (m, &k1));
   for (j = 0; j < 1024; j++)
     CHECK (GNUNET_OK ==
-           GNUNET_CONTAINER_multihashmap_put (m, &k1, "v2",
-                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+	   GNUNET_CONTAINER_multihashmap_put (m, &k1, "v2",
+					      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   GNUNET_CONTAINER_multihashmap_destroy (m);
   return 0;
 }

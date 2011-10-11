@@ -58,7 +58,7 @@ send_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
-         const struct GNUNET_MessageHeader *message)
+	 const struct GNUNET_MessageHeader *message)
 {
   void *addr;
   size_t addrlen;
@@ -66,7 +66,8 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
   struct sockaddr_in *have;
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_SERVER_client_get_address (argclient, &addr, &addrlen));
+		 GNUNET_SERVER_client_get_address (argclient, &addr,
+						   &addrlen));
 
   GNUNET_assert (addrlen == sizeof (struct sockaddr_in));
   have = addr;
@@ -80,21 +81,21 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
   GNUNET_assert (0 == memcmp (&sa, addr, addrlen));
   GNUNET_free (addr);
   switch (ok)
-  {
-  case 2:
-    ok++;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_MILLISECONDS, 50),
-                                  &send_done, argclient);
-    break;
-  case 4:
-    ok++;
-    GNUNET_CLIENT_disconnect (client, GNUNET_YES);
-    GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
-    break;
-  default:
-    GNUNET_assert (0);
-  }
+    {
+    case 2:
+      ok++;
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+				    (GNUNET_TIME_UNIT_MILLISECONDS, 50),
+				    &send_done, argclient);
+      break;
+    case 4:
+      ok++;
+      GNUNET_CLIENT_disconnect (client, GNUNET_YES);
+      GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
+      break;
+    default:
+      GNUNET_assert (0);
+    }
 
 }
 
@@ -169,24 +170,25 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
   server =
-      GNUNET_SERVER_create (NULL, NULL, sap, slens,
-                            GNUNET_TIME_relative_multiply
-                            (GNUNET_TIME_UNIT_MILLISECONDS, 250), GNUNET_NO);
+    GNUNET_SERVER_create (NULL, NULL, sap, slens,
+			  GNUNET_TIME_relative_multiply
+			  (GNUNET_TIME_UNIT_MILLISECONDS, 250), GNUNET_NO);
   GNUNET_assert (server != NULL);
   handlers[0].callback_cls = cls;
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &notify_disconnect, cls);
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_number (cfg, "test", "PORT", PORT);
-  GNUNET_CONFIGURATION_set_value_string (cfg, "test", "HOSTNAME", "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, "test", "HOSTNAME",
+					 "localhost");
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
-                                         "localhost");
+					 "localhost");
   client = GNUNET_CLIENT_connect ("test", cfg);
   GNUNET_assert (client != NULL);
   GNUNET_CLIENT_notify_transmit_ready (client, 256,
-                                       GNUNET_TIME_relative_multiply
-                                       (GNUNET_TIME_UNIT_MILLISECONDS, 250),
-                                       GNUNET_NO, &notify_ready, NULL);
+				       GNUNET_TIME_relative_multiply
+				       (GNUNET_TIME_UNIT_MILLISECONDS, 250),
+				       GNUNET_NO, &notify_ready, NULL);
 }
 
 
@@ -211,11 +213,11 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test_server_with_client",
 #if VERBOSE
-                    "DEBUG",
+		    "DEBUG",
 #else
-                    "WARNING",
+		    "WARNING",
 #endif
-                    NULL);
+		    NULL);
   ret += check ();
 
   return ret;

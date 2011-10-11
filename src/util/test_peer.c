@@ -43,13 +43,13 @@ generatePeerIdList ()
   int i;
 
   for (i = 0; i < NUMBER_OF_PEERS; i++)
-  {
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
-                                      &pidArr[i].hashPubKey);
+    {
+      GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
+					&pidArr[i].hashPubKey);
 #if DEBUG
-    printf ("Peer %d: %s\n", i, GNUNET_i2s (&pidArr[i]));
+      printf ("Peer %d: %s\n", i, GNUNET_i2s (&pidArr[i]));
 #endif
-  }
+    }
 }
 
 
@@ -65,25 +65,27 @@ check ()
   GNUNET_assert (0 == GNUNET_PEER_intern (NULL));
   /* Insert Peers into PeerEntry table and hashmap */
   for (i = 0; i < NUMBER_OF_PEERS; i++)
-  {
-    pid = GNUNET_PEER_intern (&pidArr[i]);
-    if (pid != (i + 1))
     {
-      fprintf (stderr, "Unexpected Peer ID returned by intern function\n");
-      return 1;
+      pid = GNUNET_PEER_intern (&pidArr[i]);
+      if (pid != (i + 1))
+	{
+	  fprintf (stderr,
+		   "Unexpected Peer ID returned by intern function\n");
+	  return 1;
+	}
     }
-  }
 
   /* Referencing the first 3 peers once again */
   for (i = 0; i < 3; i++)
-  {
-    pid = GNUNET_PEER_intern (&pidArr[i]);
-    if (pid != (i + 1))
     {
-      fprintf (stderr, "Unexpected Peer ID returned by intern function\n");
-      return 1;
+      pid = GNUNET_PEER_intern (&pidArr[i]);
+      if (pid != (i + 1))
+	{
+	  fprintf (stderr,
+		   "Unexpected Peer ID returned by intern function\n");
+	  return 1;
+	}
     }
-  }
 
   /* Dereferencing the first 3 peers once [decrementing their reference count] */
   GNUNET_PEER_decrement_rcs (ids, 3);
@@ -128,11 +130,11 @@ main ()
 
   GNUNET_log_setup ("test-peer", "ERROR", NULL);
   for (i = 0; i < 1; i++)
-  {
-    generatePeerIdList ();
-    if (0 != check ())
-      return 1;
-  }
+    {
+      generatePeerIdList ();
+      if (0 != check ())
+	return 1;
+    }
   return 0;
 }
 

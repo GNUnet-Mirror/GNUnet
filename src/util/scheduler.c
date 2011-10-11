@@ -34,6 +34,10 @@
 #include "execinfo.h"
 
 
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+
 /**
  * Use lsof to generate file descriptor reports on select error?
  * (turn off for stable releases).
@@ -523,10 +527,9 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
   while (pos != NULL)
     {
 #if DEBUG_TASKS
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "util",
-		       "Checking readiness of task: %llu / %p\n", pos->id,
-		       pos->callback_cls);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+	   "Checking readiness of task: %llu / %p\n", pos->id,
+	   pos->callback_cls);
 #endif
       next = pos->next;
       if (GNUNET_YES == is_ready (pos, now, rs, ws))
@@ -656,12 +659,10 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
       if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value >
 	  DELAY_THRESHOLD.rel_value)
 	{
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-			   "util",
-			   "Task %llu took %llums to be scheduled\n", pos->id,
-			   (unsigned long long)
-			   GNUNET_TIME_absolute_get_duration
-			   (pos->start_time).rel_value);
+	  LOG (GNUNET_ERROR_TYPE_ERROR,
+	       "Task %llu took %llums to be scheduled\n", pos->id,
+	       (unsigned long long)
+	       GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value);
 	}
 #endif
       tc.reason = pos->reason;
@@ -678,20 +679,17 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
 	  (!GNUNET_NETWORK_fdset_test_native (ws, pos->write_fd)))
 	abort ();		// added to ready in previous select loop!
 #if DEBUG_TASKS
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "util",
-		       "Running task: %llu / %p\n", pos->id,
-		       pos->callback_cls);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+	   "Running task: %llu / %p\n", pos->id, pos->callback_cls);
 #endif
       pos->callback (pos->callback_cls, &tc);
 #if EXECINFO
       int i;
 
       for (i = 0; i < pos->num_backtrace_strings; i++)
-	GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-			 "util",
-			 "Task %llu trace %d: %s\n", pos->id,
-			 i, pos->backtrace_strings[i]);
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+	     "Task %llu trace %d: %s\n", pos->id,
+	     i, pos->backtrace_strings[i]);
 #endif
       active_task = NULL;
       destroy_task (pos);
@@ -844,8 +842,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 	  if (errno == EINTR)
 	    continue;
 
-	  GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_ERROR, "util",
-				    "select");
+	  LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "select");
 #ifndef MINGW
 #if USE_LSOF
 	  char lsof[512];
@@ -854,8 +851,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 	  (void) close (1);
 	  (void) dup2 (2, 1);
 	  if (0 != system (lsof))
-	    GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "util",
-				      "system");
+	    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "system");
 #endif
 #endif
 	  abort ();
@@ -863,8 +859,8 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 	}
       if ((ret == 0) && (timeout.rel_value == 0) && (busy_wait_warning > 16))
 	{
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-			   "util", _("Looks like we're busy waiting...\n"));
+	  LOG (GNUNET_ERROR_TYPE_WARNING,
+	       _("Looks like we're busy waiting...\n"));
 	  sleep (1);		/* mitigate */
 	}
       check_ready (rs, ws);
@@ -994,10 +990,9 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
       p++;
       if (p >= GNUNET_SCHEDULER_PRIORITY_COUNT)
 	{
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-			   "util",
-			   _("Attempt to cancel dead task %llu!\n"),
-			   (unsigned long long) task);
+	  LOG (GNUNET_ERROR_TYPE_ERROR,
+	       _("Attempt to cancel dead task %llu!\n"),
+	       (unsigned long long) task);
 	  GNUNET_assert (0);
 	}
       prev = NULL;
@@ -1037,9 +1032,8 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
     }
   ret = t->callback_cls;
 #if DEBUG_TASKS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "util",
-		   "Canceling task: %llu / %p\n", task, t->callback_cls);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Canceling task: %llu / %p\n", task, t->callback_cls);
 #endif
   destroy_task (t);
   return ret;
@@ -1086,10 +1080,8 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
   t->priority = current_priority;
   t->lifeness = current_lifeness;
 #if DEBUG_TASKS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "util",
-		   "Adding continuation task: %llu / %p\n",
-		   t->id, t->callback_cls);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding continuation task: %llu / %p\n", t->id, t->callback_cls);
 #endif
   queue_ready_task (t);
 }
@@ -1220,18 +1212,15 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
   pending_timeout_last = t;
 
 #if DEBUG_TASKS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "util",
-		   "Adding task: %llu / %p\n", t->id, t->callback_cls);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding task: %llu / %p\n", t->id, t->callback_cls);
 #endif
 #if EXECINFO
   int i;
 
   for (i = 0; i < t->num_backtrace_strings; i++)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		     "util",
-		     "Task %llu trace %d: %s\n", t->id, i,
-		     t->backtrace_strings[i]);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Task %llu trace %d: %s\n", t->id, i, t->backtrace_strings[i]);
 #endif
   return t->id;
 
@@ -1352,14 +1341,14 @@ add_without_sets (struct GNUNET_TIME_Relative delay, int rfd, int wfd,
 
       if ((flags == -1) && (errno == EBADF))
 	{
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-			   "util", "Got invalid file descriptor %d!\n", rfd);
+	  LOG (GNUNET_ERROR_TYPE_ERROR,
+	       "Got invalid file descriptor %d!\n", rfd);
 #if EXECINFO
 	  int i;
 
 	  for (i = 0; i < t->num_backtrace_strings; i++)
-	    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-			     "util", "Trace: %s\n", t->backtrace_strings[i]);
+	    LOG (GNUNET_ERROR_TYPE_DEBUG,
+		 "Trace: %s\n", t->backtrace_strings[i]);
 #endif
 	  GNUNET_assert (0);
 	}
@@ -1370,14 +1359,14 @@ add_without_sets (struct GNUNET_TIME_Relative delay, int rfd, int wfd,
 
       if (flags == -1 && errno == EBADF)
 	{
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-			   "util", "Got invalid file descriptor %d!\n", wfd);
+	  LOG (GNUNET_ERROR_TYPE_ERROR,
+	       "Got invalid file descriptor %d!\n", wfd);
 #if EXECINFO
 	  int i;
 
 	  for (i = 0; i < t->num_backtrace_strings; i++)
-	    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-			     "util", "Trace: %s\n", t->backtrace_strings[i]);
+	    LOG (GNUNET_ERROR_TYPE_DEBUG,
+		 "Trace: %s\n", t->backtrace_strings[i]);
 #endif
 	  GNUNET_assert (0);
 	}
@@ -1398,17 +1387,15 @@ add_without_sets (struct GNUNET_TIME_Relative delay, int rfd, int wfd,
   pending = t;
   max_priority_added = GNUNET_MAX (max_priority_added, t->priority);
 #if DEBUG_TASKS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "util",
-		   "Adding task: %llu / %p\n", t->id, t->callback_cls);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding task: %llu / %p\n", t->id, t->callback_cls);
 #endif
 #if EXECINFO
   int i;
 
   for (i = 0; i < t->num_backtrace_strings; i++)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "util",
-		     "Task %llu trace %d: %s\n", t->id, i,
-		     t->backtrace_strings[i]);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Task %llu trace %d: %s\n", t->id, i, t->backtrace_strings[i]);
 #endif
   return t->id;
 }
@@ -1673,18 +1660,15 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   pending = t;
   max_priority_added = GNUNET_MAX (max_priority_added, t->priority);
 #if DEBUG_TASKS
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "util",
-		   "Adding task: %llu / %p\n", t->id, t->callback_cls);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding task: %llu / %p\n", t->id, t->callback_cls);
 #endif
 #if EXECINFO
   int i;
 
   for (i = 0; i < t->num_backtrace_strings; i++)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		     "util",
-		     "Task %llu trace %d: %s\n", t->id, i,
-		     t->backtrace_strings[i]);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Task %llu trace %d: %s\n", t->id, i, t->backtrace_strings[i]);
 #endif
   return t->id;
 }

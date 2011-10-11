@@ -62,10 +62,11 @@ open_listen_socket ()
   GNUNET_assert (desc != NULL);
   if (GNUNET_NETWORK_socket_setsockopt
       (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "setsockopt");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"setsockopt");
   GNUNET_assert (GNUNET_NETWORK_socket_bind
-                 (desc, (const struct sockaddr *) &sa,
-                  sizeof (sa)) == GNUNET_OK);
+		 (desc, (const struct sockaddr *) &sa,
+		  sizeof (sa)) == GNUNET_OK);
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
@@ -77,16 +78,16 @@ send_kilo (void *cls, size_t size, void *buf)
   int *ok = cls;
 
   if (size == 0)
-  {
+    {
 #if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got the desired timeout!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got the desired timeout!\n");
 #endif
-    GNUNET_assert (buf == NULL);
-    *ok = 0;
-    GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
-    GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
-    return 0;
-  }
+      GNUNET_assert (buf == NULL);
+      *ok = 0;
+      GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
+      GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
+      return 0;
+    }
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending kilo to fill buffer.\n");
 #endif
@@ -94,9 +95,9 @@ send_kilo (void *cls, size_t size, void *buf)
   memset (buf, 42, 1024);
 
   GNUNET_assert (NULL !=
-                 GNUNET_CONNECTION_notify_transmit_ready (csock, 1024,
-                                                          GNUNET_TIME_UNIT_SECONDS,
-                                                          &send_kilo, cls));
+		 GNUNET_CONNECTION_notify_transmit_ready (csock, 1024,
+							  GNUNET_TIME_UNIT_SECONDS,
+							  &send_kilo, cls));
   return 1024;
 }
 
@@ -111,9 +112,9 @@ task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   csock = GNUNET_CONNECTION_create_from_connect (cfg, "localhost", PORT);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
-                 GNUNET_CONNECTION_notify_transmit_ready (csock, 1024,
-                                                          GNUNET_TIME_UNIT_SECONDS,
-                                                          &send_kilo, cls));
+		 GNUNET_CONNECTION_notify_transmit_ready (csock, 1024,
+							  GNUNET_TIME_UNIT_SECONDS,
+							  &send_kilo, cls));
 }
 
 
@@ -129,7 +130,7 @@ check_timeout ()
   ok = 1;
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
-                                         "localhost");
+					 "localhost");
   GNUNET_SCHEDULER_run (&task_timeout, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
@@ -142,11 +143,11 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test_connection_timeout",
 #if VERBOSE
-                    "DEBUG",
+		    "DEBUG",
 #else
-                    "WARNING",
+		    "WARNING",
 #endif
-                    NULL);
+		    NULL);
   ret += check_timeout ();
   return ret;
 }

@@ -40,9 +40,9 @@ printWeakKey (struct GNUNET_CRYPTO_AesSessionKey *key)
   int i;
 
   for (i = 0; i < GNUNET_CRYPTO_AES_KEY_LENGTH; i++)
-  {
-    printf ("%x ", (int) (key->key[i]));
-  }
+    {
+      printf ("%x ", (int) (key->key[i]));
+    }
 }
 
 static int
@@ -55,7 +55,7 @@ testWeakKey ()
   struct GNUNET_CRYPTO_AesInitializationVector INITVALUE;
 
   memset (&INITVALUE, 42,
-          sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
+	  sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
   /* sorry, this is not a weak key -- I don't have
    * any at the moment! */
   weak_key.key[0] = (char) (0x4c);
@@ -92,31 +92,31 @@ testWeakKey ()
   weak_key.key[31] = (char) (0xaa);
   /* memset(&weak_key, 0, 32); */
   weak_key.crc32 =
-      htonl (GNUNET_CRYPTO_crc32_n (&weak_key, GNUNET_CRYPTO_AES_KEY_LENGTH));
+    htonl (GNUNET_CRYPTO_crc32_n (&weak_key, GNUNET_CRYPTO_AES_KEY_LENGTH));
 
   size =
-      GNUNET_CRYPTO_aes_encrypt (WEAK_KEY_TESTSTRING,
-                                 strlen (WEAK_KEY_TESTSTRING) + 1, &weak_key,
-                                 &INITVALUE, result);
+    GNUNET_CRYPTO_aes_encrypt (WEAK_KEY_TESTSTRING,
+			       strlen (WEAK_KEY_TESTSTRING) + 1, &weak_key,
+			       &INITVALUE, result);
 
   if (size == -1)
-  {
-    GNUNET_break (0);
-    return 1;
-  }
+    {
+      GNUNET_break (0);
+      return 1;
+    }
 
   size = GNUNET_CRYPTO_aes_decrypt (result, size, &weak_key, &INITVALUE, res);
 
   if ((strlen (WEAK_KEY_TESTSTRING) + 1) != size)
-  {
-    GNUNET_break (0);
-    return 1;
-  }
+    {
+      GNUNET_break (0);
+      return 1;
+    }
   if (0 != strcmp (res, WEAK_KEY_TESTSTRING))
-  {
-    GNUNET_break (0);
-    return 1;
-  }
+    {
+      GNUNET_break (0);
+      return 1;
+    }
   else
     return 0;
 }
@@ -133,41 +133,44 @@ getWeakKeys ()
 
   for (number_of_runs = 0; number_of_runs < MAX_WEAK_KEY_TRIALS;
        number_of_runs++)
-  {
-
-    if (number_of_runs % 1000 == 0)
-      fprintf (stderr, ".");
-    /*printf("Got to run number %d.\n", number_of_runs); */
-    GNUNET_CRYPTO_aes_create_session_key (&sessionkey);
-
-    rc = gcry_cipher_open (&handle, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CFB,
-                           0);
-
-    if (rc)
     {
-      printf ("testweakkey: gcry_cipher_open failed on trial %d. %s\n",
-              number_of_runs, gcry_strerror (rc));
-      continue;
+
+      if (number_of_runs % 1000 == 0)
+	fprintf (stderr, ".");
+      /*printf("Got to run number %d.\n", number_of_runs); */
+      GNUNET_CRYPTO_aes_create_session_key (&sessionkey);
+
+      rc =
+	gcry_cipher_open (&handle, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CFB,
+			  0);
+
+      if (rc)
+	{
+	  printf ("testweakkey: gcry_cipher_open failed on trial %d. %s\n",
+		  number_of_runs, gcry_strerror (rc));
+	  continue;
+	}
+
+      rc =
+	gcry_cipher_setkey (handle, &sessionkey,
+			    GNUNET_CRYPTO_AES_KEY_LENGTH);
+
+      if ((char) rc == GPG_ERR_WEAK_KEY)
+	{
+	  printf ("\nWeak key (in hex): ");
+	  printWeakKey (&sessionkey);
+	  printf ("\n");
+	  number_of_weak_keys++;
+	}
+      else if (rc)
+	{
+	  printf ("\nUnexpected error generating keys. Error is %s\n",
+		  gcry_strerror (rc));
+	}
+
+      gcry_cipher_close (handle);
+
     }
-
-    rc = gcry_cipher_setkey (handle, &sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH);
-
-    if ((char) rc == GPG_ERR_WEAK_KEY)
-    {
-      printf ("\nWeak key (in hex): ");
-      printWeakKey (&sessionkey);
-      printf ("\n");
-      number_of_weak_keys++;
-    }
-    else if (rc)
-    {
-      printf ("\nUnexpected error generating keys. Error is %s\n",
-              gcry_strerror (rc));
-    }
-
-    gcry_cipher_close (handle);
-
-  }
 
   return number_of_weak_keys;
 }
@@ -180,19 +183,19 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-crypto-aes-weak", "WARNING", NULL);
   GNUNET_CRYPTO_random_disable_entropy_gathering ();
   if (GENERATE_WEAK_KEYS)
-  {
-    weak_keys = getWeakKeys ();
+    {
+      weak_keys = getWeakKeys ();
 
-    if (weak_keys == 0)
-    {
-      printf ("\nNo weak keys found in %d runs.\n", MAX_WEAK_KEY_TRIALS);
+      if (weak_keys == 0)
+	{
+	  printf ("\nNo weak keys found in %d runs.\n", MAX_WEAK_KEY_TRIALS);
+	}
+      else
+	{
+	  printf ("\n%d weak keys found in %d runs.\n", weak_keys,
+		  MAX_WEAK_KEY_TRIALS);
+	}
     }
-    else
-    {
-      printf ("\n%d weak keys found in %d runs.\n", weak_keys,
-              MAX_WEAK_KEY_TRIALS);
-    }
-  }
 
   if (testWeakKey () != 0)
     return -1;

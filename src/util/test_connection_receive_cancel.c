@@ -65,10 +65,11 @@ open_listen_socket ()
   GNUNET_assert (desc != NULL);
   if (GNUNET_NETWORK_socket_setsockopt
       (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "setsockopt");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"setsockopt");
   GNUNET_assert (GNUNET_NETWORK_socket_bind
-                 (desc, (const struct sockaddr *) &sa,
-                  sizeof (sa)) == GNUNET_OK);
+		 (desc, (const struct sockaddr *) &sa,
+		  sizeof (sa)) == GNUNET_OK);
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
@@ -77,7 +78,7 @@ open_listen_socket ()
 
 static void
 dead_receive (void *cls, const void *buf, size_t available,
-              const struct sockaddr *addr, socklen_t addrlen, int errCode)
+	      const struct sockaddr *addr, socklen_t addrlen, int errCode)
 {
   GNUNET_assert (0);
 }
@@ -92,8 +93,9 @@ run_accept_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
   GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
   GNUNET_CONNECTION_receive (asock, 1024,
-                             GNUNET_TIME_relative_multiply
-                             (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive, cls);
+			     GNUNET_TIME_relative_multiply
+			     (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive,
+			     cls);
 }
 
 
@@ -119,9 +121,9 @@ task_receive_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   csock = GNUNET_CONNECTION_create_from_connect (cfg, "localhost", PORT);
   GNUNET_assert (csock != NULL);
   GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, ls,
-                                 &run_accept_cancel, cls);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &receive_cancel_task,
-                                cls);
+				 &run_accept_cancel, cls);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				&receive_cancel_task, cls);
 }
 
 
@@ -137,7 +139,7 @@ check_receive_cancel ()
   ok = 1;
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
-                                         "localhost");
+					 "localhost");
   GNUNET_SCHEDULER_run (&task_receive_cancel, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;

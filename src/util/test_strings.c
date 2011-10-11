@@ -50,18 +50,18 @@ check ()
   WANT (buf, b);
   sprintf (buf, "4 %s", _( /* time unit */ "ms"));
   b = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
-                                              (GNUNET_TIME_UNIT_MILLISECONDS,
-                                               4));
+					      (GNUNET_TIME_UNIT_MILLISECONDS,
+					       4));
   WANT (buf, b);
   sprintf (buf, "7 %s", _( /* time unit */ "s"));
   b = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
-                                              (GNUNET_TIME_UNIT_MILLISECONDS,
-                                               7 * 1000));
+					      (GNUNET_TIME_UNIT_MILLISECONDS,
+					       7 * 1000));
   WANT (buf, b);
   sprintf (buf, "7 %s", _( /* time unit */ "h"));
   b = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
-                                              (GNUNET_TIME_UNIT_MILLISECONDS,
-                                               7 * 60 * 60 * 1000));
+					      (GNUNET_TIME_UNIT_MILLISECONDS,
+					       7 * 60 * 60 * 1000));
   WANT (buf, b);
 #ifndef MINGW
   hdir = getenv ("HOME");
@@ -88,12 +88,12 @@ check ()
    * where the details of the day and hour depend on the timezone;
    * however, the "0:05 19" should always be there; hence: */
   if (NULL == strstr (r, "0:05 19"))
-  {
-    fprintf (stderr, "Got %s\n", r);
-    GNUNET_break (0);
-    GNUNET_free (r);
-    return 1;
-  }
+    {
+      fprintf (stderr, "Got %s\n", r);
+      GNUNET_break (0);
+      GNUNET_free (r);
+      return 1;
+    }
   GNUNET_free (r);
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "ASCII");
   WANT ("TEST", b);

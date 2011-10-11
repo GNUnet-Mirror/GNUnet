@@ -57,10 +57,10 @@ task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   csock = GNUNET_CONNECTION_create_from_connect (cfg, "localhost", PORT);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=
-                 GNUNET_CONNECTION_notify_transmit_ready (csock, 1024,
-                                                          GNUNET_TIME_UNIT_SECONDS,
-                                                          &handle_timeout,
-                                                          cls));
+		 GNUNET_CONNECTION_notify_transmit_ready (csock, 1024,
+							  GNUNET_TIME_UNIT_SECONDS,
+							  &handle_timeout,
+							  cls));
 }
 
 
@@ -76,7 +76,7 @@ check_timeout ()
   ok = 1;
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
-                                         "localhost");
+					 "localhost");
   GNUNET_SCHEDULER_run (&task_timeout, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
@@ -89,11 +89,11 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test_connection_timeout_no_connect",
 #if VERBOSE
-                    "DEBUG",
+		    "DEBUG",
 #else
-                    "WARNING",
+		    "WARNING",
 #endif
-                    NULL);
+		    NULL);
   ret += check_timeout ();
   return ret;
 }

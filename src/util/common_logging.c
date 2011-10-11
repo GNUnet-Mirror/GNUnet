@@ -251,6 +251,7 @@ get_type (const char *log)
     return GNUNET_ERROR_TYPE_NONE;
   return GNUNET_ERROR_TYPE_INVALID;
 }
+
 #if !defined(GNUNET_CULL_LOGGING)
 /**
  * Utility function - reallocates logdefs array to be twice as large.
@@ -258,8 +259,8 @@ get_type (const char *log)
 static void
 resize_logdefs ()
 {
-  logdefs_size  = (logdefs_size + 1) * 2;
-  logdefs = GNUNET_realloc (logdefs, logdefs_size * sizeof (struct LogDef));  
+  logdefs_size = (logdefs_size + 1) * 2;
+  logdefs = GNUNET_realloc (logdefs, logdefs_size * sizeof (struct LogDef));
 }
 
 /**
@@ -274,7 +275,8 @@ resize_logdefs ()
  * @param force see struct LogDef
  */
 static void
-add_definition (char *component, char *file, char *function, int from_line, int to_line, int level, int force)
+add_definition (char *component, char *file, char *function, int from_line,
+		int to_line, int level, int force)
 {
   if (logdefs_size == logdefs_len)
     resize_logdefs ();
@@ -283,10 +285,10 @@ add_definition (char *component, char *file, char *function, int from_line, int 
   if (strlen (component) > 0 && component[0] != '*')
     n.component = strdup (component);
   if (strlen (file) > 0 && file[0] != '*')
-  {
-    n.file = strdup (file);
-    n.strlen_file = strlen (file);
-  }
+    {
+      n.file = strdup (file);
+      n.strlen_file = strlen (file);
+    }
   if (strlen (function) > 0 && function[0] != '*')
     n.function = strdup (function);
   n.from_line = from_line;
@@ -310,8 +312,9 @@ add_definition (char *component, char *file, char *function, int from_line, int 
  * @param line line at which the call is made, usually __LINE__
  * @return 0 to disallow the call, 1 to allow it
  */
-int 
-GNUNET_get_log_call_status (int caller_level, const char *comp, const char *file, const char *function, int line)
+int
+GNUNET_get_log_call_status (int caller_level, const char *comp,
+			    const char *file, const char *function, int line)
 {
   struct LogDef *ld;
   int i;
@@ -332,21 +335,20 @@ GNUNET_get_log_call_status (int caller_level, const char *comp, const char *file
   force_only = min_level >= 0;
   strlen_file = strlen (file);
   for (i = 0; i < logdefs_len; i++)
-  {
-    ld = &logdefs[i];
-    if ((!force_only || ld->force) &&
-        (line >= ld->from_line && line <= ld->to_line) &&
-        (ld->component == NULL || strcmp (comp, ld->component) == 0) &&
-        (ld->file == NULL ||
-         (ld->strlen_file <= strlen_file &&
-          strcmp (&file[strlen_file - ld->strlen_file], ld->file) == 0)) &&
-        (ld->function == NULL || strcmp (function, ld->function) == 0)
-       )
     {
-      /* We're finished */
-      return caller_level <= ld->level;
+      ld = &logdefs[i];
+      if ((!force_only || ld->force) &&
+	  (line >= ld->from_line && line <= ld->to_line) &&
+	  (ld->component == NULL || strcmp (comp, ld->component) == 0) &&
+	  (ld->file == NULL ||
+	   (ld->strlen_file <= strlen_file &&
+	    strcmp (&file[strlen_file - ld->strlen_file], ld->file) == 0)) &&
+	  (ld->function == NULL || strcmp (function, ld->function) == 0))
+	{
+	  /* We're finished */
+	  return caller_level <= ld->level;
+	}
     }
-  }
   /* No matches - use global level, if defined */
   if (min_level >= 0)
     return caller_level <= min_level;
@@ -404,83 +406,85 @@ parse_definitions (const char *constname, int force)
   from_line = 0;
   to_line = INT_MAX;
   for (p = def, state = 0, start = def; keep_looking; p++)
-  {
-    switch (p[0])
     {
-    case ';': /* found a field separator */
-      p[0] = '\0';
-      switch (state)
-      {
-      case 0: /* within a component name */
-        comp = start;
-        break;
-      case 1: /* within a file name */
-        file = start;
-        break;
-      case 2: /* within a function name */
-        /* after a file name there must be a function name */
-        function = start;
-        break;
-      case 3: /* within a from-to line range */
-        if (strlen (start) > 0)
-        {
-          errno = 0;
-          from_line = strtol (start, &t, 10);
-          if (errno != 0 || from_line < 0)
-          {
-            free (def);
-            return counter;
-          }
-          if (t < p && t[0] == '-')
-          {
-            errno = 0;
-            start = t + 1;
-            to_line = strtol (start, &t, 10);
-            if (errno != 0 || to_line < 0 || t != p)
-            {
-              free (def);
-              return counter;
-            }
-          }
-          else /* one number means "match this line only" */
-            to_line = from_line;
-        }
-        else /* default to 0-max */
-        {
-          from_line = 0;
-          to_line = INT_MAX;
-        }
-        break;
-      }
-      start = p + 1;
-      state += 1;
-      break;
-    case '\0': /* found EOL */
-      keep_looking = 0;
-      /* fall through to '/' */
-    case '/': /* found a definition separator */
-      switch (state)
-      {
-      case 4: /* within a log level */
-        p[0] = '\0';
-        state = 0;
-        level = get_type ((const char *) start);
-        if (level == GNUNET_ERROR_TYPE_INVALID || level == GNUNET_ERROR_TYPE_UNSPECIFIED)
-        {
-          free (def);
-          return counter;
-        }
-        add_definition (comp, file, function, from_line, to_line, level, force);
-        counter += 1;
-        start = p + 1;
-        break;
-      default:
-        break;
-      }
-    default:
-      break;
+      switch (p[0])
+	{
+	case ';':		/* found a field separator */
+	  p[0] = '\0';
+	  switch (state)
+	    {
+	    case 0:		/* within a component name */
+	      comp = start;
+	      break;
+	    case 1:		/* within a file name */
+	      file = start;
+	      break;
+	    case 2:		/* within a function name */
+	      /* after a file name there must be a function name */
+	      function = start;
+	      break;
+	    case 3:		/* within a from-to line range */
+	      if (strlen (start) > 0)
+		{
+		  errno = 0;
+		  from_line = strtol (start, &t, 10);
+		  if (errno != 0 || from_line < 0)
+		    {
+		      free (def);
+		      return counter;
+		    }
+		  if (t < p && t[0] == '-')
+		    {
+		      errno = 0;
+		      start = t + 1;
+		      to_line = strtol (start, &t, 10);
+		      if (errno != 0 || to_line < 0 || t != p)
+			{
+			  free (def);
+			  return counter;
+			}
+		    }
+		  else		/* one number means "match this line only" */
+		    to_line = from_line;
+		}
+	      else		/* default to 0-max */
+		{
+		  from_line = 0;
+		  to_line = INT_MAX;
+		}
+	      break;
+	    }
+	  start = p + 1;
+	  state += 1;
+	  break;
+	case '\0':		/* found EOL */
+	  keep_looking = 0;
+	  /* fall through to '/' */
+	case '/':		/* found a definition separator */
+	  switch (state)
+	    {
+	    case 4:		/* within a log level */
+	      p[0] = '\0';
+	      state = 0;
+	      level = get_type ((const char *) start);
+	      if (level == GNUNET_ERROR_TYPE_INVALID
+		  || level == GNUNET_ERROR_TYPE_UNSPECIFIED)
+		{
+		  free (def);
+		  return counter;
+		}
+	      add_definition (comp, file, function, from_line, to_line, level,
+			      force);
+	      counter += 1;
+	      start = p + 1;
+	      break;
+	    default:
+	      break;
+	    }
+	default:
+	  break;
+	}
     }
-  }
   free (def);
   return counter;
 }
@@ -495,7 +499,8 @@ parse_all_definitions ()
     parse_definitions ("GNUNET_LOG", 0);
   gnunet_log_parsed = GNUNET_YES;
   if (gnunet_force_log_parsed == GNUNET_NO)
-    gnunet_force_log_present = parse_definitions ("GNUNET_FORCE_LOG", 1) > 0 ? GNUNET_YES : GNUNET_NO;
+    gnunet_force_log_present =
+      parse_definitions ("GNUNET_FORCE_LOG", 1) > 0 ? GNUNET_YES : GNUNET_NO;
   gnunet_force_log_parsed = GNUNET_YES;
 }
 #endif
@@ -539,15 +544,16 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
   altlog = FOPEN (fn, "a");
   if (altlog == NULL)
-  {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
-    if (dirwarn)
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Failed to create or access directory for log file `%s'\n"),
-                  fn);
-    GNUNET_free (fn);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+      if (dirwarn)
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _
+		    ("Failed to create or access directory for log file `%s'\n"),
+		    fn);
+      GNUNET_free (fn);
+      return GNUNET_SYSERR;
+    }
   GNUNET_free (fn);
   if (GNUNET_stderr != NULL)
     fclose (GNUNET_stderr);
@@ -588,11 +594,11 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
   prev = NULL;
   pos = loggers;
   while ((pos != NULL) &&
-         ((pos->logger != logger) || (pos->logger_cls != logger_cls)))
-  {
-    prev = pos;
-    pos = pos->next;
-  }
+	 ((pos->logger != logger) || (pos->logger_cls != logger_cls)))
+    {
+      prev = pos;
+      pos = pos->next;
+    }
   GNUNET_assert (pos != NULL);
   if (prev == NULL)
     loggers = pos->next;
@@ -612,22 +618,22 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
  */
 static void
 output_message (enum GNUNET_ErrorType kind, const char *comp,
-                const char *datestr, const char *msg)
+		const char *datestr, const char *msg)
 {
   struct CustomLogger *pos;
 
   if (GNUNET_stderr != NULL)
-  {
-    fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp,
-             GNUNET_error_type_to_string (kind), msg);
-    fflush (GNUNET_stderr);
-  }
+    {
+      fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp,
+	       GNUNET_error_type_to_string (kind), msg);
+      fflush (GNUNET_stderr);
+    }
   pos = loggers;
   while (pos != NULL)
-  {
-    pos->logger (pos->logger_cls, kind, comp, datestr, msg);
-    pos = pos->next;
-  }
+    {
+      pos->logger (pos->logger_cls, kind, comp, datestr, msg);
+      pos = pos->next;
+    }
 }
 
 
@@ -653,15 +659,16 @@ flush_bulk (const char *datestr)
   else if (last != last_bulk)
     last--;
   if (last[0] == '\n')
-  {
-    rev = 1;
-    last[0] = '\0';
-  }
-  ft = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration
-                                               (last_bulk_time));
+    {
+      rev = 1;
+      last[0] = '\0';
+    }
+  ft =
+    GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration
+					    (last_bulk_time));
   snprintf (msg, sizeof (msg),
-            _("Message `%.*s' repeated %u times in the last %s\n"),
-            BULK_TRACK_SIZE, last_bulk, last_bulk_repeat, ft);
+	    _("Message `%.*s' repeated %u times in the last %s\n"),
+	    BULK_TRACK_SIZE, last_bulk, last_bulk_repeat, ft);
   GNUNET_free (ft);
   if (rev == 1)
     last[0] = '\n';
@@ -681,14 +688,14 @@ void
 GNUNET_log_skip (unsigned int n, int check_reset)
 {
   if (n == 0)
-  {
-    int ok;
+    {
+      int ok;
 
-    ok = (0 == skip_log);
-    skip_log = 0;
-    if (check_reset)
-      GNUNET_assert (ok);
-  }
+      ok = (0 == skip_log);
+      skip_log = 0;
+      if (check_reset)
+	GNUNET_assert (ok);
+    }
   else
     skip_log += n;
 }
@@ -720,40 +727,42 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
   va_end (vacp);
   buf = malloc (size);
   if (buf == NULL)
-    return;                     /* oops */
+    return;			/* oops */
   VSNPRINTF (buf, size, message, va);
   time (&timetmp);
   memset (date, 0, DATE_STR_SIZE);
   tmptr = localtime (&timetmp);
   gettimeofday (&timeofday, NULL);
   if (NULL != tmptr)
-  {
+    {
 #ifdef WINDOWS
-    LARGE_INTEGER pc;
+      LARGE_INTEGER pc;
 
-    pc.QuadPart = 0;
-    QueryPerformanceCounter (&pc);
-    strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr);
-    snprintf (date, sizeof (date), date2,
-              (long long) (pc.QuadPart /
-                           (performance_frequency.QuadPart / 1000)));
+      pc.QuadPart = 0;
+      QueryPerformanceCounter (&pc);
+      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr);
+      snprintf (date, sizeof (date), date2,
+		(long long) (pc.QuadPart /
+			     (performance_frequency.QuadPart / 1000)));
 #else
-    strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
-    snprintf (date, sizeof (date), date2, timeofday.tv_usec);
+      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
+      snprintf (date, sizeof (date), date2, timeofday.tv_usec);
 #endif
-  }
+    }
   else
     strcpy (date, "localtime error");
-  if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) && (last_bulk_time.abs_value != 0)
+  if ((0 != (kind & GNUNET_ERROR_TYPE_BULK))
+      && (last_bulk_time.abs_value != 0)
       && (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
-  {
-    last_bulk_repeat++;
-    if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value >
-         BULK_DELAY_THRESHOLD) || (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
-      flush_bulk (date);
-    free (buf);
-    return;
-  }
+    {
+      last_bulk_repeat++;
+      if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value >
+	   BULK_DELAY_THRESHOLD)
+	  || (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
+	flush_bulk (date);
+      free (buf);
+      return;
+    }
   flush_bulk (date);
   strncpy (last_bulk, buf, sizeof (last_bulk));
   last_bulk_repeat = 0;
@@ -794,7 +803,7 @@ GNUNET_log_nocheck (enum GNUNET_ErrorType kind, const char *message, ...)
  */
 void
 GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
-                 const char *message, ...)
+			 const char *message, ...)
 {
   va_list va;
   char comp_w_pid[128];
@@ -912,44 +921,44 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
   if (addr == NULL)
     return _("unknown address");
   switch (addr->sa_family)
-  {
-  case AF_INET:
-    if (addrlen != sizeof (struct sockaddr_in))
-      return "<invalid v4 address>";
-    v4 = (const struct sockaddr_in *) addr;
-    inet_ntop (AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
-    if (0 == ntohs (v4->sin_port))
+    {
+    case AF_INET:
+      if (addrlen != sizeof (struct sockaddr_in))
+	return "<invalid v4 address>";
+      v4 = (const struct sockaddr_in *) addr;
+      inet_ntop (AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
+      if (0 == ntohs (v4->sin_port))
+	return buf;
+      strcat (buf, ":");
+      GNUNET_snprintf (b2, sizeof (b2), "%u", ntohs (v4->sin_port));
+      strcat (buf, b2);
       return buf;
-    strcat (buf, ":");
-    GNUNET_snprintf (b2, sizeof (b2), "%u", ntohs (v4->sin_port));
-    strcat (buf, b2);
-    return buf;
-  case AF_INET6:
-    if (addrlen != sizeof (struct sockaddr_in6))
-      return "<invalid v4 address>";
-    v6 = (const struct sockaddr_in6 *) addr;
-    buf[0] = '[';
-    inet_ntop (AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
-    if (0 == ntohs (v6->sin6_port))
-      return &buf[1];
-    strcat (buf, "]:");
-    GNUNET_snprintf (b2, sizeof (b2), "%u", ntohs (v6->sin6_port));
-    strcat (buf, b2);
-    return buf;
-  case AF_UNIX:
-    if (addrlen <= sizeof (sa_family_t))
-      return "<unbound UNIX client>";
-    un = (const struct sockaddr_un *) addr;
-    off = 0;
-    if (un->sun_path[0] == '\0')
-      off++;
-    snprintf (buf, sizeof (buf), "%s%.*s", (off == 1) ? "@" : "",
-              (int) (addrlen - sizeof (sa_family_t) - 1 - off),
-              &un->sun_path[off]);
-    return buf;
-  default:
-    return _("invalid address");
-  }
+    case AF_INET6:
+      if (addrlen != sizeof (struct sockaddr_in6))
+	return "<invalid v4 address>";
+      v6 = (const struct sockaddr_in6 *) addr;
+      buf[0] = '[';
+      inet_ntop (AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
+      if (0 == ntohs (v6->sin6_port))
+	return &buf[1];
+      strcat (buf, "]:");
+      GNUNET_snprintf (b2, sizeof (b2), "%u", ntohs (v6->sin6_port));
+      strcat (buf, b2);
+      return buf;
+    case AF_UNIX:
+      if (addrlen <= sizeof (sa_family_t))
+	return "<unbound UNIX client>";
+      un = (const struct sockaddr_un *) addr;
+      off = 0;
+      if (un->sun_path[0] == '\0')
+	off++;
+      snprintf (buf, sizeof (buf), "%s%.*s", (off == 1) ? "@" : "",
+		(int) (addrlen - sizeof (sa_family_t) - 1 - off),
+		&un->sun_path[off]);
+      return buf;
+    default:
+      return _("invalid address");
+    }
 }
 
 

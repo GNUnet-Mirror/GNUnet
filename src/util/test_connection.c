@@ -66,44 +66,46 @@ open_listen_socket ()
   GNUNET_assert (desc != NULL);
   if (GNUNET_NETWORK_socket_setsockopt
       (desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "setsockopt");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"setsockopt");
   GNUNET_assert (GNUNET_NETWORK_socket_bind
-                 (desc, (const struct sockaddr *) &sa,
-                  sizeof (sa)) == GNUNET_OK);
+		 (desc, (const struct sockaddr *) &sa,
+		  sizeof (sa)) == GNUNET_OK);
   GNUNET_NETWORK_socket_listen (desc, 5);
   return desc;
 }
 
 static void
 receive_check (void *cls, const void *buf, size_t available,
-               const struct sockaddr *addr, socklen_t addrlen, int errCode)
+	       const struct sockaddr *addr, socklen_t addrlen, int errCode)
 {
   int *ok = cls;
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive validates incoming data\n");
 #endif
-  GNUNET_assert (buf != NULL);  /* no timeout */
+  GNUNET_assert (buf != NULL);	/* no timeout */
   if (0 == memcmp (&"Hello World"[sofar], buf, available))
     sofar += available;
   if (sofar < 12)
-  {
+    {
 #if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive needs more data\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive needs more data\n");
 #endif
-    GNUNET_CONNECTION_receive (asock, 1024,
-                               GNUNET_TIME_relative_multiply
-                               (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
-                               cls);
-  }
+      GNUNET_CONNECTION_receive (asock, 1024,
+				 GNUNET_TIME_relative_multiply
+				 (GNUNET_TIME_UNIT_SECONDS, 5),
+				 &receive_check, cls);
+    }
   else
-  {
+    {
 #if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive closes accepted socket\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Receive closes accepted socket\n");
 #endif
-    *ok = 0;
-    GNUNET_CONNECTION_destroy (asock, GNUNET_YES);
-  }
+      *ok = 0;
+      GNUNET_CONNECTION_destroy (asock, GNUNET_YES);
+    }
 }
 
 
@@ -122,12 +124,12 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test asks to receive on accepted socket\n");
+	      "Test asks to receive on accepted socket\n");
 #endif
   GNUNET_CONNECTION_receive (asock, 1024,
-                             GNUNET_TIME_relative_multiply
-                             (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
-                             cls);
+			     GNUNET_TIME_relative_multiply
+			     (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
+			     cls);
 }
 
 static size_t
@@ -135,7 +137,7 @@ make_hello (void *cls, size_t size, void *buf)
 {
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test prepares to transmit on connect socket\n");
+	      "Test prepares to transmit on connect socket\n");
 #endif
   GNUNET_assert (size >= 12);
   strcpy ((char *) buf, "Hello World");
@@ -158,14 +160,14 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test asks for write notification\n");
 #endif
   GNUNET_assert (NULL !=
-                 GNUNET_CONNECTION_notify_transmit_ready (csock, 12,
-                                                          GNUNET_TIME_UNIT_SECONDS,
-                                                          &make_hello, NULL));
+		 GNUNET_CONNECTION_notify_transmit_ready (csock, 12,
+							  GNUNET_TIME_UNIT_SECONDS,
+							  &make_hello, NULL));
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test prepares to accept\n");
 #endif
-  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, ls, &run_accept,
-                                 cls);
+  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, ls,
+				 &run_accept, cls);
 }
 
 
@@ -181,7 +183,7 @@ check ()
   ok = 1;
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
-                                         "localhost");
+					 "localhost");
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
@@ -196,11 +198,11 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test_connection",
 #if VERBOSE
-                    "DEBUG",
+		    "DEBUG",
 #else
-                    "WARNING",
+		    "WARNING",
 #endif
-                    NULL);
+		    NULL);
   ret += check ();
   return ret;
 }

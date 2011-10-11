@@ -32,6 +32,8 @@
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
 /* Avoid wasting space on 8-byte longs. */
 #if UINT_MAX >= 0xffffffff
 typedef unsigned int uLong;
@@ -64,12 +66,12 @@ crc_init ()
   once = 1;
   crc_table[0] = 0;
   for (i = 128; i; i >>= 1)
-  {
-    h = (h >> 1) ^ ((h & 1) ? POLYNOMIAL : 0);
-    /* h is now crc_table[i] */
-    for (j = 0; j < 256; j += 2 * i)
-      crc_table[i + j] = crc_table[j] ^ h;
-  }
+    {
+      h = (h >> 1) ^ ((h & 1) ? POLYNOMIAL : 0);
+      /* h is now crc_table[i] */
+      for (j = 0; j < 256; j += 2 * i)
+	crc_table[i + j] = crc_table[j] ^ h;
+    }
 }
 
 /*
