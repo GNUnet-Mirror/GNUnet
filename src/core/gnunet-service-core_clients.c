@@ -220,10 +220,10 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
 	    ( (0 != (options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) &&
 	      (GNUNET_YES == type_match (type, c)) ) ) )
       continue; /* skip */
-#if DEBUG_CORE > 1
+#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Sending message of type %u to client.\n",
-		(unsigned int) ntohs (msg->type));
+		"Sending message to all clients interested in messages of type %u.\n",
+		(unsigned int) type);
 #endif
     send_to_client (c, msg, can_drop);
   }
@@ -323,6 +323,11 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
   }
   if (c->requests == NULL)
     c->requests = GNUNET_CONTAINER_multihashmap_create (16);
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client asked for transmission to `%s'\n",
+	      GNUNET_i2s (&req->peer));
+#endif
   car = GNUNET_CONTAINER_multihashmap_get (c->requests, &req->peer.hashPubKey);
   if (car == NULL)
   {
@@ -417,6 +422,13 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
 						       &sm->peer.hashPubKey,
 						       tc.car));
   tc.cork = ntohl (sm->cork);
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client asked for transmission of %u bytes to `%s' %s\n",
+	      msize,
+	      GNUNET_i2s (&sm->peer),
+	      tc.cork ? "now" : "");
+#endif
   GNUNET_SERVER_mst_receive (client_mst,
 			     &tc, 
 			     (const char*) &sm[1], msize,
@@ -450,6 +462,11 @@ client_tokenizer_callback (void *cls, void *client,
   if (0 ==
       memcmp (&car->target, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))  
   {
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Delivering message of type %u to myself\n",
+		ntohs (message->type));
+#endif
     GSC_CLIENTS_deliver_message (&GSC_my_identity, 
 				 NULL, 0,
 				 message,
@@ -462,7 +479,15 @@ client_tokenizer_callback (void *cls, void *client,
 				 GNUNET_CORE_OPTION_SEND_HDR_INBOUND | GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);  
   }
   else
+  {
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Delivering message of type %u to %s\n",
+		ntohs (message->type),
+		GNUNET_i2s (&car->target));
+#endif
     GSC_SESSIONS_transmit (car, message, tc->cork);
+  }
 }
 
 

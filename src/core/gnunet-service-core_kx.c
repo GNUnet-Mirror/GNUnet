@@ -654,6 +654,11 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
 {
   struct GSC_KeyExchangeInfo *kx;
 
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Initiating key exchange with `%s'\n",
+	      GNUNET_i2s (pid));
+#endif
   kx = GNUNET_malloc (sizeof (struct GSC_KeyExchangeInfo));
   kx->peer = *pid;
   kx->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
@@ -782,6 +787,11 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# SET_KEY messages decrypted"), 1,
                             GNUNET_NO);
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received SET_KEY from `%s'\n",
+	      GNUNET_i2s (&kx->peer));
+#endif
   kx->decrypt_key = k;
   if (kx->decrypt_key_created.abs_value != t.abs_value)
   {
@@ -895,6 +905,11 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     GNUNET_break_op (0);
     return;
   }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received PING from `%s'\n",
+	      GNUNET_i2s (&kx->peer));
+#endif
   /* construct PONG */
   tx.reserved = GNUNET_BANDWIDTH_VALUE_MAX;
   tx.challenge = t.challenge;
@@ -999,6 +1014,11 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     kx->status = KX_STATE_DOWN;
     return;
   }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending KEEPALIVE to `%s'\n",
+	      GNUNET_i2s (&kx->peer));
+#endif
   setup_fresh_ping (kx);
   GSC_NEIGHBOURS_transmit (&kx->peer,
 			   &kx->ping.header,
@@ -1053,7 +1073,6 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx, const struct GNUNET_MessageH
   }
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# PONG messages received"),
 			    1, GNUNET_NO);
-
   if ( (kx->status != KX_STATE_KEY_RECEIVED) &&
        (kx->status != KX_STATE_UP) )
   {
@@ -1099,6 +1118,11 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx, const struct GNUNET_MessageH
 #endif
     return;
   }
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received PONG from `%s'\n",
+	      GNUNET_i2s (&kx->peer));
+#endif
   switch (kx->status)
   {
   case KX_STATE_DOWN:
@@ -1144,6 +1168,11 @@ send_key (struct GSC_KeyExchangeInfo *kx)
   if (kx->public_key == NULL)
   {
     /* lookup public key, then try again */
+#if DEBUG_CORE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Trying to obtain public key for `%s'\n",
+		GNUNET_i2s (&kx->peer));
+#endif
     kx->pitr =
       GNUNET_PEERINFO_iterate (peerinfo, &kx->peer,
 			       GNUNET_TIME_UNIT_FOREVER_REL /* timeout? */,
@@ -1178,7 +1207,11 @@ send_key (struct GSC_KeyExchangeInfo *kx)
 
   /* always update sender status in SET KEY message */
   kx->skm.sender_status = htonl ((int32_t) kx->status);
-
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending SET_KEY and PING to `%s'\n",
+	      GNUNET_i2s (&kx->peer));
+#endif
   GSC_NEIGHBOURS_transmit (&kx->peer,
 			   &kx->skm.header,
 			   kx->set_key_retry_frequency);
@@ -1228,6 +1261,12 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
   GNUNET_assert (GNUNET_OK ==
                  do_encrypt (kx, &iv, &ph->sequence_number, &em->sequence_number,
                              used - ENCRYPTED_HEADER_SIZE));
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Encrypted %u bytes for %s\n",
+	      used - ENCRYPTED_HEADER_SIZE,
+	      GNUNET_i2s (&kx->peer));
+#endif
   derive_auth_key (&auth_key, &kx->encrypt_key, ph->iv_seed,
                    kx->encrypt_key_created);
   GNUNET_CRYPTO_hmac (&auth_key, &em->sequence_number,
@@ -1320,6 +1359,12 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
       do_decrypt (kx, &iv, &m->sequence_number, &buf[ENCRYPTED_HEADER_SIZE],
                   size - ENCRYPTED_HEADER_SIZE))
     return;
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Decrypted %u bytes from %s\n",
+	      size - ENCRYPTED_HEADER_SIZE,
+	      GNUNET_i2s (&kx->peer));
+#endif
   pt = (struct EncryptedMessage *) buf;
 
   /* validate sequence number */

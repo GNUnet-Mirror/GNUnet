@@ -421,7 +421,7 @@ static void
 pop_cork_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session *session = session;
+  struct Session *session = cls;
 
   session->cork_task = GNUNET_SCHEDULER_NO_TASK;
   try_transmission (session);
