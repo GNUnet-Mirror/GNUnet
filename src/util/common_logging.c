@@ -719,58 +719,57 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
   struct timeval timeofday;
   struct tm *tmptr;
   size_t size;
-  char *buf;
   va_list vacp;
 
   va_copy (vacp, va);
   size = VSNPRINTF (NULL, 0, message, vacp) + 1;
+  GNUNET_assert (0 != size);
   va_end (vacp);
-  buf = malloc (size);
-  if (buf == NULL)
-    return;			/* oops */
-  VSNPRINTF (buf, size, message, va);
-  time (&timetmp);
-  memset (date, 0, DATE_STR_SIZE);
-  tmptr = localtime (&timetmp);
-  gettimeofday (&timeofday, NULL);
-  if (NULL != tmptr)
-    {
-#ifdef WINDOWS
-      LARGE_INTEGER pc;
+  {
+    char buf[size];
 
-      pc.QuadPart = 0;
-      QueryPerformanceCounter (&pc);
-      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr);
-      snprintf (date, sizeof (date), date2,
-		(long long) (pc.QuadPart /
-			     (performance_frequency.QuadPart / 1000)));
+    VSNPRINTF (buf, size, message, va);
+    time (&timetmp);
+    memset (date, 0, DATE_STR_SIZE);
+    tmptr = localtime (&timetmp);
+    gettimeofday (&timeofday, NULL);
+    if (NULL != tmptr)
+      {
+#ifdef WINDOWS
+	LARGE_INTEGER pc;
+
+	pc.QuadPart = 0;
+	QueryPerformanceCounter (&pc);
+	strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr);
+	snprintf (date, sizeof (date), date2,
+		  (long long) (pc.QuadPart /
+			       (performance_frequency.QuadPart / 1000)));
 #else
-      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
-      snprintf (date, sizeof (date), date2, timeofday.tv_usec);
+	strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
+	snprintf (date, sizeof (date), date2, timeofday.tv_usec);
 #endif
-    }
-  else
-    strcpy (date, "localtime error");
-  if ((0 != (kind & GNUNET_ERROR_TYPE_BULK))
-      && (last_bulk_time.abs_value != 0)
-      && (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
-    {
-      last_bulk_repeat++;
-      if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value >
-	   BULK_DELAY_THRESHOLD)
-	  || (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
-	flush_bulk (date);
-      free (buf);
-      return;
-    }
-  flush_bulk (date);
-  strncpy (last_bulk, buf, sizeof (last_bulk));
-  last_bulk_repeat = 0;
-  last_bulk_kind = kind;
-  last_bulk_time = GNUNET_TIME_absolute_get ();
-  strncpy (last_bulk_comp, comp, COMP_TRACK_SIZE);
-  output_message (kind, comp, date, buf);
-  free (buf);
+      }
+    else
+      strcpy (date, "localtime error");
+    if ((0 != (kind & GNUNET_ERROR_TYPE_BULK))
+	&& (last_bulk_time.abs_value != 0)
+	&& (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
+      {
+	last_bulk_repeat++;
+	if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value >
+	     BULK_DELAY_THRESHOLD)
+	    || (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
+	  flush_bulk (date);
+	return;
+      }
+    flush_bulk (date);
+    strncpy (last_bulk, buf, sizeof (last_bulk));
+    last_bulk_repeat = 0;
+    last_bulk_kind = kind;
+    last_bulk_time = GNUNET_TIME_absolute_get ();
+    strncpy (last_bulk_comp, comp, COMP_TRACK_SIZE);
+    output_message (kind, comp, date, buf);
+  }
 }
 
 
