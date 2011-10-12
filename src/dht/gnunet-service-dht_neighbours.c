@@ -740,6 +740,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     to_remove->preference_task = GNUNET_SCHEDULER_NO_TASK;
   }
   current_bucket = find_bucket (&to_remove->id.hashPubKey);
+  GNUNET_assert (current_bucket >= 0);
   GNUNET_CONTAINER_DLL_remove (k_buckets[current_bucket].head,
 			       k_buckets[current_bucket].tail,
                                to_remove);
@@ -995,6 +996,7 @@ am_closest_peer (const GNUNET_HashCode *key,
   if (0 == memcmp (&my_identity.hashPubKey, key, sizeof (GNUNET_HashCode)))
     return GNUNET_YES;
   bucket_num = find_bucket (key);
+  GNUNET_assert (bucket_num >= 0);
   bits = GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, key);
   pos = k_buckets[bucket_num].head;
   count = 0;
@@ -1392,6 +1394,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
+    GNUNET_free (targets);
     return;
   }
   GNUNET_STATISTICS_update (GDS_stats,
