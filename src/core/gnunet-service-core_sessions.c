@@ -343,7 +343,12 @@ GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car)
 {
   struct Session *s;
 
-  s = find_session (&car->target);
+  if (0 == memcmp (&car->target,
+		   &GSC_my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    return;
+  s = find_session (&car->target);  
+  GNUNET_assert (NULL != s);
   GNUNET_CONTAINER_DLL_remove (s->active_client_request_head,
                                s->active_client_request_tail, car);
 }
