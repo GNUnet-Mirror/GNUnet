@@ -98,11 +98,13 @@ end1_cb (void *cls, const char *emsg)
   {
     ok = 0;
   }
-
-  GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &end2_cb, NULL,
-                              (phase == NUM_PHASES) ? GNUNET_YES : GNUNET_NO,
-                              GNUNET_NO);
-  d2 = NULL;
+  if (d2 != NULL)
+  {
+    GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &end2_cb, NULL,
+				(phase == NUM_PHASES) ? GNUNET_YES : GNUNET_NO,
+				GNUNET_NO);
+    d2 = NULL;
+  }
 }
 
 static void
@@ -141,6 +143,13 @@ my_cb2 (void *cls, const struct GNUNET_PeerIdentity *id,
         const struct GNUNET_CONFIGURATION_Handle *cfg,
         struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
+  if (emsg != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting daemon 2 gave: %s\n",
+                emsg);
+    GNUNET_assert (0);
+    return;
+  }
   GNUNET_assert (id != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon `%s' started.\n",
@@ -156,6 +165,13 @@ my_cb1 (void *cls, const struct GNUNET_PeerIdentity *id,
         const struct GNUNET_CONFIGURATION_Handle *cfg,
         struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
+  if (emsg != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting daemon 1 gave: %s\n",
+                emsg);
+    GNUNET_assert (0);
+    return;
+  }
   GNUNET_assert (id != NULL);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon `%s' started.\n",

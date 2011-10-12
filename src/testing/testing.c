@@ -384,7 +384,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_OS_process_close (d->proc);
       d->proc = NULL;
       if (NULL != cb)
-        cb (d->cb_cls, NULL, d->cfg, d, _("`Failed to get hostkey!\n"));
+        cb (d->cb_cls, NULL, d->cfg, d, _("Failed to get hostkey!\n"));
       return;
     }
     d->shortname = GNUNET_strdup (GNUNET_i2s (&d->id));
