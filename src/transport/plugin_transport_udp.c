@@ -625,8 +625,10 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "UDP transmits %u-byte message to `%s' using address `%s' session 0x%X mode %i\n",
-              msgbuf_size, GNUNET_i2s (target), udp_address_to_string (NULL, addr, addrlen), session, force_address);
+      "UDP transmits %u-byte message to `%s' using address `%s' session 0x%X mode %i\n",
+      msgbuf_size, GNUNET_i2s (target),
+      udp_address_to_string (NULL, addr, addrlen),
+      session, force_address);
 
   if ((force_address == GNUNET_SYSERR) && (session == NULL))
     return GNUNET_SYSERR;
@@ -635,33 +637,9 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   if ((session != NULL) && (addr != NULL) && (addrlen != 0))
   {
     s = session;
-    /* session timed out */
-    /*
-    if (GNUNET_TIME_absolute_get().abs_value > s->valid_until.abs_value)
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-                  "UDP Session %X is invalid %u\n", session, force_address);
+    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains_value (
+        plugin->inbound_sessions, &target->hashPubKey, s));
 
-      plugin->env->session_end (plugin->env->cls, &s->target, s);
-      GNUNET_CONTAINER_multihashmap_remove (plugin->inbound_sessions, &s->target.hashPubKey, s);
-
-      if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
-      {
-        if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
-          GNUNET_SCHEDULER_cancel(s->invalidation_task);
-
-      }
-      GNUNET_free (s);
-      if ((force_address != GNUNET_SYSERR) && (addr != NULL) && (addrlen != 0))
-      {
-        LOG (GNUNET_ERROR_TYPE_ERROR,
-                    "goto session_invalid: %X %u %s\n", addr, addrlen, udp_address_to_string(NULL, addr, addrlen));
-         goto session_invalid;
-      }
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-                  "return GNUNET_SYSERR;\n");
-      return GNUNET_SYSERR;
-    }*/
     if  (0 != memcmp (&s->target, target, sizeof (struct GNUNET_PeerIdentity)))
       return GNUNET_SYSERR;
     switch (addrlen)
