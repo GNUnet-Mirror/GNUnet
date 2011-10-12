@@ -29,8 +29,8 @@ libgnunetats_la_LIBADD = \
 
 
 check_PROGRAMS = \
- test_ats_api \
- test_ats_api_update_address
+ test_ats_api 
+# test_ats_api_update_address
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
