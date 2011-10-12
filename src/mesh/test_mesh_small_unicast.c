@@ -47,14 +47,17 @@ struct StatsContext
 };
 
 
-// static struct MeshPeer *peer_head;
-//
-// static struct MeshPeer *peer_tail;
-
 /**
  * How long until we give up on connecting the peers?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1500)
+
+/**
+ * Time to wait for stuff that should be rather fast
+ */
+#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+#define OK_GOAL 2
 
 static int ok;
 
@@ -147,7 +150,7 @@ shutdown_callback (void *cls, const char *emsg)
 #if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Shutdown of peers failed!\n");
 #endif
-    ok++;
+    ok--;
   }
   else
   {
@@ -220,9 +223,11 @@ incoming_tunnel (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: Incoming tunnel from %s\n",
               GNUNET_i2s(initiator));
+  ok++;
   GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_now(&disconnect_mesh_peers, NULL);
-  ok = 0;
+  disconnect_task = GNUNET_SCHEDULER_add_delayed(SHORT_TIME,
+                                                 &disconnect_mesh_peers,
+                                                 NULL);
   return NULL;
 }
 
@@ -258,6 +263,8 @@ dh (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: peer %s disconnected\n",
               GNUNET_i2s(peer));
+  if (memcmp(&d2->id, peer, sizeof(d2->id)))
+    ok++;
   return;
 }
 
@@ -428,7 +435,7 @@ peergroup_ready (void *cls, const char *emsg)
                 "test: Peergroup callback called with error, aborting test!\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: Error from testing: `%s'\n", emsg);
-    ok++;
+    ok--;
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
@@ -529,7 +536,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   unsigned long long temp_wait;
   struct GNUNET_TESTING_Host *hosts;
 
-  ok = 1;
+  ok = 0;
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
 
   GNUNET_log_setup ("test_mesh_small_unicast",
@@ -662,11 +669,12 @@ main (int argc, char *argv[])
 #if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/test_mesh_small_unicast");
 #endif
-  if (0 != ok)
+  if (OK_GOAL != ok)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: FAILED!\n");
+    return 1;
   }
-  return ok;
+  return 0;
 }
 
 /* end of test_mesh_small_unicast.c */

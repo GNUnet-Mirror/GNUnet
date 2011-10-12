@@ -1427,6 +1427,8 @@ tunnel_add_path (struct MeshTunnel *t,
 {
   GNUNET_assert (0 != own_pos);
   tree_add_path(t->tree, p, NULL);
+  if (NULL == t->tree->me)
+    t->tree->me = tree_find_peer(t->tree->root, p->peers[own_pos]);
 }
 
 
@@ -2243,10 +2245,14 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct GNUNET_MESH_PathACK *msg;
+  struct GNUNET_PeerIdentity id;
   struct MeshTunnelTreeNode *n;
   struct MeshPeerInfo *peer_info;
   struct MeshTunnel *t;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: Received a path ACK msg [%s]\n",
+              GNUNET_i2s(&my_full_id));
   msg = (struct GNUNET_MESH_PathACK *) message;
   t = tunnel_get (&msg->oid, msg->tid);
   if (NULL == t)
@@ -2258,6 +2264,8 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Message for us? */
   if (0 == memcmp (&msg->oid, &my_full_id, sizeof (struct GNUNET_PeerIdentity)))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   It's for us!\n");
     if (NULL == t->client)
     {
       GNUNET_break_op (0);
@@ -2279,7 +2287,10 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     send_client_peer_connected(t, peer_info->id);
     return GNUNET_OK;
   }
-
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:   not for us, retransmitting...\n");
+  GNUNET_PEER_resolve(t->tree->me->parent->peer, &id);
   peer_info = peer_info_get (&msg->oid);
   if (NULL == peer_info)
   {
@@ -2291,8 +2302,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   memcpy (msg, message, sizeof (struct GNUNET_MESH_PathACK));
   GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     path_get_first_hop (t->tree,
-                                                         peer_info->id),
+                                     &id,
                                      sizeof (struct GNUNET_MESH_PathACK),
                                      &send_core_data_raw, msg);
   return GNUNET_OK;
@@ -3303,20 +3313,26 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *path;
 
+#if MESH_DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Peer connected\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      %s\n",
               GNUNET_h2s(&my_full_id.hashPubKey));
+#endif
   peer_info = peer_info_get (peer);
   if (myid == peer_info->id)
   {
+#if MESH_DEBUG_CONNECTION
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      (self)\n");
+#endif
     return;
   }
+#if MESH_DEBUG_CONNECTION
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      %s\n",
                 GNUNET_h2s(&peer->hashPubKey));
   }
+#endif
   path = path_new (2);
   path->peers[0] = myid;
   path->peers[1] = peer_info->id;
@@ -3338,7 +3354,9 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct MeshPeerInfo *pi;
   unsigned int i;
 
+#if MESH_DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Peer disconnected\n");
+#endif
   pi = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
   if (NULL == pi)
   {
@@ -3350,10 +3368,12 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     peer_info_cancel_transmission(pi, i);
   }
   path_remove_from_peer (pi, pi->id, myid);
+#if MESH_DEBUG_CONNECTION
   if (myid == pi->id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      (self)\n");
   }
+#endif
   return;
 }
 
