@@ -249,7 +249,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   struct GSF_PendingRequest *pr;
   struct GSF_PendingRequest *dpr;
 
-#if DEBUG_FS > 1
+#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating request handle for `%s' of type %d\n",
               GNUNET_h2s (query), type);
@@ -1153,7 +1153,7 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
   }
   if (NULL == key)
   {
-#if DEBUG_FS > 1
+#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No further local responses available.\n");
 #endif
@@ -1172,7 +1172,7 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
 #endif
   if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
   {
-#if DEBUG_FS > 1
+#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Found ONDEMAND block, performing on-demand encoding\n");
 #endif
