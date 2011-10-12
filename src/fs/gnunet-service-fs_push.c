@@ -410,7 +410,7 @@ find_content (struct MigrationReadyPeer *mrp)
   }
 #if DEBUG_FS_MIGRATION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Preparing to push best content to peer %s\n");
+              "Preparing to push best content to peer\n");
 #endif
   transmit_content (mrp, best);
 }
