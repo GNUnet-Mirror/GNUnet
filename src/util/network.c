@@ -1175,6 +1175,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 	    LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x (0x%x) is SET in rfds\n",
 		 fh->h, fh);
 	  }
+	GNUNET_CONTAINER_slist_iter_destroy (t);
       }
 #endif
 #endif
@@ -1696,6 +1697,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 									  NULL);
 	  LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is SET in rfds\n", fh->h);
 	}
+      GNUNET_CONTAINER_slist_iter_destroy (t);
     }
   if (wfds)
     {
