@@ -226,8 +226,11 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
   struct AllocationRecord *ar = value;
 
 #if DEBUG_ATS
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting address for peer `%s'\n",
-       GNUNET_h2s (key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Suggesting address for peer `%s', starting with i:%u/o:%u bytes/s\n",
+       GNUNET_h2s (key),
+       asc->atc->total_bps_in/32,
+       asc->atc->total_bps_out/32);
 #endif
 
   /* trivial strategy: pick first available address... */
