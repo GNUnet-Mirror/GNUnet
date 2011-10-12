@@ -924,6 +924,7 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
     }
     else
     {
+      path_destroy(p);
       send_client_peer_connected(t, myid);
     }
   }
