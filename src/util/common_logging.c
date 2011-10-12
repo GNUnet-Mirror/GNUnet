@@ -289,7 +289,9 @@ add_definition (char *component, char *file, char *function, int from_line,
       n.file = strdup (file);
       n.strlen_file = strlen (file);
     }
-  if (strlen (function) > 0 && function[0] != '*')
+  if ( (NULL != function) &&
+       (strlen (function) > 0) && 
+       (function[0] != '*') )
     n.function = strdup (function);
   n.from_line = from_line;
   n.to_line = to_line;
