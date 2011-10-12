@@ -142,6 +142,12 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
     ar->bandwidth_out = sbc->bw_out;
     GNUNET_BANDWIDTH_tracker_update_quota (&ar->available_recv_window,
                                            ar->bandwidth_in);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		     "ats-api",
+		     "Bandwidth assigned to peer %s is i:%u/o:%u bytes/s\n",
+		     GNUNET_i2s ((const struct GNUNET_PeerIdentity *) key),
+		     ntohl (ar->bandwidth_in.value__),
+		     ntohl (ar->bandwidth_out.value__));
     if (NULL != sbc->atc->alloc_cb)
       sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                           (const struct GNUNET_PeerIdentity *) key,
@@ -234,6 +240,7 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
   asc->cb = NULL;
   return GNUNET_NO;
 }
+
 
 int
 map_it (void *cls, const GNUNET_HashCode * key, void *value)
