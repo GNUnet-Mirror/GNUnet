@@ -363,23 +363,6 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct PeerContext *p = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') connected to us!\n",
               p->no, GNUNET_i2s (peer));
-
-  if (cls == p1)
-  {
-    GNUNET_TRANSPORT_set_quota (p1->th, &p2->id,
-                                GNUNET_BANDWIDTH_value_init (1024 * 1024 *
-                                                             1024),
-                                GNUNET_BANDWIDTH_value_init (1024 * 1024 *
-                                                             1024));
-  }
-  else if (cls == p2)
-  {
-    GNUNET_TRANSPORT_set_quota (p2->th, &p1->id,
-                                GNUNET_BANDWIDTH_value_init (1024 * 1024 *
-                                                             1024),
-                                GNUNET_BANDWIDTH_value_init (1024 * 1024 *
-                                                             1024));
-  }
 }
 
 
