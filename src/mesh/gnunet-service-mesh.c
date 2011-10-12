@@ -2873,7 +2873,8 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Remove from global id hashmap */
   GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
-  GNUNET_CONTAINER_multihashmap_remove (tunnels, &hash, t);
+  GNUNET_break (GNUNET_YES == 
+      GNUNET_CONTAINER_multihashmap_remove (tunnels, &hash, t));
 
 //     notify_tunnel_destroy(t); FIXME
   tunnel_destroy(t);
