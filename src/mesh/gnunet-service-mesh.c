@@ -873,6 +873,7 @@ send_create_path (struct MeshPeerInfo *peer,
   }
   if (i >= p->length - 1)
   {
+    path_destroy(p);
     GNUNET_break (0);
     return;
   }
