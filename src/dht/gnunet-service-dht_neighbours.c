@@ -1284,6 +1284,7 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
+    GNUNET_free (targets);
     return;
   }
   GNUNET_STATISTICS_update (GDS_stats,
