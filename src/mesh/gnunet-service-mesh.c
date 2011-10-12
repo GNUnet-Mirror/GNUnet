@@ -1975,6 +1975,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       if (j == (CORE_QUEUE_SIZE - 1))
       {
+        GNUNET_free (info);
         GNUNET_break (0);
         return GNUNET_OK;
       }
@@ -2143,6 +2144,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       if (i == (CORE_QUEUE_SIZE - 1))
       {
+        GNUNET_free (info);
         GNUNET_break (0);
         return GNUNET_OK;
       }
@@ -2342,7 +2344,8 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 static int
 deregister_app (void *cls, const GNUNET_HashCode * key, void *value)
 {
-  GNUNET_CONTAINER_multihashmap_remove (applications, key, value);
+  GNUNET_break (GNUNET_YES == 
+      GNUNET_CONTAINER_multihashmap_remove (applications, key, value));
   return GNUNET_OK;
 }
 
