@@ -655,7 +655,9 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   n = lookup_neighbour (peer);
   if (NULL == n)
   {
-    GNUNET_break (0);
+    /* FIXME: ATS not fully implemented, once ATS only generates
+       these events for 'connected' addresses, things should be better... */
+    // GNUNET_break (0);
     return;
   }
 
