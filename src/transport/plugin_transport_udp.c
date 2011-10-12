@@ -803,9 +803,9 @@ invalidation_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_ERROR,
                    "Session %X (`%s') is now invalid\n", s, GNUNET_a2s (s->sock_addr,s->addrlen));
 
-//  s->plugin->env->session_end(s->plugin->env->cls, &s->target, s);
-//  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(s->plugin->inbound_sessions, &s->target.hashPubKey, s));
-//  GNUNET_free (s);
+  s->plugin->env->session_end(s->plugin->env->cls, &s->target, s);
+  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(s->plugin->inbound_sessions, &s->target.hashPubKey, s));
+  GNUNET_free (s);
 }
 
 
@@ -901,18 +901,16 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
                                                       s,
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   }
-  //s->valid_until = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  struct GNUNET_TIME_Relative delay = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10);
-  s->valid_until = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
+  s->valid_until = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(s->invalidation_task);
     s->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
-    LOG (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "Rescheduling %X' `%s'\n",
                 s, udp_address_to_string(NULL, arg, args));
   }
-  s->invalidation_task = GNUNET_SCHEDULER_add_delayed(delay, &invalidation_task, s);
+  s->invalidation_task = GNUNET_SCHEDULER_add_delayed(GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, &invalidation_task, s);
   /* iterate over all embedded messages */
   si.sender = msg->sender;
   si.arg = arg;
