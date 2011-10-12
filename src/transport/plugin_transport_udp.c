@@ -136,7 +136,7 @@ struct Plugin;
  * Session with another peer.  FIXME: why not make this into
  * a regular 'struct Session' and pass it around!?
  */
-struct PeerSession
+struct Session
 {
 
   /**
@@ -173,6 +173,7 @@ struct PeerSession
 
   struct GNUNET_TIME_Absolute valid_until;
 
+  GNUNET_SCHEDULER_TaskIdentifier invalidation_task;
 };
 
 
@@ -304,7 +305,7 @@ struct Plugin
 
 struct PeerSessionIteratorContext
 {
-  struct PeerSession * result;
+  struct Session * result;
   const void * addr;
   size_t addrlen;
 };
@@ -317,7 +318,7 @@ struct PeerSessionIteratorContext
  * @param peer peer's identity
  * @return NULL if we have no session
  */
-struct PeerSession *
+struct Session *
 find_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *peer)
 {
   return GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
@@ -329,7 +330,7 @@ int inbound_session_iterator (void *cls,
                              void *value)
 {
   struct PeerSessionIteratorContext *psc = cls;
-  struct PeerSession *s = value;
+  struct Session *s = value;
   if (s->addrlen == psc->addrlen)
   {
     if (0 == memcmp (&s[1], psc->addr, s->addrlen))
@@ -348,7 +349,7 @@ int inbound_session_iterator (void *cls,
  * @param peer peer's identity
  * @return NULL if we have no session
  */
-struct PeerSession *
+struct Session *
 find_inbound_session (struct Plugin *plugin,
                       const struct GNUNET_PeerIdentity *peer,
                       const void * addr, size_t addrlen)
@@ -364,6 +365,44 @@ find_inbound_session (struct Plugin *plugin,
 
 
 /**
+ * Destroy a session, plugin is being unloaded.
+ *
+ * @param cls unused
+ * @param key hash of public key of target peer
+ * @param value a 'struct PeerSession*' to clean up
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+destroy_session (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct Session *peer_session = value;
+
+  if (peer_session->frag != NULL)
+    GNUNET_FRAGMENT_context_destroy (peer_session->frag);
+  GNUNET_free (peer_session);
+  return GNUNET_OK;
+}
+
+/**
+ * Destroy a session, plugin is being unloaded.
+ *
+ * @param cls unused
+ * @param key hash of public key of target peer
+ * @param value a 'struct PeerSession*' to clean up
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+destroy_inbound_session (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct Session *s = value;
+
+  if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(s->invalidation_task);
+  GNUNET_free (s);
+  return GNUNET_OK;
+}
+
+/**
  * Disconnect from a remote node.  Clean up session if we have one for this peer
  *
  * @param cls closure for this call (should be handle to Plugin)
@@ -374,7 +413,7 @@ static void
 udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
-  struct PeerSession *session;
+  struct Session *session;
 
   session = find_session (plugin, target);
   if (NULL == session)
@@ -383,6 +422,14 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
                  GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
                                                        &target->hashPubKey,
                                                        session));
+
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->inbound_sessions,
+      &target->hashPubKey,
+      &destroy_inbound_session, NULL);
+  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+              "UDP DISCONNECT\n");
+
   plugin->last_expected_delay = GNUNET_FRAGMENT_context_destroy (session->frag);
   if (session->cont != NULL)
     session->cont (session->cont_cls, target, GNUNET_SYSERR);
@@ -426,7 +473,14 @@ udp_send (struct Plugin *plugin, const struct sockaddr *sa,
     return 0;
   }
   if (GNUNET_SYSERR == sent)
+  {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+                "UDP transmited %u-byte message to %s (%d: %s)\n",
+                (unsigned int) ntohs (msg->size), GNUNET_a2s (sa, slen),
+                (int) sent, (sent < 0) ? STRERROR (errno) : "ok");
+
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "UDP transmited %u-byte message to %s (%d: %s)\n",
               (unsigned int) ntohs (msg->size), GNUNET_a2s (sa, slen),
@@ -447,18 +501,18 @@ udp_send (struct Plugin *plugin, const struct sockaddr *sa,
 static void
 send_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct PeerSession *session = cls;
+  struct Session *session = cls;
 
   udp_send (session->plugin, session->sock_addr, msg);
   GNUNET_FRAGMENT_context_transmission_done (session->frag);
 }
 
-static struct PeerSession *
+static struct Session *
 create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     const void *addr, size_t addrlen,
     GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
-  struct PeerSession * peer_session;
+  struct Session * peer_session;
   const struct IPv4UdpAddress *t4;
   const struct IPv6UdpAddress *t6;
   struct sockaddr_in *v4;
@@ -474,7 +528,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     }
     t4 = addr;
     peer_session =
-        GNUNET_malloc (sizeof (struct PeerSession) +
+        GNUNET_malloc (sizeof (struct Session) +
                        sizeof (struct sockaddr_in));
     len = sizeof (struct sockaddr_in);
     v4 = (struct sockaddr_in *) &peer_session[1];
@@ -492,7 +546,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     }
     t6 = addr;
     peer_session =
-        GNUNET_malloc (sizeof (struct PeerSession) +
+        GNUNET_malloc (sizeof (struct Session) +
                        sizeof (struct sockaddr_in6));
     len = sizeof (struct sockaddr_in6);
     v6 = (struct sockaddr_in6 *) &peer_session[1];
@@ -509,6 +563,8 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     return NULL;
   }
 
+  peer_session->valid_until = GNUNET_TIME_absolute_get_zero ();
+  peer_session->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
   peer_session->addrlen = len;
   peer_session->target = *target;
   peer_session->plugin = plugin;
@@ -554,8 +610,8 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  struct PeerSession *peer_session;
-  struct PeerSession *inbound_session;
+  struct Session *peer_session;
+  struct Session *s;
   const struct IPv4UdpAddress *t4;
   const struct IPv6UdpAddress *t6;
   size_t mlen = msgbuf_size + sizeof (struct UDPMessage);
@@ -578,15 +634,35 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   /* safety check: comparing address to address stored in session */
   if ((session != NULL) && (addr != NULL) && (addrlen != 0))
   {
-    inbound_session = (struct PeerSession *) session;
+    s = session;
     /* session timed out */
-    if (GNUNET_TIME_absolute_get().abs_value > inbound_session->valid_until.abs_value)
+    /*
+    if (GNUNET_TIME_absolute_get().abs_value > s->valid_until.abs_value)
     {
-        /* TODO: remove session */
-      if (force_address == GNUNET_SYSERR)
-        return GNUNET_SYSERR;
-    }
-    if  (0 != memcmp (&inbound_session->target, target, sizeof (struct GNUNET_PeerIdentity)))
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+                  "UDP Session %X is invalid %u\n", session, force_address);
+
+      plugin->env->session_end (plugin->env->cls, &s->target, s);
+      GNUNET_CONTAINER_multihashmap_remove (plugin->inbound_sessions, &s->target.hashPubKey, s);
+
+      if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
+      {
+        if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
+          GNUNET_SCHEDULER_cancel(s->invalidation_task);
+
+      }
+      GNUNET_free (s);
+      if ((force_address != GNUNET_SYSERR) && (addr != NULL) && (addrlen != 0))
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+                    "goto session_invalid: %X %u %s\n", addr, addrlen, udp_address_to_string(NULL, addr, addrlen));
+         goto session_invalid;
+      }
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+                  "return GNUNET_SYSERR;\n");
+      return GNUNET_SYSERR;
+    }*/
+    if  (0 != memcmp (&s->target, target, sizeof (struct GNUNET_PeerIdentity)))
       return GNUNET_SYSERR;
     switch (addrlen)
     {
@@ -598,9 +674,9 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
         return GNUNET_SYSERR;
       }
       t4 = addr;
-      if (inbound_session->addrlen != (sizeof (struct sockaddr_in)))
+      if (s->addrlen != (sizeof (struct sockaddr_in)))
         return GNUNET_SYSERR;
-      struct sockaddr_in *a4 = (struct sockaddr_in *) inbound_session->sock_addr;
+      struct sockaddr_in *a4 = (struct sockaddr_in *) s->sock_addr;
       GNUNET_assert (a4->sin_port == t4->u4_port);
       GNUNET_assert (0 == memcmp(&a4->sin_addr, &t4->ipv4_addr, sizeof (struct in_addr)));
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -614,8 +690,8 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
         return GNUNET_SYSERR;
       }
       t6 = addr;
-      GNUNET_assert (inbound_session->addrlen == sizeof (struct sockaddr_in6));
-      struct sockaddr_in6 *a6 = (struct sockaddr_in6 *) inbound_session->sock_addr;
+      GNUNET_assert (s->addrlen == sizeof (struct sockaddr_in6));
+      struct sockaddr_in6 *a6 = (struct sockaddr_in6 *) s->sock_addr;
       GNUNET_assert (a6->sin6_port == t6->u6_port);
       GNUNET_assert (0 == memcmp(&a6->sin6_addr, &t6->ipv6_addr, sizeof (struct in6_addr)));
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -626,7 +702,7 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
       GNUNET_break_op (0);
     }
   }
-
+//session_invalid:
   peer_session = create_session (plugin, target, addr, addrlen, cont, cont_cls);
   if (peer_session == NULL)
   {
@@ -687,7 +763,7 @@ struct SourceInformation
    */
   size_t args;
 
-  struct PeerSession * session;
+  struct Session * session;
 };
 
 
@@ -714,9 +790,22 @@ process_inbound_tokenized_messages (void *cls, void *client,
   distance[1].value = htonl (0);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-                   "Giving Session %X %s  to transport\n", (struct Session *) si->session, GNUNET_i2s(&si->session->target));
-  plugin->env->receive (plugin->env->cls, &si->sender, hdr, distance, 2, (struct Session *) si->session,
+                   "Giving Session %X %s  to transport\n", si->session, GNUNET_i2s(&si->session->target));
+  plugin->env->receive (plugin->env->cls, &si->sender, hdr, distance, 2, si->session,
                         si->arg, si->args);
+}
+
+static void
+invalidation_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Session * s = cls;
+  s->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+                   "Session %X (`%s') is now invalid\n", s, GNUNET_a2s (s->sock_addr,s->addrlen));
+
+//  s->plugin->env->session_end(s->plugin->env->cls, &s->target, s);
+//  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(s->plugin->inbound_sessions, &s->target.hashPubKey, s));
+//  GNUNET_free (s);
 }
 
 
@@ -787,7 +876,7 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
               GNUNET_i2s (&udp_msg->sender),
               udp_address_to_string(NULL, arg, args));
 
-  struct PeerSession * s = NULL;
+  struct Session * s = NULL;
   s = find_inbound_session (plugin, &udp_msg->sender, sender_addr, sender_addr_len);
 
   if (s != NULL)
@@ -812,8 +901,18 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
                                                       s,
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   }
-  s->valid_until = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-
+  //s->valid_until = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  struct GNUNET_TIME_Relative delay = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10);
+  s->valid_until = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
+  if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(s->invalidation_task);
+    s->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+                "Rescheduling %X' `%s'\n",
+                s, udp_address_to_string(NULL, arg, args));
+  }
+  s->invalidation_task = GNUNET_SCHEDULER_add_delayed(delay, &invalidation_task, s);
   /* iterate over all embedded messages */
   si.sender = msg->sender;
   si.arg = arg;
@@ -947,7 +1046,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   ssize_t ret;
   const struct GNUNET_MessageHeader *msg;
   const struct GNUNET_MessageHeader *ack;
-  struct PeerSession *peer_session;
+  struct Session *peer_session;
   const struct UDPMessage *udp;
   struct ReceiveContext *rc;
   struct GNUNET_TIME_Absolute now;
@@ -963,12 +1062,12 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     GNUNET_break_op (0);
     return;
   }
-#if DEBUG_UDP
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "UDP received %u-byte message from `%s'\n", (unsigned int) ret,
-              GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
-#endif
   msg = (const struct GNUNET_MessageHeader *) buf;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "UDP received %u-byte message from `%s' type %i\n", (unsigned int) ret,
+              GNUNET_a2s ((const struct sockaddr *) addr, fromlen), ntohs(msg->type));
+
   if (ret != ntohs (msg->size))
   {
     GNUNET_break_op (0);
@@ -1641,24 +1740,25 @@ libgnunet_plugin_transport_udp_init (void *cls)
   return api;
 }
 
+/*
 
-/**
- * Destroy a session, plugin is being unloaded.
- *
- * @param cls unused
- * @param key hash of public key of target peer
- * @param value a 'struct PeerSession*' to clean up
- * @return GNUNET_OK (continue to iterate)
- */
-static int
-destroy_session (void *cls, const GNUNET_HashCode * key, void *value)
+static void invalidation_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct PeerSession *peer_session = value;
+  struct Session * s = cls;
+  struct Plugin * plugin = s->plugin;
 
-  GNUNET_FRAGMENT_context_destroy (peer_session->frag);
-  GNUNET_free (peer_session);
-  return GNUNET_OK;
+  s->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_CONTAINER_multihashmap_remove (plugin->inbound_sessions, &s->target.hashPubKey, s);
+
+
+  plugin->env->session_end (plugin->env->cls, &s->target, s);
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+              "Session %X is now invalid\n", s);
+  destroy_session(s, &s->target.hashPubKey, s);
 }
+*/
+
 
 
 /**
@@ -1679,7 +1779,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
                                          NULL);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
   plugin->sessions = NULL;
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->inbound_sessions, &destroy_session,
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->inbound_sessions, &destroy_inbound_session,
                                          NULL);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->inbound_sessions);
   plugin->inbound_sessions = NULL;
