@@ -2124,8 +2124,6 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   for (*copies = 0; NULL != n; n = n->next)
     (*copies)++;
   n = t->tree->me->children_head;
-  if (NULL == n)
-    return;
   data = GNUNET_malloc (size);
   memcpy (data, &msg[1], size);
   while (NULL != n)
