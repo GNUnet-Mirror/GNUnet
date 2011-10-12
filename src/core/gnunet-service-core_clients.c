@@ -813,8 +813,11 @@ GSC_CLIENTS_done ()
 
   while (NULL != (c = client_head))  
     handle_client_disconnect (NULL, c->client_handle);
-  GNUNET_SERVER_notification_context_destroy (notifier);
-  notifier = NULL;
+  if (NULL != notifier)
+  {
+    GNUNET_SERVER_notification_context_destroy (notifier);
+    notifier = NULL;
+  }
   GNUNET_SERVER_mst_destroy (client_mst);
   client_mst = NULL;
 }
