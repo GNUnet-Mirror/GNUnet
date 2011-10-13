@@ -352,6 +352,12 @@ server_lookup_session (struct Plugin *plugin,
   struct ServerConnection *sc = NULL;
   const union MHD_ConnectionInfo *conn_info;
 
+  struct IPv4HttpAddress a4;
+  struct IPv6HttpAddress a6;
+  struct sockaddr_in * s4;
+  struct sockaddr_in6 * s6;
+  void * a;
+  size_t a_len;
   struct GNUNET_PeerIdentity target;
   size_t addrlen;
   int check = GNUNET_NO;
@@ -485,10 +491,32 @@ create:
                "Server: Creating new session for peer `%s' \n", GNUNET_i2s (&target));
 #endif
 
+  switch (conn_info->client_addr->sa_family)
+  {
+  case (AF_INET):
+      s4 = ((struct sockaddr_in * ) conn_info->client_addr);
+      a4.u4_port = s4->sin_port;
+      memcpy (&a4.ipv4_addr, &s4->sin_addr,
+              sizeof (struct in_addr));
+      a = &a4;
+      a_len = sizeof (struct IPv4HttpAddress);
+      break;
+  case (AF_INET6):
+      s6 = ((struct sockaddr_in6 * ) conn_info->client_addr);
+      a6.u6_port = s6->sin6_port;
+      memcpy (&a6.ipv6_addr, &s6->sin6_addr,
+              sizeof (struct in6_addr));
+      a = &a6;
+      a_len = sizeof (struct IPv6HttpAddress);
+      break;
+  default:
+    GNUNET_break (0);
+  }
+
   s = create_session (plugin,
                       &target,
-                      conn_info->client_addr,
-                      addrlen,
+                      a,
+                      a_len,
                       NULL,
                       NULL);
 

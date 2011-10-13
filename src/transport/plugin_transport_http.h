@@ -261,6 +261,39 @@ struct Plugin
 };
 
 /**
+ * IPv4 addresses
+ */
+struct IPv4HttpAddress
+{
+  /**
+   * IPv4 address, in network byte order.
+   */
+  uint32_t ipv4_addr GNUNET_PACKED;
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u4_port GNUNET_PACKED;
+};
+
+/**
+ * IPv4 addresses
+ */
+struct IPv6HttpAddress
+{
+  /**
+   * IPv6 address.
+   */
+  struct in6_addr ipv6_addr GNUNET_PACKED;
+
+  /**
+   * Port number, in network byte order.
+   */
+  uint16_t u6_port GNUNET_PACKED;
+};
+
+
+/**
  * Session handle for connections.
  */
 struct Session

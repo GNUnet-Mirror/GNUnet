@@ -34,38 +34,6 @@
 #define LEARNED_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
 
 /**
- * IPv4 addresses
- */
-struct IPv4HttpAddress
-{
-  /**
-   * IPv4 address, in network byte order.
-   */
-  uint32_t ipv4_addr GNUNET_PACKED;
-
-  /**
-   * Port number, in network byte order.
-   */
-  uint16_t u4_port GNUNET_PACKED;
-};
-
-/**
- * IPv4 addresses
- */
-struct IPv6HttpAddress
-{
-  /**
-   * IPv6 address.
-   */
-  struct in6_addr ipv6_addr GNUNET_PACKED;
-
-  /**
-   * Port number, in network byte order.
-   */
-  uint16_t u6_port GNUNET_PACKED;
-};
-
-/**
  * Wrapper to manage IPv4 addresses
  */
 struct IPv4HttpAddressWrapper
@@ -189,7 +157,6 @@ http_plugin_address_pretty_printer (void *cls, const char *type,
   size_t sbs;
   uint16_t port = 0 ;
 
-  // BUG! Transport addrs over the network must NOT be 'struct sockaddr*'s!
   if (addrlen == sizeof (struct IPv6HttpAddress))
   {
     struct IPv6HttpAddress * a6 = (struct IPv6HttpAddress *) addr;
@@ -341,6 +308,7 @@ http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
   else
   {
     /* invalid address */
+    GNUNET_break (0);
     return NULL;
   }
 #if !BUILD_HTTPS  
@@ -450,7 +418,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Session *s = NULL;
-
+  GNUNET_assert ((addrlen == sizeof (struct IPv6HttpAddress)) || (addrlen == sizeof (struct IPv4HttpAddress)));
   s = GNUNET_malloc (sizeof (struct Session));
   memcpy (&s->target, target, sizeof (struct GNUNET_PeerIdentity));
   s->plugin = plugin;
@@ -531,6 +499,11 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
 #endif
 
   struct Session *s = NULL;
+
+
+  if (addrlen != 0)
+     GNUNET_assert ((addrlen == sizeof (struct IPv4HttpAddress)) ||
+                    (addrlen == sizeof (struct IPv6HttpAddress)));
 
   /* look for existing connection */
   s = lookup_session (plugin, target, session, addr, addrlen, 1);
