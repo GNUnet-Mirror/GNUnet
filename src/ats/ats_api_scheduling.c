@@ -277,9 +277,11 @@ process_ats_message (void *cls,
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
   const struct AddressSuggestionMessage *m;
+  const struct GNUNET_TRANSPORT_ATS_Information *atsi;
   const char *address;
   const char *plugin_name;
   uint16_t address_length;
+  uint32_t ats_count;
 
   if (NULL == msg) 
   {
@@ -298,13 +300,16 @@ process_ats_message (void *cls,
     return;
   }
   m = (const struct AddressSuggestionMessage*) msg;
-  address = (const char*) &m[1];
+  ats_count = ntohl (m->ats_count);
   address_length = ntohs (m->address_length);
+  atsi = (const struct GNUNET_TRANSPORT_ATS_Information*) &m[1];
+  address = (const char*) &atsi[ats_count];
   plugin_name = &address[address_length];
-  GNUNET_break (0 == ntohl (m->reserved));
   if ( (ntohs (m->address_length) +
 	ntohs (m->plugin_name_length) +
+	ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
 	sizeof (struct AddressSuggestionMessage) != ntohs (msg->size))  ||
+       (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
        (plugin_name[ntohs (m->plugin_name_length) - 1] != '\0') )
   {
     GNUNET_break (0);
@@ -319,7 +324,9 @@ process_ats_message (void *cls,
 		  address, address_length,
 		  find_session (sh, ntohl (m->session_id)),
 		  m->bandwidth_out,
-		  m->bandwidth_in);
+		  m->bandwidth_in,
+		  atsi,
+		  ats_count);
   GNUNET_CLIENT_receive (sh->client,
 			 &process_ats_message, sh,
 			 GNUNET_TIME_UNIT_FOREVER_REL);
