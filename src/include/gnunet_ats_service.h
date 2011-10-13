@@ -225,7 +225,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ph handle
  */
 void
-GNUNET_ATS_performance_done (struct GNUNET_ATS_SchedulingHandle *ph);
+GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph);
 
 
 /**
@@ -264,8 +264,8 @@ struct GNUNET_ATS_ReservationContext;
  * @param peer identifies the peer
  * @param amount reserve N bytes for receiving, negative
  *                amounts can be used to undo a (recent) reservation;
- * @param info function to call with the resulting reservation information
- * @param info_cls closure for info
+ * @param rcb function to call with the resulting reservation information
+ * @param rcb_cls closure for info
  * @return NULL on error
  * @deprecated will be replaced soon
  */
@@ -273,8 +273,8 @@ struct GNUNET_ATS_ReservationContext *
 GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
 			      const struct GNUNET_PeerIdentity *peer,
 			      int32_t amount, 
-			      GNUNET_ATS_ReservationCallback info, 
-			      void *info_cls);
+			      GNUNET_ATS_ReservationCallback rcb, 
+			      void *rcb_cls);
 
 
 /**

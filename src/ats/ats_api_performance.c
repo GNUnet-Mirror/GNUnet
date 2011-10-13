@@ -86,12 +86,12 @@ struct GNUNET_ATS_ReservationContext
   /**
    * Function to call on result.
    */
-  GNUNET_ATS_ReservationCallback info;
+  GNUNET_ATS_ReservationCallback rcb;
 
   /**
-   * Closure for 'info'
+   * Closure for 'rcb'
    */
-  void *info_cls;
+  void *rcb_cls;
 
   /**
    * Do we need to undo this reservation if it succeeded?  Set to
@@ -238,6 +238,123 @@ do_transmit (struct GNUNET_ATS_PerformanceHandle *ph)
 
 
 /**
+ * We received a peer information message.  Validate and process it.
+ *
+ * @param ph our context with the callback
+ * @param msg the message
+ * @return GNUNET_OK if the message was well-formed
+ */
+static int
+process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
+		    const struct GNUNET_MessageHeader *msg)
+{
+  const struct PeerInformationMessage *pi;
+  const struct GNUNET_TRANSPORT_ATS_Information *atsi;
+  const char *address;
+  const char *plugin_name;
+  uint16_t address_length;
+  uint16_t plugin_name_length;
+  uint32_t ats_count;
+
+  if (ph->infocb == NULL)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }    
+  if (ntohs (msg->size) < sizeof (struct PeerInformationMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  pi = (const struct PeerInformationMessage*) msg;
+  ats_count = ntohl (pi->ats_count);
+  address_length = ntohs (pi->address_length);
+  plugin_name_length = ntohs (pi->plugin_name_length);
+  atsi = (const struct GNUNET_TRANSPORT_ATS_Information*) &pi[1];
+  address = (const char*) &atsi[ats_count];
+  plugin_name = &address[address_length];
+  if ( (address_length +
+	plugin_name_length +
+	ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+	sizeof (struct PeerInformationMessage) != ntohs (msg->size))  ||
+       (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
+       (plugin_name[plugin_name_length - 1] != '\0') )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  ph->infocb (ph->infocb_cls,
+	      &pi->peer,
+	      plugin_name,
+	      address, address_length,
+	      pi->bandwidth_out,
+	      pi->bandwidth_in,
+	      atsi,
+	      ats_count);
+  return GNUNET_OK;
+}
+
+
+/**
+ * We received a reservation result message.  Validate and process it.
+ *
+ * @param ph our context with the callback
+ * @param msg the message
+ * @return GNUNET_OK if the message was well-formed
+ */
+static int
+process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
+		    const struct GNUNET_MessageHeader *msg)
+{
+  const struct ReservationResultMessage *rr;
+  struct GNUNET_ATS_ReservationContext *rc;
+  int32_t amount;
+
+  if (ph->infocb == NULL)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }    
+  if (ntohs (msg->size) < sizeof (struct ReservationResultMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  rr = (const struct ReservationResultMessage*) msg;
+  amount = ntohl (rr->amount);
+  rc = ph->reservation_head;
+  if (0 != memcmp (&rr->peer,
+		   &rc->peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CONTAINER_DLL_remove (ph->reservation_head,
+			       ph->reservation_tail,
+			       rc);
+  if ( (amount == 0) ||
+       (rc->rcb != NULL) )
+  {
+    /* tell client if not cancelled */
+    if (rc->rcb != NULL)
+      rc->rcb (rc->rcb_cls,
+	       &rr->peer,
+	       amount,
+	      GNUNET_TIME_relative_ntoh (rr->res_delay));	
+    GNUNET_free (rc);
+    return GNUNET_OK;
+  }
+  GNUNET_free (rc);
+  /* amount non-zero, but client cancelled, consider undo! */
+  if (GNUNET_YES != rc->undo)
+    return GNUNET_OK; /* do not try to undo failed undos or negative amounts */
+  (void) GNUNET_ATS_reserve_bandwidth (ph, &rr->peer, -amount, NULL, NULL);
+  return GNUNET_OK;
+}
+
+
+/**
  * Type of a function to call when we receive a message
  * from the service.
  *
@@ -259,7 +376,24 @@ process_ats_message (void *cls,
   }
   switch (ntohs (msg->type))
   {
-    // FIXME
+  case GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION:
+    if (GNUNET_OK != process_pi_message (ph, msg))
+    {
+      GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
+      ph->client = NULL;
+      reconnect (ph);
+      return;
+    }
+    break;
+  case GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT:
+    if (GNUNET_OK != process_rr_message (ph, msg))
+    {
+      GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
+      ph->client = NULL;
+      reconnect (ph);
+      return;
+    }
+    break;
   default:
     GNUNET_break (0);
     GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
@@ -359,7 +493,7 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
     GNUNET_CONTAINER_DLL_remove (ph->reservation_head,
 				 ph->reservation_tail,
 				 rc);
-    GNUNET_break (NULL == rc->info);
+    GNUNET_break (NULL == rc->rcb);
     GNUNET_free (p);
   }  
   GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
@@ -376,8 +510,8 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
  * @param peer identifies the peer
  * @param amount reserve N bytes for receiving, negative
  *                amounts can be used to undo a (recent) reservation;
- * @param info function to call with the resulting reservation information
- * @param info_cls closure for info
+ * @param rcb function to call with the resulting reservation information
+ * @param rcb_cls closure for info
  * @return NULL on error
  * @deprecated will be replaced soon
  */
@@ -385,8 +519,8 @@ struct GNUNET_ATS_ReservationContext *
 GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
 			      const struct GNUNET_PeerIdentity *peer,
 			      int32_t amount, 
-			      GNUNET_ATS_ReservationCallback info, 
-			      void *info_cls)
+			      GNUNET_ATS_ReservationCallback rcb, 
+			      void *rcb_cls)
 {
   struct GNUNET_ATS_ReservationContext *rc;
   struct PendingMessage *p;
@@ -395,8 +529,10 @@ GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
   rc = GNUNET_malloc (sizeof (struct GNUNET_ATS_ReservationContext));
   rc->size = amount;
   rc->peer = *peer;
-  rc->info = info;
-  rc->info_cls = info_cls;
+  rc->rcb = rcb;
+  rc->rcb_cls = rcb_cls;
+  if ( (rc != NULL) && (amount > 0) )
+    rc->undo = GNUNET_YES;
   GNUNET_CONTAINER_DLL_insert_tail (ph->reservation_head,
 				    ph->reservation_tail,
 				    rc);
@@ -426,7 +562,7 @@ void
 GNUNET_ATS_reserve_bandwidth_cancel (struct
 				     GNUNET_ATS_ReservationContext *rc)
 {
-  rc->info = NULL;
+  rc->rcb = NULL;
 }
 
 
