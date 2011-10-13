@@ -323,8 +323,8 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param session session to use (if available)
  * @param plugin_addr address to use (if available)
  * @param plugin_addr_len number of bytes in addr
- * @param bandwidth_out assigned outbound bandwidth for the connection
- * @param bandwidth_in assigned inbound bandwidth for the connection
+ * @param bandwidth_out assigned outbound bandwidth for the connection, 0 to disconnect from peer
+ * @param bandwidth_in assigned inbound bandwidth for the connection, 0 to disconnect from peer
  */
 static void
 ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -334,9 +334,18 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
+  uint32_t bw_in = ntohl (bandwidth_in.value__);
+  uint32_t bw_out = ntohl (bandwidth_out.value__);
+
+  /* ATS tells me to disconnect from peer*/
+  if ((bw_in == 0) && (bw_out == 0))
+  {
+    GST_neighbours_force_disconnect(peer);
+    return;
+  }
+
   GST_neighbours_switch_to_address (peer, plugin_name, plugin_addr,
                                     plugin_addr_len, session, NULL, 0);
-  GST_neighbours_set_incoming_quota (peer, bandwidth_in);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
