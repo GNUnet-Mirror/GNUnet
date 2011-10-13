@@ -159,6 +159,7 @@ transmit_message_to_ats (void *cls,
   {
     memcpy (&cbuf[ret], &p[1], p->size);    
     ret += p->size;
+    size -= p->size;
     GNUNET_CONTAINER_DLL_remove (sh->pending_head,
 				 sh->pending_tail,
 				 p);
