@@ -70,13 +70,35 @@ static struct ATS_Clients *ac_tail;
 
 static struct GNUNET_CONTAINER_MultiHashMap * addresses;
 
-int address_it (void *cls,
+int free_address_it (void *cls,
                const GNUNET_HashCode * key,
                void *value)
 {
   struct ATS_Address * aa = cls;
   GNUNET_free (aa);
   return GNUNET_OK;
+}
+
+struct CompareAddressContext
+{
+  struct ATS_Address * search;
+  struct ATS_Address * result;
+};
+
+int compare_address_it (void *cls,
+               const GNUNET_HashCode * key,
+               void *value)
+{
+  struct CompareAddressContext * cac = cls;
+  struct ATS_Address * aa = (struct ATS_Address *) value;
+  if (0 == strcmp(aa->plugin, cac->search->plugin))
+  {
+    if ((aa->addr_len == cac->search->addr_len) &&
+        (0 == memcmp (aa->addr, cac->search->addr, aa->addr_len)))
+      cac->result = aa;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
 }
 
 /**
@@ -97,7 +119,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (t);
   }
 
-  GNUNET_CONTAINER_multihashmap_iterate (addresses, address_it, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (addresses, free_address_it, NULL);
 
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
 }
@@ -156,12 +178,24 @@ handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
   char *pm;
 
   size_t size = ntohs (msg->header.size);
-  if (size <= sizeof (struct AddressUpdateMessage))
-      GNUNET_break (0);
+  if ((size <= sizeof (struct AddressUpdateMessage)) || (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE))
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   size_t ats_count = ntohs (msg->ats_count);
   size_t addr_len = ntohs (msg->address_length);
   size_t plugin_len = ntohs (msg->plugin_name_length) + 1 ;
+
+  if (
+       (plugin_len  >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+       (addr_len  >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+       (addr_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information)) )
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   struct ATS_Address * aa = GNUNET_malloc (sizeof (struct ATS_Address) +
                                            ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
@@ -192,7 +226,11 @@ handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
 {
   // struct AddressDestroyedMessage * msg = (struct AddressDestroyedMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ADDRESS_DESTROYED");
-
+/*
+  struct GNUNET_PeerIdentity *peer = &msg->peer;
+  struct ATS_Address * aa = find_address_by_addr (peer);
+  GNUNET_CONTAINER_multihashmap_remove(addresses, peer, aa);
+  GNUNET_free (aa);*/
 }
 
 static void
