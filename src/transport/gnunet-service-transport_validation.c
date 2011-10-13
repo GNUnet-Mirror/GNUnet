@@ -394,7 +394,6 @@ add_valid_address (void *cls, const char *tname,
   struct ValidationEntry *ve;
   struct GNUNET_PeerIdentity pid;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
-  struct GNUNET_TRANSPORT_ATS_Information ats;
 
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
     return GNUNET_OK;           /* expired */
@@ -406,10 +405,8 @@ add_valid_address (void *cls, const char *tname,
   }
   ve = find_validation_entry (&public_key, &pid, tname, addr, addrlen);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until, expiration);
-  ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  ats.value = htonl (0);
-  GNUNET_ATS_address_update (GST_ats, &pid, ve->valid_until, tname, NULL, addr,
-                             addrlen, &ats, 1);
+  GNUNET_ATS_address_update (GST_ats, &pid, tname, addr,
+                             addrlen, NULL, NULL, 0);
   return GNUNET_OK;
 }
 
@@ -978,15 +975,13 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   /* validity achieved, remember it! */
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
   {
-    struct GNUNET_TRANSPORT_ATS_Information ats[2];
+    struct GNUNET_TRANSPORT_ATS_Information ats;
 
-    ats[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
-    ats[0].value = htonl ((uint32_t) GNUNET_TIME_absolute_get_duration (ve->send_time).rel_value);
-    ats[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-    ats[1].value = htonl (0);
-    GNUNET_ATS_address_update (GST_ats, &ve->pid, ve->valid_until, 
-			       ve->transport_name, NULL, ve->addr, ve->addrlen, 
-			       ats, 2);
+    ats.type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+    ats.value = htonl ((uint32_t) GNUNET_TIME_absolute_get_duration (ve->send_time).rel_value);
+    GNUNET_ATS_address_update (GST_ats, &ve->pid,
+			       ve->transport_name,ve->addr, ve->addrlen, NULL,
+			       &ats, 1);
   }
   
   /* build HELLO to store in PEERINFO */

@@ -2334,12 +2334,10 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   struct Session *session = (struct Session *) client;
   struct Plugin *plugin = (struct Plugin *) cls;
 
-  struct GNUNET_TRANSPORT_ATS_Information distance[2];
+  struct GNUNET_TRANSPORT_ATS_Information distance;
 
-  distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-  distance[0].value = htonl (1);
-  distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  distance[1].value = htonl (0);
+  distance.type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance.value = htonl (1);
 
 #if DEBUG_wlan
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
@@ -2352,7 +2350,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 
   plugin->env->receive (plugin->env->cls, &(session->target), hdr,
                         (const struct GNUNET_TRANSPORT_ATS_Information *)
-                        &distance, 2, session,
+                        &distance, 1, session,
                         (const char *) &session->mac->addr,
                         sizeof (session->mac->addr));
 }

@@ -759,17 +759,15 @@ process_inbound_tokenized_messages (void *cls, void *client,
 {
   struct Plugin *plugin = cls;
   struct SourceInformation *si = client;
-  struct GNUNET_TRANSPORT_ATS_Information distance[2];
+  struct GNUNET_TRANSPORT_ATS_Information distance;
 
   /* setup ATS */
-  distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-  distance[0].value = htonl (1);
-  distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  distance[1].value = htonl (0);
+  distance.type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance.value = htonl (1);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
                    "Giving Session %X %s  to transport\n", si->session, GNUNET_i2s(&si->session->target));
-  plugin->env->receive (plugin->env->cls, &si->sender, hdr, distance, 2, si->session,
+  plugin->env->receive (plugin->env->cls, &si->sender, hdr, &distance, 1, si->session,
                         si->arg, si->args);
 }
 

@@ -191,12 +191,6 @@ struct NeighbourMapEntry
   struct MessageQueue *messages_tail;
 
   /**
-   * Context for address suggestion.
-   * NULL after we are connected.
-   */
-  struct GNUNET_ATS_SuggestionContext *asc;
-
-  /**
    * Performance data for the peer.
    */
   struct GNUNET_TRANSPORT_ATS_Information *ats;
@@ -505,11 +499,6 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     GNUNET_SCHEDULER_cancel (n->transmission_task);
     n->transmission_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (NULL != n->asc)
-  {
-    GNUNET_ATS_suggest_address_cancel (n->asc);
-    n->asc = NULL;
-  }
   GNUNET_array_grow (n->ats, n->ats_count, 0);
   if (NULL != n->plugin_name)
   {
@@ -649,6 +638,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
   struct SessionConnectMessage connect_msg;
+  int was_connected;
 
   GNUNET_assert (neighbours != NULL);
 
@@ -660,6 +650,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     // GNUNET_break (0);
     return;
   }
+  was_connected = n->is_connected;
+  n->is_connected = GNUNET_YES;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -693,75 +685,17 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
       GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   GST_neighbours_send (peer, &connect_msg, sizeof (connect_msg),
                        GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
-}
 
-
-/**
- * Try to connect to the target peer using the given address
- *
- * @param cls the 'struct NeighbourMapEntry' of the target
- * @param target identity of the target peer
- * @param plugin_name name of the plugin
- * @param plugin_address binary address
- * @param plugin_address_len length of address
- * @param session session to use
- * @param bandwidth_out available outbound bandwidth
- * @param bandwidth_in available inbound bandwidth
- * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in 'ats'
- */
-static void
-try_connect_using_address (void *cls, const struct GNUNET_PeerIdentity *target,
-                           const char *plugin_name, const void *plugin_address,
-                           size_t plugin_address_len, struct Session *session,
-                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                           const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                           uint32_t ats_count)
-{
-  struct NeighbourMapEntry *n = cls;
-  int was_connected;
-
-  n->asc = NULL;
-  was_connected = n->is_connected;
-  n->is_connected = GNUNET_YES;
-
-  GST_neighbours_switch_to_address (target, plugin_name, plugin_address,
-                                    plugin_address_len, session, ats,
-                                    ats_count);
+  n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task,
+                                                n);
   if (GNUNET_YES == was_connected)
     return;
-  n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task,
-						n);
-
-  /* ATS told us inbound quota for this peer */
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting inbound quota of %u for peer `%s' to \n",
-              ntohl (bandwidth_in.value__), GNUNET_i2s (target));
-#endif
-  GST_neighbours_set_incoming_quota (&n->id, bandwidth_in);
-
   /* First tell clients about connected neighbours...*/
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                             GNUNET_NO);
-  connect_notify_cb (callback_cls, target, n->ats, n->ats_count);
-
-  /* ... then send outbound quota for this peer to all clients */
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (bandwidth_out.value__), GNUNET_i2s (target));
-#endif
-
-  struct QuotaSetMessage msg;
-  msg.header.size = htons (sizeof (struct QuotaSetMessage));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-  msg.quota = bandwidth_out;
-  msg.peer = (*target);
-  GST_clients_broadcast ((struct GNUNET_MessageHeader *) &msg, GNUNET_NO);
-
+  connect_notify_cb (callback_cls, peer, n->ats, n->ats_count);
 }
-
 
 /**
  * Try to create a connection to the given target (eventually).
@@ -795,9 +729,6 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 #endif
     n = GNUNET_malloc (sizeof (struct NeighbourMapEntry));
     n->id = *target;
-    GNUNET_array_grow (n->ats, n->ats_count, 1);
-    n->ats[0].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);;
-    n->ats[0].value = htonl (0);
     GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
                                    GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                    MAX_BANDWIDTH_CARRY_S);
@@ -809,16 +740,12 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
                                                       &n->id.hashPubKey, n,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
-  if (n->asc != NULL)
-    return;                     /* already trying */
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking ATS for suggested address to connect to peer `%s'\n",
               GNUNET_i2s (target));
 #endif
-  n->asc =
-      GNUNET_ATS_suggest_address (GST_ats, target, &try_connect_using_address,
-                                  n);
+   GNUNET_ATS_suggest_address (GST_ats, target);
 }
 
 
@@ -891,8 +818,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     //GNUNET_break (0);
     return;
   }
-  n->asc =
-      GNUNET_ATS_suggest_address (GST_ats, peer, &try_connect_using_address, n);
+  GNUNET_ATS_suggest_address (GST_ats, peer);
 }
 
 

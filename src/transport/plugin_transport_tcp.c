@@ -1663,13 +1663,10 @@ delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_TRANSPORT_ATS_Information ats;
 
-  ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  ats.value = htonl (0);
-
   session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
   delay =
       session->plugin->env->receive (session->plugin->env->cls,
-                                     &session->target, NULL, &ats, 1, session,
+                                     &session->target, NULL, &ats, 0, session,
                                      NULL, 0);
   if (delay.rel_value == 0)
     GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
@@ -1721,16 +1718,14 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# bytes received via TCP"),
                             ntohs (message->size), GNUNET_NO);
-  struct GNUNET_TRANSPORT_ATS_Information distance[2];
+  struct GNUNET_TRANSPORT_ATS_Information distance;
 
-  distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-  distance[0].value = htonl (1);
-  distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  distance[1].value = htonl (0);
+  distance.type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance.value = htonl (1);
   delay =
       plugin->env->receive (plugin->env->cls, &session->target, message,
                             (const struct GNUNET_TRANSPORT_ATS_Information *)
-                            &distance, 2, session,
+                            &distance, 1, session,
                             (GNUNET_YES ==
                              session->inbound) ? NULL : session->connect_addr,
                             (GNUNET_YES ==

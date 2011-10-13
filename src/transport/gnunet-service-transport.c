@@ -246,7 +246,6 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
       break;
     }
   }
-  GNUNET_assert ((ats_count > 0) && (ats != NULL));
   /*
      FIXME: this gives an address that might not have been validated to
      ATS for 'selection', which is probably not what we want; this 
@@ -254,9 +253,11 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
      validation) as 'GNUNET_ATS_address_update' currently ignores
      the expiration given.
   */
-  GNUNET_ATS_address_update (GST_ats, peer, GNUNET_TIME_absolute_get (),        /* valid at least until right now... */
-                             plugin_name, session, sender_address,
-                             sender_address_len, ats, ats_count);
+  if ((ats_count > 0) && (ats != NULL))
+    GNUNET_ATS_address_update (GST_ats, peer,
+                               plugin_name, sender_address, sender_address_len,
+                               session,
+                               ats, ats_count);
   return ret;
 }
 
@@ -304,7 +305,7 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
               "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
 #endif
-  GNUNET_ATS_session_destroyed(GST_ats, peer, session);
+  GNUNET_ATS_address_destroyed(GST_ats, peer, NULL, NULL, 0, session);
   GST_neighbours_session_terminated (peer, session);
 }
 
@@ -327,15 +328,32 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static void
 ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
-                            const char *plugin_name, struct Session *session,
+                            const char *plugin_name,
                             const void *plugin_addr, size_t plugin_addr_len,
+                            struct Session *session,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GST_neighbours_switch_to_address (peer, plugin_name, plugin_addr,
                                     plugin_addr_len, session, NULL, 0);
   GST_neighbours_set_incoming_quota (peer, bandwidth_in);
-  // FIXME: use 'bandwidth_out'!
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
+              ntohl (bandwidth_out.value__), GNUNET_i2s (target));
+#endif
+  struct QuotaSetMessage msg;
+  msg.header.size = htons (sizeof (struct QuotaSetMessage));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
+  msg.quota = bandwidth_out;
+  msg.peer = (*peer);
+  GST_clients_broadcast ((struct GNUNET_MessageHeader *) &msg, GNUNET_NO);
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting inbound quota of %u for peer `%s' to \n",
+              ntohl (bandwidth_in.value__), GNUNET_i2s (target));
+#endif
+  GST_neighbours_set_incoming_quota (peer, bandwidth_in);
 }
 
 
@@ -346,7 +364,7 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param peer the peer that connected
  * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param ats_count number of entries in ats
  */
 static void
 neighbours_connect_notification (void *cls,
@@ -357,16 +375,13 @@ neighbours_connect_notification (void *cls,
   char buf[sizeof (struct ConnectInfoMessage) +
            ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)];
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
-  struct GNUNET_TRANSPORT_ATS_Information *atsm = &connect_msg->ats;
 
   connect_msg->header.size = htons (sizeof (buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   connect_msg->ats_count = htonl (ats_count);
   connect_msg->id = *peer;
-  memcpy (&connect_msg->ats, ats,
+  memcpy (&connect_msg->ats, &connect_msg->ats,
           ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-  atsm[ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  atsm[ats_count].value = htonl (0);
   GST_clients_broadcast (&connect_msg->header, GNUNET_NO);
 }
 
@@ -405,7 +420,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GST_validation_stop ();
   GST_plugins_unload ();
   GST_neighbours_stop ();
-  GNUNET_ATS_shutdown (GST_ats);
+  GNUNET_ATS_scheduling_done (GST_ats);
   GST_ats = NULL;
   GST_clients_stop ();
   GST_blacklist_stop ();
@@ -484,7 +499,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GST_plugins_load (&plugin_env_receive_callback,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_end);
-  GST_ats = GNUNET_ATS_init (GST_cfg, &ats_request_address_change, NULL);
+  GST_ats = GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
   GST_neighbours_start (NULL, &neighbours_connect_notification,
                         &neighbours_disconnect_notification);
   GST_clients_start (server);
