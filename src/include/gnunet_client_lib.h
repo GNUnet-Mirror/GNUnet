@@ -89,6 +89,7 @@ void
 GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
                           int finish_pending_write);
 
+
 /**
  * Type of a function to call when we receive a message
  * from the service.
@@ -99,6 +100,7 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
 typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
                                               const struct GNUNET_MessageHeader
                                               * msg);
+
 
 /**
  * Type of a function to call when we have finished shutting
@@ -111,6 +113,7 @@ typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
  *        GNUNET_SYSERR on failure to transmit message
  */
 typedef void (*GNUNET_CLIENT_ShutdownTask) (void *cls, int reason);
+
 
 /**
  * Read from the service.

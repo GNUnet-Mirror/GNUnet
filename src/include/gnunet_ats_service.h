@@ -44,6 +44,12 @@ struct GNUNET_ATS_SchedulingHandle;
 
 
 /**
+ * Opaque session handle, defined by plugins.  Contents not known to ATS.
+ */
+struct Session;
+
+
+/**
  * Signature of a function called by ATS with the current bandwidth
  * and address preferences as determined by ATS.  
  *
@@ -76,34 +82,34 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
  * Initialize the ATS subsystem.
  *
  * @param cfg configuration to use
- * @param alloc_cb notification to call whenever the allocation changed
- * @param alloc_cb_cls closure for 'alloc_cb'
+ * @param suggest_cb notification to call whenever the suggestation changed
+ * @param suggest_cb_cls closure for 'suggest_cb'
  * @return ats context
  */
 struct GNUNET_ATS_SchedulingHandle *
 GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			    GNUNET_ATS_AddressSuggestionCallback alloc_cb,
-			    void *alloc_cb_cls);
+			    GNUNET_ATS_AddressSuggestionCallback suggest_cb,
+			    void *suggest_cb_cls);
 
 
 /**
  * Client is done with ATS scheduling, release resources.
  *
- * @param atc handle to release
+ * @param sh handle to release
  */
 void
-GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *atc);
+GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
 
 
 /**
  * We would like to establish a new connection with a peer.  ATS
  * should suggest a good address to begin with.
  *
- * @param atc handle
+ * @param sh handle
  * @param peer identity of the peer we need an address for
  */
 void
-GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *atc,
+GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
                             const struct GNUNET_PeerIdentity *peer);
 
 
@@ -115,7 +121,7 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *atc,
  * which case the call may be ignored or the information may be stored
  * for later use).  Update bandwidth assignments.
  *
- * @param atc handle
+ * @param sh handle
  * @param peer identity of the new peer
  * @param plugin_name name of the transport plugin
  * @param plugin_addr address  (if available)
@@ -125,7 +131,7 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *atc,
  * @param ats_count number of performance records in 'ats'
  */
 void
-GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *atc,
+GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
                            const struct GNUNET_PeerIdentity *peer,
                            const char *plugin_name,
                            const void *plugin_addr, size_t plugin_addr_len,
@@ -137,20 +143,20 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *atc,
 /**
  * A session got destroyed, stop including it as a valid address.
  *
- * @param atc handle
+ * @param sh handle
  * @param peer identity of the peer
  * @param plugin_name name of the transport plugin
  * @param plugin_addr address  (if available)
  * @param plugin_addr_len number of bytes in plugin_addr
- * @param session session handle that is no longer valid
+ * @param session session handle that is no longer valid (if available)
  */
 void
-GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *atc,
+GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
                               const struct GNUNET_PeerIdentity *peer,
 			      const char *plugin_name,
 			      const void *plugin_addr, 
 			      size_t plugin_addr_len,
-                              const struct Session *session);
+			      struct Session *session);
 
 
 /* ******************************** Performance API ***************************** */
@@ -197,7 +203,7 @@ typedef void (*GNUNET_ATS_PeerInformationCallback) (void *cls,
  * Get handle to access performance API of the ATS subsystem.
  *
  * @param cfg configuration to use
- * @param infocb function to call on allocation changes, can be NULL
+ * @param infocb function to call on performance changes, can be NULL
  * @param infocb_cls closure for infocb
  * @return ats performance context
  */
@@ -210,10 +216,10 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Client is done using the ATS performance subsystem, release resources.
  *
- * @param atc handle
+ * @param ph handle
  */
 void
-GNUNET_ATS_performance_done (struct GNUNET_ATS_SchedulingHandle *atc);
+GNUNET_ATS_performance_done (struct GNUNET_ATS_SchedulingHandle *ph);
 
 
 /**
@@ -248,7 +254,7 @@ struct GNUNET_ATS_ReservationContext;
  * the current amount of traffic we receive from the peer and ensure
  * that the peer could add 'amount' of data to its stream.
  *
- * @param h core handle
+ * @param ph performance handle
  * @param peer identifies the peer
  * @param amount reserve N bytes for receiving, negative
  *                amounts can be used to undo a (recent) reservation;
@@ -258,7 +264,7 @@ struct GNUNET_ATS_ReservationContext;
  * @deprecated will be replaced soon
  */
 struct GNUNET_ATS_ReservationContext *
-GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *h,
+GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
 			      const struct GNUNET_PeerIdentity *peer,
 			      int32_t amount, 
 			      GNUNET_ATS_ReservationCallback info, 
@@ -311,12 +317,12 @@ enum GNUNET_ATS_PreferenceKind
  * Change preferences for the given peer. Preference changes are forgotten if peers
  * disconnect.
  * 
- * @param cls closure
+ * @param ph performance handle
  * @param peer identifies the peer
  * @param ... 0-terminated specification of the desired changes
  */
 void
-GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *h,
+GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
 			      const struct GNUNET_PeerIdentity *peer,
 			      ...);
 
