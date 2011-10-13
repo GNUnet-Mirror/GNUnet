@@ -342,7 +342,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ph handle
  */
 void
-GNUNET_ATS_performance_done (struct GNUNET_ATS_SchedulingHandle *ph)
+GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
 {
   struct PendingMessage *p;
   struct GNUNET_ATS_ReservationContext *rc;
