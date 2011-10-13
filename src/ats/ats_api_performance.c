@@ -448,21 +448,60 @@ GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
   size_t msize;
   uint32_t count;
   struct PreferenceInformation *pi;
+  va_list ap;
+  enum GNUNET_ATS_PreferenceKind kind;
 
-  // FIXME: set 'count'
+  count = 0;
+  va_start (ap, peer);
+  while (GNUNET_ATS_PREFERENCE_END != (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind)))
+  {
+    switch (kind)
+    {
+    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
+      count++;
+      (void) va_arg (ap, double);
+      break;
+    case GNUNET_ATS_PREFERENCE_LATENCY:
+      count++;
+      (void) va_arg (ap, double);
+      break;
+    default:
+      GNUNET_assert (0);      
+    }
+  }
+  va_end (ap);
+  msize = count * sizeof (struct PreferenceInformation) +
+    sizeof (struct ChangePreferenceMessage);
   p = GNUNET_malloc (sizeof (struct PendingMessage) + 
-		     sizeof (struct ChangePreferenceMessage) + 
-		     count * sizeof (struct PreferenceInformation));
+		     msize);
   p->size = msize;
   p->is_init = GNUNET_NO;
-  m = (struct ReservationRequestMessage*) &p[1];
+  m = (struct ChangePreferenceMessage*) &p[1];
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
   m->header.size = htons (msize);
   m->num_preferences = htonl (count);
   m->peer = *peer;
   pi = (struct PreferenceInformation*) &m[1];
-  // FIXME: fill in 'pi'
-
+  count = 0;
+  va_start (ap, peer);
+  while (GNUNET_ATS_PREFERENCE_END != (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind)))
+  {
+    pi[count].preference_kind = htonl (kind);
+    switch (kind)
+    {
+    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
+      pi[count].preference_value = (float) va_arg (ap, double);
+      count++;
+      break;
+    case GNUNET_ATS_PREFERENCE_LATENCY:
+      pi[count].preference_value = (float) va_arg (ap, double);
+      count++;
+      break;
+    default:
+      GNUNET_assert (0);      
+    }
+  }
+  va_end (ap);
   GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head,
 				    ph->pending_tail,
 				    p);
