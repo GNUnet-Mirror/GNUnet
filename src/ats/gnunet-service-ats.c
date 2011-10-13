@@ -60,7 +60,6 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
-
 /**
  * A client disconnected from us.  Tear down the local client
  * record.

@@ -42,29 +42,50 @@ struct SchedulingClient
 /**
  * Head of linked list of all clients to this service.
  */
-static struct SchedulingClient *ac_head;
+static struct SchedulingClient *sc_head;
 
 /**
  * Tail of linked list of all clients to this service.
  */
-static struct SchedulingClient *ac_tail;
+static struct SchedulingClient *sc_tail;
+
+
+static struct SchedulingClient * 
+find_client (struct GNUNET_SERVER_Client *client)
+{
+  struct SchedulingClient * sc;
+
+  for (sc = sc_head; sc != NULL; sc = sc->next)
+    if (sc->client == client)
+      return sc;
+  return NULL;
+}
 
 
 void
 GAS_add_scheduling_client (struct GNUNET_SERVER_Client *client)
 {
-  struct SchedulingClient *ac;
+  struct SchedulingClient *sc;
 
-  ac = GNUNET_malloc (sizeof (struct SchedulingClient));
-  ac->client = client;
+  GNUNET_break (NULL == find_client (client));
+  sc = GNUNET_malloc (sizeof (struct SchedulingClient));
+  sc->client = client;
   GNUNET_SERVER_client_keep (client);
-  GNUNET_CONTAINER_DLL_insert(ac_head, ac_tail, ac);
+  GNUNET_CONTAINER_DLL_insert(sc_head, sc_tail, sc);
 }
 
 
 void
 GAS_remove_scheduling_client (struct GNUNET_SERVER_Client *client)
 {
+  struct SchedulingClient * sc;
+
+  sc = find_client (client);
+  if (NULL == sc)
+    return;
+  GNUNET_CONTAINER_DLL_remove (sc_head, sc_tail, sc);
+  GNUNET_SERVER_client_drop (client);
+  GNUNET_free (sc);
 }
 
 

@@ -48,6 +48,18 @@ static struct PerformanceClient *pc_head;
  * Tail of linked list of all clients to this service.
  */
 static struct PerformanceClient *pc_tail;
+ 
+
+static struct PerformanceClient * 
+find_client (struct GNUNET_SERVER_Client *client)
+{
+  struct PerformanceClient * pc;
+
+  for (pc = pc_head; pc != NULL; pc = pc->next)
+    if (pc->client == client)
+      return pc;
+  return NULL;
+}
 
 
 void
@@ -55,6 +67,7 @@ GAS_add_performance_client (struct GNUNET_SERVER_Client *client)
 {
   struct PerformanceClient * pc;
 
+  GNUNET_break (NULL == find_client (client));
   pc = GNUNET_malloc (sizeof (struct PerformanceClient));
   pc->client = client;
   GNUNET_CONTAINER_DLL_insert(pc_head, pc_tail, pc);
@@ -64,6 +77,14 @@ GAS_add_performance_client (struct GNUNET_SERVER_Client *client)
 void
 GAS_remove_performance_client (struct GNUNET_SERVER_Client *client)
 {
+  struct PerformanceClient * pc;
+
+  pc = find_client (client);
+  if (NULL == pc)
+    return;
+  GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
+  GNUNET_SERVER_client_drop (client);
+  GNUNET_free (pc);
 }
 
 
