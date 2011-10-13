@@ -332,7 +332,9 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
                             const void *plugin_addr, size_t plugin_addr_len,
                             struct Session *session,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                            const struct GNUNET_TRANSPORT_ATS_Information * ats,
+                            uint32_t ats_count)
 {
   uint32_t bw_in = ntohl (bandwidth_in.value__);
   uint32_t bw_out = ntohl (bandwidth_out.value__);
@@ -345,7 +347,7 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   GST_neighbours_switch_to_address (peer, plugin_name, plugin_addr,
-                                    plugin_addr_len, session, NULL, 0);
+                                    plugin_addr_len, session, ats, ats_count);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
