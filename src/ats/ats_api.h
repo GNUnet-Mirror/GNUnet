@@ -101,7 +101,7 @@ struct GNUNET_ATS_Handle
   /**
    * Function to call when the allocation changes.
    */
-  GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb;
+  GNUNET_ATS_AddressSuggestionCallback alloc_cb;
 
   /**
    * Closure for 'alloc_cb'.

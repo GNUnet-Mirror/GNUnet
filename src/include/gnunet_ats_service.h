@@ -44,65 +44,6 @@ struct GNUNET_ATS_Handle;
 
 
 /**
- * Signature of a function called by ATS to notify the callee that the
- * assigned bandwidth or address for a given peer was changed.  If the
- * callback is called with address/bandwidth assignments of zero, the
- * ATS disconnect function will still be called once the disconnect
- * actually happened.
- *
- * @param cls closure
- * @param peer identity of the peer
- * @param plugin_name name of the transport plugin, NULL to disconnect
- * @param session session to use (if available)
- * @param plugin_addr address to use (if available)
- * @param plugin_addr_len number of bytes in addr
- * @param bandwidth_out assigned outbound bandwidth for the connection
- * @param bandwidth_in assigned inbound bandwidth for the connection
- */
-typedef void (*GNUNET_TRANSPORT_ATS_AllocationNotification) (void *cls,
-                                                             const struct
-                                                             GNUNET_PeerIdentity
-                                                             * peer,
-                                                             const char
-                                                             *plugin_name,
-                                                             struct Session *
-                                                             session,
-                                                             const void
-                                                             *plugin_addr,
-                                                             size_t
-                                                             plugin_addr_len,
-                                                             struct
-                                                             GNUNET_BANDWIDTH_Value32NBO
-                                                             bandwidth_out,
-                                                             struct
-                                                             GNUNET_BANDWIDTH_Value32NBO
-                                                             bandwidth_in);
-
-
-/**
- * Initialize the ATS subsystem.
- *
- * @param cfg configuration to use
- * @param alloc_cb notification to call whenever the allocation changed
- * @param alloc_cb_cls closure for 'alloc_cb'
- * @return ats context
- */
-struct GNUNET_ATS_Handle *
-GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                 GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
-                 void *alloc_cb_cls);
-
-
-/**
- * Shutdown the ATS subsystem.
- *
- * @param atc handle
- */
-void
-GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
-
-
-/**
  * Signature of a function that takes an address suggestion
  *
  * @param cls closure
@@ -133,6 +74,29 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                                       GNUNET_TRANSPORT_ATS_Information
                                                       * ats,
                                                       uint32_t ats_count);
+
+
+/**
+ * Initialize the ATS subsystem.
+ *
+ * @param cfg configuration to use
+ * @param alloc_cb notification to call whenever the allocation changed
+ * @param alloc_cb_cls closure for 'alloc_cb'
+ * @return ats context
+ */
+struct GNUNET_ATS_Handle *
+GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                 GNUNET_ATS_AddressSuggestionCallback alloc_cb,
+                 void *alloc_cb_cls);
+
+
+/**
+ * Shutdown the ATS subsystem.
+ *
+ * @param atc handle
+ */
+void
+GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
 
 
 /**

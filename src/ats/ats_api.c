@@ -152,9 +152,12 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
     if (NULL != sbc->atc->alloc_cb)
       sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                           (const struct GNUNET_PeerIdentity *) key,
-                          ar->plugin_name, ar->session, ar->plugin_addr,
-                          ar->plugin_addr_len, ar->bandwidth_out,
-                          ar->bandwidth_in);
+                          ar->plugin_name, ar->plugin_addr,
+                          ar->plugin_addr_len, 
+			  ar->session,
+			  ar->bandwidth_out,
+                          ar->bandwidth_in,
+			  NULL, 0);
   }
   else if (ntohl (ar->bandwidth_out.value__) > 0)
   {
@@ -163,9 +166,9 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
     if (NULL != sbc->atc->alloc_cb)
       sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                           (const struct GNUNET_PeerIdentity *) key,
-                          ar->plugin_name, ar->session, ar->plugin_addr,
-                          ar->plugin_addr_len, ar->bandwidth_out,
-                          ar->bandwidth_in);
+                          ar->plugin_name, ar->plugin_addr,
+                          ar->plugin_addr_len, ar->session, ar->bandwidth_out,
+                          ar->bandwidth_in, NULL, 0);
   }
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -331,7 +334,7 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext *asc)
  */
 struct GNUNET_ATS_Handle *
 GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                 GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
+                 GNUNET_ATS_AddressSuggestionCallback alloc_cb,
                  void *alloc_cb_cls)
 {
   struct GNUNET_ATS_Handle *atc;
