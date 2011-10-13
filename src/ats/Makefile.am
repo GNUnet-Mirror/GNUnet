@@ -22,7 +22,9 @@ bin_PROGRAMS = \
  gnunet-service-ats
 
 gnunet_service_ats_SOURCES = \
- gnunet-service-ats.c         
+ gnunet-service-ats.c \
+ gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
+ gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h
 gnunet_service_ats_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
