@@ -81,6 +81,52 @@ free_address_it (void *cls,
 }
 
 
+void
+GAS_address_update (struct GNUNET_SERVER_Client *client,
+		    const struct GNUNET_PeerIdentity *peer,
+		    const char *plugin_name,
+		    const void *plugin_addr, size_t plugin_addr_len,
+		    uint32_t session_id,
+		    const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+		    uint32_t atsi_count)
+{
+  struct ATS_Address * aa;
+
+  aa = GNUNET_malloc (sizeof (struct ATS_Address) +
+		      atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+		      plugin_addr_len);
+  aa->peer = *peer;
+  aa->addr_len = plugin_addr_len;
+  aa->ats_count = atsi_count;
+  aa->ats = (struct GNUNET_TRANSPORT_ATS_Information *) &aa[1];  
+  memcpy (&aa->ats, atsi, atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  memcpy (aa->addr, plugin_addr, plugin_addr_len);
+  aa->plugin = GNUNET_strdup (plugin_name);
+  aa->session_id = session_id;
+
+  GNUNET_assert (GNUNET_OK == 
+		 GNUNET_CONTAINER_multihashmap_put(addresses, 
+						   &peer->hashPubKey, 
+						   aa, 
+						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+}
+
+
+void
+GAS_address_destroyed (struct GNUNET_SERVER_Client *client,
+		       ...)
+{
+#if 0
+  // struct AddressDestroyedMessage * msg = (struct AddressDestroyedMessage *) message;
+/*
+  struct GNUNET_PeerIdentity *peer = &msg->peer;
+  struct ATS_Address * aa = find_address_by_addr (peer);
+  GNUNET_CONTAINER_multihashmap_remove(addresses, peer, aa);
+  GNUNET_free (aa);*/
+#endif
+}
+
+
 /**
  */
 void

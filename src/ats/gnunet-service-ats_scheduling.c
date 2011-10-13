@@ -24,6 +24,7 @@
  * @author Matthias Wachs
  */
 #include "platform.h"
+#include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "ats.h"
 
@@ -105,54 +106,52 @@ GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 
 {
-#if 0
-  struct AddressUpdateMessage * msg = (struct AddressUpdateMessage *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ADDRESS_UPDATE");
+  const struct AddressUpdateMessage * m;
+  const struct GNUNET_TRANSPORT_ATS_Information *atsi;
+  const char *address;
+  const char *plugin_name;
+  uint16_t address_length;
+  uint16_t plugin_name_length;
+  uint32_t ats_count;
+  uint16_t size;
 
-  struct GNUNET_TRANSPORT_ATS_Information *am;
-  char *pm;
-
-  size_t size = ntohs (msg->header.size);
-  if ((size <= sizeof (struct AddressUpdateMessage)) || (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received `%s' message\n",
+	      "ADDRESS_UPDATE");
+  size = ntohs (message->size);
+  if (size <= sizeof (struct AddressUpdateMessage))
   {
     GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
-  size_t ats_count = ntohs (msg->ats_count);
-  size_t addr_len = ntohs (msg->address_length);
-  size_t plugin_len = ntohs (msg->plugin_name_length) + 1 ;
-
-  if (
-       (plugin_len  >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-       (addr_len  >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-       (addr_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information)) )
+  m = (const struct AddressUpdateMessage*) message;
+  ats_count = ntohl (m->ats_count);
+  address_length = ntohs (m->address_length);
+  plugin_name_length = ntohs (m->plugin_name_length);  
+  atsi = (const struct GNUNET_TRANSPORT_ATS_Information*) &m[1];
+  address = (const char*) &atsi[ats_count];
+  plugin_name = &address[address_length];
+  if ( (address_length +
+	plugin_name_length +
+	ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+	sizeof (struct AddressSuggestionMessage) != ntohs (message->size))  ||
+       (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
+       (plugin_name[plugin_name_length - 1] != '\0') )
   {
     GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
-  struct ATS_Address * aa = GNUNET_malloc (sizeof (struct ATS_Address) +
-                                           ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
-                                           addr_len +
-                                           plugin_len);
-
-
-
-  memcpy (&aa->peer, &msg->peer, sizeof (struct GNUNET_PeerIdentity));
-  aa->addr_len = addr_len;
-  aa->ats_count = ats_count;
-  aa->ats = (struct GNUNET_TRANSPORT_ATS_Information *) &aa[1];
-
-  am = (struct GNUNET_TRANSPORT_ATS_Information*) &msg[1];
-  memcpy (&aa->ats, am, ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-  pm = (char *) &am[ats_count];
-  memcpy (aa->addr, pm, addr_len);
-  memcpy (aa->plugin, &pm[plugin_len], plugin_len);
-  aa->session_id = ntohl(msg->session_id);
-
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(addresses, &aa->peer.hashPubKey, aa, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-#endif
+  GAS_address_update (client,
+		      &m->peer,
+		      plugin_name,
+		      address,
+		      address_length,
+		      ntohl (m->session_id),
+		      atsi,
+		      ats_count);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -161,15 +160,7 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 
 {
-#if 0
-  // struct AddressDestroyedMessage * msg = (struct AddressDestroyedMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ADDRESS_DESTROYED");
-/*
-  struct GNUNET_PeerIdentity *peer = &msg->peer;
-  struct ATS_Address * aa = find_address_by_addr (peer);
-  GNUNET_CONTAINER_multihashmap_remove(addresses, peer, aa);
-  GNUNET_free (aa);*/
-#endif
 }
 
 /* end of gnunet-service-ats_scheduling.c */

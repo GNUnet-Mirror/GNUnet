@@ -41,7 +41,6 @@ enum StartFlag
 };
 
 
-
 struct ClientStartMessage
 {
   struct GNUNET_MessageHeader header;
@@ -53,7 +52,6 @@ struct ClientStartMessage
 };
 
 
-
 struct RequestAddressMessage
 {
   struct GNUNET_MessageHeader header;
@@ -62,6 +60,7 @@ struct RequestAddressMessage
 
   struct GNUNET_PeerIdentity peer;
 };
+
 
 struct AddressUpdateMessage
 {
@@ -84,6 +83,7 @@ struct AddressUpdateMessage
   */
 
 };
+
 
 struct AddressDestroyedMessage
 {
@@ -134,7 +134,6 @@ struct AddressSuggestionMessage
 };
 
 
-
 struct PeerInformationMessage
 {
   struct GNUNET_MessageHeader header;
@@ -158,8 +157,6 @@ struct PeerInformationMessage
   */
 
 };
-
-
 
 
 struct ReservationRequestMessage
