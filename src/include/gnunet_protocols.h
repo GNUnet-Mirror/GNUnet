@@ -990,21 +990,59 @@ extern "C"
  * ATS message types
  ******************************************************************************/
 
+/**
+ * Type of the 'struct ClientStartMessage' sent by clients to ATS to
+ * identify the type of the client.
+ */
 #define GNUNET_MESSAGE_TYPE_ATS_START 340
 
+/**
+ * Type of the 'struct RequestAddressMessage' sent by clients to ATS
+ * to request an address to help connect.
+ */
 #define GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS 341
 
+/**
+ * Type of the 'struct AddressUpdateMessage' sent by clients to ATS
+ * to inform ATS about performance changes.
+ */
 #define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE 342
 
+/**
+ * Type of the 'struct AddressDestroyedMessage' sent by clients to ATS
+ * to inform ATS about an address being unavailable.
+ */
 #define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED 343
 
+/**
+ * Type of the 'struct AddressSuggestionMessage' sent by ATS to clients
+ * to suggest switching to a different address.
+ */
 #define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION 344
 
-#define GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST 345
+/**
+ * Type of the 'struct PeerInformationMessage' sent by ATS to clients
+ * to inform about QoS for a particular connection.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION 345
 
-#define GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT 346
+/**
+ * Type of the 'struct ReservationRequestMessage' sent by clients to ATS
+ * to ask for inbound bandwidth reservations.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST 346
 
-#define GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE 347
+/**
+ * Type of the 'struct ReservationResultMessage' sent by ATS to clients
+ * in response to a reservation request.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT 347
+
+/**
+ * Type of the 'struct ChangePreferenceMessage' sent by clients to ATS
+ * to ask for allocation preference changes.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE 348
 
 
 /*******************************************************************************
