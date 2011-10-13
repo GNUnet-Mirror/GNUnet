@@ -193,7 +193,7 @@ struct NeighbourMapEntry
   /**
    * Performance data for the peer.
    */
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  //struct GNUNET_TRANSPORT_ATS_Information *ats;
 
   /**
    * Are we currently trying to send a message? If so, which one?
@@ -257,7 +257,7 @@ struct NeighbourMapEntry
   /**
    * Number of values in 'ats' array.
    */
-  unsigned int ats_count;
+  //unsigned int ats_count;
 
   /**
    * Are we already in the process of disconnecting this neighbour?
@@ -499,7 +499,6 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     GNUNET_SCHEDULER_cancel (n->transmission_task);
     n->transmission_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_array_grow (n->ats, n->ats_count, 0);
   if (NULL != n->plugin_name)
   {
     GNUNET_free (n->plugin_name);
@@ -668,9 +667,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   memcpy (n->addr, address, address_len);
   n->addrlen = address_len;
   n->session = session;
-  GNUNET_array_grow (n->ats, n->ats_count, ats_count);
-  memcpy (n->ats, ats,
-          ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
   GNUNET_free_non_null (n->plugin_name);
   n->plugin_name = GNUNET_strdup (plugin_name);
   GNUNET_SCHEDULER_cancel (n->timeout_task);
@@ -694,7 +690,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                             GNUNET_NO);
-  connect_notify_cb (callback_cls, peer, n->ats, n->ats_count);
+  connect_notify_cb (callback_cls, peer, ats, ats_count);
 }
 
 /**
@@ -812,12 +808,6 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT,
                                     &neighbour_timeout_task, n);
   /* try QUICKLY to re-establish a connection, reduce timeout! */
-  if (NULL != n->ats)
-  {
-    /* how can this be!? */
-    //GNUNET_break (0);
-    return;
-  }
   GNUNET_ATS_suggest_address (GST_ats, peer);
 }
 
@@ -1079,8 +1069,7 @@ neighbours_iterate (void *cls, const GNUNET_HashCode * key, void *value)
   if (GNUNET_YES != n->is_connected)
     return GNUNET_OK;
 
-  GNUNET_assert (n->ats_count > 0);
-  ic->cb (ic->cb_cls, &n->id, n->ats, n->ats_count, n->plugin_name, n->addr, n->addrlen);
+  ic->cb (ic->cb_cls, &n->id, NULL, 0, n->plugin_name, n->addr, n->addrlen);
   return GNUNET_OK;
 }
 
