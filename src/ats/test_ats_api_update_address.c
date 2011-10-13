@@ -44,7 +44,7 @@
 
 #define VALID GNUNET_TIME_absolute_get_forever ()
 
-static struct GNUNET_ATS_Handle *ats;
+static struct GNUNET_ATS_SchedulingHandle *ats;
 
 static struct GNUNET_ATS_SuggestionContext *asc;
 

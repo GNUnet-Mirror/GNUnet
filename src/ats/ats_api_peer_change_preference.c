@@ -40,7 +40,7 @@ struct GNUNET_ATS_InformationRequestContext
   /**
    * Our connection to the service.
    */
-  struct GNUNET_ATS_Handle *h;
+  struct GNUNET_ATS_SchedulingHandle *h;
 
   int32_t amount;
 
@@ -124,7 +124,7 @@ exec_pcp (void *cls,
  * @return NULL on error
  */
 struct GNUNET_ATS_InformationRequestContext *
-GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_Handle *h,
+GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_SchedulingHandle *h,
 				   const struct GNUNET_PeerIdentity *peer,
                                     int32_t amount, uint64_t preference,
                                     GNUNET_ATS_PeerConfigurationInfoCallback
@@ -173,7 +173,7 @@ struct GNUNET_ATS_InformationRequestContext
   /**
    * Our connection to the service.
    */
-  struct GNUNET_ATS_Handle *h;
+  struct GNUNET_ATS_SchedulingHandle *h;
 
   /**
    * Link to control message, NULL if CM was sent.
@@ -218,7 +218,7 @@ change_preference_send_continuation (void *cls, int success)
  * @return NULL on error
  */
 struct GNUNET_ATS_InformationRequestContext *
-GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_Handle *h,
+GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_SchedulingHandle *h,
                                     const struct GNUNET_PeerIdentity *peer,
                                     int32_t amount, uint64_t preference,
                                     GNUNET_ATS_PeerConfigurationInfoCallback
@@ -290,7 +290,7 @@ GNUNET_ATS_peer_change_preference_cancel (struct
                                            GNUNET_ATS_InformationRequestContext
                                            *irc)
 {
-  struct GNUNET_ATS_Handle *h = irc->h;
+  struct GNUNET_ATS_SchedulingHandle *h = irc->h;
   struct PeerRecord *pr = irc->pr;
 
   GNUNET_assert (pr->pcic_ptr == irc);

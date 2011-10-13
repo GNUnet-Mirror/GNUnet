@@ -25,8 +25,6 @@
  *
  * TODO:
  * - move GNUNET_TRANSPORT_ATS* in here and rename...
- * - extend API to express communication preferences to ATS
- *   (to be called DIRECTLY from apps, not from transport/core!)
  */
 #ifndef GNUNET_ATS_SERVICE_H
 #define GNUNET_ATS_SERVICE_H
@@ -37,24 +35,26 @@
 #include "gnunet_transport_plugin.h"
 
 
+/* ******************************** Scheduling API ***************************** */
+
 /**
- * Handle to the ATS subsystem.
+ * Handle to the ATS subsystem for bandwidth/transport scheduling information.
  */
-struct GNUNET_ATS_Handle;
+struct GNUNET_ATS_SchedulingHandle;
 
 
 /**
- * Signature of a function that takes an address suggestion
+ * Signature of a function called by ATS with the current bandwidth
+ * and address preferences as determined by ATS.  
  *
  * @param cls closure
  * @param peer identity of the new peer
  * @param plugin_name name of the plugin, NULL if we have no suggestion
  * @param plugin_addr suggested address, NULL if we have no suggestion
  * @param plugin_addr_len number of bytes in plugin_addr
+ * @param session session to use
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
- * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in 'ats'
  */
 typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                                       const struct
@@ -69,11 +69,7 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                                       bandwidth_out,
                                                       struct
                                                       GNUNET_BANDWIDTH_Value32NBO
-                                                      bandwidth_in,
-                                                      const struct
-                                                      GNUNET_TRANSPORT_ATS_Information
-                                                      * ats,
-                                                      uint32_t ats_count);
+                                                      bandwidth_in);
 
 
 /**
@@ -84,99 +80,31 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
  * @param alloc_cb_cls closure for 'alloc_cb'
  * @return ats context
  */
-struct GNUNET_ATS_Handle *
-GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                 GNUNET_ATS_AddressSuggestionCallback alloc_cb,
-                 void *alloc_cb_cls);
+struct GNUNET_ATS_SchedulingHandle *
+GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			    GNUNET_ATS_AddressSuggestionCallback alloc_cb,
+			    void *alloc_cb_cls);
 
 
 /**
- * Shutdown the ATS subsystem.
+ * Client is done with ATS scheduling, release resources.
  *
- * @param atc handle
+ * @param atc handle to release
  */
 void
-GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
+GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *atc);
 
 
 /**
- * Handle to cancel suggestion request.
- */
-struct GNUNET_ATS_SuggestionContext;
-
-
-/**
- * We would like to establish a new connection with a peer.
- * ATS should suggest a good address to begin with.
+ * We would like to establish a new connection with a peer.  ATS
+ * should suggest a good address to begin with.
  *
  * @param atc handle
- * @param peer identity of the new peer
- * @param cb function to call with the address
- * @param cb_cls closure for cb
- */
-struct GNUNET_ATS_SuggestionContext *
-GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
-                            const struct GNUNET_PeerIdentity *peer,
-                            GNUNET_ATS_AddressSuggestionCallback cb,
-                            void *cb_cls);
-
-
-/**
- * Cancel suggestion request.
- *
- * @param asc handle of the request to cancel
+ * @param peer identity of the peer we need an address for
  */
 void
-GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext *asc);
-
-
-/**
- * We established a new connection with a peer (for example, because
- * core asked for it or because the other peer connected to us).
- * Calculate bandwidth assignments including the new peer.
- *
- * @param atc handle
- * @param peer identity of the new peer
- * @param plugin_name name of the currently used transport plugin
- * @param session session in use (if available)
- * @param plugin_addr address in use (if available)
- * @param plugin_addr_len number of bytes in plugin_addr
- * @param ats performance data for the connection
- * @param ats_count number of performance records in 'ats'
- */
-void
-GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
-                         const struct GNUNET_PeerIdentity *peer,
-                         const char *plugin_name, struct Session *session,
-                         const void *plugin_addr, size_t plugin_addr_len,
-                         const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                         uint32_t ats_count);
-
-
-/**
- * We disconnected from the given peer (for example, because ats, core
- * or blacklist asked for it or because the other peer disconnected).
- * Calculate bandwidth assignments without the peer.
- *
- * @param atc handle
- * @param peer identity of the peer
- */
-void
-GNUNET_ATS_peer_disconnect (struct GNUNET_ATS_Handle *atc,
+GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *atc,
                             const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * A session got destroyed, stop including it as a valid address.
- *
- * @param atc handle
- * @param peer identity of the peer
- * @param session session handle that is no longer valid
- */
-void
-GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
-                              const struct GNUNET_PeerIdentity *peer,
-                              const struct Session *session);
 
 
 /**
@@ -189,27 +117,107 @@ GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
  *
  * @param atc handle
  * @param peer identity of the new peer
- * @param valid_until how long is the address valid?
  * @param plugin_name name of the transport plugin
- * @param session session handle (if available)
  * @param plugin_addr address  (if available)
  * @param plugin_addr_len number of bytes in plugin_addr
+ * @param session session handle (if available)
  * @param ats performance data for the address
  * @param ats_count number of performance records in 'ats'
  */
 void
-GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
+GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *atc,
                            const struct GNUNET_PeerIdentity *peer,
-                           struct GNUNET_TIME_Absolute valid_until,
-                           const char *plugin_name, struct Session *session,
+                           const char *plugin_name,
                            const void *plugin_addr, size_t plugin_addr_len,
+			   struct Session *session,
                            const struct GNUNET_TRANSPORT_ATS_Information *ats,
                            uint32_t ats_count);
 
 
+/**
+ * A session got destroyed, stop including it as a valid address.
+ *
+ * @param atc handle
+ * @param peer identity of the peer
+ * @param plugin_name name of the transport plugin
+ * @param plugin_addr address  (if available)
+ * @param plugin_addr_len number of bytes in plugin_addr
+ * @param session session handle that is no longer valid
+ */
+void
+GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *atc,
+                              const struct GNUNET_PeerIdentity *peer,
+			      const char *plugin_name,
+			      const void *plugin_addr, 
+			      size_t plugin_addr_len,
+                              const struct Session *session);
+
+
+/* ******************************** Performance API ***************************** */
 
 /**
- * Function called with perference change information about the given peer.
+ * ATS Handle to obtain and/or modify performance information.
+ */
+struct GNUNET_ATS_PerformanceHandle;
+
+
+/**
+ * Signature of a function that is called with QoS information about a peer.
+ *
+ * @param cls closure
+ * @param peer identity of the new peer
+ * @param plugin_name name of the plugin, NULL if we have no suggestion
+ * @param plugin_addr suggested address, NULL if we have no suggestion
+ * @param plugin_addr_len number of bytes in plugin_addr
+ * @param bandwidth_out assigned outbound bandwidth for the connection
+ * @param bandwidth_in assigned inbound bandwidth for the connection
+ * @param ats performance data for the address (as far as known)
+ * @param ats_count number of performance records in 'ats'
+ */
+typedef void (*GNUNET_ATS_PeerInformationCallback) (void *cls,
+						    const struct
+						    GNUNET_PeerIdentity *
+						    peer,
+						    const char *plugin_name,
+						    const void *plugin_addr,
+						    size_t plugin_addr_len,
+						    struct
+						    GNUNET_BANDWIDTH_Value32NBO
+						    bandwidth_out,
+						    struct
+						    GNUNET_BANDWIDTH_Value32NBO
+						    bandwidth_in,
+						    const struct
+						    GNUNET_TRANSPORT_ATS_Information
+						    * ats,
+						    uint32_t ats_count);
+
+
+/**
+ * Get handle to access performance API of the ATS subsystem.
+ *
+ * @param cfg configuration to use
+ * @param infocb function to call on allocation changes, can be NULL
+ * @param infocb_cls closure for infocb
+ * @return ats performance context
+ */
+struct GNUNET_ATS_PerformanceHandle *
+GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			     GNUNET_ATS_PeerInformationCallback infocb,
+			     void *infocb_cls);
+
+
+/**
+ * Client is done using the ATS performance subsystem, release resources.
+ *
+ * @param atc handle
+ */
+void
+GNUNET_ATS_performance_done (struct GNUNET_ATS_SchedulingHandle *atc);
+
+
+/**
+ * Function called with reservation result.
  *
  * @param cls closure
  * @param peer identifies the peer
@@ -218,65 +226,99 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
  * @param res_delay if the reservation could not be satisfied (amount was 0), how
  *        long should the client wait until re-trying?
  */
-typedef void (*GNUNET_ATS_PeerConfigurationInfoCallback) (void *cls,
-							  const struct
-							  GNUNET_PeerIdentity *
-							  peer,
-							  int32_t amount,
-							  struct
-							  GNUNET_TIME_Relative
-							  res_delay);
+typedef void (*GNUNET_ATS_ReservationCallback) (void *cls,
+						const struct
+						GNUNET_PeerIdentity *
+						peer,
+						int32_t amount,
+						struct
+						GNUNET_TIME_Relative
+						res_delay);
 
 
 
 /**
  * Context that can be used to cancel a peer information request.
  */
-struct GNUNET_ATS_InformationRequestContext;
+struct GNUNET_ATS_ReservationContext;
 
 
 /**
- * Obtain statistics and/or change preferences for the given peer.
- * You can only have one such pending request per peer.
+ * Reserve inbound bandwidth from the given peer.  ATS will look at
+ * the current amount of traffic we receive from the peer and ensure
+ * that the peer could add 'amount' of data to its stream.
  *
  * @param h core handle
  * @param peer identifies the peer
  * @param amount reserve N bytes for receiving, negative
  *                amounts can be used to undo a (recent) reservation;
- * @param preference increase incoming traffic share preference by this amount;
- *                in the absence of "amount" reservations, we use this
- *                preference value to assign proportional bandwidth shares
- *                to all connected peers; in the future, this should be
- *                replaced with more specific QoS expressions...
- * @param info function to call with the resulting configuration information
+ * @param info function to call with the resulting reservation information
  * @param info_cls closure for info
  * @return NULL on error
  * @deprecated will be replaced soon
  */
-struct GNUNET_ATS_InformationRequestContext *
-GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_Handle *h,
-				   const struct GNUNET_PeerIdentity *peer,
-				   int32_t amount, uint64_t preference,
-				   GNUNET_ATS_PeerConfigurationInfoCallback
-				   info, void *info_cls);
+struct GNUNET_ATS_ReservationContext *
+GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *h,
+			      const struct GNUNET_PeerIdentity *peer,
+			      int32_t amount, 
+			      GNUNET_ATS_ReservationCallback info, 
+			      void *info_cls);
 
 
 /**
- * Cancel request for getting information about a peer.
- * Note that an eventual change in preference, trust or bandwidth
- * assignment MAY have already been committed at the time,
- * so cancelling a request is NOT sure to undo the original
- * request.  The original request may or may not still commit.
- * The only thing cancellation ensures is that the callback
- * from the original request will no longer be called.
+ * Cancel request for reserving bandwidth.
  *
- * @param irc context returned by the original GNUNET_ATS_peer_get_info call
- * @deprecated will be replaced soon
+ * @param rc context returned by the original GNUNET_ATS_reserve_bandwidth call
  */
 void
-GNUNET_ATS_peer_change_preference_cancel (struct
-					  GNUNET_ATS_InformationRequestContext
-					  *irc);
+GNUNET_ATS_reserve_bandwidth_cancel (struct
+				     GNUNET_ATS_ReservationContext *rc);
+
+
+
+/**
+ * Enum defining all known preference categories.
+ */
+enum GNUNET_ATS_PreferenceKind
+{
+
+  /**
+   * End of preference list.
+   */
+  GNUNET_ATS_PREFERENCE_END = 0,
+
+  /**
+   * Change the peer's bandwidth value (value per byte of bandwidth in
+   * the goal function) to the given amount.  The argument is followed
+   * by a double value giving the desired value (can be negative).
+   * Preference changes are forgotten if peers disconnect. 
+   */
+  GNUNET_ATS_PREFERENCE_BANDWIDTH,
+
+  /**
+   * Change the peer's latency value to the given amount.  The
+   * argument is followed by a double value giving the desired value
+   * (can be negative).  The absolute score in the goal function is
+   * the inverse of the latency in ms (minimum: 1 ms) multiplied by
+   * the latency preferences.
+   */
+  GNUNET_ATS_PREFERENCE_LATENCY
+
+};
+
+  
+/**
+ * Change preferences for the given peer. Preference changes are forgotten if peers
+ * disconnect.
+ * 
+ * @param cls closure
+ * @param peer identifies the peer
+ * @param ... 0-terminated specification of the desired changes
+ */
+void
+GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *h,
+			      const struct GNUNET_PeerIdentity *peer,
+			      ...);
 
 
 

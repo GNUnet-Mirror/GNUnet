@@ -70,7 +70,7 @@ struct GNUNET_ATS_SuggestionContext
   /**
    * Global ATS handle.
    */
-  struct GNUNET_ATS_Handle *atc;
+  struct GNUNET_ATS_SchedulingHandle *atc;
 
   /**
    * Which peer are we monitoring?
@@ -108,7 +108,7 @@ struct SetBandwidthContext
   /**
    * ATS handle.
    */
-  struct GNUNET_ATS_Handle *atc;
+  struct GNUNET_ATS_SchedulingHandle *atc;
 
   /**
    * Inbound bandwidth to assign.
@@ -184,13 +184,13 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
 /**
  * Task run to update bandwidth assignments.
  *
- * @param cls the 'struct GNUNET_ATS_Handle'
+ * @param cls the 'struct GNUNET_ATS_SchedulingHandle'
  * @param tc scheduler context
  */
 static void
 update_bandwidth_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_ATS_Handle *atc = cls;
+  struct GNUNET_ATS_SchedulingHandle *atc = cls;
   unsigned int ac = 0;
   struct SetBandwidthContext bwc;
 
@@ -218,7 +218,7 @@ update_bandwidth_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param change which allocation record changed?
  */
 static void
-update_bandwidth_assignment (struct GNUNET_ATS_Handle *atc,
+update_bandwidth_assignment (struct GNUNET_ATS_SchedulingHandle *atc,
                              struct AllocationRecord *change)
 {
   /* FIXME: based on the 'change', update the LP-problem... */
@@ -277,7 +277,7 @@ map_it (void *cls, const GNUNET_HashCode * key, void *value)
  * @param cb_cls closure for cb
  */
 struct GNUNET_ATS_SuggestionContext *
-GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
+GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *atc,
                             const struct GNUNET_PeerIdentity *peer,
                             GNUNET_ATS_AddressSuggestionCallback cb,
                             void *cb_cls)
@@ -332,17 +332,17 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext *asc)
  * @param alloc_cb_cls closure for 'alloc_cb'
  * @return ats context
  */
-struct GNUNET_ATS_Handle *
+struct GNUNET_ATS_SchedulingHandle *
 GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                  GNUNET_ATS_AddressSuggestionCallback alloc_cb,
                  void *alloc_cb_cls)
 {
-  struct GNUNET_ATS_Handle *atc;
+  struct GNUNET_ATS_SchedulingHandle *atc;
 
 #if DEBUG_ATS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "ATS init\n");
 #endif
-  atc = GNUNET_malloc (sizeof (struct GNUNET_ATS_Handle));
+  atc = GNUNET_malloc (sizeof (struct GNUNET_ATS_SchedulingHandle));
   atc->cfg = cfg;
   atc->alloc_cb = alloc_cb;
   atc->alloc_cb_cls = alloc_cb_cls;
@@ -382,7 +382,7 @@ destroy_allocation_record (void *cls, const GNUNET_HashCode * key, void *value)
  * @param atc handle
  */
 void
-GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc)
+GNUNET_ATS_shutdown (struct GNUNET_ATS_SchedulingHandle *atc)
 {
 #if DEBUG_ATS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "ATS shutdown\n");
@@ -410,7 +410,7 @@ struct UpdateSessionContext
   /**
    * Ats handle.
    */
-  struct GNUNET_ATS_Handle *atc;
+  struct GNUNET_ATS_SchedulingHandle *atc;
 
   /**
    * Allocation record with new information.
@@ -556,7 +556,7 @@ create_allocation_record (const char *plugin_name, struct Session *session,
 static int
 disconnect_peer (void *cls, const GNUNET_HashCode * key, void *value)
 {
-  struct GNUNET_ATS_Handle *atc = cls;
+  struct GNUNET_ATS_SchedulingHandle *atc = cls;
   struct AllocationRecord *ar = value;
 
   if (GNUNET_YES == ar->connected)
@@ -583,7 +583,7 @@ disconnect_peer (void *cls, const GNUNET_HashCode * key, void *value)
  * @param ats_count number of performance records in 'ats'
  */
 void
-GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
+GNUNET_ATS_peer_connect (struct GNUNET_ATS_SchedulingHandle *atc,
                          const struct GNUNET_PeerIdentity *peer,
                          const char *plugin_name, struct Session *session,
                          const void *plugin_addr, size_t plugin_addr_len,
@@ -628,7 +628,7 @@ GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
  * @param peer identity of the new peer
  */
 void
-GNUNET_ATS_peer_disconnect (struct GNUNET_ATS_Handle *atc,
+GNUNET_ATS_peer_disconnect (struct GNUNET_ATS_SchedulingHandle *atc,
                             const struct GNUNET_PeerIdentity *peer)
 {
 #if DEBUG_ATS
@@ -650,7 +650,7 @@ struct SessionDestroyContext
   /**
    * Ats handle.
    */
-  struct GNUNET_ATS_Handle *atc;
+  struct GNUNET_ATS_SchedulingHandle *atc;
 
   /**
    * Session being destroyed.
@@ -699,7 +699,7 @@ destroy_session (void *cls, const GNUNET_HashCode * key, void *value)
  * @param session session handle that is no longer valid
  */
 void
-GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
+GNUNET_ATS_session_destroyed (struct GNUNET_ATS_SchedulingHandle *atc,
                               const struct GNUNET_PeerIdentity *peer,
                               const struct Session *session)
 {
@@ -756,7 +756,7 @@ notify_valid (void *cls, const GNUNET_HashCode * key, void *value)
  * @param ats_count number of performance records in 'ats'
  */
 void
-GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
+GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *atc,
                            const struct GNUNET_PeerIdentity *peer,
                            struct GNUNET_TIME_Absolute valid_until,
                            const char *plugin_name, struct Session *session,

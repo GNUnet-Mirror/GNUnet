@@ -11,8 +11,8 @@ endif
 lib_LTLIBRARIES = libgnunetats.la
 
 libgnunetats_la_SOURCES = \
-  ats_api.c ats_api.h \
-  ats_api_peer_change_preference.c
+  ats_api_new.c \
+  ats_api_performance.c 
 
 libgnunetats_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la

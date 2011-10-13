@@ -91,7 +91,7 @@ struct AllocationRecord
 /**
  * Handle to the ATS subsystem.
  */
-struct GNUNET_ATS_Handle
+struct GNUNET_ATS_SchedulingHandle
 {
   /**
    * Configuration.

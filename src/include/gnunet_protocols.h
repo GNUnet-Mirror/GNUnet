@@ -987,6 +987,27 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY 334
 
 /*******************************************************************************
+ * ATS message types
+ ******************************************************************************/
+
+#define GNUNET_MESSAGE_TYPE_ATS_START 340
+
+#define GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS 341
+
+#define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE 342
+
+#define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED 343
+
+#define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION 344
+
+#define GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST 345
+
+#define GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT 346
+
+#define GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE 347
+
+
+/*******************************************************************************
  * TODO: we need a way to register message types centrally (via some webpage).
  * For now: unofficial extensions should start at 48k, internal extensions
  * define here should leave some room (4-10 additional messages to the previous

@@ -305,7 +305,7 @@ static char *trustDirectory;
 /**
  * Handle to ATS service.
  */
-static struct GNUNET_ATS_Handle *ats;
+static struct GNUNET_ATS_SchedulingHandle *ats;
 
 /**
  * Get the filename under which we would store the GNUNET_HELLO_Message

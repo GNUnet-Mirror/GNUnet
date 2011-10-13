@@ -73,7 +73,7 @@ struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
 /**
  * ATS handle.
  */
-struct GNUNET_ATS_Handle *GST_ats;
+struct GNUNET_ATS_SchedulingHandle *GST_ats;
 
 
 /**

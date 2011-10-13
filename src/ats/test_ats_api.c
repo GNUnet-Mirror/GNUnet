@@ -42,7 +42,7 @@
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static struct GNUNET_ATS_Handle *ats;
+static struct GNUNET_ATS_SchedulingHandle *ats;
 
 static void
 alloc_cb (void *cls, const struct GNUNET_PeerIdentity *peer,

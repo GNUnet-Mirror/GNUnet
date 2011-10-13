@@ -415,7 +415,7 @@ static struct GNUNET_CORE_Handle *coreAPI;
 /**
  * Handle to ATS.
  */
-static struct GNUNET_ATS_Handle *atsAPI;
+static struct GNUNET_ATS_SchedulingHandle *atsAPI;
 
 
 
