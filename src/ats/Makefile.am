@@ -18,14 +18,14 @@ libgnunetats_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 
-#bin_PROGRAMS = \
-# gnunet-service-ats
+bin_PROGRAMS = \
+ gnunet-service-ats
 
-#gnunet_service_ats_SOURCES = \
-# gnunet-service-ats.c         
-#gnunet_service_ats_LDADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(GN_LIBINTL)
+gnunet_service_ats_SOURCES = \
+ gnunet-service-ats.c         
+gnunet_service_ats_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 
 #check_PROGRAMS = \

@@ -27,10 +27,15 @@
 #include "gnunet_getopt_lib.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_container_lib.h"
+#include "gnunet_ats_service.h"
 #include "ats.h"
 
 struct ATS_Clients
 {
+  struct ATS_Clients * next;
+
+  struct ATS_Clients * prev;
+
   struct GNUNET_SERVER_Client *client;
 
   uint32_t flags;
@@ -71,7 +76,7 @@ int address_it (void *cls,
 {
   struct ATS_Address * aa = cls;
   GNUNET_free (aa);
-  GNUNET_OK;
+  return GNUNET_OK;
 }
 
 /**
@@ -89,12 +94,24 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     t = ac_head;
     GNUNET_CONTAINER_DLL_remove(ac_head,ac_tail, t);
-    GNUNET_free (ac);
+    GNUNET_free (t);
   }
 
-  GNUNET_CONTAINER_multihashmap_iterate(addresses, address_it, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (addresses, address_it, NULL);
 
-  GNUNET_CONTAINER_multihashmap_create(addresses);
+  GNUNET_CONTAINER_multihashmap_destroy (addresses);
+}
+
+static struct ATS_Clients * find_client (struct GNUNET_SERVER_Client *client)
+{
+  struct ATS_Clients * ac = ac_head;
+  while (ac != NULL)
+  {
+  if (ac->client == client)
+    break;
+  ac = ac->next;
+  }
+  return ac;
 }
 
 static void
@@ -138,32 +155,34 @@ handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_TRANSPORT_ATS_Information *am;
   char *pm;
 
+  size_t size = ntohs (msg->header.size);
   if (size <= sizeof (struct AddressUpdateMessage))
       GNUNET_break (0);
+
+  size_t ats_count = ntohs (msg->ats_count);
+  size_t addr_len = ntohs (msg->address_length);
+  size_t plugin_len = ntohs (msg->plugin_name_length) + 1 ;
 
   struct ATS_Address * aa = GNUNET_malloc (sizeof (struct ATS_Address) +
                                            ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
                                            addr_len +
                                            plugin_len);
 
-  size_t size = ntohs (msg->header.size);
-  size_t ats_count = ntohs (msg->ats_count);
-  size_t addr_len = ntohs (msg->address_length);
-  size_t plugin_len = ntohs (msg->plugin_name_length) + 1 ;
+
 
   memcpy (&aa->peer, &msg->peer, sizeof (struct GNUNET_PeerIdentity));
   aa->addr_len = addr_len;
   aa->ats_count = ats_count;
-  aa->ats = &aa[1];
+  aa->ats = (struct GNUNET_TRANSPORT_ATS_Information *) &aa[1];
 
   am = (struct GNUNET_TRANSPORT_ATS_Information*) &msg[1];
   memcpy (&aa->ats, am, ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
   pm = (char *) &am[ats_count];
   memcpy (aa->addr, pm, addr_len);
-  memcpy (aa->plugin, &pm[plugin_addr_len], plugin_len);
+  memcpy (aa->plugin, &pm[plugin_len], plugin_len);
   aa->session_id = ntohl(msg->session_id);
 
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(addresses, aa->peer.hashPubKey, aa, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(addresses, &aa->peer.hashPubKey, aa, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 }
 
 static void
@@ -234,7 +253,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "gnunet-service-ats",
+          GNUNET_SERVICE_run (argc, argv, "ats",
                               GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
 }
 
