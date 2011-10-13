@@ -119,7 +119,7 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 
 {
-  struct ClientStartMessage * msg = (struct ClientStartMessage *) msg;
+  struct ClientStartMessage * msg = (struct ClientStartMessage *) message;
   struct ATS_Clients * ac = NULL;
 
 
@@ -139,7 +139,7 @@ handle_request_address (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 
 {
-  struct RequestAddressMessage * msg = (struct RequestAddressMessage *) msg;
+  struct RequestAddressMessage * msg = (struct RequestAddressMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "REQUEST_ADDRESS");
 
 }
@@ -149,7 +149,7 @@ handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 
 {
-  struct AddressUpdateMessage * msg = (struct AddressUpdateMessage *) msg;
+  struct AddressUpdateMessage * msg = (struct AddressUpdateMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ADDRESS_UPDATE");
 
   struct GNUNET_TRANSPORT_ATS_Information *am;
@@ -190,7 +190,7 @@ handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 
 {
-  struct AddressDestroyedMessage * msg = (struct AddressDestroyedMessage *) msg;
+  struct AddressDestroyedMessage * msg = (struct AddressDestroyedMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ADDRESS_DESTROYED");
 
 }
@@ -200,7 +200,7 @@ handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 
 {
-  struct AddressUpdateMessage * msg = (struct AddressUpdateMessage *) msg;
+  struct AddressUpdateMessage * msg = (struct AddressUpdateMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "RESERVATION_REQUEST");
 }
 
@@ -209,7 +209,7 @@ handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 
 {
-  struct ChangePreferenceMessage * msg = (struct ChangePreferenceMessage *) msg;
+  struct ChangePreferenceMessage * msg = (struct ChangePreferenceMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "PREFERENCE_CHANGE");
 }
 
