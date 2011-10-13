@@ -57,7 +57,7 @@ struct StatsContext
  */
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define OK_GOAL 4
+#define OK_GOAL 3
 
 static int ok;
 
@@ -183,6 +183,19 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+static void
+disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: disconnecting mesh service of peers\n");
+  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_MESH_disconnect(h1);
+  GNUNET_MESH_disconnect(h2);
+  GNUNET_SCHEDULER_cancel (shutdown_handle);
+  shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
+}
+
+
 /**
  * Transmit ready callback
  */
@@ -195,7 +208,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
   if (size < sizeof(struct GNUNET_MessageHeader) || NULL == buf)
     return 0;
   msg->size = htons (sizeof(struct GNUNET_MessageHeader));
-  msg->type = htonl ((long) cls);
+  msg->type = htons ((long) cls);
   return sizeof(struct GNUNET_MessageHeader);
 }
 
@@ -228,19 +241,26 @@ data_callback (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "test: Origin client got a response!\n");
       ok++;
+      GNUNET_SCHEDULER_cancel (disconnect_task);
+      disconnect_task = GNUNET_SCHEDULER_add_now(&disconnect_mesh_peers,
+                                                 NULL);
       break;
     case 2L:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "test: Destination client got a message \n");
       ok++;
-      GNUNET_MESH_notify_transmit_ready(incoming_t,
-                                        GNUNET_NO,
-                                        0,
-                                        GNUNET_TIME_UNIT_FOREVER_REL,
-                                        sender,
-                                        sizeof(struct GNUNET_MessageHeader),
-                                        &tmt_rdy,
-                                        (void *) 1L);
+//       GNUNET_MESH_notify_transmit_ready(incoming_t,
+//                                         GNUNET_NO,
+//                                         0,
+//                                         GNUNET_TIME_UNIT_FOREVER_REL,
+//                                         sender,
+//                                         sizeof(struct GNUNET_MessageHeader),
+//                                         &tmt_rdy,
+//                                         (void *) 1L);
+      GNUNET_SCHEDULER_cancel (disconnect_task);
+      disconnect_task = GNUNET_SCHEDULER_add_delayed(SHORT_TIME,
+                                                     &disconnect_mesh_peers,
+                                                     NULL);
       break;
     default:
       break;
@@ -256,19 +276,6 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
   {&data_callback, 1, sizeof(struct GNUNET_MessageHeader)},
   {NULL, 0, 0}
 };
-
-
-static void
-disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: disconnecting mesh service of peers\n");
-  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_MESH_disconnect(h1);
-  GNUNET_MESH_disconnect(h2);
-  GNUNET_SCHEDULER_cancel (shutdown_handle);
-  shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
-}
 
 
 /**

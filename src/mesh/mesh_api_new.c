@@ -886,15 +886,20 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   unsigned int i;
   uint16_t type;
 
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Got a data message!\n");
   type = ntohs (message->type);
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
     ucast = (struct GNUNET_MESH_Unicast *) message;
+
     t = retrieve_tunnel (h, ntohl (ucast->tid));
     payload = (struct GNUNET_MessageHeader *) &ucast[1];
     peer = &ucast->oid;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "mesh:   on tunnel %s [%x]\n",
+                GNUNET_i2s (peer),
+                ntohl (ucast->tid));
     break;
   case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
     mcast = (struct GNUNET_MESH_Multicast *) message;
@@ -1061,10 +1066,15 @@ send_callback (void *cls, size_t size, void *buf)
       {
         /* unicast */
         struct GNUNET_MESH_Unicast uc;
+        struct GNUNET_MessageHeader *mh;
 
         GNUNET_assert (size >= th->size);
+        mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (uc)];
         psize =
-            th->notify (th->notify_cls, size - sizeof (uc), &cbuf[sizeof (uc)]);
+            th->notify (th->notify_cls, size - sizeof (uc), mh);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mesh:   unicast, type %u\n",
+              ntohs (mh->type));
         if (psize > 0)
         {
           uc.header.size = htons (th->size);
