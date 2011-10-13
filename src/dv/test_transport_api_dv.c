@@ -596,7 +596,7 @@ connect_notify_peer1 (void *cls, const struct GNUNET_PeerIdentity *peer,
      */
     pos->peer2handle =
         GNUNET_CORE_connect (pos->peer2->cfg, 1, pos, &init_notify_peer2,
-                             &connect_notify_peer2, NULL, NULL, NULL,
+                             &connect_notify_peer2, NULL, NULL, 
                              GNUNET_YES, NULL, GNUNET_YES, handlers);
   }
 }
@@ -646,7 +646,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    */
   pos->peer1handle =
       GNUNET_CORE_connect (pos->peer1->cfg, 1, pos, &init_notify_peer1,
-                           &connect_notify_peer1, NULL, NULL, NULL, GNUNET_NO,
+                           &connect_notify_peer1, NULL, NULL, GNUNET_NO,
                            NULL, GNUNET_NO, no_handlers);
 
   GNUNET_assert (pos->peer1handle != NULL);
@@ -936,7 +936,7 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 
   new_peer = GNUNET_malloc (sizeof (struct PeerContext));
   new_peer->peer_handle =
-      GNUNET_CORE_connect (cfg, 1, d, NULL, &all_connect_handler, NULL, NULL,
+      GNUNET_CORE_connect (cfg, 1, d, NULL, &all_connect_handler, NULL, 
                            NULL, GNUNET_NO, NULL, GNUNET_NO, no_handlers);
   new_peer->daemon = d;
   new_peer->next = all_peers;
