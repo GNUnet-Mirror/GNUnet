@@ -42,7 +42,7 @@ enum StartFlag
 
 
 
-struct ClientStart
+struct ClientStartMessage
 {
   struct GNUNET_MessageHeader header;
 

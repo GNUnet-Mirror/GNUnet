@@ -56,10 +56,10 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Client is done using the ATS performance subsystem, release resources.
  *
- * @param atc handle
+ * @param ph handle
  */
 void
-GNUNET_ATS_performance_done (struct GNUNET_ATS_SchedulingHandle *atc)
+GNUNET_ATS_performance_done (struct GNUNET_ATS_SchedulingHandle *ph)
 {
 }
 
@@ -77,7 +77,7 @@ struct GNUNET_ATS_ReservationContext
  * the current amount of traffic we receive from the peer and ensure
  * that the peer could add 'amount' of data to its stream.
  *
- * @param h core handle
+ * @param ph performance handle
  * @param peer identifies the peer
  * @param amount reserve N bytes for receiving, negative
  *                amounts can be used to undo a (recent) reservation;
@@ -87,7 +87,7 @@ struct GNUNET_ATS_ReservationContext
  * @deprecated will be replaced soon
  */
 struct GNUNET_ATS_ReservationContext *
-GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *h,
+GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
 			      const struct GNUNET_PeerIdentity *peer,
 			      int32_t amount, 
 			      GNUNET_ATS_ReservationCallback info, 
@@ -113,12 +113,12 @@ GNUNET_ATS_reserve_bandwidth_cancel (struct
  * Change preferences for the given peer. Preference changes are forgotten if peers
  * disconnect.
  * 
- * @param cls closure
+ * @param ph performance handle
  * @param peer identifies the peer
  * @param ... 0-terminated specification of the desired changes
  */
 void
-GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *h,
+GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
 			      const struct GNUNET_PeerIdentity *peer,
 			      ...)
 {
