@@ -105,6 +105,11 @@ struct GNUNET_ATS_SchedulingHandle
    * Unused entries are also NULL.
    */
   struct Session **session_array;
+
+  /**
+   * Task to trigger reconnect.
+   */ 
+  GNUNET_SCHEDULER_TaskIdentifier task;
   
   /**
    * Size of the session array.
@@ -121,6 +126,24 @@ struct GNUNET_ATS_SchedulingHandle
  */
 static void
 reconnect (struct GNUNET_ATS_SchedulingHandle *sh);
+
+
+
+/**
+ * Re-establish the connection to the ATS service.
+ *
+ * @param cls handle to use to re-connect.
+ * @param tc scheduler context
+ */
+static void
+reconnect_task (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_ATS_SchedulingHandle *sh = cls;
+
+  sh->task = GNUNET_SCHEDULER_NO_TASK;
+  reconnect (sh);
+}
 
 
 /**
@@ -289,7 +312,8 @@ process_ats_message (void *cls,
   {
     GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
     sh->client = NULL;
-    reconnect (sh);
+    sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+					     &reconnect_task, sh);
     return;
   }
   if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION) ||
@@ -298,7 +322,8 @@ process_ats_message (void *cls,
     GNUNET_break (0);
     GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
     sh->client = NULL;
-    reconnect (sh);
+    sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+					     &reconnect_task, sh);
     return;
   }
   m = (const struct AddressSuggestionMessage*) msg;
@@ -318,7 +343,8 @@ process_ats_message (void *cls,
     GNUNET_break (0);
     GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
     sh->client = NULL;
-    reconnect (sh);
+    sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+					     &reconnect_task, sh);
     return;
   }
   sh->suggest_cb (sh->suggest_cb_cls,
@@ -416,7 +442,16 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
 				 p);
     GNUNET_free (p);
   }
-  GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
+  if (NULL != sh->client)
+  {
+    GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
+    sh->client = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != sh->task)
+  {
+    GNUNET_SCHEDULER_cancel (sh->task);
+    sh->task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_array_grow (sh->session_array,
 		     sh->session_array_size,
 		     0);
