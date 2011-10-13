@@ -241,14 +241,14 @@ struct GSF_ConnectedPeer
   struct GSF_PeerTransmitHandle *migration_pth;
 
   /**
-   * Context of our GNUNET_ATS_peer_change_preference call (or NULL).
+   * Context of our GNUNET_ATS_reserve_bandwidth call (or NULL).
    */
-  struct GNUNET_ATS_InformationRequestContext *irc;
+  struct GNUNET_ATS_ReservationContext *rc;
 
   /**
    * Task scheduled if we need to retry bandwidth reservation later.
    */
-  GNUNET_SCHEDULER_TaskIdentifier irc_delay_task;
+  GNUNET_SCHEDULER_TaskIdentifier rc_delay_task;
 
   /**
    * Active requests from this neighbour, map of query to 'struct PeerRequest'.
@@ -305,7 +305,7 @@ static char *trustDirectory;
 /**
  * Handle to ATS service.
  */
-static struct GNUNET_ATS_SchedulingHandle *ats;
+static struct GNUNET_ATS_PerformanceHandle *ats;
 
 /**
  * Get the filename under which we would store the GNUNET_HELLO_Message
@@ -419,13 +419,23 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
 {
   struct GSF_ConnectedPeer *cp;
   struct GNUNET_PeerIdentity target;
-  uint64_t ip;
 
   if ((NULL != pth->cth) || (0 != pth->cth_in_progress))
     return;                     /* already done */
   cp = pth->cp;
   GNUNET_assert (0 != cp->ppd.pid);
   GNUNET_PEER_resolve (cp->ppd.pid, &target);
+
+  if (0 != cp->inc_preference)
+  {
+    GNUNET_ATS_change_preference (ats,
+				  &target,
+				  GNUNET_ATS_PREFERENCE_BANDWIDTH,
+				  (double) cp->inc_preference,
+				  GNUNET_ATS_PREFERENCE_END);
+    cp->inc_preference = 0;
+  }
+
   if ((GNUNET_YES == pth->is_query) && (GNUNET_YES != pth->was_reserved))
   {
     /* query, need reservation */
@@ -434,12 +444,10 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
     cp->did_reserve = GNUNET_NO;
     /* reservation already done! */
     pth->was_reserved = GNUNET_YES;
-    ip = cp->inc_preference;
-    cp->inc_preference = 0;
-    cp->irc =
-        GNUNET_ATS_peer_change_preference (ats, &target,
-					   DBLOCK_SIZE, ip,
-					   &ats_reserve_callback, cp);
+    cp->rc =
+        GNUNET_ATS_reserve_bandwidth (ats, &target,
+				      DBLOCK_SIZE, 
+				      &ats_reserve_callback, cp);
   }
   GNUNET_assert (pth->cth == NULL);
   pth->cth_in_progress++;
@@ -515,17 +523,14 @@ static void
 retry_reservation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GSF_ConnectedPeer *cp = cls;
-  uint64_t ip;
   struct GNUNET_PeerIdentity target;
 
   GNUNET_PEER_resolve (cp->ppd.pid, &target);
-  cp->irc_delay_task = GNUNET_SCHEDULER_NO_TASK;
-  ip = cp->inc_preference;
-  cp->inc_preference = 0;
-  cp->irc =
-      GNUNET_ATS_peer_change_preference (ats, &target,
-					 DBLOCK_SIZE, ip,
-					 &ats_reserve_callback, cp);
+  cp->rc_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  cp->rc =
+      GNUNET_ATS_reserve_bandwidth (ats, &target,
+				    DBLOCK_SIZE, 
+				    &ats_reserve_callback, cp);
 }
 
 
@@ -541,15 +546,15 @@ retry_reservation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                       int32_t amount, struct GNUNET_TIME_Relative res_delay)
+		      int32_t amount, struct GNUNET_TIME_Relative res_delay)
 {
   struct GSF_ConnectedPeer *cp = cls;
   struct GSF_PeerTransmitHandle *pth;
 
-  cp->irc = NULL;
+  cp->rc = NULL;
   if (0 == amount)
   {
-    cp->irc_delay_task =
+    cp->rc_delay_task =
         GNUNET_SCHEDULER_add_delayed (res_delay, &retry_reservation, cp);
     return;
   }
@@ -588,10 +593,10 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   cp = GNUNET_malloc (sizeof (struct GSF_ConnectedPeer));
   cp->ppd.pid = GNUNET_PEER_intern (peer);
   cp->ppd.transmission_delay = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_ZERO);
-  cp->irc =
-      GNUNET_ATS_peer_change_preference (ats, peer,
-					 DBLOCK_SIZE, 0,
-					 &ats_reserve_callback, cp);
+  cp->rc =
+      GNUNET_ATS_reserve_bandwidth (ats, peer,
+				    DBLOCK_SIZE, 
+				    &ats_reserve_callback, cp);
   fn = get_trust_filename (peer);
   if ((GNUNET_DISK_file_test (fn) == GNUNET_YES) &&
       (sizeof (trust) == GNUNET_DISK_fn_read (fn, &trust, sizeof (trust))))
@@ -1528,15 +1533,15 @@ GSF_peer_disconnect_handler_ (void *cls, const struct GNUNET_PeerIdentity *peer)
     GSF_peer_transmit_cancel_ (cp->migration_pth);
     cp->migration_pth = NULL;
   }
-  if (NULL != cp->irc)
+  if (NULL != cp->rc)
   {
-    GNUNET_ATS_peer_change_preference_cancel (cp->irc);
-    cp->irc = NULL;
+    GNUNET_ATS_reserve_bandwidth_cancel (cp->rc);
+    cp->rc = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != cp->irc_delay_task)
+  if (GNUNET_SCHEDULER_NO_TASK != cp->rc_delay_task)
   {
-    GNUNET_SCHEDULER_cancel (cp->irc_delay_task);
-    cp->irc_delay_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (cp->rc_delay_task);
+    cp->rc_delay_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_CONTAINER_multihashmap_iterate (cp->request_map,
                                          &cancel_pending_request, cp);
@@ -1804,7 +1809,7 @@ void
 GSF_connected_peer_init_ ()
 {
   cp_map = GNUNET_CONTAINER_multihashmap_create (128);
-  ats = GNUNET_ATS_init (GSF_cfg, NULL, NULL);
+  ats = GNUNET_ATS_performance_init (GSF_cfg, NULL, NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (GSF_cfg, "fs",
                                                           "TRUST",
@@ -1843,7 +1848,7 @@ GSF_connected_peer_done_ ()
   cp_map = NULL;
   GNUNET_free (trustDirectory);
   trustDirectory = NULL;
-  GNUNET_ATS_shutdown (ats);
+  GNUNET_ATS_performance_done (ats);
   ats = NULL;
 }
 

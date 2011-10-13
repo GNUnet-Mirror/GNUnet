@@ -320,11 +320,6 @@ struct PeerInfo
   struct GNUNET_CORE_TransmitHandle *th;
 
   /**
-   * Preference update context
-   */
-  struct GNUNET_ATS_InformationRequestContext *info_ctx;
-
-  /**
    * Task for scheduling preference updates
    */
   GNUNET_SCHEDULER_TaskIdentifier preference_task;
@@ -415,7 +410,7 @@ static struct GNUNET_CORE_Handle *coreAPI;
 /**
  * Handle to ATS.
  */
-static struct GNUNET_ATS_SchedulingHandle *atsAPI;
+static struct GNUNET_ATS_PerformanceHandle *atsAPI;
 
 
 
@@ -439,42 +434,6 @@ find_bucket (const GNUNET_HashCode * hc)
       return GNUNET_SYSERR; 
     }
   return MAX_BUCKETS - bits - 1;
-}
-
-
-/**
- * Let GNUnet core know that we like the given peer.
- *
- * @param cls the 'struct PeerInfo' of the peer
- * @param tc scheduler context.
- */ 
-static void
-update_core_preference (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Function called with statistics about the given peer.
- *
- * @param cls closure
- * @param peer identifies the peer
- * @param amount set to the amount that was actually reserved or unreserved;
- *               either the full requested amount or zero (no partial reservations)
- * @param res_delay if the reservation could not be satisfied (amount was 0), how
- *        long should the client wait until re-trying?
- */
-static void
-update_core_preference_finish (void *cls,
-                               const struct GNUNET_PeerIdentity *peer,
-                               int32_t amount,
-                               struct GNUNET_TIME_Relative res_delay)
-{
-  struct PeerInfo *peer_info = cls;
-
-  peer_info->info_ctx = NULL;
-  peer_info->preference_task
-    = GNUNET_SCHEDULER_add_delayed (DHT_DEFAULT_PREFERENCE_INTERVAL,
-				    &update_core_preference, peer_info);
 }
 
 
@@ -519,11 +478,15 @@ update_core_preference (void *cls,
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# Preference updates given to core"), 1,
 			    GNUNET_NO);
-  peer->info_ctx =
-    GNUNET_ATS_peer_change_preference (atsAPI, &peer->id,
-				       0,
-				       preference,
-				       &update_core_preference_finish, peer);
+  GNUNET_ATS_change_preference (atsAPI, &peer->id,
+				GNUNET_ATS_PREFERENCE_BANDWIDTH,
+				(double) preference,
+				GNUNET_ATS_PREFERENCE_END);
+  peer->preference_task
+    = GNUNET_SCHEDULER_add_delayed (DHT_DEFAULT_PREFERENCE_INTERVAL,
+				    &update_core_preference, peer);
+
+
 }
 
 
@@ -729,11 +692,6 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
                  GNUNET_CONTAINER_multihashmap_remove (all_known_peers,
                                                        &peer->hashPubKey,
                                                        to_remove));
-  if (NULL != to_remove->info_ctx)
-  {
-    GNUNET_ATS_peer_change_preference_cancel (to_remove->info_ctx);
-    to_remove->info_ctx = NULL;
-  }
   if (GNUNET_SCHEDULER_NO_TASK != to_remove->preference_task)
   {
     GNUNET_SCHEDULER_cancel (to_remove->preference_task);
@@ -2050,7 +2008,7 @@ GDS_NEIGHBOURS_init ()
       GNUNET_CONFIGURATION_get_value_number (GDS_cfg, "DHT", "bucket_size",
                                              &temp_config_num))
     bucket_size = (unsigned int) temp_config_num;  
-  atsAPI = GNUNET_ATS_init (GDS_cfg, NULL, NULL);
+  atsAPI = GNUNET_ATS_performance_init (GDS_cfg, NULL, NULL);
   coreAPI = GNUNET_CORE_connect (GDS_cfg,
                                  1,
                                  NULL,
@@ -2077,7 +2035,7 @@ GDS_NEIGHBOURS_done ()
     return;
   GNUNET_CORE_disconnect (coreAPI);
   coreAPI = NULL;    
-  GNUNET_ATS_shutdown (atsAPI);
+  GNUNET_ATS_performance_done (atsAPI);
   atsAPI = NULL;    
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (all_known_peers));
   GNUNET_CONTAINER_multihashmap_destroy (all_known_peers);
