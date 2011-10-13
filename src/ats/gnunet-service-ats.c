@@ -62,6 +62,21 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * A client disconnected from us.  Tear down the local client
+ * record.
+ *
+ * @param cls unused
+ * @param client handle of the client
+ */
+static void
+client_disconnect_handler (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  GAS_remove_scheduling_client (client);
+  GAS_remove_performance_client (client);
+}
+
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -101,6 +116,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {NULL, NULL, 0, 0}
   };
   GAS_addresses_init ();
+  GNUNET_SERVER_disconnect_notify (server, 
+				   &client_disconnect_handler,
+                                   NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);
