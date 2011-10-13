@@ -111,7 +111,7 @@ struct AddressSuggestionMessage
 {
   struct GNUNET_MessageHeader header;
 
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t ats_count GNUNET_PACKED;
 
   struct GNUNET_PeerIdentity peer;
 
@@ -126,6 +126,7 @@ struct AddressSuggestionMessage
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
   /* followed by:
+     - struct GNUNET_TRANSPORT_ATS_Information [ats_count];
      - char address[address_length]
      - char plugin_name[plugin_name_length] (including '\0'-termination).
   */

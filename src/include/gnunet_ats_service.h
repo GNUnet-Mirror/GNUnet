@@ -61,6 +61,8 @@ struct Session;
  * @param session session to use
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
+ * @param ats performance data for the address (as far as known)
+ * @param ats_count number of performance records in 'ats'
  */
 typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                                       const struct
@@ -75,7 +77,11 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                                       bandwidth_out,
                                                       struct
                                                       GNUNET_BANDWIDTH_Value32NBO
-                                                      bandwidth_in);
+                                                      bandwidth_in,
+						      const struct
+						      GNUNET_TRANSPORT_ATS_Information
+						      * ats,
+						      uint32_t ats_count);
 
 
 /**
