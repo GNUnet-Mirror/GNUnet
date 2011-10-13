@@ -57,7 +57,7 @@ struct StatsContext
  */
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define OK_GOAL 2
+#define OK_GOAL 4
 
 static int ok;
 
@@ -137,6 +137,8 @@ static struct GNUNET_MESH_Handle *h2;
 
 static struct GNUNET_MESH_Tunnel *t;
 
+static struct GNUNET_MESH_Tunnel *incoming_t;
+
 static uint16_t *mesh_peers;
 
 /**
@@ -182,10 +184,76 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Transmit ready callback
+ */
+size_t
+tmt_rdy (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_MessageHeader *msg = buf;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:  tmt_rdy called\n");
+  if (size < sizeof(struct GNUNET_MessageHeader) || NULL == buf)
+    return 0;
+  msg->size = htons (sizeof(struct GNUNET_MessageHeader));
+  msg->type = htonl ((long) cls);
+  return sizeof(struct GNUNET_MessageHeader);
+}
+
+
+/**
+ * Function is called whenever a message is received.
+ *
+ * @param cls closure (set from GNUNET_MESH_connect)
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx place to store local state associated with the tunnel
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+data_callback (void *cls,
+          struct GNUNET_MESH_Tunnel * tunnel,
+          void **tunnel_ctx,
+          const struct GNUNET_PeerIdentity *sender,
+          const struct GNUNET_MessageHeader *message,
+          const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  long client = (long) cls;
+
+  switch (client)
+  {
+    case 1L:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "test: Origin client got a response!\n");
+      ok++;
+      break;
+    case 2L:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "test: Destination client got a message \n");
+      ok++;
+      GNUNET_MESH_notify_transmit_ready(incoming_t,
+                                        GNUNET_NO,
+                                        0,
+                                        GNUNET_TIME_UNIT_FOREVER_REL,
+                                        sender,
+                                        sizeof(struct GNUNET_MessageHeader),
+                                        &tmt_rdy,
+                                        (void *) 1L);
+      break;
+    default:
+      break;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Handlers, for diverse services
  */
 static struct GNUNET_MESH_MessageHandler handlers[] = {
-//    {&callback, 1, 0},
+  {&data_callback, 1, sizeof(struct GNUNET_MessageHeader)},
   {NULL, 0, 0}
 };
 
@@ -224,6 +292,7 @@ incoming_tunnel (void *cls,
               "test: Incoming tunnel from %s\n",
               GNUNET_i2s(initiator));
   ok++;
+  incoming_t = tunnel;
   GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task = GNUNET_SCHEDULER_add_delayed(SHORT_TIME,
                                                  &disconnect_mesh_peers,
@@ -251,6 +320,7 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
   return;
 }
 
+
 /**
  * Method called whenever a tunnel falls apart.
  *
@@ -263,8 +333,6 @@ dh (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: peer %s disconnected\n",
               GNUNET_i2s(peer));
-  if (memcmp(&d2->id, peer, sizeof(d2->id)))
-    ok++;
   return;
 }
 
@@ -283,6 +351,24 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: peer %s connected\n",
               GNUNET_i2s(peer));
+  if (0 == memcmp(&d2->id, peer, sizeof(d2->id)) && (long) cls == 1L)
+    ok++;
+  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_delayed(SHORT_TIME,
+                                                    &disconnect_mesh_peers,
+                                                    NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Sending data unicast...\n");
+    GNUNET_MESH_notify_transmit_ready(t,
+                                      GNUNET_NO,
+                                      0,
+                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                      &d2->id,
+                                      sizeof(struct GNUNET_MessageHeader),
+                                      &tmt_rdy,
+                                      (void *) 1L);
+  }
   return;
 }
 
@@ -388,14 +474,14 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   h1 = GNUNET_MESH_connect (d1->cfg,
                             10,
-                            NULL,
+                            (void *) 1L,
                             NULL,
                             &tunnel_cleaner,
                             handlers,
                             &app);
   h2 = GNUNET_MESH_connect (d2->cfg,
                             10,
-                            NULL,
+                            (void *) 2L,
                             &incoming_tunnel,
                             &tunnel_cleaner,
                             handlers,
@@ -408,7 +494,7 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "test: connected to mesh service of peer %s\n",
               GNUNET_i2s (&d2->id));
 #endif
-  t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, NULL);
+  t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 1L);
   test_task =
       GNUNET_SCHEDULER_add_delayed(
           GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 6),
@@ -664,16 +750,19 @@ int
 main (int argc, char *argv[])
 {
   GNUNET_PROGRAM_run (argc, argv, "test_mesh_small_unicast",
-                      gettext_noop ("Test mesh unicast in a small network."), options,
-                      &run, NULL);
+                      gettext_noop ("Test mesh unicast in a small network."),
+                      options, &run, NULL);
 #if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/test_mesh_small_unicast");
 #endif
   if (OK_GOAL != ok)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: FAILED!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "test: FAILED! (%d/%d)\n",
+                ok, OK_GOAL);
     return 1;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: success\n");
   return 0;
 }
 

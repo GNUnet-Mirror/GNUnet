@@ -267,6 +267,19 @@ tree_find_peer (struct MeshTunnelTreeNode *parent,
 
 
 /**
+ * Recusively update the info about what is the first hop to reach the node
+ *
+ * @param tree Tree this nodes belongs to
+ * @param parent Node to be start updating
+ * @param hop If known, ID of the first hop.
+ *            If not known, NULL to find out and pass on children.
+ */
+void
+tree_update_first_hops (struct MeshTunnelTree *tree,
+                        struct MeshTunnelTreeNode *parent,
+                        struct GNUNET_PeerIdentity *hop);
+
+/**
  * Delete the current path to the peer, including all now unused relays.
  * The destination peer is NOT destroyed, it is returned in order to either set
  * a new path to it or destroy it explicitly, taking care of it's child nodes.

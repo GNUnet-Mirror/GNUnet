@@ -1427,10 +1427,14 @@ tunnel_add_path (struct MeshTunnel *t,
                  struct MeshPeerPath *p,
                  unsigned int own_pos)
 {
+  struct GNUNET_PeerIdentity id;
+
   GNUNET_assert (0 != own_pos);
   tree_add_path(t->tree, p, NULL);
   if (NULL == t->tree->me)
     t->tree->me = tree_find_peer(t->tree->root, p->peers[own_pos]);
+  GNUNET_PEER_resolve (p->peers[own_pos + 1], &id);
+  tree_update_first_hops(t->tree, t->tree->me, &id);
 }
 
 
@@ -2028,9 +2032,12 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_Unicast *msg;
   struct MeshTunnel *t;
-  struct MeshPeerInfo *pi;
+  GNUNET_PEER_Id pid;
   size_t size;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: got a unicast packet from %s\n",
+              GNUNET_i2s (peer));
   size = ntohs (message->size);
   if (size <
       sizeof (struct GNUNET_MESH_Unicast) +
@@ -2047,24 +2054,21 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  pi = GNUNET_CONTAINER_multihashmap_get (t->peers,
-                                          &msg->destination.hashPubKey);
-  if (NULL == pi)
+  pid = GNUNET_PEER_search(&msg->destination);
+  if (pid == myid)
   {
-    /* TODO maybe feedback, log to statistics */
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  if (pi->id == myid)
-  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   it's for us! sending to clients...\n");
     send_subscribed_clients ((struct GNUNET_MessageHeader *) &msg[1]);
     return GNUNET_OK;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:   not for us, retransmitting...\n");
   msg = GNUNET_malloc (size);
   memcpy (msg, message, size);
   GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     path_get_first_hop (t->tree, pi->id),
+                                     path_get_first_hop (t->tree, pid),
                                      size,
                                      &send_core_data_raw, msg);
   return GNUNET_OK;
@@ -3125,6 +3129,9 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
   MESH_TunnelNumber tid;
   size_t size;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: Got a unicast request from a client!\n");
+
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
   {
@@ -3183,6 +3190,8 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     memcpy (buf, data_msg, size);
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   calling generic handler...\n");
     handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

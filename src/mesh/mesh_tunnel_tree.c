@@ -336,7 +336,7 @@ tree_mark_peers_disconnected (struct MeshTunnelTree *tree,
  * @param hop If known, ID of the first hop.
  *            If not known, NULL to find out and pass on children.
  */
-static void
+void
 tree_update_first_hops (struct MeshTunnelTree *tree,
                         struct MeshTunnelTreeNode *parent,
                         struct GNUNET_PeerIdentity *hop)
@@ -486,6 +486,7 @@ tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
 }
 
 
+
 /**
  * Integrate a stand alone path into the tunnel tree.
  * If the peer toward which the new path is already in the tree, the peer
@@ -516,7 +517,6 @@ tree_add_path (struct MeshTunnelTree *t,
   struct MeshTunnelTreeNode *n;
   struct MeshTunnelTreeNode *c;
   struct GNUNET_PeerIdentity id;
-  struct GNUNET_PeerIdentity *hop;
   GNUNET_PEER_Id myid;
   int me;
   unsigned int i;
@@ -604,20 +604,12 @@ tree_add_path (struct MeshTunnelTree *t,
   n->status = MESH_PEER_SEARCHING;
 
   /* Add info about first hop into hashmap. */
-  if (me < p->length - 1)
+  if (-1 != me && me < p->length - 1)
   {
-    GNUNET_PEER_resolve (p->peers[p->length - 1], &id);
-    hop = GNUNET_CONTAINER_multihashmap_get(t->first_hops, &id.hashPubKey);
-    if (NULL != hop)
-    {
-      GNUNET_CONTAINER_multihashmap_remove_all(t->first_hops, &id.hashPubKey);
-      GNUNET_free(hop);
-    }
-    hop = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
-    GNUNET_PEER_resolve (p->peers[me + 1], hop);
-    GNUNET_CONTAINER_multihashmap_put (t->first_hops, &id.hashPubKey,
-                                       hop,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    GNUNET_PEER_resolve (p->peers[me + 1], &id);
+    tree_update_first_hops(t,
+                           tree_find_peer(t->root, p->peers[p->length - 1]),
+                           &id);
   }
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "tree:   New node added.\n");
   return GNUNET_OK;

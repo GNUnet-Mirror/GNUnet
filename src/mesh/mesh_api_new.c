@@ -1044,7 +1044,7 @@ send_callback (void *cls, size_t size, void *buf)
         /* multicast */
         struct GNUNET_MESH_Multicast mc;
 
-        GNUNET_assert (size >= sizeof (mc) + th->size);
+        GNUNET_assert (size >= th->size);
         psize =
             th->notify (th->notify_cls, size - sizeof (mc), &cbuf[sizeof (mc)]);
         if (psize > 0)
@@ -1054,7 +1054,7 @@ send_callback (void *cls, size_t size, void *buf)
           mc.tid = htonl (th->tunnel->tid);
           memset (&mc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &mc, sizeof (mc));
-          psize = th->size + sizeof (mc);
+          psize += sizeof (mc);
         }
       }
       else
@@ -1062,18 +1062,18 @@ send_callback (void *cls, size_t size, void *buf)
         /* unicast */
         struct GNUNET_MESH_Unicast uc;
 
-        GNUNET_assert (size >= sizeof (uc) + th->size);
+        GNUNET_assert (size >= th->size);
         psize =
             th->notify (th->notify_cls, size - sizeof (uc), &cbuf[sizeof (uc)]);
         if (psize > 0)
         {
-          uc.header.size = htons (sizeof (uc) + th->size);
+          uc.header.size = htons (th->size);
           uc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST);
           uc.tid = htonl (th->tunnel->tid);
           memset (&uc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           GNUNET_PEER_resolve (th->target, &uc.destination);
           memcpy (cbuf, &uc, sizeof (uc));
-          psize = th->size + sizeof (uc);
+          psize += sizeof (uc);
         }
       }
     }
@@ -1434,6 +1434,12 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   uint32_t least_priority;
   size_t overhead;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mesh: mesh notify transmit ready called\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mesh:     target %s\n",
+              GNUNET_i2s (target));
+
   GNUNET_assert (NULL != notify);
   if (tunnel->mesh->npackets >= tunnel->mesh->max_queue_size &&
       tunnel->npackets > 0)
@@ -1481,6 +1487,15 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   th->notify = notify;
   th->notify_cls = notify_cls;
   add_to_queue (tunnel->mesh, th);
+  if (NULL != tunnel->mesh->th)
+    return th;
+  tunnel->mesh->th =
+      GNUNET_CLIENT_notify_transmit_ready (tunnel->mesh->client,
+                                           th->size,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_YES,
+                                           &send_callback,
+                                           tunnel->mesh);
   return th;
 }
 
