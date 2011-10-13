@@ -11,7 +11,7 @@ endif
 lib_LTLIBRARIES = libgnunetats.la
 
 libgnunetats_la_SOURCES = \
-  ats_api_new.c \
+  ats_api_scheduling.c \
   ats_api_performance.c 
 
 libgnunetats_la_LIBADD = \
