@@ -340,7 +340,7 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (bandwidth_out.value__), GNUNET_i2s (target));
+              ntohl (bandwidth_out.value__), GNUNET_i2s (peer));
 #endif
   struct QuotaSetMessage msg;
   msg.header.size = htons (sizeof (struct QuotaSetMessage));
@@ -351,7 +351,7 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting inbound quota of %u for peer `%s' to \n",
-              ntohl (bandwidth_in.value__), GNUNET_i2s (target));
+              ntohl (bandwidth_in.value__), GNUNET_i2s (peer));
 #endif
   GST_neighbours_set_incoming_quota (peer, bandwidth_in);
 }
