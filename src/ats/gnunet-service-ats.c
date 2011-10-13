@@ -28,28 +28,8 @@
 #include "gnunet_ats_service.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
-// #include "gnunet-service-ats_performance.h"
+#include "gnunet-service-ats_addresses.h"
 #include "ats.h"
-
-struct ATS_Address
-{
-  struct GNUNET_PeerIdentity peer;
-
-  size_t addr_len;
-
-  uint32_t session_id;
-
-  uint32_t ats_count;
-
-  void * addr;
-
-  char * plugin;
-
-  struct GNUNET_TRANSPORT_ATS_Information * ats;
-};
-
-static struct GNUNET_CONTAINER_MultiHashMap * addresses;
-
 
 
 static void
@@ -80,42 +60,6 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
-struct CompareAddressContext
-{
-  struct ATS_Address * search;
-  struct ATS_Address * result;
-};
-
-int compare_address_it (void *cls,
-               const GNUNET_HashCode * key,
-               void *value)
-{
-  struct CompareAddressContext * cac = cls;
-  struct ATS_Address * aa = (struct ATS_Address *) value;
-  if (0 == strcmp(aa->plugin, cac->search->plugin))
-  {
-    if ((aa->addr_len == cac->search->addr_len) &&
-        (0 == memcmp (aa->addr, cac->search->addr, aa->addr_len)))
-      cac->result = aa;
-    return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
-
-
-static int 
-free_address_it (void *cls,
-		 const GNUNET_HashCode * key,
-		 void *value)
-{
-  struct ATS_Address * aa = cls;
-  GNUNET_free (aa);
-  return GNUNET_OK;
-}
-
-
-
-
 
 /**
  * Task run during shutdown.
@@ -126,8 +70,7 @@ free_address_it (void *cls,
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (addresses, &free_address_it, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (addresses);
+  GAS_addresses_done ();
 }
 
 
@@ -157,7 +100,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE, 0},
     {NULL, NULL, 0, 0}
   };
-  addresses = GNUNET_CONTAINER_multihashmap_create(128);
+  GAS_addresses_init ();
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);
