@@ -28,25 +28,25 @@ libgnunetats_la_LIBADD = \
 #  $(GN_LIBINTL)
 
 
-check_PROGRAMS = \
- test_ats_api 
+#check_PROGRAMS = \
+# test_ats_api 
 # test_ats_api_update_address
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
 
-test_ats_api_SOURCES = \
- test_ats_api.c
-test_ats_api_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+#test_ats_api_SOURCES = \
+# test_ats_api.c
+#test_ats_api_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
 
-test_ats_api_update_address_SOURCES = \
- test_ats_api_update_address.c
-test_ats_api_update_address_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+#test_ats_api_update_address_SOURCES = \
+# test_ats_api_update_address.c
+#test_ats_api_update_address_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
 
 
 EXTRA_DIST = \
