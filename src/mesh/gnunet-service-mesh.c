@@ -2295,7 +2295,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Core handler for mesh network traffic
+ * Core handler for mesh network traffic toward the owner of a tunnel
  *
  * @param cls closure
  * @param message message
@@ -2316,6 +2316,9 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshTunnel *t;
   size_t size;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: got a ToOrigin packet from %s\n",
+              GNUNET_i2s (peer));
   size = ntohs (message->size);
   if (size < sizeof (struct GNUNET_MESH_ToOrigin) +     /* Payload must be */
       sizeof (struct GNUNET_MessageHeader))     /* at least a header */
@@ -2324,27 +2327,46 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   msg = (struct GNUNET_MESH_ToOrigin *) message;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:  of type %u\n",
+              ntohs (msg[1].header.type));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
 
   if (NULL == t)
   {
     /* TODO notify that we dont know this tunnel (whom)? */
+    GNUNET_break_op (0);
     return GNUNET_OK;
   }
 
   if (t->id.oid == myid)
   {
+    char cbuf[size];
+    struct GNUNET_MESH_ToOrigin *copy;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   it's for us! sending to clients...\n");
     if (NULL == t->client)
     {
       /* got data packet for ownerless tunnel */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   no clients!\n");
       GNUNET_break_op (0);
       return GNUNET_OK;
     }
     /* TODO signature verification */
-    GNUNET_SERVER_notification_context_unicast (nc, t->client->handle, message,
+    memcpy (cbuf, message, size);
+    copy = (struct GNUNET_MESH_ToOrigin *) cbuf;
+    copy->tid = htonl (t->local_tid);
+    GNUNET_SERVER_notification_context_unicast (nc,
+                                                t->client->handle,
+                                                &copy->header,
                                                 GNUNET_YES);
     return GNUNET_OK;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:   not for us, retransmitting...\n");
+
   peer_info = peer_info_get (&msg->oid);
   if (NULL == peer_info)
   {
@@ -3322,6 +3344,93 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
   return;
 }
 
+
+/**
+ * Handler for client traffic directed to the origin
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_ToOrigin *data_msg;
+  struct GNUNET_PeerIdentity id;
+  struct MeshClient *c;
+  struct MeshTunnel *t;
+  MESH_TunnelNumber tid;
+  size_t size;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: Got a ToOrigin request from a client!\n");
+
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  data_msg = (struct GNUNET_MESH_ToOrigin *) message;
+  /* Sanity check for message size */
+  size = ntohs (message->size);
+  if (sizeof (struct GNUNET_MESH_ToOrigin) +
+      sizeof (struct GNUNET_MessageHeader) > size)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* Tunnel exists? */
+  tid = ntohl (data_msg->tid);
+  if (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  t = tunnel_get_by_local_id (c, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /*  It shouldn't be a local tunnel.  */
+  if (NULL != t->client)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_PEER_resolve(t->id.oid, &id);
+
+  /* Ok, everything is correct, send the message
+   * (pretend we got it from a mesh peer)
+   */
+  {
+    char buf[ntohs (message->size)];
+    struct GNUNET_MESH_ToOrigin *copy;
+
+    /* Work around const limitation */
+    copy = (struct GNUNET_MESH_ToOrigin *) buf;
+    memcpy (buf, data_msg, size);
+    copy->oid = id;
+    copy->tid = htonl (t->id.tid);
+    copy->sender = my_full_id;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   calling generic handler...\n");
+    handle_mesh_data_to_orig (NULL, &my_full_id, &copy->header, NULL);
+  }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  return;
+}
+
+
 /**
  * Handler for client traffic directed to all peers in a tunnel
  *
@@ -3409,7 +3518,7 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
    sizeof (struct GNUNET_MESH_ConnectPeerByType)},
   {&handle_local_unicast, NULL,
    GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
-  {&handle_local_unicast, NULL,
+  {&handle_local_to_origin, NULL,
    GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
   {&handle_local_multicast, NULL,
    GNUNET_MESSAGE_TYPE_MESH_MULTICAST, 0},

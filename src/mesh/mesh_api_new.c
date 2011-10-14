@@ -1044,7 +1044,31 @@ send_callback (void *cls, size_t size, void *buf)
 #endif
     if (NULL != th->notify)
     {
-      if (th->target == 0)
+      if (th->tunnel->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
+      {
+        /* traffic to origin */
+        struct GNUNET_MESH_ToOrigin to;
+        struct GNUNET_MessageHeader *mh;
+
+        GNUNET_assert (size >= th->size);
+        mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (to)];
+        psize =
+            th->notify (th->notify_cls, size - sizeof (to), mh);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mesh:   to origin, type %u\n",
+              ntohs (mh->type));
+        if (psize > 0)
+        {
+          to.header.size = htons (th->size);
+          to.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
+          to.tid = htonl (th->tunnel->tid);
+          memset (&to.oid, 0, sizeof (struct GNUNET_PeerIdentity));
+          memset (&to.sender, 0, sizeof (struct GNUNET_PeerIdentity));
+          memcpy (cbuf, &to, sizeof (to));
+          psize += sizeof (to);
+        }
+      }
+      else if (th->target == 0)
       {
         /* multicast */
         struct GNUNET_MESH_Multicast mc;
@@ -1489,7 +1513,9 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   th->priority = priority;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
   th->target = GNUNET_PEER_intern (target);
-  if (NULL == target)
+  if (tunnel->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
+    overhead = sizeof (struct GNUNET_MESH_ToOrigin);
+  else if (NULL == target)
     overhead = sizeof (struct GNUNET_MESH_Multicast);
   else
     overhead = sizeof (struct GNUNET_MESH_Unicast);

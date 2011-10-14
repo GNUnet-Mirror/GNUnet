@@ -57,7 +57,7 @@ struct StatsContext
  */
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define OK_GOAL 3
+#define OK_GOAL 4
 
 static int ok;
 
@@ -249,14 +249,14 @@ data_callback (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "test: Destination client got a message \n");
       ok++;
-//       GNUNET_MESH_notify_transmit_ready(incoming_t,
-//                                         GNUNET_NO,
-//                                         0,
-//                                         GNUNET_TIME_UNIT_FOREVER_REL,
-//                                         sender,
-//                                         sizeof(struct GNUNET_MessageHeader),
-//                                         &tmt_rdy,
-//                                         (void *) 1L);
+      GNUNET_MESH_notify_transmit_ready(incoming_t,
+                                        GNUNET_NO,
+                                        0,
+                                        GNUNET_TIME_UNIT_FOREVER_REL,
+                                        sender,
+                                        sizeof(struct GNUNET_MessageHeader),
+                                        &tmt_rdy,
+                                        (void *) 1L);
       GNUNET_SCHEDULER_cancel (disconnect_task);
       disconnect_task = GNUNET_SCHEDULER_add_delayed(SHORT_TIME,
                                                      &disconnect_mesh_peers,
