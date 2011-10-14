@@ -1489,7 +1489,7 @@ handle_dv_data_message (void *cls, const struct GNUNET_PeerIdentity *peer,
     pos = dn->referee_head;
     while ((NULL != pos) && (pos->referrer_id != sid))
     {
-      sender_id = strdup (GNUNET_i2s (&pos->identity));
+      sender_id = GNUNET_strdup (GNUNET_i2s (&pos->identity));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "I know sender %u %s\n",
                   pos->referrer_id, sender_id);
       GNUNET_free (sender_id);

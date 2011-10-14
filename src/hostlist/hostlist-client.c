@@ -443,7 +443,7 @@ download_get_url ()
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Testing new advertised hostlist if it is obtainable\n");
     current_hostlist = hostlist_to_test;
-    return strdup (hostlist_to_test->hostlist_uri);
+    return GNUNET_strdup (hostlist_to_test->hostlist_uri);
   }
 
   if ((GNUNET_YES == stat_use_bootstrap) || (linked_list_size == 0))
@@ -465,7 +465,7 @@ download_get_url ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using learned hostlist `%s'\n",
               pos->hostlist_uri);
   current_hostlist = pos;
-  return strdup (pos->hostlist_uri);
+  return GNUNET_strdup (pos->hostlist_uri);
 }
 
 

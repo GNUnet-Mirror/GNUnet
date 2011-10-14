@@ -290,7 +290,7 @@ static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   cc = NULL;
-  char *p1_c = strdup (GNUNET_i2s (&p1->id));
+  char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers connected: %s <-> %s\n", p1_c,
               GNUNET_i2s (&p2->id));

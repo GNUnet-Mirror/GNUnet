@@ -283,16 +283,16 @@ add_definition (char *component, char *file, char *function, int from_line,
   struct LogDef n;
   memset (&n, 0, sizeof (n));
   if (strlen (component) > 0 && component[0] != '*')
-    n.component = strdup (component);
+    n.component = GNUNET_strdup (component);
   if (strlen (file) > 0 && file[0] != '*')
     {
-      n.file = strdup (file);
+      n.file = GNUNET_strdup (file);
       n.strlen_file = strlen (file);
     }
   if ( (NULL != function) &&
        (strlen (function) > 0) && 
        (function[0] != '*') )
-    n.function = strdup (function);
+    n.function = GNUNET_strdup (function);
   n.from_line = from_line;
   n.to_line = to_line;
   n.level = level;
@@ -403,7 +403,7 @@ parse_definitions (const char *constname, int force)
   tmp = getenv (constname);
   if (tmp == NULL)
     return 0;
-  def = strdup (tmp);
+  def = GNUNET_strdup (tmp);
   level = -1;
   from_line = 0;
   to_line = INT_MAX;
@@ -532,7 +532,7 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   GNUNET_free_non_null (component);
   GNUNET_asprintf (&component, "%s-%d", comp, getpid ());
   GNUNET_free_non_null (component_nopid);
-  component_nopid = strdup (comp);
+  component_nopid = GNUNET_strdup (comp);
 
   env_logfile = getenv ("GNUNET_FORCE_LOGFILE");
   if (env_logfile != NULL)

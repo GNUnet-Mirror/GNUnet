@@ -178,7 +178,7 @@ get_path_from_dyld_image ()
 	  path = _dyld_get_image_name (i);
 	  if (path != NULL && strlen (path) > 0)
 	    {
-	      p = strdup (path);
+	      p = GNUNET_strdup (path);
 	      s = p + strlen (p);
 	      while ((s > p) && (*s != '/'))
 		s--;

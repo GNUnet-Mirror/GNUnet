@@ -219,7 +219,7 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
-  char * p2_s = strdup(GNUNET_i2s (&p2->id));
+  char * p2_s = GNUNET_strdup(GNUNET_i2s (&p2->id));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
       "Asking peers %u (`%s') to connect peer %u (`%s')\n",
       p1->no, GNUNET_i2s (&p1->id), p2->no, p2_s);
@@ -481,7 +481,7 @@ GNUNET_TRANSPORT_TESTING_init ()
 char *
 extract_filename (const char *file)
 {
-  char *pch = strdup (file);
+  char *pch = GNUNET_strdup (file);
   char *backup = pch;
   char *filename = NULL;
   char *res;
@@ -501,7 +501,7 @@ extract_filename (const char *file)
   else
     filename = pch;
 
-  res = strdup (filename);
+  res = GNUNET_strdup (filename);
   GNUNET_free (backup);
   return res;
 }
