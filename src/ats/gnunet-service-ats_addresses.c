@@ -65,6 +65,12 @@ compare_address_it (void *cls,
 {
   struct CompareAddressContext * cac = cls;
   struct ATS_Address * aa = (struct ATS_Address *) value;
+
+  /* compare sessions */
+  if ((aa->session_client != cac->search->session_client) ||
+      (aa->session_id != cac->search->session_id))
+    return GNUNET_YES;
+
   if (0 == strcmp(aa->plugin, cac->search->plugin))
   {
     if ((aa->addr_len == cac->search->addr_len) &&
@@ -75,6 +81,39 @@ compare_address_it (void *cls,
   return GNUNET_YES;
 }
 
+struct ATS_Address *
+find_address (const struct GNUNET_PeerIdentity *peer,
+              struct ATS_Address * addr)
+{
+  struct CompareAddressContext cac;
+  cac.result = NULL;
+  cac.search = addr;
+
+  GNUNET_CONTAINER_multihashmap_get_multiple(addresses,
+         &peer->hashPubKey,
+         compare_address_it,
+         &cac);
+
+  return cac.result;
+}
+
+static void
+merge_ats (struct ATS_Address * dest, struct ATS_Address * source)
+{
+  int c_src = 0;
+  int c_dest = 0;
+  struct GNUNET_TRANSPORT_ATS_Information * a_src = source->ats;
+  struct GNUNET_TRANSPORT_ATS_Information * a_dest = dest->ats;
+
+  for (c_dest = 0; c_dest < dest->ats_count; c_dest ++)
+  {
+    for (c_src = 0; c_src < source->ats_count; c_src ++)
+    {
+      if (a_src[c_src].type == a_dest[c_dest].type)
+        a_src[c_src].value = a_dest[c_dest].value;
+    }
+  }
+}
 
 void
 GAS_address_update (const struct GNUNET_PeerIdentity *peer,
@@ -86,26 +125,43 @@ GAS_address_update (const struct GNUNET_PeerIdentity *peer,
 		    uint32_t atsi_count)
 {
   struct ATS_Address * aa;
+  struct ATS_Address * old;
 
-  /* FIXME: should test first if address already exists! */
   aa = GNUNET_malloc (sizeof (struct ATS_Address) +
-		      atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
-		      plugin_addr_len);
+                    atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+                    plugin_addr_len);
   aa->peer = *peer;
   aa->addr_len = plugin_addr_len;
   aa->ats_count = atsi_count;
-  aa->ats = (struct GNUNET_TRANSPORT_ATS_Information *) &aa[1];  
+  aa->ats = (struct GNUNET_TRANSPORT_ATS_Information *) &aa[1];
   memcpy (&aa->ats, atsi, atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-  memcpy (aa->addr, plugin_addr, plugin_addr_len);
+  aa->addr = &aa->ats[atsi_count];
+  memcpy (&aa->addr, plugin_addr, plugin_addr_len);
   aa->plugin = GNUNET_strdup (plugin_name);
   aa->session_client = session_client;
   aa->session_id = session_id;
 
-  GNUNET_assert (GNUNET_OK == 
-		 GNUNET_CONTAINER_multihashmap_put(addresses, 
-						   &peer->hashPubKey, 
-						   aa, 
-						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  old = find_address (peer, aa);
+  if (old == NULL)
+  {
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multihashmap_put(addresses,
+                                                     &peer->hashPubKey,
+                                                     aa,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Added new address for peer `%s' \n",
+      GNUNET_i2s (peer));
+  }
+  else
+  {
+    merge_ats (old, aa);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Updated existing address for peer `%s' \n",
+      GNUNET_i2s (peer));
+    GNUNET_free (aa);
+  }
+
 }
 
 
@@ -116,21 +172,36 @@ GAS_address_destroyed (const struct GNUNET_PeerIdentity *peer,
 		       struct GNUNET_SERVER_Client *session_client,
 		       uint32_t session_id)
 {
-#if 0
-  struct ATS_Address * aa;
 
-  aa = find_address (peer, plugin_name, plugin_addr, plugin_addr_len, 
-		     session_client, session_id);
+  struct ATS_Address *aa;
+  struct ATS_Address *res;
+
+  aa = GNUNET_malloc (sizeof (struct ATS_Address) +
+                    plugin_addr_len);
+
+  aa->peer = *peer;
+  aa->addr_len = plugin_addr_len;
+  aa->addr = &aa[1];
+  memcpy (aa->addr, plugin_addr, plugin_addr_len);
+  aa->plugin = GNUNET_strdup (plugin_name);
+  aa->session_client = session_client;
+  aa->session_id = session_id;
+
+  res = find_address (peer, aa);
+
   GNUNET_break (GNUNET_YES ==
-		GNUNET_CONTAINER_multihashmap_remove(addresses, &peer->hashPubKey, aa));
-  GNUNET_free (aa);
-#endif
+		GNUNET_CONTAINER_multihashmap_remove(addresses, &peer->hashPubKey, res));
+  GNUNET_free (res->plugin);
+  GNUNET_free (res);
+
 }
 
 
 void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 {
+
+
 }
 
 
