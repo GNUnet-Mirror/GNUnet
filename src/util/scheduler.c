@@ -30,13 +30,13 @@
 #include "gnunet_signal_lib.h"
 #include "gnunet_time_lib.h"
 #include "disk.h"
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
 #ifdef LINUX
 #include "execinfo.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
-
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
 
 /**
  * Use lsof to generate file descriptor reports on select error?

@@ -66,6 +66,7 @@ TAddAce GNAddAce;
 TAddAccessAllowedAce GNAddAccessAllowedAce;
 TSetNamedSecurityInfo GNSetNamedSecurityInfo;
 
+#define LOG(kind,...) GNUNET_log_from (kind, "winproc", __VA_ARGS__)
 /**
  * Log (panic) messages from PlibC
  */
