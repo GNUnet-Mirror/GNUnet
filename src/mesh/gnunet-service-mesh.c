@@ -66,6 +66,10 @@
                                     GNUNET_TIME_UNIT_SECONDS,\
                                     5)
 
+#define UNACKNOWLEDGED_WAIT     GNUNET_TIME_relative_multiply(\
+                                    GNUNET_TIME_UNIT_SECONDS,\
+                                    2)
+
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
 /******************************************************************************/
@@ -103,6 +107,9 @@ struct MeshDataDescriptor
     /** Size of the data */
   size_t size;
 
+    /** Used to allow a client send more traffic to the service after a
+     * previous packet was tried to be sent to a neighbor and couldn't */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 };
 
 
@@ -672,6 +679,17 @@ client_is_subscribed (uint16_t message_type, struct MeshClient *c)
 
   GNUNET_CRYPTO_hash (&message_type, sizeof (uint16_t), &hc);
   return GNUNET_CONTAINER_multihashmap_contains (c->types, &hc);
+}
+
+static void
+client_allow_send(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshDataDescriptor *info = cls;
+
+  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+    return;
+  info->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_SERVER_receive_done(info->client, GNUNET_OK);
 }
 
 
@@ -2279,6 +2297,9 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     info->size = size;
     info->copies = copies;
     info->client = t->client->handle;
+    info->timeout_task = GNUNET_SCHEDULER_add_delayed(UNACKNOWLEDGED_WAIT,
+                                                      &client_allow_send,
+                                                      t->client->handle);
     info->destination = n->peer;
     id = path_get_first_hop(t->tree, n->peer);
     info->peer = peer_info_get(id);
