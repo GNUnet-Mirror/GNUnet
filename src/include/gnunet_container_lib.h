@@ -1054,7 +1054,24 @@ struct GNUNET_CONTAINER_SList;
 /**
  * Handle to a singly linked list iterator
  */
-struct GNUNET_CONTAINER_SList_Iterator;
+struct GNUNET_CONTAINER_SList_Iterator
+{
+  /**
+   * Linked list that we are iterating over.
+   */
+  struct GNUNET_CONTAINER_SList *list;
+
+  /**
+   * Last element accessed.
+   */
+  struct GNUNET_CONTAINER_SList_Elem *last;
+
+  /**
+   * Current list element.
+   */
+  struct GNUNET_CONTAINER_SList_Elem *elem;
+};
+
 
 
 /**
@@ -1113,9 +1130,11 @@ GNUNET_CONTAINER_slist_destroy (struct GNUNET_CONTAINER_SList *l);
  * Return the beginning of a list
  *
  * @param l list
- * @return iterator pointing to the beginning, free using "GNUNET_free"
+ * @return iterator pointing to the beginning (by value! Either allocate the
+ *   structure on the stack, or use GNUNET_malloc() yourself! All other
+ *   functions do take pointer to this struct though)
  */
-struct GNUNET_CONTAINER_SList_Iterator *
+struct GNUNET_CONTAINER_SList_Iterator
 GNUNET_CONTAINER_slist_begin (struct GNUNET_CONTAINER_SList *l);
 
 

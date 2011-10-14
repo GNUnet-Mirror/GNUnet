@@ -78,27 +78,6 @@ struct GNUNET_CONTAINER_SList
 };
 
 
-/**
- * Handle to a singly linked list iterator
- */
-struct GNUNET_CONTAINER_SList_Iterator
-{
-  /**
-   * Linked list that we are iterating over.
-   */
-  struct GNUNET_CONTAINER_SList *list;
-
-  /**
-   * Last element accessed.
-   */
-  struct GNUNET_CONTAINER_SList_Elem *last;
-
-  /**
-   * Current list element.
-   */
-  struct GNUNET_CONTAINER_SList_Elem *elem;
-};
-
 
 /**
  * Create a new element that is to be inserted into the list
@@ -186,22 +165,22 @@ void
 GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst,
 			       struct GNUNET_CONTAINER_SList *src)
 {
-  struct GNUNET_CONTAINER_SList_Iterator *i;
+  struct GNUNET_CONTAINER_SList_Iterator i;
 
   for (i = GNUNET_CONTAINER_slist_begin (src);
-       GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
-       GNUNET_CONTAINER_slist_next (i))
+       GNUNET_CONTAINER_slist_end (&i) != GNUNET_YES;
+       GNUNET_CONTAINER_slist_next (&i))
 
     {
       GNUNET_CONTAINER_slist_add (dst,
-				  (i->elem->disp ==
+				  (i.elem->disp ==
 				   GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC)
 				  ? GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC
 				  :
 				  GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-				  i->elem->elem, i->elem->len);
+				  i.elem->elem, i.elem->len);
     }
-  GNUNET_CONTAINER_slist_iter_destroy (i);
+  GNUNET_CONTAINER_slist_iter_destroy (&i);
 }
 
 
@@ -233,14 +212,14 @@ GNUNET_CONTAINER_slist_destroy (struct GNUNET_CONTAINER_SList *l)
  * @param l list
  * @return iterator pointing to the beginning
  */
-struct GNUNET_CONTAINER_SList_Iterator *
+struct GNUNET_CONTAINER_SList_Iterator
 GNUNET_CONTAINER_slist_begin (struct GNUNET_CONTAINER_SList *l)
 {
-  struct GNUNET_CONTAINER_SList_Iterator *ret;
+  struct GNUNET_CONTAINER_SList_Iterator ret;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_SList_Iterator));
-  ret->elem = l->head;
-  ret->list = l;
+  memset (&ret, 0, sizeof (ret));
+  ret.elem = l->head;
+  ret.list = l;
   return ret;
 }
 
@@ -405,7 +384,6 @@ void
 GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator
 				     *i)
 {
-  GNUNET_free (i);
 }
 
 /* end of container_slist.c */

@@ -1010,7 +1010,7 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
 	return GNUNET_YES;
     }
 #else
-  struct GNUNET_CONTAINER_SList_Iterator *it;
+  struct GNUNET_CONTAINER_SList_Iterator it;
   struct GNUNET_DISK_FileHandle *h;
   int i;
   int j;
@@ -1027,25 +1027,25 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
 	}
     }
   it = GNUNET_CONTAINER_slist_begin (fds1->handles);
-  while (GNUNET_CONTAINER_slist_end (it) != GNUNET_YES)
+  while (GNUNET_CONTAINER_slist_end (&it) != GNUNET_YES)
     {
 #if DEBUG_NETWORK
-      struct GNUNET_CONTAINER_SList_Iterator *t;
+      struct GNUNET_CONTAINER_SList_Iterator t;
 #endif
       h =
-	(struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (it,
+	(struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&it,
 								      NULL);
 #if DEBUG_NETWORK
       LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Checking that FD 0x%x is in another set:\n", h->h);
       for (t = GNUNET_CONTAINER_slist_begin (fds2->handles);
-	   GNUNET_CONTAINER_slist_end (t) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (t))
+	   GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
+	   GNUNET_CONTAINER_slist_next (&t))
 	{
 	  struct GNUNET_DISK_FileHandle *fh;
 
 	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (t,
+	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
 									  NULL);
 	  LOG (GNUNET_ERROR_TYPE_DEBUG, "0x%x\n", fh->h);
 	}
@@ -1056,12 +1056,10 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
 #if DEBUG_NETWORK
 	  LOG (GNUNET_ERROR_TYPE_DEBUG, "Match!\n");
 #endif
-	  GNUNET_CONTAINER_slist_iter_destroy (it);
 	  return GNUNET_YES;
 	}
-      GNUNET_CONTAINER_slist_next (it);
+      GNUNET_CONTAINER_slist_next (&it);
     }
-  GNUNET_CONTAINER_slist_iter_destroy (it);
 #endif
   return GNUNET_NO;
 }
@@ -1161,21 +1159,20 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       handles += read_handles = GNUNET_CONTAINER_slist_count (rfds->handles);
 #if DEBUG_NETWORK
       {
-	struct GNUNET_CONTAINER_SList_Iterator *t;
+	struct GNUNET_CONTAINER_SList_Iterator t;
 
 	for (t = GNUNET_CONTAINER_slist_begin (rfds->handles);
-	     GNUNET_CONTAINER_slist_end (t) != GNUNET_YES;
-	     GNUNET_CONTAINER_slist_next (t))
+	     GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
+	     GNUNET_CONTAINER_slist_next (&t))
 	  {
 	    struct GNUNET_DISK_FileHandle *fh;
 
 	    fh =
-	      (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (t,
+	      (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
 									    NULL);
 	    LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x (0x%x) is SET in rfds\n",
 		 fh->h, fh);
 	  }
-	GNUNET_CONTAINER_slist_iter_destroy (t);
       }
 #endif
 #endif
@@ -1291,16 +1288,16 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   /* Read Pipes */
   if (rfds && read_handles)
     {
-      struct GNUNET_CONTAINER_SList_Iterator *i;
+      struct GNUNET_CONTAINER_SList_Iterator i;
 
       for (i = GNUNET_CONTAINER_slist_begin (rfds->handles);
-	   GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (i))
+	   GNUNET_CONTAINER_slist_end (&i) != GNUNET_YES;
+	   GNUNET_CONTAINER_slist_next (&i))
 	{
 	  struct GNUNET_DISK_FileHandle *fh;
 
 	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (i,
+	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&i,
 									  NULL);
 	  if (fh->type == GNUNET_PIPE)
 	    {
@@ -1350,7 +1347,6 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 						  GNUNET_DISK_FileHandle));
 	    }
 	}
-      GNUNET_CONTAINER_slist_iter_destroy (i);
     }
   if (wfds && write_handles)
     {
@@ -1363,17 +1359,17 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     }
   if (efds && ex_handles)
     {
-      struct GNUNET_CONTAINER_SList_Iterator *i;
+      struct GNUNET_CONTAINER_SList_Iterator i;
 
       for (i = GNUNET_CONTAINER_slist_begin (efds->handles);
-	   GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (i))
+	   GNUNET_CONTAINER_slist_end (&i) != GNUNET_YES;
+	   GNUNET_CONTAINER_slist_next (&i))
 	{
 	  struct GNUNET_DISK_FileHandle *fh;
 	  DWORD dwBytes;
 
 	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (i,
+	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&i,
 									  NULL);
 	  if (fh->type == GNUNET_PIPE)
 	    {
@@ -1388,7 +1384,6 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 		}
 	    }
 	}
-      GNUNET_CONTAINER_slist_iter_destroy (i);
     }
   if (nfds > 0)
     {
@@ -1610,7 +1605,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #endif
   if (rfds)
     {
-      struct GNUNET_CONTAINER_SList_Iterator *t;
+      struct GNUNET_CONTAINER_SList_Iterator t;
 
       for (i = 0; i < rfds->sds.fd_count; i++)
 	{
@@ -1618,20 +1613,19 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 	  nsock++;
 	}
       for (t = GNUNET_CONTAINER_slist_begin (rfds->handles);
-	   GNUNET_CONTAINER_slist_end (t) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (t))
+	   GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
+	   GNUNET_CONTAINER_slist_next (&t))
 	{
 	  struct GNUNET_DISK_FileHandle *fh;
 
 	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (t,
+	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
 									  NULL);
 	  if (fh->type == GNUNET_PIPE)
 	    {
 	      CancelIo (fh->h);
 	    }
 	}
-      GNUNET_CONTAINER_slist_iter_destroy (t);
 #if DEBUG_NETWORK
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing rfds\n");
 #endif
@@ -1676,7 +1670,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #if DEBUG_NETWORK
   if (rfds)
     {
-      struct GNUNET_CONTAINER_SList_Iterator *t;
+      struct GNUNET_CONTAINER_SList_Iterator t;
 
       for (i = 0; i < bread.fd_count; i++)
 	{
@@ -1687,17 +1681,16 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 		 "NOT SET");
 	}
       for (t = GNUNET_CONTAINER_slist_begin (rfds->handles);
-	   GNUNET_CONTAINER_slist_end (t) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (t))
+	   GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
+	   GNUNET_CONTAINER_slist_next (&t))
 	{
 	  struct GNUNET_DISK_FileHandle *fh;
 
 	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (t,
+	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
 									  NULL);
 	  LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is SET in rfds\n", fh->h);
 	}
-      GNUNET_CONTAINER_slist_iter_destroy (t);
     }
   if (wfds)
     {
