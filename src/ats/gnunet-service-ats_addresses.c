@@ -74,17 +74,6 @@ compare_address_it (void *cls,
 }
 
 
-static int 
-free_address_it (void *cls,
-		 const GNUNET_HashCode * key,
-		 void *value)
-{
-  struct ATS_Address * aa = cls;
-  GNUNET_free (aa);
-  return GNUNET_OK;
-}
-
-
 void
 GAS_address_update (const struct GNUNET_PeerIdentity *peer,
 		    const char *plugin_name,
@@ -143,6 +132,37 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 
 
 /**
+ * Initialize address subsystem.
+ */
+void
+GAS_addresses_init ()
+{
+  addresses = GNUNET_CONTAINER_multihashmap_create(128);
+}
+
+
+/**
+ * Free memory of address.
+ *
+ * @param cls NULL
+ * @param key peer identity (unused)
+ * @param value the 'struct ATS_Address' to free
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int 
+free_address_it (void *cls,
+		 const GNUNET_HashCode * key,
+		 void *value)
+{
+  struct ATS_Address * aa = cls;
+  GNUNET_free (aa);
+  return GNUNET_OK;
+}
+
+
+
+/**
+ * Shutdown address subsystem.
  */
 void
 GAS_addresses_done ()
@@ -151,13 +171,5 @@ GAS_addresses_done ()
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
 }
 
-
-/**
- */
-void
-GAS_addresses_init ()
-{
-  addresses = GNUNET_CONTAINER_multihashmap_create(128);
-}
 
 /* end of gnunet-service-ats_addresses.c */

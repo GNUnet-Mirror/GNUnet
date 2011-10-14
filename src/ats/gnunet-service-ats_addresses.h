@@ -31,12 +31,14 @@
 #include "gnunet_transport_service.h" // FIXME...
 
 /**
+ * Initialize address subsystem.
  */
 void
 GAS_addresses_init (void);
 
 
 /**
+ * Shutdown address subsystem.
  */
 void
 GAS_addresses_done (void);
