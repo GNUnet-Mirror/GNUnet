@@ -82,16 +82,22 @@ compare_address_it (void *cls,
       (aa->session_id != cac->search->session_id))
     return GNUNET_YES;
 
+  if (aa->addr_len != cac->search->addr_len)
+  {
+    return GNUNET_YES;
+  }
+
   if (0 == strcmp(aa->plugin, cac->search->plugin))
   {
-    if (aa->addr_len != cac->search->addr_len)
-      return GNUNET_YES;
-    if (aa->addr_len == 0)
-      return GNUNET_YES;
-    if (0 == memcmp (aa->addr, cac->search->addr, aa->addr_len))
-      cac->result = aa;
+    return GNUNET_YES;
+  }
+
+  if (0 == memcmp (aa->addr, cac->search->addr, aa->addr_len))
+  {
+    cac->result = aa;
     return GNUNET_NO;
   }
+
   return GNUNET_YES;
 }
 
@@ -212,16 +218,17 @@ GAS_address_destroyed (const struct GNUNET_PeerIdentity *peer,
   aa->session_client = session_client;
   aa->session_id = session_id;
 
-  res = find_address (peer, aa);
-  GNUNET_assert (res != 0);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-    "Deleting address for peer `%s'\n",
-    GNUNET_i2s (peer));
+    "Deleting address for peer `%s': `%s'\n",
+    GNUNET_i2s (peer), plugin_name);
 
-  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(addresses, &peer->hashPubKey, res));
-  destroy_address (aa);
-  destroy_address (res);
+  res = find_address (peer, aa);
+  if (res != NULL)
+  {
+    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(addresses, &peer->hashPubKey, res));
+    destroy_address (aa);
+    destroy_address (res);
+  }
 }
 
 
@@ -231,7 +238,15 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
   struct ATS_Address * aa = NULL;
   aa = GNUNET_CONTAINER_multihashmap_get (addresses, &peer->hashPubKey);
   if (aa != NULL)
+  {
+    aa->bw_in.value__ = htonl (100000);
+    aa->bw_out.value__ = htonl (100000);
     GAS_scheduling_transmit_address_suggestion (peer, aa->plugin, aa->addr, aa->addr_len, aa->session_client, aa->session_id, aa->ats, aa->ats_count, aa->bw_out, aa->bw_in);
+  }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Cannot provide address for peer `%s'\n",
+      GNUNET_i2s (peer));
 }
 
 

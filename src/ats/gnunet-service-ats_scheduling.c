@@ -258,7 +258,10 @@ GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
   plugin_name_length = ntohs (m->plugin_name_length);  
   atsi = (const struct GNUNET_TRANSPORT_ATS_Information*) &m[1];
   address = (const char*) &atsi[ats_count];
-  plugin_name = &address[address_length];
+  if (plugin_name_length != 0)
+    plugin_name = &address[address_length];
+  else
+    plugin_name = "";
   if ( (address_length +
 	plugin_name_length +
 	ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
@@ -302,10 +305,10 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received `%s' message\n", 
-	      "ADDRESS_DESTROYED");
+	      "Received `%s' message of size %u %u\n",
+	      "ADDRESS_DESTROYED", ntohs (message->size), sizeof (struct AddressDestroyedMessage));
   size = ntohs (message->size);
-  if (size <= sizeof (struct AddressDestroyedMessage))
+  if (size < sizeof (struct AddressDestroyedMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -316,16 +319,28 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
   address_length = ntohs (m->address_length);
   plugin_name_length = ntohs (m->plugin_name_length);  
   address = (const char*) &m[1];
-  plugin_name = &address[address_length];
+  if (plugin_name_length != 0)
+    plugin_name = &address[address_length];
+  else
+    plugin_name = "";
+
   if ( (address_length +
 	plugin_name_length +
-	sizeof (struct AddressDestroyedMessage) != ntohs (message->size))  ||
-       (plugin_name[plugin_name_length - 1] != '\0') )
+	sizeof (struct AddressDestroyedMessage) != ntohs (message->size)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
+  if (plugin_name_length != 0)
+    if (plugin_name[plugin_name_length - 1] != '\0')
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+
   GAS_address_destroyed (&m->peer,
 			 plugin_name,
 			 address,
