@@ -34,7 +34,7 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
@@ -45,6 +45,10 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 static struct GNUNET_ATS_SchedulingHandle *ats;
 
 struct GNUNET_OS_Process * arm_proc;
+
+struct Address addr;
+struct PeerContext p;
+struct GNUNET_TRANSPORT_ATS_Information atsi[2];
 
 static int ret;
 
@@ -97,6 +101,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end ()
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(die_task);
@@ -132,9 +137,26 @@ address_suggest_cb (void *cls,
                     uint32_t ats_count)
 
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "address_suggest_cb `%s'\n", GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggests address `%s'\n", GNUNET_i2s (peer));
 
-  end ();
+  GNUNET_assert (0 == memcmp (peer, &p.id, sizeof (struct GNUNET_PeerIdentity)));
+  GNUNET_assert (0 == strcmp (plugin_name, addr.plugin));
+  GNUNET_assert (plugin_addr_len == addr.addr_len);
+  GNUNET_assert (0 == memcmp (plugin_addr, addr.plugin, plugin_addr_len));
+  GNUNET_assert (addr.session == session);
+
+
+  /* TODO ats merge
+  GNUNET_assert (ats_count == 2);
+  GNUNET_assert (atsi[0].type == htons (1));
+  GNUNET_assert (atsi[0].type == htons (2));
+  GNUNET_assert (atsi[1].type == htons (2));
+  GNUNET_assert (atsi[1].type == htons (2));
+  */
+
+  ret = 0;
+
+  GNUNET_SCHEDULER_add_now(&end, NULL);
 }
 
 void
@@ -153,8 +175,6 @@ check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ret = GNUNET_SYSERR;
-  struct Address addr;
-  struct PeerContext p;
 
   die_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &end_badly, NULL);
   start_arm (cfgfile);
@@ -181,6 +201,20 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_ATS_address_update(ats, &p.id, addr.plugin, addr.addr, addr.addr_len, addr.session, NULL, 0);
 
+  atsi[0].type = htons (1);
+  atsi[0].type = htons (1);
+
+  GNUNET_ATS_address_update(ats, &p.id, addr.plugin, addr.addr, addr.addr_len, addr.session, atsi, 1);
+
+  atsi[0].type = htons (1);
+  atsi[0].type = htons (2);
+
+  atsi[1].type = htons (2);
+  atsi[1].type = htons (2);
+
+  GNUNET_ATS_address_update(ats, &p.id, addr.plugin, addr.addr, addr.addr_len, addr.session, atsi, 2);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n", GNUNET_i2s (&p.id));
   GNUNET_ATS_suggest_address(ats, &p.id);
 }
 
