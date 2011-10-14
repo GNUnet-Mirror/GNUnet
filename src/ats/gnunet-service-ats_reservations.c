@@ -116,7 +116,6 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
 }
 
 
-
 /**
  * Initialize reservations subsystem.
  */
@@ -155,7 +154,5 @@ GAS_reservations_done ()
   GNUNET_CONTAINER_multihashmap_iterate (trackers, &free_tracker, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (trackers);
 }
-
-
 
 /* end of gnunet-service-ats_reservations.c */
