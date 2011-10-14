@@ -255,6 +255,7 @@ struct MeshTunnel
 
     /**
      * Peers in the tunnel, indexed by PeerIdentity -> (MeshPeerInfo)
+     * containing peers added by id or by type, not intermediate peers.
      */
   struct GNUNET_CONTAINER_MultiHashMap *peers;
 
@@ -1608,7 +1609,8 @@ tunnel_destroy (struct MeshTunnel *t)
   }
 
   GNUNET_CRYPTO_hash (&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
-  if (NULL != c && GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (c->tunnels, &hash, t))
+  if (NULL != c &&
+      GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (c->tunnels, &hash, t))
   {
     r = GNUNET_SYSERR;
   }
@@ -1619,8 +1621,12 @@ tunnel_destroy (struct MeshTunnel *t)
       GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t));
   }
 
-  GNUNET_CONTAINER_multihashmap_iterate(t->peers, &peer_info_delete_tunnel, t);
-  GNUNET_CONTAINER_multihashmap_destroy (t->peers);
+  if (NULL != t->peers)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate(t->peers,
+                                          &peer_info_delete_tunnel, t);
+    GNUNET_CONTAINER_multihashmap_destroy (t->peers);
+  }
   q = t->queue_head;
   while (NULL != q)
   {
@@ -2022,7 +2028,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     t = GNUNET_malloc (sizeof (struct MeshTunnel));
     t->id.oid = GNUNET_PEER_intern (pi);
     t->id.tid = tid;
-    t->peers = GNUNET_CONTAINER_multihashmap_create (32);
     t->local_tid = next_local_tid++;
     /* FIXME test if taken */
     next_local_tid |= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
