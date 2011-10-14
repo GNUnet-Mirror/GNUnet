@@ -698,6 +698,7 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
 {
   struct GNUNET_PeerIdentity *oid;
   struct MeshClient *c;
+  struct MeshTunnel *t;
   MESH_TunnelNumber *tid;
   unsigned int count;
   uint16_t type;
@@ -733,7 +734,13 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
       GNUNET_break (0);
       return 0;
   }
-  *tid = htonl (tunnel_get (oid, ntohl(*tid))->local_tid);
+  t = tunnel_get (oid, ntohl(*tid));
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+  *tid = htonl (t->local_tid);
   for (count = 0, c = clients; c != NULL; c = c->next)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    client %u\n", c->id);
