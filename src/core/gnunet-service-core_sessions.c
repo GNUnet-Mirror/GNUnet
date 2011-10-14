@@ -602,6 +602,8 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
   size_t msize;
 
   session = find_session (&car->target);
+  if (NULL == session)
+    return;
   msize = ntohs (msg->size);
   sme = GNUNET_malloc (sizeof (struct SessionMessageEntry) + msize);
   memcpy (&sme[1], msg, msize);
