@@ -28,7 +28,7 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
@@ -36,15 +36,21 @@
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
+static GNUNET_SCHEDULER_TaskIdentifier consume_task;
+
 static struct GNUNET_ATS_SchedulingHandle *ats;
 
 static struct GNUNET_ATS_PerformanceHandle *atp;
 
+struct GNUNET_ATS_ReservationContext *sh;
+
 static struct GNUNET_OS_Process * arm_proc;
 
-static struct GNUNET_BANDWIDTH_Value32NBO bw_in;
+static struct PeerContext * p;
 
-static struct GNUNET_BANDWIDTH_Value32NBO bw_out;
+static uint32_t bw_in;
+
+static uint32_t bw_out;
 
 static int ret;
 
@@ -85,10 +91,23 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (consume_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(consume_task);
+    consume_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (sh != NULL)
+    GNUNET_ATS_reserve_bandwidth_cancel(sh);
+
   if (ats != NULL)
     GNUNET_ATS_scheduling_done (ats);
   if (atp != NULL)
     GNUNET_ATS_performance_done (atp);
+
+  GNUNET_free (p->addr);
+  GNUNET_free (p);
 
   ret = GNUNET_SYSERR;
 
@@ -105,9 +124,18 @@ end ()
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  if (consume_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(consume_task);
+    consume_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   GNUNET_ATS_scheduling_done (ats);
 
   GNUNET_ATS_performance_done (atp);
+
+  GNUNET_free (p->addr);
+  GNUNET_free (p);
 
   ret = 0;
 
@@ -135,6 +163,34 @@ void performance_cb (void *cls,
 
 }
 
+void reservation_cb (void *cls,
+                    const struct
+                    GNUNET_PeerIdentity *
+                    peer,
+                    int32_t amount,
+                    struct
+                    GNUNET_TIME_Relative
+                    res_delay)
+{
+  sh = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS reserved bandwidth of %i to peer `%s' in %llu ms\n",
+      amount,
+      GNUNET_i2s (peer),
+      res_delay.rel_value);
+}
+
+static void
+consume_bandwidth (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  consume_task = GNUNET_SCHEDULER_NO_TASK;
+  int32_t to_reserve = 500;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to reserver bandwidth of %i to peer `%s' in %llu ms\n",
+      to_reserve,
+      GNUNET_i2s (&p->id));
+
+  sh = GNUNET_ATS_reserve_bandwidth (atp, &p->id, to_reserve, &reservation_cb, NULL);
+}
+
 static void
 address_suggest_cb (void *cls,
                     const struct
@@ -158,8 +214,10 @@ address_suggest_cb (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggested address for peer `%s'\n", GNUNET_i2s (peer));
 
-  bw_in = bandwidth_in;
-  bw_out = bandwidth_out;
+  bw_in = ntohl (bandwidth_in.value__);
+  bw_out = ntohl (bandwidth_out.value__);
+
+  consume_task = GNUNET_SCHEDULER_add_now(&consume_bandwidth, NULL);
 }
 
 void
@@ -178,8 +236,7 @@ check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ret = GNUNET_SYSERR;
-  struct Address addr;
-  struct PeerContext p;
+  struct Address *addr;
 
   die_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &end_badly, NULL);
   start_arm (cfgfile);
@@ -192,6 +249,9 @@ check (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
+  p = GNUNET_malloc (sizeof (struct PeerContext));
+  addr = GNUNET_malloc (sizeof (struct Address));
+
   atp = GNUNET_ATS_performance_init (cfg, &performance_cb, NULL);
   if (atp == NULL)
   {
@@ -202,19 +262,18 @@ check (void *cls, char *const *args, const char *cfgfile,
   }
 
   /* set up peer */
-  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p.id.hashPubKey);
+  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p->id.hashPubKey);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n", GNUNET_i2s (&p->id));
+  p->addr = addr;
+  addr->plugin = "test";
+  addr->session = NULL;
+  addr->addr = NULL;
+  addr->addr_len = 0;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n", GNUNET_i2s (&p.id));
-  p.addr = &addr;
-  addr.plugin = "test";
-  addr.session = NULL;
-  addr.addr = NULL;
-  addr.addr_len = 0;
+  GNUNET_ATS_address_update(ats, &p->id, addr->plugin, addr->addr, addr->addr_len, addr->session, NULL, 0);
 
-  GNUNET_ATS_address_update(ats, &p.id, addr.plugin, addr.addr, addr.addr_len, addr.session, NULL, 0);
-
-  GNUNET_ATS_suggest_address(ats, &p.id);
+  GNUNET_ATS_suggest_address(ats, &p->id);
 }
 
 int
