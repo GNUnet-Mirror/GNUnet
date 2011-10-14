@@ -346,10 +346,13 @@ process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
     GNUNET_free (rc);
     return GNUNET_OK;
   }
-  GNUNET_free (rc);
   /* amount non-zero, but client cancelled, consider undo! */
   if (GNUNET_YES != rc->undo)
+  {
+    GNUNET_free (rc);
     return GNUNET_OK; /* do not try to undo failed undos or negative amounts */
+  }
+  GNUNET_free (rc);
   (void) GNUNET_ATS_reserve_bandwidth (ph, &rr->peer, -amount, NULL, NULL);
   return GNUNET_OK;
 }
