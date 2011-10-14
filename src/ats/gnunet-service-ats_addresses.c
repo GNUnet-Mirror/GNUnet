@@ -111,37 +111,6 @@ find_address (const struct GNUNET_PeerIdentity *peer,
   return cac.result;
 }
 
-static void
-merge_ats (struct ATS_Address * dest, struct ATS_Address * source)
-{
-  /*
-  int c_src = 0;
-  int c_dest = 0;
-  struct GNUNET_TRANSPORT_ATS_Information * a_src = source->ats;
-  struct GNUNET_TRANSPORT_ATS_Information * a_dest = dest->ats;
-  struct ATS_Address * bigger = NULL;
-
-  bigger = (dest->ats_count > source->ats_count) ? dest : source;
-  int new_entries = bigger->ats_count;
-
-  if (new_entries == 0)
-    return;
-
-  for (c_dest = 0; c_dest < dest->ats_count; c_dest ++)
-  {
-    for (c_src = 0; c_src < source->ats_count; c_src ++)
-    {
-      if (a_src[c_src].type == a_dest[c_dest].type)
-        new_entries--;
-    }
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-    "Have %u entries to update and %u new entries\n",bigger->ats_count,
-    new_entries);
-    */
-}
-
 void
 GAS_address_update (const struct GNUNET_PeerIdentity *peer,
 		    const char *plugin_name,
@@ -181,11 +150,16 @@ GAS_address_update (const struct GNUNET_PeerIdentity *peer,
   }
   else
   {
-    merge_ats (old, aa);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Updated existing address for peer `%s' %X \n",
       GNUNET_i2s (peer), old);
-    destroy_address (aa);
+    GNUNET_free_non_null(old->ats);
+    old->ats = NULL;
+    old->ats_count = 0;
+    old->ats = aa->ats;
+    old->ats_count = aa->ats_count;
+    GNUNET_free (aa->plugin);
+    GNUNET_free (aa);
   }
 
 }
