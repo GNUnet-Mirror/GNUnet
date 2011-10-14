@@ -22,6 +22,7 @@
  * @file ats/gnunet-service-ats.c
  * @brief ats service
  * @author Matthias Wachs
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -32,6 +33,13 @@
 #include "ats.h"
 
 
+/**
+ * We have received a 'ClientStartMessage' from a client.  Find out which
+ * type of client it is and notify the respective subsystem.
+ *
+ * @param client handle to the client
+ * @param message the start message
+ */
 static void
 handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
 		  const struct GNUNET_MessageHeader *message)
@@ -44,10 +52,10 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
   switch (ntohl (msg->start_flag))
   {
   case START_FLAG_SCHEDULING:
-    GAS_add_scheduling_client (client);
+    GAS_scheduling_add_client (client);
     break;
   case START_FLAG_PERFORMANCE_WITH_PIC:
-    GAS_add_performance_client (client);
+    GAS_performance_add_client (client);
     break;
   case START_FLAG_PERFORMANCE_NO_PIC:
     break;
@@ -70,8 +78,8 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
 static void
 client_disconnect_handler (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  GAS_remove_scheduling_client (client);
-  GAS_remove_performance_client (client);
+  GAS_scheduling_remove_client (client);
+  GAS_performance_remove_client (client);
 }
 
 
@@ -85,6 +93,7 @@ static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GAS_addresses_done ();
+  GAS_scheduling_done ();
 }
 
 
@@ -114,6 +123,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE, 0},
     {NULL, NULL, 0, 0}
   };
+  GAS_scheduling_init (server);
   GAS_addresses_init ();
   GNUNET_SERVER_disconnect_notify (server, 
 				   &client_disconnect_handler,

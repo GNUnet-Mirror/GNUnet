@@ -22,6 +22,7 @@
  * @file ats/gnunet-service-ats_addresses.c
  * @brief ats service address management
  * @author Matthias Wachs
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet-service-ats_addresses.h"
@@ -82,10 +83,10 @@ free_address_it (void *cls,
 
 
 void
-GAS_address_update (struct GNUNET_SERVER_Client *client,
-		    const struct GNUNET_PeerIdentity *peer,
+GAS_address_update (const struct GNUNET_PeerIdentity *peer,
 		    const char *plugin_name,
 		    const void *plugin_addr, size_t plugin_addr_len,
+		    struct GNUNET_SERVER_Client *session_client,
 		    uint32_t session_id,
 		    const struct GNUNET_TRANSPORT_ATS_Information *atsi,
 		    uint32_t atsi_count)
@@ -113,8 +114,11 @@ GAS_address_update (struct GNUNET_SERVER_Client *client,
 
 
 void
-GAS_address_destroyed (struct GNUNET_SERVER_Client *client,
-		       ...)
+GAS_address_destroyed (const struct GNUNET_PeerIdentity *peer,
+		       const char *plugin_name,
+		       const void *plugin_addr, size_t plugin_addr_len,
+		       struct GNUNET_SERVER_Client *session_client,
+		       uint32_t session_id)
 {
 #if 0
   // struct AddressDestroyedMessage * msg = (struct AddressDestroyedMessage *) message;
@@ -124,6 +128,12 @@ GAS_address_destroyed (struct GNUNET_SERVER_Client *client,
   GNUNET_CONTAINER_multihashmap_remove(addresses, peer, aa);
   GNUNET_free (aa);*/
 #endif
+}
+
+
+void
+GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
+{
 }
 
 

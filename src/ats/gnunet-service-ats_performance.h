@@ -22,6 +22,7 @@
  * @file ats/gnunet-service-ats_performance.h
  * @brief ats service, interaction with 'performance' API
  * @author Matthias Wachs
+ * @author Christian Grothoff
  */
 #ifndef GNUNET_SERVICE_ATS_PERFORMANCE_H
 #define GNUNET_SERVICE_ATS_PERFORMANCE_H
@@ -29,11 +30,11 @@
 #include "gnunet_util_lib.h"
 
 void
-GAS_add_performance_client (struct GNUNET_SERVER_Client *client);
+GAS_performance_add_client (struct GNUNET_SERVER_Client *client);
 
 
 void
-GAS_remove_performance_client (struct GNUNET_SERVER_Client *client);
+GAS_performance_remove_client (struct GNUNET_SERVER_Client *client);
 
 
 void

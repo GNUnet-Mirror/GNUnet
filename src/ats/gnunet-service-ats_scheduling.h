@@ -22,33 +22,111 @@
  * @file ats/gnunet-service-ats_scheduling.h
  * @brief ats service, interaction with 'scheduling' API
  * @author Matthias Wachs
+ * @author Christian Grothoff
  */
 #ifndef GNUNET_SERVICE_ATS_SCHEDULING_H
 #define GNUNET_SERVICE_ATS_SCHEDULING_H
 
 #include "gnunet_util_lib.h"
 
+
+/**
+ * Register a new scheduling client.
+ *
+ * @param client handle of the new client
+ */
 void
-GAS_add_scheduling_client (struct GNUNET_SERVER_Client *client);
+GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client);
 
 
+/**
+ * Unregister a client (which may have been a scheduling client,
+ * but this is not assured).
+ *
+ * @param client handle of the (now dead) client
+ */
 void
-GAS_remove_scheduling_client (struct GNUNET_SERVER_Client *client);
+GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client);
 
 
+/**
+ * Transmit the given address suggestion and bandwidth update to all scheduling
+ * clients.
+ *
+ * @param peer peer for which this is an address suggestion
+ * @param plugin_name 0-termintated string specifying the transport plugin
+ * @param plugin_addr binary address for the plugin to use
+ * @param plugin_addr_len number of bytes in plugin_addr
+ * @param session_client which client gave us this session_id?
+ * @param session_id session ID to use for the given client (other clients will see 0)
+ * @param atsi performance data for the address
+ * @param atsi_count number of performance records in 'ats'
+ * @param bandwidth_out assigned outbound bandwidth
+ * @param bandwidth_in assigned inbound bandwidth
+ */
+void
+GAS_scheduling_transmit_address_update (const struct GNUNET_PeerIdentity *peer,
+					const char *plugin_name,
+					const void *plugin_addr, size_t plugin_addr_len,
+					struct GNUNET_SERVER_Client *session_client,
+					uint32_t session_id,
+					const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+					uint32_t atsi_count,				
+					struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+					struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+
+
+/**
+ * Handle 'request address' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
 void
 GAS_handle_request_address (void *cls, struct GNUNET_SERVER_Client *client,
 			    const struct GNUNET_MessageHeader *message);
 
 
+
+/**
+ * Handle 'address update' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
 void
 GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
 			   const struct GNUNET_MessageHeader *message);
 
 
+/**
+ * Handle 'address destroyed' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
 void
 GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
 			      const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Initialize scheduling subsystem.
+ *
+ * @param server handle to our server
+ */
+void
+GAS_scheduling_init (struct GNUNET_SERVER_Handle *server);
+
+
+/**
+ * Shutdown scheduling subsystem.
+ */
+void
+GAS_scheduling_done (void);
 
 
 #endif
