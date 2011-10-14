@@ -29,12 +29,27 @@
 #include "ats.h"
 
 
+/**
+ * We keep clients that are interested in performance notifications in a linked list.
+ * Note that not ALL clients that are handeled by this module also register for
+ * notifications.  Only those clients that are in this list are managed by the
+ * notification context.
+ */
 struct PerformanceClient
 {
+  /**
+   * Next in doubly-linked list.
+   */
   struct PerformanceClient * next;
 
+  /**
+   * Previous in doubly-linked list.
+   */
   struct PerformanceClient * prev;
-
+  
+  /**
+   * Actual handle to the client.
+   */
   struct GNUNET_SERVER_Client *client;
 
 };
@@ -50,7 +65,18 @@ static struct PerformanceClient *pc_head;
  */
 static struct PerformanceClient *pc_tail;
  
+/**
+ * Context for sending messages to performance clients.
+ */
+static struct GNUNET_SERVER_NotificationContext *nc;
 
+
+/**
+ * Find the performance client associated with the given handle.
+ *
+ * @param client server handle
+ * @return internal handle
+ */
 static struct PerformanceClient * 
 find_client (struct GNUNET_SERVER_Client *client)
 {
@@ -63,6 +89,11 @@ find_client (struct GNUNET_SERVER_Client *client)
 }
 
 
+/**
+ * Register a new performance client.
+ *
+ * @param client handle of the new client
+ */
 void
 GAS_performance_add_client (struct GNUNET_SERVER_Client *client)
 {
@@ -71,10 +102,18 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client)
   GNUNET_break (NULL == find_client (client));
   pc = GNUNET_malloc (sizeof (struct PerformanceClient));
   pc->client = client;
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert(pc_head, pc_tail, pc);
 }
 
 
+/**
+ * Unregister a client (which may have been a performance client,
+ * but this is not assured).
+ *
+ * @param client handle of the (now dead) client
+ */
 void
 GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
 {
@@ -91,22 +130,46 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
 
 void
 GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *message)
-
+				const struct GNUNET_MessageHeader *message)
 {
-  // struct AddressUpdateMessage * msg = (struct AddressUpdateMessage *) message;
+  // const struct ReservationRequestMessage * msg = (const struct ReservationRequestMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "RESERVATION_REQUEST");
+
 }
 
 
 void
 GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *message)
+			      const struct GNUNET_MessageHeader *message)
 
 {
-  // struct ChangePreferenceMessage * msg = (struct ChangePreferenceMessage *) message;
+  // const struct ChangePreferenceMessage * msg = (const struct ChangePreferenceMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "PREFERENCE_CHANGE");
+  // FIXME: implement later (we can safely ignore these for now)
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
+/**
+ * Initialize performance subsystem.
+ *
+ * @param server handle to our server
+ */
+void
+GAS_performance_init (struct GNUNET_SERVER_Handle *server)
+{
+  nc = GNUNET_SERVER_notification_context_create (server, 128);
+}
+
+
+/**
+ * Shutdown performance subsystem.
+ */
+void
+GAS_performance_done ()
+{
+  GNUNET_SERVER_notification_context_destroy (nc);
+  nc = NULL;
+}
 
 /* end of gnunet-service-ats_performance.c */

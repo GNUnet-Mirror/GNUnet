@@ -29,10 +29,21 @@
 
 #include "gnunet_util_lib.h"
 
+/**
+ * Register a new performance client.
+ *
+ * @param client handle of the new client
+ */
 void
 GAS_performance_add_client (struct GNUNET_SERVER_Client *client);
 
 
+/**
+ * Unregister a client (which may have been a performance client,
+ * but this is not assured).
+ *
+ * @param client handle of the (now dead) client
+ */
 void
 GAS_performance_remove_client (struct GNUNET_SERVER_Client *client);
 
@@ -45,6 +56,22 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
 void
 GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
 			      const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Initialize performance subsystem.
+ *
+ * @param server handle to our server
+ */
+void
+GAS_performance_init (struct GNUNET_SERVER_Handle *server);
+
+
+/**
+ * Shutdown performance subsystem.
+ */
+void
+GAS_performance_done (void);
 
 
 #endif
