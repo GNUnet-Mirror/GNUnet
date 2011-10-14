@@ -34,7 +34,7 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 

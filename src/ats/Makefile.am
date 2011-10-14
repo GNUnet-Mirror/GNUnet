@@ -33,8 +33,8 @@ gnunet_service_ats_LDADD = \
 
 
 check_PROGRAMS = \
- test_ats_api_scheduling \
- test_ats_api_bandwidth_consumption
+ test_ats_api_scheduling
+# test_ats_api_bandwidth_consumption
  
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -46,11 +46,11 @@ test_ats_api_scheduling_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
-test_ats_api_bandwidth_consumption_SOURCES = \
- test_ats_api_bandwidth_consumption.c
-test_ats_api_bandwidth_consumption_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+#test_ats_api_bandwidth_consumption_SOURCES = \
+# test_ats_api_bandwidth_consumption.c
+#test_ats_api_bandwidth_consumption_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
 
 #test_ats_api_update_address_SOURCES = \
 # test_ats_api_update_address.c
