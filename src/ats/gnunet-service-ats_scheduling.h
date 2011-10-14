@@ -65,15 +65,15 @@ GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client);
  * @param bandwidth_in assigned inbound bandwidth
  */
 void
-GAS_scheduling_transmit_address_update (const struct GNUNET_PeerIdentity *peer,
-					const char *plugin_name,
-					const void *plugin_addr, size_t plugin_addr_len,
-					struct GNUNET_SERVER_Client *session_client,
-					uint32_t session_id,
-					const struct GNUNET_TRANSPORT_ATS_Information *atsi,
-					uint32_t atsi_count,				
-					struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-					struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *peer,
+					    const char *plugin_name,
+					    const void *plugin_addr, size_t plugin_addr_len,
+					    struct GNUNET_SERVER_Client *session_client,
+					    uint32_t session_id,
+					    const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+					    uint32_t atsi_count,				
+					    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+					    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 
 /**

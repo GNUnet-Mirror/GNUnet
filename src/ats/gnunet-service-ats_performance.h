@@ -91,5 +91,7 @@ void
 GAS_performance_done (void);
 
 
+/* FIXME: add API to broadcast performance updates! */
+
 #endif
 /* end of gnunet-service-ats_performance.h */

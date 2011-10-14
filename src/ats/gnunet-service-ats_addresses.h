@@ -60,8 +60,14 @@ GAS_address_destroyed (const struct GNUNET_PeerIdentity *peer,
 		       uint32_t session_id);
 
 
+// FIXME: this function should likely end up in the LP-subsystem and
+// not with 'addresses' in the future...
+// Note: this call should trigger an address suggestion
+// (GAS_scheduling_transmit_address_suggestion)
 void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer);
 
+
+/* FIXME: add performance request API */
 
 #endif
