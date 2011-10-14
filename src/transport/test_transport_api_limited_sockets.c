@@ -55,7 +55,7 @@
 
 #define MTYPE 12345
 
-#define MAX_FILES 20
+#define MAX_FILES 50
 
 static char *test_source;
 

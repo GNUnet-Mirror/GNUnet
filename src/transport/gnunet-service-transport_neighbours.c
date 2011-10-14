@@ -530,8 +530,8 @@ neighbour_timeout_task (void *cls,
   n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_YES == n->is_connected)
     GNUNET_STATISTICS_update (GST_stats,
-			      gettext_noop ("# peers disconnected due to timeout"), 1,
-			      GNUNET_NO);
+                            gettext_noop ("# peers disconnected due to timeout"), 1,
+                            GNUNET_NO);
   disconnect_neighbour (n);
 }
 
@@ -614,52 +614,6 @@ GST_neighbours_stop ()
   disconnect_notify_cb = NULL;
 }
 
-struct AddressContext
-{
-  struct NeighbourMapEntry * n;
-  struct GNUNET_TRANSPORT_ATS_Information * ats;
-  uint32_t ats_count;
-};
-
-void neighbour_send_cb (void *cls, int success)
-{
-  struct AddressContext * ac = cls;
-  struct NeighbourMapEntry * n = ac->n;
-  int  was_connected = n->is_connected;
-
-  if (success == GNUNET_YES)
-  {
-    n->is_connected = GNUNET_YES;
-
-    /* was already connected */
-    if (was_connected == GNUNET_YES)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Successfully switched to address `%s' for peer `%s' \n",
-                GST_plugins_a2s(n->plugin_name, n->addr, n->addrlen),
-                GNUNET_i2s (&n->id));
-      GNUNET_free (ac);
-      return;
-    }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Successfully connected to peer `%s' with address `%s'\n",
-              GNUNET_i2s (&n->id),
-              GST_plugins_a2s(n->plugin_name, n->addr, n->addrlen));
-
-    neighbours_connected++;
-    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
-                              GNUNET_NO);
-    connect_notify_cb (callback_cls, &n->id, ac->ats, ac->ats_count);
-    GNUNET_free (ac);
-    return;
-  }
-
-  /* Could not connecte using this address, notifying ATS about bad address */
-  GNUNET_ATS_address_destroyed(GST_ats, &n->id, n->plugin_name, n->addr, n->addrlen, n->session);
-  GNUNET_ATS_suggest_address(GST_ats, &n->id);
-  GNUNET_free (ac);
-}
 
 /**
  * For an existing neighbour record, set the active connection to
@@ -683,7 +637,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
   struct SessionConnectMessage connect_msg;
-  struct AddressContext *ac;
+  int was_connected;
 
   GNUNET_assert (neighbours != NULL);
 
@@ -695,22 +649,18 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     // GNUNET_break (0);
     return;
   }
+  was_connected = n->is_connected;
+  n->is_connected = GNUNET_YES;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' switches to plugin `%s' address '%s' session %X\n",
+              "SWITCH! Peer `%4s' switches to plugin `%s' address '%s' session %X\n",
               GNUNET_i2s (peer), plugin_name,
               (address_len == 0) ? "<inbound>" : GST_plugins_a2s (plugin_name,
                                                                   address,
                                                                   address_len),
               session);
 #endif
-
-  ac = GNUNET_malloc(sizeof (struct AddressContext) +
-                     ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-  ac->n = n;
-  ac->ats_count = ats_count;
-  memcpy(&ac[1],ats, ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
 
   GNUNET_free_non_null (n->addr);
   n->addr = GNUNET_malloc (address_len);
@@ -730,10 +680,17 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   connect_msg.timestamp =
       GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   GST_neighbours_send (peer, &connect_msg, sizeof (connect_msg),
-                       GNUNET_TIME_UNIT_FOREVER_REL, &neighbour_send_cb, ac);
+                       GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
 
   n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task,
                                                 n);
+  if (GNUNET_YES == was_connected)
+    return;
+  /* First tell clients about connected neighbours...*/
+  neighbours_connected++;
+  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
+                            GNUNET_NO);
+  connect_notify_cb (callback_cls, peer, ats, ats_count);
 }
 
 /**
