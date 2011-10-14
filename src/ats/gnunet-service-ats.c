@@ -45,19 +45,22 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
 		  const struct GNUNET_MessageHeader *message)
 {
   const struct ClientStartMessage * msg = (const struct ClientStartMessage *) message;
+  enum StartFlag flag;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received `%s' message\n",
 	      "ATS_START");
-  switch (ntohl (msg->start_flag))
+  flag = ntohl (msg->start_flag);
+  switch (flag)
   {
   case START_FLAG_SCHEDULING:
     GAS_scheduling_add_client (client);
     break;
   case START_FLAG_PERFORMANCE_WITH_PIC:
-    GAS_performance_add_client (client);
+    GAS_performance_add_client (client, flag);
     break;
   case START_FLAG_PERFORMANCE_NO_PIC:
+    GAS_performance_add_client (client, flag);
     break;
   default:
     GNUNET_break (0);

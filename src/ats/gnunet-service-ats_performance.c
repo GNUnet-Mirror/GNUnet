@@ -26,14 +26,12 @@
  */
 #include "platform.h"
 #include "gnunet-service-ats_performance.h"
+#include "gnunet-service-ats_reservations.h"
 #include "ats.h"
 
 
 /**
- * We keep clients that are interested in performance notifications in a linked list.
- * Note that not ALL clients that are handeled by this module also register for
- * notifications.  Only those clients that are in this list are managed by the
- * notification context.
+ * We keep clients that are interested in performance in a linked list.
  */
 struct PerformanceClient
 {
@@ -51,6 +49,11 @@ struct PerformanceClient
    * Actual handle to the client.
    */
   struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Options for the client.
+   */
+  enum StartFlag flag;
 
 };
 
@@ -95,13 +98,15 @@ find_client (struct GNUNET_SERVER_Client *client)
  * @param client handle of the new client
  */
 void
-GAS_performance_add_client (struct GNUNET_SERVER_Client *client)
+GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
+			    enum StartFlag flag)
 {
   struct PerformanceClient * pc;
 
   GNUNET_break (NULL == find_client (client));
   pc = GNUNET_malloc (sizeof (struct PerformanceClient));
   pc->client = client;
+  pc->flag = flag;
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert(pc_head, pc_tail, pc);
@@ -128,20 +133,59 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
 }
 
 
+/**
+ * Handle 'reservation request' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
 void
 GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
 				const struct GNUNET_MessageHeader *message)
 {
-  // const struct ReservationRequestMessage * msg = (const struct ReservationRequestMessage *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "RESERVATION_REQUEST");
+  const struct ReservationRequestMessage * msg = (const struct ReservationRequestMessage *) message;
+  struct ReservationResultMessage result;
+  int32_t amount;
+  struct GNUNET_TIME_Relative res_delay;
 
+  if (NULL == find_client (client))
+  {
+    /* missing start message! */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received `%s' message\n",
+	      "RESERVATION_REQUEST");
+  amount = (int32_t) ntohl (msg->amount);
+  res_delay = GAS_reservations_reserve (&msg->peer,
+					amount);
+  if (res_delay.rel_value > 0)
+    amount = 0;
+  result.header.size = htons (sizeof (struct ReservationResultMessage));
+  result.header.type = htons (GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT);
+  result.amount = htonl (amount);
+  result.res_delay = GNUNET_TIME_relative_hton (res_delay);
+  GNUNET_SERVER_notification_context_unicast (nc,
+					      client,
+					      &result.header,
+					      GNUNET_NO);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
+/**
+ * Handle 'preference change' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
 void
 GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
 			      const struct GNUNET_MessageHeader *message)
-
 {
   // const struct ChangePreferenceMessage * msg = (const struct ChangePreferenceMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "PREFERENCE_CHANGE");
