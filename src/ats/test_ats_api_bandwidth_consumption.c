@@ -18,17 +18,11 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_api_scheduling.c
+ * @file ats/test_ats_api_bandwidth_consumption.c
  * @brief test automatic transport selection scheduling API
  * @author Christian Grothoff
  * @author Matthias Wachs
- *
- * TODO:
- * - write test case
- * - extend API to get performance data
- * - implement simplistic strategy based on say 'lowest latency' or strict ordering
- * - extend API to get peer preferences, implement proportional bandwidth assignment
- * - re-implement API against a real ATS service (!)
+
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
@@ -44,7 +38,13 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static struct GNUNET_ATS_SchedulingHandle *ats;
 
-struct GNUNET_OS_Process * arm_proc;
+static struct GNUNET_ATS_PerformanceHandle *atp;
+
+static struct GNUNET_OS_Process * arm_proc;
+
+static struct GNUNET_BANDWIDTH_Value32NBO bw_in;
+
+static struct GNUNET_BANDWIDTH_Value32NBO bw_out;
 
 static int ret;
 
@@ -87,6 +87,8 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   die_task = GNUNET_SCHEDULER_NO_TASK;
   if (ats != NULL)
     GNUNET_ATS_scheduling_done (ats);
+  if (atp != NULL)
+    GNUNET_ATS_performance_done (atp);
 
   ret = GNUNET_SYSERR;
 
@@ -105,11 +107,33 @@ end ()
 
   GNUNET_ATS_scheduling_done (ats);
 
+  GNUNET_ATS_performance_done (atp);
+
   ret = 0;
 
   stop_arm ();
 }
 
+void performance_cb (void *cls,
+                    const struct
+                    GNUNET_PeerIdentity *
+                    peer,
+                    const char *plugin_name,
+                    const void *plugin_addr,
+                    size_t plugin_addr_len,
+                    struct
+                    GNUNET_BANDWIDTH_Value32NBO
+                    bandwidth_out,
+                    struct
+                    GNUNET_BANDWIDTH_Value32NBO
+                    bandwidth_in,
+                    const struct
+                    GNUNET_TRANSPORT_ATS_Information
+                    * ats,
+                    uint32_t ats_count)
+{
+
+}
 
 static void
 address_suggest_cb (void *cls,
@@ -132,9 +156,10 @@ address_suggest_cb (void *cls,
                     uint32_t ats_count)
 
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "address_suggest_cb `%s'\n", GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggested address for peer `%s'\n", GNUNET_i2s (peer));
 
-  end ();
+  bw_in = bandwidth_in;
+  bw_out = bandwidth_out;
 }
 
 void
@@ -160,11 +185,19 @@ check (void *cls, char *const *args, const char *cfgfile,
   start_arm (cfgfile);
 
   ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
-
   if (ats == NULL)
   {
     ret = GNUNET_SYSERR;
     end ();
+    return;
+  }
+
+  atp = GNUNET_ATS_performance_init (cfg, &performance_cb, NULL);
+  if (atp == NULL)
+  {
+    ret = GNUNET_SYSERR;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to init ATS performance\n");
+    end_badly(NULL, NULL);
     return;
   }
 
@@ -187,7 +220,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *argv[])
 {
-  static char *const argv2[] = { "test_ats_api_scheduling",
+  static char *const argv2[] = { "test_ats_api_bandwidth_consumption",
     "-c",
     "test_ats_api.conf",
 #if VERBOSE
@@ -203,11 +236,11 @@ main (int argc, char *argv[])
   };
 
   GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                      "test_ats_api_scheduling", "nohelp", options, &check,
+                      "test_ats_api_bandwidth_consumption", "nohelp", options, &check,
                       NULL);
 
 
   return ret;
 }
 
-/* end of file test_ats_api_scheduling.c */
+/* end of file test_ats_api_bandwidth_consumption.c */
