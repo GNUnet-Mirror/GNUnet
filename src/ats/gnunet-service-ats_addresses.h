@@ -61,6 +61,8 @@ GAS_address_destroyed (const struct GNUNET_PeerIdentity *peer,
 		       struct GNUNET_SERVER_Client *session_client,
 		       uint32_t session_id);
 
+void
+GAS_address_client_disconnected (struct GNUNET_SERVER_Client *session_client);
 
 // FIXME: this function should likely end up in the LP-subsystem and
 // not with 'addresses' in the future...

@@ -112,6 +112,7 @@ GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client)
 }
 
 
+
 /**
  * Unregister a client (which may have been a scheduling client,
  * but this is not assured).
@@ -127,6 +128,7 @@ GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client)
   if (NULL == sc)
     return;
   GNUNET_CONTAINER_DLL_remove (sc_head, sc_tail, sc);
+  GAS_address_client_disconnected (client);
   GNUNET_SERVER_client_drop (client);
   GNUNET_free (sc);
 }

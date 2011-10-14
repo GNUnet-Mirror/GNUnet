@@ -61,6 +61,13 @@ struct CompareAddressContext
   struct ATS_Address * result;
 };
 
+static void
+destroy_address (struct ATS_Address * addr)
+{
+  GNUNET_free_non_null (addr->ats);
+  GNUNET_free (addr->plugin);
+  GNUNET_free (addr);
+}
 
 static int 
 compare_address_it (void *cls,
@@ -107,6 +114,7 @@ find_address (const struct GNUNET_PeerIdentity *peer,
 static void
 merge_ats (struct ATS_Address * dest, struct ATS_Address * source)
 {
+  /*
   int c_src = 0;
   int c_dest = 0;
   struct GNUNET_TRANSPORT_ATS_Information * a_src = source->ats;
@@ -131,6 +139,7 @@ merge_ats (struct ATS_Address * dest, struct ATS_Address * source)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
     "Have %u entries to update and %u new entries\n",bigger->ats_count,
     new_entries);
+    */
 }
 
 void
@@ -176,11 +185,34 @@ GAS_address_update (const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Updated existing address for peer `%s' %X \n",
       GNUNET_i2s (peer), old);
-    GNUNET_free (aa->ats);
-    GNUNET_free (aa->plugin);
-    GNUNET_free (aa);
+    destroy_address (aa);
   }
 
+}
+
+static int
+remove_client (void *cls,
+               const GNUNET_HashCode * key,
+               void *value)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct ATS_Address * aa = (struct ATS_Address * ) value;
+
+  if (aa->session_client == client)
+  {
+    GNUNET_CONTAINER_multihashmap_remove(addresses, key, value);
+    destroy_address (aa);
+  }
+  return GNUNET_OK;
+}
+
+
+
+void
+GAS_address_client_disconnected (struct GNUNET_SERVER_Client *client)
+{
+  if (addresses != NULL)
+    GNUNET_CONTAINER_multihashmap_iterate(addresses, &remove_client, client);
 }
 
 
@@ -214,10 +246,8 @@ GAS_address_destroyed (const struct GNUNET_PeerIdentity *peer,
     GNUNET_i2s (peer));
 
   GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(addresses, &peer->hashPubKey, res));
-  GNUNET_free (res->plugin);
-  GNUNET_free_non_null (res->ats);
-  GNUNET_free (res);
-
+  destroy_address (aa);
+  destroy_address (res);
 }
 
 
@@ -258,9 +288,8 @@ free_address_it (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
     "Freeing address for peer `%s' %X\n",
     GNUNET_i2s (&aa->peer), aa);
-  GNUNET_free (aa->plugin);
-  GNUNET_free_non_null (aa->ats);
-  GNUNET_free (aa);
+  GNUNET_CONTAINER_multihashmap_remove (addresses, key, value);
+  destroy_address (aa);
   return GNUNET_OK;
 }
 
@@ -274,6 +303,7 @@ GAS_addresses_done ()
 {
   GNUNET_CONTAINER_multihashmap_iterate (addresses, &free_address_it, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
+  addresses = NULL;
 }
 
 
