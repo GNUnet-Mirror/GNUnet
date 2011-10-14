@@ -239,8 +239,8 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
   aa = GNUNET_CONTAINER_multihashmap_get (addresses, &peer->hashPubKey);
   if (aa != NULL)
   {
-    aa->bw_in.value__ = htonl (100000);
-    aa->bw_out.value__ = htonl (100000);
+    aa->bw_in.value__ = htonl (10000000);
+    aa->bw_out.value__ = htonl (10000000);
     GAS_scheduling_transmit_address_suggestion (peer, aa->plugin, aa->addr, aa->addr_len, aa->session_client, aa->session_id, aa->ats, aa->ats_count, aa->bw_out, aa->bw_in);
   }
   else
