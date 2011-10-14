@@ -260,7 +260,7 @@ GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
   if ( (address_length +
 	plugin_name_length +
 	ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
-	sizeof (struct AddressSuggestionMessage) != ntohs (message->size))  ||
+	sizeof (struct AddressUpdateMessage) != ntohs (message->size))  ||
        (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
        (plugin_name[plugin_name_length - 1] != '\0') )
   {

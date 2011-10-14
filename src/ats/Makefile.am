@@ -31,19 +31,19 @@ gnunet_service_ats_LDADD = \
   $(GN_LIBINTL)
 
 
-#check_PROGRAMS = \
-# test_ats_api 
+check_PROGRAMS = \
+ test_ats_api_scheduling 
 # test_ats_api_update_address
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
 
-#test_ats_api_SOURCES = \
-# test_ats_api.c
-#test_ats_api_LDADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/ats/libgnunetats.la  
+test_ats_api_scheduling_SOURCES = \
+ test_ats_api_scheduling.c
+test_ats_api_scheduling_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la  
 
 #test_ats_api_update_address_SOURCES = \
 # test_ats_api_update_address.c
