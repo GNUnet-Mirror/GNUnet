@@ -535,7 +535,7 @@ GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
   rc->peer = *peer;
   rc->rcb = rcb;
   rc->rcb_cls = rcb_cls;
-  if ( (rc != NULL) && (amount > 0) )
+  if ( (rcb != NULL) && (amount > 0) )
     rc->undo = GNUNET_YES;
   GNUNET_CONTAINER_DLL_insert_tail (ph->reservation_head,
 				    ph->reservation_tail,
