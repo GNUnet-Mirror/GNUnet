@@ -317,7 +317,7 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
   plugin_name = &address[address_length];
   if ( (address_length +
 	plugin_name_length +
-	sizeof (struct AddressSuggestionMessage) != ntohs (message->size))  ||
+	sizeof (struct AddressDestroyedMessage) != ntohs (message->size))  ||
        (plugin_name[plugin_name_length - 1] != '\0') )
   {
     GNUNET_break (0);

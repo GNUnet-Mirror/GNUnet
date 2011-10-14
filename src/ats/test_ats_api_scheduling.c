@@ -46,9 +46,7 @@ static struct GNUNET_ATS_SchedulingHandle *ats;
 
 struct GNUNET_OS_Process * arm_proc;
 
-struct Address addr;
-struct PeerContext p;
-struct GNUNET_TRANSPORT_ATS_Information atsi[2];
+
 
 static int ret;
 
@@ -73,6 +71,9 @@ struct PeerContext
   struct Address * addr;
 };
 
+struct Address addr[2];
+struct PeerContext p[2];
+struct GNUNET_TRANSPORT_ATS_Information atsi[2];
 
 static void
 stop_arm ()
@@ -139,11 +140,11 @@ address_suggest_cb (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggests address `%s'\n", GNUNET_i2s (peer));
 
-  GNUNET_assert (0 == memcmp (peer, &p.id, sizeof (struct GNUNET_PeerIdentity)));
-  GNUNET_assert (0 == strcmp (plugin_name, addr.plugin));
-  GNUNET_assert (plugin_addr_len == addr.addr_len);
-  GNUNET_assert (0 == memcmp (plugin_addr, addr.plugin, plugin_addr_len));
-  GNUNET_assert (addr.session == session);
+  GNUNET_assert (0 == memcmp (peer, &p[0].id, sizeof (struct GNUNET_PeerIdentity)));
+  GNUNET_assert (0 == strcmp (plugin_name, addr[0].plugin));
+  GNUNET_assert (plugin_addr_len == addr[0].addr_len);
+  GNUNET_assert (0 == memcmp (plugin_addr, addr[0].plugin, plugin_addr_len));
+  GNUNET_assert (addr[0].session == session);
 
 
   /* TODO ats merge
@@ -189,22 +190,29 @@ check (void *cls, char *const *args, const char *cfgfile,
   }
 
   /* set up peer */
-  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p.id.hashPubKey);
+  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p[0].id.hashPubKey);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n", GNUNET_i2s (&p[0].id));
 
+  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p[1].id.hashPubKey);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n", GNUNET_i2s (&p[1].id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n", GNUNET_i2s (&p.id));
-  p.addr = &addr;
-  addr.plugin = "test";
-  addr.session = NULL;
-  addr.addr = NULL;
-  addr.addr_len = 0;
+  addr[0].plugin = "test";
+  addr[0].session = NULL;
+  addr[0].addr = strdup("test");
+  addr[0].addr_len = 4;
 
-  GNUNET_ATS_address_update(ats, &p.id, addr.plugin, addr.addr, addr.addr_len, addr.session, NULL, 0);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing address creation\n");
+
+  GNUNET_ATS_address_update(ats, &p[0].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, NULL, 0);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info creation\n");
 
   atsi[0].type = htons (1);
   atsi[0].type = htons (1);
 
-  GNUNET_ATS_address_update(ats, &p.id, addr.plugin, addr.addr, addr.addr_len, addr.session, atsi, 1);
+  GNUNET_ATS_address_update(ats, &p[0].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, atsi, 1);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info merging\n");
 
   atsi[0].type = htons (1);
   atsi[0].type = htons (2);
@@ -212,10 +220,14 @@ check (void *cls, char *const *args, const char *cfgfile,
   atsi[1].type = htons (2);
   atsi[1].type = htons (2);
 
-  GNUNET_ATS_address_update(ats, &p.id, addr.plugin, addr.addr, addr.addr_len, addr.session, atsi, 2);
+  GNUNET_ATS_address_update(ats, &p[0].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, atsi, 2);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n", GNUNET_i2s (&p.id));
-  GNUNET_ATS_suggest_address(ats, &p.id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing manual address deletion \n");
+  GNUNET_ATS_address_update(ats, &p[1].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, NULL, 0);
+  GNUNET_ATS_address_destroyed (ats, &p[1].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session );
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n", GNUNET_i2s (&p[0].id));
+  GNUNET_ATS_suggest_address(ats, &p[0].id);
 }
 
 int
