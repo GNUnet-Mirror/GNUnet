@@ -34,6 +34,8 @@ struct ATS_Address
 
   size_t addr_len;
 
+  struct GNUNET_SERVER_Client *session_client;
+		   
   uint32_t session_id;
 
   uint32_t ats_count;
@@ -96,6 +98,7 @@ GAS_address_update (const struct GNUNET_PeerIdentity *peer,
   memcpy (&aa->ats, atsi, atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
   memcpy (aa->addr, plugin_addr, plugin_addr_len);
   aa->plugin = GNUNET_strdup (plugin_name);
+  aa->session_client = session_client;
   aa->session_id = session_id;
 
   GNUNET_assert (GNUNET_OK == 
