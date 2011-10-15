@@ -320,7 +320,7 @@ struct MeshPathInfo
   struct MeshTunnel *t;
 
   /**
-   * Destination peer
+   * Neighbouring peer to whom we send the packet to
    */
   struct MeshPeerInfo *peer;
 
@@ -827,11 +827,20 @@ peer_info_cancel_transmission(struct MeshPeerInfo *peer, unsigned int i)
     struct MeshDataDescriptor *dd;
     struct MeshPathInfo *path_info;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   Cancelling data transmission at %u\n",
-                i);
-    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit[i]);
-    peer->core_transmit[i] = NULL;
+#if MESH_DEBUG
+    {
+      struct GNUNET_PeerIdentity id;
+
+      GNUNET_PEER_resolve (peer->id, &id);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MESH:   Cancelling data transmission at %s [%u]\n",
+                  GNUNET_i2s (&id),
+                  i);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MESH:    message type %u\n",
+                  peer->types[i]);
+    }
+#endif
     /* TODO: notify that tranmission has failed */
     switch (peer->types[i])
     {
@@ -851,7 +860,12 @@ peer_info_cancel_transmission(struct MeshPeerInfo *peer, unsigned int i)
         path_info = peer->infos[i];
         path_destroy(path_info->path);
         break;
+      default:
+        GNUNET_break (0);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    type unknown!\n");
     }
+    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit[i]);
+    peer->core_transmit[i] = NULL;
     GNUNET_free (peer->infos[i]);
   } 
 }
@@ -999,9 +1013,9 @@ send_create_path (struct MeshPeerInfo *peer,
 
   path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
   path_info->path = p;
-  path_info->peer = peer;
   path_info->t = t;
   neighbor = peer_info_get(&id);
+  path_info->peer = neighbor;
   path_info->pos = peer_info_transmit_slot(neighbor);
   neighbor->types[path_info->pos] = GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE;
   neighbor->infos[path_info->pos] = path_info;
@@ -1715,6 +1729,8 @@ send_core_create_path (void *cls, size_t size, void *buf)
   size_t size_needed;
   int i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: CREATE PATH sending...\n");
   size_needed =
       sizeof (struct GNUNET_MESH_ManipulatePath) +
       p->length * sizeof (struct GNUNET_PeerIdentity);
@@ -1735,7 +1751,17 @@ send_core_create_path (void *cls, size_t size, void *buf)
     return 0;
   }
   info->peer->core_transmit[info->pos] = NULL;
+#if MESH_DEBUG
+  {
+    struct GNUNET_PeerIdentity id;
 
+    GNUNET_PEER_resolve (peer->id, &id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   setting core_transmit %s [%u] to NULL\n",
+                GNUNET_i2s (&id),
+                info->pos);
+  }
+#endif
   msg = (struct GNUNET_MESH_ManipulatePath *) buf;
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
@@ -1858,11 +1884,8 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
   {
     if (NULL != info->client)
     {
-      /* FIXME One unresponsive neighbor (who doesn't "call" tmt_rdy) can lock
-       *       the client from sending anything else to the service.
-       *       - Call receive_done after certain timeout.
-       *       - Here cancel the timeout.
-       */
+      if (GNUNET_SCHEDULER_NO_TASK != info->timeout_task)
+        GNUNET_SCHEDULER_cancel(info->timeout_task);
       GNUNET_SERVER_receive_done (info->client, GNUNET_OK);
     }
     GNUNET_free (info->data);
@@ -2591,11 +2614,11 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_MESH_Multicast *msg;
   size_t size;
 
-  t->path_refresh_task = GNUNET_SCHEDULER_NO_TASK;
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
   {
     return;
   }
+  t->path_refresh_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH: sending keepalive for tunnel %d\n",
