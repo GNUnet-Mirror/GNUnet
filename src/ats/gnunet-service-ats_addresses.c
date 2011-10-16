@@ -310,10 +310,7 @@ free_address_it (void *cls,
 		 void *value)
 {
   struct ATS_Address * aa = value;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-    "Freeing address for peer `%s' %X\n",
-    GNUNET_i2s (&aa->peer), aa);
-  GNUNET_CONTAINER_multihashmap_remove (addresses, key, value);
+
   destroy_address (aa);
   return GNUNET_OK;
 }
