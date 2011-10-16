@@ -117,9 +117,11 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
  * Initialize scheduling subsystem.
  *
  * @param server handle to our server
+ * @param cfg configuration to use
  */
 void
-GAS_scheduling_init (struct GNUNET_SERVER_Handle *server);
+GAS_scheduling_init (struct GNUNET_SERVER_Handle *server,
+		     const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
