@@ -550,7 +550,9 @@ neighbour_keepalive_task (void *cls,
   struct GNUNET_MessageHeader m;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
 
-  n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;
+  n->keepalive_task = GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
+						    &neighbour_keepalive_task,
+						    n);
   GNUNET_assert (GNUNET_YES == n->is_connected);
   GNUNET_STATISTICS_update (GST_stats,
 			    gettext_noop ("# keepalives sent"), 1,
@@ -565,9 +567,6 @@ neighbour_keepalive_task (void *cls,
 		UINT32_MAX /* priority */ ,
 		GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->addr, n->addrlen,
 		GNUNET_YES, NULL, NULL);
-  n->keepalive_task = GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
-						    &neighbour_keepalive_task,
-						    n);
 }
 
 
@@ -651,6 +650,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
   was_connected = n->is_connected;
   n->is_connected = GNUNET_YES;
+  n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task,
+                                                n);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -682,8 +683,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   GST_neighbours_send (peer, &connect_msg, sizeof (connect_msg),
                        GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
 
-  n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task,
-                                                n);
   if (GNUNET_YES == was_connected)
     return;
   /* First tell clients about connected neighbours...*/
