@@ -73,10 +73,6 @@ static struct SchedulingClient *sc_tail;
  */
 static struct GNUNET_SERVER_NotificationContext *nc;
 
-static unsigned long long total_quota_in;
-
-static unsigned long long total_quota_out;
-
 
 /**
  * Find the scheduling client associated with the given
@@ -359,22 +355,10 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
  * Initialize scheduling subsystem.
  *
  * @param server handle to our server
- * @param cfg configuration to use
  */
 void
-GAS_scheduling_init (struct GNUNET_SERVER_Handle *server,
-		     const struct GNUNET_CONFIGURATION_Handle *cfg)
+GAS_scheduling_init (struct GNUNET_SERVER_Handle *server)		     
 {
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONFIGURATION_get_value_number (cfg,
-							"core",
-							"TOTAL_QUOTA_IN",
-							&total_quota_in));
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONFIGURATION_get_value_number (cfg,
-							"core",
-							"TOTAL_QUOTA_OUT",
-							&total_quota_out));
   nc = GNUNET_SERVER_notification_context_create (server, 128);
 }
 

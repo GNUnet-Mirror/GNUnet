@@ -55,6 +55,11 @@ struct ATS_Address
 static struct GNUNET_CONTAINER_MultiHashMap * addresses;
 
 
+static unsigned long long total_quota_in;
+
+static unsigned long long total_quota_out;
+
+
 struct CompareAddressContext
 {
   struct ATS_Address * search;
@@ -252,10 +257,22 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 
 /**
  * Initialize address subsystem.
+ *
+ * @param cfg configuration to use
  */
 void
-GAS_addresses_init ()
+GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONFIGURATION_get_value_number (cfg,
+							"core",
+							"TOTAL_QUOTA_IN",
+							&total_quota_in));
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONFIGURATION_get_value_number (cfg,
+							"core",
+							"TOTAL_QUOTA_OUT",
+							&total_quota_out));
   addresses = GNUNET_CONTAINER_multihashmap_create(128);
 }
 

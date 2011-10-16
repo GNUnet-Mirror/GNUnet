@@ -131,8 +131,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
   GAS_reservations_init ();
   GAS_performance_init (server);
-  GAS_scheduling_init (server, cfg);
-  GAS_addresses_init ();
+  GAS_scheduling_init (server);
+  GAS_addresses_init (cfg);
   GNUNET_SERVER_disconnect_notify (server, 
 				   &client_disconnect_handler,
                                    NULL);

@@ -32,9 +32,10 @@
 
 /**
  * Initialize address subsystem.
+ * @param cfg configuration to use
  */
 void
-GAS_addresses_init (void);
+GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
