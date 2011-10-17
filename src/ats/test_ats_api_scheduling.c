@@ -207,18 +207,18 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info creation\n");
 
-  atsi[0].type = htons (1);
-  atsi[0].type = htons (1);
+  atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_UP);
+  atsi[0].value = htonl (1024);
 
   GNUNET_ATS_address_update(ats, &p[0].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, atsi, 1);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info merging\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info update\n");
 
-  atsi[0].type = htons (1);
-  atsi[0].type = htons (2);
+  atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_UP);
+  atsi[0].value = htonl (2048);
 
-  atsi[1].type = htons (2);
-  atsi[1].type = htons (2);
+  atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_DOWN);
+  atsi[1].value = htonl (1024);
 
   GNUNET_ATS_address_update(ats, &p[0].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, atsi, 2);
 

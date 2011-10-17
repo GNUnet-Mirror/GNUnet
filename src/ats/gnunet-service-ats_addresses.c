@@ -268,7 +268,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
     GNUNET_free (aa);
   }
   for (i=0;i<atsi_count;i++)
-    switch (atsi[i].type)
+    switch (ntohl (atsi[i].type))
     {
     case GNUNET_ATS_UTILIZATION_UP:
       old->atsp_utilization_out.value__ = atsi[i].value;
