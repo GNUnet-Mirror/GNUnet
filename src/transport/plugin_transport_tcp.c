@@ -1127,6 +1127,18 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     /* check if session is valid */
     struct Session *ses = plugin->sessions;
 
+    if (0 != memcmp (target,
+		     &session->target,
+		     sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Got session for `%s', but should be for peer `%s'!\n",
+		  GNUNET_i2s (&session->target),
+		  GNUNET_h2s (&target->hashPubKey));
+      return -1;
+    }
+
     while ((ses != NULL) && (ses != session))
       ses = ses->next;
     if (ses == NULL)
