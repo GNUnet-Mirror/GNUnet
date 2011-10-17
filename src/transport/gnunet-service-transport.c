@@ -295,10 +295,19 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* FIXME: this should not be needed, and not sure it's good to have it, but without
      this connections seem to go extra-slow */
   if ((ats_count > 0) && (ats != NULL))
+  {
+    if (NULL != session)
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+		       "transport-ats",
+		       "Giving ATS session %p of plugin %s for peer %s\n",
+		       session,
+		       plugin_name,
+		       GNUNET_i2s (peer));
     GNUNET_ATS_address_update (GST_ats, peer,
                                plugin_name, sender_address, sender_address_len,
                                session,
                                ats, ats_count);
+  }
 #endif
   return ret;
 }
@@ -347,6 +356,12 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
               "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
 #endif
+  if (NULL != session)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+		     "transport-ats",
+		     "Telling ATS to destroy session %p from peer %s\n",
+		     session,		   
+		     GNUNET_i2s (peer));
   GNUNET_ATS_address_destroyed(GST_ats, peer, NULL, NULL, 0, session);
   GST_neighbours_session_terminated (peer, session);
 }
