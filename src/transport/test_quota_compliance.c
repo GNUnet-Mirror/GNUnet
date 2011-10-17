@@ -269,7 +269,8 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (die_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (die_task);
     test_failed = GNUNET_YES;
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly,
+        NULL);
     return;
   }
 #if VERBOSE
@@ -498,13 +499,13 @@ run_measurement (unsigned long long p1_quota_in, unsigned long long p1_quota_out
       "Generated config file `%s'\n",
       gen_cfg_p2);
 
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1, 1,
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, gen_cfg_p1, 1,
                                             &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             &start_cb,
                                             NULL);
 
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, gen_cfg_p2, 2,
                                             &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             &start_cb,
