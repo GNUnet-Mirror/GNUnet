@@ -25,6 +25,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_reservations.h"
 #include "ats.h"
@@ -242,9 +243,31 @@ void
 GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
 			      const struct GNUNET_MessageHeader *message)
 {
-  // const struct ChangePreferenceMessage * msg = (const struct ChangePreferenceMessage *) message;
+  const struct ChangePreferenceMessage * msg;
+  const struct PreferenceInformation *pi;
+  uint16_t msize;
+  uint32_t nump;
+  uint32_t i;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "PREFERENCE_CHANGE");
-  // FIXME: implement later (we can safely ignore these for now)
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct ChangePreferenceMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  }
+  msg = (const struct ChangePreferenceMessage *) message;
+  nump = ntohl (msg->num_preferences);
+  if (msize != sizeof (struct ChangePreferenceMessage) * nump * sizeof (struct PreferenceInformation))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  }
+  pi = (const struct PreferenceInformation *) &msg[1];
+  for (i=0;i<nump;i++)
+    GAS_addresses_change_preference (&msg->peer,
+				     (enum GNUNET_ATS_PreferenceKind) ntohl (pi[i].preference_kind),
+				     pi[i].preference_value);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

@@ -29,6 +29,8 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h" // FIXME...
+#include "gnunet_ats_service.h" 
+#include "ats.h"
 
 /**
  * Initialize address subsystem.
@@ -71,6 +73,14 @@ GAS_address_client_disconnected (struct GNUNET_SERVER_Client *session_client);
 // (GAS_scheduling_transmit_address_suggestion)
 void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer);
+
+
+// FIXME: this function should likely end up in the LP-subsystem and
+// not with 'addresses' in the future...
+void
+GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
+				 enum GNUNET_ATS_PreferenceKind kind,
+				 float score);
 
 
 /* FIXME: add performance request API */

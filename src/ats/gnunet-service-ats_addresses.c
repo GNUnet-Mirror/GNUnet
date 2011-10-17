@@ -279,6 +279,17 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 }
 
 
+// FIXME: this function should likely end up in the LP-subsystem and
+// not with 'addresses' in the future...
+void
+GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
+				 enum GNUNET_ATS_PreferenceKind kind,
+				 float score)
+{
+  // do nothing for now...
+}
+
+
 /**
  * Initialize address subsystem.
  *
@@ -319,7 +330,6 @@ free_address_it (void *cls,
   destroy_address (aa);
   return GNUNET_OK;
 }
-
 
 
 /**
