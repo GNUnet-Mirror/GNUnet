@@ -36,7 +36,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
@@ -52,7 +52,7 @@
  */
 #define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
-#define DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 static char *test_source;
 
@@ -89,6 +89,7 @@ unsigned long long quota_out_p2;
 struct GNUNET_TRANSPORT_TESTING_handle * tth;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
+
 
 /*
  * Testcase specific declarations
@@ -497,13 +498,13 @@ run_measurement (unsigned long long p1_quota_in, unsigned long long p1_quota_out
       "Generated config file `%s'\n",
       gen_cfg_p2);
 
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, gen_cfg_p1, 1,
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1, 1,
                                             &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             &start_cb,
                                             NULL);
 
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, gen_cfg_p2, 2,
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
                                             &notify_receive,
                                             &notify_connect, &notify_disconnect,
                                             &start_cb,
@@ -632,7 +633,7 @@ main (int argc, char *argv[])
 
   GNUNET_TRANSPORT_TESTING_done (tth);
 
-  return ret;
+  return test_failed;
 }
 
 

@@ -281,7 +281,6 @@ check_PROGRAMS = \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
- test_quota_compliance_udp_asymmetric \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
@@ -320,7 +319,6 @@ TESTS = \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
- test_quota_compliance_udp_asymmetric \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
@@ -641,14 +639,6 @@ test_quota_compliance_https_asymmetric_LDADD = \
 test_quota_compliance_udp_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
-
-test_quota_compliance_udp_asymmetric_SOURCES = \
- test_quota_compliance.c
-test_quota_compliance_udp_asymmetric_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
