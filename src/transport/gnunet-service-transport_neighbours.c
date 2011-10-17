@@ -639,7 +639,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   int was_connected;
 
   GNUNET_assert (neighbours != NULL);
-
   n = lookup_neighbour (peer);
   if (NULL == n)
   {
@@ -650,8 +649,9 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
   was_connected = n->is_connected;
   n->is_connected = GNUNET_YES;
-  n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task,
-                                                n);
+  if (GNUNET_YES != was_connected)
+    n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task,
+						  n);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -170,7 +170,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   int do_forward;
   struct GNUNET_TIME_Relative ret;
   uint16_t type;
-
+  
   ret = GNUNET_TIME_UNIT_ZERO;
   if (NULL != message)
   {
