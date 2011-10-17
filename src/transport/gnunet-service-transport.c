@@ -395,6 +395,7 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   uint32_t bw_in = ntohl (bandwidth_in.value__);
   uint32_t bw_out = ntohl (bandwidth_out.value__);
+  struct QuotaSetMessage msg;
 
   /* ATS tells me to disconnect from peer*/
   if ((bw_in == 0) && (bw_out == 0))
@@ -407,20 +408,20 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GST_neighbours_switch_to_address (peer, plugin_name, plugin_addr,
                                     plugin_addr_len, session, ats, ats_count);
-
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
               ntohl (bandwidth_out.value__), GNUNET_i2s (peer));
 #endif
-  struct QuotaSetMessage msg;
   msg.header.size = htons (sizeof (struct QuotaSetMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
   msg.quota = bandwidth_out;
   msg.peer = (*peer);
-  GST_clients_broadcast ((struct GNUNET_MessageHeader *) &msg, GNUNET_NO);
+  GST_clients_broadcast (&msg.header, GNUNET_NO);
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting inbound quota of %u for peer `%s' to \n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Setting inbound quota of %u for peer `%s' to \n",
               ntohl (bandwidth_in.value__), GNUNET_i2s (peer));
 #endif
   GST_neighbours_set_incoming_quota (peer, bandwidth_in);
