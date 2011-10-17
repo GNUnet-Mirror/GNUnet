@@ -100,6 +100,7 @@ update_bw_it (void *cls,
 
   if (GNUNET_YES != aa->active)
     return GNUNET_OK;
+  GNUNET_assert (active_addr_count > 0);
   aa->assigned_bw_in.value__ = htonl (total_quota_in / active_addr_count);
   aa->assigned_bw_out.value__ = htonl (total_quota_out / active_addr_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -158,6 +159,7 @@ destroy_address (struct ATS_Address *addr)
   if (GNUNET_YES == addr->active)
   {
     active_addr_count--;
+    addr->active = GNUNET_NO;
     ret = GNUNET_YES;
   }
   GNUNET_free_non_null (addr->ats);
@@ -292,6 +294,9 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
       old->atsp_cost_wlan = ntohl (atsi[i].value);
       break;
     default:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Received unsupported ATS type %u\n",
+		  ntohl (atsi[i].type));
       GNUNET_break (0);
       break;
     }
@@ -329,6 +334,7 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
     res->session_id = 0;
     if (GNUNET_YES == res->active)
     {
+      res->active = GNUNET_NO;
       active_addr_count--;
       recalculate_assigned_bw ();
     }
