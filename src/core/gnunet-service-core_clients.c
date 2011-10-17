@@ -632,7 +632,13 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   old_match = GSC_TYPEMAP_test_match (tmap_old, client->types, client->tcnt);
   new_match = GSC_TYPEMAP_test_match (tmap_new, client->types, client->tcnt);
   if (client->tcnt == 0)
-    new_match = GNUNET_YES; /* empty list matches ALL */
+  {
+    /* empty list matches ALL (if not NULL) */
+    if (tmap_new != NULL)
+      new_match = GNUNET_YES; 
+    if (tmap_old != NULL)
+      old_match = GNUNET_YES;
+  }
   if (old_match == new_match)
     return; /* no change */
   if (old_match == GNUNET_NO)
