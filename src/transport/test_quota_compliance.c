@@ -572,7 +572,6 @@ check ()
 int
 main (int argc, char *argv[])
 {
-  int ret;
   int nat_res;
 
   tth = GNUNET_TRANSPORT_TESTING_init ();
@@ -611,7 +610,7 @@ main (int argc, char *argv[])
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p1, 1);
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p2, 2);
 
-  ret = check ();
+  check ();
 
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
