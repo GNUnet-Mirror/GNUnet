@@ -156,6 +156,11 @@ struct GNUNET_ATS_PerformanceHandle
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
 
+  /**
+   * Task to trigger reconnect.
+   */ 
+  GNUNET_SCHEDULER_TaskIdentifier task;
+  
 };
 
 
@@ -166,6 +171,23 @@ struct GNUNET_ATS_PerformanceHandle
  */
 static void
 reconnect (struct GNUNET_ATS_PerformanceHandle *ph);
+
+
+/**
+ * Re-establish the connection to the ATS service.
+ *
+ * @param cls handle to use to re-connect.
+ * @param tc scheduler context
+ */
+static void
+reconnect_task (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_ATS_PerformanceHandle *ph = cls;
+
+  ph->task = GNUNET_SCHEDULER_NO_TASK;
+  reconnect (ph);
+}
 
 
 /**
@@ -372,42 +394,31 @@ process_ats_message (void *cls,
   struct GNUNET_ATS_PerformanceHandle *ph = cls;
 
   if (NULL == msg) 
-  {
-    GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
-    ph->client = NULL;
-    reconnect (ph);
-    return;
-  }
+    goto reconnect;
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION:
     if (GNUNET_OK != process_pi_message (ph, msg))
-    {
-      GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
-      ph->client = NULL;
-      reconnect (ph);
-      return;
-    }
+      goto reconnect;
     break;
   case GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT:
     if (GNUNET_OK != process_rr_message (ph, msg))
-    {
-      GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
-      ph->client = NULL;
-      reconnect (ph);
-      return;
-    }
+      goto reconnect;    
     break;
   default:
     GNUNET_break (0);
-    GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
-    ph->client = NULL;
-    reconnect (ph);
+    goto reconnect;
     return;
   }
   GNUNET_CLIENT_receive (ph->client,
 			 &process_ats_message, ph,
 			 GNUNET_TIME_UNIT_FOREVER_REL);
+  return;
+ reconnect:
+  GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
+  ph->client = NULL;
+  ph->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+					   &reconnect_task, ph);
 }
 
 
@@ -500,6 +511,11 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
     GNUNET_break (NULL == rc->rcb);
     GNUNET_free (p);
   }  
+  if (GNUNET_SCHEDULER_NO_TASK != ph->task)
+  {
+    GNUNET_SCHEDULER_cancel (ph->task);
+    ph->task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
   GNUNET_free (ph);
 }
