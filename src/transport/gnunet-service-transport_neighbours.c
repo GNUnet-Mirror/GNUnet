@@ -648,7 +648,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   if (NULL == n)
   {
     if (NULL != session)
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO  | GNUNET_ERROR_TYPE_BULK,
 		       "transport-ats",
 		       "Telling ATS to destroy session %p of peer %s\n",
 		       session,		       
@@ -808,7 +808,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
               session, GNUNET_i2s (peer));
 #endif
   if (NULL != session)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 		     "transport-ats",
 		     "Telling ATS to destroy session %p of peer %s\n",
 		     session,		    
@@ -1216,7 +1216,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   if (ts.abs_value > n->connect_ts.abs_value)
   {
     if (NULL != session)
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 		       "transport-ats",
 		       "Giving ATS session %p of plugin %s for peer %s\n",
 		       session,

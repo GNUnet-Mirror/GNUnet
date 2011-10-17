@@ -297,7 +297,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   if ((ats_count > 0) && (ats != NULL))
   {
     if (NULL != session)
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
 		       "transport-ats",
 		       "Giving ATS session %p of plugin %s for peer %s\n",
 		       session,
@@ -357,7 +357,7 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
               session, GNUNET_i2s (peer));
 #endif
   if (NULL != session)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO  | GNUNET_ERROR_TYPE_BULK,
 		     "transport-ats",
 		     "Telling ATS to destroy session %p from peer %s\n",
 		     session,		   
