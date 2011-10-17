@@ -55,7 +55,11 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
   switch (flag)
   {
   case START_FLAG_SCHEDULING:
-    GAS_scheduling_add_client (client);
+    if (GNUNET_OK != GAS_scheduling_add_client (client))
+    {
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
     break;
   case START_FLAG_PERFORMANCE_WITH_PIC:
     GAS_performance_add_client (client, flag);

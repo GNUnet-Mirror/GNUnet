@@ -47,24 +47,24 @@ GAS_addresses_done (void);
 
 
 void
-GAS_address_update (const struct GNUNET_PeerIdentity *peer,
-		    const char *plugin_name,
-		    const void *plugin_addr, size_t plugin_addr_len,
-		    struct GNUNET_SERVER_Client *session_client,
-		    uint32_t session_id,
-		    const struct GNUNET_ATS_Information *atsi,
-		    uint32_t atsi_count);
+GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
+		      const char *plugin_name,
+		      const void *plugin_addr, size_t plugin_addr_len,
+		      uint32_t session_id,
+		      const struct GNUNET_ATS_Information *atsi,
+		      uint32_t atsi_count);
 
 
 void
-GAS_address_destroyed (const struct GNUNET_PeerIdentity *peer,
+GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
 		       const char *plugin_name,
 		       const void *plugin_addr, size_t plugin_addr_len,
-		       struct GNUNET_SERVER_Client *session_client,
 		       uint32_t session_id);
 
+
 void
-GAS_address_client_disconnected (struct GNUNET_SERVER_Client *session_client);
+GAS_addresses_destroy_all (void);
+
 
 // FIXME: this function should likely end up in the LP-subsystem and
 // not with 'addresses' in the future...

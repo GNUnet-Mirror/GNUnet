@@ -34,8 +34,9 @@
  * Register a new scheduling client.
  *
  * @param client handle of the new client
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error 
  */
-void
+int
 GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client);
 
 
@@ -57,8 +58,7 @@ GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client);
  * @param plugin_name 0-termintated string specifying the transport plugin
  * @param plugin_addr binary address for the plugin to use
  * @param plugin_addr_len number of bytes in plugin_addr
- * @param session_client which client gave us this session_id?
- * @param session_id session ID to use for the given client (other clients will see 0)
+ * @param session_id session ID to use
  * @param atsi performance data for the address
  * @param atsi_count number of performance records in 'ats'
  * @param bandwidth_out assigned outbound bandwidth
@@ -68,7 +68,6 @@ void
 GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *peer,
 					    const char *plugin_name,
 					    const void *plugin_addr, size_t plugin_addr_len,
-					    struct GNUNET_SERVER_Client *session_client,
 					    uint32_t session_id,
 					    const struct GNUNET_ATS_Information *atsi,
 					    uint32_t atsi_count,				

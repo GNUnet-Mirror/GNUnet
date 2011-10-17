@@ -36,8 +36,6 @@ struct ATS_Address
 
   size_t addr_len;
 
-  struct GNUNET_SERVER_Client *session_client;
-		   
   uint32_t session_id;
 
   uint32_t ats_count;
@@ -47,6 +45,24 @@ struct ATS_Address
   char * plugin;
 
   struct GNUNET_ATS_Information * ats;
+
+  struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_in;
+
+  struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_out;
+
+  struct GNUNET_TIME_Relative atsp_latency;
+
+  uint32_t atsp_distance;
+
+  uint32_t atsp_cost_wan;
+
+  uint32_t atsp_cost_lan;
+
+  uint32_t atsp_cost_wlan;
+
+  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
+
+  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
 
   struct GNUNET_BANDWIDTH_Value32NBO bw_in;
 
@@ -98,8 +114,7 @@ compare_address_it (void *cls,
   struct ATS_Address * aa = (struct ATS_Address *) value;
 
   /* compare sessions */
-  if ((aa->session_client != cac->search->session_client) ||
-      (aa->session_id != cac->search->session_id))
+  if (aa->session_id != cac->search->session_id)
     return GNUNET_YES;
 
   if (aa->addr_len != cac->search->addr_len)
@@ -139,13 +154,12 @@ find_address (const struct GNUNET_PeerIdentity *peer,
 
 
 void
-GAS_address_update (const struct GNUNET_PeerIdentity *peer,
-		    const char *plugin_name,
-		    const void *plugin_addr, size_t plugin_addr_len,
-		    struct GNUNET_SERVER_Client *session_client,
-		    uint32_t session_id,
-		    const struct GNUNET_ATS_Information *atsi,
-		    uint32_t atsi_count)
+GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
+		      const char *plugin_name,
+		      const void *plugin_addr, size_t plugin_addr_len,
+		      uint32_t session_id,
+		      const struct GNUNET_ATS_Information *atsi,
+		      uint32_t atsi_count)
 {
   struct ATS_Address * aa;
   struct ATS_Address * old;
@@ -159,7 +173,6 @@ GAS_address_update (const struct GNUNET_PeerIdentity *peer,
   aa->addr = &aa[1];
   memcpy (&aa[1], plugin_addr, plugin_addr_len);
   aa->plugin = GNUNET_strdup (plugin_name);
-  aa->session_client = session_client;
   aa->session_id = session_id;
   old = find_address (peer, aa);
   if (old == NULL)
@@ -187,34 +200,10 @@ GAS_address_update (const struct GNUNET_PeerIdentity *peer,
 }
 
 
-static int
-remove_address_by_client (void *cls,
-			  const GNUNET_HashCode * key,
-			  void *value)
-{
-  struct GNUNET_SERVER_Client *client = cls;
-  struct ATS_Address * aa = value;
-
-  if (aa->session_client == client)
-    destroy_address (aa);  
-  return GNUNET_OK;
-}
-
-
 void
-GAS_address_client_disconnected (struct GNUNET_SERVER_Client *client)
-{
-  if (addresses != NULL)
-    GNUNET_CONTAINER_multihashmap_iterate(addresses, 
-					  &remove_address_by_client, client);
-}
-
-
-void
-GAS_address_destroyed (const struct GNUNET_PeerIdentity *peer,
+GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
 		       const char *plugin_name,
 		       const void *plugin_addr, size_t plugin_addr_len,
-		       struct GNUNET_SERVER_Client *session_client,
 		       uint32_t session_id)
 {
 
@@ -225,7 +214,6 @@ GAS_address_destroyed (const struct GNUNET_PeerIdentity *peer,
   aa.addr_len = plugin_addr_len;
   aa.addr = plugin_addr;
   aa.plugin = (char*) plugin_name;
-  aa.session_client = session_client;
   aa.session_id = session_id;
 
   res = find_address (peer, &aa);
@@ -269,7 +257,7 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 				  aa->bw_in);
   GAS_scheduling_transmit_address_suggestion (peer, aa->plugin, 
 					      aa->addr, aa->addr_len, 
-					      aa->session_client, aa->session_id, 
+					      aa->session_id, 
 					      aa->ats, aa->ats_count, 
 					      aa->bw_out, aa->bw_in);
   GAS_performance_notify_clients (peer, aa->plugin, 
@@ -332,13 +320,22 @@ free_address_it (void *cls,
 }
 
 
+void
+GAS_addresses_destroy_all ()
+{
+  if (addresses != NULL)
+    GNUNET_CONTAINER_multihashmap_iterate(addresses, 
+					  &free_address_it, NULL);
+}
+
+
 /**
  * Shutdown address subsystem.
  */
 void
 GAS_addresses_done ()
 {
-  GNUNET_CONTAINER_multihashmap_iterate (addresses, &free_address_it, NULL);
+  GAS_addresses_destroy_all ();
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
   addresses = NULL;
 }
