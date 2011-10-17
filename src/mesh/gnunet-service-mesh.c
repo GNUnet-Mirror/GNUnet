@@ -1635,6 +1635,8 @@ tunnel_send_multicast (struct MeshTunnel *t,
   size_t size;
   void *data;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:  sending a multicast packet...\n");
   size = ntohs (msg->size);
   GNUNET_assert (NULL != t->tree->me);
   n = t->tree->me->children_head;
@@ -1643,6 +1645,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
   copies = GNUNET_malloc (sizeof (unsigned int));
   for (*copies = 0; NULL != n; n = n->next)
     (*copies)++;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  (%u copies)\n", copies);
   n = t->tree->me->children_head;
   data = GNUNET_malloc (size);
   memcpy (data, &msg, size);
@@ -1663,6 +1666,9 @@ tunnel_send_multicast (struct MeshTunnel *t,
     }
     info->destination = n->peer;
     neighbor = path_get_first_hop(t->tree, n->peer);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:  sending to %s...\n",
+              GNUNET_i2s (neighbor));
     info->peer = peer_info_get(neighbor);
     GNUNET_assert (NULL != info->peer);
     for (i = 0; NULL != info->peer->core_transmit[i]; i++)
@@ -2360,6 +2366,9 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshTunnel *t;
   size_t size;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: got a multicast packet from %s\n",
+              GNUNET_i2s (peer));
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_Multicast);
   if (size < sizeof (struct GNUNET_MessageHeader))
   {
@@ -3540,6 +3549,9 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_MESH_Multicast *data_msg;
   MESH_TunnelNumber tid;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: Got a multicast request from a client!\n");
+
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
   {
@@ -3582,10 +3594,12 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     memcpy(buf, message, ntohs(message->size));
     copy->oid = my_full_id;
     copy->tid = htonl(t->id.tid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   calling generic handler...\n");
     handle_mesh_data_multicast(client, &my_full_id, &copy->header, NULL);
   }
 
-  /* receive done gets called when last copy is sent */
+  /* receive done gets called when last copy is sent to a neighbor */
   return;
 }
 

@@ -1036,12 +1036,6 @@ send_callback (void *cls, size_t size, void *buf)
   tsize = 0;
   while ((NULL != (th = h->th_head)) && (size >= th->size))
   {
-#if DEBUG
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:     type: %u\n",
-         ntohs (((struct GNUNET_MessageHeader *) &th[1])->type));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:     size: %u\n",
-         ntohs (((struct GNUNET_MessageHeader *) &th[1])->size));
-#endif
     if (NULL != th->notify)
     {
       if (th->tunnel->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
@@ -1076,6 +1070,9 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         psize =
             th->notify (th->notify_cls, size - sizeof (mc), &cbuf[sizeof (mc)]);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mesh:   multicast, type %u\n",
+              ntohs (mh->type));
         if (psize > 0)
         {
           mc.header.size = htons (sizeof (mc) + th->size);
@@ -1468,12 +1465,17 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   uint32_t least_priority;
   size_t overhead;
 
+#if DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "mesh: mesh notify transmit ready called\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "mesh:     target %s\n",
-              GNUNET_i2s (target));
-
+  if (NULL != target)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "mesh:     target %s\n",
+                GNUNET_i2s (target));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "mesh:     target multicast\n");
+#endif
   GNUNET_assert (NULL != notify);
   if (tunnel->mesh->npackets >= tunnel->mesh->max_queue_size &&
       tunnel->npackets > 0)
