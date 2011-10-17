@@ -70,7 +70,7 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *pe
 					    const void *plugin_addr, size_t plugin_addr_len,
 					    struct GNUNET_SERVER_Client *session_client,
 					    uint32_t session_id,
-					    const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+					    const struct GNUNET_ATS_Information *atsi,
 					    uint32_t atsi_count,				
 					    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 					    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);

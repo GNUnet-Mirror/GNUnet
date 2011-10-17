@@ -523,7 +523,7 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
 static struct AllocationRecord *
 create_allocation_record (const char *plugin_name, struct Session *session,
                           const void *plugin_addr, size_t plugin_addr_len,
-                          const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                          const struct GNUNET_ATS_Information *ats,
                           uint32_t ats_count)
 {
   struct AllocationRecord *ar;
@@ -539,7 +539,7 @@ create_allocation_record (const char *plugin_name, struct Session *session,
   GNUNET_assert (ats_count > 0);
   GNUNET_array_grow (ar->ats, ar->ats_count, ats_count);
   memcpy (ar->ats, ats,
-          ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+          ats_count * sizeof (struct GNUNET_ATS_Information));
   ar->connected = GNUNET_SYSERR; /* aka: not known / no change */
   return ar;
 }
@@ -587,7 +587,7 @@ GNUNET_ATS_peer_connect (struct GNUNET_ATS_SchedulingHandle *atc,
                          const struct GNUNET_PeerIdentity *peer,
                          const char *plugin_name, struct Session *session,
                          const void *plugin_addr, size_t plugin_addr_len,
-                         const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                         const struct GNUNET_ATS_Information *ats,
                          uint32_t ats_count)
 {
   struct AllocationRecord *ar;
@@ -761,7 +761,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *atc,
                            struct GNUNET_TIME_Absolute valid_until,
                            const char *plugin_name, struct Session *session,
                            const void *plugin_addr, size_t plugin_addr_len,
-                           const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                           const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count)
 {
   struct AllocationRecord *ar;

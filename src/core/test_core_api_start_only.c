@@ -67,7 +67,7 @@ static int ok;
 
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi)
 {
 }
 
@@ -81,7 +81,7 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 static int
 inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi)
 {
   return GNUNET_OK;
 }
@@ -90,7 +90,7 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 static int
 outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message,
-                 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                 const struct GNUNET_ATS_Information *atsi)
 {
   return GNUNET_OK;
 }

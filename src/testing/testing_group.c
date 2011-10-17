@@ -3383,7 +3383,7 @@ send_core_connect_requests (void *cls,
  */
 static void
 core_connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                     const struct GNUNET_ATS_Information *atsi)
 {
   struct SendHelloContext *send_hello_context = cls;
   struct PeerConnection *connection;
@@ -4877,7 +4877,7 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
  */
 static void
 internal_topology_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                            const struct GNUNET_ATS_Information *atsi)
 {
   struct CoreContext *core_ctx = cls;
   struct TopologyIterateContext *iter_ctx = core_ctx->iter_context;

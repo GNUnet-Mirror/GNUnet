@@ -605,7 +605,7 @@ send_task_f (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                const struct GNUNET_ATS_Information *ats,
                 uint32_t ats_count)
 {
   send_task = GNUNET_SCHEDULER_add_now (&send_task_f, NULL);

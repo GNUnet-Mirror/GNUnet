@@ -635,7 +635,7 @@ reschedule_hellos (void *cls, const GNUNET_HashCode * pid, void *value)
  */
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi)
 {
   struct Peer *pos;
 
@@ -1106,7 +1106,7 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 static int
 handle_encrypted_hello (void *cls, const struct GNUNET_PeerIdentity *other,
                         const struct GNUNET_MessageHeader *message,
-                        const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                        const struct GNUNET_ATS_Information *atsi)
 {
   struct Peer *peer;
   struct GNUNET_PeerIdentity pid;

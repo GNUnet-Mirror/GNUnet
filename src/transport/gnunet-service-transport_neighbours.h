@@ -160,7 +160,7 @@ typedef void (*GST_NeighbourIterator) (void *cls,
                                        const struct GNUNET_PeerIdentity *
                                        neighbour,
                                        const struct
-                                       GNUNET_TRANSPORT_ATS_Information * ats,
+                                       GNUNET_ATS_Information * ats,
                                        uint32_t ats_count,
                                        const char * transport,
                                        const void * addr,
@@ -205,7 +205,7 @@ void
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                   const char *plugin_name, const void *address,
                                   size_t address_len, struct Session *session,
-                                  const struct GNUNET_TRANSPORT_ATS_Information
+                                  const struct GNUNET_ATS_Information
                                   *ats, uint32_t ats_count);
 
 

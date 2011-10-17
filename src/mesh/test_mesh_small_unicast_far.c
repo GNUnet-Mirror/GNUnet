@@ -213,7 +213,7 @@ static void *
 incoming_tunnel (void *cls,
                  struct GNUNET_MESH_Tunnel * tunnel,
                  const struct GNUNET_PeerIdentity * initiator,
-                 const struct GNUNET_TRANSPORT_ATS_Information * atsi)
+                 const struct GNUNET_ATS_Information * atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: Incoming tunnel from %s\n",
@@ -269,7 +269,7 @@ dh (void *cls, const struct GNUNET_PeerIdentity *peer)
  */
 static void
 ch (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+    const struct GNUNET_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: peer %s connected\n",

@@ -328,7 +328,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
 static void
 notify_client_about_neighbour (void *cls,
                                const struct GNUNET_PeerIdentity *peer,
-                               const struct GNUNET_TRANSPORT_ATS_Information
+                               const struct GNUNET_ATS_Information
                                *ats, uint32_t ats_count,
                                const char * transport,
                                const void * addr,
@@ -340,7 +340,7 @@ notify_client_about_neighbour (void *cls,
 
   size =
       sizeof (struct ConnectInfoMessage) +
-      ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      ats_count * sizeof (struct GNUNET_ATS_Information);
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   cim = GNUNET_malloc (size);
   cim->header.size = htons (size);
@@ -348,7 +348,7 @@ notify_client_about_neighbour (void *cls,
   cim->ats_count = htonl (ats_count);
   cim->id = *peer;
   memcpy (&cim->ats, ats,
-          ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+          ats_count * sizeof (struct GNUNET_ATS_Information));
   unicast (tc, &cim->header, GNUNET_NO);
   GNUNET_free (cim);
 }
@@ -819,7 +819,7 @@ clients_handle_peer_address_lookup (void *cls,
  */
 static void
 output_addresses (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                  const struct GNUNET_ATS_Information *ats,
                   uint32_t ats_count,
                   const char * transport,
                   const void * addr,

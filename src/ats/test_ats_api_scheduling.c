@@ -58,7 +58,7 @@ struct Address
   void * addr;
   size_t addr_len;
 
-  struct GNUNET_TRANSPORT_ATS_Information * ats;
+  struct GNUNET_ATS_Information * ats;
   int ats_count;
 
   void  *session;
@@ -73,7 +73,7 @@ struct PeerContext
 
 struct Address addr[2];
 struct PeerContext p[2];
-struct GNUNET_TRANSPORT_ATS_Information atsi[2];
+struct GNUNET_ATS_Information atsi[2];
 
 static void
 stop_arm ()
@@ -133,7 +133,7 @@ address_suggest_cb (void *cls,
                     GNUNET_BANDWIDTH_Value32NBO
                     bandwidth_in,
                     const struct
-                    GNUNET_TRANSPORT_ATS_Information
+                    GNUNET_ATS_Information
                     * ats,
                     uint32_t ats_count)
 

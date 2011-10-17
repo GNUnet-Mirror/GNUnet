@@ -2015,7 +2015,7 @@ send_p2p_tunnel_destroy (void *cls, size_t size, void *buf)
 static int
 handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                          const struct GNUNET_MessageHeader *message,
-                         const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                         const struct GNUNET_ATS_Information *atsi)
 {
   unsigned int own_pos;
   uint16_t size;
@@ -2205,7 +2205,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                          const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_MESH_Unicast *msg;
   struct MeshTunnel *t;
@@ -2270,7 +2270,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_MessageHeader *message,
-                            const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                            const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_MESH_Multicast *msg;
   struct GNUNET_PeerIdentity *id;
@@ -2364,7 +2364,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                          const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_MESH_ToOrigin *msg;
   struct GNUNET_PeerIdentity id;
@@ -2455,7 +2455,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message,
-                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_MESH_PathACK *msg;
   struct GNUNET_PeerIdentity id;
@@ -3612,7 +3612,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  */
 static void
 core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+              const struct GNUNET_ATS_Information *atsi)
 {
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *path;

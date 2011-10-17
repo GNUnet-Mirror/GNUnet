@@ -490,7 +490,7 @@ struct Neighbour
   /**
    * Performance data for the peer.
    */
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  struct GNUNET_ATS_Information *ats;
 
   /**
    * Identity of the neighbour.
@@ -957,7 +957,7 @@ handle_peer_status_change (struct Neighbour *n)
 {
   struct PeerStatusNotifyMessage *psnm;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  struct GNUNET_ATS_Information *ats;
   size_t size;
 
   if ((!n->is_connected) || (n->status != PEER_STATE_KEY_CONFIRMED))
@@ -968,7 +968,7 @@ handle_peer_status_change (struct Neighbour *n)
 #endif
   size =
       sizeof (struct PeerStatusNotifyMessage) +
-      n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      n->ats_count * sizeof (struct GNUNET_ATS_Information);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
@@ -976,7 +976,7 @@ handle_peer_status_change (struct Neighbour *n)
     GNUNET_array_grow (n->ats, n->ats_count, 0);
     size =
         sizeof (struct PeerStatusNotifyMessage) +
-        n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+        n->ats_count * sizeof (struct GNUNET_ATS_Information);
   }
   psnm = (struct PeerStatusNotifyMessage *) buf;
   psnm->header.size = htons (size);
@@ -988,7 +988,7 @@ handle_peer_status_change (struct Neighbour *n)
   psnm->ats_count = htonl (n->ats_count);
   ats = &psnm->ats;
   memcpy (ats, n->ats,
-          n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+          n->ats_count * sizeof (struct GNUNET_ATS_Information));
   ats[n->ats_count].type = htonl (0);
   ats[n->ats_count].value = htonl (0);
   send_to_all_clients (&psnm->header, GNUNET_YES,
@@ -1245,12 +1245,12 @@ notify_client_about_neighbour (void *cls, const GNUNET_HashCode * key,
   struct Neighbour *n = value;
   size_t size;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  struct GNUNET_ATS_Information *ats;
   struct ConnectNotifyMessage *cnm;
 
   size =
       sizeof (struct ConnectNotifyMessage) +
-      (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      (n->ats_count) * sizeof (struct GNUNET_ATS_Information);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
@@ -1258,7 +1258,7 @@ notify_client_about_neighbour (void *cls, const GNUNET_HashCode * key,
     GNUNET_array_grow (n->ats, n->ats_count, 0);
     size =
         sizeof (struct ConnectNotifyMessage) +
-        (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+        (n->ats_count) * sizeof (struct GNUNET_ATS_Information);
   }
   cnm = (struct ConnectNotifyMessage *) buf;
   cnm->header.size = htons (size);
@@ -1266,8 +1266,8 @@ notify_client_about_neighbour (void *cls, const GNUNET_HashCode * key,
   cnm->ats_count = htonl (n->ats_count);
   ats = &cnm->ats;
   memcpy (ats, n->ats,
-          sizeof (struct GNUNET_TRANSPORT_ATS_Information) * n->ats_count);
-  ats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+          sizeof (struct GNUNET_ATS_Information) * n->ats_count);
+  ats[n->ats_count].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   ats[n->ats_count].value = htonl (0);
   if (n->status == PEER_STATE_KEY_CONFIRMED)
   {
@@ -1464,7 +1464,7 @@ queue_connect_message (void *cls, const GNUNET_HashCode * key, void *value)
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct Neighbour *n = value;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  struct GNUNET_ATS_Information *ats;
   size_t size;
   struct ConnectNotifyMessage *cnm;
 
@@ -1473,7 +1473,7 @@ queue_connect_message (void *cls, const GNUNET_HashCode * key, void *value)
     return GNUNET_OK;
   size =
       sizeof (struct ConnectNotifyMessage) +
-      (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      (n->ats_count) * sizeof (struct GNUNET_ATS_Information);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
@@ -1481,7 +1481,7 @@ queue_connect_message (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_array_grow (n->ats, n->ats_count, 0);
     size =
         sizeof (struct PeerStatusNotifyMessage) +
-        n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+        n->ats_count * sizeof (struct GNUNET_ATS_Information);
   }
   cnm = (struct ConnectNotifyMessage *) buf;
   cnm->header.size = htons (size);
@@ -1489,8 +1489,8 @@ queue_connect_message (void *cls, const GNUNET_HashCode * key, void *value)
   cnm->ats_count = htonl (n->ats_count);
   ats = &cnm->ats;
   memcpy (ats, n->ats,
-          n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-  ats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+          n->ats_count * sizeof (struct GNUNET_ATS_Information));
+  ats[n->ats_count].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   ats[n->ats_count].value = htonl (0);
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
@@ -3089,7 +3089,7 @@ trigger_processing:
  */
 static void
 handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                const struct GNUNET_ATS_Information *ats,
                 uint32_t ats_count);
 
 
@@ -3166,7 +3166,7 @@ process_hello_retry_handle_set_key (void *cls,
  */
 static void
 update_neighbour_performance (struct Neighbour *n,
-                              const struct GNUNET_TRANSPORT_ATS_Information
+                              const struct GNUNET_ATS_Information
                               *ats, uint32_t ats_count)
 {
   uint32_t i;
@@ -3203,7 +3203,7 @@ update_neighbour_performance (struct Neighbour *n,
  */
 static void
 handle_ping (struct Neighbour *n, const struct PingMessage *m,
-             const struct GNUNET_TRANSPORT_ATS_Information *ats,
+             const struct GNUNET_ATS_Information *ats,
              uint32_t ats_count)
 {
   struct PingMessage t;
@@ -3295,14 +3295,14 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m,
  */
 static void
 handle_pong (struct Neighbour *n, const struct PongMessage *m,
-             const struct GNUNET_TRANSPORT_ATS_Information *ats,
+             const struct GNUNET_ATS_Information *ats,
              uint32_t ats_count)
 {
   struct PongMessage t;
   struct ConnectNotifyMessage *cnm;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  struct GNUNET_TRANSPORT_ATS_Information *mats;
+  struct GNUNET_ATS_Information *mats;
   size_t size;
 
 #if DEBUG_HANDSHAKE
@@ -3393,7 +3393,7 @@ handle_pong (struct Neighbour *n, const struct PongMessage *m,
     update_neighbour_performance (n, ats, ats_count);
     size =
         sizeof (struct ConnectNotifyMessage) +
-        (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+        (n->ats_count) * sizeof (struct GNUNET_ATS_Information);
     if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
@@ -3401,7 +3401,7 @@ handle_pong (struct Neighbour *n, const struct PongMessage *m,
       GNUNET_array_grow (n->ats, n->ats_count, 0);
       size =
           sizeof (struct PeerStatusNotifyMessage) +
-          n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+          n->ats_count * sizeof (struct GNUNET_ATS_Information);
     }
     cnm = (struct ConnectNotifyMessage *) buf;
     cnm->header.size = htons (size);
@@ -3410,8 +3410,8 @@ handle_pong (struct Neighbour *n, const struct PongMessage *m,
     cnm->peer = n->peer;
     mats = &cnm->ats;
     memcpy (mats, n->ats,
-            n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-    mats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+            n->ats_count * sizeof (struct GNUNET_ATS_Information));
+    mats[n->ats_count].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
     mats[n->ats_count].value = htonl (0);
     send_to_all_clients (&cnm->header, GNUNET_NO,
                          GNUNET_CORE_OPTION_SEND_CONNECT);
@@ -3445,7 +3445,7 @@ handle_pong (struct Neighbour *n, const struct PongMessage *m,
  */
 static void
 handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                const struct GNUNET_ATS_Information *ats,
                 uint32_t ats_count)
 {
   struct SetKeyMessage *m_cpy;
@@ -3619,10 +3619,10 @@ send_p2p_message_to_client (struct Neighbour *sender, struct Client *client,
 {
   size_t size =
       msize + sizeof (struct NotifyTrafficMessage) +
-      (sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      (sender->ats_count) * sizeof (struct GNUNET_ATS_Information);
   char buf[size];
   struct NotifyTrafficMessage *ntm;
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  struct GNUNET_ATS_Information *ats;
 
   GNUNET_assert (GNUNET_YES == sender->is_connected);
   GNUNET_break (sender->status == PEER_STATE_KEY_CONFIRMED);
@@ -3633,7 +3633,7 @@ send_p2p_message_to_client (struct Neighbour *sender, struct Client *client,
     GNUNET_array_grow (sender->ats, sender->ats_count, 0);
     size =
         msize + sizeof (struct NotifyTrafficMessage) +
-        (sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+        (sender->ats_count) * sizeof (struct GNUNET_ATS_Information);
   }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3649,8 +3649,8 @@ send_p2p_message_to_client (struct Neighbour *sender, struct Client *client,
   ntm->peer = sender->peer;
   ats = &ntm->ats;
   memcpy (ats, sender->ats,
-          sizeof (struct GNUNET_TRANSPORT_ATS_Information) * sender->ats_count);
-  ats[sender->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+          sizeof (struct GNUNET_ATS_Information) * sender->ats_count);
+  ats[sender->ats_count].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   ats[sender->ats_count].value = htonl (0);
   memcpy (&ats[sender->ats_count + 1], m, msize);
   send_to_client (client, &ntm->header, GNUNET_YES);
@@ -3748,7 +3748,7 @@ deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
  */
 static void
 handle_encrypted_message (struct Neighbour *n, const struct EncryptedMessage *m,
-                          const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                          const struct GNUNET_ATS_Information *ats,
                           uint32_t ats_count)
 {
   size_t size = ntohs (m->header.size);
@@ -3908,7 +3908,7 @@ handle_encrypted_message (struct Neighbour *n, const struct EncryptedMessage *m,
 static void
 handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                          const struct GNUNET_ATS_Information *ats,
                           uint32_t ats_count)
 {
   struct Neighbour *n;
@@ -4171,7 +4171,7 @@ neighbour_quota_update (void *cls,
 static void
 handle_transport_notify_connect (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_TRANSPORT_ATS_Information
+                                 const struct GNUNET_ATS_Information
                                  *ats, uint32_t ats_count)
 {
   struct Neighbour *n;

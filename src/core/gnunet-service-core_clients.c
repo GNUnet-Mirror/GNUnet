@@ -616,7 +616,7 @@ GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
 void
 GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
 					   const struct GNUNET_PeerIdentity *neighbour,
-					   const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+					   const struct GNUNET_ATS_Information *atsi,
 					   unsigned int atsi_count,
 					   const struct GSC_TypeMap *tmap_old,
 					   const struct GSC_TypeMap *tmap_new)
@@ -624,7 +624,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   struct ConnectNotifyMessage *cnm;
   size_t size;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  struct GNUNET_TRANSPORT_ATS_Information *a;
+  struct GNUNET_ATS_Information *a;
   struct DisconnectNotifyMessage dcm;
   int old_match;
   int new_match;
@@ -640,7 +640,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     /* send connect */  
     size =
       sizeof (struct ConnectNotifyMessage) +
-      (atsi_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      (atsi_count) * sizeof (struct GNUNET_ATS_Information);
     if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
@@ -654,8 +654,8 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     cnm->ats_count = htonl (atsi_count);
     a = &cnm->ats;
     memcpy (a, atsi,
-	    sizeof (struct GNUNET_TRANSPORT_ATS_Information) * atsi_count);
-    a[atsi_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+	    sizeof (struct GNUNET_ATS_Information) * atsi_count);
+    a[atsi_count].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
     a[atsi_count].value = htonl (0);
 #if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -690,7 +690,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
  */
 void
 GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
-					    const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+					    const struct GNUNET_ATS_Information *atsi,
 					    unsigned int atsi_count,
 					    const struct GSC_TypeMap *tmap_old,
 					    const struct GSC_TypeMap *tmap_new)
@@ -719,17 +719,17 @@ GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *ne
  */
 void
 GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
-			     const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+			     const struct GNUNET_ATS_Information *atsi,
 			     unsigned int atsi_count,
 			     const struct GNUNET_MessageHeader *msg,
 			     uint16_t msize,
 			     int options)
 {
   size_t size = msize + sizeof (struct NotifyTrafficMessage) +
-      atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      atsi_count * sizeof (struct GNUNET_ATS_Information);
   char buf[size];
   struct NotifyTrafficMessage *ntm;
-  struct GNUNET_TRANSPORT_ATS_Information *a;
+  struct GNUNET_ATS_Information *a;
 
   if (0 == options)
   {
@@ -759,8 +759,8 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
   ntm->peer = *sender;
   a = &ntm->ats;
   memcpy (a, atsi,
-          sizeof (struct GNUNET_TRANSPORT_ATS_Information) * atsi_count);
-  a[atsi_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+          sizeof (struct GNUNET_ATS_Information) * atsi_count);
+  a[atsi_count].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   a[atsi_count].value = htonl (0);
   memcpy (&a[atsi_count + 1], msg, msize);
   send_to_all_clients (&ntm->header, GNUNET_YES, 

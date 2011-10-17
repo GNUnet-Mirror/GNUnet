@@ -151,7 +151,7 @@ void
 GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
 				const char *plugin_name,
 				const void *plugin_addr, size_t plugin_addr_len,
-				const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+				const struct GNUNET_ATS_Information *atsi,
 				uint32_t atsi_count,				
 				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
@@ -159,14 +159,14 @@ GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
   struct PerformanceClient *pc;
   struct PeerInformationMessage *msg;
   size_t plugin_name_length = strlen (plugin_name) + 1;
-  size_t msize = sizeof (struct PeerInformationMessage) + atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) 
+  size_t msize = sizeof (struct PeerInformationMessage) + atsi_count * sizeof (struct GNUNET_ATS_Information) 
     + plugin_addr_len + plugin_name_length;
   char buf[msize];
-  struct GNUNET_TRANSPORT_ATS_Information *atsp;
+  struct GNUNET_ATS_Information *atsp;
   char *addrp;
 
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  GNUNET_assert (atsi_count < GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  GNUNET_assert (atsi_count < GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information));
   msg = (struct PeerInformationMessage*) buf;
   msg->header.size = htons (msize);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION);
@@ -176,8 +176,8 @@ GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
   msg->plugin_name_length = htons (plugin_name_length);
   msg->bandwidth_out = bandwidth_out;
   msg->bandwidth_in = bandwidth_in;
-  atsp = (struct GNUNET_TRANSPORT_ATS_Information* ) &msg[1];
-  memcpy (atsp, atsi, sizeof (struct GNUNET_TRANSPORT_ATS_Information) * atsi_count);
+  atsp = (struct GNUNET_ATS_Information* ) &msg[1];
+  memcpy (atsp, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
   addrp = (char*) &atsp[atsi_count];
   memcpy (addrp, plugin_addr, plugin_addr_len);
   strcpy (&addrp[plugin_addr_len], plugin_name);

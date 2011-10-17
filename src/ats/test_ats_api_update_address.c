@@ -73,7 +73,7 @@ struct AllocationRecord
   /**
    * Performance information associated with this address (array).
    */
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  struct GNUNET_ATS_Information *ats;
 
   /**
    * Name of the plugin
@@ -121,7 +121,7 @@ suggest_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
             const char *plugin_name, const void *plugin_addr,
             size_t plugin_addr_len, struct Session *session,
             struct GNUNET_BANDWIDTH_Value32NBO bandwidth,
-            const struct GNUNET_TRANSPORT_ATS_Information *ats,
+            const struct GNUNET_ATS_Information *ats,
             uint32_t ats_count)
 {
   struct ExpectedValues *ex = cls;
@@ -179,7 +179,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   ar->session = NULL;
   ar->plugin_addr = "address1";
   ar->plugin_addr_len = strlen (ar->plugin_addr) + 1;
-  ar->ats = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  ar->ats = GNUNET_malloc (sizeof (struct GNUNET_ATS_Information));
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Initial ATS information\n");
   ar->ats_count = 1;

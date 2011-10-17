@@ -46,7 +46,7 @@ struct ATS_Address
 
   char * plugin;
 
-  struct GNUNET_TRANSPORT_ATS_Information * ats;
+  struct GNUNET_ATS_Information * ats;
 
   struct GNUNET_BANDWIDTH_Value32NBO bw_in;
 
@@ -144,18 +144,18 @@ GAS_address_update (const struct GNUNET_PeerIdentity *peer,
 		    const void *plugin_addr, size_t plugin_addr_len,
 		    struct GNUNET_SERVER_Client *session_client,
 		    uint32_t session_id,
-		    const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+		    const struct GNUNET_ATS_Information *atsi,
 		    uint32_t atsi_count)
 {
   struct ATS_Address * aa;
   struct ATS_Address * old;
 
   aa = GNUNET_malloc (sizeof (struct ATS_Address) + plugin_addr_len);
-  aa->ats = GNUNET_malloc(atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  aa->ats = GNUNET_malloc(atsi_count * sizeof (struct GNUNET_ATS_Information));
   aa->peer = *peer;
   aa->addr_len = plugin_addr_len;
   aa->ats_count = atsi_count;
-  memcpy (aa->ats, atsi, atsi_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  memcpy (aa->ats, atsi, atsi_count * sizeof (struct GNUNET_ATS_Information));
   aa->addr = &aa[1];
   memcpy (&aa[1], plugin_addr, plugin_addr_len);
   aa->plugin = GNUNET_strdup (plugin_name);

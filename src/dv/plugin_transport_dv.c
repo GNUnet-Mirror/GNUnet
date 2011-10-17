@@ -162,16 +162,16 @@ handle_dv_message_received (void *cls, struct GNUNET_PeerIdentity *sender,
                    distance);
   GNUNET_free_non_null (my_id);
 #endif
-  struct GNUNET_TRANSPORT_ATS_Information ats[2];
+  struct GNUNET_ATS_Information ats[2];
 
-  ats[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (distance);
-  ats[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  ats[1].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   ats[1].value = htonl (0);
 
   plugin->env->receive (plugin->env->cls, sender,
                         (struct GNUNET_MessageHeader *) msg,
-                        (const struct GNUNET_TRANSPORT_ATS_Information *) &ats,
+                        (const struct GNUNET_ATS_Information *) &ats,
                         2, NULL, sender_address, sender_address_len);
 
 }

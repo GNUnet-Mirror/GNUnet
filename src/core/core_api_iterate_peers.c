@@ -101,8 +101,8 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
   ats_count = ntohl (connect_message->ats_count);
   if ((msize !=
        sizeof (struct ConnectNotifyMessage) +
-       ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
-      (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR !=
+       ats_count * sizeof (struct GNUNET_ATS_Information)) ||
+      (GNUNET_ATS_ARRAY_TERMINATOR !=
        ntohl ((&connect_message->ats)[ats_count].type)))
   {
     GNUNET_break (0);

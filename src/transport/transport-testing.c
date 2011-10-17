@@ -86,7 +86,7 @@ find_connecting_context ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                const struct GNUNET_ATS_Information *ats,
                 uint32_t ats_count)
 {
   struct PeerContext *p = cls;
@@ -159,7 +159,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                const struct GNUNET_ATS_Information *ats,
                 uint32_t ats_count)
 {
   struct PeerContext *p = cls;

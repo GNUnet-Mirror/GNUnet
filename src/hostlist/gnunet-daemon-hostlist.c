@@ -140,7 +140,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 static int
 advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message,
-                       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                       const struct GNUNET_ATS_Information *atsi)
 {
   GNUNET_assert (NULL != client_adv_handler);
   return (*client_adv_handler) (cls, peer, message, atsi);
@@ -156,7 +156,7 @@ advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static void
 connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                 const struct GNUNET_ATS_Information *atsi)
 {
   if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;

@@ -324,7 +324,7 @@ mesh_send (void *cls, size_t size, void *buf)
 
 void
 mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_TRANSPORT_ATS_Information *atsi
+              const struct GNUNET_ATS_Information *atsi
               __attribute__ ((unused)))
 {
   if (NULL == peer)
@@ -394,7 +394,7 @@ receive_mesh_query (void *cls
                     const struct GNUNET_PeerIdentity *sender
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                    const struct GNUNET_ATS_Information *atsi
                     __attribute__ ((unused)))
 {
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
@@ -428,7 +428,7 @@ receive_mesh_answer (void *cls
                      __attribute__ ((unused)),
                      const struct GNUNET_PeerIdentity *sender,
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                     const struct GNUNET_ATS_Information *atsi
                      __attribute__ ((unused)))
 {
   /* TODo: size check */

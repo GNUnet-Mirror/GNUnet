@@ -975,9 +975,9 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   /* validity achieved, remember it! */
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
   {
-    struct GNUNET_TRANSPORT_ATS_Information ats;
+    struct GNUNET_ATS_Information ats;
 
-    ats.type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+    ats.type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
     ats.value = htonl ((uint32_t) GNUNET_TIME_absolute_get_duration (ve->send_time).rel_value);
     GNUNET_ATS_address_update (GST_ats, &ve->pid,
 			       ve->transport_name,ve->addr, ve->addrlen, NULL,

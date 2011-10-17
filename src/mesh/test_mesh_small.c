@@ -219,7 +219,7 @@ dh (void *cls, const struct GNUNET_PeerIdentity *peer)
  */
 static void
 ch (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+    const struct GNUNET_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer connected\n");
   return;

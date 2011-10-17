@@ -1301,7 +1301,7 @@ struct DeliverMessageContext
   /**
    * Performance information for the connection.
    */
-  const struct GNUNET_TRANSPORT_ATS_Information *atsi;
+  const struct GNUNET_ATS_Information *atsi;
 
   /**
    * Sender of the message.
@@ -1327,7 +1327,7 @@ struct DeliverMessageContext
 void
 GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx, 
 				 const struct GNUNET_MessageHeader *msg,
-				 const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+				 const struct GNUNET_ATS_Information *atsi,
 				 uint32_t atsi_count)
 {
   const struct EncryptedMessage *m;

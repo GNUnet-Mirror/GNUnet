@@ -37,7 +37,7 @@ struct AllocationRecord
   /**
    * Performance information associated with this address (array).
    */
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  struct GNUNET_ATS_Information *ats;
 
   /**
    * Name of the plugin

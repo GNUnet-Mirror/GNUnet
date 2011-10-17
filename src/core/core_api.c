@@ -864,8 +864,8 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     ats_count = ntohl (cnm->ats_count);
     if ((msize !=
          sizeof (struct ConnectNotifyMessage) +
-         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
-        (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR !=
+         ats_count * sizeof (struct GNUNET_ATS_Information)) ||
+        (GNUNET_ATS_ARRAY_TERMINATOR !=
          ntohl ((&cnm->ats)[ats_count].type)))
     {
       GNUNET_break (0);
@@ -945,9 +945,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     ats_count = ntohl (ntm->ats_count);
     if ((msize <
          sizeof (struct NotifyTrafficMessage) +
-         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+         ats_count * sizeof (struct GNUNET_ATS_Information) +
          sizeof (struct GNUNET_MessageHeader)) ||
-        (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR !=
+        (GNUNET_ATS_ARRAY_TERMINATOR !=
          ntohl ((&ntm->ats)[ats_count].type)))
     {
       GNUNET_break (0);
@@ -970,7 +970,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     if ((GNUNET_NO == h->inbound_hdr_only) &&
         (msize !=
          ntohs (em->size) + sizeof (struct NotifyTrafficMessage) +
-         +ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)))
+         +ats_count * sizeof (struct GNUNET_ATS_Information)))
     {
       GNUNET_break (0);
       reconnect_later (h);
@@ -1014,9 +1014,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     ats_count = ntohl (ntm->ats_count);
     if ((msize <
          sizeof (struct NotifyTrafficMessage) +
-         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+         ats_count * sizeof (struct GNUNET_ATS_Information) +
          sizeof (struct GNUNET_MessageHeader)) ||
-        (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR !=
+        (GNUNET_ATS_ARRAY_TERMINATOR !=
          ntohl ((&ntm->ats)[ats_count].type)))
     {
       GNUNET_break (0);
@@ -1039,7 +1039,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     if ((GNUNET_NO == h->outbound_hdr_only) &&
         (msize !=
          ntohs (em->size) + sizeof (struct NotifyTrafficMessage) +
-         ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)))
+         ats_count * sizeof (struct GNUNET_ATS_Information)))
     {
       GNUNET_break (0);
       reconnect_later (h);

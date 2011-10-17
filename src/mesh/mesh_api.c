@@ -113,7 +113,7 @@ struct peer_list_element
   /* list of application-types */
   struct type_list_element *type_head, *type_tail;
 
-  struct GNUNET_TRANSPORT_ATS_Information atsi;
+  struct GNUNET_ATS_Information atsi;
   struct peer_list_element *next, *prev;
 
   /* The handle that sends the hellos to this peer */
@@ -254,7 +254,7 @@ schedule_hello_message (void *cls,
  */
 static void
 core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+              const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_MESH_Handle *handle = cls;
 
@@ -272,7 +272,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (NULL != atsi)
     memcpy (&element->atsi, atsi,
-            sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+            sizeof (struct GNUNET_ATS_Information));
 
   GNUNET_CONTAINER_DLL_insert_after (handle->connected_peers.head,
                                      handle->connected_peers.tail,
@@ -383,7 +383,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static int
 receive_hello (void *cls, const struct GNUNET_PeerIdentity *other,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+               const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_MESH_Handle *handle = cls;
   uint16_t *num = (uint16_t *) (message + 1);
@@ -469,7 +469,7 @@ receive_hello (void *cls, const struct GNUNET_PeerIdentity *other,
 static int
 core_receive (void *cls, const struct GNUNET_PeerIdentity *other,
               const struct GNUNET_MessageHeader *message,
-              const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+              const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_MESH_Handle *handle = cls;
   struct tunnel_message *tmessage = (struct tunnel_message *) message;

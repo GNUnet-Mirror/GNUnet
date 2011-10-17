@@ -257,13 +257,13 @@ http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity * peer,
 {
   struct Session *s = cls;
   struct Plugin *plugin = s->plugin;
-  struct GNUNET_TRANSPORT_ATS_Information distance;
+  struct GNUNET_ATS_Information distance;
   struct GNUNET_TIME_Relative delay;
 
-  distance.type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   distance.value = htonl (1);
 
-  delay = plugin->env->receive (plugin->env->cls, &s->target, message, (const struct GNUNET_TRANSPORT_ATS_Information*) &distance, 1, s, s->addr, s->addrlen);
+  delay = plugin->env->receive (plugin->env->cls, &s->target, message, (const struct GNUNET_ATS_Information*) &distance, 1, s, s->addr, s->addrlen);
   return delay;
 }
 

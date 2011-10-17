@@ -331,14 +331,14 @@ get_trust_filename (const struct GNUNET_PeerIdentity *id)
  * @return connection latency
  */
 static struct GNUNET_TIME_Relative
-get_latency (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+get_latency (const struct GNUNET_ATS_Information *atsi)
 {
   if (atsi == NULL)
     return GNUNET_TIME_UNIT_SECONDS;
-  while ((ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) &&
-         (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY))
+  while ((ntohl (atsi->type) != GNUNET_ATS_ARRAY_TERMINATOR) &&
+         (ntohl (atsi->type) != GNUNET_ATS_QUALITY_NET_DELAY))
     atsi++;
-  if (ntohl (atsi->type) == GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR)
+  if (ntohl (atsi->type) == GNUNET_ATS_ARRAY_TERMINATOR)
   {
     /* We sometime have no latency data, i.e. if the address came from 
        peerinfo and we never had a chance to play transport-level 
@@ -358,7 +358,7 @@ get_latency (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
  */
 static void
 update_atsi (struct GSF_ConnectedPeer *cp,
-             const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+             const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_TIME_Relative latency;
 
@@ -584,7 +584,7 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 struct GSF_ConnectedPeer *
 GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
-                           const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                           const struct GNUNET_ATS_Information *atsi)
 {
   struct GSF_ConnectedPeer *cp;
   char *fn;
@@ -669,7 +669,7 @@ int
 GSF_handle_p2p_migration_stop_ (void *cls,
                                 const struct GNUNET_PeerIdentity *other,
                                 const struct GNUNET_MessageHeader *message,
-                                const struct GNUNET_TRANSPORT_ATS_Information
+                                const struct GNUNET_ATS_Information
                                 *atsi)
 {
   struct GSF_ConnectedPeer *cp;

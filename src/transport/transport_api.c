@@ -466,7 +466,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     ats_count = ntohl (cim->ats_count);
     if (size !=
         sizeof (struct ConnectInfoMessage) +
-        ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information))
+        ats_count * sizeof (struct GNUNET_ATS_Information))
     {
       GNUNET_break (0);
       break;
@@ -548,7 +548,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     imm = (const struct GNUNET_MessageHeader *) &((&(im->ats))[ats_count + 1]);
 
     if (ntohs (imm->size) + sizeof (struct InboundMessage) +
-        ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) != size)
+        ats_count * sizeof (struct GNUNET_ATS_Information) != size)
     {
       GNUNET_break (0);
       break;

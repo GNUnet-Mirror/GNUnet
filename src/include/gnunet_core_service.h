@@ -62,7 +62,7 @@ typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
                                                  const struct
                                                  GNUNET_PeerIdentity * peer,
                                                  const struct
-                                                 GNUNET_TRANSPORT_ATS_Information
+                                                 GNUNET_ATS_Information
                                                  * atsi);
 
 
@@ -95,7 +95,7 @@ typedef int (*GNUNET_CORE_MessageCallback) (void *cls,
                                             const struct GNUNET_MessageHeader *
                                             message,
                                             const struct
-                                            GNUNET_TRANSPORT_ATS_Information *
+                                            GNUNET_ATS_Information *
                                             atsi);
 
 

@@ -309,7 +309,7 @@ process_queue (struct Neighbour *n)
 static void
 handle_transport_notify_connect (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_TRANSPORT_ATS_Information
+                                 const struct GNUNET_ATS_Information
                                  *ats, uint32_t ats_count)
 {
   struct Neighbour *n;
@@ -383,7 +383,7 @@ handle_transport_notify_disconnect (void *cls,
 static void
 handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                          const struct GNUNET_ATS_Information *ats,
                           uint32_t ats_count)
 {
   struct Neighbour *n;

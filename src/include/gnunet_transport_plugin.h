@@ -114,7 +114,7 @@ typedef struct
                                                                     GNUNET_MessageHeader
                                                                     * message,
                                                                     const struct
-                                                                    GNUNET_TRANSPORT_ATS_Information
+                                                                    GNUNET_ATS_Information
                                                                     * ats,
                                                                     uint32_t
                                                                     ats_count,

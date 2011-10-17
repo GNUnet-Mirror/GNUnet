@@ -123,7 +123,7 @@ process_resolved_address (void *cls, const char *address)
  */
 static void
 connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                         const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                         const struct GNUNET_ATS_Information *atsi)
 {
   struct PrintContext *pc;
 

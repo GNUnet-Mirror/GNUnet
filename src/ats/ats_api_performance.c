@@ -250,7 +250,7 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
 		    const struct GNUNET_MessageHeader *msg)
 {
   const struct PeerInformationMessage *pi;
-  const struct GNUNET_TRANSPORT_ATS_Information *atsi;
+  const struct GNUNET_ATS_Information *atsi;
   const char *address;
   const char *plugin_name;
   uint16_t address_length;
@@ -271,14 +271,14 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
   ats_count = ntohl (pi->ats_count);
   address_length = ntohs (pi->address_length);
   plugin_name_length = ntohs (pi->plugin_name_length);
-  atsi = (const struct GNUNET_TRANSPORT_ATS_Information*) &pi[1];
+  atsi = (const struct GNUNET_ATS_Information*) &pi[1];
   address = (const char*) &atsi[ats_count];
   plugin_name = &address[address_length];
   if ( (address_length +
 	plugin_name_length +
-	ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+	ats_count * sizeof (struct GNUNET_ATS_Information) +
 	sizeof (struct PeerInformationMessage) != ntohs (msg->size))  ||
-       (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
+       (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)) ||
        (plugin_name[plugin_name_length - 1] != '\0') )
   {
     GNUNET_break (0);

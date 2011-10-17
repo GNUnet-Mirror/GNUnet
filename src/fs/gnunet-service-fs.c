@@ -226,7 +226,7 @@ GSF_test_get_load_too_high_ (uint32_t priority)
 static int
 handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi)
 {
   struct GSF_ConnectedPeer *cp;
 
@@ -296,7 +296,7 @@ consider_forwarding (void *cls, struct GSF_PendingRequest *pr,
 static int
 handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi)
 {
   struct GSF_PendingRequest *pr;
 
@@ -439,7 +439,7 @@ consider_peer_for_forwarding (void *cls, const GNUNET_HashCode * key,
  */
 static void
 peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi)
 {
   struct GSF_ConnectedPeer *cp;
 

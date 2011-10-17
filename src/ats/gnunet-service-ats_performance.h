@@ -28,7 +28,7 @@
 #define GNUNET_SERVICE_ATS_PERFORMANCE_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_transport_service.h" // FIXME
+#include "gnunet_ats_service.h"
 #include "ats.h"
 
 /**
@@ -69,7 +69,7 @@ void
 GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
 				const char *plugin_name,
 				const void *plugin_addr, size_t plugin_addr_len,
-				const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+				const struct GNUNET_ATS_Information *atsi,
 				uint32_t atsi_count,				
 				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);

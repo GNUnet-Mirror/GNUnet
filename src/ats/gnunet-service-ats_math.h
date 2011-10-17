@@ -67,13 +67,13 @@
 struct ATS_mechanism;
 struct ATS_peer;
 
-typedef void (*GNUNET_TRANSPORT_ATS_AddressNotification) (struct ATS_peer **
+typedef void (*GNUNET_ATS_AddressNotification) (struct ATS_peer **
                                                           peers, int *c_p,
                                                           struct ATS_mechanism
                                                           ** mechanisms,
                                                           int *c_m);
 
-typedef void (*GNUNET_TRANSPORT_ATS_ResultCallback) (void);
+typedef void (*GNUNET_ATS_ResultCallback) (void);
 
 enum ATS_problem_state
 {
@@ -211,9 +211,9 @@ struct ATS_Handle
    *  Callback functions
    */
 
-  GNUNET_TRANSPORT_ATS_AddressNotification addr_notification;
+  GNUNET_ATS_AddressNotification addr_notification;
 
-  GNUNET_TRANSPORT_ATS_ResultCallback result_cb;
+  GNUNET_ATS_ResultCallback result_cb;
 
 
     /**
@@ -452,8 +452,8 @@ static struct ATS_quality_metric qm[] = {
 struct ATS_Handle *
 ats_init (double D, double U, double R, int v_b_min, int v_n_min,
           int max_iterations, struct GNUNET_TIME_Relative max_duration,
-          GNUNET_TRANSPORT_ATS_AddressNotification address_not,
-          GNUNET_TRANSPORT_ATS_ResultCallback res_cb);
+          GNUNET_ATS_AddressNotification address_not,
+          GNUNET_ATS_ResultCallback res_cb);
 
 void
 ats_shutdown (struct ATS_Handle *ats);

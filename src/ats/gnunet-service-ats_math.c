@@ -513,8 +513,8 @@ _dummy2 ()
 struct ATS_Handle *
 ats_init (double D, double U, double R, int v_b_min, int v_n_min,
           int max_iterations, struct GNUNET_TIME_Relative max_duration,
-          GNUNET_TRANSPORT_ATS_AddressNotification address_not,
-          GNUNET_TRANSPORT_ATS_ResultCallback res_cb)
+          GNUNET_ATS_AddressNotification address_not,
+          GNUNET_ATS_ResultCallback res_cb)
 {
   struct ATS_Handle *ats = NULL;
 
@@ -850,7 +850,7 @@ ats_create_problem (struct ATS_Handle *ats, struct ATS_internals *stat,
     {
       ia[array_index] = row_index;
       ja[array_index] = c2;
-      if (qm[c - 1].atis_index == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
+      if (qm[c - 1].atis_index == GNUNET_ATS_QUALITY_NET_DELAY)
       {
         double v0 = 0, v1 = 0, v2 = 0;
 
@@ -866,7 +866,7 @@ ats_create_problem (struct ATS_Handle *ats, struct ATS_internals *stat,
         value = 100.0 / ((v0 + 2 * v1 + 3 * v2) / 6.0);
         value = 1;
       }
-      if (qm[c - 1].atis_index == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
+      if (qm[c - 1].atis_index == GNUNET_ATS_QUALITY_NET_DISTANCE)
       {
         double v0 = 0, v1 = 0, v2 = 0;
 
@@ -1243,7 +1243,7 @@ ats_update_problem_qm (struct ATS_Handle *ats)
       GNUNET_assert (ats->mechanisms[c2].addr != NULL);
       GNUNET_assert (ats->mechanisms[c2].peer != NULL);
 
-      if (qm[c - 1].atis_index == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
+      if (qm[c - 1].atis_index == GNUNET_ATS_QUALITY_NET_DELAY)
       {
         double v0 = 0, v1 = 0, v2 = 0;
 
@@ -1259,7 +1259,7 @@ ats_update_problem_qm (struct ATS_Handle *ats)
         value = 100.0 / ((v0 + 2 * v1 + 3 * v2) / 6.0);
         //value = 1;
       }
-      if (qm[c - 1].atis_index == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
+      if (qm[c - 1].atis_index == GNUNET_ATS_QUALITY_NET_DISTANCE)
       {
         double v0 = 0, v1 = 0, v2 = 0;
 

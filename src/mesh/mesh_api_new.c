@@ -749,7 +749,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
                         const struct GNUNET_MESH_TunnelNotification *msg)
 {
   struct GNUNET_MESH_Tunnel *t;
-  struct GNUNET_TRANSPORT_ATS_Information atsi;
+  struct GNUNET_ATS_Information atsi;
   MESH_TunnelNumber tid;
 
   tid = ntohl (msg->tunnel_id);
@@ -821,7 +821,7 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_Peer *p;
-  struct GNUNET_TRANSPORT_ATS_Information atsi;
+  struct GNUNET_ATS_Information atsi;
   GNUNET_PEER_Id id;
   uint16_t size;
 
@@ -928,7 +928,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     handler = &h->message_handlers[i];
     if (handler->type == type)
     {
-      struct GNUNET_TRANSPORT_ATS_Information atsi;
+      struct GNUNET_ATS_Information atsi;
 
       atsi.type = 0;
       atsi.value = 0;

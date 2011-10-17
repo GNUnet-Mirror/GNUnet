@@ -161,7 +161,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                const struct GNUNET_ATS_Information *ats,
                 uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -171,7 +171,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                const struct GNUNET_ATS_Information *ats,
                 uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",

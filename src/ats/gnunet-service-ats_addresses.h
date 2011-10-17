@@ -28,7 +28,6 @@
 #define GNUNET_SERVICE_ATS_ADDRESSES_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_transport_service.h" // FIXME...
 #include "gnunet_ats_service.h" 
 #include "ats.h"
 
@@ -53,7 +52,7 @@ GAS_address_update (const struct GNUNET_PeerIdentity *peer,
 		    const void *plugin_addr, size_t plugin_addr_len,
 		    struct GNUNET_SERVER_Client *session_client,
 		    uint32_t session_id,
-		    const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+		    const struct GNUNET_ATS_Information *atsi,
 		    uint32_t atsi_count);
 
 

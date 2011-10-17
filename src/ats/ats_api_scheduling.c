@@ -317,7 +317,7 @@ process_ats_message (void *cls,
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
   const struct AddressSuggestionMessage *m;
-  const struct GNUNET_TRANSPORT_ATS_Information *atsi;
+  const struct GNUNET_ATS_Information *atsi;
   const char *address;
   const char *plugin_name;
   uint16_t address_length;
@@ -345,15 +345,15 @@ process_ats_message (void *cls,
   m = (const struct AddressSuggestionMessage*) msg;
   ats_count = ntohl (m->ats_count);
   address_length = ntohs (m->address_length);
-  atsi = (const struct GNUNET_TRANSPORT_ATS_Information*) &m[1];
+  atsi = (const struct GNUNET_ATS_Information*) &m[1];
   address = (const char*) &atsi[ats_count];
   plugin_name = &address[address_length];
   plugin_name_length = ntohs (m->plugin_name_length);
   if ( (address_length +
 	plugin_name_length +
-	ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) +
+	ats_count * sizeof (struct GNUNET_ATS_Information) +
 	sizeof (struct AddressSuggestionMessage) != ntohs (msg->size))  ||
-       (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
+       (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)) ||
        (plugin_name[plugin_name_length - 1] != '\0') )
   {
     GNUNET_break (0);
@@ -525,23 +525,23 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
                            const char *plugin_name,
                            const void *plugin_addr, size_t plugin_addr_len,
 			   struct Session *session,
-                           const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                           const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count)
 {
   struct PendingMessage *p;
   struct AddressUpdateMessage *m;
-  struct GNUNET_TRANSPORT_ATS_Information *am;
+  struct GNUNET_ATS_Information *am;
   char *pm;
   size_t namelen;
   size_t msize;
 
   namelen = (plugin_name == NULL) ? 0 : strlen (plugin_name) + 1;						
   msize = sizeof (struct AddressUpdateMessage) + plugin_addr_len + 
-    ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) + namelen;
+    ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
   if ( (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
        (plugin_addr_len  >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
        (namelen  >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-       (ats_count >= GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_TRANSPORT_ATS_Information)) )
+       (ats_count >= GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)) )
   {
     GNUNET_break (0);
     return;
@@ -557,8 +557,8 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   m->address_length = htons (plugin_addr_len);
   m->plugin_name_length = htons (namelen);
   m->session_id = htonl (get_session_id (sh, session));
-  am = (struct GNUNET_TRANSPORT_ATS_Information*) &m[1];
-  memcpy (am, ats, ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  am = (struct GNUNET_ATS_Information*) &m[1];
+  memcpy (am, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   pm = (char *) &am[ats_count];
   memcpy (pm, plugin_addr, plugin_addr_len);
   memcpy (&pm[plugin_addr_len], plugin_name, namelen);

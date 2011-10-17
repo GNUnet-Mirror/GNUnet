@@ -109,7 +109,7 @@ static int
 data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                const struct GNUNET_PeerIdentity *sender,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+               const struct GNUNET_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Data callback\n");
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -132,7 +132,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
 static void *
 inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
                 const struct GNUNET_PeerIdentity *initiator,
-                const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi)
 {
   unsigned int id = *(unsigned int *) cls;
 
@@ -180,7 +180,7 @@ inbound_end (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
  */
 static void
 peer_conected (void *cls, const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+               const struct GNUNET_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer connected\n");
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown, NULL);

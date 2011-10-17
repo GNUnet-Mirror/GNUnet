@@ -39,7 +39,7 @@ struct GSF_PeerPerformanceData
   /**
    * Transport performance data.
    */
-  struct GNUNET_TRANSPORT_ATS_Information *atsi;
+  struct GNUNET_ATS_Information *atsi;
 
   /**
    * List of the last clients for which this peer successfully
@@ -172,7 +172,7 @@ struct GSF_PeerTransmitHandle;
  */
 struct GSF_ConnectedPeer *
 GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
-                           const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+                           const struct GNUNET_ATS_Information *atsi);
 
 
 /**
@@ -267,7 +267,7 @@ int
 GSF_handle_p2p_migration_stop_ (void *cls,
                                 const struct GNUNET_PeerIdentity *other,
                                 const struct GNUNET_MessageHeader *message,
-                                const struct GNUNET_TRANSPORT_ATS_Information
+                                const struct GNUNET_ATS_Information
                                 *atsi);
 
 

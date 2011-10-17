@@ -89,7 +89,7 @@ struct GNUNET_ATS_SchedulingHandle *GST_ats;
  */
 static void
 transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
-                    const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                    const struct GNUNET_ATS_Information *ats,
                     uint32_t ats_count,
                     const char * transport,
                     const void * addr,
@@ -161,7 +161,7 @@ try_connect_if_allowed (void *cls, const struct GNUNET_PeerIdentity *peer,
 static struct GNUNET_TIME_Relative
 plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_MessageHeader *message,
-                             const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                             const struct GNUNET_ATS_Information *ats,
                              uint32_t ats_count, struct Session *session,
                              const char *sender_address,
                              uint16_t sender_address_len)
@@ -333,7 +333,7 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
                             struct Session *session,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                            const struct GNUNET_TRANSPORT_ATS_Information * ats,
+                            const struct GNUNET_ATS_Information * ats,
                             uint32_t ats_count)
 {
   uint32_t bw_in = ntohl (bandwidth_in.value__);
@@ -382,11 +382,11 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 neighbours_connect_notification (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_TRANSPORT_ATS_Information
+                                 const struct GNUNET_ATS_Information
                                  *ats, uint32_t ats_count)
 {
   char buf[sizeof (struct ConnectInfoMessage) +
-           ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)];
+           ats_count * sizeof (struct GNUNET_ATS_Information)];
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
 
   connect_msg->header.size = htons (sizeof (buf));
@@ -394,7 +394,7 @@ neighbours_connect_notification (void *cls,
   connect_msg->ats_count = htonl (ats_count);
   connect_msg->id = *peer;
   memcpy (&connect_msg->ats, &connect_msg->ats,
-          ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+          ats_count * sizeof (struct GNUNET_ATS_Information));
   GST_clients_broadcast (&connect_msg->header, GNUNET_NO);
 }
 

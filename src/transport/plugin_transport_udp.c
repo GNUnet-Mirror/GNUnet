@@ -759,10 +759,10 @@ process_inbound_tokenized_messages (void *cls, void *client,
 {
   struct Plugin *plugin = cls;
   struct SourceInformation *si = client;
-  struct GNUNET_TRANSPORT_ATS_Information distance;
+  struct GNUNET_ATS_Information distance;
 
   /* setup ATS */
-  distance.type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   distance.value = htonl (1);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,

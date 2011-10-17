@@ -125,7 +125,7 @@ struct ConnectNotifyMessage
    * First of the ATS information blocks (we must have at least
    * one due to the 0-termination requirement).
    */
-  struct GNUNET_TRANSPORT_ATS_Information ats;
+  struct GNUNET_ATS_Information ats;
 
 };
 
@@ -171,7 +171,7 @@ struct PeerStatusNotifyMessage
    * First of the ATS information blocks (we must have at least
    * one due to the 0-termination requirement).
    */
-  struct GNUNET_TRANSPORT_ATS_Information ats;
+  struct GNUNET_ATS_Information ats;
 
 };
 
@@ -232,7 +232,7 @@ struct NotifyTrafficMessage
    * First of the ATS information blocks (we must have at least
    * one due to the 0-termination requirement).
    */
-  struct GNUNET_TRANSPORT_ATS_Information ats;
+  struct GNUNET_ATS_Information ats;
 
 };
 

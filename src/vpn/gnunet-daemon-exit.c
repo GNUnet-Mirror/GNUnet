@@ -1025,7 +1025,7 @@ receive_tcp_service (void *cls
                      const struct GNUNET_PeerIdentity *sender
                      __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                     const struct GNUNET_ATS_Information *atsi
                      __attribute__ ((unused)))
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
@@ -1133,7 +1133,7 @@ receive_tcp_remote (void *cls
                     const struct GNUNET_PeerIdentity *sender
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                    const struct GNUNET_ATS_Information *atsi
                     __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
@@ -1209,7 +1209,7 @@ receive_udp_remote (void *cls
                     const struct GNUNET_PeerIdentity *sender
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                    const struct GNUNET_ATS_Information *atsi
                     __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
@@ -1289,7 +1289,7 @@ receive_udp_service (void *cls
                      const struct GNUNET_PeerIdentity *sender
                      __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi
+                     const struct GNUNET_ATS_Information *atsi
                      __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);

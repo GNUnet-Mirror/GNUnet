@@ -603,7 +603,7 @@ send_find_peer_message (void *cls,
  */
 static void
 handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                     const struct GNUNET_ATS_Information *atsi)
 {
   struct PeerInfo *ret;
   int peer_bucket;
@@ -1515,7 +1515,7 @@ static int
 handle_dht_p2p_put (void *cls,
 		    const struct GNUNET_PeerIdentity *peer,
 		    const struct GNUNET_MessageHeader *message,
-		    const struct GNUNET_TRANSPORT_ATS_Information
+		    const struct GNUNET_ATS_Information
 		    *atsi)
 {
   const struct PeerPutMessage *put;
@@ -1735,7 +1735,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
 static int
 handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 		    const struct GNUNET_MessageHeader *message,
-		    const struct GNUNET_TRANSPORT_ATS_Information
+		    const struct GNUNET_ATS_Information
 		    *atsi)
 {
   struct PeerGetMessage *get;
@@ -1870,7 +1870,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 		       const struct GNUNET_MessageHeader *message,
-		       const struct GNUNET_TRANSPORT_ATS_Information
+		       const struct GNUNET_ATS_Information
 		       *atsi)
 {
   const struct PeerResultMessage *prm;

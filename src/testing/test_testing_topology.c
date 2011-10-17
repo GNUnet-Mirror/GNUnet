@@ -348,7 +348,7 @@ topology_cb (void *cls, const struct GNUNET_PeerIdentity *first,
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+               const struct GNUNET_ATS_Information *atsi)
 {
   char *dotOutFileNameFinished;
   FILE *dotOutFileFinished;
@@ -540,7 +540,7 @@ init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
  */
 static void
 connect_notify_peers (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi)
 {
   struct TestMessageContext *pos = cls;
 

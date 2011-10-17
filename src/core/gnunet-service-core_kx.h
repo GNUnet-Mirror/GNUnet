@@ -96,7 +96,7 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
 void
 GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx, 
 				 const struct GNUNET_MessageHeader *msg,
-				 const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+				 const struct GNUNET_ATS_Information *atsi,
 				 uint32_t atsi_count);
 
 

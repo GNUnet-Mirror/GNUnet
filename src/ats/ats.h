@@ -77,7 +77,7 @@ struct AddressUpdateMessage
   uint32_t session_id GNUNET_PACKED;
 
   /* followed by:
-     - struct GNUNET_TRANSPORT_ATS_Information [ats_count];
+     - struct GNUNET_ATS_Information [ats_count];
      - char address[address_length]
      - char plugin_name[plugin_name_length] (including '\0'-termination).
   */
@@ -126,7 +126,7 @@ struct AddressSuggestionMessage
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
   /* followed by:
-     - struct GNUNET_TRANSPORT_ATS_Information [ats_count];
+     - struct GNUNET_ATS_Information [ats_count];
      - char address[address_length]
      - char plugin_name[plugin_name_length] (including '\0'-termination).
   */
@@ -151,7 +151,7 @@ struct PeerInformationMessage
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
   /* followed by: 
-     - struct GNUNET_TRANSPORT_ATS_Information [ats_count];
+     - struct GNUNET_ATS_Information [ats_count];
      - char address[address_length]
      - char plugin_name[plugin_name_length] (including '\0'-termination).
   */

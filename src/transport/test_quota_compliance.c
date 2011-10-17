@@ -234,7 +234,7 @@ get_size ()
 static void
 notify_receive_new (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                    const struct GNUNET_ATS_Information *ats,
                     uint32_t ats_count)
 {
   const struct TestMessage *hdr;
@@ -576,7 +576,7 @@ exchange_hello (void *cls, const struct GNUNET_MessageHeader *message)
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                const struct GNUNET_ATS_Information *ats,
                 uint32_t ats_count)
 {
   connected++;

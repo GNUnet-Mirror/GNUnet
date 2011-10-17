@@ -394,12 +394,12 @@ send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @return connected transport distance
  */
 static uint32_t
-get_atsi_distance (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+get_atsi_distance (const struct GNUNET_ATS_Information *atsi)
 {
-  while ((ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) &&
-         (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE))
+  while ((ntohl (atsi->type) != GNUNET_ATS_ARRAY_TERMINATOR) &&
+         (ntohl (atsi->type) != GNUNET_ATS_QUALITY_NET_DISTANCE))
     atsi++;
-  if (ntohl (atsi->type) == GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR)
+  if (ntohl (atsi->type) == GNUNET_ATS_ARRAY_TERMINATOR)
   {
     GNUNET_break (0);
     /* FIXME: we do not have distance data? Assume direct neighbor. */
@@ -411,7 +411,7 @@ get_atsi_distance (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+               const struct GNUNET_ATS_Information *atsi)
 {
   struct TestMessageContext *pos = cls;
   struct GNUNET_TestMessage *msg = (struct GNUNET_TestMessage *) message;
@@ -527,7 +527,7 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
  */
 static void
 connect_notify_peer2 (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi)
 {
   struct TestMessageContext *pos = cls;
 
@@ -580,7 +580,7 @@ init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
  */
 static void
 connect_notify_peer1 (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi)
 {
   struct TestMessageContext *pos = cls;
 
@@ -840,7 +840,7 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
  */
 static void
 all_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                     const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_TESTING_Daemon *d = cls;
   struct GNUNET_TESTING_Daemon *second_daemon;

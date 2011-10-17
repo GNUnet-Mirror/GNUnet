@@ -60,7 +60,7 @@ GSC_CLIENTS_send_to_client (struct GNUNET_SERVER_Client *client,
 void
 GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
 					   const struct GNUNET_PeerIdentity *neighbour,
-					   const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+					   const struct GNUNET_ATS_Information *atsi,
 					   unsigned int atsi_count,
 					   const struct GSC_TypeMap *tmap_old,
 					   const struct GSC_TypeMap *tmap_new);
@@ -79,7 +79,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
  */
 void
 GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
-					    const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+					    const struct GNUNET_ATS_Information *atsi,
 					    unsigned int atsi_count,
 					    const struct GSC_TypeMap *tmap_old,
 					    const struct GSC_TypeMap *tmap_new);
@@ -100,7 +100,7 @@ GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *ne
  */
 void
 GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
-			     const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+			     const struct GNUNET_ATS_Information *atsi,
 			     unsigned int atsi_count,
 			     const struct GNUNET_MessageHeader *msg,
 			     uint16_t msize,

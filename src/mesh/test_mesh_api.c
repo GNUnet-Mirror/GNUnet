@@ -55,7 +55,7 @@ static int
 callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
           const struct GNUNET_PeerIdentity *sender,
           const struct GNUNET_MessageHeader *message,
-          const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+          const struct GNUNET_ATS_Information *atsi)
 {
   return GNUNET_OK;
 }

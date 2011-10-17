@@ -1886,7 +1886,7 @@ notify_connect_result (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_TESTING_ConnectContext *ctx = cls;
 
@@ -2084,7 +2084,7 @@ reattempt_daemons_connect (void *cls,
  */
 static void
 core_initial_iteration (void *cls, const struct GNUNET_PeerIdentity *peer,
-                        const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                        const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_TESTING_ConnectContext *ctx = cls;
 

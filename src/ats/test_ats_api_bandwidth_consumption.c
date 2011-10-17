@@ -62,7 +62,7 @@ struct Address
   void * addr;
   size_t addr_len;
 
-  struct GNUNET_TRANSPORT_ATS_Information * ats;
+  struct GNUNET_ATS_Information * ats;
   int ats_count;
 
   void  *session;
@@ -156,7 +156,7 @@ void performance_cb (void *cls,
                     GNUNET_BANDWIDTH_Value32NBO
                     bandwidth_in,
                     const struct
-                    GNUNET_TRANSPORT_ATS_Information
+                    GNUNET_ATS_Information
                     * ats,
                     uint32_t ats_count)
 {
@@ -207,7 +207,7 @@ address_suggest_cb (void *cls,
                     GNUNET_BANDWIDTH_Value32NBO
                     bandwidth_in,
                     const struct
-                    GNUNET_TRANSPORT_ATS_Information
+                    GNUNET_ATS_Information
                     * ats,
                     uint32_t ats_count)
 

@@ -298,7 +298,7 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 ad_arrive_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                    const struct GNUNET_MessageHeader *message,
-                   const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                   const struct GNUNET_ATS_Information *atsi)
 {
   char *hostname;
   char *expected_uri;

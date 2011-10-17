@@ -1110,7 +1110,7 @@ task_hostlist_saving (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 handler_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                 const struct GNUNET_ATS_Information *atsi)
 {
   GNUNET_assert (stat_connection_count < UINT_MAX);
   stat_connection_count++;
@@ -1148,7 +1148,7 @@ handler_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static int
 handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message,
-                       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                       const struct GNUNET_ATS_Information *atsi)
 {
   size_t size;
   size_t uri_size;
