@@ -509,7 +509,7 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
 				 ph->reservation_tail,
 				 rc);
     GNUNET_break (NULL == rc->rcb);
-    GNUNET_free (p);
+    GNUNET_free (rc);
   }  
   if (GNUNET_SCHEDULER_NO_TASK != ph->task)
   {
