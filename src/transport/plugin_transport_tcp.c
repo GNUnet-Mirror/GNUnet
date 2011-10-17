@@ -985,7 +985,7 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     }
     session = cand_session;
   }
-  if ((session == NULL) && (addr == NULL))
+  if ((session == NULL) && (addrlen == 0))
   {
 #if DEBUG_TCP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
