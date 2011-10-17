@@ -139,7 +139,8 @@ free_tracker (void *cls,
 	      const GNUNET_HashCode * key,
 	      void *value)
 {
-  struct GNUNET_BANDWIDTH_Tracker *tracker = cls;
+  struct GNUNET_BANDWIDTH_Tracker *tracker = value;
+
   GNUNET_free (tracker);
   return GNUNET_OK;
 }

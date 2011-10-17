@@ -327,10 +327,9 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
   {
     /* just session died */
     res->session_id = 0;
-    if (GNUNET_YES == addr->active)
+    if (GNUNET_YES == res->active)
     {
       active_addr_count--;
-      ret = GNUNET_YES;
       recalculate_assigned_bw ();
     }
     return;
