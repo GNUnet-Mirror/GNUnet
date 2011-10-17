@@ -29,7 +29,7 @@ bin_PROGRAMS = \
  gnunet-core-list-connections
 
 gnunet_service_core_SOURCES = \
- gnunet-service-core-new.c gnunet-service-core.h \
+ gnunet-service-core.c gnunet-service-core.h \
  gnunet-service-core_clients.c gnunet-service-core_clients.h \
  gnunet-service-core_neighbours.c gnunet-service-core_neighbours.h \
  gnunet-service-core_kx.c gnunet-service-core_kx.h \
