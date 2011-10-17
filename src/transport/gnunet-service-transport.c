@@ -243,6 +243,13 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 
         GNUNET_free (im);
       }
+      else	
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Discarded %u bytes of type %u from %s via plugin %s: connection is down!\n"),
+		    ntohs (message->size),
+		    type,
+		    GNUNET_i2s (peer),
+		    plugin_name);
       break;
     }
   }

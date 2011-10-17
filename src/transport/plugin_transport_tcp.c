@@ -701,7 +701,7 @@ do_transmit (void *cls, size_t size, void *buf)
     cbuf += pos->message_size;
     ret += pos->message_size;
     size -= pos->message_size;
-    GNUNET_CONTAINER_DLL_insert_after (hd, tl, tl, pos);
+    GNUNET_CONTAINER_DLL_insert_tail (hd, tl, pos);
   }
   /* schedule 'continuation' before callbacks so that callbacks that
    * cancel everything don't cause us to use a session that no longer
@@ -1066,8 +1066,7 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
       pm->transmit_cont_cls = cont_cls;
 
       /* append pm to pending_messages list */
-      GNUNET_CONTAINER_DLL_insert_after (session->pending_messages_head,
-                                         session->pending_messages_tail,
+      GNUNET_CONTAINER_DLL_insert_tail (session->pending_messages_head,
                                          session->pending_messages_tail, pm);
 
       GNUNET_assert (GNUNET_CONTAINER_multihashmap_put
@@ -1151,9 +1150,8 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   pm->transmit_cont_cls = cont_cls;
 
   /* append pm to pending_messages list */
-  GNUNET_CONTAINER_DLL_insert_after (session->pending_messages_head,
-                                     session->pending_messages_tail,
-                                     session->pending_messages_tail, pm);
+  GNUNET_CONTAINER_DLL_insert_tail (session->pending_messages_head,
+				    session->pending_messages_tail, pm);
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Asked to transmit %u bytes to `%s', added message to list.\n",

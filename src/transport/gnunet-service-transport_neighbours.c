@@ -798,9 +798,6 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
 
   if (GNUNET_YES != n->is_connected)
     return;                     /* not connected anymore anyway, shouldn't matter */
-
-  //n->is_connected = GNUNET_NO;
-
   /* fast disconnect unless ATS suggests a new address */
   GNUNET_SCHEDULER_cancel (n->timeout_task);
   n->timeout_task =
@@ -869,8 +866,6 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
       cont (cont_cls, GNUNET_SYSERR);
     return;
   }
-
-
   GNUNET_assert (msg_size >= sizeof (struct GNUNET_MessageHeader));
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop
@@ -914,6 +909,14 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
   n = lookup_neighbour (sender);
   if (n == NULL)
   {
+    *do_forward = GNUNET_NO;
+    return GNUNET_TIME_UNIT_ZERO;
+  }
+  if (GNUNET_YES != n->is_connected)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Plugin gave us %d bytes of data but somehow the session is not marked as UP yet!\n"),
+		(int) size);
     *do_forward = GNUNET_NO;
     return GNUNET_TIME_UNIT_ZERO;
   }
