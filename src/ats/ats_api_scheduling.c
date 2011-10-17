@@ -597,7 +597,7 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   uint32_t session_id;
 
   namelen = (plugin_name == NULL) ? 0 : strlen (plugin_name) + 1;						
-  msize = sizeof (struct AddressUpdateMessage) + plugin_addr_len + 
+  msize = sizeof (struct AddressDestroyedMessage) + plugin_addr_len + 
     namelen;
   if ( (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
        (plugin_addr_len  >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
