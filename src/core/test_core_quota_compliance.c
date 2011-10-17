@@ -72,6 +72,8 @@ static GNUNET_SCHEDULER_TaskIdentifier err_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier measure_task;
 
+static GNUNET_SCHEDULER_TaskIdentifier connect_task;
+
 
 struct PeerContext
 {
@@ -132,6 +134,8 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_notify_transmit_ready_cancel (p1.nth);
     p1.nth = NULL;
   }
+  if (connect_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (connect_task);
   ch = p1.ch;
   p1.ch = NULL;
   GNUNET_CORE_disconnect (ch);
@@ -160,6 +164,8 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (measure_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (measure_task);
+  if (connect_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (connect_task);
 
   GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
   GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
@@ -175,6 +181,15 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 42;
 }
 
+
+static void
+try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  connect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+					       &try_connect, NULL);
+  GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
+  GNUNET_TRANSPORT_try_connect (p2.th, &p1.id);
+}
 
 /**
  * Callback function to process statistic values.
@@ -533,8 +548,8 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
                 "Asking core (1) to connect to peer `%4s'\n",
                 GNUNET_i2s (&p2.id));
 #endif
-    GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
-    GNUNET_TRANSPORT_try_connect (p2.th, &p1.id);
+    connect_task = GNUNET_SCHEDULER_add_now (&try_connect,
+					     NULL);
   }
 }
 
