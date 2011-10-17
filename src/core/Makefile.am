@@ -26,27 +26,16 @@ libgnunetcore_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-service-core \
- gnunet-service-core-new \
  gnunet-core-list-connections
 
 gnunet_service_core_SOURCES = \
- gnunet-service-core.c 
-gnunet_service_core_LDADD = \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) -lz
-
-gnunet_service_core_new_SOURCES = \
  gnunet-service-core-new.c gnunet-service-core.h \
  gnunet-service-core_clients.c gnunet-service-core_clients.h \
  gnunet-service-core_neighbours.c gnunet-service-core_neighbours.h \
  gnunet-service-core_kx.c gnunet-service-core_kx.h \
  gnunet-service-core_sessions.c gnunet-service-core_sessions.h \
  gnunet-service-core_typemap.c gnunet-service-core_typemap.h
-gnunet_service_core_new_LDADD = \
+gnunet_service_core_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
