@@ -136,6 +136,71 @@ try_connect_if_allowed (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * We received some payload.  Prepare to pass it on to our clients. 
+ *
+ * @param peer (claimed) identity of the other peer
+ * @param message the message, NULL if we only care about
+ *                learning about the delay until we should receive again -- FIXME!
+ * @param ats performance information
+ * @param ats_count number of records in ats
+ * @return how long the plugin should wait until receiving more data
+ */
+static struct GNUNET_TIME_Relative
+process_payload (const struct GNUNET_PeerIdentity *peer,
+		 const struct GNUNET_MessageHeader *message,
+		 const struct GNUNET_ATS_Information *ats,
+		 uint32_t ats_count)
+{
+  struct GNUNET_TIME_Relative ret;
+  int do_forward;
+  struct InboundMessage *im;
+  size_t size = sizeof (struct InboundMessage) + ntohs (message->size);
+  char buf[size];
+  
+  ret = GNUNET_TIME_UNIT_ZERO;
+  do_forward = GNUNET_SYSERR;
+  ret =
+    GST_neighbours_calculate_receive_delay (peer,
+					    (message ==
+					     NULL) ? 0 :
+					    ntohs (message->size),
+					    &do_forward);
+  im = (struct InboundMessage*) buf;    
+  im->header.size = htons (size);
+  im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
+  im->ats_count = htonl (0);
+  memcpy (&(im->peer), peer, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&im[1], message, ntohs (message->size));
+
+  switch (do_forward)
+  {
+  case GNUNET_YES:
+    GST_clients_broadcast (&im->header, GNUNET_YES);	  
+    break;
+  case GNUNET_NO:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Discarded %u bytes of type %u from %s: quota violated!\n"),
+		ntohs (message->size),
+		ntohs (message->type),
+		GNUNET_i2s (peer));
+    break;
+  case GNUNET_SYSERR:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Discarded %u bytes of type %u from %s: connection is down!\n"),
+		ntohs (message->size),
+		ntohs (message->type),
+		GNUNET_i2s (peer));
+    /* FIXME: store until connection is up? This is virtually always a SETKEY and a PING... */
+    break;
+  default:
+    GNUNET_break (0);
+    break;
+  }    
+  return ret;
+}
+
+
+/**
  * Function called by the transport for each received message.
  * This function should also be called with "NULL" for the
  * message to signal that the other peer disconnected.
@@ -167,104 +232,74 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                              uint16_t sender_address_len)
 {
   const char *plugin_name = cls;
-  int do_forward;
   struct GNUNET_TIME_Relative ret;
   uint16_t type;
   
   ret = GNUNET_TIME_UNIT_ZERO;
-  if (NULL != message)
+  if (NULL == message)
+    goto end;
+  type = ntohs (message->type);
+  switch (type)
   {
-    type = ntohs (message->type);
-    switch (type)
-    {
-    case GNUNET_MESSAGE_TYPE_HELLO:
-      GST_validation_handle_hello (message);
-      return ret;
-    case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
+  case GNUNET_MESSAGE_TYPE_HELLO:
+    GST_validation_handle_hello (message);
+    return ret;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                  "Processing `%s' from `%s'\n", "PING",
-                  (sender_address != NULL) ? GST_plugins_a2s (plugin_name,
-                                                              sender_address,
-                                                              sender_address_len)
-                  : "<inbound>");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		"Processing `%s' from `%s'\n", "PING",
+		(sender_address != NULL) ? GST_plugins_a2s (plugin_name,
+							    sender_address,
+							    sender_address_len)
+		: "<inbound>");
 #endif
-      GST_validation_handle_ping (peer, message, plugin_name, session,
-                                  sender_address, sender_address_len);
-      break;
-    case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
+    GST_validation_handle_ping (peer, message, plugin_name, session,
+				sender_address, sender_address_len);
+    break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                  "Processing `%s' from `%s'\n", "PONG",
-                  (sender_address != NULL) ? GST_plugins_a2s (plugin_name,
-                                                              sender_address,
-                                                              sender_address_len)
-                  : "<inbound>");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		"Processing `%s' from `%s'\n", "PONG",
+		(sender_address != NULL) ? GST_plugins_a2s (plugin_name,
+							    sender_address,
+							    sender_address_len)
+		: "<inbound>");
 #endif
-      GST_validation_handle_pong (peer, message);
-      break;
-    case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
-      (void) GST_blacklist_test_allowed (peer, NULL, &try_connect_if_allowed,
-                                         NULL);
-      /* TODO: if 'session != NULL', and timestamp more recent than the
-       * previous one, maybe notify ATS that this is now the preferred
-       * * way to communicate with this peer (other peer switched transport) */
-      break;
-    case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
-      /* FIXME: do some validation to prevent an attacker from sending
-       * a fake disconnect message... */     	  
-      GST_neighbours_force_disconnect (peer);
-      break;
-    case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE:
-      GST_neighbours_keepalive (peer);
-      break;
-    default:
-      /* should be payload */
-      do_forward = GNUNET_SYSERR;
-      ret =
-          GST_neighbours_calculate_receive_delay (peer,
-                                                  (message ==
-                                                   NULL) ? 0 :
-                                                  ntohs (message->size),
-                                                  &do_forward);
-      if (do_forward == GNUNET_YES)
-      {
-        struct InboundMessage *im;
-        size_t size = sizeof (struct InboundMessage) + ntohs (message->size);
-
-        im = GNUNET_malloc (size);
-        im->header.size = htons (size);
-        im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
-        im->ats_count = htonl (0);
-        memcpy (&(im->peer), peer, sizeof (struct GNUNET_PeerIdentity));
-        memcpy (&im[1], message, ntohs (message->size));
-        GST_clients_broadcast ((const struct GNUNET_MessageHeader *) im,
-                               GNUNET_YES);
-
-        GNUNET_free (im);
-      }
-      else	
-	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _("Discarded %u bytes of type %u from %s via plugin %s: connection is down!\n"),
-		    ntohs (message->size),
-		    type,
-		    GNUNET_i2s (peer),
-		    plugin_name);
-      break;
-    }
+    GST_validation_handle_pong (peer, message);
+    break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
+    GST_neighbours_handle_connect (message,
+				   peer,
+				   plugin_name, sender_address, sender_address_len,
+				   session, ats, ats_count);
+    (void) GST_blacklist_test_allowed (peer, NULL, &try_connect_if_allowed,
+				       NULL);
+    break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
+    /* FIXME: do some validation to prevent an attacker from sending
+     * a fake disconnect message... */     	  
+    GST_neighbours_force_disconnect (peer);
+    break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE:
+    GST_neighbours_keepalive (peer);
+    break;
+  default:
+    /* should be payload */
+    process_payload (peer,
+		     message,
+		     ats, ats_count);
+    break;
   }
-  /*
-     FIXME: this gives an address that might not have been validated to
-     ATS for 'selection', which is probably not what we want; this 
-     might be particularly wrong (as in, possibly hiding bugs with address
-     validation) as 'GNUNET_ATS_address_update' currently ignores
-     the expiration given.
-  */
+ end:
+#if 1
+  /* FIXME: this should not be needed, and not sure it's good to have it, but without
+     this connections seem to go extra-slow */
   if ((ats_count > 0) && (ats != NULL))
     GNUNET_ATS_address_update (GST_ats, peer,
                                plugin_name, sender_address, sender_address_len,
                                session,
                                ats, ats_count);
+#endif
   return ret;
 }
 

@@ -205,11 +205,6 @@ struct InboundMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
    * Number of ATS key-value pairs that follow this struct
    * (excluding the 0-terminator).
    */

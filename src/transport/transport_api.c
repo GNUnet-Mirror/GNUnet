@@ -543,7 +543,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
     im = (const struct InboundMessage *) msg;
-    GNUNET_break (0 == ntohl (im->reserved));
     ats_count = ntohl (im->ats_count);
     imm = (const struct GNUNET_MessageHeader *) &((&(im->ats))[ats_count + 1]);
 

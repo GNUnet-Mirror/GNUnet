@@ -696,6 +696,10 @@ do_transmit (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
                                  session->pending_messages_tail, pos);
     GNUNET_assert (size >= pos->message_size);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		     "tcp",
+		     "Transmitting message of type %u\n",
+		     ntohs (((struct GNUNET_MessageHeader*)pos->msg)->type));
     /* FIXME: this memcpy can be up to 7% of our total runtime */
     memcpy (cbuf, pos->msg, pos->message_size);
     cbuf += pos->message_size;
@@ -1706,7 +1710,7 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   session->last_activity = GNUNET_TIME_absolute_get ();
-#if DEBUG_TCP > 1
+#if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Passing %u bytes of type %u from `%4s' to transport service.\n",
                    (unsigned int) ntohs (message->size),

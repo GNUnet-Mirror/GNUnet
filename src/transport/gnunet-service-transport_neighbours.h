@@ -209,5 +209,29 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                   *ats, uint32_t ats_count);
 
 
+/**
+ * We received a 'SESSION_CONNECT' message from the other peer.
+ * Consider switching to it.
+ *
+ * @param message possibly a 'struct SessionConnectMessage' (check format)
+ * @param peer identity of the peer to switch the address for
+ * @param plugin_name name of transport that delivered the PONG
+ * @param address address of the other peer, NULL if other peer
+ *                       connected to us
+ * @param address_len number of bytes in address
+ * @param session session to use (or NULL)
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+  */
+void
+GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
+			       const struct GNUNET_PeerIdentity *peer,
+			       const char *plugin_name,
+			       const char *sender_address, uint16_t sender_address_len,
+			       struct Session *session,
+			       const struct GNUNET_ATS_Information *ats,
+			       uint32_t ats_count);
+
+
 #endif
 /* end of file gnunet-service-transport_neighbours.h */
