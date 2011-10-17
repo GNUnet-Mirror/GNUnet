@@ -182,10 +182,11 @@ GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
   memcpy (addrp, plugin_addr, plugin_addr_len);
   strcpy (&addrp[plugin_addr_len], plugin_name);
   for (pc = pc_head; pc != NULL; pc = pc->next)
-    GNUNET_SERVER_notification_context_unicast (nc,
-						pc->client,
-						&msg->header,
-						GNUNET_YES);
+    if (pc->flag == START_FLAG_PERFORMANCE_WITH_PIC)
+      GNUNET_SERVER_notification_context_unicast (nc,
+						  pc->client,
+						  &msg->header,
+						  GNUNET_YES);
 }
 
 
