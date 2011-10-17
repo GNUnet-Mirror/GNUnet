@@ -12,7 +12,7 @@ if HAVE_MHD
  HTTP_REL_TEST = test_transport_api_reliability_http
  HTTP_NAT_REL_TEST = test_transport_api_reliability_http_nat
  HTTP_QUOTA_TEST = test_quota_compliance_http \
-		   test_quota_compliance_http_asymmetric_recv_constant
+		   test_quota_compliance_http_asymmetric
  HTTPS_PLUGIN_LA = libgnunet_plugin_transport_https.la
  HTTPS_API_TEST = test_transport_api_https
  HTTPS_NAT_API_TEST = test_transport_api_https_nat
@@ -20,7 +20,7 @@ if HAVE_MHD
  HTTPS_REL_TEST = test_transport_api_reliability_https
  HTTPS_NAT_REL_TEST = test_transport_api_reliability_https_nat
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
-		test_quota_compliance_https_asymmetric_recv_constant
+		test_quota_compliance_https_asymmetric
 endif
 
 if USE_COVERAGE
@@ -52,7 +52,7 @@ UNIX_PLUGIN_LA = libgnunet_plugin_transport_unix.la
 UNIX_PLUGIN_TEST = test_transport_api_unix 
 UNIX_REL_TEST = test_transport_api_unreliability_unix
 UNIX_QUOTA_TEST = test_quota_compliance_unix \
-     test_quota_compliance_unix_asymmetric_recv_constant
+     test_quota_compliance_unix_asymmetric
 endif
 
 noinst_PROGRAMS = \
@@ -279,9 +279,9 @@ check_PROGRAMS = \
  $(HTTPS_REL_TEST) \
  $(HTTPS_NAT_REL_TEST) \
  test_quota_compliance_tcp \
- test_quota_compliance_tcp_asymmetric_recv_constant \
+ test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
- test_quota_compliance_udp_asymmetric_recv_constant \
+ test_quota_compliance_udp_asymmetric \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
@@ -318,9 +318,9 @@ TESTS = \
  $(HTTPS_REL_TEST) \
  $(HTTPS_NAT_REL_TEST) \
  test_quota_compliance_tcp \
- test_quota_compliance_tcp_asymmetric_recv_constant \
+ test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
- test_quota_compliance_udp_asymmetric_recv_constant \
+ test_quota_compliance_udp_asymmetric \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
@@ -580,9 +580,9 @@ test_quota_compliance_tcp_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
-test_quota_compliance_tcp_asymmetric_recv_constant_SOURCES = \
+test_quota_compliance_tcp_asymmetric_SOURCES = \
  test_quota_compliance.c
-test_quota_compliance_tcp_asymmetric_recv_constant_LDADD = \
+test_quota_compliance_tcp_asymmetric_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -602,9 +602,9 @@ test_quota_compliance_http_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
- test_quota_compliance_http_asymmetric_recv_constant_SOURCES = \
+ test_quota_compliance_http_asymmetric_SOURCES = \
  test_quota_compliance.c
-test_quota_compliance_http_asymmetric_recv_constant_LDADD = \
+test_quota_compliance_http_asymmetric_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -624,9 +624,9 @@ test_quota_compliance_https_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
- test_quota_compliance_https_asymmetric_recv_constant_SOURCES = \
+ test_quota_compliance_https_asymmetric_SOURCES = \
  test_quota_compliance.c
-test_quota_compliance_https_asymmetric_recv_constant_LDADD = \
+test_quota_compliance_https_asymmetric_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -646,9 +646,9 @@ test_quota_compliance_udp_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
-test_quota_compliance_udp_asymmetric_recv_constant_SOURCES = \
+test_quota_compliance_udp_asymmetric_SOURCES = \
  test_quota_compliance.c
-test_quota_compliance_udp_asymmetric_recv_constant_LDADD = \
+test_quota_compliance_udp_asymmetric_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -662,9 +662,9 @@ test_quota_compliance_unix_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
-test_quota_compliance_unix_asymmetric_recv_constant_SOURCES = \
+test_quota_compliance_unix_asymmetric_SOURCES = \
  test_quota_compliance.c
-test_quota_compliance_unix_asymmetric_recv_constant_LDADD = \
+test_quota_compliance_unix_asymmetric_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \

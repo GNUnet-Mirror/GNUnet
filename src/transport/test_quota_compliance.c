@@ -21,7 +21,7 @@
  * @file transport/test_quota_compliance.c
  * @brief base test case for transport implementations
  *
- * This test case tests quota compliance both on core and transport level
+ * This test case tests quota compliance both on transport level
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -282,19 +282,6 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 #endif
   n++;
-  if (0 == (n % (TOTAL_MSGS / 100)))
-  {
-    fprintf (stderr, ".");
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-  }
-  if (n == TOTAL_MSGS)
-  {
-    ok = 0;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\nAll messages received\n");
-    end ();
-  }
 }
 
 
@@ -409,6 +396,27 @@ sendtask ()
                                                NULL);
 }
 
+
+static void
+measure (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  static int counter;
+  measure_task = GNUNET_SCHEDULER_NO_TASK;
+
+  counter++;
+  if ((DURATION.rel_value / 1000) < counter )
+  {
+    fprintf (stderr, ".\n");
+    GNUNET_SCHEDULER_add_now (&end, NULL);
+  }
+  else
+  {
+    fprintf (stderr, ".");
+    measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &measure, NULL);
+  }
+}
+
+
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
@@ -421,7 +429,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   cc = NULL;
   test_connected = GNUNET_YES;
 
-  measure_task = GNUNET_SCHEDULER_add_delayed (DURATION, &end, NULL);
+  measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &measure, NULL);
   GNUNET_SCHEDULER_add_now (&sendtask, NULL);
 
 }
@@ -516,7 +524,26 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  run_measurement (10000, 10000, 10000, 10000);
+  unsigned long long p1_quota_in = 10000;
+  unsigned long long p1_quota_out = 10000;
+  unsigned long long p2_quota_in = 10000;
+  unsigned long long p2_quota_out = 10000;
+
+  if (NULL != strstr (test_name,"asymmetric"))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Running asymmetric test with sending peer unlimited, receiving peer (in/out): %llu/%llu b/s \n",
+        p2_quota_in, p2_quota_out);
+    p1_quota_out = 1024 * 1024 * 1024;
+    p1_quota_in = 1024 * 1024 * 1024;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Running symmetric test with (in/out) %llu/%llu b/s \n",
+        p2_quota_in, p2_quota_out);
+  }
+  run_measurement (p1_quota_in, p1_quota_out, p2_quota_in, p2_quota_out);
 }
 
 static int
@@ -596,7 +623,7 @@ main (int argc, char *argv[])
 
   if (GNUNET_YES == GNUNET_DISK_file_test (gen_cfg_p2))
   {
-    //GNUNET_DISK_directory_remove (gen_cfg_p2);
+    GNUNET_DISK_directory_remove (gen_cfg_p2);
     GNUNET_free (gen_cfg_p2);
   }
 
