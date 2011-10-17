@@ -86,6 +86,8 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
 static void
 client_disconnect_handler (void *cls, struct GNUNET_SERVER_Client *client)
 {
+  if (NULL == client)
+    return;
   GAS_scheduling_remove_client (client);
   GAS_performance_remove_client (client);
 }
