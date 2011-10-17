@@ -516,7 +516,7 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
     GNUNET_SCHEDULER_cancel (ph->task);
     ph->task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (NULL != client)
+  if (NULL != ph->client)
   {
     GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
     ph->client = NULL;
