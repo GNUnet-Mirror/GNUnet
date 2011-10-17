@@ -1133,7 +1133,8 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     {
       GNUNET_break (0);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Got session for `%s', but should be for peer `%s'!\n",
+		  "Got session %p for `%s', but should be for peer `%s'!\n",
+		  session,
 		  GNUNET_i2s (&session->target),
 		  GNUNET_h2s (&target->hashPubKey));
       return -1;
