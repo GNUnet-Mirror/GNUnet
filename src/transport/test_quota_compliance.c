@@ -144,7 +144,7 @@ end ()
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   datarate = (total_bytes_sent * 1000) / delta;
 
-  fprintf (stderr, "\nThroughput was %llu b/s\n",
+  fprintf (stderr, "Throughput was %llu b/s\n",
            datarate);
 
   test_failed = GNUNET_NO;
@@ -162,7 +162,7 @@ end ()
   }
   if (test_failed == GNUNET_NO)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Datarate of %llu b/s complied to allowed outbound quota of %llu b/s and inbound quota of %llu b/s\n", datarate, quota_out_p1, quota_in_p2);
   }
 
@@ -531,7 +531,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL != strstr (test_name,"asymmetric"))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Running asymmetric test with sending peer unlimited, receiving peer (in/out): %llu/%llu b/s \n",
         p2_quota_in, p2_quota_out);
     p1_quota_out = 1024 * 1024 * 1024;
@@ -539,7 +539,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Running symmetric test with (in/out) %llu/%llu b/s \n",
         p2_quota_in, p2_quota_out);
   }
