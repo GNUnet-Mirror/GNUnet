@@ -36,7 +36,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
@@ -150,23 +150,20 @@ end ()
   if (datarate > quota_in_p2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Datarate of %llu higher than allowed inbound quota of %llu\n", datarate, quota_in_p2);
+        "Datarate of %llu b/s higher than allowed inbound quota of %llu b/s\n", datarate, quota_in_p2);
     test_failed = GNUNET_YES;
   }
   if (datarate > quota_out_p1)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Datarate of %llu higher than allowed outbound quota of %llu\n", datarate, quota_out_p1);
+        "Datarate of %llu b/s higher than allowed outbound quota of %llu b/s\n", datarate, quota_out_p1);
     test_failed = GNUNET_YES;
   }
   if (test_failed == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Datarate of %llu complied to allowed outbound quota of %llu and inbound quota of %llu\n", datarate, quota_out_p1, quota_in_p2);
+        "Datarate of %llu b/s complied to allowed outbound quota of %llu b/s and inbound quota of %llu b/s\n", datarate, quota_out_p1, quota_in_p2);
   }
-
-
-
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
@@ -188,6 +185,9 @@ end_badly ()
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+
+  if (measure_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (measure_task);
 
   if (test_connected == GNUNET_YES)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got connected\n");
@@ -462,20 +462,19 @@ void start_cb (struct PeerContext * p,
 }
 
 static char *
-generate_config (char * cfg_file_p1,  unsigned long long  quota_in,  unsigned long long  quota_out)
+generate_config (char * cfg_file,  unsigned long long  quota_in,  unsigned long long  quota_out)
 {
   char * fname = NULL;
   struct GNUNET_CONFIGURATION_Handle *cfg = GNUNET_CONFIGURATION_create();
-  GNUNET_CONFIGURATION_load (cfg, cfg_file_p1);
-
-  GNUNET_CONFIGURATION_set_value_number(cfg, "core", "TOTAL_QUOTA_IN", quota_in);
+  GNUNET_CONFIGURATION_load (cfg, cfg_file);
+  GNUNET_asprintf (&fname, "q_in_%u_q_out_%u_%s", quota_in, quota_out, cfg_file);
+  GNUNET_CONFIGURATION_set_value_string(cfg, "PATHS", "DEFAULTCONFIG", fname);
   GNUNET_CONFIGURATION_set_value_number(cfg, "core", "TOTAL_QUOTA_OUT", quota_out);
-
-  GNUNET_asprintf (&fname, "q_in_%ull_q_out_%ull_%s", quota_in, quota_out, cfg_file_p1);
-
-  GNUNET_CONFIGURATION_write(cfg, fname);
+  GNUNET_CONFIGURATION_set_value_number(cfg, "core", "TOTAL_QUOTA_IN", quota_in);
+  GNUNET_CONFIGURATION_set_value_number(cfg, "ats", "TOTAL_QUOTA_IN", quota_in);
+  GNUNET_CONFIGURATION_set_value_number(cfg, "ats", "TOTAL_QUOTA_OUT", quota_out);
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write(cfg, fname));
   GNUNET_CONFIGURATION_destroy(cfg);
-
   return fname;
 }
 
@@ -551,7 +550,7 @@ check ()
 {
   static char *argv[] = { "test_transport-quota-compliance",
     "-c",
-    "test_transport_api_data.conf",
+    "",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
