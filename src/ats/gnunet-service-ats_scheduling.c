@@ -183,7 +183,7 @@ GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
 	      "Received `%s' message\n",
 	      "ADDRESS_UPDATE");
   size = ntohs (message->size);
-  if (size <= sizeof (struct AddressUpdateMessage))
+  if (size < sizeof (struct AddressUpdateMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
