@@ -813,6 +813,21 @@ static size_t
 send_core_create_path (void *cls, size_t size, void *buf);
 
 /**
+ * Function called to notify a client about the socket
+ * being ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure (data itself)
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ *
+ * @return number of bytes written to buf
+ */
+static size_t
+send_core_data_multicast (void *cls, size_t size, void *buf);
+
+/**
  * Cancel a core transmission that was already requested and free all resources
  * associated to the request.
  * 
@@ -1601,6 +1616,82 @@ tunnel_notify_connection_broken (struct MeshTunnel *t,
 
 
 /**
+ * Send a message in a tunnel in multicast, sending a copy to each child node
+ * down the local one in the tunnel tree.
+ *
+ * @param t Tunnel in which to send the data.
+ * @param msg Message to be sent
+ *
+ * @return Number of copies sent.
+ */
+static int
+tunnel_send_multicast (struct MeshTunnel *t,
+                       const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_PeerIdentity *neighbor;
+  struct MeshDataDescriptor *info;
+  struct MeshTunnelTreeNode *n;
+  unsigned int *copies;
+  unsigned int i;
+  size_t size;
+  void *data;
+
+  size = ntohs (msg->size);
+  GNUNET_assert (NULL != t->tree->me);
+  n = t->tree->me->children_head;
+  if (NULL == n)
+    return 0;
+  copies = GNUNET_malloc (sizeof (unsigned int));
+  for (*copies = 0; NULL != n; n = n->next)
+    (*copies)++;
+  n = t->tree->me->children_head;
+  data = GNUNET_malloc (size);
+  memcpy (data, &msg, size);
+  while (NULL != n)
+  {
+    info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
+    info->origin = &t->id;
+    info->data = data;
+    info->size = size;
+    info->copies = copies;
+    if (NULL != t->client->handle)
+    {
+      info->client = t->client->handle;
+
+      info->timeout_task = GNUNET_SCHEDULER_add_delayed (UNACKNOWLEDGED_WAIT,
+                                                         &client_allow_send,
+                                                         t->client->handle);
+    }
+    info->destination = n->peer;
+    neighbor = path_get_first_hop(t->tree, n->peer);
+    info->peer = peer_info_get(neighbor);
+    GNUNET_assert (NULL != info->peer);
+    for (i = 0; NULL != info->peer->core_transmit[i]; i++)
+    {
+      if (i == (CORE_QUEUE_SIZE - 1))
+      {
+        GNUNET_free (info);
+        GNUNET_break (0);
+        return GNUNET_OK;
+      }
+    }
+    info->handler_n = i;
+    info->peer->infos[i] = info;
+    info->peer->types[i] = GNUNET_MESSAGE_TYPE_MESH_MULTICAST;
+    info->peer->core_transmit[i] =
+        GNUNET_CORE_notify_transmit_ready (core_handle,
+                                           0,
+                                           0,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           neighbor,
+                                           size,
+                                           &send_core_data_multicast, info);
+  }
+  return *copies;
+}
+
+
+/**
  * Destroy the tunnel and free any allocated resources linked to it
  *
  * @param t the tunnel to destroy
@@ -1846,12 +1937,12 @@ static size_t
 send_core_data_multicast (void *cls, size_t size, void *buf)
 {
   struct MeshDataDescriptor *info = cls;
-  struct GNUNET_MESH_Multicast *msg = buf;
+  struct GNUNET_MessageHeader *msg = buf;
   size_t total_size;
 
   GNUNET_assert (NULL != info);
   GNUNET_assert (NULL != info->peer);
-  total_size = info->size + sizeof (struct GNUNET_MESH_Multicast);
+  total_size = info->size;
   GNUNET_assert (total_size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
   if (total_size > size)
@@ -1860,8 +1951,6 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
     struct GNUNET_PeerIdentity id;
 
     GNUNET_PEER_resolve(info->peer->id, &id);
-    info->peer->infos[info->handler_n] = info;
-    info->peer->types[info->handler_n] = GNUNET_MESSAGE_TYPE_MESH_MULTICAST;
     info->peer->core_transmit[info->handler_n] =
       GNUNET_CORE_notify_transmit_ready (core_handle,
                                          0,
@@ -1875,11 +1964,7 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
   }
   info->peer->core_transmit[info->handler_n] = NULL;
   info->peer->infos[info->handler_n] = NULL;
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
-  msg->header.size = htons (total_size);
-  GNUNET_PEER_resolve (info->origin->oid, &msg->oid);
-  msg->tid = htonl (info->origin->tid);
-  memcpy (&msg[1], info->data, info->size);
+  memcpy (&msg, info->data, total_size);
   if (0 == --(*info->copies))
   {
     if (NULL != info->client)
@@ -2273,14 +2358,8 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_MESH_Multicast *msg;
-  struct GNUNET_PeerIdentity *id;
-  struct MeshDataDescriptor *info;
-  struct MeshTunnelTreeNode *n;
   struct MeshTunnel *t;
-  unsigned int *copies;
-  unsigned int i;
   size_t size;
-  void *data;
 
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_Multicast);
   if (size < sizeof (struct GNUNET_MessageHeader))
@@ -2303,48 +2382,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     send_subscribed_clients (message, (struct GNUNET_MessageHeader *) &msg[1]);
   }
-  n = t->tree->me->children_head;
-  if (NULL == n)
-    return GNUNET_OK;
-  copies = GNUNET_malloc (sizeof (unsigned int));
-  for (*copies = 0; NULL != n; n = n->next)
-    (*copies)++;
-  n = t->tree->me->children_head;
-  data = GNUNET_malloc (size);
-  memcpy (data, &msg[1], size);
-  while (NULL != n)
-  {
-    info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
-    info->origin = &t->id;
-    info->data = data;
-    info->size = size;
-    info->copies = copies;
-    info->client = t->client->handle;
-    info->timeout_task = GNUNET_SCHEDULER_add_delayed(UNACKNOWLEDGED_WAIT,
-                                                      &client_allow_send,
-                                                      t->client->handle);
-    info->destination = n->peer;
-    id = path_get_first_hop(t->tree, n->peer);
-    info->peer = peer_info_get(id);
-    GNUNET_assert (NULL != info->peer);
-    for (i = 0; NULL != info->peer->core_transmit[i]; i++)
-    {
-      if (i == (CORE_QUEUE_SIZE - 1))
-      {
-        GNUNET_free (info);
-        GNUNET_break (0);
-        return GNUNET_OK;
-      }
-    }
-    info->handler_n = i;
-    info->peer->infos[i] = info;
-    info->peer->types[i] = GNUNET_MESSAGE_TYPE_MESH_MULTICAST;
-    info->peer->core_transmit[i] =
-        GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-                                           GNUNET_TIME_UNIT_FOREVER_REL, id,
-                                           ntohs (msg->header.size),
-                                           &send_core_data_multicast, info);
-  }
+  tunnel_send_multicast(t, message);
 
   return GNUNET_OK;
 }
@@ -3083,7 +3121,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   t = GNUNET_CONTAINER_multihashmap_get (c->tunnels, &hash);
   GNUNET_CONTAINER_multihashmap_remove (c->tunnels, &hash, t);
 
-//     notify_tunnel_destroy(t); FIXME
+//   notify_tunnel_destroy(t);
   tunnel_destroy(t);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
