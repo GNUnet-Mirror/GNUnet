@@ -1066,8 +1066,10 @@ send_callback (void *cls, size_t size, void *buf)
       {
         /* multicast */
         struct GNUNET_MESH_Multicast mc;
+        struct GNUNET_MessageHeader *mh;
 
         GNUNET_assert (size >= th->size);
+        mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (mc)];
         psize =
             th->notify (th->notify_cls, size - sizeof (mc), &cbuf[sizeof (mc)]);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
