@@ -271,6 +271,10 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 					      aa->session_client, aa->session_id, 
 					      aa->ats, aa->ats_count, 
 					      aa->bw_out, aa->bw_in);
+  GAS_performance_notify_clients (peer, aa->plugin, 
+				  aa->addr, aa->addr_len, 
+				  aa->ats, aa->ats_count, 
+				  aa->bw_out, aa->bw_in);
 }
 
 

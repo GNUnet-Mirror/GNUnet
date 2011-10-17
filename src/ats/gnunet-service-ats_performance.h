@@ -28,6 +28,7 @@
 #define GNUNET_SERVICE_ATS_PERFORMANCE_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_transport_service.h" // FIXME
 #include "ats.h"
 
 /**
@@ -49,6 +50,29 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
  */
 void
 GAS_performance_remove_client (struct GNUNET_SERVER_Client *client);
+
+
+/**
+ * Transmit the given performance information to all performance
+ * clients.
+ *
+ * @param peer peer for which this is an address suggestion
+ * @param plugin_name 0-termintated string specifying the transport plugin
+ * @param plugin_addr binary address for the plugin to use
+ * @param plugin_addr_len number of bytes in plugin_addr
+ * @param atsi performance data for the address
+ * @param atsi_count number of performance records in 'ats'
+ * @param bandwidth_out assigned outbound bandwidth
+ * @param bandwidth_in assigned inbound bandwidth
+ */
+void
+GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
+				const char *plugin_name,
+				const void *plugin_addr, size_t plugin_addr_len,
+				const struct GNUNET_TRANSPORT_ATS_Information *atsi,
+				uint32_t atsi_count,				
+				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 
 /**
