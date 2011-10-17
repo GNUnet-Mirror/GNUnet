@@ -371,7 +371,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
                                       GNUNET_NO,
                                       0,
                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                      &d2->id,
+                                      NULL,
                                       sizeof(struct GNUNET_MessageHeader),
                                       &tmt_rdy,
                                       (void *) 1L);

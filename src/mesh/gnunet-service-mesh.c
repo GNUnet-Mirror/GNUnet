@@ -40,8 +40,7 @@
  * - add vs create? change vs. keep-alive? same msg or different ones? -- thinking...
  * - speed requirement specification (change?) in mesh API -- API call
  * - add ping message
- * - add connection confirmation message
- * - handle trnsmt_rdy return values
+ * - relay corking down to core
  */
 
 #include "platform.h"

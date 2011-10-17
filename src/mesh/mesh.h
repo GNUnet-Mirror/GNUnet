@@ -107,7 +107,8 @@ struct GNUNET_MESH_ClientConnect
 
 /**
  * Type for tunnel numbering.
- * - Local tunnel numbers are >= 0x80000000
+ * - Local tunnel numbers given by the service (incoming) are >= 0xB0000000
+ * - Local tunnel numbers given by the client (created) are >= 0x80000000
  * - Global tunnel numbers are < 0x80000000
  */
 typedef uint32_t MESH_TunnelNumber;
