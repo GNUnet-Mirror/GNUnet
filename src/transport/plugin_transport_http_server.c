@@ -359,17 +359,12 @@ server_lookup_session (struct Plugin *plugin,
   void * a;
   size_t a_len;
   struct GNUNET_PeerIdentity target;
-  size_t addrlen;
   int check = GNUNET_NO;
   uint32_t tag = 0;
   int direction;
 
   conn_info = MHD_get_connection_info (mhd_connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS);
-  if (conn_info->client_addr->sa_family == AF_INET)
-    addrlen = sizeof (struct sockaddr_in);
-  else if (conn_info->client_addr->sa_family == AF_INET6)
-    addrlen = sizeof (struct sockaddr_in6);
-  else
+  if ((conn_info->client_addr->sa_family != AF_INET) && (conn_info->client_addr->sa_family != AF_INET6))
     return MHD_NO;
 
   if ((strlen(&url[1]) >= 105)  && (url[104] == ';'))
