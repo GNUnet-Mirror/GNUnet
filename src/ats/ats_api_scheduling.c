@@ -349,9 +349,6 @@ remove_session (struct GNUNET_ATS_SchedulingHandle *sh,
 			      &sh->session_array[session_id].peer,
 			      sizeof (struct GNUNET_PeerIdentity)));
   sh->session_array[session_id].session = NULL;
-  memset (&sh->session_array[session_id].peer,
-	  0, 
-	  sizeof (struct GNUNET_PeerIdentity));
 }
 
 
