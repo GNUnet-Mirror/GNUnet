@@ -7,6 +7,9 @@
 struct dns_pkt_parsed *
 parse_dns_packet (struct dns_pkt *pkt);
 
+struct dns_pkt *
+unparse_dns_packet (struct dns_pkt_parsed *pkt);
+
 void
 free_parsed_dns_packet (struct dns_pkt_parsed *ppkt);
 
