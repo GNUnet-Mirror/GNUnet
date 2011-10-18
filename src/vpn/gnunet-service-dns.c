@@ -917,6 +917,32 @@ receive_query (void *cls
             cls_->hdr.size - sizeof (struct GNUNET_MessageHeader));
     GNUNET_SCHEDULER_add_now (send_mesh_query, cls_);
 
+    if (pdns->s.qdcount == 1)
+      {
+        if (pdns->queries[0]->qtype == 1)
+          pdns->queries[0]->qtype = 28;
+        else if (pdns->queries[0]->qtype == 28)
+          pdns->queries[0]->qtype = 1;
+        else
+          goto outfree;
+        struct dns_pkt *rdns = unparse_dns_packet (pdns);
+        size_t size =
+          sizeof (struct GNUNET_MESH_Tunnel *) +
+          sizeof (struct GNUNET_MessageHeader) + (ntohs (message->size) -
+                                                  sizeof (struct query_packet) +
+                                                  1);
+        struct tunnel_cls *cls_ = GNUNET_malloc (size);
+
+        cls_->hdr.size = size - sizeof (struct GNUNET_MESH_Tunnel *);
+
+        cls_->hdr.type = ntohs (GNUNET_MESSAGE_TYPE_VPN_REMOTE_QUERY_DNS);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "size: %d\n", size);
+
+        memcpy (&cls_->dns, rdns,
+                cls_->hdr.size - sizeof (struct GNUNET_MessageHeader));
+        GNUNET_SCHEDULER_add_now (send_mesh_query, cls_);
+      }
+
     goto outfree;
   }
 
