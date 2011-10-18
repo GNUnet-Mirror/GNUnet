@@ -130,8 +130,9 @@ server_load_certificate (struct Plugin *plugin)
 
   /* Get crypto init string from config
    * If not present just use default values */
-  GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg, plugin->name,
-                                         "CRYPTO_INIT", &plugin->crypto_init);
+
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg, plugin->name,
+                                         "CRYPTO_INIT", &plugin->crypto_init));
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (plugin->env->cfg, plugin->name,
