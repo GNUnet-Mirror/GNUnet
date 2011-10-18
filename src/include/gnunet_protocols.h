@@ -825,6 +825,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_ACK               263
 
 /**
+ * Avoid path timeouts
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE         264
+
+/**
  * We need flow control
  */
 #define GNUNET_MESSAGE_TYPE_MESH_SPEED_NOTIFY           270

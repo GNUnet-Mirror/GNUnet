@@ -2182,9 +2182,9 @@ send_p2p_tunnel_destroy (void *cls, size_t size, void *buf)
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
- *
  */
 static int
 handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -2772,7 +2772,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg->tid = htonl(t->id.tid);
   payload = (struct GNUNET_MessageHeader *) &msg[1];
   payload->size = htons (sizeof(struct GNUNET_MessageHeader));
-  payload->type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
+  payload->type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
   tunnel_send_multicast (t, &msg->header);
 
   t->path_refresh_task =
