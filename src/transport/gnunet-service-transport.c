@@ -285,9 +285,9 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     break;
   default:
     /* should be payload */
-    process_payload (peer,
-		     message,
-		     ats, ats_count);
+    ret = process_payload (peer,
+			   message,
+			   ats, ats_count);
     break;
   }
  end:
