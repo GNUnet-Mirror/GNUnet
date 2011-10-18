@@ -680,7 +680,8 @@ read_service_conf (void *cls __attribute__ ((unused)), const char *section)
 
         if (ret != 0)
           {
-            GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No addresses found for %s!\n", hostname);
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No addresses found for %s!\n", hostname);
+	    GNUNET_free (serv);
             continue;
           }
         else
@@ -706,6 +707,7 @@ read_service_conf (void *cls __attribute__ ((unused)), const char *section)
             else
               {
                 freeaddrinfo(res);
+		GNUNET_free (serv);
                 continue;
               }
             freeaddrinfo(res);
