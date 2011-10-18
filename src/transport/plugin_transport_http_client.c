@@ -202,8 +202,10 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        if (easy_h == NULL)
        {
          GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
-                   "Client: Unknown connection to ended with reason `%s'\n",
-                   curl_easy_strerror(msg->data.result));
+                   "Client: connection to ended with reason %i: `%s', %i handles running\n",
+                   msg->data.result,
+                   curl_easy_strerror(msg->data.result),
+                   running);
          continue;
        }
 
