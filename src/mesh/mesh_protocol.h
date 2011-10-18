@@ -183,6 +183,30 @@ struct GNUNET_MESH_PathACK
 
 
 /**
+ * Message to destroy a tunnel
+ */
+struct GNUNET_MESH_TunnelDestroy
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+  uint32_t tid GNUNET_PACKED;
+
+    /**
+     * OID of the tunnel
+     */
+  struct GNUNET_PeerIdentity oid;
+
+  /* TODO: signature */
+};
+
+
+/**
  * Message for mesh flow control
  */
 struct GNUNET_MESH_SpeedNotify

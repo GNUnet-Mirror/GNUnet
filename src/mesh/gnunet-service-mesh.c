@@ -1704,6 +1704,25 @@ tunnel_send_multicast (struct MeshTunnel *t,
 
 
 /**
+ * Send a message to all peers in this tunnel that the tunnel is no longer
+ * valid.
+ *
+ * @param t The tunnel whose peers to notify.
+ */
+static void
+tunnel_send_destroy (struct MeshTunnel *t)
+{
+  struct GNUNET_MESH_TunnelDestroy msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
+  msg.oid = my_full_id;
+  msg.tid = htonl (t->id.tid);
+  tunnel_send_multicast (t, &msg.header);
+}
+
+
+/**
  * Destroy the tunnel and free any allocated resources linked to it
  *
  * @param t the tunnel to destroy
@@ -1924,53 +1943,6 @@ send_core_create_path (void *cls, size_t size, void *buf)
 }
 
 
-#if LATER
-/**
- * Function called to notify a client about the socket
- * being ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
- * writing in the meantime.
- *
- * @param cls closure (MeshDataDescriptor with all info to build packet)
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-send_core_data_to_origin (void *cls, size_t size, void *buf)
-{
-  struct MeshDataDescriptor *info = cls;
-  struct GNUNET_MESH_ToOrigin *msg = buf;
-  size_t total_size;
-
-  GNUNET_assert (NULL != info);
-  total_size = sizeof (struct GNUNET_MESH_ToOrigin) + info->size;
-  GNUNET_assert (total_size < 65536);   /* UNIT16_MAX */
-
-  if (total_size > size)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "not enough buffer to send data to origin\n");
-    return 0;
-  }
-  msg->header.size = htons (total_size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN);
-  GNUNET_PEER_resolve (info->origin->oid, &msg->oid);
-  msg->tid = htonl (info->origin->tid);
-  if (0 != info->size)
-  {
-    memcpy (&msg[1], &info[1], info->size);
-  }
-  if (NULL != info->client)
-  {
-    GNUNET_SERVER_receive_done (info->client, GNUNET_OK);
-  }
-  GNUNET_free (info);
-  return total_size;
-}
-#endif
-
-
 /**
  * Function called to notify a client about the socket
  * being ready to queue more data.  "buf" will be
@@ -2150,7 +2122,7 @@ send_core_data_raw (void *cls, size_t size, void *buf)
  * @return Size of data put in buffer
  */
 static size_t
-send_p2p_tunnel_destroy (void *cls, size_t size, void *buf)
+send_core_tunnel_destroy (void *cls, size_t size, void *buf)
 {
   struct MeshTunnel *t = cls;
   struct MeshClient *c;
@@ -3221,7 +3193,6 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   t = GNUNET_CONTAINER_multihashmap_get (c->tunnels, &hash);
   GNUNET_CONTAINER_multihashmap_remove (c->tunnels, &hash, t);
 
-//   notify_tunnel_destroy(t);
   tunnel_destroy(t);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
