@@ -252,6 +252,8 @@ do_transmit (struct GNUNET_ATS_PerformanceHandle *ph)
     return;
   if (NULL == (p = ph->pending_head))
     return;
+  if (NULL == sh->client)
+    return; /* currently reconnecting */
   ph->th = GNUNET_CLIENT_notify_transmit_ready (ph->client,
 						p->size,
 						GNUNET_TIME_UNIT_FOREVER_REL,
