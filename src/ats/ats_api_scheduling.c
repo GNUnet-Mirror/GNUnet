@@ -293,6 +293,8 @@ get_session_id (struct GNUNET_ATS_SchedulingHandle *sh,
   unsigned int i;
   unsigned int f;
   
+  if (NULL == session)
+    return 0;
   f = 0;
   for (i=1;i<sh->session_array_size;i++)
   {
