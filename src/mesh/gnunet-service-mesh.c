@@ -1709,7 +1709,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
  *
  * @param t The tunnel whose peers to notify.
  */
-static void
+/* static */ void
 tunnel_send_destroy (struct MeshTunnel *t)
 {
   struct GNUNET_MESH_TunnelDestroy msg;
