@@ -71,6 +71,11 @@ struct SessionRecord
    * Session handle.
    */
   struct Session *session;
+
+  /**
+   * Set to GNUNET_YES if the slot is used.
+   */
+  int slot_used;
 };
 
 
@@ -321,6 +326,7 @@ get_session_id (struct GNUNET_ATS_SchedulingHandle *sh,
   GNUNET_assert (f > 0);
   sh->session_array[f].session = session;
   sh->session_array[f].peer = *peer;
+  sh->session_array[f].slot_used = GNUNET_YES;
   return f;
 }
 
@@ -343,6 +349,43 @@ remove_session (struct GNUNET_ATS_SchedulingHandle *sh,
 			      &sh->session_array[session_id].peer,
 			      sizeof (struct GNUNET_PeerIdentity)));
   sh->session_array[session_id].session = NULL;
+  memset (&sh->session_array[session_id].peer,
+	  0, 
+	  sizeof (struct GNUNET_PeerIdentity));
+}
+
+
+/**
+ * Release the session slot from the session table (ATS service is
+ * also done using it).
+ *
+ * @param sh our handle
+ * @param session_id identifies session that is no longer valid
+ * @param peer peer the session belongs to
+ */
+static void
+release_session (struct GNUNET_ATS_SchedulingHandle *sh,
+		 uint32_t session_id,
+		 const struct GNUNET_PeerIdentity *peer)
+{
+  GNUNET_assert (session_id < sh->session_array_size);
+  GNUNET_assert (0 == memcmp (peer,
+			      &sh->session_array[session_id].peer,
+			      sizeof (struct GNUNET_PeerIdentity)));
+  sh->session_array[session_id].slot_used = GNUNET_NO;
+  memset (&sh->session_array[session_id].peer,
+	  0, 
+	  sizeof (struct GNUNET_PeerIdentity));
+}
+
+
+static void
+process_release_message (struct GNUNET_ATS_SchedulingHandle *sh,
+			 const struct SessionReleaseMessage *srm)
+{
+  release_session (sh,
+		   ntohl (srm->session_id),
+		   &srm->peer);
 }
 
 
@@ -372,6 +415,16 @@ process_ats_message (void *cls,
     sh->client = NULL;
     sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 					     &reconnect_task, sh);
+    return;
+  }
+  if ( (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE) &&
+       (ntohs (msg->size) == sizeof (struct SessionReleaseMessage)) )
+  {
+    process_release_message (sh,
+			     (const struct SessionReleaseMessage*) msg);
+    GNUNET_CLIENT_receive (sh->client,
+			   &process_ats_message, sh,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
     return;
   }
   if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION) ||

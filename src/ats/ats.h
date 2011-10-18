@@ -169,6 +169,20 @@ struct ReservationRequestMessage
 };
 
 
+/**
+ * Message sent by ATS service to client to confirm that it is done
+ * using the given session ID.
+ */
+struct SessionReleaseMessage
+{
+  struct GNUNET_MessageHeader header;
+
+  uint32_t session_id GNUNET_PACKED;
+
+  struct GNUNET_PeerIdentity peer;
+};
+
+
 struct ReservationResultMessage
 {
   struct GNUNET_MessageHeader header;

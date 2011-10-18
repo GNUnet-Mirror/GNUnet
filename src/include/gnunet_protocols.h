@@ -1044,6 +1044,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE 348
 
+/**
+ * Type of the 'struct SessionReleaseMessage' sent by ATS to client
+ * to confirm that a session ID was destroyed.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE 349
+
 
 /*******************************************************************************
  * TODO: we need a way to register message types centrally (via some webpage).
