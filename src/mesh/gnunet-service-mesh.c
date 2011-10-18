@@ -305,6 +305,14 @@ struct MeshTunnel
    * Task to keep the used paths alive
    */
   GNUNET_SCHEDULER_TaskIdentifier path_refresh_task;
+
+  /**
+   * Task to destroy the tunnel after timeout
+   *
+   * FIXME: merge the two? a tunnel will have either
+   * a path refresh OR a timeout, never both!
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 };
 
 
@@ -1424,7 +1432,7 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
  *
  * TODO: implement explicit multicast keepalive?
  */
-void
+static void
 path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
@@ -1767,6 +1775,10 @@ tunnel_destroy (struct MeshTunnel *t)
   tree_destroy(t->tree);
   if (NULL != t->dht_get_type)
     GNUNET_DHT_get_stop(t->dht_get_type);
+  if (GNUNET_SCHEDULER_NO_TASK != t->timeout_task)
+    GNUNET_SCHEDULER_cancel(t->timeout_task);
+  if (GNUNET_SCHEDULER_NO_TASK != t->path_refresh_task)
+    GNUNET_SCHEDULER_cancel(t->path_refresh_task);
   GNUNET_free (t);
   return r;
 }
@@ -1794,6 +1806,40 @@ tunnel_destroy_iterator (void *cls, const GNUNET_HashCode * key, void *value)
   }
   r = tunnel_destroy (t);
   return r;
+}
+
+
+/**
+ * Timeout function, destroys tunnel if called
+ *
+ * @param cls Closure (tunnel to destroy).
+ * @param tc TaskContext
+ */
+static void
+tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshTunnel *t = cls;
+
+  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+    return;
+  t->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  tunnel_destroy (t);
+}
+
+/**
+ * Resets the tunnel timeout. Starts it if no timeout was running.
+ *
+ * @param t Tunnel whose timeout to reset.
+ */
+static void
+tunnel_reset_timeout (struct MeshTunnel *t)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != t->timeout_task)
+    GNUNET_SCHEDULER_cancel (t->timeout_task);
+  t->timeout_task = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply(REFRESH_PATH_TIME, 4),
+      &tunnel_timeout,
+      t);
 }
 
 
@@ -2214,6 +2260,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (0);
       return GNUNET_OK;
     }
+    tunnel_reset_timeout (t);
     GNUNET_CRYPTO_hash (&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
     if (GNUNET_OK !=
         GNUNET_CONTAINER_multihashmap_put (
@@ -2368,6 +2415,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+  tunnel_reset_timeout (t);
   pid = GNUNET_PEER_search(&msg->destination);
   if (pid == myid)
   {
@@ -2429,6 +2477,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+  tunnel_reset_timeout (t);
 
   /* Transmit to locally interested clients */
   if (NULL != t->peers &&
@@ -2568,8 +2617,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Message for us? */
   if (0 == memcmp (&msg->oid, &my_full_id, sizeof (struct GNUNET_PeerIdentity)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   It's for us!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   It's for us!\n");
     if (NULL == t->client)
     {
       GNUNET_break_op (0);
@@ -2697,13 +2745,15 @@ notify_client_connection_failure (void *cls, size_t size, void *buf)
  *
  * TODO: implement explicit multicast keepalive?
  */
-void
+static void
 path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel *t = cls;
   struct GNUNET_MessageHeader *payload;
   struct GNUNET_MESH_Multicast *msg;
-  size_t size;
+  size_t size = sizeof(struct GNUNET_MESH_Multicast) +
+                sizeof(struct GNUNET_MessageHeader);
+  char cbuf[size];
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
   {
@@ -2715,9 +2765,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "MESH: sending keepalive for tunnel %d\n",
               t->id.tid);
 
-  size = sizeof(struct GNUNET_MESH_Multicast) +
-         sizeof(struct GNUNET_MessageHeader);
-  msg = GNUNET_malloc (size);
+  msg = (struct GNUNET_MESH_Multicast *) cbuf;
   msg->header.size = htons (size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
   msg->oid = my_full_id;
@@ -2725,9 +2773,8 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   payload = (struct GNUNET_MessageHeader *) &msg[1];
   payload->size = htons (sizeof(struct GNUNET_MessageHeader));
   payload->type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
-  handle_mesh_data_multicast (NULL, &my_full_id, &msg->header, NULL);
+  tunnel_send_multicast (t, &msg->header);
 
-  GNUNET_free (msg);
   t->path_refresh_task =
       GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
   return;
