@@ -201,7 +201,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        //GNUNET_assert (easy_h != NULL);
        if (easy_h == NULL)
        {
-         GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
+         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Client: connection to ended with reason %i: `%s', %i handles running\n",
                    msg->data.result,
                    curl_easy_strerror(msg->data.result),
