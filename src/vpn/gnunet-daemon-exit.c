@@ -675,9 +675,6 @@ read_service_conf (void *cls __attribute__ ((unused)), const char *section)
       else
       {
         struct addrinfo* res;
-        struct addrinfo hints;
-
-        hints.ai_flags |= AI_NUMERICHOST;
 
         int ret = getaddrinfo(hostname, NULL, NULL, &res);
 
