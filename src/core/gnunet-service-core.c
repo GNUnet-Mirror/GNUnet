@@ -65,8 +65,8 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      "Core service shutting down.\n");
 #endif
   GSC_CLIENTS_done ();
-  GSC_SESSIONS_done ();
   GSC_NEIGHBOURS_done ();
+  GSC_SESSIONS_done ();
   GSC_KX_done ();
   GSC_TYPEMAP_done ();
   if (GSC_stats != NULL)
