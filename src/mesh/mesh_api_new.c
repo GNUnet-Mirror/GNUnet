@@ -1053,13 +1053,14 @@ send_callback (void *cls, size_t size, void *buf)
               ntohs (mh->type));
         if (psize > 0)
         {
-          to.header.size = htons (th->size);
+          psize += sizeof (to);
+          GNUNET_assert (size >= psize);
+          to.header.size = htons (psize);
           to.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
           to.tid = htonl (th->tunnel->tid);
           memset (&to.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           memset (&to.sender, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &to, sizeof (to));
-          psize += sizeof (to);
         }
       }
       else if (th->target == 0)
@@ -1071,18 +1072,19 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (mc)];
         psize =
-            th->notify (th->notify_cls, size - sizeof (mc), &cbuf[sizeof (mc)]);
+            th->notify (th->notify_cls, size - sizeof (mc), mh);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "mesh:   multicast, type %u\n",
-              ntohs (mh->type));
+                    "mesh:   multicast, type %u\n",
+                    ntohs (mh->type));
         if (psize > 0)
         {
-          mc.header.size = htons (sizeof (mc) + th->size);
+          psize += sizeof (mc);
+          GNUNET_assert (size >= psize);
+          mc.header.size = htons (psize);
           mc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
           mc.tid = htonl (th->tunnel->tid);
           memset (&mc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &mc, sizeof (mc));
-          psize += sizeof (mc);
         }
       }
       else
@@ -1100,13 +1102,14 @@ send_callback (void *cls, size_t size, void *buf)
               ntohs (mh->type));
         if (psize > 0)
         {
-          uc.header.size = htons (th->size);
+          psize += sizeof (uc);
+          GNUNET_assert (size >= psize);
+          uc.header.size = htons (psize);
           uc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST);
           uc.tid = htonl (th->tunnel->tid);
           memset (&uc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           GNUNET_PEER_resolve (th->target, &uc.destination);
           memcpy (cbuf, &uc, sizeof (uc));
-          psize += sizeof (uc);
         }
       }
     }

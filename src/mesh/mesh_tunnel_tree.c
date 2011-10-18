@@ -102,10 +102,13 @@ struct GNUNET_PeerIdentity *
 path_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
 {
   struct GNUNET_PeerIdentity id;
+  struct GNUNET_PeerIdentity *r;
 
   GNUNET_PEER_resolve (peer, &id);
-  return GNUNET_CONTAINER_multihashmap_get (t->first_hops,
-                                            &id.hashPubKey);
+  r = GNUNET_CONTAINER_multihashmap_get (t->first_hops, &id.hashPubKey);
+  GNUNET_break (NULL != r);
+
+  return r;
 }
 
 
@@ -583,7 +586,8 @@ tree_add_path (struct MeshTunnelTree *t,
 
     if (i == p->length - 1 && NULL != oldnode)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "tree:   Putting old node into place.\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "tree:   Putting old node into place.\n");
       oldnode->parent = parent;
       GNUNET_CONTAINER_DLL_insert(parent->children_head,
                                   parent->children_tail,
@@ -606,6 +610,9 @@ tree_add_path (struct MeshTunnelTree *t,
   /* Add info about first hop into hashmap. */
   if (-1 != me && me < p->length - 1)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   finding first hop (own pos %d/%u)\n",
+                me, p->length - 1);
     GNUNET_PEER_resolve (p->peers[me + 1], &id);
     tree_update_first_hops(t,
                            tree_find_peer(t->root, p->peers[p->length - 1]),
