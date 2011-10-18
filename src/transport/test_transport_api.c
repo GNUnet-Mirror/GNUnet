@@ -150,6 +150,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     t = p1;
   if (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity)))
     t = p2;
+  GNUNET_assert (t != NULL);
 
   char * ps = strdup (GNUNET_i2s(&p->id));
 
@@ -245,6 +246,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     t = p1;
   if (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity)))
     t = p2;
+  GNUNET_assert (t!=NULL);
 
   char * ps = strdup (GNUNET_i2s(&p->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s'): peer %u (`%s') connected to me!\n",

@@ -150,7 +150,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       fprintf (stderr, "..%i", i);
   }
 
-  GNUNET_TRANSPORT_TESTING_init (tth);
+  tth = GNUNET_TRANSPORT_TESTING_init ();
 
   fprintf (stderr, "\n");
   end ();

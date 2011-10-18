@@ -681,11 +681,14 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     }
   }
 //session_invalid:
+  if ((addr == NULL) && (addrlen == 0))
+    return GNUNET_SYSERR;
   peer_session = create_session (plugin, target, addr, addrlen, cont, cont_cls);
   if (peer_session == NULL)
   {
     if (cont != NULL)
       cont (cont_cls, target, GNUNET_SYSERR);
+    return GNUNET_SYSERR;;
   }
 
   /* Message */

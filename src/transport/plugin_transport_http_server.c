@@ -145,7 +145,7 @@ server_load_certificate (struct Plugin *plugin)
       GNUNET_CONFIGURATION_get_value_filename (plugin->env->cfg, plugin->name,
                                                "CERT_FILE", &cert_file))
   {
-    cert_file = "https_cert.crt";
+    GNUNET_asprintf(&cert_file, "%s", "https_cert.crt");
   }
 
   /* read key & certificates from file */

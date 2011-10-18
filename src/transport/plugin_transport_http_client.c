@@ -405,7 +405,6 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
                              GNUNET_NO);
 
   return len;
-  client_wake_up(NULL,NULL);
 }
 
 /**

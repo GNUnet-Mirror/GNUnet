@@ -258,6 +258,8 @@ check (void *cls, char *const *args, const char *cfgfile,
     ret = GNUNET_SYSERR;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to init ATS performance\n");
     end_badly(NULL, NULL);
+    GNUNET_free (p);
+    GNUNET_free (addr);
     return;
   }
 

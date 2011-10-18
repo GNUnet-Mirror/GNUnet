@@ -91,6 +91,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct PeerContext *p = cls;
   /* Find PeerContext */
+  GNUNET_assert (p != 0);
   GNUNET_assert (p->tth != NULL);
   struct PeerContext * p2 = find_peer_context (p->tth, peer);
 
@@ -136,8 +137,15 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
   /* Find PeerContext */
-  GNUNET_assert (p->tth != NULL);
-  struct PeerContext * p2 = find_peer_context (p->tth, peer);
+  int no = 0;
+  struct PeerContext * p2 = NULL;
+
+  if (p != NULL)
+  {
+    GNUNET_assert (p->tth != NULL);
+    p2 = find_peer_context (p->tth, peer);
+    no = p->no;
+  }
 
   char * p2_s;
   if (p2 != NULL)
@@ -147,7 +155,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
       "Peers %s disconnected from peer %u (`%s')\n",
       p2_s,
-      p->no, GNUNET_i2s (&p->id));
+      no , GNUNET_i2s (&p->id));
   GNUNET_free (p2_s);
 
   if (p == NULL)
