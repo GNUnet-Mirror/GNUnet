@@ -830,6 +830,16 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE         264
 
 /**
+ * Request the destuction of a path
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY           265
+
+/**
+ * Request the destruction of a whole tunnel
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         266
+
+/**
  * We need flow control
  */
 #define GNUNET_MESSAGE_TYPE_MESH_SPEED_NOTIFY           270
