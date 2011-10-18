@@ -1,4 +1,10 @@
 0.9.0pre4:
+* Transport:
+  - GNUNET_ATS_address_destroyed must be called if ATS suggests
+    an address that does not work (never connects), not just if
+    a session "dies"
+  - When receiving SESSION_CONNECT: actually consider switching session
+    (test this!)
 * GNUNET-GTK: [CG]
   - provide context menus to allow aborts of downloads/uploads
   - provide way to handle errors (search, download, publish errors)
@@ -7,8 +13,6 @@
     + insert
     + download
     + search
-* transport:
-  - CONNECT: actually consider switching session...
 
 0.9.0:
 * new webpage:
