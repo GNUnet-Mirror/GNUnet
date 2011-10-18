@@ -52,9 +52,11 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
       text[size + 1] = '\0';
     }
 #if BUILD_HTTPS
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-https", "Client: %X - %s", cls, text);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+        "transport-https", "Client: %X - %s", cls, text);
 #else
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-http", "Client: %X - %s", cls, text);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+        "transport-http", "Client: %X - %s", cls, text);
 #endif
   }
   return 0;
@@ -150,7 +152,8 @@ client_send (struct Session *s, struct HTTP_Message *msg)
   if ((s != NULL) && (s->client_put_paused == GNUNET_YES))
   {
 #if VERBOSE_CLIENT
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name, "Client: %X was suspended, unpausing\n", s->client_put);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+        "Client: %X was suspended, unpausing\n", s->client_put);
 #endif
     s->client_put_paused = GNUNET_NO;
     curl_easy_pause(s->client_put, CURLPAUSE_CONT);
@@ -193,7 +196,16 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        CURL *easy_h  = msg->easy_handle;
        struct Session *s =  NULL;
        char * d = (char *) s;
-       GNUNET_assert (easy_h != NULL);
+
+
+       //GNUNET_assert (easy_h != NULL);
+       if (easy_h == NULL)
+       {
+         GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
+                   "Client: Unknown connection to ended with reason `%s'\n",
+                   curl_easy_strerror(msg->data.result));
+         continue;
+       }
 
        GNUNET_assert (CURLE_OK == curl_easy_getinfo(easy_h, CURLINFO_PRIVATE, &d));
        s = (struct Session *) d;
@@ -201,10 +213,13 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
        if (msg->msg == CURLMSG_DONE)
        {
-#if DEBUG_HTTP
          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Client: %X connection to '%s'  %s ended\n", msg->easy_handle, GNUNET_i2s(&s->target), GNUNET_a2s (s->addr, s->addrlen));
-#endif
+                   "Client: %X connection to '%s'  %s ended with reason %i: `%s'\n",
+                   msg->easy_handle, GNUNET_i2s(&s->target),
+                   http_plugin_address_to_string (NULL, s->addr, s->addrlen),
+                   msg->data.result,
+                   curl_easy_strerror(msg->data.result));
+
          client_disconnect(s);
          //GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,"Notifying about ended session to peer `%s' `%s'\n", GNUNET_i2s (&s->target), http_plugin_address_to_string (plugin, s->addr, s->addrlen));
          notify_session_end (plugin, &s->target, s);
@@ -311,7 +326,8 @@ client_receive_mst_cb (void *cls, void *client,
   {
 #if VERBOSE_CLIENT
     struct Plugin *plugin = s->plugin;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: peer `%s' address `%s' next read delayed for %llu ms\n",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+        "Client: peer `%s' address `%s' next read delayed for %llu ms\n",
                 GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen), delay);
 #endif
   }
@@ -354,7 +370,8 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
 
 #if VERBOSE_CLIENT
   struct Plugin *plugin = s->plugin;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: Received %Zu bytes from peer `%s'\n",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+      "Client: Received %Zu bytes from peer `%s'\n",
                    len,
                    GNUNET_i2s (&s->target));
 #endif
@@ -413,7 +430,8 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   if (msg == NULL)
   {
 #if VERBOSE_CLIENT
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Client: %X Nothing to send! Suspending PUT handle!\n", s->client_put);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+        "Client: %X Nothing to send! Suspending PUT handle!\n", s->client_put);
 #endif
     s->client_put_paused = GNUNET_YES;
     return CURL_READFUNC_PAUSE;
@@ -480,7 +498,9 @@ client_connect (struct Session *s)
 
   plugin->last_tag++;
   /* create url */
-  GNUNET_asprintf (&url, "%s%s;%u", http_plugin_address_to_string (plugin, s->addr, s->addrlen), GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey),plugin->last_tag);
+  GNUNET_asprintf (&url, "%s%s;%u",
+      http_plugin_address_to_string (plugin, s->addr, s->addrlen),
+      GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey),plugin->last_tag);
 #if 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "URL `%s'\n",
