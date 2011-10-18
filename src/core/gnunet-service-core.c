@@ -22,10 +22,6 @@
  * @file core/gnunet-service-core.c
  * @brief high-level P2P messaging
  * @author Christian Grothoff
- *
- * Not implemented:
- * - peer status changes (PeerStatusNotifyMessage) [needed?]
- * - ATS integration / bw allocation / preferences
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
