@@ -313,7 +313,7 @@ get_session_id (struct GNUNET_ATS_SchedulingHandle *sh,
       return i;
     }
     if ( (f == 0) &&
-	 (sh->session_array[i].session == NULL) )
+	 (sh->session_array[i].slot_used == GNUNET_NO) )
       f = i;
   }
   if (f == 0)
