@@ -107,7 +107,8 @@ static int msg_recv_expected;
 static int msg_recv;
 
 static int test_connected;
-static int test_failed;
+static int test_sending;
+static int test_send_timeout;
 
 static unsigned long long total_bytes;
 
@@ -183,17 +184,20 @@ end_badly ()
   die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
-  if (test_connected == GNUNET_NO)
+  if (test_connected == GNUNET_YES)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got connected\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got NOT connected\n");
 
-  if (test_failed == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testcase timeout\n");
+  if (test_sending == GNUNET_NO)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testcase did not send any messages timeout\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Reliability failed: Last message sent %u, Next message scheduled %u, Last message received %u, Message expected %u\n",
                 msg_sent, msg_scheduled, msg_recv, msg_recv_expected);
+  if (test_send_timeout == GNUNET_YES)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test had timeout while waiting to send data\n");
+
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -293,7 +297,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 ntohl (hdr->num), s, ntohs (message->size), ntohl (hdr->num));
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
-    test_failed = GNUNET_YES;
+    test_sending = GNUNET_YES;
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
@@ -306,7 +310,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 ntohl (hdr->num), (unsigned char) n);
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
-    test_failed = GNUNET_YES;
+    test_sending = GNUNET_YES;
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
@@ -324,7 +328,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     fprintf (stderr, ".");
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
-    test_failed = GNUNET_YES;
+    test_sending = GNUNET_YES;
     die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   }
   if (n == TOTAL_MSGS)
@@ -347,6 +351,7 @@ notify_ready (void *cls, size_t size, void *buf)
 
   if (buf == NULL)
   {
+    test_send_timeout = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout occurred while waiting for transmit_ready for msg %u of %u\n",
                 msg_scheduled, TOTAL_MSGS);
@@ -478,6 +483,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+  test_send_timeout = GNUNET_NO;
+
 
   p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1, 1,
                                             &notify_receive,
