@@ -269,6 +269,8 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh,
     GNUNET_break (0);
     return NULL;
   }
+  if (session_id == 0)
+    return NULL;
   GNUNET_assert (0 == memcmp (peer,
 			      &sh->session_array[session_id].peer,
 			      sizeof (struct GNUNET_PeerIdentity)));
