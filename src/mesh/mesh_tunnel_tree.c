@@ -263,6 +263,7 @@ tree_new (struct MeshTunnel *t, GNUNET_PEER_Id peer)
   tree = GNUNET_malloc(sizeof (struct MeshTunnelTree));
   tree->first_hops = GNUNET_CONTAINER_multihashmap_create(32);
   tree->root = tree_node_new(NULL, peer);
+  tree->root->status = MESH_PEER_ROOT;
   tree->t = t;
   tree->root->t = t;
 
@@ -432,8 +433,7 @@ tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
   GNUNET_CONTAINER_DLL_remove(parent->children_head, parent->children_tail, n);
   n->parent = NULL;
 
-  while (t->root != parent && MESH_PEER_RELAY == parent->status &&
-         NULL == parent->children_head)
+  while (MESH_PEER_RELAY == parent->status && NULL == parent->children_head)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "tree:   Deleting node %u.\n",
@@ -676,7 +676,8 @@ tree_notify_connection_broken (struct MeshTunnelTree *t,
 
 
 /**
- * Deletes a peer from a tunnel, marking its children as disconnected.
+ * Deletes a peer from a tunnel, liberating all unused resources on the path to
+ * it. It shouldn't have children, if it has they will be destroyed as well.
  *
  * @param t Tunnel tree to use.
  * @param peer Short ID of the peer to remove from the tunnel tree.
@@ -690,24 +691,17 @@ tree_del_peer (struct MeshTunnelTree *t,
                MeshNodeDisconnectCB cb)
 {
   struct MeshTunnelTreeNode *n;
-  struct MeshTunnelTreeNode *c;
-  struct MeshTunnelTreeNode *aux;
 
   n = tree_del_path(t, peer, cb);
-  c = n->children_head;
-  while (NULL != c)
-  {
-    aux = c->next;
-    GNUNET_CONTAINER_DLL_remove(n->children_head,
-                                n->children_tail,
-                                c);
-    GNUNET_CONTAINER_DLL_insert(t->disconnected_head,
-                                t->disconnected_tail,
-                                c);
-    cb (c);
-    c = aux;
-  }
+  if (NULL == n)
+    return GNUNET_SYSERR;
+  GNUNET_break_op (NULL == n->children_head);
   tree_node_destroy(n);
+  if (NULL == t->root->children_head && t->me != t->root)
+  {
+    tree_node_destroy (t->root);
+    t->root = NULL;
+  }
   return GNUNET_OK;
 }
 

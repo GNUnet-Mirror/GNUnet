@@ -348,6 +348,20 @@ tree_notify_connection_broken (struct MeshTunnelTree *t,
 
 
 /**
+ * Deletes a peer from a tunnel, marking its children as disconnected.
+ *
+ * @param t Tunnel tree to use.
+ * @param peer Short ID of the peer to remove from the tunnel tree.
+ * @param cb Callback to notify client of disconnected peers.
+ *
+ * @return GNUNET_OK or GNUNET_SYSERR
+ */
+int
+tree_del_peer (struct MeshTunnelTree *t,
+               GNUNET_PEER_Id peer,
+               MeshNodeDisconnectCB cb);
+
+/**
  * Print the tree on stderr
  *
  * @param t The tree

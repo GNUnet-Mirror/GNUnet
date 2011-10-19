@@ -221,6 +221,11 @@ struct GNUNET_MESH_ConnectPeerByType
 enum MeshPeerState
 {
     /**
+     * Peer is the root and owner of the tree
+     */
+  MESH_PEER_ROOT,
+
+    /**
      * Peer only retransmits traffic, is not a final destination
      */
   MESH_PEER_RELAY,

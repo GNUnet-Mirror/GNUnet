@@ -1061,6 +1061,89 @@ send_create_path (struct MeshPeerInfo *peer,
           path_info);        /* cls */
 }
 
+/**
+  * Core callback to write a 
+  *
+  * @param cls Closure (MeshDataDescriptor with data in "data" member).
+  * @param size Number of bytes available in buf.
+  * @param buf Where the to write the message.
+  * 
+  * @return number of bytes written to buf
+  */
+static size_t
+send_core_data_raw (void *cls, size_t size, void *buf)
+{
+  struct MeshDataDescriptor *info = cls;
+  struct GNUNET_MessageHeader *msg;
+  size_t total_size;
+
+  GNUNET_assert (NULL != info);
+  GNUNET_assert (NULL != info->data);
+  msg = (struct GNUNET_MessageHeader *) info->data;
+  total_size = ntohs (msg->size);
+
+  if (total_size > size)
+  {
+    struct GNUNET_PeerIdentity id;
+
+    GNUNET_PEER_resolve (info->peer->id, &id);
+    info->peer->core_transmit[info->handler_n] =
+      GNUNET_CORE_notify_transmit_ready(core_handle,
+                                        0,
+                                        100,
+                                        GNUNET_TIME_UNIT_FOREVER_REL,
+                                        &id,
+                                        size,
+                                        &send_core_data_raw,
+                                        info);
+      return 0;
+  }
+  info->peer->core_transmit[info->handler_n] = NULL;
+  memcpy (buf, msg, total_size);
+  GNUNET_free (info->data);
+  GNUNET_free (info);
+  return total_size;
+}
+
+
+/**
+ * Sends an already built message to a peer, properly registrating
+ * all used resources.
+ *
+ * @param message Message to send.
+ * @param peer Short ID of the neighbor whom to send the message.
+ */
+static void
+send_message (const struct GNUNET_MessageHeader *message,
+              const struct GNUNET_PeerIdentity *peer)
+{
+  struct MeshDataDescriptor *info;
+  struct MeshPeerInfo *neighbor;
+  unsigned int i;
+  size_t size;
+
+  size = ntohs (message->size);
+  info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
+  info->data = GNUNET_malloc (size);
+  memcpy (info->data, message, size);
+  neighbor = peer_info_get (peer);
+  i = peer_info_transmit_slot (neighbor);
+  info->handler_n = i;
+  info->peer = neighbor;
+  neighbor->types[i] = GNUNET_MESSAGE_TYPE_MESH_UNICAST;
+  neighbor->infos[i] = info;
+  neighbor->core_transmit[i] =
+      GNUNET_CORE_notify_transmit_ready(core_handle,
+                                        0,
+                                        100,
+                                        GNUNET_TIME_UNIT_FOREVER_REL,
+                                        peer,
+                                        size,
+                                        &send_core_data_raw,
+                                        info);
+
+}
+
 
 /**
  * Try to establish a new connection to this peer.
@@ -1667,7 +1750,6 @@ tunnel_send_multicast (struct MeshTunnel *t,
   while (NULL != n)
   {
     info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
-    info->origin = &t->id;
     info->data = data;
     info->size = size;
     info->copies = copies;
@@ -1709,7 +1791,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
  *
  * @param t The tunnel whose peers to notify.
  */
-/* static */ void
+static void
 tunnel_send_destroy (struct MeshTunnel *t)
 {
   struct GNUNET_MESH_TunnelDestroy msg;
@@ -1720,6 +1802,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
   msg.tid = htonl (t->id.tid);
   tunnel_send_multicast (t, &msg.header);
 }
+
 
 
 /**
@@ -1800,6 +1883,27 @@ tunnel_destroy (struct MeshTunnel *t)
     GNUNET_SCHEDULER_cancel(t->path_refresh_task);
   GNUNET_free (t);
   return r;
+}
+
+
+/**
+ * Removes an explicit path from a tunnel, freeing all intermediate nodes
+ * that are no longer needed, as well as nodes of no longer reachable peers.
+ * The tunnel itself is also destoyed if results in a remote empty tunnel.
+ *
+ * @param t Tunnel from which to remove the path.
+ * @param p Path which should be removed.
+ */
+static void
+tunnel_delete_path (struct MeshTunnel *t,
+                    struct MeshPeerPath *p)
+{
+  GNUNET_break (GNUNET_OK ==
+    tree_del_peer (t->tree,
+                   p->peers[p->length - 1],
+                   &notify_peer_disconnected));
+  if (NULL == t->tree->root)
+    tunnel_destroy (t);
 }
 
 
@@ -2082,37 +2186,6 @@ send_core_path_ack (void *cls, size_t size, void *buf)
 }
 
 
-/**
- * Function called to notify a client about the socket
- * being ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
- * writing in the meantime.
- *
- * @param cls closure (data itself)
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-send_core_data_raw (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_MessageHeader *msg = cls;
-  size_t total_size;
-
-  GNUNET_assert (NULL != msg);
-  total_size = ntohs (msg->size);
-
-  if (total_size > size)
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  memcpy (buf, msg, total_size);
-  GNUNET_free (cls);
-  return total_size;
-}
-
-
 #if LATER
 /**
  * Send another peer a notification to destroy a tunnel
@@ -2148,7 +2221,6 @@ send_core_tunnel_destroy (void *cls, size_t size, void *buf)
 
 /**
  * Core handler for path creation
- * struct GNUNET_CORE_MessageHandler
  *
  * @param cls closure
  * @param message message
@@ -2226,9 +2298,9 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
             tunnels,
             &hash,
             t,
-            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
     {
-      tunnel_destroy(t);
+      tunnel_destroy (t);
       GNUNET_break (0);
       return GNUNET_OK;
     }
@@ -2239,9 +2311,9 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
             incoming_tunnels,
             &hash,
             t,
-            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
     {
-      tunnel_destroy(t);
+      tunnel_destroy (t);
       GNUNET_break (0);
       return GNUNET_OK;
     }
@@ -2346,6 +2418,126 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Core handler for path destruction
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *message,
+                          const struct GNUNET_ATS_Information *atsi)
+{
+  struct GNUNET_MESH_ManipulatePath *msg;
+  struct GNUNET_PeerIdentity *pi;
+  struct MeshPeerPath *path;
+  struct MeshTunnel *t;
+  unsigned int own_pos;
+  unsigned int i;
+  size_t size;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: Received a PATH DESTROY msg from %s\n",
+              GNUNET_i2s(peer));
+  size = ntohs (message->size);
+  if (size < sizeof (struct GNUNET_MESH_ManipulatePath))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+
+  size -= sizeof (struct GNUNET_MESH_ManipulatePath);
+  if (size % sizeof (struct GNUNET_PeerIdentity))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  size /= sizeof (struct GNUNET_PeerIdentity);
+  if (size < 2)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:     path has %u hops.\n",
+              size);
+
+  msg = (struct GNUNET_MESH_ManipulatePath *) message;
+  pi = (struct GNUNET_PeerIdentity *) &msg[1];
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:     path is for tunnel %s [%X].\n",
+              GNUNET_i2s(pi),
+              msg->tid);
+  t = tunnel_get (pi, ntohl (msg->tid));
+  if (NULL == t)
+  {
+    /* TODO notify back: we don't know this tunnel */
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   Creating path...\n");
+  path = path_new (size);
+  own_pos = 0;
+  for (i = 0; i < size; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   ... adding %s\n",
+                GNUNET_i2s(&pi[i]));
+    path->peers[i] = GNUNET_PEER_intern (&pi[i]);
+    if (path->peers[i] == myid)
+      own_pos = i;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   Own position: %u\n", own_pos);
+  if (own_pos < path->length - 1)
+    send_message (message, &pi[own_pos + 1]);
+  tunnel_delete_path (t, path);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Core handler for tunnel destruction
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_MessageHeader *message,
+                            const struct GNUNET_ATS_Information *atsi)
+{
+  struct GNUNET_MESH_TunnelDestroy *msg;
+  struct MeshTunnel *t;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: Got a TUNNEL DESTROY packet from %s\n",
+              GNUNET_i2s (peer));
+  msg = (struct GNUNET_MESH_TunnelDestroy *) message;
+  t = tunnel_get (&msg->oid, ntohl (msg->tid));
+  if (NULL == t)
+  {
+    /* TODO notify back: we don't know this tunnel */
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  tunnel_send_destroy (t);
+  tunnel_destroy (t);
+  return GNUNET_OK;
+}
+
+
+/**
  * Core handler for mesh network traffic going from the origin to a peer
  *
  * @param cls closure
@@ -2398,13 +2590,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:   not for us, retransmitting...\n");
-  msg = GNUNET_malloc (size);
-  memcpy (msg, message, size);
-  GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     path_get_first_hop (t->tree, pid),
-                                     size,
-                                     &send_core_data_raw, msg);
+  send_message (message, path_get_first_hop(t->tree, pid));
   return GNUNET_OK;
 }
 
@@ -2543,11 +2729,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   GNUNET_PEER_resolve (t->tree->me->parent->peer, &id);
-  msg = GNUNET_malloc (size);
-  memcpy (msg, message, size);
-  GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-                                     GNUNET_TIME_UNIT_FOREVER_REL, &id, size,
-                                     &send_core_data_raw, msg);
+  send_message (message, &id);
 
   return GNUNET_OK;
 }
@@ -2622,13 +2804,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  msg = GNUNET_malloc (sizeof (struct GNUNET_MESH_PathACK));
-  memcpy (msg, message, sizeof (struct GNUNET_MESH_PathACK));
-  GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     &id,
-                                     sizeof (struct GNUNET_MESH_PathACK),
-                                     &send_core_data_raw, msg);
+  send_message (message, &id);
   return GNUNET_OK;
 }
 
@@ -2638,6 +2814,8 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&handle_mesh_path_create, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
+  {&handle_mesh_path_destroy, GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY, 0},
+  {&handle_mesh_tunnel_destroy, GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY, 0},
   {&handle_mesh_data_unicast, GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
   {&handle_mesh_data_multicast, GNUNET_MESSAGE_TYPE_MESH_MULTICAST, 0},
   {&handle_mesh_data_to_orig, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
@@ -3193,6 +3371,8 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   t = GNUNET_CONTAINER_multihashmap_get (c->tunnels, &hash);
   GNUNET_CONTAINER_multihashmap_remove (c->tunnels, &hash, t);
 
+  t->client = NULL;
+  tunnel_send_destroy (t);
   tunnel_destroy(t);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
