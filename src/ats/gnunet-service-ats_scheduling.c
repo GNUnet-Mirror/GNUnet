@@ -25,6 +25,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "ats.h"
@@ -114,6 +115,10 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *pe
 
   if (my_client == NULL)
     return;
+  GNUNET_STATISTICS_update (GSA_stats,
+			    "# address suggestions made",
+			    1,
+			    GNUNET_NO);
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   GNUNET_assert (atsi_count < GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information));
   msg = (struct AddressSuggestionMessage*) buf;
@@ -153,6 +158,10 @@ GAS_handle_request_address (void *cls, struct GNUNET_SERVER_Client *client,
   const struct RequestAddressMessage * msg = (const struct RequestAddressMessage *) message;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "REQUEST_ADDRESS");
+  GNUNET_STATISTICS_update (GSA_stats,
+			    "# address requests received",
+			    1,
+			    GNUNET_NO);
   GNUNET_break (0 == ntohl (msg->reserved));
   GAS_addresses_request_address (&msg->peer);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -210,6 +219,10 @@ GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_STATISTICS_update (GSA_stats,
+			    "# address updates received",
+			    1,
+			    GNUNET_NO);
   GAS_addresses_update (&m->peer,
 			plugin_name,
 			address,
@@ -276,6 +289,10 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_STATISTICS_update (GSA_stats,
+			    "# addresses destroyed",
+			    1,
+			    GNUNET_NO);
   GAS_addresses_destroy (&m->peer,
 			 plugin_name,
 			 address,

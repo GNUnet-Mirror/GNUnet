@@ -27,12 +27,17 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_service.h"
+#include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
 #include "ats.h"
 
+/**
+ * Handle for statistics.
+ */
+struct GNUNET_STATISTICS_Handle *GSA_stats;
 
 /**
  * We have received a 'ClientStartMessage' from a client.  Find out which
@@ -106,6 +111,11 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GAS_scheduling_done ();
   GAS_performance_done ();
   GAS_reservations_done ();
+  if (NULL != GSA_stats)
+  {
+    GNUNET_STATISTICS_destroy (GSA_stats, GNUNET_NO);
+    GSA_stats = 0;
+  }
 }
 
 
@@ -135,6 +145,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE, 0},
     {NULL, NULL, 0, 0}
   };
+  GSA_stats = GNUNET_STATISTICS_create ("ats", cfg);
   GAS_reservations_init ();
   GAS_performance_init (server);
   GAS_scheduling_init (server);

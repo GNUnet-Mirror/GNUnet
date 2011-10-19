@@ -25,6 +25,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_reservations.h"
@@ -183,10 +184,16 @@ GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
   strcpy (&addrp[plugin_addr_len], plugin_name);
   for (pc = pc_head; pc != NULL; pc = pc->next)
     if (pc->flag == START_FLAG_PERFORMANCE_WITH_PIC)
+    {
       GNUNET_SERVER_notification_context_unicast (nc,
 						  pc->client,
 						  &msg->header,
 						  GNUNET_YES);
+      GNUNET_STATISTICS_update (GSA_stats,
+				"# performance updates given to clients",
+				1,
+				GNUNET_NO);
+    }
 }
 
 
@@ -225,6 +232,10 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
   result.header.type = htons (GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT);
   result.amount = htonl (amount);
   result.res_delay = GNUNET_TIME_relative_hton (res_delay);
+  GNUNET_STATISTICS_update (GSA_stats,
+			    "# reservatin requests processed",
+			    1,
+			    GNUNET_NO);
   GNUNET_SERVER_notification_context_unicast (nc,
 					      client,
 					      &result.header,
@@ -266,6 +277,10 @@ GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_STATISTICS_update (GSA_stats,
+			    "# preference change requests processed",
+			    1,
+			    GNUNET_NO);
   pi = (const struct PreferenceInformation *) &msg[1];
   for (i=0;i<nump;i++)
     GAS_addresses_change_preference (&msg->peer,

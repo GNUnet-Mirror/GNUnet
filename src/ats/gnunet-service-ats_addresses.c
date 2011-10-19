@@ -26,6 +26,7 @@
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
+#include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
@@ -134,6 +135,14 @@ recalculate_assigned_bw ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Recalculating bandwidth for all active connections\n");
+  GNUNET_STATISTICS_update (GSA_stats,
+			    "# bandwidth recalculations performed",
+			    1,
+			    GNUNET_NO);
+  GNUNET_STATISTICS_set (GSA_stats,
+			 "# active addresses",
+			 active_addr_count,
+			 GNUNET_NO);
   GNUNET_CONTAINER_multihashmap_iterate (addresses, 
 					 &update_bw_it,
 					 NULL);

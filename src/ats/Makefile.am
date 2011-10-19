@@ -22,12 +22,13 @@ bin_PROGRAMS = \
  gnunet-service-ats
 
 gnunet_service_ats_SOURCES = \
- gnunet-service-ats.c \
+ gnunet-service-ats.c gnunet-service-ats.h\
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
 gnunet_service_ats_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
@@ -35,7 +36,7 @@ gnunet_service_ats_LDADD = \
 check_PROGRAMS = \
  test_ats_api_scheduling
 # test_ats_api_bandwidth_consumption
- 
+
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif

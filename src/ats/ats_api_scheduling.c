@@ -345,6 +345,7 @@ remove_session (struct GNUNET_ATS_SchedulingHandle *sh,
 		const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_assert (session_id < sh->session_array_size);
+  GNUNET_assert (GNUNET_YES == sh->session_array[session_id].slot_used);
   GNUNET_assert (0 == memcmp (peer,
 			      &sh->session_array[session_id].peer,
 			      sizeof (struct GNUNET_PeerIdentity)));
