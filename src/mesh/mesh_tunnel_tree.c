@@ -678,6 +678,8 @@ tree_notify_connection_broken (struct MeshTunnelTree *t,
 /**
  * Deletes a peer from a tunnel, liberating all unused resources on the path to
  * it. It shouldn't have children, if it has they will be destroyed as well.
+ * If the tree is not local and no longer has any paths, the root node will be
+ * destroyed and marked as NULL.
  *
  * @param t Tunnel tree to use.
  * @param peer Short ID of the peer to remove from the tunnel tree.
