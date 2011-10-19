@@ -551,6 +551,11 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GSF_ConnectedPeer *cp = cls;
   struct GSF_PeerTransmitHandle *pth;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "fs-ats-r",
+		   "Reserved %d bytes / need to wait %llu ms for reservation\n",
+		   (int) amount,
+		   (unsigned long long) res_delay.rel_value);
   cp->rc = NULL;
   if (0 == amount)
   {
@@ -590,6 +595,10 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   char *fn;
   uint32_t trust;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "fs-ats-r",
+		   "Connected to peer %s\n",
+		   GNUNET_i2s (peer));
   cp = GNUNET_malloc (sizeof (struct GSF_ConnectedPeer));
   cp->ppd.pid = GNUNET_PEER_intern (peer);
   cp->ppd.transmission_delay = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_ZERO);
@@ -607,6 +616,11 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
                 GNUNET_CONTAINER_multihashmap_put (cp_map, &peer->hashPubKey,
                                                    cp,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_STATISTICS_set (GSF_stats,
+			 gettext_noop
+			 ("# connected peers"), 
+			 GNUNET_CONTAINER_multihashmap_size (cp_map),
+			 GNUNET_NO);
   update_atsi (cp, atsi);
   GSF_push_start_ (cp);
   return cp;
@@ -677,7 +691,7 @@ GSF_handle_p2p_migration_stop_ (void *cls,
   struct GNUNET_TIME_Relative bt;
 
   msm = (const struct MigrationStopMessage *) message;
-  cp = GNUNET_CONTAINER_multihashmap_get (cp_map, &other->hashPubKey);
+  cp = GSF_peer_get_ (other);
   if (cp == NULL)
   {
     GNUNET_break (0);
@@ -1151,7 +1165,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   GSF_cover_query_count++;
   bm = ntohl (gm->hash_bitmap);
   bits = 0;
-  cps = GNUNET_CONTAINER_multihashmap_get (cp_map, &other->hashPubKey);
+  cps = GSF_peer_get_ (other);
   if (NULL == cps)
   {
     /* peer must have just disconnected */
@@ -1162,7 +1176,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
     return NULL;
   }
   if (0 != (bm & GET_MESSAGE_BIT_RETURN_TO))
-    cp = GNUNET_CONTAINER_multihashmap_get (cp_map, &opt[bits++]);
+    cp = GSF_peer_get_ ((const struct GNUNET_PeerIdentity*) &opt[bits++]);
   else
     cp = cps;
   if (cp == NULL)
@@ -1521,13 +1535,18 @@ GSF_peer_disconnect_handler_ (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct GSF_PeerTransmitHandle *pth;
   struct GSF_DelayedHandle *dh;
 
-  cp = GNUNET_CONTAINER_multihashmap_get (cp_map, &peer->hashPubKey);
+  cp = GSF_peer_get_ (peer);
   if (NULL == cp)
     return;                     /* must have been disconnect from core with
                                  * 'peer' == my_id, ignore */
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (cp_map,
                                                        &peer->hashPubKey, cp));
+  GNUNET_STATISTICS_set (GSF_stats,
+			 gettext_noop
+			 ("# connected peers"), 
+			 GNUNET_CONTAINER_multihashmap_size (cp_map),
+			 GNUNET_NO);
   if (NULL != cp->migration_pth)
   {
     GSF_peer_transmit_cancel_ (cp->migration_pth);
