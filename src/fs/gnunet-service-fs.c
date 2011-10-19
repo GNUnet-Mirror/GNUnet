@@ -258,6 +258,15 @@ consider_request_for_forwarding (void *cls,
 {
   struct GSF_PendingRequest *pr = cls;
 
+  if (GNUNET_YES !=
+      GSF_pending_request_test_target_ (pr,
+					peer))
+  {
+    GNUNET_STATISTICS_update (GSF_stats,
+			      gettext_noop ("# Loopback routes suppressed"), 1,
+			      GNUNET_NO);
+    return;
+  }
   GSF_plan_add_ (cp, pr);
 }
 
@@ -430,7 +439,12 @@ consider_peer_for_forwarding (void *cls, const GNUNET_HashCode * key,
   if (GNUNET_YES !=
       GSF_pending_request_test_target_ (pr,
 					&pid))
+  {
+    GNUNET_STATISTICS_update (GSF_stats,
+			      gettext_noop ("# Loopback routes suppressed"), 1,
+			      GNUNET_NO);
     return GNUNET_YES;
+  }
   GSF_plan_add_ (cp, pr);
   return GNUNET_YES;
 }

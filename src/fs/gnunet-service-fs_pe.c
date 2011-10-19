@@ -229,12 +229,25 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
                          total_delay * 1000LL / plan_count, GNUNET_NO);
   prd = GSF_pending_request_get_data_ (rp->prl_head->pr);
   // FIXME: calculate 'rp->priority'!
+#if 0
   if (rp->transmission_counter < 32)
     delay =
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
                                        1LL << rp->transmission_counter);
   else
     delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, UINT_MAX);
+#else
+  if (rp->transmission_counter < 32)
+    delay =
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                       rp->transmission_counter);
+  else if (rp->transmission_counter < 32)
+    delay =
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                       32 + (1LL << rp->transmission_counter));
+  else
+    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, UINT_MAX);
+#endif
   rp->earliest_transmission = GNUNET_TIME_relative_to_absolute (delay);
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -361,14 +374,6 @@ schedule_peer_transmission (void *cls,
     GSF_peer_transmit_cancel_ (pp->pth);
     pp->pth = NULL;
   }
-  GNUNET_STATISTICS_set (GSF_stats,
-			 gettext_noop ("# query delay heap size"), 
-			 GNUNET_CONTAINER_heap_get_size (pp->delay_heap),
-			 GNUNET_NO);
-  GNUNET_STATISTICS_set (GSF_stats,
-			 gettext_noop ("# query priority heap size"), 
-			 GNUNET_CONTAINER_heap_get_size (pp->priority_heap),
-			 GNUNET_NO);
   /* move ready requests to priority queue */
   while ((NULL != (rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap))) &&
          (GNUNET_TIME_absolute_get_remaining

@@ -1322,7 +1322,9 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
                                      0) ? (const char *) &opt[bits] : NULL,
                                     bfsize, ntohl (gm->filter_mutator),
                                     1 /* anonymity */ ,
-                                    (uint32_t) priority, ttl, spid, NULL, 0,    /* replies_seen */
+                                    (uint32_t) priority, ttl, spid,
+				    GNUNET_PEER_intern (other),
+				    NULL, 0,    /* replies_seen */
                                     &handle_p2p_reply, peerreq);
   GNUNET_assert (NULL != pr);
   peerreq->pr = pr;

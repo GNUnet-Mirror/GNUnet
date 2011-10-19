@@ -195,6 +195,7 @@ typedef void (*GSF_PendingRequestReplyHandler) (void *cls,
  * @param ttl current time-to-live for the request
  * @param sender_pid peer ID to use for the sender when forwarding, 0 for none;
  *                   reference counter is taken over by this function
+ * @param origin_pid peer ID of origin of query (do not loop back)
  * @param replies_seen hash codes of known local replies
  * @param replies_seen_count size of the 'replies_seen' array
  * @param rh handle to call when we get a reply
@@ -211,6 +212,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                              uint32_t mingle, uint32_t anonymity_level,
                              uint32_t priority, int32_t ttl,
                              GNUNET_PEER_Id sender_pid,
+                             GNUNET_PEER_Id origin_pid,
                              const GNUNET_HashCode * replies_seen,
                              unsigned int replies_seen_count,
                              GSF_PendingRequestReplyHandler rh, void *rh_cls);

@@ -104,6 +104,12 @@ struct GSF_PendingRequest
   GNUNET_PEER_Id sender_pid;
 
   /**
+   * Identity of the peer that we should never forward this query
+   * to since it originated this query (0 for none).
+   */
+  GNUNET_PEER_Id origin_pid;
+
+  /**
    * Time we started the last datastore lookup.
    */
   struct GNUNET_TIME_Absolute qe_start;
@@ -226,6 +232,7 @@ refresh_bloomfilter (struct GSF_PendingRequest *pr)
  * @param priority maximum outgoing cummulative request priority to use
  * @param ttl current time-to-live for the request
  * @param sender_pid peer ID to use for the sender when forwarding, 0 for none
+ * @param origin_pid peer ID of origin of query (do not loop back)
  * @param replies_seen hash codes of known local replies
  * @param replies_seen_count size of the 'replies_seen' array
  * @param rh handle to call when we get a reply
@@ -242,6 +249,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                              uint32_t mingle, uint32_t anonymity_level,
                              uint32_t priority, int32_t ttl,
                              GNUNET_PEER_Id sender_pid,
+                             GNUNET_PEER_Id origin_pid,
                              const GNUNET_HashCode * replies_seen,
                              unsigned int replies_seen_count,
                              GSF_PendingRequestReplyHandler rh, void *rh_cls)
@@ -278,6 +286,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   pr->public_data.type = type;
   pr->public_data.start_time = GNUNET_TIME_absolute_get ();
   pr->sender_pid = sender_pid;
+  pr->origin_pid = origin_pid;
   pr->rh = rh;
   pr->rh_cls = rh_cls;
   GNUNET_assert ((sender_pid != 0) || (0 == (options & GSF_PRO_FORWARD_ONLY)));
@@ -562,6 +571,8 @@ clean_request (void *cls, const GNUNET_HashCode * key, void *value)
   }
   GNUNET_PEER_change_rc (pr->sender_pid, -1);
   pr->sender_pid = 0;
+  GNUNET_PEER_change_rc (pr->origin_pid, -1);
+  pr->origin_pid = 0;
   if (NULL != pr->hnode)
   {
     GNUNET_CONTAINER_heap_remove_node (pr->hnode);
@@ -1214,7 +1225,7 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                   /* queue priority */ ,
                                   (0 !=
                                    (GSF_PRO_PRIORITY_UNLIMITED &
-                                    pr->public_data.options)) ? UINT_MAX : 1
+                                    pr->public_data.options)) ? UINT_MAX : 16
                                   /* max queue size */ ,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
@@ -1253,7 +1264,7 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                   /* queue priority */ ,
                                   (0 !=
                                    (GSF_PRO_PRIORITY_UNLIMITED &
-                                    pr->public_data.options)) ? UINT_MAX : 1
+                                    pr->public_data.options)) ? UINT_MAX : 16
                                   /* max queue size */ ,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
@@ -1279,7 +1290,7 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
   {
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
-                              ("# Datastore lookups concluded (found ultimate result)"),
+                              ("# Datastore lookups concluded (found last result)"),
                               1, GNUNET_NO);
     goto check_error_and_continue;
   }
@@ -1312,7 +1323,7 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                 /* queue priority */ ,
                                 (0 !=
                                  (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                  public_data.options)) ? UINT_MAX : 1
+                                  public_data.options)) ? UINT_MAX : 16
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
@@ -1347,9 +1358,9 @@ GSF_pending_request_test_target_ (struct GSF_PendingRequest *pr,
 {
   struct GNUNET_PeerIdentity pi;
   
-  if (0 == pr->sender_pid)
+  if (0 == pr->origin_pid)
     return GNUNET_YES;
-  GNUNET_PEER_resolve (pr->sender_pid, &pi);
+  GNUNET_PEER_resolve (pr->origin_pid, &pi);
   return (0 == memcmp (&pi, target, sizeof (struct GNUNET_PeerIdentity))) ? GNUNET_NO :GNUNET_YES;
 }
 
@@ -1388,7 +1399,7 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                                 /* queue priority */ ,
                                 (0 !=
                                  (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                  public_data.options)) ? UINT_MAX : 1
+                                  public_data.options)) ? UINT_MAX : 16
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
