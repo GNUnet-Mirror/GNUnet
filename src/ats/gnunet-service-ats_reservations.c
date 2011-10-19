@@ -74,8 +74,7 @@ GAS_reservations_reserve (const struct GNUNET_PeerIdentity *peer,
       return ret;
     }
   }
-  GNUNET_break (GNUNET_NO == /* no == not above limit */
-		GNUNET_BANDWIDTH_tracker_consume (tracker, amount));
+  (void) GNUNET_BANDWIDTH_tracker_consume (tracker, amount);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Reserved %d bytes\n",
 	      (int) amount);
