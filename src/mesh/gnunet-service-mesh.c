@@ -1901,7 +1901,7 @@ tunnel_delete_path (struct MeshTunnel *t,
   GNUNET_break (GNUNET_OK ==
     tree_del_peer (t->tree,
                    p->peers[p->length - 1],
-                   &notify_peer_disconnected));
+                   NULL));
   if (NULL == t->tree->root)
     tunnel_destroy (t);
 }
@@ -2364,7 +2364,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     return 0;
   }
   tunnel_add_path (t, path, own_pos);
-  t->tree->me = tree_find_peer(t->tree->root, myid);
   if (own_pos == size - 1)
   {
     /* It is for us! Send ack. */
