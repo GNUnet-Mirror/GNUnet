@@ -231,6 +231,7 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
   result.header.size = htons (sizeof (struct ReservationResultMessage));
   result.header.type = htons (GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT);
   result.amount = htonl (amount);
+  result.peer = msg->peer;
   result.res_delay = GNUNET_TIME_relative_hton (res_delay);
   GNUNET_STATISTICS_update (GSA_stats,
 			    "# reservatin requests processed",
