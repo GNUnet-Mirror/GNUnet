@@ -256,6 +256,7 @@ GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
   msg = (const struct ChangePreferenceMessage *) message;
   nump = ntohl (msg->num_preferences);
@@ -263,6 +264,7 @@ GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
   pi = (const struct PreferenceInformation *) &msg[1];
   for (i=0;i<nump;i++)
