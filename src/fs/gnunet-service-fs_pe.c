@@ -229,25 +229,25 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
                          total_delay * 1000LL / plan_count, GNUNET_NO);
   prd = GSF_pending_request_get_data_ (rp->prl_head->pr);
   // FIXME: calculate 'rp->priority'!
-#if 0
-  if (rp->transmission_counter < 32)
+  if (rp->transmission_counter < 8)
     delay =
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                       1LL << rp->transmission_counter);
-  else
-    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, UINT_MAX);
-#else
-  if (rp->transmission_counter < 32)
-    delay =
-        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                       rp->transmission_counter);
+				       rp->transmission_counter);
   else if (rp->transmission_counter < 32)
     delay =
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                       32 + (1LL << rp->transmission_counter));
+                                       8 + (1LL << (rp->transmission_counter - 8)));
   else
-    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, UINT_MAX);
-#endif
+    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 
+					   8 + (1LL << 24));
+  delay.rel_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+					      delay.rel_value + 1);
+  if (rp->transmission_counter != 0)
+    delay.rel_value += TTL_DECREMENT;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Considering (re)transmission number %u in %llu ms\n",
+	      (unsigned int) rp->transmission_counter,
+	      (unsigned long long) delay.rel_value);
   rp->earliest_transmission = GNUNET_TIME_relative_to_absolute (delay);
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
