@@ -302,6 +302,9 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
   {
     /* failed, try again... */
     pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
+    GNUNET_STATISTICS_update (GSF_stats,
+			      gettext_noop ("# transmission failed (core has no bandwidth)"), 1,
+			      GNUNET_NO);
     return 0;
   }
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
@@ -350,6 +353,7 @@ schedule_peer_transmission (void *cls,
   struct PeerPlan *pp = cls;
   struct GSF_RequestPlan *rp;
   size_t msize;
+  struct GNUNET_TIME_Relative delay;
 
   pp->task = GNUNET_SCHEDULER_NO_TASK;
   if (pp->pth != NULL)
@@ -357,6 +361,14 @@ schedule_peer_transmission (void *cls,
     GSF_peer_transmit_cancel_ (pp->pth);
     pp->pth = NULL;
   }
+  GNUNET_STATISTICS_set (GSF_stats,
+			 gettext_noop ("# query delay heap size"), 
+			 GNUNET_CONTAINER_heap_get_size (pp->delay_heap),
+			 GNUNET_NO);
+  GNUNET_STATISTICS_set (GSF_stats,
+			 gettext_noop ("# query priority heap size"), 
+			 GNUNET_CONTAINER_heap_get_size (pp->priority_heap),
+			 GNUNET_NO);
   /* move ready requests to priority queue */
   while ((NULL != (rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap))) &&
          (GNUNET_TIME_absolute_get_remaining
@@ -377,19 +389,26 @@ schedule_peer_transmission (void *cls,
 #endif
       return;                   /* both queues empty */
     }
+    delay = GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission);
 #if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sleeping for %llu ms before retrying requests on plan %p.\n",
                 (unsigned long long)
-                GNUNET_TIME_absolute_get_remaining
-                (rp->earliest_transmission).rel_value, pp);
+                delay.rel_value, pp);
 #endif
+    GNUNET_STATISTICS_set (GSF_stats,
+			   gettext_noop ("# delay heap timeout"), 
+			   delay.rel_value,
+			   GNUNET_NO);
+    
     pp->task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                      (rp->earliest_transmission),
+      GNUNET_SCHEDULER_add_delayed (delay,
                                       &schedule_peer_transmission, pp);
     return;
   }
+  GNUNET_STATISTICS_update (GSF_stats,
+                            gettext_noop ("# query plans executed"), 1,
+                            GNUNET_NO);
   /* process from priority heap */
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
 #if DEBUG_FS > 1

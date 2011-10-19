@@ -551,11 +551,10 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GSF_ConnectedPeer *cp = cls;
   struct GSF_PeerTransmitHandle *pth;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "fs-ats-r",
-		   "Reserved %d bytes / need to wait %llu ms for reservation\n",
-		   (int) amount,
-		   (unsigned long long) res_delay.rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Reserved %d bytes / need to wait %llu ms for reservation\n",
+	      (int) amount,
+	      (unsigned long long) res_delay.rel_value);
   cp->rc = NULL;
   if (0 == amount)
   {
@@ -595,10 +594,9 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   char *fn;
   uint32_t trust;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "fs-ats-r",
-		   "Connected to peer %s\n",
-		   GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Connected to peer %s\n",
+	      GNUNET_i2s (peer));
   cp = GNUNET_malloc (sizeof (struct GSF_ConnectedPeer));
   cp->ppd.pid = GNUNET_PEER_intern (peer);
   cp->ppd.transmission_delay = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_ZERO);
@@ -697,6 +695,10 @@ GSF_handle_p2p_migration_stop_ (void *cls,
     GNUNET_break (0);
     return GNUNET_OK;
   }
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop
+			    ("# migration stop messages received"),
+			    1, GNUNET_NO);
   bt = GNUNET_TIME_relative_ntoh (msm->duration);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Migration of content to peer `%s' blocked for %llu ms\n"),
