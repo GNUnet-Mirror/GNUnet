@@ -288,7 +288,7 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
       return GNUNET_TIME_UNIT_ZERO;
     }
   ret.rel_value =
-    1000LL * bytes_needed / (unsigned long long) av->available_bytes_per_s__;
+    (1000LL * bytes_needed) / (unsigned long long) av->available_bytes_per_s__;
 #if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tracker %p delay for %u bytes is %llu ms\n", av,
