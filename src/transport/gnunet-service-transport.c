@@ -309,6 +309,12 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                                ats, ats_count);
   }
 #endif
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Allowing receive from peer %s to continue in %llu ms\n",
+	      GNUNET_i2s (peer),
+	      (unsigned long long) ret.rel_value);
+#endif
   return ret;
 }
 
