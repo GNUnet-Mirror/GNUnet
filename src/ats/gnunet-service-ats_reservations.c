@@ -60,16 +60,25 @@ GAS_reservations_reserve (const struct GNUNET_PeerIdentity *peer,
   tracker = GNUNET_CONTAINER_multihashmap_get (trackers,
 					       &peer->hashPubKey);
   if (NULL == tracker)
-    return GNUNET_TIME_UNIT_FOREVER_REL;
+    return GNUNET_TIME_UNIT_ZERO; /* not connected, satisfy now */
   if (amount >= 0)
   {
     ret = GNUNET_BANDWIDTH_tracker_get_delay (tracker,
 					      amount);
     if (ret.rel_value > 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Delay to satisfy reservation for %d bytes is %llu ms\n",
+		  (int) amount,
+		  (unsigned long long) ret.rel_value);
       return ret;
+    }
   }
   GNUNET_break (GNUNET_NO == /* no == not above limit */
 		GNUNET_BANDWIDTH_tracker_consume (tracker, amount));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Reserved %d bytes\n",
+	      (int) amount);
   return GNUNET_TIME_UNIT_ZERO;
 }
 
