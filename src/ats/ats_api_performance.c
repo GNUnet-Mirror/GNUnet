@@ -335,11 +335,6 @@ process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
   struct GNUNET_ATS_ReservationContext *rc;
   int32_t amount;
 
-  if (ph->infocb == NULL)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }    
   if (ntohs (msg->size) < sizeof (struct ReservationResultMessage))
   {
     GNUNET_break (0);
@@ -568,13 +563,14 @@ GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
   p->size = sizeof (struct ReservationRequestMessage);
   p->is_init = GNUNET_NO;
   m = (struct ReservationRequestMessage*) &p[1];
-  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST);
   m->header.size = htons (sizeof (struct ReservationRequestMessage));
   m->amount = htonl (amount);
   m->peer = *peer;
   GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head,
 				    ph->pending_tail,
 				    p);
+  do_transmit (ph);
   return rc;
 }
 
@@ -639,7 +635,7 @@ GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
   p->size = msize;
   p->is_init = GNUNET_NO;
   m = (struct ChangePreferenceMessage*) &p[1];
-  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE);
   m->header.size = htons (msize);
   m->num_preferences = htonl (count);
   m->peer = *peer;
@@ -667,6 +663,7 @@ GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
   GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head,
 				    ph->pending_tail,
 				    p);
+  do_transmit (ph);
 }
 
 /* end of ats_api_performance.c */
