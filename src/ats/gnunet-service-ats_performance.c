@@ -234,7 +234,7 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
   result.peer = msg->peer;
   result.res_delay = GNUNET_TIME_relative_hton (res_delay);
   GNUNET_STATISTICS_update (GSA_stats,
-			    "# reservatin requests processed",
+			    "# reservation requests processed",
 			    1,
 			    GNUNET_NO);
   GNUNET_SERVER_notification_context_unicast (nc,
