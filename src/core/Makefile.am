@@ -81,13 +81,6 @@ test_core_api_reliability_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_core_api_preferences_SOURCES = \
- test_core_api_preferences.c
-test_core_api_preferences_LDADD = \
- $(top_builddir)/src/core/libgnunetcore.la \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la
-
 test_core_api_send_to_self_SOURCES = \
  test_core_api_send_to_self.c
 test_core_api_send_to_self_LDADD = \
