@@ -1374,15 +1374,12 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
-  if (NULL == pr->qe)
-  {
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop
-                              ("# Datastore lookups concluded (error queueing)"),
-                              1, GNUNET_NO);
-
+  if (NULL != pr->qe)
     return;
-  }
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop
+			    ("# Datastore lookups concluded (error queueing)"),
+			    1, GNUNET_NO);
   GNUNET_SCHEDULER_cancel (pr->warn_task);
   pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
   pr->llc_cont = NULL;
