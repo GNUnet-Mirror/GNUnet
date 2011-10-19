@@ -1219,13 +1219,11 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
     if (NULL != pr->qe)
-    {
-      GNUNET_STATISTICS_update (GSF_stats,
-                                gettext_noop
-                                ("# Datastore lookups concluded (error queueing)"),
-                                1, GNUNET_NO);
-      return;                   /* we're done */
-    }
+      return;                   /* we're done */    
+    GNUNET_STATISTICS_update (GSF_stats,
+			      gettext_noop
+			      ("# Datastore lookups concluded (error queueing)"),
+			      1, GNUNET_NO);
     goto check_error_and_continue;
   }
   old_rf = pr->public_data.results_found;
