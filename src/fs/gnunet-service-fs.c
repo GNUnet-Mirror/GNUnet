@@ -424,7 +424,13 @@ consider_peer_for_forwarding (void *cls, const GNUNET_HashCode * key,
                               struct GSF_PendingRequest *pr)
 {
   struct GSF_ConnectedPeer *cp = cls;
+  struct GNUNET_PeerIdentity pid;
 
+  GSF_connected_peer_get_identity_ (cp, &pid);
+  if (GNUNET_YES !=
+      GSF_pending_request_test_target_ (pr,
+					&pid))
+    return GNUNET_YES;
   GSF_plan_add_ (cp, pr);
   return GNUNET_YES;
 }

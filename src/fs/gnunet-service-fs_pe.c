@@ -334,7 +334,7 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
   plan (pp, rp);
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop
-                            ("# queries messages sent to other peers"), 1,
+                            ("# query messages sent to other peers"), 1,
                             GNUNET_NO);
   return msize;
 }

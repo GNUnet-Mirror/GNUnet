@@ -1337,6 +1337,26 @@ check_error_and_continue:
 
 
 /**
+ * Is the given target a legitimate peer for forwarding the given request?
+ * 
+ * @param pr request
+ * @param target
+ * @return GNUNET_YES if this request could be forwarded to the given peer
+ */
+int
+GSF_pending_request_test_target_ (struct GSF_PendingRequest *pr,
+				  const struct GNUNET_PeerIdentity *target)
+{
+  struct GNUNET_PeerIdentity pi;
+  
+  if (0 == pr->sender_pid)
+    return GNUNET_YES;
+  GNUNET_PEER_resolve (pr->sender_pid, &pi);
+  return (0 == memcmp (&pi, target, sizeof (struct GNUNET_PeerIdentity))) ? GNUNET_NO :GNUNET_YES;
+}
+
+
+/**
  * Look up the request in the local datastore.
  *
  * @param pr the pending request to process
