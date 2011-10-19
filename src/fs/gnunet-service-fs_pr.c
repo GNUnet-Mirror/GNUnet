@@ -1374,7 +1374,7 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
-  if (NULL != pr->qe)
+  if (NULL == pr->qe)
   {
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
