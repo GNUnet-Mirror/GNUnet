@@ -620,6 +620,35 @@ GST_neighbours_stop ()
 
 
 /**
+ * We tried to send a SESSION_CONNECT message to another peer.  If this
+ * succeeded, we should mark the peer up.  If it failed, we should tell
+ * ATS to not use this address anymore (until it is re-validated).
+ *
+ * @param cls the 'struct NeighbourMapEntry'
+ * @param success GNUNET_OK on success
+ */
+static void
+send_connect_continuation (void *cls,
+			   int success)
+{
+  struct NeighbourMapEntry *n = cls;
+
+  if (GNUNET_YES == n->in_disconnect)
+    return; /* neighbour is going away */
+  if (GNUNET_YES != success)
+  {
+    GNUNET_ATS_address_destroyed (GST_ats,
+				  &n->id,
+				  n->plugin_name, 
+				  n->addr,
+				  n->addrlen,
+				  NULL);
+    return;
+  }
+}
+
+
+/**
  * For an existing neighbour record, set the active connection to
  * the given address.
  *
@@ -647,16 +676,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   n = lookup_neighbour (peer);
   if (NULL == n)
   {
-    if (NULL != session)
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO  | GNUNET_ERROR_TYPE_BULK,
-		       "transport-ats",
-		       "Telling ATS to destroy session %p of peer %s\n",
-		       session,		       
-		       GNUNET_i2s (peer));
-    GNUNET_ATS_address_destroyed (GST_ats,
-				  peer,
-				  plugin_name, address,
-				  address_len, session);
+    if (NULL == session)
+      GNUNET_ATS_address_destroyed (GST_ats,
+				    peer,
+				    plugin_name, address,
+				    address_len, NULL);    
     return;
   }
   was_connected = n->is_connected;
@@ -693,7 +717,9 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   connect_msg.timestamp =
       GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   GST_neighbours_send (peer, &connect_msg, sizeof (connect_msg),
-                       GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
+                       GNUNET_TIME_UNIT_FOREVER_REL, 
+		       &send_connect_continuation, 
+		       n);
   if (GNUNET_YES == was_connected)
     return;
   /* First tell clients about connected neighbours...*/
@@ -807,16 +833,6 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
               "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
 #endif
-  if (NULL != session)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
-		     "transport-ats",
-		     "Telling ATS to destroy session %p of peer %s\n",
-		     session,		    
-		     GNUNET_i2s (peer));
-  GNUNET_ATS_address_destroyed (GST_ats,
-				peer,
-				NULL, NULL, 0,
-				session);
   n = lookup_neighbour (peer);
   if (NULL == n)
     return;

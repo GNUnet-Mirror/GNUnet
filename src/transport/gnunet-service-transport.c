@@ -368,7 +368,7 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
 		     "Telling ATS to destroy session %p from peer %s\n",
 		     session,		   
 		     GNUNET_i2s (peer));
-  GNUNET_ATS_address_destroyed(GST_ats, peer, NULL, NULL, 0, session);
+  GNUNET_ATS_address_destroyed (GST_ats, peer, NULL, NULL, 0, session);
   GST_neighbours_session_terminated (peer, session);
 }
 
