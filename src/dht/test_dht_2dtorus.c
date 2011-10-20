@@ -416,17 +416,9 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing",
                                              "num_peers", &num_peers))
   {
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_load (testing_cfg,
-                                              "test_dht_2dtorus.conf"));
-    if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing",
-                                               "num_peers", &num_peers))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Option TESTING:NUM_PEERS is required!\n");
-      return;
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Option TESTING:NUM_PEERS is required!\n");
+    return;
   }
 
   if (GNUNET_OK !=
@@ -506,9 +498,18 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
  * Main: start test
  */
 int
-main (int argc, char *argv[])
+main (int xargc, char *xargv[])
 {
-  GNUNET_PROGRAM_run (argc, argv, "test_dht_2dtorus",
+  char *const argv[] = { "test-dht-2dtorus",
+    "-c",
+    "test_dht_2dtorus.conf",
+#if VERBOSE
+    "-L", "DEBUG",
+#endif
+    NULL
+  };
+
+  GNUNET_PROGRAM_run (sizeof(argv)/sizeof(char*) - 1, argv, "test_dht_2dtorus",
                       gettext_noop ("Test dht in a small 2D torus."), options,
                       &run, NULL);
 #if REMOVE_DIR
