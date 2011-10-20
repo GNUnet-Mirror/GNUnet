@@ -41,6 +41,8 @@
 
 static int ok;
 
+static int far;
+
 /**
  * Be verbose
  */
@@ -204,15 +206,38 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTING_Daemon *d;
   struct GNUNET_TESTING_Daemon *o;
+  struct GNUNET_TESTING_Daemon *aux;
+  const char *id_aux;
+  const char *id_origin = "FC74";
+  const char *id_near = "9P6V";
+  const char *id_far = "KPST";
+  unsigned int i;
 
-  d = GNUNET_TESTING_daemon_get (pg, 2);
-  o = GNUNET_TESTING_daemon_get (pg, 0);
+  d = o = NULL;
+  for (i = 0; i < num_peers; i++)
+  {
+    aux = GNUNET_TESTING_daemon_get (pg, i);
+    id_aux = GNUNET_i2s (&aux->id);
+    if (strcmp (id_aux, id_origin) == 0)
+      o = aux;
+    if (far == GNUNET_YES && strcmp (id_aux, id_far) == 0)
+      d = aux;
+    if (far == GNUNET_NO && strcmp (id_aux, id_near) == 0)
+      d = aux;
+  }
+  if (NULL == o || NULL == d)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "test: Peers not found (hostkey file changed?)\n");
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: looking for [2] %s\n",
+              "test: looking for %s\n",
               GNUNET_h2s_full (&d->id.hashPubKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: from        [0] %s\n",
+              "test:        from %s\n",
               GNUNET_h2s_full (&o->id.hashPubKey));
   get_h = GNUNET_DHT_get_start (hs[0],
                                 GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
@@ -353,23 +378,12 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
             struct GNUNET_TESTING_Daemon *first_daemon,
             struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
 {
-//   GNUNET_PEER_Id f;
-//   GNUNET_PEER_Id s;
 
   if (emsg == NULL)
   {
     total_connections++;
-    /*f = */GNUNET_PEER_intern(first);
-    /*s = */GNUNET_PEER_intern(second);
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: New connection!\n");
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//               "test:     %s (%u)\n",
-//               GNUNET_h2s(&first->hashPubKey),
-//               f);
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//               "test:     %s (%u)\n",
-//               GNUNET_h2s(&second->hashPubKey),
-//               s);
+    GNUNET_PEER_intern(first);
+    GNUNET_PEER_intern(second);
   }
   else
   {
@@ -508,6 +522,15 @@ main (int xargc, char *xargv[])
 #endif
     NULL
   };
+  
+  if (strstr (xargv[0], "2dtorus_far") != NULL)
+  {
+    far = GNUNET_YES;
+  }
+  else
+  {
+    far = GNUNET_NO;
+  }
 
   GNUNET_PROGRAM_run (sizeof(argv)/sizeof(char*) - 1, argv, "test_dht_2dtorus",
                       gettext_noop ("Test dht in a small 2D torus."), options,
