@@ -1186,6 +1186,9 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
     GNUNET_STATISTICS_update (GST_stats,
 			      gettext_noop ("# peers disconnected due to external request"), 1,
 			      GNUNET_NO);
+    n = lookup_neighbour (target);
+    if (NULL == n)
+      return;                     /* gone already */
   }
   disconnect_neighbour (n);
 }
