@@ -144,7 +144,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_CLIENT_receive (shutdown_ctx->sock, &service_shutdown_handler,
                              shutdown_ctx, GNUNET_TIME_UNIT_FOREVER_REL);
       if (shutdown_ctx->cont != NULL)
-        shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_YES);
+        shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_NO);
       GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
       GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
       GNUNET_free (shutdown_ctx);
