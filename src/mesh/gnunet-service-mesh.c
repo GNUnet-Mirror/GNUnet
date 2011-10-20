@@ -1238,6 +1238,9 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
     path_info = GNUNET_malloc(sizeof(struct MeshPathInfo));
     path_info->peer = peer;
     path_info->t = t;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   Starting DHT GET for peer %s\n",
+                GNUNET_i2s (&id));
     peer->dhtget =
         GNUNET_DHT_get_start(dht_handle,       /* handle */
                              GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
@@ -1296,6 +1299,7 @@ static GNUNET_PEER_Id
 tunnel_notify_connection_broken (struct MeshTunnel *t,
                                  struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
                                  GNUNET_PEER_Id p2);
+
 
 /**
  * Remove all paths that rely on a direct connection between p1 and p2

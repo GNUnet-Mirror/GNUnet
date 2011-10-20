@@ -1347,6 +1347,7 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
   {
     if (tunnel->peers[i]->id == peer_id)
     {
+      /* Peer already exists in tunnel */
       GNUNET_PEER_change_rc (peer_id, -1);
       GNUNET_break (0);
       return;
