@@ -4241,17 +4241,12 @@ main (int argc, char *const *argv)
 {
   int ret;
 
-#if MESH_DEBUG
-//   fprintf (stderr, "main ()\n");
-#endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: main()\n");
   ret =
       (GNUNET_OK ==
        GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
                            NULL)) ? 0 : 1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: main() END\n");
-#if MESH_DEBUG
-//   fprintf (stderr, "main () END\n");
-#endif
+
   return ret;
 }

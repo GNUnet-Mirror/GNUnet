@@ -54,7 +54,6 @@ check_PROGRAMS = \
  test_mesh_path_api \
  test_mesh_local_1 \
  test_mesh_local_2 \
- test_mesh_small \
  test_mesh_small_unicast \
  test_mesh_small_unicast_far \
  test_mesh_small_multicast
@@ -93,17 +92,8 @@ test_mesh_local_2_LDADD = \
 test_mesh_local_2_DEPENDENCIES = \
   libgnunetmeshnew.la
 
-test_mesh_small_SOURCES = \
- test_mesh_small.c
-test_mesh_small_LDADD = \
-  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la
-test_mesh_small_DEPENDENCIES = \
-  libgnunetmeshnew.la
-
 test_mesh_small_unicast_SOURCES = \
- test_mesh_small_unicast.c
+ test_mesh_small.c
 test_mesh_small_unicast_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmeshnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -112,7 +102,7 @@ test_mesh_small_unicast_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 test_mesh_small_unicast_far_SOURCES = \
- test_mesh_small_unicast_far.c
+ test_mesh_small.c
 test_mesh_small_unicast_far_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmeshnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -121,7 +111,7 @@ test_mesh_small_unicast_far_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 test_mesh_small_multicast_SOURCES = \
- test_mesh_small_multicast.c
+ test_mesh_small.c
 test_mesh_small_multicast_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmeshnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -131,9 +121,10 @@ test_mesh_small_multicast_DEPENDENCIES = \
 
 
 if ENABLE_TEST_RUN
-TESTS = test_mesh_api test_mesh_path_api test_mesh_local_1 test_mesh_local_2 test_mesh_small test_mesh_small_unicast
+TESTS = test_mesh_api test_mesh_path_api test_mesh_local_1 test_mesh_local_2 test_mesh_small_unicast test_mesh_small_multicast
 endif
 
 EXTRA_DIST = \
   test_mesh.conf \
-  test_mesh_path.conf
+  test_mesh_path.conf \
+  test_mesh_small.conf
