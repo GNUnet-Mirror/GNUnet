@@ -29,6 +29,7 @@
  * - test test test
  */
 #include "platform.h"
+#include "gnunet_constants.h"
 #include "gnunet_bandwidth_lib.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_constants.h"

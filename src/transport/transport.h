@@ -43,7 +43,7 @@
  * For how long do we allow unused bandwidth
  * from the past to carry over into the future? (in seconds)
  */
-#define MAX_BANDWIDTH_CARRY_S GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY
+#define MAX_BANDWIDTH_CARRY_S GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY_S
 
 /**
  * How often do we (at most) do a full quota
