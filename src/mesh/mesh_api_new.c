@@ -796,7 +796,6 @@ process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
 
   if (NULL == t)
   {
-    GNUNET_break (0);
     return;
   }
   if (0 == t->owner)

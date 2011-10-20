@@ -787,6 +787,7 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
 
 /**
  * Notify the client that owns the tunnel that a peer has connected to it
+ * (the requested path to it has been confirmed).
  * 
  * @param t Tunnel whose owner to notify
  * @param id Short id of the peer that has connected
@@ -802,6 +803,24 @@ send_client_peer_connected (const struct MeshTunnel *t, const GNUNET_PEER_Id id)
   GNUNET_PEER_resolve (id, &pc.peer);
   GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
                                               &pc.header, GNUNET_NO);
+}
+
+
+/**
+ * Notify all clients (not depending on registration status) that the incoming
+ * tunnel is no longer valid.
+ * 
+ * @param t Tunnel that was destroyed.
+ */
+static void
+send_clients_tunnel_destroy (struct MeshTunnel *t)
+{
+    struct GNUNET_MESH_TunnelMessage msg;
+
+    msg.header.size = htons (sizeof (msg));
+    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
+    msg.tunnel_id = htonl (t->local_tid);
+    GNUNET_SERVER_notification_context_broadcast(nc, &msg.header, GNUNET_NO);
 }
 
 
@@ -1777,7 +1796,11 @@ tunnel_send_multicast (struct MeshTunnel *t,
   GNUNET_assert (NULL != t->tree->me);
   n = t->tree->me->children_head;
   if (NULL == n)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:  no children in the tree, no one to send.\n");
     return 0;
+  }
   copies = GNUNET_malloc (sizeof (unsigned int));
   for (*copies = 0; NULL != n; n = n->next)
     (*copies)++;
@@ -1836,7 +1859,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
-  msg.oid = my_full_id;
+  GNUNET_PEER_resolve (t->id.oid, &msg.oid);
   msg.tid = htonl (t->id.tid);
   tunnel_send_multicast (t, &msg.header);
 }
@@ -2558,12 +2581,26 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
               "MESH: Got a TUNNEL DESTROY packet from %s\n",
               GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_TunnelDestroy *) message;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:   for tunnel %s [%u]\n",
+              GNUNET_i2s (&msg->oid),
+              ntohl (msg->tid));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
   if (NULL == t)
   {
     /* TODO notify back: we don't know this tunnel */
     GNUNET_break_op (0);
     return GNUNET_OK;
+  }
+  if (t->id.oid == myid)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  if (t->local_tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
+  {
+    /* Tunnel was incoming, notify clients */
+    send_clients_tunnel_destroy (t);
   }
   tunnel_send_destroy (t);
   tunnel_destroy (t);
@@ -3376,7 +3413,8 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   MESH_TunnelNumber tid;
   GNUNET_HashCode hash;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: destroying tunnel\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: Got a DESTROY TUNNEL from client!\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
