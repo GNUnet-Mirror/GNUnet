@@ -239,9 +239,9 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   max_quota_out = GNUNET_MIN (current_quota_p1_out,
 			      current_quota_p2_out);
   if (max_quota_out < max_quota_in)
-    quota_delta = max_quota_in / 10;
+    quota_delta = max_quota_in / 5;
   else
-    quota_delta = max_quota_out / 10;
+    quota_delta = max_quota_out / 5;
 
   if ((throughput_out > (max_quota_out + quota_delta)) ||
       (throughput_in > (max_quota_in + quota_delta)))
