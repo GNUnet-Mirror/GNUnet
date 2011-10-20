@@ -29,6 +29,7 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_constants.h"
 
 #define DEBUG_TRANSPORT GNUNET_EXTRA_LOGGING
 
@@ -42,7 +43,7 @@
  * For how long do we allow unused bandwidth
  * from the past to carry over into the future? (in seconds)
  */
-#define MAX_BANDWIDTH_CARRY_S 5
+#define MAX_BANDWIDTH_CARRY_S GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY
 
 /**
  * How often do we (at most) do a full quota

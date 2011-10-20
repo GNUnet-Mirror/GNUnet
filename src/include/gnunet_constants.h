@@ -98,6 +98,13 @@ extern "C"
 #define GNUNET_CONSTANTS_IDLE_LOAD_THRESHOLD 70
 
 /**
+ * For how long do we allow unused bandwidth
+ * from the past to carry over into the future? (in seconds)
+ */
+#define GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY_S 5
+
+
+/**
  * After how long do we expire an address in a HELLO that we just
  * validated?  This value is also used for our own addresses when we
  * create a HELLO.
