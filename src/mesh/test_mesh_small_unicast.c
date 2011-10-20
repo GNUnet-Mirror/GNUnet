@@ -57,7 +57,7 @@ struct StatsContext
  */
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define OK_GOAL 4
+#define OK_GOAL 5
 
 static int ok;
 
@@ -241,9 +241,11 @@ data_callback (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "test: Origin client got a response!\n");
       ok++;
+      GNUNET_MESH_tunnel_destroy (tunnel);
       GNUNET_SCHEDULER_cancel (disconnect_task);
-      disconnect_task = GNUNET_SCHEDULER_add_now(&disconnect_mesh_peers,
-                                                 NULL);
+      disconnect_task = GNUNET_SCHEDULER_add_delayed(SHORT_TIME,
+                                                     &disconnect_mesh_peers,
+                                                     NULL);
       break;
     case 2L:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -320,9 +322,16 @@ static void
 tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
                 void *tunnel_ctx)
 {
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: tunnel disconnected\n");
-#endif
+  long i = (long) cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: Incoming tunnel disconnected at peer %d\n",
+              i);
+  if (2L == i)
+    ok++;
+  
+  GNUNET_SCHEDULER_cancel (disconnect_task);
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers, NULL);
   
   return;
 }
@@ -345,7 +354,7 @@ dh (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 /**
- * Method called whenever a tunnel is established.
+ * Method called whenever a peer connects to a tunnel.
  *
  * @param cls closure
  * @param peer peer identity the tunnel was created to, NULL on timeout
