@@ -502,6 +502,8 @@ free_neighbour_helper (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct Neighbour *n = value;
 
+  /* transport should have 'disconnected' all neighbours... */
+  GNUNET_break (0);
   free_neighbour (n);
   return GNUNET_OK;
 }
@@ -515,10 +517,10 @@ GSC_NEIGHBOURS_done ()
 {
   if (NULL == transport)
     return;
-  GNUNET_CONTAINER_multihashmap_iterate (neighbours, &free_neighbour_helper,
-                                         NULL);
   GNUNET_TRANSPORT_disconnect (transport);
   transport = NULL;
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours, &free_neighbour_helper,
+                                         NULL);
   GNUNET_CONTAINER_multihashmap_destroy (neighbours);
   neighbours = NULL;
 }
