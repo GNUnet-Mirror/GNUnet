@@ -138,7 +138,7 @@ server_load_certificate (struct Plugin *plugin)
       GNUNET_CONFIGURATION_get_value_filename (plugin->env->cfg, plugin->name,
                                                "KEY_FILE", &key_file))
   {
-    key_file = "https_key.key";
+    key_file = GNUNET_strdup ("https_key.key");
   }
 
   if (GNUNET_OK !=
