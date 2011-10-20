@@ -245,9 +245,9 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((throughput_out > (max_quota_out + quota_delta)) ||
       (throughput_in > (max_quota_in + quota_delta)))
-    ok = GNUNET_NO;
+    ok = 1;
   else
-    ok = GNUNET_YES;
+    ok = 0;
   GNUNET_STATISTICS_get (p1.stats, "core", "# discarded CORE_SEND requests",
                          GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p1);
 
@@ -273,23 +273,23 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                          "# discarded lower priority CORE_SEND request bytes",
                          GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p2);
 
-  if (ok == GNUNET_NO)
+  if (ok != 0)
     kind = GNUNET_ERROR_TYPE_ERROR;  
   switch (test)
   {
   case SYMMETRIC:
     GNUNET_log (kind, "Core quota compliance test with symmetric quotas: %s\n",
-                (ok == GNUNET_YES) ? "PASSED" : "FAILED");
+                (ok != 0) ? "PASSED" : "FAILED");
     break;
   case ASYMMETRIC_SEND_LIMITED:
     GNUNET_log (kind,
                 "Core quota compliance test with limited sender quota: %s\n",
-                (ok == GNUNET_YES) ? "PASSED" : "FAILED");
+                (ok != 0) ? "PASSED" : "FAILED");
     break;
   case ASYMMETRIC_RECV_LIMITED:
     GNUNET_log (kind,
                 "Core quota compliance test with limited receiver quota: %s\n",
-                (ok == GNUNET_YES) ? "PASSED" : "FAILED");
+                (ok != 0) ? "PASSED" : "FAILED");
     break;
   };
   GNUNET_log (kind, "Peer 1 send  rate: %llu b/s (%llu bytes in %llu ms)\n",
