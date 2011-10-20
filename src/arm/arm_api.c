@@ -143,8 +143,13 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       shutdown_ctx->confirmed = GNUNET_YES;
       GNUNET_CLIENT_receive (shutdown_ctx->sock, &service_shutdown_handler,
                              shutdown_ctx, GNUNET_TIME_UNIT_FOREVER_REL);
+      if (shutdown_ctx->cont != NULL)
+        shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_YES);
+      GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
+      GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+      GNUNET_free (shutdown_ctx);
       break;
-    default:                   /* Fall through */
+    default:
 #if DEBUG_ARM
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Service shutdown refused!\n");
 #endif
