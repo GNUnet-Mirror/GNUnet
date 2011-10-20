@@ -61,7 +61,7 @@
 
 #define MTYPE 12345
 #define MESSAGESIZE 1024
-#define MEASUREMENT_LENGTH GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define MEASUREMENT_LENGTH GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 static unsigned long long total_bytes_sent;
 static unsigned long long total_bytes_recv;
@@ -107,7 +107,7 @@ static int running;
 
 
 #if VERBOSE
-#define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
+#define OKPP do { ok++; GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
 #define OKPP do { ok++; } while (0)
 #endif
@@ -217,12 +217,13 @@ print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
 static void
 measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  unsigned long long int delta;
-  unsigned long long int throughput_out;
-  unsigned long long int throughput_in;
-  unsigned long long int max_quota_in;
-  unsigned long long int max_quota_out;
-  unsigned long long int quota_delta;
+  unsigned long long delta;
+  unsigned long long throughput_out;
+  unsigned long long throughput_in;
+  unsigned long long max_quota_in;
+  unsigned long long max_quota_out;
+  unsigned long long quota_delta;
+  enum GNUNET_ErrorType kind = GNUNET_ERROR_TYPE_DEBUG;
 
   measure_task = GNUNET_SCHEDULER_NO_TASK;
   fprintf (stdout, "\n");
@@ -230,29 +231,25 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
 
-  throughput_out = total_bytes_sent * 1000 / 1024 / delta;
-  throughput_in = total_bytes_recv * 1000 / 1024 / delta;
+  throughput_out = total_bytes_sent * 1000 / delta; /* convert to bytes/s */
+  throughput_in = total_bytes_recv * 1000 / delta; /* convert to bytes/s */
 
-  if (current_quota_p1_in < current_quota_p2_in)
-    max_quota_in = current_quota_p1_in;
-  else
-    max_quota_in = current_quota_p2_in;
-  if (current_quota_p1_out < current_quota_p2_out)
-    max_quota_out = current_quota_p1_out;
-  else
-    max_quota_out = current_quota_p2_out;
+  max_quota_in = GNUNET_MIN (current_quota_p1_in,
+			     current_quota_p2_in);
+  max_quota_out = GNUNET_MIN (current_quota_p1_out,
+			      current_quota_p2_out);
 
+  max_quota_out /= 2;
   if (max_quota_out < max_quota_in)
     quota_delta = max_quota_in / 10;
   else
     quota_delta = max_quota_out / 10;
 
-  if ((throughput_out > (max_quota_out + quota_delta) / 1024) ||
-      (throughput_in > (max_quota_in + quota_delta) / 1024))
-    ok = 1;
+  if ((throughput_out > (max_quota_out + quota_delta)) ||
+      (throughput_in > (max_quota_in + quota_delta)))
+    ok = GNUNET_NO;
   else
-    ok = 0;
-
+    ok = GNUNET_YES;
   GNUNET_STATISTICS_get (p1.stats, "core", "# discarded CORE_SEND requests",
                          GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p1);
 
@@ -278,40 +275,36 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                          "# discarded lower priority CORE_SEND request bytes",
                          GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p2);
 
-  enum GNUNET_ErrorType kind = GNUNET_ERROR_TYPE_DEBUG;
-
-  if (ok == 1)
-  {
-    kind = GNUNET_ERROR_TYPE_ERROR;
-  }
+  if (ok == GNUNET_NO)
+    kind = GNUNET_ERROR_TYPE_ERROR;  
   switch (test)
   {
   case SYMMETRIC:
     GNUNET_log (kind, "Core quota compliance test with symmetric quotas: %s\n",
-                (ok == 0) ? "PASSED" : "FAILED");
+                (ok == GNUNET_YES) ? "PASSED" : "FAILED");
     break;
   case ASYMMETRIC_SEND_LIMITED:
     GNUNET_log (kind,
                 "Core quota compliance test with limited sender quota: %s\n",
-                (ok == 0) ? "PASSED" : "FAILED");
+                (ok == GNUNET_YES) ? "PASSED" : "FAILED");
     break;
   case ASYMMETRIC_RECV_LIMITED:
     GNUNET_log (kind,
                 "Core quota compliance test with limited receiver quota: %s\n",
-                (ok == 0) ? "PASSED" : "FAILED");
+                (ok == GNUNET_YES) ? "PASSED" : "FAILED");
     break;
   };
-  GNUNET_log (kind, "Peer 1 send  rate: %llu kB/s (%llu Bytes in %u sec.)\n",
-              throughput_out, total_bytes_sent, delta / 1000);
-  GNUNET_log (kind, "Peer 1 send quota: %llu kB/s\n",
-              current_quota_p1_out / 1024);
-  GNUNET_log (kind, "Peer 2 receive  rate: %llu kB/s (%llu Bytes in %u sec.)\n",
-              throughput_in, total_bytes_recv, delta / 1000);
-  GNUNET_log (kind, "Peer 2 receive quota: %llu kB/s\n",
-              current_quota_p2_in / 1024);
+  GNUNET_log (kind, "Peer 1 send  rate: %llu b/s (%llu bytes in %llu ms)\n",
+              throughput_out, total_bytes_sent, delta);
+  GNUNET_log (kind, "Peer 1 send quota: %llu b/s\n",
+              current_quota_p1_out);
+  GNUNET_log (kind, "Peer 2 receive  rate: %llu b/s (%llu bytes in %llu ms)\n",
+              throughput_in, total_bytes_recv, delta);
+  GNUNET_log (kind, "Peer 2 receive quota: %llu b/s\n",
+              current_quota_p2_in);
 /*
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. inbound  quota allowed: %llu kB/s\n",max_quota_in /1024);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. outbound quota allowed: %llu kB/s\n",max_quota_out/1024);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. inbound  quota allowed: %llu b/s\n",max_quota_in );
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. outbound quota allowed: %llu b/s\n",max_quota_out);
 */
   GNUNET_SCHEDULER_cancel (err_task);
   err_task = GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
@@ -418,6 +411,13 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (0 == memcmp (&pc->id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return; /* loopback */
   pc->connect_status = 0;
+  if (GNUNET_SCHEDULER_NO_TASK != measure_task)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Measurement aborted due to disconnect!\n");
+    GNUNET_SCHEDULER_cancel (measure_task);
+    measure_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (pc->nth != NULL)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (pc->nth);

@@ -62,7 +62,7 @@ static GNUNET_SCHEDULER_TaskIdentifier con_task;
 static int ok;
 
 #if VERBOSE
-#define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
+#define OKPP do { ok++; GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
 #define OKPP do { ok++; } while (0)
 #endif
