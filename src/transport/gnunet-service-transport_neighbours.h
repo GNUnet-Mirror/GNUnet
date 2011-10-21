@@ -232,6 +232,17 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
 			       const struct GNUNET_ATS_Information *ats,
 			       uint32_t ats_count);
 
+/**
+ * We received a disconnect message from the given peer,
+ * validate and process.
+ * 
+ * @param peer sender of the message
+ * @param msg the disconnect message
+ */
+void
+GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer,
+					  const struct GNUNET_MessageHeader *msg);
+
 
 #endif
 /* end of file gnunet-service-transport_neighbours.h */

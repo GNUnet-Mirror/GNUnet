@@ -276,9 +276,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 				       NULL);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
-    /* FIXME: do some validation to prevent an attacker from sending
-     * a fake disconnect message... */     	  
-    GST_neighbours_force_disconnect (peer);
+    GST_neighbours_handle_disconnect_message (peer, message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE:
     GST_neighbours_keepalive (peer);

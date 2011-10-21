@@ -112,11 +112,17 @@ struct SessionDisconnectMessage
   struct GNUNET_TIME_AbsoluteNBO timestamp;
 
   /**
+   * Public key of the sender.
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  
+  /**
    * Signature of the peer that sends us the disconnect.  Only
    * valid if the timestamp is AFTER the timestamp from the
    * corresponding 'CONNECT' message.
    */
   struct GNUNET_CRYPTO_RsaSignature signature;
+
 };
 
 
@@ -1169,9 +1175,11 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
     disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
     disconnect_msg.reserved = htonl (0);
     disconnect_msg.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
-					 sizeof (struct GNUNET_TIME_AbsoluteNBO));
+					 sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+					 sizeof (struct GNUNET_TIME_AbsoluteNBO) );
     disconnect_msg.purpose.purpose = htonl (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT);
     disconnect_msg.timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+    disconnect_msg.public_key = GST_my_public_key;
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CRYPTO_rsa_sign (GST_my_private_key,
 					   &disconnect_msg.purpose,
@@ -1191,6 +1199,72 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
       return;                     /* gone already */
   }
   disconnect_neighbour (n);
+}
+
+
+/**
+ * We received a disconnect message from the given peer,
+ * validate and process.
+ * 
+ * @param peer sender of the message
+ * @param msg the disconnect message
+ */
+void
+GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer,
+					  const struct GNUNET_MessageHeader *msg)
+{
+  struct NeighbourMapEntry *n;
+  const struct SessionDisconnectMessage *sdm;
+  GNUNET_HashCode hc;
+
+  if (ntohs (msg->size) != sizeof (struct SessionDisconnectMessage))
+  {
+    // GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (GST_stats,
+			      gettext_noop ("# disconnect messages ignored (old format)"), 1,
+			      GNUNET_NO);
+    return;
+  }
+  sdm = (const struct SessionDisconnectMessage* ) msg;
+  n = lookup_neighbour (peer);
+  if (NULL == n)
+    return;                     /* gone already */
+  if (GNUNET_TIME_absolute_ntoh (sdm->timestamp).abs_value <=
+      n->connect_ts.abs_value)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+			      gettext_noop ("# disconnect messages ignored (timestamp)"), 1,
+			      GNUNET_NO);
+    return;
+  }
+  GNUNET_CRYPTO_hash (&sdm->public_key,
+		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &hc);
+  if (0 != memcmp (peer,
+		   &hc,
+		   sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  if (ntohl (sdm->purpose.size) != 
+      sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+      sizeof (struct GNUNET_TIME_AbsoluteNBO))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_rsa_verify (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT,
+				&sdm->purpose,
+				&sdm->signature,
+				&sdm->public_key))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  GST_neighbours_force_disconnect (peer);
 }
 
 
