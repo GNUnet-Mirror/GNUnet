@@ -55,7 +55,7 @@ struct StatsContext
 /**
  * Time to wait for stuff that should be rather fast
  */
-#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * DIFFERENT TESTS TO RUN
@@ -883,6 +883,16 @@ main (int argc, char *argv[])
 #endif
     NULL
   };
+
+  /* Each peer is supposed to generate the following callbacks:
+   * 1 incoming tunnel (@dest)
+   * 1 connected peer (@orig)
+   * 1 received data packet (@dest)
+   * 1 received data packet (@orig)
+   * 1 received tunnel destroy (@dest)
+   * _________________________________
+   * 5 x ok expected per peer
+   */
   int ok_goal;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "***************** test: Start\n");
