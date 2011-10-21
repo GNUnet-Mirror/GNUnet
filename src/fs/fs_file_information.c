@@ -520,6 +520,25 @@ update_metamap (void *cls,
 
 
 /**
+ * Aggregate information we keep for keywords in each directory.
+ */
+struct KeywordInformation
+{
+  
+  /**
+   * Mime-type of keyword.
+   */
+  const char *keyword;
+
+  /**
+   * How often does this meta value occur in this directory?
+   */
+  unsigned int frequency;
+
+};
+
+
+/**
  * Closure for dirproc function.
  */
 struct EntryProcCls
@@ -538,6 +557,13 @@ struct EntryProcCls
   struct GNUNET_CONTAINER_MultiHashMap *metamap;
 
   /**
+   * Map describing the keywords for all entries in the
+   * directory.  Keys are the hash of the keyword,
+   * values are of type 'struct KeywordInformation'.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *keywordmap;
+
+  /**
    * Number of entries in 'entries'.
    */
   unsigned int count;
@@ -547,17 +573,23 @@ struct EntryProcCls
 
 /**
  * Function that processes a directory entry that
- * was obtained from the scanner.
+ * was obtained from the scanner.  Adds each entry to
+ * the directory and computes directroy meta map.
+ *
  * @param cls our closure
  * @param filename name of the file (unused, why there???)
  * @param fi information for publishing the file
  */
 static void
-dirproc (void *cls, const char *filename, 
-	 struct GNUNET_FS_FileInformation *fi)
+dirproc_add (void *cls, const char *filename, 
+	     struct GNUNET_FS_FileInformation *fi)
 {
   struct EntryProcCls *dc = cls;
-
+  unsigned int i;
+  const char *kw;
+  struct KeywordInformation *ki;
+  GNUNET_HashCode key;
+ 
   GNUNET_assert (fi->next == NULL);
   GNUNET_assert (fi->dir == NULL);
   fi->next = dc->entries;
@@ -567,6 +599,20 @@ dirproc (void *cls, const char *filename,
     GNUNET_CONTAINER_meta_data_iterate (fi->meta,
 					&update_metamap,
 					dc->metamap);
+  for (i=0;i<fi->keywords->data.ksk.keywordCount;i++)
+  {
+    kw = fi->keywords->data.ksk.keywords[i];   
+    GNUNET_CRYPTO_hash (kw, strlen(kw), &key);
+    ki = GNUNET_CONTAINER_multihashmap_get (dc->keywordmap, &key);
+    if (ki == NULL)
+    {
+      ki = GNUNET_malloc (sizeof (struct KeywordInformation));
+      ki->keyword = &kw[1];
+      GNUNET_CONTAINER_multihashmap_put (dc->keywordmap, &key, ki,
+					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    }
+    ki->frequency++;  
+  }
 }
 
 
@@ -611,15 +657,16 @@ compute_directory_metadata (void *cls,
   struct ComputeDirectoryMetadataContext *cdmc = cls;
   struct MetaValueInformation *mvi = value;
 
-  if (mvi->frequency > cdmc->threshold)
+  if (mvi->frequency > cdmc->threshold) 
   {
-    (void) GNUNET_CONTAINER_meta_data_insert (cdmc->meta,
-					      "<children>",
-					      mvi->type,
-					      mvi->format,
-					      mvi->mime_type,
-					      mvi->data,
-					      mvi->data_size);
+    if (mvi->type != EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME)
+      (void) GNUNET_CONTAINER_meta_data_insert (cdmc->meta,
+						"<children>",
+						mvi->type,
+						mvi->format,
+						mvi->mime_type,
+						mvi->data,
+						mvi->data_size);
     if ( (mvi->format == EXTRACTOR_METAFORMAT_UTF8) ||
 	 (mvi->format == EXTRACTOR_METAFORMAT_C_STRING) )
       GNUNET_FS_uri_ksk_add_keyword (cdmc->ksk,
@@ -627,6 +674,32 @@ compute_directory_metadata (void *cls,
 				     GNUNET_NO);
   } 
   GNUNET_free (mvi);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Add keywords that occur in more than the threshold entries of the
+ * directory to the directory itself.  
+ *
+ * @param cls the 'struct ComputeDirectoryMetadataContext'
+ * @param key unused
+ * @param value the 'struct Keywordnformation' (to be freed as well)
+ * @return GNUNET_OK
+ */
+static int
+compute_directory_keywords (void *cls,
+			    const GNUNET_HashCode *key,
+			    void *value)
+{
+  struct ComputeDirectoryMetadataContext *cdmc = cls;
+  struct KeywordInformation *ki = value;
+
+  if (ki->frequency > cdmc->threshold)       
+    (void) GNUNET_FS_uri_ksk_add_keyword (cdmc->ksk,
+					  ki->keyword,
+					  GNUNET_NO);
+  GNUNET_free (ki);
   return GNUNET_OK;
 }
 
@@ -669,26 +742,46 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
   const char *ss;
   struct GNUNET_FS_Uri *cksk;
   char *dn;
+  struct GNUNET_FS_FileInformation *epos;
+  unsigned int i;
+  const char *kw;
 
   dc.entries = NULL;
   dc.count = 0;
   dc.metamap = GNUNET_CONTAINER_multihashmap_create (64);
-  scanner (scanner_cls, h, filename, do_index, bo, &dirproc, &dc, emsg);
+  dc.keywordmap = GNUNET_CONTAINER_multihashmap_create (64);
+  /* update children to point to directory and generate statistics
+     on all meta data in children */
+  scanner (scanner_cls, h, filename, do_index, bo, &dirproc_add, &dc, emsg);
   cdmc.meta = GNUNET_CONTAINER_meta_data_create ();
   cdmc.ksk = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   cdmc.ksk->type = ksk;
-  cdmc.threshold = dc.count / 2; /* 50% threshold for now */
+  cdmc.threshold = 1 + dc.count / 2; /* 50% threshold for now */
   GNUNET_FS_meta_data_make_directory (cdmc.meta);
-  /* FIXME: remove meta data above a certain threshold from files
-     to *only* have it for the directory? */
   GNUNET_CONTAINER_multihashmap_iterate (dc.metamap,
 					 &compute_directory_metadata,
 					 &cdmc);
+  GNUNET_CONTAINER_multihashmap_iterate (dc.keywordmap,
+					 &compute_directory_keywords,
+					 &cdmc);
   GNUNET_CONTAINER_multihashmap_destroy (dc.metamap);
+  GNUNET_CONTAINER_multihashmap_destroy (dc.keywordmap);
   GNUNET_FS_uri_ksk_add_keyword (cdmc.ksk,
 				 GNUNET_FS_DIRECTORY_MIME,
 				 GNUNET_NO);
   cksk = GNUNET_FS_uri_ksk_canonicalize (cdmc.ksk);
+
+  /* remove keywords in children that are already in the
+     parent */
+  for (epos = dc.entries; NULL != epos; epos = epos->next)
+  {
+    for (i=0;i<cksk->data.ksk.keywordCount;i++)
+      {
+	kw = cksk->data.ksk.keywords[i];
+	GNUNET_FS_uri_ksk_remove_keyword (epos->keywords,
+					  &kw[1]);
+      }
+  }
   ret =
       GNUNET_FS_file_information_create_empty_directory (h, client_info, cksk,
                                                          cdmc.meta, bo);
