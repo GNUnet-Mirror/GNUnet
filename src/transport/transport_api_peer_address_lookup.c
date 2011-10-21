@@ -144,6 +144,7 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
     return NULL;
   msg.header.size = htons (sizeof (struct PeerAddressLookupMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP);
+  msg.reserved = htonl (0);
   msg.timeout = GNUNET_TIME_relative_hton (timeout);
   memcpy (&msg.peer, peer, sizeof (struct GNUNET_PeerIdentity));
   alc =
