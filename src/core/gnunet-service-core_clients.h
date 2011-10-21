@@ -56,6 +56,7 @@ GSC_CLIENTS_send_to_client (struct GNUNET_SERVER_Client *client,
  * @param atsi_count number of entries in 'ats' array
  * @param tmap_old previous type map for the neighbour, NULL for disconnect
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
+ * @param is_new GNUNET_YES if this is a completely new neighbour
  */
 void
 GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
@@ -63,7 +64,8 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
 					   const struct GNUNET_ATS_Information *atsi,
 					   unsigned int atsi_count,
 					   const struct GSC_TypeMap *tmap_old,
-					   const struct GSC_TypeMap *tmap_new);
+					   const struct GSC_TypeMap *tmap_new,
+					   int is_new);
 
 
 /**
