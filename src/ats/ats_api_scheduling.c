@@ -209,6 +209,14 @@ transmit_message_to_ats (void *cls,
   char *cbuf;
 
   sh->th = NULL;
+  if ( (size == 0) || (buf == NULL))
+  {
+    GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
+    sh->client = NULL;
+    sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                             &reconnect_task, sh);
+    return 0;
+  }
   ret = 0;
   cbuf = buf;
   while ( (NULL != (p = sh->pending_head)) &&
@@ -251,7 +259,7 @@ do_transmit (struct GNUNET_ATS_SchedulingHandle *sh)
   sh->th = GNUNET_CLIENT_notify_transmit_ready (sh->client,
 						p->size,
 						GNUNET_TIME_UNIT_FOREVER_REL,
-						GNUNET_YES,
+						GNUNET_NO,
 						&transmit_message_to_ats, sh);
 }
 

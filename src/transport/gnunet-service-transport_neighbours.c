@@ -404,7 +404,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 
   if  (((n->session == NULL) && (n->addr == NULL) && (n->addrlen == 0)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No address peer for peer `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No address for peer `%s'\n",
                 GNUNET_i2s (&n->id));
     transmit_send_continuation (mq, &n->id, GNUNET_SYSERR);
     n->transmission_task = GNUNET_SCHEDULER_add_now (&transmission_task, n);
