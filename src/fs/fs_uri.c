@@ -1040,6 +1040,7 @@ canonicalize_keyword (const char *in)
     }
     rpos++;
   }
+  *wpos = '\0';
   return ret;
 }
 
