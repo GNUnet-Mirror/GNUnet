@@ -41,8 +41,6 @@
 
 static int ok;
 
-static int far;
-
 /**
  * Be verbose
  */
@@ -115,6 +113,12 @@ struct GNUNET_DHT_Handle **hs;
 
 struct GNUNET_DHT_GetHandle *get_h;
 
+struct GNUNET_DHT_GetHandle *get_h_2;
+
+struct GNUNET_DHT_GetHandle *get_h_far;
+
+unsigned int found;
+
 /**
  * Check whether peers successfully shut down.
  */
@@ -168,6 +172,10 @@ disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_cancel (put_task);
   if (NULL != get_h)
     GNUNET_DHT_get_stop(get_h);
+  if (NULL != get_h_2)
+    GNUNET_DHT_get_stop(get_h_2);
+  if (NULL != get_h_far)
+    GNUNET_DHT_get_stop(get_h_far);
   for (i = 0; i < num_peers;  i++)
   {
     GNUNET_DHT_disconnect(hs[i]);
@@ -185,47 +193,74 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     unsigned int put_path_length,
                     enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
-    ok = 0;
-    
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: ************* FOUND!!! ***********\n");
-    if (sizeof(GNUNET_HashCode) == size)
-    {
-      const GNUNET_HashCode *h = data;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "test:   Contents: %s\n",
-                  GNUNET_h2s_full (h));
+  int i;
 
-    }
-    GNUNET_SCHEDULER_cancel(disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "test: ************* FOUND!!! ***********\n");
+  if (sizeof(GNUNET_HashCode) == size)
+  {
+    const GNUNET_HashCode *h = data;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "test:   Contents: %s\n",
+                GNUNET_h2s_full (h));
+
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "test: PATH: (get %u, put %u)\n",
+            get_path_length,
+            put_path_length);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "test:   LOCAL\n");
+  for (i = get_path_length - 1; i >= 0; i--)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "test:   %s\n",
+            GNUNET_i2s (&get_path[i]));
+  }
+  for (i = put_path_length - 1; i >= 0; i--)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "test:   %s\n",
+            GNUNET_i2s (&put_path[i]));
+  }
+  found++;
+  if (found < 3)
+    return;
+  ok = 0;
+  GNUNET_SCHEDULER_cancel(disconnect_task);
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
 }
 
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTING_Daemon *d;
+  struct GNUNET_TESTING_Daemon *d2;
+  struct GNUNET_TESTING_Daemon *d_far;
   struct GNUNET_TESTING_Daemon *o;
   struct GNUNET_TESTING_Daemon *aux;
   const char *id_aux;
   const char *id_origin = "FC74";
   const char *id_near = "9P6V";
+  const char *id_near2 = "2GDS";
   const char *id_far = "KPST";
   unsigned int i;
 
-  d = o = NULL;
+  d = d2 = d_far = o = NULL;
   for (i = 0; i < num_peers; i++)
   {
     aux = GNUNET_TESTING_daemon_get (pg, i);
     id_aux = GNUNET_i2s (&aux->id);
     if (strcmp (id_aux, id_origin) == 0)
       o = aux;
-    if (far == GNUNET_YES && strcmp (id_aux, id_far) == 0)
+    if (strcmp (id_aux, id_far) == 0)
+      d_far = aux;
+    if (strcmp (id_aux, id_near) == 0)
       d = aux;
-    if (far == GNUNET_NO && strcmp (id_aux, id_near) == 0)
-      d = aux;
+    if (strcmp (id_aux, id_near2) == 0)
+      d2 = aux;
   }
-  if (NULL == o || NULL == d)
+  if (NULL == o || NULL == d || NULL == d2 || NULL == d_far)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "test: Peers not found (hostkey file changed?)\n");
@@ -237,8 +272,15 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "test: looking for %s\n",
               GNUNET_h2s_full (&d->id.hashPubKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: looking for %s\n",
+              GNUNET_h2s_full (&d2->id.hashPubKey));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test: looking for %s\n",
+              GNUNET_h2s_full (&d_far->id.hashPubKey));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test:        from %s\n",
               GNUNET_h2s_full (&o->id.hashPubKey));
+  found = 0;
   get_h = GNUNET_DHT_get_start (hs[0],
                                 GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
                                 GNUNET_BLOCK_TYPE_TEST,   /* type */
@@ -250,6 +292,28 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                 0,        /* xquery bits */
                                 &dht_get_id_handler,
                                 NULL);
+  get_h_2 = GNUNET_DHT_get_start (hs[0],
+                                  GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
+                                  GNUNET_BLOCK_TYPE_TEST,   /* type */
+                                  &d2->id.hashPubKey,   /*key to search */
+                                  4U,        /* replication level */
+                                  GNUNET_DHT_RO_RECORD_ROUTE |
+                                    GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                  NULL,     /* xquery */
+                                  0,        /* xquery bits */
+                                  &dht_get_id_handler,
+                                  NULL);
+  get_h_far = GNUNET_DHT_get_start (hs[0],
+                                    GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
+                                    GNUNET_BLOCK_TYPE_TEST,   /* type */
+                                    &d_far->id.hashPubKey,   /*key to search */
+                                    4U,        /* replication level */
+                                    GNUNET_DHT_RO_RECORD_ROUTE |
+                                      GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                    NULL,     /* xquery */
+                                    0,        /* xquery bits */
+                                    &dht_get_id_handler,
+                                    NULL);
   GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task = GNUNET_SCHEDULER_add_delayed(
           GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30),
@@ -522,15 +586,6 @@ main (int xargc, char *xargv[])
 #endif
     NULL
   };
-  
-  if (strstr (xargv[0], "2dtorus_far") != NULL)
-  {
-    far = GNUNET_YES;
-  }
-  else
-  {
-    far = GNUNET_NO;
-  }
 
   GNUNET_PROGRAM_run (sizeof(argv)/sizeof(char*) - 1, argv, "test_dht_2dtorus",
                       gettext_noop ("Test dht in a small 2D torus."), options,
