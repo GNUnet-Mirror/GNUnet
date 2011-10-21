@@ -519,14 +519,8 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   for (b = 0; b < 64; b++)
     if (0 != (mc->bits & (1LL << b)))
       bc++;
-  if (mc->frag_times_write_offset - mc->frag_times_start_offset > 1)
-    dc->latency = estimate_latency (mc);
-  delay = GNUNET_TIME_relative_multiply (dc->latency, bc + 1);
-  if ((0 == mc->bits) || (GNUNET_YES == duplicate))     /* message complete or duplicate, ACK now! */
-    delay = GNUNET_TIME_UNIT_ZERO;
-  if (GNUNET_SCHEDULER_NO_TASK != mc->ack_task)
-    GNUNET_SCHEDULER_cancel (mc->ack_task);
-  mc->ack_task = GNUNET_SCHEDULER_add_delayed (delay, &send_ack, mc);
+
+  /* notify about complete message */
   if ((duplicate == GNUNET_NO) && (0 == mc->bits))
   {
     GNUNET_STATISTICS_update (dc->stats, _("# messages defragmented"), 1,
@@ -534,6 +528,17 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
     /* message complete, notify! */
     dc->proc (dc->cls, mc->msg);
   }
+  /* send ACK */
+  if (mc->frag_times_write_offset - mc->frag_times_start_offset > 1)
+    dc->latency = estimate_latency (mc);
+  delay = GNUNET_TIME_relative_multiply (dc->latency, bc + 1);
+  if ((0 == mc->bits) || (GNUNET_YES == duplicate))     /* message complete or duplicate, ACK now! */
+  {
+    delay = GNUNET_TIME_UNIT_ZERO;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != mc->ack_task)
+    GNUNET_SCHEDULER_cancel (mc->ack_task);
+  mc->ack_task = GNUNET_SCHEDULER_add_delayed (delay, &send_ack, mc);
   if (duplicate == GNUNET_YES)
     return GNUNET_NO;
   return GNUNET_YES;
