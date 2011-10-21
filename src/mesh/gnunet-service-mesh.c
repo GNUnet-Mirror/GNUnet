@@ -148,6 +148,11 @@ struct MeshPeerInfo
   struct GNUNET_DHT_GetHandle *dhtget;
 
     /**
+     * Closure given to the DHT GET
+     */
+  struct MeshPathInfo *dhtgetcls;
+
+    /**
      * Handles to stop queued transmissions for this peer
      */
   struct GNUNET_CORE_TransmitHandle *core_transmit[CORE_QUEUE_SIZE];
@@ -1241,6 +1246,7 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   Starting DHT GET for peer %s\n",
                 GNUNET_i2s (&id));
+    peer->dhtgetcls = path_info;
     peer->dhtget =
         GNUNET_DHT_get_start(dht_handle,       /* handle */
                              GNUNET_TIME_UNIT_FOREVER_REL,     /* timeout */
@@ -1258,29 +1264,47 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
 }
 
 
-#if LATER
 /**
  * Destroy the peer_info and free any allocated resources linked to it
- * @param t tunnel the path belongs to
- * @param pi the peer_info to destroy
+ * 
+ * @param pi The peer_info to destroy.
+ * 
  * @return GNUNET_OK on success
  */
 static int
 peer_info_destroy (struct MeshPeerInfo *pi)
 {
-  GNUNET_HashCode hash;
   struct GNUNET_PeerIdentity id;
+  GNUNET_HashCode hash;
+  struct MeshPeerPath *p;
+  struct MeshPeerPath *nextp;
+  unsigned int i;
 
   GNUNET_PEER_resolve (pi->id, &id);
   GNUNET_PEER_change_rc (pi->id, -1);
   GNUNET_CRYPTO_hash (&id, sizeof (struct GNUNET_PeerIdentity), &hash);
 
   GNUNET_CONTAINER_multihashmap_remove (peers, &hash, pi);
-  GNUNET_SCHEDULER_cancel (pi->path_refresh_task);
+  if (NULL != pi->dhtget)
+  {
+    GNUNET_DHT_get_stop(pi->dhtget);
+    GNUNET_free (pi->dhtgetcls);
+  }
+  for (i = 0; i < CORE_QUEUE_SIZE; i++)
+  {
+    peer_info_cancel_transmission(pi, i);
+  }
+  p = pi->path_head;
+  while (NULL != p)
+  {
+    nextp = p->next;
+    GNUNET_CONTAINER_DLL_remove (pi->path_head, pi->path_tail, p);
+    path_destroy (p);
+    p = nextp;
+  }
   GNUNET_free (pi);
   return GNUNET_OK;
 }
-#endif
 
 
 /**
@@ -1337,6 +1361,7 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
       if ((p->peers[i] == p1 && p->peers[i + 1] == p2) ||
           (p->peers[i] == p2 && p->peers[i + 1] == p1))
       {
+        GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, p);
         path_destroy (p);
         destroyed++;
         break;
@@ -2246,34 +2271,6 @@ send_core_path_ack (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: PATH ACK sent!\n");
   return sizeof (struct GNUNET_MESH_PathACK);
 }
-
-
-#if LATER
-/**
- * Send another peer a notification to destroy a tunnel
- * @param cls The tunnel to destroy
- * @param size Size in the buffer
- * @param buf Memory where to put the data to transmit
- * @return Size of data put in buffer
- */
-static size_t
-send_core_tunnel_destroy (void *cls, size_t size, void *buf)
-{
-  struct MeshTunnel *t = cls;
-  struct MeshClient *c;
-  struct GNUNET_MESH_TunnelMessage *msg;
-
-  c = t->client;
-  msg = buf;
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
-   /*FIXME*/ msg->header.size =
-      htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg->tunnel_id = htonl (t->id.tid);
-
-  tunnel_destroy (c, t);
-  return sizeof (struct GNUNET_MESH_TunnelMessage);
-}
-#endif
 
 
 /******************************************************************************/
@@ -4077,13 +4074,12 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 /******************************************************************************/
 
 /**
- * Iterator over hash map entries.
+ * Iterator over tunnel hash map entries to destroy the tunnel during shutdown.
  *
  * @param cls closure
  * @param key current key code
  * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
+ * @return GNUNET_YES if we should continue to iterate,
  *         GNUNET_NO if not.
  */
 int
@@ -4091,6 +4087,23 @@ shutdown_tunnel (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct MeshTunnel *t = value;
   tunnel_destroy(t);
+  return GNUNET_YES;
+}
+
+/**
+ * Iterator over peer hash map entries to destroy the tunnel during shutdown.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to iterate,
+ *         GNUNET_NO if not.
+ */
+int
+shutdown_peer (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct MeshPeerInfo *p = value;
+  peer_info_destroy(p);
   return GNUNET_YES;
 }
 
@@ -4111,6 +4124,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     core_handle = NULL;
   }
   GNUNET_CONTAINER_multihashmap_iterate(tunnels, &shutdown_tunnel, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate(peers, &shutdown_peer, NULL);
   if (dht_handle != NULL)
   {
     GNUNET_DHT_disconnect (dht_handle);
