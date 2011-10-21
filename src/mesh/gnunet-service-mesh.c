@@ -3011,12 +3011,14 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct GNUNET_PeerIdentity pi;
   int i;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "MESH: Got results from DHT!\n");
   GNUNET_PEER_resolve (path_info->peer->id, &pi);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "MESH: Got results from DHT for %s\n",
+             "MESH:   for %s\n",
              GNUNET_h2s_full(&pi.hashPubKey));
-  GNUNET_DHT_get_stop(path_info->peer->dhtget);
-  path_info->peer->dhtget = NULL;
+//   GNUNET_DHT_get_stop(path_info->peer->dhtget);
+//   path_info->peer->dhtget = NULL;
 
   p = path_build_from_dht (get_path, get_path_length,
                            put_path, put_path_length);
@@ -3058,7 +3060,6 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct GNUNET_PeerIdentity id;
   struct MeshTunnel *t = cls;
   struct MeshPeerInfo *peer_info;
-  struct MeshPathInfo *path_info;
   struct MeshPeerPath *p;
   int i;
 
