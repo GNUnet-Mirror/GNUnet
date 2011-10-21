@@ -1033,6 +1033,9 @@ canonicalize_keyword (const char *in)
       wpos++;
       break;
     default:
+      if (isspace ((unsigned char) *rpos) || 
+	  isdigit ((unsigned char) *rpos) )
+	break;
       /* replace characters listed above with '_' */
       *wpos = '_';
       wpos++;
@@ -1059,16 +1062,38 @@ GNUNET_FS_uri_ksk_canonicalize (const struct GNUNET_FS_Uri *uri)
   struct GNUNET_FS_Uri *ret;
   unsigned int kc;
   unsigned int i;
-  char **kl;
+  const char *in;
+  char *sb;
+  char *cc;
+  const char *tok;
 
-  kc = uri->data.ksk.keywordCount;
-  kl = GNUNET_malloc (kc * sizeof (char *));
-  for (i = 0; i < kc; i++)
-    kl[i] = canonicalize_keyword (uri->data.ksk.keywords[i]);
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   ret->type = ksk;
-  ret->data.ksk.keywordCount = kc;
-  ret->data.ksk.keywords = kl;
+  kc = uri->data.ksk.keywordCount;
+  for (i = 0; i < kc; i++)
+  {
+    in = uri->data.ksk.keywords[i];
+    GNUNET_FS_uri_ksk_add_keyword (ret,
+				   &in[1],
+				   (in[0] == '+') ? GNUNET_YES : GNUNET_NO);
+    sb = GNUNET_strdup (&in[1]);
+#define DELIMS " \\|\"'`/&@-_,.;!?+-*^$#~=[]{}()<>"
+    for (tok = strtok (sb, DELIMS); NULL != tok; tok = strtok (NULL, DELIMS))
+#undef DELIMS
+    {
+      if (strlen(tok) < 3)
+	continue;
+      GNUNET_FS_uri_ksk_add_keyword (ret,
+				     tok,
+				     GNUNET_NO);
+      cc = canonicalize_keyword (tok);
+      if (strlen (cc) > 2)
+	GNUNET_FS_uri_ksk_add_keyword (ret,
+				       cc,
+				       GNUNET_NO);    
+    }
+    GNUNET_free (sb);
+  }
   return ret;
 }
 

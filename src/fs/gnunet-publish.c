@@ -67,6 +67,9 @@ static int do_disable_creation_time;
 static GNUNET_SCHEDULER_TaskIdentifier kill_task;
 
 
+/**
+ * FIXME: docu
+ */
 static void
 do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -195,7 +198,6 @@ meta_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
  * @param is_mandatory is the keyword mandatory (in a search)
  * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR to abort
  */
-
 static int
 keyword_printer (void *cls, const char *keyword, int is_mandatory)
 {
@@ -277,6 +279,9 @@ publish_inspector (void *cls, struct GNUNET_FS_FileInformation *fi,
 }
 
 
+/**
+ * FIXME: docu
+ */
 static void
 uri_sks_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
                       const char *emsg)
@@ -293,6 +298,9 @@ uri_sks_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
 }
 
 
+/**
+ * FIXME: docu
+ */
 static void
 uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
                       const char *emsg)
@@ -513,8 +521,6 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
                                     NULL);
 }
-
-
 
 
 /**

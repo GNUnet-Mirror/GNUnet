@@ -328,8 +328,9 @@ struct DirScanCls
 
 
 /**
- * Function called on each entry in a file to
- * cause default-publishing.
+ * Function called on each entry in a file to cause
+ * default-publishing.
+ *
  * @param cls closure (struct DirScanCls)
  * @param filename name of the file to be published
  * @return GNUNET_OK on success, GNUNET_SYSERR to abort
@@ -432,6 +433,93 @@ GNUNET_FS_directory_scanner_default (void *cls, struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Aggregate information we keep for meta data in each directory.
+ */
+struct MetaValueInformation
+{
+  
+  /**
+   * Mime-type of data.
+   */
+  const char *mime_type;
+
+  /**
+   * The actual meta data.
+   */
+  const char *data;
+
+  /**
+   * Number of bytes in 'data'.
+   */
+  size_t data_size;
+
+  /**
+   * Type of the meta data.
+   */
+  enum EXTRACTOR_MetaType type;
+
+  /**
+   * Format of the meta data.
+   */
+  enum EXTRACTOR_MetaFormat format;
+
+  /**
+   * How often does this meta value occur in this directory?
+   */
+  unsigned int frequency;
+
+};
+
+
+/**
+ * Type of a function that libextractor calls for each
+ * meta data item found.
+ *
+ * @param cls the container multihashmap to update
+ * @param plugin_name name of the plugin that produced this value;
+ *        special values can be used (i.e. '<zlib>' for zlib being
+ *        used in the main libextractor library and yielding
+ *        meta data).
+ * @param type libextractor-type describing the meta data
+ * @param format basic format information about data 
+ * @param data_mime_type mime-type of data (not of the original file);
+ *        can be NULL (if mime-type is not known)
+ * @param data actual meta-data found
+ * @param data_len number of bytes in data
+ * @return 0 to continue extracting / iterating
+ */ 
+static int
+update_metamap (void *cls,
+		const char *plugin_name,
+		enum EXTRACTOR_MetaType type,
+		enum EXTRACTOR_MetaFormat format,
+		const char *data_mime_type,
+		const char *data,
+		size_t data_len)
+{
+  struct GNUNET_CONTAINER_MultiHashMap *map = cls;
+  GNUNET_HashCode key;
+  struct MetaValueInformation *mvi;
+
+  GNUNET_CRYPTO_hash (data, data_len, &key);
+  mvi = GNUNET_CONTAINER_multihashmap_get (map, &key);
+  if (mvi == NULL)
+  {
+    mvi = GNUNET_malloc (sizeof (struct MetaValueInformation));
+    mvi->mime_type = data_mime_type;
+    mvi->data = data;
+    mvi->data_size = data_len;
+    mvi->type = type;
+    mvi->format = format;
+    GNUNET_CONTAINER_multihashmap_put (map, &key, mvi,
+				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  }
+  mvi->frequency++;  
+  return 0; 
+}
+
+
+/**
  * Closure for dirproc function.
  */
 struct EntryProcCls
@@ -441,6 +529,18 @@ struct EntryProcCls
    * created.
    */
   struct GNUNET_FS_FileInformation *entries;
+
+  /**
+   * Map describing the meta data for all entries in the
+   * directory.  Keys are the hash of the meta-value,
+   * values are of type 'struct MetaValueInformation'.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *metamap;
+
+  /**
+   * Number of entries in 'entries'.
+   */
+  unsigned int count;
 
 };
 
@@ -453,7 +553,8 @@ struct EntryProcCls
  * @param fi information for publishing the file
  */
 static void
-dirproc (void *cls, const char *filename, struct GNUNET_FS_FileInformation *fi)
+dirproc (void *cls, const char *filename, 
+	 struct GNUNET_FS_FileInformation *fi)
 {
   struct EntryProcCls *dc = cls;
 
@@ -461,6 +562,72 @@ dirproc (void *cls, const char *filename, struct GNUNET_FS_FileInformation *fi)
   GNUNET_assert (fi->dir == NULL);
   fi->next = dc->entries;
   dc->entries = fi;
+  dc->count++;
+  if (NULL != fi->meta)
+    GNUNET_CONTAINER_meta_data_iterate (fi->meta,
+					&update_metamap,
+					dc->metamap);
+}
+
+
+/**
+ * Closure for 'compute_directory_metadata'.
+ */
+struct ComputeDirectoryMetadataContext
+{
+  /**
+   * Where to store the extracted keywords.
+   */
+  struct GNUNET_FS_Uri *ksk;
+
+  /**
+   * Where to store the extracted meta data.
+   */
+  struct GNUNET_CONTAINER_MetaData *meta;
+
+  /**
+   * Threshold to apply for adding meta data.
+   */ 
+  unsigned int threshold;
+};
+
+
+/**
+ * Add metadata that occurs in more than the threshold entries of the
+ * directory to the directory itself.  For example, if most files in a
+ * directory are of the same mime-type, the directory should have that
+ * mime-type as a keyword.
+ *
+ * @param cls the 'struct ComputeDirectoryMetadataContext'
+ * @param key unused
+ * @param value the 'struct MetaValueInformation' (to be freed as well)
+ * @return GNUNET_OK
+ */
+static int
+compute_directory_metadata (void *cls,
+			    const GNUNET_HashCode *key,
+			    void *value)
+{
+  struct ComputeDirectoryMetadataContext *cdmc = cls;
+  struct MetaValueInformation *mvi = value;
+
+  if (mvi->frequency > cdmc->threshold)
+  {
+    (void) GNUNET_CONTAINER_meta_data_insert (cdmc->meta,
+					      "<children>",
+					      mvi->type,
+					      mvi->format,
+					      mvi->mime_type,
+					      mvi->data,
+					      mvi->data_size);
+    if ( (mvi->format == EXTRACTOR_METAFORMAT_UTF8) ||
+	 (mvi->format == EXTRACTOR_METAFORMAT_C_STRING) )
+      GNUNET_FS_uri_ksk_add_keyword (cdmc->ksk,
+				     mvi->data,
+				     GNUNET_NO);
+  } 
+  GNUNET_free (mvi);
+  return GNUNET_OK;
 }
 
 
@@ -496,23 +663,37 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
                                                   char **emsg)
 {
   struct GNUNET_FS_FileInformation *ret;
+  struct ComputeDirectoryMetadataContext cdmc;
   struct EntryProcCls dc;
-  struct GNUNET_FS_Uri *ksk;
-  struct GNUNET_CONTAINER_MetaData *meta;
   const char *fn;
   const char *ss;
+  struct GNUNET_FS_Uri *cksk;
   char *dn;
 
   dc.entries = NULL;
-  meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_FS_meta_data_make_directory (meta);
+  dc.count = 0;
+  dc.metamap = GNUNET_CONTAINER_multihashmap_create (64);
   scanner (scanner_cls, h, filename, do_index, bo, &dirproc, &dc, emsg);
-  ksk = NULL;                   // FIXME...
-  // FIXME: create meta!
+  cdmc.meta = GNUNET_CONTAINER_meta_data_create ();
+  cdmc.ksk = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
+  cdmc.ksk->type = ksk;
+  cdmc.threshold = dc.count / 2; /* 50% threshold for now */
+  GNUNET_FS_meta_data_make_directory (cdmc.meta);
+  /* FIXME: remove meta data above a certain threshold from files
+     to *only* have it for the directory? */
+  GNUNET_CONTAINER_multihashmap_iterate (dc.metamap,
+					 &compute_directory_metadata,
+					 &cdmc);
+  GNUNET_CONTAINER_multihashmap_destroy (dc.metamap);
+  GNUNET_FS_uri_ksk_add_keyword (cdmc.ksk,
+				 GNUNET_FS_DIRECTORY_MIME,
+				 GNUNET_NO);
+  cksk = GNUNET_FS_uri_ksk_canonicalize (cdmc.ksk);
   ret =
-      GNUNET_FS_file_information_create_empty_directory (h, client_info, ksk,
-                                                         meta, bo);
-  GNUNET_CONTAINER_meta_data_destroy (meta);
+      GNUNET_FS_file_information_create_empty_directory (h, client_info, cksk,
+                                                         cdmc.meta, bo);
+  GNUNET_CONTAINER_meta_data_destroy (cdmc.meta);
+  GNUNET_FS_uri_destroy (cdmc.ksk);
   ret->data.dir.entries = dc.entries;
   while (dc.entries != NULL)
   {
