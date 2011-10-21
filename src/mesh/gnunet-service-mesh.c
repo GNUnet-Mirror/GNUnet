@@ -1341,7 +1341,6 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
                        GNUNET_PEER_Id p1,
                        GNUNET_PEER_Id p2)
 {
-  struct GNUNET_PeerIdentity id;
   struct MeshPeerPath *p;
   struct MeshPeerPath *aux;
   struct MeshPeerInfo *peer_d;
@@ -1404,26 +1403,7 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
     }
     else
     {
-      struct MeshPathInfo *path_info;
-
-      if (NULL != peer_d->dhtget)
-        return;
-      path_info = GNUNET_malloc(sizeof(struct MeshPathInfo));
-      path_info->path = p;
-      path_info->peer = peer_d;
-      path_info->t = peer->tunnels[i];
-      peer_d->dhtget =
-          GNUNET_DHT_get_start(dht_handle,       /* handle */
-                               GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
-                               GNUNET_BLOCK_TYPE_TEST,   /* type */
-                               &id.hashPubKey,   /*key to search */
-                               4,        /* replication level */
-                               GNUNET_DHT_RO_RECORD_ROUTE |
-                                 GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                               NULL,     /* xquery */
-                               0,        /* xquery bits */
-                               &dht_get_id_handler,
-                               (void *) path_info);
+      peer_info_connect (peer_d, peer->tunnels[i]);
     }
   }
 }
@@ -3097,23 +3077,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   if ((NULL == get_path || NULL == put_path) && NULL == peer_info->path_head &&
       NULL == peer_info->dhtget)
   {
-    path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
-    path_info->peer = peer_info;
-    path_info->t = t;
-    /* we don't have a route to the peer, let's try a direct lookup */
-    peer_info->dhtget =
-        GNUNET_DHT_get_start (dht_handle, /* handle */
-                              GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
-                              GNUNET_BLOCK_TYPE_TEST, /* block type */
-                              &pi->hashPubKey, /* key to look up */
-                              10U, /* replication level */
-                              GNUNET_DHT_RO_RECORD_ROUTE |
-                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                              /* option to dht: record route */
-                              NULL,     /* xquery */
-                              0,        /* xquery bits */
-                              dht_get_id_handler,  /* callback */
-                              path_info);       /* closure */
+    peer_info_connect (peer_info, t);
     return;
   }
 
