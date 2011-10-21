@@ -620,8 +620,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
 					   const struct GNUNET_ATS_Information *atsi,
 					   unsigned int atsi_count,
 					   const struct GSC_TypeMap *tmap_old,
-					   const struct GSC_TypeMap *tmap_new,
-					   int is_new)
+					   const struct GSC_TypeMap *tmap_new)
 {
   struct ConnectNotifyMessage *cnm;
   size_t size;
@@ -641,8 +640,6 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     if (tmap_old != NULL)
       old_match = GNUNET_YES;
   }
-  if (GNUNET_YES == is_new)
-    old_match = GNUNET_NO;
   if (old_match == new_match)
     return; /* no change */
   if (old_match == GNUNET_NO)
@@ -710,8 +707,7 @@ GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *ne
   for (c = client_head; c != NULL; c = c->next)
     GSC_CLIENTS_notify_client_about_neighbour (c, neighbour, atsi,
 					       atsi_count, 
-					       tmap_old, tmap_new,
-					       GNUNET_NO);
+					       tmap_old, tmap_new);
 }
 
 

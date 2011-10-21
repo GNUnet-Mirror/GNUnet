@@ -256,8 +256,7 @@ notify_client_about_session (void *cls,
 					     &session->peer,
 					     NULL, 0, /* FIXME: ATS!? */
 					     NULL, /* old TMAP: none */
-					     session->tmap,
-					     GNUNET_YES);
+					     session->tmap);
   return GNUNET_OK;
 }
 
