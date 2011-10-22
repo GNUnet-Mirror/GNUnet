@@ -231,6 +231,10 @@ transmit_typemap_task (void *cls,
   session->typemap_task = GNUNET_SCHEDULER_add_delayed (delay,
 							&transmit_typemap_task,
 							session);
+  GNUNET_STATISTICS_update (GSC_stats, 
+			    gettext_noop ("# typemap refreshs sent"),
+			    1,
+			    GNUNET_NO);
   hdr = GSC_TYPEMAP_compute_type_map_message ();
   GSC_KX_encrypt_and_transmit (session->kxinfo, 
 			       hdr,
@@ -265,10 +269,10 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
                  GNUNET_CONTAINER_multihashmap_put (sessions,
                                                     &peer->hashPubKey, session,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_STATISTICS_update (GSC_stats, 
-			    gettext_noop ("# entries in session map"),
-			    GNUNET_CONTAINER_multihashmap_size (sessions), 
-			    GNUNET_NO);
+  GNUNET_STATISTICS_set (GSC_stats, 
+			 gettext_noop ("# entries in session map"),
+			 GNUNET_CONTAINER_multihashmap_size (sessions), 
+			 GNUNET_NO);
 }
 
 
