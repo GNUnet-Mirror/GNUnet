@@ -1158,7 +1158,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx, const struct GNUNET_MessageH
   case KX_STATE_KEY_RECEIVED:
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
-                              ("# Session keys confirmed via PONG"), 1,
+                              ("# session keys confirmed via PONG"), 1,
                               GNUNET_NO);
     kx->status = KX_STATE_UP;
     GSC_SESSIONS_create (&kx->peer, kx);
