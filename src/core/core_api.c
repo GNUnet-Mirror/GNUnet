@@ -1168,7 +1168,7 @@ reconnect (struct GNUNET_CORE_Handle *h)
   init = (struct InitMessage *) &cm[1];
   init->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT);
   init->header.size = htons (msize);
-  opt = GNUNET_CORE_OPTION_SEND_CONNECT | GNUNET_CORE_OPTION_SEND_DISCONNECT;
+  opt = 0;
   if (h->inbound_notify != NULL)
   {
     if (h->inbound_hdr_only)
