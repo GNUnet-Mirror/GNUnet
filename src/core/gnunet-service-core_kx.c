@@ -1025,6 +1025,10 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   left = GNUNET_TIME_absolute_get_remaining (kx->timeout);
   if (left.rel_value == 0)
   {    
+    GNUNET_STATISTICS_update (GSC_stats, 
+			      gettext_noop ("# sessions terminated by timeout"),
+			      1,
+			      GNUNET_NO);
     GSC_SESSIONS_end (&kx->peer);
     kx->status = KX_STATE_DOWN;
     return;

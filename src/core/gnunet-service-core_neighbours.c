@@ -158,6 +158,10 @@ free_neighbour (struct Neighbour *n)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
     n->th = NULL;
   }
+  GNUNET_STATISTICS_update (GSC_stats, 
+			    gettext_noop ("# sessions terminated by transport disconnect"),
+			    1,
+			    GNUNET_NO);
   GSC_SESSIONS_end (&n->peer);
   if (NULL != n->kxinfo)
   {
