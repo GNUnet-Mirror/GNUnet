@@ -341,7 +341,9 @@ port_in_ports (uint64_t ports, uint16_t port)
 void
 send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
                   const struct GNUNET_ATS_Information *atsi
-                  __attribute__ ((unused)))
+                  __attribute__ ((unused)),
+		  unsigned int atsi_count
+		  __attribute__ ((unused)))
 {
   /* peer == NULL means that all peers in this request are connected */
   if (peer == NULL)
@@ -872,7 +874,9 @@ receive_udp_back (void *cls
                   __attribute__ ((unused)),
                   const struct GNUNET_MessageHeader *message,
                   const struct GNUNET_ATS_Information *atsi
-                  __attribute__ ((unused)))
+                  __attribute__ ((unused)),
+		  unsigned int atsi_count
+		  __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr *s = (struct remote_addr *) desc;
@@ -1051,7 +1055,9 @@ receive_tcp_back (void *cls
                   __attribute__ ((unused)),
                   const struct GNUNET_MessageHeader *message,
                   const struct GNUNET_ATS_Information *atsi
-                  __attribute__ ((unused)))
+                  __attribute__ ((unused)),
+		  unsigned int atsi_count
+		  __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr *s = (struct remote_addr *) desc;

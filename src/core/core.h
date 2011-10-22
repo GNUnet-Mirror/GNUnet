@@ -119,12 +119,6 @@ struct ConnectNotifyMessage
    */
   struct GNUNET_PeerIdentity peer;
 
-  /**
-   * First of the ATS information blocks (we must have at least
-   * one due to the 0-termination requirement).
-   */
-  struct GNUNET_ATS_Information ats;
-
 };
 
 

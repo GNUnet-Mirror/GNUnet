@@ -79,7 +79,7 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
        (ntohs (msg->size) == sizeof (struct GNUNET_MessageHeader))))
   {
     if (request_context->peer_cb != NULL)
-      request_context->peer_cb (request_context->cb_cls, NULL, NULL);
+      request_context->peer_cb (request_context->cb_cls, NULL, NULL, 0);
     GNUNET_CLIENT_disconnect (request_context->client, GNUNET_NO);
     GNUNET_free (request_context);
     return;
@@ -92,22 +92,20 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     GNUNET_break (0);
     if (request_context->peer_cb != NULL)
-      request_context->peer_cb (request_context->cb_cls, NULL, NULL);
+      request_context->peer_cb (request_context->cb_cls, NULL, NULL, 0);
     GNUNET_CLIENT_disconnect (request_context->client, GNUNET_NO);
     GNUNET_free (request_context);
     return;
   }
   connect_message = (const struct ConnectNotifyMessage *) msg;
   ats_count = ntohl (connect_message->ats_count);
-  if ((msize !=
-       sizeof (struct ConnectNotifyMessage) +
-       ats_count * sizeof (struct GNUNET_ATS_Information)) ||
-      (GNUNET_ATS_ARRAY_TERMINATOR !=
-       ntohl ((&connect_message->ats)[ats_count].type)))
+  if (msize !=
+      sizeof (struct ConnectNotifyMessage) +
+      ats_count * sizeof (struct GNUNET_ATS_Information)) 
   {
     GNUNET_break (0);
     if (request_context->peer_cb != NULL)
-      request_context->peer_cb (request_context->cb_cls, NULL, NULL);
+      request_context->peer_cb (request_context->cb_cls, NULL, NULL, 0);
     GNUNET_CLIENT_disconnect (request_context->client, GNUNET_NO);
     GNUNET_free (request_context);
     return;
@@ -115,7 +113,8 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
   /* Normal case */
   if (request_context->peer_cb != NULL)
     request_context->peer_cb (request_context->cb_cls, &connect_message->peer,
-                              &connect_message->ats);
+                              (const struct GNUNET_ATS_Information *) &connect_message[1],
+			      ats_count);
   GNUNET_CLIENT_receive (request_context->client, &receive_info,
                          request_context, GNUNET_TIME_UNIT_FOREVER_REL);
 }

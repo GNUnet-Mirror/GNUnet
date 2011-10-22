@@ -1025,7 +1025,9 @@ receive_tcp_service (void *cls
                      __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information *atsi
-                     __attribute__ ((unused)))
+                     __attribute__ ((unused)),
+		     unsigned int atsi_count
+		     __attribute__ ((unused)))
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
@@ -1133,7 +1135,9 @@ receive_tcp_remote (void *cls
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi
-                    __attribute__ ((unused)))
+                    __attribute__ ((unused)),
+		    unsigned int atsi_count
+		    __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
@@ -1209,7 +1213,9 @@ receive_udp_remote (void *cls
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi
-                    __attribute__ ((unused)))
+                    __attribute__ ((unused)),
+		    unsigned int atsi_count
+		    __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1289,7 +1295,9 @@ receive_udp_service (void *cls
                      __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information *atsi
-                     __attribute__ ((unused)))
+                     __attribute__ ((unused)),
+		     unsigned int atsi_count
+		     __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);

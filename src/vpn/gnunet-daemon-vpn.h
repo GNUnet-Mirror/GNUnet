@@ -56,7 +56,8 @@ port_in_ports (uint64_t ports, uint16_t port);
 
 void
 send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_ATS_Information *atsi);
+                  const struct GNUNET_ATS_Information *atsi,
+		  unsigned int atsi_count);
 
 /**
  * The configuration to use

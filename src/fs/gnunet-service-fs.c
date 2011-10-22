@@ -220,13 +220,15 @@ GSF_test_get_load_too_high_ (uint32_t priority)
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
  * @param atsi performance information
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi,
+		unsigned int atsi_count)
 {
   struct GSF_ConnectedPeer *cp;
 
@@ -299,13 +301,15 @@ consider_forwarding (void *cls, struct GSF_PendingRequest *pr,
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
  * @param atsi performance information
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi,
+		unsigned int atsi_count)
 {
   struct GSF_PendingRequest *pr;
 
@@ -456,16 +460,18 @@ consider_peer_for_forwarding (void *cls, const GNUNET_HashCode * key,
  * @param cls closure, not used
  * @param peer peer identity this notification is about
  * @param atsi performance information
+ * @param atsi_count number of records in 'atsi'
  */
 static void
 peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi,
+		      unsigned int atsi_count)
 {
   struct GSF_ConnectedPeer *cp;
 
   if (0 == memcmp (&my_id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  cp = GSF_peer_connect_handler_ (peer, atsi);
+  cp = GSF_peer_connect_handler_ (peer, atsi, atsi_count);
   if (NULL == cp)
     return;
   GSF_iterate_pending_requests_ (&consider_peer_for_forwarding, cp);

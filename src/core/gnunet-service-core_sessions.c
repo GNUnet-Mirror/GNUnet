@@ -672,17 +672,13 @@ queue_connect_message (void *cls, const GNUNET_HashCode * key, void *value)
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct Session *session = value;
   struct ConnectNotifyMessage cnm;
-  struct GNUNET_ATS_Information *a;
  
   /* FIXME: code duplication with clients... */
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+  // FIXME: full ats...
   cnm.ats_count = htonl (0);
   cnm.peer = session->peer;
-  a = &cnm.ats;
-  // FIXME: full ats...
-  a[0].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
-  a[0].value = htonl (0);
   GNUNET_SERVER_transmit_context_append_message (tc, &cnm.header);
   return GNUNET_OK;
 }

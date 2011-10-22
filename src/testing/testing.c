@@ -1882,11 +1882,13 @@ notify_connect_result (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls our "struct GNUNET_TESTING_ConnectContext"
  * @param peer identity of the peer that has connected
  * @param atsi performance information
+ * @param atsi_count number of records in 'atsi'
  *
  */
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi,
+		unsigned int atsi_count)
 {
   struct GNUNET_TESTING_ConnectContext *ctx = cls;
 
@@ -2080,11 +2082,13 @@ reattempt_daemons_connect (void *cls,
  * @param peer identity of the peer that has connected,
  *        NULL when iteration has finished
  * @param atsi performance information
+ * @param atsi_count number of records in 'atsi'
  *
  */
 static void
 core_initial_iteration (void *cls, const struct GNUNET_PeerIdentity *peer,
-                        const struct GNUNET_ATS_Information *atsi)
+                        const struct GNUNET_ATS_Information *atsi,
+			unsigned int atsi_count)
 {
   struct GNUNET_TESTING_ConnectContext *ctx = cls;
 

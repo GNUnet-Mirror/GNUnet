@@ -658,11 +658,9 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     cnm->header.size = htons (size);
     cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
     cnm->ats_count = htonl (atsi_count);
-    a = &cnm->ats;
+    a = (struct GNUNET_ATS_Information* ) &cnm[1];
     memcpy (a, atsi,
 	    sizeof (struct GNUNET_ATS_Information) * atsi_count);
-    a[atsi_count].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
-    a[atsi_count].value = htonl (0);
 #if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Sending `%s' message to client.\n",

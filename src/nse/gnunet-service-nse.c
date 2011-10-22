@@ -938,12 +938,13 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
  * @param message message
  * @param peer peer identity this message is from (ignored)
  * @param atsi performance data (ignored)
- *
+ * @param atsi_count number of records in 'atsi'
  */
 static int
 handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi)
+                          const struct GNUNET_ATS_Information *atsi,
+			  unsigned int atsi_count)
 {
   const struct GNUNET_NSE_FloodMessage *incoming_flood;
   struct GNUNET_TIME_Absolute ts;
@@ -1094,10 +1095,12 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  */
 static void
 handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_ATS_Information *atsi)
+                     const struct GNUNET_ATS_Information *atsi,
+		     unsigned int atsi_count)
 {
   struct NSEPeerEntry *peer_entry;
 

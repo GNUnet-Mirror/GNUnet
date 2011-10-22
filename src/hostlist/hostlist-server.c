@@ -362,10 +362,12 @@ adv_transmit_ready (void *cls, size_t size, void *buf)
  * @param cls closure
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  */
 static void
 connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_ATS_Information *atsi)
+                 const struct GNUNET_ATS_Information *atsi,
+		 unsigned int atsi_count)
 {
   size_t size;
 

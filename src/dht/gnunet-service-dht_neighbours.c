@@ -600,10 +600,12 @@ send_find_peer_message (void *cls,
  * @param cls closure
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  */
 static void
 handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_ATS_Information *atsi)
+                     const struct GNUNET_ATS_Information *atsi,
+		     unsigned int atsi_count)
 {
   struct PeerInfo *ret;
   int peer_bucket;
@@ -1508,6 +1510,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1516,7 +1519,8 @@ handle_dht_p2p_put (void *cls,
 		    const struct GNUNET_PeerIdentity *peer,
 		    const struct GNUNET_MessageHeader *message,
 		    const struct GNUNET_ATS_Information
-		    *atsi)
+		    *atsi,
+		    unsigned int atsi_count)
 {
   const struct PeerPutMessage *put;
   const struct GNUNET_PeerIdentity *put_path;
@@ -1729,6 +1733,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1736,7 +1741,8 @@ static int
 handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 		    const struct GNUNET_MessageHeader *message,
 		    const struct GNUNET_ATS_Information
-		    *atsi)
+		    *atsi,
+		    unsigned int atsi_count)
 {
   struct PeerGetMessage *get;
   uint32_t xquery_size;
@@ -1865,13 +1871,15 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_YES (do not cut p2p connection)
  */
 static int
 handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 		       const struct GNUNET_MessageHeader *message,
 		       const struct GNUNET_ATS_Information
-		       *atsi)
+		       *atsi,
+		       unsigned int atsi_count)
 {
   const struct PeerResultMessage *prm;
   const struct GNUNET_PeerIdentity *put_path;

@@ -168,11 +168,13 @@ struct GSF_PeerTransmitHandle;
  *
  * @param peer identity of peer that connected
  * @param atsi performance data for the connection
+ * @param atsi_count number of records in 'atsi'
  * @return handle to connected peer entry
  */
 struct GSF_ConnectedPeer *
 GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
-                           const struct GNUNET_ATS_Information *atsi);
+                           const struct GNUNET_ATS_Information *atsi,
+			   unsigned int atsi_count);
 
 
 /**
@@ -260,6 +262,7 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
  * @param atsi performance information
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -268,7 +271,8 @@ GSF_handle_p2p_migration_stop_ (void *cls,
                                 const struct GNUNET_PeerIdentity *other,
                                 const struct GNUNET_MessageHeader *message,
                                 const struct GNUNET_ATS_Information
-                                *atsi);
+                                *atsi,
+				unsigned int atsi_count);
 
 
 /**

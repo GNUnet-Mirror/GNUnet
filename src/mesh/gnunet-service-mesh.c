@@ -2265,6 +2265,7 @@ send_core_path_ack (void *cls, size_t size, void *buf)
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  * 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -2272,7 +2273,8 @@ send_core_path_ack (void *cls, size_t size, void *buf)
 static int
 handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                          const struct GNUNET_MessageHeader *message,
-                         const struct GNUNET_ATS_Information *atsi)
+                         const struct GNUNET_ATS_Information *atsi,
+			 unsigned int atsi_count)
 {
   unsigned int own_pos;
   uint16_t size;
@@ -2462,6 +2464,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -2469,7 +2472,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi)
+                          const struct GNUNET_ATS_Information *atsi,
+			  unsigned int atsi_count)
 {
   struct GNUNET_MESH_ManipulatePath *msg;
   struct GNUNET_PeerIdentity *pi;
@@ -2546,6 +2550,7 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -2553,7 +2558,8 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_MessageHeader *message,
-                            const struct GNUNET_ATS_Information *atsi)
+                            const struct GNUNET_ATS_Information *atsi,
+			    unsigned int atsi_count)
 {
   struct GNUNET_MESH_TunnelDestroy *msg;
   struct MeshTunnel *t;
@@ -2596,13 +2602,15 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param peer peer identity this notification is about
  * @param message message
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi)
+                          const struct GNUNET_ATS_Information *atsi,
+			  unsigned int atsi_count)
 {
   struct GNUNET_MESH_Unicast *msg;
   struct MeshTunnel *t;
@@ -2654,6 +2662,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  *
@@ -2662,7 +2671,8 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_MessageHeader *message,
-                            const struct GNUNET_ATS_Information *atsi)
+                            const struct GNUNET_ATS_Information *atsi,
+			    unsigned int atsi_count)
 {
   struct GNUNET_MESH_Multicast *msg;
   struct MeshTunnel *t;
@@ -2707,6 +2717,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -2714,7 +2725,8 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi)
+                          const struct GNUNET_ATS_Information *atsi,
+			  unsigned int atsi_count)
 {
   struct GNUNET_MESH_ToOrigin *msg;
   struct GNUNET_PeerIdentity id;
@@ -2794,6 +2806,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -2801,7 +2814,8 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message,
-                      const struct GNUNET_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi,
+		      unsigned int atsi_count)
 {
   struct GNUNET_MESH_PathACK *msg;
   struct GNUNET_PeerIdentity id;
@@ -3739,7 +3753,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->tid = htonl (t->id.tid);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   calling generic handler...\n");
-    handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL);
+    handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL, 0);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -3825,7 +3839,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     copy->sender = my_full_id;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   calling generic handler...\n");
-    handle_mesh_data_to_orig (NULL, &my_full_id, &copy->header, NULL);
+    handle_mesh_data_to_orig (NULL, &my_full_id, &copy->header, NULL, 0);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -3896,7 +3910,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->tid = htonl(t->id.tid);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   calling generic handler...\n");
-    handle_mesh_data_multicast(client, &my_full_id, &copy->header, NULL);
+    handle_mesh_data_multicast(client, &my_full_id, &copy->header, NULL, 0);
   }
 
   /* receive done gets called when last copy is sent to a neighbor */
@@ -3961,10 +3975,12 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  * @param cls closure
  * @param peer peer identity this notification is about
  * @param atsi performance data for the connection
+ * @param atsi_count number of records in 'atsi'
  */
 static void
 core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_ATS_Information *atsi)
+              const struct GNUNET_ATS_Information *atsi,
+	      unsigned int atsi_count)
 {
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *path;

@@ -348,7 +348,8 @@ topology_cb (void *cls, const struct GNUNET_PeerIdentity *first,
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_ATS_Information *atsi)
+               const struct GNUNET_ATS_Information *atsi,
+	       unsigned int atsi_count)
 {
   char *dotOutFileNameFinished;
   FILE *dotOutFileFinished;
@@ -537,10 +538,12 @@ init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
  * @param cls closure
  * @param peer peer identity this notification is about
  * @param atsi performance data for the connection
+ * @param atsi_count number of records in 'atsi'
  */
 static void
 connect_notify_peers (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi,
+		      unsigned int atsi_count)
 {
   struct TestMessageContext *pos = cls;
 

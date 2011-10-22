@@ -90,7 +90,7 @@ cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 static int
 receive (void *cls, const struct GNUNET_PeerIdentity *other,
          const struct GNUNET_MessageHeader *message,
-         const struct GNUNET_ATS_Information *atsi)
+         const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
 {
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
@@ -134,7 +134,7 @@ init (void *cls, struct GNUNET_CORE_Handle *core,
 
 static void
 connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
-            const struct GNUNET_ATS_Information *atsi)
+            const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s.\n",
               GNUNET_i2s (peer));

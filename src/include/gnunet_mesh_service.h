@@ -64,6 +64,7 @@ struct GNUNET_MESH_Tunnel;
  * @param sender who sent the message
  * @param message the actual message
  * @param atsi performance data for the connection
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -76,7 +77,8 @@ typedef int (*GNUNET_MESH_MessageCallback) (void *cls,
                                             message,
                                             const struct
                                             GNUNET_ATS_Information *
-                                            atsi);
+                                            atsi,
+					    unsigned int atsi_count);
 
 
 /**
@@ -184,13 +186,15 @@ typedef void (*GNUNET_MESH_TunnelDisconnectHandler) (void *cls,
  * @param cls closure
  * @param peer peer identity the tunnel was created to, NULL on timeout
  * @param atsi performance data for the connection
+ * @param atsi_count number of records in 'atsi'
  */
 typedef void (*GNUNET_MESH_TunnelConnectHandler) (void *cls,
                                                   const struct
                                                   GNUNET_PeerIdentity * peer,
                                                   const struct
                                                   GNUNET_ATS_Information
-                                                  * atsi);
+                                                  * atsi,
+						  unsigned int atsi_count);
 
 
 

@@ -364,7 +364,7 @@ transmit_ready (void *cls, size_t size, void *buf)
 
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
 {
   struct PeerContext *pc = cls;
 
@@ -431,7 +431,7 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 static int
 inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *atsi)
+                const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
 {
 #if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -446,7 +446,7 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 static int
 outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message,
-                 const struct GNUNET_ATS_Information *atsi)
+                 const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
 {
 #if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -463,7 +463,7 @@ transmit_ready (void *cls, size_t size, void *buf);
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_ATS_Information *atsi)
+               const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
 {
   static int n;
   const struct TestMessage *hdr;

@@ -328,25 +328,20 @@ get_trust_filename (const struct GNUNET_PeerIdentity *id)
  * Find latency information in 'atsi'.
  *
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  * @return connection latency
  */
 static struct GNUNET_TIME_Relative
-get_latency (const struct GNUNET_ATS_Information *atsi)
+get_latency (const struct GNUNET_ATS_Information *atsi,
+	     unsigned int atsi_count)
 {
-  if (atsi == NULL)
-    return GNUNET_TIME_UNIT_SECONDS;
-  while ((ntohl (atsi->type) != GNUNET_ATS_ARRAY_TERMINATOR) &&
-         (ntohl (atsi->type) != GNUNET_ATS_QUALITY_NET_DELAY))
-    atsi++;
-  if (ntohl (atsi->type) == GNUNET_ATS_ARRAY_TERMINATOR)
-  {
-    /* We sometime have no latency data, i.e. if the address came from 
-       peerinfo and we never had a chance to play transport-level 
-       PING/PONG yet. Assume 1s in that case. */
-    return GNUNET_TIME_UNIT_SECONDS;
-  }
-  return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                        ntohl (atsi->value));
+  unsigned int i;
+
+  for (i=0;i<atsi_count;i++)
+    if (ntohl (atsi->type) == GNUNET_ATS_QUALITY_NET_DELAY)
+      return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+					    ntohl (atsi->value));
+  return GNUNET_TIME_UNIT_SECONDS;
 }
 
 
@@ -355,14 +350,16 @@ get_latency (const struct GNUNET_ATS_Information *atsi)
  *
  * @param cp peer record to update
  * @param atsi transport performance data
+ * @param atsi_count number of records in 'atsi'
  */
 static void
 update_atsi (struct GSF_ConnectedPeer *cp,
-             const struct GNUNET_ATS_Information *atsi)
+             const struct GNUNET_ATS_Information *atsi,
+	     unsigned int atsi_count)
 {
   struct GNUNET_TIME_Relative latency;
 
-  latency = get_latency (atsi);
+  latency = get_latency (atsi, atsi_count);
   GNUNET_LOAD_value_set_decline (cp->ppd.transmission_delay, latency);
   /* LATER: merge atsi into cp's performance data (if we ever care...) */
 }
@@ -584,11 +581,13 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
  *
  * @param peer identity of peer that connected
  * @param atsi performance data for the connection
+ * @param atsi_count number of records in 'atsi'
  * @return handle to connected peer entry
  */
 struct GSF_ConnectedPeer *
 GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
-                           const struct GNUNET_ATS_Information *atsi)
+                           const struct GNUNET_ATS_Information *atsi,
+			   unsigned int atsi_count)
 {
   struct GSF_ConnectedPeer *cp;
   char *fn;
@@ -619,7 +618,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
 			 ("# peers connected"), 
 			 GNUNET_CONTAINER_multihashmap_size (cp_map),
 			 GNUNET_NO);
-  update_atsi (cp, atsi);
+  update_atsi (cp, atsi, atsi_count);
   GSF_push_start_ (cp);
   return cp;
 }
@@ -674,6 +673,7 @@ GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer)
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
  * @param atsi performance information
+ * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -682,7 +682,8 @@ GSF_handle_p2p_migration_stop_ (void *cls,
                                 const struct GNUNET_PeerIdentity *other,
                                 const struct GNUNET_MessageHeader *message,
                                 const struct GNUNET_ATS_Information
-                                *atsi)
+                                *atsi,
+				unsigned int atsi_count)
 {
   struct GSF_ConnectedPeer *cp;
   const struct MigrationStopMessage *msm;
@@ -710,7 +711,7 @@ GSF_handle_p2p_migration_stop_ (void *cls,
     cp->mig_revive_task =
         GNUNET_SCHEDULER_add_delayed (bt, &revive_migration, cp);
   }
-  update_atsi (cp, atsi);
+  update_atsi (cp, atsi, atsi_count);
   return GNUNET_OK;
 }
 

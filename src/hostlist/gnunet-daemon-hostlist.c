@@ -136,14 +136,17 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 
 /**
  * Core handler for p2p hostlist advertisements
+ *
+ * @param atsi_count number of records in 'atsi'
  */
 static int
 advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message,
-                       const struct GNUNET_ATS_Information *atsi)
+                       const struct GNUNET_ATS_Information *atsi,
+		       unsigned int atsi_count)
 {
   GNUNET_assert (NULL != client_adv_handler);
-  return (*client_adv_handler) (cls, peer, message, atsi);
+  return (*client_adv_handler) (cls, peer, message, atsi, atsi_count);
 }
 
 
@@ -153,20 +156,22 @@ advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
  */
 static void
 connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_ATS_Information *atsi)
+                 const struct GNUNET_ATS_Information *atsi,
+		 unsigned int atsi_count)
 {
   if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected, notifying client and server\n");
   if (NULL != client_ch)
-    (*client_ch) (cls, peer, atsi);
+    (*client_ch) (cls, peer, atsi, atsi_count);
 #if HAVE_MHD
   if (NULL != server_ch)
-    (*server_ch) (cls, peer, atsi);
+    (*server_ch) (cls, peer, atsi, atsi_count);
 #endif
 }
 

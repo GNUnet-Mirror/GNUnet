@@ -113,7 +113,6 @@ struct peer_list_element
   /* list of application-types */
   struct type_list_element *type_head, *type_tail;
 
-  struct GNUNET_ATS_Information atsi;
   struct peer_list_element *next, *prev;
 
   /* The handle that sends the hellos to this peer */
@@ -154,7 +153,7 @@ send_end_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   struct GNUNET_MESH_Tunnel *tunnel = cls;
 
-  tunnel->connect_handler (tunnel->handler_cls, NULL, NULL);
+  tunnel->connect_handler (tunnel->handler_cls, NULL, NULL, 0);
 }
 
 static void
@@ -165,7 +164,7 @@ send_self_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   struct GNUNET_MESH_Tunnel *tunnel = cls;
 
-  tunnel->connect_handler (tunnel->handler_cls, &tunnel->handle->myself, NULL);
+  tunnel->connect_handler (tunnel->handler_cls, &tunnel->handle->myself, NULL, 0);
   GNUNET_SCHEDULER_add_now (send_end_connect, tunnel);
 }
 
@@ -177,7 +176,7 @@ call_connect_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   struct GNUNET_MESH_Tunnel *tunnel = cls;
 
-  tunnel->connect_handler (tunnel->handler_cls, &tunnel->peer, NULL);
+  tunnel->connect_handler (tunnel->handler_cls, &tunnel->peer, NULL, 0);
   GNUNET_SCHEDULER_add_now (send_end_connect, tunnel);
 }
 
@@ -254,7 +253,8 @@ schedule_hello_message (void *cls,
  */
 static void
 core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_ATS_Information *atsi)
+              const struct GNUNET_ATS_Information *atsi,
+	      unsigned int atsi_count)
 {
   struct GNUNET_MESH_Handle *handle = cls;
 
@@ -269,11 +269,6 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   /* Send a hello to this peer */
   element->sched = GNUNET_SCHEDULER_add_now (schedule_hello_message, element);
-
-  if (NULL != atsi)
-    memcpy (&element->atsi, atsi,
-            sizeof (struct GNUNET_ATS_Information));
-
   GNUNET_CONTAINER_DLL_insert_after (handle->connected_peers.head,
                                      handle->connected_peers.tail,
                                      handle->connected_peers.tail, element);
@@ -294,7 +289,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                                          handle->established_tunnels.tail,
                                          handle->established_tunnels.tail,
                                          tunnel);
-      tunnel->tunnel.connect_handler (tunnel->tunnel.handler_cls, peer, atsi);
+      tunnel->tunnel.connect_handler (tunnel->tunnel.handler_cls, peer, atsi, atsi_count);
       GNUNET_SCHEDULER_add_now (send_end_connect, tunnel);
       tunnel = next;
     }
@@ -383,7 +378,8 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static int
 receive_hello (void *cls, const struct GNUNET_PeerIdentity *other,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_ATS_Information *atsi)
+               const struct GNUNET_ATS_Information *atsi,
+	       unsigned int atsi_count)
 {
   struct GNUNET_MESH_Handle *handle = cls;
   uint16_t *num = (uint16_t *) (message + 1);
@@ -450,7 +446,7 @@ receive_hello (void *cls, const struct GNUNET_PeerIdentity *other,
         memcpy (&tunnel->tunnel.peer, other,
                 sizeof (struct GNUNET_PeerIdentity));
         tunnel->tunnel.connect_handler (tunnel->tunnel.handler_cls,
-                                        &tunnel->tunnel.peer, atsi);
+                                        &tunnel->tunnel.peer, atsi, atsi_count);
         GNUNET_SCHEDULER_add_now (send_end_connect, tunnel);
         break;
       }
@@ -469,7 +465,8 @@ receive_hello (void *cls, const struct GNUNET_PeerIdentity *other,
 static int
 core_receive (void *cls, const struct GNUNET_PeerIdentity *other,
               const struct GNUNET_MessageHeader *message,
-              const struct GNUNET_ATS_Information *atsi)
+              const struct GNUNET_ATS_Information *atsi,
+	      unsigned int atsi_count)
 {
   struct GNUNET_MESH_Handle *handle = cls;
   struct tunnel_message *tmessage = (struct tunnel_message *) message;
@@ -539,7 +536,7 @@ core_receive (void *cls, const struct GNUNET_PeerIdentity *other,
          GNUNET_i2s (other), ntohs (rmessage->type));
 
   return handler->callback (handle->cls, &tunnel->tunnel, &tunnel->tunnel.ctx,
-                            other, rmessage, atsi);
+                            other, rmessage, atsi, atsi_count);
 }
 
 struct GNUNET_MESH_Tunnel *

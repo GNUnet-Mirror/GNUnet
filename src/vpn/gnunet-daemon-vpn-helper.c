@@ -333,7 +333,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
           else if (NULL != cls)
           {
             *cls = me->tunnel;
-            send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
+            send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL, 0);
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                         "Queued to send IPv6 to peer %x, type %d\n",
                         *((unsigned int *) &me->desc.peer), ntohs (hdr->type));
@@ -384,7 +384,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
           else if (NULL != cls)
           {
             *cls = me->tunnel;
-            send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
+            send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL, 0);
           }
         }
       }
@@ -535,7 +535,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
             else if (NULL != cls)
             {
               *cls = me->tunnel;
-              send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
+              send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL, 0);
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "Queued to send IPv4 to peer %x, type %d\n",
                           *((unsigned int *) &me->desc.peer),
@@ -577,7 +577,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
             else if (NULL != cls)
             {
               *cls = me->tunnel;
-              send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
+              send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL, 0);
             }
           }
         }

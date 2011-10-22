@@ -4877,7 +4877,8 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
  */
 static void
 internal_topology_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_ATS_Information *atsi)
+                            const struct GNUNET_ATS_Information *atsi,
+			    unsigned int atsi_count)
 {
   struct CoreContext *core_ctx = cls;
   struct TopologyIterateContext *iter_ctx = core_ctx->iter_context;
@@ -4941,7 +4942,7 @@ schedule_get_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                    &internal_topology_callback, core_context))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Topology iteration failed.\n");
-      internal_topology_callback (core_context, NULL, NULL);
+      internal_topology_callback (core_context, NULL, NULL, 0);
     }
   }
 }
