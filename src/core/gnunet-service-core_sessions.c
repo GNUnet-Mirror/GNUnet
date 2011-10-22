@@ -232,7 +232,7 @@ transmit_typemap_task (void *cls,
 							&transmit_typemap_task,
 							session);
   GNUNET_STATISTICS_update (GSC_stats, 
-			    gettext_noop ("# typemap refreshs sent"),
+			    gettext_noop ("# type map refreshes sent"),
 			    1,
 			    GNUNET_NO);
   hdr = GSC_TYPEMAP_compute_type_map_message ();
