@@ -412,20 +412,30 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
     GST_neighbours_force_disconnect(peer);
     return;
   }
-
-  GST_neighbours_switch_to_address (peer, plugin_name, plugin_addr,
-                                    plugin_addr_len, session, ats, ats_count);
+  if (GNUNET_YES !=
+      GST_neighbours_switch_to_address (peer, plugin_name, plugin_addr,
+					plugin_addr_len, session, ats, ats_count))
+  {
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Connection is not yet up, ignoring quota for now\n");
+#endif
+    /* FIXME: maybe we should let ATS know somehow?  This is a problem
+       with the design; ATS may assign bandwidth, but we don't use it;
+       the current ATS API doesn't give us a good way to sync the
+       connection status between ATS and TRANSPORT */
+    return;
+  }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (bandwidth_out.value__), GNUNET_i2s (peer));
+	      ntohl (bandwidth_out.value__), GNUNET_i2s (peer));
 #endif
   msg.header.size = htons (sizeof (struct QuotaSetMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
   msg.quota = bandwidth_out;
   msg.peer = (*peer);
-  GST_clients_broadcast (&msg.header, GNUNET_NO);
-
+  GST_clients_broadcast (&msg.header, GNUNET_NO);  
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Setting inbound quota of %u for peer `%s' to \n",

@@ -200,8 +200,10 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  * @param session session to use (or NULL)
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
+ * @return GNUNET_YES if we are currently connected, GNUNET_NO if the
+ *         connection is not up (yet)
  */
-void
+int
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                   const char *plugin_name, const void *address,
                                   size_t address_len, struct Session *session,

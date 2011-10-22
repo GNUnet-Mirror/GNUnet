@@ -666,8 +666,10 @@ send_connect_continuation (void *cls,
  * @param session session to use (or NULL)
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
+ * @return GNUNET_YES if we are currently connected, GNUNET_NO if the
+ *         connection is not up (yet)
  */
-void
+int
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                   const char *plugin_name, const void *address,
                                   size_t address_len, struct Session *session,
@@ -687,7 +689,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 				    peer,
 				    plugin_name, address,
 				    address_len, NULL);    
-    return;
+    return GNUNET_NO;
   }
   was_connected = n->is_connected;
   n->is_connected = GNUNET_YES;
@@ -727,12 +729,13 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 		       &send_connect_continuation, 
 		       n);
   if (GNUNET_YES == was_connected)
-    return;
+    return GNUNET_YES;
   /* First tell clients about connected neighbours...*/
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                             GNUNET_NO);
   connect_notify_cb (callback_cls, peer, ats, ats_count);
+  return GNUNET_YES;
 }
 
 
