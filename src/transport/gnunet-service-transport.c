@@ -404,8 +404,11 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* ATS tells me to disconnect from peer*/
   if ((bw_in == 0) && (bw_out == 0))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS tells me to disconnect from peer `%s'\n",
-        GNUNET_i2s (peer));
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"ATS tells me to disconnect from peer `%s'\n",
+		GNUNET_i2s (peer));
+#endif
     GST_neighbours_force_disconnect(peer);
     return;
   }

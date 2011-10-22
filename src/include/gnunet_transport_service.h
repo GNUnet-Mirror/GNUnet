@@ -170,22 +170,6 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
 
 
 /**
- * Set the share of incoming/outgoing bandwidth for the given
- * peer to the specified amount.
- *
- * @param handle connection to transport service
- * @param target who's bandwidth quota is being changed
- * @param quota_in incoming bandwidth quota
- * @param quota_out outgoing bandwidth quota
- */
-void
-GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
-                            const struct GNUNET_PeerIdentity *target,
-                            struct GNUNET_BANDWIDTH_Value32NBO quota_in,
-                            struct GNUNET_BANDWIDTH_Value32NBO quota_out);
-
-
-/**
  * Opaque handle for a transmission-ready request.
  */
 struct GNUNET_TRANSPORT_TransmitHandle;

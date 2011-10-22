@@ -176,7 +176,7 @@ struct QuotaSetMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_NEIGHBOUR_INFO
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA
    */
   struct GNUNET_MessageHeader header;
 

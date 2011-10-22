@@ -600,34 +600,6 @@ clients_handle_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Client asked for a quota change for a particular peer.  Process the request.
- *
- * @param cls unused
- * @param client the client
- * @param message the quota changing message
- */
-static void
-clients_handle_set_quota (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *message)
-{
-  const struct QuotaSetMessage *qsm;
-
-  qsm = (const struct QuotaSetMessage *) message;
-  GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# SET QUOTA messages received"), 1,
-                            GNUNET_NO);
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' request (new quota %u) from client for peer `%4s'\n",
-              "SET_QUOTA", (unsigned int) ntohl (qsm->quota.value__),
-              GNUNET_i2s (&qsm->peer));
-#endif
-  GST_neighbours_set_incoming_quota (&qsm->peer, qsm->quota);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
  * Take the given address and append it to the set of results sent back to
  * the client.
  *
@@ -883,8 +855,6 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
     {&clients_handle_request_connect, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT,
      sizeof (struct TransportRequestConnectMessage)},
-    {&clients_handle_set_quota, NULL,
-     GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA, sizeof (struct QuotaSetMessage)},
     {&clients_handle_address_lookup, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP, 0},
     {&clients_handle_peer_address_lookup, NULL,
