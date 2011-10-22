@@ -107,6 +107,10 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
+    GNUNET_STATISTICS_update (GSC_stats, 
+			      gettext_noop ("# type maps received"),
+			      1,
+			      GNUNET_NO);
     if (size != sizeof (struct GSC_TypeMap))
     {
       GNUNET_break_op (0);
@@ -116,6 +120,10 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
     memcpy (ret, &msg[1], sizeof (struct GSC_TypeMap));
     return ret;
   case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
+    GNUNET_STATISTICS_update (GSC_stats, 
+			      gettext_noop ("# type maps received"),
+			      1,
+			      GNUNET_NO);
     ret = GNUNET_malloc (sizeof (struct GSC_TypeMap));
     dlen = sizeof (struct GSC_TypeMap);
     if ( (Z_OK !=
@@ -144,6 +152,10 @@ broadcast_my_type_map ()
   struct GNUNET_MessageHeader *hdr;
 
   hdr = GSC_TYPEMAP_compute_type_map_message ();
+  GNUNET_STATISTICS_update (GSC_stats, 
+			    gettext_noop ("# updates to my type map"),
+			    1,
+			    GNUNET_NO);
   GSC_SESSIONS_broadcast (hdr);
   GNUNET_free (hdr);
 }

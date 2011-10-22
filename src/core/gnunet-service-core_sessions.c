@@ -33,6 +33,12 @@
 #include "gnunet_constants.h"
 
 /**
+ * How often do we transmit our typemap?
+ */
+#define TYPEMAP_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+
+
+/**
  * Message ready for encryption.  This struct is followed by the
  * actual content of the message.
  */
@@ -121,6 +127,11 @@ struct Session
   GNUNET_SCHEDULER_TaskIdentifier cork_task;
 
   /**
+   * Task to transmit our type map.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier typemap_task;
+
+  /**
    * Is the neighbour queue empty and thus ready for us
    * to transmit an encrypted message?  
    */
@@ -181,6 +192,7 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
 				 car);
     GSC_CLIENTS_reject_request (car);
   }
+  GNUNET_SCHEDULER_cancel (session->typemap_task);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (sessions,
                                                        &session->peer.hashPubKey, session));
@@ -198,6 +210,36 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
 
 
 /**
+ * Transmit our current typemap message to the other peer.
+ * (Done periodically in case an update got lost).
+ *
+ * @param cls the 'struct Session*'
+ * @param tc unused
+ */ 
+static void
+transmit_typemap_task (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Session *session = cls;
+  struct GNUNET_MessageHeader *hdr;
+  struct GNUNET_TIME_Relative delay;
+
+  delay = TYPEMAP_FREQUENCY;
+  /* randomize a bit to avoid spont. sync */
+  delay.rel_value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+					       1000);
+  session->typemap_task = GNUNET_SCHEDULER_add_delayed (delay,
+							&transmit_typemap_task,
+							session);
+  hdr = GSC_TYPEMAP_compute_type_map_message ();
+  GSC_KX_encrypt_and_transmit (session->kxinfo, 
+			       hdr,
+			       ntohs (hdr->size));
+  GNUNET_free (hdr);
+}
+
+
+/**
  * Create a session, a key exchange was just completed.
  *
  * @param peer peer that is now connected
@@ -207,7 +249,6 @@ void
 GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 		     struct GSC_KeyExchangeInfo *kx)
 {
-  struct GNUNET_MessageHeader *hdr;
   struct Session *session;
 
 #if DEBUG_CORE
@@ -218,6 +259,8 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
   session->peer = *peer;
   session->kxinfo = kx;
   session->time_established = GNUNET_TIME_absolute_get ();
+  session->typemap_task = GNUNET_SCHEDULER_add_now (&transmit_typemap_task,
+						    session);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (sessions,
                                                     &peer->hashPubKey, session,
@@ -226,13 +269,6 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 			    gettext_noop ("# entries in session map"),
 			    GNUNET_CONTAINER_multihashmap_size (sessions), 
 			    GNUNET_NO);
-  /* FIXME: we should probably do this periodically (in case
-     type map message is lost...) */
-  hdr = GSC_TYPEMAP_compute_type_map_message ();
-  GSC_KX_encrypt_and_transmit (kx, 
-			       hdr,
-			       ntohs (hdr->size));
-  GNUNET_free (hdr);
 }
 
 
