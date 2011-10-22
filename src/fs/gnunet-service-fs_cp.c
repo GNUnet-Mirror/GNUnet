@@ -616,7 +616,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_STATISTICS_set (GSF_stats,
 			 gettext_noop
-			 ("# connected peers"), 
+			 ("# peers connected"), 
 			 GNUNET_CONTAINER_multihashmap_size (cp_map),
 			 GNUNET_NO);
   update_atsi (cp, atsi);
@@ -1548,7 +1548,7 @@ GSF_peer_disconnect_handler_ (void *cls, const struct GNUNET_PeerIdentity *peer)
                                                        &peer->hashPubKey, cp));
   GNUNET_STATISTICS_set (GSF_stats,
 			 gettext_noop
-			 ("# connected peers"), 
+			 ("# peers connected"), 
 			 GNUNET_CONTAINER_multihashmap_size (cp_map),
 			 GNUNET_NO);
   if (NULL != cp->migration_pth)
