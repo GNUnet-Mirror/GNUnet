@@ -185,7 +185,7 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
                  GNUNET_CONTAINER_multihashmap_remove (sessions,
                                                        &session->peer.hashPubKey, session));
   GNUNET_STATISTICS_set (GSC_stats, 
-			 gettext_noop ("# established sessions"),
+			 gettext_noop ("# entries in session map"),
 			 GNUNET_CONTAINER_multihashmap_size (sessions), 
 			 GNUNET_NO);
   if (NULL != session->tmap)
@@ -223,7 +223,7 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
                                                     &peer->hashPubKey, session,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_STATISTICS_update (GSC_stats, 
-			    gettext_noop ("# established sessions"),
+			    gettext_noop ("# entries in session map"),
 			    GNUNET_CONTAINER_multihashmap_size (sessions), 
 			    GNUNET_NO);
   /* FIXME: we should probably do this periodically (in case
@@ -811,9 +811,6 @@ GSC_SESSIONS_done ()
                                          NULL);
   GNUNET_CONTAINER_multihashmap_destroy (sessions);
   sessions = NULL;
-  GNUNET_STATISTICS_set (GSC_stats, 
-			 gettext_noop ("# established sessions"),
-                         0, GNUNET_NO);
 }
 
 /* end of gnunet-service-core_sessions.c */

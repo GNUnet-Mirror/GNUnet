@@ -665,6 +665,10 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
 	      "Initiating key exchange with `%s'\n",
 	      GNUNET_i2s (pid));
 #endif
+  GNUNET_STATISTICS_update (GSC_stats, 
+			    gettext_noop ("# key exchanges initiated"),
+			    1,
+			    GNUNET_NO);
   kx = GNUNET_malloc (sizeof (struct GSC_KeyExchangeInfo));
   kx->peer = *pid;
   kx->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
@@ -685,6 +689,10 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
 void
 GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
 {
+  GNUNET_STATISTICS_update (GSC_stats, 
+			    gettext_noop ("# key exchanges stopped"),
+			    1,
+			    GNUNET_NO);
   if (kx->pitr != NULL)
   {
     GNUNET_PEERINFO_iterate_cancel (kx->pitr);
@@ -1026,6 +1034,10 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      "Sending KEEPALIVE to `%s'\n",
 	      GNUNET_i2s (&kx->peer));
 #endif
+  GNUNET_STATISTICS_update (GSC_stats, 
+			    gettext_noop ("# keepalive messages sent"),
+			    1,
+			    GNUNET_NO);
   setup_fresh_ping (kx);
   GSC_NEIGHBOURS_transmit (&kx->peer,
 			   &kx->ping.header,
