@@ -1685,6 +1685,8 @@ delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                      NULL, 0);
   if (delay.rel_value == 0)
     GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
+  else if (delay.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+    GNUNET_SERVER_receive_done (session->client, GNUNET_SYSERR);
   else
     session->receive_delay_task =
         GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);

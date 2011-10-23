@@ -861,6 +861,10 @@ process_inbound_tokenized_messages (void *cls, void *client,
                    "Giving Session %X %s  to transport\n", si->session, GNUNET_i2s(&si->session->target));
   delay = plugin->env->receive (plugin->env->cls, &si->sender, hdr, &distance, 1, si->session,
                         si->arg, si->args);
+  if (delay.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  {
+    // FIXME: terminate session!
+  }
   si->session->flow_delay_for_other_peer = delay;
 }
 

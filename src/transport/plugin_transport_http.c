@@ -248,6 +248,7 @@ http_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
   return GNUNET_OK;
 }
 
+
 struct GNUNET_TIME_Relative
 http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity * peer,
     const struct  GNUNET_MessageHeader * message,

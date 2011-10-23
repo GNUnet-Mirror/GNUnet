@@ -2333,7 +2333,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   GNUNET_assert (cls != NULL);
   struct Session *session = (struct Session *) client;
   struct Plugin *plugin = (struct Plugin *) cls;
-
+  struct GNUNET_TIME_Relative delay;
   struct GNUNET_ATS_Information distance;
 
   distance.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
@@ -2348,11 +2348,16 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
                    htons (hdr->size));
 #endif
 
-  plugin->env->receive (plugin->env->cls, &(session->target), hdr,
-                        (const struct GNUNET_ATS_Information *)
-                        &distance, 1, session,
-                        (const char *) &session->mac->addr,
-                        sizeof (session->mac->addr));
+  delay = plugin->env->receive (plugin->env->cls, &(session->target), hdr,
+				(const struct GNUNET_ATS_Information *)
+				&distance, 1, session,
+				(const char *) &session->mac->addr,
+				sizeof (session->mac->addr));
+  if (delay.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  {
+    // FIXME: terminate session!
+  }
+
 }
 
 /**

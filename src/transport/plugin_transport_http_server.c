@@ -278,8 +278,11 @@ server_receive_mst_cb (void *cls, void *client,
   struct GNUNET_TIME_Relative delay;
 
   delay = http_plugin_receive (s, &s->target, message, s, s->addr, s->addrlen);
-
-  s->next_receive = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
+  if (delay.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  {
+    // FIXME: terminate connection!
+  }
+  s->next_receive = GNUNET_TIME_relative_to_absolute (delay);
 
   if (delay.rel_value > 0)
   {
