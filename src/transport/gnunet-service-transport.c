@@ -179,7 +179,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
     break;
   case GNUNET_NO:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Discarded %u bytes of type %u from %s: quota violated!\n"),
+		_("Discarded %u bytes of type %u from %s: quota violated or no neighbour record!\n"),
 		ntohs (message->size),
 		ntohs (message->type),
 		GNUNET_i2s (peer));
