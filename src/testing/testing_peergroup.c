@@ -513,6 +513,7 @@ internal_peers_started_callback (void *cls,
           GNUNET_strdup ("from connect topology (bad return)");
       pg_start_ctx->die_task =
           GNUNET_SCHEDULER_add_now (&end_badly, pg_start_ctx);
+      return;
     }
 
     GNUNET_free_non_null (pg_start_ctx->fail_reason);
@@ -581,6 +582,7 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
       pg_start_ctx->die_task =
           GNUNET_SCHEDULER_add_now (&end_badly,
                                     "from create topology (bad return)");
+      return;
     }
 
     GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
