@@ -33,6 +33,8 @@
 #include "gnunet-service-core_typemap.h"
 #include "core.h"
 
+#define DEBUG_CONNECTS GNUNET_YES
+
 /**
  * How many messages do we queue up at most for optional
  * notifications to a client?  (this can cause notifications
@@ -73,6 +75,13 @@ struct GSC_Client
    * client to the peer (of type 'struct GSC_ClientActiveRequest').
    */
   struct GNUNET_CONTAINER_MultiHashMap *requests;
+
+#if DEBUG_CONNECTS
+  /**
+   * Map containing all peers that this client knows we're connected to.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *connectmap;
+#endif
 
   /**
    * Options for messages this client cares about,
@@ -209,7 +218,8 @@ type_match (uint16_t type,
  * @param type type of the embedded message, 0 for none
  */
 static void
-send_to_all_clients (const struct GNUNET_MessageHeader *msg, 
+send_to_all_clients (const struct GNUNET_PeerIdentity *sender,
+		     const struct GNUNET_MessageHeader *msg, 
 		     int can_drop,
                      int options,
 		     uint16_t type)
@@ -228,6 +238,11 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Sending message to client interested in messages of type %u.\n",
 		(unsigned int) type);
+#endif
+#if DEBUG_CONNECTS
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
+							   &sender->hashPubKey));
 #endif
     send_to_client (c, msg, can_drop);
   }
@@ -277,6 +292,15 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
   c->tcnt = msize / sizeof (uint16_t);
   c->options = ntohl (im->options);
   c->types = (const uint16_t *) &c[1];
+#if DEBUG_CONNECTS
+  c->connectmap = GNUNET_CONTAINER_multihashmap_create (16);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put (c->connectmap,
+						    &GSC_my_identity.hashPubKey,
+						    NULL,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+#endif
+
   wtypes = (uint16_t *) & c[1];
   for (i = 0; i < c->tcnt; i++)
     wtypes[i] = ntohs (types[i]);
@@ -305,7 +329,7 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
  *
  * @param cls unused
  * @param client new client that sent CORE_SEND_REQUEST
- * @param message the 'struct InitMessage' (presumably)
+ * @param message the 'struct SendMessageRequest' (presumably)
  */
 static void
 handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
@@ -324,6 +348,11 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+#if DEBUG_CONNECTS
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
+							 &req->peer.hashPubKey));
+#endif
   if (c->requests == NULL)
     c->requests = GNUNET_CONTAINER_multihashmap_create (16);
 #if DEBUG_CORE
@@ -553,6 +582,9 @@ handle_client_disconnect (void *cls,
                                            NULL);
     GNUNET_CONTAINER_multihashmap_destroy (c->requests);
   }
+#if DEBUG_CONNECTS
+  GNUNET_CONTAINER_multihashmap_destroy (c->connectmap);
+#endif
   GSC_TYPEMAP_remove (c->types, c->tcnt);
   GNUNET_free (c);
 }
@@ -577,6 +609,11 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
   smr.size = htons (car->msize);
   smr.smr_id = car->smr_id;
   smr.peer = car->target;
+#if DEBUG_CONNECTS
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
+							 &car->target.hashPubKey));
+#endif
   send_to_client (c, &smr.header, GNUNET_NO);
 }
 
@@ -592,6 +629,11 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
 void
 GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
 {
+#if DEBUG_CONNECTS
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_contains (car->client_handle->connectmap,
+							 &car->target.hashPubKey));
+#endif
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (car->client_handle->requests,
 						       &car->target.hashPubKey,
@@ -644,6 +686,16 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   if (old_match == GNUNET_NO)
   {
     /* send connect */  
+#if DEBUG_CONNECTS
+    GNUNET_assert (GNUNET_NO ==
+		   GNUNET_CONTAINER_multihashmap_contains (client->connectmap,
+							   &neighbour->hashPubKey));
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_put (client->connectmap,
+						      &neighbour->hashPubKey,
+						      NULL,
+						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+#endif
     size =
       sizeof (struct ConnectNotifyMessage) +
       (atsi_count) * sizeof (struct GNUNET_ATS_Information);
@@ -672,6 +724,15 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   else
   {
     /* send disconnect */
+#if DEBUG_CONNECTS
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_contains (client->connectmap,
+							   &neighbour->hashPubKey));
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_remove (client->connectmap,
+							 &neighbour->hashPubKey,
+							 NULL));
+#endif
     dcm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
     dcm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
     dcm.reserved = htonl (0);
@@ -767,7 +828,8 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
   a[atsi_count].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   a[atsi_count].value = htonl (0);
   memcpy (&a[atsi_count + 1], msg, msize);
-  send_to_all_clients (&ntm->header, GNUNET_YES, 
+  send_to_all_clients (sender,
+		       &ntm->header, GNUNET_YES, 
 		       options, ntohs (msg->type));
 }
 
