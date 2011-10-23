@@ -649,6 +649,7 @@ send_connect_continuation (void *cls,
 				  n->addr,
 				  n->addrlen,
 				  NULL);
+    disconnect_neighbour (n);
     return;
   }
 }
