@@ -48,7 +48,7 @@ struct ClientStartMessage
   /**
    * NBO value of an 'enum StartFlag'.
    */
-  uint32_t start_flag;
+  uint32_t start_flag GNUNET_PACKED;
 };
 
 
