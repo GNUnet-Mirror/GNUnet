@@ -348,11 +348,6 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-#if DEBUG_CONNECTS
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
-							 &req->peer.hashPubKey));
-#endif
   if (c->requests == NULL)
     c->requests = GNUNET_CONTAINER_multihashmap_create (16);
 #if DEBUG_CORE
