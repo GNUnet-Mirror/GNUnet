@@ -260,6 +260,18 @@ GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
 
 
 /**
+ * Create an empty type map.
+ *
+ * @param map a type map
+ */
+struct GSC_TypeMap *
+GSC_TYPEMAP_create ()
+{
+  return GNUNET_malloc (sizeof (struct GSC_TypeMap));
+}
+
+
+/**
  * Free the given type map.
  *
  * @param map a type map

@@ -98,6 +98,14 @@ GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
 		    const uint16_t *types,
 		    unsigned int tcnt);
 
+/**
+ * Create an empty type map.
+ *
+ * @param map a type map
+ */
+struct GSC_TypeMap *
+GSC_TYPEMAP_create (void);
+
 
 /**
  * Free the given type map.

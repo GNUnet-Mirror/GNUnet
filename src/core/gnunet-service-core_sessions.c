@@ -200,11 +200,8 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
 			 gettext_noop ("# entries in session map"),
 			 GNUNET_CONTAINER_multihashmap_size (sessions), 
 			 GNUNET_NO);
-  if (NULL != session->tmap)
-  {
-    GSC_TYPEMAP_destroy (session->tmap);
-    session->tmap = NULL;
-  }
+  GSC_TYPEMAP_destroy (session->tmap);
+  session->tmap = NULL;
   GNUNET_free (session);
 }
 
@@ -260,6 +257,7 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
               "Creating session for peer `%4s'\n", GNUNET_i2s (peer));
 #endif
   session = GNUNET_malloc (sizeof (struct Session));
+  session->tmap = GSC_TYPEMAP_create ();
   session->peer = *peer;
   session->kxinfo = kx;
   session->time_established = GNUNET_TIME_absolute_get ();
@@ -767,8 +765,7 @@ GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
 					      NULL, 0, /* FIXME: ATS */
 					      session->tmap,
 					      nmap);
-  if (NULL != session->tmap)
-    GSC_TYPEMAP_destroy (session->tmap);
+  GSC_TYPEMAP_destroy (session->tmap);
   session->tmap = nmap;
 }
 
@@ -802,8 +799,7 @@ GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
 					      NULL, 0, /* FIXME: ATS */
 					      session->tmap,
 					      nmap);
-  if (NULL != session->tmap)
-    GSC_TYPEMAP_destroy (session->tmap);
+  GSC_TYPEMAP_destroy (session->tmap);
   session->tmap = nmap;
 }
 
