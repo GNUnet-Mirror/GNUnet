@@ -137,8 +137,6 @@ static GNUNET_SCHEDULER_TaskIdentifier churn_task;
 
 static char *topology_file;
 
-static char *data_filename;
-
 static uint64_t clock_skew;
 
 /**
@@ -540,6 +538,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *temp_str;
   unsigned long long temp_wait;
   struct GNUNET_TESTING_Host *hosts;
+  char *data_filename;
 
   ok = 1;
   testing_cfg = GNUNET_CONFIGURATION_create ();
@@ -584,14 +583,21 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  if (GNUNET_OK !=
+  if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (testing_cfg, "nse-profiler",
                                              "data_output_file",
                                              &data_filename))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Option nse-profiler:data_output_file is required!\n");
-    return;
+    data_file =
+      GNUNET_DISK_file_open (data_filename,
+                             GNUNET_DISK_OPEN_READWRITE |
+                             GNUNET_DISK_OPEN_CREATE,
+                             GNUNET_DISK_PERM_USER_READ |
+                             GNUNET_DISK_PERM_USER_WRITE);
+    if (data_file == NULL)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
+		  data_filename);
+    GNUNET_free (data_filename);
   }
 
   if (GNUNET_YES ==
@@ -604,17 +610,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                   GNUNET_TIME_UNIT_MINUTES.rel_value);
   }
 
-
-  data_file =
-      GNUNET_DISK_file_open (data_filename,
-                             GNUNET_DISK_OPEN_READWRITE |
-                             GNUNET_DISK_OPEN_CREATE,
-                             GNUNET_DISK_PERM_USER_READ |
-                             GNUNET_DISK_PERM_USER_WRITE);
-  if (data_file == NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
-                data_filename);
-  GNUNET_free (data_filename);
 
   wait_time =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_wait);

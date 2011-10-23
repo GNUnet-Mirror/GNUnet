@@ -103,8 +103,6 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
 
 static char *topology_file;
 
-static char *data_filename;
-
 struct GNUNET_TESTING_Daemon *d1;
 
 struct GNUNET_TESTING_Daemon *d2;
@@ -472,6 +470,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   char *temp_str;
   struct GNUNET_TESTING_Host *hosts;
+  char *data_filename;
 
   ok = 1;
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
@@ -509,27 +508,23 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  if (GNUNET_OK !=
+  if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (testing_cfg, "test_dht_2dtorus",
                                              "data_output_file",
                                              &data_filename))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Option test_dht_2d:data_output_file is required!\n");
-    return;
-  }
-
-  data_file =
+    data_file =
       GNUNET_DISK_file_open (data_filename,
                              GNUNET_DISK_OPEN_READWRITE |
                              GNUNET_DISK_OPEN_CREATE,
                              GNUNET_DISK_PERM_USER_READ |
                              GNUNET_DISK_PERM_USER_WRITE);
-  if (data_file == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
-                data_filename);
-    GNUNET_free (data_filename);
+    if (data_file == NULL)
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
+		    data_filename);
+	GNUNET_free (data_filename);
+      }
   }
 
   if (GNUNET_YES ==
