@@ -271,6 +271,10 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 			 gettext_noop ("# entries in session map"),
 			 GNUNET_CONTAINER_multihashmap_size (sessions), 
 			 GNUNET_NO);
+  GSC_CLIENTS_notify_clients_about_neighbour (peer,
+					      NULL, 0 /* FIXME: ATSI */,
+					      NULL,
+					      session->tmap);
 }
 
 

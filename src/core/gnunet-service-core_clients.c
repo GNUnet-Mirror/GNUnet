@@ -669,7 +669,12 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   old_match = GSC_TYPEMAP_test_match (tmap_old, client->types, client->tcnt);
   new_match = GSC_TYPEMAP_test_match (tmap_new, client->types, client->tcnt);
   if (old_match == new_match)
+  {
+    GNUNET_assert (old_match ==
+		   GNUNET_CONTAINER_multihashmap_contains (client->connectmap,
+							   &neighbour->hashPubKey));
     return; /* no change */
+  }
   if (old_match == GNUNET_NO)
   {
     /* send connect */  
