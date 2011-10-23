@@ -34,12 +34,12 @@
 /**
  * Timeout for stopping services.  Long to give some services a real chance.
  */
-#define STOP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define STOP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
 
 /**
  * Timeout for stopping ARM.  Extra-long since ARM needs to stop everyone else.
  */
-#define STOP_TIMEOUT_ARM GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define STOP_TIMEOUT_ARM GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
 
 /**
  * Timeout for starting services, very short because of the strange way start works
