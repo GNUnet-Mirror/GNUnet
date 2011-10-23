@@ -242,11 +242,6 @@ struct GNUNET_CLIENT_Connection
   int in_receive;
 
   /**
-   * Are we ignoring shutdown signals?
-   */
-  int ignore_shutdown;
-
-  /**
    * How often have we tried to connect?
    */
   unsigned int attempts;
@@ -378,22 +373,6 @@ GNUNET_CLIENT_connect (const char *service_name,
   ret->cfg = cfg;
   ret->back_off = GNUNET_TIME_UNIT_MILLISECONDS;
   return ret;
-}
-
-
-/**
- * Configure this connection to ignore shutdown signals.
- *
- * @param h client handle
- * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
- */
-void
-GNUNET_CLIENT_ignore_shutdown (struct GNUNET_CLIENT_Connection *h,
-			       int do_ignore)
-{
-  h->ignore_shutdown = do_ignore;
-  if (h->sock != NULL)
-    GNUNET_CONNECTION_ignore_shutdown (h->sock, do_ignore);
 }
 
 
@@ -960,8 +939,6 @@ client_delayed_retry (void *cls,
 	GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
       return;
     }
-  GNUNET_CONNECTION_ignore_shutdown (th->sock->sock,
-				     th->sock->ignore_shutdown);
   th->th =
     GNUNET_CONNECTION_notify_transmit_ready (th->sock->sock, th->size,
 					     GNUNET_TIME_absolute_get_remaining

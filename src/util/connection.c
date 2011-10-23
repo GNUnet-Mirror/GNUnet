@@ -1495,7 +1495,8 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (sock->nth.timeout_task == GNUNET_SCHEDULER_NO_TASK);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
-      if (sock->ignore_shutdown == GNUNET_YES)
+      if ( (sock->ignore_shutdown == GNUNET_YES) &&
+	   (NULL != sock->sock) )
 	goto SCHEDULE_WRITE;	/* ignore shutdown, go again immediately */
 #if DEBUG_CONNECTION
       LOG (GNUNET_ERROR_TYPE_DEBUG,

@@ -188,7 +188,7 @@ write_shutdown (void *cls, size_t size, void *buf)
 
   if (size < sizeof (struct GNUNET_MessageHeader))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Failed to transmit shutdown request to client.\n"));
     shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_SYSERR);
     GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);

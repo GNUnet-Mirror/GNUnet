@@ -470,7 +470,6 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_CLIENT_disconnect (sc->h->client, GNUNET_NO);
     sc->h->client = GNUNET_CLIENT_connect ("arm", sc->h->cfg);
     GNUNET_assert (NULL != sc->h->client);
-    GNUNET_CLIENT_ignore_shutdown (sc->h->client, GNUNET_YES);
     if (sc->callback != NULL)
       sc->callback (sc->cls, GNUNET_SYSERR);
     GNUNET_free (sc);
@@ -618,7 +617,6 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h, const char *service_name,
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "arm_api, GNUNET_CLIENT_connect returned non-NULL\n");
-    GNUNET_CLIENT_ignore_shutdown (client, GNUNET_YES);
     h->client = client;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "arm_api, h->client non-NULL\n");
@@ -673,7 +671,6 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h, const char *service_name,
       cb (cb_cls, GNUNET_SYSERR);
       return;
     }
-    GNUNET_CLIENT_ignore_shutdown (client, GNUNET_YES);
     h->client = client;
   }
   if (0 == strcasecmp ("arm", service_name))
