@@ -292,20 +292,10 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if 1
   /* FIXME: this should not be needed, and not sure it's good to have it, but without
      this connections seem to go extra-slow */
-  if ((ats_count > 0) && (ats != NULL))
-  {
-    if (NULL != session)
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
-		       "transport-ats",
-		       "Giving ATS session %p of plugin %s for peer %s\n",
-		       session,
-		       plugin_name,
-		       GNUNET_i2s (peer));
-    GNUNET_ATS_address_update (GST_ats, peer,
-                               plugin_name, sender_address, sender_address_len,
-                               session,
-                               ats, ats_count);
-  }
+  GNUNET_ATS_address_update (GST_ats, peer,
+			     plugin_name, sender_address, sender_address_len,
+			     session,
+			     ats, ats_count);  
 #endif
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -969,14 +969,14 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
   n = lookup_neighbour (sender);
   if (n == NULL)
   {
-    GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# messages discarded due to lack of neighbour record"),
-                              1, GNUNET_NO);
     GST_neighbours_try_connect (sender);
     n = lookup_neighbour (sender);
     if (NULL == n)
     {
+      GNUNET_STATISTICS_update (GST_stats,
+				gettext_noop
+				("# messages discarded due to lack of neighbour record"),
+				1, GNUNET_NO);
       *do_forward = GNUNET_NO;
       return GNUNET_TIME_UNIT_ZERO;
     }
@@ -1020,7 +1020,7 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
     return GNUNET_CONSTANTS_QUOTA_VIOLATION_TIMEOUT;
   }
   *do_forward = GNUNET_YES;
-  ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 0);
+  ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 32 * 1024);
   if (ret.rel_value > 0)
   {
 #if DEBUG_TRANSPORT
