@@ -989,7 +989,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    "Unexpected message size for message of type %u\n",
 		    mh->type);
-        GNUNET_break (0);
+        GNUNET_break_op (0);
         continue;
       }
       if (GNUNET_OK !=
