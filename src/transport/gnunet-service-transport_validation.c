@@ -604,25 +604,31 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   alen = ntohs (hdr->size) - sizeof (struct TransportPingMessage);
   /* peer wants to confirm that this is one of our addresses, this is what is
    * used for address validation */
-
-  addrend = memchr (addr, '\0', alen);
-  if (NULL == addrend)
+  if (0 < alen)
   {
-    GNUNET_break_op (0);
-    return;
-  }
-  addrend++;
-  slen = strlen (addr) + 1;
-  alen -= slen;
-
-  if (GNUNET_YES !=
-      GST_hello_test_address (addr, addrend, alen, &sig_cache, &sig_cache_exp))
+    addrend = memchr (addr, '\0', alen);
+    if (NULL == addrend)
+      {
+	GNUNET_break_op (0);
+	return;
+      }
+    addrend++;
+    slen = strlen (addr) + 1;
+    alen -= slen;
+    
+    if (GNUNET_YES !=
+	GST_hello_test_address (addr, addrend, alen, &sig_cache, &sig_cache_exp))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _
+		  ("Not confirming PING with address `%s' since I cannot confirm having this address.\n"),
+		  GST_plugins_a2s (addr, addrend, alen));
+      return;
+    }
+  } 
+  else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Not confirming PING with address `%s' since I cannot confirm having this address.\n"),
-                GST_plugins_a2s (addr, addrend, alen));
-    return;
+    slen = 0;
   }
 
   pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + alen + slen);
