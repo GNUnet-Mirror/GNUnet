@@ -578,10 +578,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     qm = (const struct QuotaSetMessage *) msg;
     n = neighbour_find (h, &qm->peer);
     if (n == NULL)
-    {
-      GNUNET_break (0);
       break;
-    }
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, qm->quota);
     break;
   default:
