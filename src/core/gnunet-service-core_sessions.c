@@ -193,6 +193,10 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
     GSC_CLIENTS_reject_request (car);
   }
   GNUNET_SCHEDULER_cancel (session->typemap_task);
+  GSC_CLIENTS_notify_clients_about_neighbour (&session->peer,
+					      NULL, 0 /* FIXME: ATSI */,
+					      session->tmap,
+					      NULL);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (sessions,
                                                        &session->peer.hashPubKey, session));
