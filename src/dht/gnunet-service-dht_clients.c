@@ -403,13 +403,17 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             GNUNET_NO);
   dht_msg = (const struct GNUNET_DHT_ClientPutMessage *) message;
   /* give to local clients */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Passing %u-byte reply for query %s to local clients\n",
+	      size - sizeof (struct GNUNET_DHT_ClientPutMessage),
+	      GNUNET_h2s (&dht_msg->key));
   GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
-			   &dht_msg->key,
-			   0, NULL,
-			   0, NULL,
-			   ntohl (dht_msg->type),
-			   size - sizeof (struct GNUNET_DHT_ClientPutMessage),
-			   &dht_msg[1]);
+			    &dht_msg->key,
+			    0, NULL,
+			    0, NULL,
+			    ntohl (dht_msg->type),
+			    size - sizeof (struct GNUNET_DHT_ClientPutMessage),
+			    &dht_msg[1]);
   /* store locally */
   GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
 			    &dht_msg->key,
@@ -468,7 +472,9 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# GET requests received from clients"), 1,
                             GNUNET_NO);
-  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received request for %s from local client\n",
+	      GNUNET_h2s (&get->key)); 
   cqr = GNUNET_malloc (sizeof (struct ClientQueryRecord) + xquery_size);
   cqr->key = get->key;
   cqr->client = find_active_client (client);
