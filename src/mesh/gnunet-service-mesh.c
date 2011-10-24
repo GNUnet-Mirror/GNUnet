@@ -718,6 +718,23 @@ tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid);
 
 
 /**
+ * Notify a tunnel that a connection has broken that affects at least
+ * some of its peers.
+ *
+ * @param t Tunnel affected.
+ * @param p1 Peer that got disconnected from p2.
+ * @param p2 Peer that got disconnected from p1.
+ *
+ * @return Short ID of the peer disconnected (either p1 or p2).
+ *         0 if the tunnel remained unaffected.
+ */
+static GNUNET_PEER_Id
+tunnel_notify_connection_broken (struct MeshTunnel *t,
+                                 GNUNET_PEER_Id p1,
+                                 GNUNET_PEER_Id p2);
+
+
+/**
  * Send the message to all clients that have subscribed to its type
  *
  * @param msg Pointer to the message itself
@@ -1309,24 +1326,6 @@ peer_info_destroy (struct MeshPeerInfo *pi)
 
 
 /**
- * Notify a tunnel that a connection has broken that affects at least
- * some of its peers.
- *
- * @param t Tunnel affected.
- * @param peer Peer that (at least) has been affected by the disconnection.
- * @param p1 Peer that got disconnected from p2.
- * @param p2 Peer that got disconnected from p1.
- *
- * @return Short ID of the peer disconnected (either p1 or p2).
- *         0 if the tunnel remained unaffected.
- */
-static GNUNET_PEER_Id
-tunnel_notify_connection_broken (struct MeshTunnel *t,
-                                 struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
-                                 GNUNET_PEER_Id p2);
-
-
-/**
  * Remove all paths that rely on a direct connection between p1 and p2
  * from the peer itself and notify all tunnels about it.
  *
@@ -1374,7 +1373,7 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
 
   for (i = 0; i < peer->ntunnels; i++)
   {
-    d = tunnel_notify_connection_broken (peer->tunnels[i], peer, p1, p2);
+    d = tunnel_notify_connection_broken (peer->tunnels[i], p1, p2);
     /* TODO
      * Problem: one or more peers have been deleted from the tunnel tree.
      * We don't know who they are to try to add them again.
@@ -1650,6 +1649,8 @@ tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
  * disconnected, most likely because of a path change.
  *
  * @param n Node in the tree representing the disconnected peer
+ * 
+ * FIXME: pass tunnel via cls, make param just a peer identity
  */
 void
 notify_peer_disconnected (const struct MeshTunnelTreeNode *n)
@@ -1757,11 +1758,12 @@ tunnel_add_path (struct MeshTunnel *t,
 
 
 /**
- * Notify a tunnel that a connection has broken that affects at least
- * some of its peers.
+ * Notifies a tunnel that a connection has broken that affects at least
+ * some of its peers. Sends a notification towards the root of the tree.
+ * In case the peer is the owner of the tree, notifies the client that owns
+ * the tunnel and tries to reconnect.
  *
  * @param t Tunnel affected.
- * @param peer Peer that (at least) has been affected by the disconnection.
  * @param p1 Peer that got disconnected from p2.
  * @param p2 Peer that got disconnected from p1.
  *
@@ -1770,12 +1772,38 @@ tunnel_add_path (struct MeshTunnel *t,
  */
 static GNUNET_PEER_Id
 tunnel_notify_connection_broken (struct MeshTunnel *t,
-                                 struct MeshPeerInfo *peer,
                                  GNUNET_PEER_Id p1,
                                  GNUNET_PEER_Id p2)
 {
-  return tree_notify_connection_broken (t->tree, p1, p2,
-                                        &notify_peer_disconnected);
+  GNUNET_PEER_Id pid;
+
+  pid = tree_notify_connection_broken (t->tree,
+                                       p1,
+                                       p2,
+                                       &notify_peer_disconnected);
+  if (myid != p1 && myid != p2)
+  {
+    return pid;
+  }
+  if (pid != myid)
+  {
+    if (NULL != t->tree->me->parent)
+    {
+      /* We are the peer still connected, notify owner of the disconnection. */
+      struct GNUNET_MESH_PathBroken msg;
+      struct GNUNET_PeerIdentity neighbor;
+
+      msg.header.size = htons (sizeof (msg));
+      msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN);
+      GNUNET_PEER_resolve (t->id.oid, &msg.oid);
+      msg.tid = htonl (t->id.tid);
+      msg.peer1 = my_full_id;
+      GNUNET_PEER_resolve (pid, &msg.peer2);
+      GNUNET_PEER_resolve (t->tree->me->parent->peer, &neighbor);
+      send_message (&msg.header, &neighbor);
+    }
+  }
+  return pid;
 }
 
 
@@ -2545,6 +2573,51 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Core handler for notifications of broken paths
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_mesh_path_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *message,
+                          const struct GNUNET_ATS_Information *atsi,
+                          unsigned int atsi_count)
+{
+  struct GNUNET_MESH_PathBroken *msg;
+  struct MeshTunnel *t;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: Received a PATH BROKEN msg from %s\n",
+              GNUNET_i2s(peer));
+  msg = (struct GNUNET_MESH_PathBroken *) message;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:   regarding %s\n",
+              GNUNET_i2s(&msg->peer1));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:   regarding %s\n",
+              GNUNET_i2s(&msg->peer2));
+  t = tunnel_get(&msg->oid, ntohl (msg->tid));
+  if (NULL == t)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  tunnel_notify_connection_broken(t,
+                                  GNUNET_PEER_search(&msg->peer1),
+                                  GNUNET_PEER_search(&msg->peer2));
+  return GNUNET_OK;
+
+}
+
+
+/**
  * Core handler for tunnel destruction
  *
  * @param cls closure
@@ -2882,12 +2955,14 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&handle_mesh_path_create, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
   {&handle_mesh_path_destroy, GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY, 0},
+  {&handle_mesh_path_broken, GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN,
+    sizeof (struct GNUNET_MESH_PathBroken)},
   {&handle_mesh_tunnel_destroy, GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY, 0},
   {&handle_mesh_data_unicast, GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
   {&handle_mesh_data_multicast, GNUNET_MESSAGE_TYPE_MESH_MULTICAST, 0},
   {&handle_mesh_data_to_orig, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
   {&handle_mesh_path_ack, GNUNET_MESSAGE_TYPE_MESH_PATH_ACK,
-   sizeof (struct GNUNET_MESH_PathACK)},
+    sizeof (struct GNUNET_MESH_PathACK)},
   {NULL, 0, 0}
 };
 
@@ -3981,7 +4056,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 static void
 core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
               const struct GNUNET_ATS_Information *atsi,
-	      unsigned int atsi_count)
+              unsigned int atsi_count)
 {
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *path;
@@ -4038,6 +4113,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   }
   for (i = 0; i < CORE_QUEUE_SIZE; i++)
   {
+    /* TODO: notify that the transmission failed */
     peer_info_cancel_transmission(pi, i);
   }
   path_remove_from_peer (pi, pi->id, myid);

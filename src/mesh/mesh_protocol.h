@@ -159,7 +159,7 @@ struct GNUNET_MESH_ToOrigin
 struct GNUNET_MESH_PathACK
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_PATH_ACK
+     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_ACK
      */
   struct GNUNET_MessageHeader header;
 
@@ -177,6 +177,40 @@ struct GNUNET_MESH_PathACK
      * ID of the endpoint
      */
   struct GNUNET_PeerIdentity peer_id;
+
+  /* TODO: signature */
+};
+
+
+/**
+ * Message for notifying a disconnection in a path
+ */
+struct GNUNET_MESH_PathBroken
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+  uint32_t tid GNUNET_PACKED;
+
+    /**
+     * OID of the tunnel
+     */
+  struct GNUNET_PeerIdentity oid;
+
+    /**
+     * ID of the endpoint
+     */
+  struct GNUNET_PeerIdentity peer1;
+  
+    /**
+     * ID of the endpoint
+     */
+  struct GNUNET_PeerIdentity peer2;
 
   /* TODO: signature */
 };
