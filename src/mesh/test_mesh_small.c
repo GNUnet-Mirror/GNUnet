@@ -477,11 +477,11 @@ static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "***************** test: test_task\n");
-  GNUNET_MESH_peer_request_connect_add(t, &d2->id);
   if (test == MULTICAST)
   {
     GNUNET_MESH_peer_request_connect_add(t, &d3->id);
   }
+  GNUNET_MESH_peer_request_connect_add(t, &d2->id);
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -519,7 +519,14 @@ topo_cb (void *cls,
   {
     p2 = GNUNET_PEER_search(second);
     GNUNET_assert(p2 < num_peers);
-    GNUNET_assert(p2 > 0);
+    if (p2 == 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "***************** test: %s is UNKNOWN!?\n",
+                  GNUNET_i2s(second));
+      GNUNET_break (0);
+      return;
+    }
     mesh_peers[p2]++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "***************** test: %s IS a neighbor\n",
