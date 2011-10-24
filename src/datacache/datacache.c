@@ -33,6 +33,8 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "datacache", __VA_ARGS__)
 
+#define LOG_STRERROR_FILE(kind,op,fn) GNUNET_log_from_strerror_file (kind, "datacache", op, fn)
+
 /**
  * Internal state of the datacache library.
  */
