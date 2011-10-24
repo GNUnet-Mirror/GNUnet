@@ -604,6 +604,10 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   alen = ntohs (hdr->size) - sizeof (struct TransportPingMessage);
   /* peer wants to confirm that this is one of our addresses, this is what is
    * used for address validation */
+
+  sig_cache = NULL;
+  sig_cache_exp = NULL;
+
   if (0 < alen)
   {
     addrend = memchr (addr, '\0', alen);
@@ -630,6 +634,11 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   {
     addrend = NULL; /* make gcc happy */
     slen = 0;
+    static struct GNUNET_CRYPTO_RsaSignature no_address_signature;
+    static struct GNUNET_TIME_Absolute no_address_signature_expiration;
+
+    sig_cache = &no_address_signature;
+    sig_cache_exp = &no_address_signature_expiration;
   }
 
   pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + alen + slen);
