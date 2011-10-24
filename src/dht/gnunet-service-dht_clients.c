@@ -622,6 +622,9 @@ send_reply_to_client (void *cls, size_t size, void *buf)
   if (buf == NULL)
   {
     /* client disconnected */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Client %p disconnected, pending messages will be discarded\n",
+		client->client_handle);
     return 0;
   }
   off = 0;
@@ -632,6 +635,10 @@ send_reply_to_client (void *cls, size_t size, void *buf)
                                  reply);
     memcpy (&cbuf[off], reply->msg, msize);
     GNUNET_free (reply);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Transmitting %u bytes to client %p\n",
+		msize,
+		client->client_handle);
     off += msize;
   }
   process_pending_messages (client);
@@ -824,7 +831,7 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
   reply = (struct GNUNET_DHT_ClientResultMessage*) &pm[1];  
   reply->unique_id = record->unique_id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Queueing reply to query %s for peer %p\n",
+	      "Queueing reply to query %s for client %p\n",
 	      GNUNET_h2s (key),
 	      record->client->client_handle);
   add_pending_message (record->client, pm);

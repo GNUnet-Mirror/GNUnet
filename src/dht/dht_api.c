@@ -435,7 +435,9 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   if (dht_msg->unique_id != get_handle->unique_id)
   {
     /* UID mismatch */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Ignoring reply (UID mismatch: %llu/%llu)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Ignoring reply for %s: UID mismatch: %llu/%llu\n",
+	 GNUNET_h2s (key),
          dht_msg->unique_id, get_handle->unique_id);
     return GNUNET_YES;
   }
@@ -455,6 +457,10 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
     return GNUNET_NO;
   }
   data_length = msize - meta_length;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Giving %u byte reply for %s to application\n",
+       (unsigned int) data_length,
+       GNUNET_h2s (key));
   put_path = (const struct GNUNET_PeerIdentity *) &dht_msg[1];
   get_path = &put_path[put_path_length];
   data = &get_path[get_path_length];
@@ -498,8 +504,10 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     do_disconnect (handle);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received reply from DHT service\n");
   dht_msg = (const struct GNUNET_DHT_ClientResultMessage *) msg;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Received reply for `%s' from DHT service\n",
+       GNUNET_h2s (&dht_msg->key));
   GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
                                               &dht_msg->key, &process_reply,
                                               (void *) dht_msg);
