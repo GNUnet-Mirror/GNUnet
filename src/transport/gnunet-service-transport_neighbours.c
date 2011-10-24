@@ -349,7 +349,7 @@ transmit_send_continuation (void *cls,
 
   mq = cls;
   n = mq->n;
-  if ((NULL != n))
+  if (NULL != n)
   {
     GNUNET_assert (n->is_active == mq);
     n->is_active = NULL;
@@ -406,7 +406,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   n->is_active = mq;
   mq->n = n;
 
-  if  (((n->session == NULL) && (n->addr == NULL) && (n->addrlen == 0)))
+  if  ((n->session == NULL) && (n->addr == NULL) && (n->addrlen == 0))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No address for peer `%s'\n",
                 GNUNET_i2s (&n->id));
