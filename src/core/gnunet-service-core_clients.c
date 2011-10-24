@@ -443,9 +443,16 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
   tc.car = GNUNET_CONTAINER_multihashmap_get (c->requests, &sm->peer.hashPubKey);
   if (NULL == tc.car)
   {
-    /* client did not request transmission first! */
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    /* Must have been that we first approved the request, then got disconnected
+       (which triggered removal of the 'car') and now the client gives us a message
+       just *before* the client learns about the disconnect.  Theoretically, we
+       might also now be *again* connected.  So this can happen (but should be
+       rare).  If it does happen, the message is discarded. */
+    GNUNET_STATISTICS_update (GSC_stats, 
+			      gettext_noop ("# messages discarded (session disconnected)"),
+			      1,
+			      GNUNET_NO);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   GNUNET_assert (GNUNET_YES ==
