@@ -1002,6 +1002,7 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   {
     if (addrlen == sizeof (struct IPv6TcpAddress))
     {
+      GNUNET_assert (NULL != addr); /* make static analysis happy */
       t6 = addr;
       af = AF_INET6;
       memset (&a6, 0, sizeof (a6));
@@ -1018,6 +1019,7 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     }
     else if (addrlen == sizeof (struct IPv4TcpAddress))
     {
+      GNUNET_assert (NULL != addr); /* make static analysis happy */
       t4 = addr;
       af = AF_INET;
       memset (&a4, 0, sizeof (a4));
