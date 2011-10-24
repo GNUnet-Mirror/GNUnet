@@ -631,10 +631,10 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   }
   while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->priority_heap)))
   {
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
-							 get_rp_key (rp),
-							 rp));
+    GNUNET_break (GNUNET_YES ==
+		  GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
+							get_rp_key (rp),
+							rp));
     while (NULL != (prl = rp->prl_head))
     {
       GNUNET_CONTAINER_DLL_remove (rp->prl_head, rp->prl_tail, prl);
@@ -648,9 +648,10 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   GNUNET_CONTAINER_heap_destroy (pp->priority_heap);
   while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->delay_heap)))
   {
-    GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
-					  get_rp_key (rp),
-					  rp);
+    GNUNET_break (GNUNET_YES ==
+		  GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
+							get_rp_key (rp),
+							rp));
     while (NULL != (prl = rp->prl_head))
     {
       GNUNET_CONTAINER_DLL_remove (rp->prl_head, rp->prl_tail, prl);
@@ -693,9 +694,10 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
     {
       GNUNET_CONTAINER_heap_remove_node (rp->hn);
       plan_count--;
-      GNUNET_CONTAINER_multihashmap_remove (rp->pp->plan_map,
-					    &GSF_pending_request_get_data_ (rpr->prl->pr)->query,
-					    rp);
+      GNUNET_break (GNUNET_YES ==
+		    GNUNET_CONTAINER_multihashmap_remove (rp->pp->plan_map,
+							  &GSF_pending_request_get_data_ (rpr->prl->pr)->query,
+							  rp));
       GNUNET_free (rp);
     }
     GNUNET_free (rpr->prl);
