@@ -258,12 +258,13 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (strcmp (id_aux, id_near2) == 0)
       d2 = aux;
   }
-  if (NULL == o || NULL == d || NULL == d2 || NULL == d_far)
+  if ( (NULL == o) || (NULL == d) || (NULL == d2) || (NULL == d_far))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "test: Peers not found (hostkey file changed?)\n");
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
+    return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
