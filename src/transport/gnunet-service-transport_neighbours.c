@@ -387,6 +387,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
       break;
     GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
     n->is_active = mq;
+    mq->n = n;
     transmit_send_continuation (mq, &n->id, GNUNET_SYSERR);     /* timeout */
   }
   if (NULL == mq)
