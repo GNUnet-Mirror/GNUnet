@@ -248,6 +248,10 @@ remove_client_records (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (record->client != client)
     return GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Removing client %p's record for key %s\n",
+	      client,
+	      GNUNET_h2s (key));
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (forward_map,
 						       key, record));
@@ -276,6 +280,9 @@ handle_client_disconnect (void *cls,
   struct ClientList *pos;
   struct PendingMessage *reply;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Local client %p disconnects\n",
+	      client);
   pos = find_active_client (client);
   GNUNET_CONTAINER_DLL_remove (client_head,
 			       client_tail,
@@ -473,8 +480,9 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
                             gettext_noop ("# GET requests received from clients"), 1,
                             GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received request for %s from local client\n",
-	      GNUNET_h2s (&get->key)); 
+	      "Received request for %s from local client %p\n",
+	      GNUNET_h2s (&get->key),
+	      client); 
   cqr = GNUNET_malloc (sizeof (struct ClientQueryRecord) + xquery_size);
   cqr->key = get->key;
   cqr->client = find_active_client (client);
@@ -538,6 +546,10 @@ remove_by_unique_id (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (record->unique_id != ctx->unique_id)
     return GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Removing client %p's record for key %s (by unique id)\n",
+	      ctx->client,
+	      GNUNET_h2s (key));
   return remove_client_records (ctx->client, key, record);
 }
 
@@ -562,6 +574,10 @@ handle_dht_local_get_stop (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# GET STOP requests received from clients"), 1,
                             GNUNET_NO);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client %p stopped request for key %s\n",
+	      client,
+	      GNUNET_h2s (&dht_stop_msg->key));
   ctx.client = find_active_client (client);
   ctx.unique_id = dht_stop_msg->unique_id;
   GNUNET_CONTAINER_multihashmap_get_multiple (forward_map,
@@ -718,6 +734,9 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
   if ( (record->type != GNUNET_BLOCK_TYPE_ANY) &&
        (record->type != frc->type) )
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Record type missmatch, not passing request for key %s to local client\n",
+		  GNUNET_h2s (key));
       GNUNET_STATISTICS_update (GDS_stats,
 				gettext_noop ("# Key match, type mismatches in REPLY to CLIENT"), 1,
 				GNUNET_NO);
@@ -731,6 +750,9 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
 		     &ch,
 		     sizeof (GNUNET_HashCode)))
       {
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Duplicate reply, not passing request for key %s to local client\n",
+		    GNUNET_h2s (key));
 	GNUNET_STATISTICS_update (GDS_stats,
 				  gettext_noop ("# Duplicate REPLIES to CLIENT request dropped"), 1,
 				  GNUNET_NO);
@@ -744,6 +766,10 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
 			   record->xquery_size, 
 			   frc->data,
 			   frc->data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Evaluation result is %d for key %s for local client's query\n",
+	      (int) eval,
+	      GNUNET_h2s (key));
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_LAST:
@@ -797,6 +823,10 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
                             GNUNET_NO);
   reply = (struct GNUNET_DHT_ClientResultMessage*) &pm[1];  
   reply->unique_id = record->unique_id;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Queueing reply to query %s for peer %p\n",
+	      GNUNET_h2s (key),
+	      record->client->client_handle);
   add_pending_message (record->client, pm);
   if (GNUNET_YES == do_free)
     remove_client_records (record->client, key, record);
