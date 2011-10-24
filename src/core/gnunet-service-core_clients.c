@@ -624,11 +624,6 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
 void
 GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
 {
-#if DEBUG_CONNECTS
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_contains (car->client_handle->connectmap,
-							 &car->target.hashPubKey));
-#endif
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (car->client_handle->requests,
 						       &car->target.hashPubKey,
