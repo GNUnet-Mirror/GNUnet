@@ -435,12 +435,12 @@ struct GNUNET_ATS_Information
   /**
    * ATS property type, in network byte order.
    */
-  uint32_t type;
+  uint32_t type GNUNET_PACKED;
 
   /**
    * ATS property value, in network byte order.
    */
-  uint32_t value;
+  uint32_t value GNUNET_PACKED;
 };
 
 

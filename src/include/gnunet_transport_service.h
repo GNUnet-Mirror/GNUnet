@@ -51,7 +51,7 @@ extern "C"
  * @param peer (claimed) identity of the other peer
  * @param message the message
  * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param ats_count number of entries in ats 
  */
 typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
                                                   const struct
