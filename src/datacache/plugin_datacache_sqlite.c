@@ -272,14 +272,12 @@ sqlite_plugin_get (void *cls, const GNUNET_HashCode * key,
       exp = GNUNET_TIME_UNIT_FOREVER_ABS;
     cnt++;
 #if DEBUG_DATACACHE_SQLITE
-    if (0 == total)
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Found %u-byte result when processing `%s' for key `%4s'\n",
-	   (unsigned int) size,
-	   "GET", 
-	   GNUNET_h2s (key));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Found %u-byte result when processing `%s' for key `%4s'\n",
+	 (unsigned int) size,
+	 "GET", 
+	 GNUNET_h2s (key));
 #endif
-
     if (GNUNET_OK != iter (iter_cls, exp, key, size, dat, type))
     {
       sqlite3_finalize (stmt);
