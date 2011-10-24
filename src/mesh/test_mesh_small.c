@@ -541,7 +541,7 @@ topo_cb (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "***************** test: %s is UNKNOWN!?\n",
-                  GNUNET_i2s(second));
+                  GNUNET_i2s(first));
       return;
     }
     mesh_peers[p2]++;
