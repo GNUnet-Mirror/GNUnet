@@ -311,6 +311,9 @@ do_disconnect (struct GNUNET_DHT_Handle *handle)
   if (NULL != handle->th)
     GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
   handle->th = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Disconnecting from DHT service, will try to reconnect in %llu ms\n",
+	      (unsigned long long) handle->retry_time.rel_value);
   GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
   handle->client = NULL;
   handle->reconnect_task =
@@ -335,6 +338,8 @@ process_pending_messages (struct GNUNET_DHT_Handle *handle)
 
   if (handle->client == NULL)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"process_pending_messages called, but client is null, reconnecting\n");
     do_disconnect (handle);
     return;
   }
@@ -350,6 +355,8 @@ process_pending_messages (struct GNUNET_DHT_Handle *handle)
                                            handle);
   if (NULL != handle->th)
     return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "notify_transmit_ready returned NULL, reconnecting\n");
   do_disconnect (handle);
 }
 

@@ -548,7 +548,7 @@ remove_by_unique_id (void *cls, const GNUNET_HashCode * key, void *value)
     return GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Removing client %p's record for key %s (by unique id)\n",
-	      ctx->client,
+	      ctx->client->client_handle,
 	      GNUNET_h2s (key));
   return remove_client_records (ctx->client, key, record);
 }
