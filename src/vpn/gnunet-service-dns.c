@@ -947,6 +947,7 @@ receive_query (void *cls
         memcpy (&cls_->dns, rdns,
                 cls_->hdr.size - sizeof (struct GNUNET_MessageHeader));
         GNUNET_SCHEDULER_add_now (send_mesh_query, cls_);
+	GNUNET_free (rdns);
       }
 
     goto outfree;
