@@ -2917,12 +2917,12 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break_op (0);
       return GNUNET_OK;
     }
-    peer_info = peer_info_get (&msg->peer_id);
-    if (NULL == peer_info)
+    if (NULL != t->dht_get_type)
     {
-      GNUNET_break_op (0);
-      return GNUNET_OK;
+      GNUNET_DHT_get_stop (t->dht_get_type);
+      t->dht_get_type = NULL;
     }
+    peer_info = peer_info_get (&msg->peer_id);
     n = tree_find_peer(t->tree->root, peer_info->id);
     if (NULL == n)
     {
@@ -3147,11 +3147,9 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                       const void *data)
 {
   const struct GNUNET_PeerIdentity *pi = data;
-  struct GNUNET_PeerIdentity id;
   struct MeshTunnel *t = cls;
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *p;
-  int i;
 
   if (size != sizeof (struct GNUNET_PeerIdentity))
   {
@@ -3159,42 +3157,18 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     return;
   }
   GNUNET_assert (NULL != t->client);
-  GNUNET_DHT_get_stop (t->dht_get_type);
-  t->dht_get_type = NULL;
   peer_info = peer_info_get (pi);
-  GNUNET_CONTAINER_multihashmap_put (t->peers, &pi->hashPubKey, peer_info,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  (void) GNUNET_CONTAINER_multihashmap_put (
+      t->peers,
+      &pi->hashPubKey,
+      peer_info,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 
-  if ((NULL == get_path || NULL == put_path) && NULL == peer_info->path_head &&
-      NULL == peer_info->dhtget)
-  {
-    peer_info_connect (peer_info, t);
-    return;
-  }
-
-  p = path_build_from_dht (get_path, get_path_length, put_path, put_path_length);
+  p = path_build_from_dht (get_path, get_path_length,
+                           put_path, put_path_length);
   path_add_to_peer (peer_info, p);
   tunnel_add_peer(t, peer_info);
-  p = tree_get_path_to_peer(t->tree, peer_info->id);
-#if MESH_DEBUG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: new route for tunnel 0x%x found, has %u hops\n",
-              t->local_tid, p->length);
-  for (i = 0; i < p->length; i++)
-  {
-    GNUNET_PEER_resolve (p->peers[0], &id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:\t%d\t%s\n", i,
-                GNUNET_h2s_full (&id.hashPubKey));
-  }
-#endif
-
-  if (p->length > 1)
-  {
-    send_create_path(peer_info, p, t);
-    return;
-  }
-  path_destroy(p);
-  send_client_peer_connected(t, myid);
+  peer_info_connect (peer_info, t);
 }
 
 
