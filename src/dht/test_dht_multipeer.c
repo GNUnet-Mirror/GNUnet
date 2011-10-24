@@ -259,6 +259,10 @@ struct StatValues
 static struct StatValues stats[] = {
   {"core", "# bytes decrypted", 0},
   {"core", "# bytes encrypted", 0},
+  {"core", "# type maps received", 0},
+  {"core", "# session keys confirmed via PONG", 0},
+  {"core", "# entries in session map", 0},
+  {"core", "# key exchanges initiated", 0},
   {"core", "# send requests dropped (disconnected)", 0},
   {"core", "# transmissions delayed due to corking", 0},
   {"core", "# messages discarded (expired prior to transmission)", 0},
