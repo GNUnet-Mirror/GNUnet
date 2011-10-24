@@ -277,8 +277,9 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   if (GNUNET_CONFIGURATION_have_value (p->cfg, "PATHS", "SERVICEHOME"))
-    GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME",
-                                           &p->servicehome);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME",
+							  &p->servicehome));
   if (NULL != p->servicehome)
     GNUNET_DISK_directory_remove (p->servicehome);
 
