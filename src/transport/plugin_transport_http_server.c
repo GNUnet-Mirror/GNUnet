@@ -507,6 +507,7 @@ create:
       break;
   default:
     GNUNET_break (0);
+    goto error;
   }
 
   s = create_session (plugin,

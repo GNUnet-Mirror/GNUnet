@@ -628,6 +628,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   } 
   else
   {
+    addrend = NULL; /* make gcc happy */
     slen = 0;
   }
 

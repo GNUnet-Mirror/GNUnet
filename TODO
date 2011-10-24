@@ -9,6 +9,8 @@
   - provide context menus to allow aborts of downloads/uploads
   - provide way to handle errors (search, download, publish errors)
 * FS [CG]
+  - in 2-peer download, data-origin forwards messages back
+    to downloader (queries messages sent to other peers > 0!)
   - implement multi-peer FS performance tests + gauger them!
     + insert
     + download
