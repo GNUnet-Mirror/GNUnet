@@ -1197,7 +1197,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
 #if DEBUG_UDP
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "UDP processes %u-byte acknowledgement from `%s' at `%s'\n",
-                (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp->sender),
+                (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp_ack->sender),
                 GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
 #endif
 
