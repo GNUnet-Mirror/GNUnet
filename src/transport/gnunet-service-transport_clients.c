@@ -336,21 +336,22 @@ notify_client_about_neighbour (void *cls,
 {
   struct TransportClient *tc = cls;
   struct ConnectInfoMessage *cim;
-  size_t size;
+  struct GNUNET_ATS_Information *ap;
+  size_t size =
+    sizeof (struct ConnectInfoMessage) +
+    ats_count * sizeof (struct GNUNET_ATS_Information);
+  char buf[size];
 
-  size =
-      sizeof (struct ConnectInfoMessage) +
-      ats_count * sizeof (struct GNUNET_ATS_Information);
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  cim = GNUNET_malloc (size);
+  cim = (struct ConnectInfoMessage*) buf;
   cim->header.size = htons (size);
   cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim->ats_count = htonl (ats_count);
   cim->id = *peer;
-  memcpy (&cim->ats, ats,
+  ap = (struct GNUNET_ATS_Information *) &cim[1];
+  memcpy (ap, ats,
           ats_count * sizeof (struct GNUNET_ATS_Information));
   unicast (tc, &cim->header, GNUNET_NO);
-  GNUNET_free (cim);
 }
 
 

@@ -110,12 +110,6 @@ struct ConnectInfoMessage
    * Identity of the new neighbour.
    */
   struct GNUNET_PeerIdentity id;
-
-  /**
-   * First of the ATS information blocks (we must have at least
-   * one due to the 0-termination requirement).
-   */
-  struct GNUNET_ATS_Information ats;
 };
 
 
@@ -216,11 +210,6 @@ struct InboundMessage
    */
   struct GNUNET_PeerIdentity peer;
 
-  /**
-   * First of the ATS information blocks (we must have at least
-   * one due to the 0-termination requirement).
-   */
-  struct GNUNET_ATS_Information ats;
 };
 
 

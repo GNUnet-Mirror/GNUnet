@@ -154,9 +154,9 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_TIME_Relative ret;
   int do_forward;
   struct InboundMessage *im;
-  size_t size = sizeof (struct InboundMessage) + ntohs (message->size);
+  size_t size = sizeof (struct InboundMessage) + ntohs (message->size) + sizeof (struct GNUNET_ATS_Information) * ats_count;
   char buf[size];
-  memset (&buf, 0, size);
+  struct GNUNET_ATS_Information *ap;
   
   ret = GNUNET_TIME_UNIT_ZERO;
   do_forward = GNUNET_SYSERR;
@@ -169,9 +169,11 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   im = (struct InboundMessage*) buf;    
   im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
-  im->ats_count = htonl (0);
-  memcpy (&(im->peer), peer, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&im[1], message, ntohs (message->size));
+  im->ats_count = htonl (ats_count);
+  im->peer = *peer;
+  ap = (struct GNUNET_ATS_Information*) &im[1];
+  memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
+  memcpy (&ap[ats_count], message, ntohs (message->size));
 
   switch (do_forward)
   {
@@ -454,14 +456,15 @@ neighbours_connect_notification (void *cls,
   size_t len = sizeof (struct ConnectInfoMessage) +
       ats_count * sizeof (struct GNUNET_ATS_Information);
   char buf[len];
-  memset (&buf, 0, len);
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
+  struct GNUNET_ATS_Information *ap;
 
   connect_msg->header.size = htons (sizeof (buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   connect_msg->ats_count = htonl (ats_count);
   connect_msg->id = *peer;
-  memcpy (&connect_msg->ats, &connect_msg->ats,
+  ap = (struct GNUNET_ATS_Information *) &connect_msg[1];
+  memcpy (ap, ats,
           ats_count * sizeof (struct GNUNET_ATS_Information));
   GST_clients_broadcast (&connect_msg->header, GNUNET_NO);
 }

@@ -405,6 +405,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct GNUNET_MessageHeader *imm;
   const struct SendOkMessage *okm;
   const struct QuotaSetMessage *qm;
+  const struct GNUNET_ATS_Information *ats;
   struct GNUNET_TRANSPORT_GetHelloHandle *hwl;
   struct GNUNET_TRANSPORT_GetHelloHandle *next_hwl;
   struct Neighbour *n;
@@ -472,6 +473,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       break;
     }
+    ats = (const struct GNUNET_ATS_Information*) &cim[1];
 #if DEBUG_TRANSPORT_API
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving `%s' message for `%4s'.\n",
          "CONNECT", GNUNET_i2s (&cim->id));
@@ -484,7 +486,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     n = neighbour_add (h, &cim->id);
     if (h->nc_cb != NULL)
-      h->nc_cb (h->cls, &n->id, &cim->ats, ats_count);
+      h->nc_cb (h->cls, &n->id, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT:
     if (size != sizeof (struct DisconnectInfoMessage))
@@ -545,8 +547,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     im = (const struct InboundMessage *) msg;
     ats_count = ntohl (im->ats_count);
-    imm = (const struct GNUNET_MessageHeader *) &((&(im->ats))[ats_count + 1]);
-
+    ats = (const struct GNUNET_ATS_Information*) &im[1];
+    imm = (const struct GNUNET_MessageHeader *) &ats[ats_count];
     if (ntohs (imm->size) + sizeof (struct InboundMessage) +
         ats_count * sizeof (struct GNUNET_ATS_Information) != size)
     {
@@ -564,7 +566,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
     if (h->rec != NULL)
-      h->rec (h->cls, &im->peer, imm, &im->ats, ats_count);
+      h->rec (h->cls, &im->peer, imm, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA:
 #if DEBUG_TRANSPORT_API
