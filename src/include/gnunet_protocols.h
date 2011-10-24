@@ -795,9 +795,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGE            257
 
 /**
- * Request the addition to a new branch to a path
+ * Notify that a connection of a path is no longer valid
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_ADD               258
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN            258
 
 /**
  * At some point, the route will spontaneously change
