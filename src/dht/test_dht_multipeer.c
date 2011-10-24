@@ -664,7 +664,7 @@ start_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if VERBOSE 
   fprintf (stderr, 
 	   "Issuing %llu GETs\n",
-	   num_peers * num_peers);
+	   (unsigned long long) (num_peers * num_peers));
 #endif
   for (i = 0; i < num_peers; i++)
     for (j = 0; j < num_peers; j++)
@@ -756,7 +756,7 @@ run_dht_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				  "from setup puts/gets");
   fprintf (stderr, 
 	   "Issuing %llu PUTs (one per peer)\n", 
-	   num_peers);
+	   (unsigned long long) (num_peers * num_peers));
   for (i = 0; i < num_peers * num_peers; i++)
   {
     test_put = GNUNET_malloc (sizeof (struct TestPutContext));
