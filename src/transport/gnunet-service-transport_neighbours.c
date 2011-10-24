@@ -349,12 +349,15 @@ transmit_send_continuation (void *cls,
 
   mq = cls;
   n = mq->n;
-  if (NULL != n)
+  if ((NULL != n))
   {
     GNUNET_assert (n->is_active == mq);
     n->is_active = NULL;
-    GNUNET_assert (n->transmission_task == GNUNET_SCHEDULER_NO_TASK);
-    n->transmission_task = GNUNET_SCHEDULER_add_now (&transmission_task, n);
+    if (success == GNUNET_YES)
+    {
+      GNUNET_assert (n->transmission_task == GNUNET_SCHEDULER_NO_TASK);
+      n->transmission_task = GNUNET_SCHEDULER_add_now (&transmission_task, n);
+    }
   }
   if (NULL != mq->cont)
     mq->cont (mq->cont_cls, success);
@@ -408,6 +411,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No address for peer `%s'\n",
                 GNUNET_i2s (&n->id));
     transmit_send_continuation (mq, &n->id, GNUNET_SYSERR);
+    GNUNET_assert (n->transmission_task == GNUNET_SCHEDULER_NO_TASK);
     n->transmission_task = GNUNET_SCHEDULER_add_now (&transmission_task, n);
     return;
   }
@@ -422,7 +426,6 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
     /* failure, but 'send' would not call continuation in this case,
      * so we need to do it here! */
     transmit_send_continuation (mq, &n->id, GNUNET_SYSERR);
-    n->transmission_task = GNUNET_SCHEDULER_add_now (&transmission_task, n);
   }
 }
 
@@ -437,7 +440,7 @@ static void
 transmission_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NeighbourMapEntry *n = cls;
-
+  GNUNET_assert (NULL != lookup_neighbour(&n->id));
   n->transmission_task = GNUNET_SCHEDULER_NO_TASK;
   try_transmission_to_peer (n);
 }
@@ -640,6 +643,7 @@ send_connect_continuation (void *cls,
 {
   struct NeighbourMapEntry *n = cls;
 
+  GNUNET_assert (n != NULL);
   if (GNUNET_YES == n->in_disconnect)
     return; /* neighbour is going away */
   if (GNUNET_YES != success)
