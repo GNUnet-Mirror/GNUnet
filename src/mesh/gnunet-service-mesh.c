@@ -1284,7 +1284,7 @@ peer_info_destroy (struct MeshPeerInfo *pi)
   GNUNET_PEER_change_rc (pi->id, -1);
   GNUNET_CRYPTO_hash (&id, sizeof (struct GNUNET_PeerIdentity), &hash);
 
-  GNUNET_assert (GNUENT_YES ==
+  GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (peers, &hash, pi));
   if (NULL != pi->dhtget)
   {
