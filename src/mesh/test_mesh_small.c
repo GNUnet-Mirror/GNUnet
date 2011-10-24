@@ -524,7 +524,6 @@ topo_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "***************** test: %s is UNKNOWN!?\n",
                   GNUNET_i2s(second));
-      GNUNET_break (0);
       return;
     }
     mesh_peers[p2]++;
@@ -538,7 +537,13 @@ topo_cb (void *cls,
   {
     p2 = GNUNET_PEER_search(first);
     GNUNET_assert(p2 < num_peers);
-    GNUNET_assert(p2 > 0);
+    if (p2 == 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "***************** test: %s is UNKNOWN!?\n",
+                  GNUNET_i2s(second));
+      return;
+    }
     mesh_peers[p2]++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "***************** test: %s IS a neighbor\n",
