@@ -642,6 +642,11 @@ send_reply_to_client (void *cls, size_t size, void *buf)
     off += msize;
   }
   process_pending_messages (client);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitted %u/%u bytes to client %p\n",
+	      (unsigned int) off,
+	      (unsigned int) size,
+	      client->client_handle);
   return off;
 }
 
@@ -655,7 +660,20 @@ static void
 process_pending_messages (struct ClientList *client)
 {
   if ((client->pending_head == NULL) || (client->transmit_handle != NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Not asking for transmission to %p now: %s\n",
+		client->client_handle,
+		client->pending_head == NULL 
+		? "no more messages"
+		: "request already pending");
     return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking for transmission of %u bytes to client %p\n",
+	      ntohs (client->pending_head->
+		     msg->size),
+	      client->client_handle);
   client->transmit_handle =
       GNUNET_SERVER_notify_transmit_ready (client->client_handle,
                                            ntohs (client->pending_head->
