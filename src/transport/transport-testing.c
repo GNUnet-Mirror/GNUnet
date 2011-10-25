@@ -187,20 +187,15 @@ get_hello (void *cb_cls, const struct GNUNET_MessageHeader *message)
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &p->id));
-
-  if (p->hello != NULL)
-    GNUNET_free (p->hello);
-
   size_t size = GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *) message);
-  p->hello = GNUNET_malloc (size);
-  memcpy (p->hello,
-        (const struct GNUNET_HELLO_Message *) message,
-        size);
+  GNUNET_free_non_null (p->hello);
+  p->hello = (struct GNUNET_HELLO_Message*) GNUNET_copy_message (message);
 
 #if VERBOSE
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-        "New HELLO for peer %u (`%s') with size %u\n",
-        p->no, GNUNET_i2s (&p->id), size);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+		   "transport-testing",
+		   "New HELLO for peer %u (`%s') with size %u\n",
+		   p->no, GNUNET_i2s (&p->id), size);
 #endif
 
   if (p->start_cb != NULL)
@@ -229,8 +224,9 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   char * p2_s = GNUNET_strdup(GNUNET_i2s (&p2->id));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-      "Asking peers %u (`%s') to connect peer %u (`%s')\n",
-      p1->no, GNUNET_i2s (&p1->id), p2->no, p2_s);
+      "Asking peer %u (`%s') to connect peer %u (`%s'), providing HELLO with %u bytes\n",
+		   p1->no, GNUNET_i2s (&p1->id), p2->no, p2_s,
+		   GNUNET_HELLO_size (cc->p2->hello));
   GNUNET_free (p2_s);
 
   GNUNET_TRANSPORT_offer_hello (cc->th_p1,
