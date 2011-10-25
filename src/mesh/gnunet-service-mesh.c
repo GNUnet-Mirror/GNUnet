@@ -1301,8 +1301,13 @@ peer_info_destroy (struct MeshPeerInfo *pi)
   GNUNET_PEER_change_rc (pi->id, -1);
   GNUNET_CRYPTO_hash (&id, sizeof (struct GNUNET_PeerIdentity), &hash);
 
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (peers, &hash, pi));
+  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (peers, &hash, pi))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "MESH: removing peer %s, not in hashmap\n",
+                GNUNET_i2s (&id));
+  }
   if (NULL != pi->dhtget)
   {
     GNUNET_DHT_get_stop(pi->dhtget);
