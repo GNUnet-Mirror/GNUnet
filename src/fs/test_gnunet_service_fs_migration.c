@@ -42,7 +42,7 @@
 /**
  * How long do we give the peers for content migration?
  */
-#define MIGRATION_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define MIGRATION_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
 
 #define SEED 42
 
