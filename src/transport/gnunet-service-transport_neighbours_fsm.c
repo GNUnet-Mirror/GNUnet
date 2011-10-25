@@ -954,7 +954,8 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
   GNUNET_assert (neighbours != NULL);
 
   n = lookup_neighbour (target);
-  if ((NULL == n) || (n->is_connected != GNUNET_YES))
+
+  if ((NULL == n) || (n->state != S_CONNECTED))
     return GNUNET_NO;           /* not connected */
   return GNUNET_YES;
 }
@@ -1440,7 +1441,7 @@ static void neighbour_connected (struct NeighbourMapEntry *n,
     return;
   // First tell clients about connected neighbours...
   //change_state (n, S_CONNECTED);
-
+  change_state (n, S_CONNECTED);
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                             GNUNET_NO);
@@ -1494,8 +1495,6 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0);
     return;
   }
-
-  change_state (n, S_CONNECTED);
   neighbour_connected (n, ats, ats_count);
 }
 
@@ -1546,7 +1545,8 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     return;
 
   change_state (n, S_CONNECT_RECV);
-  /* send CONNECT_ACK */
+
+  /* send CONNECT_ACK (SYN_ACK)*/
   connect_msg.header.size = htons (sizeof (struct SessionConnectMessage));
   connect_msg.header.type =
       htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK);
