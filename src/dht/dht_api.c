@@ -250,10 +250,12 @@ add_request_to_pending (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (GNUNET_NO == rh->message->in_pending_queue)
   {    
+#if DEBUG_DHT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Retransmitting request related to %s to DHT %p\n",
 	 GNUNET_h2s (key),
 	 handle);
+#endif
     GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
                                  rh->message);
     rh->message->in_pending_queue = GNUNET_YES;
@@ -281,9 +283,11 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_DHT_Handle *handle = cls;
 
+#if DEBUG_DHT
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Reconnecting with DHT %p\n",
        handle);
+#endif
   handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (handle->retry_time.rel_value < GNUNET_CONSTANTS_SERVICE_RETRY.rel_value)
     handle->retry_time = GNUNET_CONSTANTS_SERVICE_RETRY;
@@ -294,7 +298,9 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_YES != try_connect (handle))
   {
+#if DEBUG_DHT
     LOG (GNUNET_ERROR_TYPE_DEBUG, "dht reconnect failed(!)\n");
+#endif
     return;
   }
   GNUNET_CONTAINER_multihashmap_iterate (handle->active_requests,
@@ -380,8 +386,10 @@ transmit_pending (void *cls, size_t size, void *buf)
   handle->th = NULL;
   if (buf == NULL)
   {
+#if DEBUG_DHT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission to DHT service failed!  Reconnecting!\n");
+#endif
     do_disconnect (handle);
     return 0;
   }
@@ -457,10 +465,12 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   if (dht_msg->unique_id != get_handle->unique_id)
   {
     /* UID mismatch */
+#if DEBUG_DHT
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Ignoring reply for %s: UID mismatch: %llu/%llu\n",
 	 GNUNET_h2s (key),
          dht_msg->unique_id, get_handle->unique_id);
+#endif
     return GNUNET_YES;
   }
   msize = ntohs (dht_msg->header.size);
@@ -479,10 +489,12 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
     return GNUNET_NO;
   }
   data_length = msize - meta_length;
+#if DEBUG_DHT
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Giving %u byte reply for %s to application\n",
        (unsigned int) data_length,
        GNUNET_h2s (key));
+#endif
   put_path = (const struct GNUNET_PeerIdentity *) &dht_msg[1];
   get_path = &put_path[put_path_length];
   data = &get_path[get_path_length];
@@ -509,8 +521,10 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
   {
+#if DEBUG_DHT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Error receiving data from DHT service, reconnecting\n");
+#endif
     do_disconnect (handle);
     return;
   }
@@ -527,10 +541,12 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   dht_msg = (const struct GNUNET_DHT_ClientResultMessage *) msg;
+#if DEBUG_DHT
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Received reply for `%s' from DHT service %p\n",
        GNUNET_h2s (&dht_msg->key),
        handle);
+#endif
   GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
                                               &dht_msg->key, &process_reply,
                                               (void *) dht_msg);
@@ -735,10 +751,12 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
     GNUNET_break (0);
     return NULL;
   }
+#if DEBUG_DHT
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending query for %s to DHT %p\n",
        GNUNET_h2s (key),
        handle);
+#endif
   pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   get_msg = (struct GNUNET_DHT_ClientGetMessage *) &pending[1];
   pending->msg = &get_msg->header;
@@ -784,10 +802,12 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
   handle = get_handle->message->handle;
   get_msg =
       (const struct GNUNET_DHT_ClientGetMessage *) get_handle->message->msg;
+#if DEBUG_DHT
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending STOP for %s to DHT via %p\n",
        GNUNET_h2s (&get_msg->key),
        handle);
+#endif
   /* generate STOP */
   pending =
       GNUNET_malloc (sizeof (struct PendingMessage) +

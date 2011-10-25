@@ -30,6 +30,8 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 
+#define DEBUG_DHT GNUNET_EXTRA_LOGGING
+
 /**
  * Configuration we use.
  */

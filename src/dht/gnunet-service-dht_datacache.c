@@ -89,7 +89,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   if (datacache == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "%s request received, but have no datacache!\n",
+		  _("%s request received, but have no datacache!\n"),
 		  "PUT");      
       return;
     }
@@ -199,10 +199,12 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                              ctx->xquery_size, 
 			     rdata,
                              rdata_size);
+#if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found reply for query %s in datacache, evaluation result is %d\n",
 	      GNUNET_h2s (key),
 	      (int) eval);
+#endif
   ctx->eval = eval;
   switch (eval)
   {
@@ -243,7 +245,7 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 			      gettext_noop ("# Unsupported RESULTS found in datacache"), 1,
 			      GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Unsupported block type (%u) in local response!\n",
+                _("Unsupported block type (%u) in local response!\n"),
                 type);
     break;
   }
