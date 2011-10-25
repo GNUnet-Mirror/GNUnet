@@ -195,6 +195,10 @@ struct GNUNET_DHT_Handle
    */
   uint64_t uid_gen;
 
+  /**
+   * Did we start our receive loop yet?
+   */
+  int in_receive;
 };
 
 
@@ -217,6 +221,7 @@ try_connect (struct GNUNET_DHT_Handle *handle)
 {
   if (handle->client != NULL)
     return GNUNET_OK;
+  handle->in_receive = GNUNET_NO;
   handle->client = GNUNET_CLIENT_connect ("dht", handle->cfg);
   if (handle->client == NULL)
   {
@@ -224,11 +229,6 @@ try_connect (struct GNUNET_DHT_Handle *handle)
          _("Failed to connect to the DHT service!\n"));
     return GNUNET_NO;
   }
-#if DEBUG_DHT
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting to process replies from DHT\n");
-#endif
-  GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
   return GNUNET_YES;
 }
 
@@ -249,7 +249,11 @@ add_request_to_pending (void *cls, const GNUNET_HashCode * key, void *value)
   struct GNUNET_DHT_GetHandle *rh = value;
 
   if (GNUNET_NO == rh->message->in_pending_queue)
-  {
+  {    
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Retransmitting request related to %s to DHT %p\n",
+	 GNUNET_h2s (key),
+	 handle);
     GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
                                  rh->message);
     rh->message->in_pending_queue = GNUNET_YES;
@@ -278,7 +282,7 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_DHT_Handle *handle = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Reconnedting with DHT %p\n",
+       "Reconnecting with DHT %p\n",
        handle);
   handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (handle->retry_time.rel_value < GNUNET_CONSTANTS_SERVICE_RETRY.rel_value)
@@ -288,8 +292,7 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (handle->retry_time.rel_value > GNUNET_CONSTANTS_SERVICE_TIMEOUT.rel_value)
     handle->retry_time = GNUNET_CONSTANTS_SERVICE_TIMEOUT;
   handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  handle->client = GNUNET_CLIENT_connect ("dht", handle->cfg);
-  if (handle->client == NULL)
+  if (GNUNET_YES != try_connect (handle))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "dht reconnect failed(!)\n");
     return;
@@ -394,6 +397,7 @@ transmit_pending (void *cls, size_t size, void *buf)
   memcpy (buf, head->msg, tsize);
   GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
                                head);
+  head->in_pending_queue = GNUNET_NO;
   if (head->timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (head->timeout_task);
@@ -406,7 +410,6 @@ transmit_pending (void *cls, size_t size, void *buf)
     head->cont = NULL;
     head->cont_cls = NULL;
   }
-  head->in_pending_queue = GNUNET_NO;
   if (GNUNET_YES == head->free_on_send)
     GNUNET_free (head);
   process_pending_messages (handle);
@@ -414,6 +417,15 @@ transmit_pending (void *cls, size_t size, void *buf)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Forwarded request of %u bytes to DHT service\n", (unsigned int) tsize);
 #endif
+  if (GNUNET_NO == handle->in_receive)
+  {
+#if DEBUG_DHT
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting to process replies from DHT\n");
+#endif
+    handle->in_receive = GNUNET_YES;
+    GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+  }
   return tsize;
 }
 
@@ -576,15 +588,16 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
   }
   while (NULL != (pm = handle->pending_head))
   {
+    GNUNET_assert (GNUNET_YES == pm->in_pending_queue);
     GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
                                  pm);
+    pm->in_pending_queue = GNUNET_NO;
     GNUNET_assert (GNUNET_YES == pm->free_on_send);
     if (GNUNET_SCHEDULER_NO_TASK != pm->timeout_task)
       GNUNET_SCHEDULER_cancel (pm->timeout_task);
     if (NULL != pm->cont)
       GNUNET_SCHEDULER_add_continuation (pm->cont, pm->cont_cls,
                                          GNUNET_SCHEDULER_REASON_TIMEOUT);
-    pm->in_pending_queue = GNUNET_NO;
     GNUNET_free (pm);
   }
   if (handle->client != NULL)
@@ -612,8 +625,10 @@ timeout_put_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_DHT_Handle *handle;
 
   handle = pending->handle;
+    GNUNET_assert (GNUNET_YES == pending->in_pending_queue);
   GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
                                pending);
+  pending->in_pending_queue = GNUNET_NO;
   if (pending->cont != NULL)
     pending->cont (pending->cont_cls, tc);
   GNUNET_free (pending);
