@@ -40,6 +40,10 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1500)
 
+#define GET_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+
+#define PUT_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
 static int ok;
 
 /**
@@ -315,8 +319,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &dht_get_id_handler,
                                     NULL);
   GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_delayed(
-          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30),
+  disconnect_task = GNUNET_SCHEDULER_add_delayed(GET_TIMEOUT,
                                &disconnect_peers, NULL);
 }
 
@@ -348,9 +351,8 @@ put_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                    NULL);
 
   }
-  put_task = GNUNET_SCHEDULER_add_delayed(
-                GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
-                               &put_id, NULL);
+  put_task = GNUNET_SCHEDULER_add_delayed(PUT_FREQUENCY,
+					  &put_id, NULL);
 }
 
 
@@ -411,9 +413,7 @@ peergroup_ready (void *cls, const char *emsg)
           GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2),
           &do_test, NULL);
   disconnect_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                        GNUNET_TIME_UNIT_SECONDS,
-                                        30),
+    GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT,
                                     &disconnect_peers,
                                     NULL);
 
@@ -552,7 +552,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                        hosts);
   GNUNET_assert (pg != NULL);
   shutdown_handle =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_get_forever (),
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, NULL);
 }
 
