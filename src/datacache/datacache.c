@@ -236,7 +236,6 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 {
   uint32_t used;
 
-
   used = h->api->put (h->api->cls, key, size, data, type, discard_time);
   if (used == 0)
   {
