@@ -130,7 +130,7 @@ hijack (void *cls
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Delaying the hijacking, port is still %d!\n", dnsoutport);
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &hijack, NULL);
     return;
   }
 
@@ -152,7 +152,10 @@ hijack (void *cls
       (proc =
        GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-hijack-dns",
                                 "gnunet-hijack-dns", port_s, virt_dns, NULL)))
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (proc));
     GNUNET_OS_process_close (proc);
+  }
   GNUNET_free (virt_dns);
 }
 
@@ -182,7 +185,7 @@ unhijack (unsigned short port)
                                 "gnunet-hijack-dns", "-d", port_s, virt_dns,
                                 NULL)))
     {
-      GNUNET_OS_process_wait (proc);
+      GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (proc));
       GNUNET_OS_process_close (proc);
     }
   GNUNET_free (virt_dns);
@@ -762,7 +765,7 @@ rehijack (void *cls
           const struct GNUNET_MessageHeader *message __attribute__ ((unused)))
 {
   unhijack (dnsoutport);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &hijack, NULL);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -1036,9 +1039,11 @@ read_response (void *cls
 #ifndef MINGW
   if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout), FIONREAD, &len))
   {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			"ioctl");
     unhijack (dnsoutport);
     if (GNUNET_YES == open_port ())
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &hijack, NULL);
     return;
   }
 #else
@@ -1054,9 +1059,11 @@ read_response (void *cls
 
     if (r < 0)
     {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			  "recvfrom");
       unhijack (dnsoutport);
       if (GNUNET_YES == open_port ())
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &hijack, NULL);
       return;
     }
 
