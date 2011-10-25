@@ -29,23 +29,6 @@
 
 #define VERBOSE GNUNET_YES
 
-static struct PeerContext *
-find_peer_context_by_pc ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
-                          struct PeerContext *p)
-{
-  GNUNET_assert (tth != NULL);
-  struct PeerContext * t = tth->p_head;
-
-  while (t != NULL)
-  {
-    if (p == t)
-      break;
-    t = t->next;
-  }
-
-  return t;
-}
-
 
 static struct PeerContext *
 find_peer_context ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
