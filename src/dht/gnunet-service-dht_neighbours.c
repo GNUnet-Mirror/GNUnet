@@ -1065,7 +1065,7 @@ select_peer (const GNUNET_HashCode *key,
   /* select "random" peer */
   /* count number of peers that are available and not filtered */
   count = 0;
-  for (bc = closest_bucket; bc < MAX_BUCKETS; bc++)
+  for (bc = 0; bc < closest_bucket; bc++)
   {
     pos = k_buckets[bc].head;
     while ((pos != NULL) && (count < bucket_size))
@@ -1100,7 +1100,7 @@ select_peer (const GNUNET_HashCode *key,
   /* Now actually choose a peer */
   selected = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, count);
   count = 0;
-  for (bc = closest_bucket; bc < MAX_BUCKETS; bc++)
+  for (bc = 0; bc < closest_bucket; bc++)
   {
     pos = k_buckets[bc].head;
     while ((pos != NULL) && (count < bucket_size))
