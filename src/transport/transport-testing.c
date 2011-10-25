@@ -29,7 +29,7 @@
 
 #define VERBOSE GNUNET_YES
 
-struct PeerContext *
+static struct PeerContext *
 find_peer_context_by_pc ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
                           struct PeerContext *p)
 {
@@ -47,7 +47,7 @@ find_peer_context_by_pc ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
 }
 
 
-struct PeerContext *
+static struct PeerContext *
 find_peer_context ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
                     const struct GNUNET_PeerIdentity *peer)
 {
@@ -482,7 +482,7 @@ GNUNET_TRANSPORT_TESTING_init ()
  * @param file the absolute file name, e.g. as found in argv[0]
  * @return extracted file name, has to be freed by caller
  */
-char *
+static char *
 extract_filename (const char *file)
 {
   char *pch = GNUNET_strdup (file);
