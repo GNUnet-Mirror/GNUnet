@@ -342,8 +342,8 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
 static int
 change (struct NeighbourMapEntry * n, int state, int line)
 {
-  char * old;
-  char * new;
+  char * old = NULL;
+  char * new = NULL;
 
   switch (n->state) {
     case S_CONNECTED:
@@ -394,23 +394,46 @@ change (struct NeighbourMapEntry * n, int state, int line)
   }
 
   /* allowed transitions */
+  int allowed = GNUNET_NO;
   switch (n->state) {
   case S_NOT_CONNECTED:
-    if (state == S_CONNECT_RECV)
+    if ((state == S_CONNECT_RECV) || (state == S_CONNECT_SENT))
+    {
+      allowed = GNUNET_YES;
       break;
-    if (state == S_CONNECT_SENT)
-      break;
+    }
+    break;
   case S_CONNECT_RECV:
-    if (state == S_CONNECT_RECV_ACK_SENT)
+    if ((state == S_CONNECT_RECV_ACK_SENT) || (state == S_NOT_CONNECTED))
+    {
+      allowed = GNUNET_YES;
       break;
+    }
+    break;
   case S_CONNECT_SENT:
-    if (state == S_NOT_CONNECTED)
+    if ((state == S_NOT_CONNECTED) || (state == S_CONNECTED))
+    {
+      allowed = GNUNET_YES;
       break;
-    if (state == S_CONNECTED)
-      break;
+    }
+    break;
   case S_CONNECTED:
+    if (state == S_NOT_CONNECTED)
+    {
+      allowed = GNUNET_YES;
+      break;
+    }
+    break;
   case S_DISCONNECTED:
+    break;
   default:
+    GNUNET_break (0);
+    break;
+
+  }
+
+  if (allowed == GNUNET_NO)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "Illegal state transition from `%s' to `%s' in line %u \n",
         old, new, line);
@@ -604,9 +627,9 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     n->is_active->n = NULL;
     n->is_active = NULL;
   }
-  if (GNUNET_YES == n->is_connected)
+  if (n->state == S_CONNECTED)
   {
-    n->is_connected = GNUNET_NO;
+    change_state (n, S_NOT_CONNECTED);
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->keepalive_task);
     GNUNET_SCHEDULER_cancel (n->keepalive_task);
     n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;  
@@ -1317,13 +1340,14 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
   struct NeighbourMapEntry *n;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct SessionDisconnectMessage disconnect_msg;
+  int ret;
 
   GNUNET_assert (neighbours != NULL);
 
   n = lookup_neighbour (target);
   if (NULL == n)
     return;                     /* not active */
-  if (GNUNET_YES == n->is_connected)
+  if (n->state == S_CONNECTED)
   {
     /* we're actually connected, send DISCONNECT message */
     disconnect_msg.header.size = htons (sizeof (struct SessionDisconnectMessage));
@@ -1342,14 +1366,20 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
 
     papi = GST_plugins_find (n->plugin_name);
     if (papi != NULL)
-      papi->send (papi->cls, target, (const void *) &disconnect_msg,
+    {
+      ret = papi->send (papi->cls, target, (const void *) &disconnect_msg,
                   sizeof (disconnect_msg),
                   UINT32_MAX /* priority */ ,
                   GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->addr, n->addrlen,
                   GNUNET_YES, NULL, NULL);
-    GNUNET_STATISTICS_update (GST_stats,
+      GNUNET_STATISTICS_update (GST_stats,
 			      gettext_noop ("# peers disconnected due to external request"), 1,
 			      GNUNET_NO);
+      if (ret == GNUNET_SYSERR)
+        change_state (n, S_NOT_CONNECTED);
+      else
+        change_state (n, S_DISCONNECTED);
+    }
     n = lookup_neighbour (target);
     if (NULL == n)
       return;                     /* gone already */
@@ -1427,21 +1457,34 @@ static void neighbour_connected (struct NeighbourMapEntry *n,
               const struct GNUNET_ATS_Information *ats,
               uint32_t ats_count)
 {
-  /* LEGACY */
-  int was_connected;
-  was_connected = n->is_connected;
-  n->is_connected = GNUNET_YES;
-  /* END LEGACY */
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  struct SessionConnectMessage scm;
+  int ret;
 
-  if (GNUNET_YES != was_connected)
-    n->keepalive_task = GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
-                                                      &neighbour_keepalive_task,
-                                                      n);
   if (n->state == S_CONNECTED)
     return;
-  // First tell clients about connected neighbours...
-  //change_state (n, S_CONNECTED);
   change_state (n, S_CONNECTED);
+
+  n->keepalive_task = GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
+                                                      &neighbour_keepalive_task,
+                                                      n);
+
+  /* send CONNECT_ACK (SYN_ACK)*/
+  scm.header.size = htons (sizeof (struct SessionConnectMessage));
+  scm.header.type =
+      htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK);
+  scm.reserved = htonl (0);
+  scm.timestamp =
+      GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+
+  papi = GST_plugins_find (n->plugin_name);
+  ret = papi->send (papi->cls, &n->id, (const char *) &scm, sizeof (struct SessionConnectMessage),
+                  0,
+                  GNUNET_TIME_UNIT_FOREVER_REL, NULL, n->addr, n->addrlen, GNUNET_YES,
+                  NULL, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      "neighbour_connected %i\n", ret);
+
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                             GNUNET_NO);
