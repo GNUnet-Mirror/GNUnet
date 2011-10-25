@@ -210,7 +210,8 @@ AC_LANG_PUSH(C)
 LIBS="$LIBS $LIBGCRYPT_LIBS"
 CFLAGS="$CFLAGS $LIBGCRYPT_CFLAGS"
 AC_RUN_IFELSE(
-  [AC_LANG_PROGRAM([#include <gcrypt.h>], [[
+  [AC_LANG_PROGRAM([#include <gcrypt.h> 
+  	#include <stdio.h>], [[
         gcry_md_hd_t mac;
       
         unsigned char data[] = { 0xbf, 0x16, 0x6e, 0x46, 0x3a, 0x6c, 0xf3, 0x93, 0xa7, 0x72,
@@ -225,19 +226,28 @@ AC_RUN_IFELSE(
             0x90, 0xf2, 0xd1, 0xaf, 0x65, 0x1e, 0xb3};
       
         if (!gcry_check_version (GCRYPT_VERSION))
+        {
+          fprintf (stderr, "Version mismatch %s <-> %s \n", gcry_check_version (NULL), GCRYPT_VERSION);
           return 1;
+        }
   
         gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
         gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   
         if (gcry_md_open(&mac, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
+        {
+          fprintf (stderr, "gcry_md_open error\n");
           return 2;
+        }
   
         gcry_md_setkey (mac, key, sizeof (key));
         gcry_md_write (mac, data, sizeof (data));
   
         if (memcmp(gcry_md_read (mac, 0), result, gcry_md_get_algo_dlen (gcry_md_get_algo (mac))) != 0)
+        {
+          fprintf (stderr, "memcmp error\n");
           return 3;
+        }
   
         gcry_md_close (mac);
   
@@ -245,11 +255,18 @@ AC_RUN_IFELSE(
     ]])],
   [AC_MSG_RESULT([yes])],
   [
-   if test $? = 3
+   RESULT=$?
+   if test $RESULT = 3
    then
      AC_MSG_FAILURE([HMAC test vector does not match. This is a known problem with libgcrypt 1.2.2 on Windows and fixed in 1.4.6.])
-   else
+   fi
+   if test $RESULT = 2
+   then
      AC_MSG_FAILURE([HMAC test failed])
+   fi
+   if test $RESULT = 1
+   then
+     AC_MSG_FAILURE([libgcrypt header version does not match library version])
    fi
   ])
 AC_LANG_POP(C)
