@@ -197,12 +197,14 @@ struct Session
 
   GNUNET_SCHEDULER_TaskIdentifier invalidation_task;
 
-  /*
+  GNUNET_SCHEDULER_TaskIdentifier delayed_cont_task;
+
+  /**
    * Desired delay for next sending we send to other peer
    */
   struct GNUNET_TIME_Relative flow_delay_for_other_peer;
 
-  /*
+  /**
    * Desired delay for next sending we received from other peer
    */
   struct GNUNET_TIME_Absolute flow_delay_from_other_peer;
@@ -352,16 +354,18 @@ struct PeerSessionIteratorContext
  * @param peer peer's identity
  * @return NULL if we have no session
  */
-struct Session *
+static struct Session *
 find_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *peer)
 {
   return GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
                                             &peer->hashPubKey);
 }
 
-int inbound_session_iterator (void *cls,
-                             const GNUNET_HashCode * key,
-                             void *value)
+
+static int 
+inbound_session_iterator (void *cls,
+			  const GNUNET_HashCode * key,
+			  void *value)
 {
   struct PeerSessionIteratorContext *psc = cls;
   struct Session *s = value;
@@ -372,9 +376,9 @@ int inbound_session_iterator (void *cls,
   }
   if (psc->result != NULL)
     return GNUNET_NO;
-  else
-    return GNUNET_YES;
-};
+  return GNUNET_YES;
+}
+
 
 /**
  * Lookup the session for the given peer.
@@ -383,7 +387,7 @@ int inbound_session_iterator (void *cls,
  * @param peer peer's identity
  * @return NULL if we have no session
  */
-struct Session *
+static struct Session *
 find_inbound_session (struct Plugin *plugin,
                       const struct GNUNET_PeerIdentity *peer,
                       const void * addr, size_t addrlen)
@@ -397,9 +401,11 @@ find_inbound_session (struct Plugin *plugin,
   return psc.result;
 }
 
-int inbound_session_by_addr_iterator (void *cls,
-                             const GNUNET_HashCode * key,
-                             void *value)
+
+static int 
+inbound_session_by_addr_iterator (void *cls,
+				  const GNUNET_HashCode * key,
+				  void *value)
 {
   struct PeerSessionIteratorContext *psc = cls;
   struct Session *s = value;
@@ -422,7 +428,7 @@ int inbound_session_by_addr_iterator (void *cls,
  * @param addrlen address length
  * @return NULL if we have no session
  */
-struct Session *
+static struct Session *
 find_inbound_session_by_addr (struct Plugin *plugin, const void * addr, size_t addrlen)
 {
   struct PeerSessionIteratorContext psc;
@@ -450,6 +456,8 @@ destroy_session (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (peer_session->frag != NULL)
     GNUNET_FRAGMENT_context_destroy (peer_session->frag);
+  if (GNUNET_SCHEDULER_NO_TASK != peer_session->delayed_cont_task)
+    GNUNET_SCHEDULER_cancel (peer_session->delayed_cont_task);
   GNUNET_free (peer_session);
   return GNUNET_OK;
 }
@@ -469,6 +477,8 @@ destroy_inbound_session (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(s->invalidation_task);
+  if (GNUNET_SCHEDULER_NO_TASK != s->delayed_cont_task)
+    GNUNET_SCHEDULER_cancel (s->delayed_cont_task);
   GNUNET_free (s);
   return GNUNET_OK;
 }
@@ -502,6 +512,8 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
               "UDP DISCONNECT\n");
 
   plugin->last_expected_delay = GNUNET_FRAGMENT_context_destroy (session->frag);
+  if (GNUNET_SCHEDULER_NO_TASK != session->delayed_cont_task)
+    GNUNET_SCHEDULER_cancel (session->delayed_cont_task);
   if (session->cont != NULL)
     session->cont (session->cont_cls, target, GNUNET_SYSERR);
   GNUNET_free (session);
@@ -578,6 +590,7 @@ send_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_FRAGMENT_context_transmission_done (session->frag);
 }
 
+
 static struct Session *
 create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     const void *addr, size_t addrlen,
@@ -649,6 +662,20 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
 static const char *
 udp_address_to_string (void *cls, const void *addr, size_t addrlen);
 
+
+static void
+udp_call_continuation (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Session *s = cls;
+  GNUNET_TRANSPORT_TransmitContinuation cont = s->cont;
+
+  s->delayed_cont_task = GNUNET_SCHEDULER_NO_TASK;
+  s->cont = NULL;
+  cont (s->cont_cls, &s->target, GNUNET_OK);
+}
+
+
 /**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.
@@ -688,6 +715,7 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   size_t mlen = msgbuf_size + sizeof (struct UDPMessage);
   char mbuf[mlen];
   struct UDPMessage *udp;
+  struct GNUNET_TIME_Relative delta;
 
   if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -771,27 +799,27 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   udp->sender = *plugin->env->my_identity;
   memcpy (&udp[1], msgbuf, msgbuf_size);
 
-  if (s != NULL)
-  {
-    struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
-    if (s->flow_delay_from_other_peer.abs_value > now.abs_value)
-    {
-      struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference(now, s->flow_delay_from_other_peer);
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "We try to send to early! Should in %llu!\n", delta.rel_value);
-    }
-    else
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "We can send!\n");
-  }
+  if (s != NULL)  
+    delta = GNUNET_TIME_absolute_get_remaining (s->flow_delay_from_other_peer);
   else
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "SENDING without session!\n");
+    delta = GNUNET_TIME_UNIT_ZERO;
   if (mlen <= UDP_MTU)
   {
     mlen = udp_send (plugin, peer_session->sock_addr, &udp->header);
     if (cont != NULL)
-      cont (cont_cls, target, (mlen > 0) ? GNUNET_OK : GNUNET_SYSERR);
+    {
+      if ( (delta.rel_value > 0) &&
+	   (mlen > 0) )
+      {
+	s->cont = cont;
+	s->cont_cls = cont_cls;
+	s->delayed_cont_task = GNUNET_SCHEDULER_add_delayed (delta,
+							     &udp_call_continuation,
+							     s);
+      }
+      else
+	cont (cont_cls, target, (mlen > 0) ? GNUNET_OK : GNUNET_SYSERR);
+    }
     GNUNET_free_non_null (peer_session);
   }
   else
@@ -970,7 +998,7 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
                                                       s,
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   }
-  s->valid_until = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  s->valid_until = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(s->invalidation_task);
@@ -1186,7 +1214,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "We received a sending delay of %llu\n", flow_delay.rel_value);
 
-      s->flow_delay_from_other_peer = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), flow_delay);
+      s->flow_delay_from_other_peer = GNUNET_TIME_relative_to_absolute (flow_delay);
     }
     ack = (const struct GNUNET_MessageHeader *) &udp_ack[1];
     if (ntohs (ack->size) != ntohs (msg->size) - sizeof (struct UDP_ACK_Message))
