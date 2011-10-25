@@ -411,7 +411,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
   dht_msg = (const struct GNUNET_DHT_ClientPutMessage *) message;
   /* give to local clients */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Passing %u-byte reply for query %s to local clients\n",
+	      "Handling local PUT of %u-bytes for query %s\n",
 	      size - sizeof (struct GNUNET_DHT_ClientPutMessage),
 	      GNUNET_h2s (&dht_msg->key));
   GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
