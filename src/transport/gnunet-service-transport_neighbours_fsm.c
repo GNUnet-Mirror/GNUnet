@@ -975,6 +975,14 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   size_t len;
   size_t ret;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "SWITCH! Peer `%4s' switches to plugin `%s' address '%s' session %X\n",
+              GNUNET_i2s (peer), plugin_name,
+              (address_len == 0) ? "<inbound>" : GST_plugins_a2s (plugin_name,
+                                                                  address,
+                                                                  address_len),
+              session);
+
   GNUNET_assert (neighbours != NULL);
   n = lookup_neighbour (peer);
   if (NULL == n)
@@ -987,7 +995,9 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_NO;
   }
 
-  change_state (n, S_CONNECT_SENT);
+  // FIXME state transition when peer is connected?
+  if (!is_connected(n))
+    change_state (n, S_CONNECT_SENT);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1643,6 +1653,19 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     send_disconnect(n);
     return;
   }
+
+  if (NULL != session)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                     "transport-ats",
+                     "Giving ATS session %p of plugin %s for peer %s\n",
+                     session,
+                     plugin_name,
+                     GNUNET_i2s (peer));
+  GNUNET_ATS_address_update (GST_ats,
+                             peer,
+                             plugin_name, sender_address, sender_address_len,
+                             session, ats, ats_count);
+
   neighbour_connected (n, ats, ats_count, GNUNET_YES);
 }
 
@@ -1680,6 +1703,18 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 
   if (is_connected(n))
     return;
+
+  if (NULL != session)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                     "transport-ats",
+                     "Giving ATS session %p of plugin %s for peer %s\n",
+                     session,
+                     plugin_name,
+                     GNUNET_i2s (peer));
+  GNUNET_ATS_address_update (GST_ats,
+                             peer,
+                             plugin_name, sender_address, sender_address_len,
+                             session, ats, ats_count);
 
   neighbour_connected (n, ats, ats_count, GNUNET_NO);
 }
@@ -1759,7 +1794,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   if (ts.abs_value > n->connect_ts.abs_value)
   {
     if (NULL != session)
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		       "transport-ats",
 		       "Giving ATS session %p of plugin %s for peer %s\n",
 		       session,
