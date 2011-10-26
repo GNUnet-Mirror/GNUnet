@@ -981,10 +981,10 @@ receive_query (void *cls
 
     if (pdns->s.qdcount == 1)
       {
-        if (pdns->queries[0]->qtype == 1)
-          pdns->queries[0]->qtype = 28;
-        else if (pdns->queries[0]->qtype == 28)
-          pdns->queries[0]->qtype = 1;
+        if (ntohs(pdns->queries[0]->qtype) == 1)
+          pdns->queries[0]->qtype = htons(28);
+        else if (ntohs(pdns->queries[0]->qtype) == 28)
+          pdns->queries[0]->qtype = htons(1);
         else
           goto outfree;
         struct dns_pkt *rdns = unparse_dns_packet (pdns);
