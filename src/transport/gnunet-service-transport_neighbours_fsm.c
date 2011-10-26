@@ -31,6 +31,7 @@
 #include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport.h"
 #include "gnunet_peerinfo_service.h"
+#include "gnunet-service-transport_blacklist.h"
 #include "gnunet_constants.h"
 #include "transport.h"
 
@@ -1719,6 +1720,100 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   neighbour_connected (n, ats, ats_count, GNUNET_NO);
 }
 
+struct BlackListCheckContext
+{
+  struct GNUNET_ATS_Information *ats;
+
+  uint32_t ats_count;
+
+  struct Session *session;
+
+  char *sender_address;
+
+  uint16_t sender_address_len;
+
+  char *plugin_name;
+
+  struct GNUNET_TIME_Absolute ts;
+};
+
+
+static void
+handle_connect_blacklist_cont (void *cls,
+                               const struct GNUNET_PeerIdentity
+                               * peer, int result)
+{
+  struct NeighbourMapEntry *n;
+  struct BlackListCheckContext * bcc = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                   "Result Connect blacklist check `%s': %s\n", GNUNET_i2s (peer), (result == GNUNET_OK) ? "OK" : "NO");
+
+  /* not allowed */
+  if (GNUNET_OK != result)
+  {
+    GNUNET_free (bcc);
+    return;
+  }
+
+  n = lookup_neighbour (peer);
+  if (NULL == n)
+    n = setup_neighbour (peer);
+
+  if (bcc->ts.abs_value > n->connect_ts.abs_value)
+  {
+    if (NULL != bcc->session)
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                       "transport-ats",
+                       "Giving ATS session %p of plugin %s address `%s' for peer %s\n",
+                       bcc->session,
+                       bcc->plugin_name,
+                       GST_plugins_a2s (bcc->plugin_name, bcc->sender_address, bcc->sender_address_len),
+                       GNUNET_i2s (peer));
+    GNUNET_ATS_address_update (GST_ats,
+                               peer,
+                               bcc->plugin_name, bcc->sender_address, bcc->sender_address_len,
+                               bcc->session, bcc->ats, bcc->ats_count);
+    n->connect_ts = bcc->ts;
+  }
+
+  GNUNET_free (bcc);
+
+  if (n->state > S_NOT_CONNECTED)
+    return;
+  change_state (n, S_CONNECT_RECV);
+
+  /* Ask ATS for an address to connect via that address */
+  GNUNET_ATS_suggest_address(GST_ats, peer);
+
+#if 0
+
+
+
+  /* send CONNECT_ACK (SYN_ACK)*/
+  msg_len = sizeof (struct SessionConnectMessage);
+  connect_msg.header.size = htons (msg_len);
+  connect_msg.header.type =
+      htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK);
+  connect_msg.reserved = htonl (0);
+  connect_msg.timestamp =
+      GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+
+  ret = send_with_plugin(NULL, &n->id, (const void *) &connect_msg,
+                   msg_len,
+                   0,
+                   GNUNET_TIME_UNIT_FOREVER_REL,
+                   session, plugin_name, sender_address, sender_address_len,
+                   GNUNET_YES, NULL, NULL);
+
+  if (ret == GNUNET_SYSERR)
+  {
+    change_state (n, S_NOT_CONNECTED);
+    GNUNET_break (0);
+    return;
+  }
+#endif
+}
 
 /**
  * We received a 'SESSION_CONNECT' message from the other peer.
@@ -1744,68 +1839,42 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
 			       uint32_t ats_count)
 {
   const struct SessionConnectMessage *scm;
-  struct GNUNET_TIME_Absolute ts;
-  struct NeighbourMapEntry *n;
-  struct SessionConnectMessage connect_msg;
-  size_t msg_len;
-  int ret;
+  struct BlackListCheckContext * bcc = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
       "GST_neighbours_handle_connect SYN\n");
+
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
     GNUNET_break_op (0);
     return;
   }
+
   scm = (const struct SessionConnectMessage *) message;
   GNUNET_break_op (ntohl (scm->reserved) == 0);
-  ts = GNUNET_TIME_absolute_ntoh (scm->timestamp);
-  n = lookup_neighbour (peer);
-  if (NULL == n) 
-    n = setup_neighbour (peer);
 
-  if (n->state > S_NOT_CONNECTED)
-    return;
 
-  change_state (n, S_CONNECT_RECV);
+  /* do blacklist check*/
+  bcc = GNUNET_malloc (sizeof (struct BlackListCheckContext) +
+            sizeof (struct GNUNET_ATS_Information) * ats_count +
+            sender_address_len +
+            strlen (plugin_name)+1);
 
-  /* send CONNECT_ACK (SYN_ACK)*/
-  msg_len = sizeof (struct SessionConnectMessage);
-  connect_msg.header.size = htons (msg_len);
-  connect_msg.header.type =
-      htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK);
-  connect_msg.reserved = htonl (0);
-  connect_msg.timestamp =
-      GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+  bcc->ts = GNUNET_TIME_absolute_ntoh (scm->timestamp);
 
-  ret = send_with_plugin(NULL, &n->id, (const void *) &connect_msg,
-                   msg_len,
-                   0,
-                   GNUNET_TIME_UNIT_FOREVER_REL,
-                   session, plugin_name, sender_address, sender_address_len,
-                   GNUNET_YES, NULL, NULL);
+  bcc->ats_count = ats_count;
+  bcc->sender_address_len = sender_address_len;
+  bcc->session = session;
 
-  if (ret == GNUNET_SYSERR)
-  {
-    change_state (n, S_NOT_CONNECTED);
-    GNUNET_break (0);
-    return;
-  }
+  bcc->ats = (struct GNUNET_ATS_Information *) &bcc[1];
+  memcpy (bcc->ats, ats,sizeof (struct GNUNET_ATS_Information) * ats_count );
 
-  if (ts.abs_value > n->connect_ts.abs_value)
-  {
-    if (NULL != session)
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		       "transport-ats",
-		       "Giving ATS session %p of plugin %s for peer %s\n",
-		       session,
-		       plugin_name,
-		       GNUNET_i2s (peer));
-    GNUNET_ATS_address_update (GST_ats,
-			       peer,
-			       plugin_name, sender_address, sender_address_len,
-			       session, ats, ats_count);
-    n->connect_ts = ts;
-  }
+  bcc->sender_address = (char *) &bcc->ats[ats_count];
+  memcpy (bcc->sender_address, sender_address , sender_address_len);
+
+  bcc->plugin_name = &bcc->sender_address[sender_address_len];
+  strcpy (bcc->plugin_name, plugin_name);
+
+  GST_blacklist_test_allowed (peer, plugin_name, handle_connect_blacklist_cont, bcc);
 }
 
 
