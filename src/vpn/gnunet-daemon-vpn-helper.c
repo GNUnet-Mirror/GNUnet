@@ -278,7 +278,10 @@ helper_write (void *cls
       buf = pkt;
     }
   else
-    GNUNET_assert (0);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Wrong addrlen = %d\n", ans->pkt.addrlen);
+      GNUNET_assert(0);
+    }
 
   GNUNET_CONTAINER_DLL_remove (answer_proc_head, answer_proc_tail, ans);
   GNUNET_free (ans);

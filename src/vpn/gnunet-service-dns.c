@@ -704,6 +704,7 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
 
   memcpy(answer->pkt.from, query_states[id].remote_ip, query_states[id].addrlen);
   memcpy(answer->pkt.to, query_states[id].local_ip, query_states[id].addrlen);
+  answer->pkt.addrlen = query_states[id].addrlen;
 
   answer->pkt.dst_port = query_states[id].local_port;
 
@@ -1291,6 +1292,7 @@ handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, i
               GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "addrlen = %d\n", addrlen);
               GNUNET_assert(0);
             }
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "sending answer with addrlen = %d\n", addrlen);
           answer->pkt.dst_port = query_states[dns->s.id].local_port;
           memcpy (answer->pkt.data, dns, r);
 
