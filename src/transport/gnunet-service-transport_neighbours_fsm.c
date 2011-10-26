@@ -946,6 +946,7 @@ send_connect_continuation (void *cls,
     GNUNET_ATS_suggest_address(GST_ats, &n->id);
     return;
   }
+  change_state(n, S_CONNECT_SENT);
 }
 
 
@@ -973,7 +974,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
   struct SessionConnectMessage connect_msg;
-  size_t len;
+  size_t msg_len;
   size_t ret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -996,9 +997,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_NO;
   }
 
-  // FIXME state transition when peer is connected?
-  if (!is_connected(n))
-    change_state (n, S_CONNECT_SENT);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1021,23 +1019,53 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                     &neighbour_timeout_task, n);
 
-  len = sizeof (struct SessionConnectMessage);
-  connect_msg.header.size = htons (len);
-  connect_msg.header.type =
-      htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT);
-  connect_msg.reserved = htonl (0);
-  connect_msg.timestamp =
-      GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+  /* We are not connected/connecting and initiate a fresh connect */
+  if (n->state == S_NOT_CONNECTED)
+  {
+    msg_len = sizeof (struct SessionConnectMessage);
+    connect_msg.header.size = htons (msg_len);
+    connect_msg.header.type =
+        htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT);
+    connect_msg.reserved = htonl (0);
+    connect_msg.timestamp =
+        GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
 
-  ret =send_with_plugin (NULL, peer, (const char *) &connect_msg, len, 0, GNUNET_TIME_UNIT_FOREVER_REL, session, plugin_name, address, address_len, GNUNET_YES, &send_connect_continuation, n);
-  if (ret == GNUNET_SYSERR)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Failed to send CONNECT_MESSAGE to `%4s' using plugin `%s' address '%s' session %X\n",
-              GNUNET_i2s (peer), plugin_name,
-              (address_len == 0) ? "<inbound>" : GST_plugins_a2s (plugin_name,
-                                                                  address,
-                                                                  address_len),
-              session);
+    ret =send_with_plugin (NULL, peer, (const char *) &connect_msg, msg_len, 0, GNUNET_TIME_UNIT_FOREVER_REL, session, plugin_name, address, address_len, GNUNET_YES, &send_connect_continuation, n);
+    if (ret == GNUNET_SYSERR)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to send CONNECT_MESSAGE to `%4s' using plugin `%s' address '%s' session %X\n",
+                GNUNET_i2s (peer), plugin_name,
+                (address_len == 0) ? "<inbound>" : GST_plugins_a2s (plugin_name,
+                                                                    address,
+                                                                    address_len),
+                session);
+    }
+  }
+  else if (n->state == S_CONNECT_RECV)
+  {
+    msg_len = sizeof (struct SessionConnectMessage);
+    connect_msg.header.size = htons (msg_len);
+    connect_msg.header.type =
+      htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK);
+    connect_msg.reserved = htonl (0);
+    connect_msg.timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+
+    ret = send_with_plugin(NULL, &n->id, (const void *) &connect_msg, msg_len, 0, GNUNET_TIME_UNIT_FOREVER_REL, session, plugin_name, address, address_len, GNUNET_YES, NULL, NULL);
+
+    if (ret == GNUNET_SYSERR)
+    {
+      change_state (n, S_NOT_CONNECTED);
+      GNUNET_break (0);
+      return GNUNET_NO;
+    }
+  }
+  else
+  {
+    GNUNET_break (0);
+  }
+
+
 
 
   return GNUNET_NO;
@@ -1785,34 +1813,6 @@ handle_connect_blacklist_cont (void *cls,
 
   /* Ask ATS for an address to connect via that address */
   GNUNET_ATS_suggest_address(GST_ats, peer);
-
-#if 0
-
-
-
-  /* send CONNECT_ACK (SYN_ACK)*/
-  msg_len = sizeof (struct SessionConnectMessage);
-  connect_msg.header.size = htons (msg_len);
-  connect_msg.header.type =
-      htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK);
-  connect_msg.reserved = htonl (0);
-  connect_msg.timestamp =
-      GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-
-  ret = send_with_plugin(NULL, &n->id, (const void *) &connect_msg,
-                   msg_len,
-                   0,
-                   GNUNET_TIME_UNIT_FOREVER_REL,
-                   session, plugin_name, sender_address, sender_address_len,
-                   GNUNET_YES, NULL, NULL);
-
-  if (ret == GNUNET_SYSERR)
-  {
-    change_state (n, S_NOT_CONNECTED);
-    GNUNET_break (0);
-    return;
-  }
-#endif
 }
 
 /**
