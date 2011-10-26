@@ -43,6 +43,10 @@ main (int argc, char *argv[])
   unsigned int failureCount = 0;
   unsigned int logs = 0;
 
+  if (0 != setenv ("GNUNET_FORCE_LOG", "", 1))
+    fprintf (stderr,
+	     "Failed to setenv: %s\n",
+	     strerror (errno));
   GNUNET_log_setup ("test-common-logging", "DEBUG", "/dev/null");
   GNUNET_logger_add (&my_log, &logs);
   GNUNET_logger_add (&my_log, &logs);
