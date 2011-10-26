@@ -8,6 +8,7 @@ man_MANS = \
   gnunet-publish.1 \
   gnunet-search.1 \
   gnunet-statistics.1 \
+  gnunet-transport.1 \
   gnunet-unindex.1 \
   gnunet-monkey.1
 

@@ -1,0 +1,44 @@
+.TH gnunet\-transport "1" "26 Oct 2011" "GNUnet"
+.SH NAME
+gnunet\-transport \- measure and control the transport subsystem
+
+.SH SYNOPSIS
+.B gnunet\-transport
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.PP
+
+gnunet\-transport is a tool to access various functions of GNUnet's transport subsystem from the command\-line.  Most of these are not expected to be useful for end-users.  gnunet\-transport can be used to evaluate the performance of the transports, force a peer to connect to another peer (if possible).  Other functions should be added in the near future.  
+
+.TP
+\fB\-b\fR, \fB\-\-benchmark\fR
+measure how fast we are receiving data (from all connections).  On exit, the data rate will be reported.  Runs until aborted with CTRL-C.
+.TP
+\fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
+configuration file to use
+.TP
+\fB\-C \fIPEER\fR, \fB\-\-connect=PEER\fR
+peer to connect to (and to use for sending if used in conjunction with \-s)
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print help page
+.TP
+\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
+Change the loglevel.  Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
+.TP
+\fB\-s\fR, \fB\-\-send\fR
+transmit (dummy) traffic as quickly as possible to the peer specified with the \-C option.  The rate will still be limited by the quota(s) determined by the peers (ATS subsystem).  Will run until CTRL\-C is pressed or until the connection to the other peer is disrupted.
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+print the version number
+.TP
+\fB\-V\fR, \fB\-\-verbose\fR
+be verbose
+
+.SH NOTES
+
+
+.SH "REPORTING BUGS"
+Report bugs by using mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-arm\fP(1)

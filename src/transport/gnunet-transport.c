@@ -32,27 +32,67 @@
 #include "gnunet_protocols.h"
 #include "gnunet_transport_service.h"
 
+/**
+ * Which peer should we connect to?
+ */
 static char *cpid;
 
+/**
+ * Handle to transport service.
+ */
 static struct GNUNET_TRANSPORT_Handle *handle;
 
+/**
+ * Option -s.
+ */
 static int benchmark_send;
 
+/**
+ * Option -b.
+ */
 static int benchmark_receive;
 
+/**
+ * Global return value (0 success).
+ */
 static int ret;
 
+/**
+ * Number of bytes of traffic we received so far.
+ */
 static unsigned long long traffic_received;
 
+/**
+ * Number of bytes of traffic we sent so far.
+ */
 static unsigned long long traffic_sent;
 
+/**
+ * Starting time of transmitting/receiving data.
+ */
 static struct GNUNET_TIME_Absolute start_time;
 
+/**
+ * Handle for current transmission request.
+ */
 static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
+/**
+ * Identity of the peer we transmit to / connect to.
+ * (equivalent to 'cpid' string).
+ */
 static struct GNUNET_PeerIdentity pid;
 
+/**
+ * Task scheduled for cleanup / termination of the process.
+ */
 static GNUNET_SCHEDULER_TaskIdentifier end;
+
+/**
+ * Selected level of verbosity.
+ */
+static int verbosity;
+
 
 
 /**
@@ -74,7 +114,7 @@ do_disconnect (void *cls,
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
     fprintf (stderr,
-	     "Received %llu bytes/s (%llu bytes in %llu ms)\n",
+	     _("Received %llu bytes/s (%llu bytes in %llu ms)\n"),
 	     1000 * traffic_received / (1+duration.rel_value),
 	     traffic_received,
 	     (unsigned long long) duration.rel_value);
@@ -83,7 +123,7 @@ do_disconnect (void *cls,
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
     fprintf (stderr,
-	     "Transmitted %llu bytes/s (%llu bytes in %llu ms)\n",
+	     _("Transmitted %llu bytes/s (%llu bytes in %llu ms)\n"),
 	     1000 * traffic_sent / (1+duration.rel_value),
 	     traffic_sent,
 	     (unsigned long long) duration.rel_value);
@@ -120,10 +160,11 @@ transmit_data (void *cls, size_t size,
 					       0,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       &transmit_data, NULL);
-  fprintf (stderr,
-	   "Transmitting %u bytes to %s\n",
-	   (unsigned int) size,
-	   GNUNET_i2s (&pid));
+  if (verbosity > 0)
+    fprintf (stderr,
+	     _("Transmitting %u bytes to %s\n"),
+	     (unsigned int) size,
+	     GNUNET_i2s (&pid));
   return size;
 }
 
@@ -145,9 +186,10 @@ notify_connect (void *cls,
 		GNUNET_ATS_Information
 		* ats, uint32_t ats_count)
 {
-  fprintf (stderr,
-	   "Connected to %s\n",
-	   GNUNET_i2s (peer));
+  if (verbosity > 0)
+    fprintf (stderr,
+	     _("Connected to %s\n"),
+	     GNUNET_i2s (peer));
   if (0 != memcmp (&pid,
 		   peer,
 		   sizeof (struct GNUNET_PeerIdentity)))
@@ -185,9 +227,10 @@ notify_disconnect (void *cls,
 		   const struct
 		   GNUNET_PeerIdentity * peer)
 {
-  fprintf (stderr,
-	   "Disconnected from %s\n",
-	   GNUNET_i2s (peer));
+  if (verbosity > 0)
+    fprintf (stderr,
+	     _("Disconnected from %s\n"),
+	     GNUNET_i2s (peer));
   if ( (0 == memcmp (&pid,
 		     peer,
 		     sizeof (struct GNUNET_PeerIdentity))) &&
@@ -224,10 +267,11 @@ notify_receive (void *cls,
 {
   if (! benchmark_receive)
     return;
-  fprintf (stderr,
-	   "Received %u bytes from %s\n",
-	   (unsigned int) ntohs (message->size),
-	   GNUNET_i2s (peer));
+  if (verbosity > 0)
+    fprintf (stderr,
+	     _("Received %u bytes from %s\n"),
+	     (unsigned int) ntohs (message->size),
+	     GNUNET_i2s (peer));
   if (traffic_received == 0)
     start_time = GNUNET_TIME_absolute_get ();
   traffic_received += ntohs (message->size);
@@ -300,6 +344,7 @@ main (int argc, char *const *argv)
     {'s', "send", NULL,
      gettext_noop ("send data for benchmarking to the other peer (until CTRL-C)"),
      0, &GNUNET_GETOPT_set_one, &benchmark_send},  
+    GNUNET_GETOPT_OPTION_VERBOSE(&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
