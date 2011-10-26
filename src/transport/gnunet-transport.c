@@ -84,7 +84,7 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'C', "connect", "PEER",
      gettext_noop ("try to connect to the given peer"),
-     0, &GNUNET_GETOPT_set_string, &cpid},
+     1, &GNUNET_GETOPT_set_string, &cpid},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
