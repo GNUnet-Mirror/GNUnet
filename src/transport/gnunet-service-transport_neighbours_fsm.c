@@ -949,6 +949,55 @@ send_connect_continuation (void *cls,
   change_state(n, S_CONNECT_SENT);
 }
 
+/**
+ * We tried to send a SESSION_CONNECT message to another peer.  If this
+ * succeeded, we change the state.  If it failed, we should tell
+ * ATS to not use this address anymore (until it is re-validated).
+ *
+ * @param cls the 'struct NeighbourMapEntry'
+ * @param success GNUNET_OK on success
+ */
+static void
+send_connect_ack_continuation (void *cls,
+      const struct GNUNET_PeerIdentity * target,
+      int success)
+
+{
+  struct NeighbourMapEntry *n = cls;
+
+  //FIMXE comeplete this
+  GNUNET_break (0);
+return;
+
+
+  GNUNET_assert (n != NULL);
+  if (GNUNET_YES == n->in_disconnect)
+    return; /* neighbour is going away */
+  if (GNUNET_YES != success)
+  {
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Failed to send CONNECT_MSG to peer `%4s' with plugin `%s' address '%s' session %X, asking ATS for new address \n",
+              GNUNET_i2s (&n->id), n->plugin_name,
+              (n->addrlen == 0) ? "<inbound>" : GST_plugins_a2s (n->plugin_name,
+                                                                  n->addr,
+                                                                  n->addrlen),
+              n->session);
+#endif
+    change_state(n, S_NOT_CONNECTED);
+
+    GNUNET_ATS_address_destroyed (GST_ats,
+                                  &n->id,
+                                  n->plugin_name,
+                                  n->addr,
+                                  n->addrlen,
+                                  NULL);
+
+    GNUNET_ATS_suggest_address(GST_ats, &n->id);
+    return;
+  }
+  change_state(n, S_CONNECT_SENT);
+}
 
 /**
  * For an existing neighbour record, set the active connection to
@@ -1051,8 +1100,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     connect_msg.reserved = htonl (0);
     connect_msg.timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
 
-    ret = send_with_plugin(NULL, &n->id, (const void *) &connect_msg, msg_len, 0, GNUNET_TIME_UNIT_FOREVER_REL, session, plugin_name, address, address_len, GNUNET_YES, NULL, NULL);
-
+    ret = send_with_plugin(NULL, &n->id, (const void *) &connect_msg, msg_len, 0, GNUNET_TIME_UNIT_FOREVER_REL, session, plugin_name, address, address_len, GNUNET_YES, &send_connect_ack_continuation, n);
     if (ret == GNUNET_SYSERR)
     {
       change_state (n, S_NOT_CONNECTED);
