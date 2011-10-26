@@ -68,6 +68,11 @@
 #define HELLO_BEACON_SCALING_FACTOR 30
 
 /**
+ * scaling factor for restarting the helper
+ */
+#define HELPER_RESTART_SCALING_FACTOR 2
+
+/**
  * max size of fragment queue
  */
 #define FRAGMENT_QUEUE_SIZE 10
@@ -93,8 +98,8 @@
 /**
  * LLC fields for better compatibility
  */
-#define WLAN_LLC_DSAP_FIELD 0xf
-#define WLAN_LLC_SSAP_FIELD 0xf
+#define WLAN_LLC_DSAP_FIELD 0x1f
+#define WLAN_LLC_SSAP_FIELD 0x1f
 
 
 /**
@@ -251,6 +256,11 @@ struct Plugin
   char *interface;
 
   /**
+   * Mode of operation for the helper, 0 = normal, 1 = first loopback, 2 = second loopback
+   */
+  long long unsigned int testmode;
+
+  /**
    * The mac_address of the wlan card given to us by the helper.
    */
   struct MacAddress mac_address;
@@ -311,9 +321,24 @@ struct Plugin
  */
 struct Finish_send
 {
+  /**
+   * pointer to the global plugin struct
+   */
   struct Plugin *plugin;
-  char *msgheader;
+
+  /**
+   * head of the next part to send to the helper
+   */
+  char *head_of_next_write;
+
+  /**
+   * Start of the message to send, needed for free
+   */
   struct GNUNET_MessageHeader *msgstart;
+
+  /**
+   * rest size to send
+   */
   ssize_t size;
 };
 
@@ -679,6 +704,9 @@ free_session (struct Plugin *plugin, struct Sessionqueue *queue,
               int do_free_macendpoint);
 static struct MacEndpoint *
 create_macendpoint (struct Plugin *plugin, const struct MacAddress *addr);
+
+static void
+finish_sending (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Generates a nice hexdump of a memory area.
@@ -1393,6 +1421,328 @@ add_message_for_send (void *cls, const struct GNUNET_MessageHeader *hdr)
   set_next_send (plugin);
 }
 
+
+/**
+ * We have been notified that wlan-helper has written something to stdout.
+ * Handle the output, then reschedule this function to be called again once
+ * more is available.
+ *
+ * @param cls the plugin handle
+ * @param tc the scheduling context
+ */
+static void
+wlan_plugin_helper_read (void *cls,
+                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+
+  plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  char mybuf[WLAN_MTU + sizeof (struct GNUNET_MessageHeader)];
+  ssize_t bytes;
+
+  bytes =
+      GNUNET_DISK_file_read (plugin->server_stdout_handle, mybuf,
+                             sizeof (mybuf));
+  if (bytes <= 0)
+  {
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                     _
+                     ("Finished reading from wlan-helper stdout with code: %d\n"),
+                     bytes);
+#endif
+    return;
+  }
+  GNUNET_SERVER_mst_receive (plugin->suid_tokenizer, NULL, mybuf, bytes,
+                             GNUNET_NO, GNUNET_NO);
+
+  GNUNET_assert (plugin->server_read_task == GNUNET_SCHEDULER_NO_TASK);
+  plugin->server_read_task =
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      plugin->server_stdout_handle,
+                                      &wlan_plugin_helper_read, plugin);
+}
+
+/**
+ * Start the gnunet-wlan-helper process.
+ *
+ * @param plugin the transport plugin
+ * @return GNUNET_YES if process was started, GNUNET_SYSERR on error
+ */
+static int
+wlan_transport_start_wlan_helper (struct Plugin *plugin)
+{
+  const char *filenamehw = "gnunet-transport-wlan-helper";
+  const char *filenameloopback = "gnunet-transport-wlan-helper-dummy";
+
+  plugin->server_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  if (plugin->server_stdout == NULL)
+    return GNUNET_SYSERR;
+
+  plugin->server_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
+  if (plugin->server_stdin == NULL)
+    return GNUNET_SYSERR;
+
+  /* Start the server process */
+
+  if (plugin->testmode == 0)
+  {
+
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                     "Starting gnunet-wlan-helper process cmd: %s %s %i\n",
+                     filenamehw, plugin->interface, plugin->testmode);
+#endif
+
+    if (GNUNET_OS_check_helper_binary (filenamehw) == GNUNET_YES)
+    {
+      plugin->server_proc =
+          GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
+                                   filenamehw, filenamehw, plugin->interface,
+                                   NULL);
+    }
+    else if (GNUNET_OS_check_helper_binary (filenamehw) == GNUNET_NO)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                       "gnunet-transport-wlan-helper is not suid, please change it or look at the doku\n");
+      GNUNET_break (0);
+    }
+    else
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                       "gnunet-transport-wlan-helper not found, please look if it exists and is the $PATH variable!\n");
+      GNUNET_break (0);
+    }
+
+  }
+  else if (plugin->testmode == 1)
+  {
+
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                     "Starting gnunet-wlan-helper loopback 1 process cmd: %s %s %i\n",
+                     filenameloopback, plugin->interface, plugin->testmode);
+#endif
+
+    if (GNUNET_OS_check_helper_binary (filenameloopback) != GNUNET_SYSERR)
+    {
+      plugin->server_proc =
+          GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
+                                   filenameloopback, filenameloopback, "1",
+                                   NULL);
+    }
+    else
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                       "gnunet-transport-wlan-helper-dummy not found, please look if it exists and is the $PATH variable!\n");
+      GNUNET_break (0);
+    }
+  }
+  else if (plugin->testmode == 2)
+  {
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                     "Starting gnunet-wlan-helper loopback 2 process cmd: %s %s %i\n",
+                     filenameloopback, plugin->interface, plugin->testmode);
+#endif
+    if (GNUNET_OS_check_helper_binary (filenameloopback) != GNUNET_SYSERR)
+    {
+      plugin->server_proc =
+          GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
+                                   filenameloopback, filenameloopback, "2",
+                                   NULL);
+    }
+    else
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                       "gnunet-transport-wlan-helper-dummy not found, please look if it exists and is in the $PATH variable!\n");
+      GNUNET_break (0);
+    }
+  }
+  if (plugin->server_proc == NULL)
+  {
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                     "Failed to start gnunet-wlan-helper process\n");
+#endif
+    return GNUNET_SYSERR;
+  }
+
+  /* Close the write end of the read pipe */
+  GNUNET_DISK_pipe_close_end (plugin->server_stdout,
+                              GNUNET_DISK_PIPE_END_WRITE);
+
+  /* Close the read end of the write pipe */
+  GNUNET_DISK_pipe_close_end (plugin->server_stdin, GNUNET_DISK_PIPE_END_READ);
+
+  plugin->server_stdout_handle =
+      GNUNET_DISK_pipe_handle (plugin->server_stdout,
+                               GNUNET_DISK_PIPE_END_READ);
+  plugin->server_stdin_handle =
+      GNUNET_DISK_pipe_handle (plugin->server_stdin,
+                               GNUNET_DISK_PIPE_END_WRITE);
+
+  GNUNET_assert (plugin->server_read_task == GNUNET_SCHEDULER_NO_TASK);
+
+#if DEBUG_wlan
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                   "Adding server_read_task for the wlan-helper\n");
+#endif
+
+  plugin->server_read_task =
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      plugin->server_stdout_handle,
+                                      &wlan_plugin_helper_read, plugin);
+
+  return GNUNET_YES;
+}
+
+/**
+ * Stops the gnunet-wlan-helper process.
+ *
+ * @param plugin the transport plugin
+ * @return GNUNET_YES if process was started, GNUNET_SYSERR on error
+ */
+static int
+wlan_transport_stop_wlan_helper (struct Plugin *plugin)
+{
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                     "Stoping WLAN helper process\n");
+#endif
+
+  if (plugin->server_write_delay_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->server_write_delay_task);
+    plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (plugin->server_write_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->server_write_task);
+    plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (plugin->server_read_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->server_read_task);
+    plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  GNUNET_DISK_pipe_close (plugin->server_stdout);
+  GNUNET_DISK_pipe_close (plugin->server_stdin);
+  GNUNET_OS_process_kill (plugin->server_proc, 9);
+  GNUNET_OS_process_close (plugin->server_proc);
+
+  return GNUNET_YES;
+}
+
+/**
+ * function for delayed restart of the helper process
+ * @param cls Finish_send struct if message should be finished
+ * @param tc TaskContext
+ */
+static void
+delay_restart_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Finish_send *finish = cls;
+  struct Plugin *plugin;
+  plugin = finish->plugin;
+
+  plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+  {
+    GNUNET_free_non_null(finish->msgstart);
+    GNUNET_free (finish);
+    return;
+  }
+
+  wlan_transport_start_wlan_helper(plugin);
+
+  if (finish->size != 0)
+    {
+      plugin->server_write_task =
+                      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                       plugin->server_stdin_handle,
+                                                       &finish_sending, finish);
+    }
+  else
+    {
+      set_next_send (plugin);
+      GNUNET_free_non_null(finish->msgstart);
+      GNUNET_free (finish);
+    }
+
+}
+
+/**
+ * Function to restart the helper
+ * @param plugin pointer to the global plugin struct
+ * @param finish pointer to the Finish_send struct to finish
+ */
+static void
+restart_helper(struct Plugin *plugin, struct Finish_send *finish)
+{
+  static struct GNUNET_TIME_Relative next_try = {1000};
+  GNUNET_assert(finish != NULL);
+
+  wlan_transport_stop_wlan_helper(plugin);
+  plugin->server_write_task = GNUNET_SCHEDULER_add_delayed (next_try, &delay_restart_helper, finish);
+  GNUNET_TIME_relative_multiply(next_try, HELPER_RESTART_SCALING_FACTOR);
+
+}
+
+/**
+ * function to finish a sending if not all could have been writen befor
+ * @param cls pointer to the Finish_send struct
+ * @param tc TaskContext
+ */
+static void
+finish_sending (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Finish_send *finish = cls;
+  struct Plugin *plugin;
+  ssize_t bytes;
+
+  plugin = finish->plugin;
+  plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+  {
+    GNUNET_free (finish->msgstart);
+    GNUNET_free (finish);
+    return;
+  }
+  bytes =
+      GNUNET_DISK_file_write (plugin->server_stdin_handle, finish->head_of_next_write,
+                              finish->size);
+
+  if (bytes != finish->size)
+  {
+    if (bytes != GNUNET_SYSERR)
+      {
+      finish->head_of_next_write += bytes;
+      finish->size -= bytes;
+      plugin->server_write_task =
+          GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                           plugin->server_stdin_handle,
+                                           &finish_sending, finish);
+      }
+    else
+      {
+       restart_helper(plugin, finish);
+      }
+  }
+  else
+  {
+    GNUNET_free (finish->msgstart);
+    GNUNET_free (finish);
+    set_next_send (plugin);
+  }
+}
+
 /**
  * function to send a hello beacon
  * @param plugin pointer to the plugin struct
@@ -1414,6 +1764,7 @@ send_hello_beacon (struct Plugin *plugin)
   struct Radiotap_Send *radioHeader;
   struct GNUNET_MessageHeader *msgheader2;
   const struct GNUNET_MessageHeader *hello;
+  struct Finish_send * finish;
 
   GNUNET_assert (plugin != NULL);
 
@@ -1451,14 +1802,22 @@ send_hello_beacon (struct Plugin *plugin)
                      _
                      ("Error writing to wlan healper. errno == %d, ERROR: %s\n"),
                      errno, strerror (errno));
+    finish = GNUNET_malloc (sizeof (struct Finish_send));
+    finish->plugin = plugin;
+    finish->head_of_next_write = NULL;
+    finish->size = 0;
+    finish->msgstart = NULL;
+    restart_helper(plugin, finish);
 
   }
-  GNUNET_assert (bytes != GNUNET_SYSERR);
-  GNUNET_assert (bytes == size);
+  else
+    {
+    GNUNET_assert (bytes == size);
+    set_next_send (plugin);
+    }
   GNUNET_free (msgheader);
 
   set_next_beacon_time (plugin);
-  set_next_send (plugin);
 }
 
 /**
@@ -1618,13 +1977,17 @@ check_fragment_queue (struct Plugin *plugin)
 /**
  * Function to send an ack, does not free the ack
  * @param plugin pointer to the plugin
- * @param ack pointer to the ack to send
  */
 static void
-send_ack (struct Plugin *plugin, struct AckSendQueue *ack)
+send_ack (struct Plugin *plugin)
 {
 
   ssize_t bytes;
+  struct AckSendQueue *ack;
+  struct Finish_send * finish;
+
+  ack = plugin->ack_send_queue_head;
+
 
 #if DEBUG_wlan
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
@@ -1649,52 +2012,19 @@ send_ack (struct Plugin *plugin, struct AckSendQueue *ack)
                      _
                      ("Error writing to wlan healper. errno == %d, ERROR: %s\n"),
                      errno, strerror (errno));
-
-  }
-  GNUNET_assert (bytes != GNUNET_SYSERR);
-  GNUNET_assert (bytes == ntohs (ack->hdr->size));
-  set_next_send (plugin);
-}
-
-/**
- * function to finish a sending if not all could have been writen befor
- * @param cls pointer to the Finish_send struct
- * @param tc TaskContext
- */
-static void
-finish_sending (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Finish_send *finish = cls;
-  struct Plugin *plugin;
-  ssize_t bytes;
-
-  plugin = finish->plugin;
-  plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-  {
-    GNUNET_free (finish->msgstart);
-    GNUNET_free (finish);
-    return;
-  }
-  bytes =
-      GNUNET_DISK_file_write (plugin->server_stdin_handle, finish->msgheader,
-                              finish->size);
-  GNUNET_assert (bytes != GNUNET_SYSERR);
-
-  if (bytes != finish->size)
-  {
-    finish->msgheader = finish->msgheader + bytes;
-    finish->size = finish->size - bytes;
-    plugin->server_write_task =
-        GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                         plugin->server_stdin_handle,
-                                         &finish_sending, finish);
+    finish = GNUNET_malloc (sizeof (struct Finish_send));
+    finish->plugin = plugin;
+    finish->head_of_next_write = NULL;
+    finish->size = 0;
+    finish->msgstart = NULL;
+    restart_helper(plugin, finish);
   }
   else
   {
-    GNUNET_free (finish->msgstart);
-    GNUNET_free (finish);
+    GNUNET_assert (bytes == ntohs (ack->hdr->size));
+    GNUNET_CONTAINER_DLL_remove (plugin->ack_send_queue_head,
+                                 plugin->ack_send_queue_tail, ack);
+    GNUNET_free (ack);
     set_next_send (plugin);
   }
 }
@@ -1719,16 +2049,11 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct FragmentMessage *fm;
   struct Finish_send *finish;
   struct FragmentMessage_queue *fmq;
-  struct AckSendQueue *ack;
   ssize_t bytes;
 
   if (plugin->ack_send_queue_head != NULL)
   {
-    ack = plugin->ack_send_queue_head;
-    GNUNET_CONTAINER_DLL_remove (plugin->ack_send_queue_head,
-                                 plugin->ack_send_queue_tail, ack);
-    send_ack (plugin, ack);
-    GNUNET_free (ack);
+    send_ack (plugin);
     return;
   }
 
@@ -1736,6 +2061,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_TIME_absolute_get_remaining (plugin->beacon_time).rel_value == 0)
   {
     send_hello_beacon (plugin);
+    set_next_send(plugin);
     return;
   }
 
@@ -1765,35 +2091,36 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     bytes =
         GNUNET_DISK_file_write (plugin->server_stdin_handle, fm->frag,
                                 fm->size);
-    if (bytes == GNUNET_SYSERR)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       _
-                       ("Error writing to wlan healper. errno == %d, ERROR: %s\n"),
-                       errno, strerror (errno));
-      //TODO START NEW WLAN HELPER
-      /*
-       * alle sessions beenden
-       * neu starten (alle 5 sec)
-       * alles bis dahin ablehnen
-       */
-    }
-    //GNUNET_assert (bytes != GNUNET_SYSERR);
+
 
     if (bytes != fm->size)
     {
       finish = GNUNET_malloc (sizeof (struct Finish_send));
       finish->plugin = plugin;
-      finish->msgheader = fm->frag + bytes;
-      finish->size = fm->size - bytes;
       finish->msgstart = (struct GNUNET_MessageHeader *) fm->frag;
-
       GNUNET_assert (plugin->server_write_task == GNUNET_SCHEDULER_NO_TASK);
 
-      plugin->server_write_task =
-          GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                           plugin->server_stdin_handle,
-                                           &finish_sending, finish);
+      if (bytes == GNUNET_SYSERR)
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                         _
+                         ("Error writing to wlan healper. errno == %d, ERROR: %s\n"),
+                         errno, strerror (errno));
+
+        finish->head_of_next_write = fm->frag;
+        finish->size = fm->size;
+        restart_helper(plugin, finish);
+      }
+      else
+      {
+        finish->head_of_next_write = fm->frag + bytes;
+        finish->size = fm->size - bytes;
+        plugin->server_write_task =
+                  GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                   plugin->server_stdin_handle,
+                                                   &finish_sending, finish);
+      }
+
       fm->frag = NULL;
     }
     else
@@ -1990,6 +2317,8 @@ free_macendpoint (struct Plugin *plugin, struct MacEndpoint *endpoint)
   GNUNET_CONTAINER_DLL_remove (plugin->mac_head, plugin->mac_tail, endpoint);
   if (endpoint->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (endpoint->timeout_task);
+  plugin->mac_count--;
+  GNUNET_STATISTICS_set(plugin->env->stats, _("# wlan mac endpoints"), plugin->mac_count, GNUNET_NO);
   GNUNET_free (endpoint);
 
 }
@@ -2625,6 +2954,7 @@ create_macendpoint (struct Plugin *plugin, const struct MacAddress *addr)
                                     newend);
 
   plugin->mac_count++;
+  GNUNET_STATISTICS_set(plugin->env->stats, _("# wlan mac endpoints"), plugin->mac_count, GNUNET_NO);
   GNUNET_CONTAINER_DLL_insert_tail (plugin->mac_head, plugin->mac_tail, newend);
 #if DEBUG_wlan
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
@@ -2795,186 +3125,6 @@ wlan_process_helper (void *cls, void *client,
 }
 
 /**
- * We have been notified that wlan-helper has written something to stdout.
- * Handle the output, then reschedule this function to be called again once
- * more is available.
- *
- * @param cls the plugin handle
- * @param tc the scheduling context
- */
-static void
-wlan_plugin_helper_read (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Plugin *plugin = cls;
-
-  plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  char mybuf[WLAN_MTU + sizeof (struct GNUNET_MessageHeader)];
-  ssize_t bytes;
-
-  bytes =
-      GNUNET_DISK_file_read (plugin->server_stdout_handle, mybuf,
-                             sizeof (mybuf));
-  if (bytes <= 0)
-  {
-#if DEBUG_wlan
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     _
-                     ("Finished reading from wlan-helper stdout with code: %d\n"),
-                     bytes);
-#endif
-    return;
-  }
-  GNUNET_SERVER_mst_receive (plugin->suid_tokenizer, NULL, mybuf, bytes,
-                             GNUNET_NO, GNUNET_NO);
-
-  GNUNET_assert (plugin->server_read_task == GNUNET_SCHEDULER_NO_TASK);
-  plugin->server_read_task =
-      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      plugin->server_stdout_handle,
-                                      &wlan_plugin_helper_read, plugin);
-}
-
-/**
- * Start the gnunet-wlan-helper process.
- *
- * @param plugin the transport plugin
- * @param testmode should we use the dummy driver for testing?
- * @return GNUNET_YES if process was started, GNUNET_SYSERR on error
- */
-static int
-wlan_transport_start_wlan_helper (struct Plugin *plugin, int testmode)
-{
-  const char *filenamehw = "gnunet-transport-wlan-helper";
-  const char *filenameloopback = "gnunet-transport-wlan-helper-dummy";
-
-  plugin->server_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
-  if (plugin->server_stdout == NULL)
-    return GNUNET_SYSERR;
-
-  plugin->server_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
-  if (plugin->server_stdin == NULL)
-    return GNUNET_SYSERR;
-
-  /* Start the server process */
-
-  if (testmode == 0)
-  {
-
-#if DEBUG_wlan
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Starting gnunet-wlan-helper process cmd: %s %s %i\n",
-                     filenamehw, plugin->interface, testmode);
-#endif
-
-    if (GNUNET_OS_check_helper_binary (filenamehw) == GNUNET_YES)
-    {
-      plugin->server_proc =
-          GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
-                                   filenamehw, filenamehw, plugin->interface,
-                                   NULL);
-    }
-    else if (GNUNET_OS_check_helper_binary (filenamehw) == GNUNET_NO)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "gnunet-transport-wlan-helper is not suid, please change it or look at the doku\n");
-      GNUNET_break (0);
-    }
-    else
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "gnunet-transport-wlan-helper not found, please look if it exists and is the $PATH variable!\n");
-      GNUNET_break (0);
-    }
-
-  }
-  else if (testmode == 1)
-  {
-
-#if DEBUG_wlan
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Starting gnunet-wlan-helper loopback 1 process cmd: %s %s %i\n",
-                     filenameloopback, plugin->interface, testmode);
-#endif
-
-    if (GNUNET_OS_check_helper_binary (filenameloopback) != GNUNET_SYSERR)
-    {
-      plugin->server_proc =
-          GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
-                                   filenameloopback, filenameloopback, "1",
-                                   NULL);
-    }
-    else
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "gnunet-transport-wlan-helper-dummy not found, please look if it exists and is the $PATH variable!\n");
-      GNUNET_break (0);
-    }
-  }
-  else if (testmode == 2)
-  {
-#if DEBUG_wlan
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Starting gnunet-wlan-helper loopback 2 process cmd: %s %s %i\n",
-                     filenameloopback, plugin->interface, testmode);
-#endif
-    if (GNUNET_OS_check_helper_binary (filenameloopback) != GNUNET_SYSERR)
-    {
-      plugin->server_proc =
-          GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
-                                   filenameloopback, filenameloopback, "2",
-                                   NULL);
-    }
-    else
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "gnunet-transport-wlan-helper-dummy not found, please look if it exists and is in the $PATH variable!\n");
-      GNUNET_break (0);
-    }
-  }
-  if (plugin->server_proc == NULL)
-  {
-#if DEBUG_wlan
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Failed to start gnunet-wlan-helper process\n");
-#endif
-    return GNUNET_SYSERR;
-  }
-
-  /* Close the write end of the read pipe */
-  GNUNET_DISK_pipe_close_end (plugin->server_stdout,
-                              GNUNET_DISK_PIPE_END_WRITE);
-
-  /* Close the read end of the write pipe */
-  GNUNET_DISK_pipe_close_end (plugin->server_stdin, GNUNET_DISK_PIPE_END_READ);
-
-  plugin->server_stdout_handle =
-      GNUNET_DISK_pipe_handle (plugin->server_stdout,
-                               GNUNET_DISK_PIPE_END_READ);
-  plugin->server_stdin_handle =
-      GNUNET_DISK_pipe_handle (plugin->server_stdin,
-                               GNUNET_DISK_PIPE_END_WRITE);
-
-  GNUNET_assert (plugin->server_read_task == GNUNET_SCHEDULER_NO_TASK);
-
-#if DEBUG_wlan
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                   "Adding server_read_task for the wlan-helper\n");
-#endif
-
-  plugin->server_read_task =
-      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      plugin->server_stdout_handle,
-                                      &wlan_plugin_helper_read, plugin);
-
-  return GNUNET_YES;
-}
-
-/**
  * Exit point from the plugin.
  * @param cls pointer to the api struct
  */
@@ -2993,10 +3143,7 @@ libgnunet_plugin_transport_wlan_done (void *cls)
                    "libgnunet_plugin_transport_wlan_done started\n");
 #endif
 
-  GNUNET_DISK_pipe_close (plugin->server_stdout);
-  GNUNET_DISK_pipe_close (plugin->server_stdin);
-  GNUNET_OS_process_kill (plugin->server_proc, 9);
-  GNUNET_OS_process_close (plugin->server_proc);
+  wlan_transport_stop_wlan_helper(plugin);
 
   GNUNET_assert (cls != NULL);
   //free sessions
@@ -3007,21 +3154,7 @@ libgnunet_plugin_transport_wlan_done (void *cls)
     endpoint = endpoint_next;
 
   }
-  if (plugin->server_write_delay_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (plugin->server_write_delay_task);
-    plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (plugin->server_write_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (plugin->server_write_task);
-    plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (plugin->server_read_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (plugin->server_read_task);
-    plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
-  }
+
 
   if (plugin->suid_tokenizer != NULL)
     GNUNET_SERVER_mst_destroy (plugin->suid_tokenizer);
@@ -3048,7 +3181,6 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-  static unsigned long long testmode = 0;
 
   GNUNET_assert (cls != NULL);
 
@@ -3057,6 +3189,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   plugin->pendingsessions = 0;
   GNUNET_STATISTICS_set(plugin->env->stats, _("# wlan pending sessions"), plugin->pendingsessions, GNUNET_NO);
   plugin->mac_count = 0;
+  GNUNET_STATISTICS_set(plugin->env->stats, _("# wlan mac endpoints"), plugin->mac_count, GNUNET_NO);
   plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
@@ -3086,8 +3219,8 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   {
     if (GNUNET_SYSERR ==
         GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-wlan",
-                                               "TESTMODE", &testmode))
-      testmode = 0;             //default value
+                                               "TESTMODE", &(plugin->testmode)))
+      plugin->testmode = 0;             //default value
   }
 
   if (GNUNET_CONFIGURATION_have_value (env->cfg, "transport-wlan", "INTERFACE"))
@@ -3102,7 +3235,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   }
 
   //start the plugin
-  wlan_transport_start_wlan_helper (plugin, testmode);
+  wlan_transport_start_wlan_helper (plugin);
   set_next_beacon_time (plugin);
   set_next_send(plugin);
 #if DEBUG_wlan
