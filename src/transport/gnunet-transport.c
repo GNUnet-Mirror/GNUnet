@@ -74,15 +74,19 @@ do_disconnect (void *cls,
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
     fprintf (stderr,
-	     "Received %llu bytes/s\n",
-	     traffic_received / (1+duration.rel_value));
+	     "Received %llu bytes/s (%llu bytes in %llu ms)\n",
+	     1000 * traffic_received / (1+duration.rel_value),
+	     traffic_received,
+	     (unsigned long long) duration.rel_value);
   }
   if (benchmark_send)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
     fprintf (stderr,
-	     "Transmitted %llu bytes/s\n",
-	     traffic_sent / (1+duration.rel_value));
+	     "Transmitted %llu bytes/s (%llu bytes in %llu ms)\n",
+	     1000 * traffic_sent / (1+duration.rel_value),
+	     traffic_sent,
+	     (unsigned long long) duration.rel_value);
   }
 }
 
@@ -116,6 +120,10 @@ transmit_data (void *cls, size_t size,
 					       0,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       &transmit_data, NULL);
+  fprintf (stderr,
+	   "Transmitting %u bytes to %s\n",
+	   (unsigned int) size,
+	   GNUNET_i2s (&pid));
   return size;
 }
 
@@ -137,6 +145,9 @@ notify_connect (void *cls,
 		GNUNET_ATS_Information
 		* ats, uint32_t ats_count)
 {
+  fprintf (stderr,
+	   "Connected to %s\n",
+	   GNUNET_i2s (peer));
   if (0 != memcmp (&pid,
 		   peer,
 		   sizeof (struct GNUNET_PeerIdentity)))
@@ -174,6 +185,9 @@ notify_disconnect (void *cls,
 		   const struct
 		   GNUNET_PeerIdentity * peer)
 {
+  fprintf (stderr,
+	   "Disconnected from %s\n",
+	   GNUNET_i2s (peer));
   if ( (0 == memcmp (&pid,
 		     peer,
 		     sizeof (struct GNUNET_PeerIdentity))) &&
@@ -210,6 +224,10 @@ notify_receive (void *cls,
 {
   if (! benchmark_receive)
     return;
+  fprintf (stderr,
+	   "Received %u bytes from %s\n",
+	   (unsigned int) ntohs (message->size),
+	   GNUNET_i2s (peer));
   if (traffic_received == 0)
     start_time = GNUNET_TIME_absolute_get ();
   traffic_received += ntohs (message->size);
@@ -237,19 +255,18 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL != cpid)
   {
     ret = 1;
-    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
-				       &notify_receive, 
-				       &notify_connect,
-				       &notify_disconnect);
     if (GNUNET_OK !=
 	GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey))
     {
       fprintf (stderr,
 	       _("Failed to parse peer identity `%s'\n"),
 	       cpid);
-      GNUNET_TRANSPORT_disconnect (handle);
       return;
     }
+    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
+				       &notify_receive, 
+				       &notify_connect,
+				       &notify_disconnect);
     GNUNET_TRANSPORT_try_connect (handle, &pid);
     end = GNUNET_SCHEDULER_add_delayed (benchmark_send
 					? GNUNET_TIME_UNIT_FOREVER_REL
