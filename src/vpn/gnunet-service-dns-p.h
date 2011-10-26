@@ -10,15 +10,16 @@ struct query_packet
         /**
 	 * The IP-Address this query was originally sent to
 	 */
-  unsigned orig_to:32 GNUNET_PACKED;
+  char orig_to[16];
         /**
 	 * The IP-Address this query was originally sent from
 	 */
-  unsigned orig_from:32 GNUNET_PACKED;
+  char orig_from[16];
         /**
 	 * The UDP-Portthis query was originally sent from
 	 */
-  unsigned src_port:16 GNUNET_PACKED;
+  char addrlen;
+  uint16_t src_port GNUNET_PACKED;
 
   unsigned char data[1];        /* The DNS-Packet */
 };
@@ -76,8 +77,9 @@ struct answer_packet
   struct GNUNET_MessageHeader hdr;
   enum GNUNET_DNS_ANSWER_Subtype subtype GNUNET_PACKED;
 
-  unsigned from:32 GNUNET_PACKED;
-  unsigned to:32 GNUNET_PACKED;
+  char from[16];
+  char to[16];
+  char addrlen;
   unsigned dst_port:16 GNUNET_PACKED;
   /* -- */
 

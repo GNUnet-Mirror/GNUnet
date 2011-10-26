@@ -174,52 +174,114 @@ helper_write (void *cls
 
   GNUNET_assert (20 == sizeof (struct ip_hdr));
   GNUNET_assert (8 == sizeof (struct udp_pkt));
+
   size_t data_len = len - sizeof (struct answer_packet) + 1;
-  size_t net_len = sizeof (struct ip_hdr) + sizeof (struct udp_dns) + data_len;
-  size_t pkt_len =
-      sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) + net_len;
 
-  struct ip_udp_dns *pkt = alloca (pkt_len);
+  void* buf;
+  size_t pkt_len;
 
-  GNUNET_assert (pkt != NULL);
-  memset (pkt, 0, pkt_len);
+  if (ans->pkt.addrlen == 16)
+    {
+      size_t net_len = sizeof (struct ip6_hdr) + sizeof (struct udp_dns) + data_len;
+      pkt_len =
+        sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) + net_len;
 
-  /* set the gnunet-header */
-  pkt->shdr.size = htons (pkt_len);
-  pkt->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+      struct ip6_udp_dns *pkt = alloca (pkt_len);
 
-  /* set the tun-header (no flags and ethertype of IPv4) */
-  pkt->tun.flags = 0;
-  pkt->tun.type = htons (0x0800);
+      GNUNET_assert (pkt != NULL);
+      memset (pkt, 0, pkt_len);
 
-  /* set the ip-header */
-  pkt->ip_hdr.version = 4;
-  pkt->ip_hdr.hdr_lngth = 5;
-  pkt->ip_hdr.diff_serv = 0;
-  pkt->ip_hdr.tot_lngth = htons (net_len);
-  pkt->ip_hdr.ident = 0;
-  pkt->ip_hdr.flags = 0;
-  pkt->ip_hdr.frag_off = 0;
-  pkt->ip_hdr.ttl = 255;
-  pkt->ip_hdr.proto = IPPROTO_UDP;
-  pkt->ip_hdr.chks = 0;         /* Will be calculated later */
-  pkt->ip_hdr.sadr = ans->pkt.from;
-  pkt->ip_hdr.dadr = ans->pkt.to;
+      /* set the gnunet-header */
+      pkt->shdr.size = htons (pkt_len);
+      pkt->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
 
-  pkt->ip_hdr.chks = calculate_ip_checksum ((uint16_t *) & pkt->ip_hdr, 5 * 4);
+      /* set the tun-header (no flags and ethertype of IPv4) */
+      pkt->tun.flags = 0;
+      pkt->tun.type = htons (0x86dd);
 
-  /* set the udp-header */
-  pkt->udp_dns.udp_hdr.spt = htons (53);
-  pkt->udp_dns.udp_hdr.dpt = ans->pkt.dst_port;
-  pkt->udp_dns.udp_hdr.len = htons (net_len - sizeof (struct ip_hdr));
-  pkt->udp_dns.udp_hdr.crc = 0; /* Optional for IPv4 */
+      memcpy(&pkt->ip6_hdr.sadr, ans->pkt.from, 16);
+      memcpy(&pkt->ip6_hdr.dadr, ans->pkt.to, 16);
 
-  memcpy (&pkt->udp_dns.data, ans->pkt.data, data_len);
+      /* set the udp-header */
+      pkt->udp_dns.udp_hdr.spt = htons (53);
+      pkt->udp_dns.udp_hdr.dpt = ans->pkt.dst_port;
+      pkt->udp_dns.udp_hdr.len = htons (net_len - sizeof (struct ip6_hdr));
+      pkt->udp_dns.udp_hdr.crc = 0;
+      uint32_t sum = 0;
+
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt->ip6_hdr.sadr, 16);
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt->ip6_hdr.dadr, 16);
+      uint32_t tmp = (pkt->udp_dns.udp_hdr.len & 0xffff);
+
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+      tmp = htons (((pkt->ip6_hdr.nxthdr & 0x00ff)));
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt->udp_dns.udp_hdr,
+                                   ntohs (net_len - sizeof(struct ip6_hdr)));
+      pkt->udp_dns.udp_hdr.crc = calculate_checksum_end (sum);
+
+      pkt->ip6_hdr.version = 6;
+      pkt->ip6_hdr.paylgth = net_len - sizeof (struct ip6_hdr);
+      pkt->ip6_hdr.nxthdr = IPPROTO_UDP;
+      pkt->ip6_hdr.hoplmt = 0xff;
+
+      memcpy (&pkt->udp_dns.data, ans->pkt.data, data_len);
+      buf = pkt;
+    }
+  else if (ans->pkt.addrlen == 4)
+    {
+      size_t net_len = sizeof (struct ip_hdr) + sizeof (struct udp_dns) + data_len;
+      pkt_len =
+        sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) + net_len;
+
+      struct ip_udp_dns *pkt = alloca (pkt_len);
+
+      GNUNET_assert (pkt != NULL);
+      memset (pkt, 0, pkt_len);
+
+      /* set the gnunet-header */
+      pkt->shdr.size = htons (pkt_len);
+      pkt->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+
+      /* set the tun-header (no flags and ethertype of IPv4) */
+      pkt->tun.flags = 0;
+      pkt->tun.type = htons (0x0800);
+
+      /* set the ip-header */
+      pkt->ip_hdr.version = 4;
+      pkt->ip_hdr.hdr_lngth = 5;
+      pkt->ip_hdr.diff_serv = 0;
+      pkt->ip_hdr.tot_lngth = htons (net_len);
+      pkt->ip_hdr.ident = 0;
+      pkt->ip_hdr.flags = 0;
+      pkt->ip_hdr.frag_off = 0;
+      pkt->ip_hdr.ttl = 255;
+      pkt->ip_hdr.proto = IPPROTO_UDP;
+      pkt->ip_hdr.chks = 0;         /* Will be calculated later */
+
+      memcpy(&pkt->ip_hdr.sadr, ans->pkt.from, 4);
+      memcpy(&pkt->ip_hdr.dadr, ans->pkt.to, 4);
+
+      pkt->ip_hdr.chks = calculate_ip_checksum ((uint16_t *) & pkt->ip_hdr, 5 * 4);
+
+      /* set the udp-header */
+      pkt->udp_dns.udp_hdr.spt = htons (53);
+      pkt->udp_dns.udp_hdr.dpt = ans->pkt.dst_port;
+      pkt->udp_dns.udp_hdr.len = htons (net_len - sizeof (struct ip_hdr));
+      pkt->udp_dns.udp_hdr.crc = 0; /* Optional for IPv4 */
+
+      memcpy (&pkt->udp_dns.data, ans->pkt.data, data_len);
+      buf = pkt;
+    }
 
   GNUNET_CONTAINER_DLL_remove (answer_proc_head, answer_proc_tail, ans);
   GNUNET_free (ans);
 
-  if (GNUNET_DISK_file_write (helper_handle->fh_to_helper, pkt, pkt_len) < 0)
+  if (GNUNET_DISK_file_write (helper_handle->fh_to_helper, buf, pkt_len) < 0)
   {
     cleanup_helper (helper_handle);
     GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
@@ -258,10 +320,36 @@ message_token (void *cls __attribute__ ((unused)), void *client
 
     switch (pkt6->ip6_hdr.nxthdr)
     {
-    case IPPROTO_TCP:
     case IPPROTO_UDP:
-      pkt6_tcp = (struct ip6_tcp *) pkt6;
       pkt6_udp = (struct ip6_udp *) pkt6;
+      /* Send dns-packets to the service-dns */
+      if (ntohs (pkt6_udp->udp_hdr.dpt) == 53)
+        {
+          /* 9 = 8 for the udp-header + 1 for the unsigned char data[1]; */
+          size_t len = sizeof (struct query_packet) + ntohs (pkt6_udp->udp_hdr.len) - 9;
+
+          struct query_packet_list *query =
+            GNUNET_malloc (len + 2 * sizeof (struct query_packet_list *));
+          query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
+          query->pkt.hdr.size = htons (len);
+          memcpy(query->pkt.orig_to, &pkt6->ip6_hdr.dadr, 16);
+          memcpy(query->pkt.orig_from, &pkt6->ip6_hdr.sadr, 16);
+          query->pkt.addrlen = 16;
+          query->pkt.src_port = pkt6_udp->udp_hdr.spt;
+          memcpy (query->pkt.data, pkt6_udp->data, ntohs (pkt6_udp->udp_hdr.len) - 8);
+
+          GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, query);
+
+          GNUNET_assert (head != NULL);
+
+          if (dns_connection != NULL && dns_transmit_handle == NULL)
+            dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection, len,
+                                                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                       GNUNET_YES, &send_query, NULL);
+          break;
+        }
+    case IPPROTO_TCP:
+      pkt6_tcp = (struct ip6_tcp *) pkt6;
 
       if ((key = address6_mapping_exists (pkt6->ip6_hdr.dadr)) != NULL)
       {
@@ -438,8 +526,9 @@ message_token (void *cls __attribute__ ((unused)), void *client
           GNUNET_malloc (len + 2 * sizeof (struct query_packet_list *));
       query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
       query->pkt.hdr.size = htons (len);
-      query->pkt.orig_to = pkt->ip_hdr.dadr;
-      query->pkt.orig_from = pkt->ip_hdr.sadr;
+      memcpy(query->pkt.orig_to, &pkt->ip_hdr.dadr, 4);
+      memcpy(query->pkt.orig_from, &pkt->ip_hdr.sadr, 4);
+      query->pkt.addrlen = 4;
       query->pkt.src_port = udp->udp_hdr.spt;
       memcpy (query->pkt.data, udp->data, ntohs (udp->udp_hdr.len) - 8);
 

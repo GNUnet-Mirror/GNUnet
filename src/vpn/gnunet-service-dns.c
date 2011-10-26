@@ -50,6 +50,7 @@ struct GNUNET_CONNECTION_TransmitHandle *server_notify;
  * sent through gnunet. The port of this socket will not be hijacked.
  */
 static struct GNUNET_NETWORK_Handle *dnsout;
+static struct GNUNET_NETWORK_Handle *dnsout6;
 
 /**
  * The port bound to the socket dnsout
@@ -90,8 +91,9 @@ static struct
   unsigned valid:1;
   struct GNUNET_SERVER_Client *client;
   struct GNUNET_MESH_Tunnel *tunnel;
-  uint32_t local_ip;
-  uint32_t remote_ip;
+  char local_ip[16];
+  char remote_ip[16];
+  char addrlen;
   uint16_t local_port;
   char *name;
   uint8_t namelen;
@@ -485,9 +487,9 @@ receive_mesh_answer (void *cls
   memcpy (answer->pkt.addr, pdns->answers[0]->data,
           ntohs (pdns->answers[0]->data_len));
 
-  answer->pkt.from = query_states[dns->s.id].remote_ip;
-
-  answer->pkt.to = query_states[dns->s.id].local_ip;
+  memcpy(answer->pkt.from, query_states[dns->s.id].remote_ip, query_states[dns->s.id].addrlen);
+  memcpy(answer->pkt.to, query_states[dns->s.id].local_ip, query_states[dns->s.id].addrlen);
+  answer->pkt.addrlen = query_states[dns->s.id].addrlen;
   answer->pkt.dst_port = query_states[dns->s.id].local_port;
 
   struct dns_pkt *dpkt = (struct dns_pkt *) answer->pkt.data;
@@ -589,9 +591,9 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   answer->pkt.hdr.size = htons (len);
   answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REV;
 
-  answer->pkt.from = query_states[id].remote_ip;
+  memcpy(answer->pkt.from, query_states[id].remote_ip, query_states[id].addrlen);
+  memcpy(answer->pkt.to, query_states[id].local_ip, query_states[id].addrlen);
 
-  answer->pkt.to = query_states[id].local_ip;
   answer->pkt.dst_port = query_states[id].local_port;
 
   struct dns_pkt *dpkt = (struct dns_pkt *) answer->pkt.data;
@@ -700,9 +702,9 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
   memcpy (&answer->pkt.service_descr.ports, &rec->ports,
           sizeof (answer->pkt.service_descr.ports));
 
-  answer->pkt.from = query_states[id].remote_ip;
+  memcpy(answer->pkt.from, query_states[id].remote_ip, query_states[id].addrlen);
+  memcpy(answer->pkt.to, query_states[id].local_ip, query_states[id].addrlen);
 
-  answer->pkt.to = query_states[id].local_ip;
   answer->pkt.dst_port = query_states[id].local_port;
 
   struct dns_pkt *dpkt = (struct dns_pkt *) answer->pkt.data;
@@ -784,9 +786,10 @@ receive_query (void *cls
 
   query_states[dns->s.id].valid = GNUNET_YES;
   query_states[dns->s.id].client = client;
-  query_states[dns->s.id].local_ip = pkt->orig_from;
+  memcpy(query_states[dns->s.id].local_ip, pkt->orig_from, pkt->addrlen);
+  query_states[dns->s.id].addrlen = pkt->addrlen;
   query_states[dns->s.id].local_port = pkt->src_port;
-  query_states[dns->s.id].remote_ip = pkt->orig_to;
+  memcpy(query_states[dns->s.id].remote_ip, pkt->orig_to, pkt->addrlen);
   query_states[dns->s.id].namelen = strlen ((char *) dns->data) + 1;
   if (query_states[dns->s.id].name != NULL)
     GNUNET_free (query_states[dns->s.id].name);
@@ -883,27 +886,56 @@ receive_query (void *cls
     }
   }
 
-  char *virt_dns;
-  unsigned int virt_dns_bytes;
+  unsigned char virt_dns_bytes[16];
 
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS", &virt_dns))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'VIRTDNS' in configuration!\n");
-    exit (1);
-  }
+  if (pkt->addrlen == 4)
+    {
+      char *virt_dns;
 
-  if (1 != inet_pton (AF_INET, virt_dns, &virt_dns_bytes))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing 'VIRTDNS': %s; %m!\n",
-                virt_dns);
-    exit (1);
-  }
+      if (GNUNET_SYSERR ==
+          GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS", &virt_dns))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "No entry 'VIRTDNS' in configuration!\n");
+        exit (1);
+      }
 
-  GNUNET_free (virt_dns);
+      if (1 != inet_pton (AF_INET, virt_dns, &virt_dns_bytes))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing 'VIRTDNS': %s; %m!\n",
+                    virt_dns);
+        exit (1);
+      }
 
-  if (virt_dns_bytes == pkt->orig_to)
+      GNUNET_free (virt_dns);
+    }
+  else if (pkt->addrlen == 16)
+    {
+      char *virt_dns;
+
+      if (GNUNET_SYSERR ==
+          GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS6", &virt_dns))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "No entry 'VIRTDNS6' in configuration!\n");
+        exit (1);
+      }
+
+      if (1 != inet_pton (AF_INET6, virt_dns, &virt_dns_bytes))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing 'VIRTDNS6': %s; %m!\n",
+                    virt_dns);
+        exit (1);
+      }
+
+      GNUNET_free (virt_dns);
+    }
+  else
+    {
+      GNUNET_assert(0);
+    }
+
+  if (memcmp(virt_dns_bytes,pkt->orig_to, pkt->addrlen) == 0)
   {
     /* This is a packet that was sent directly to the virtual dns-server
      *
@@ -958,17 +990,32 @@ receive_query (void *cls
 
 
   /* The query should be sent to the network */
+  if (pkt->addrlen == 4)
+    {
+      struct sockaddr_in dest;
 
-  struct sockaddr_in dest;
+      memset (&dest, 0, sizeof dest);
+      dest.sin_port = htons (53);
+      memcpy(&dest.sin_addr.s_addr, pkt->orig_to, pkt->addrlen);
 
-  memset (&dest, 0, sizeof dest);
-  dest.sin_port = htons (53);
-  dest.sin_addr.s_addr = pkt->orig_to;
+      GNUNET_NETWORK_socket_sendto (dnsout, dns,
+                                    ntohs (pkt->hdr.size) -
+                                    sizeof (struct query_packet) + 1,
+                                    (struct sockaddr *) &dest, sizeof dest);
+    }
+  else if (pkt->addrlen == 16)
+    {
+      struct sockaddr_in6 dest;
 
-  GNUNET_NETWORK_socket_sendto (dnsout, dns,
-                                ntohs (pkt->hdr.size) -
-                                sizeof (struct query_packet) + 1,
-                                (struct sockaddr *) &dest, sizeof dest);
+      memset (&dest, 0, sizeof dest);
+      dest.sin6_port = htons (53);
+      memcpy(&dest.sin6_addr, pkt->orig_to, pkt->addrlen);
+
+      GNUNET_NETWORK_socket_sendto (dnsout6, dns,
+                                    ntohs (pkt->hdr.size) -
+                                    sizeof (struct query_packet) + 1,
+                                    (struct sockaddr *) &dest, sizeof dest);
+    }
 
 outfree:
   free_parsed_dns_packet (pdns);
@@ -979,6 +1026,39 @@ out:
 
 static void
 read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void
+read_response6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static int
+open_port6 ()
+{
+  struct sockaddr_in6 addr;
+
+  dnsout6 = GNUNET_NETWORK_socket_create (AF_INET6, SOCK_DGRAM, 0);
+  if (dnsout6 == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not create socket: %m\n");
+      return GNUNET_SYSERR;
+    }
+  memset (&addr, 0, sizeof (struct sockaddr_in6));
+
+  addr.sin6_family = AF_INET6;
+  int err = GNUNET_NETWORK_socket_bind (dnsout6,
+                                        (struct sockaddr *) &addr,
+                                        sizeof (struct sockaddr_in6));
+
+  if (err != GNUNET_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not bind a port: %m\n");
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout6,
+                                 &read_response6, NULL);
+
+  return GNUNET_YES;
+}
 
 static int
 open_port ()
@@ -1018,6 +1098,57 @@ open_port ()
   return GNUNET_YES;
 }
 
+void handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, int r);
+
+/**
+ * Read a response-packet of the UDP-Socket
+ */
+static void
+read_response6 (void *cls
+                __attribute__ ((unused)),
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct sockaddr_in6 addr;
+  socklen_t addrlen = sizeof (addr);
+  int r;
+  int len;
+
+  if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+
+  memset (&addr, 0, sizeof addr);
+
+#ifndef MINGW
+  if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout6), FIONREAD, &len))
+  {
+    (void)open_port6 ();
+    return;
+  }
+#else
+  /* port the code above? */
+  len = 65536;
+#endif
+
+  unsigned char buf[len];
+  struct dns_pkt *dns = (struct dns_pkt *) buf;
+
+  r = GNUNET_NETWORK_socket_recvfrom (dnsout, buf, sizeof (buf),
+                                      (struct sockaddr *) &addr, &addrlen);
+
+  if (r < 0)
+    {
+      (void)open_port6 ();
+      return;
+    }
+
+  struct sockaddr *addr_ = GNUNET_malloc(sizeof addr);
+  memcpy (addr_, &addr, sizeof addr);
+  handle_response(dns, addr_, 4, r);
+
+  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout6,
+                                 &read_response6, NULL);
+}
+
 /**
  * Read a response-packet of the UDP-Socket
  */
@@ -1050,14 +1181,14 @@ read_response (void *cls
   /* port the code above? */
   len = 65536;
 #endif
-  {
-    unsigned char buf[len];
-    struct dns_pkt *dns = (struct dns_pkt *) buf;
 
-    r = GNUNET_NETWORK_socket_recvfrom (dnsout, buf, sizeof (buf),
-                                        (struct sockaddr *) &addr, &addrlen);
+  unsigned char buf[len];
+  struct dns_pkt *dns = (struct dns_pkt *) buf;
 
-    if (r < 0)
+  r = GNUNET_NETWORK_socket_recvfrom (dnsout, buf, sizeof (buf),
+                                      (struct sockaddr *) &addr, &addrlen);
+
+  if (r < 0)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
 			  "recvfrom");
@@ -1067,86 +1198,112 @@ read_response (void *cls
       return;
     }
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Answer to query %d\n",
-                ntohs (dns->s.id));
+  struct sockaddr *addr_ = GNUNET_malloc(sizeof addr);
+  memcpy (addr_, &addr, sizeof addr);
+  handle_response(dns, addr_, 4, r);
 
-    if (query_states[dns->s.id].valid == GNUNET_YES)
-    {
-      if (query_states[dns->s.id].tunnel != NULL)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Answer to query %d for a remote peer!\n",
-                    ntohs (dns->s.id));
-        /* This response should go through a tunnel */
-        uint32_t *c =
-            GNUNET_malloc (4 + sizeof (struct GNUNET_MESH_Tunnel *) + r);
-        *c = r;
-        struct GNUNET_MESH_Tunnel **t = (struct GNUNET_MESH_Tunnel **) (c + 1);
-
-        *t = query_states[dns->s.id].tunnel;
-        memcpy (t + 1, dns, r);
-        if (NULL ==
-            GNUNET_MESH_tunnel_get_data (query_states[dns->s.id].tunnel))
-        {
-          struct GNUNET_MESH_TransmitHandle *th =
-              GNUNET_MESH_notify_transmit_ready (query_states[dns->s.id].tunnel,
-                                                 GNUNET_YES,
-                                                 32,
-                                                 GNUNET_TIME_UNIT_MINUTES,
-                                                 NULL,
-                                                 r +
-                                                 sizeof (struct
-                                                         GNUNET_MessageHeader),
-                                                 mesh_send_response, c);
-
-          GNUNET_MESH_tunnel_set_data (query_states[dns->s.id].tunnel, th);
-        }
-        else
-        {
-          struct tunnel_notify_queue *head =
-              GNUNET_MESH_tunnel_get_head (query_states[dns->s.id].tunnel);
-          struct tunnel_notify_queue *tail =
-              GNUNET_MESH_tunnel_get_tail (query_states[dns->s.id].tunnel);
-
-          struct tunnel_notify_queue *element =
-              GNUNET_malloc (sizeof (struct tunnel_notify_queue));
-          element->cls = c;
-          element->len = r + sizeof (struct GNUNET_MessageHeader);
-          element->cb = mesh_send_response;
-
-          GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
-          GNUNET_MESH_tunnel_set_head (query_states[dns->s.id].tunnel, head);
-          GNUNET_MESH_tunnel_set_tail (query_states[dns->s.id].tunnel, tail);
-        }
-      }
-      else
-      {
-        query_states[dns->s.id].valid = GNUNET_NO;
-
-        size_t len = sizeof (struct answer_packet) + r - 1;     /* 1 for the unsigned char data[1]; */
-        struct answer_packet_list *answer =
-            GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
-        answer->pkt.hdr.type =
-            htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
-        answer->pkt.hdr.size = htons (len);
-        answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
-        answer->pkt.from = addr.sin_addr.s_addr;
-        answer->pkt.to = query_states[dns->s.id].local_ip;
-        answer->pkt.dst_port = query_states[dns->s.id].local_port;
-        memcpy (answer->pkt.data, buf, r);
-
-        GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
-
-        if (server_notify == NULL)
-          server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
-                                                               len, GNUNET_TIME_UNIT_FOREVER_REL,
-                                                               &send_answer,
-                                                               query_states[dns->s.id].client);
-      }
-    }
-  }
   GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout,
                                  &read_response, NULL);
+}
+
+void
+handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, int r)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Answer to query %d\n",
+              ntohs (dns->s.id));
+
+
+  if (query_states[dns->s.id].valid == GNUNET_YES)
+    {
+      if (query_states[dns->s.id].tunnel != NULL)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Answer to query %d for a remote peer!\n",
+                      ntohs (dns->s.id));
+          /* This response should go through a tunnel */
+          uint32_t *c =
+            GNUNET_malloc (4 + sizeof (struct GNUNET_MESH_Tunnel *) + r);
+          *c = r;
+          struct GNUNET_MESH_Tunnel **t = (struct GNUNET_MESH_Tunnel **) (c + 1);
+
+          *t = query_states[dns->s.id].tunnel;
+          memcpy (t + 1, dns, r);
+          if (NULL ==
+              GNUNET_MESH_tunnel_get_data (query_states[dns->s.id].tunnel))
+            {
+              struct GNUNET_MESH_TransmitHandle *th =
+                GNUNET_MESH_notify_transmit_ready (query_states[dns->s.id].tunnel,
+                                                   GNUNET_YES,
+                                                   32,
+                                                   GNUNET_TIME_UNIT_MINUTES,
+                                                   NULL,
+                                                   r +
+                                                   sizeof (struct
+                                                           GNUNET_MessageHeader),
+                                                   mesh_send_response, c);
+
+              GNUNET_MESH_tunnel_set_data (query_states[dns->s.id].tunnel, th);
+            }
+          else
+            {
+              struct tunnel_notify_queue *head =
+                GNUNET_MESH_tunnel_get_head (query_states[dns->s.id].tunnel);
+              struct tunnel_notify_queue *tail =
+                GNUNET_MESH_tunnel_get_tail (query_states[dns->s.id].tunnel);
+
+              struct tunnel_notify_queue *element =
+                GNUNET_malloc (sizeof (struct tunnel_notify_queue));
+              element->cls = c;
+              element->len = r + sizeof (struct GNUNET_MessageHeader);
+              element->cb = mesh_send_response;
+
+              GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
+              GNUNET_MESH_tunnel_set_head (query_states[dns->s.id].tunnel, head);
+              GNUNET_MESH_tunnel_set_tail (query_states[dns->s.id].tunnel, tail);
+            }
+        }
+      else
+        {
+          query_states[dns->s.id].valid = GNUNET_NO;
+
+          size_t len = sizeof (struct answer_packet) + r - 1;     /* 1 for the unsigned char data[1]; */
+          struct answer_packet_list *answer =
+            GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
+          answer->pkt.hdr.type =
+            htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
+          answer->pkt.hdr.size = htons (len);
+          answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
+          answer->pkt.addrlen = addrlen;
+          if (addrlen == 16)
+            {
+              struct sockaddr_in6 *addr_ = (struct sockaddr_in6*)addr;
+              memcpy(answer->pkt.from, &addr_->sin6_addr, addrlen);
+              memcpy(answer->pkt.to, query_states[dns->s.id].local_ip, addrlen);
+            }
+          else if (addrlen == 4)
+            {
+              struct sockaddr_in *addr_ = (struct sockaddr_in*)addr;
+              memcpy(answer->pkt.from, &addr_->sin_addr.s_addr, addrlen);
+              memcpy(answer->pkt.to, query_states[dns->s.id].local_ip, addrlen);
+            }
+          else
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "addrlen = %d\n", addrlen);
+              GNUNET_assert(0);
+            }
+          answer->pkt.dst_port = query_states[dns->s.id].local_port;
+          memcpy (answer->pkt.data, dns, r);
+
+          GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
+
+          if (server_notify == NULL)
+            server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
+                                                                 len, GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                 &send_answer,
+                                                                 query_states[dns->s.id].client);
+        }
+    }
+  GNUNET_free(addr);
 }
 
 
@@ -1422,6 +1579,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_APPLICATION_TYPE_END
   };
 
+  if (GNUNET_YES != open_port6 ())
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 
   if (GNUNET_YES != open_port ())
   {

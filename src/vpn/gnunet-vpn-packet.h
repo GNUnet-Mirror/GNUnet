@@ -40,8 +40,8 @@ struct ip_hdr
   unsigned proto:8 GNUNET_PACKED;
   unsigned chks:16 GNUNET_PACKED;
 
-  unsigned sadr:32 GNUNET_PACKED;
-  unsigned dadr:32 GNUNET_PACKED;
+  uint32_t sadr GNUNET_PACKED;
+  uint32_t dadr GNUNET_PACKED;
 };
 
 #define TCP_FLAG_SYN 2
