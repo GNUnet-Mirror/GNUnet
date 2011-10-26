@@ -154,6 +154,7 @@ unparse_dns_name(char* dest, char* src, size_t len)
       cnt = 0;
       b = dest;
       dest++;
+      src++;
     }
   *b = 0;
 }
@@ -163,36 +164,36 @@ unparse_dns_packet (struct dns_pkt_parsed* ppkt)
 {
   size_t size = sizeof(struct dns_pkt) - 1;
   int i;
-  for (i = 0; i < ppkt->s.qdcount; i++)
+  for (i = 0; i < ntohs(ppkt->s.qdcount); i++)
     size += ppkt->queries[i]->namelen + 1;
 
-  for (i = 0; i < ppkt->s.ancount; i++)
+  for (i = 0; i < ntohs(ppkt->s.ancount); i++)
     {
       size += ppkt->answers[i]->namelen + 1;
       size += ppkt->answers[i]->data_len;
     }
-  for (i = 0; i < ppkt->s.nscount; i++)
+  for (i = 0; i < ntohs(ppkt->s.nscount); i++)
     {
       size += ppkt->nameservers[i]->namelen + 1;
       size += ppkt->nameservers[i]->data_len;
     }
-  for (i = 0; i < ppkt->s.arcount; i++)
+  for (i = 0; i < ntohs(ppkt->s.arcount); i++)
     {
       size += ppkt->additional[i]->namelen + 1;
       size += ppkt->additional[i]->data_len;
     }
 
-  size += 4*ppkt->s.qdcount + 10*(
-                                  ppkt->s.ancount+
-                                  ppkt->s.arcount+
-                                  ppkt->s.nscount);
+  size += 4*ntohs(ppkt->s.qdcount) + 10*(
+                                  ntohs(ppkt->s.ancount)+
+                                  ntohs(ppkt->s.arcount)+
+                                  ntohs(ppkt->s.nscount));
 
   struct dns_pkt *pkt = GNUNET_malloc(size);
   char *pkt_c = (char*)pkt;
   memcpy(&pkt->s, &ppkt->s, sizeof ppkt->s);
   size_t idx = sizeof ppkt->s;
 
-  for (i = 0; i < ppkt->s.qdcount; i++)
+  for (i = 0; i < ntohs(ppkt->s.qdcount); i++)
     {
       unparse_dns_name(&pkt_c[idx], ppkt->queries[i]->name, ppkt->queries[i]->namelen);
       idx += ppkt->queries[i]->namelen;
@@ -202,7 +203,7 @@ unparse_dns_packet (struct dns_pkt_parsed* ppkt)
       idx += sizeof(struct dns_query_line);
     }
 
-  for (i = 0; i < ppkt->s.ancount; i++)
+  for (i = 0; i < ntohs(ppkt->s.ancount); i++)
     {
       unparse_dns_name(&pkt_c[idx], ppkt->answers[i]->name, ppkt->answers[i]->namelen);
       idx += ppkt->answers[i]->namelen;
@@ -216,7 +217,7 @@ unparse_dns_packet (struct dns_pkt_parsed* ppkt)
       idx += ppkt->answers[i]->data_len;
     }
 
-  for (i = 0; i < ppkt->s.nscount; i++)
+  for (i = 0; i < ntohs(ppkt->s.nscount); i++)
     {
       unparse_dns_name(&pkt_c[idx], ppkt->nameservers[i]->name, ppkt->nameservers[i]->namelen);
       idx += ppkt->nameservers[i]->namelen;
@@ -230,7 +231,7 @@ unparse_dns_packet (struct dns_pkt_parsed* ppkt)
       idx += ppkt->nameservers[i]->data_len;
     }
 
-  for (i = 0; i < ppkt->s.arcount; i++)
+  for (i = 0; i < ntohs(ppkt->s.arcount); i++)
     {
       unparse_dns_name(&pkt_c[idx], ppkt->additional[i]->name, ppkt->additional[i]->namelen);
       idx += ppkt->additional[i]->namelen;

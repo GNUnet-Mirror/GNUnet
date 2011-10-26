@@ -499,9 +499,12 @@ receive_mesh_answer (void *cls
   int i = 0;
 
   while (i < ntohs(pdns->s.ancount) &&
-         pdns->answers[i]->type != 28 &&
-         pdns->answers[i]->type != 1)
+         ntohs(pdns->answers[i]->type) != 28 &&
+         ntohs(pdns->answers[i]->type) != 1)
+{
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Answer contains %d.\n", ntohs(pdns->answers[i]->type));
     i++;
+}
 
   if (i >= ntohs (pdns->s.ancount))
   {
@@ -1005,14 +1008,18 @@ receive_query (void *cls
             cls_->hdr.size - sizeof (struct GNUNET_MessageHeader));
     GNUNET_SCHEDULER_add_now (send_mesh_query, cls_);
 
-    if (pdns->s.qdcount == 1)
+    if (ntohs(pdns->s.qdcount) == 1)
       {
         if (ntohs(pdns->queries[0]->qtype) == 1)
           pdns->queries[0]->qtype = htons(28);
         else if (ntohs(pdns->queries[0]->qtype) == 28)
           pdns->queries[0]->qtype = htons(1);
         else
+{
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "not sending second packet\n");
           goto outfree;
+}
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "sending second packet\n");
         struct dns_pkt *rdns = unparse_dns_packet (pdns);
         size_t size =
           sizeof (struct GNUNET_MESH_Tunnel *) +
