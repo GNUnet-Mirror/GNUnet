@@ -1809,15 +1809,18 @@ send_hello_beacon (struct Plugin *plugin)
     finish->msgstart = NULL;
     restart_helper(plugin, finish);
 
+    set_next_beacon_time (plugin);
+
   }
   else
     {
     GNUNET_assert (bytes == size);
+    set_next_beacon_time (plugin);
     set_next_send (plugin);
     }
   GNUNET_free (msgheader);
 
-  set_next_beacon_time (plugin);
+
 }
 
 /**
@@ -2061,7 +2064,6 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_TIME_absolute_get_remaining (plugin->beacon_time).rel_value == 0)
   {
     send_hello_beacon (plugin);
-    set_next_send(plugin);
     return;
   }
 
