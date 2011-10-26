@@ -821,7 +821,7 @@ receive_query (void *cls
           query_states[dns->s.id].namelen);
 
   int i;
-  for (i= 0; i < pdns->s.qdcount; i++)
+  for (i= 0; i < ntohs(pdns->s.qdcount); i++)
     {
       if (pdns->queries[i]->qtype == htons(28) ||
           pdns->queries[i]->qtype == htons(28))
