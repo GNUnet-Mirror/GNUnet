@@ -166,7 +166,6 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   {
     fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
              strerror (errno));
-    exit (1);
   }
 
   /*
