@@ -91,7 +91,6 @@ bin_PROGRAMS = \
  gnunet-transport \
  $(WLAN_BIN) \
  gnunet-service-transport \
- gnunet-transport-list-connections \
  gnunet-transport-certificate-creation
 
 #bin_SCRIPTS = \
@@ -120,15 +119,6 @@ gnunet_transport_wlan_helper_dummy_SOURCES = \
  test_plugin_transport_wlan_dummy.c
 gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
-
-gnunet_transport_list_connections_SOURCES = \
- gnunet-transport-list-connections.c         
-gnunet_transport_list_connections_LDADD = \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
-gnunet_transport_list_connections_DEPENDENCIES = \
-  libgnunettransport.la
 
 gnunet_transport_SOURCES = \
  gnunet-transport.c         

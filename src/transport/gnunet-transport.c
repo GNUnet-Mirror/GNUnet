@@ -22,6 +22,7 @@
  * @file src/transport/gnunet-transport.c
  * @brief Tool to help configure, measure and control the transport subsystem.
  * @author Christian Grothoff
+ * @author Nathan Evans
  *
  * This utility can be used to test if a transport mechanism for
  * GNUnet is properly configured.
@@ -51,6 +52,16 @@ static int benchmark_send;
  * Option -b.
  */
 static int benchmark_receive;
+
+/**
+ * Option -l.
+ */
+static int benchmark_receive;
+
+/**
+ * Option -i.
+ */
+static int iterate_connections;
 
 /**
  * Global return value (0 success).
@@ -113,7 +124,7 @@ do_disconnect (void *cls,
   if (benchmark_receive)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    fprintf (stderr,
+    fprintf (stdout,
 	     _("Received %llu bytes/s (%llu bytes in %llu ms)\n"),
 	     1000 * traffic_received / (1+duration.rel_value),
 	     traffic_received,
@@ -122,7 +133,7 @@ do_disconnect (void *cls,
   if (benchmark_send)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    fprintf (stderr,
+    fprintf (stdout,
 	     _("Transmitted %llu bytes/s (%llu bytes in %llu ms)\n"),
 	     1000 * traffic_sent / (1+duration.rel_value),
 	     traffic_sent,
@@ -161,7 +172,7 @@ transmit_data (void *cls, size_t size,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       &transmit_data, NULL);
   if (verbosity > 0)
-    fprintf (stderr,
+    fprintf (stdout,
 	     _("Transmitting %u bytes to %s\n"),
 	     (unsigned int) size,
 	     GNUNET_i2s (&pid));
@@ -187,7 +198,7 @@ notify_connect (void *cls,
 		* ats, uint32_t ats_count)
 {
   if (verbosity > 0)
-    fprintf (stderr,
+    fprintf (stdout,
 	     _("Connected to %s\n"),
 	     GNUNET_i2s (peer));
   if (0 != memcmp (&pid,
@@ -228,7 +239,7 @@ notify_disconnect (void *cls,
 		   GNUNET_PeerIdentity * peer)
 {
   if (verbosity > 0)
-    fprintf (stderr,
+    fprintf (stdout,
 	     _("Disconnected from %s\n"),
 	     GNUNET_i2s (peer));
   if ( (0 == memcmp (&pid,
@@ -268,13 +279,35 @@ notify_receive (void *cls,
   if (! benchmark_receive)
     return;
   if (verbosity > 0)
-    fprintf (stderr,
+    fprintf (stdout,
 	     _("Received %u bytes from %s\n"),
 	     (unsigned int) ntohs (message->size),
 	     GNUNET_i2s (peer));
   if (traffic_received == 0)
     start_time = GNUNET_TIME_absolute_get ();
   traffic_received += ntohs (message->size);
+}
+
+
+/**
+ * Function to call with a human-readable format of an address
+ *
+ * @param cls closure
+ * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
+ */
+static void
+process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
+                 const char *transport, const void *addr, size_t addrlen)
+{
+  if ((peer != NULL) || (transport != NULL) ||
+      ((addr != NULL) && (addrlen > 0)))
+    fprintf (stdout, 
+	     _("Peer `%s' plugin: `%s' address `%s'\n"),
+             (peer != NULL) ? GNUNET_i2s (peer) : "<unknown>",
+             (transport != NULL) ? transport : "<unknown>", 
+	     ((addr != NULL) && (addrlen > 0) && (transport != NULL)) ?
+             "how do i resolve the name without transport service?" :
+             "<unknown>");
 }
 
 
@@ -328,6 +361,11 @@ run (void *cls, char *const *args, const char *cfgfile,
 					&do_disconnect,
 					NULL); 
   }
+  if (iterate_connections)
+  {
+    GNUNET_TRANSPORT_address_iterate (cfg, GNUNET_TIME_UNIT_MINUTES,
+				      &process_address, NULL);
+  }
 }
 
 
@@ -341,6 +379,9 @@ main (int argc, char *const *argv)
     {'C', "connect", "PEER",
      gettext_noop ("try to connect to the given peer"),
      1, &GNUNET_GETOPT_set_string, &cpid},
+    {'i', "information", NULL,
+     gettext_noop ("provide information about all current connections (once)"),
+     0, &GNUNET_GETOPT_set_one, &iterate_connections},  
     {'s', "send", NULL,
      gettext_noop ("send data for benchmarking to the other peer (until CTRL-C)"),
      0, &GNUNET_GETOPT_set_one, &benchmark_send},  
