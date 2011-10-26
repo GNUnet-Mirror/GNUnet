@@ -45,7 +45,7 @@ extern "C"
 #include "mesh.h"
 #include "mesh_protocol.h"
 
-#define DEBUG GNUNET_YES
+#define MESH_API_DEBUG GNUNET_YES
 
 #define LOG(kind,...) GNUNET_log_from (kind, "mesh-api",__VA_ARGS__)
 
@@ -618,7 +618,7 @@ send_connect (struct GNUNET_MESH_Handle *h)
       types[ntypes] = htons (h->message_handlers[ntypes].type);
     msg->applications = htons (napps);
     msg->types = htons (ntypes);
-#if DEBUG
+#if MESH_API_DEBUG
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "mesh: Sending %lu bytes long message %d types and %d apps\n",
          ntohs (msg->header.size), ntypes, napps);
@@ -642,7 +642,7 @@ reconnect (struct GNUNET_MESH_Handle *h)
   struct GNUNET_MESH_Tunnel *t;
   unsigned int i;
 
-#if DEBUG
+#if MESH_API_DEBUG
   LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: *******   RECONNECT   *******\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
@@ -938,7 +938,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
         GNUNET_MESH_disconnect (h);
         return;
       }
-#if DEBUG
+#if MESH_API_DEBUG
       else
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1470,7 +1470,7 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   uint32_t least_priority;
   size_t overhead;
 
-#if DEBUG
+#if MESH_API_DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "mesh: mesh notify transmit ready called\n");
   if (NULL != target)
