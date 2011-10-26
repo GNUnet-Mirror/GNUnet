@@ -484,8 +484,8 @@ receive_mesh_answer (void *cls
   int i = 0;
 
   while (i < ntohs(pdns->s.ancount) &&
-         (pdns->answers[i]->type != 28 ||
-          pdns->answers[i]->type != 1))
+         pdns->answers[i]->type != 28 &&
+         pdns->answers[i]->type != 1)
     i++;
 
   if (i >= ntohs (pdns->s.ancount))
