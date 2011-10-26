@@ -256,6 +256,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 					: GNUNET_TIME_UNIT_SECONDS,
 					&do_disconnect,
 					NULL);    
+  } else if (benchmark_receive)
+  {
+    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
+				       &notify_receive, 
+				       &notify_connect,
+				       &notify_disconnect);
+    GNUNET_TRANSPORT_try_connect (handle, &pid);
+    end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL
+					&do_disconnect,
+					NULL); 
   }
 }
 
