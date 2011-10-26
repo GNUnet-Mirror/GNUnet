@@ -411,6 +411,8 @@ receive_mesh_query (void *cls
 
   struct sockaddr_in dest;
 
+  struct dns_pkt_parsed *pdns = parse_dns_packet(dns);
+
   memset (&dest, 0, sizeof dest);
   dest.sin_port = htons (53);
   char *dns_resolver;
@@ -422,6 +424,18 @@ receive_mesh_query (void *cls
               ntohs (dns->s.id));
   query_states[dns->s.id].tunnel = tunnel;
   query_states[dns->s.id].valid = GNUNET_YES;
+
+  int i;
+  for (i= 0; i < ntohs(pdns->s.qdcount); i++)
+    {
+      if (pdns->queries[i]->qtype == htons(28) ||
+          pdns->queries[i]->qtype == htons(1))
+        {
+          query_states[dns->s.id].qtype = pdns->queries[i]->qtype;
+            break;
+        }
+    }
+  free_parsed_dns_packet(pdns);
 
   GNUNET_NETWORK_socket_sendto (dnsout, dns,
                                 ntohs (message->size) -
@@ -547,7 +561,7 @@ receive_mesh_answer (void *cls
   else
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "dns-answer with pending qtype = %d\n", query_states[dns->s.id].qtype);
-      GNUNET_break(0);
+      GNUNET_assert(0);
     }
   dque->class = htons (1);      /* IN */
 
@@ -824,7 +838,7 @@ receive_query (void *cls
   for (i= 0; i < ntohs(pdns->s.qdcount); i++)
     {
       if (pdns->queries[i]->qtype == htons(28) ||
-          pdns->queries[i]->qtype == htons(28))
+          pdns->queries[i]->qtype == htons(1))
         {
           query_states[dns->s.id].qtype = pdns->queries[i]->qtype;
             break;
