@@ -277,6 +277,8 @@ helper_write (void *cls
       memcpy (&pkt->udp_dns.data, ans->pkt.data, data_len);
       buf = pkt;
     }
+  else
+    GNUNET_assert (0);
 
   GNUNET_CONTAINER_DLL_remove (answer_proc_head, answer_proc_tail, ans);
   GNUNET_free (ans);
@@ -318,6 +320,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
     struct ip6_udp *pkt6_udp;
     struct ip6_icmp *pkt6_icmp;
 
+    pkt6_udp = NULL; /* make compiler happy */
     switch (pkt6->ip6_hdr.nxthdr)
     {
     case IPPROTO_UDP:
@@ -347,7 +350,8 @@ message_token (void *cls __attribute__ ((unused)), void *client
                                                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                                                        GNUNET_YES, &send_query, NULL);
           break;
-        }
+        } 
+      /* fall through */
     case IPPROTO_TCP:
       pkt6_tcp = (struct ip6_tcp *) pkt6;
 
@@ -436,7 +440,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
           memcpy (s->addr, me->addr, me->addrlen);
           s->proto = pkt6->ip6_hdr.nxthdr;
           if (s->proto == IPPROTO_UDP)
-          {
+	  {
             hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP);
             memcpy (hc + 1, &pkt6_udp->udp_hdr, ntohs (pkt6_udp->udp_hdr.len));
             app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;

@@ -304,7 +304,7 @@ run (int fd_tun)
    */
   unsigned char buftun[MAX_SIZE];
   ssize_t buftun_size = 0;
-  unsigned char *buftun_read;
+  unsigned char *buftun_read = NULL;
 
   /*
    * The buffer filled by reading from stdin
