@@ -152,6 +152,15 @@ start_helper_and_schedule (void *cls,
 
 /*}}}*/
 
+void
+initialize_tunnel_state(struct GNUNET_MESH_Tunnel* tunnel, int addrlen, struct GNUNET_MESH_TransmitHandle* th)
+{
+  struct tunnel_state* ts = GNUNET_malloc(sizeof *ts);
+  ts->addrlen = addrlen;
+  ts->th = th;
+  GNUNET_MESH_tunnel_set_data(tunnel, ts);
+}
+
 /**
  * Send an dns-answer-packet to the helper
  */
@@ -424,6 +433,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
                                                       send_pkt_to_peer, NULL,
                                                       cls);
             me->tunnel = *cls;
+            initialize_tunnel_state(me->tunnel, 16, NULL);
           }
           else if (NULL != cls)
           {
@@ -471,6 +481,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
                                                           send_pkt_to_peer,
                                                           NULL, cls);
             me->tunnel = *cls;
+            initialize_tunnel_state(me->tunnel, 16, NULL);
             if (GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY == app_type)
               udp_tunnel = *cls;
             else if (GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY == app_type)
@@ -627,6 +638,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
                                                         send_pkt_to_peer, NULL,
                                                         cls);
               me->tunnel = *cls;
+              initialize_tunnel_state(me->tunnel, 4, NULL);
             }
             else if (NULL != cls)
             {
@@ -670,6 +682,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
                                                             send_pkt_to_peer,
                                                             NULL, cls);
               me->tunnel = *cls;
+              initialize_tunnel_state(me->tunnel, 4, NULL);
             }
             else if (NULL != cls)
             {

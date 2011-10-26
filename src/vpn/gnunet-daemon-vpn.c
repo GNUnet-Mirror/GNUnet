@@ -282,7 +282,8 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MESH_Tunnel **tunnel = cls;
 
-  GNUNET_MESH_tunnel_set_data (*tunnel, NULL);
+  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data(*tunnel);
+  ts->th = NULL;
 
   if (NULL != buf)
     {
@@ -310,7 +311,7 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
     GNUNET_MESH_tunnel_set_head (*tunnel, head);
     GNUNET_MESH_tunnel_set_tail (*tunnel, tail);
 
-    struct GNUNET_MESH_TransmitHandle *th =
+    ts->th =
         GNUNET_MESH_notify_transmit_ready (*tunnel,
                                            GNUNET_NO,
                                            42,
@@ -322,7 +323,6 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
                                            element->cls);
 
     /* save the handle */
-    GNUNET_MESH_tunnel_set_data (*tunnel, th);
     GNUNET_free (element);
   }
   GNUNET_free (cls);
@@ -355,9 +355,10 @@ send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (NULL != tunnel);
   GNUNET_assert (NULL != *tunnel);
 
-  if (NULL == GNUNET_MESH_tunnel_get_data (*tunnel))
+  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data(*tunnel);
+  if (NULL == ts->th)
   {
-    struct GNUNET_MESH_TransmitHandle *th =
+    ts->th =
         GNUNET_MESH_notify_transmit_ready (*tunnel,
                                            GNUNET_NO,
                                            42,
@@ -368,8 +369,6 @@ send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
                                            ntohs (hdr->size),
                                            send_pkt_to_peer_notify_callback,
                                            cls);
-
-    GNUNET_MESH_tunnel_set_data (*tunnel, th);
   }
   else
   {
@@ -882,8 +881,9 @@ receive_udp_back (void *cls
   struct remote_addr *s = (struct remote_addr *) desc;
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
   const struct GNUNET_PeerIdentity *other = GNUNET_MESH_get_peer (tunnel);
+  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data(tunnel);
 
-  if (16 == s->addrlen)
+  if (16 == ts->addrlen)
   {
     size_t size =
         sizeof (struct ip6_udp) + ntohs (pkt->len) - 1 -
@@ -1063,6 +1063,7 @@ receive_tcp_back (void *cls
   struct remote_addr *s = (struct remote_addr *) desc;
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
   const struct GNUNET_PeerIdentity *other = GNUNET_MESH_get_peer (tunnel);
+  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data(tunnel);
 
   size_t pktlen =
       ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
@@ -1071,7 +1072,7 @@ receive_tcp_back (void *cls
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet back, addrlen = %d\n", s->addrlen);
 
   if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK ||
-      s->addrlen == 16)
+      ts->addrlen == 16)
   {
     size_t size = pktlen + sizeof (struct ip6_tcp) - 1;
 

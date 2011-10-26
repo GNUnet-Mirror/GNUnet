@@ -129,4 +129,10 @@ struct remote_addr
   char proto;
 };
 
+struct tunnel_state
+{
+  struct GNUNET_MESH_TransmitHandle *th;
+  int addrlen;
+};
+
 #endif /* end of include guard: GNUNET-DAEMON-VPN_H */
