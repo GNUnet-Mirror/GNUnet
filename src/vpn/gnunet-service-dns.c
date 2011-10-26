@@ -481,11 +481,26 @@ receive_mesh_answer (void *cls
     return GNUNET_OK;
   }
 
-  answer->pkt.addrsize = ntohs (pdns->answers[0]->data_len);
+  int i = 0;
+
+  while (i < ntohs(pdns->s.ancount) &&
+         (pdns->answers[i]->type != 28 ||
+          pdns->answers[i]->type != 1))
+    i++;
+
+  if (i >= ntohs (pdns->s.ancount))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Answer does not contain any usable answers.\n");
+    free_parsed_dns_packet (pdns);
+    GNUNET_free (answer);
+    return GNUNET_OK;
+  }
+
+  answer->pkt.addrsize = ntohs (pdns->answers[i]->data_len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "The first answer has the addrlen %d\n",
               answer->pkt.addrsize);
-  memcpy (answer->pkt.addr, pdns->answers[0]->data,
-          ntohs (pdns->answers[0]->data_len));
+  memcpy (answer->pkt.addr, pdns->answers[i]->data,
+          ntohs (pdns->answers[i]->data_len));
 
   memcpy(answer->pkt.from, query_states[dns->s.id].remote_ip, query_states[dns->s.id].addrlen);
   memcpy(answer->pkt.to, query_states[dns->s.id].local_ip, query_states[dns->s.id].addrlen);
@@ -521,13 +536,18 @@ receive_mesh_answer (void *cls
     drec_data->type = htons (28);       /* AAAA */
     drec_data->data_len = htons (16);
   }
-  else
+  else if (4 == answer->pkt.addrsize)
   {
     answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_A;
     dque->type = htons (1);     /* A */
     drec_data->type = htons (1);        /* A */
     drec_data->data_len = htons (4);
   }
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "dns-answer with data_len = %d\n", answer->pkt.addrsize);
+      GNUNET_break(0);
+    }
   dque->class = htons (1);      /* IN */
 
   char *anname =
@@ -536,7 +556,7 @@ receive_mesh_answer (void *cls
   memcpy (anname, "\xc0\x0c", 2);
   drec_data->class = htons (1); /* IN */
 
-  drec_data->ttl = pdns->answers[0]->ttl;
+  drec_data->ttl = pdns->answers[i]->ttl;
 
   /* Calculate at which offset in the packet the IPv6-Address belongs, it is
    * filled in by the daemon-vpn */
