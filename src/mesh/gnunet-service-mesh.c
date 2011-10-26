@@ -1299,7 +1299,8 @@ peer_info_destroy (struct MeshPeerInfo *pi)
   GNUNET_PEER_resolve (pi->id, &id);
   GNUNET_PEER_change_rc (pi->id, -1);
 
-  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (peers, &id.hashPubKey, pi))
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_multihashmap_remove (peers,&id.hashPubKey, pi))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -3121,7 +3122,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     tunnel_add_peer (path_info->peer->tunnels[i], path_info->peer);
     peer_info_connect(path_info->peer, path_info->t);
   }
-  GNUNET_free (path_info);
+//   GNUNET_free (path_info);
 
   return;
 }
