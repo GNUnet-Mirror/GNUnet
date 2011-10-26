@@ -97,6 +97,7 @@ static struct
   uint16_t local_port;
   char *name;
   uint8_t namelen;
+  uint16_t qtype;
 } query_states[UINT16_MAX+1];
 
 /**
@@ -529,14 +530,14 @@ receive_mesh_answer (void *cls
       (struct dns_record_line *) (dpkt->data +
                                   (query_states[dns->s.id].namelen) +
                                   sizeof (struct dns_query_line) + 2);
-  if (16 == answer->pkt.addrsize)
+  if (ntohs(28) == query_states[dns->s.id].qtype)
   {
     answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA;
     dque->type = htons (28);    /* AAAA */
     drec_data->type = htons (28);       /* AAAA */
     drec_data->data_len = htons (16);
   }
-  else if (4 == answer->pkt.addrsize)
+  if (ntohs(1) == query_states[dns->s.id].qtype)
   {
     answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_A;
     dque->type = htons (1);     /* A */
@@ -818,6 +819,17 @@ receive_query (void *cls
       GNUNET_malloc (query_states[dns->s.id].namelen);
   memcpy (query_states[dns->s.id].name, dns->data,
           query_states[dns->s.id].namelen);
+
+  int i;
+  for (i= 0; i < pdns->s.qdcount; i++)
+    {
+      if (pdns->queries[i]->qtype == htons(28) ||
+          pdns->queries[i]->qtype == htons(28))
+        {
+          query_states[dns->s.id].qtype = pdns->queries[i]->qtype;
+            break;
+        }
+    }
 
   /* The query is for a .gnunet-address */
   if (pdns->queries[0]->namelen > 9 &&
