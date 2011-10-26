@@ -413,7 +413,7 @@ receive_mesh_query (void *cls
   memset (&dest, 0, sizeof dest);
   dest.sin_port = htons (53);
   char *dns_resolver;
-  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_string(cfg, "dns", "EXTERNAL_DNS", &dns_resolver) ||
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, "dns", "EXTERNAL_DNS", &dns_resolver) ||
       1 != inet_pton (AF_INET, dns_resolver, &dest.sin_addr))
     inet_pton (AF_INET, "8.8.8.8", &dest.sin_addr);
 
