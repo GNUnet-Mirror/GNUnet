@@ -108,7 +108,7 @@ struct MeshDataDescriptor
 
     /** Used to allow a client send more traffic to the service after a
      * previous packet was tried to be sent to a neighbor and couldn't */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  GNUNET_SCHEDULER_TaskIdentifier *timeout_task;
 };
 
 
@@ -693,6 +693,15 @@ client_is_subscribed (uint16_t message_type, struct MeshClient *c)
   return GNUNET_CONTAINER_multihashmap_contains (c->types, &hc);
 }
 
+
+/**
+ * Allow a client to send more data after transmitting a multicast message
+ * which some neighbor has not yet accepted altough a reasonable time has
+ * passed.
+ * 
+ * @param cls Closure (DataDescriptor containing the task identifier)
+ * @param tc Task Context
+ */
 static void
 client_allow_send(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -700,7 +709,12 @@ client_allow_send(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
     return;
-  info->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+#if MESH_DEBUG
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: CLIENT ALLOW SEND DESPITE %u COPIES PENDING\n",
+              *(info->copies));
+#endif
+  *(info->timeout_task) = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SERVER_receive_done(info->client, GNUNET_OK);
 }
 
@@ -878,6 +892,36 @@ send_core_data_multicast (void *cls, size_t size, void *buf);
 
 
 /**
+ * Decrements the reference counter and frees all resources if needed
+ * 
+ * @param dd Data Descriptor used in a multicast message
+ */
+static void
+data_descriptor_decrement_multicast (struct MeshDataDescriptor *dd)
+{
+  if (0 == --(*(dd->copies)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Last copy!\n");
+    if (NULL != dd->client)
+    {
+      if (GNUNET_SCHEDULER_NO_TASK != *(dd->timeout_task))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "MESH:  cancelling client timeout (%u)...\n",
+                    *(dd->timeout_task));
+        GNUNET_SCHEDULER_cancel(*(dd->timeout_task));
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  notifying client...\n");
+        GNUNET_SERVER_receive_done (dd->client, GNUNET_OK);
+      }
+      GNUNET_free (dd->timeout_task);
+    }
+    GNUNET_free (dd->copies);
+    GNUNET_free (dd->data);
+  }
+}
+
+
+/**
  * Cancel a core transmission that was already requested and free all resources
  * associated to the request.
  * 
@@ -914,11 +958,7 @@ peer_info_cancel_transmission(struct MeshPeerInfo *peer, unsigned int i)
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    type payload\n");
         dd = peer->infos[i];
-        if (0 == --(*dd->copies))
-        {
-          GNUNET_free (dd->copies);
-          GNUNET_free (dd->data);
-        }
+        data_descriptor_decrement_multicast (dd);
         break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    type create path\n");
@@ -1460,7 +1500,8 @@ path_add_to_peer (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
       }
     }
   }
-  GNUNET_CONTAINER_DLL_insert_tail (peer_info->path_head, peer_info->path_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (peer_info->path_head,
+                                    peer_info->path_tail,
                                     path);
   return;
 }
@@ -1819,6 +1860,8 @@ tunnel_notify_connection_broken (struct MeshTunnel *t,
  * @param msg Message to be sent
  *
  * @return Number of copies sent.
+ * 
+ * TODO: unifiy shared resources and reference counter management
  */
 static int
 tunnel_send_multicast (struct MeshTunnel *t,
@@ -1827,6 +1870,8 @@ tunnel_send_multicast (struct MeshTunnel *t,
   struct GNUNET_PeerIdentity neighbor;
   struct MeshDataDescriptor *info;
   struct MeshTunnelTreeNode *n;
+  struct MeshTunnelTreeNode *counter;
+  GNUNET_SCHEDULER_TaskIdentifier *task;
   unsigned int *copies;
   unsigned int i;
   size_t size;
@@ -1844,12 +1889,20 @@ tunnel_send_multicast (struct MeshTunnel *t,
     return 0;
   }
   copies = GNUNET_malloc (sizeof (unsigned int));
-  for (*copies = 0; NULL != n; n = n->next)
+  for (counter = n; NULL != counter; counter = counter->next)
     (*copies)++;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  (%u copies)\n", *copies);
-  n = t->tree->me->children_head;
   data = GNUNET_malloc (size);
   memcpy (data, msg, size);
+  if (NULL != t->client)
+  {
+    task = GNUNET_malloc (sizeof (GNUNET_SCHEDULER_TaskIdentifier));
+    *task = GNUNET_SCHEDULER_add_delayed (UNACKNOWLEDGED_WAIT,
+                                         &client_allow_send,
+                                         t->client->handle);
+  }
+  else
+    task = NULL; // So GCC shuts up about task being potentially uninitialized
   while (NULL != n)
   {
     info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
@@ -1859,9 +1912,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
     if (NULL != t->client)
     {
       info->client = t->client->handle;
-      info->timeout_task = GNUNET_SCHEDULER_add_delayed (UNACKNOWLEDGED_WAIT,
-                                                         &client_allow_send,
-                                                         t->client->handle);
+      info->timeout_task = task;
     }
     info->destination = n->peer;
     GNUNET_PEER_resolve (n->peer, &neighbor);
@@ -2220,25 +2271,7 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
     }
   }
 #endif
-  if (0 == --(*info->copies))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Last copy!\n");
-    if (NULL != info->client)
-    {
-      if (GNUNET_SCHEDULER_NO_TASK != info->timeout_task)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "MESH:  cancelling client timeout (%u)...\n",
-                    info->timeout_task);
-        GNUNET_SCHEDULER_cancel(info->timeout_task);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  notifying client...\n");
-        GNUNET_SERVER_receive_done (info->client, GNUNET_OK);
-      }
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  freeing memory...\n");
-    GNUNET_free (info->data);
-    GNUNET_free (info->copies);
-  }
+  data_descriptor_decrement_multicast (info);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: freeing info...\n");
   GNUNET_free (info);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: return %u\n", total_size);
@@ -2653,8 +2686,10 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
   if (NULL == t)
   {
-    /* TODO notify back: we don't know this tunnel */
-    GNUNET_break_op (0);
+    /* Probably already got the message from another path,
+     * destroyed the tunnel and retransmitted to children.
+     * Safe to ignore.
+     */
     return GNUNET_OK;
   }
   if (t->id.oid == myid)
@@ -3196,7 +3231,11 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: client disconnected\n");
   if (client == NULL)
-     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    (SERVER DOWN)\n");
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    (SERVER DOWN)\n");
+    return;
+  }
+  GNUNET_SERVER_client_drop (client);
   c = clients;
   while (NULL != c)
   {
@@ -3231,6 +3270,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   CLIENT FREE at %p\n", c);
     GNUNET_free (c);
     c = next;
   }
@@ -3261,6 +3301,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: new client connected\n");
+  GNUNET_SERVER_client_keep (client);
   /* Check data sanity */
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_ClientConnect);
   cc_msg = (struct GNUNET_MESH_ClientConnect *) message;
@@ -3279,6 +3320,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 #if MESH_DEBUG
   c->id = next_client_id++;
 #endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   CLIENT NEW %u at %p\n", c->id, c);
   c->handle = client;
   a = (GNUNET_MESH_ApplicationType *) &cc_msg[1];
   if (napps > 0)
@@ -3392,19 +3434,26 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   t = GNUNET_malloc (sizeof (struct MeshTunnel));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: CREATED TUNNEL at %p\n", t);
   while (NULL != tunnel_get_by_pi (myid, next_tid))
     next_tid = (next_tid + 1) & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   t->id.tid = next_tid++;
   t->id.oid = myid;
   t->local_tid = ntohl (t_msg->tunnel_id);
+#if MESH_DEBUG
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: CREATED TUNNEL %s [%x] (%x)\n",
+              GNUNET_i2s (&my_full_id),
+              t->id.tid,
+              t->local_tid);
+#endif
   t->client = c;
   t->peers = GNUNET_CONTAINER_multihashmap_create (32);
 
   GNUNET_CRYPTO_hash (&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap_put (c->tunnels, &hash, t,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+      GNUNET_CONTAINER_multihashmap_put (
+        c->tunnels, &hash, t,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -3413,8 +3462,9 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
   GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap_put (tunnels, &hash, t,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+      GNUNET_CONTAINER_multihashmap_put (
+        tunnels, &hash, t,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
