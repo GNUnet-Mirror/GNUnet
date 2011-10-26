@@ -518,12 +518,12 @@ topo_cb (void *cls,
   if (p1 == pid1)
   {
     p2 = GNUNET_PEER_search(second);
-    GNUNET_assert(p2 < num_peers);
-    if (p2 == 0)
+    if (p2 == 0 || p2 > num_peers)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "***************** test: %s is UNKNOWN!?\n",
-                  GNUNET_i2s(second));
+                  "***************** test: %s is UNKNOWN!? (%u)\n",
+                  GNUNET_i2s(second),
+                  p2);
       return;
     }
     mesh_peers[p2]++;
@@ -536,12 +536,12 @@ topo_cb (void *cls,
   if (p1 == pid1)
   {
     p2 = GNUNET_PEER_search(first);
-    GNUNET_assert(p2 < num_peers);
-    if (p2 == 0)
+    if (p2 == 0 || p2 > num_peers)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "***************** test: %s is UNKNOWN!?\n",
-                  GNUNET_i2s(first));
+                  "***************** test: %s is UNKNOWN!? (%u)\n",
+                  GNUNET_i2s(first),
+                  p2);
       return;
     }
     mesh_peers[p2]++;
