@@ -652,7 +652,8 @@ message_token (void *cls __attribute__ ((unused)), void *client
                       ntohs (pkt->ip_hdr.tot_lngth) -
                       4 * pkt->ip_hdr.hdr_lngth);
               app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
-            }
+            } else
+	      GNUNET_assert (0);
             if (me->tunnel == NULL && NULL != cls)
             {
               *cls =
