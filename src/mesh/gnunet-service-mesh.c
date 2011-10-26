@@ -603,7 +603,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * - Adapt X to churn
    */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: DHT_put for ID %s started.\n",
-              GNUNET_h2s_full (&my_full_id.hashPubKey));
+              GNUNET_i2s (&my_full_id));
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &my_full_id.hashPubKey,       /* Key to use */
                   10U,          /* Replication level */
@@ -1595,11 +1595,11 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
   if (get_path_length > 0)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:    (first of GET: %s)\n",
-                GNUNET_h2s_full(&get_path[0].hashPubKey));
+                GNUNET_i2s(&get_path[0]));
   if (put_path_length > 0)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:    (first of PUT: %s)\n",
-                GNUNET_h2s_full(&put_path[0].hashPubKey));
+                GNUNET_i2s(&put_path[0]));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:    In total: %d hops\n",
               p->length);
@@ -1611,7 +1611,7 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:        %u: %s\n",
               p->peers[i],
-              GNUNET_h2s_full(&peer_id.hashPubKey));
+              GNUNET_i2s(&peer_id));
   }
 #endif
   return p;
@@ -3145,7 +3145,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_PEER_resolve (path_info->peer->id, &pi);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "MESH:   for %s\n",
-             GNUNET_h2s_full(&pi.hashPubKey));
+             GNUNET_i2s(&pi));
 //   GNUNET_DHT_get_stop(path_info->peer->dhtget);
 //   path_info->peer->dhtget = NULL;
 
@@ -3588,7 +3588,7 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH:      for %s\n",
-             GNUNET_h2s_full(&peer_msg->peer.hashPubKey));
+             GNUNET_i2s(&peer_msg->peer));
   peer_info = peer_info_get (&peer_msg->peer);
 
   tunnel_add_peer(t, peer_info);
@@ -3757,7 +3757,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_DHT_get_stop (t->dht_get_type);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  looking in DHT for %s\n",
-              GNUNET_h2s_full (&hash));
+              GNUNET_h2s (&hash));
   t->dht_get_type =
       GNUNET_DHT_get_start (dht_handle,
                             GNUNET_TIME_UNIT_FOREVER_REL,
@@ -4092,7 +4092,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if MESH_DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Peer connected\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      %s\n",
-              GNUNET_h2s(&my_full_id.hashPubKey));
+              GNUNET_i2s(&my_full_id));
 #endif
   peer_info = peer_info_get (peer);
   if (myid == peer_info->id)
@@ -4106,7 +4106,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      %s\n",
-                GNUNET_h2s(&peer->hashPubKey));
+                GNUNET_i2s(peer));
   }
 #endif
   path = path_new (2);
