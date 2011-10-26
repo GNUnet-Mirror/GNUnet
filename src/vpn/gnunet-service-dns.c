@@ -530,14 +530,14 @@ receive_mesh_answer (void *cls
       (struct dns_record_line *) (dpkt->data +
                                   (query_states[dns->s.id].namelen) +
                                   sizeof (struct dns_query_line) + 2);
-  if (ntohs(28) == query_states[dns->s.id].qtype)
+  if (htons(28) == query_states[dns->s.id].qtype)
   {
     answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA;
     dque->type = htons (28);    /* AAAA */
     drec_data->type = htons (28);       /* AAAA */
     drec_data->data_len = htons (16);
   }
-  if (ntohs(1) == query_states[dns->s.id].qtype)
+  else if (htons(1) == query_states[dns->s.id].qtype)
   {
     answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_A;
     dque->type = htons (1);     /* A */
@@ -546,7 +546,7 @@ receive_mesh_answer (void *cls
   }
   else
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "dns-answer with data_len = %d\n", answer->pkt.addrsize);
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "dns-answer with pending qtype = %d\n", query_states[dns->s.id].qtype);
       GNUNET_break(0);
     }
   dque->class = htons (1);      /* IN */
