@@ -1292,16 +1292,14 @@ static int
 peer_info_destroy (struct MeshPeerInfo *pi)
 {
   struct GNUNET_PeerIdentity id;
-  GNUNET_HashCode hash;
   struct MeshPeerPath *p;
   struct MeshPeerPath *nextp;
   unsigned int i;
 
   GNUNET_PEER_resolve (pi->id, &id);
   GNUNET_PEER_change_rc (pi->id, -1);
-  GNUNET_CRYPTO_hash (&id, sizeof (struct GNUNET_PeerIdentity), &hash);
 
-  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (peers, &hash, pi))
+  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (peers, &id.hashPubKey, pi))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -4119,7 +4117,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @return GNUNET_YES if we should continue to iterate,
  *         GNUNET_NO if not.
  */
-int
+static int
 shutdown_tunnel (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct MeshTunnel *t = value;
@@ -4136,11 +4134,11 @@ shutdown_tunnel (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_YES if we should continue to iterate,
  *         GNUNET_NO if not.
  */
-int
+static int
 shutdown_peer (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct MeshPeerInfo *p = value;
-  peer_info_destroy(p);
+  peer_info_destroy (p);
   return GNUNET_YES;
 }
 
