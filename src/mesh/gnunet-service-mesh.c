@@ -3229,8 +3229,8 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     }
     if (NULL != c->types)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
-    GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     next = c->next;
+    GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     GNUNET_free (c);
     c = next;
   }
