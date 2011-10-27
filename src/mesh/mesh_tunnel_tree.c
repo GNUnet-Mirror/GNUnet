@@ -159,6 +159,8 @@ path_get_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path)
 int
 path_destroy (struct MeshPeerPath *p)
 {
+  if (NULL == p)
+    return GNUNET_OK;
   GNUNET_PEER_decrement_rcs (p->peers, p->length);
   GNUNET_free (p->peers);
   GNUNET_free (p);
