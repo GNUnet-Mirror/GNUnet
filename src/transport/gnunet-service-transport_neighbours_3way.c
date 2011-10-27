@@ -284,6 +284,8 @@ struct NeighbourMapEntry
    */
   struct GNUNET_TIME_Absolute connect_ts;
 
+  GNUNET_SCHEDULER_TaskIdentifier ats_suggest;
+
   /**
    * How often has the other peer (recently) violated the inbound
    * traffic limit?  Incremented by 10 per violation, decremented by 1
@@ -774,6 +776,11 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (neighbours,
                                                        &n->id.hashPubKey, n));
+  if (GNUNET_SCHEDULER_NO_TASK != n->ats_suggest)
+  {
+    GNUNET_SCHEDULER_cancel (n->ats_suggest);
+    n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (n->timeout_task);
@@ -880,6 +887,22 @@ disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
 }
 
 
+static void
+ats_suggest_cancel (void *cls,
+    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct NeighbourMapEntry *n = cls;
+
+  n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              " ATS did not suggested address to connect to peer `%s'\n",
+              GNUNET_i2s (&n->id));
+
+  disconnect_neighbour(n);
+}
+
+
 /**
  * Cleanup the neighbours subsystem.
  */
@@ -939,6 +962,9 @@ send_connect_continuation (void *cls,
 				  n->addrlen,
 				  NULL);
 
+    if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel(n->ats_suggest);
+    n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
     GNUNET_ATS_suggest_address(GST_ats, &n->id);
     return;
   }
@@ -978,13 +1004,6 @@ send_switch_address_continuation (void *cls,
               n->session);
 #endif
 
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Do not forget to fix this!\n");
-    /* FIXME: We have to change the state away from connected:
-     * If ATS can not suggest another address we do not get a callback
-     * but we still think we are connected
-     */
-    //change_state(n, S_NOT_CONNECTED);
-
     GNUNET_ATS_address_destroyed (GST_ats,
                                   &n->id,
                                   n->plugin_name,
@@ -992,6 +1011,9 @@ send_switch_address_continuation (void *cls,
                                   n->addrlen,
                                   NULL);
 
+    if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel(n->ats_suggest);
+    n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
     GNUNET_ATS_suggest_address(GST_ats, &n->id);
     return;
   }
@@ -1037,6 +1059,9 @@ send_connect_ack_continuation (void *cls,
                                   n->addrlen,
                                   NULL);
 
+    if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel(n->ats_suggest);
+    n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
     GNUNET_ATS_suggest_address(GST_ats, &n->id);
 }
 
@@ -1056,7 +1081,7 @@ send_connect_ack_continuation (void *cls,
  *         connection is not up (yet)
  */
 int
-GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
+GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
                                   const char *plugin_name, const void *address,
                                   size_t address_len, struct Session *session,
                                   const struct GNUNET_ATS_Information
@@ -1253,9 +1278,12 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
               "Asking ATS for suggested address to connect to peer `%s'\n",
               GNUNET_i2s (&n->id));
 #endif
+
+  if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(n->ats_suggest);
+   n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
    GNUNET_ATS_suggest_address (GST_ats, &n->id);
 }
-
 
 /**
  * Test if we're connected to the given peer.
@@ -1313,15 +1341,15 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   if ((!is_connected(n)) && (!is_connecting(n)))
     return;
 
-  // FIXME: switch address what is the state
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Do not forget to fix this!\n");
-
   /* We are connected, so ask ATS to switch addresses */
   GNUNET_SCHEDULER_cancel (n->timeout_task);
   n->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT,
                                     &neighbour_timeout_task, n);
   /* try QUICKLY to re-establish a connection, reduce timeout! */
+  if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(n->ats_suggest);
+  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
   GNUNET_ATS_suggest_address (GST_ats, peer);
 }
 
@@ -1869,14 +1897,14 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   }
 // FIXME check this
 //  if (n->state != S_CONNECT_RECV)
-  if (is_connecting(n))
+/*  if (is_connecting(n))
   {
     send_disconnect (n);
     change_state (n, S_DISCONNECT);
     GNUNET_break (0);
     return;
   }
-
+*/
   if (is_connected(n))
     return;
 
@@ -1978,14 +2006,15 @@ handle_connect_blacklist_cont (void *cls,
   }
 
   GNUNET_free (bcc);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-      "Blacklist check due to CONNECT message: `%s'\n");
 /*
   if (n->state != S_NOT_CONNECTED)
     return;*/
   change_state (n, S_CONNECT_RECV);
 
   /* Ask ATS for an address to connect via that address */
+  if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(n->ats_suggest);
+  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
   GNUNET_ATS_suggest_address(GST_ats, peer);
 }
 
