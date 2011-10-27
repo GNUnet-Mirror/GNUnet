@@ -1106,6 +1106,12 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_NO;
   }
 
+  if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(n->ats_suggest);
+    n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
+  }
+
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS tells us to switch to plugin `%s' address '%s' session %X for %s peer `%s'\n",
