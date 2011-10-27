@@ -964,9 +964,9 @@ send_connect_continuation (void *cls,
 				  n->addrlen,
 				  NULL);
 
-    if (n(ATS_RESPONSE_TIMEOUT, at_suggest != GNUNET_SCHEDULER_NO_TASK)
+    if (n->ats_suggest!= GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel(n->ats_suggest);
-    n->ats_suggest = GNUNET_SCHEDULER_add_delayed delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
+    n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
     GNUNET_ATS_suggest_address(GST_ats, &n->id);
     return;
   }
