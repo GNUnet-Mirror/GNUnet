@@ -188,6 +188,7 @@ main (int argc, char *argv[])
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding second path: 1 2 3\n");
   path->length--;
+  tree_debug(tree);
   tree_add_path(tree, path, &cb);
   tree_debug(tree);
 
