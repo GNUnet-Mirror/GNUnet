@@ -210,6 +210,13 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                   const char *plugin_name, const void *address,
                                   size_t address_len, struct Session *session,
                                   const struct GNUNET_ATS_Information
+                                  *ats, uint32_t ats_count);
+
+int
+GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
+                                  const char *plugin_name, const void *address,
+                                  size_t address_len, struct Session *session,
+                                  const struct GNUNET_ATS_Information
                                   *ats, uint32_t ats_count,
                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
