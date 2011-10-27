@@ -683,6 +683,14 @@ reconnect (struct GNUNET_MESH_Handle *h)
     struct GNUNET_MESH_TunnelMessage tmsg;
     struct GNUNET_MESH_PeerControl pmsg;
 
+    if (t->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
+    {
+      /* Tunnel was created by service (incoming tunnel) */
+      /* TODO: Notify service of missing tunnel, to request
+       * creator to recreate path (find a path to him via DHT?)
+       */
+      continue;
+    }
     tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
     tmsg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
     tmsg.tunnel_id = htonl (t->tid);
@@ -753,7 +761,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
   MESH_TunnelNumber tid;
 
   tid = ntohl (msg->tunnel_id);
-  if (tid <= GNUNET_MESH_LOCAL_TUNNEL_ID_CLI)
+  if (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     GNUNET_break (0);
     return;
