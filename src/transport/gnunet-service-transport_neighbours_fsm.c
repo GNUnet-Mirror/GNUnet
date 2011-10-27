@@ -427,7 +427,7 @@ change (struct NeighbourMapEntry * n, int state, int line)
     break;
   case S_CONNECT_SENT:
     if ((state == S_NOT_CONNECTED) || (state == S_CONNECTED) ||
-        (state == S_DISCONNECT))
+        (state == S_DISCONNECT) || /* FIXME SENT -> RECV ISSUE!*/ (state == S_CONNECT_RECV))
     {
       allowed = GNUNET_YES;
       break;
@@ -1178,7 +1178,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_NO;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Invalid connection state to switch addresses ");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid connection state to switch addresses %u ", n->state);
   GNUNET_break_op (0);
   return GNUNET_NO;
 }
@@ -1753,9 +1753,10 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   size_t ret;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Received CONNECT_ACK message from peer `%s'\n", GNUNET_i2s (peer));
 #endif
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      "Received CONNECT_ACK message from peer `%s'\n", GNUNET_i2s (peer));
+
 
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
@@ -1769,14 +1770,14 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   n = lookup_neighbour (peer);
   if (NULL == n)
     n = setup_neighbour (peer);
-
+/*
   if (n->state != S_CONNECT_SENT)
   {
     GNUNET_break (0);
     send_disconnect(n);
     return;
   }
-
+*/
   if (NULL != session)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                      "transport-ats",
@@ -1866,8 +1867,9 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
     send_disconnect(n);
     GNUNET_break (0);
   }
-
-  if (n->state != S_CONNECT_RECV)
+// FIXME check this
+//  if (n->state != S_CONNECT_RECV)
+  if (is_connecting(n))
   {
     send_disconnect (n);
     change_state (n, S_DISCONNECT);
@@ -1976,9 +1978,11 @@ handle_connect_blacklist_cont (void *cls,
   }
 
   GNUNET_free (bcc);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      "Blacklist check due to CONNECT message: `%s'\n");
+/*
   if (n->state != S_NOT_CONNECTED)
-    return;
+    return;*/
   change_state (n, S_CONNECT_RECV);
 
   /* Ask ATS for an address to connect via that address */
@@ -2013,9 +2017,10 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   struct BlackListCheckContext * bcc = NULL;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Received CONNECT message from peer `%s'\n", GNUNET_i2s (peer));
 #endif
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      "Received CONNECT message from peer `%s'\n", GNUNET_i2s (peer));
+
 
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
