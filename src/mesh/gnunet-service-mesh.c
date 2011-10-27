@@ -3248,7 +3248,6 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    (SERVER DOWN)\n");
     return;
   }
-  GNUNET_SERVER_client_drop (client);
   c = clients;
   while (NULL != c)
   {
@@ -3259,6 +3258,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       continue;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: matching client found\n");
+    GNUNET_SERVER_client_drop (c->handle);
     if (NULL != c->tunnels)
     {
       GNUNET_CONTAINER_multihashmap_iterate (c->tunnels,
@@ -3314,7 +3314,6 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: new client connected\n");
-  GNUNET_SERVER_client_keep (client);
   /* Check data sanity */
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_ClientConnect);
   cc_msg = (struct GNUNET_MESH_ClientConnect *) message;
@@ -3335,6 +3334,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 #endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   CLIENT NEW %u at %p\n", c->id, c);
   c->handle = client;
+  GNUNET_SERVER_client_keep (client);
   a = (GNUNET_MESH_ApplicationType *) &cc_msg[1];
   if (napps > 0)
   {
