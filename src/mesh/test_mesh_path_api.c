@@ -142,6 +142,7 @@ main (int argc, char *argv[])
   if (GNUNET_PEER_search(path_get_first_hop(tree, 4)) != 2)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Wrong first hop!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "4 GOT: %u\n", GNUNET_PEER_search(path_get_first_hop(tree, 4)));
     failed++;
   }
 
@@ -161,9 +162,10 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
   }
-  if (GNUNET_PEER_search(path_get_first_hop(tree, 3)) != 2)
+  if (GNUNET_PEER_search(path_get_first_hop(tree, 4)) != 2)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Wrong first hop!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "4 GOT: %u\n", GNUNET_PEER_search(path_get_first_hop(tree, 4)));
     failed++;
   }
 
@@ -198,6 +200,7 @@ main (int argc, char *argv[])
   if (node->status != MESH_PEER_SEARCHING)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "  expected SEARCHING, got %u\n", node->status);
     failed++;
   }
   if (node->children_head != node->children_tail)
@@ -227,6 +230,7 @@ main (int argc, char *argv[])
   if (node->status != MESH_PEER_RELAY)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "  expected RELAY\n");
     failed++;
   }
   if (node->children_head != node->children_tail)
@@ -330,9 +334,9 @@ main (int argc, char *argv[])
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding new shorter first path...\n");
   path->length = 2;
-  path->peers[1] = 3;
+  path->peers[1] = 4;
   cb_call = 1;
-  tree_find_peer(tree->root, 3)->status = MESH_PEER_READY;
+  tree_find_peer(tree->root, 4)->status = MESH_PEER_READY;
   tree_add_path(tree, path, cb);
   tree_debug(tree);
   if (cb_call != 0)
@@ -340,22 +344,6 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%u callbacks missed!\n", cb_call);
     failed++;
   }  
-  node = tree_find_peer(tree->root, 2);
-  if (node->peer != 2)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
-    failed++;
-  }
-  if (node->status != MESH_PEER_SEARCHING)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
-    failed++;
-  }
-  if (node->children_head != NULL)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
-    failed++;
-  }
   node = tree_find_peer(tree->root, 3);
   if (node->peer != 3)
   {
@@ -372,12 +360,28 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
   }
-  if (GNUNET_PEER_search(path_get_first_hop(tree, 2)) != 1)
+  node = tree_find_peer(tree->root, 4);
+  if (node->peer != 4)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer != original\n");
+    failed++;
+  }
+  if (node->status != MESH_PEER_SEARCHING)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong status!\n");
+    failed++;
+  }
+  if (node->children_head != NULL)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
+    failed++;
+  }
+  if (GNUNET_PEER_search(path_get_first_hop(tree, 3)) != 1)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Wrong first hop!\n");
     failed++;
   }
-  if (GNUNET_PEER_search(path_get_first_hop(tree, 3)) != 3)
+  if (GNUNET_PEER_search(path_get_first_hop(tree, 4)) != 4)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Wrong first hop!\n");
     failed++;
