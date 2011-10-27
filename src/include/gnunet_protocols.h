@@ -226,6 +226,18 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT 35
 
 /**
+ * Transport CONNECT_ACK message exchanged between transport services to
+ * indicate that a CONNECT message was accepted
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK 350
+
+/**
+ * Transport CONNECT_ACK message exchanged between transport services to
+ * indicate that a CONNECT message was accepted
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK 351
+
+/**
  * Transport DISCONNECT message exchanged between transport services to
  * indicate that a connection should be dropped.
  */
