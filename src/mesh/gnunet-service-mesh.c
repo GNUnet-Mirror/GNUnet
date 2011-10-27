@@ -1470,9 +1470,19 @@ path_add_to_peer (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
   unsigned int l;
   unsigned int l2;
 
+#if MESH_DEBUG
+  struct GNUNET_PeerIdentity id;
+
+  GNUNET_PEER_resolve (peer_info->id, &id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH: adding path [%u] to peer %s\n",
+              path->length,
+              GNUNET_i2s (&id));
+#endif
   if (NULL == peer_info || NULL == path)
   {
     GNUNET_break (0);
+    path_destroy (path);
     return;
   }
 
@@ -1489,7 +1499,10 @@ path_add_to_peer (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
     if (l2 > l)
     {
       GNUNET_CONTAINER_DLL_insert_before (peer_info->path_head,
-                                          peer_info->path_tail, aux, path);
+                                          peer_info->path_tail,
+                                          aux,
+                                          path);
+      return;
     }
     else
     {
@@ -1532,9 +1545,9 @@ path_add_to_origin (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
  */
 static struct MeshPeerPath *
 path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
-		     unsigned int get_path_length,
+                     unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
-		     unsigned int put_path_length)
+                     unsigned int put_path_length)
 {
   struct MeshPeerPath *p;
   GNUNET_PEER_Id id;
