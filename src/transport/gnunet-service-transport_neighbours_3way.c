@@ -56,6 +56,8 @@
 #define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
 
 
+#define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+
 /**
  * Entry in neighbours.
  */
@@ -895,7 +897,7 @@ ats_suggest_cancel (void *cls,
 
   n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               " ATS did not suggested address to connect to peer `%s'\n",
               GNUNET_i2s (&n->id));
 
@@ -962,9 +964,9 @@ send_connect_continuation (void *cls,
 				  n->addrlen,
 				  NULL);
 
-    if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+    if (n(ATS_RESPONSE_TIMEOUT, at_suggest != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel(n->ats_suggest);
-    n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
+    n->ats_suggest = GNUNET_SCHEDULER_add_delayed delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
     GNUNET_ATS_suggest_address(GST_ats, &n->id);
     return;
   }
@@ -1013,7 +1015,7 @@ send_switch_address_continuation (void *cls,
 
     if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel(n->ats_suggest);
-    n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
+    n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
     GNUNET_ATS_suggest_address(GST_ats, &n->id);
     return;
   }
@@ -1061,7 +1063,7 @@ send_connect_ack_continuation (void *cls,
 
     if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel(n->ats_suggest);
-    n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
+    n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
     GNUNET_ATS_suggest_address(GST_ats, &n->id);
 }
 
@@ -1287,7 +1289,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(n->ats_suggest);
-   n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
+   n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
    GNUNET_ATS_suggest_address (GST_ats, &n->id);
 }
 
@@ -1355,7 +1357,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   /* try QUICKLY to re-establish a connection, reduce timeout! */
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(n->ats_suggest);
-  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
+  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
   GNUNET_ATS_suggest_address (GST_ats, peer);
 }
 
@@ -2020,7 +2022,7 @@ handle_connect_blacklist_cont (void *cls,
   /* Ask ATS for an address to connect via that address */
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(n->ats_suggest);
-  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, ats_suggest_cancel, n);
+  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
   GNUNET_ATS_suggest_address(GST_ats, peer);
 }
 
