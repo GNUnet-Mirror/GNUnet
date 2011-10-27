@@ -200,6 +200,7 @@ static void
 tree_node_debug(struct MeshTunnelTreeNode *n, uint16_t level)
 {
   struct MeshTunnelTreeNode *c;
+  struct GNUNET_PeerIdentity id;;
   uint16_t i;
 
   for (i = 0; i < level; i++)
@@ -213,9 +214,13 @@ tree_node_debug(struct MeshTunnelTreeNode *n, uint16_t level)
   if (n->status == MESH_PEER_RECONNECTING)
     fprintf(stderr, "*");
 
-  fprintf(stderr, "%u [%p] ", n->peer, n);
+  GNUNET_PEER_resolve(n->peer, &id);
+  fprintf(stderr, "%s, [%u, %p] ", GNUNET_i2s (&id), n->peer, n);
   if (NULL != n->parent)
-    fprintf(stderr, "(-> %u)\n", n->parent->peer);
+  {
+    GNUNET_PEER_resolve(n->parent->peer, &id);
+    fprintf(stderr, "(-> %s [%u])\n", GNUNET_i2s(&id), n->parent->peer);
+  }
   else
     fprintf(stderr, "(root)\n");
   for (c = n->children_head; NULL != c; c = c->next)
@@ -233,7 +238,17 @@ tree_node_destroy (struct MeshTunnelTreeNode *parent)
 {
   struct MeshTunnelTreeNode *n;
   struct MeshTunnelTreeNode *next;
+#if MESH_TREE_DEBUG
+  struct GNUNET_PeerIdentity id;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "tree: Destroying node %u\n",
+              parent->peer);
+  GNUNET_PEER_resolve (parent->peer, &id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "tree:   (%s)\n",
+              GNUNET_i2s (&id));
+#endif
   n = parent->children_head;
   while (NULL != n)
   {
@@ -321,11 +336,12 @@ tree_mark_peers_disconnected (struct MeshTunnelTree *tree,
   {
     tree_mark_peers_disconnected (tree, n, cb);
   }
-  if (MESH_PEER_READY == parent->status && NULL != cb)
+  if (MESH_PEER_READY == parent->status)
   {
-    cb (parent);
+    if (NULL != cb)
+      cb (parent);
+    parent->status = MESH_PEER_RECONNECTING;
   }
-  parent->status = MESH_PEER_RECONNECTING;
 
   /* Remove and free info about first hop */
   GNUNET_PEER_resolve(parent->peer, &id);
@@ -416,8 +432,9 @@ tree_update_first_hops (struct MeshTunnelTree *tree,
  *         NULL when not found
  */
 struct MeshTunnelTreeNode *
-tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
-                 MeshNodeDisconnectCB cb)
+tree_del_path (struct MeshTunnelTree *t,
+               GNUNET_PEER_Id peer_id,
+               MeshNodeDisconnectCB cb)
 {
   struct MeshTunnelTreeNode *parent;
   struct MeshTunnelTreeNode *node;
@@ -797,6 +814,9 @@ iterate_free (void *cls, const GNUNET_HashCode * key, void *value)
 void
 tree_destroy (struct MeshTunnelTree *t)
 {
+#if MESH_TREE_DEBUG
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tree: Destroying tree\n");
+#endif
   tree_node_destroy(t->root);
   GNUNET_CONTAINER_multihashmap_iterate(t->first_hops, &iterate_free, NULL);
   GNUNET_CONTAINER_multihashmap_destroy(t->first_hops);

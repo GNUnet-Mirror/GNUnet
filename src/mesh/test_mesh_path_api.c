@@ -101,8 +101,9 @@ main (int argc, char *argv[])
   for (i = 0; i < 10; i++)
   {
       pi[i] = get_pi(i);
-      GNUNET_break (i != GNUNET_PEER_intern(pi[i]));
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Peer %u: %s\n", i,
+      GNUNET_break (i + 1 == GNUNET_PEER_intern(pi[i]));
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Peer %u: %s\n",
+                 i + 1,
                  GNUNET_h2s(&pi[i]->hashPubKey));
   }
   tree = GNUNET_malloc(sizeof(struct MeshTunnelTree));
@@ -188,7 +189,6 @@ main (int argc, char *argv[])
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding second path: 1 2 3\n");
   path->length--;
-  tree_debug(tree);
   tree_add_path(tree, path, &cb);
   tree_debug(tree);
 
@@ -377,7 +377,7 @@ main (int argc, char *argv[])
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Retrieved peer wrong nchildren!\n");
     failed++;
   }
-  if (GNUNET_PEER_search(path_get_first_hop(tree, 3)) != 1)
+  if (GNUNET_PEER_search(path_get_first_hop(tree, 3)) != 2)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Wrong first hop!\n");
     failed++;
@@ -395,7 +395,7 @@ main (int argc, char *argv[])
     return 1;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: OK\n");
-  path_destroy(path);
+  GNUNET_free (path);
   finish();
 
   return 0;
