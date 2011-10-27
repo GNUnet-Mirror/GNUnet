@@ -708,10 +708,10 @@ send_disconnect (struct NeighbourMapEntry *n)
                                          &disconnect_msg.purpose,
                                          &disconnect_msg.signature));
 
-  ret = send_with_plugin(&n->id,
-      (const char *) &disconnect_msg, sizeof (disconnect_msg),
-      UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->plugin_name, n->addr, n->addrlen,
-      GNUNET_YES, NULL, NULL);
+  ret = send_with_plugin(&n->id, (const char *) &disconnect_msg, sizeof (disconnect_msg),
+                          UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+                          n->session, n->plugin_name, n->addr, n->addrlen,
+                          GNUNET_YES, NULL, NULL);
 
   if (ret == GNUNET_SYSERR)
     return GNUNET_SYSERR;
@@ -1155,17 +1155,10 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     connect_msg.timestamp =
         GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
 
-    ret = send_with_plugin (peer, (const char *) &connect_msg, msg_len, 0, GNUNET_TIME_UNIT_FOREVER_REL, session, plugin_name, address, address_len, GNUNET_YES, &send_connect_continuation, n);
-    if (ret == GNUNET_SYSERR)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Failed to send CONNECT_MESSAGE to `%4s' using plugin `%s' address '%s' session %X\n",
-                GNUNET_i2s (peer), plugin_name,
-                (address_len == 0) ? "<inbound>" : GST_plugins_a2s (plugin_name,
-                                                                    address,
-                                                                    address_len),
-                session);
-    }
+    ret = send_with_plugin (peer, (const char *) &connect_msg, msg_len, UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+                            session, plugin_name, address, address_len,
+                            GNUNET_YES, &send_connect_continuation, n);
+
     return GNUNET_NO;
   }
   /* We received a CONNECT message and asked ATS for an address */
@@ -1178,7 +1171,9 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     connect_msg.reserved = htonl (0);
     connect_msg.timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
 
-    ret = send_with_plugin(&n->id, (const void *) &connect_msg, msg_len, 0, GNUNET_TIME_UNIT_FOREVER_REL, session, plugin_name, address, address_len, GNUNET_YES, &send_connect_ack_continuation, n);
+    ret = send_with_plugin(&n->id, (const void *) &connect_msg, msg_len, UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+                           session, plugin_name, address, address_len,
+                           GNUNET_YES, &send_connect_ack_continuation, n);
     if (ret == GNUNET_SYSERR)
     {
       change_state (n, S_NOT_CONNECTED);
@@ -1197,7 +1192,9 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     connect_msg.timestamp =
         GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
 
-    ret = send_with_plugin (peer, (const char *) &connect_msg, msg_len, 0, GNUNET_TIME_UNIT_FOREVER_REL, session, plugin_name, address, address_len, GNUNET_YES, &send_switch_address_continuation, n);
+    ret = send_with_plugin (peer, (const char *) &connect_msg, msg_len, UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+                            session, plugin_name, address, address_len,
+                            GNUNET_YES, &send_switch_address_continuation, n);
     if (ret == GNUNET_SYSERR)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1843,10 +1840,10 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   msg.size = htons (msg_len);
   msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK);
 
-  ret = send_with_plugin (&n->id, (const char *) &msg, msg_len, 0,
-      GNUNET_TIME_UNIT_FOREVER_REL,
-      n->session, n->plugin_name, n->addr, n->addrlen,
-      GNUNET_YES, NULL, NULL);
+  ret = send_with_plugin (&n->id, (const char *) &msg, msg_len, UINT32_MAX,
+                          GNUNET_TIME_UNIT_FOREVER_REL,
+                          n->session, n->plugin_name, n->addr, n->addrlen,
+                          GNUNET_YES, NULL, NULL);
 
   if (ret == GNUNET_SYSERR)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

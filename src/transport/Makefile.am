@@ -129,6 +129,25 @@ gnunet_transport_LDADD = \
 gnunet_transport_DEPENDENCIES = \
   libgnunettransport.la				
 
+# transport with 3way handshake
+gnunet_service_transport_SOURCES = \
+ gnunet-service-transport_3way.c gnunet-service-transport.h \
+ gnunet-service-transport_blacklist.h gnunet-service-transport_blacklist.c \
+ gnunet-service-transport_clients.h gnunet-service-transport_clients.c \
+ gnunet-service-transport_hello.h gnunet-service-transport_hello.c \
+ gnunet-service-transport_neighbours.h gnunet-service-transport_neighbours_3way.c \
+ gnunet-service-transport_plugins.h gnunet-service-transport_plugins.c \
+ gnunet-service-transport_validation.h gnunet-service-transport_validation.c 
+gnunet_service_transport_LDADD = \
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_GLPK) \
+  $(GN_LIBINTL)
+#
+
 gnunet_service_transport_SOURCES = \
  gnunet-service-transport.c gnunet-service-transport.h \
  gnunet-service-transport_blacklist.h gnunet-service-transport_blacklist.c \
@@ -244,7 +263,7 @@ libgnunet_plugin_transport_https_la_CPPFLAGS = \
 check_PROGRAMS = \
  test_transport_testing \
  test_transport_startonly \
- test_transport_api_disconnect \
+ test_transport_api_disconnect_tcp \
  test_transport_api_tcp \
  test_transport_api_timeout_tcp \
  test_transport_api_limited_sockets_tcp \
@@ -282,7 +301,7 @@ if ENABLE_TEST_RUN
 TESTS = \
  test_transport_testing \
  test_transport_startonly \
- test_transport_api_disconnect \
+ test_transport_api_disconnect_tcp \
  test_transport_api_tcp \
  test_transport_api_timeout_tcp \
  test_transport_api_limited_sockets_tcp \
@@ -333,13 +352,14 @@ test_transport_testing_LDADD = \
 # $(top_builddir)/src/util/libgnunetutil.la \
 # $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
-test_transport_api_disconnect_SOURCES = \
+test_transport_api_disconnect_tcp_SOURCES = \
  test_transport_api_disconnect.c
-test_transport_api_disconnect_LDADD = \
+test_transport_api_disconnect_tcp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/util/libgnunetutil.la 
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_startonly_SOURCES = \
  test_transport_startonly.c
