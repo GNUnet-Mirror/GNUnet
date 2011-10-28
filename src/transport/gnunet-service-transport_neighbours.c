@@ -1209,6 +1209,38 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
               GNUNET_i2s (peer));
 #endif
 
+  // do not switch addresses just update quotas
+  if (n != NULL)
+  {
+    if ((is_connected(n)) && (address_len == n->addrlen))
+    {
+      if ((0 == memcmp (address, n->addr, address_len)) &&
+          (n->session == session))
+      {
+        struct QuotaSetMessage q_msg;
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending outbound quota of %u Bps and inbound quota of % Bps for peer `%s' to all clients\n",
+              ntohl (n->bandwidth_out.value__),
+              ntohl (n->bandwidth_in.value__),
+              GNUNET_i2s (peer));
+#endif
+
+        n->bandwidth_in = bandwidth_in;
+        n->bandwidth_out = bandwidth_out;
+        GST_neighbours_set_incoming_quota(&n->id, n->bandwidth_in);
+
+        q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
+        q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
+        q_msg.quota = n->bandwidth_out;
+        q_msg.peer = (*peer);
+        GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+        return GNUNET_NO;
+      }
+    }
+  }
+
   GNUNET_free_non_null (n->addr);
   n->addr = GNUNET_malloc (address_len);
   memcpy (n->addr, address, address_len);
