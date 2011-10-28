@@ -1575,6 +1575,25 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
 }
 
 
+/**
+ * Transition API for tunnel ctx management
+ */
+void
+GNUNET_MESH_tunnel_set_data (struct GNUNET_MESH_Tunnel *tunnel, void *data)
+{
+  tunnel->ctx = data;
+}
+
+/**
+ * Transition API for tunnel ctx management
+ */
+void *
+GNUNET_MESH_tunnel_get_data (struct GNUNET_MESH_Tunnel *tunnel)
+{
+  return tunnel->ctx;
+}
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
