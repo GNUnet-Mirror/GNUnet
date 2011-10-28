@@ -470,7 +470,7 @@ change (struct NeighbourMapEntry * n, int state, int line)
   }
 
   n->state = state;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "State for neighbour `%s' %X changed from `%s' to `%s' in line %u\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "State for neighbour `%s' %X changed from `%s' to `%s' in line %u\n",
       GNUNET_i2s (&n->id), n, old, new, line);
   GNUNET_free (old);
   GNUNET_free (new);
@@ -1211,7 +1211,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_NO;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid connection state to switch addresses %u ", n->state);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid connection state to switch addresses %u \n", n->state);
   GNUNET_break_op (0);
   return GNUNET_NO;
 }
@@ -1787,10 +1787,9 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   int was_connected;
 
 #if DEBUG_TRANSPORT
-#endif
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Received CONNECT_ACK message from peer `%s'\n", GNUNET_i2s (peer));
-
+#endif
 
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
