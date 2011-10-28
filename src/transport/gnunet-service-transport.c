@@ -116,24 +116,6 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
 }
 
 
-/**
- * Try to initiate a connection to the given peer if the blacklist
- * allowed it.
- *
- * @param cls closure (unused, NULL)
- * @param peer identity of peer that was tested
- * @param result GNUNET_OK if the connection is allowed,
- *               GNUNET_NO if not
- */
-static void
-try_connect_if_allowed (void *cls, const struct GNUNET_PeerIdentity *peer,
-                        int result)
-{
-  if (GNUNET_OK != result)
-    return;                     /* not allowed */
-  GST_neighbours_try_connect (peer);
-}
-
 
 /**
  * We received some payload.  Prepare to pass it on to our clients. 
@@ -154,7 +136,8 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_TIME_Relative ret;
   int do_forward;
   struct InboundMessage *im;
-  size_t size = sizeof (struct InboundMessage) + ntohs (message->size) + sizeof (struct GNUNET_ATS_Information) * ats_count;
+  size_t msg_size = ntohs (message->size);
+  size_t size = sizeof (struct InboundMessage) + msg_size + sizeof (struct GNUNET_ATS_Information) * ats_count;
   char buf[size];
   struct GNUNET_ATS_Information *ap;
   
@@ -164,8 +147,26 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
     GST_neighbours_calculate_receive_delay (peer,
 					    (message ==
 					     NULL) ? 0 :
-					    ntohs (message->size),
+                                            msg_size,
 					    &do_forward);
+
+  if (!GST_neighbours_test_connected (peer))
+  {
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Discarded %u bytes type %u payload from peer `%s'\n",
+                      msg_size,
+                      ntohs (message->type),
+                      GNUNET_i2s (peer));
+
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop ("# bytes payload discarded due to not connected peer "),
+                              msg_size,
+                              GNUNET_NO);
+    return ret;
+  }
+
+  if (do_forward != GNUNET_YES)
+    return ret;
   im = (struct InboundMessage*) buf;    
   im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
@@ -175,30 +176,8 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   memcpy (&ap[ats_count], message, ntohs (message->size));
 
-  switch (do_forward)
-  {
-  case GNUNET_YES:
-    GST_clients_broadcast (&im->header, GNUNET_YES);	  
-    break;
-  case GNUNET_NO:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		_("Discarded %u bytes of type %u from %s: quota violated or no neighbour record!\n"),
-		ntohs (message->size),
-		ntohs (message->type),
-		GNUNET_i2s (peer));
-    break;
-  case GNUNET_SYSERR:
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Discarded %u bytes of type %u from %s: connection is down!\n"),
-		ntohs (message->size),
-		ntohs (message->type),
-		GNUNET_i2s (peer));
-    /* FIXME: store until connection is up? This is virtually always a SETKEY and a PING... */
-    break;
-  default:
-    GNUNET_break (0);
-    break;
-  }    
+  GST_clients_broadcast (&im->header, GNUNET_YES);
+
   return ret;
 }
 
@@ -242,6 +221,11 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == message)
     goto end;
   type = ntohs (message->type);
+#if DEBUG_TRANSPORT
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received Message with type %u\n", type);
+#endif
+
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_HELLO:
@@ -275,8 +259,18 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 				   peer,
 				   plugin_name, sender_address, sender_address_len,
 				   session, ats, ats_count);
-    (void) GST_blacklist_test_allowed (peer, NULL, &try_connect_if_allowed,
-				       NULL);
+    break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK:
+    GST_neighbours_handle_connect_ack (message,
+                                   peer,
+                                   plugin_name, sender_address, sender_address_len,
+                                   session, ats, ats_count);
+    break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
+    GST_neighbours_handle_ack (message,
+                                   peer,
+                                   plugin_name, sender_address, sender_address_len,
+                                   session, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
     GST_neighbours_handle_disconnect_message (peer, message);
@@ -285,7 +279,6 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     GST_neighbours_keepalive (peer);
     break;
   default:
-
     /* should be payload */
     ret = process_payload (peer,
 			   message,
@@ -393,7 +386,6 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   uint32_t bw_in = ntohl (bandwidth_in.value__);
   uint32_t bw_out = ntohl (bandwidth_out.value__);
-  struct QuotaSetMessage msg;
 
   /* ATS tells me to disconnect from peer*/
   if ((bw_in == 0) && (bw_out == 0))
@@ -406,36 +398,10 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
     GST_neighbours_force_disconnect(peer);
     return;
   }
-  if (GNUNET_YES !=
-      GST_neighbours_switch_to_address (peer, plugin_name, plugin_addr,
-					plugin_addr_len, session, ats, ats_count))
-  {
-#if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Connection is not yet up, ignoring quota for now\n");
-#endif
-    /* FIXME: maybe we should let ATS know somehow?  This is a problem
-       with the design; ATS may assign bandwidth, but we don't use it;
-       the current ATS API doesn't give us a good way to sync the
-       connection status between ATS and TRANSPORT */
-    return;
-  }
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-	      ntohl (bandwidth_out.value__), GNUNET_i2s (peer));
-#endif
-  msg.header.size = htons (sizeof (struct QuotaSetMessage));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-  msg.quota = bandwidth_out;
-  msg.peer = (*peer);
-  GST_clients_broadcast (&msg.header, GNUNET_NO);  
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Setting inbound quota of %u for peer `%s' to \n",
-              ntohl (bandwidth_in.value__), GNUNET_i2s (peer));
-#endif
-  GST_neighbours_set_incoming_quota (peer, bandwidth_in);
+  /* will never return GNUNET_YES since connection is to be established */
+  GST_neighbours_switch_to_address_3way (peer, plugin_name, plugin_addr,
+			            plugin_addr_len, session, ats, ats_count,
+			            bandwidth_in, bandwidth_out);
 }
 
 

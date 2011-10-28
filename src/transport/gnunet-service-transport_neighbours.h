@@ -199,7 +199,9 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  * @param address_len number of bytes in address
  * @param session session to use (or NULL)
  * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param ats_count number of entries in ats
+ * @param bandwidth_in inbound quota to be used when connection is up
+ * @param bandwidth_out outbound quota to be used when connection is up
  * @return GNUNET_YES if we are currently connected, GNUNET_NO if the
  *         connection is not up (yet)
  */
@@ -219,6 +221,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 
+
 /**
  * We received a 'SESSION_CONNECT' message from the other peer.
  * Consider switching to it.
@@ -231,7 +234,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
  * @param address_len number of bytes in address
  * @param session session to use (or NULL)
  * @param ats performance data
- * @param ats_count number of entries in ats
+ * @param ats_count number of entries in ats (excluding 0-termination)
   */
 void
 GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
@@ -242,19 +245,6 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
 			       const struct GNUNET_ATS_Information *ats,
 			       uint32_t ats_count);
 
-/**
- * We received a 'SESSION_CONNECT_ACK' message from the other peer.
- *
- * @param message possibly a 'struct SessionConnectMessage' (check format)
- * @param peer identity of the peer to switch the address for
- * @param plugin_name name of transport that delivered the PONG
- * @param address address of the other peer, NULL if other peer
- *                       connected to us
- * @param address_len number of bytes in address
- * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats
-  */
 void
 GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                const struct GNUNET_PeerIdentity *peer,
@@ -264,19 +254,6 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                const struct GNUNET_ATS_Information *ats,
                                uint32_t ats_count);
 
-/**
- * We received a 'SESSION_ACK' message from the other peer.
- *
- * @param message possibly a 'struct SessionConnectMessage' (check format)
- * @param peer identity of the peer to switch the address for
- * @param plugin_name name of transport that delivered the PONG
- * @param address address of the other peer, NULL if other peer
- *                       connected to us
- * @param address_len number of bytes in address
- * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats
-  */
 void
 GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
     const struct GNUNET_PeerIdentity *peer,
