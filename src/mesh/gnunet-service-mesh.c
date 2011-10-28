@@ -2622,6 +2622,7 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (own_pos < path->length - 1)
     send_message (message, &pi[own_pos + 1]);
   tunnel_delete_peer (t, path->peers[path->length - 1]);
+  path_destroy (path);
   return GNUNET_OK;
 }
 
