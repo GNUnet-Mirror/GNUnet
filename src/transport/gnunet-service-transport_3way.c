@@ -136,7 +136,8 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_TIME_Relative ret;
   int do_forward;
   struct InboundMessage *im;
-  size_t size = sizeof (struct InboundMessage) + ntohs (message->size) + sizeof (struct GNUNET_ATS_Information) * ats_count;
+  size_t msg_size = ntohs (message->size);
+  size_t size = sizeof (struct InboundMessage) + msg_size + sizeof (struct GNUNET_ATS_Information) * ats_count;
   char buf[size];
   struct GNUNET_ATS_Information *ap;
   
@@ -146,9 +147,26 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
     GST_neighbours_calculate_receive_delay (peer,
 					    (message ==
 					     NULL) ? 0 :
-					    ntohs (message->size),
+                                            msg_size,
 					    &do_forward);
 
+  if (!GST_neighbours_test_connected (peer))
+  {
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Discarded %u bytes type %u payload from peer `%s'\n",
+                      msg_size,
+                      ntohs (message->type),
+                      GNUNET_i2s (peer));
+
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop ("# bytes payload discarded due to not connected peer "),
+                              msg_size,
+                              GNUNET_NO);
+    return ret;
+  }
+
+  if (do_forward != GNUNET_YES)
+    return ret;
   im = (struct InboundMessage*) buf;    
   im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
@@ -158,30 +176,8 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   memcpy (&ap[ats_count], message, ntohs (message->size));
 
-  switch (do_forward)
-  {
-  case GNUNET_YES:
-    GST_clients_broadcast (&im->header, GNUNET_YES);	  
-    break;
-  case GNUNET_NO:
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Discarded %u bytes of type %u from %s: quota violated or no neighbour record!\n"),
-		ntohs (message->size),
-		ntohs (message->type),
-		GNUNET_i2s (peer));
-    break;
-  case GNUNET_SYSERR:
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Discarded %u bytes of type %u from %s: connection is down!\n"),
-		ntohs (message->size),
-		ntohs (message->type),
-		GNUNET_i2s (peer));
-    /* FIXME: store until connection is up? This is virtually always a SETKEY and a PING... */
-    break;
-  default:
-    GNUNET_break (0);
-    break;
-  }    
+  GST_clients_broadcast (&im->header, GNUNET_YES);
+
   return ret;
 }
 
