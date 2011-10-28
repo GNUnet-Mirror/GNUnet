@@ -21,7 +21,7 @@
  * @file transport/test_transport_api_disconnect.c
  * @brief base test case for transport implementations
  *
- * This test case serves tests disconnect notification if peer shutsdown
+ * This test case tests disconnect notifications in peer shutdown
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -34,7 +34,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_EXTRA_LOGGING
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
 #define START_ARM GNUNET_YES
@@ -92,10 +92,16 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stopping peers\n");
 
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (send_task);
+    send_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -103,10 +109,11 @@ end ()
 
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+  p1 = NULL;
+
   if (p2 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
-
-
+  p2 = NULL;
 }
 
 static void
@@ -116,15 +123,10 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
-
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (send_task);
-
-  if (cc != NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Fail! Could not connect peers\n"));
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
-    cc = NULL;
+    GNUNET_SCHEDULER_cancel (send_task);
+    send_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if (th != NULL)
@@ -139,6 +141,41 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = GNUNET_SYSERR;
 }
 
+static void
+notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  struct PeerContext *p = cls;
+  char * ps = strdup (GNUNET_i2s(&p->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer %u (`%4s'): peer (`%s') disconnected from me!\n",
+              p->no, ps, GNUNET_i2s (peer));
+
+  if (th != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
+  th = NULL;
+
+  if (shutdown_ == GNUNET_YES)
+  {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Complete, shutting down...\n");
+  GNUNET_SCHEDULER_add_now (&end, NULL);
+  }
+}
+
+
+static void
+stop_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
+  struct PeerContext * p = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down peer %u (`%s')\n",
+      p->no,
+      GNUNET_i2s (&p->id));
+  shutdown_ = GNUNET_YES;
+  GNUNET_TRANSPORT_TESTING_stop_peer(tth, p2);
+  p2 = NULL;
+  GNUNET_assert (p2 == NULL);
+}
 
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -165,9 +202,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
   {
     ok = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down peer\n");
-    shutdown_ = GNUNET_YES;
-    GNUNET_TRANSPORT_TESTING_stop_peer(tth, p2);
+    GNUNET_SCHEDULER_add_now(stop_peer, p2);
     return;
   }
 }
@@ -255,25 +290,6 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_free (ps);
 }
 
-
-static void
-notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  struct PeerContext *p = cls;
-  char * ps = strdup (GNUNET_i2s(&p->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer %u (`%4s'): peer (`%s') disconnected from me!\n",
-              p->no, ps, GNUNET_i2s (peer));
-
-  if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
-
-  if (shutdown_ == GNUNET_YES)
-  {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Complete, shutting down...\n");
-  GNUNET_SCHEDULER_add_now (&end, NULL);
-  }
-}
 
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
