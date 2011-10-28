@@ -131,134 +131,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_FRAGMENT_ACK 19
 
 /*******************************************************************************
- * TRANSPORT message types
- ******************************************************************************/
-
-/**
- * Message from the core saying that the transport
- * server should start giving it messages.  This
- * should automatically trigger the transmission of
- * a HELLO message.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_START 20
-
-/**
- * Message from TRANSPORT notifying about a
- * client that connected to us.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT 21
-
-/**
- * Message from TRANSPORT notifying about a
- * client that disconnected from us.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT 22
-
-/**
- * Request to TRANSPORT to transmit a message.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND 23
-
-/**
- * Confirmation from TRANSPORT that message for transmission has been
- * queued (and that the next message to this peer can now be passed to
- * the service).  Note that this confirmation does NOT imply that the
- * message was fully transmitted.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK 24
-
-/**
- * Message from TRANSPORT notifying about a
- * message that was received.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_RECV 25
-
-/**
- * Message telling transport to limit its receive rate.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA 26
-
-/**
- * Request to look addresses of peers in server.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP 27
-
-/**
- * Response to the address lookup request.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 28
-
-/**
- * Register a client that wants to do blacklisting.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT 29
-
-/**
- * Query to a blacklisting client (is this peer blacklisted)?
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY 30
-
-/**
- * Reply from blacklisting client (answer to blacklist query).
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY 31
-
-/**
- * Transport PING message
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_PING 32
-
-/**
- * Transport PONG message
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 33
-
-/**
- * Message for transport service from a client asking that a
- * connection be initiated with another peer.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT 34
-
-/**
- * Transport CONNECT message exchanged between transport services to
- * indicate that a session should be marked as 'connected'.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT 35
-
-/**
- * Transport CONNECT_ACK message exchanged between transport services to
- * indicate that a CONNECT message was accepted
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK 350
-
-/**
- * Transport CONNECT_ACK message exchanged between transport services to
- * indicate that a CONNECT message was accepted
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK 351
-
-/**
- * Transport DISCONNECT message exchanged between transport services to
- * indicate that a connection should be dropped.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT 36
-
-/**
- * Request to look up addresses of peers.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP 37
-
-/**
- * Request to iterate over all known addresses.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE 38
-
-/**
- * Message send by a peer to notify the other to keep the session alive.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE 39
-
-/*******************************************************************************
  * Transport-WLAN message types
  ******************************************************************************/
 
@@ -1082,6 +954,141 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE 349
 
+
+
+/*******************************************************************************
+ * TRANSPORT message types
+ ******************************************************************************/
+
+/**
+ * Message from the core saying that the transport
+ * server should start giving it messages.  This
+ * should automatically trigger the transmission of
+ * a HELLO message.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_START 360
+
+/**
+ * Message from TRANSPORT notifying about a
+ * client that connected to us.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT 361
+
+/**
+ * Message from TRANSPORT notifying about a
+ * client that disconnected from us.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT 362
+
+/**
+ * Request to TRANSPORT to transmit a message.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND 363
+
+/**
+ * Confirmation from TRANSPORT that message for transmission has been
+ * queued (and that the next message to this peer can now be passed to
+ * the service).  Note that this confirmation does NOT imply that the
+ * message was fully transmitted.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK 364
+
+/**
+ * Message from TRANSPORT notifying about a
+ * message that was received.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_RECV 365
+
+/**
+ * Message telling transport to limit its receive rate.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA 366
+
+/**
+ * Request to look addresses of peers in server.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP 367
+
+/**
+ * Response to the address lookup request.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 368
+
+/**
+ * Register a client that wants to do blacklisting.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT 369
+
+/**
+ * Query to a blacklisting client (is this peer blacklisted)?
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY 370
+
+/**
+ * Reply from blacklisting client (answer to blacklist query).
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY 371
+
+/**
+ * Transport PING message
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_PING 372
+
+/**
+ * Transport PONG message
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 373
+
+/**
+ * Message for transport service from a client asking that a
+ * connection be initiated with another peer.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT 374
+
+/**
+ * Transport CONNECT message exchanged between transport services to
+ * indicate that a session should be marked as 'connected'.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT 375
+
+/**
+ * Transport CONNECT_ACK message exchanged between transport services to
+ * indicate that a CONNECT message was accepted
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK 376
+
+/**
+ * Transport CONNECT_ACK message exchanged between transport services to
+ * indicate that a CONNECT message was accepted
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK 377
+
+/**
+ * Transport DISCONNECT message exchanged between transport services to
+ * indicate that a connection should be dropped.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT 378
+
+/**
+ * Request to look up addresses of peers.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP 379
+
+/**
+ * Request to iterate over all known addresses.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE 380
+
+/**
+ * Message send by a peer to notify the other to keep the session alive.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE 381
+
+
+
+/**
+ *  Next available: 400
+ */
 
 /*******************************************************************************
  * TODO: we need a way to register message types centrally (via some webpage).
