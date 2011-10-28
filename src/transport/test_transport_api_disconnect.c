@@ -89,7 +89,7 @@ char *cfg_file_p2;
 static void
 end ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stopping peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -114,6 +114,9 @@ end ()
   if (p2 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
   p2 = NULL;
+
+  /* success */
+  ok = 0;
 }
 
 static void
@@ -146,7 +149,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
   char * ps = strdup (GNUNET_i2s(&p->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer %u (`%4s'): peer (`%s') disconnected from me!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s'): peer (`%s') disconnected from me!\n",
               p->no, ps, GNUNET_i2s (peer));
 
   if (th != NULL)
