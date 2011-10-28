@@ -323,9 +323,40 @@ struct Plugin
   struct GNUNET_NETWORK_Handle *sockv6;
 
   /**
+   * Broadcast?
+   */
+  int broadcast;
+
+  /**
+   * The read socket for IPv4
+   */
+  struct GNUNET_NETWORK_Handle *sockv4_broadcast;
+
+  /**
+   * ID of select broadcast task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier select_broadcast_task;
+
+  /**
+   * ID of select broadcast task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier send_broadcast_task;
+
+  /**
+   * FD Read set
+   */
+  struct GNUNET_NETWORK_FDSet *broadcast_rs;
+
+
+  /**
    * expected delay for ACKs
    */
   struct GNUNET_TIME_Relative last_expected_delay;
+
+  /**
+   * Port we broadcasting on.
+   */
+  uint16_t broadcast_port;
 
   /**
    * Port we listen on.
@@ -1339,6 +1370,101 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Read and process a message from the given socket.
+ *
+ * @param plugin the overall plugin
+ * @param rsock socket to read from
+ */
+static void
+udp_broadcast_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
+{
+  socklen_t fromlen;
+  char addr[32];
+  char buf[65536];
+  ssize_t ret;
+  const struct GNUNET_MessageHeader *msg;
+
+  fromlen = sizeof (addr);
+  memset (&addr, 0, sizeof (addr));
+  ret = GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof (buf),
+                                      (struct sockaddr *) &addr, &fromlen);
+  if (ret < sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  msg = (const struct GNUNET_MessageHeader *) buf;
+
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+              "UDP received %u-byte message from `%s' type %i\n", (unsigned int) ret,
+              GNUNET_a2s ((const struct sockaddr *) addr, fromlen), ntohs(msg->type));
+
+  if (ret != ntohs (msg->size))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+}
+
+
+static void
+udp_broadcast_send (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin * plugin = cls;
+  struct GNUNET_MessageHeader msg;
+  int sent;
+
+  plugin->send_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
+
+  struct sockaddr_in baddr;
+  baddr.sin_family = AF_INET;
+  baddr.sin_port = htons (plugin->broadcast_port);
+  baddr.sin_addr.s_addr=htonl(-1); /* send message to 255.255.255.255 */
+
+  msg.size = htons(sizeof (struct GNUNET_MessageHeader));
+  msg.type = htons (500);
+
+  sent = GNUNET_NETWORK_socket_sendto (plugin->sockv4_broadcast, &msg, ntohs (msg.size),
+      (const struct sockaddr *) &baddr, sizeof (struct sockaddr_in));
+
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+              "Sent broadcast with  %i bytes\n", sent);
+  plugin->send_broadcast_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &udp_broadcast_send, plugin);
+
+}
+
+/**
+ * We have been notified that our writeset has something to read.  We don't
+ * know which socket needs to be read, so we have to check each one
+ * Then reschedule this function to be called again once more is available.
+ *
+ * @param cls the plugin handle
+ * @param tc the scheduling context (for rescheduling this function again)
+ */
+static void
+udp_plugin_broadcast_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+
+  plugin->select_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
+  if ((NULL != plugin->sockv4_broadcast) &&
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv4_broadcast)))
+    udp_broadcast_read (plugin, plugin->sockv4_broadcast);
+
+  plugin->select_broadcast_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_UNIT_FOREVER_REL, plugin->broadcast_rs,
+                                   NULL, &udp_plugin_broadcast_select, plugin);
+}
+
+
+
+/**
  * Check if the given port is plausible (must be either our listen
  * port or our advertised port).  If it is neither, we return
  * GNUNET_SYSERR.
@@ -1645,9 +1771,11 @@ libgnunet_plugin_transport_udp_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   unsigned long long port;
   unsigned long long aport;
+  unsigned long long bport;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
   int sockets_created;
+  int broadcast;
   struct sockaddr_in serverAddrv4;
   struct sockaddr_in6 serverAddrv6;
   struct sockaddr *serverAddr;
@@ -1661,6 +1789,16 @@ libgnunet_plugin_transport_udp_init (void *cls)
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp", "PORT",
                                              &port))
     port = 2086;
+
+   broadcast = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "transport-udp", "BROADCAST");
+    if (broadcast == GNUNET_SYSERR)
+      broadcast = GNUNET_NO;
+
+   if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp", "BROADCAST_PORT",
+                                             &bport))
+    bport = 20086;
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp",
                                              "MAX_BPS", &udp_max_bps))
@@ -1686,6 +1824,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
   plugin->last_expected_delay = GNUNET_TIME_UNIT_SECONDS;
   plugin->port = port;
   plugin->aport = aport;
+  plugin->broadcast_port = bport;
+  plugin->broadcast = broadcast;
   plugin->env = env;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
@@ -1850,6 +1990,70 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                    GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
                                    NULL, &udp_plugin_select, plugin);
+
+
+  /* create broadcast socket */
+  if (broadcast)
+  {
+    plugin->sockv4_broadcast = GNUNET_NETWORK_socket_create (PF_INET, SOCK_DGRAM, 0);
+    if (NULL == plugin->sockv4_broadcast)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
+    }
+    else
+    {
+  #if HAVE_SOCKADDR_IN_SIN_LEN
+      serverAddrv4.sin_len = sizeof (serverAddrv4);
+  #endif
+      serverAddrv4.sin_family = AF_INET;
+      serverAddrv4.sin_addr.s_addr = INADDR_ANY;
+      serverAddrv4.sin_port = htons (plugin->broadcast_port);
+      addrlen = sizeof (serverAddrv4);
+      serverAddr = (struct sockaddr *) &serverAddrv4;
+  #if DEBUG_UDP
+  #endif
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Binding Broadcast to IPv4 port %d\n",
+                  ntohs (serverAddrv4.sin_port));
+
+      tries = 0;
+      while (GNUNET_NETWORK_socket_bind (plugin->sockv4_broadcast, serverAddr, addrlen) != GNUNET_OK)
+      {
+        serverAddrv4.sin_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);   /* Find a good, non-root port */
+  #if DEBUG_UDP
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+                    "IPv4 Binding failed, trying new port %d\n",
+                    ntohs (serverAddrv4.sin_port));
+  #endif
+        tries++;
+        if (tries > 10)
+        {
+          GNUNET_NETWORK_socket_close (plugin->sockv4_broadcast);
+          plugin->sockv4_broadcast = NULL;
+          break;
+        }
+      }
+      if (plugin->sockv4_broadcast != NULL)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("UDP Broadcast sockets on port %u \n"), bport);
+        int yes = 1;
+        if (GNUNET_NETWORK_socket_setsockopt (plugin->sockv4_broadcast, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(int)) != GNUNET_OK)
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "BROAD CASD socket");
+      }
+    }
+
+  plugin->broadcast_rs = GNUNET_NETWORK_fdset_create ();
+  if (NULL != plugin->sockv4_broadcast)
+        GNUNET_NETWORK_fdset_set (plugin->broadcast_rs, plugin->sockv4_broadcast);
+
+  plugin->select_broadcast_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_UNIT_FOREVER_REL, plugin->broadcast_rs,
+                                   NULL, &udp_plugin_broadcast_select, plugin);
+
+  plugin->send_broadcast_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &udp_broadcast_send, plugin);
+  }
+
   if (sockets_created == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UDP sockets\n"));
   plugin->nat =
@@ -1903,8 +2107,31 @@ libgnunet_plugin_transport_udp_done (void *cls)
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv6));
     plugin->sockv6 = NULL;
   }
+
+  if (plugin->broadcast)
+  {
+    if (plugin->select_broadcast_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (plugin->select_broadcast_task);
+      plugin->select_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    if (plugin->send_broadcast_task  != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (plugin->send_broadcast_task );
+      plugin->send_broadcast_task  = GNUNET_SCHEDULER_NO_TASK;
+    }
+
+    if (plugin->sockv4_broadcast != NULL)
+    {
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv4_broadcast));
+      plugin->sockv4_broadcast = NULL;
+    }
+    GNUNET_NETWORK_fdset_destroy (plugin->broadcast_rs);
+  }
+
   GNUNET_SERVER_mst_destroy (plugin->mst);
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
+
   GNUNET_NAT_unregister (plugin->nat);
   plugin->nat = NULL;
   GNUNET_free (plugin);
