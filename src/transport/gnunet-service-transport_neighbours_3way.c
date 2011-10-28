@@ -1784,6 +1784,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   struct NeighbourMapEntry *n;
   size_t msg_len;
   size_t ret;
+  int was_connected;
 
 #if DEBUG_TRANSPORT
 #endif
@@ -1823,7 +1824,9 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                              plugin_name, sender_address, sender_address_len,
                              session, ats, ats_count);
 
-  change_state (n, S_CONNECTED);
+  was_connected = is_connected(n);
+  if (!is_connected(n))
+    change_state (n, S_CONNECTED);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1832,9 +1835,6 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 #endif
   GST_neighbours_set_incoming_quota(&n->id, n->bandwidth_in);
 
-  n->keepalive_task = GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
-                                                      &neighbour_keepalive_task,
-                                                      n);
   /* send ACK (ACK)*/
   msg_len =  sizeof (msg);
   msg.size = htons (msg_len);
@@ -1854,21 +1854,30 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                                                  n->addrlen),
               n->session);
 
-  neighbours_connected++;
-  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
-                            GNUNET_NO);
-  connect_notify_cb (callback_cls, &n->id, ats, ats_count);
+
+  if (!was_connected)
+  {
+    if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
+      n->keepalive_task = GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
+                                                        &neighbour_keepalive_task,
+                                                        n);
+
+    neighbours_connected++;
+    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
+                              GNUNET_NO);
+    connect_notify_cb (callback_cls, &n->id, ats, ats_count);
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (n->bandwidth_out.value__), GNUNET_i2s (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
+                ntohl (n->bandwidth_out.value__), GNUNET_i2s (peer));
 #endif
-  q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
-  q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-  q_msg.quota = n->bandwidth_out;
-  q_msg.peer = (*peer);
-  GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+    q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
+    q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
+    q_msg.quota = n->bandwidth_out;
+    q_msg.peer = (*peer);
+    GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+  }
 }
 
 void
@@ -1929,7 +1938,8 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 
   GST_neighbours_set_incoming_quota(&n->id, n->bandwidth_in);
 
-  n->keepalive_task = GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
+  if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
+    n->keepalive_task = GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
                                                       &neighbour_keepalive_task,
                                                       n);
 
