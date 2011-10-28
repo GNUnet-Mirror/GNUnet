@@ -423,7 +423,7 @@ change (struct NeighbourMapEntry * n, int state, int line)
     break;
   case S_CONNECT_RECV:
     if ((state == S_NOT_CONNECTED) || (state == S_DISCONNECT) ||
-        (state == S_CONNECTED))
+        (state == S_CONNECTED) || /* FIXME SENT -> RECV ISSUE!*/ (state == S_CONNECT_SENT))
     {
       allowed = GNUNET_YES;
       break;
@@ -1780,7 +1780,6 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   const struct SessionConnectMessage *scm;
   struct QuotaSetMessage q_msg;
   struct GNUNET_MessageHeader msg;
-  struct GNUNET_TIME_Absolute ts;
   struct NeighbourMapEntry *n;
   size_t msg_len;
   size_t ret;
@@ -1799,7 +1798,6 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 
   scm = (const struct SessionConnectMessage *) message;
   GNUNET_break_op (ntohl (scm->reserved) == 0);
-  ts = GNUNET_TIME_absolute_ntoh (scm->timestamp);
   n = lookup_neighbour (peer);
   if (NULL == n)
     n = setup_neighbour (peer);
