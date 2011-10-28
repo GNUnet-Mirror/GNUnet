@@ -794,7 +794,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  mesh_peers = GNUNET_malloc (sizeof(GNUNET_PEER_Id) * (num_peers + 1));
+  mesh_peers = GNUNET_malloc (sizeof(uint16_t) * (num_peers + 1));
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (testing_cfg, "test_mesh_small",
