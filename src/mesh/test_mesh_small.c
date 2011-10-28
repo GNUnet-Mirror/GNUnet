@@ -688,10 +688,13 @@ peergroup_ready (void *cls, const char *emsg)
   peers_running = GNUNET_TESTING_daemons_running (pg);
   for (i = 0; i < num_peers; i++)
   {
+    GNUNET_PEER_Id peer_id;
+
     d1 = GNUNET_TESTING_daemon_get (pg, i);
+    peer_id = GNUNET_PEER_intern(&d1->id);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "***************** test:   %u: %s\n",
-                GNUNET_PEER_intern(&d1->id),
+                peer_id,
                 GNUNET_i2s (&d1->id));
   }
   d1 = GNUNET_TESTING_daemon_get (pg, 0);
