@@ -673,15 +673,18 @@ GST_neighbours_start (void *cls, GNUNET_TRANSPORT_NotifyConnect connect_cb,
   neighbours = GNUNET_CONTAINER_multihashmap_create (NEIGHBOUR_TABLE_SIZE);
 }
 
-/*
+
 static void
 send_disconnect_cont (void *cls,
     const struct GNUNET_PeerIdentity * target,
     int result)
 {
+#if DEBUG_TRANSPORT
   struct NeighbourMapEntry *n = cls;
-
-}*/
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending DISCONNECT message to peer `%4s': %i\n",
+              GNUNET_i2s (&n->id), result);
+#endif
+}
 
 static int
 send_disconnect (struct NeighbourMapEntry *n)
@@ -711,7 +714,7 @@ send_disconnect (struct NeighbourMapEntry *n)
   ret = send_with_plugin(&n->id, (const char *) &disconnect_msg, sizeof (disconnect_msg),
                           UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
                           n->session, n->plugin_name, n->addr, n->addrlen,
-                          GNUNET_YES, NULL, NULL);
+                          GNUNET_YES, &send_disconnect_cont, n);
 
   if (ret == GNUNET_SYSERR)
     return GNUNET_SYSERR;
@@ -2051,10 +2054,9 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   struct BlackListCheckContext * bcc = NULL;
 
 #if DEBUG_TRANSPORT
-#endif
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Received CONNECT message from peer `%s'\n", GNUNET_i2s (peer));
-
+#endif
 
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
