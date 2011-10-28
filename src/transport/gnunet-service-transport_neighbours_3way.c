@@ -58,6 +58,10 @@
 
 #define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
+
+#define SETUP_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+
 /**
  * Entry in neighbours.
  */
@@ -286,7 +290,17 @@ struct NeighbourMapEntry
    */
   struct GNUNET_TIME_Absolute connect_ts;
 
+  /**
+   * Timeout for ATS
+   * We asked ATS for a new address for this peer
+   */
   GNUNET_SCHEDULER_TaskIdentifier ats_suggest;
+
+  /**
+   * Task the resets the peer state after due to an pending
+   * unsuccessful connection setup
+   */
+  GNUNET_SCHEDULER_TaskIdentifier state_reset;
 
   /**
    * How often has the other peer (recently) violated the inbound
@@ -295,18 +309,11 @@ struct NeighbourMapEntry
    */
   unsigned int quota_violation_count;
 
-  /**
-   * Number of values in 'ats' array.
-   */
-  //unsigned int ats_count;
-
 
   /**
-   * Do we currently consider this neighbour connected? (as far as
-   * the connect/disconnect callbacks are concerned)?
+   * The current state of the peer
+   * Element of enum State
    */
-  //int is_connected;
-
   int state;
 
 };
@@ -405,6 +412,49 @@ print_state (int state)
 }
 
 static int
+change (struct NeighbourMapEntry * n, int state, int line);
+
+static void
+ats_suggest_cancel (void *cls,
+    const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void
+reset_task (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct NeighbourMapEntry * n = cls;
+
+  n->state_reset = GNUNET_SCHEDULER_NO_TASK;
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Connection to peer `%s' %s failed in state `%s', resetting connection attempt \n",
+      GNUNET_i2s (&n->id), GST_plugins_a2s(n->plugin_name, n->addr, n->addrlen), print_state(n->state));
+#endif
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop ("# failed connection attempts due to timeout"),
+                            1,
+                            GNUNET_NO);
+
+  /* resetting state */
+  n->state = S_NOT_CONNECTED;
+
+  /* destroying address */
+  GNUNET_ATS_address_destroyed (GST_ats,
+                                &n->id,
+                                n->plugin_name,
+                                n->addr,
+                                n->addrlen,
+                                NULL);
+
+  /* request new address */
+  if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(n->ats_suggest);
+  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
+  GNUNET_ATS_suggest_address(GST_ats, &n->id);
+}
+
+static int
 change (struct NeighbourMapEntry * n, int state, int line)
 {
   char * old = strdup(print_state(n->state));
@@ -418,6 +468,14 @@ change (struct NeighbourMapEntry * n, int state, int line)
         (state == S_DISCONNECT))
     {
       allowed = GNUNET_YES;
+
+      /* Schedule reset task */
+      if ((state == S_CONNECT_RECV) || (state == S_CONNECT_SENT) )
+      {
+        GNUNET_assert (n->state_reset == GNUNET_SCHEDULER_NO_TASK);
+        n->state_reset = GNUNET_SCHEDULER_add_delayed (SETUP_CONNECTION_TIMEOUT, &reset_task, n);
+      }
+
       break;
     }
     break;
@@ -425,6 +483,18 @@ change (struct NeighbourMapEntry * n, int state, int line)
     if ((state == S_NOT_CONNECTED) || (state == S_DISCONNECT) ||
         (state == S_CONNECTED) || /* FIXME SENT -> RECV ISSUE!*/ (state == S_CONNECT_SENT))
     {
+      if ((state == S_CONNECTED) || (state == S_DISCONNECT) || (state == S_NOT_CONNECTED))
+      {
+#if DEBUG_TRANSPORT
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Removed reset task for peer `%s' %s failed in state transition `%s' -> `%s' \n",
+            GNUNET_i2s (&n->id), GST_plugins_a2s(n->plugin_name, n->addr, n->addrlen), print_state(n->state), print_state(state));
+#endif
+        GNUNET_assert (n->state_reset != GNUNET_SCHEDULER_NO_TASK);
+        GNUNET_SCHEDULER_cancel (n->state_reset);
+        n->state_reset = GNUNET_SCHEDULER_NO_TASK;
+      }
+
       allowed = GNUNET_YES;
       break;
     }
@@ -433,6 +503,18 @@ change (struct NeighbourMapEntry * n, int state, int line)
     if ((state == S_NOT_CONNECTED) || (state == S_CONNECTED) ||
         (state == S_DISCONNECT) || /* FIXME SENT -> RECV ISSUE!*/ (state == S_CONNECT_RECV))
     {
+      if ((state == S_CONNECTED) || (state == S_DISCONNECT) || (state == S_NOT_CONNECTED))
+      {
+#if DEBUG_TRANSPORT
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Removed reset task for peer `%s' %s failed in state transition `%s' -> `%s' \n",
+            GNUNET_i2s (&n->id), GST_plugins_a2s(n->plugin_name, n->addr, n->addrlen), print_state(n->state), print_state(state));
+#endif
+        GNUNET_assert (n->state_reset != GNUNET_SCHEDULER_NO_TASK);
+        GNUNET_SCHEDULER_cancel (n->state_reset);
+        n->state_reset = GNUNET_SCHEDULER_NO_TASK;
+      }
+
       allowed = GNUNET_YES;
       break;
     }
@@ -470,8 +552,10 @@ change (struct NeighbourMapEntry * n, int state, int line)
   }
 
   n->state = state;
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "State for neighbour `%s' %X changed from `%s' to `%s' in line %u\n",
       GNUNET_i2s (&n->id), n, old, new, line);
+#endif
   GNUNET_free (old);
   GNUNET_free (new);
   return GNUNET_OK;
@@ -736,9 +820,6 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   struct MessageQueue *mq;
   int was_connected = is_connected(n);
 
-  if (is_disconnecting(n) == GNUNET_YES)
-    return;
-
   /* send DISCONNECT MESSAGE */
   if (is_connected(n) || is_connecting(n))
   {
@@ -900,7 +981,7 @@ ats_suggest_cancel (void *cls,
 
   n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " ATS did not suggested address to connect to peer `%s'\n",
               GNUNET_i2s (&n->id));
 
@@ -1210,7 +1291,11 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     }
     return GNUNET_NO;
   }
-
+  else if (n->state == S_CONNECT_SENT)
+  {
+      //FIXME
+     return GNUNET_NO;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid connection state to switch addresses %u \n", n->state);
   GNUNET_break_op (0);
   return GNUNET_NO;
@@ -1477,9 +1562,6 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
   }
   if (!is_connected(n))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Plugin gave us %d bytes of data but somehow the session is not marked as UP yet!\n"),
-		(int) size);
     *do_forward = GNUNET_SYSERR;
     return GNUNET_TIME_UNIT_ZERO;
   }

@@ -181,7 +181,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
     GST_clients_broadcast (&im->header, GNUNET_YES);	  
     break;
   case GNUNET_NO:
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		_("Discarded %u bytes of type %u from %s: quota violated or no neighbour record!\n"),
 		ntohs (message->size),
 		ntohs (message->type),
@@ -285,6 +285,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     GST_neighbours_keepalive (peer);
     break;
   default:
+
     /* should be payload */
     ret = process_payload (peer,
 			   message,
