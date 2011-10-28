@@ -403,14 +403,17 @@ tree_update_first_hops (struct MeshTunnelTree *tree,
     hop = &pi;
     GNUNET_PEER_resolve(old->peer, hop);
   }
-  copy = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
-  *copy = *hop;
   GNUNET_PEER_resolve(parent->peer, &id);
+  copy = GNUNET_CONTAINER_multihashmap_get (tree->first_hops, &id.hashPubKey);
+  if (NULL == copy)
+    copy = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
+  *copy = *hop;
+
   GNUNET_CONTAINER_multihashmap_put(
     tree->first_hops,
     &id.hashPubKey,
     copy,
-    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 
   for (n = parent->children_head; NULL != n; n = n->next)
   {
