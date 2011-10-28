@@ -1287,9 +1287,6 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
               GNUNET_i2s (&n->id));
 #endif
 
-  if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(n->ats_suggest);
-   n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
    GNUNET_ATS_suggest_address (GST_ats, &n->id);
 }
 
