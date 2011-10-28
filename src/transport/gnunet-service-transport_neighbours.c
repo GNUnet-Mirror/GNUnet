@@ -1258,11 +1258,6 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     ret = send_with_plugin(&n->id, (const void *) &connect_msg, msg_len, UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
                            session, plugin_name, address, address_len,
                            GNUNET_YES, &send_connect_ack_continuation, n);
-    if (ret == GNUNET_SYSERR)
-    {
-      change_state (n, S_NOT_CONNECTED);
-      GNUNET_break (0);
-    }
     return GNUNET_NO;
   }
   /* connected peer is switching addresses */
@@ -1713,7 +1708,7 @@ neighbours_iterate (void *cls, const GNUNET_HashCode * key, void *value)
   struct IteratorContext *ic = cls;
   struct NeighbourMapEntry *n = value;
 
-  if (is_connected(n))
+  if (!is_connected(n))
     return GNUNET_OK;
 
   ic->cb (ic->cb_cls, &n->id, NULL, 0, n->plugin_name, n->addr, n->addrlen);
@@ -1944,7 +1939,17 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     neighbours_connected++;
     GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                               GNUNET_NO);
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Notify about connect of `%4s' using plugin `%s' address '%s' session %X LINE %u\n",
+              GNUNET_i2s (&n->id), n->plugin_name,
+              (n->addrlen == 0) ? "<inbound>" : GST_plugins_a2s (n->plugin_name,
+                                                                 n->addr,
+                                                                 n->addrlen),
+              n->session, __LINE__);
+#endif
     connect_notify_cb (callback_cls, &n->id, ats, ats_count);
+  }
 
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1956,7 +1961,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     q_msg.quota = n->bandwidth_out;
     q_msg.peer = (*peer);
     GST_clients_broadcast (&q_msg.header, GNUNET_NO);
-  }
+
 }
 
 void
@@ -1970,6 +1975,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 {
   struct NeighbourMapEntry *n;
   struct QuotaSetMessage q_msg;
+  int was_connected;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1988,16 +1994,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
     send_disconnect(n);
     GNUNET_break (0);
   }
-// FIXME check this
-//  if (n->state != S_CONNECT_RECV)
-/*  if (is_connecting(n))
-  {
-    send_disconnect (n);
-    change_state (n, S_DISCONNECT);
-    GNUNET_break (0);
-    return;
-  }
-*/
+
   if (is_connected(n))
     return;
 
@@ -2013,6 +2010,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
                              plugin_name, sender_address, sender_address_len,
                              session, ats, ats_count);
 
+  was_connected = is_connected(n);
   change_state (n, S_CONNECTED);
 
   GST_neighbours_set_incoming_quota(&n->id, n->bandwidth_in);
@@ -2022,11 +2020,23 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
                                                       &neighbour_keepalive_task,
                                                       n);
 
+  if (!was_connected)
+  {
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                             GNUNET_NO);
-  connect_notify_cb (callback_cls, &n->id, ats, ats_count);
 
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Notify about connect of `%4s' using plugin `%s' address '%s' session %X LINE %u\n",
+              GNUNET_i2s (&n->id), n->plugin_name,
+              (n->addrlen == 0) ? "<inbound>" : GST_plugins_a2s (n->plugin_name,
+                                                                 n->addr,
+                                                                 n->addrlen),
+              n->session, __LINE__);
+#endif
+  connect_notify_cb (callback_cls, &n->id, ats, ats_count);
+  }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
@@ -2038,6 +2048,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   q_msg.quota = n->bandwidth_out;
   q_msg.peer = (*peer);
   GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+
 }
 
 struct BlackListCheckContext
