@@ -409,7 +409,7 @@ tree_update_first_hops (struct MeshTunnelTree *tree,
     copy = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
   *copy = *hop;
 
-  GNUNET_CONTAINER_multihashmap_put(
+  (void) GNUNET_CONTAINER_multihashmap_put(
     tree->first_hops,
     &id.hashPubKey,
     copy,
