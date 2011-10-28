@@ -1130,7 +1130,7 @@ send_core_data_raw (void *cls, size_t size, void *buf)
  * Sends an already built message to a peer, properly registrating
  * all used resources.
  *
- * @param message Message to send.
+ * @param message Message to send. Fucntion makes a copy of it.
  * @param peer Short ID of the neighbor whom to send the message.
  */
 static void
@@ -1236,10 +1236,7 @@ send_create_path (struct MeshPeerInfo *peer,
 static void
 send_destroy_path (struct MeshTunnel *t, GNUNET_PEER_Id destination)
 {
-  struct GNUNET_MESH_ManipulatePath *msg;
-  struct GNUNET_PeerIdentity *pi;
   struct MeshPeerPath *p;
-  unsigned int i;
   size_t size;
 
   p = tree_get_path_to_peer(t->tree, destination);
@@ -1250,16 +1247,23 @@ send_destroy_path (struct MeshTunnel *t, GNUNET_PEER_Id destination)
   }
   size = sizeof (struct GNUNET_MESH_ManipulatePath);
   size += p->length * sizeof (struct GNUNET_PeerIdentity);
-  msg = GNUNET_malloc (size);
-  msg->header.size = htons (size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY);
-  msg->tid = htonl (t->id.tid);
-  pi = (struct GNUNET_PeerIdentity *) &msg[1];
-  for (i = 0; i < p->length; i++)
   {
-    GNUNET_PEER_resolve(p->peers[i], &pi[i]);
+    struct GNUNET_MESH_ManipulatePath *msg;
+    struct GNUNET_PeerIdentity *pi;
+    char cbuf[size];
+    unsigned int i;
+
+    msg = (struct GNUNET_MESH_ManipulatePath *) cbuf;
+    msg->header.size = htons (size);
+    msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY);
+    msg->tid = htonl (t->id.tid);
+    pi = (struct GNUNET_PeerIdentity *) &msg[1];
+    for (i = 0; i < p->length; i++)
+    {
+      GNUNET_PEER_resolve(p->peers[i], &pi[i]);
+    }
+    send_message (&msg->header, path_get_first_hop(t->tree, destination));
   }
-  send_message (&msg->header, path_get_first_hop(t->tree, destination));
   path_destroy (p);
 }
 
