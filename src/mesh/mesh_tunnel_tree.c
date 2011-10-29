@@ -516,6 +516,8 @@ tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
   GNUNET_PEER_Id myid = t->me->peer;
 
   n = tree_find_peer(t->me, peer);
+  if (NULL == n)
+    return NULL;
   p = path_new(0);
 
   /* Building the path (inverted!) */

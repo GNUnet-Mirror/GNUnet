@@ -1286,6 +1286,12 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
   if (NULL != peer->path_head)
   {
     p = tree_get_path_to_peer(t->tree, peer->id);
+    if (NULL == p)
+    {
+      GNUNET_break (0);
+      return;
+    }
+
     if (p->length > 1)
     {
       send_create_path(peer, p, t);
@@ -1322,6 +1328,28 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
                              path_info);
   }
   /* Otherwise, there is no path but the DHT get is already started. */
+}
+
+
+/**
+ * Task to delay the connection of a peer
+ *
+ * @param cls Closure (path info with tunnel and peer to connect).
+ *            Will be free'd on exection.
+ * @param tc TaskContext
+ */
+static void
+peer_info_connect_task (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshPathInfo *path_info = cls;
+
+  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+  {
+    GNUNET_free (cls);
+  }
+  peer_info_connect (path_info->peer, path_info->t);
+  GNUNET_free (cls);
 }
 
 
@@ -1718,6 +1746,7 @@ void
 notify_peer_disconnected (const struct MeshTunnelTreeNode *n)
 {
   struct MeshPeerInfo *peer;
+  struct MeshPathInfo *path_info;
 
   if (NULL != n->t->client && NULL != nc)
   {
@@ -1730,7 +1759,10 @@ notify_peer_disconnected (const struct MeshTunnelTreeNode *n)
                                                 &msg.header, GNUNET_NO);
   }
   peer = peer_info_get_short(n->peer);
-  peer_info_connect(peer, n->t);
+  path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
+  path_info->peer = peer;
+  path_info->t = n->t;
+  GNUNET_SCHEDULER_add_now(&peer_info_connect_task, path_info);
 }
 
 
