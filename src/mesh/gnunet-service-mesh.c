@@ -2530,7 +2530,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   It's for us!\n");
     path_add_to_origin (orig_peer_info, path);
-    t->peers = GNUNET_CONTAINER_multihashmap_create(4);
+    if (NULL == t->peers)
+      t->peers = GNUNET_CONTAINER_multihashmap_create(4);
     GNUNET_break (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (
         t->peers,
         &my_full_id.hashPubKey,
