@@ -28,7 +28,7 @@
 #include <gnunet_program_lib.h>
 #include <gnunet_protocols.h>
 #include <gnunet_applications.h>
-#include <gnunet_mesh_service.h>
+#include <gnunet_mesh_service_new.h>
 #include <gnunet_constants.h>
 #include <string.h>
 
@@ -159,6 +159,13 @@ struct tunnel_notify_queue
   size_t len;
 };
 
+struct tunnel_state
+{
+  struct tunnel_notify_queue *head;
+  struct tunnel_notify_queue *tail;
+  struct GNUNET_MESH_TransmitHandle *th;
+};
+
 /**
  * Function that frees everything from a hashmap
  */
@@ -189,6 +196,27 @@ cleanup (void *cls
     GNUNET_MESH_disconnect (mesh_handle);
     mesh_handle = NULL;
   }
+}
+
+static void *
+new_tunnel (void *cls __attribute__((unused)),
+            struct GNUNET_MESH_Tunnel *tunnel,
+            const struct GNUNET_PeerIdentity *initiator __attribute__((unused)),
+            const struct GNUNET_ATS_Information *ats __attribute__((unused)))
+{
+    struct tunnel_state *s = GNUNET_malloc(sizeof *s);
+    s->head = NULL;
+    s->tail = NULL;
+    s->th = NULL;
+    return s;
+}
+
+static void
+clean_tunnel (void *cls __attribute__((unused)),
+              const struct GNUNET_MESH_Tunnel *tunnel,
+              void *tunnel_ctx)
+{
+  GNUNET_free(tunnel_ctx);
 }
 
 static void
@@ -247,18 +275,17 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
   memcpy (buf, hdr, ntohs (hdr->size));
   size = ntohs (hdr->size);
 
-  if (NULL != GNUNET_MESH_tunnel_get_head (*tunnel))
+  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data(*tunnel);
+
+  if (NULL != s->head)
   {
-    struct tunnel_notify_queue *element = GNUNET_MESH_tunnel_get_head (*tunnel);
-    struct tunnel_notify_queue *head = GNUNET_MESH_tunnel_get_head (*tunnel);
-    struct tunnel_notify_queue *tail = GNUNET_MESH_tunnel_get_tail (*tunnel);
+    struct tunnel_notify_queue *element = s->head;
+    struct tunnel_notify_queue *head = s->head;
+    struct tunnel_notify_queue *tail = s->tail;
 
     GNUNET_CONTAINER_DLL_remove (head, tail, element);
 
-    GNUNET_MESH_tunnel_set_head (*tunnel, head);
-    GNUNET_MESH_tunnel_set_tail (*tunnel, tail);
-
-    struct GNUNET_MESH_TransmitHandle *th =
+    s->th =
         GNUNET_MESH_notify_transmit_ready (*tunnel,
                                            GNUNET_NO,
                                            42,
@@ -270,7 +297,6 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
                                            element->cls);
 
     /* save the handle */
-    GNUNET_MESH_tunnel_set_data (*tunnel, th);
     GNUNET_free (element);
   }
 
@@ -370,10 +396,11 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
 
   memcpy (_udp, udp, ntohs (udp->len));
 
-  if (NULL == GNUNET_MESH_tunnel_get_data (tunnel))
+  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data(tunnel);
+  if (NULL == s->th)
   {
     /* No notify is pending */
-    struct GNUNET_MESH_TransmitHandle *th =
+    s->th =
         GNUNET_MESH_notify_transmit_ready (tunnel,
                                            GNUNET_NO,
                                            42,
@@ -383,14 +410,11 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
                                            NULL, len,
                                            send_udp_to_peer_notify_callback,
                                            ctunnel);
-
-    /* save the handle */
-    GNUNET_MESH_tunnel_set_data (tunnel, th);
   }
   else
   {
-    struct tunnel_notify_queue *head = GNUNET_MESH_tunnel_get_head (tunnel);
-    struct tunnel_notify_queue *tail = GNUNET_MESH_tunnel_get_tail (tunnel);
+    struct tunnel_notify_queue *head = s->head;
+    struct tunnel_notify_queue *tail = s->tail;
 
     struct tunnel_notify_queue *element =
         GNUNET_malloc (sizeof (struct tunnel_notify_queue));
@@ -398,8 +422,6 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
     element->len = len;
 
     GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
-    GNUNET_MESH_tunnel_set_head (tunnel, head);
-    GNUNET_MESH_tunnel_set_tail (tunnel, tail);
   }
 }
 
@@ -484,10 +506,11 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
 
   memcpy (_tcp, tcp, pktlen);
 
-  if (NULL == GNUNET_MESH_tunnel_get_data (tunnel))
+  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data (tunnel);
+  if (NULL == s->th)
   {
     /* No notify is pending */
-    struct GNUNET_MESH_TransmitHandle *th =
+    s->th =
         GNUNET_MESH_notify_transmit_ready (tunnel,
                                            GNUNET_NO,
                                            42,
@@ -498,14 +521,11 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
                                            len,
                                            send_udp_to_peer_notify_callback,
                                            ctunnel);
-
-    /* save the handle */
-    GNUNET_MESH_tunnel_set_data (tunnel, th);
   }
   else
   {
-    struct tunnel_notify_queue *head = GNUNET_MESH_tunnel_get_head (tunnel);
-    struct tunnel_notify_queue *tail = GNUNET_MESH_tunnel_get_tail (tunnel);
+    struct tunnel_notify_queue *head = s->head;
+    struct tunnel_notify_queue *tail = s->tail;
 
     struct tunnel_notify_queue *element =
         GNUNET_malloc (sizeof (struct tunnel_notify_queue));
@@ -513,8 +533,6 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
     element->len = len;
 
     GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
-    GNUNET_MESH_tunnel_set_head (tunnel, head);
-    GNUNET_MESH_tunnel_set_tail (tunnel, tail);
   }
 }
 
@@ -1025,9 +1043,7 @@ receive_tcp_service (void *cls
                      __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information *atsi
-                     __attribute__ ((unused)),
-		     unsigned int atsi_count
-		     __attribute__ ((unused)))
+                     __attribute__ ((unused)))
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
@@ -1135,9 +1151,7 @@ receive_tcp_remote (void *cls
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi
-                    __attribute__ ((unused)),
-		    unsigned int atsi_count
-		    __attribute__ ((unused)))
+                    __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
@@ -1213,9 +1227,7 @@ receive_udp_remote (void *cls
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi
-                    __attribute__ ((unused)),
-		    unsigned int atsi_count
-		    __attribute__ ((unused)))
+                    __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1287,17 +1299,12 @@ receive_udp_remote (void *cls
  * The messages are one GNUNET_HashCode for the service, followed by a struct udp_pkt
  */
 static int
-receive_udp_service (void *cls
-                     __attribute__ ((unused)),
-                     struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx
-                     __attribute__ ((unused)),
-                     const struct GNUNET_PeerIdentity *sender
-                     __attribute__ ((unused)),
+receive_udp_service (void *cls __attribute__ ((unused)),
+                     struct GNUNET_MESH_Tunnel *tunnel,
+                     void **tunnel_ctx,
+                     const struct GNUNET_PeerIdentity *sender __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_ATS_Information *atsi
-                     __attribute__ ((unused)),
-		     unsigned int atsi_count
-		     __attribute__ ((unused)))
+                     const struct GNUNET_ATS_Information *atsi __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1438,7 +1445,7 @@ connect_to_mesh ()
     app_idx++;
   }
 
-  mesh_handle = GNUNET_MESH_connect (cfg, NULL, NULL, handlers, apptypes);
+  mesh_handle = GNUNET_MESH_connect (cfg, 42, NULL, new_tunnel, clean_tunnel, handlers, apptypes);
 }
 
 
