@@ -27,7 +27,7 @@
 #include <gnunet_common.h>
 #include <gnunet_client_lib.h>
 #include <gnunet_os_lib.h>
-#include <gnunet_mesh_service.h>
+#include <gnunet_mesh_service_new.h>
 #include <gnunet_protocols.h>
 #include <gnunet_server_lib.h>
 #include <gnunet_container_lib.h>
@@ -152,13 +152,13 @@ start_helper_and_schedule (void *cls,
 
 /*}}}*/
 
-void
-initialize_tunnel_state(struct GNUNET_MESH_Tunnel* tunnel, int addrlen, struct GNUNET_MESH_TransmitHandle* th)
+static void*
+initialize_tunnel_state(int addrlen, struct GNUNET_MESH_TransmitHandle* th)
 {
   struct tunnel_state* ts = GNUNET_malloc(sizeof *ts);
   ts->addrlen = addrlen;
   ts->th = th;
-  GNUNET_MESH_tunnel_set_data(tunnel, ts);
+  return ts;
 }
 
 /**
@@ -424,21 +424,19 @@ message_token (void *cls __attribute__ ((unused)), void *client
           if (me->tunnel == NULL && NULL != cls)
           {
             *cls =
-                GNUNET_MESH_peer_request_connect_all (mesh_handle,
-                                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                                      1,
+              GNUNET_MESH_tunnel_create(mesh_handle, initialize_tunnel_state(16, NULL),
+                                        &send_pkt_to_peer, NULL, cls);
+
+            GNUNET_MESH_peer_request_connect_add (*cls,
                                                       (struct
                                                        GNUNET_PeerIdentity *)
-                                                      &me->desc.peer,
-                                                      send_pkt_to_peer, NULL,
-                                                      cls);
+                                                      &me->desc.peer);
             me->tunnel = *cls;
-            initialize_tunnel_state(me->tunnel, 16, NULL);
           }
           else if (NULL != cls)
           {
             *cls = me->tunnel;
-            send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL, 0);
+            send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                         "Queued to send IPv6 to peer %x, type %d\n",
                         *((unsigned int *) &me->desc.peer), ntohs (hdr->type));
@@ -475,13 +473,12 @@ message_token (void *cls __attribute__ ((unused)), void *client
           if (me->tunnel == NULL && NULL != cls)
           {
             *cls =
-                GNUNET_MESH_peer_request_connect_by_type (mesh_handle,
-                                                          GNUNET_TIME_UNIT_FOREVER_REL,
-                                                          app_type,
-                                                          send_pkt_to_peer,
-                                                          NULL, cls);
+              GNUNET_MESH_tunnel_create(mesh_handle, initialize_tunnel_state(16, NULL),
+                                        &send_pkt_to_peer, NULL, cls);
+
+            GNUNET_MESH_peer_request_connect_by_type (*cls,
+                                                      app_type);
             me->tunnel = *cls;
-            initialize_tunnel_state(me->tunnel, 16, NULL);
             if (GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY == app_type)
               udp_tunnel = *cls;
             else if (GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY == app_type)
@@ -490,7 +487,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
           else if (NULL != cls)
           {
             *cls = me->tunnel;
-            send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL, 0);
+            send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
           }
         }
       }
@@ -628,22 +625,18 @@ message_token (void *cls __attribute__ ((unused)), void *client
             }
             if (me->tunnel == NULL && NULL != cls)
             {
-              *cls =
-                  GNUNET_MESH_peer_request_connect_all (mesh_handle,
-                                                        GNUNET_TIME_UNIT_FOREVER_REL,
-                                                        1,
-                                                        (struct
-                                                         GNUNET_PeerIdentity *)
-                                                        &me->desc.peer,
-                                                        send_pkt_to_peer, NULL,
-                                                        cls);
+              *cls = GNUNET_MESH_tunnel_create(mesh_handle,
+                                               initialize_tunnel_state(4, NULL),
+                                               send_pkt_to_peer, NULL, cls);
+              GNUNET_MESH_peer_request_connect_add (*cls,
+                                                    (struct GNUNET_PeerIdentity *)
+                                                    &me->desc.peer);
               me->tunnel = *cls;
-              initialize_tunnel_state(me->tunnel, 4, NULL);
             }
             else if (NULL != cls)
             {
               *cls = me->tunnel;
-              send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL, 0);
+              send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "Queued to send IPv4 to peer %x, type %d\n",
                           *((unsigned int *) &me->desc.peer),
@@ -676,18 +669,16 @@ message_token (void *cls __attribute__ ((unused)), void *client
             if (me->tunnel == NULL && NULL != cls)
             {
               *cls =
-                  GNUNET_MESH_peer_request_connect_by_type (mesh_handle,
-                                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                                            app_type,
-                                                            send_pkt_to_peer,
-                                                            NULL, cls);
+                GNUNET_MESH_tunnel_create(mesh_handle, initialize_tunnel_state(4, NULL),
+                                          send_pkt_to_peer, NULL, cls);
+
+              GNUNET_MESH_peer_request_connect_by_type (*cls, app_type);
               me->tunnel = *cls;
-              initialize_tunnel_state(me->tunnel, 4, NULL);
             }
             else if (NULL != cls)
             {
               *cls = me->tunnel;
-              send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL, 0);
+              send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
             }
           }
         }

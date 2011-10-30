@@ -27,7 +27,7 @@
 #include <gnunet_common.h>
 #include <gnunet_client_lib.h>
 #include <gnunet_os_lib.h>
-#include <gnunet_mesh_service.h>
+#include <gnunet_mesh_service_new.h>
 #include <gnunet_protocols.h>
 #include <gnunet_server_lib.h>
 #include <gnunet_container_lib.h>

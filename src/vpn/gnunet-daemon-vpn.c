@@ -30,7 +30,7 @@
 #include "gnunet_common.h"
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
-#include <gnunet_mesh_service.h>
+#include <gnunet_mesh_service_new.h>
 #include "gnunet_client_lib.h"
 #include "gnunet_container_lib.h"
 #include "gnunet_constants.h"
@@ -300,16 +300,13 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
   else
     size = 0;
 
-  if (NULL != GNUNET_MESH_tunnel_get_head (*tunnel))
+  if (NULL != ts->head)
   {
-    struct tunnel_notify_queue *element = GNUNET_MESH_tunnel_get_head (*tunnel);
-    struct tunnel_notify_queue *head = GNUNET_MESH_tunnel_get_head (*tunnel);
-    struct tunnel_notify_queue *tail = GNUNET_MESH_tunnel_get_tail (*tunnel);
+    struct tunnel_notify_queue *element = ts->head;
+    struct tunnel_notify_queue *head = ts->head;
+    struct tunnel_notify_queue *tail = ts->tail;
 
     GNUNET_CONTAINER_DLL_remove (head, tail, element);
-
-    GNUNET_MESH_tunnel_set_head (*tunnel, head);
-    GNUNET_MESH_tunnel_set_tail (*tunnel, tail);
 
     ts->th =
         GNUNET_MESH_notify_transmit_ready (*tunnel,
@@ -340,10 +337,7 @@ port_in_ports (uint64_t ports, uint16_t port)
 
 void
 send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_ATS_Information *atsi
-                  __attribute__ ((unused)),
-		  unsigned int atsi_count
-		  __attribute__ ((unused)))
+                  const struct GNUNET_ATS_Information *atsi __attribute__ ((unused)))
 {
   /* peer == NULL means that all peers in this request are connected */
   if (peer == NULL)
@@ -372,17 +366,14 @@ send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   else
   {
-    struct tunnel_notify_queue *head = GNUNET_MESH_tunnel_get_head (*tunnel);
-    struct tunnel_notify_queue *tail = GNUNET_MESH_tunnel_get_tail (*tunnel);
+    struct tunnel_notify_queue *head = ts->head;
+    struct tunnel_notify_queue *tail = ts->tail;
     struct tunnel_notify_queue *element = GNUNET_malloc (sizeof *element);
 
     element->cls = cls;
     element->len = ntohs (hdr->size);
 
     GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
-
-    GNUNET_MESH_tunnel_set_head (*tunnel, head);
-    GNUNET_MESH_tunnel_set_tail (*tunnel, tail);
   }
 }
 
@@ -865,23 +856,18 @@ add_additional_port (struct map_entry *me, uint16_t port)
 }
 
 static int
-receive_udp_back (void *cls
-                  __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
-                  void **tunnel_ctx
-                  __attribute__ ((unused)),
-                  const struct GNUNET_PeerIdentity *sender
-                  __attribute__ ((unused)),
+receive_udp_back (void *cls __attribute__ ((unused)),
+                  struct GNUNET_MESH_Tunnel *tunnel,
+                  void **tunnel_ctx,
+                  const struct GNUNET_PeerIdentity *sender,
                   const struct GNUNET_MessageHeader *message,
-                  const struct GNUNET_ATS_Information *atsi
-                  __attribute__ ((unused)),
-		  unsigned int atsi_count
-		  __attribute__ ((unused)))
+                  const struct GNUNET_ATS_Information *atsi __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr *s = (struct remote_addr *) desc;
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
-  const struct GNUNET_PeerIdentity *other = GNUNET_MESH_get_peer (tunnel);
-  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data(tunnel);
+  const struct GNUNET_PeerIdentity *other = sender;
+  struct tunnel_state *ts = *tunnel_ctx;
 
   if (16 == ts->addrlen)
   {
@@ -1047,23 +1033,18 @@ receive_udp_back (void *cls
 }
 
 static int
-receive_tcp_back (void *cls
-                  __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
-                  void **tunnel_ctx
-                  __attribute__ ((unused)),
-                  const struct GNUNET_PeerIdentity *sender
-                  __attribute__ ((unused)),
+receive_tcp_back (void *cls __attribute__ ((unused)),
+                  struct GNUNET_MESH_Tunnel *tunnel,
+                  void **tunnel_ctx,
+                  const struct GNUNET_PeerIdentity *sender __attribute__ ((unused)),
                   const struct GNUNET_MessageHeader *message,
-                  const struct GNUNET_ATS_Information *atsi
-                  __attribute__ ((unused)),
-		  unsigned int atsi_count
-		  __attribute__ ((unused)))
+                  const struct GNUNET_ATS_Information *atsi __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr *s = (struct remote_addr *) desc;
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
-  const struct GNUNET_PeerIdentity *other = GNUNET_MESH_get_peer (tunnel);
-  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data(tunnel);
+  const struct GNUNET_PeerIdentity *other = sender;
+  struct tunnel_state *ts = *tunnel_ctx;
 
   size_t pktlen =
       ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
@@ -1236,6 +1217,24 @@ receive_tcp_back (void *cls
   return GNUNET_OK;
 }
 
+static void* new_tunnel(void* cls,
+                        struct GNUNET_MESH_Tunnel *tunnel,
+                        const struct GNUNET_PeerIdentity *initiator,
+                        const struct GNUNET_ATS_Information *atsi)
+{
+  /* Why should anyone open an inbound tunnel to vpn? */
+  GNUNET_break(0);
+  return NULL;
+}
+
+static void cleaner(void *cls,
+                    const struct GNUNET_MESH_Tunnel *tunnel,
+                    void *tunnel_ctx)
+{
+  /* Why should anyone open an inbound tunnel to vpn? */
+  GNUNET_break(0);
+}
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -1260,7 +1259,7 @@ run (void *cls, char *const *args __attribute__ ((unused)), const char *cfgfilep
     GNUNET_APPLICATION_TYPE_END
   };
 
-  mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, handlers, types);
+  mesh_handle = GNUNET_MESH_connect (cfg_, 42, NULL, new_tunnel, cleaner, handlers, types);
   cfg = cfg_;
   restart_hijack = 0;
   hashmap = GNUNET_CONTAINER_multihashmap_create (65536);

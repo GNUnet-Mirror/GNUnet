@@ -42,7 +42,7 @@ gnunet_daemon_vpn_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
   $(GN_LIBINTL)
 
 gnunet_service_dns_SOURCES = \

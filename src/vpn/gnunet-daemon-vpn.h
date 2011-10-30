@@ -56,8 +56,7 @@ port_in_ports (uint64_t ports, uint16_t port);
 
 void
 send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_ATS_Information *atsi,
-		  unsigned int atsi_count);
+                  const struct GNUNET_ATS_Information *atsi);
 
 /**
  * The configuration to use
@@ -132,6 +131,8 @@ struct remote_addr
 struct tunnel_state
 {
   struct GNUNET_MESH_TransmitHandle *th;
+  struct tunnel_notify_queue *head, *tail;
+
   int addrlen;
 };
 
