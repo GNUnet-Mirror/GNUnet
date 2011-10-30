@@ -78,6 +78,7 @@ test_nse_multipeer_LDADD = \
   -lm
 
 EXTRA_DIST = \
-  test_nse.conf 
+  test_nse.conf \
+  nse_profiler_test.conf
 
 

@@ -217,6 +217,7 @@ perf_plugin_datastore_postgres_LDADD = \
 
 
 EXTRA_DIST = \
+ test_defaults.conf \
  test_datastore_api_data_sqlite.conf \
  perf_plugin_datastore_data_sqlite.conf \
  test_datastore_api_data_mysql.conf \
