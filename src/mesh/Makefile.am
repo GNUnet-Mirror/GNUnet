@@ -15,19 +15,7 @@ bin_PROGRAMS = \
  gnunet-service-mesh
 
 lib_LTLIBRARIES = \
-  libgnunetmesh.la \
   libgnunetmeshnew.la
-
-libgnunetmesh_la_SOURCES = \
-  mesh_api.c mesh_protocol.h
-libgnunetmesh_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(GN_LIBINTL) $(XLIB)
-libgnunetmesh_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 0:0:0
 
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c mesh_tunnel_tree.c
