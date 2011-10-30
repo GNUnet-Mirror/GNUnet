@@ -138,6 +138,10 @@ struct GNUNET_ATS_SchedulingHandle
    */
   unsigned int session_array_size;
 
+  /**
+   * Should we reconnect to ATS due to some serious error?
+   */
+  int reconnect;
 };
 
 
@@ -148,7 +152,6 @@ struct GNUNET_ATS_SchedulingHandle
  */
 static void
 reconnect (struct GNUNET_ATS_SchedulingHandle *sh);
-
 
 
 /**
@@ -165,6 +168,22 @@ reconnect_task (void *cls,
 
   sh->task = GNUNET_SCHEDULER_NO_TASK;
   reconnect (sh);
+}
+
+
+/**
+ * Disconnect from ATS and then reconnect.
+ *
+ * @param sh our handle
+ */
+static void
+force_reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
+{
+  sh->reconnect = GNUNET_NO;
+  GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
+  sh->client = NULL;
+  sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+					   &reconnect_task, sh);
 }
 
 
@@ -211,10 +230,7 @@ transmit_message_to_ats (void *cls,
   sh->th = NULL;
   if ( (size == 0) || (buf == NULL))
   {
-    GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
-    sh->client = NULL;
-    sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                             &reconnect_task, sh);
+    force_reconnect (sh);
     return 0;
   }
   ret = 0;
@@ -284,9 +300,14 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh,
   }
   if (session_id == 0)
     return NULL;
-  GNUNET_assert (0 == memcmp (peer,
-			      &sh->session_array[session_id].peer,
-			      sizeof (struct GNUNET_PeerIdentity)));
+  if (0 != memcmp (peer,
+		   &sh->session_array[session_id].peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break (0);
+    sh->reconnect = GNUNET_YES;
+    return NULL;
+  }
   return sh->session_array[session_id].session;
 }
 
@@ -376,10 +397,20 @@ release_session (struct GNUNET_ATS_SchedulingHandle *sh,
 		 uint32_t session_id,
 		 const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_assert (session_id < sh->session_array_size);
-  GNUNET_assert (0 == memcmp (peer,
-			      &sh->session_array[session_id].peer,
-			      sizeof (struct GNUNET_PeerIdentity)));
+  if (session_id >= sh->session_array_size)
+  {
+    GNUNET_break (0);
+    sh->reconnect = GNUNET_YES;
+    return;
+  }
+  if (0 != memcmp (peer,
+		   &sh->session_array[session_id].peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break (0);
+    sh->reconnect = GNUNET_YES;
+    return;
+  }
   sh->session_array[session_id].slot_used = GNUNET_NO;
   memset (&sh->session_array[session_id].peer,
 	  0, 
@@ -419,10 +450,7 @@ process_ats_message (void *cls,
 
   if (NULL == msg) 
   {
-    GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
-    sh->client = NULL;
-    sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-					     &reconnect_task, sh);
+    force_reconnect (sh);
     return;
   }
   if ( (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE) &&
@@ -433,16 +461,15 @@ process_ats_message (void *cls,
     GNUNET_CLIENT_receive (sh->client,
 			   &process_ats_message, sh,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
+    if (GNUNET_YES == sh->reconnect)
+      force_reconnect (sh);
     return;
   }
   if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION) ||
        (ntohs (msg->size) <= sizeof (struct AddressSuggestionMessage)) )
   {
     GNUNET_break (0);
-    GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
-    sh->client = NULL;
-    sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-					     &reconnect_task, sh);
+    force_reconnect (sh);
     return;
   }
   m = (const struct AddressSuggestionMessage*) msg;
@@ -460,10 +487,7 @@ process_ats_message (void *cls,
        (plugin_name[plugin_name_length - 1] != '\0') )
   {
     GNUNET_break (0);
-    GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
-    sh->client = NULL;
-    sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-					     &reconnect_task, sh);
+    force_reconnect (sh);
     return;
   }
   sh->suggest_cb (sh->suggest_cb_cls,
@@ -478,6 +502,8 @@ process_ats_message (void *cls,
   GNUNET_CLIENT_receive (sh->client,
 			 &process_ats_message, sh,
 			 GNUNET_TIME_UNIT_FOREVER_REL);
+  if (GNUNET_YES == sh->reconnect)
+    force_reconnect (sh);
 }
 
 
