@@ -1424,7 +1424,8 @@ void udp_broadcast_mst_cb (void *cls, void *client,
   hello = &message[1];
   plugin->env->receive (plugin->env->cls, &msg->sender, hello, NULL, 0, NULL, (const char *) &mc->addr, sizeof (mc->addr));
 
-  GNUNET_STATISTICS_update(plugin->env->cfg, _("# HELLO beacons received via udp"), 1, GNUNET_NO);
+  GNUNET_STATISTICS_update(plugin->env->stats, 
+			   _("# HELLO beacons received via udp"), 1, GNUNET_NO);
   GNUNET_free (mc);
 }
 
@@ -2127,7 +2128,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     {
       plugin->broadcast = GNUNET_YES;
       plugin->broadcast_mst = GNUNET_SERVER_mst_create (udp_broadcast_mst_cb, plugin);
-      GNUNET_STATISTICS_update(plugin->env->cfg, _("# HELLO beacons received via udp"), 1, GNUNET_NO);
+      GNUNET_STATISTICS_update(plugin->env->stats,
+			       _("# HELLO beacons received via udp"), 1, GNUNET_NO);
       plugin->select_broadcast_task =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                      GNUNET_SCHEDULER_NO_TASK,
