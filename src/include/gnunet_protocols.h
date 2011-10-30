@@ -1084,6 +1084,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE 381
 
+/**
+ * Message send by a peer to notify the other to keep the session alive.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON 382
 
 
 /**

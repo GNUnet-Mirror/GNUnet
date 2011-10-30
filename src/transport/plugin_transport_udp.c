@@ -115,6 +115,20 @@ struct UDP_ACK_Message
 };
 
 
+struct UDP_Beacon_Message
+{
+ /**
+  * Message header.
+  */
+ struct GNUNET_MessageHeader header;
+
+ /**
+  * What is the identity of the sender
+  */
+ struct GNUNET_PeerIdentity sender;
+};
+
+
 /**
  * Network format for IPv4 addresses.
  */
@@ -326,6 +340,12 @@ struct Plugin
    * Broadcast?
    */
   int broadcast;
+
+
+  /**
+   * Tokenizer for inbound messages.
+   */
+  struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_mst;
 
   /**
    * The read socket for IPv4
@@ -1373,6 +1393,41 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+struct MstContext
+{
+  struct Plugin * plugin;
+
+  struct IPv4UdpAddress addr;
+};
+
+void udp_broadcast_mst_cb (void *cls, void *client,
+                          const struct
+                          GNUNET_MessageHeader *
+                          message)
+{
+  struct Plugin * plugin = cls;
+  struct MstContext * mc = client;
+  const struct GNUNET_MessageHeader* hello;
+  struct UDP_Beacon_Message * msg;
+  msg = (struct UDP_Beacon_Message *) message;
+
+  if (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON != ntohs(msg->header.type))
+    return;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "Received beacon with %u bytes from peer `%s' via address `%s'\n",
+              ntohs(msg->header.size),
+              GNUNET_i2s (&msg->sender),
+              udp_address_to_string(NULL, &mc->addr, sizeof (mc->addr)));
+
+
+  hello = &message[1];
+  plugin->env->receive (plugin->env->cls, &msg->sender, hello, NULL, 0, NULL, (const char *) &mc->addr, sizeof (mc->addr));
+
+  GNUNET_STATISTICS_update(plugin->env->cfg, _("# HELLO beacons received via udp"), 1, GNUNET_NO);
+  GNUNET_free (mc);
+}
+
 /**
  * Read and process a message from the given socket.
  *
@@ -1386,28 +1441,35 @@ udp_broadcast_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   char addr[32];
   char buf[65536];
   ssize_t ret;
-  const struct GNUNET_MessageHeader *msg;
+  struct MstContext * mc;
+
 
   fromlen = sizeof (addr);
   memset (&addr, 0, sizeof (addr));
-  ret = GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof (buf),
-                                      (struct sockaddr *) &addr, &fromlen);
+  ret = GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof (buf), (struct sockaddr *) &addr, &fromlen);
   if (ret < sizeof (struct GNUNET_MessageHeader))
   {
-    GNUNET_break_op (0);
+    /* malformed beacon, just throw it away */
     return;
   }
-  msg = (const struct GNUNET_MessageHeader *) buf;
 
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-              "UDP received %u-byte message from `%s' type %i\n", (unsigned int) ret,
-              GNUNET_a2s ((const struct sockaddr *) addr, fromlen), ntohs(msg->type));
-
-  if (ret != ntohs (msg->size))
+ if (GNUNET_YES == GNUNET_NAT_test_address (plugin->nat,
+     &((struct sockaddr_in *) addr)->sin_addr,
+     sizeof (struct in_addr)))
   {
-    GNUNET_break_op (0);
-    return;
+   /* received my own beacon */
+   return;
   }
+
+
+  mc = GNUNET_malloc(sizeof (struct MstContext));
+
+  struct sockaddr_in * av4 = (struct sockaddr_in *) &addr;
+  mc->addr.ipv4_addr = av4->sin_addr.s_addr;
+  mc->addr.u4_port = av4->sin_port;
+
+  if (GNUNET_OK != GNUNET_SERVER_mst_receive(plugin->broadcast_mst, mc, buf, ret, GNUNET_NO, GNUNET_NO))
+    GNUNET_free (mc);
 }
 
 
@@ -1416,8 +1478,13 @@ udp_broadcast_send (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin * plugin = cls;
-  struct GNUNET_MessageHeader msg;
   int sent;
+  uint16_t msg_size;
+  uint16_t hello_size;
+  char buf[65536];
+//  /ssize_t ret;
+  const struct GNUNET_MessageHeader *hello;
+  struct UDP_Beacon_Message * msg;
 
   plugin->send_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -1426,14 +1493,25 @@ udp_broadcast_send (void *cls,
   baddr.sin_port = htons (plugin->broadcast_port);
   baddr.sin_addr.s_addr=htonl(-1); /* send message to 255.255.255.255 */
 
-  msg.size = htons(sizeof (struct GNUNET_MessageHeader));
-  msg.type = htons (500);
+  hello = plugin->env->get_our_hello ();
+  hello_size = GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello);
+  msg_size = hello_size + sizeof (struct UDP_Beacon_Message);
 
-  sent = GNUNET_NETWORK_socket_sendto (plugin->sockv4_broadcast, &msg, ntohs (msg.size),
+  if (hello_size < (sizeof (struct GNUNET_MessageHeader)) ||(msg_size > (UDP_MTU)))
+    return;
+
+  msg = (struct UDP_Beacon_Message *) buf;
+  msg->sender = *(plugin->env->my_identity);
+  msg->header.size = ntohs (msg_size);
+  msg->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON);
+  memcpy (&msg[1], hello, hello_size);
+
+  sent = GNUNET_NETWORK_socket_sendto (plugin->sockv4_broadcast, msg, msg_size,
       (const struct sockaddr *) &baddr, sizeof (struct sockaddr_in));
 
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-              "Sent broadcast with  %i bytes\n", sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "Sent HELLO beacon broadcast with  %i bytes\n", sent);
+
   plugin->send_broadcast_task = GNUNET_SCHEDULER_add_delayed(plugin->broadcast_interval, &udp_broadcast_send, plugin);
 
 }
@@ -2021,7 +2099,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       serverAddr = (struct sockaddr *) &serverAddrv4;
   #if DEBUG_UDP
   #endif
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Binding Broadcast to IPv4 port %d\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding Broadcast to IPv4 port %d\n",
                   ntohs (serverAddrv4.sin_port));
 
       if (GNUNET_NETWORK_socket_bind (plugin->sockv4_broadcast, serverAddr, addrlen) != GNUNET_OK)
@@ -2031,7 +2109,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
       }
       if (plugin->sockv4_broadcast != NULL)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("UDP Broadcast sockets on port %u \n"), bport);
         int yes = 1;
         if (GNUNET_NETWORK_socket_setsockopt (plugin->sockv4_broadcast, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(int)) != GNUNET_OK)
         {
@@ -2049,13 +2126,15 @@ libgnunet_plugin_transport_udp_init (void *cls)
     if (plugin->sockv4_broadcast != NULL)
     {
       plugin->broadcast = GNUNET_YES;
+      plugin->broadcast_mst = GNUNET_SERVER_mst_create (udp_broadcast_mst_cb, plugin);
+      GNUNET_STATISTICS_update(plugin->env->cfg, _("# HELLO beacons received via udp"), 1, GNUNET_NO);
       plugin->select_broadcast_task =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                      GNUNET_SCHEDULER_NO_TASK,
                                      GNUNET_TIME_UNIT_FOREVER_REL, plugin->broadcast_rs,
                                      NULL, &udp_plugin_broadcast_select, plugin);
 
-      plugin->send_broadcast_task = GNUNET_SCHEDULER_add_delayed(plugin->broadcast_interval, &udp_broadcast_send, plugin);
+      plugin->send_broadcast_task = GNUNET_SCHEDULER_add_now (&udp_broadcast_send, plugin);
     }
     else
       plugin->broadcast = GNUNET_NO;
@@ -2127,7 +2206,8 @@ libgnunet_plugin_transport_udp_done (void *cls)
       GNUNET_SCHEDULER_cancel (plugin->send_broadcast_task );
       plugin->send_broadcast_task  = GNUNET_SCHEDULER_NO_TASK;
     }
-
+    if (plugin->broadcast_mst != NULL)
+      GNUNET_SERVER_mst_destroy(plugin->broadcast_mst);
     if (plugin->sockv4_broadcast != NULL)
     {
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv4_broadcast));
