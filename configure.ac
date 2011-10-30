@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001--2010 Christian Grothoff (and other contributing authors)
+# (C) 2001--2011 Christian Grothoff (and other contributing authors)
 #
 # GNUnet is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published
@@ -22,13 +22,13 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.9.0pre3],[bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.9.0pre4],[bug-gnunet@gnu.org])
 
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
 
-AM_INIT_AUTOMAKE([gnunet], [0.9.0pre3])
+AM_INIT_AUTOMAKE([gnunet], [0.9.0pre4])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([gnunet_config.h])
 AH_TOP([#define _GNU_SOURCE  1])

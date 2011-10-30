@@ -49,7 +49,7 @@
 /**
  * Version of the API (for entire gnunetutil.so library).
  */
-#define GNUNET_UTIL_VERSION 0x00089900
+#define GNUNET_UTIL_VERSION 0x00089990
 
 /**
  * Name used for "services" that are actually command-line
