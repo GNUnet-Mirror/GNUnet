@@ -27,7 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
-#include "gnunet_mesh_service_new.h"
+#include "gnunet_mesh_service.h"
 
 #define VERBOSE 1
 #define VERBOSE_ARM 0

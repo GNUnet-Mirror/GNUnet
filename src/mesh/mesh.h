@@ -36,7 +36,7 @@
 #include "gnunet_peer_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_protocols.h"
-#include <gnunet_mesh_service_new.h>
+#include <gnunet_mesh_service.h>
 
 /******************************************************************************/
 /********************        MESH LOCAL MESSAGES      *************************/

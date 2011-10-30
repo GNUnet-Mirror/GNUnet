@@ -38,7 +38,7 @@
 #include "gnunet_block_lib.h"
 #include "block_dns.h"
 #include "gnunet_crypto_lib.h"
-#include "gnunet_mesh_service_new.h"
+#include "gnunet_mesh_service.h"
 #include "gnunet_signatures.h"
 
 struct GNUNET_MESH_Handle *mesh_handle;

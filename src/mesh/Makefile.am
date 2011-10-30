@@ -15,7 +15,7 @@ bin_PROGRAMS = \
  gnunet-service-mesh
 
 lib_LTLIBRARIES = \
-  libgnunetmeshnew.la
+  libgnunetmesh.la
 
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c mesh_tunnel_tree.c
@@ -28,12 +28,12 @@ gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
-libgnunetmeshnew_la_SOURCES = \
-  mesh_api_new.c mesh.h
-libgnunetmeshnew_la_LIBADD = \
+libgnunetmesh_la_SOURCES = \
+  mesh_api.c mesh.h
+libgnunetmesh_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB)
-libgnunetmeshnew_la_LDFLAGS = \
+libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
@@ -50,9 +50,9 @@ test_mesh_api_SOURCES = \
  test_mesh_api.c
 test_mesh_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/mesh/libgnunetmeshnew.la
+ $(top_builddir)/src/mesh/libgnunetmesh.la
 test_mesh_api_DEPENDENCIES = \
-  libgnunetmeshnew.la \
+  libgnunetmesh.la \
    $(top_builddir)/src/util/libgnunetutil.la
 
 test_mesh_path_api_SOURCES = \
@@ -61,51 +61,51 @@ test_mesh_path_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la
 test_mesh_path_api_DEPENDENCIES = \
-  libgnunetmeshnew.la \
+  libgnunetmesh.la \
   $(top_builddir)/src/dht/libgnunetdht.la
 
 test_mesh_local_1_SOURCES = \
  test_mesh_local_1.c
 test_mesh_local_1_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/mesh/libgnunetmeshnew.la
+ $(top_builddir)/src/mesh/libgnunetmesh.la
 test_mesh_local_1_DEPENDENCIES = \
-  libgnunetmeshnew.la
+  libgnunetmesh.la
 
 test_mesh_local_2_SOURCES = \
  test_mesh_local_2.c
 test_mesh_local_2_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/mesh/libgnunetmeshnew.la
+ $(top_builddir)/src/mesh/libgnunetmesh.la
 test_mesh_local_2_DEPENDENCIES = \
-  libgnunetmeshnew.la
+  libgnunetmesh.la
 
 test_mesh_small_unicast_SOURCES = \
  test_mesh_small.c
 test_mesh_small_unicast_LDADD = \
-  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 test_mesh_small_unicast_DEPENDENCIES = \
-  libgnunetmeshnew.la
+  libgnunetmesh.la
 
 test_mesh_small_unicast_far_SOURCES = \
  test_mesh_small.c
 test_mesh_small_unicast_far_LDADD = \
-  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 test_mesh_small_unicast_far_DEPENDENCIES = \
-  libgnunetmeshnew.la
+  libgnunetmesh.la
 
 test_mesh_small_multicast_SOURCES = \
  test_mesh_small.c
 test_mesh_small_multicast_LDADD = \
-  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 test_mesh_small_multicast_DEPENDENCIES = \
-  libgnunetmeshnew.la
+  libgnunetmesh.la
 
 
 if ENABLE_TEST_RUN

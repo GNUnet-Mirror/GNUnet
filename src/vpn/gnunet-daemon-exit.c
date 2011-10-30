@@ -28,7 +28,7 @@
 #include <gnunet_program_lib.h>
 #include <gnunet_protocols.h>
 #include <gnunet_applications.h>
-#include <gnunet_mesh_service_new.h>
+#include <gnunet_mesh_service.h>
 #include <gnunet_constants.h>
 #include <string.h>
 

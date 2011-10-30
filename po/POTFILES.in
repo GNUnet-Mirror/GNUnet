@@ -190,7 +190,6 @@ src/block/plugin_block_dns.c
 src/block/plugin_block_template.c
 src/mesh/mesh_api.c
 src/mesh/mesh_tunnel_tree.c
-src/mesh/mesh_api_new.c
 src/mesh/gnunet-service-mesh.c
 src/hello/hello.c
 src/hostlist/hostlist-client.c
@@ -291,7 +290,6 @@ src/include/platform.h
 src/include/gnunet_load_lib.h
 src/include/gnunet_ats_service.h
 src/include/gnunet_getopt_lib.h
-src/include/gnunet_mesh_service_new.h
 src/include/gnunet_configuration_lib.h
 src/include/gnunet_util_lib.h
 src/include/gnunet_disk_lib.h

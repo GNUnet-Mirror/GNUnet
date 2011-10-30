@@ -42,7 +42,7 @@ gnunet_daemon_vpn_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
 
 gnunet_service_dns_SOURCES = \
@@ -53,7 +53,7 @@ gnunet_service_dns_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
 
 gnunet_daemon_exit_SOURCES = \
@@ -64,7 +64,7 @@ gnunet_daemon_exit_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
 
 #check_PROGRAMS = \

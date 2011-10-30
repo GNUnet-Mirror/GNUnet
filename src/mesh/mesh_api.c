@@ -16,7 +16,7 @@
 */
 
 /**
- * @file mesh/mesh_api_new.c
+ * @file mesh/mesh_api.c
  * @brief mesh api: client implementation of mesh service
  * @author Bartlomiej Polot
  *
@@ -41,7 +41,7 @@ extern "C"
 #include "gnunet_client_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_peer_lib.h"
-#include "gnunet_mesh_service_new.h"
+#include "gnunet_mesh_service.h"
 #include "mesh.h"
 #include "mesh_protocol.h"
 

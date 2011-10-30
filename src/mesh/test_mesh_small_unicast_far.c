@@ -24,7 +24,7 @@
  */
 #include "platform.h"
 #include "gnunet_testing_lib.h"
-#include "gnunet_mesh_service_new.h"
+#include "gnunet_mesh_service.h"
 
 #define VERBOSE GNUNET_YES
 #define REMOVE_DIR GNUNET_YES
