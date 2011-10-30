@@ -53,7 +53,7 @@ gnunet_service_dns_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
   $(GN_LIBINTL)
 
 gnunet_daemon_exit_SOURCES = \

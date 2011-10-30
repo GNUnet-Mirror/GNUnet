@@ -38,7 +38,7 @@
 #include "gnunet_block_lib.h"
 #include "block_dns.h"
 #include "gnunet_crypto_lib.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_mesh_service_new.h"
 #include "gnunet_signatures.h"
 
 struct GNUNET_MESH_Handle *mesh_handle;
@@ -119,6 +119,12 @@ struct tunnel_notify_queue
   GNUNET_CONNECTION_TransmitReadyNotify cb;
 };
 
+struct tunnel_state
+{
+  struct tunnel_notify_queue *head,*tail;
+  struct GNUNET_MESH_TransmitHandle *th;
+};
+
 /**
  * Hijack all outgoing DNS-Traffic but for traffic leaving "our" port.
  */
@@ -160,6 +166,27 @@ hijack (void *cls
     GNUNET_OS_process_close (proc);
   }
   GNUNET_free (virt_dns);
+}
+
+static void *
+new_tunnel (void *cls __attribute__((unused)),
+            struct GNUNET_MESH_Tunnel *tunnel,
+            const struct GNUNET_PeerIdentity *initiator __attribute__((unused)),
+            const struct GNUNET_ATS_Information *ats __attribute__((unused)))
+{
+    struct tunnel_state *s = GNUNET_malloc(sizeof *s);
+    s->head = NULL;
+    s->tail = NULL;
+    s->th = NULL;
+    return s;
+}
+
+static void
+clean_tunnel (void *cls __attribute__((unused)),
+              const struct GNUNET_MESH_Tunnel *tunnel,
+              void *tunnel_ctx)
+{
+  GNUNET_free(tunnel_ctx);
 }
 
 /**
@@ -252,18 +279,16 @@ mesh_send_response (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= (*sz + sizeof (struct GNUNET_MessageHeader)));
 
   memcpy (hdr + 1, dns, *sz);
-
-  if (NULL != GNUNET_MESH_tunnel_get_head (*tunnel))
+  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data(*tunnel);
+  if (NULL != s->head)
   {
-    struct tunnel_notify_queue *element = GNUNET_MESH_tunnel_get_head (*tunnel);
-    struct tunnel_notify_queue *head = GNUNET_MESH_tunnel_get_head (*tunnel);
-    struct tunnel_notify_queue *tail = GNUNET_MESH_tunnel_get_tail (*tunnel);
+    struct tunnel_notify_queue *element = s->head;
+    struct tunnel_notify_queue *head = s->head;
+    struct tunnel_notify_queue *tail = s->tail;
 
     GNUNET_CONTAINER_DLL_remove (head, tail, element);
 
-    GNUNET_MESH_tunnel_set_head (*tunnel, head);
-    GNUNET_MESH_tunnel_set_tail (*tunnel, tail);
-    struct GNUNET_MESH_TransmitHandle *th =
+    s->th =
         GNUNET_MESH_notify_transmit_ready (*tunnel,
                                            GNUNET_NO,
                                            42,
@@ -272,9 +297,6 @@ mesh_send_response (void *cls, size_t size, void *buf)
                                            (const struct GNUNET_PeerIdentity *)
                                            NULL, element->len,
                                            element->cb, element->cls);
-
-    /* save the handle */
-    GNUNET_MESH_tunnel_set_data (*tunnel, th);
   }
 
   GNUNET_free (cls);
@@ -296,20 +318,19 @@ mesh_send (void *cls, size_t size, void *buf)
 
   memcpy (buf, &cls_->hdr, size);
 
-  if (NULL != GNUNET_MESH_tunnel_get_head (cls_->tunnel))
+  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data(cls_->tunnel);
+  if (NULL != s->head)
   {
     struct tunnel_notify_queue *element =
-        GNUNET_MESH_tunnel_get_head (cls_->tunnel);
+      s->head;
     struct tunnel_notify_queue *head =
-        GNUNET_MESH_tunnel_get_head (cls_->tunnel);
+      s->head;
     struct tunnel_notify_queue *tail =
-        GNUNET_MESH_tunnel_get_tail (cls_->tunnel);
+      s->tail;;
 
     GNUNET_CONTAINER_DLL_remove (head, tail, element);
 
-    GNUNET_MESH_tunnel_set_head (cls_->tunnel, head);
-    GNUNET_MESH_tunnel_set_tail (cls_->tunnel, tail);
-    struct GNUNET_MESH_TransmitHandle *th =
+    s->th =
         GNUNET_MESH_notify_transmit_ready (cls_->tunnel,
                                            GNUNET_NO,
                                            42,
@@ -319,8 +340,6 @@ mesh_send (void *cls, size_t size, void *buf)
                                            NULL, element->len,
                                            element->cb, element->cls);
 
-    /* save the handle */
-    GNUNET_MESH_tunnel_set_data (cls_->tunnel, th);
     GNUNET_free (element);
   }
 
@@ -331,9 +350,7 @@ mesh_send (void *cls, size_t size, void *buf)
 void
 mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
               const struct GNUNET_ATS_Information *atsi
-              __attribute__ ((unused)),
-	      unsigned int atsi_count
-	      __attribute__ ((unused)))
+              __attribute__ ((unused)))
 {
   if (NULL == peer)
     return;
@@ -343,9 +360,10 @@ mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
               "Connected to peer %s, %x, sending query with id %d\n",
               GNUNET_i2s (peer), peer, ntohs (cls_->dns.s.id));
 
-  if (NULL == GNUNET_MESH_tunnel_get_data (cls_->tunnel))
+  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data(cls_->tunnel);
+  if (NULL == s->head)
   {
-    struct GNUNET_MESH_TransmitHandle *th =
+    s->th =
         GNUNET_MESH_notify_transmit_ready (cls_->tunnel,
                                            GNUNET_YES,
                                            42,
@@ -355,14 +373,13 @@ mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                                            mesh_send,
                                            cls);
 
-    GNUNET_MESH_tunnel_set_data (cls_->tunnel, th);
   }
   else
   {
     struct tunnel_notify_queue *head =
-        GNUNET_MESH_tunnel_get_head (cls_->tunnel);
+      s->head;
     struct tunnel_notify_queue *tail =
-        GNUNET_MESH_tunnel_get_tail (cls_->tunnel);
+      s->tail;
 
     struct tunnel_notify_queue *element =
         GNUNET_malloc (sizeof (struct tunnel_notify_queue));
@@ -371,8 +388,6 @@ mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     element->cb = mesh_send;
 
     GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
-    GNUNET_MESH_tunnel_set_head (cls_->tunnel, head);
-    GNUNET_MESH_tunnel_set_tail (cls_->tunnel, tail);
   }
 }
 
@@ -385,11 +400,16 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   struct tunnel_cls *cls_ = (struct tunnel_cls *) cls;
 
+  struct tunnel_state *s = GNUNET_malloc(sizeof *s);
+  s->head = NULL;
+  s->tail = NULL;
+  s->th = NULL;
+
   cls_->tunnel =
-      GNUNET_MESH_peer_request_connect_by_type (mesh_handle,
-                                                GNUNET_TIME_UNIT_HOURS,
-                                                GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
-                                                mesh_connect, NULL, cls_);
+    GNUNET_MESH_tunnel_create(mesh_handle, s, mesh_connect, NULL, cls_);
+
+  GNUNET_MESH_peer_request_connect_by_type (cls_->tunnel,
+                                            GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER);
 
   remote_pending[cls_->dns.s.id] = cls_;
 }
@@ -403,9 +423,7 @@ receive_mesh_query (void *cls
                     __attribute__ ((unused)),
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi
-                    __attribute__ ((unused)),
-		    unsigned int atsi_count
-		    __attribute__ ((unused)))
+                    __attribute__ ((unused)))
 {
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
 
@@ -453,9 +471,7 @@ receive_mesh_answer (void *cls
                      const struct GNUNET_PeerIdentity *sender,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information *atsi
-                     __attribute__ ((unused)),
-		     unsigned int atsi_count
-		     __attribute__ ((unused)))
+                     __attribute__ ((unused)))
 {
   /* TODo: size check */
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
@@ -1282,10 +1298,10 @@ handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, i
 
           *t = query_states[dns->s.id].tunnel;
           memcpy (t + 1, dns, r);
-          if (NULL ==
-              GNUNET_MESH_tunnel_get_data (query_states[dns->s.id].tunnel))
+          struct tunnel_state *s = GNUNET_MESH_tunnel_get_data (query_states[dns->s.id].tunnel);
+          if (NULL == s->th)
             {
-              struct GNUNET_MESH_TransmitHandle *th =
+              s->th =
                 GNUNET_MESH_notify_transmit_ready (query_states[dns->s.id].tunnel,
                                                    GNUNET_YES,
                                                    32,
@@ -1295,15 +1311,13 @@ handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, i
                                                    sizeof (struct
                                                            GNUNET_MessageHeader),
                                                    mesh_send_response, c);
-
-              GNUNET_MESH_tunnel_set_data (query_states[dns->s.id].tunnel, th);
             }
           else
             {
               struct tunnel_notify_queue *head =
-                GNUNET_MESH_tunnel_get_head (query_states[dns->s.id].tunnel);
+                s->head;
               struct tunnel_notify_queue *tail =
-                GNUNET_MESH_tunnel_get_tail (query_states[dns->s.id].tunnel);
+                s->tail;
 
               struct tunnel_notify_queue *element =
                 GNUNET_malloc (sizeof (struct tunnel_notify_queue));
@@ -1312,8 +1326,6 @@ handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, i
               element->cb = mesh_send_response;
 
               GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
-              GNUNET_MESH_tunnel_set_head (query_states[dns->s.id].tunnel, head);
-              GNUNET_MESH_tunnel_set_tail (query_states[dns->s.id].tunnel, tail);
             }
         }
       else
@@ -1649,7 +1661,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg_, "dns", "PROVIDE_EXIT"))
     apptypes[0] = GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER;
-  mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, mesh_handlers, apptypes);
+  mesh_handle = GNUNET_MESH_connect (cfg_, 42, NULL, new_tunnel, clean_tunnel, mesh_handlers, apptypes);
 
   cfg = cfg_;
   dht = GNUNET_DHT_connect (cfg, 1024);
