@@ -1344,9 +1344,10 @@ peer_info_connect_task (void *cls,
 {
   struct MeshPathInfo *path_info = cls;
 
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
   {
     GNUNET_free (cls);
+    return;
   }
   peer_info_connect (path_info->peer, path_info->t);
   GNUNET_free (cls);
