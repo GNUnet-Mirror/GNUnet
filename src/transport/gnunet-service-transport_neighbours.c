@@ -2029,6 +2029,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   {
     send_disconnect(peer, plugin_name, sender_address, sender_address_len, session);
     GNUNET_break (0);
+    return;
   }
 
   if (is_connected(n))
