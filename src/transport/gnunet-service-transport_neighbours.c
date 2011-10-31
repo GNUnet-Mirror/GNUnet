@@ -764,21 +764,24 @@ send_disconnect_cont (void *cls,
     int result)
 {
 #if DEBUG_TRANSPORT
-  struct NeighbourMapEntry *n = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending DISCONNECT message to peer `%4s': %i\n",
-              GNUNET_i2s (&n->id), result);
+              GNUNET_i2s (target), result);
 #endif
 }
 
+
 static int
-send_disconnect (struct NeighbourMapEntry *n)
+send_disconnect (const struct GNUNET_PeerIdentity * target,
+		 const char *plugin_name,
+		 const char *sender_address, uint16_t sender_address_len,
+		 struct Session *session)
 {
   size_t ret;
   struct SessionDisconnectMessage disconnect_msg;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending DISCONNECT message to peer `%4s'\n",
-              GNUNET_i2s (&n->id));
+              GNUNET_i2s (target));
 #endif
 
   disconnect_msg.header.size = htons (sizeof (struct SessionDisconnectMessage));
@@ -795,10 +798,11 @@ send_disconnect (struct NeighbourMapEntry *n)
                                          &disconnect_msg.purpose,
                                          &disconnect_msg.signature));
 
-  ret = send_with_plugin(&n->id, (const char *) &disconnect_msg, sizeof (disconnect_msg),
-                          UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
-                          n->session, n->plugin_name, n->addr, n->addrlen,
-                          GNUNET_YES, &send_disconnect_cont, n);
+  ret = send_with_plugin(target,
+			 (const char *) &disconnect_msg, sizeof (disconnect_msg),
+			 UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+			 session, plugin_name, sender_address,  sender_address_len,
+			 GNUNET_YES, &send_disconnect_cont, NULL);
 
   if (ret == GNUNET_SYSERR)
     return GNUNET_SYSERR;
@@ -823,7 +827,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   /* send DISCONNECT MESSAGE */
   if (is_connected(n) || is_connecting(n))
   {
-    if (GNUNET_OK == send_disconnect(n))
+    if (GNUNET_OK == send_disconnect(&n->id, n->plugin_name, n->addr, n->addrlen, n->session))
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent DISCONNECT_MSG to `%s'\n",
                   GNUNET_i2s (&n->id));
     else
@@ -1783,7 +1787,7 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
     return;                     /* not active */
   if (is_connected(n))
   {
-    send_disconnect(n);
+    send_disconnect(&n->id, n->plugin_name, n->addr, n->addrlen, n->session);
 
     n = lookup_neighbour (target);
     if (NULL == n)
@@ -1914,7 +1918,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   if (n->state != S_CONNECT_SENT)
   {
     GNUNET_break (0);
-    send_disconnect(n);
+    send_disconnect(&n->id, n->plugin_name, n->addr, n->addrlen, n->session);
     return;
   }
 */
@@ -2023,7 +2027,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   n = lookup_neighbour (peer);
   if (NULL == n)
   {
-    send_disconnect(n);
+    send_disconnect(peer, plugin_name, sender_address, sender_address_len, session);
     GNUNET_break (0);
   }
 
