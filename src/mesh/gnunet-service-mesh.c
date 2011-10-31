@@ -1509,18 +1509,34 @@ path_add_to_peer (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
     path_destroy (path);
     return;
   }
+  for (l = 1; l < path->length; l++)
+  {
+    if (path->peers[l] == myid)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MESH: shortening path by %u\n",
+                  l);
+      for (l2 = 0; l2 < path->length - l - 1 ; l2++)
+      {
+        path->peers[l2] = path->peers[l + l2];
+      }
+      path->length -= l;
+      l = 0;
+      path->peers = GNUNET_realloc (path->peers,
+                                    path->length * sizeof (GNUNET_PEER_Id));
+    }
+  }
 #if MESH_DEBUG
   { 
     struct GNUNET_PeerIdentity id;
-    
+
     GNUNET_PEER_resolve (peer_info->id, &id);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"MESH: adding path [%u] to peer %s\n",
-		path->length,
-		GNUNET_i2s (&id));
+                "MESH: adding path [%u] to peer %s\n",
+                path->length,
+                GNUNET_i2s (&id));
   }
 #endif
-
   l = path_get_length (path);
   if (0 == l)
   {
