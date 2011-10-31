@@ -1,3 +1,19 @@
+Mon Oct 31 18:46:36 CET 2011
+	Releasing GNUnet 0.9.0pre4.  This release includes a working
+	implementation of mesh (unoptimized), a working implementation
+	of the VPN (could use more testing), a working implementation 
+	of the WLAN transport (still very slow, unoptimized) and
+	many, many bugfixes all over the place.  The major known
+	issues are:
+
+	* TESTING is known to sometimes crash on shutdown
+	* DV is known to crash / not work properly
+	* CHAT is experimental and was not reviewed yet
+
+	More details to individual bugs that were fixed in this
+	release are documented at:
+	https://gnunet.org/bugs/changelog_page.php?version_id=182
+
 Mon Sep 19 14:16:22 CEST 2011
 	Releasing GNUnet 0.9.0pre3.  Instead of listing all that has
 	changed, here is the short list of what is known NOT to work,
@@ -14,9 +30,6 @@ Mon Sep 19 14:16:22 CEST 2011
         * TRANSPORT-HTTP is experimental, has known bugs
 	* TRANSPORT-DV is experimental, has known bugs, protocol may still change
 	* CHAT is experimental, has known bugs and was not reviewed yet
-
-	With this release we will finally start with
-	a detailed accounting of changes in the ChangeLog.
 
 Thu Dec 23 23:33:05 CET 2010
 	Releasing GNUnet 0.9.0pre2.

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.8.0a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-10-30 19:19+0100\n"
+"POT-Creation-Date: 2011-10-31 18:51+0100\n"
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
@@ -600,7 +600,7 @@ msgid "Core service could not access hostkey.  Exiting.\n"
 msgstr ""
 
 #: src/core/gnunet-service-core_kx.c:1559
-#: src/transport/gnunet-service-transport.c:542
+#: src/transport/gnunet-service-transport.c:539
 #: src/hostlist/hostlist-server.c:558 src/peerinfo-tool/gnunet-peerinfo.c:208
 #, fuzzy, c-format
 msgid "Could not access PEERINFO service.  Exiting.\n"
@@ -610,11 +610,11 @@ msgstr "Không thể truy cập đến thông tin về không gian tên.\n"
 msgid "Client was disconnected from core service, trying to reconnect.\n"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-exit.c:1500
+#: src/vpn/gnunet-daemon-exit.c:1499
 msgid "Daemon to run to provide an IP exit node for the VPN"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-vpn.c:1292
+#: src/vpn/gnunet-daemon-vpn.c:1287
 msgid "help text"
 msgstr ""
 
@@ -2711,9 +2711,9 @@ msgid "# query plan entries"
 msgstr ""
 
 #: src/fs/gnunet-service-fs_cp.c:618 src/fs/gnunet-service-fs_cp.c:1552
-#: src/transport/gnunet-service-transport_neighbours.c:858
-#: src/transport/gnunet-service-transport_neighbours.c:1972
-#: src/transport/gnunet-service-transport_neighbours.c:2058
+#: src/transport/gnunet-service-transport_neighbours.c:862
+#: src/transport/gnunet-service-transport_neighbours.c:1976
+#: src/transport/gnunet-service-transport_neighbours.c:2063
 #: src/topology/gnunet-daemon-topology.c:653
 #: src/topology/gnunet-daemon-topology.c:755
 #, fuzzy
@@ -3202,69 +3202,69 @@ msgstr "« %s » thất bại cho ổ đĩa « %s »: %u\n"
 msgid "# failed connection attempts due to timeout"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:807
+#: src/transport/gnunet-service-transport_neighbours.c:811
 #, fuzzy
 msgid "# peers disconnected due to external request"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/transport/gnunet-service-transport_neighbours.c:913
+#: src/transport/gnunet-service-transport_neighbours.c:917
 #, fuzzy
 msgid "# peers disconnected due to timeout"
 msgstr "# các kết nối bị đóng (vấn đề truyền tải)"
 
-#: src/transport/gnunet-service-transport_neighbours.c:937
+#: src/transport/gnunet-service-transport_neighbours.c:941
 #, fuzzy
 msgid "# keepalives sent"
 msgstr "# các khoá phiên chạy được gửi"
 
-#: src/transport/gnunet-service-transport_neighbours.c:969
+#: src/transport/gnunet-service-transport_neighbours.c:973
 #, fuzzy
 msgid "# peers disconnected due to global disconnect"
 msgstr "# Các quảng cáo đồng đẳng bị hủy do trọng tải"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1499
-#: src/transport/gnunet-service-transport_neighbours.c:1520
+#: src/transport/gnunet-service-transport_neighbours.c:1503
+#: src/transport/gnunet-service-transport_neighbours.c:1524
 #, fuzzy
 msgid "# messages not sent (no such peer or not connected)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1536
+#: src/transport/gnunet-service-transport_neighbours.c:1540
 #, fuzzy
 msgid "# bytes in message queue for other peers"
 msgstr "# các byte thông báo gửi đi bị loại bỏ"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1584
+#: src/transport/gnunet-service-transport_neighbours.c:1588
 #, fuzzy
 msgid "# messages discarded due to lack of neighbour record"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1620
+#: src/transport/gnunet-service-transport_neighbours.c:1624
 #, fuzzy
 msgid "# bandwidth quota violations by other peers"
 msgstr "theo dõi gnunetd sử dụng dải thông"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1638
+#: src/transport/gnunet-service-transport_neighbours.c:1642
 msgid "# ms throttling suggested"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1663
+#: src/transport/gnunet-service-transport_neighbours.c:1667
 #, fuzzy
 msgid "# KEEPALIVE messages discarded (not connected)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1693
+#: src/transport/gnunet-service-transport_neighbours.c:1697
 msgid "# SET QUOTA messages ignored (no such peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1706
+#: src/transport/gnunet-service-transport_neighbours.c:1710
 msgid "# disconnects due to quota of 0"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1820
+#: src/transport/gnunet-service-transport_neighbours.c:1824
 msgid "# disconnect messages ignored (old format)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1832
+#: src/transport/gnunet-service-transport_neighbours.c:1836
 msgid "# disconnect messages ignored (timestamp)"
 msgstr ""
 
@@ -3825,16 +3825,16 @@ msgstr "# các thông báo PONG đã mật mã được nhận"
 msgid "Received unexpected message of type %u in %s:%u\n"
 msgstr "Nhận được thông báo bị hỏng từ đồng đẳng « %s » trong %s:%d.\n"
 
-#: src/transport/gnunet-service-transport.c:162
+#: src/transport/gnunet-service-transport.c:159
 #, fuzzy
 msgid "# bytes payload discarded due to not connected peer "
 msgstr "# Các quảng cáo đồng đẳng bị hủy do trọng tải"
 
-#: src/transport/gnunet-service-transport.c:519
+#: src/transport/gnunet-service-transport.c:516
 msgid "Transport service is lacking key configuration settings.  Exiting.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport.c:528
+#: src/transport/gnunet-service-transport.c:525
 msgid "Transport service could not access hostkey.  Exiting.\n"
 msgstr ""
 
@@ -4311,16 +4311,16 @@ msgstr "Đang nạp các truyền tải « %s »\n"
 msgid "Failed to load block plugin `%s'\n"
 msgstr "Không thể nạp phần bổ sung truyền tải « %s »\n"
 
-#: src/mesh/gnunet-service-mesh.c:4121
+#: src/mesh/gnunet-service-mesh.c:4161
 msgid "MESH: Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:4324
+#: src/mesh/gnunet-service-mesh.c:4365
 #, fuzzy
 msgid "Mesh service is lacking key configuration settings.  Exiting.\n"
 msgstr "Lưu cấu hình ngay bây giờ không?"
 
-#: src/mesh/gnunet-service-mesh.c:4333
+#: src/mesh/gnunet-service-mesh.c:4374
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "Không thể truy cập đến thông tin về không gian tên.\n"

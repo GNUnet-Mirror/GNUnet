@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-10-30 19:19+0100\n"
+"POT-Creation-Date: 2011-10-31 18:51+0100\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -549,7 +549,7 @@ msgid "Core service could not access hostkey.  Exiting.\n"
 msgstr ""
 
 #: src/core/gnunet-service-core_kx.c:1559
-#: src/transport/gnunet-service-transport.c:542
+#: src/transport/gnunet-service-transport.c:539
 #: src/hostlist/hostlist-server.c:558 src/peerinfo-tool/gnunet-peerinfo.c:208
 #, c-format
 msgid "Could not access PEERINFO service.  Exiting.\n"
@@ -559,11 +559,11 @@ msgstr ""
 msgid "Client was disconnected from core service, trying to reconnect.\n"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-exit.c:1500
+#: src/vpn/gnunet-daemon-exit.c:1499
 msgid "Daemon to run to provide an IP exit node for the VPN"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-vpn.c:1292
+#: src/vpn/gnunet-daemon-vpn.c:1287
 msgid "help text"
 msgstr ""
 
@@ -2576,9 +2576,9 @@ msgid "# query plan entries"
 msgstr ""
 
 #: src/fs/gnunet-service-fs_cp.c:618 src/fs/gnunet-service-fs_cp.c:1552
-#: src/transport/gnunet-service-transport_neighbours.c:858
-#: src/transport/gnunet-service-transport_neighbours.c:1972
-#: src/transport/gnunet-service-transport_neighbours.c:2058
+#: src/transport/gnunet-service-transport_neighbours.c:862
+#: src/transport/gnunet-service-transport_neighbours.c:1976
+#: src/transport/gnunet-service-transport_neighbours.c:2063
 #: src/topology/gnunet-daemon-topology.c:653
 #: src/topology/gnunet-daemon-topology.c:755
 msgid "# peers connected"
@@ -3046,60 +3046,60 @@ msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 msgid "# failed connection attempts due to timeout"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:807
+#: src/transport/gnunet-service-transport_neighbours.c:811
 msgid "# peers disconnected due to external request"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:913
+#: src/transport/gnunet-service-transport_neighbours.c:917
 msgid "# peers disconnected due to timeout"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:937
+#: src/transport/gnunet-service-transport_neighbours.c:941
 msgid "# keepalives sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:969
+#: src/transport/gnunet-service-transport_neighbours.c:973
 msgid "# peers disconnected due to global disconnect"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1499
-#: src/transport/gnunet-service-transport_neighbours.c:1520
+#: src/transport/gnunet-service-transport_neighbours.c:1503
+#: src/transport/gnunet-service-transport_neighbours.c:1524
 msgid "# messages not sent (no such peer or not connected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1536
+#: src/transport/gnunet-service-transport_neighbours.c:1540
 msgid "# bytes in message queue for other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1584
+#: src/transport/gnunet-service-transport_neighbours.c:1588
 msgid "# messages discarded due to lack of neighbour record"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1620
+#: src/transport/gnunet-service-transport_neighbours.c:1624
 msgid "# bandwidth quota violations by other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1638
+#: src/transport/gnunet-service-transport_neighbours.c:1642
 msgid "# ms throttling suggested"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1663
+#: src/transport/gnunet-service-transport_neighbours.c:1667
 msgid "# KEEPALIVE messages discarded (not connected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1693
+#: src/transport/gnunet-service-transport_neighbours.c:1697
 msgid "# SET QUOTA messages ignored (no such peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1706
+#: src/transport/gnunet-service-transport_neighbours.c:1710
 msgid "# disconnects due to quota of 0"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1820
+#: src/transport/gnunet-service-transport_neighbours.c:1824
 msgid "# disconnect messages ignored (old format)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1832
+#: src/transport/gnunet-service-transport_neighbours.c:1836
 msgid "# disconnect messages ignored (timestamp)"
 msgstr ""
 
@@ -3635,15 +3635,15 @@ msgstr ""
 msgid "Received unexpected message of type %u in %s:%u\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport.c:162
+#: src/transport/gnunet-service-transport.c:159
 msgid "# bytes payload discarded due to not connected peer "
 msgstr ""
 
-#: src/transport/gnunet-service-transport.c:519
+#: src/transport/gnunet-service-transport.c:516
 msgid "Transport service is lacking key configuration settings.  Exiting.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport.c:528
+#: src/transport/gnunet-service-transport.c:525
 msgid "Transport service could not access hostkey.  Exiting.\n"
 msgstr ""
 
@@ -4099,16 +4099,16 @@ msgstr ""
 msgid "Failed to load block plugin `%s'\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/mesh/gnunet-service-mesh.c:4121
+#: src/mesh/gnunet-service-mesh.c:4161
 msgid "MESH: Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:4324
+#: src/mesh/gnunet-service-mesh.c:4365
 #, fuzzy
 msgid "Mesh service is lacking key configuration settings.  Exiting.\n"
 msgstr "立即保存配置？"
 
-#: src/mesh/gnunet-service-mesh.c:4333
+#: src/mesh/gnunet-service-mesh.c:4374
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"

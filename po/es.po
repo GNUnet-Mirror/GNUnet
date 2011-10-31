@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0e\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-10-30 19:19+0100\n"
+"POT-Creation-Date: 2011-10-31 18:51+0100\n"
 "PO-Revision-Date: 2006-06-29 12:05+0200\n"
 "Last-Translator: Miguel Angel Arruga <miguel.13@telefonica.net>\n"
 "Language-Team: Spanish\n"
@@ -595,7 +595,7 @@ msgid "Core service could not access hostkey.  Exiting.\n"
 msgstr ""
 
 #: src/core/gnunet-service-core_kx.c:1559
-#: src/transport/gnunet-service-transport.c:542
+#: src/transport/gnunet-service-transport.c:539
 #: src/hostlist/hostlist-server.c:558 src/peerinfo-tool/gnunet-peerinfo.c:208
 #, fuzzy, c-format
 msgid "Could not access PEERINFO service.  Exiting.\n"
@@ -605,11 +605,11 @@ msgstr "Imposible acceder a la información del espacio.\n"
 msgid "Client was disconnected from core service, trying to reconnect.\n"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-exit.c:1500
+#: src/vpn/gnunet-daemon-exit.c:1499
 msgid "Daemon to run to provide an IP exit node for the VPN"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-vpn.c:1292
+#: src/vpn/gnunet-daemon-vpn.c:1287
 #, fuzzy
 msgid "help text"
 msgstr "texto de ayuda para -t"
@@ -2707,9 +2707,9 @@ msgid "# query plan entries"
 msgstr ""
 
 #: src/fs/gnunet-service-fs_cp.c:618 src/fs/gnunet-service-fs_cp.c:1552
-#: src/transport/gnunet-service-transport_neighbours.c:858
-#: src/transport/gnunet-service-transport_neighbours.c:1972
-#: src/transport/gnunet-service-transport_neighbours.c:2058
+#: src/transport/gnunet-service-transport_neighbours.c:862
+#: src/transport/gnunet-service-transport_neighbours.c:1976
+#: src/transport/gnunet-service-transport_neighbours.c:2063
 #: src/topology/gnunet-daemon-topology.c:653
 #: src/topology/gnunet-daemon-topology.c:755
 #, fuzzy
@@ -3198,68 +3198,68 @@ msgstr "'%s' falló para la unidad %s: %u\n"
 msgid "# failed connection attempts due to timeout"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:807
+#: src/transport/gnunet-service-transport_neighbours.c:811
 #, fuzzy
 msgid "# peers disconnected due to external request"
 msgstr "# Anuncios de los pares recibidos"
 
-#: src/transport/gnunet-service-transport_neighbours.c:913
+#: src/transport/gnunet-service-transport_neighbours.c:917
 #, fuzzy
 msgid "# peers disconnected due to timeout"
 msgstr "# de pares conectados"
 
-#: src/transport/gnunet-service-transport_neighbours.c:937
+#: src/transport/gnunet-service-transport_neighbours.c:941
 #, fuzzy
 msgid "# keepalives sent"
 msgstr "# claves de la sesión mandadas"
 
-#: src/transport/gnunet-service-transport_neighbours.c:969
+#: src/transport/gnunet-service-transport_neighbours.c:973
 #, fuzzy
 msgid "# peers disconnected due to global disconnect"
 msgstr "# Anuncios de los pares recibidos"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1499
-#: src/transport/gnunet-service-transport_neighbours.c:1520
+#: src/transport/gnunet-service-transport_neighbours.c:1503
+#: src/transport/gnunet-service-transport_neighbours.c:1524
 #, fuzzy
 msgid "# messages not sent (no such peer or not connected)"
 msgstr "# mensajes defragmentados"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1536
+#: src/transport/gnunet-service-transport_neighbours.c:1540
 #, fuzzy
 msgid "# bytes in message queue for other peers"
 msgstr "# bytes de mensajes salientes omitidos"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1584
+#: src/transport/gnunet-service-transport_neighbours.c:1588
 #, fuzzy
 msgid "# messages discarded due to lack of neighbour record"
 msgstr "# mensajes defragmentados"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1620
+#: src/transport/gnunet-service-transport_neighbours.c:1624
 msgid "# bandwidth quota violations by other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1638
+#: src/transport/gnunet-service-transport_neighbours.c:1642
 msgid "# ms throttling suggested"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1663
+#: src/transport/gnunet-service-transport_neighbours.c:1667
 #, fuzzy
 msgid "# KEEPALIVE messages discarded (not connected)"
 msgstr "# mensajes defragmentados"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1693
+#: src/transport/gnunet-service-transport_neighbours.c:1697
 msgid "# SET QUOTA messages ignored (no such peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1706
+#: src/transport/gnunet-service-transport_neighbours.c:1710
 msgid "# disconnects due to quota of 0"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1820
+#: src/transport/gnunet-service-transport_neighbours.c:1824
 msgid "# disconnect messages ignored (old format)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1832
+#: src/transport/gnunet-service-transport_neighbours.c:1836
 msgid "# disconnect messages ignored (timestamp)"
 msgstr ""
 
@@ -3823,16 +3823,16 @@ msgstr "# mensajes PONG encriptados recibidos"
 msgid "Received unexpected message of type %u in %s:%u\n"
 msgstr "Recibido mensaje corrupto del par '%s' en %s:%d.\n"
 
-#: src/transport/gnunet-service-transport.c:162
+#: src/transport/gnunet-service-transport.c:159
 #, fuzzy
 msgid "# bytes payload discarded due to not connected peer "
 msgstr "# Anuncios de los pares recibidos"
 
-#: src/transport/gnunet-service-transport.c:519
+#: src/transport/gnunet-service-transport.c:516
 msgid "Transport service is lacking key configuration settings.  Exiting.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport.c:528
+#: src/transport/gnunet-service-transport.c:525
 msgid "Transport service could not access hostkey.  Exiting.\n"
 msgstr ""
 
@@ -4291,16 +4291,16 @@ msgstr "Probando transporte(s) %s\n"
 msgid "Failed to load block plugin `%s'\n"
 msgstr "Imposible inicializar la aplicación '%s'\n"
 
-#: src/mesh/gnunet-service-mesh.c:4121
+#: src/mesh/gnunet-service-mesh.c:4161
 msgid "MESH: Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:4324
+#: src/mesh/gnunet-service-mesh.c:4365
 #, fuzzy
 msgid "Mesh service is lacking key configuration settings.  Exiting.\n"
 msgstr "Configuración de GNUnet"
 
-#: src/mesh/gnunet-service-mesh.c:4333
+#: src/mesh/gnunet-service-mesh.c:4374
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "Imposible acceder a la información del espacio.\n"
