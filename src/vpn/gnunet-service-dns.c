@@ -1314,18 +1314,13 @@ handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, i
             }
           else
             {
-              struct tunnel_notify_queue *head =
-                s->head;
-              struct tunnel_notify_queue *tail =
-                s->tail;
-
               struct tunnel_notify_queue *element =
                 GNUNET_malloc (sizeof (struct tunnel_notify_queue));
               element->cls = c;
               element->len = r + sizeof (struct GNUNET_MessageHeader);
               element->cb = mesh_send_response;
 
-              GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
+              GNUNET_CONTAINER_DLL_insert_tail (s->head, s->tail, element);
             }
         }
       else
