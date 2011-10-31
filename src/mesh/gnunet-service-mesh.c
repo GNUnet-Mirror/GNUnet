@@ -1513,11 +1513,12 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
  * @param peer_info Destination peer to add the path to.
  * @param path New path to add. Last peer must be the peer in arg 1.
  *             Path will be either used of freed if already known.
- *
- * TODO: trim the part from origin to us? Add it as path to origin?
+ * @param trusted Do we trust that this path is real?
  */
 void
-path_add_to_peer (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
+path_add_to_peer (struct MeshPeerInfo *peer_info,
+                  struct MeshPeerPath *path,
+                  int trusted)
 {
   struct MeshPeerPath *aux;
   unsigned int l;
@@ -1527,6 +1528,11 @@ path_add_to_peer (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
   {
     GNUNET_break (0);
     path_destroy (path);
+    return;
+  }
+  if (path->length <= 2 && GNUNET_NO == trusted)
+  {
+    /* Only allow CORE to tell us about direct paths */
     return;
   }
   for (l = 1; l < path->length; l++)
@@ -1599,12 +1605,15 @@ path_add_to_peer (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
  *
  * @param peer_info Peer to add the path to, being the origin of the path.
  * @param path New path to add after being inversed.
+ * @param trusted Do we trust that this path is real?
  */
 static void
-path_add_to_origin (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
+path_add_to_origin (struct MeshPeerInfo *peer_info,
+                    struct MeshPeerPath *path,
+                    int trusted)
 {
   path_invert(path);
-  path_add_to_peer (peer_info, path);
+  path_add_to_peer (peer_info, path, trusted);
 }
 
 
@@ -2568,7 +2577,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   It's for us!\n");
-    path_add_to_origin (orig_peer_info, path);
+    path_add_to_origin (orig_peer_info, path, GNUNET_NO);
     if (NULL == t->peers)
       t->peers = GNUNET_CONTAINER_multihashmap_create(4);
     GNUNET_break (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (
@@ -2603,9 +2612,9 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     path2 = path_duplicate(path);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   Retransmitting.\n");
-    path_add_to_peer(dest_peer_info, path);
+    path_add_to_peer(dest_peer_info, path, GNUNET_NO);
     path = path_duplicate(path2);
-    path_add_to_origin(orig_peer_info, path2);
+    path_add_to_origin(orig_peer_info, path2, GNUNET_NO);
     send_create_path(dest_peer_info, path, t);
   }
   return GNUNET_OK;
@@ -3241,7 +3250,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   p = path_build_from_dht (get_path, get_path_length,
                            put_path, put_path_length);
-  path_add_to_peer (path_info->peer, p);
+  path_add_to_peer (path_info->peer, p, GNUNET_NO);
   for (i = 0; i < path_info->peer->ntunnels; i++)
   {
     tunnel_add_peer (path_info->peer->tunnels[i], path_info->peer);
@@ -3295,7 +3304,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   p = path_build_from_dht (get_path, get_path_length,
                            put_path, put_path_length);
-  path_add_to_peer (peer_info, p);
+  path_add_to_peer (peer_info, p, GNUNET_NO);
   tunnel_add_peer(t, peer_info);
   peer_info_connect (peer_info, t);
 }
@@ -4205,7 +4214,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   path->peers[1] = peer_info->id;
   GNUNET_PEER_change_rc(myid, 1);
   GNUNET_PEER_change_rc(peer_info->id, 1);
-  path_add_to_peer (peer_info, path);
+  path_add_to_peer (peer_info, path, GNUNET_YES);
   return;
 }
 
@@ -4423,7 +4432,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   peer = peer_info_get(&my_full_id);
   p = path_new (1);
   p->peers[0] = myid;
-  path_add_to_peer(peer, p);
+  path_add_to_peer(peer, p, GNUNET_YES);
 
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
