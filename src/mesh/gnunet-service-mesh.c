@@ -1503,21 +1503,23 @@ path_add_to_peer (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path)
   unsigned int l;
   unsigned int l2;
 
-#if MESH_DEBUG
-  struct GNUNET_PeerIdentity id;
-
-  GNUNET_PEER_resolve (peer_info->id, &id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: adding path [%u] to peer %s\n",
-              path->length,
-              GNUNET_i2s (&id));
-#endif
-  if (NULL == peer_info || NULL == path)
+  if ((NULL == peer_info) || (NULL == path))
   {
     GNUNET_break (0);
     path_destroy (path);
     return;
   }
+#if MESH_DEBUG
+  { 
+    struct GNUNET_PeerIdentity id;
+    
+    GNUNET_PEER_resolve (peer_info->id, &id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"MESH: adding path [%u] to peer %s\n",
+		path->length,
+		GNUNET_i2s (&id));
+  }
+#endif
 
   l = path_get_length (path);
   if (0 == l)
