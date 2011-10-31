@@ -445,6 +445,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *peers;
 static struct GNUNET_CORE_Handle *core_handle;
 
 /**
+ * Handle to communicate with transport
+ */
+// static struct GNUNET_TRANSPORT_Handle *transport_handle;
+
+/**
  * Handle to use DHT
  */
 static struct GNUNET_DHT_Handle *dht_handle;
@@ -1139,14 +1144,29 @@ send_message (const struct GNUNET_MessageHeader *message,
 {
   struct MeshDataDescriptor *info;
   struct MeshPeerInfo *neighbor;
+  struct MeshPeerPath *p;
   unsigned int i;
   size_t size;
+
+//   GNUNET_TRANSPORT_try_connect();
 
   size = ntohs (message->size);
   info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
   info->data = GNUNET_malloc (size);
   memcpy (info->data, message, size);
   neighbor = peer_info_get (peer);
+  for (p = neighbor->path_head; NULL != p; p = p->next)
+  {
+    if (2 == p->length)
+    {
+      break;
+    }
+  }
+  if (NULL == p)
+  {
+    GNUNET_break (0);
+    return;
+  }
   i = peer_info_transmit_slot (neighbor);
   info->handler_n = i;
   info->peer = neighbor;
@@ -4328,6 +4348,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                      NULL,      /* Don't notify about all outbound messages */
                                      GNUNET_NO, /* For header-only out notification */
                                      core_handlers);    /* Register these handlers */
+
   if (core_handle == NULL)
   {
     GNUNET_break (0);
@@ -4358,6 +4379,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_full_id.hashPubKey);
   myid = GNUNET_PEER_intern (&my_full_id);
+
+// //   transport_handle = GNUNET_TRANSPORT_connect(c,
+// //                                               &my_full_id,
+// //                                               NULL,
+// //                                               NULL,
+// //                                               NULL,
+// //                                               NULL);
 
   dht_handle = GNUNET_DHT_connect (c, 64);
   if (dht_handle == NULL)
