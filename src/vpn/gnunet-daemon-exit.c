@@ -411,15 +411,12 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
   }
   else
   {
-    struct tunnel_notify_queue *head = s->head;
-    struct tunnel_notify_queue *tail = s->tail;
-
     struct tunnel_notify_queue *element =
         GNUNET_malloc (sizeof (struct tunnel_notify_queue));
     element->cls = ctunnel;
     element->len = len;
 
-    GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
+    GNUNET_CONTAINER_DLL_insert_tail (s->head, s->tail, element);
   }
 }
 
@@ -522,15 +519,12 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   }
   else
   {
-    struct tunnel_notify_queue *head = s->head;
-    struct tunnel_notify_queue *tail = s->tail;
-
     struct tunnel_notify_queue *element =
         GNUNET_malloc (sizeof (struct tunnel_notify_queue));
     element->cls = ctunnel;
     element->len = len;
 
-    GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
+    GNUNET_CONTAINER_DLL_insert_tail (s->head, s->tail, element);
   }
 }
 

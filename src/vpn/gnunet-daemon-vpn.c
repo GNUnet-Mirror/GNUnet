@@ -364,14 +364,12 @@ send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   else
   {
-    struct tunnel_notify_queue *head = ts->head;
-    struct tunnel_notify_queue *tail = ts->tail;
     struct tunnel_notify_queue *element = GNUNET_malloc (sizeof *element);
 
     element->cls = cls;
     element->len = ntohs (hdr->size);
 
-    GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
+    GNUNET_CONTAINER_DLL_insert_tail (ts->head, ts->tail, element);
   }
 }
 
