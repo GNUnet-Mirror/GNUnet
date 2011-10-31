@@ -1838,11 +1838,11 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
   {
     t->peers_total++;
     GNUNET_array_append (peer->tunnels, peer->ntunnels, t);
-    GNUNET_CONTAINER_multihashmap_put(
+    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(
       t->peers,
       &id.hashPubKey,
       peer,
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   }
 
   if (NULL != (p = peer->path_head))
