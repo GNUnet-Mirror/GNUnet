@@ -121,8 +121,7 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
  * We received some payload.  Prepare to pass it on to our clients. 
  *
  * @param peer (claimed) identity of the other peer
- * @param message the message, NULL if we only care about
- *                learning about the delay until we should receive again -- FIXME!
+ * @param message the message, never NULL
  * @param ats performance information
  * @param ats_count number of records in ats
  * @return how long the plugin should wait until receiving more data
@@ -145,8 +144,6 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   do_forward = GNUNET_SYSERR;
   ret =
     GST_neighbours_calculate_receive_delay (peer,
-					    (message ==
-					     NULL) ? 0 :
                                             msg_size,
 					    &do_forward);
 
