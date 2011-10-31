@@ -479,9 +479,15 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "***************** test: test_task\n");
   if (test == MULTICAST)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "***************** test: add peer 3\n");
     GNUNET_MESH_peer_request_connect_add(t, &d3->id);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "***************** test: add peer 2\n");
   GNUNET_MESH_peer_request_connect_add(t, &d2->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "***************** test: schedule timeout in 30s\n");
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -747,6 +753,12 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "***************** test: Problem with new connection (%s)\n",
                 emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "***************** test:   (%s)\n",
+                GNUNET_i2s (first));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "***************** test:   (%s)\n",
+                GNUNET_i2s (second));
   }
 
 }
