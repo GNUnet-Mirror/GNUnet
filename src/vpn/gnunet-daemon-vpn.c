@@ -303,10 +303,8 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
   if (NULL != ts->head)
   {
     struct tunnel_notify_queue *element = ts->head;
-    struct tunnel_notify_queue *head = ts->head;
-    struct tunnel_notify_queue *tail = ts->tail;
 
-    GNUNET_CONTAINER_DLL_remove (head, tail, element);
+    GNUNET_CONTAINER_DLL_remove (ts->head, ts->tail, element);
 
     ts->th =
         GNUNET_MESH_notify_transmit_ready (*tunnel,
