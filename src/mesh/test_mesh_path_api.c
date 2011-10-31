@@ -125,7 +125,6 @@ finish(void)
   {
     GNUNET_free(pi[i]);
   }
-  tree_destroy(tree);
   exit(0);
 }
 
@@ -244,7 +243,8 @@ main (int argc, char *argv[])
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Destroying node copy...\n");
   GNUNET_free (node2);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding new shorter first path...\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "test: Adding new shorter first path...\n");
   path->length = 2;
   path->peers[1] = 4;
   cb_call = 1;
@@ -262,15 +262,53 @@ main (int argc, char *argv[])
   test_assert (2, MESH_PEER_RELAY, 1, 0);
   test_assert (1, MESH_PEER_ROOT, 2, 0);
 
+  GNUNET_free (path->peers);
+  GNUNET_free (path);
+  tree_destroy (tree);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test:\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Testing relay trees\n");
+  for (i = 0; i < 10; i++)
+  {
+      pi[i] = get_pi(i);
+      GNUNET_break (i + 1 == GNUNET_PEER_intern(pi[i]));
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Peer %u: %s\n",
+                 i + 1,
+                 GNUNET_h2s(&pi[i]->hashPubKey));
+  }
+  tree = GNUNET_malloc(sizeof(struct MeshTunnelTree));
+  tree->first_hops = GNUNET_CONTAINER_multihashmap_create(32);
+  tree->root = GNUNET_malloc(sizeof(struct MeshTunnelTreeNode));
+  tree->root->peer = 1;
+  path = path_new (3);
+  path->peers[0] = 1;
+  path->peers[1] = 2;
+  path->peers[2] = 3;
+  path->length = 3;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding first path: 1 2 3\n");
+  tree_add_path(tree, path, &cb);
+  tree_debug(tree);
+  tree->me = tree_find_peer (tree->root, 2);
+
+  test_assert (3, MESH_PEER_SEARCHING, 0, 3);
+  test_assert (2, MESH_PEER_RELAY, 1, 0);
+  test_assert (1, MESH_PEER_ROOT, 1, 0);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding same path: 1 2 3\n");
+  tree_add_path(tree, path, &cb);
+  
+  GNUNET_free (path->peers);
+  GNUNET_free (path);
+  tree_destroy (tree);
+
   if (failed > 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%u tests failed\n", failed);
     return 1;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: OK\n");
-  GNUNET_free (path->peers);
-  GNUNET_free (path);
   finish();
-
+  
   return 0;
 }

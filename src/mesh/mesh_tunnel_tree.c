@@ -108,7 +108,25 @@ path_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
 
   GNUNET_PEER_resolve (peer, &id);
   r = GNUNET_CONTAINER_multihashmap_get (t->first_hops, &id.hashPubKey);
-  GNUNET_break (NULL != r);
+  if (NULL == r)
+  {
+    struct MeshTunnelTreeNode *n;
+
+    n = tree_find_peer(t->root, peer);
+    if (NULL != t->me && NULL != n)
+    {
+      tree_update_first_hops(t, n, NULL);
+      r = GNUNET_CONTAINER_multihashmap_get (t->first_hops, &id.hashPubKey);
+      GNUNET_assert (NULL != r);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Tree structure inconsistent! me: %p, n: %p",
+                  t->me, n);
+      GNUNET_break (0);
+    }
+  }
 
   return r;
 }
@@ -570,7 +588,6 @@ tree_add_path (struct MeshTunnelTree *t,
   struct GNUNET_PeerIdentity id;
   GNUNET_PEER_Id myid;
   int me;
-//   int oldnode_is_me;
   unsigned int i;
 
 #if MESH_TREE_DEBUG
@@ -640,9 +657,12 @@ tree_add_path (struct MeshTunnelTree *t,
   while (i < p->length)
   {
 #if MESH_TREE_DEBUG
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "tree:   Adding peer %u to %u.\n",
+               p->peers[i], parent->peer);
     GNUNET_PEER_resolve(p->peers[i], &id);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "tree:   Adding  peer %s.\n",
+               "tree:   Adding peer %s.\n",
                GNUNET_i2s (&id));
     GNUNET_PEER_resolve(parent->peer, &id);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -671,6 +691,8 @@ tree_add_path (struct MeshTunnelTree *t,
       n = tree_node_new(parent, p->peers[i]);
       n->t = t->t;
       n->status = MESH_PEER_RELAY;
+      if (n->peer == myid)
+        t->me = n;
     }
     i++;
     parent = n;
