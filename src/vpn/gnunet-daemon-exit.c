@@ -280,10 +280,8 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
   if (NULL != s->head)
   {
     struct tunnel_notify_queue *element = s->head;
-    struct tunnel_notify_queue *head = s->head;
-    struct tunnel_notify_queue *tail = s->tail;
 
-    GNUNET_CONTAINER_DLL_remove (head, tail, element);
+    GNUNET_CONTAINER_DLL_remove (s->head, s->tail, element);
 
     s->th =
         GNUNET_MESH_notify_transmit_ready (*tunnel,
