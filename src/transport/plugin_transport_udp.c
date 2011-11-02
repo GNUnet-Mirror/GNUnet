@@ -1414,15 +1414,18 @@ void udp_broadcast_mst_cb (void *cls, void *client,
   if (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON != ntohs(msg->header.type))
     return;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_ERROR,
               "Received beacon with %u bytes from peer `%s' via address `%s'\n",
               ntohs(msg->header.size),
               GNUNET_i2s (&msg->sender),
               udp_address_to_string(NULL, &mc->addr, sizeof (mc->addr)));
 
+  struct GNUNET_ATS_Information ats;
+  ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  ats.value = htonl (1);
 
-  hello = &message[1];
-  plugin->env->receive (plugin->env->cls, &msg->sender, hello, NULL, 0, NULL, (const char *) &mc->addr, sizeof (mc->addr));
+  hello = (struct GNUNET_MessageHeader *) &msg[1];
+  plugin->env->receive (plugin->env->cls, &msg->sender, hello, &ats, 1, NULL, (const char *) &mc->addr, sizeof (mc->addr));
 
   GNUNET_STATISTICS_update(plugin->env->stats, 
 			   _("# HELLO beacons received via udp"), 1, GNUNET_NO);
