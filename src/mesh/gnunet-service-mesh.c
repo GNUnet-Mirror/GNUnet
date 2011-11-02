@@ -2192,10 +2192,6 @@ tunnel_destroy_iterator (void *cls, const GNUNET_HashCode * key, void *value)
   struct MeshTunnel *t = value;
   int r;
 
-  if (NULL != t->dht_get_type)
-  {
-    GNUNET_DHT_get_stop (t->dht_get_type);
-  }
   r = tunnel_destroy (t);
   return r;
 }
