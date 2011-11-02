@@ -536,6 +536,8 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   {
     delay = GNUNET_TIME_UNIT_ZERO;
   }
+  if (NULL != getenv ("infinitebandwidth"))
+    delay = GNUNET_TIME_UNIT_ZERO;
   if (GNUNET_SCHEDULER_NO_TASK != mc->ack_task)
     GNUNET_SCHEDULER_cancel (mc->ack_task);
   mc->ack_task = GNUNET_SCHEDULER_add_delayed (delay, &send_ack, mc);
