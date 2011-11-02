@@ -31,6 +31,7 @@ if LINUX
 if HAVE_EXPERIMENTAL
  WLAN_BIN = gnunet-transport-wlan-helper
  WLAN_BIN_DUMMY = gnunet-transport-wlan-helper-dummy
+ WLAN_BIN_SENDER = gnunet_wlan_sender
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
  WLAN_API_TEST = test_transport_api_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
@@ -56,7 +57,8 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
 endif
 
 noinst_PROGRAMS = \
- $(WLAN_BIN_DUMMY)
+ $(WLAN_BIN_DUMMY) \
+ $(WLAN_BIN_SENDER)
 # gnunet-transport-connect-running-peers
 
 lib_LTLIBRARIES = \
@@ -118,6 +120,11 @@ gnunet_transport_wlan_helper_dummy_SOURCES = \
  wlan/helper_common.c \
  test_plugin_transport_wlan_dummy.c
 gnunet_transport_wlan_helper_dummy_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
+gnunet_wlan_sender_SOURCES = \
+ gnunet_wlan_sender.c
+gnunet_wlan_sender_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_transport_SOURCES = \
