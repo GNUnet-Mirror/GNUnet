@@ -1237,8 +1237,11 @@ free_fragment_message (struct Plugin *plugin, struct FragmentMessage *fm)
     GNUNET_CONTAINER_DLL_remove (endpoint->sending_messages_head,
                                  endpoint->sending_messages_tail, fm);
     GNUNET_FRAGMENT_context_destroy (fm->fragcontext);
-    if (fm->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (fm->timeout_task);
+    if (fm->timeout_task != GNUNET_SCHEDULER_NO_TASK){
+    	GNUNET_SCHEDULER_cancel (fm->timeout_task);
+    	fm->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+
     GNUNET_free (fm);
 
     queue_session (plugin, session);
@@ -1620,11 +1623,13 @@ wlan_transport_stop_wlan_helper (struct Plugin *plugin)
     GNUNET_SCHEDULER_cancel (plugin->server_write_delay_task);
     plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
   if (plugin->server_write_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_write_task);
     plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
   if (plugin->server_read_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_read_task);
@@ -1633,7 +1638,8 @@ wlan_transport_stop_wlan_helper (struct Plugin *plugin)
 
   GNUNET_DISK_pipe_close (plugin->server_stdout);
   GNUNET_DISK_pipe_close (plugin->server_stdin);
-  GNUNET_OS_process_kill (plugin->server_proc, 9);
+  GNUNET_OS_process_kill (plugin->server_proc, SIGKILL);
+  GNUNET_OS_process_wait(plugin->server_proc);
   GNUNET_OS_process_close (plugin->server_proc);
 
   return GNUNET_YES;
@@ -2318,7 +2324,10 @@ free_macendpoint (struct Plugin *plugin, struct MacEndpoint *endpoint)
 
   GNUNET_CONTAINER_DLL_remove (plugin->mac_head, plugin->mac_tail, endpoint);
   if (endpoint->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (endpoint->timeout_task);
+    endpoint->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   plugin->mac_count--;
   GNUNET_STATISTICS_set(plugin->env->stats, _("# wlan mac endpoints"), plugin->mac_count, GNUNET_NO);
   GNUNET_free (endpoint);
@@ -2404,7 +2413,10 @@ free_session (struct Plugin *plugin, struct Sessionqueue *queue,
   }
 
   if (queue->content->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (queue->content->timeout_task);
+    queue->content->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_free (queue);
 
   check_fragment_queue (plugin);
