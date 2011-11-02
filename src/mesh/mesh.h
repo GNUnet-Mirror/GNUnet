@@ -221,6 +221,11 @@ struct GNUNET_MESH_ConnectPeerByType
 enum MeshPeerState
 {
     /**
+     * Uninitialized status, should never appear in operation.
+     */
+  MESH_PEER_INVALID,
+
+    /**
      * Peer is the root and owner of the tree
      */
   MESH_PEER_ROOT,

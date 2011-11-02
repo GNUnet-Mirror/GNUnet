@@ -58,83 +58,13 @@ struct MeshPeerPath
 /**
  * Node of path tree for a tunnel
  */
-struct MeshTunnelTreeNode
-{
-  /**
-   * Peer this node describes
-   */
-  GNUNET_PEER_Id peer;
-
-  /**
-   * Parent node in the tree
-   */
-  struct MeshTunnelTreeNode *parent;
-
-  /**
-   * DLL of siblings
-   */
-  struct MeshTunnelTreeNode *next;
-
-  /**
-   * DLL of siblings
-   */
-  struct MeshTunnelTreeNode *prev;
-
-  /**
-   * DLL of children
-   */
-  struct MeshTunnelTreeNode *children_head;
-
-  /**
-   * DLL of children
-   */
-  struct MeshTunnelTreeNode *children_tail;
-
-    /**
-     * Status of the peer in the tunnel
-     */
-  enum MeshPeerState status;
-};
+struct MeshTunnelTreeNode;
 
 
 /**
  * Tree to reach all peers in the tunnel
  */
-struct MeshTunnelTree
-{
-  /**
-   * How often to refresh the path
-   */
-  struct GNUNET_TIME_Relative refresh;
-
-  /**
-   * Root node of peer tree
-   */
-  struct MeshTunnelTreeNode *root;
-
-  /**
-   * Node that represents our position in the tree (for non local tunnels)
-   */
-  struct MeshTunnelTreeNode *me;
-
-  /**
-   * DLL of disconneted nodes
-   */
-  struct MeshTunnelTreeNode *disconnected_head;
-
-  /**
-   * DLL of disconneted nodes
-   */
-  struct MeshTunnelTreeNode *disconnected_tail;
-
-  /**
-   * Cache of all peers and the first hop to them.
-   * Indexed by PeerIdentity, contains a pointer to the PeerIdentity
-   * of 1st hop.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *first_hops;
-
-};
+struct MeshTunnelTree;
 
 
 /******************************************************************************/
@@ -229,14 +159,13 @@ path_destroy (struct MeshPeerPath *p);
  * @param cls Closure.
  * @param peer_id short ID of peer that is no longer reachable.
  */
-typedef void (*MeshNodeDisconnectCB) (void *cls,
-                                      GNUNET_PEER_Id peer_id);
+typedef void (*MeshTreeCallback) (void *cls,
+                                  GNUNET_PEER_Id peer_id);
 
 
 /**
  * Create a new tunnel tree associated to a tunnel
  *
- * @param t Tunnel this tree will represent
  * @param peer A short peer id of the root of the tree
  *
  * @return A newly allocated and initialized tunnel tree
@@ -246,29 +175,96 @@ tree_new (GNUNET_PEER_Id peer);
 
 
 /**
- * Recursively find the given peer in the tree.
+ * Set own identity in the tree
  *
- * @param parent Parent node where to start looking.
- * @param peer Short ID of peer to find.
+ * @param tree Tree.
+ * @param peer A short peer id of local peer.
+ */
+void
+tree_set_me (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer);
+
+
+/**
+ * Get the id of the local id of the tree.
+ *
+ * @param tree Tree whose local id we want to now.
+ *
+ * @return Short peer id of local peer.
+ */
+GNUNET_PEER_Id
+tree_get_me (struct MeshTunnelTree *tree);
+
+
+/**
+ * Set the status of a node.
+ *
+ * @param tree Tree.
+ * @param peer A short peer id of local peer.
+ */
+void
+tree_set_status (struct MeshTunnelTree *tree,
+                 GNUNET_PEER_Id peer,
+                 enum MeshPeerState status);
+
+
+/**
+ * Get the status of a node.
+ *
+ * @param tree Tree whose local id we want to now.
+ *
+ * @return Short peer id of local peer.
+ */
+enum MeshPeerState
+tree_get_status (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer);
+
+
+/**
+ * Get the id of the predecessor of the local node.
+ *
+ * @param tree Tree whose local id we want to now.
+ *
+ * @return Short peer id of local peer.
+ */
+GNUNET_PEER_Id
+tree_get_predecessor (struct MeshTunnelTree *tree);
+
+
+/**
+ * Find the given peer in the tree.
+ *
+ * @param tree Tree where to look for the peer.
+ * @param peer Peer to find.
  *
  * @return Pointer to the node of the peer. NULL if not found.
  */
 struct MeshTunnelTreeNode *
-tree_find_peer (struct MeshTunnelTreeNode *parent,
-                GNUNET_PEER_Id peer);
+tree_find_peer (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer_id);
+
+
+/**
+ * Iterate over all children of the local node.
+ * 
+ * @param tree Tree to use. Must have "me" set.
+ * @param cb Callback to call over each child.
+ * @param cls Closure.
+ */
+void
+tree_iterate_children (struct MeshTunnelTree *tree,
+                       MeshTreeCallback cb,
+                       void *cls);
 
 
 /**
  * Recusively update the info about what is the first hop to reach the node
  *
- * @param tree Tree this nodes belongs to
- * @param parent Node to be start updating
+ * @param tree Tree this nodes belongs to.
+ * @param parent_id Short ID from node form which to start updating.
  * @param hop If known, ID of the first hop.
  *            If not known, NULL to find out and pass on children.
  */
 void
 tree_update_first_hops (struct MeshTunnelTree *tree,
-                        struct MeshTunnelTreeNode *parent,
+                        GNUNET_PEER_Id parent_id,
                         struct GNUNET_PeerIdentity *hop);
 
 /**
@@ -288,7 +284,7 @@ tree_update_first_hops (struct MeshTunnelTree *tree,
 struct MeshTunnelTreeNode *
 tree_del_path (struct MeshTunnelTree *t,
                GNUNET_PEER_Id peer,
-               MeshNodeDisconnectCB cb,
+               MeshTreeCallback cb,
                void *cbcls);
 
 
@@ -321,7 +317,7 @@ tree_get_path_to_peer(struct MeshTunnelTree *t,
 int
 tree_add_path (struct MeshTunnelTree *t,
                const struct MeshPeerPath *p,
-               MeshNodeDisconnectCB cb,
+               MeshTreeCallback cb,
                void *cbcls);
 
 
@@ -341,7 +337,7 @@ GNUNET_PEER_Id
 tree_notify_connection_broken (struct MeshTunnelTree *t,
                                GNUNET_PEER_Id p1,
                                GNUNET_PEER_Id p2,
-                               MeshNodeDisconnectCB cb,
+                               MeshTreeCallback cb,
                                void *cbcls);
 
 
@@ -356,12 +352,12 @@ tree_notify_connection_broken (struct MeshTunnelTree *t,
  * @param cb Callback to notify client of disconnected peers.
  * @param cbcls Closure for cb.
  *
- * @return GNUNET_OK or GNUNET_SYSERR
+ * @return GNUNET_YES if the tunnel still has nodes
  */
 int
 tree_del_peer (struct MeshTunnelTree *t,
                GNUNET_PEER_Id peer,
-               MeshNodeDisconnectCB cb,
+               MeshTreeCallback cb,
                void *cbcls);
 
 /**

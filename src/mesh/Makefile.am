@@ -39,7 +39,7 @@ libgnunetmesh_la_LDFLAGS = \
 
 check_PROGRAMS = \
  test_mesh_api \
- test_mesh_path_api \
+ test_mesh_tree_api \
  test_mesh_local_1 \
  test_mesh_local_2 \
  test_mesh_small_unicast \
@@ -55,12 +55,12 @@ test_mesh_api_DEPENDENCIES = \
   libgnunetmesh.la \
    $(top_builddir)/src/util/libgnunetutil.la
 
-test_mesh_path_api_SOURCES = \
- test_mesh_path_api.c mesh_tunnel_tree.c
-test_mesh_path_api_LDADD = \
+test_mesh_tree_api_SOURCES = \
+ test_mesh_tree_api.c
+test_mesh_tree_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la
-test_mesh_path_api_DEPENDENCIES = \
+test_mesh_tree_api_DEPENDENCIES = \
   libgnunetmesh.la \
   $(top_builddir)/src/dht/libgnunetdht.la
 
@@ -109,7 +109,7 @@ test_mesh_small_multicast_DEPENDENCIES = \
 
 
 if ENABLE_TEST_RUN
-TESTS = test_0 test_mesh_api test_mesh_path_api test_mesh_local_1 test_mesh_local_2 test_1 test_mesh_small_unicast
+TESTS = test_0 test_mesh_api test_mesh_tree_api test_mesh_local_1 test_mesh_local_2 test_1 test_mesh_small_unicast
 endif
 
 EXTRA_DIST = \
