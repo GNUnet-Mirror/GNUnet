@@ -29,9 +29,16 @@
  */
 
 #include "platform.h"
-#include "gnunet_program_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_resolver_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_nat_lib.h"
+
+/**
+ * How long do we wait for the NAT test to report success?
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Which peer should we connect to?
@@ -62,6 +69,11 @@ static int benchmark_receive;
  * Option -i.
  */
 static int iterate_connections;
+
+/**
+ * Option -t.
+ */
+static int test_configuration;
 
 /**
  * Global return value (0 success).
@@ -104,6 +116,187 @@ static GNUNET_SCHEDULER_TaskIdentifier end;
  */
 static int verbosity;
 
+/**
+ * Resolver process handle.
+ */
+struct GNUNET_OS_Process *resolver;
+
+/**
+ * Number of tasks running that still need the resolver.
+ */
+static unsigned int resolver_users;
+
+
+/**
+ * Context for a plugin test.
+ */
+struct TestContext
+{
+
+  /**
+   * Handle to the active NAT test.
+   */
+  struct GNUNET_NAT_Test *tst;
+
+  /**
+   * Task identifier for the timeout.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier tsk;
+
+  /**
+   * Name of plugin under test.
+   */
+  const char *name;
+
+};
+
+
+/**
+ * Display the result of the test.
+ *
+ * @param tc test context
+ * @param result GNUNET_YES on success
+ */
+static void
+display_test_result (struct TestContext *tc, int result)
+{
+  if (GNUNET_YES != result)
+  {
+    fprintf (stderr, 
+	     "Configuration for plugin `%s' did not work!\n",
+	     tc->name);
+  }
+  else
+  {
+    fprintf (stderr, 
+	     "Configuration for plugin `%s' is working!\n",
+	     tc->name);
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != tc->tsk)
+  {
+    GNUNET_SCHEDULER_cancel (tc->tsk);
+    tc->tsk = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != tc->tst)
+  {
+    GNUNET_NAT_test_stop (tc->tst);
+    tc->tst = NULL;
+  }
+  GNUNET_free (tc);
+  resolver_users--;
+  if ( (0 == resolver_users) &&
+       (NULL != resolver) )
+  {
+    GNUNET_break (0 == GNUNET_OS_process_kill (resolver, SIGTERM));
+    GNUNET_OS_process_close (resolver);
+    resolver = NULL;
+  }
+}
+
+
+/**
+ * Function called by NAT on success.
+ * Clean up and update GUI (with success).
+ *
+ * @param cls test context
+ * @param success currently always GNUNET_OK
+ */
+static void
+result_callback (void *cls, int success)
+{
+  struct TestContext *tc = cls;
+
+  display_test_result (tc, success);
+}
+
+
+/**
+ * Function called if NAT failed to confirm success.
+ * Clean up and update GUI (with failure).
+ *
+ * @param cls test context
+ * @param tc scheduler callback
+ */
+static void
+fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct TestContext *tstc = cls;
+
+  tstc->tsk = GNUNET_SCHEDULER_NO_TASK;
+  display_test_result (tstc, GNUNET_NO);
+}
+
+
+/**
+ * Test our plugin's configuration (NAT traversal, etc.).
+ *
+ * @param cfg configuration to test
+ */
+static void
+do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *plugins;
+  char *tok;
+  unsigned long long bnd_port;
+  unsigned long long adv_port;
+  struct TestContext *tc;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     "transport",
+					     "plugins",
+					     &plugins))
+  {
+    fprintf (stderr,
+	     _("No transport plugins configured, peer will never communicate\n"));
+    ret = 4;
+    return;
+  }
+  for (tok = strtok (plugins, " "); tok != NULL; tok = strtok (NULL, " "))
+  {    
+    char section[12+strlen(tok)];
+    
+    GNUNET_snprintf (section,
+		     sizeof (section),
+		     "transport-%s",
+		     tok);    
+    if (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_number (cfg, section, "PORT",
+					       &bnd_port))
+      {
+	fprintf (stderr,
+		 _("No port configured for plugin `%s', cannot test it\n"),
+		 tok);
+	continue;
+      }
+    if (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_number (cfg, section,
+					       "ADVERTISED_PORT", &adv_port))
+      adv_port = bnd_port;
+    if (NULL == resolver)
+      resolver =
+	GNUNET_OS_start_process (NULL, NULL, "gnunet-service-resolver",
+				 "gnunet-service-resolver", NULL);
+    resolver_users++;
+    GNUNET_RESOLVER_connect (cfg);
+    tc = GNUNET_malloc (sizeof (struct TestContext));
+    tc->name = GNUNET_strdup (tok);
+    tc->tst =
+      GNUNET_NAT_test_start (cfg, 
+			     (0 == strcasecmp (tok, "udp")) 
+			     ? GNUNET_NO
+			     : GNUNET_YES,
+			     (uint16_t) bnd_port,
+                             (uint16_t) adv_port, &result_callback, tc);
+    if (NULL == tc->tst)
+    {
+      display_test_result (tc, GNUNET_SYSERR);
+      continue;
+    }
+    tc->tsk = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &fail_timeout, tc);
+  }
+  GNUNET_free (plugins);
+}
 
 
 /**
@@ -323,6 +516,10 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  if (test_configuration)
+  {
+    do_test_configuration (cfg);
+  }
   if (benchmark_send && (NULL == cpid))
   {
     fprintf (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
@@ -385,6 +582,9 @@ main (int argc, char *const *argv)
     {'s', "send", NULL,
      gettext_noop ("send data for benchmarking to the other peer (until CTRL-C)"),
      0, &GNUNET_GETOPT_set_one, &benchmark_send},  
+    {'t', "test", NULL,
+     gettext_noop ("test transport configuration (involves external server)"),
+     0, &GNUNET_GETOPT_set_one, &test_configuration},  
     GNUNET_GETOPT_OPTION_VERBOSE(&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
