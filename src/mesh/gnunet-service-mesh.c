@@ -1533,6 +1533,7 @@ path_add_to_peer (struct MeshPeerInfo *peer_info,
   if (path->length <= 2 && GNUNET_NO == trusted)
   {
     /* Only allow CORE to tell us about direct paths */
+    path_destroy (path);
     return;
   }
   for (l = 1; l < path->length; l++)
