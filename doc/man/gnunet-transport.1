@@ -32,6 +32,9 @@ Change the loglevel.  Possible values for LOGLEVEL are ERROR, WARNING, INFO and 
 \fB\-s\fR, \fB\-\-send\fR
 transmit (dummy) traffic as quickly as possible to the peer specified with the \-C option.  The rate will still be limited by the quota(s) determined by the peers (ATS subsystem).  Will run until CTRL\-C is pressed or until the connection to the other peer is disrupted.
 .TP
+\fB\-t\fR, \fB\-\-test\fR
+test transport configuration.  With this flag, the tool will check if each of the configured transport plugins has a working address.  Plugins that do not have a listen port configured will be ignored.  The test is performed with the help of an external server (by default running on gnunet.org) which tries to contact the local machine.  The test can only work if the local GNUnet peer is not yet running.
+.TP
 \fB\-v\fR, \fB\-\-version\fR
 print the version number
 .TP
