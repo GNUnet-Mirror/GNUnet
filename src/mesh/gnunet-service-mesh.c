@@ -2576,7 +2576,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       own_pos = i;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   Own position: %u\n", own_pos);
+              "MESH:   Own position: %u\n", own_pos);
   if (own_pos == 0)
   {
     /* cannot be self, must be 'not found' */
@@ -2604,6 +2604,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
         &my_full_id.hashPubKey,
         peer_info_get(&my_full_id),
         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+    /* FIXME use send_message */
     info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
     info->origin = &t->id;
     info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
@@ -2631,8 +2632,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     path2 = path_duplicate(path);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   Retransmitting.\n");
-    path_add_to_peer(dest_peer_info, path, GNUNET_NO);
-    path = path_duplicate(path2);
+    path_add_to_peer(dest_peer_info, path2, GNUNET_NO);
+    path2 = path_duplicate(path);
     path_add_to_origin(orig_peer_info, path2, GNUNET_NO);
     send_create_path(dest_peer_info, path, t);
   }
