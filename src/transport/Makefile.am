@@ -28,7 +28,6 @@ if USE_COVERAGE
 endif
 
 if LINUX
-if HAVE_EXPERIMENTAL
  WLAN_BIN = gnunet-transport-wlan-helper
  WLAN_BIN_DUMMY = gnunet-transport-wlan-helper-dummy
  WLAN_BIN_SENDER = gnunet_wlan_sender
@@ -36,7 +35,6 @@ if HAVE_EXPERIMENTAL
  WLAN_API_TEST = test_transport_api_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
  WLAN_UREL_TEST = test_transport_api_unreliability_wlan
-endif
 endif
 
 

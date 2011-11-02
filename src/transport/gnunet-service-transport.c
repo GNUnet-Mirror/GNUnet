@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/gnunet-service-transport-new.c
+ * @file transport/gnunet-service-transport.c
  * @brief
  * @author Christian Grothoff
  */
