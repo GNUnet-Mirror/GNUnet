@@ -708,7 +708,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       memcpy (&cbuf[ret], &obm, sizeof (struct OutboundMessage));
       ret += (mret + sizeof (struct OutboundMessage));
       size -= (mret + sizeof (struct OutboundMessage));
-      if (NULL == getenv ("infinite-bandwidth"))
+      if (NULL == getenv ("infinitebandwidth"))
 	GNUNET_BANDWIDTH_tracker_consume (&n->out_tracker, mret);
     }
     GNUNET_free (th);
