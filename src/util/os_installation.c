@@ -251,7 +251,7 @@ get_path_from_GNUNET_PREFIX ()
   return NULL;
 }
 
-/*
+/**
  * @brief get the path to GNUnet bin/ or lib/, prefering the lib/ path
  * @author Milan
  *
