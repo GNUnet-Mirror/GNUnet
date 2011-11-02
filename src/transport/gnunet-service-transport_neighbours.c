@@ -579,6 +579,7 @@ send_with_plugin ( const struct GNUNET_PeerIdentity * target,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   size_t ret = GNUNET_SYSERR;
 
+  GNUNET_assert (plugin_name != NULL);
   papi = GST_plugins_find (plugin_name);
   if (papi == NULL)
   {
@@ -1033,6 +1034,7 @@ send_connect_continuation (void *cls,
 
   if (is_disconnecting(n))
     return; /* neighbour is going away */
+
   if (GNUNET_YES != success)
   {
 #if DEBUG_TRANSPORT
@@ -1052,13 +1054,16 @@ send_connect_continuation (void *cls,
 				  n->addrlen,
 				  NULL);
 
+    change_state(n, S_NOT_CONNECTED);
+
     if (n->ats_suggest!= GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel(n->ats_suggest);
     n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel, n);
     GNUNET_ATS_suggest_address(GST_ats, &n->id);
     return;
   }
-  change_state(n, S_CONNECT_SENT);
+
+
 }
 
 
@@ -1275,6 +1280,8 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     connect_msg.timestamp =
         GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
 
+    change_state (n, S_CONNECT_SENT);
+
     ret = send_with_plugin (peer, (const char *) &connect_msg, msg_len, UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
                             session, plugin_name, address, address_len,
                             GNUNET_YES, &send_connect_continuation, n);
@@ -1324,7 +1331,6 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   }
   else if (n->state == S_CONNECT_SENT)
   {
-      //FIXME
      return GNUNET_NO;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid connection state to switch addresses %u \n", n->state);
