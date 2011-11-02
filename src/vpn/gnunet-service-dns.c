@@ -29,6 +29,7 @@
 #include "gnunet_network_lib.h"
 #include "gnunet_os_lib.h"
 #include "gnunet-service-dns-p.h"
+#include "gnunet_connection_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet-vpn-packet.h"
@@ -125,10 +126,20 @@ struct tunnel_state
   struct GNUNET_MESH_TransmitHandle *th;
 };
 
+static size_t send_answer (void *cls, size_t size, void *buf);
+
 static void
 client_disconnect(void* cls, struct GNUNET_SERVER_Client *client)
 {
   if (NULL == head) return;
+
+  if (head->client == client)
+    {
+      GNUNET_CONNECTION_notify_transmit_ready_cancel(server_notify);
+      server_notify = GNUNET_SERVER_notify_transmit_ready (head->next->client, ntohs (head->next->pkt.hdr.size),
+                                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                                           &send_answer, NULL);
+    }
 
   struct answer_packet_list *element = head;
   while (element != NULL)
