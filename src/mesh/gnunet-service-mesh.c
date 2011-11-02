@@ -4453,6 +4453,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   peer = peer_info_get(&my_full_id);
   p = path_new (1);
   p->peers[0] = myid;
+  GNUNET_PEER_change_rc (myid, 1);
   path_add_to_peer(peer, p, GNUNET_YES);
 
   /* Scheduled the task to clean up when shutdown is called */
