@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-10-31 18:51+0100\n"
+"POT-Creation-Date: 2011-10-31 18:55+0100\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -4099,16 +4099,16 @@ msgstr ""
 msgid "Failed to load block plugin `%s'\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/mesh/gnunet-service-mesh.c:4161
+#: src/mesh/gnunet-service-mesh.c:4170
 msgid "MESH: Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:4365
+#: src/mesh/gnunet-service-mesh.c:4374
 #, fuzzy
 msgid "Mesh service is lacking key configuration settings.  Exiting.\n"
 msgstr "立即保存配置？"
 
-#: src/mesh/gnunet-service-mesh.c:4374
+#: src/mesh/gnunet-service-mesh.c:4383
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"

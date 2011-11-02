@@ -1583,11 +1583,6 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
   struct NeighbourMapEntry *n;
   struct GNUNET_TIME_Relative ret;
 
-  if (NULL != getenv ("infinitebandwidth"))
-    {
-      *do_forward = GNUNET_YES;
-      return GNUNET_TIME_UNIT_ZERO;
-    }
   GNUNET_assert (neighbours != NULL);
 
   n = lookup_neighbour (sender);

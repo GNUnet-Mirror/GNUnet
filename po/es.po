@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0e\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-10-31 18:51+0100\n"
+"POT-Creation-Date: 2011-10-31 18:55+0100\n"
 "PO-Revision-Date: 2006-06-29 12:05+0200\n"
 "Last-Translator: Miguel Angel Arruga <miguel.13@telefonica.net>\n"
 "Language-Team: Spanish\n"
@@ -4291,16 +4291,16 @@ msgstr "Probando transporte(s) %s\n"
 msgid "Failed to load block plugin `%s'\n"
 msgstr "Imposible inicializar la aplicación '%s'\n"
 
-#: src/mesh/gnunet-service-mesh.c:4161
+#: src/mesh/gnunet-service-mesh.c:4170
 msgid "MESH: Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:4365
+#: src/mesh/gnunet-service-mesh.c:4374
 #, fuzzy
 msgid "Mesh service is lacking key configuration settings.  Exiting.\n"
 msgstr "Configuración de GNUnet"
 
-#: src/mesh/gnunet-service-mesh.c:4374
+#: src/mesh/gnunet-service-mesh.c:4383
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "Imposible acceder a la información del espacio.\n"

@@ -160,8 +160,6 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker, fsize);
   else
     delay = GNUNET_TIME_UNIT_ZERO;
-  if (NULL != getenv ("infinitebandwidth"))
-    delay = GNUNET_TIME_UNIT_ZERO;
   if (delay.rel_value > 0)
   {
     fc->task = GNUNET_SCHEDULER_add_delayed (delay, &transmit_next, fc);
@@ -210,8 +208,6 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fc->last_round = GNUNET_TIME_absolute_get ();
     fc->wack = GNUNET_YES;
   }
-  if (NULL != getenv ("infinitebandwidth"))
-    delay = GNUNET_TIME_UNIT_ZERO;
   fc->proc_busy = GNUNET_YES;
   fc->delay_until = GNUNET_TIME_relative_to_absolute (delay);
   fc->proc (fc->proc_cls, &fh->header);
