@@ -125,6 +125,27 @@ struct tunnel_state
   struct GNUNET_MESH_TransmitHandle *th;
 };
 
+static void
+client_disconnect(void* cls, struct GNUNET_SERVER_Client *client)
+{
+  if (NULL == head) return;
+
+  struct answer_packet_list *element = head;
+  while (element != NULL)
+    {
+      if (element->client == client)
+        {
+          GNUNET_SERVER_client_drop(client);
+          GNUNET_CONTAINER_DLL_remove(head, tail, element);
+          struct answer_packet_list* t = element;
+          element = element->next;
+          GNUNET_free(t);
+        }
+      else
+        element = element->next;
+    }
+}
+
 /**
  * Hijack all outgoing DNS-Traffic but for traffic leaving "our" port.
  */
@@ -238,14 +259,14 @@ send_answer (void *cls, size_t size, void *buf)
 
   GNUNET_CONTAINER_DLL_remove (head, tail, query);
 
-  GNUNET_free (query);
-
   /* When more data is to be sent, reschedule */
   if (head != NULL)
-    server_notify = GNUNET_SERVER_notify_transmit_ready (cls, ntohs (head->pkt.hdr.size),
+    server_notify = GNUNET_SERVER_notify_transmit_ready (head->client, ntohs (head->pkt.hdr.size),
                                                          GNUNET_TIME_UNIT_FOREVER_REL,
-                                                         &send_answer, cls);
+                                                         &send_answer, NULL);
 
+  GNUNET_SERVER_client_drop(query->client);
+  GNUNET_free (query);
   return len;
 }
 
@@ -496,7 +517,7 @@ receive_mesh_answer (void *cls
       + sizeof (struct dns_record_line) - 1 + 16;       /* To hold the IPv6-Address */
 
   struct answer_packet_list *answer =
-      GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
+      GNUNET_malloc (len + sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
 
   answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
   answer->pkt.hdr.size = htons (len);
@@ -599,12 +620,13 @@ receive_mesh_answer (void *cls
                                (unsigned long) (&answer->pkt)));
 
   GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
+  answer->client = query_states[dns->s.id].client;
 
   if (server_notify == NULL)
     server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client, len,
                                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                                          &send_answer,
-                                                         query_states[dns->s.id].client);
+                                                         NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sent answer of length %d on to client, addroffset = %d\n", len,
@@ -639,7 +661,7 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       2 /* We do not know the lenght of the answer yet */ ;
 
   struct answer_packet_list *answer =
-      GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
+      GNUNET_malloc (len + sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
 
   answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
   answer->pkt.hdr.size = htons (len);
@@ -692,11 +714,12 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                (unsigned long) (&answer->pkt)));
 
   GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
+  answer->client = query_states[id].client;
 
   if (server_notify == NULL)
     server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
                                                          GNUNET_TIME_UNIT_FOREVER_REL,
-                                                         &send_answer, query_states[id].client);
+                                                         &send_answer, NULL);
 }
 
 /**
@@ -739,11 +762,13 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
       + sizeof (struct dns_record_line) - 1 + 16;       /* To hold the IPv6-Address */
 
   struct answer_packet_list *answer =
-      GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
+      GNUNET_malloc (len +
+                     sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
 
   answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
   answer->pkt.hdr.size = htons (len);
   answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_SERVICE;
+  answer->client = query_states[id].client;
 
   GNUNET_CRYPTO_hash (&rec->peer,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
@@ -808,9 +833,9 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
   GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
   if (server_notify == NULL)
-    server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
+    server_notify = GNUNET_SERVER_notify_transmit_ready (answer->client, len,
                                                          GNUNET_TIME_UNIT_FOREVER_REL,
-                                                         &send_answer, query_states[id].client);
+                                                         &send_answer, NULL);
 }
 
 /**
@@ -841,6 +866,7 @@ receive_query (void *cls
 
   query_states[dns->s.id].valid = GNUNET_YES;
   query_states[dns->s.id].client = client;
+  GNUNET_SERVER_client_keep(client);
   memcpy(query_states[dns->s.id].local_ip, pkt->orig_from, pkt->addrlen);
   query_states[dns->s.id].addrlen = pkt->addrlen;
   query_states[dns->s.id].local_port = pkt->src_port;
@@ -1329,7 +1355,7 @@ handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, i
 
           size_t len = sizeof (struct answer_packet) + r - 1;     /* 1 for the unsigned char data[1]; */
           struct answer_packet_list *answer =
-            GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
+            GNUNET_malloc (len + sizeof(struct answer_packet_list) - (sizeof(struct answer_packet)));
           answer->pkt.hdr.type =
             htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
           answer->pkt.hdr.size = htons (len);
@@ -1355,6 +1381,7 @@ handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, i
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "sending answer with addrlen = %d\n", addrlen);
           answer->pkt.dst_port = query_states[dns->s.id].local_port;
           memcpy (answer->pkt.data, dns, r);
+          answer->client = query_states[dns->s.id].client;
 
           GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
 
@@ -1362,7 +1389,7 @@ handle_response(struct dns_pkt* dns, struct sockaddr *addr, socklen_t addrlen, i
             server_notify = GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
                                                                  len, GNUNET_TIME_UNIT_FOREVER_REL,
                                                                  &send_answer,
-                                                                 query_states[dns->s.id].client);
+                                                                 NULL);
         }
     }
   GNUNET_free(addr);
@@ -1662,6 +1689,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   dht = GNUNET_DHT_connect (cfg, 1024);
   GNUNET_SCHEDULER_add_now (publish_names, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_disconnect_notify(server, &client_disconnect, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 cls);
 }

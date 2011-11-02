@@ -574,7 +574,7 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     list =
         GNUNET_malloc (htons (pkt->hdr.size) +
-                       2 * sizeof (struct answer_packet_list *));
+                       sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
 
     memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
 
@@ -622,8 +622,8 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     char *name = (char *) (map_entry + 1);
 
     list =
-        GNUNET_malloc (2 * sizeof (struct answer_packet_list *) + offset + 2 +
-                       ntohs (namelen));
+      GNUNET_malloc (sizeof(struct answer_packet_list) - sizeof(struct answer_packet) + offset + 2 +
+                     ntohs (namelen));
 
     struct answer_packet *rpkt = &list->pkt;
 
@@ -641,7 +641,7 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     list =
         GNUNET_malloc (htons (pkt->hdr.size) +
-                       2 * sizeof (struct answer_packet_list *));
+                       sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
     memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
   }
   else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA)
@@ -701,7 +701,7 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     list =
         GNUNET_malloc (htons (pkt->hdr.size) +
-                       2 * sizeof (struct answer_packet_list *));
+                       sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
 
     memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
   }
@@ -763,7 +763,7 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     list =
         GNUNET_malloc (htons (pkt->hdr.size) +
-                       2 * sizeof (struct answer_packet_list *));
+                       sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
 
     memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
   }

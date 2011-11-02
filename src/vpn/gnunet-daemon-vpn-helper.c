@@ -344,7 +344,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
           size_t len = sizeof (struct query_packet) + ntohs (pkt6_udp->udp_hdr.len) - 9;
 
           struct query_packet_list *query =
-            GNUNET_malloc (len + 2 * sizeof (struct query_packet_list *));
+            GNUNET_malloc (len + sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
           query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
           query->pkt.hdr.size = htons (len);
           memcpy(query->pkt.orig_to, &pkt6->ip6_hdr.dadr, 16);
@@ -538,7 +538,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
       size_t len = sizeof (struct query_packet) + ntohs (udp->udp_hdr.len) - 9;
 
       struct query_packet_list *query =
-          GNUNET_malloc (len + 2 * sizeof (struct query_packet_list *));
+          GNUNET_malloc (len + sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
       query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
       query->pkt.hdr.size = htons (len);
       memcpy(query->pkt.orig_to, &pkt->ip_hdr.dadr, 4);

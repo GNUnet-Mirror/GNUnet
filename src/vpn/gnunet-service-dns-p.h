@@ -102,10 +102,10 @@ struct answer_packet
   unsigned char data[1];
 };
 
-struct answer_packet_list
-{
+struct answer_packet_list {
   struct answer_packet_list *next GNUNET_PACKED;
   struct answer_packet_list *prev GNUNET_PACKED;
+  struct GNUNET_SERVER_Client *client;
   struct answer_packet pkt;
 };
 
