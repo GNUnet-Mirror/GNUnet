@@ -1724,6 +1724,24 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
+ * Search for a tunnel among the incoming tunnels
+ *
+ * @param tid the local id of the tunnel
+ *
+ * @return tunnel handler, NULL if doesn't exist
+ */
+static struct MeshTunnel *
+tunnel_get_incoming (MESH_TunnelNumber tid)
+{
+  GNUNET_HashCode hash;
+
+  GNUNET_assert (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV);
+  GNUNET_CRYPTO_hash (&tid, sizeof (MESH_TunnelNumber), &hash);
+  return GNUNET_CONTAINER_multihashmap_get (incoming_tunnels, &hash);
+}
+
+
+/**
  * Search for a tunnel among the tunnels for a client
  *
  * @param c the client whose tunnels to search in
@@ -1734,14 +1752,17 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static struct MeshTunnel *
 tunnel_get_by_local_id (struct MeshClient *c, MESH_TunnelNumber tid)
 {
-  GNUNET_HashCode hash;
-
-  GNUNET_CRYPTO_hash (&tid, sizeof (MESH_TunnelNumber), &hash);
   if (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
-    return GNUNET_CONTAINER_multihashmap_get (incoming_tunnels, &hash);
+    return tunnel_get_incoming (tid);
   }
-  return GNUNET_CONTAINER_multihashmap_get (c->tunnels, &hash);
+  else
+  {
+    GNUNET_HashCode hash;
+
+    GNUNET_CRYPTO_hash (&tid, sizeof (MESH_TunnelNumber), &hash);
+    return GNUNET_CONTAINER_multihashmap_get (c->tunnels, &hash);
+  }
 }
 
 
@@ -2491,9 +2512,10 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     t = GNUNET_malloc (sizeof (struct MeshTunnel));
     t->id.oid = GNUNET_PEER_intern (pi);
     t->id.tid = tid;
+    while (NULL != tunnel_get_incoming (next_local_tid))
+      next_local_tid = (next_local_tid + 1) | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
     t->local_tid = next_local_tid++;
-    /* FIXME test if taken */
-    next_local_tid |= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
+    next_local_tid = next_local_tid | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
     t->tree = tree_new(t, t->id.oid);
 
     GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
@@ -3536,6 +3558,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   while (NULL != tunnel_get_by_pi (myid, next_tid))
     next_tid = (next_tid + 1) & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   t->id.tid = next_tid++;
+  next_tid = next_tid & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   t->id.oid = myid;
   t->local_tid = ntohl (t_msg->tunnel_id);
 #if MESH_DEBUG
