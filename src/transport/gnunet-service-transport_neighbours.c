@@ -1387,9 +1387,12 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to peer `%s'\n",
               GNUNET_i2s (target));
 #endif
-  GNUNET_assert (0 !=
-                 memcmp (target, &GST_my_identity,
-                         sizeof (struct GNUNET_PeerIdentity)));
+  if (0 == memcmp (target, &GST_my_identity,
+                   sizeof (struct GNUNET_PeerIdentity)))
+  {
+    /* my own hello */
+    return;
+  }
   n = lookup_neighbour (target);
 
   if (NULL != n)

@@ -1454,15 +1454,6 @@ udp_broadcast_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     return;
   }
 
- if (GNUNET_YES == GNUNET_NAT_test_address (plugin->nat,
-     &((struct sockaddr_in *) addr)->sin_addr,
-     sizeof (struct in_addr)))
-  {
-   /* received my own beacon */
-   return;
-  }
-
-
   mc = GNUNET_malloc(sizeof (struct MstContext));
 
   struct sockaddr_in * av4 = (struct sockaddr_in *) &addr;
@@ -2105,6 +2096,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
       if (GNUNET_NETWORK_socket_bind (plugin->sockv4_broadcast, serverAddr, addrlen) != GNUNET_OK)
       {
+          LOG (GNUNET_ERROR_TYPE_WARNING, _("Failed to create IPv4 broadcast socket on port %d\n"),
+                    ntohs (serverAddrv4.sin_port));
           GNUNET_NETWORK_socket_close (plugin->sockv4_broadcast);
           plugin->sockv4_broadcast = NULL;
       }
@@ -2113,6 +2106,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
         int yes = 1;
         if (GNUNET_NETWORK_socket_setsockopt (plugin->sockv4_broadcast, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(int)) != GNUNET_OK)
         {
+          LOG (GNUNET_ERROR_TYPE_WARNING, _("Failed to set IPv4 broadcast option for broadcast socket on port %d\n"),
+                      ntohs (serverAddrv4.sin_port));
           GNUNET_NETWORK_socket_close(plugin->sockv4_broadcast);
           plugin->sockv4_broadcast = NULL;
         }
