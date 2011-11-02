@@ -335,6 +335,11 @@ struct GNUNET_NAT_Handle
   int use_localaddresses;
 
   /**
+   * Should we return local addresses to clients
+   */
+  int return_localaddress;
+
+  /**
    * Should we do a DNS lookup of our hostname to find out our own IP?
    */
   int use_hostname;
@@ -642,9 +647,19 @@ process_interfaces (void *cls, const char *name, int isDefault,
   case AF_INET:
     s4 = (struct sockaddr_in *) addr;
     ip = &s4->sin_addr;
+
+    /* Check if address is in 127.0.0.0/8 */
+    uint32_t address = ntohl((in_addr_t)(s4->sin_addr.s_addr));
+    uint32_t value = (address & 0xFF000000) ^ 0x7F000000;
+    if ((h->return_localaddress == GNUNET_NO) && (value == 0))
+    {
+      return GNUNET_OK;
+    }
     if (GNUNET_YES == h->use_localaddresses)
+    {
       add_ip_to_address_list (h, LAL_INTERFACE_ADDRESS, &s4->sin_addr,
                               sizeof (struct in_addr));
+    }
     break;
   case AF_INET6:
     s6 = (struct sockaddr_in6 *) addr;
@@ -653,10 +668,17 @@ process_interfaces (void *cls, const char *name, int isDefault,
       /* skip link local addresses */
       return GNUNET_OK;
     }
+    if ((h->return_localaddress == GNUNET_NO) &&
+        (IN6_IS_ADDR_LOOPBACK (&((struct sockaddr_in6 *) addr)->sin6_addr)))
+    {
+      return GNUNET_OK;
+    }
     ip = &s6->sin6_addr;
     if (GNUNET_YES == h->use_localaddresses)
+    {
       add_ip_to_address_list (h, LAL_INTERFACE_ADDRESS, &s6->sin6_addr,
                               sizeof (struct in6_addr));
+    }
     break;
   default:
     GNUNET_break (0);
@@ -1116,6 +1138,9 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "ENABLE_UPNP");
   h->use_localaddresses =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "USE_LOCALADDR");
+  h->return_localaddress =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "RETURN_LOCAL_ADDRESSES");
+
   h->use_hostname =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "USE_HOSTNAME");
   h->disable_ipv6 =
