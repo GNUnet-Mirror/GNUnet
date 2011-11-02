@@ -1,39 +1,39 @@
+/*
+ This file is part of GNUnet
+ (C) 2011 Christian Grothoff (and other contributing authors)
 
-#include <sys/types.h>
+ GNUnet is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published
+ by the Free Software Foundation; either version 3, or (at your
+ option) any later version.
+
+ GNUnet is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with GNUnet; see the file COPYING.  If not, write to the
+ Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ Boston, MA 02111-1307, USA.
+ */
+
+/**
+ * @file transport/gnunet_wlan_sender.c
+ * @brief program to send via WLAN as much as possible
+ * @author David Brodski
+ */
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#define WLAN_MTU 1500
-
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <netpacket/packet.h>
-#include <linux/if_ether.h>
-#include <linux/if.h>
-#include <linux/wireless.h>
 #include <netinet/in.h>
-#include <linux/if_tun.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <dirent.h>
-//#include <sys/utsname.h>
-#include <sys/param.h>
-
 #include <time.h>
-
-
 #include "gnunet/gnunet_protocols.h"
 #include "plugin_transport_wlan.h"
+
+#define WLAN_MTU 1500
 
 /**
  * LLC fields for better compatibility
@@ -73,8 +73,6 @@ struct ieee80211_frame
 
 /**
  * function to fill the radiotap header
- * @param plugin pointer to the plugin struct
- * @param endpoint pointer to the endpoint
  * @param header pointer to the radiotap header
  * @return GNUNET_YES at success
  */
@@ -93,8 +91,8 @@ getRadiotapHeader ( struct Radiotap_Send *header)
 /**
  * function to generate the wlan hardware header for one packet
  * @param Header address to write the header to
- * @param to_mac_addr address of the recipient
- * @param plugin pointer to the plugin struct
+ * @param to_mac_addr pointer to the address of the recipient
+ * @param mac pointer to the mac address to send from (normally overwritten over by helper)
  * @param size size of the whole packet, needed to calculate the time to send the packet
  * @return GNUNET_YES if there was no error
  */
@@ -118,45 +116,15 @@ getWlanHeader (struct ieee80211_frame *Header,
   Header->llc[0] = WLAN_LLC_DSAP_FIELD;
   Header->llc[1] = WLAN_LLC_SSAP_FIELD;
 
-#if DEBUG_wlan_ip_udp_packets_on_air > 1
-  uint crc = 0;
-  uint16_t *x;
-  int count;
-
-  Header->ip.ip_dst.s_addr = *((uint32_t *) & to_mac_addr->mac[2]);
-  Header->ip.ip_src.s_addr = *((uint32_t *) & plugin->mac_address.mac[2]);
-  Header->ip.ip_v = 4;
-  Header->ip.ip_hl = 5;
-  Header->ip.ip_p = 17;
-  Header->ip.ip_ttl = 1;
-  Header->ip.ip_len = htons (size + 8);
-  Header->ip.ip_sum = 0;
-  x = (uint16_t *) & Header->ip;
-  count = sizeof (struct iph);
-  while (count > 1)
-  {
-    /* This is the inner loop */
-    crc += (unsigned short) *x++;
-    count -= 2;
-  }
-  /* Add left-over byte, if any */
-  if (count > 0)
-    crc += *(unsigned char *) x;
-  crc = (crc & 0xffff) + (crc >> 16);
-  Header->ip.ip_sum = htons (~(unsigned short) crc);
-  Header->udp.len = htons (size - sizeof (struct ieee80211_frame));
-
-#endif
-
   return GNUNET_YES;
 }
 
 int main(int argc, char *argv[]){
 	struct GNUNET_MessageHeader *msg;
-	struct GNUNET_MessageHeader *msg2;
 	struct ieee80211_frame *wlan_header;
 	struct Radiotap_Send *radiotap;
 
+	unsigned int temp[6];
 	char inmac[6];
 	char outmac[6];
 	int pos;
@@ -164,19 +132,19 @@ int main(int argc, char *argv[]){
 	double bytes_per_s;
 	time_t start;
 	time_t akt;
+	int i;
 
 	if (4 != argc) {
 		fprintf(
 				stderr,
 				"This program must be started with the interface and the targets and source mac as argument.\nThis program was compiled at ----- %s ----\n",
 				__TIMESTAMP__);
-		fprintf(stderr, "Usage: interface-name mac-target mac-source\n" "\n");
+		fprintf(stderr, "Usage: interface-name mac-target mac-source\n" "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
 		return 1;
 	}
 
 
 	pid_t pid;
-	int rv;
 	int	commpipe[2];		/* This holds the fd for the input & output of the pipe */
 
 	/* Setup communication pipeline first */
@@ -193,12 +161,17 @@ int main(int argc, char *argv[]){
 
 	if(pid){
 		/* A positive (non-negative) PID indicates the parent process */
-		//dup2(commpipe[1],1);	/* Replace stdout with out side of the pipe */
 		close(commpipe[0]);		/* Close unused side of pipe (in side) */
 		setvbuf(stdout,(char*)NULL,_IONBF,0);	/* Set non-buffered output on stdout */
 
-		sscanf(argv[3], "%x-%x-%x-%x-%x-%x", &inmac[0],&inmac[1],&inmac[2],&inmac[3],&inmac[4],&inmac[5]);
-		sscanf(argv[2], "%x-%x-%x-%x-%x-%x", &outmac[0],&outmac[1],&outmac[2],&outmac[3],&outmac[4],&outmac[5]);
+		sscanf(argv[3], "%x-%x-%x-%x-%x-%x", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4],&temp[5]);
+		for (i = 0; i < 6; i++){
+			inmac[i] = temp[i];
+		}
+		sscanf(argv[2], "%x-%x-%x-%x-%x-%x", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4],&temp[5]);
+		for (i = 0; i < 6; i++){
+			outmac[i] = temp[i];
+		}
 
 		msg = malloc(WLAN_MTU);
 		msg->type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
@@ -226,16 +199,6 @@ int main(int argc, char *argv[]){
 			}
 
 		}
-		/*
-		sleep(2);
-		printf("Hello\n");
-		sleep(2);
-		printf("Goodbye\n");
-		sleep(2);
-		printf("exit\n");
-		*/
-		//wait(&rv);				/* Wait for child process to end */
-		//fprintf(stderr,"Child exited with a %d value\n",rv);
 	}
 	else{
 		/* A zero PID indicates that this is the child process */
@@ -243,7 +206,7 @@ int main(int argc, char *argv[]){
 		close(commpipe[1]);		/* Close unused side of pipe (out side) */
 		/* Replace the child fork with a new process */
 		if(execl("gnunet-transport-wlan-helper","gnunet-transport-wlan-helper", argv[1], NULL) == -1){
-			fprintf(stderr,"execl Error!");
+			fprintf(stderr,"Could not start gnunet-transport-wlan-helper!");
 			exit(1);
 		}
 	}

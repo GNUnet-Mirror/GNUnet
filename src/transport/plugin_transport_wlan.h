@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet
- (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+ (C) 2010, 2011 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -133,18 +133,40 @@ struct Radiotap_Send
 #define has_channel 4
 
 /**
- * struct to represent infos gathered form the radiotap fields
+ * struct to represent infos gathered form the radiotap fields, see RadiotapHeader for more Infos
  */
 
 struct Radiotap_rx
 {
   uint32_t ri_present;
+  /**
+   * IEEE80211_RADIOTAP_TSFT
+   */
   uint64_t ri_mactime;
+  /**
+   * from radiotap
+   * either IEEE80211_RADIOTAP_DBM_ANTSIGNAL
+   * or IEEE80211_RADIOTAP_DB_ANTSIGNAL
+   */
   int32_t ri_power;
+  /**
+   * either IEEE80211_RADIOTAP_DBM_ANTNOISE
+   * or IEEE80211_RADIOTAP_DB_ANTNOISE
+   */
   int32_t ri_noise;
+  /**
+   * IEEE80211_RADIOTAP_CHANNEL
+   */
   uint32_t ri_channel;
+
   uint32_t ri_freq;
+  /**
+   * IEEE80211_RADIOTAP_RATE * 50000
+   */
   uint32_t ri_rate;
+  /**
+   * IEEE80211_RADIOTAP_ANTENNA
+   */
   uint32_t ri_antenna;
 };
 

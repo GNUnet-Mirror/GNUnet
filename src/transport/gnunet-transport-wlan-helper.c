@@ -28,6 +28,10 @@
  * gnunet
  */
 
+/**
+ * parts taken from aircrack-ng, parts changend.
+ */
+
 #define _GNU_SOURCE
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -92,40 +96,6 @@
 
 #define MAC_ADDR_SIZE 6
 
-//Part taken from file ieee80211.h
-/*-
- * Copyright (c) 2001 Atsushi Onoe
- * Copyright (c) 2002-2005 Sam Leffler, Errno Consulting
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
- *
- * Alternatively, this software may be distributed under the terms of the
- * GNU General Public License ("GPL") version 2 as published by the Free
- * Software Foundation.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * $FreeBSD: src/sys/net80211/ieee80211.h,v 1.12 2006/12/01 18:40:51 imp Exp $
- */
 
 #define IEEE80211_ADDR_LEN      6       /* size of 802.11 address */
 
@@ -144,13 +114,21 @@ struct ieee80211_frame
   /* see below */
 } GNUNET_PACKED;
 
-// End taken part
-
+/**
+ * struct for storing the information of the hardware
+ */
 struct Hardware_Infos
 {
 
+  /**
+  * send buffer
+  */
   struct sendbuf write_pout;
+  /**
+   * file descriptor for the raw socket
+   */
   int fd_raw;
+
   int arptype_in;
 
   /**
@@ -173,6 +151,12 @@ int
 getChannelFromFrequency (int frequency);
 
 // FIXME: make nice...
+/**
+ * function to calculate the crc, the start of the calculation
+ * @param buf buffer to calc the crc
+ * @param len len of the buffer
+ * @return crc sum
+ */
 static unsigned long
 calc_crc_osdep (unsigned char *buf, int len)
 {
@@ -187,7 +171,12 @@ calc_crc_osdep (unsigned char *buf, int len)
 /* CRC checksum verification routine */
 
 // FIXME: make nice...
-// fixme doxigen
+/**
+ * Function to check crc of the wlan packet
+ * @param buf buffer of the packet
+ * @param len len of the data
+ * @return crc sum of the data
+ */
 static int
 check_crc_buf_osdep (unsigned char *buf, int len)
 {
@@ -204,7 +193,11 @@ check_crc_buf_osdep (unsigned char *buf, int len)
 
 
 // FIXME: make nice...
-//fixme doxigen
+/**
+ * function to get the channel of a specific wlan card
+ * @param dev pointer to the dev struct of the card
+ * @return channel number
+ */
 static int
 linux_get_channel (struct Hardware_Infos *dev)
 {
@@ -236,7 +229,14 @@ linux_get_channel (struct Hardware_Infos *dev)
 
 
 // FIXME: make nice...
-//FIXME doxigen
+/**
+ * function to read from a wlan card
+ * @param dev pointer to the struct of the wlan card
+ * @param buf buffer to read to
+ * @param buf_size size of the buffer
+ * @param ri radiotap_rx info
+ * @return size read from the buffer
+ */
 static ssize_t
 linux_read (struct Hardware_Infos *dev, unsigned char *buf,     /* FIXME: void*? */
             size_t buf_size, struct Radiotap_rx *ri)
@@ -420,8 +420,9 @@ linux_read (struct Hardware_Infos *dev, unsigned char *buf,     /* FIXME: void*?
   return caplen;
 }
 
-//FIXME doxigen
 /**
+ * function to open the device for read/write
+ * @param dev pointer to the device struct
  * @return 0 on success
  */
 static int
@@ -535,6 +536,9 @@ openraw (struct Hardware_Infos *dev)
 }
 
 /**
+ * function to prepare the helper, e.g. sockets, device...
+ * @param dev struct for the device
+ * @param iface name of the interface
  * @return 0 on success
  */
 static int
@@ -615,7 +619,12 @@ mac_set (struct ieee80211_frame *u8aIeeeHeader,
 
 }
 
-//FIXME: doxigen
+/**
+ * function to process the data from the stdin
+ * @param cls pointer to the device struct
+ * @param client not used
+ * @param hdr pointer to the start of the packet
+ */
 static void
 stdin_send_hw (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 {
@@ -676,6 +685,12 @@ stdin_send_hw (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 }
 
 #if 0
+/**
+ * Function to make test packets with special options
+ * @param buf buffer to write the data to
+ * @param dev device to send the data from
+ * @return size of packet (what should be send)
+ */
 static int
 maketest (unsigned char *buf, struct Hardware_Infos *dev)
 {
@@ -756,27 +771,11 @@ maketest (unsigned char *buf, struct Hardware_Infos *dev)
 
 
 /**
- * function to create GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL message for plugin
- * @param buffer pointer to buffer for the message
- * @param mac pointer to the mac address
- * @return number of bytes written
+ * Function to start the hardware for the wlan helper
+ * @param argc number of arguments
+ * @param argv arguments
+ * @return returns one on error
  */
-// FIXME: use 'struct MacAddress' for 'mac' (everywhere in this file)
-/*
-static int
-send_mac_to_plugin (char *buffer, struct MacAddress * mac)
-{
-  struct Wlan_Helper_Control_Message macmsg;
-
-  macmsg.hdr.size = htons (sizeof (struct Wlan_Helper_Control_Message));
-  macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
-  memcpy (macmsg.mac, mac, sizeof (struct MacAddress));
-  memcpy (buffer, &macmsg, sizeof (struct Wlan_Helper_Control_Message));
-  return sizeof (struct Wlan_Helper_Control_Message);
-}
-*/
-
-//FIXME: doxigen
 static int
 hardwaremode (int argc, char *argv[])
 {
@@ -938,6 +937,12 @@ hardwaremode (int argc, char *argv[])
   return 1;
 }
 
+/**
+ * main function of the helper
+ * @param argc number of arguments
+ * @param argv arguments
+ * @return 0 on success, 1 on error
+ */
 int
 main (int argc, char *argv[])
 {
@@ -974,6 +979,8 @@ main (int argc, char *argv[])
 
 /**
  * Return the frequency in Mhz from a channel number
+ * @param channel number of the channel
+ * @return frequency of the channel
  */
 int
 getFrequencyFromChannel (int channel)
@@ -1013,6 +1020,8 @@ getFrequencyFromChannel (int channel)
 
 /**
  * Return the channel from the frequency (in Mhz)
+ * @param frequency of the channel
+ * @return number of the channel
  */
 int
 getChannelFromFrequency (int frequency)

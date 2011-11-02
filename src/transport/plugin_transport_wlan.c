@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet
- (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+ (C) 2010 2011 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -1234,6 +1234,7 @@ free_fragment_message (struct Plugin *plugin, struct FragmentMessage *fm)
     (session->mac->fragment_messages_out_count)--;
     session->fragment_messages_out_count--;
     plugin->pending_Fragment_Messages--;
+    GNUNET_STATISTICS_set(plugin->env->stats, _("# wlan pending fragments"), plugin->pending_Fragment_Messages, GNUNET_NO);
     GNUNET_CONTAINER_DLL_remove (endpoint->sending_messages_head,
                                  endpoint->sending_messages_tail, fm);
     GNUNET_FRAGMENT_context_destroy (fm->fragcontext);
@@ -1396,7 +1397,7 @@ add_message_for_send (void *cls, const struct GNUNET_MessageHeader *hdr)
   uint16_t size;
 
 #if DEBUG_wlan_retransmission > 1
-  GNUNET_loHELLO_BEACON_SCALING_FACTORg_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                    "Adding fragment of message %p to send, session %p, endpoint %p, type %u\n",
                    fm, fm->session, endpoint, hdr->type);
 #endif
@@ -1933,6 +1934,7 @@ check_fragment_queue (struct Plugin *plugin)
       session->mac->fragment_messages_out_count++;
       session->fragment_messages_out_count++;
       plugin->pending_Fragment_Messages++;
+      GNUNET_STATISTICS_set(plugin->env->stats, _("# wlan pending fragments"), plugin->pending_Fragment_Messages, GNUNET_NO);
 
       fm = GNUNET_malloc (sizeof (struct FragmentMessage));
       fm->session = session;
@@ -2704,7 +2706,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
  * @param cls the plugin handle
  * @param session_light pointer to the struct holding known informations
  * @param hdr hdr of the GNUNET_MessageHeader
- * @param rxinfo pointer to the radiotap informations got with this packet
+ * @param rxinfo pointer to the radiotap informations got with this packet FIXME: give ATS for info
  */
 static void
 wlan_data_helper (void *cls, struct Session_light *session_light,
@@ -3059,7 +3061,7 @@ wlan_process_helper (void *cls, void *client,
         memcpy (&session_light->addr, &(wlanIeeeHeader->i_addr2),
                 sizeof (struct MacAddress));
         //session_light->session = search_session(plugin,session_light->addr);
-        GNUNET_STATISTICS_update (plugin->env->stats, _("# wlan messaged for this client received"), 1, GNUNET_NO);
+        GNUNET_STATISTICS_update (plugin->env->stats, _("# wlan messages for this client received"), 1, GNUNET_NO);
 
         pos = 0;
         while (pos < datasize)
@@ -3067,7 +3069,7 @@ wlan_process_helper (void *cls, void *client,
           temp_hdr = (struct GNUNET_MessageHeader *) &wlanIeeeHeader[1] + pos;
           if (ntohs(temp_hdr->size) <= datasize + pos)
             {
-              GNUNET_STATISTICS_update (plugin->env->stats, _("# wlan messaged inside WLAN_HELPER_DATA received"), 1, GNUNET_NO);
+              GNUNET_STATISTICS_update (plugin->env->stats, _("# wlan messages inside WLAN_HELPER_DATA received"), 1, GNUNET_NO);
               wlan_data_helper (plugin, session_light, temp_hdr, rxinfo);
             }
           else
