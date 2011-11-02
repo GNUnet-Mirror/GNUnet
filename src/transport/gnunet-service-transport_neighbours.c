@@ -579,7 +579,14 @@ send_with_plugin ( const struct GNUNET_PeerIdentity * target,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   size_t ret = GNUNET_SYSERR;
 
-  GNUNET_assert (plugin_name != NULL);
+  /* FIXME : ats returns an address with all values 0 */
+  if (((plugin_name == NULL) && (addr == NULL) && (addrlen == 0 )) ||
+      ((plugin_name == NULL) && (session == NULL)))
+  {
+    if (cont != NULL)
+      cont (cont_cls, target, GNUNET_SYSERR);
+    return GNUNET_SYSERR;
+  }
   papi = GST_plugins_find (plugin_name);
   if (papi == NULL)
   {
@@ -1000,7 +1007,11 @@ ats_suggest_cancel (void *cls,
 void
 GST_neighbours_stop ()
 {
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return;
+  }
 
   GNUNET_CONTAINER_multihashmap_iterate (neighbours, &disconnect_all_neighbours,
                                          NULL);
@@ -1189,7 +1200,11 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   size_t msg_len;
   size_t ret;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return GNUNET_NO;
+  }
   n = lookup_neighbour (peer);
   if (NULL == n)
   {
@@ -1382,7 +1397,11 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 {
   struct NeighbourMapEntry *n;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return;
+  }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to peer `%s'\n",
               GNUNET_i2s (target));
@@ -1426,7 +1445,11 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
 {
   struct NeighbourMapEntry *n;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return GNUNET_NO;
+  }
 
   n = lookup_neighbour (target);
 
@@ -1448,7 +1471,11 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return;
+  }
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1502,7 +1529,11 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
   struct NeighbourMapEntry *n;
   struct MessageQueue *mq;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return;
+  }
 
   n = lookup_neighbour (target);
   if ((n == NULL) || (!is_connected(n)))
@@ -1583,7 +1614,11 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
   struct NeighbourMapEntry *n;
   struct GNUNET_TIME_Relative ret;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+  }
 
   n = lookup_neighbour (sender);
   if (n == NULL)
@@ -1666,7 +1701,11 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
 {
   struct NeighbourMapEntry *n;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return;
+  }
 
   n = lookup_neighbour (neighbour);
   if (NULL == n)
@@ -1696,7 +1735,11 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
 {
   struct NeighbourMapEntry *n;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return;
+  }
 
   n = lookup_neighbour (neighbour);
   if (n == NULL)
@@ -1772,7 +1815,11 @@ GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls)
 {
   struct IteratorContext ic;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return;
+  }
 
   ic.cb = cb;
   ic.cb_cls = cb_cls;
@@ -1789,7 +1836,11 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
 {
   struct NeighbourMapEntry *n;
 
-  GNUNET_assert (neighbours != NULL);
+  // This can happen during shutdown
+  if (neighbours == NULL)
+  {
+    return;
+  }
 
   n = lookup_neighbour (target);
   if (NULL == n)
