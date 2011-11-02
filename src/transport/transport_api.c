@@ -681,7 +681,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
     }
     th = n->th;
     if (th->notify_size + sizeof (struct OutboundMessage) > size)
-      break;                    /* does not fit */
+      break;                    /* does not fit */    
     if (GNUNET_BANDWIDTH_tracker_get_delay
         (&n->out_tracker, th->notify_size).rel_value > 0)
       break;                    /* too early */
@@ -708,7 +708,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       memcpy (&cbuf[ret], &obm, sizeof (struct OutboundMessage));
       ret += (mret + sizeof (struct OutboundMessage));
       size -= (mret + sizeof (struct OutboundMessage));
-      GNUNET_BANDWIDTH_tracker_consume (&n->out_tracker, mret);
+      if (NULL == getenv ("infinite-bandwidth"))
+	GNUNET_BANDWIDTH_tracker_consume (&n->out_tracker, mret);
     }
     GNUNET_free (th);
   }
