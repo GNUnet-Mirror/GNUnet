@@ -1972,6 +1972,16 @@ tunnel_notify_connection_broken (struct MeshTunnel *t,
 }
 
 
+struct AliasedData
+{
+  unsigned int reference_counter;
+
+  size_t data_len;
+
+  void *data;
+};
+
+
 /**
  * Send a message in a tunnel in multicast, sending a copy to each child node
  * down the local one in the tunnel tree.
@@ -2026,9 +2036,13 @@ tunnel_send_multicast (struct MeshTunnel *t,
   while (NULL != n)
   {
     info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
+    // info->shared_data = aliased_data;
+    // info->shared_data->reference_counter++;
+
     info->data = data;
     info->size = size;
     info->copies = copies;
+
     if (NULL != t->client)
     {
       info->client = t->client->handle;
