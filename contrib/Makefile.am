@@ -1,3 +1,6 @@
+INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
+
+
 if !MINGW
 noinst_PROGRAMS = \
  timeout_watchdog
@@ -36,3 +39,9 @@ do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 # junklookup.sh \
 # namespacehelper.sh 
 
+
+check_PROGRAMS = \
+ test_gnunet_prefix
+
+test_gnunet_prefix_SOURCES = \
+ test_gnunet_prefix.c
