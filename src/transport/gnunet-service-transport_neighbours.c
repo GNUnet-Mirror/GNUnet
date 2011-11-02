@@ -1230,7 +1230,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending outbound quota of %u Bps and inbound quota of % Bps for peer `%s' to all clients\n",
+              "Sending outbound quota of %u Bps and inbound quota of %u Bps for peer `%s' to all clients\n",
               ntohl (n->bandwidth_out.value__),
               ntohl (n->bandwidth_in.value__),
               GNUNET_i2s (peer));
