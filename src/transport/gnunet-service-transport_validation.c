@@ -750,8 +750,8 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
   uint16_t hsize;
 
   ve->bc = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting plain PING to `%s'\n",
-              GNUNET_i2s (pid));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting plain PING to `%s' %s\n",
+              GNUNET_i2s (pid), GST_plugins_a2s (ve->transport_name, ve->addr, ve->addrlen));
 
   slen = strlen (ve->transport_name) + 1;
   hello = GST_hello_get ();
@@ -1043,6 +1043,8 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
     GNUNET_break (0);
     return;
   }
+  if (0 == memcmp (&GST_my_identity, &vac.pid, sizeof (struct GNUNET_PeerIdentity)))
+    return;
   /* Add peer identity without addresses to peerinfo service */
   h = GNUNET_HELLO_create (&vac.public_key, NULL, NULL);
   GNUNET_PEERINFO_add_peer (GST_peerinfo, h);
