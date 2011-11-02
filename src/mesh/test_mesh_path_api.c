@@ -40,9 +40,9 @@ struct GNUNET_PeerIdentity* pi[10];
 struct MeshTunnelTree *tree;
 
 static void
-cb (const struct MeshTunnelTreeNode *n)
+cb (void *cls, GNUNET_PEER_Id peer_id)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: CB: Disconnected %u\n", n->peer);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: CB: Disconnected %u\n", peer_id);
   if(0 == cb_call)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test:      and it shouldn't!\n");
@@ -181,7 +181,7 @@ main (int argc, char *argv[])
   path->length = 4;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding first path: 1 2 3 4\n");
-  tree_add_path(tree, path, &cb);
+  tree_add_path(tree, path, &cb, NULL);
   tree_debug(tree);
   path1 = tree_get_path_to_peer(tree, 4);
   if (path->length != path1->length ||
@@ -198,7 +198,7 @@ main (int argc, char *argv[])
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding second path: 1 2 3\n");
   path->length--;
-  tree_add_path(tree, path, &cb);
+  tree_add_path(tree, path, &cb, NULL);
   tree_debug(tree);
 
   test_assert (4, MESH_PEER_SEARCHING, 0, 2);
@@ -209,7 +209,7 @@ main (int argc, char *argv[])
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding third path...\n");
   path->length++;
   path->peers[3] = 5;
-  tree_add_path(tree, path, &cb);
+  tree_add_path(tree, path, &cb, NULL);
   tree_debug(tree);
 
   test_assert (5, MESH_PEER_SEARCHING, 0, 2);
@@ -222,7 +222,7 @@ main (int argc, char *argv[])
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Deleting third path...\n");
   node->status = MESH_PEER_READY;
   cb_call = 1;
-  node2 = tree_del_path(tree, 5, &cb);
+  node2 = tree_del_path(tree, 5, &cb, NULL);
   tree_debug(tree);
   if (cb_call != 0)
   {
@@ -249,7 +249,7 @@ main (int argc, char *argv[])
   path->peers[1] = 4;
   cb_call = 1;
   tree_find_peer(tree->root, 4)->status = MESH_PEER_READY;
-  tree_add_path(tree, path, cb);
+  tree_add_path(tree, path, &cb, NULL);
   tree_debug(tree);
   if (cb_call != 0)
   {
@@ -287,7 +287,7 @@ main (int argc, char *argv[])
   path->length = 3;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding first path: 1 2 3\n");
-  tree_add_path(tree, path, &cb);
+  tree_add_path(tree, path, &cb, NULL);
   tree_debug(tree);
   tree->me = tree_find_peer (tree->root, 2);
 
@@ -296,7 +296,7 @@ main (int argc, char *argv[])
   test_assert (1, MESH_PEER_ROOT, 1, 0);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "test: Adding same path: 1 2 3\n");
-  tree_add_path(tree, path, &cb);
+  tree_add_path(tree, path, &cb, NULL);
   
   GNUNET_free (path->peers);
   GNUNET_free (path);

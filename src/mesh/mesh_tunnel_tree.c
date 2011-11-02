@@ -293,7 +293,7 @@ tree_node_destroy (struct MeshTunnelTreeNode *parent)
  * @return A newly allocated and initialized tunnel tree
  */
 struct MeshTunnelTree *
-tree_new (struct MeshTunnel *t, GNUNET_PEER_Id peer)
+tree_new (GNUNET_PEER_Id peer)
 {
   struct MeshTunnelTree *tree;
 
@@ -301,8 +301,6 @@ tree_new (struct MeshTunnel *t, GNUNET_PEER_Id peer)
   tree->first_hops = GNUNET_CONTAINER_multihashmap_create(32);
   tree->root = tree_node_new(NULL, peer);
   tree->root->status = MESH_PEER_ROOT;
-  tree->t = t;
-  tree->root->t = t;
 
   return tree;
 }
@@ -344,7 +342,8 @@ tree_find_peer (struct MeshTunnelTreeNode *parent, GNUNET_PEER_Id peer_id)
 static void
 tree_mark_peers_disconnected (struct MeshTunnelTree *tree,
                               struct MeshTunnelTreeNode *parent,
-                              MeshNodeDisconnectCB cb)
+                              MeshNodeDisconnectCB cb,
+                              void *cbcls)
 {
   struct GNUNET_PeerIdentity *pi;
   struct GNUNET_PeerIdentity id;
@@ -352,12 +351,12 @@ tree_mark_peers_disconnected (struct MeshTunnelTree *tree,
 
   for (n = parent->children_head; NULL != n; n = n->next)
   {
-    tree_mark_peers_disconnected (tree, n, cb);
+    tree_mark_peers_disconnected (tree, n, cb, cbcls);
   }
   if (MESH_PEER_READY == parent->status)
   {
     if (NULL != cb)
-      cb (parent);
+      cb (cbcls, parent->peer);
     parent->status = MESH_PEER_RECONNECTING;
   }
 
@@ -448,6 +447,7 @@ tree_update_first_hops (struct MeshTunnelTree *tree,
  * @param t Tunnel tree where to delete the path from.
  * @param peer Destination peer whose path we want to remove.
  * @param cb Callback to use to notify about disconnected peers.
+ * @param cbcls Closure for cb.
  *
  * @return pointer to the pathless node.
  *         NULL when not found
@@ -455,7 +455,8 @@ tree_update_first_hops (struct MeshTunnelTree *tree,
 struct MeshTunnelTreeNode *
 tree_del_path (struct MeshTunnelTree *t,
                GNUNET_PEER_Id peer_id,
-               MeshNodeDisconnectCB cb)
+               MeshNodeDisconnectCB cb,
+               void *cbcls)
 {
   struct MeshTunnelTreeNode *parent;
   struct MeshTunnelTreeNode *node;
@@ -510,7 +511,7 @@ tree_del_path (struct MeshTunnelTree *t,
              GNUNET_i2s (&id));
 #endif
 
-  tree_mark_peers_disconnected (t, node, cb);
+  tree_mark_peers_disconnected (t, node, cb, cbcls);
 
   return node;
 }
@@ -567,7 +568,8 @@ tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
  *
  * @param t Tunnel where to add the new path.
  * @param p Path to be integrated.
- * @param cb Callback to use to notify about peers temporarily disconnecting
+ * @param cb Callback to use to notify about peers temporarily disconnecting.
+ * @param cbcls Closure for cb.
  *
  * @return GNUNET_OK in case of success.
  *         GNUNET_SYSERR in case of error.
@@ -579,7 +581,8 @@ tree_get_path_to_peer(struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
 int
 tree_add_path (struct MeshTunnelTree *t,
                const struct MeshPeerPath *p,
-               MeshNodeDisconnectCB cb)
+               MeshNodeDisconnectCB cb,
+               void *cbcls)
 {
   struct MeshTunnelTreeNode *parent;
   struct MeshTunnelTreeNode *oldnode;
@@ -611,7 +614,7 @@ tree_add_path (struct MeshTunnelTree *t,
   }
   if (1 == p->length)
     return GNUNET_OK;
-  oldnode = tree_del_path (t, p->peers[p->length - 1], cb);
+  oldnode = tree_del_path (t, p->peers[p->length - 1], cb, cbcls);
   /* Look for the first node that is not already present in the tree
    *
    * Assuming that the tree is somewhat balanced, O(log n * log N).
@@ -689,7 +692,6 @@ tree_add_path (struct MeshTunnelTree *t,
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "tree:   Creating new node.\n");
 #endif
       n = tree_node_new(parent, p->peers[i]);
-      n->t = t->t;
       n->status = MESH_PEER_RELAY;
       if (n->peer == myid)
         t->me = n;
@@ -727,6 +729,7 @@ tree_add_path (struct MeshTunnelTree *t,
  * @param p1 Short id of one of the peers (order unimportant)
  * @param p2 Short id of one of the peers (order unimportant)
  * @param cb Function to call for every peer that is marked as disconnected.
+ * @param cbcls Closure for cb.
  *
  * @return Short ID of the first disconnected peer in the tree.
  */
@@ -734,7 +737,8 @@ GNUNET_PEER_Id
 tree_notify_connection_broken (struct MeshTunnelTree *t,
                                GNUNET_PEER_Id p1,
                                GNUNET_PEER_Id p2,
-                               MeshNodeDisconnectCB cb)
+                               MeshNodeDisconnectCB cb,
+                               void *cbcls)
 {
   struct MeshTunnelTreeNode *n;
   struct MeshTunnelTreeNode *c;
@@ -744,7 +748,7 @@ tree_notify_connection_broken (struct MeshTunnelTree *t,
     return 0;
   if (NULL != n->parent && n->parent->peer == p2)
   {
-    tree_mark_peers_disconnected(t, n, cb);
+    tree_mark_peers_disconnected(t, n, cb, cbcls);
     GNUNET_CONTAINER_DLL_remove(n->parent->children_head,
                                 n->parent->children_tail,
                                 n);
@@ -757,7 +761,7 @@ tree_notify_connection_broken (struct MeshTunnelTree *t,
   {
     if (c->peer == p2)
     {
-      tree_mark_peers_disconnected(t, c, cb);
+      tree_mark_peers_disconnected(t, c, cb, cbcls);
       GNUNET_CONTAINER_DLL_remove(n->children_head,
                                   n->children_tail,
                                   c);
@@ -780,17 +784,19 @@ tree_notify_connection_broken (struct MeshTunnelTree *t,
  * @param t Tunnel tree to use.
  * @param peer Short ID of the peer to remove from the tunnel tree.
  * @param cb Callback to notify client of disconnected peers.
+ * @param cbcls Closure for cb.
  *
  * @return GNUNET_OK or GNUNET_SYSERR
  */
 int
 tree_del_peer (struct MeshTunnelTree *t,
                GNUNET_PEER_Id peer,
-               MeshNodeDisconnectCB cb)
+               MeshNodeDisconnectCB cb,
+               void *cbcls)
 {
   struct MeshTunnelTreeNode *n;
 
-  n = tree_del_path(t, peer, cb);
+  n = tree_del_path(t, peer, cb, cbcls);
   if (NULL == n)
     return GNUNET_SYSERR;
   GNUNET_break_op (NULL == n->children_head);

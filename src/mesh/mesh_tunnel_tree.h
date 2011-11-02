@@ -61,11 +61,6 @@ struct MeshPeerPath
 struct MeshTunnelTreeNode
 {
   /**
-   * Tunnel this node belongs to (and therefore tree)
-   */
-  struct MeshTunnel *t;
-
-  /**
    * Peer this node describes
    */
   GNUNET_PEER_Id peer;
@@ -111,11 +106,6 @@ struct MeshTunnelTree
    * How often to refresh the path
    */
   struct GNUNET_TIME_Relative refresh;
-
-  /**
-   * Tunnel this path belongs to
-   */
-  struct MeshTunnel *t;
 
   /**
    * Root node of peer tree
@@ -236,9 +226,11 @@ path_destroy (struct MeshPeerPath *p);
 /**
  * Method called whenever a node has been marked as disconnected.
  *
- * @param node peer identity the tunnel stopped working with
+ * @param cls Closure.
+ * @param peer_id short ID of peer that is no longer reachable.
  */
-typedef void (*MeshNodeDisconnectCB) (const struct MeshTunnelTreeNode * node);
+typedef void (*MeshNodeDisconnectCB) (void *cls,
+                                      GNUNET_PEER_Id peer_id);
 
 
 /**
@@ -250,7 +242,7 @@ typedef void (*MeshNodeDisconnectCB) (const struct MeshTunnelTreeNode * node);
  * @return A newly allocated and initialized tunnel tree
  */
 struct MeshTunnelTree *
-tree_new (struct MeshTunnel *t, GNUNET_PEER_Id peer);
+tree_new (GNUNET_PEER_Id peer);
 
 
 /**
@@ -288,6 +280,7 @@ tree_update_first_hops (struct MeshTunnelTree *tree,
  * @param peer Destination peer whose path we want to remove.
  * @param cb Callback to use to notify about which peers are going to be
  *           disconnected.
+ * @param cbcls Closure for cb.
  *
  * @return pointer to the pathless node.
  *         NULL when not found
@@ -295,7 +288,8 @@ tree_update_first_hops (struct MeshTunnelTree *tree,
 struct MeshTunnelTreeNode *
 tree_del_path (struct MeshTunnelTree *t,
                GNUNET_PEER_Id peer,
-               MeshNodeDisconnectCB cb);
+               MeshNodeDisconnectCB cb,
+               void *cbcls);
 
 
 /**
@@ -318,7 +312,8 @@ tree_get_path_to_peer(struct MeshTunnelTree *t,
  *
  * @param t Tunnel where to add the new path.
  * @param p Path to be integrated.
- * @param cb Callback to use to notify about peers temporarily disconnecting
+ * @param cb Callback to use to notify about peers temporarily disconnecting.
+ * @param cbcls Closure for cb.
  *
  * @return GNUNET_OK in case of success.
  *         GNUNET_SYSERR in case of error.
@@ -326,7 +321,8 @@ tree_get_path_to_peer(struct MeshTunnelTree *t,
 int
 tree_add_path (struct MeshTunnelTree *t,
                const struct MeshPeerPath *p,
-               MeshNodeDisconnectCB cb);
+               MeshNodeDisconnectCB cb,
+               void *cbcls);
 
 
 /**
@@ -337,6 +333,7 @@ tree_add_path (struct MeshTunnelTree *t,
  * @param p1 Short id of one of the peers (order unimportant)
  * @param p2 Short id of one of the peers (order unimportant)
  * @param cb Function to call for every peer that is marked as disconnected.
+ * @param cbcls Closure for cb.
  *
  * @return Short ID of the first disconnected peer in the tree.
  */
@@ -344,7 +341,8 @@ GNUNET_PEER_Id
 tree_notify_connection_broken (struct MeshTunnelTree *t,
                                GNUNET_PEER_Id p1,
                                GNUNET_PEER_Id p2,
-                               MeshNodeDisconnectCB cb);
+                               MeshNodeDisconnectCB cb,
+                               void *cbcls);
 
 
 /**
@@ -356,13 +354,15 @@ tree_notify_connection_broken (struct MeshTunnelTree *t,
  * @param t Tunnel tree to use.
  * @param peer Short ID of the peer to remove from the tunnel tree.
  * @param cb Callback to notify client of disconnected peers.
+ * @param cbcls Closure for cb.
  *
  * @return GNUNET_OK or GNUNET_SYSERR
  */
 int
 tree_del_peer (struct MeshTunnelTree *t,
                GNUNET_PEER_Id peer,
-               MeshNodeDisconnectCB cb);
+               MeshNodeDisconnectCB cb,
+               void *cbcls);
 
 /**
  * Print the tree on stderr

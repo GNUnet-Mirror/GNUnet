@@ -1496,7 +1496,7 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
     if (NULL != aux)
     {
       /* No callback, as peer will be already disconnected */
-      tree_add_path(peer->tunnels[i]->tree, aux, NULL);
+      tree_add_path(peer->tunnels[i]->tree, aux, NULL, NULL);
     }
     else
     {
@@ -1808,30 +1808,30 @@ tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
  * Callback used to notify a client owner of a tunnel that a peer has
  * disconnected, most likely because of a path change.
  *
- * @param n Node in the tree representing the disconnected peer
- * 
- * FIXME: pass tunnel via cls, make param just a peer identity
+ * @param cls Closure (tunnel this notification is about).
+ * @param peer_id Short ID of disconnected peer.
  */
 void
-notify_peer_disconnected (const struct MeshTunnelTreeNode *n)
+notify_peer_disconnected (void *cls, GNUNET_PEER_Id peer_id)
 {
+  struct MeshTunnel *t = cls;
   struct MeshPeerInfo *peer;
   struct MeshPathInfo *path_info;
 
-  if (NULL != n->t->client && NULL != nc)
+  if (NULL != t->client && NULL != nc)
   {
     struct GNUNET_MESH_PeerControl msg;
     msg.header.size = htons (sizeof (msg));
     msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL);
-    msg.tunnel_id = htonl (n->t->local_tid);
-    GNUNET_PEER_resolve (n->peer, &msg.peer);
-    GNUNET_SERVER_notification_context_unicast (nc, n->t->client->handle,
+    msg.tunnel_id = htonl (t->local_tid);
+    GNUNET_PEER_resolve (peer_id, &msg.peer);
+    GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
                                                 &msg.header, GNUNET_NO);
   }
-  peer = peer_info_get_short(n->peer);
+  peer = peer_info_get_short(peer_id);
   path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
   path_info->peer = peer;
-  path_info->t = n->t;
+  path_info->t = t;
   GNUNET_SCHEDULER_add_now(&peer_info_connect_task, path_info);
 }
 
@@ -1880,7 +1880,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
       }
       p = p->next;
     }
-    tree_add_path (t->tree, best_p, &notify_peer_disconnected);
+    tree_add_path (t->tree, best_p, &notify_peer_disconnected, t);
     if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
       t->path_refresh_task =
           GNUNET_SCHEDULER_add_delayed (t->tree->refresh, &path_refresh, t);
@@ -1910,7 +1910,7 @@ tunnel_add_path (struct MeshTunnel *t,
   struct GNUNET_PeerIdentity id;
 
   GNUNET_assert (0 != own_pos);
-  tree_add_path(t->tree, p, NULL);
+  tree_add_path(t->tree, p, NULL, NULL);
   if (NULL == t->tree->me)
     t->tree->me = tree_find_peer(t->tree->root, p->peers[own_pos]);
   if (own_pos < p->length - 1)
@@ -1944,7 +1944,8 @@ tunnel_notify_connection_broken (struct MeshTunnel *t,
   pid = tree_notify_connection_broken (t->tree,
                                        p1,
                                        p2,
-                                       &notify_peer_disconnected);
+                                       &notify_peer_disconnected,
+                                       t);
   if (myid != p1 && myid != p2)
   {
     return pid;
@@ -2171,7 +2172,7 @@ static void
 tunnel_delete_peer (struct MeshTunnel *t,
                     GNUNET_PEER_Id peer)
 {
-  GNUNET_break (GNUNET_OK == tree_del_peer (t->tree, peer, NULL));
+  GNUNET_break (GNUNET_OK == tree_del_peer (t->tree, peer, NULL, NULL));
   if (NULL == t->tree->root)
     tunnel_destroy (t);
 }
@@ -2513,7 +2514,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       next_local_tid = (next_local_tid + 1) | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
     t->local_tid = next_local_tid++;
     next_local_tid = next_local_tid | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
-    t->tree = tree_new(t, t->id.oid);
+    t->tree = tree_new(t->id.oid);
 
     GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
     if (GNUNET_OK !=
@@ -3590,7 +3591,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  t->tree = tree_new (t, myid);
+  t->tree = tree_new (myid);
   t->tree->refresh = REFRESH_PATH_TIME;
   t->tree->root->status = MESH_PEER_READY;
   t->tree->me = t->tree->root;
