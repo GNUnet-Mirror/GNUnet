@@ -30,7 +30,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <time.h>
-#include "../include/gnunet_protocols.h"
+#include "gnunet_protocols.h"
 #include "plugin_transport_wlan.h"
 
 #define WLAN_MTU 1500
