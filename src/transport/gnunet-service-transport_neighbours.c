@@ -2208,10 +2208,9 @@ handle_connect_blacklist_cont (void *cls,
   }
 
   GNUNET_free (bcc);
-/*
-  if (n->state != S_NOT_CONNECTED)
-    return;*/
-  change_state (n, S_CONNECT_RECV);
+
+  if (n->state != S_CONNECT_RECV)
+      change_state (n, S_CONNECT_RECV);
 
   /* Ask ATS for an address to connect via that address */
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
