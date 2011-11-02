@@ -594,7 +594,9 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
       memcmp (&ping->target, &GST_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
   {
-    GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop ("# PING message for different peer received"), 1,
+                              GNUNET_NO);
     return;
   }
   GNUNET_STATISTICS_update (GST_stats,
