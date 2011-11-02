@@ -1,7 +1,0 @@
-#!/bin/bash
-N=$(ps aux | grep gnunet | wc -l)
-if [[ $N > 1 ]]; then
-    echo "WARNING: there are GNUnet processes running!!!"
-    echo "WARNING: test may fail because of this!"
-fi
-ps aux | grep gnunet
