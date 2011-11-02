@@ -40,8 +40,8 @@ endif
 
 if LINUX
 install-exec-hook:
-	chown root:root $(bindir)/gnunet-transport-wlan-helper || true
-	chmod u+s $(bindir)/gnunet-transport-wlan-helper || true
+	$(SUDO_BINARY) chown root:root $(bindir)/gnunet-transport-wlan-helper || true
+	$(SUDO_BINARY) chmod u+s $(bindir)/gnunet-transport-wlan-helper || true
 else
 install-exec-hook:
 endif

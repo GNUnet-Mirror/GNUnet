@@ -84,6 +84,13 @@ configuration file slightly so that data can be stored in
 "/var/lib/gnunet"; you may also want to use "/etc/gnunet.conf" for the
 location of the configuration file in this case.
 
+You can avoid running 'make install' as root if you run configure
+with the "--with-sudo=yes" option and have extensive sudo rights
+(can run chmod +s and chown via sudo).  If you run 'make install'
+as a normal user without sudo rights (or the configure option),
+certain binaries that require additional priviledges will not be
+installed properly (and NAT traversal, WLAN and VPN will not work).
+
 Note that additional, per-user configuration files
 (~/.gnunet/gnunet.conf) need to be created by each user (for example,
 by running gnunet-setup).  Note that gnunet-setup is a separate

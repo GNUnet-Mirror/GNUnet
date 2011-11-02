@@ -676,6 +676,27 @@ AC_SUBST(DLLDIR)
 AC_SUBST(EXT_LIB_PATH)
 
 
+# test for sudo
+AC_MSG_CHECKING(for sudo)
+AC_ARG_WITH(sudo,
+  [  --with-sudo=PATH       path to sudo binary (or just yes)],
+  [AC_MSG_RESULT("$with_sudo")
+   case $with_sudo in
+   no)
+     SUDO_BINARY=
+     ;;
+   yes)
+     SUDO_BINARY=sudo
+     ;;
+   *)
+     SUDO_BINARY=$with_sudo
+    ;;
+   esac
+  ],
+  [AC_MSG_RESULT([no])])
+AC_SUBST(SUDO_BINARY)
+
+
 # should 'make check' run tests?
 AC_MSG_CHECKING(whether to run tests)
 AC_ARG_ENABLE([testruns],
