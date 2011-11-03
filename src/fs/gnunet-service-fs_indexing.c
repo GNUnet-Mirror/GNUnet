@@ -538,6 +538,16 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key, uint32_t size,
   odb = (const struct OnDemandBlock *) data;
   off = GNUNET_ntohll (odb->offset);
   fn = (const char *) GNUNET_CONTAINER_multihashmap_get (ifm, &odb->file_id);
+  if (0 != ACCESS (fn, R_OK))
+  {
+    GNUNET_STATISTICS_update (GSF_stats,
+			      gettext_noop ("# index blocks removed: original file inaccessible"),
+			      1,
+			      GNUNET_YES);
+    GNUNET_DATASTORE_remove (dsh, key, size, data, -1, -1,
+                             GNUNET_TIME_UNIT_FOREVER_REL, &remove_cont, NULL);
+    return GNUNET_SYSERR;
+  }
   fh = NULL;
   if ((NULL == fn) ||
       (NULL ==
