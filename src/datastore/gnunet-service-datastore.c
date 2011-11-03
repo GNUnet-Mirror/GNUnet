@@ -1480,7 +1480,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   cfg = c;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "DATASTORE", "QUOTA", &quota))
+      GNUNET_CONFIGURATION_get_value_size (cfg, "DATASTORE", "QUOTA", &quota))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("No `%s' specified for `%s' in configuration!\n"), "QUOTA",

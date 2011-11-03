@@ -139,7 +139,7 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *name;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, section, "QUOTA", &quota))
+      GNUNET_CONFIGURATION_get_value_size (cfg, section, "QUOTA", &quota))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("No `%s' specified for `%s' in configuration!\n"), "QUOTA", section);
