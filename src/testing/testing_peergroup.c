@@ -920,10 +920,12 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     pg_start_ctx->verbose);
   /* Make compilers happy */
   reset_meter (pg_start_ctx->peer_start_meter);
+  pg_start_ctx->fail_reason =
+        GNUNET_strdup ("didn't generate all hostkeys within allowed startup time!");
   pg_start_ctx->die_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (pg_start_ctx->timeout), &end_badly,
-                                    "didn't generate all hostkeys within allowed startup time!");
+                                    pg_start_ctx);
 
   pg_start_ctx->pg =
       GNUNET_TESTING_daemons_start (pg_start_ctx->cfg, pg_start_ctx->peers_left,
