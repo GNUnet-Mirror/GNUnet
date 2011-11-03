@@ -108,6 +108,11 @@ struct TransportClient
    * Length of the list of messages pending for this client.
    */
   unsigned int message_count;
+
+  /**
+   * Is this client interested in payload messages?
+   */
+  int send_payload;
 };
 
 
@@ -370,6 +375,7 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct StartMessage *start;
   struct TransportClient *tc;
+  uint32_t options;
 
   tc = lookup_client (client);
 
@@ -394,10 +400,11 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   start = (const struct StartMessage *) message;
-  if ((GNUNET_NO != ntohl (start->do_check)) &&
+  options = ntohl (start->options);
+  if ((0 != (1 & options) ) &&
       (0 !=
        memcmp (&start->self, &GST_my_identity,
-               sizeof (struct GNUNET_PeerIdentity))))
+	       sizeof (struct GNUNET_PeerIdentity))))
   {
     /* client thinks this is a different peer, reject */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -408,7 +415,7 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   tc = setup_client (client);
-
+  tc->send_payload = (0 != (2 & options));
   unicast (tc, GST_hello_get (), GNUNET_NO);
   GST_neighbours_iterate (&notify_client_about_neighbour, tc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -892,7 +899,7 @@ GST_clients_stop ()
  * Broadcast the given message to all of our clients.
  *
  * @param msg message to broadcast
- * @param may_drop GNUNET_YES if the message can be dropped
+ * @param may_drop GNUNET_YES if the message can be dropped / is payload
  */
 void
 GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop)
@@ -900,7 +907,12 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop)
   struct TransportClient *tc;
 
   for (tc = clients_head; tc != NULL; tc = tc->next)
+  {
+    if ( (GNUNET_YES == may_drop) &&
+	 (GNUNET_YES != tc->send_payload) )
+      continue; /* skip, this client does not care about payload */
     unicast (tc, msg, may_drop);
+  }
 }
 
 

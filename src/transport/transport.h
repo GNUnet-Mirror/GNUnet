@@ -75,9 +75,11 @@ struct StartMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Should the 'self' field be checked?
+   * 0: no options
+   * 1: The 'self' field should be checked
+   * 2: this client is interested in payload traffic
    */
-  uint32_t do_check;
+  uint32_t options;
 
   /**
    * Identity we think we have.  If it does not match, the

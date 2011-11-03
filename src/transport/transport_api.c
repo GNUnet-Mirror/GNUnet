@@ -861,6 +861,7 @@ send_start (void *cls, size_t size, void *buf)
 {
   struct GNUNET_TRANSPORT_Handle *h = cls;
   struct StartMessage s;
+  uint32_t options;
 
   if (buf == NULL)
   {
@@ -877,7 +878,12 @@ send_start (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= sizeof (struct StartMessage));
   s.header.size = htons (sizeof (struct StartMessage));
   s.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_START);
-  s.do_check = htonl (h->check_self);
+  options = 0;
+  if (h->check_self)
+    options |= 1;
+  if (h->rec != NULL)
+    options |= 2;
+  s.options = htonl (options);
   s.self = h->self;
   memcpy (buf, &s, sizeof (struct StartMessage));
   GNUNET_CLIENT_receive (h->client, &demultiplexer, h,

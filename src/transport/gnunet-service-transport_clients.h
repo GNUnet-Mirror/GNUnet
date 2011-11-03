@@ -50,7 +50,7 @@ GST_clients_stop (void);
  * Broadcast the given message to all of our clients.
  *
  * @param msg message to broadcast
- * @param may_drop GNUNET_YES if the message can be dropped
+ * @param may_drop GNUNET_YES if the message can be dropped / is payload
  */
 void
 GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop);
