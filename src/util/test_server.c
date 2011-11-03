@@ -32,7 +32,7 @@
 
 #define PORT 12435
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
 #define MY_TYPE 128
 #define MY_TYPE2 129
@@ -139,7 +139,7 @@ static size_t
 transmit_initial_message (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader msg;
-
+  
   GNUNET_assert (ok == 1);
   ok = 2;
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
