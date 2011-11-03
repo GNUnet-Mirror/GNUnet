@@ -581,7 +581,8 @@ send_with_plugin ( const struct GNUNET_PeerIdentity * target,
 
   /* FIXME : ats returns an address with all values 0 */
   if (((plugin_name == NULL) && (addr == NULL) && (addrlen == 0 )) ||
-      ((plugin_name == NULL) && (session == NULL)))
+      ((plugin_name == NULL) && (session == NULL)) ||
+      ((plugin_name == NULL) && (addr == NULL) && (addrlen == 0 ) && (force_address == GNUNET_YES)))
   {
     if (cont != NULL)
       cont (cont_cls, target, GNUNET_SYSERR);
