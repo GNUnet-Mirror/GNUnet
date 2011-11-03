@@ -26,6 +26,17 @@
 
 #define VERBOSE GNUNET_EXTRA_LOGGING
 
+static void
+test_cb (void *cls,
+	 const char *libname,
+	 void *lib_ret)
+{
+  GNUNET_assert (0 == strcmp (cls, "test"));
+  GNUNET_assert (0 == strcmp (lib_ret, "Hello"));
+  GNUNET_assert (0 == strcmp (GNUNET_PLUGIN_unload (libname, "out"), "World"));
+}
+	 
+
 static int
 check ()
 {
@@ -47,6 +58,8 @@ check ()
   if (0 != strcmp (ret, "World"))
     return 4;
   free (ret);
+
+  GNUNET_PLUGIN_load_all ("libgnunet_plugin_tes", "in", &test_cb, "test");
   return 0;
 }
 

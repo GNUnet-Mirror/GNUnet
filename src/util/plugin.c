@@ -284,5 +284,87 @@ GNUNET_PLUGIN_unload (const char *library_name, void *arg)
 }
 
 
+struct LoadAllContext
+{
+  const char *basename;
+  void *arg;
+  GNUNET_PLUGIN_LoaderCallback cb;
+  void *cb_cls;
+};
+
+
+static int
+find_libraries (void *cls,
+		const char *filename)
+{
+  struct LoadAllContext *lac = cls;
+  const char *slashpos;
+  const char *libname;
+  char *basename;
+  char *dot;
+  void *lib_ret;
+  size_t n;
+
+  libname = filename;
+  while (NULL != (slashpos = strstr (libname, DIR_SEPARATOR_STR)))
+    libname = slashpos + 1;
+  n = strlen (libname);
+  if (0 != strncmp (lac->basename,
+		    libname,
+		    strlen (lac->basename)))
+    return GNUNET_OK; /* wrong name */
+  if ( (n > 3) &&
+       (0 == strcmp (&libname[n-3],
+		     ".la")) )
+    return GNUNET_OK; /* .la file */
+  basename = GNUNET_strdup (libname);
+  if (NULL != (dot = strstr (basename, ".")))
+    *dot = '\0';
+  lib_ret = GNUNET_PLUGIN_load (basename, lac->arg);
+  if (NULL != lib_ret)
+    lac->cb (lac->cb_cls, basename, lib_ret);
+  GNUNET_free (basename);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Load all compatible plugins with the given base name.
+ *
+ * Note that the library must export symbols called
+ * "basename_ANYTHING_init" and "basename_ANYTHING__done".  These will
+ * be called when the library is loaded and unloaded respectively.
+ *
+ * @param basename basename of the plugins to load
+ * @param arg argument to the plugin initialization function
+ * @param cb function to call for each plugin found
+ * @param cb_cls closure for 'cb'
+ */
+void 
+GNUNET_PLUGIN_load_all (const char *basename, 
+			void *arg,
+			GNUNET_PLUGIN_LoaderCallback cb,
+			void *cb_cls)
+{
+  struct LoadAllContext lac;
+  char *path;
+
+  path = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBDIR);
+  if (path == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Could not determine plugin installation path.\n"));
+    return;
+  }
+  lac.basename = basename;
+  lac.arg = arg;
+  lac.cb = cb;
+  lac.cb_cls = cb_cls;
+  GNUNET_DISK_directory_scan (path,
+			      &find_libraries,
+			      &lac);
+  GNUNET_free (path);
+}
+
 
 /* end of plugin.c */

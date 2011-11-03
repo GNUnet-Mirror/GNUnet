@@ -62,6 +62,7 @@ typedef void *(*GNUNET_PLUGIN_Callback) (void *arg);
 int
 GNUNET_PLUGIN_test (const char *library_name);
 
+
 /**
  * Setup plugin (runs the "init" callback and returns whatever "init"
  * returned).  If "init" returns NULL, the plugin is unloaded.
@@ -76,6 +77,40 @@ GNUNET_PLUGIN_test (const char *library_name);
  */
 void *
 GNUNET_PLUGIN_load (const char *library_name, void *arg);
+
+
+/**
+ * Signature of a function called by 'GNUNET_PLUGIN_load_all'.
+ *
+ * @param cls closure
+ * @param library_name full name of the library (to be used with
+ *        'GNUNET_PLUGIN_unload')
+ * @param lib_ret return value from the initialization function
+ *        of the library (same as what 'GNUNET_PLUGIN_load' would
+ *        have returned for the given library name)
+ */
+typedef void (*GNUNET_PLUGIN_LoaderCallback)(void *cls,
+					     const char *library_name,
+					     void *lib_ret);
+
+
+/**
+ * Load all compatible plugins with the given base name.
+ *
+ * Note that the library must export symbols called
+ * "basename_ANYTHING_init" and "basename_ANYTHING__done".  These will
+ * be called when the library is loaded and unloaded respectively.
+ *
+ * @param basename basename of the plugins to load
+ * @param arg argument to the plugin initialization function
+ * @param cb function to call for each plugin found
+ * @param cb_cls closure for 'cb'
+ */
+void 
+GNUNET_PLUGIN_load_all (const char *basename, 
+			void *arg,
+			GNUNET_PLUGIN_LoaderCallback cb,
+			void *cb_cls);
 
 
 /**
