@@ -731,16 +731,34 @@ GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
   e = findEntry (cfg, section, option);
   if (e == NULL)
     return GNUNET_SYSERR;
-  if ((0 == strcasecmp (e->val, "infinity")) ||
-      (0 == strcasecmp (e->val, "forever")))
-    {
-      *time = GNUNET_TIME_UNIT_FOREVER_REL;
-      return GNUNET_OK;
-    }
-  if (1 != SSCANF (e->val, "%llu", &num))
+
+  return GNUNET_STRINGS_fancy_time_to_relative (e->val,
+						time);
+}
+
+
+/**
+ * Get a configuration value that should be a size in bytes.
+ *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
+ * @param size set to the size in bytes as stored in the configuration
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CONFIGURATION_get_value_size (const struct GNUNET_CONFIGURATION_Handle
+                                     *cfg, const char *section,
+                                     const char *option,
+                                     unsigned long long *size)
+{
+  struct ConfigEntry *e;
+
+  e = findEntry (cfg, section, option);
+  if (e == NULL)
     return GNUNET_SYSERR;
-  time->rel_value = (uint64_t) num;
-  return GNUNET_OK;
+  return GNUNET_STRINGS_fancy_size_to_bytes (e->val,
+					     size);
 }
 
 

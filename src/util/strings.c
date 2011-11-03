@@ -171,6 +171,132 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size)
 
 
 /**
+ * Convert a given fancy human-readable size to bytes.
+ *
+ * @param fancy_size human readable string (i.e. 1 MB)
+ * @param size set to the size in bytes
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
+				    unsigned long long *size)
+{
+  struct { 
+    const char *name; 
+    unsigned long long value;
+  } table[] = {
+    { "B", 1 },
+    { "KiB", 1024 },
+    { "kB",  1000 },
+    { "MiB", 1024 * 1024 },
+    { "MB",  1000 * 1000 },
+    { "GiB", 1024 * 1024 * 1024 },
+    { "GB",  1000 * 1000 * 1000 },
+    { "TiB", 1024LL * 1024LL * 1024LL * 1024LL },
+    { "TB",  1000LL * 1000LL * 1000LL * 1024LL },
+    { "PiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL },
+    { "PB",  1000LL * 1000LL * 1000LL * 1024LL * 1000LL},
+    { "EiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL * 1024LL},
+    { "EB",  1000LL * 1000LL * 1000LL * 1024LL * 1000LL * 1000LL },
+    { NULL, 0 }
+  };
+  unsigned long long ret;
+  char *in;
+  const char *tok;
+  unsigned long long last;
+  unsigned int i;
+
+  ret = 0;
+  last = 0;
+  in = GNUNET_strdup (fancy_size);
+  for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
+  {
+    fprintf (stderr, "%s - %llu %llu\n", tok, ret, last);
+    i=0;
+    while ( (table[i].name != NULL) &&
+	    (0 != strcasecmp (table[i].name, tok) ) )
+      i++;
+    if (table[i].name != NULL)
+      last *= table[i].value;
+    else
+    {
+      ret += last;
+      last = 0;
+      if (1 != sscanf (tok, "%llu", &last))
+	return GNUNET_SYSERR; /* expected number */
+    }      
+  }
+  ret += last;
+  *size = ret;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Convert a given fancy human-readable time to our internal
+ * representation.
+ *
+ * @param fancy_size human readable string (i.e. 1 minute)
+ * @param rtime set to the relative time
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
+				       struct GNUNET_TIME_Relative *rtime)
+{
+  struct { 
+    const char *name; 
+    unsigned long long value;
+  } table[] = {
+    { "ms", 1 },
+    { "s", 1000 },
+    { "\"", 1000 },
+    { "min",  60 * 1000 },
+    { "minutes", 60 * 1000 },
+    { "'", 60 * 1000 },
+    { "h", 60 * 60 * 1000 },
+    { "d", 24 * 60 * 60 * 1000 },
+    { "a", 31557600 /* year */ },
+    { NULL, 0 }
+  };
+  unsigned long long ret;
+  char *in;
+  const char *tok;
+  unsigned long long last;
+  unsigned int i;
+  
+  if ((0 == strcasecmp (fancy_size, "infinity")) ||
+      (0 == strcasecmp (fancy_size, "forever")))
+    {
+      *rtime = GNUNET_TIME_UNIT_FOREVER_REL;
+      return GNUNET_OK;
+    }
+  ret = 0;
+  last = 0;
+  in = GNUNET_strdup (fancy_size);
+  for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
+  {
+    i=0;
+    while ( (table[i].name != NULL) &&
+	    (0 != strcasecmp (table[i].name, tok) ) )
+      i++;
+    if (table[i].name != NULL)
+      last *= table[i].value;
+    else
+    {
+      ret += last;
+      last = 0;
+      if (1 != sscanf (tok, "%llu", &last))
+	return GNUNET_SYSERR; /* expected number */
+    }      
+  }
+  ret += last;
+  rtime->rel_value = (uint64_t) ret;
+  return GNUNET_OK;
+}
+
+
+/**
  * Convert the len characters long character sequence
  * given in input that is in the given charset
  * to UTF-8.

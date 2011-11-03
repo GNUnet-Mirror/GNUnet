@@ -226,6 +226,23 @@ GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
                                      struct GNUNET_TIME_Relative *time);
 
 
+
+/**
+ * Get a configuration value that should be a size in bytes.
+ *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
+ * @param size set to the size in bytes as stored in the configuration
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CONFIGURATION_get_value_size (const struct GNUNET_CONFIGURATION_Handle
+                                     *cfg, const char *section,
+                                     const char *option,
+                                     unsigned long long *size);
+
+
 /**
  * Test if we have a value for a particular option
  *
@@ -337,6 +354,7 @@ GNUNET_CONFIGURATION_get_value_yesno (const struct GNUNET_CONFIGURATION_Handle
                                       *cfg, const char *section,
                                       const char *option);
 
+
 /**
  * Expand an expression of the form "$FOO/BAR" to "DIRECTORY/BAR"
  * where either in the "PATHS" section or the environtment
@@ -377,6 +395,7 @@ void
 GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle *cfg,
                                        const char *section, const char *option,
                                        const char *value);
+
 
 /**
  * Remove a filename from a configuration value that

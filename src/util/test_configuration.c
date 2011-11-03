@@ -337,6 +337,17 @@ testConfig ()
     }
   GNUNET_free (c);
 
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_size (cfg, "last", "size", &l))
+  {
+    GNUNET_break (0);
+    return 10;
+  }
+  if (l != 512 * 1024)
+  {
+    GNUNET_break (0);
+    return 11;
+  }
   return 0;
 }
 

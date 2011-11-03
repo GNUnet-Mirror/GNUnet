@@ -51,6 +51,18 @@ extern "C"
 
 
 /**
+ * Convert a given fancy human-readable size to bytes.
+ *
+ * @param fancy_size human readable string (i.e. 1 MB)
+ * @param size set to the size in bytes
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
+				    unsigned long long *size);
+
+
+/**
  * Convert a given filesize into a fancy human-readable format.
  *
  * @param size number of bytes
@@ -84,6 +96,7 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset);
  */
 char *
 GNUNET_STRINGS_filename_expand (const char *fil);
+
 
 /**
  * Fill a buffer of the given size with
