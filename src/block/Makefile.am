@@ -2,11 +2,6 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 plugindir = $(libdir)/gnunet
 
-pkgcfgdir= $(pkgdatadir)/config.d/
-
-dist_pkgcfg_DATA = \
-  block.conf
-
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
@@ -45,7 +40,7 @@ libgnunet_plugin_block_fs_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_fs_la_DEPENDENCIES = \
   libgnunetblock.la
-					    
+
 
 libgnunet_plugin_block_dns_la_SOURCES = \
   plugin_block_dns.c

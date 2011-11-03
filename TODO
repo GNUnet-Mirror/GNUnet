@@ -1,9 +1,7 @@
-0.9.0pre4:
+0.9.0:
 * GNUNET-GTK: [CG]
   - provide context menus to allow aborts of downloads/uploads
   - provide way to handle errors (search, download, publish errors)
-
-0.9.0:
 * new webpage:
   - write chapter on DHT/block [Nate] 
   - make a NICE download page 
@@ -17,6 +15,8 @@
     + insert
     + download
     + search
+* blocks:
+  + should block plugins live in block/ or with fs/dht/vpn?
 
 0.9.1:
 * TRANSPORT: [MW]
@@ -24,7 +24,7 @@
     queue of size > 2), might be better to have at MOST one message pending
     per plugin/target and only send the next one after the continuation was
     called (or use 'notify_transmit_ready-style API?)
-  - WLAN transport backend [DB]
+  - WLAN transport backend (code cleanup) [MW]
   - need to periodically probe latency/transport cost changes & possibly switch transport 
     (working ATS)
 * DV: 

@@ -54,9 +54,14 @@ struct Plugin
 struct GNUNET_BLOCK_Context
 {
   /**
-   * NULL-terminated array of our plugins.
+   * Array of our plugins.
    */
   struct Plugin **plugins;
+
+  /**
+   * Size of the 'plugins' array.
+   */
+  unsigned int num_plugins;
 
   /**
    * Our configuration.
@@ -84,6 +89,33 @@ GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in, uint32_t mingle_number,
 
 
 /**
+ * Add a plugin to the list managed by the block library.
+ *
+ * @param cls the block context
+ * @param library_name name of the plugin
+ * @param lib_ret the plugin API
+ */
+static void
+add_plugin (void *cls,
+	    const char *library_name,
+	    void *lib_ret)
+{
+  struct GNUNET_BLOCK_Context *ctx = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = lib_ret;
+  struct Plugin *plugin;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      _("Loading block plugin `%s'\n"),
+	      library_name);
+  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin->api = api;
+  plugin->library_name = GNUNET_strdup (library_name);
+  GNUNET_array_append (ctx->plugins, ctx->num_plugins, plugin);
+}
+
+
+
+/**
  * Create a block context.  Loads the block plugins.
  *
  * @param cfg configuration to use
@@ -93,44 +125,13 @@ struct GNUNET_BLOCK_Context *
 GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_BLOCK_Context *ctx;
-  struct GNUNET_BLOCK_PluginFunctions *api;
-  struct Plugin *plugin;
-  unsigned int num_plugins;
-  char *plugs;
-  char *pos;
-  char *libname;
 
   ctx = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_Context));
   ctx->cfg = cfg;
-  num_plugins = 0;
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "block", "PLUGINS", &plugs))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading block plugins `%s'\n"),
-                plugs);
-    pos = strtok (plugs, " ");
-    while (pos != NULL)
-    {
-      GNUNET_asprintf (&libname, "libgnunet_plugin_block_%s", pos);
-      api = GNUNET_PLUGIN_load (libname, NULL);
-      if (api == NULL)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Failed to load block plugin `%s'\n"), pos);
-        GNUNET_free (libname);
-      }
-      else
-      {
-        plugin = GNUNET_malloc (sizeof (struct Plugin));
-        plugin->api = api;
-        plugin->library_name = libname;
-        GNUNET_array_append (ctx->plugins, num_plugins, plugin);
-      }
-      pos = strtok (NULL, " ");
-    }
-    GNUNET_free (plugs);
-  }
-  GNUNET_array_append (ctx->plugins, num_plugins, NULL);
+  GNUNET_PLUGIN_load_all ("libgnunet_plugin_block_",
+			  NULL,
+			  &add_plugin,
+			  ctx);
   return ctx;
 }
 
@@ -146,14 +147,13 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx)
   unsigned int i;
   struct Plugin *plugin;
 
-  i = 0;
-  while (NULL != (plugin = ctx->plugins[i]))
+  for (i = 0; i<ctx->num_plugins;i++)
   {
+    plugin = ctx->plugins[i];
     GNUNET_break (NULL ==
                   GNUNET_PLUGIN_unload (plugin->library_name, plugin->api));
     GNUNET_free (plugin->library_name);
     GNUNET_free (plugin);
-    i++;
   }
   GNUNET_free (ctx->plugins);
   GNUNET_free (ctx);
@@ -174,9 +174,9 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx, enum GNUNET_BLOCK_Type type)
   unsigned int i;
   unsigned int j;
 
-  i = 0;
-  while (NULL != (plugin = ctx->plugins[i]))
+  for (i=0;i<ctx->num_plugins;i++)
   {
+    plugin = ctx->plugins[i];
     j = 0;
     while (0 != (plugin->api->types[j]))
     {
@@ -184,7 +184,6 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx, enum GNUNET_BLOCK_Type type)
         return plugin->api;
       j++;
     }
-    i++;
   }
   return NULL;
 }
