@@ -737,6 +737,7 @@ hexdump (const void *mem, unsigned length)
         t += sprintf (t, "%02X", src[j] & 0xff);
       else
         t += sprintf (t, "  ");
+
       t += sprintf (t, j % 2 ? " " : "-");
     }
 
@@ -1481,7 +1482,8 @@ static int
 wlan_transport_start_wlan_helper (struct Plugin *plugin)
 {
   const char *filenamehw = "gnunet-transport-wlan-helper";
-  const char *filenameloopback = "gnunet-transport-wlan-helper-dummy";
+  char *filenameloopback = "gnunet-transport-wlan-helper-dummy";
+  char *absolute_filename = NULL;
 
   plugin->server_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (plugin->server_stdout == NULL)
@@ -1490,6 +1492,28 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   plugin->server_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
   if (plugin->server_stdin == NULL)
     return GNUNET_SYSERR;
+
+  if ((plugin->testmode == 1) || (plugin->testmode == 2))
+  {
+    if (GNUNET_OS_check_helper_binary (filenameloopback) == GNUNET_YES)
+    {
+      absolute_filename = strdup (filenameloopback);
+    }
+    else
+    {
+      char cwd[FILENAME_MAX];
+      GNUNET_assert (getcwd(cwd, sizeof(cwd)) != NULL);
+
+      GNUNET_asprintf (&absolute_filename, "%s%s%s", cwd, DIR_SEPARATOR_STR, filenameloopback);
+
+      if (GNUNET_DISK_file_test (filenameloopback) != GNUNET_YES)
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                         "Helper `%s' not found! %i\n", absolute_filename);
+        GNUNET_break(0);
+      }
+    }
+  }
 
   /* Start the server process */
 
@@ -1527,50 +1551,42 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   {
 
 #if DEBUG_wlan
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Starting gnunet-wlan-helper loopback 1 process cmd: %s %s %i\n",
-                     filenameloopback, plugin->interface, plugin->testmode);
 #endif
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                     "Starting gnunet-wlan-helper loopback 1 process cmd: %s %s %i\n",
+                     absolute_filename, plugin->interface, plugin->testmode);
 
-    if (GNUNET_OS_check_helper_binary (filenameloopback) == GNUNET_SYSERR)
-      filenameloopback = "./gnunet-transport-wlan-helper-dummy";
-    if (GNUNET_OS_check_helper_binary (filenameloopback) != GNUNET_SYSERR)
+    plugin->server_proc = GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
+                                  absolute_filename, absolute_filename, "1",
+                                  NULL);
+    if (plugin->server_proc == NULL)
     {
-      plugin->server_proc =
-          GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
-                                   filenameloopback, filenameloopback, "1",
-                                   NULL);
-    }
-    else
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "gnunet-transport-wlan-helper-dummy not found, please look if it exists and is the $PATH variable!\n");
-      GNUNET_break (0);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                     "`%s' not found, please look if it exists and is in the $PATH variable!\n", absolute_filename);
+    GNUNET_break (0);
     }
   }
   else if (plugin->testmode == 2)
   {
 #if DEBUG_wlan
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Starting gnunet-wlan-helper loopback 2 process cmd: %s %s %i\n",
-                     filenameloopback, plugin->interface, plugin->testmode);
 #endif
-    if (GNUNET_OS_check_helper_binary (filenameloopback) == GNUNET_SYSERR)
-      filenameloopback = "./gnunet-transport-wlan-helper-dummy";
-    if (GNUNET_OS_check_helper_binary (filenameloopback) != GNUNET_SYSERR)
-    {
-      plugin->server_proc =
-          GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
-                                   filenameloopback, filenameloopback, "2",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                     "Starting gnunet-wlan-helper loopback 2 process cmd: %s %s %i\n",
+                     absolute_filename, plugin->interface, plugin->testmode);
+
+
+      plugin->server_proc = GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
+                                   absolute_filename, absolute_filename, "2",
                                    NULL);
-    }
-    else
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "gnunet-transport-wlan-helper-dummy not found, please look if it exists and is in the $PATH variable!\n");
+      if (plugin->server_proc == NULL)
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+                         "`%s' not found, please look if it exists and is in the $PATH variable!\n", absolute_filename);
       GNUNET_break (0);
-    }
+      }
   }
+  if (absolute_filename != NULL)
+    GNUNET_free(absolute_filename);
   if (plugin->server_proc == NULL)
   {
 #if DEBUG_wlan
@@ -1579,6 +1595,8 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
 #endif
     return GNUNET_SYSERR;
   }
+
+
 
   /* Close the write end of the read pipe */
   GNUNET_DISK_pipe_close_end (plugin->server_stdout,
