@@ -1532,6 +1532,8 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
                      filenameloopback, plugin->interface, plugin->testmode);
 #endif
 
+    if (GNUNET_OS_check_helper_binary (filenameloopback) == GNUNET_SYSERR)
+      filenameloopback = "./gnunet-transport-wlan-helper-dummy";
     if (GNUNET_OS_check_helper_binary (filenameloopback) != GNUNET_SYSERR)
     {
       plugin->server_proc =
@@ -1553,6 +1555,8 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
                      "Starting gnunet-wlan-helper loopback 2 process cmd: %s %s %i\n",
                      filenameloopback, plugin->interface, plugin->testmode);
 #endif
+    if (GNUNET_OS_check_helper_binary (filenameloopback) == GNUNET_SYSERR)
+      filenameloopback = "./gnunet-transport-wlan-helper-dummy";
     if (GNUNET_OS_check_helper_binary (filenameloopback) != GNUNET_SYSERR)
     {
       plugin->server_proc =
