@@ -211,7 +211,6 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
   in = GNUNET_strdup (fancy_size);
   for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
   {
-    fprintf (stderr, "%s - %llu %llu\n", tok, ret, last);
     i=0;
     while ( (table[i].name != NULL) &&
 	    (0 != strcasecmp (table[i].name, tok) ) )
