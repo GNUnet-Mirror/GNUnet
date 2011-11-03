@@ -2057,6 +2057,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
   mdata->data_len = ntohs (msg->size);
   mdata->reference_counter = GNUNET_malloc (sizeof (unsigned int));
   mdata->data = GNUNET_malloc (mdata->data_len);
+  mdata->t = t;
   memcpy (mdata->data, msg, mdata->data_len);
   if (NULL != t->client)
   {
