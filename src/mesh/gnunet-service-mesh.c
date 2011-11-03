@@ -69,6 +69,8 @@
                                     GNUNET_TIME_UNIT_SECONDS,\
                                     2)
 
+#define MESH_DEBUG_DHT GNUNET_NO
+
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
 /******************************************************************************/
@@ -578,13 +580,17 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
+#if MESH_DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Starting PUT for apps\n");
+#endif
   GNUNET_CONTAINER_multihashmap_iterate (applications, &announce_application,
                                          NULL);
   announce_applications_task =
       GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME, &announce_applications,
                                     cls);
+#if MESH_DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Finished PUT for apps\n");
+#endif
   return;
 }
 
@@ -607,8 +613,10 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * - Set data expiration in function of X
    * - Adapt X to churn
    */
+#if MESH_DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: DHT_put for ID %s started.\n",
               GNUNET_i2s (&my_full_id));
+#endif
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &my_full_id.hashPubKey,       /* Key to use */
                   10U,          /* Replication level */
@@ -619,7 +627,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   (char *)&my_full_id,  /* Data itself */
                   GNUNET_TIME_absolute_get_forever (),  /* Data expiration */
                   GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
-#if MESH_DEBUG
+#if MESH_DEBUG_DHT
                   &mesh_debug, "DHT_put for id completed");
 #else
                   NULL,         /* Continuation */
