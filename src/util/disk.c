@@ -795,6 +795,7 @@ GNUNET_DISK_fn_write (const char *fn, const void *buffer, size_t n,
   return ret;
 }
 
+
 /**
  * Scan a directory for files.
  *

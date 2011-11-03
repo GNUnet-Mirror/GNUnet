@@ -11,6 +11,11 @@ endif
 
 plugindir = $(libdir)/gnunet
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  dv.conf
+
 lib_LTLIBRARIES = libgnunetdv.la
 
 plugin_LTLIBRARIES = libgnunet_plugin_transport_dv.la

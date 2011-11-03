@@ -123,8 +123,8 @@ The defaults that are shipped with the installation are usually ok,
 you may want to adjust the limitations (space consumption, bandwidth,
 etc.) though.  The configuration files are human-readable.  Note that
 you MUST create "~/.gnunet/gnunet.conf" explicitly before starting
-GNUnet.  You can either copy "defaults.conf" or simply create an empty
-file.
+GNUnet.  You can either run gnunet-setup (available as part of the
+gnunet-gtk source package) or simply create an empty file.
 
 
 Usage

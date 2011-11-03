@@ -1,5 +1,10 @@
 INCLUDES = -I$(top_srcdir)/src/include
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  hostlist.conf
+
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif

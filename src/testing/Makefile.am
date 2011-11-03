@@ -9,6 +9,11 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  testing.conf
+
 if HAVE_EXPENSIVE_TESTS
   EXPENSIVE_TESTS = \
    test_testing_topology_stability \

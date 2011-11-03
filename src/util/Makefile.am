@@ -2,6 +2,11 @@ INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
 plugindir = $(libdir)/gnunet
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  util.conf resolver.conf
+
 if MINGW
 noinst_LTLIBRARIES = \
   libgnunetutilwin.la

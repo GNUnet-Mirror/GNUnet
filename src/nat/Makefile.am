@@ -7,6 +7,11 @@ if MINGW
   NATCLIENT = gnunet-helper-nat-client-windows.c
 endif
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  nat.conf
+
 
 if ENABLE_TEST_RUN
  nattest = $(bindir)/gnunet-nat-server

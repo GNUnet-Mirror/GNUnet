@@ -14,8 +14,7 @@ noinst_SCRIPTS = \
  gnunet_janitor.py
 
 dist_pkgdata_DATA = \
- gnunet-logo-color.png \
- defaults.conf
+ gnunet-logo-color.png 
 
 EXTRA_DIST = \
  coverage.sh \

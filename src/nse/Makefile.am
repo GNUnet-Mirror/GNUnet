@@ -9,6 +9,11 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  nse.conf
+
 
 lib_LTLIBRARIES = libgnunetnse.la
 

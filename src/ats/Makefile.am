@@ -1,5 +1,10 @@
 INCLUDES = -I$(top_srcdir)/src/include
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  ats.conf
+
 if MINGW
  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
 endif

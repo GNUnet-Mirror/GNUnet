@@ -5,6 +5,11 @@ endif
 
 plugindir = $(libdir)/gnunet
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  dht.conf 
+
 if HAVE_ZLIB
  ZLIB_LNK = -lz
 endif

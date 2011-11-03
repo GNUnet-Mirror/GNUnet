@@ -2,6 +2,11 @@ INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
 plugindir = $(libdir)/gnunet
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  transport.conf
+
 
 if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd

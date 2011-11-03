@@ -2,6 +2,11 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 plugindir = $(libdir)/gnunet
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  datastore.conf
+
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif

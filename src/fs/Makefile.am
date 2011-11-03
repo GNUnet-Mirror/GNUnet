@@ -9,6 +9,11 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+dist_pkgcfg_DATA = \
+  fs.conf
+
 
 lib_LTLIBRARIES = libgnunetfs.la
 

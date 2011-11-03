@@ -1215,6 +1215,25 @@ GNUNET_CONFIGURATION_remove_value_filename (struct GNUNET_CONFIGURATION_Handle
 
 
 /**
+ * Wrapper around GNUNET_CONFIGURATION_parse.
+ *
+ * @param cls the cfg
+ * @param filename file to parse
+ * @return GNUNET_OK on success
+ */
+static int
+parse_configuration_file (void *cls,
+			  const char *filename)
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  int ret;
+
+  ret = GNUNET_CONFIGURATION_parse (cfg, filename);
+  return ret;
+}
+
+
+/**
  * Load configuration (starts with defaults, then loads
  * system-specific configuration).
  *
@@ -1233,17 +1252,24 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
   if (ipath == NULL)
     return GNUNET_SYSERR;
   baseconfig = NULL;
-  GNUNET_asprintf (&baseconfig, "%s%s%s", ipath, DIR_SEPARATOR_STR,
-		   "defaults.conf");
+  GNUNET_asprintf (&baseconfig, "%s%s", ipath, 
+		   "config.d");
   GNUNET_free (ipath);
-  if ((GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, baseconfig)) ||
-      (!((filename == NULL) ||
-	 (GNUNET_OK == GNUNET_CONFIGURATION_parse (cfg, filename)))))
-    {
-      GNUNET_free (baseconfig);
-      return (filename == NULL) ? GNUNET_OK : GNUNET_SYSERR;
-    }
-  GNUNET_free (baseconfig);
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_directory_scan (baseconfig,
+				  &parse_configuration_file,
+				  cfg))
+  {
+    GNUNET_free (baseconfig);
+    return GNUNET_SYSERR; /* no configuration at all found */    
+  }
+  GNUNET_free (baseconfig);  
+  if ( (filename != NULL) &&
+       (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, filename)) )
+  {
+    /* specified configuration not found */
+    return GNUNET_SYSERR;
+  }
   if (((GNUNET_YES !=
 	GNUNET_CONFIGURATION_have_value (cfg, "PATHS", "DEFAULTCONFIG"))) &&
       (filename != NULL))
