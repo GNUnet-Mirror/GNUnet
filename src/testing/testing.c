@@ -1830,24 +1830,18 @@ notify_connect_result (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-  {
-    if (ctx->d1th != NULL)
-      GNUNET_TRANSPORT_disconnect (ctx->d1th);
-    ctx->d1th = NULL;
-    if (ctx->d1core != NULL)
-      GNUNET_CORE_disconnect (ctx->d1core);
-    ctx->d1core = NULL;
-    GNUNET_free (ctx);
-    return;
-  }
-
   if (ctx->d1th != NULL)
     GNUNET_TRANSPORT_disconnect (ctx->d1th);
   ctx->d1th = NULL;
   if (ctx->d1core != NULL)
     GNUNET_CORE_disconnect (ctx->d1core);
   ctx->d1core = NULL;
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  {
+    GNUNET_free (ctx);
+    return;
+  }
 
   if (ctx->connected == GNUNET_YES)
   {
