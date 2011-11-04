@@ -269,7 +269,7 @@ path_destroy (struct MeshPeerPath *p)
   if (NULL == p)
     return GNUNET_OK;
   GNUNET_PEER_decrement_rcs (p->peers, p->length);
-  GNUNET_free (p->peers);
+  GNUNET_free_non_null (p->peers);
   GNUNET_free (p);
   return GNUNET_OK;
 }
@@ -760,7 +760,10 @@ tree_get_path_to_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
     GNUNET_PEER_change_rc (n->peer, 1);
     n = n->parent;
     if (NULL == n)
+    {
+      path_destroy (p);
       return NULL;
+    }
   }
   GNUNET_array_append (p->peers, p->length, myid);
   GNUNET_PEER_change_rc (myid, 1);
