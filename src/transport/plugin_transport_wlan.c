@@ -1217,8 +1217,6 @@ free_fragment_message (struct Plugin *plugin, struct FragmentMessage *fm)
   struct FragmentMessage_queue *fmq;
   struct FragmentMessage_queue *fmq_next;
 
-  if (fm != NULL)
-  {
     fmq = plugin->sending_messages_head;
     while (fmq != NULL)
     {
@@ -1252,7 +1250,6 @@ free_fragment_message (struct Plugin *plugin, struct FragmentMessage *fm)
                      "Free pending fragment messages %p, session %p\n", fm,
                      session);
 #endif
-  }
 }
 
 /**
