@@ -1544,6 +1544,7 @@ peer_info_add_path (struct MeshPeerInfo *peer_info,
     path_destroy (path);
     return;
   }
+  GNUNET_assert (peer_info->id == path->peers[path->length - 1]);
   for (l = 1; l < path->length; l++)
   {
     if (path->peers[l] == myid)
@@ -1556,7 +1557,7 @@ peer_info_add_path (struct MeshPeerInfo *peer_info,
         path->peers[l2] = path->peers[l + l2];
       }
       path->length -= l;
-      l = 0;
+      l = 1;
       path->peers = GNUNET_realloc (path->peers,
                                     path->length * sizeof (GNUNET_PEER_Id));
     }
