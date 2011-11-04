@@ -27,10 +27,8 @@
 
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_configuration_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_crypto_lib.h"
-#include "gnunet_disk_lib.h"
-#include "gnunet_os_lib.h"
 #include "gnunet_strings_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
@@ -726,7 +724,6 @@ GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
 				     struct GNUNET_TIME_Relative *time)
 {
   struct ConfigEntry *e;
-  unsigned long long num;
 
   e = findEntry (cfg, section, option);
   if (e == NULL)
