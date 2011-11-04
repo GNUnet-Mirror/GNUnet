@@ -125,6 +125,11 @@ extern struct GNUNET_DHT_Handle *GSF_dht;
 extern struct GNUNET_LOAD_Value *GSF_rt_entry_lifetime;
 
 /**
+ * Running average of the observed latency to other peers (round trip).
+ */
+extern struct GNUNET_TIME_Relative GSF_avg_latency;
+
+/**
  * Typical priorities we're seeing from other peers right now.  Since
  * most priorities will be zero, this value is the weighted average of
  * non-zero priorities seen "recently".  In order to ensure that new

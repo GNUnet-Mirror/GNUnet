@@ -307,14 +307,14 @@ process_queue (struct Neighbour *n)
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param atsi performance data
+ * @param atsi_count number of entries in ats (excluding 0-termination)
  */
 static void
 handle_transport_notify_connect (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
                                  const struct GNUNET_ATS_Information
-                                 *ats, uint32_t ats_count)
+                                 *atsi, uint32_t atsi_count)
 {
   struct Neighbour *n;
 
@@ -381,14 +381,14 @@ handle_transport_notify_disconnect (void *cls,
  * @param cls closure
  * @param peer (claimed) identity of the other peer
  * @param message the message
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param atsi performance data
+ * @param atsi_count number of entries in ats (excluding 0-termination)
  */
 static void
 handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *ats,
-                          uint32_t ats_count)
+                          const struct GNUNET_ATS_Information *atsi,
+                          uint32_t atsi_count)
 {
   struct Neighbour *n;
   uint16_t type;
@@ -424,8 +424,8 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     break;
   case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
     GSC_KX_handle_encrypted_message (n->kxinfo,
-				     message, ats,
-				     ats_count);
+				     message, atsi,
+				     atsi_count);
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

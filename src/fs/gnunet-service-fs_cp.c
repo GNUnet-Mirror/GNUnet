@@ -838,11 +838,11 @@ get_randomized_delay ()
 {
   struct GNUNET_TIME_Relative ret;
 
-  /* FIXME: replace 5000 with something relating to current observed P2P message latency */
   ret =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
                                      GNUNET_CRYPTO_random_u32
-                                     (GNUNET_CRYPTO_QUALITY_WEAK, 5000));
+                                     (GNUNET_CRYPTO_QUALITY_WEAK, 
+				      2 * GSF_avg_latency.rel_value + 1));
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop
                             ("# artificial delays introduced (ms)"),

@@ -94,6 +94,12 @@ struct GNUNET_DHT_Handle *GSF_dht;
 struct GNUNET_LOAD_Value *GSF_rt_entry_lifetime;
 
 /**
+ * Running average of the observed latency to other peers (round trip).
+ * Initialized to 5s as the initial default.
+ */
+struct GNUNET_TIME_Relative GSF_avg_latency = { 5000 };
+
+/**
  * Typical priorities we're seeing from other peers right now.  Since
  * most priorities will be zero, this value is the weighted average of
  * non-zero priorities seen "recently".  In order to ensure that new
@@ -172,7 +178,6 @@ age_cover_counters (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
 /**
  * We've just now completed a datastore request.  Update our
  * datastore load calculations.
@@ -213,6 +218,34 @@ GSF_test_get_load_too_high_ (uint32_t priority)
 
 
 /**
+ * We've received peer performance information. Update
+ * our running average for the P2P latency.
+ *
+ * @param atsi performance information
+ * @param atsi_count number of 'atsi' records
+ */
+static void
+update_latencies (const struct GNUNET_ATS_Information *atsi,
+		  unsigned int atsi_count)
+{
+  unsigned int i;
+
+  for (i=0;i<atsi_count;i++)
+  {
+    if (ntohl(atsi[i].type) == GNUNET_ATS_QUALITY_NET_DELAY)
+    {
+      GSF_avg_latency.rel_value = (GSF_avg_latency.rel_value * 31 + ntohl (atsi[i].value)) / 32;
+      GNUNET_STATISTICS_set (GSF_stats,
+			     gettext_noop ("# running average P2P latency (ms)"),
+			     GSF_avg_latency.rel_value,
+			     GNUNET_NO);
+      break;
+    }
+  }
+}
+
+
+/**
  * Handle P2P "PUT" message.
  *
  * @param cls closure, always NULL
@@ -239,6 +272,7 @@ handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_OK;
   }
   GSF_cover_content_count++;
+  update_latencies (atsi, atsi_count);
   return GSF_handle_p2p_content_ (cp, message);
 }
 
@@ -317,6 +351,7 @@ handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
   if (NULL == pr)
     return GNUNET_SYSERR;
   GSF_local_lookup_ (pr, &consider_forwarding, NULL);
+  update_latencies (atsi, atsi_count);
   return GNUNET_OK;
 }
 
