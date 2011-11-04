@@ -699,6 +699,63 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
+ * An address is now in use or not used any more.
+ *
+ * @param sh handle
+ * @param peer identity of the peer
+ * @param plugin_name name of the transport plugin
+ * @param plugin_addr address  (if available)
+ * @param plugin_addr_len number of bytes in plugin_addr
+ * @param session session handle
+ * @param in_use GNUNET_YES if this address is now used, GNUNET_NO
+ * if address is not used any more
+ */
+void
+GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
+                              const struct GNUNET_PeerIdentity *peer,
+                              const char *plugin_name,
+                              const void *plugin_addr,
+                              size_t plugin_addr_len,
+                              struct Session *session,
+                              int in_use)
+{
+  struct PendingMessage *p;
+  struct AddressUseMessage *m;
+  char *pm;
+  size_t namelen;
+  size_t msize;
+
+  namelen = (plugin_name == NULL) ? 0 : strlen (plugin_name) + 1;
+  msize = sizeof (struct AddressUseMessage) + plugin_addr_len + namelen;
+  if ( (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+       (plugin_addr_len  >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+       (namelen  >= GNUNET_SERVER_MAX_MESSAGE_SIZE) )
+  {
+    GNUNET_break (0);
+    return;
+  }
+  p = GNUNET_malloc (sizeof (struct PendingMessage) +  msize);
+  p->size = msize;
+  p->is_init = GNUNET_NO;
+  m = (struct AddressUseMessage*) &p[1];
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
+  m->header.size = htons (msize);
+  m->peer = *peer;
+  m->in_use = htons(in_use);
+  m->address_length = htons (plugin_addr_len);
+  m->plugin_name_length = htons (namelen);
+  m->session_id = htonl (get_session_id (sh, session, peer));
+  pm = (char *) &m[1];
+  memcpy (pm, plugin_addr, plugin_addr_len);
+  memcpy (&pm[plugin_addr_len], plugin_name, namelen);
+  GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head,
+                                    sh->pending_tail,
+                                    p);
+
+  do_transmit (sh);
+}
+
+/**
  * A session got destroyed, stop including it as a valid address.
  *
  * @param sh handle

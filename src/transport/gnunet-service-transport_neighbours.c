@@ -2025,6 +2025,14 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   if (!is_connected(n))
     change_state (n, S_CONNECTED);
 
+  GNUNET_ATS_address_in_use (GST_ats,
+                             peer,
+                             plugin_name,
+                             sender_address,
+                             sender_address_len,
+                             session,
+                             GNUNET_YES);
+
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Setting inbound quota of %u for peer `%s' to \n",
@@ -2137,6 +2145,14 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   was_connected = is_connected(n);
   change_state (n, S_CONNECTED);
 
+  GNUNET_ATS_address_in_use (GST_ats,
+                             peer,
+                             plugin_name,
+                             sender_address,
+                             sender_address_len,
+                             session,
+                             GNUNET_YES);
+
   GST_neighbours_set_incoming_quota(&n->id, n->bandwidth_in);
 
   if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
@@ -2166,13 +2182,11 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
               "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
               ntohl (n->bandwidth_out.value__), GNUNET_i2s (peer));
 #endif
-
   q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
   q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
   q_msg.quota = n->bandwidth_out;
   q_msg.peer = (*peer);
   GST_clients_broadcast (&q_msg.header, GNUNET_NO);
-
 }
 
 struct BlackListCheckContext

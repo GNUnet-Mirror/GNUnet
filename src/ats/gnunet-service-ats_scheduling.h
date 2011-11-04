@@ -101,6 +101,17 @@ GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handle 'address in use' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
+                           const struct GNUNET_MessageHeader *message);
+
+/**
  * Handle 'address destroyed' messages from clients.
  *
  * @param cls unused, NULL

@@ -235,6 +235,69 @@ GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handle 'address in use' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
+                           const struct GNUNET_MessageHeader *message)
+{
+  const struct AddressUseMessage * m;
+  const char *address;
+  const char *plugin_name;
+  uint16_t address_length;
+  uint16_t plugin_name_length;
+
+  uint16_t size;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message\n",
+              "ADDRESS_IN_USE");
+  size = ntohs (message->size);
+  if (size < sizeof (struct AddressUseMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  m = (const struct AddressUseMessage*) message;
+
+  address_length = ntohs (m->address_length);
+  plugin_name_length = ntohs (m->plugin_name_length);
+
+  address = (const char*) &m[1];
+  if (plugin_name_length != 0)
+    plugin_name = &address[address_length];
+  else
+    plugin_name = "";
+
+  if ( (address_length +
+        plugin_name_length +
+        sizeof (struct AddressUseMessage) != ntohs (message->size))  ||
+       (plugin_name[plugin_name_length - 1] != '\0') )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+
+/*
+  GAS_addresses_update (&m->peer,
+                        plugin_name,
+                        address,
+                        address_length,
+                        ntohl (m->session_id),
+                        atsi,
+                        ats_count);
+*/
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+/**
  * Handle 'address destroyed' messages from clients.
  *
  * @param cls unused, NULL

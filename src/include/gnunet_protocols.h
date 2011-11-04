@@ -954,6 +954,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE 349
 
+/**
+ * Type of the 'struct AddressUseMessage' sent by ATS to client
+ * to confirm that an address is used or not used anymore
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE 350
 
 
 /*******************************************************************************

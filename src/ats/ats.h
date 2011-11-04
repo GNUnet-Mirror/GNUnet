@@ -84,6 +84,27 @@ struct AddressUpdateMessage
 
 };
 
+struct AddressUseMessage
+{
+  struct GNUNET_MessageHeader header;
+
+  struct GNUNET_PeerIdentity peer;
+
+  uint16_t in_use GNUNET_PACKED;
+
+  uint16_t address_length GNUNET_PACKED;
+
+  uint16_t plugin_name_length GNUNET_PACKED;
+
+  uint32_t session_id GNUNET_PACKED;
+
+  /* followed by:
+     - char address[address_length]
+     - char plugin_name[plugin_name_length] (including '\0'-termination).
+  */
+
+};
+
 
 struct AddressDestroyedMessage
 {

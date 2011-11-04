@@ -557,6 +557,27 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
+ * An address is now in use or not used any more.
+ *
+ * @param sh handle
+ * @param peer identity of the peer
+ * @param plugin_name name of the transport plugin
+ * @param plugin_addr address  (if available)
+ * @param plugin_addr_len number of bytes in plugin_addr
+ * @param session session handle
+ * @param in_use GNUNET_YES if this address is now used, GNUNET_NO
+ * if address is not used any more
+ */
+void
+GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
+                              const struct GNUNET_PeerIdentity *peer,
+                              const char *plugin_name,
+                              const void *plugin_addr,
+                              size_t plugin_addr_len,
+                              struct Session *session,
+                              int in_use);
+
+/**
  * A session got destroyed, stop including it as a valid address.
  *
  * @param sh handle
