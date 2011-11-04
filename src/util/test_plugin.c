@@ -31,9 +31,13 @@ test_cb (void *cls,
 	 const char *libname,
 	 void *lib_ret)
 {
+  void *ret;
+
   GNUNET_assert (0 == strcmp (cls, "test"));
   GNUNET_assert (0 == strcmp (lib_ret, "Hello"));
-  GNUNET_assert (0 == strcmp (GNUNET_PLUGIN_unload (libname, "out"), "World"));
+  ret = GNUNET_PLUGIN_unload (libname, "out");
+  GNUNET_assert (NULL != ret);
+  GNUNET_assert (0 == strcmp (ret, "World"));
 }
 	 
 
