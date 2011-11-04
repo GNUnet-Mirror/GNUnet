@@ -1158,6 +1158,7 @@ send_message (const struct GNUNET_MessageHeader *message,
   if (NULL == p)
   {
     GNUNET_break (0);
+    GNUNET_free (info);
     return;
   }
   i = peer_info_transmit_slot (neighbor);
