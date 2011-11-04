@@ -1579,6 +1579,7 @@ path_add_to_peer (struct MeshPeerInfo *peer_info,
     return;
   }
 
+  GNUNET_assert (peer_info->id == path->peers[path->length - 1]);
   for (aux = peer_info->path_head; aux != NULL; aux = aux->next)
   {
     l2 = path_get_length (aux);
