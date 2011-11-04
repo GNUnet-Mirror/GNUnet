@@ -58,8 +58,8 @@ static void
 sigfunc (int sig)
 {
   closeprog = 1;
-  unlink (FIFO_FILE1);
-  unlink (FIFO_FILE2);
+  (void) unlink (FIFO_FILE1);
+  (void) unlink (FIFO_FILE2);
 }
 
 static void
