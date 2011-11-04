@@ -1442,7 +1442,7 @@ peer_info_destroy (struct MeshPeerInfo *pi)
  * TODO: optimize (see below)
  */
 static void
-path_remove_from_peer (struct MeshPeerInfo *peer,
+peer_info_remove_path (struct MeshPeerInfo *peer,
                        GNUNET_PEER_Id p1,
                        GNUNET_PEER_Id p2)
 {
@@ -1524,9 +1524,9 @@ path_remove_from_peer (struct MeshPeerInfo *peer,
  * @param trusted Do we trust that this path is real?
  */
 void
-path_add_to_peer (struct MeshPeerInfo *peer_info,
-                  struct MeshPeerPath *path,
-                  int trusted)
+peer_info_add_path (struct MeshPeerInfo *peer_info,
+                    struct MeshPeerPath *path,
+                    int trusted)
 {
   struct MeshPeerPath *aux;
   unsigned int l;
@@ -1618,12 +1618,12 @@ path_add_to_peer (struct MeshPeerInfo *peer_info,
  * @param trusted Do we trust that this path is real?
  */
 static void
-path_add_to_origin (struct MeshPeerInfo *peer_info,
-                    struct MeshPeerPath *path,
-                    int trusted)
+peer_info_add_path_to_origin (struct MeshPeerInfo *peer_info,
+                              struct MeshPeerPath *path,
+                              int trusted)
 {
   path_invert(path);
-  path_add_to_peer (peer_info, path, trusted);
+  peer_info_add_path (peer_info, path, trusted);
 }
 
 
@@ -2631,7 +2631,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   It's for us!\n");
-    path_add_to_origin (orig_peer_info, path, GNUNET_NO);
+    peer_info_add_path_to_origin (orig_peer_info, path, GNUNET_NO);
     if (NULL == t->peers)
       t->peers = GNUNET_CONTAINER_multihashmap_create(4);
     GNUNET_break (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (
@@ -2667,9 +2667,9 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     path2 = path_duplicate(path);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   Retransmitting.\n");
-    path_add_to_peer(dest_peer_info, path2, GNUNET_NO);
+    peer_info_add_path(dest_peer_info, path2, GNUNET_NO);
     path2 = path_duplicate(path);
-    path_add_to_origin(orig_peer_info, path2, GNUNET_NO);
+    peer_info_add_path_to_origin(orig_peer_info, path2, GNUNET_NO);
     send_create_path(dest_peer_info, path, t);
   }
   return GNUNET_OK;
@@ -3298,7 +3298,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   p = path_build_from_dht (get_path, get_path_length,
                            put_path, put_path_length);
-  path_add_to_peer (path_info->peer, p, GNUNET_NO);
+  peer_info_add_path (path_info->peer, p, GNUNET_NO);
   for (i = 0; i < path_info->peer->ntunnels; i++)
   {
     tunnel_add_peer (path_info->peer->tunnels[i], path_info->peer);
@@ -3352,7 +3352,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   p = path_build_from_dht (get_path, get_path_length,
                            put_path, put_path_length);
-  path_add_to_peer (peer_info, p, GNUNET_NO);
+  peer_info_add_path (peer_info, p, GNUNET_NO);
   tunnel_add_peer(t, peer_info);
   peer_info_connect (peer_info, t);
 }
@@ -4261,7 +4261,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   path->peers[1] = peer_info->id;
   GNUNET_PEER_change_rc(myid, 1);
   GNUNET_PEER_change_rc(peer_info->id, 1);
-  path_add_to_peer (peer_info, path, GNUNET_YES);
+  peer_info_add_path (peer_info, path, GNUNET_YES);
   return;
 }
 
@@ -4291,7 +4291,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     /* TODO: notify that the transmission failed */
     peer_info_cancel_transmission(pi, i);
   }
-  path_remove_from_peer (pi, pi->id, myid);
+  peer_info_remove_path (pi, pi->id, myid);
 #if MESH_DEBUG_CONNECTION
   if (myid == pi->id)
   {
@@ -4480,7 +4480,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   p = path_new (1);
   p->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
-  path_add_to_peer(peer, p, GNUNET_YES);
+  peer_info_add_path(peer, p, GNUNET_YES);
 
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
