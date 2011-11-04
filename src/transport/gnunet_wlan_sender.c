@@ -30,6 +30,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 #include "gnunet_protocols.h"
 #include "plugin_transport_wlan.h"
 
@@ -216,13 +217,18 @@ int main(int argc, char *argv[]){
 	}
 	else{
 		/* A zero PID indicates that this is the child process */
-		dup2(commpipe[0],0);	/* Replace stdin with the in side of the pipe */
-		close(commpipe[1]);		/* Close unused side of pipe (out side) */
+	        (void) close(0);
+	        if (-1 == dup2(commpipe[0],0))	/* Replace stdin with the in side of the pipe */
+		  fprintf (stderr,
+			   "dup2 failed: %s\n",
+			   strerror (errno));
+		(void) close(commpipe[1]);		/* Close unused side of pipe (out side) */
 		/* Replace the child fork with a new process */
-		if(execl("gnunet-transport-wlan-helper","gnunet-transport-wlan-helper", argv[1], NULL) == -1){
-			fprintf(stderr,"Could not start gnunet-transport-wlan-helper!");
-			exit(1);
-		}
+		if (execl("gnunet-transport-wlan-helper","gnunet-transport-wlan-helper", argv[1], NULL) == -1)
+		  {
+		    fprintf(stderr,"Could not start gnunet-transport-wlan-helper!");
+		    _exit(1);
+		  }
 	}
 	return 0;
 }
