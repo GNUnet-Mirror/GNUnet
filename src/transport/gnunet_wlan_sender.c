@@ -20,7 +20,7 @@
 
 /**
  * @file transport/gnunet_wlan_sender.c
- * @brief program to send via WLAN as much as possible
+ * @brief program to send via WLAN as much as possible (to test physical/theoretical throughput)
  * @author David Brodski
  */
 
@@ -184,6 +184,7 @@ int main(int argc, char *argv[]){
 		getWlanHeader(wlan_header, outmac, inmac, WLAN_MTU - sizeof(struct GNUNET_MessageHeader));
 
 		start = time(NULL);
+		count = 0;
 		while (1){
 			pos += write(commpipe[1], msg, WLAN_MTU - pos);
 			if (pos % WLAN_MTU == 0){
