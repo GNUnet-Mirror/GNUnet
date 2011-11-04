@@ -120,6 +120,7 @@ getWlanHeader (struct ieee80211_frame *Header,
 }
 
 int main(int argc, char *argv[]){
+  char msg_buf[WLAN_MTU];
 	struct GNUNET_MessageHeader *msg;
 	struct ieee80211_frame *wlan_header;
 	struct Radiotap_Send *radiotap;
@@ -173,7 +174,7 @@ int main(int argc, char *argv[]){
 			outmac[i] = temp[i];
 		}
 
-		msg = malloc(WLAN_MTU);
+		msg = (struct GNUNET_MessageHeader*) msg_buf;
 		msg->type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
 		msg->size = htons (WLAN_MTU);
 		radiotap = (struct Radiotap_Send *) &msg[1];
