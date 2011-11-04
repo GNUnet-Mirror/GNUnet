@@ -147,19 +147,19 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size)
   if (size > 5 * 1024)
     {
       size = size / 1024;
-      unit = _( /* size unit */ "KiB");
+      unit = "KiB";
       if (size > 5 * 1024)
 	{
 	  size = size / 1024;
-	  unit = _( /* size unit */ "MiB");
+	  unit = "MiB";
 	  if (size > 5 * 1024)
 	    {
 	      size = size / 1024;
-	      unit = _( /* size unit */ "GiB");
+	      unit = "GiB";
 	      if (size > 5 * 1024)
 		{
 		  size = size / 1024;
-		  unit = _( /* size unit */ "TiB");
+		  unit = "TiB";
 		}
 	    }
 	}
