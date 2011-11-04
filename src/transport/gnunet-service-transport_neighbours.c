@@ -580,14 +580,20 @@ send_with_plugin ( const struct GNUNET_PeerIdentity * target,
   size_t ret = GNUNET_SYSERR;
 
   /* FIXME : ats returns an address with all values 0 */
-  if (((plugin_name == NULL) && (addr == NULL) && (addrlen == 0 )) ||
-      ((plugin_name == NULL) && (session == NULL)) ||
-      ((plugin_name == NULL) && (addr == NULL) && (addrlen == 0 ) && (force_address == GNUNET_YES)))
+  if (plugin_name == NULL)
   {
     if (cont != NULL)
       cont (cont_cls, target, GNUNET_SYSERR);
     return GNUNET_SYSERR;
   }
+
+  if ((session == NULL) && (addr == NULL) && (addrlen == 0))
+  {
+    if (cont != NULL)
+      cont (cont_cls, target, GNUNET_SYSERR);
+    return GNUNET_SYSERR;
+  }
+
   papi = GST_plugins_find (plugin_name);
   if (papi == NULL)
   {
@@ -1001,7 +1007,6 @@ ats_suggest_cancel (void *cls,
   disconnect_neighbour(n);
 }
 
-
 /**
  * Cleanup the neighbours subsystem.
  */
@@ -1217,10 +1222,10 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op(0);
     checks_failed = GNUNET_YES;
   }
-  if ((address == NULL) && (address_len == 0 ))
+  if ((address == NULL) && (address_len == 0 ) && (session == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "ATS offered suggested us empty address: address NULL");
+                "ATS offered suggested us empty address: address NULL & session NULL");
     GNUNET_break_op(0);
     checks_failed = GNUNET_YES;
   }
