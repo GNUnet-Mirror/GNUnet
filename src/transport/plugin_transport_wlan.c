@@ -1551,11 +1551,10 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   {
 
 #if DEBUG_wlan
-#endif
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, PLUGIN_LOG_NAME,
                      "Starting gnunet-wlan-helper loopback 1 process cmd: %s %s %i\n",
                      absolute_filename, plugin->interface, plugin->testmode);
-
+#endif
     plugin->server_proc = GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
                                   absolute_filename, absolute_filename, "1",
                                   NULL);
@@ -1569,11 +1568,10 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   else if (plugin->testmode == 2)
   {
 #if DEBUG_wlan
-#endif
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, PLUGIN_LOG_NAME,
                      "Starting gnunet-wlan-helper loopback 2 process cmd: %s %s %i\n",
                      absolute_filename, plugin->interface, plugin->testmode);
-
+#endif
 
       plugin->server_proc = GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
                                    absolute_filename, absolute_filename, "2",
