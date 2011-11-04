@@ -1518,7 +1518,7 @@ peer_info_add_path (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path,
     if (path->peers[l] == myid)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: shortening path by %u\n", l);
-      for (l2 = 0; l2 < path->length - l - 1; l2++)
+      for (l2 = 0; l2 < path->length - l; l2++)
       {
         path->peers[l2] = path->peers[l + l2];
       }
