@@ -641,6 +641,7 @@ stdin_send_hw (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   rtheader.header.it_len = htole16 (0x0c);
   rtheader.header.it_present = htole32 (0x00008004);
   rtheader.rate = 0x00;
+  rtheader.pad1 = 0x00;
   rtheader.txflags =
       htole16 (IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
 
