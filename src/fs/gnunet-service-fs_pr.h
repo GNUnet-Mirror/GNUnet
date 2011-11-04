@@ -359,14 +359,14 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
 
 /**
  * Is the given target a legitimate peer for forwarding the given request?
- * 
+ *
  * @param pr request
  * @param target
  * @return GNUNET_YES if this request could be forwarded to the given peer
  */
 int
 GSF_pending_request_test_target_ (struct GSF_PendingRequest *pr,
-				  const struct GNUNET_PeerIdentity *target);
+                                  const struct GNUNET_PeerIdentity *target);
 
 
 

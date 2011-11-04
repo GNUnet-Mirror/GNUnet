@@ -20,7 +20,7 @@
 
 /**
  * @file core/gnunet-service-core_neighbours.h
- * @brief code for managing of 'encrypted' sessions (key exchange done) 
+ * @brief code for managing of 'encrypted' sessions (key exchange done)
  * @author Christian Grothoff
  */
 #ifndef GNUNET_SERVICE_CORE_SESSIONS_H
@@ -38,12 +38,12 @@
  */
 void
 GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
-		     struct GSC_KeyExchangeInfo *kx);
+                     struct GSC_KeyExchangeInfo *kx);
 
 
 /**
  * End the session with the given peer (we are no longer
- * connected). 
+ * connected).
  *
  * @param pid identity of peer to kill session with
  */
@@ -95,8 +95,7 @@ GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car);
  */
 void
 GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
-		       const struct GNUNET_MessageHeader *msg,
-		       int cork);
+                       const struct GNUNET_MessageHeader *msg, int cork);
 
 
 /**
@@ -125,7 +124,7 @@ GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client);
  */
 void
 GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
-			  const struct GNUNET_MessageHeader *msg);
+                          const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -138,7 +137,7 @@ GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
  */
 void
 GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
-			     uint16_t type);
+                             uint16_t type);
 
 
 /**
@@ -151,8 +150,10 @@ GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
  * @param message iteration request message
  */
 void
-GSC_SESSIONS_handle_client_iterate_peers (void *cls, struct GNUNET_SERVER_Client *client,
-					  const struct GNUNET_MessageHeader *message);
+GSC_SESSIONS_handle_client_iterate_peers (void *cls,
+                                          struct GNUNET_SERVER_Client *client,
+                                          const struct GNUNET_MessageHeader
+                                          *message);
 
 
 /**
@@ -166,8 +167,10 @@ GSC_SESSIONS_handle_client_iterate_peers (void *cls, struct GNUNET_SERVER_Client
  * @param message iteration request message
  */
 void
-GSC_SESSIONS_handle_client_have_peer (void *cls, struct GNUNET_SERVER_Client *client,
-				      const struct GNUNET_MessageHeader *message);
+GSC_SESSIONS_handle_client_have_peer (void *cls,
+                                      struct GNUNET_SERVER_Client *client,
+                                      const struct GNUNET_MessageHeader
+                                      *message);
 
 
 

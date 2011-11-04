@@ -473,7 +473,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       break;
     }
-    ats = (const struct GNUNET_ATS_Information*) &cim[1];
+    ats = (const struct GNUNET_ATS_Information *) &cim[1];
 #if DEBUG_TRANSPORT_API
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving `%s' message for `%4s'.\n",
          "CONNECT", GNUNET_i2s (&cim->id));
@@ -547,7 +547,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     im = (const struct InboundMessage *) msg;
     ats_count = ntohl (im->ats_count);
-    ats = (const struct GNUNET_ATS_Information*) &im[1];
+    ats = (const struct GNUNET_ATS_Information *) &im[1];
     imm = (const struct GNUNET_MessageHeader *) &ats[ats_count];
     if (ntohs (imm->size) + sizeof (struct InboundMessage) +
         ats_count * sizeof (struct GNUNET_ATS_Information) != size)

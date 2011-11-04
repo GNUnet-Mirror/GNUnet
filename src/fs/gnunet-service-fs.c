@@ -226,19 +226,20 @@ GSF_test_get_load_too_high_ (uint32_t priority)
  */
 static void
 update_latencies (const struct GNUNET_ATS_Information *atsi,
-		  unsigned int atsi_count)
+                  unsigned int atsi_count)
 {
   unsigned int i;
 
-  for (i=0;i<atsi_count;i++)
+  for (i = 0; i < atsi_count; i++)
   {
-    if (ntohl(atsi[i].type) == GNUNET_ATS_QUALITY_NET_DELAY)
+    if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DELAY)
     {
-      GSF_avg_latency.rel_value = (GSF_avg_latency.rel_value * 31 + ntohl (atsi[i].value)) / 32;
+      GSF_avg_latency.rel_value =
+          (GSF_avg_latency.rel_value * 31 + ntohl (atsi[i].value)) / 32;
       GNUNET_STATISTICS_set (GSF_stats,
-			     gettext_noop ("# running average P2P latency (ms)"),
-			     GSF_avg_latency.rel_value,
-			     GNUNET_NO);
+                             gettext_noop
+                             ("# running average P2P latency (ms)"),
+                             GSF_avg_latency.rel_value, GNUNET_NO);
       break;
     }
   }
@@ -261,7 +262,7 @@ static int
 handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_ATS_Information *atsi,
-		unsigned int atsi_count)
+                unsigned int atsi_count)
 {
   struct GSF_ConnectedPeer *cp;
 
@@ -294,13 +295,11 @@ consider_request_for_forwarding (void *cls,
 {
   struct GSF_PendingRequest *pr = cls;
 
-  if (GNUNET_YES !=
-      GSF_pending_request_test_target_ (pr,
-					peer))
+  if (GNUNET_YES != GSF_pending_request_test_target_ (pr, peer))
   {
     GNUNET_STATISTICS_update (GSF_stats,
-			      gettext_noop ("# Loopback routes suppressed"), 1,
-			      GNUNET_NO);
+                              gettext_noop ("# Loopback routes suppressed"), 1,
+                              GNUNET_NO);
     return;
   }
   GSF_plan_add_ (cp, pr);
@@ -343,7 +342,7 @@ static int
 handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_ATS_Information *atsi,
-		unsigned int atsi_count)
+                unsigned int atsi_count)
 {
   struct GSF_PendingRequest *pr;
 
@@ -475,13 +474,11 @@ consider_peer_for_forwarding (void *cls, const GNUNET_HashCode * key,
   struct GNUNET_PeerIdentity pid;
 
   GSF_connected_peer_get_identity_ (cp, &pid);
-  if (GNUNET_YES !=
-      GSF_pending_request_test_target_ (pr,
-					&pid))
+  if (GNUNET_YES != GSF_pending_request_test_target_ (pr, &pid))
   {
     GNUNET_STATISTICS_update (GSF_stats,
-			      gettext_noop ("# Loopback routes suppressed"), 1,
-			      GNUNET_NO);
+                              gettext_noop ("# Loopback routes suppressed"), 1,
+                              GNUNET_NO);
     return GNUNET_YES;
   }
   GSF_plan_add_ (cp, pr);
@@ -500,7 +497,7 @@ consider_peer_for_forwarding (void *cls, const GNUNET_HashCode * key,
 static void
 peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_ATS_Information *atsi,
-		      unsigned int atsi_count)
+                      unsigned int atsi_count)
 {
   struct GSF_ConnectedPeer *cp;
 
@@ -568,9 +565,8 @@ main_init (struct GNUNET_SERVER_Handle *server,
   GSF_core = GNUNET_CORE_connect (GSF_cfg, 2,   /* larger? */
                                   NULL, &peer_init_handler,
                                   &peer_connect_handler,
-                                  &GSF_peer_disconnect_handler_,
-                                  NULL, GNUNET_NO,
-                                  NULL, GNUNET_NO, p2p_handlers);
+                                  &GSF_peer_disconnect_handler_, NULL,
+                                  GNUNET_NO, NULL, GNUNET_NO, p2p_handlers);
   if (NULL == GSF_core)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

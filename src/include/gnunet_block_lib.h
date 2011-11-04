@@ -238,8 +238,8 @@ GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
  */
 struct GNUNET_CONTAINER_BloomFilter *
 GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
-				    const GNUNET_HashCode *seen_results,
-				    unsigned int seen_results_count);
+                                    const GNUNET_HashCode * seen_results,
+                                    unsigned int seen_results_count);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -53,8 +53,7 @@ static int verbose;
  * @param tc unused
  */
 static void
-do_shutdown (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_FS_stop (fs);
   fs = NULL;
@@ -70,18 +69,12 @@ do_shutdown (void *cls,
  * @return GNUNET_OK to continue iteration
  */
 static int
-print_indexed (void *cls, const char *filename,
-	       const GNUNET_HashCode * file_id)
+print_indexed (void *cls, const char *filename, const GNUNET_HashCode * file_id)
 {
   if (verbose)
-    fprintf (stdout,
-	     "%s: %s\n",
-	     GNUNET_h2s (file_id),
-	     filename);
+    fprintf (stdout, "%s: %s\n", GNUNET_h2s (file_id), filename);
   else
-    fprintf (stdout,
-	     "%s\n",
-	     filename);
+    fprintf (stdout, "%s\n", filename);
   return GNUNET_OK;
 }
 
@@ -100,18 +93,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   if (list_indexed_files)
   {
-    fs = GNUNET_FS_start (cfg,
-			  "gnunet-fs",
-			  NULL, NULL,
-			  GNUNET_FS_FLAGS_NONE);
+    fs = GNUNET_FS_start (cfg, "gnunet-fs", NULL, NULL, GNUNET_FS_FLAGS_NONE);
     if (NULL == fs)
     {
       ret = 1;
       return;
     }
-    GNUNET_FS_get_indexed_files (fs,
-				 &print_indexed, NULL,
-				 &do_shutdown, NULL);
+    GNUNET_FS_get_indexed_files (fs, &print_indexed, NULL, &do_shutdown, NULL);
   }
 }
 
@@ -134,8 +122,7 @@ main (int argc, char *const *argv)
   };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-fs [OPTIONS]",
-                              gettext_noop
-                              ("Special file-sharing operations"),
+                              gettext_noop ("Special file-sharing operations"),
                               options, &run, NULL)) ? ret : 1;
 }
 

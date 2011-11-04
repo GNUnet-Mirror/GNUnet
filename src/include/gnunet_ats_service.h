@@ -49,14 +49,14 @@ enum GNUNET_ATS_Property
 
   /**
    * Actual traffic on this connection from the other peer to this peer.
-   * 
+   *
    * Unit: [bytes/second]
    */
   GNUNET_ATS_UTILIZATION_UP,
 
   /**
    * Actual traffic on this connection from this peer to the other peer.
-   * 
+   *
    * Unit: [bytes/second]
    */
   GNUNET_ATS_UTILIZATION_DOWN,
@@ -74,14 +74,14 @@ enum GNUNET_ATS_Property
    * Dialup:  500
    */
   GNUNET_ATS_QUALITY_NET_DELAY,
- 
+
   /**
    * Distance on network layer (required for distance-vector routing).
    *
    * Unit: [DV-hops]
    */
   GNUNET_ATS_QUALITY_NET_DISTANCE,
- 
+
   /**
    * Network overhead on WAN (Wide-Area Network)
    *
@@ -102,7 +102,7 @@ enum GNUNET_ATS_Property
    * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
    */
   GNUNET_ATS_COST_WAN,
- 
+
   /**
    * Network overhead on LAN (Local-Area Network)
    *
@@ -123,7 +123,7 @@ enum GNUNET_ATS_Property
    * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
    */
   GNUNET_ATS_COST_LAN,
-  
+
   /**
    * Network overhead on WLAN (Wireless Local Area Network)
    *
@@ -144,12 +144,8 @@ enum GNUNET_ATS_Property
    * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
    */
   GNUNET_ATS_COST_WLAN
- 
-
-
-  /* Cost related values */
-  /* =================== */
-
+      /* Cost related values */
+      /* =================== */
   /**
    * Volume based cost in financial units to transmit data
    *
@@ -166,8 +162,7 @@ enum GNUNET_ATS_Property
    * LAN:  0 [cent/MB]
    * 2G : 10 [cent/MB]
    */
-  // GNUNET_ATS_COST_FINANCIAL_PER_VOLUME = 1,
-
+      // GNUNET_ATS_COST_FINANCIAL_PER_VOLUME = 1,
   /**
    * Time based cost in financial units to transmit data
    *
@@ -184,8 +179,7 @@ enum GNUNET_ATS_Property
    * LAN   :  0 [cent/h]
    * Dialup: 10 [cent/h]
    */
-  // GNUNET_ATS_COST_FINANCIAL_PER_TIME = 2,
-
+      // GNUNET_ATS_COST_FINANCIAL_PER_TIME = 2,
   /**
    * Computational costs
    *
@@ -204,8 +198,7 @@ enum GNUNET_ATS_Property
    * HTTPS with AES CBC-128: 	5,279
    * HTTPS with RC4-1024: 	2,652
    */
-  // GNUNET_ATS_COST_COMPUTATIONAL = 3,
-
+      // GNUNET_ATS_COST_COMPUTATIONAL = 3,
   /**
    * Energy consumption
    *
@@ -233,8 +226,7 @@ enum GNUNET_ATS_Property
    * WLAN:      89 (600 mW @ 802.11g /w 54 MBit/s)
    * Bluetooth: 267 (100 mW @ BT2.0 EDR /w 3 MBit/s)
    */
-  // GNUNET_ATS_COST_ENERGY_CONSUMPTION = 4,
-
+      // GNUNET_ATS_COST_ENERGY_CONSUMPTION = 4,
   /**
    * Connect cost
    * How many bytes are transmitted to initiate a new connection using
@@ -256,8 +248,7 @@ enum GNUNET_ATS_Property
    *  2129 bytes Ethernet, 1975 bytes TCP/IP, 1755 bytes TCP, 1403 bytes HTTPS
    *
    * */
-  // GNUNET_ATS_COST_CONNECT = 5,
-
+      // GNUNET_ATS_COST_CONNECT = 5,
   /**
    * Bandwidth cost
    *
@@ -274,8 +265,7 @@ enum GNUNET_ATS_Property
    * Dial-up: 8       (64 Kbit/s)
    *
    */
-  // GNUNET_ATS_COST_BANDWITH_AVAILABLE = 6,
-
+      // GNUNET_ATS_COST_BANDWITH_AVAILABLE = 6,
   /**
    *  Network overhead
    *
@@ -295,35 +285,28 @@ enum GNUNET_ATS_Property
    * UDP/IPv4 over Ethernet: 1024 + 38 + 20 + 8  = 1090 [bytes/kb]
    * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
    */
-  // GNUNET_ATS_COST_NETWORK_OVERHEAD = 7,
-
-
-  /* Quality related values */
-  /* ====================== */
-
-  /* Physical layer quality properties */
-
+      // GNUNET_ATS_COST_NETWORK_OVERHEAD = 7,
+      /* Quality related values */
+      /* ====================== */
+      /* Physical layer quality properties */
   /**
    * Signal strength on physical layer
    *
    * Unit: [dBm]
    */
-  // GNUNET_ATS_QUALITY_PHY_SIGNAL_STRENGTH = 1025,
-
+      // GNUNET_ATS_QUALITY_PHY_SIGNAL_STRENGTH = 1025,
   /**
    * Collision rate on physical layer
    *
    * Unit: [B/s]
    */
-  // GNUNET_ATS_QUALITY_PHY_COLLISION_RATE = 1026,
-
+      // GNUNET_ATS_QUALITY_PHY_COLLISION_RATE = 1026,
   /**
    * Error rate on physical layer
    *
    * Unit: [B/s]
    */
-  // GNUNET_ATS_QUALITY_PHY_ERROR_RATE = 1027,
-
+      // GNUNET_ATS_QUALITY_PHY_ERROR_RATE = 1027,
   /**
    * Jitter
    * Time variations of the delay
@@ -331,8 +314,7 @@ enum GNUNET_ATS_Property
    *
    * Unit: [ms]
    */
-  // GNUNET_ATS_QUALITY_NET_JITTER = 1029,
-
+      // GNUNET_ATS_QUALITY_NET_JITTER = 1029,
   /**
    * Error rate on network layer
    *
@@ -346,8 +328,7 @@ enum GNUNET_ATS_Property
    * Note: This numbers are just assumptions as an example, not
    * measured or somehow determined
    */
-  // GNUNET_ATS_QUALITY_NET_ERRORRATE = 1030,
-
+      // GNUNET_ATS_QUALITY_NET_ERRORRATE = 1030,
   /**
    * Drop rate on network layer
    * Bytes actively dismissed by a network component during transmission
@@ -363,8 +344,7 @@ enum GNUNET_ATS_Property
    * Note: This numbers are just assumptions as an example, not
    * measured or somehow determined
    */
-  // GNUNET_ATS_QUALITY_NET_DROPRATE = 1031,
-
+      // GNUNET_ATS_QUALITY_NET_DROPRATE = 1031,
   /**
    * Loss rate on network layer
    * Bytes lost during transmission
@@ -380,8 +360,7 @@ enum GNUNET_ATS_Property
    * Note: This numbers are just assumptions as an example, not measured
    * or somehow determined
    */
-  // GNUNET_ATS_QUALITY_NET_LOSSRATE = 1032,
-
+      // GNUNET_ATS_QUALITY_NET_LOSSRATE = 1032,
   /**
    * Throughput on network layer
    *
@@ -394,21 +373,17 @@ enum GNUNET_ATS_Property
    * Dialup: 	  4
    *
    */
-  // GNUNET_ATS_QUALITY_NET_THROUGHPUT = 1033,
-
-
-  /* Availability related values */
-  /* =========================== */
-
+      // GNUNET_ATS_QUALITY_NET_THROUGHPUT = 1033,
+      /* Availability related values */
+      /* =========================== */
   /**
    * Is a peer reachable?
    */
-  // GNUNET_ATS_AVAILABILITY_REACHABLE = 2048,
-
+      // GNUNET_ATS_AVAILABILITY_REACHABLE = 2048,
   /**
    * Is there a connection established to a peer using this transport
    */
-  // GNUNET_ATS_AVAILABILITY_CONNECTED = 2049
+      // GNUNET_ATS_AVAILABILITY_CONNECTED = 2049
 };
 
 
@@ -461,7 +436,7 @@ struct Session;
 
 /**
  * Signature of a function called by ATS with the current bandwidth
- * and address preferences as determined by ATS.  
+ * and address preferences as determined by ATS.
  *
  * @param cls closure
  * @param peer identity of the new peer
@@ -488,10 +463,9 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                                       struct
                                                       GNUNET_BANDWIDTH_Value32NBO
                                                       bandwidth_in,
-						      const struct
-						      GNUNET_ATS_Information
-						      * ats,
-						      uint32_t ats_count);
+                                                      const struct
+                                                      GNUNET_ATS_Information *
+                                                      ats, uint32_t ats_count);
 
 
 /**
@@ -504,8 +478,8 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
  */
 struct GNUNET_ATS_SchedulingHandle *
 GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			    GNUNET_ATS_AddressSuggestionCallback suggest_cb,
-			    void *suggest_cb_cls);
+                            GNUNET_ATS_AddressSuggestionCallback suggest_cb,
+                            void *suggest_cb_cls);
 
 
 /**
@@ -549,9 +523,8 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
 void
 GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
                            const struct GNUNET_PeerIdentity *peer,
-                           const char *plugin_name,
-                           const void *plugin_addr, size_t plugin_addr_len,
-			   struct Session *session,
+                           const char *plugin_name, const void *plugin_addr,
+                           size_t plugin_addr_len, struct Session *session,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count);
 
@@ -570,12 +543,10 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
  */
 void
 GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
-                              const struct GNUNET_PeerIdentity *peer,
-                              const char *plugin_name,
-                              const void *plugin_addr,
-                              size_t plugin_addr_len,
-                              struct Session *session,
-                              int in_use);
+                           const struct GNUNET_PeerIdentity *peer,
+                           const char *plugin_name, const void *plugin_addr,
+                           size_t plugin_addr_len, struct Session *session,
+                           int in_use);
 
 /**
  * A session got destroyed, stop including it as a valid address.
@@ -590,10 +561,8 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
 void
 GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
                               const struct GNUNET_PeerIdentity *peer,
-			      const char *plugin_name,
-			      const void *plugin_addr, 
-			      size_t plugin_addr_len,
-			      struct Session *session);
+                              const char *plugin_name, const void *plugin_addr,
+                              size_t plugin_addr_len, struct Session *session);
 
 
 /* ******************************** Performance API ***************************** */
@@ -618,22 +587,20 @@ struct GNUNET_ATS_PerformanceHandle;
  * @param ats_count number of performance records in 'ats'
  */
 typedef void (*GNUNET_ATS_PeerInformationCallback) (void *cls,
-						    const struct
-						    GNUNET_PeerIdentity *
-						    peer,
-						    const char *plugin_name,
-						    const void *plugin_addr,
-						    size_t plugin_addr_len,
-						    struct
-						    GNUNET_BANDWIDTH_Value32NBO
-						    bandwidth_out,
-						    struct
-						    GNUNET_BANDWIDTH_Value32NBO
-						    bandwidth_in,
-						    const struct
-						    GNUNET_ATS_Information
-						    * ats,
-						    uint32_t ats_count);
+                                                    const struct
+                                                    GNUNET_PeerIdentity * peer,
+                                                    const char *plugin_name,
+                                                    const void *plugin_addr,
+                                                    size_t plugin_addr_len,
+                                                    struct
+                                                    GNUNET_BANDWIDTH_Value32NBO
+                                                    bandwidth_out,
+                                                    struct
+                                                    GNUNET_BANDWIDTH_Value32NBO
+                                                    bandwidth_in,
+                                                    const struct
+                                                    GNUNET_ATS_Information *
+                                                    ats, uint32_t ats_count);
 
 
 /**
@@ -646,8 +613,8 @@ typedef void (*GNUNET_ATS_PeerInformationCallback) (void *cls,
  */
 struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     GNUNET_ATS_PeerInformationCallback infocb,
-			     void *infocb_cls);
+                             GNUNET_ATS_PeerInformationCallback infocb,
+                             void *infocb_cls);
 
 
 /**
@@ -670,13 +637,10 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph);
  *        long should the client wait until re-trying?
  */
 typedef void (*GNUNET_ATS_ReservationCallback) (void *cls,
-						const struct
-						GNUNET_PeerIdentity *
-						peer,
-						int32_t amount,
-						struct
-						GNUNET_TIME_Relative
-						res_delay);
+                                                const struct GNUNET_PeerIdentity
+                                                * peer, int32_t amount,
+                                                struct GNUNET_TIME_Relative
+                                                res_delay);
 
 
 
@@ -702,10 +666,10 @@ struct GNUNET_ATS_ReservationContext;
  */
 struct GNUNET_ATS_ReservationContext *
 GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
-			      const struct GNUNET_PeerIdentity *peer,
-			      int32_t amount, 
-			      GNUNET_ATS_ReservationCallback rcb, 
-			      void *rcb_cls);
+                              const struct GNUNET_PeerIdentity *peer,
+                              int32_t amount,
+                              GNUNET_ATS_ReservationCallback rcb,
+                              void *rcb_cls);
 
 
 /**
@@ -714,8 +678,7 @@ GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
  * @param rc context returned by the original GNUNET_ATS_reserve_bandwidth call
  */
 void
-GNUNET_ATS_reserve_bandwidth_cancel (struct
-				     GNUNET_ATS_ReservationContext *rc);
+GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc);
 
 
 
@@ -734,7 +697,7 @@ enum GNUNET_ATS_PreferenceKind
    * Change the peer's bandwidth value (value per byte of bandwidth in
    * the goal function) to the given amount.  The argument is followed
    * by a double value giving the desired value (can be negative).
-   * Preference changes are forgotten if peers disconnect. 
+   * Preference changes are forgotten if peers disconnect.
    */
   GNUNET_ATS_PREFERENCE_BANDWIDTH,
 
@@ -746,22 +709,20 @@ enum GNUNET_ATS_PreferenceKind
    * the latency preferences.
    */
   GNUNET_ATS_PREFERENCE_LATENCY
-
 };
 
-  
+
 /**
  * Change preferences for the given peer. Preference changes are forgotten if peers
  * disconnect.
- * 
+ *
  * @param ph performance handle
  * @param peer identifies the peer
  * @param ... 0-terminated specification of the desired changes
  */
 void
 GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
-			      const struct GNUNET_PeerIdentity *peer,
-			      ...);
+                              const struct GNUNET_PeerIdentity *peer, ...);
 
 
 

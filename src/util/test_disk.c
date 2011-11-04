@@ -38,41 +38,40 @@ testReadWrite ()
 
   if (strlen (TESTSTRING) !=
       GNUNET_DISK_fn_write (".testfile", TESTSTRING, strlen (TESTSTRING),
-			    GNUNET_DISK_PERM_USER_READ |
-			    GNUNET_DISK_PERM_USER_WRITE))
+                            GNUNET_DISK_PERM_USER_READ |
+                            GNUNET_DISK_PERM_USER_WRITE))
     return 1;
   if (GNUNET_OK != GNUNET_DISK_file_test (".testfile"))
     return 1;
   ret = GNUNET_DISK_fn_read (".testfile", tmp, sizeof (tmp) - 1);
   if (ret < 0)
-    {
-      fprintf (stderr, "Error reading file `%s' in testReadWrite\n",
-	       ".testfile");
-      return 1;
-    }
+  {
+    fprintf (stderr, "Error reading file `%s' in testReadWrite\n", ".testfile");
+    return 1;
+  }
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
-    {
-      fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n",
-	       tmp, TESTSTRING, ".testfile");
-      return 1;
-    }
+  {
+    fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
+             TESTSTRING, ".testfile");
+    return 1;
+  }
   GNUNET_DISK_file_copy (".testfile", ".testfile2");
   memset (tmp, 0, sizeof (tmp));
   ret = GNUNET_DISK_fn_read (".testfile2", tmp, sizeof (tmp) - 1);
   if (ret < 0)
-    {
-      fprintf (stderr, "Error reading file `%s' in testReadWrite\n",
-	       ".testfile2");
-      return 1;
-    }
+  {
+    fprintf (stderr, "Error reading file `%s' in testReadWrite\n",
+             ".testfile2");
+    return 1;
+  }
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
-    {
-      fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n",
-	       tmp, TESTSTRING, ".testfile2");
-      return 1;
-    }
+  {
+    fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
+             TESTSTRING, ".testfile2");
+    return 1;
+  }
 
   GNUNET_break (0 == UNLINK (".testfile"));
   GNUNET_break (0 == UNLINK (".testfile2"));
@@ -90,15 +89,15 @@ testOpenClose ()
   long avail;
 
   fh = GNUNET_DISK_file_open (".testfile",
-			      GNUNET_DISK_OPEN_READWRITE |
-			      GNUNET_DISK_OPEN_CREATE,
-			      GNUNET_DISK_PERM_USER_READ |
-			      GNUNET_DISK_PERM_USER_WRITE);
+                              GNUNET_DISK_OPEN_READWRITE |
+                              GNUNET_DISK_OPEN_CREATE,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
   GNUNET_break (5 == GNUNET_DISK_file_write (fh, "Hello", 5));
   GNUNET_DISK_file_close (fh);
   GNUNET_break (GNUNET_OK ==
-		GNUNET_DISK_file_size (".testfile", &size, GNUNET_NO));
+                GNUNET_DISK_file_size (".testfile", &size, GNUNET_NO));
   if (size != 5)
     return 1;
   GNUNET_break (0 == UNLINK (".testfile"));
@@ -108,19 +107,19 @@ testOpenClose ()
   avail = GNUNET_DISK_get_blocks_available (".testfile");
   GNUNET_log_skip (0, GNUNET_NO);
   fh = GNUNET_DISK_file_open (".testfile",
-			      GNUNET_DISK_OPEN_READWRITE |
-			      GNUNET_DISK_OPEN_CREATE,
-			      GNUNET_DISK_PERM_USER_WRITE |
-			      GNUNET_DISK_PERM_USER_READ);
+                              GNUNET_DISK_OPEN_READWRITE |
+                              GNUNET_DISK_OPEN_CREATE,
+                              GNUNET_DISK_PERM_USER_WRITE |
+                              GNUNET_DISK_PERM_USER_READ);
   GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
   while ((avail == GNUNET_DISK_get_blocks_available (".testfile")) &&
-	 (avail != -1))
+         (avail != -1))
     if (16 != GNUNET_DISK_file_write (fh, "HelloWorld123456", 16))
-      {
-	GNUNET_DISK_file_close (fh);
-	GNUNET_break (0 == UNLINK (".testfile"));
-	return 1;
-      }
+    {
+      GNUNET_DISK_file_close (fh);
+      GNUNET_break (0 == UNLINK (".testfile"));
+      return 1;
+    }
   GNUNET_DISK_file_close (fh);
   GNUNET_break (0 == UNLINK (".testfile"));
 
@@ -147,7 +146,7 @@ testDirScan ()
       GNUNET_DISK_directory_create ("test" DIR_SEPARATOR_STR "entry_more"))
     return 1;
   GNUNET_DISK_directory_scan ("test", &scan_callback,
-			      "test" DIR_SEPARATOR_STR "entry");
+                              "test" DIR_SEPARATOR_STR "entry");
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
     return 1;
   if (ok < 2)
@@ -157,7 +156,7 @@ testDirScan ()
 
 static void
 iter_callback (void *cls, struct GNUNET_DISK_DirectoryIterator *di,
-	       const char *filename, const char *dirname)
+               const char *filename, const char *dirname)
 {
   int *i = cls;
 
@@ -169,7 +168,7 @@ static void
 iter_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_DISK_directory_iterator_start (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					"test", &iter_callback, cls);
+                                        "test", &iter_callback, cls);
 }
 
 static int
@@ -203,14 +202,14 @@ testGetHome ()
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (cfg != NULL);
   GNUNET_CONFIGURATION_set_value_string (cfg, "service", "HOME",
-					 "/tmp/test-gnunet-disk-a/b/c");
+                                         "/tmp/test-gnunet-disk-a/b/c");
   fn = GNUNET_DISK_get_home_filename (cfg, "service", "d", "e", NULL);
   GNUNET_assert (fn != NULL);
   GNUNET_CONFIGURATION_destroy (cfg);
   ret = strcmp ("/tmp/test-gnunet-disk-a/b/c/d/e", fn);
   GNUNET_free (fn);
   GNUNET_break (GNUNET_OK ==
-		GNUNET_DISK_directory_remove ("/tmp/test-gnunet-disk-a"));
+                GNUNET_DISK_directory_remove ("/tmp/test-gnunet-disk-a"));
   return ret;
 }
 
@@ -221,10 +220,10 @@ testCanonicalize ()
 
   GNUNET_DISK_filename_canonicalize (fn);
   if (0 != strcmp (fn, "ab____cd_ef__g_"))
-    {
-      GNUNET_free (fn);
-      return 1;
-    }
+  {
+    GNUNET_free (fn);
+    return 1;
+  }
   GNUNET_free (fn);
   return 0;
 }
@@ -276,9 +275,9 @@ main (int argc, char *argv[])
   failureCount += testChangeOwner ();
   failureCount += testDirMani ();
   if (failureCount != 0)
-    {
-      fprintf (stderr, "\n%u TESTS FAILED!\n", failureCount);
-      return -1;
-    }
+  {
+    fprintf (stderr, "\n%u TESTS FAILED!\n", failureCount);
+    return -1;
+  }
   return 0;
-}				/* end of main */
+}                               /* end of main */

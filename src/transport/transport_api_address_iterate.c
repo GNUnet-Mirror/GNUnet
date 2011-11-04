@@ -80,7 +80,8 @@ peer_address_response_processor (void *cls,
   struct AddressLookupCtx *alucb = cls;
   struct AddressIterateResponseMessage *address;
   uint16_t size;
-  char * transport;
+  char *transport;
+
   //size_t transport_len;
   //void * addr;
   size_t addrlen;
@@ -120,7 +121,7 @@ peer_address_response_processor (void *cls,
 
   transport = (char *) &address[0];
   //transport_len = ntohs(address->pluginlen);
-  addrlen = ntohs(address->addrlen);
+  addrlen = ntohs (address->addrlen);
 
   /* expect more replies */
   GNUNET_CLIENT_receive (alucb->client, &peer_address_response_processor, alucb,

@@ -39,7 +39,7 @@
  */
 void
 GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
-			    enum StartFlag flag);
+                            enum StartFlag flag);
 
 
 /**
@@ -67,12 +67,14 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client);
  */
 void
 GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
-				const char *plugin_name,
-				const void *plugin_addr, size_t plugin_addr_len,
-				const struct GNUNET_ATS_Information *atsi,
-				uint32_t atsi_count,				
-				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+                                const char *plugin_name,
+                                const void *plugin_addr, size_t plugin_addr_len,
+                                const struct GNUNET_ATS_Information *atsi,
+                                uint32_t atsi_count,
+                                struct GNUNET_BANDWIDTH_Value32NBO
+                                bandwidth_out,
+                                struct GNUNET_BANDWIDTH_Value32NBO
+                                bandwidth_in);
 
 
 /**
@@ -84,7 +86,7 @@ GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
  */
 void
 GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
-				const struct GNUNET_MessageHeader *message);
+                                const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -96,7 +98,7 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
  */
 void
 GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
-			      const struct GNUNET_MessageHeader *message);
+                              const struct GNUNET_MessageHeader *message);
 
 
 /**

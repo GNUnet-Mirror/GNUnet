@@ -65,37 +65,37 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
   GNUNET_assert (i > 0);
 
   switch (mode)
-    {
-    case GNUNET_CRYPTO_QUALITY_STRONG:
-      /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
+  {
+  case GNUNET_CRYPTO_QUALITY_STRONG:
+    /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
 #ifdef gcry_fast_random_poll
-      if ((invokeCount++ % 256) == 0)
-	gcry_fast_random_poll ();
+    if ((invokeCount++ % 256) == 0)
+      gcry_fast_random_poll ();
 #endif
-      ul = UINT32_MAX - (UINT32_MAX % i);
-      do
-	{
-	  gcry_randomize ((unsigned char *) &ret, sizeof (uint32_t),
-			  GCRY_STRONG_RANDOM);
-	}
-      while (ret >= ul);
-      return ret % i;
-    case GNUNET_CRYPTO_QUALITY_NONCE:
-      ul = UINT32_MAX - (UINT32_MAX % i);
-      do
-	{
-	  gcry_create_nonce (&ret, sizeof (ret));
-	}
-      while (ret >= ul);
-      return ret % i;
-    case GNUNET_CRYPTO_QUALITY_WEAK:
-      ret = i * weak_random ();
-      if (ret >= i)
-	ret = i - 1;
-      return ret;
-    default:
-      GNUNET_assert (0);
+    ul = UINT32_MAX - (UINT32_MAX % i);
+    do
+    {
+      gcry_randomize ((unsigned char *) &ret, sizeof (uint32_t),
+                      GCRY_STRONG_RANDOM);
     }
+    while (ret >= ul);
+    return ret % i;
+  case GNUNET_CRYPTO_QUALITY_NONCE:
+    ul = UINT32_MAX - (UINT32_MAX % i);
+    do
+    {
+      gcry_create_nonce (&ret, sizeof (ret));
+    }
+    while (ret >= ul);
+    return ret % i;
+  case GNUNET_CRYPTO_QUALITY_WEAK:
+    ret = i * weak_random ();
+    if (ret >= i)
+      ret = i - 1;
+    return ret;
+  default:
+    GNUNET_assert (0);
+  }
   return 0;
 }
 
@@ -121,12 +121,12 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
   for (i = 0; i < n; i++)
     ret[i] = i;
   for (i = n - 1; i > 0; i--)
-    {
-      x = GNUNET_CRYPTO_random_u32 (mode, i + 1);
-      tmp = ret[x];
-      ret[x] = ret[i];
-      ret[i] = tmp;
-    }
+  {
+    x = GNUNET_CRYPTO_random_u32 (mode, i + 1);
+    tmp = ret[x];
+    ret[x] = ret[i];
+    ret[i] = tmp;
+  }
   return ret;
 }
 
@@ -146,33 +146,33 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 
   GNUNET_assert (max > 0);
   switch (mode)
+  {
+  case GNUNET_CRYPTO_QUALITY_STRONG:
+    ul = UINT64_MAX - (UINT64_MAX % max);
+    do
     {
-    case GNUNET_CRYPTO_QUALITY_STRONG:
-      ul = UINT64_MAX - (UINT64_MAX % max);
-      do
-	{
-	  gcry_randomize ((unsigned char *) &ret, sizeof (uint64_t),
-			  GCRY_STRONG_RANDOM);
-	}
-      while (ret >= ul);
-      return ret % max;
-    case GNUNET_CRYPTO_QUALITY_NONCE:
-      ul = UINT64_MAX - (UINT64_MAX % max);
-      do
-	{
-	  gcry_create_nonce (&ret, sizeof (ret));
-	}
-      while (ret >= ul);
-
-      return ret % max;
-    case GNUNET_CRYPTO_QUALITY_WEAK:
-      ret = max * weak_random ();
-      if (ret >= max)
-	ret = max - 1;
-      return ret;
-    default:
-      GNUNET_assert (0);
+      gcry_randomize ((unsigned char *) &ret, sizeof (uint64_t),
+                      GCRY_STRONG_RANDOM);
     }
+    while (ret >= ul);
+    return ret % max;
+  case GNUNET_CRYPTO_QUALITY_NONCE:
+    ul = UINT64_MAX - (UINT64_MAX % max);
+    do
+    {
+      gcry_create_nonce (&ret, sizeof (ret));
+    }
+    while (ret >= ul);
+
+    return ret % max;
+  case GNUNET_CRYPTO_QUALITY_WEAK:
+    ret = max * weak_random ();
+    if (ret >= max)
+      ret = max - 1;
+    return ret;
+  default:
+    GNUNET_assert (0);
+  }
   return 0;
 }
 
@@ -200,7 +200,7 @@ static struct GNUNET_OS_Process *genproc;
  */
 static void
 entropy_generator (void *cls, const char *what, int printchar, int current,
-		   int total)
+                   int total)
 {
   unsigned long code;
   enum GNUNET_OS_ProcessStatusType type;
@@ -209,39 +209,39 @@ entropy_generator (void *cls, const char *what, int printchar, int current,
   if (0 != strcmp (what, "need_entropy"))
     return;
   if (current == total)
+  {
+    if (genproc != NULL)
     {
-      if (genproc != NULL)
-	{
-	  if (0 != GNUNET_OS_process_kill (genproc, SIGTERM))
-	    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "kill");
-	  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
-	  GNUNET_OS_process_close (genproc);
-	  genproc = NULL;
-	}
-      return;
-    }
-  if (genproc != NULL)
-    {
-      ret = GNUNET_OS_process_status (genproc, &type, &code);
-      if (ret == GNUNET_NO)
-	return;			/* still running */
-      if (ret == GNUNET_SYSERR)
-	{
-	  GNUNET_break (0);
-	  return;
-	}
       if (0 != GNUNET_OS_process_kill (genproc, SIGTERM))
-	LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "kill");
+        LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "kill");
       GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
       GNUNET_OS_process_close (genproc);
       genproc = NULL;
     }
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       _("Starting `%s' process to generate entropy\n"), "find");
+    return;
+  }
+  if (genproc != NULL)
+  {
+    ret = GNUNET_OS_process_status (genproc, &type, &code);
+    if (ret == GNUNET_NO)
+      return;                   /* still running */
+    if (ret == GNUNET_SYSERR)
+    {
+      GNUNET_break (0);
+      return;
+    }
+    if (0 != GNUNET_OS_process_kill (genproc, SIGTERM))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "kill");
+    GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
+    GNUNET_OS_process_close (genproc);
+    genproc = NULL;
+  }
+  LOG (GNUNET_ERROR_TYPE_INFO, _("Starting `%s' process to generate entropy\n"),
+       "find");
   genproc =
-    GNUNET_OS_start_process (NULL, NULL, "sh", "sh", "-c",
-			     "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
-			     NULL);
+      GNUNET_OS_start_process (NULL, NULL, "sh", "sh", "-c",
+                               "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
+                               NULL);
 }
 
 
@@ -249,11 +249,11 @@ static void
 killfind ()
 {
   if (genproc != NULL)
-    {
-      GNUNET_OS_process_kill (genproc, SIGKILL);
-      GNUNET_OS_process_close (genproc);
-      genproc = NULL;
-    }
+  {
+    GNUNET_OS_process_kill (genproc, SIGKILL);
+    GNUNET_OS_process_close (genproc);
+    genproc = NULL;
+  }
 }
 
 
@@ -261,21 +261,20 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
 {
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
-    {
-      fprintf (stderr,
-	       _
-	       ("libgcrypt has not the expected version (version %s is required).\n"),
-	       GCRYPT_VERSION);
-      abort ();
-    }
+  {
+    fprintf (stderr,
+             _
+             ("libgcrypt has not the expected version (version %s is required).\n"),
+             GCRYPT_VERSION);
+    abort ();
+  }
 #ifdef gcry_fast_random_poll
   gcry_fast_random_poll ();
 #endif
   gcry_set_progress_handler (&entropy_generator, NULL);
   atexit (&killfind);
   SRANDOM (time (NULL) ^
-	   GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-				     UINT32_MAX));
+           GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
 }
 
 

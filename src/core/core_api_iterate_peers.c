@@ -101,7 +101,7 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
   ats_count = ntohl (connect_message->ats_count);
   if (msize !=
       sizeof (struct ConnectNotifyMessage) +
-      ats_count * sizeof (struct GNUNET_ATS_Information)) 
+      ats_count * sizeof (struct GNUNET_ATS_Information))
   {
     GNUNET_break (0);
     if (request_context->peer_cb != NULL)
@@ -113,8 +113,8 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
   /* Normal case */
   if (request_context->peer_cb != NULL)
     request_context->peer_cb (request_context->cb_cls, &connect_message->peer,
-                              (const struct GNUNET_ATS_Information *) &connect_message[1],
-			      ats_count);
+                              (const struct GNUNET_ATS_Information *)
+                              &connect_message[1], ats_count);
   GNUNET_CLIENT_receive (request_context->client, &receive_info,
                          request_context, GNUNET_TIME_UNIT_FOREVER_REL);
 }

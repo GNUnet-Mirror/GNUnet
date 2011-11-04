@@ -27,9 +27,7 @@
 #define VERBOSE GNUNET_EXTRA_LOGGING
 
 static void
-test_cb (void *cls,
-	 const char *libname,
-	 void *lib_ret)
+test_cb (void *cls, const char *libname, void *lib_ret)
 {
   void *ret;
 
@@ -39,7 +37,7 @@ test_cb (void *cls,
   GNUNET_assert (NULL != ret);
   GNUNET_assert (0 == strcmp (ret, "World"));
 }
-	 
+
 
 static int
 check ()

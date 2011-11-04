@@ -207,11 +207,10 @@ static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *get_path,
-		     unsigned int get_path_size,
+                     unsigned int get_path_size,
                      const struct GNUNET_PeerIdentity *put_path,
-		     unsigned int put_path_size,
-                     enum GNUNET_BLOCK_Type type, size_t size,
-                     const void *result_data)
+                     unsigned int put_path_size, enum GNUNET_BLOCK_Type type,
+                     size_t size, const void *result_data)
 {
   GNUNET_HashCode original_key; /* Key data was stored data under */
   char original_data[4];        /* Made up data that was stored */
@@ -254,10 +253,9 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
   global_get_handle =
-    GNUNET_DHT_get_start (peer2dht, GNUNET_TIME_UNIT_FOREVER_REL,
-			  GNUNET_BLOCK_TYPE_TEST,
-			  &key, 1, GNUNET_DHT_RO_NONE,
-			  NULL, 0, &get_result_iterator, NULL);
+      GNUNET_DHT_get_start (peer2dht, GNUNET_TIME_UNIT_FOREVER_REL,
+                            GNUNET_BLOCK_TYPE_TEST, &key, 1, GNUNET_DHT_RO_NONE,
+                            NULL, 0, &get_result_iterator, NULL);
 }
 
 
@@ -274,10 +272,9 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   memset (data, 43, sizeof (data));
 
   /* Insert the data at the first peer */
-  GNUNET_DHT_put (peer1dht, &key, 1, GNUNET_DHT_RO_NONE,
-                  GNUNET_BLOCK_TYPE_TEST, sizeof (data), data,
-                  GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_REL,
-                  &put_finished, NULL);
+  GNUNET_DHT_put (peer1dht, &key, 1, GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_TEST,
+                  sizeof (data), data, GNUNET_TIME_UNIT_FOREVER_ABS,
+                  GNUNET_TIME_UNIT_FOREVER_REL, &put_finished, NULL);
 }
 
 

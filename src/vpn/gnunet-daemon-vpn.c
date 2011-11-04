@@ -183,7 +183,7 @@ collect_mappings (void *cls
   /* FIXME! GNUNET_MESH_close_tunnel(me->tunnel); */
 
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (hashmap, &me->hash, me));
+                 GNUNET_CONTAINER_multihashmap_remove (hashmap, &me->hash, me));
 
   GNUNET_free (me);
 }
@@ -282,21 +282,22 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MESH_Tunnel **tunnel = cls;
 
-  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data(*tunnel);
+  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data (*tunnel);
+
   ts->th = NULL;
 
   if (NULL != buf)
-    {
-      struct GNUNET_MessageHeader *hdr =
+  {
+    struct GNUNET_MessageHeader *hdr =
         (struct GNUNET_MessageHeader *) (tunnel + 1);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "send_pkt_to_peer_notify_callback: buf = %x; size = %u;\n", buf,
-                  size);
-      GNUNET_assert (size >= ntohs (hdr->size));
-      memcpy (buf, hdr, ntohs (hdr->size));
-      size = ntohs (hdr->size);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent!\n");
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "send_pkt_to_peer_notify_callback: buf = %x; size = %u;\n", buf,
+                size);
+    GNUNET_assert (size >= ntohs (hdr->size));
+    memcpy (buf, hdr, ntohs (hdr->size));
+    size = ntohs (hdr->size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent!\n");
+  }
   else
     size = 0;
 
@@ -307,9 +308,7 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_DLL_remove (ts->head, ts->tail, element);
 
     ts->th =
-        GNUNET_MESH_notify_transmit_ready (*tunnel,
-                                           GNUNET_NO,
-                                           42,
+        GNUNET_MESH_notify_transmit_ready (*tunnel, GNUNET_NO, 42,
                                            GNUNET_TIME_relative_divide
                                            (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
                                            (const struct GNUNET_PeerIdentity *)
@@ -330,12 +329,14 @@ port_in_ports (uint64_t ports, uint16_t port)
 {
   uint16_t *ps = (uint16_t *) & ports;
 
-  return ports == 0 || ps[0] == port || ps[1] == port || ps[2] == port || ps[3] == port;
+  return ports == 0 || ps[0] == port || ps[1] == port || ps[2] == port ||
+      ps[3] == port;
 }
 
 void
 send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_ATS_Information *atsi __attribute__ ((unused)))
+                  const struct GNUNET_ATS_Information *atsi
+                  __attribute__ ((unused)))
 {
   /* peer == NULL means that all peers in this request are connected */
   if (peer == NULL)
@@ -347,18 +348,16 @@ send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (NULL != tunnel);
   GNUNET_assert (NULL != *tunnel);
 
-  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data(*tunnel);
+  struct tunnel_state *ts = GNUNET_MESH_tunnel_get_data (*tunnel);
+
   if (NULL == ts->th)
   {
     ts->th =
-        GNUNET_MESH_notify_transmit_ready (*tunnel,
-                                           GNUNET_NO,
-                                           42,
+        GNUNET_MESH_notify_transmit_ready (*tunnel, GNUNET_NO, 42,
                                            GNUNET_TIME_relative_divide
                                            (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
                                            (const struct GNUNET_PeerIdentity *)
-                                           NULL,
-                                           ntohs (hdr->size),
+                                           NULL, ntohs (hdr->size),
                                            send_pkt_to_peer_notify_callback,
                                            cls);
   }
@@ -574,7 +573,8 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     list =
         GNUNET_malloc (htons (pkt->hdr.size) +
-                       sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
+                       sizeof (struct answer_packet_list) -
+                       sizeof (struct answer_packet));
 
     memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
 
@@ -622,8 +622,9 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     char *name = (char *) (map_entry + 1);
 
     list =
-      GNUNET_malloc (sizeof(struct answer_packet_list) - sizeof(struct answer_packet) + offset + 2 +
-                     ntohs (namelen));
+        GNUNET_malloc (sizeof (struct answer_packet_list) -
+                       sizeof (struct answer_packet) + offset + 2 +
+                       ntohs (namelen));
 
     struct answer_packet *rpkt = &list->pkt;
 
@@ -641,7 +642,8 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     list =
         GNUNET_malloc (htons (pkt->hdr.size) +
-                       sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
+                       sizeof (struct answer_packet_list) -
+                       sizeof (struct answer_packet));
     memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
   }
   else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA)
@@ -701,7 +703,8 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     list =
         GNUNET_malloc (htons (pkt->hdr.size) +
-                       sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
+                       sizeof (struct answer_packet_list) -
+                       sizeof (struct answer_packet));
 
     memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
   }
@@ -763,7 +766,8 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     list =
         GNUNET_malloc (htons (pkt->hdr.size) +
-                       sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
+                       sizeof (struct answer_packet_list) -
+                       sizeof (struct answer_packet));
 
     memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
   }
@@ -852,12 +856,12 @@ add_additional_port (struct map_entry *me, uint16_t port)
 }
 
 static int
-receive_udp_back (void *cls __attribute__ ((unused)),
-                  struct GNUNET_MESH_Tunnel *tunnel,
-                  void **tunnel_ctx,
-                  const struct GNUNET_PeerIdentity *sender,
+receive_udp_back (void *cls
+                  __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                  void **tunnel_ctx, const struct GNUNET_PeerIdentity *sender,
                   const struct GNUNET_MessageHeader *message,
-                  const struct GNUNET_ATS_Information *atsi __attribute__ ((unused)))
+                  const struct GNUNET_ATS_Information *atsi
+                  __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr *s = (struct remote_addr *) desc;
@@ -1029,12 +1033,13 @@ receive_udp_back (void *cls __attribute__ ((unused)),
 }
 
 static int
-receive_tcp_back (void *cls __attribute__ ((unused)),
-                  struct GNUNET_MESH_Tunnel *tunnel,
-                  void **tunnel_ctx,
-                  const struct GNUNET_PeerIdentity *sender __attribute__ ((unused)),
+receive_tcp_back (void *cls
+                  __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                  void **tunnel_ctx, const struct GNUNET_PeerIdentity *sender
+                  __attribute__ ((unused)),
                   const struct GNUNET_MessageHeader *message,
-                  const struct GNUNET_ATS_Information *atsi __attribute__ ((unused)))
+                  const struct GNUNET_ATS_Information *atsi
+                  __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr *s = (struct remote_addr *) desc;
@@ -1046,9 +1051,10 @@ receive_tcp_back (void *cls __attribute__ ((unused)),
       ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
       sizeof (GNUNET_HashCode);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet back, addrlen = %d\n", s->addrlen);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received TCP-Packet back, addrlen = %d\n", s->addrlen);
 
-  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK ||
+  if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK ||
       ts->addrlen == 16)
   {
     size_t size = pktlen + sizeof (struct ip6_tcp) - 1;
@@ -1195,7 +1201,7 @@ receive_tcp_back (void *cls __attribute__ ((unused)),
     tmp = pkt4->ip_hdr.dadr;
     sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
 
-    tmp = (0x06 << 16) | (0xffff & pktlen); // 0x06 for TCP?
+    tmp = (0x06 << 16) | (0xffff & pktlen);     // 0x06 for TCP?
 
     tmp = htonl (tmp);
 
@@ -1213,22 +1219,21 @@ receive_tcp_back (void *cls __attribute__ ((unused)),
   return GNUNET_OK;
 }
 
-static void* new_tunnel(void* cls,
-                        struct GNUNET_MESH_Tunnel *tunnel,
-                        const struct GNUNET_PeerIdentity *initiator,
-                        const struct GNUNET_ATS_Information *atsi)
+static void *
+new_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
+            const struct GNUNET_PeerIdentity *initiator,
+            const struct GNUNET_ATS_Information *atsi)
 {
   /* Why should anyone open an inbound tunnel to vpn? */
-  GNUNET_break(0);
+  GNUNET_break (0);
   return NULL;
 }
 
-static void cleaner(void *cls,
-                    const struct GNUNET_MESH_Tunnel *tunnel,
-                    void *tunnel_ctx)
+static void
+cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
 {
   /* Why should anyone open an inbound tunnel to vpn? */
-  GNUNET_break(0);
+  GNUNET_break (0);
 }
 
 /**
@@ -1255,7 +1260,9 @@ run (void *cls, char *const *args __attribute__ ((unused)), const char *cfgfilep
     GNUNET_APPLICATION_TYPE_END
   };
 
-  mesh_handle = GNUNET_MESH_connect (cfg_, 42, NULL, new_tunnel, cleaner, handlers, types);
+  mesh_handle =
+      GNUNET_MESH_connect (cfg_, 42, NULL, new_tunnel, cleaner, handlers,
+                           types);
   cfg = cfg_;
   restart_hijack = 0;
   hashmap = GNUNET_CONTAINER_multihashmap_create (65536);

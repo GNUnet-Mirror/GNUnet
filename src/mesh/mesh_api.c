@@ -903,10 +903,8 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     t = retrieve_tunnel (h, ntohl (ucast->tid));
     payload = (struct GNUNET_MessageHeader *) &ucast[1];
     peer = &ucast->oid;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "mesh:   on tunnel %s [%x]\n",
-                GNUNET_i2s (peer),
-                ntohl (ucast->tid));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   on tunnel %s [%x]\n",
+                GNUNET_i2s (peer), ntohl (ucast->tid));
     break;
   case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
     mcast = (struct GNUNET_MESH_Multicast *) message;
@@ -1053,11 +1051,9 @@ send_callback (void *cls, size_t size, void *buf)
 
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (to)];
-        psize =
-            th->notify (th->notify_cls, size - sizeof (to), mh);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "mesh:   to origin, type %u\n",
-              ntohs (mh->type));
+        psize = th->notify (th->notify_cls, size - sizeof (to), mh);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   to origin, type %u\n",
+                    ntohs (mh->type));
         if (psize > 0)
         {
           psize += sizeof (to);
@@ -1078,10 +1074,8 @@ send_callback (void *cls, size_t size, void *buf)
 
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (mc)];
-        psize =
-            th->notify (th->notify_cls, size - sizeof (mc), mh);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "mesh:   multicast, type %u\n",
+        psize = th->notify (th->notify_cls, size - sizeof (mc), mh);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   multicast, type %u\n",
                     ntohs (mh->type));
         if (psize > 0)
         {
@@ -1102,11 +1096,9 @@ send_callback (void *cls, size_t size, void *buf)
 
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (uc)];
-        psize =
-            th->notify (th->notify_cls, size - sizeof (uc), mh);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "mesh:   unicast, type %u\n",
-              ntohs (mh->type));
+        psize = th->notify (th->notify_cls, size - sizeof (uc), mh);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   unicast, type %u\n",
+                    ntohs (mh->type));
         if (psize > 0)
         {
           psize += sizeof (uc);
@@ -1482,12 +1474,10 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "mesh: mesh notify transmit ready called\n");
   if (NULL != target)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "mesh:     target %s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     target %s\n",
                 GNUNET_i2s (target));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "mesh:     target multicast\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     target multicast\n");
 #endif
   GNUNET_assert (NULL != notify);
   if (tunnel->mesh->npackets >= tunnel->mesh->max_queue_size &&
@@ -1541,11 +1531,9 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   if (NULL != tunnel->mesh->th)
     return th;
   tunnel->mesh->th =
-      GNUNET_CLIENT_notify_transmit_ready (tunnel->mesh->client,
-                                           th->size,
+      GNUNET_CLIENT_notify_transmit_ready (tunnel->mesh->client, th->size,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_YES,
-                                           &send_callback,
+                                           GNUNET_YES, &send_callback,
                                            tunnel->mesh);
   return th;
 }

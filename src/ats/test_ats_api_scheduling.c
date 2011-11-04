@@ -44,7 +44,7 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static struct GNUNET_ATS_SchedulingHandle *ats;
 
-struct GNUNET_OS_Process * arm_proc;
+struct GNUNET_OS_Process *arm_proc;
 
 
 
@@ -52,23 +52,23 @@ static int ret;
 
 struct Address
 {
-  char * plugin;
+  char *plugin;
   size_t plugin_len;
 
-  void * addr;
+  void *addr;
   size_t addr_len;
 
-  struct GNUNET_ATS_Information * ats;
+  struct GNUNET_ATS_Information *ats;
   int ats_count;
 
-  void  *session;
+  void *session;
 };
 
 struct PeerContext
 {
   struct GNUNET_PeerIdentity id;
 
-  struct Address * addr;
+  struct Address *addr;
 };
 
 struct Address addr[2];
@@ -105,7 +105,7 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(die_task);
+    GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
@@ -118,29 +118,19 @@ end ()
 
 
 static void
-address_suggest_cb (void *cls,
-                    const struct
-                    GNUNET_PeerIdentity *
-                    peer,
-                    const char *plugin_name,
-                    const void *plugin_addr,
-                    size_t plugin_addr_len,
-                    struct Session * session,
-                    struct
-                    GNUNET_BANDWIDTH_Value32NBO
-                    bandwidth_out,
-                    struct
-                    GNUNET_BANDWIDTH_Value32NBO
-                    bandwidth_in,
-                    const struct
-                    GNUNET_ATS_Information
-                    * ats,
+address_suggest_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
+                    const char *plugin_name, const void *plugin_addr,
+                    size_t plugin_addr_len, struct Session *session,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                    const struct GNUNET_ATS_Information *ats,
                     uint32_t ats_count)
-
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggests address `%s'\n", GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggests address `%s'\n",
+              GNUNET_i2s (peer));
 
-  GNUNET_assert (0 == memcmp (peer, &p[0].id, sizeof (struct GNUNET_PeerIdentity)));
+  GNUNET_assert (0 ==
+                 memcmp (peer, &p[0].id, sizeof (struct GNUNET_PeerIdentity)));
   GNUNET_assert (0 == strcmp (plugin_name, addr[0].plugin));
   GNUNET_assert (plugin_addr_len == addr[0].addr_len);
   GNUNET_assert (0 == memcmp (plugin_addr, addr[0].plugin, plugin_addr_len));
@@ -148,27 +138,28 @@ address_suggest_cb (void *cls,
 
 
   /* TODO ats merge
-  GNUNET_assert (ats_count == 2);
-  GNUNET_assert (atsi[0].type == htons (1));
-  GNUNET_assert (atsi[0].type == htons (2));
-  GNUNET_assert (atsi[1].type == htons (2));
-  GNUNET_assert (atsi[1].type == htons (2));
-  */
+   * GNUNET_assert (ats_count == 2);
+   * GNUNET_assert (atsi[0].type == htons (1));
+   * GNUNET_assert (atsi[0].type == htons (2));
+   * GNUNET_assert (atsi[1].type == htons (2));
+   * GNUNET_assert (atsi[1].type == htons (2));
+   */
 
   ret = 0;
 
-  GNUNET_SCHEDULER_add_now(&end, NULL);
+  GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
 void
 start_arm (const char *cfgname)
 {
-  arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                           "gnunet-service-arm",
+  arm_proc =
+      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
 #if VERBOSE_ARM
-                           "-L", "DEBUG",
+                               "-L", "DEBUG",
 #endif
-                           "-c", cfgname, NULL);
+                               "-c", cfgname, NULL);
 }
 
 static void
@@ -177,7 +168,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 {
   ret = GNUNET_SYSERR;
 
-  die_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &end_badly, NULL);
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   start_arm (cfgfile);
 
   ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
@@ -190,27 +181,33 @@ check (void *cls, char *const *args, const char *cfgfile,
   }
 
   /* set up peer */
-  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p[0].id.hashPubKey);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n", GNUNET_i2s (&p[0].id));
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
+                                    &p[0].id.hashPubKey);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
+              GNUNET_i2s (&p[0].id));
 
-  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p[1].id.hashPubKey);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n", GNUNET_i2s (&p[1].id));
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
+                                    &p[1].id.hashPubKey);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
+              GNUNET_i2s (&p[1].id));
 
   addr[0].plugin = "test";
   addr[0].session = NULL;
-  addr[0].addr = strdup("test");
+  addr[0].addr = strdup ("test");
   addr[0].addr_len = 4;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing address creation\n");
 
-  GNUNET_ATS_address_update(ats, &p[0].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, NULL, 0);
+  GNUNET_ATS_address_update (ats, &p[0].id, addr[0].plugin, addr[0].addr,
+                             addr[0].addr_len, addr[0].session, NULL, 0);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info creation\n");
 
   atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_UP);
   atsi[0].value = htonl (1024);
 
-  GNUNET_ATS_address_update(ats, &p[0].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, atsi, 1);
+  GNUNET_ATS_address_update (ats, &p[0].id, addr[0].plugin, addr[0].addr,
+                             addr[0].addr_len, addr[0].session, atsi, 1);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info update\n");
 
@@ -220,14 +217,18 @@ check (void *cls, char *const *args, const char *cfgfile,
   atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_DOWN);
   atsi[1].value = htonl (1024);
 
-  GNUNET_ATS_address_update(ats, &p[0].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, atsi, 2);
+  GNUNET_ATS_address_update (ats, &p[0].id, addr[0].plugin, addr[0].addr,
+                             addr[0].addr_len, addr[0].session, atsi, 2);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing manual address deletion \n");
-  GNUNET_ATS_address_update(ats, &p[1].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session, NULL, 0);
-  GNUNET_ATS_address_destroyed (ats, &p[1].id, addr[0].plugin, addr[0].addr, addr[0].addr_len, addr[0].session );
+  GNUNET_ATS_address_update (ats, &p[1].id, addr[0].plugin, addr[0].addr,
+                             addr[0].addr_len, addr[0].session, NULL, 0);
+  GNUNET_ATS_address_destroyed (ats, &p[1].id, addr[0].plugin, addr[0].addr,
+                                addr[0].addr_len, addr[0].session);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n", GNUNET_i2s (&p[0].id));
-  GNUNET_ATS_suggest_address(ats, &p[0].id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n",
+              GNUNET_i2s (&p[0].id));
+  GNUNET_ATS_suggest_address (ats, &p[0].id);
 }
 
 int

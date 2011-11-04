@@ -199,24 +199,26 @@ cleanup (void *cls
 }
 
 static void *
-new_tunnel (void *cls __attribute__((unused)),
-            struct GNUNET_MESH_Tunnel *tunnel,
-            const struct GNUNET_PeerIdentity *initiator __attribute__((unused)),
-            const struct GNUNET_ATS_Information *ats __attribute__((unused)))
+new_tunnel (void *cls
+            __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+            const struct GNUNET_PeerIdentity *initiator
+            __attribute__ ((unused)), const struct GNUNET_ATS_Information *ats
+            __attribute__ ((unused)))
 {
-    struct tunnel_state *s = GNUNET_malloc(sizeof *s);
-    s->head = NULL;
-    s->tail = NULL;
-    s->th = NULL;
-    return s;
+  struct tunnel_state *s = GNUNET_malloc (sizeof *s);
+
+  s->head = NULL;
+  s->tail = NULL;
+  s->th = NULL;
+  return s;
 }
 
 static void
-clean_tunnel (void *cls __attribute__((unused)),
-              const struct GNUNET_MESH_Tunnel *tunnel,
+clean_tunnel (void *cls
+              __attribute__ ((unused)), const struct GNUNET_MESH_Tunnel *tunnel,
               void *tunnel_ctx)
 {
-  GNUNET_free(tunnel_ctx);
+  GNUNET_free (tunnel_ctx);
 }
 
 static void
@@ -236,7 +238,8 @@ collect_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* FIXME! GNUNET_MESH_close_tunnel(state->tunnel); */
 
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multihashmap_remove (state->hashmap, &state->hash, state));
+                 GNUNET_CONTAINER_multihashmap_remove (state->hashmap,
+                                                       &state->hash, state));
 
   GNUNET_free (state);
 }
@@ -275,7 +278,7 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
   memcpy (buf, hdr, ntohs (hdr->size));
   size = ntohs (hdr->size);
 
-  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data(*tunnel);
+  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data (*tunnel);
 
   if (NULL != s->head)
   {
@@ -284,9 +287,7 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_DLL_remove (s->head, s->tail, element);
 
     s->th =
-        GNUNET_MESH_notify_transmit_ready (*tunnel,
-                                           GNUNET_NO,
-                                           42,
+        GNUNET_MESH_notify_transmit_ready (*tunnel, GNUNET_NO, 42,
                                            GNUNET_TIME_relative_divide
                                            (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
                                            (const struct GNUNET_PeerIdentity *)
@@ -394,14 +395,13 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
 
   memcpy (_udp, udp, ntohs (udp->len));
 
-  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data(tunnel);
+  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data (tunnel);
+
   if (NULL == s->th)
   {
     /* No notify is pending */
     s->th =
-        GNUNET_MESH_notify_transmit_ready (tunnel,
-                                           GNUNET_NO,
-                                           42,
+        GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO, 42,
                                            GNUNET_TIME_relative_divide
                                            (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
                                            (const struct GNUNET_PeerIdentity *)
@@ -502,18 +502,16 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   memcpy (_tcp, tcp, pktlen);
 
   struct tunnel_state *s = GNUNET_MESH_tunnel_get_data (tunnel);
+
   if (NULL == s->th)
   {
     /* No notify is pending */
     s->th =
-        GNUNET_MESH_notify_transmit_ready (tunnel,
-                                           GNUNET_NO,
-                                           42,
+        GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO, 42,
                                            GNUNET_TIME_relative_divide
                                            (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
                                            (const struct GNUNET_PeerIdentity *)
-                                           NULL,
-                                           len,
+                                           NULL, len,
                                            send_udp_to_peer_notify_callback,
                                            ctunnel);
   }
@@ -684,44 +682,57 @@ read_service_conf (void *cls __attribute__ ((unused)), const char *section)
       }
       else
       {
-        struct addrinfo* res;
+        struct addrinfo *res;
 
-        int ret = getaddrinfo(hostname, NULL, NULL, &res);
+        int ret = getaddrinfo (hostname, NULL, NULL, &res);
 
         if (ret != 0)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No addresses found for %s!\n",
+                      hostname);
+          GNUNET_free (serv);
+          continue;
+        }
+        else
+        {
+          char buf[256];
+          struct addrinfo *c = res;
+
+          if (c)
           {
-            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No addresses found for %s!\n", hostname);
-	    GNUNET_free (serv);
+            if (c->ai_family == AF_INET)
+            {
+              serv->version = 4;
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Found %s as address for %s\n",
+                          inet_ntop (c->ai_family,
+                                     &((struct sockaddr_in *) (c->
+                                                               ai_addr))->sin_addr,
+                                     (char *) &buf, 256), hostname);
+              memcpy (serv->v4.ip4address,
+                      &((struct sockaddr_in *) (c->ai_addr))->sin_addr, 4);
+            }
+            else if (c->ai_family == AF_INET6)
+            {
+              serv->version = 6;
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Found %s as address for %s\n",
+                          inet_ntop (c->ai_family,
+                                     &((struct sockaddr_in6 *) (c->
+                                                                ai_addr))->sin6_addr,
+                                     (char *) &buf, 256), hostname);
+              memcpy (serv->v6.ip6address,
+                      &((struct sockaddr_in6 *) (c->ai_addr))->sin6_addr, 16);
+            }
+          }
+          else
+          {
+            freeaddrinfo (res);
+            GNUNET_free (serv);
             continue;
           }
-        else
-          {
-            char buf[256];
-            struct addrinfo* c = res;
-
-            if(c)
-              {
-                if (c->ai_family == AF_INET)
-                  {
-                    serv->version = 4;
-                    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Found %s as address for %s\n", inet_ntop(c->ai_family, &((struct sockaddr_in *)(c->ai_addr))->sin_addr, (char*)&buf, 256), hostname);
-                    memcpy(serv->v4.ip4address, &((struct sockaddr_in *)(c->ai_addr))->sin_addr, 4);
-                  }
-                else if (c->ai_family == AF_INET6)
-                  {
-                    serv->version = 6;
-                    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Found %s as address for %s\n", inet_ntop(c->ai_family, &((struct sockaddr_in6*)(c->ai_addr))->sin6_addr, (char*)&buf, 256), hostname);
-                    memcpy(serv->v6.ip6address, &((struct sockaddr_in6 *)(c->ai_addr))->sin6_addr, 16);
-                  }
-              }
-            else
-              {
-                freeaddrinfo(res);
-		GNUNET_free (serv);
-                continue;
-              }
-            freeaddrinfo(res);
-          }
+          freeaddrinfo (res);
+        }
       }
       serv->remote_port = atoi (hostport);
       if (UDP == proto)
@@ -1095,14 +1106,12 @@ receive_tcp_service (void *cls
   switch (serv->version)
   {
   case 4:
-    prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP,
-                         &serv->v4.ip4address, tunnel, state,
-                         (struct ip_pkt *) buf);
+    prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP, &serv->v4.ip4address,
+                         tunnel, state, (struct ip_pkt *) buf);
     break;
   case 6:
-    prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP,
-                         &serv->v6.ip6address, tunnel, state,
-                         (struct ip6_pkt *) buf);
+    prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP, &serv->v6.ip6address,
+                         tunnel, state, (struct ip6_pkt *) buf);
 
     break;
   default:
@@ -1171,12 +1180,12 @@ receive_tcp_remote (void *cls
   switch (s->addrlen)
   {
   case 4:
-    prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP,
-                         &s->addr, tunnel, state, (struct ip_pkt *) buf);
+    prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP, &s->addr, tunnel,
+                         state, (struct ip_pkt *) buf);
     break;
   case 16:
-    prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP,
-                         &s->addr, tunnel, state, (struct ip6_pkt *) buf);
+    prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP, &s->addr, tunnel,
+                         state, (struct ip6_pkt *) buf);
     break;
   default:
     GNUNET_free (state);
@@ -1252,12 +1261,12 @@ receive_udp_remote (void *cls
   switch (s->addrlen)
   {
   case 4:
-    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP, 
-                         &s->addr, tunnel, state, (struct ip_pkt *) buf);
+    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP, &s->addr,
+                         tunnel, state, (struct ip_pkt *) buf);
     break;
   case 16:
-    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP, 
-                         &s->addr, tunnel, state, (struct ip6_pkt *) buf);
+    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP, &s->addr,
+                         tunnel, state, (struct ip6_pkt *) buf);
     break;
   default:
     GNUNET_assert (0);
@@ -1291,12 +1300,14 @@ receive_udp_remote (void *cls
  * The messages are one GNUNET_HashCode for the service, followed by a struct udp_pkt
  */
 static int
-receive_udp_service (void *cls __attribute__ ((unused)),
-                     struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx,
-                     const struct GNUNET_PeerIdentity *sender __attribute__ ((unused)),
+receive_udp_service (void *cls
+                     __attribute__ ((unused)),
+                     struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
+                     const struct GNUNET_PeerIdentity *sender
+                     __attribute__ ((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_ATS_Information *atsi __attribute__ ((unused)))
+                     const struct GNUNET_ATS_Information *atsi
+                     __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1437,7 +1448,9 @@ connect_to_mesh ()
     app_idx++;
   }
 
-  mesh_handle = GNUNET_MESH_connect (cfg, 42, NULL, new_tunnel, clean_tunnel, handlers, apptypes);
+  mesh_handle =
+      GNUNET_MESH_connect (cfg, 42, NULL, new_tunnel, clean_tunnel, handlers,
+                           apptypes);
 }
 
 
@@ -1468,11 +1481,11 @@ run (void *cls, char *const *args __attribute__ ((unused)), const char *cfgfile
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_UDP_CONNECTIONS",
-					     &max_udp_connections))
+                                             &max_udp_connections))
     max_udp_connections = 1024;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_TCP_CONNECTIONS",
-					     &max_tcp_connections))
+                                             &max_tcp_connections))
     max_tcp_connections = 256;
   GNUNET_CONFIGURATION_iterate_sections (cfg, read_service_conf, NULL);
   GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
@@ -1481,7 +1494,7 @@ run (void *cls, char *const *args __attribute__ ((unused)), const char *cfgfile
 
 
 /**
- * The main function 
+ * The main function
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -1495,8 +1508,9 @@ main (int argc, char *const *argv)
   };
 
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-exit", 
-			      gettext_noop ("Daemon to run to provide an IP exit node for the VPN"),
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-exit",
+                              gettext_noop
+                              ("Daemon to run to provide an IP exit node for the VPN"),
                               options, &run, NULL)) ? ret : 1;
 }
 

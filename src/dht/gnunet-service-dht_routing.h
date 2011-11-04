@@ -50,14 +50,12 @@
  */
 void
 GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
-		     struct GNUNET_TIME_Absolute expiration_time,
-		     const GNUNET_HashCode *key,
-		     unsigned int put_path_length,
-		     const struct GNUNET_PeerIdentity *put_path,
-		     unsigned int get_path_length,
-		     const struct GNUNET_PeerIdentity *get_path,
-		     const void *data,
-		     size_t data_size);
+                     struct GNUNET_TIME_Absolute expiration_time,
+                     const GNUNET_HashCode * key, unsigned int put_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+                     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *get_path,
+                     const void *data, size_t data_size);
 
 
 /**
@@ -74,13 +72,12 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
 */
 void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
-		 enum GNUNET_BLOCK_Type type,
-		 enum GNUNET_DHT_RouteOption options,
-		 const GNUNET_HashCode *key,
-		 const void *xquery,
-		 size_t xquery_size,
-		 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-		 uint32_t reply_bf_mutator);
+                 enum GNUNET_BLOCK_Type type,
+                 enum GNUNET_DHT_RouteOption options,
+                 const GNUNET_HashCode * key, const void *xquery,
+                 size_t xquery_size,
+                 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
+                 uint32_t reply_bf_mutator);
 
 
 /**

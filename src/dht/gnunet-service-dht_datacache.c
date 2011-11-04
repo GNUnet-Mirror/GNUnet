@@ -74,44 +74,42 @@ struct DHTPutEntry
  */
 void
 GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
-			  const GNUNET_HashCode *key,
-			  unsigned int put_path_length,
-			  const struct GNUNET_PeerIdentity *put_path,
-			  enum GNUNET_BLOCK_Type type,
-			  size_t data_size,
-			  const void *data)
+                          const GNUNET_HashCode * key,
+                          unsigned int put_path_length,
+                          const struct GNUNET_PeerIdentity *put_path,
+                          enum GNUNET_BLOCK_Type type, size_t data_size,
+                          const void *data)
 {
-  size_t plen = data_size + put_path_length * sizeof(struct GNUNET_PeerIdentity) + sizeof(struct DHTPutEntry);
+  size_t plen =
+      data_size + put_path_length * sizeof (struct GNUNET_PeerIdentity) +
+      sizeof (struct DHTPutEntry);
   char buf[plen];
   struct DHTPutEntry *pe;
   struct GNUNET_PeerIdentity *pp;
 
   if (datacache == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("%s request received, but have no datacache!\n"),
-		  "PUT");      
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("%s request received, but have no datacache!\n"), "PUT");
+    return;
+  }
   if (data_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break (0);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    return;
+  }
   /* Put size is actual data size plus struct overhead plus path length (if any) */
   GNUNET_STATISTICS_update (GDS_stats,
-			    gettext_noop ("# ITEMS stored in datacache"), 1,
-			    GNUNET_NO);
+                            gettext_noop ("# ITEMS stored in datacache"), 1,
+                            GNUNET_NO);
   pe = (struct DHTPutEntry *) buf;
   pe->data_size = htons (data_size);
   pe->path_length = htons ((uint16_t) put_path_length);
   pp = (struct GNUNET_PeerIdentity *) &pe[1];
   memcpy (pp, put_path, put_path_length * sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&pp[put_path_length],
-	  data, data_size);
-  (void) GNUNET_DATACACHE_put (datacache, key, 
-			       plen, (const char *) pe, type,
-			       expiration);
+  memcpy (&pp[put_path_length], data, data_size);
+  (void) GNUNET_DATACACHE_put (datacache, key, plen, (const char *) pe, type,
+                               expiration);
 }
 
 
@@ -190,20 +188,15 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
     return GNUNET_OK;
   }
   pp = (const struct GNUNET_PeerIdentity *) &pe[1];
-  rdata = (const char*) &pp[put_path_length];
+  rdata = (const char *) &pp[put_path_length];
   eval =
-      GNUNET_BLOCK_evaluate (GDS_block_context, type, key, 
-			     ctx->reply_bf,
-                             ctx->reply_bf_mutator,
-			     ctx->xquery,
-                             ctx->xquery_size, 
-			     rdata,
-                             rdata_size);
+      GNUNET_BLOCK_evaluate (GDS_block_context, type, key, ctx->reply_bf,
+                             ctx->reply_bf_mutator, ctx->xquery,
+                             ctx->xquery_size, rdata, rdata_size);
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Found reply for query %s in datacache, evaluation result is %d\n",
-	      GNUNET_h2s (key),
-	      (int) eval);
+              "Found reply for query %s in datacache, evaluation result is %d\n",
+              GNUNET_h2s (key), (int) eval);
 #endif
   ctx->eval = eval;
   switch (eval)
@@ -212,27 +205,26 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
     /* forward to local clients */
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Good RESULTS found in datacache"), 1,
-			      GNUNET_NO);
-    GDS_CLIENTS_handle_reply (exp,
-			     key,
-			     0, NULL,
-			     put_path_length, pp,
-			     type, rdata_size, rdata);
+                              gettext_noop
+                              ("# Good RESULTS found in datacache"), 1,
+                              GNUNET_NO);
+    GDS_CLIENTS_handle_reply (exp, key, 0, NULL, put_path_length, pp, type,
+                              rdata_size, rdata);
     /* forward to other peers */
-    GDS_ROUTING_process (type, exp,
-			 key, put_path_length, pp, 
-			 0, NULL, rdata, rdata_size);
+    GDS_ROUTING_process (type, exp, key, put_path_length, pp, 0, NULL, rdata,
+                         rdata_size);
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Duplicate RESULTS found in datacache"), 1,
-			      GNUNET_NO);
+                              gettext_noop
+                              ("# Duplicate RESULTS found in datacache"), 1,
+                              GNUNET_NO);
     break;
   case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Invalid RESULTS found in datacache"), 1,
-			      GNUNET_NO);
+                              gettext_noop
+                              ("# Invalid RESULTS found in datacache"), 1,
+                              GNUNET_NO);
     break;
   case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
     GNUNET_break (0);
@@ -242,11 +234,11 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
     return GNUNET_SYSERR;
   case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Unsupported RESULTS found in datacache"), 1,
-			      GNUNET_NO);
+                              gettext_noop
+                              ("# Unsupported RESULTS found in datacache"), 1,
+                              GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Unsupported block type (%u) in local response!\n"),
-                type);
+                _("Unsupported block type (%u) in local response!\n"), type);
     break;
   }
   return (eval == GNUNET_BLOCK_EVALUATION_OK_LAST) ? GNUNET_NO : GNUNET_OK;
@@ -256,7 +248,7 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 /**
  * Handle a GET request we've received from another peer.
  *
- * @param key the query 
+ * @param key the query
  * @param type requested data type
  * @param xquery extended query
  * @param xquery_size number of bytes in xquery
@@ -265,28 +257,27 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
  * @return evaluation result for the local replies
  */
 enum GNUNET_BLOCK_EvaluationResult
-GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
-			  enum GNUNET_BLOCK_Type type,
-			  const void *xquery,
-			  size_t xquery_size,
-			  struct GNUNET_CONTAINER_BloomFilter **reply_bf,
-			  uint32_t reply_bf_mutator)
+GDS_DATACACHE_handle_get (const GNUNET_HashCode * key,
+                          enum GNUNET_BLOCK_Type type, const void *xquery,
+                          size_t xquery_size,
+                          struct GNUNET_CONTAINER_BloomFilter **reply_bf,
+                          uint32_t reply_bf_mutator)
 {
   struct GetRequestContext ctx;
 
   if (datacache == NULL)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   GNUNET_STATISTICS_update (GDS_stats,
-                            gettext_noop ("# GET requests given to datacache"), 1,
-                            GNUNET_NO);
+                            gettext_noop ("# GET requests given to datacache"),
+                            1, GNUNET_NO);
   ctx.eval = GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   ctx.key = *key;
   ctx.xquery = xquery;
   ctx.xquery_size = xquery_size;
   ctx.reply_bf = reply_bf;
   ctx.reply_bf_mutator = reply_bf_mutator;
-  (void) GNUNET_DATACACHE_get (datacache, key, type,
-			       &datacache_get_iterator, &ctx);
+  (void) GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,
+                               &ctx);
   return ctx.eval;
 }
 
@@ -294,7 +285,7 @@ GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
 /**
  * Initialize datacache subsystem.
  */
-void 
+void
 GDS_DATACACHE_init ()
 {
   datacache = GNUNET_DATACACHE_create (GDS_cfg, "dhtcache");

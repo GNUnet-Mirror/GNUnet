@@ -54,7 +54,7 @@ GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 static struct PeerContext *p1;
 
-struct GNUNET_TRANSPORT_TESTING_handle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
 static int connected = GNUNET_NO;
 
@@ -92,8 +92,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected \n",
               GNUNET_i2s (peer));
@@ -110,8 +109,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving\n");
 }
@@ -130,8 +128,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   while (i <= ITERATIONS)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting peer\n");
-    p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, "test_transport_startonly.conf", 1,
-                                              &notify_receive, &notify_connect,
+    p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
+                                              "test_transport_startonly.conf",
+                                              1, &notify_receive,
+                                              &notify_connect,
                                               &notify_disconnect, NULL, p1);
 
 

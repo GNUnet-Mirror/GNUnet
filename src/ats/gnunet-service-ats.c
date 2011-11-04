@@ -48,14 +48,13 @@ struct GNUNET_STATISTICS_Handle *GSA_stats;
  */
 static void
 handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
-		  const struct GNUNET_MessageHeader *message)
+                  const struct GNUNET_MessageHeader *message)
 {
-  const struct ClientStartMessage * msg = (const struct ClientStartMessage *) message;
+  const struct ClientStartMessage *msg =
+      (const struct ClientStartMessage *) message;
   enum StartFlag flag;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Received `%s' message\n",
-	      "ATS_START");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ATS_START");
   flag = ntohl (msg->start_flag);
   switch (flag)
   {
@@ -77,7 +76,7 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);    
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -131,20 +130,22 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    { &handle_ats_start, NULL, 
-      GNUNET_MESSAGE_TYPE_ATS_START, sizeof (struct ClientStartMessage)},
-    { &GAS_handle_request_address, NULL,
-      GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS, sizeof (struct RequestAddressMessage)},
-    { &GAS_handle_address_update, NULL, 
-      GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE, 0},
-    { &GAS_handle_address_in_use, NULL,
-      GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE, 0},
-    { &GAS_handle_address_destroyed, NULL,
-      GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED, 0},
-    { &GAS_handle_reservation_request, NULL, 
-      GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST, sizeof (struct ReservationRequestMessage)},
-    { &GAS_handle_preference_change, NULL, 
-      GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE, 0},
+    {&handle_ats_start, NULL,
+     GNUNET_MESSAGE_TYPE_ATS_START, sizeof (struct ClientStartMessage)},
+    {&GAS_handle_request_address, NULL,
+     GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS,
+     sizeof (struct RequestAddressMessage)},
+    {&GAS_handle_address_update, NULL,
+     GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE, 0},
+    {&GAS_handle_address_in_use, NULL,
+     GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE, 0},
+    {&GAS_handle_address_destroyed, NULL,
+     GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED, 0},
+    {&GAS_handle_reservation_request, NULL,
+     GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST,
+     sizeof (struct ReservationRequestMessage)},
+    {&GAS_handle_preference_change, NULL,
+     GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE, 0},
     {NULL, NULL, 0, 0}
   };
   GSA_stats = GNUNET_STATISTICS_create ("ats", cfg);
@@ -152,9 +153,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GAS_performance_init (server);
   GAS_scheduling_init (server);
   GAS_addresses_init (cfg);
-  GNUNET_SERVER_disconnect_notify (server, 
-				   &client_disconnect_handler,
-                                   NULL);
+  GNUNET_SERVER_disconnect_notify (server, &client_disconnect_handler, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);
@@ -172,8 +171,8 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "ats",
-                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+          GNUNET_SERVICE_run (argc, argv, "ats", GNUNET_SERVICE_OPTION_NONE,
+                              &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-ats.c */

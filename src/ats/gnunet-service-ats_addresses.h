@@ -28,7 +28,7 @@
 #define GNUNET_SERVICE_ATS_ADDRESSES_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_ats_service.h" 
+#include "gnunet_ats_service.h"
 #include "ats.h"
 
 /**
@@ -48,18 +48,16 @@ GAS_addresses_done (void);
 
 void
 GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
-		      const char *plugin_name,
-		      const void *plugin_addr, size_t plugin_addr_len,
-		      uint32_t session_id,
-		      const struct GNUNET_ATS_Information *atsi,
-		      uint32_t atsi_count);
+                      const char *plugin_name, const void *plugin_addr,
+                      size_t plugin_addr_len, uint32_t session_id,
+                      const struct GNUNET_ATS_Information *atsi,
+                      uint32_t atsi_count);
 
 
 void
 GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
-		       const char *plugin_name,
-		       const void *plugin_addr, size_t plugin_addr_len,
-		       uint32_t session_id);
+                       const char *plugin_name, const void *plugin_addr,
+                       size_t plugin_addr_len, uint32_t session_id);
 
 
 void
@@ -78,8 +76,8 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer);
 // not with 'addresses' in the future...
 void
 GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
-				 enum GNUNET_ATS_PreferenceKind kind,
-				 float score);
+                                 enum GNUNET_ATS_PreferenceKind kind,
+                                 float score);
 
 
 /* FIXME: add performance request API */

@@ -78,7 +78,7 @@ char *cfg_file_p2;
 uint32_t max_bps_p1;
 uint32_t max_bps_p2;
 
-struct GNUNET_TRANSPORT_TESTING_handle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
 /*
  * Testcase specific declarations
@@ -156,7 +156,7 @@ end ()
   th = NULL;
 
   if (cc != NULL)
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
   cc = NULL;
 
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
@@ -190,13 +190,15 @@ end_badly ()
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got NOT connected\n");
 
   if (test_sending == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testcase did not send any messages timeout\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Testcase did not send any messages timeout\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Reliability failed: Last message sent %u, Next message scheduled %u, Last message received %u, Message expected %u\n",
                 msg_sent, msg_scheduled, msg_recv, msg_recv_expected);
   if (test_send_timeout == GNUNET_YES)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test had timeout while waiting to send data\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Test had timeout while waiting to send data\n");
 
 
   if (th != NULL)
@@ -204,7 +206,7 @@ end_badly ()
   th = NULL;
 
   if (cc != NULL)
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
   cc = NULL;
 
   if (p1 != NULL)
@@ -273,8 +275,7 @@ get_bit (const char *map, unsigned int bit)
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   static int n;
 
@@ -400,8 +401,7 @@ notify_ready (void *cls, size_t size, void *buf)
   else
   {
     fprintf (stderr, "\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "All messages scheduled to be sent\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All messages scheduled to be sent\n");
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
@@ -418,8 +418,7 @@ notify_ready (void *cls, size_t size, void *buf)
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
@@ -450,6 +449,7 @@ static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   char *p1_c = strdup (GNUNET_i2s (&p1->id));
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n", p1_c,
               GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
@@ -460,21 +460,22 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   GNUNET_SCHEDULER_add_now (&sendtask, NULL);
 }
 
-void start_cb (struct PeerContext * p,
-               void *cls)
+void
+start_cb (struct PeerContext *p, void *cls)
 {
   static int started;
+
   started++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') started\n",
-       p->no,
-       GNUNET_i2s (&p->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') started\n", p->no,
+              GNUNET_i2s (&p->id));
 
   if (started != 2)
     return;
 
   test_connected = GNUNET_NO;
-  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb, NULL);
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
+                                               NULL);
 
 }
 
@@ -487,14 +488,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
   p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1, 1,
-                                            &notify_receive,
-                                            &notify_connect, &notify_disconnect,
-                                            &start_cb,
+                                            &notify_receive, &notify_connect,
+                                            &notify_disconnect, &start_cb,
                                             NULL);
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
-                                            &notify_receive,
-                                            &notify_connect, &notify_disconnect,
-                                            &start_cb,
+                                            &notify_receive, &notify_connect,
+                                            &notify_disconnect, &start_cb,
                                             NULL);
 
 

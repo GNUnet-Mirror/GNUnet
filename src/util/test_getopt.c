@@ -63,15 +63,15 @@ testVerbose ()
   };
 
   if (3 != GNUNET_GETOPT_run ("test", verboseoptionlist, 4, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   if (vflags != 2)
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   return 0;
 }
 
@@ -89,10 +89,10 @@ testVersion ()
   };
 
   if (-1 != GNUNET_GETOPT_run ("test_getopt", versionoptionlist, 2, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   return 0;
 }
 
@@ -110,10 +110,10 @@ testAbout ()
   };
 
   if (-1 != GNUNET_GETOPT_run ("test_getopt", aboutoptionlist, 2, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   return 0;
 }
 
@@ -136,18 +136,18 @@ testLogOpts ()
   };
 
   if (5 != GNUNET_GETOPT_run ("test_getopt", logoptionlist, 5, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   GNUNET_assert (fn != NULL);
   if ((0 != strcmp (level, "WARNING")) || (0 != strcmp (fn, "filename")))
-    {
-      GNUNET_break (0);
-      GNUNET_free (level);
-      GNUNET_free (fn);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_free (level);
+    GNUNET_free (fn);
+    return 1;
+  }
   GNUNET_free (level);
   GNUNET_free (fn);
   return 0;
@@ -178,15 +178,15 @@ testFlagNum ()
   };
 
   if (6 != GNUNET_GETOPT_run ("test_getopt", logoptionlist, 6, myargv))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   if ((1 != flag) || (42 != num) || (42 != lnum))
-    {
-      GNUNET_break (0);
-      return 1;
-    }
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   return 0;
 }
 

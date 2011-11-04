@@ -143,7 +143,7 @@ static int
 advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message,
                        const struct GNUNET_ATS_Information *atsi,
-		       unsigned int atsi_count)
+                       unsigned int atsi_count)
 {
   GNUNET_assert (NULL != client_adv_handler);
   return (*client_adv_handler) (cls, peer, message, atsi, atsi_count);
@@ -161,7 +161,7 @@ advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_ATS_Information *atsi,
-		 unsigned int atsi_count)
+                 unsigned int atsi_count)
 {
   if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;

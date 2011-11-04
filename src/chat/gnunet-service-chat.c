@@ -989,9 +989,8 @@ static int
 handle_p2p_join_notification (void *cls,
                               const struct GNUNET_PeerIdentity *other,
                               const struct GNUNET_MessageHeader *message,
-                              const struct GNUNET_ATS_Information
-                              *atsi,
-			      unsigned int atsi_count)
+                              const struct GNUNET_ATS_Information *atsi,
+                              unsigned int atsi_count)
 {
   const struct P2PJoinNotificationMessage *p2p_jnmsg;
   char *room_name;
@@ -1107,9 +1106,8 @@ static int
 handle_p2p_leave_notification (void *cls,
                                const struct GNUNET_PeerIdentity *other,
                                const struct GNUNET_MessageHeader *message,
-                               const struct GNUNET_ATS_Information
-                               *atsi,
-			       unsigned int atsi_count)
+                               const struct GNUNET_ATS_Information *atsi,
+                               unsigned int atsi_count)
 {
   const struct P2PLeaveNotificationMessage *p2p_lnmsg;
   GNUNET_HashCode id;
@@ -1190,9 +1188,8 @@ static int
 handle_p2p_message_notification (void *cls,
                                  const struct GNUNET_PeerIdentity *other,
                                  const struct GNUNET_MessageHeader *message,
-                                 const struct GNUNET_ATS_Information
-                                 *atsi,
-				 unsigned int atsi_count)
+                                 const struct GNUNET_ATS_Information *atsi,
+                                 unsigned int atsi_count)
 {
   const struct P2PReceiveNotificationMessage *p2p_rnmsg;
   struct P2PReceiveNotificationMessage *my_p2p_rnmsg;
@@ -1343,7 +1340,7 @@ static int
 handle_p2p_sync_request (void *cls, const struct GNUNET_PeerIdentity *other,
                          const struct GNUNET_MessageHeader *message,
                          const struct GNUNET_ATS_Information *atsi,
-			 unsigned int atsi_count)
+                         unsigned int atsi_count)
 {
   struct ChatClient *entry;
   struct GNUNET_CORE_TransmitHandle *th;
@@ -1386,9 +1383,8 @@ static int
 handle_p2p_confirmation_receipt (void *cls,
                                  const struct GNUNET_PeerIdentity *other,
                                  const struct GNUNET_MessageHeader *message,
-                                 const struct GNUNET_ATS_Information
-                                 *atsi,
-				 unsigned int atsi_count)
+                                 const struct GNUNET_ATS_Information *atsi,
+                                 unsigned int atsi_count)
 {
   const struct P2PConfirmationReceiptMessage *p2p_crmsg;
   struct P2PConfirmationReceiptMessage *my_p2p_crmsg;
@@ -1530,7 +1526,7 @@ transmit_sync_request_to_peer (void *cls, size_t size, void *buf)
 static void
 peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_ATS_Information *atsi,
-		      unsigned int atsi_count)
+                      unsigned int atsi_count)
 {
   struct ConnectedPeer *cp;
   struct GNUNET_CORE_TransmitHandle *th;
@@ -1716,8 +1712,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   core =
       GNUNET_CORE_connect (cfg, QUEUE_SIZE, NULL, &core_init,
                            &peer_connect_handler, &peer_disconnect_handler,
-                           NULL, GNUNET_NO, NULL, GNUNET_NO,
-                           p2p_handlers);
+                           NULL, GNUNET_NO, NULL, GNUNET_NO, p2p_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);

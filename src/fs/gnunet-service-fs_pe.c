@@ -263,22 +263,25 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
   if (rp->transmission_counter < 8)
     delay =
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-				       rp->transmission_counter);
+                                       rp->transmission_counter);
   else if (rp->transmission_counter < 32)
     delay =
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                       8 + (1LL << (rp->transmission_counter - 8)));
+                                       8 +
+                                       (1LL << (rp->transmission_counter - 8)));
   else
-    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 
-					   8 + (1LL << 24));
-  delay.rel_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-					      delay.rel_value + 1);
+    delay =
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                       8 + (1LL << 24));
+  delay.rel_value =
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                delay.rel_value + 1);
   if (rp->transmission_counter != 0)
     delay.rel_value += TTL_DECREMENT;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Considering (re)transmission number %u in %llu ms\n",
-	      (unsigned int) rp->transmission_counter,
-	      (unsigned long long) delay.rel_value);
+              "Considering (re)transmission number %u in %llu ms\n",
+              (unsigned int) rp->transmission_counter,
+              (unsigned long long) delay.rel_value);
   rp->earliest_transmission = GNUNET_TIME_relative_to_absolute (delay);
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -295,9 +298,9 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
         GNUNET_CONTAINER_heap_insert (pp->delay_heap, rp,
                                       rp->earliest_transmission.abs_value);
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_contains_value (pp->plan_map,
-							       get_rp_key (rp),
-							       rp));
+                 GNUNET_CONTAINER_multihashmap_contains_value (pp->plan_map,
+                                                               get_rp_key (rp),
+                                                               rp));
   if (GNUNET_SCHEDULER_NO_TASK != pp->task)
     GNUNET_SCHEDULER_cancel (pp->task);
   pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
@@ -351,8 +354,9 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
     /* failed, try again... */
     pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
     GNUNET_STATISTICS_update (GSF_stats,
-			      gettext_noop ("# transmission failed (core has no bandwidth)"), 1,
-			      GNUNET_NO);
+                              gettext_noop
+                              ("# transmission failed (core has no bandwidth)"),
+                              1, GNUNET_NO);
     return 0;
   }
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
@@ -433,22 +437,17 @@ schedule_peer_transmission (void *cls,
 #if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sleeping for %llu ms before retrying requests on plan %p.\n",
-                (unsigned long long)
-                delay.rel_value, pp);
+                (unsigned long long) delay.rel_value, pp);
 #endif
-    GNUNET_STATISTICS_set (GSF_stats,
-			   gettext_noop ("# delay heap timeout"), 
-			   delay.rel_value,
-			   GNUNET_NO);
-    
+    GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# delay heap timeout"),
+                           delay.rel_value, GNUNET_NO);
+
     pp->task =
-      GNUNET_SCHEDULER_add_delayed (delay,
-                                      &schedule_peer_transmission, pp);
+        GNUNET_SCHEDULER_add_delayed (delay, &schedule_peer_transmission, pp);
     return;
   }
-  GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# query plans executed"), 1,
-                            GNUNET_NO);
+  GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# query plans executed"),
+                            1, GNUNET_NO);
   /* process from priority heap */
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
 #if DEBUG_FS > 1
@@ -488,9 +487,7 @@ struct MergeContext
  *         GNUNET_NO if not (merge success)
  */
 static int
-merge_pr (void *cls, 
-	  const GNUNET_HashCode *query,
-	  void *element)
+merge_pr (void *cls, const GNUNET_HashCode * query, void *element)
 {
   struct MergeContext *mpr = cls;
   struct GSF_RequestPlan *rp = element;
@@ -550,8 +547,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   if (NULL == pp)
   {
     pp = GNUNET_malloc (sizeof (struct PeerPlan));
-    pp->plan_map =
-      GNUNET_CONTAINER_multihashmap_create (128);
+    pp->plan_map = GNUNET_CONTAINER_multihashmap_create (128);
     pp->priority_heap =
         GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MAX);
     pp->delay_heap =
@@ -563,13 +559,13 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   mpc.merged = GNUNET_NO;
   mpc.pr = pr;
   GNUNET_CONTAINER_multihashmap_get_multiple (pp->plan_map,
-					      &GSF_pending_request_get_data_ (pr)->query,
-					      &merge_pr, &mpc);
+                                              &GSF_pending_request_get_data_
+                                              (pr)->query, &merge_pr, &mpc);
   if (mpc.merged != GNUNET_NO)
     return;
   GNUNET_CONTAINER_multihashmap_get_multiple (pp->plan_map,
-					      &GSF_pending_request_get_data_ (pr)->query,
-					      &merge_pr, &mpc);
+                                              &GSF_pending_request_get_data_
+                                              (pr)->query, &merge_pr, &mpc);
   if (mpc.merged != GNUNET_NO)
     return;
   plan_count++;
@@ -592,10 +588,9 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   GNUNET_CONTAINER_DLL_insert (rp->prl_head, rp->prl_tail, prl);
   rp->pp = pp;
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_put (pp->plan_map,
-						    get_rp_key (rp),
-						    rp,
-						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+                 GNUNET_CONTAINER_multihashmap_put (pp->plan_map,
+                                                    get_rp_key (rp), rp,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   plan (pp, rp);
 }
 
@@ -632,9 +627,8 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->priority_heap)))
   {
     GNUNET_break (GNUNET_YES ==
-		  GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
-							get_rp_key (rp),
-							rp));
+                  GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
+                                                        get_rp_key (rp), rp));
     while (NULL != (prl = rp->prl_head))
     {
       GNUNET_CONTAINER_DLL_remove (rp->prl_head, rp->prl_tail, prl);
@@ -649,9 +643,8 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->delay_heap)))
   {
     GNUNET_break (GNUNET_YES ==
-		  GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
-							get_rp_key (rp),
-							rp));
+                  GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
+                                                        get_rp_key (rp), rp));
     while (NULL != (prl = rp->prl_head))
     {
       GNUNET_CONTAINER_DLL_remove (rp->prl_head, rp->prl_tail, prl);
@@ -695,9 +688,10 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
       GNUNET_CONTAINER_heap_remove_node (rp->hn);
       plan_count--;
       GNUNET_break (GNUNET_YES ==
-		    GNUNET_CONTAINER_multihashmap_remove (rp->pp->plan_map,
-							  &GSF_pending_request_get_data_ (rpr->prl->pr)->query,
-							  rp));
+                    GNUNET_CONTAINER_multihashmap_remove (rp->pp->plan_map,
+                                                          &GSF_pending_request_get_data_
+                                                          (rpr->prl->pr)->query,
+                                                          rp));
       GNUNET_free (rp);
     }
     GNUNET_free (rpr->prl);

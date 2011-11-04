@@ -264,8 +264,7 @@ struct GNUNET_SERVER_Client
  * @param tc reason why we are running right now
  */
 static void
-process_listen_socket (void *cls,
-		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Handle *server = cls;
   struct GNUNET_CONNECTION_Handle *sock;
@@ -279,47 +278,45 @@ process_listen_socket (void *cls,
   while (NULL != server->listen_sockets[i])
     GNUNET_NETWORK_fdset_set (r, server->listen_sockets[i++]);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    {
-      /* ignore shutdown, someone else will take care of it! */
-      server->listen_task =
-	GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-				     GNUNET_SCHEDULER_NO_TASK,
-				     GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
-				     &process_listen_socket, server);
-      GNUNET_NETWORK_fdset_destroy (r);
-      return;
-    }
+  {
+    /* ignore shutdown, someone else will take care of it! */
+    server->listen_task =
+        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                     GNUNET_SCHEDULER_NO_TASK,
+                                     GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
+                                     &process_listen_socket, server);
+    GNUNET_NETWORK_fdset_destroy (r);
+    return;
+  }
   i = 0;
   while (NULL != server->listen_sockets[i])
+  {
+    if (GNUNET_NETWORK_fdset_isset (tc->read_ready, server->listen_sockets[i]))
     {
-      if (GNUNET_NETWORK_fdset_isset
-	  (tc->read_ready, server->listen_sockets[i]))
-	{
-	  sock =
-	    GNUNET_CONNECTION_create_from_accept (server->access,
-						  server->access_cls,
-						  server->listen_sockets[i]);
-	  if (sock != NULL)
-	    {
+      sock =
+          GNUNET_CONNECTION_create_from_accept (server->access,
+                                                server->access_cls,
+                                                server->listen_sockets[i]);
+      if (sock != NULL)
+      {
 #if DEBUG_SERVER
-	      LOG (GNUNET_ERROR_TYPE_DEBUG,
-		   "Server accepted incoming connection.\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Server accepted incoming connection.\n");
 #endif
-	      client = GNUNET_SERVER_connect_socket (server, sock);
-	      GNUNET_CONNECTION_ignore_shutdown (sock,
-						 server->clients_ignore_shutdown);
-	      /* decrement reference count, we don't keep "client" alive */
-	      GNUNET_SERVER_client_drop (client);
-	    }
-	}
-      i++;
+        client = GNUNET_SERVER_connect_socket (server, sock);
+        GNUNET_CONNECTION_ignore_shutdown (sock,
+                                           server->clients_ignore_shutdown);
+        /* decrement reference count, we don't keep "client" alive */
+        GNUNET_SERVER_client_drop (client);
+      }
     }
+    i++;
+  }
   /* listen for more! */
   server->listen_task =
-    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-				 GNUNET_SCHEDULER_NO_TASK,
-				 GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
-				 &process_listen_socket, server);
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
+                                   &process_listen_socket, server);
   GNUNET_NETWORK_fdset_destroy (r);
 }
 
@@ -340,87 +337,87 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
   int eno;
 
   switch (serverAddr->sa_family)
-    {
-    case AF_INET:
-      port = ntohs (((const struct sockaddr_in *) serverAddr)->sin_port);
-      break;
-    case AF_INET6:
-      port = ntohs (((const struct sockaddr_in6 *) serverAddr)->sin6_port);
-      break;
-    case AF_UNIX:
-      port = 0;
-      break;
-    default:
-      GNUNET_break (0);
-      port = 0;
-      break;
-    }
+  {
+  case AF_INET:
+    port = ntohs (((const struct sockaddr_in *) serverAddr)->sin_port);
+    break;
+  case AF_INET6:
+    port = ntohs (((const struct sockaddr_in6 *) serverAddr)->sin6_port);
+    break;
+  case AF_UNIX:
+    port = 0;
+    break;
+  default:
+    GNUNET_break (0);
+    port = 0;
+    break;
+  }
   sock = GNUNET_NETWORK_socket_create (serverAddr->sa_family, SOCK_STREAM, 0);
   if (NULL == sock)
-    {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "socket");
-      errno = 0;
-      return NULL;
-    }
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "socket");
+    errno = 0;
+    return NULL;
+  }
   if (port != 0)
-    {
-      if (GNUNET_NETWORK_socket_setsockopt
-	  (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
-	LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		      "setsockopt");
+  {
+    if (GNUNET_NETWORK_socket_setsockopt
+        (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                    "setsockopt");
 #ifdef IPV6_V6ONLY
-      if ((serverAddr->sa_family == AF_INET6) &&
-	  (GNUNET_NETWORK_socket_setsockopt
-	   (sock, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)) != GNUNET_OK))
-	LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		      "setsockopt");
+    if ((serverAddr->sa_family == AF_INET6) &&
+        (GNUNET_NETWORK_socket_setsockopt
+         (sock, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)) != GNUNET_OK))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                    "setsockopt");
 #endif
-    }
+  }
   /* bind the socket */
   if (GNUNET_NETWORK_socket_bind (sock, serverAddr, socklen) != GNUNET_OK)
+  {
+    eno = errno;
+    if (errno != EADDRINUSE)
     {
-      eno = errno;
-      if (errno != EADDRINUSE)
-	{
-	  /* we don't log 'EADDRINUSE' here since an IPv4 bind may
-	   * fail if we already took the port on IPv6; if both IPv4 and
-	   * IPv6 binds fail, then our caller will log using the
-	   * errno preserved in 'eno' */
-	  LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "bind");
-	  if (port != 0)
-	    LOG (GNUNET_ERROR_TYPE_ERROR,
-		 _("`%s' failed for port %d (%s).\n"), "bind", port,
-		 (serverAddr->sa_family == AF_INET) ? "IPv4" : "IPv6");
-	  eno = 0;
-	}
-      else
-	{
-	  if (port != 0)
-	    LOG (GNUNET_ERROR_TYPE_WARNING,
-		 _("`%s' failed for port %d (%s): address already in use\n"),
-		 "bind", port,
-		 (serverAddr->sa_family == AF_INET) ? "IPv4" : "IPv6");
-	  else if (serverAddr->sa_family == AF_UNIX)
-	    LOG (GNUNET_ERROR_TYPE_WARNING,
-		 _("`%s' failed for `%s': address already in use\n"), "bind",
-		 ((const struct sockaddr_un *) serverAddr)->sun_path);
+      /* we don't log 'EADDRINUSE' here since an IPv4 bind may
+       * fail if we already took the port on IPv6; if both IPv4 and
+       * IPv6 binds fail, then our caller will log using the
+       * errno preserved in 'eno' */
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "bind");
+      if (port != 0)
+        LOG (GNUNET_ERROR_TYPE_ERROR, _("`%s' failed for port %d (%s).\n"),
+             "bind", port,
+             (serverAddr->sa_family == AF_INET) ? "IPv4" : "IPv6");
+      eno = 0;
+    }
+    else
+    {
+      if (port != 0)
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             _("`%s' failed for port %d (%s): address already in use\n"),
+             "bind", port,
+             (serverAddr->sa_family == AF_INET) ? "IPv4" : "IPv6");
+      else if (serverAddr->sa_family == AF_UNIX)
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             _("`%s' failed for `%s': address already in use\n"), "bind",
+             ((const struct sockaddr_un *) serverAddr)->sun_path);
 
-	}
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
-      errno = eno;
-      return NULL;
     }
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
+    errno = eno;
+    return NULL;
+  }
   if (GNUNET_OK != GNUNET_NETWORK_socket_listen (sock, 5))
-    {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "listen");
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
-      errno = 0;
-      return NULL;
-    }
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "listen");
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
+    errno = 0;
+    return NULL;
+  }
 #if DEBUG_SERVER
   if (port != 0)
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Server starts to listen on port %u.\n", port);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Server starts to listen on port %u.\n",
+         port);
 #endif
   return sock;
 }
@@ -440,10 +437,10 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
  */
 struct GNUNET_SERVER_Handle *
 GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
-				   void *access_cls,
-				   struct GNUNET_NETWORK_Handle **lsocks,
-				   struct GNUNET_TIME_Relative idle_timeout,
-				   int require_found)
+                                   void *access_cls,
+                                   struct GNUNET_NETWORK_Handle **lsocks,
+                                   struct GNUNET_TIME_Relative idle_timeout,
+                                   int require_found)
 {
   struct GNUNET_SERVER_Handle *ret;
   struct GNUNET_NETWORK_FDSet *r;
@@ -456,18 +453,18 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
   ret->access_cls = access_cls;
   ret->require_found = require_found;
   if (lsocks != NULL)
-    {
-      r = GNUNET_NETWORK_fdset_create ();
-      i = 0;
-      while (NULL != ret->listen_sockets[i])
-	GNUNET_NETWORK_fdset_set (r, ret->listen_sockets[i++]);
-      ret->listen_task =
-	GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-				     GNUNET_SCHEDULER_NO_TASK,
-				     GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
-				     &process_listen_socket, ret);
-      GNUNET_NETWORK_fdset_destroy (r);
-    }
+  {
+    r = GNUNET_NETWORK_fdset_create ();
+    i = 0;
+    while (NULL != ret->listen_sockets[i])
+      GNUNET_NETWORK_fdset_set (r, ret->listen_sockets[i++]);
+    ret->listen_task =
+        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                     GNUNET_SCHEDULER_NO_TASK,
+                                     GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
+                                     &process_listen_socket, ret);
+    GNUNET_NETWORK_fdset_destroy (r);
+  }
   return ret;
 }
 
@@ -487,10 +484,10 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
  */
 struct GNUNET_SERVER_Handle *
 GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
-		      struct sockaddr *const *serverAddr,
-		      const socklen_t * socklen,
-		      struct GNUNET_TIME_Relative idle_timeout,
-		      int require_found)
+                      struct sockaddr *const *serverAddr,
+                      const socklen_t * socklen,
+                      struct GNUNET_TIME_Relative idle_timeout,
+                      int require_found)
 {
   struct GNUNET_NETWORK_Handle **lsocks;
   unsigned int i;
@@ -500,32 +497,31 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
   while (serverAddr[i] != NULL)
     i++;
   if (i > 0)
+  {
+    lsocks = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle *) * (i + 1));
+    i = 0;
+    j = 0;
+    while (serverAddr[i] != NULL)
     {
-      lsocks =
-	GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle *) * (i + 1));
-      i = 0;
-      j = 0;
-      while (serverAddr[i] != NULL)
-	{
-	  lsocks[j] = open_listen_socket (serverAddr[i], socklen[i]);
-	  if (lsocks[j] != NULL)
-	    j++;
-	  i++;
-	}
-      if (j == 0)
-	{
-	  if (errno != 0)
-	    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "bind");
-	  GNUNET_free (lsocks);
-	  lsocks = NULL;
-	}
+      lsocks[j] = open_listen_socket (serverAddr[i], socklen[i]);
+      if (lsocks[j] != NULL)
+        j++;
+      i++;
     }
-  else
+    if (j == 0)
     {
+      if (errno != 0)
+        LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "bind");
+      GNUNET_free (lsocks);
       lsocks = NULL;
     }
+  }
+  else
+  {
+    lsocks = NULL;
+  }
   return GNUNET_SERVER_create_with_sockets (access, access_cls, lsocks,
-					    idle_timeout, require_found);
+                                            idle_timeout, require_found);
 }
 
 
@@ -545,32 +541,32 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Server shutting down.\n");
 #endif
   if (GNUNET_SCHEDULER_NO_TASK != s->listen_task)
-    {
-      GNUNET_SCHEDULER_cancel (s->listen_task);
-      s->listen_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (s->listen_task);
+    s->listen_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (s->listen_sockets != NULL)
-    {
-      i = 0;
-      while (s->listen_sockets[i] != NULL)
-	GNUNET_break (GNUNET_OK ==
-		      GNUNET_NETWORK_socket_close (s->listen_sockets[i++]));
-      GNUNET_free (s->listen_sockets);
-      s->listen_sockets = NULL;
-    }
+  {
+    i = 0;
+    while (s->listen_sockets[i] != NULL)
+      GNUNET_break (GNUNET_OK ==
+                    GNUNET_NETWORK_socket_close (s->listen_sockets[i++]));
+    GNUNET_free (s->listen_sockets);
+    s->listen_sockets = NULL;
+  }
   while (s->clients != NULL)
     GNUNET_SERVER_client_disconnect (s->clients);
   while (NULL != (hpos = s->handlers))
-    {
-      s->handlers = hpos->next;
-      GNUNET_free (hpos);
-    }
+  {
+    s->handlers = hpos->next;
+    GNUNET_free (hpos);
+  }
   while (NULL != (npos = s->disconnect_notify_list))
-    {
-      npos->callback (npos->callback_cls, NULL);
-      s->disconnect_notify_list = npos->next;
-      GNUNET_free (npos);
-    }
+  {
+    npos->callback (npos->callback_cls, NULL);
+    s->disconnect_notify_list = npos->next;
+    GNUNET_free (npos);
+  }
   GNUNET_free (s);
 }
 
@@ -590,8 +586,7 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
  */
 void
 GNUNET_SERVER_add_handlers (struct GNUNET_SERVER_Handle *server,
-			    const struct GNUNET_SERVER_MessageHandler
-			    *handlers)
+                            const struct GNUNET_SERVER_MessageHandler *handlers)
 {
   struct HandlerList *p;
 
@@ -609,21 +604,20 @@ GNUNET_SERVER_add_handlers (struct GNUNET_SERVER_Handle *server,
  * @param tc scheduler context (unused)
  */
 static void
-warn_no_receive_done (void *cls,
-		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+warn_no_receive_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Client *client = cls;
 
   client->warn_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-				  &warn_no_receive_done, client);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                    &warn_no_receive_done, client);
   if (0 == (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 _
-	 ("Processing code for message of type %u did not call GNUNET_SERVER_receive_done after %llums\n"),
-	 (unsigned int) client->warn_type,
-	 (unsigned long long)
-	 GNUNET_TIME_absolute_get_duration (client->warn_start).rel_value);
+         _
+         ("Processing code for message of type %u did not call GNUNET_SERVER_receive_done after %llums\n"),
+         (unsigned int) client->warn_type,
+         (unsigned long long)
+         GNUNET_TIME_absolute_get_duration (client->warn_start).rel_value);
 }
 
 
@@ -635,14 +629,13 @@ warn_no_receive_done (void *cls,
  * @param client client for which to disable the warning
  */
 void
-GNUNET_SERVER_disable_receive_done_warning (struct GNUNET_SERVER_Client
-					    *client)
+GNUNET_SERVER_disable_receive_done_warning (struct GNUNET_SERVER_Client *client)
 {
   if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
-    {
-      GNUNET_SCHEDULER_cancel (client->warn_task);
-      client->warn_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (client->warn_task);
+    client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 }
 
 
@@ -663,8 +656,8 @@ GNUNET_SERVER_disable_receive_done_warning (struct GNUNET_SERVER_Client
  */
 int
 GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
-		      struct GNUNET_SERVER_Client *sender,
-		      const struct GNUNET_MessageHeader *message)
+                      struct GNUNET_SERVER_Client *sender,
+                      const struct GNUNET_MessageHeader *message)
 {
   struct HandlerList *pos;
   const struct GNUNET_SERVER_MessageHandler *mh;
@@ -684,50 +677,49 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
   pos = server->handlers;
   found = GNUNET_NO;
   while (pos != NULL)
+  {
+    i = 0;
+    while (pos->handlers[i].callback != NULL)
     {
-      i = 0;
-      while (pos->handlers[i].callback != NULL)
-	{
-	  mh = &pos->handlers[i];
-	  if ((mh->type == type) || (mh->type == GNUNET_MESSAGE_TYPE_ALL))
-	    {
-	      if ((mh->expected_size != 0) && (mh->expected_size != size))
-		{
+      mh = &pos->handlers[i];
+      if ((mh->type == type) || (mh->type == GNUNET_MESSAGE_TYPE_ALL))
+      {
+        if ((mh->expected_size != 0) && (mh->expected_size != size))
+        {
 #if GNUNET8_NETWORK_IS_DEAD
-		  LOG (GNUNET_ERROR_TYPE_WARNING,
-		       "Expected %u bytes for message of type %u, got %u\n",
-		       mh->expected_size, mh->type, size);
-		  GNUNET_break_op (0);
+          LOG (GNUNET_ERROR_TYPE_WARNING,
+               "Expected %u bytes for message of type %u, got %u\n",
+               mh->expected_size, mh->type, size);
+          GNUNET_break_op (0);
 #endif
-		  return GNUNET_SYSERR;
-		}
-	      if (sender != NULL)
-		{
-		  if (0 == sender->suspended)
-		    {
-		      sender->warn_start = GNUNET_TIME_absolute_get ();
-		      sender->warn_task =
-			GNUNET_SCHEDULER_add_delayed
-			(GNUNET_TIME_UNIT_MINUTES, &warn_no_receive_done,
-			 sender);
-		      sender->warn_type = type;
-		    }
-		  sender->suspended++;
-		}
-	      mh->callback (mh->callback_cls, sender, message);
-	      found = GNUNET_YES;
-	    }
-	  i++;
-	}
-      pos = pos->next;
+          return GNUNET_SYSERR;
+        }
+        if (sender != NULL)
+        {
+          if (0 == sender->suspended)
+          {
+            sender->warn_start = GNUNET_TIME_absolute_get ();
+            sender->warn_task =
+                GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                              &warn_no_receive_done, sender);
+            sender->warn_type = type;
+          }
+          sender->suspended++;
+        }
+        mh->callback (mh->callback_cls, sender, message);
+        found = GNUNET_YES;
+      }
+      i++;
     }
+    pos = pos->next;
+  }
   if (found == GNUNET_NO)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-	   "Received message of unknown type %d\n", type);
-      if (server->require_found == GNUNET_YES)
-	return GNUNET_SYSERR;
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+         "Received message of unknown type %d\n", type);
+    if (server->require_found == GNUNET_YES)
+      return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -744,8 +736,7 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
  */
 static void
 process_incoming (void *cls, const void *buf, size_t available,
-		  const struct sockaddr *addr, socklen_t addrlen,
-		  int errCode);
+                  const struct sockaddr *addr, socklen_t addrlen, int errCode);
 
 
 /**
@@ -765,30 +756,30 @@ static void
 process_mst (struct GNUNET_SERVER_Client *client, int ret)
 {
   while ((ret != GNUNET_SYSERR) && (client->server != NULL) &&
-	 (GNUNET_YES != client->shutdown_now) && (0 == client->suspended))
+         (GNUNET_YES != client->shutdown_now) && (0 == client->suspended))
+  {
+    if (ret == GNUNET_OK)
     {
-      if (ret == GNUNET_OK)
-	{
-	  client->receive_pending = GNUNET_YES;
-#if DEBUG_SERVER
-	  LOG (GNUNET_ERROR_TYPE_DEBUG,
-	       "Server re-enters receive loop, timeout: %llu.\n",
-	       client->idle_timeout.rel_value);
-#endif
-	  GNUNET_CONNECTION_receive (client->connection,
-				     GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-				     client->idle_timeout, &process_incoming,
-				     client);
-	  break;
-	}
+      client->receive_pending = GNUNET_YES;
 #if DEBUG_SERVER
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Server processes additional messages instantly.\n");
+           "Server re-enters receive loop, timeout: %llu.\n",
+           client->idle_timeout.rel_value);
 #endif
-      ret =
-	GNUNET_SERVER_mst_receive (client->mst, client, NULL, 0, GNUNET_NO,
-				   GNUNET_YES);
+      GNUNET_CONNECTION_receive (client->connection,
+                                 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+                                 client->idle_timeout, &process_incoming,
+                                 client);
+      break;
     }
+#if DEBUG_SERVER
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Server processes additional messages instantly.\n");
+#endif
+    ret =
+        GNUNET_SERVER_mst_receive (client->mst, client, NULL, 0, GNUNET_NO,
+                                   GNUNET_YES);
+  }
 #if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server leaves instant processing loop: ret = %d, server = %p, shutdown = %d, suspended = %u\n",
@@ -796,13 +787,13 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
 #endif
 
   if (ret == GNUNET_NO)
-    {
+  {
 #if DEBUG_SERVER
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Server has more data pending but is suspended.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Server has more data pending but is suspended.\n");
 #endif
-      client->receive_pending = GNUNET_SYSERR;	/* data pending */
-    }
+    client->receive_pending = GNUNET_SYSERR;    /* data pending */
+  }
   if ((ret == GNUNET_SYSERR) || (GNUNET_YES == client->shutdown_now))
     GNUNET_SERVER_client_disconnect (client);
   GNUNET_SERVER_client_drop (client);
@@ -821,7 +812,7 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
  */
 static void
 process_incoming (void *cls, const void *buf, size_t available,
-		  const struct sockaddr *addr, socklen_t addrlen, int errCode)
+                  const struct sockaddr *addr, socklen_t addrlen, int errCode)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct GNUNET_SERVER_Handle *server = client->server;
@@ -832,35 +823,34 @@ process_incoming (void *cls, const void *buf, size_t available,
   GNUNET_assert (client->receive_pending == GNUNET_YES);
   client->receive_pending = GNUNET_NO;
   now = GNUNET_TIME_absolute_get ();
-  end =
-    GNUNET_TIME_absolute_add (client->last_activity, client->idle_timeout);
+  end = GNUNET_TIME_absolute_add (client->last_activity, client->idle_timeout);
 
   if ((buf == NULL) && (available == 0) && (addr == NULL) && (errCode == 0) &&
       (client->shutdown_now != GNUNET_YES) && (server != NULL) &&
       (GNUNET_YES == GNUNET_CONNECTION_check (client->connection)) &&
       (end.abs_value > now.abs_value))
-    {
-      /* wait longer, timeout changed (i.e. due to us sending) */
+  {
+    /* wait longer, timeout changed (i.e. due to us sending) */
 #if DEBUG_SERVER
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Receive time out, but no disconnect due to sending (%p)\n",
-	   GNUNET_a2s (addr, addrlen));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Receive time out, but no disconnect due to sending (%p)\n",
+         GNUNET_a2s (addr, addrlen));
 #endif
-      client->receive_pending = GNUNET_YES;
-      GNUNET_CONNECTION_receive (client->connection,
-				 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-				 GNUNET_TIME_absolute_get_remaining (end),
-				 &process_incoming, client);
-      return;
-    }
-  if ((buf == NULL) || (available == 0) || (errCode != 0) || (server == NULL)
-      || (client->shutdown_now == GNUNET_YES)
-      || (GNUNET_YES != GNUNET_CONNECTION_check (client->connection)))
-    {
-      /* other side closed connection, error connecting, etc. */
-      GNUNET_SERVER_client_disconnect (client);
-      return;
-    }
+    client->receive_pending = GNUNET_YES;
+    GNUNET_CONNECTION_receive (client->connection,
+                               GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+                               GNUNET_TIME_absolute_get_remaining (end),
+                               &process_incoming, client);
+    return;
+  }
+  if ((buf == NULL) || (available == 0) || (errCode != 0) || (server == NULL) ||
+      (client->shutdown_now == GNUNET_YES) ||
+      (GNUNET_YES != GNUNET_CONNECTION_check (client->connection)))
+  {
+    /* other side closed connection, error connecting, etc. */
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
 #if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Server receives %u bytes from `%s'.\n",
        (unsigned int) available, GNUNET_a2s (addr, addrlen));
@@ -868,8 +858,8 @@ process_incoming (void *cls, const void *buf, size_t available,
   GNUNET_SERVER_client_keep (client);
   client->last_activity = now;
   ret =
-    GNUNET_SERVER_mst_receive (client->mst, client, buf, available, GNUNET_NO,
-			       GNUNET_YES);
+      GNUNET_SERVER_mst_receive (client->mst, client, buf, available, GNUNET_NO,
+                                 GNUNET_YES);
   process_mst (client, ret);
 }
 
@@ -890,23 +880,21 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   client->restart_task = GNUNET_SCHEDULER_NO_TASK;
   if ((0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) &&
       (GNUNET_NO == server->clients_ignore_shutdown))
-    {
-      GNUNET_SERVER_client_disconnect (client);
-      return;
-    }
+  {
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
   if (client->receive_pending == GNUNET_NO)
-    {
+  {
 #if DEBUG_SERVER
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Server begins to read again from client.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Server begins to read again from client.\n");
 #endif
-      client->receive_pending = GNUNET_YES;
-      GNUNET_CONNECTION_receive (client->connection,
-				 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-				 client->idle_timeout, &process_incoming,
-				 client);
-      return;
-    }
+    client->receive_pending = GNUNET_YES;
+    GNUNET_CONNECTION_receive (client->connection,
+                               GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+                               client->idle_timeout, &process_incoming, client);
+    return;
+  }
 #if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server continues processing messages still in the buffer.\n");
@@ -927,7 +915,7 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 client_message_tokenizer_callback (void *cls, void *client,
-				   const struct GNUNET_MessageHeader *message)
+                                   const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVER_Handle *server = cls;
   struct GNUNET_SERVER_Client *sender = client;
@@ -961,14 +949,14 @@ client_message_tokenizer_callback (void *cls, void *client,
  */
 struct GNUNET_SERVER_Client *
 GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
-			      struct GNUNET_CONNECTION_Handle *connection)
+                              struct GNUNET_CONNECTION_Handle *connection)
 {
   struct GNUNET_SERVER_Client *client;
 
   client = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Client));
   client->connection = connection;
   client->mst =
-    GNUNET_SERVER_mst_create (&client_message_tokenizer_callback, server);
+      GNUNET_SERVER_mst_create (&client_message_tokenizer_callback, server);
   client->reference_count = 1;
   client->server = server;
   client->last_activity = GNUNET_TIME_absolute_get ();
@@ -979,8 +967,8 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
   client->callback = NULL;
   client->callback_cls = NULL;
   GNUNET_CONNECTION_receive (client->connection,
-			     GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-			     client->idle_timeout, &process_incoming, client);
+                             GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+                             client->idle_timeout, &process_incoming, client);
   return client;
 }
 
@@ -995,7 +983,7 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
  */
 void
 GNUNET_SERVER_client_set_timeout (struct GNUNET_SERVER_Client *client,
-				  struct GNUNET_TIME_Relative timeout)
+                                  struct GNUNET_TIME_Relative timeout)
 {
   client->idle_timeout = timeout;
 }
@@ -1043,7 +1031,7 @@ GNUNET_SERVER_client_drop (struct GNUNET_SERVER_Client *client)
  */
 int
 GNUNET_SERVER_client_get_address (struct GNUNET_SERVER_Client *client,
-				  void **addr, size_t * addrlen)
+                                  void **addr, size_t * addrlen)
 {
   return GNUNET_CONNECTION_get_address (client->connection, addr, addrlen);
 }
@@ -1061,8 +1049,8 @@ GNUNET_SERVER_client_get_address (struct GNUNET_SERVER_Client *client,
  */
 void
 GNUNET_SERVER_disconnect_notify (struct GNUNET_SERVER_Handle *server,
-				 GNUNET_SERVER_DisconnectCallback callback,
-				 void *callback_cls)
+                                 GNUNET_SERVER_DisconnectCallback callback,
+                                 void *callback_cls)
 {
   struct NotifyList *n;
 
@@ -1083,8 +1071,8 @@ GNUNET_SERVER_disconnect_notify (struct GNUNET_SERVER_Handle *server,
  */
 void
 GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
-					GNUNET_SERVER_DisconnectCallback
-					callback, void *callback_cls)
+                                        GNUNET_SERVER_DisconnectCallback
+                                        callback, void *callback_cls)
 {
   struct NotifyList *pos;
   struct NotifyList *prev;
@@ -1092,17 +1080,17 @@ GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
   prev = NULL;
   pos = server->disconnect_notify_list;
   while (pos != NULL)
-    {
-      if ((pos->callback == callback) && (pos->callback_cls == callback_cls))
-	break;
-      prev = pos;
-      pos = pos->next;
-    }
+  {
+    if ((pos->callback == callback) && (pos->callback_cls == callback_cls))
+      break;
+    prev = pos;
+    pos = pos->next;
+  }
   if (pos == NULL)
-    {
-      GNUNET_break (0);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    return;
+  }
   if (prev == NULL)
     server->disconnect_notify_list = pos->next;
   else
@@ -1133,72 +1121,72 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
        "Client is being disconnected from the server.\n");
 #endif
   if (client->restart_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (client->restart_task);
+    client->restart_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (client->warn_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (client->warn_task);
+    client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (GNUNET_YES == client->receive_pending)
+  {
+    GNUNET_CONNECTION_receive_cancel (client->connection);
+    client->receive_pending = GNUNET_NO;
+  }
+
+  rc = client->reference_count;
+  if (client->server != NULL)
+  {
+    server = client->server;
+    client->server = NULL;
+    client->shutdown_now = GNUNET_YES;
+    prev = NULL;
+    pos = server->clients;
+    while ((pos != NULL) && (pos != client))
+    {
+      prev = pos;
+      pos = pos->next;
+    }
+    GNUNET_assert (pos != NULL);
+    if (prev == NULL)
+      server->clients = pos->next;
+    else
+      prev->next = pos->next;
+    if (client->restart_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (client->restart_task);
       client->restart_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  if (client->warn_task != GNUNET_SCHEDULER_NO_TASK)
+    if (client->warn_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (client->warn_task);
       client->warn_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  if (GNUNET_YES == client->receive_pending)
+    n = server->disconnect_notify_list;
+    while (n != NULL)
     {
-      GNUNET_CONNECTION_receive_cancel (client->connection);
-      client->receive_pending = GNUNET_NO;
+      n->callback (n->callback_cls, client);
+      n = n->next;
     }
-
-  rc = client->reference_count;
-  if (client->server != NULL)
-    {
-      server = client->server;
-      client->server = NULL;
-      client->shutdown_now = GNUNET_YES;
-      prev = NULL;
-      pos = server->clients;
-      while ((pos != NULL) && (pos != client))
-	{
-	  prev = pos;
-	  pos = pos->next;
-	}
-      GNUNET_assert (pos != NULL);
-      if (prev == NULL)
-	server->clients = pos->next;
-      else
-	prev->next = pos->next;
-      if (client->restart_task != GNUNET_SCHEDULER_NO_TASK)
-	{
-	  GNUNET_SCHEDULER_cancel (client->restart_task);
-	  client->restart_task = GNUNET_SCHEDULER_NO_TASK;
-	}
-      if (client->warn_task != GNUNET_SCHEDULER_NO_TASK)
-	{
-	  GNUNET_SCHEDULER_cancel (client->warn_task);
-	  client->warn_task = GNUNET_SCHEDULER_NO_TASK;
-	}
-      n = server->disconnect_notify_list;
-      while (n != NULL)
-	{
-	  n->callback (n->callback_cls, client);
-	  n = n->next;
-	}
-    }
+  }
   if (rc > 0)
-    {
+  {
 #if DEBUG_SERVER
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "RC still positive, not destroying everything.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "RC still positive, not destroying everything.\n");
 #endif
-      return;
-    }
+    return;
+  }
   if (client->in_process_client_buffer == GNUNET_YES)
-    {
+  {
 #if DEBUG_SERVER
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Still processing inputs, not destroying everything.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Still processing inputs, not destroying everything.\n");
 #endif
-      return;
-    }
+    return;
+  }
 
   if (client->persist == GNUNET_YES)
     GNUNET_CONNECTION_persist_ (client->connection);
@@ -1262,17 +1250,17 @@ transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
  */
 struct GNUNET_CONNECTION_TransmitHandle *
 GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
-				     size_t size,
-				     struct GNUNET_TIME_Relative timeout,
-				     GNUNET_CONNECTION_TransmitReadyNotify
-				     callback, void *callback_cls)
+                                     size_t size,
+                                     struct GNUNET_TIME_Relative timeout,
+                                     GNUNET_CONNECTION_TransmitReadyNotify
+                                     callback, void *callback_cls)
 {
   client->callback_cls = callback_cls;
   client->callback = callback;
   return GNUNET_CONNECTION_notify_transmit_ready (client->connection, size,
-						  timeout,
-						  &transmit_ready_callback_wrapper,
-						  client);
+                                                  timeout,
+                                                  &transmit_ready_callback_wrapper,
+                                                  client);
 }
 
 
@@ -1309,47 +1297,46 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
   GNUNET_assert (client->suspended > 0);
   client->suspended--;
   if (success != GNUNET_OK)
-    {
+  {
 #if DEBUG_SERVER
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "GNUNET_SERVER_receive_done called with failure indication\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "GNUNET_SERVER_receive_done called with failure indication\n");
 #endif
-      GNUNET_SERVER_client_disconnect (client);
-      return;
-    }
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
   if (client->suspended > 0)
-    {
+  {
 #if DEBUG_SERVER
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "GNUNET_SERVER_receive_done called, but more clients pending\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "GNUNET_SERVER_receive_done called, but more clients pending\n");
 #endif
-      return;
-    }
+    return;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
-    {
-      GNUNET_SCHEDULER_cancel (client->warn_task);
-      client->warn_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (client->warn_task);
+    client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (client->in_process_client_buffer == GNUNET_YES)
-    {
+  {
 #if DEBUG_SERVER
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "GNUNET_SERVER_receive_done called while still in processing loop\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "GNUNET_SERVER_receive_done called while still in processing loop\n");
 #endif
-      return;
-    }
+    return;
+  }
   if (client->server == NULL)
-    {
-      GNUNET_SERVER_client_disconnect (client);
-      return;
-    }
+  {
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
 #if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "GNUNET_SERVER_receive_done causes restart in reading from the socket\n");
 #endif
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == client->restart_task);
-  client->restart_task =
-    GNUNET_SCHEDULER_add_now (&restart_processing, client);
+  client->restart_task = GNUNET_SCHEDULER_add_now (&restart_processing, client);
 }
 
 

@@ -57,8 +57,7 @@ static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 #if DEBUG_CORE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Core service shutting down.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service shutting down.\n");
 #endif
   GSC_CLIENTS_done ();
   GSC_NEIGHBOURS_done ();
@@ -85,13 +84,12 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  GSC_cfg = c;  
+  GSC_cfg = c;
   GSC_stats = GNUNET_STATISTICS_create ("core", GSC_cfg);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleaning_task,
                                 NULL);
   GSC_TYPEMAP_init ();
-  if ( (GNUNET_OK != GSC_KX_init ()) ||
-       (GNUNET_OK != GSC_NEIGHBOURS_init ()) )
+  if ((GNUNET_OK != GSC_KX_init ()) || (GNUNET_OK != GSC_NEIGHBOURS_init ()))
   {
     GNUNET_SCHEDULER_shutdown ();
     return;

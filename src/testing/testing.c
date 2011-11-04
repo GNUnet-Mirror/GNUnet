@@ -1888,7 +1888,7 @@ notify_connect_result (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_ATS_Information *atsi,
-		unsigned int atsi_count)
+                unsigned int atsi_count)
 {
   struct GNUNET_TESTING_ConnectContext *ctx = cls;
 
@@ -1965,8 +1965,7 @@ core_init_notify (void *cls, struct GNUNET_CORE_Handle *server,
 
   if (connect_ctx->send_hello == GNUNET_NO)
   {
-    GNUNET_TRANSPORT_try_connect (connect_ctx->d1th,
-				  &connect_ctx->d2->id);
+    GNUNET_TRANSPORT_try_connect (connect_ctx->d1th, &connect_ctx->d2->id);
 #if DEBUG_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending connect request to TRANSPORT of %s for peer %s\n",
@@ -2088,7 +2087,7 @@ reattempt_daemons_connect (void *cls,
 static void
 core_initial_iteration (void *cls, const struct GNUNET_PeerIdentity *peer,
                         const struct GNUNET_ATS_Information *atsi,
-			unsigned int atsi_count)
+                        unsigned int atsi_count)
 {
   struct GNUNET_TESTING_ConnectContext *ctx = cls;
 

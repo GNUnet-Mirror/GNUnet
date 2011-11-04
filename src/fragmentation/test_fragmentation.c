@@ -65,8 +65,7 @@ static struct GNUNET_FRAGMENT_Context *frags[NUM_MSGS];
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
 static void
-do_shutdown (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
@@ -80,7 +79,7 @@ do_shutdown (void *cls,
       continue;
     GNUNET_FRAGMENT_context_destroy (frags[i]);
     frags[i] = NULL;
-  }  
+  }
 }
 
 
@@ -103,8 +102,7 @@ proc_msgs (void *cls, const struct GNUNET_MessageHeader *hdr)
     fprintf (stderr, ".");
 #endif
   /* tolerate 10% loss, i.e. due to duplicate fragment IDs */
-  if ( (total >= NUM_MSGS - (NUM_MSGS / 10)) &&
-       (ret != 0) )
+  if ((total >= NUM_MSGS - (NUM_MSGS / 10)) && (ret != 0))
   {
     if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
       shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);

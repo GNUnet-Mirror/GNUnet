@@ -96,17 +96,14 @@ GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in, uint32_t mingle_number,
  * @param lib_ret the plugin API
  */
 static void
-add_plugin (void *cls,
-	    const char *library_name,
-	    void *lib_ret)
+add_plugin (void *cls, const char *library_name, void *lib_ret)
 {
   struct GNUNET_BLOCK_Context *ctx = cls;
   struct GNUNET_BLOCK_PluginFunctions *api = lib_ret;
   struct Plugin *plugin;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      _("Loading block plugin `%s'\n"),
-	      library_name);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading block plugin `%s'\n"),
+              library_name);
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->api = api;
   plugin->library_name = GNUNET_strdup (library_name);
@@ -128,10 +125,7 @@ GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   ctx = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_Context));
   ctx->cfg = cfg;
-  GNUNET_PLUGIN_load_all ("libgnunet_plugin_block_",
-			  NULL,
-			  &add_plugin,
-			  ctx);
+  GNUNET_PLUGIN_load_all ("libgnunet_plugin_block_", NULL, &add_plugin, ctx);
   return ctx;
 }
 
@@ -147,7 +141,7 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx)
   unsigned int i;
   struct Plugin *plugin;
 
-  for (i = 0; i<ctx->num_plugins;i++)
+  for (i = 0; i < ctx->num_plugins; i++)
   {
     plugin = ctx->plugins[i];
     GNUNET_break (NULL ==
@@ -174,7 +168,7 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx, enum GNUNET_BLOCK_Type type)
   unsigned int i;
   unsigned int j;
 
-  for (i=0;i<ctx->num_plugins;i++)
+  for (i = 0; i < ctx->num_plugins; i++)
   {
     plugin = ctx->plugins[i];
     j = 0;
@@ -291,8 +285,8 @@ compute_bloomfilter_size (unsigned int entry_count)
  */
 struct GNUNET_CONTAINER_BloomFilter *
 GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
-				    const GNUNET_HashCode *seen_results,
-				    unsigned int seen_results_count)
+                                    const GNUNET_HashCode * seen_results,
+                                    unsigned int seen_results_count)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf;
   GNUNET_HashCode mhash;
@@ -300,7 +294,8 @@ GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
   size_t nsize;
 
   nsize = compute_bloomfilter_size (seen_results_count);
-  bf = GNUNET_CONTAINER_bloomfilter_init (NULL, nsize, GNUNET_CONSTANTS_BLOOMFILTER_K);
+  bf = GNUNET_CONTAINER_bloomfilter_init (NULL, nsize,
+                                          GNUNET_CONSTANTS_BLOOMFILTER_K);
   for (i = 0; i < seen_results_count; i++)
   {
     GNUNET_BLOCK_mingle_hash (&seen_results[i], bf_mutator, &mhash);

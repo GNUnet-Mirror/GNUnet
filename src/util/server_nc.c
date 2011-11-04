@@ -156,19 +156,19 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   struct PendingMessageList *pml;
 
   if (client == NULL)
-    {
-      nc->server = NULL;
-      return;
-    }
+  {
+    nc->server = NULL;
+    return;
+  }
   prev = NULL;
   pos = nc->clients;
   while (NULL != pos)
-    {
-      if (pos->client == client)
-	break;
-      prev = pos;
-      pos = pos->next;
-    }
+  {
+    if (pos->client == client)
+      break;
+    prev = pos;
+    pos = pos->next;
+  }
   if (pos == NULL)
     return;
 #if DEBUG_SERVER_NC
@@ -181,15 +181,15 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   else
     prev->next = pos->next;
   while (NULL != (pml = pos->pending_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (pos->pending_head, pos->pending_tail, pml);
-      GNUNET_free (pml);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (pos->pending_head, pos->pending_tail, pml);
+    GNUNET_free (pml);
+  }
   if (pos->th != NULL)
-    {
-      GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->th);
-      pos->th = NULL;
-    }
+  {
+    GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->th);
+    pos->th = NULL;
+  }
   GNUNET_SERVER_client_drop (client);
   GNUNET_free (pos);
 }
@@ -205,8 +205,8 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @return handle to the notification context
  */
 struct GNUNET_SERVER_NotificationContext *
-GNUNET_SERVER_notification_context_create (struct GNUNET_SERVER_Handle
-					   *server, unsigned int queue_length)
+GNUNET_SERVER_notification_context_create (struct GNUNET_SERVER_Handle *server,
+                                           unsigned int queue_length)
 {
   struct GNUNET_SERVER_NotificationContext *ret;
 
@@ -225,27 +225,26 @@ GNUNET_SERVER_notification_context_create (struct GNUNET_SERVER_Handle
  */
 void
 GNUNET_SERVER_notification_context_destroy (struct
-					    GNUNET_SERVER_NotificationContext
-					    *nc)
+                                            GNUNET_SERVER_NotificationContext
+                                            *nc)
 {
   struct ClientList *pos;
   struct PendingMessageList *pml;
 
   while (NULL != (pos = nc->clients))
+  {
+    nc->clients = pos->next;
+    GNUNET_SERVER_client_drop (pos->client);
+    while (NULL != (pml = pos->pending_head))
     {
-      nc->clients = pos->next;
-      GNUNET_SERVER_client_drop (pos->client);
-      while (NULL != (pml = pos->pending_head))
-	{
-	  GNUNET_CONTAINER_DLL_remove (pos->pending_head, pos->pending_tail,
-				       pml);
-	  GNUNET_free (pml);
-	}
-      GNUNET_free (pos);
+      GNUNET_CONTAINER_DLL_remove (pos->pending_head, pos->pending_tail, pml);
+      GNUNET_free (pml);
     }
+    GNUNET_free (pos);
+  }
   if (nc->server != NULL)
     GNUNET_SERVER_disconnect_notify_cancel (nc->server,
-					    &handle_client_disconnect, nc);
+                                            &handle_client_disconnect, nc);
   GNUNET_free (nc);
 }
 
@@ -257,9 +256,9 @@ GNUNET_SERVER_notification_context_destroy (struct
  * @param client client to add
  */
 void
-GNUNET_SERVER_notification_context_add (struct
-					GNUNET_SERVER_NotificationContext *nc,
-					struct GNUNET_SERVER_Client *client)
+GNUNET_SERVER_notification_context_add (struct GNUNET_SERVER_NotificationContext
+                                        *nc,
+                                        struct GNUNET_SERVER_Client *client)
 {
   struct ClientList *cl;
 
@@ -293,45 +292,44 @@ transmit_message (void *cls, size_t size, void *buf)
 
   cl->th = NULL;
   if (buf == NULL)
-    {
-      /* 'cl' should be freed via disconnect notification shortly */
+  {
+    /* 'cl' should be freed via disconnect notification shortly */
 #if DEBUG_SERVER_NC
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Failed to transmit message from NC queue to client\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to transmit message from NC queue to client\n");
 #endif
-      return 0;
-    }
+    return 0;
+  }
   ret = 0;
   while (NULL != (pml = cl->pending_head))
-    {
-      msize = ntohs (pml->msg->size);
-      if (size < msize)
-	break;
-      GNUNET_CONTAINER_DLL_remove (cl->pending_head, cl->pending_tail, pml);
+  {
+    msize = ntohs (pml->msg->size);
+    if (size < msize)
+      break;
+    GNUNET_CONTAINER_DLL_remove (cl->pending_head, cl->pending_tail, pml);
 #if DEBUG_SERVER_NC
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Copying message of type %u and size %u from pending queue to transmission buffer\n",
-	   ntohs (pml->msg->type), msize);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Copying message of type %u and size %u from pending queue to transmission buffer\n",
+         ntohs (pml->msg->type), msize);
 #endif
-      memcpy (&cbuf[ret], pml->msg, msize);
-      ret += msize;
-      size -= msize;
-      GNUNET_free (pml);
-      cl->num_pending--;
-    }
+    memcpy (&cbuf[ret], pml->msg, msize);
+    ret += msize;
+    size -= msize;
+    GNUNET_free (pml);
+    cl->num_pending--;
+  }
   if (pml != NULL)
-    {
+  {
 #if DEBUG_SERVER_NC
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Have %u messages left in NC queue, will try transmission again\n",
-	   cl->num_pending);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Have %u messages left in NC queue, will try transmission again\n",
+         cl->num_pending);
 #endif
-      cl->th =
-	GNUNET_SERVER_notify_transmit_ready (cl->client,
-					     ntohs (pml->msg->size),
-					     GNUNET_TIME_UNIT_FOREVER_REL,
-					     &transmit_message, cl);
-    }
+    cl->th =
+        GNUNET_SERVER_notify_transmit_ready (cl->client, ntohs (pml->msg->size),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             &transmit_message, cl);
+  }
   else
     GNUNET_assert (cl->num_pending == 0);
   return ret;
@@ -348,25 +346,24 @@ transmit_message (void *cls, size_t size, void *buf)
  */
 static void
 do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
-	    struct ClientList *client, const struct GNUNET_MessageHeader *msg,
-	    int can_drop)
+            struct ClientList *client, const struct GNUNET_MessageHeader *msg,
+            int can_drop)
 {
   struct PendingMessageList *pml;
   uint16_t size;
 
   if ((client->num_pending > nc->queue_length) && (GNUNET_YES == can_drop))
-    {
-      LOG (GNUNET_ERROR_TYPE_INFO,
-	   "Dropping message of type %u and size %u due to full queue (%u entries)\n",
-	   ntohs (msg->type), ntohs (msg->size),
-	   (unsigned int) nc->queue_length);
-      return;			/* drop! */
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Dropping message of type %u and size %u due to full queue (%u entries)\n",
+         ntohs (msg->type), ntohs (msg->size), (unsigned int) nc->queue_length);
+    return;                     /* drop! */
+  }
   if (client->num_pending > nc->queue_length)
-    {
-      /* FIXME: consider checking for other messages in the
-       * queue that are 'droppable' */
-    }
+  {
+    /* FIXME: consider checking for other messages in the
+     * queue that are 'droppable' */
+  }
   client->num_pending++;
   size = ntohs (msg->size);
   pml = GNUNET_malloc (sizeof (struct PendingMessageList) + size);
@@ -379,15 +376,15 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
 #endif
   memcpy (&pml[1], msg, size);
   /* append */
-  GNUNET_CONTAINER_DLL_insert_tail (client->pending_head,
-				    client->pending_tail, pml);
+  GNUNET_CONTAINER_DLL_insert_tail (client->pending_head, client->pending_tail,
+                                    pml);
   if (client->th == NULL)
     client->th =
-      GNUNET_SERVER_notify_transmit_ready (client->client,
-					   ntohs (client->pending_head->
-						  msg->size),
-					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   &transmit_message, client);
+        GNUNET_SERVER_notify_transmit_ready (client->client,
+                                             ntohs (client->pending_head->
+                                                    msg->size),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             &transmit_message, client);
 }
 
 
@@ -402,22 +399,21 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
  */
 void
 GNUNET_SERVER_notification_context_unicast (struct
-					    GNUNET_SERVER_NotificationContext
-					    *nc,
-					    struct GNUNET_SERVER_Client
-					    *client,
-					    const struct GNUNET_MessageHeader
-					    *msg, int can_drop)
+                                            GNUNET_SERVER_NotificationContext
+                                            *nc,
+                                            struct GNUNET_SERVER_Client *client,
+                                            const struct GNUNET_MessageHeader
+                                            *msg, int can_drop)
 {
   struct ClientList *pos;
 
   pos = nc->clients;
   while (NULL != pos)
-    {
-      if (pos->client == client)
-	break;
-      pos = pos->next;
-    }
+  {
+    if (pos->client == client)
+      break;
+    pos = pos->next;
+  }
   GNUNET_assert (pos != NULL);
   do_unicast (nc, pos, msg, can_drop);
 }
@@ -432,20 +428,19 @@ GNUNET_SERVER_notification_context_unicast (struct
  */
 void
 GNUNET_SERVER_notification_context_broadcast (struct
-					      GNUNET_SERVER_NotificationContext
-					      *nc,
-					      const struct
-					      GNUNET_MessageHeader *msg,
-					      int can_drop)
+                                              GNUNET_SERVER_NotificationContext
+                                              *nc,
+                                              const struct GNUNET_MessageHeader
+                                              *msg, int can_drop)
 {
   struct ClientList *pos;
 
   pos = nc->clients;
   while (NULL != pos)
-    {
-      do_unicast (nc, pos, msg, can_drop);
-      pos = pos->next;
-    }
+  {
+    do_unicast (nc, pos, msg, can_drop);
+    pos = pos->next;
+  }
 }
 
 

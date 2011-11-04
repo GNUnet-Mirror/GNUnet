@@ -124,7 +124,7 @@ process_resolved_address (void *cls, const char *address)
 static void
 connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                          const struct GNUNET_ATS_Information *atsi,
-			 unsigned int atsi_count)
+                         unsigned int atsi_count)
 {
   struct PrintContext *pc;
 

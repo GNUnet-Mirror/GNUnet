@@ -437,7 +437,7 @@ GNUNET_FS_directory_scanner_default (void *cls, struct GNUNET_FS_Handle *h,
  */
 struct MetaValueInformation
 {
-  
+
   /**
    * Mime-type of data.
    */
@@ -481,21 +481,17 @@ struct MetaValueInformation
  *        used in the main libextractor library and yielding
  *        meta data).
  * @param type libextractor-type describing the meta data
- * @param format basic format information about data 
+ * @param format basic format information about data
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
  * @param data_len number of bytes in data
  * @return 0 to continue extracting / iterating
- */ 
+ */
 static int
-update_metamap (void *cls,
-		const char *plugin_name,
-		enum EXTRACTOR_MetaType type,
-		enum EXTRACTOR_MetaFormat format,
-		const char *data_mime_type,
-		const char *data,
-		size_t data_len)
+update_metamap (void *cls, const char *plugin_name,
+                enum EXTRACTOR_MetaType type, enum EXTRACTOR_MetaFormat format,
+                const char *data_mime_type, const char *data, size_t data_len)
 {
   struct GNUNET_CONTAINER_MultiHashMap *map = cls;
   GNUNET_HashCode key;
@@ -512,10 +508,10 @@ update_metamap (void *cls,
     mvi->type = type;
     mvi->format = format;
     GNUNET_CONTAINER_multihashmap_put (map, &key, mvi,
-				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
-  mvi->frequency++;  
-  return 0; 
+  mvi->frequency++;
+  return 0;
 }
 
 
@@ -524,7 +520,7 @@ update_metamap (void *cls,
  */
 struct KeywordInformation
 {
-  
+
   /**
    * Mime-type of keyword.
    */
@@ -581,37 +577,35 @@ struct EntryProcCls
  * @param fi information for publishing the file
  */
 static void
-dirproc_add (void *cls, const char *filename, 
-	     struct GNUNET_FS_FileInformation *fi)
+dirproc_add (void *cls, const char *filename,
+             struct GNUNET_FS_FileInformation *fi)
 {
   struct EntryProcCls *dc = cls;
   unsigned int i;
   const char *kw;
   struct KeywordInformation *ki;
   GNUNET_HashCode key;
- 
+
   GNUNET_assert (fi->next == NULL);
   GNUNET_assert (fi->dir == NULL);
   fi->next = dc->entries;
   dc->entries = fi;
   dc->count++;
   if (NULL != fi->meta)
-    GNUNET_CONTAINER_meta_data_iterate (fi->meta,
-					&update_metamap,
-					dc->metamap);
-  for (i=0;i<fi->keywords->data.ksk.keywordCount;i++)
+    GNUNET_CONTAINER_meta_data_iterate (fi->meta, &update_metamap, dc->metamap);
+  for (i = 0; i < fi->keywords->data.ksk.keywordCount; i++)
   {
-    kw = fi->keywords->data.ksk.keywords[i];   
-    GNUNET_CRYPTO_hash (kw, strlen(kw), &key);
+    kw = fi->keywords->data.ksk.keywords[i];
+    GNUNET_CRYPTO_hash (kw, strlen (kw), &key);
     ki = GNUNET_CONTAINER_multihashmap_get (dc->keywordmap, &key);
     if (ki == NULL)
     {
       ki = GNUNET_malloc (sizeof (struct KeywordInformation));
       ki->keyword = &kw[1];
       GNUNET_CONTAINER_multihashmap_put (dc->keywordmap, &key, ki,
-					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
-    ki->frequency++;  
+    ki->frequency++;
   }
 }
 
@@ -633,7 +627,7 @@ struct ComputeDirectoryMetadataContext
 
   /**
    * Threshold to apply for adding meta data.
-   */ 
+   */
   unsigned int threshold;
 };
 
@@ -650,29 +644,22 @@ struct ComputeDirectoryMetadataContext
  * @return GNUNET_OK
  */
 static int
-compute_directory_metadata (void *cls,
-			    const GNUNET_HashCode *key,
-			    void *value)
+compute_directory_metadata (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct ComputeDirectoryMetadataContext *cdmc = cls;
   struct MetaValueInformation *mvi = value;
 
-  if (mvi->frequency > cdmc->threshold) 
+  if (mvi->frequency > cdmc->threshold)
   {
     if (mvi->type != EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME)
-      (void) GNUNET_CONTAINER_meta_data_insert (cdmc->meta,
-						"<children>",
-						mvi->type,
-						mvi->format,
-						mvi->mime_type,
-						mvi->data,
-						mvi->data_size);
-    if ( (mvi->format == EXTRACTOR_METAFORMAT_UTF8) ||
-	 (mvi->format == EXTRACTOR_METAFORMAT_C_STRING) )
-      GNUNET_FS_uri_ksk_add_keyword (cdmc->ksk,
-				     mvi->data,
-				     GNUNET_NO);
-  } 
+      (void) GNUNET_CONTAINER_meta_data_insert (cdmc->meta, "<children>",
+                                                mvi->type, mvi->format,
+                                                mvi->mime_type, mvi->data,
+                                                mvi->data_size);
+    if ((mvi->format == EXTRACTOR_METAFORMAT_UTF8) ||
+        (mvi->format == EXTRACTOR_METAFORMAT_C_STRING))
+      GNUNET_FS_uri_ksk_add_keyword (cdmc->ksk, mvi->data, GNUNET_NO);
+  }
   GNUNET_free (mvi);
   return GNUNET_OK;
 }
@@ -680,7 +667,7 @@ compute_directory_metadata (void *cls,
 
 /**
  * Add keywords that occur in more than the threshold entries of the
- * directory to the directory itself.  
+ * directory to the directory itself.
  *
  * @param cls the 'struct ComputeDirectoryMetadataContext'
  * @param key unused
@@ -688,17 +675,13 @@ compute_directory_metadata (void *cls,
  * @return GNUNET_OK
  */
 static int
-compute_directory_keywords (void *cls,
-			    const GNUNET_HashCode *key,
-			    void *value)
+compute_directory_keywords (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct ComputeDirectoryMetadataContext *cdmc = cls;
   struct KeywordInformation *ki = value;
 
-  if (ki->frequency > cdmc->threshold)       
-    (void) GNUNET_FS_uri_ksk_add_keyword (cdmc->ksk,
-					  ki->keyword,
-					  GNUNET_NO);
+  if (ki->frequency > cdmc->threshold)
+    (void) GNUNET_FS_uri_ksk_add_keyword (cdmc->ksk, ki->keyword, GNUNET_NO);
   GNUNET_free (ki);
   return GNUNET_OK;
 }
@@ -751,36 +734,31 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
   dc.metamap = GNUNET_CONTAINER_multihashmap_create (64);
   dc.keywordmap = GNUNET_CONTAINER_multihashmap_create (64);
   /* update children to point to directory and generate statistics
-     on all meta data in children */
+   * on all meta data in children */
   scanner (scanner_cls, h, filename, do_index, bo, &dirproc_add, &dc, emsg);
   cdmc.meta = GNUNET_CONTAINER_meta_data_create ();
   cdmc.ksk = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   cdmc.ksk->type = ksk;
-  cdmc.threshold = 1 + dc.count / 2; /* 50% threshold for now */
+  cdmc.threshold = 1 + dc.count / 2;    /* 50% threshold for now */
   GNUNET_FS_meta_data_make_directory (cdmc.meta);
   GNUNET_CONTAINER_multihashmap_iterate (dc.metamap,
-					 &compute_directory_metadata,
-					 &cdmc);
+                                         &compute_directory_metadata, &cdmc);
   GNUNET_CONTAINER_multihashmap_iterate (dc.keywordmap,
-					 &compute_directory_keywords,
-					 &cdmc);
+                                         &compute_directory_keywords, &cdmc);
   GNUNET_CONTAINER_multihashmap_destroy (dc.metamap);
   GNUNET_CONTAINER_multihashmap_destroy (dc.keywordmap);
-  GNUNET_FS_uri_ksk_add_keyword (cdmc.ksk,
-				 GNUNET_FS_DIRECTORY_MIME,
-				 GNUNET_NO);
+  GNUNET_FS_uri_ksk_add_keyword (cdmc.ksk, GNUNET_FS_DIRECTORY_MIME, GNUNET_NO);
   cksk = GNUNET_FS_uri_ksk_canonicalize (cdmc.ksk);
 
   /* remove keywords in children that are already in the
-     parent */
+   * parent */
   for (epos = dc.entries; NULL != epos; epos = epos->next)
   {
-    for (i=0;i<cksk->data.ksk.keywordCount;i++)
-      {
-	kw = cksk->data.ksk.keywords[i];
-	GNUNET_FS_uri_ksk_remove_keyword (epos->keywords,
-					  &kw[1]);
-      }
+    for (i = 0; i < cksk->data.ksk.keywordCount; i++)
+    {
+      kw = cksk->data.ksk.keywords[i];
+      GNUNET_FS_uri_ksk_remove_keyword (epos->keywords, &kw[1]);
+    }
   }
   ret =
       GNUNET_FS_file_information_create_empty_directory (h, client_info, cksk,

@@ -589,14 +589,14 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              &data_filename))
   {
     data_file =
-      GNUNET_DISK_file_open (data_filename,
-                             GNUNET_DISK_OPEN_READWRITE |
-                             GNUNET_DISK_OPEN_CREATE,
-                             GNUNET_DISK_PERM_USER_READ |
-                             GNUNET_DISK_PERM_USER_WRITE);
+        GNUNET_DISK_file_open (data_filename,
+                               GNUNET_DISK_OPEN_READWRITE |
+                               GNUNET_DISK_OPEN_CREATE,
+                               GNUNET_DISK_PERM_USER_READ |
+                               GNUNET_DISK_PERM_USER_WRITE);
     if (data_file == NULL)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
-		  data_filename);
+                  data_filename);
     GNUNET_free (data_filename);
   }
 

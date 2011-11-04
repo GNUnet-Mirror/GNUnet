@@ -376,8 +376,9 @@ attempt_connect (struct Peer *pos)
               GNUNET_i2s (&pos->pid));
 #endif
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# connect requests issued to transport"),
-                            1, GNUNET_NO);
+                            gettext_noop
+                            ("# connect requests issued to transport"), 1,
+                            GNUNET_NO);
   GNUNET_TRANSPORT_try_connect (transport, &pos->pid);
 }
 
@@ -637,7 +638,7 @@ reschedule_hellos (void *cls, const GNUNET_HashCode * pid, void *value)
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_ATS_Information *atsi,
-		unsigned int atsi_count)
+                unsigned int atsi_count)
 {
   struct Peer *pos;
 
@@ -1110,7 +1111,7 @@ static int
 handle_encrypted_hello (void *cls, const struct GNUNET_PeerIdentity *other,
                         const struct GNUNET_MessageHeader *message,
                         const struct GNUNET_ATS_Information *atsi,
-			unsigned int atsi_count)
+                        unsigned int atsi_count)
 {
   struct Peer *peer;
   struct GNUNET_PeerIdentity pid;
@@ -1282,8 +1283,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   transport = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
   handle =
       GNUNET_CORE_connect (cfg, 1, NULL, &core_init, &connect_notify,
-                           &disconnect_notify, NULL, GNUNET_NO, NULL,
-                           GNUNET_NO, handlers);
+                           &disconnect_notify, NULL, GNUNET_NO, NULL, GNUNET_NO,
+                           handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleaning_task,
                                 NULL);
   if (NULL == transport)

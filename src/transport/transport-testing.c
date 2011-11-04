@@ -31,11 +31,11 @@
 
 
 static struct PeerContext *
-find_peer_context ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
-                    const struct GNUNET_PeerIdentity *peer)
+find_peer_context (struct GNUNET_TRANSPORT_TESTING_handle *tth,
+                   const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_assert (tth != NULL);
-  struct PeerContext * t = tth->p_head;
+  struct PeerContext *t = tth->p_head;
 
   while (t != NULL)
   {
@@ -48,17 +48,16 @@ find_peer_context ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
 }
 
 struct ConnectingContext *
-find_connecting_context ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
-                          struct PeerContext *p1,
-                          struct PeerContext * p2)
+find_connecting_context (struct GNUNET_TRANSPORT_TESTING_handle *tth,
+                         struct PeerContext *p1, struct PeerContext *p2)
 {
   GNUNET_assert (tth != NULL);
-  struct ConnectingContext * cc = tth->cc_head;
+  struct ConnectingContext *cc = tth->cc_head;
 
   while (cc != NULL)
   {
     if ((cc->p1 == p1) && (cc->p2 == p2))
-        break;
+      break;
     if ((cc->p1 == p2) && (cc->p2 == p1))
       break;
     cc = cc->next;
@@ -69,14 +68,14 @@ find_connecting_context ( struct GNUNET_TRANSPORT_TESTING_handle *tth,
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   struct PeerContext *p = cls;
+
   /* Find PeerContext */
   GNUNET_assert (p != 0);
   GNUNET_assert (p->tth != NULL);
-  struct PeerContext * p2 = find_peer_context (p->tth, peer);
+  struct PeerContext *p2 = find_peer_context (p->tth, peer);
 
   if (p == NULL)
     return;
@@ -84,21 +83,22 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     p->nc (p->cb_cls, peer, ats, ats_count);
 
 #if VERBOSE
-  char * p2_s;
+  char *p2_s;
+
   if (p2 != NULL)
-    GNUNET_asprintf(&p2_s, "%u (`%s')", p2->no, GNUNET_i2s (&p2->id));
+    GNUNET_asprintf (&p2_s, "%u (`%s')", p2->no, GNUNET_i2s (&p2->id));
   else
-    GNUNET_asprintf(&p2_s, "`%s'", GNUNET_i2s (peer));
+    GNUNET_asprintf (&p2_s, "`%s'", GNUNET_i2s (peer));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-      "Peers %s connected to peer %u (`%s')\n",
-      p2_s,
-      p->no, GNUNET_i2s (&p->id));
+                   "Peers %s connected to peer %u (`%s')\n", p2_s, p->no,
+                   GNUNET_i2s (&p->id));
   GNUNET_free (p2_s);
 #endif
 
 
   /* Find ConnectingContext */
-  struct ConnectingContext * cc = find_connecting_context(p->tth, p, p2);
+  struct ConnectingContext *cc = find_connecting_context (p->tth, p, p2);
+
   if (cc == NULL)
     return;
 
@@ -106,12 +106,12 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     cc->p1_c = GNUNET_YES;
 
   if (p == cc->p2)
-      cc->p2_c = GNUNET_YES;
+    cc->p2_c = GNUNET_YES;
 
   if ((cc->p1_c == GNUNET_YES) && (cc->p2_c == GNUNET_YES))
   {
     cc->cb (cc->p1, cc->p2, cc->cb_cls);
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(p->tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (p->tth, cc);
   }
 }
 
@@ -119,9 +119,10 @@ static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
+
   /* Find PeerContext */
   int no = 0;
-  struct PeerContext * p2 = NULL;
+  struct PeerContext *p2 = NULL;
 
   if (p != NULL)
   {
@@ -130,15 +131,15 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     no = p->no;
   }
 
-  char * p2_s;
+  char *p2_s;
+
   if (p2 != NULL)
-    GNUNET_asprintf(&p2_s, "%u (`%s')", p2->no, GNUNET_i2s (&p2->id));
+    GNUNET_asprintf (&p2_s, "%u (`%s')", p2->no, GNUNET_i2s (&p2->id));
   else
-    GNUNET_asprintf(&p2_s, "`%s'", GNUNET_i2s (peer));
+    GNUNET_asprintf (&p2_s, "`%s'", GNUNET_i2s (peer));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-      "Peers %s disconnected from peer %u (`%s')\n",
-      p2_s,
-      no , GNUNET_i2s (&p->id));
+                   "Peers %s disconnected from peer %u (`%s')\n", p2_s, no,
+                   GNUNET_i2s (&p->id));
   GNUNET_free (p2_s);
 
   if (p == NULL)
@@ -150,8 +151,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   struct PeerContext *p = cls;
 
@@ -170,25 +170,25 @@ get_hello (void *cb_cls, const struct GNUNET_MessageHeader *message)
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &p->id));
-  size_t size = GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *) message);
+  size_t size =
+      GNUNET_HELLO_size ((const struct GNUNET_HELLO_Message *) message);
   GNUNET_free_non_null (p->hello);
-  p->hello = (struct GNUNET_HELLO_Message*) GNUNET_copy_message (message);
+  p->hello = (struct GNUNET_HELLO_Message *) GNUNET_copy_message (message);
 
 #if VERBOSE
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
-		   "transport-testing",
-		   "New HELLO for peer %u (`%s') with size %u\n",
-		   p->no, GNUNET_i2s (&p->id), size);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                   "New HELLO for peer %u (`%s') with size %u\n", p->no,
+                   GNUNET_i2s (&p->id), size);
 #endif
 
   if (p->start_cb != NULL)
   {
 #if VERBOSE
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-        "Peer %u (`%s') successfully started\n",
-        p->no, GNUNET_i2s (&p->id));
+                     "Peer %u (`%s') successfully started\n", p->no,
+                     GNUNET_i2s (&p->id));
 #endif
-    p->start_cb(p, p->cb_cls);
+    p->start_cb (p, p->cb_cls);
     p->start_cb = NULL;
   }
 }
@@ -205,15 +205,17 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
-  char * p2_s = GNUNET_strdup(GNUNET_i2s (&p2->id));
+  char *p2_s = GNUNET_strdup (GNUNET_i2s (&p2->id));
+
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-      "Asking peer %u (`%s') to connect peer %u (`%s'), providing HELLO with %u bytes\n",
-		   p1->no, GNUNET_i2s (&p1->id), p2->no, p2_s,
-		   GNUNET_HELLO_size (cc->p2->hello));
+                   "Asking peer %u (`%s') to connect peer %u (`%s'), providing HELLO with %u bytes\n",
+                   p1->no, GNUNET_i2s (&p1->id), p2->no, p2_s,
+                   GNUNET_HELLO_size (cc->p2->hello));
   GNUNET_free (p2_s);
 
   GNUNET_TRANSPORT_offer_hello (cc->th_p1,
-      (const struct GNUNET_MessageHeader *) cc->p2->hello, NULL, NULL);
+                                (const struct GNUNET_MessageHeader *) cc->
+                                p2->hello, NULL, NULL);
   GNUNET_TRANSPORT_try_connect (cc->th_p1, &p2->id);
 
   cc->tct =
@@ -230,9 +232,8 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return the peer context
  */
 struct PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth,
-                                     const char *cfgname,
-                                     int peer_id,
+GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
+                                     *tth, const char *cfgname, int peer_id,
                                      GNUNET_TRANSPORT_ReceiveCallback rec,
                                      GNUNET_TRANSPORT_NotifyConnect nc,
                                      GNUNET_TRANSPORT_NotifyDisconnect nd,
@@ -243,7 +244,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle * tt
   if (GNUNET_DISK_file_test (cfgname) == GNUNET_NO)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-        "File not found: `%s' \n", cfgname);
+                     "File not found: `%s' \n", cfgname);
     return NULL;
   }
 
@@ -253,8 +254,10 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle * tt
 
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   if (GNUNET_CONFIGURATION_have_value (p->cfg, "PATHS", "SERVICEHOME"))
-    GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME",
-                                           &p->servicehome));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS",
+                                                          "SERVICEHOME",
+                                                          &p->servicehome));
   if (NULL != p->servicehome)
     GNUNET_DISK_directory_remove (p->servicehome);
   p->arm_proc =
@@ -286,7 +289,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle * tt
   p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &get_hello, p);
   GNUNET_assert (p->ghh != NULL);
 
-  GNUNET_CONTAINER_DLL_insert(tth->p_head, tth->p_tail, p);
+  GNUNET_CONTAINER_DLL_insert (tth->p_head, tth->p_tail, p);
 
   return p;
 }
@@ -296,7 +299,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle * tt
  * @param p the peer
  */
 void
-GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth,
+GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                                     struct PeerContext *p)
 {
   GNUNET_assert (p != NULL);
@@ -346,12 +349,11 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth
  * @return connect context
  */
 GNUNET_TRANSPORT_TESTING_ConnectRequest
-GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle * tth,
-                                        struct PeerContext *p1,
+GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle
+                                        *tth, struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
                                         void *cb_cls)
-
 {
   GNUNET_assert (tth != NULL);
 
@@ -377,7 +379,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *
 
   cc->tct = GNUNET_SCHEDULER_add_now (&try_connect, cc);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-      "New connect request %X\n", cc);
+                   "New connect request %X\n", cc);
 
   return cc;
 }
@@ -387,16 +389,19 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *
  * Tou MUST cancel the request if you stop the peers before the peers connected succesfully
  * @param cc a connect request handle
  */
-void GNUNET_TRANSPORT_TESTING_connect_peers_cancel
-    (struct GNUNET_TRANSPORT_TESTING_handle * tth,
-        GNUNET_TRANSPORT_TESTING_ConnectRequest ccr)
+void
+GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
+                                               GNUNET_TRANSPORT_TESTING_handle
+                                               *tth,
+                                               GNUNET_TRANSPORT_TESTING_ConnectRequest
+                                               ccr)
 {
   struct ConnectingContext *cc = ccr;
 
   GNUNET_assert (tth != NULL);
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-      "Canceling connect request %X!\n", cc);
+                   "Canceling connect request %X!\n", cc);
   if (cc->tct != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (cc->tct);
 
@@ -412,7 +417,7 @@ void GNUNET_TRANSPORT_TESTING_connect_peers_cancel
  * @param tth transport testing handle
  */
 void
-GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle * tth)
+GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth)
 {
   struct ConnectingContext *cc = tth->cc_head;
   struct ConnectingContext *ct = NULL;
@@ -425,8 +430,8 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle * tth)
   {
     ct = cc->next;
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-        "Developer forgot to cancel connect request %X!\n", cc);
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+                     "Developer forgot to cancel connect request %X!\n", cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
     cc = ct;
   }
 
@@ -434,7 +439,7 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle * tth)
   {
     t = p->next;
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-        "Developer forgot to stop peer!\n");
+                     "Developer forgot to stop peer!\n");
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
     p = t;
   }
@@ -450,7 +455,8 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle * tth)
 struct GNUNET_TRANSPORT_TESTING_handle *
 GNUNET_TRANSPORT_TESTING_init ()
 {
-  struct GNUNET_TRANSPORT_TESTING_handle * tth = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TESTING_handle));
+  struct GNUNET_TRANSPORT_TESTING_handle *tth =
+      GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TESTING_handle));
 
   return tth;
 }

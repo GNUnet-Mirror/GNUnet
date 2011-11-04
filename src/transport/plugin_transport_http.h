@@ -228,12 +228,12 @@ struct Plugin
   /**
    * IPv4 server socket to bind to
    */
-  struct sockaddr_in * server_addr_v4;
+  struct sockaddr_in *server_addr_v4;
 
   /**
    * IPv6 server socket to bind to
    */
-  struct sockaddr_in6 * server_addr_v6;
+  struct sockaddr_in6 *server_addr_v6;
 
   /**
    * Server semi connections
@@ -455,11 +455,10 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
 
 struct GNUNET_TIME_Relative
-http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity * peer,
-    const struct  GNUNET_MessageHeader * message,
-    struct Session * session,
-    const char *sender_address,
-    uint16_t sender_address_len);
+http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+                     const struct GNUNET_MessageHeader *message,
+                     struct Session *session, const char *sender_address,
+                     uint16_t sender_address_len);
 
 const char *
 http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen);
@@ -483,7 +482,7 @@ int
 server_disconnect (struct Session *s);
 
 int
-server_send (struct Session *s, struct HTTP_Message * msg);
+server_send (struct Session *s, struct HTTP_Message *msg);
 
 int
 server_start (struct Plugin *plugin);
@@ -492,8 +491,7 @@ void
 server_stop (struct Plugin *plugin);
 
 void
-notify_session_end (void *cls,
-                    const struct GNUNET_PeerIdentity *
-                    peer, struct Session * s);
+notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
+                    struct Session *s);
 
 /* end of plugin_transport_http.h */

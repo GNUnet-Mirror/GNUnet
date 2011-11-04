@@ -101,8 +101,8 @@ end1_cb (void *cls, const char *emsg)
   if (d2 != NULL)
   {
     GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &end2_cb, NULL,
-				(phase == NUM_PHASES) ? GNUNET_YES : GNUNET_NO,
-				GNUNET_NO);
+                                (phase == NUM_PHASES) ? GNUNET_YES : GNUNET_NO,
+                                GNUNET_NO);
     d2 = NULL;
   }
 }
@@ -192,9 +192,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemon.\n");
 #endif
   c1 = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (c1, "test_testing_connect_peer1.conf"));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_load (c1,
+                                            "test_testing_connect_peer1.conf"));
   c2 = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (c2, "test_testing_connect_peer2.conf"));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_load (c2,
+                                            "test_testing_connect_peer2.conf"));
   run_phase ();
 }
 

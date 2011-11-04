@@ -159,11 +159,9 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
 typedef void (*GST_NeighbourIterator) (void *cls,
                                        const struct GNUNET_PeerIdentity *
                                        neighbour,
-                                       const struct
-                                       GNUNET_ATS_Information * ats,
-                                       uint32_t ats_count,
-                                       const char * transport,
-                                       const void * addr,
+                                       const struct GNUNET_ATS_Information *
+                                       ats, uint32_t ats_count,
+                                       const char *transport, const void *addr,
                                        size_t addrlen);
 
 
@@ -209,17 +207,20 @@ int
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                   const char *plugin_name, const void *address,
                                   size_t address_len, struct Session *session,
-                                  const struct GNUNET_ATS_Information
-                                  *ats, uint32_t ats_count);
+                                  const struct GNUNET_ATS_Information *ats,
+                                  uint32_t ats_count);
 
 int
 GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
-                                  const char *plugin_name, const void *address,
-                                  size_t address_len, struct Session *session,
-                                  const struct GNUNET_ATS_Information
-                                  *ats, uint32_t ats_count,
-                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
+                                       const char *plugin_name,
+                                       const void *address, size_t address_len,
+                                       struct Session *session,
+                                       const struct GNUNET_ATS_Information *ats,
+                                       uint32_t ats_count,
+                                       struct GNUNET_BANDWIDTH_Value32NBO
+                                       bandwidth_in,
+                                       struct GNUNET_BANDWIDTH_Value32NBO
+                                       bandwidth_out);
 
 
 /**
@@ -238,41 +239,44 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   */
 void
 GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
-			       const struct GNUNET_PeerIdentity *peer,
-			       const char *plugin_name,
-			       const char *sender_address, uint16_t sender_address_len,
-			       struct Session *session,
-			       const struct GNUNET_ATS_Information *ats,
-			       uint32_t ats_count);
-
-void
-GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                const struct GNUNET_PeerIdentity *peer,
                                const char *plugin_name,
-                               const char *sender_address, uint16_t sender_address_len,
+                               const char *sender_address,
+                               uint16_t sender_address_len,
                                struct Session *session,
                                const struct GNUNET_ATS_Information *ats,
                                uint32_t ats_count);
 
 void
+GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   const char *plugin_name,
+                                   const char *sender_address,
+                                   uint16_t sender_address_len,
+                                   struct Session *session,
+                                   const struct GNUNET_ATS_Information *ats,
+                                   uint32_t ats_count);
+
+void
 GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *plugin_name,
-    const char *sender_address, uint16_t sender_address_len,
-    struct Session *session,
-    const struct GNUNET_ATS_Information *ats,
-    uint32_t ats_count);
+                           const struct GNUNET_PeerIdentity *peer,
+                           const char *plugin_name, const char *sender_address,
+                           uint16_t sender_address_len, struct Session *session,
+                           const struct GNUNET_ATS_Information *ats,
+                           uint32_t ats_count);
 
 /**
  * We received a disconnect message from the given peer,
  * validate and process.
- * 
+ *
  * @param peer sender of the message
  * @param msg the disconnect message
  */
 void
-GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer,
-					  const struct GNUNET_MessageHeader *msg);
+GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
+                                          *peer,
+                                          const struct GNUNET_MessageHeader
+                                          *msg);
 
 
 #endif

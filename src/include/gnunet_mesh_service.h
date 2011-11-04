@@ -74,9 +74,8 @@ typedef int (*GNUNET_MESH_MessageCallback) (void *cls,
                                             sender,
                                             const struct GNUNET_MessageHeader *
                                             message,
-                                            const struct
-                                            GNUNET_ATS_Information *
-                                            atsi);
+                                            const struct GNUNET_ATS_Information
+                                            * atsi);
 
 
 /**
@@ -208,8 +207,7 @@ typedef void (*GNUNET_MESH_PeerConnectHandler) (void *cls,
                                                 const struct GNUNET_PeerIdentity
                                                 * peer,
                                                 const struct
-                                                GNUNET_ATS_Information
-                                                * atsi);
+                                                GNUNET_ATS_Information * atsi);
 
 
 

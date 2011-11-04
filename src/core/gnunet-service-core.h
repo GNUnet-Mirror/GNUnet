@@ -37,7 +37,7 @@ struct GSC_Client;
 
 /**
  * Record kept for each request for transmission issued by a
- * client that is still pending. (This struct is used by 
+ * client that is still pending. (This struct is used by
  * both the 'CLIENTS' and 'SESSIONS' subsystems.)
  */
 struct GSC_ClientActiveRequest

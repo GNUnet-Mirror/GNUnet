@@ -185,8 +185,9 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  connect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-					       &try_connect, NULL);
+  connect_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
+                                    NULL);
   GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
   GNUNET_TRANSPORT_try_connect (p2.th, &p1.id);
 }
@@ -231,13 +232,11 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
 
-  throughput_out = total_bytes_sent * 1000 / delta; /* convert to bytes/s */
-  throughput_in = total_bytes_recv * 1000 / delta; /* convert to bytes/s */
+  throughput_out = total_bytes_sent * 1000 / delta;     /* convert to bytes/s */
+  throughput_in = total_bytes_recv * 1000 / delta;      /* convert to bytes/s */
 
-  max_quota_in = GNUNET_MIN (current_quota_p1_in,
-			     current_quota_p2_in);
-  max_quota_out = GNUNET_MIN (current_quota_p1_out,
-			      current_quota_p2_out);
+  max_quota_in = GNUNET_MIN (current_quota_p1_in, current_quota_p2_in);
+  max_quota_out = GNUNET_MIN (current_quota_p1_out, current_quota_p2_out);
   if (max_quota_out < max_quota_in)
     quota_delta = max_quota_in / 5;
   else
@@ -274,7 +273,7 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                          GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p2);
 
   if (ok != 0)
-    kind = GNUNET_ERROR_TYPE_ERROR;  
+    kind = GNUNET_ERROR_TYPE_ERROR;
   switch (test)
   {
   case SYMMETRIC:
@@ -294,12 +293,10 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   };
   GNUNET_log (kind, "Peer 1 send  rate: %llu b/s (%llu bytes in %llu ms)\n",
               throughput_out, total_bytes_sent, delta);
-  GNUNET_log (kind, "Peer 1 send quota: %llu b/s\n",
-              current_quota_p1_out);
+  GNUNET_log (kind, "Peer 1 send quota: %llu b/s\n", current_quota_p1_out);
   GNUNET_log (kind, "Peer 2 receive  rate: %llu b/s (%llu bytes in %llu ms)\n",
               throughput_in, total_bytes_recv, delta);
-  GNUNET_log (kind, "Peer 2 receive quota: %llu b/s\n",
-              current_quota_p2_in);
+  GNUNET_log (kind, "Peer 2 receive quota: %llu b/s\n", current_quota_p2_in);
 /*
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. inbound  quota allowed: %llu b/s\n",max_quota_in );
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. outbound quota allowed: %llu b/s\n",max_quota_out);
@@ -322,10 +319,11 @@ transmit_ready (void *cls, size_t size, void *buf)
   {
     if ((p1.ch != NULL) && (p1.connect_status == 1))
       GNUNET_break (NULL !=
-                    (p1.nth = GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
-								FAST_TIMEOUT, &p2.id,
-								MESSAGESIZE,
-								 &transmit_ready, &p1)));
+                    (p1.nth =
+                     GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
+                                                        FAST_TIMEOUT, &p2.id,
+                                                        MESSAGESIZE,
+                                                        &transmit_ready, &p1)));
     return 0;
   }
   GNUNET_assert (tr_n < TOTAL_MSGS);
@@ -364,12 +362,13 @@ transmit_ready (void *cls, size_t size, void *buf)
 
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+                const struct GNUNET_ATS_Information *atsi,
+                unsigned int atsi_count)
 {
   struct PeerContext *pc = cls;
 
   if (0 == memcmp (&pc->id, peer, sizeof (struct GNUNET_PeerIdentity)))
-    return; /* loopback */
+    return;                     /* loopback */
   GNUNET_assert (pc->connect_status == 0);
   pc->connect_status = 1;
   if (pc == &p1)
@@ -393,10 +392,11 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
                                       NULL);
 
     GNUNET_break (NULL !=
-                  (p1.nth = GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
-							       TIMEOUT, &p2.id,
-							       MESSAGESIZE,
-							       &transmit_ready, &p1)));
+                  (p1.nth =
+                   GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
+                                                      TIMEOUT, &p2.id,
+                                                      MESSAGESIZE,
+                                                      &transmit_ready, &p1)));
   }
 }
 
@@ -407,12 +407,12 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *pc = cls;
 
   if (0 == memcmp (&pc->id, peer, sizeof (struct GNUNET_PeerIdentity)))
-    return; /* loopback */
+    return;                     /* loopback */
   pc->connect_status = 0;
   if (GNUNET_SCHEDULER_NO_TASK != measure_task)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Measurement aborted due to disconnect!\n");
+                "Measurement aborted due to disconnect!\n");
     GNUNET_SCHEDULER_cancel (measure_task);
     measure_task = GNUNET_SCHEDULER_NO_TASK;
   }
@@ -431,7 +431,8 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 static int
 inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+                const struct GNUNET_ATS_Information *atsi,
+                unsigned int atsi_count)
 {
 #if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -446,7 +447,8 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 static int
 outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message,
-                 const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+                 const struct GNUNET_ATS_Information *atsi,
+                 unsigned int atsi_count)
 {
 #if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -463,7 +465,8 @@ transmit_ready (void *cls, size_t size, void *buf);
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+               const struct GNUNET_ATS_Information *atsi,
+               unsigned int atsi_count)
 {
   static int n;
   const struct TestMessage *hdr;
@@ -532,9 +535,10 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
     GNUNET_assert (ok == 2);
     OKPP;
     /* connect p2 */
-    p2.ch = GNUNET_CORE_connect (p2.cfg, 1, &p2, &init_notify, &connect_notify,
-				 &disconnect_notify, &inbound_notify, GNUNET_YES,
-				 &outbound_notify, GNUNET_YES, handlers);
+    p2.ch =
+        GNUNET_CORE_connect (p2.cfg, 1, &p2, &init_notify, &connect_notify,
+                             &disconnect_notify, &inbound_notify, GNUNET_YES,
+                             &outbound_notify, GNUNET_YES, handlers);
   }
   else
   {
@@ -546,8 +550,7 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
                 "Asking core (1) to connect to peer `%4s'\n",
                 GNUNET_i2s (&p2.id));
 #endif
-    connect_task = GNUNET_SCHEDULER_add_now (&try_connect,
-					     NULL);
+    connect_task = GNUNET_SCHEDULER_add_now (&try_connect, NULL);
   }
 }
 
@@ -642,9 +645,10 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                         "TOTAL_QUOTA_OUT",
                                                         &current_quota_p2_out));
 
-  p1.ch = GNUNET_CORE_connect (p1.cfg, 1, &p1, &init_notify, &connect_notify,
-			       &disconnect_notify, &inbound_notify, GNUNET_YES,
-			       &outbound_notify, GNUNET_YES, handlers);
+  p1.ch =
+      GNUNET_CORE_connect (p1.cfg, 1, &p1, &init_notify, &connect_notify,
+                           &disconnect_notify, &inbound_notify, GNUNET_YES,
+                           &outbound_notify, GNUNET_YES, handlers);
 }
 
 

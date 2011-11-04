@@ -94,23 +94,23 @@ internal_update (struct GNUNET_LOAD_Value *load)
   if (delta.rel_value < load->autodecline.rel_value)
     return;
   if (load->autodecline.rel_value == 0)
-    {
-      load->runavg_delay = 0.0;
-      load->load = 0;
-      return;
-    }
+  {
+    load->runavg_delay = 0.0;
+    load->load = 0;
+    return;
+  }
   n = delta.rel_value / load->autodecline.rel_value;
   if (n > 16)
-    {
-      load->runavg_delay = 0.0;
-      load->load = 0;
-      return;
-    }
+  {
+    load->runavg_delay = 0.0;
+    load->load = 0;
+    return;
+  }
   while (n > 0)
-    {
-      n--;
-      load->runavg_delay = (load->runavg_delay * 7.0) / 8.0;
-    }
+  {
+    n--;
+    load->runavg_delay = (load->runavg_delay * 7.0) / 8.0;
+  }
 }
 
 
@@ -142,7 +142,7 @@ GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline)
  */
 void
 GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
-			       struct GNUNET_TIME_Relative autodecline)
+                               struct GNUNET_TIME_Relative autodecline)
 {
   internal_update (load);
   load->autodecline = autodecline;
@@ -177,10 +177,10 @@ calculate_load (struct GNUNET_LOAD_Value *load)
   nm1 = n - 1.0;
   avgdel = sum_val_i / n;
   stddev =
-    (((double) load->cummulative_squared_delay) - 2.0 * avgdel * sum_val_i +
-     n * avgdel * avgdel) / nm1;
+      (((double) load->cummulative_squared_delay) - 2.0 * avgdel * sum_val_i +
+       n * avgdel * avgdel) / nm1;
   if (stddev <= 0)
-    stddev = 0.01;		/* must have been rounding error or zero; prevent division by zero */
+    stddev = 0.01;              /* must have been rounding error or zero; prevent division by zero */
   /* now calculate load based on how far out we are from
    * std dev; or if we are below average, simply assume load zero */
   if (load->runavg_delay < avgdel)
@@ -243,11 +243,11 @@ GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data)
   internal_update (load);
   load->last_update = GNUNET_TIME_absolute_get ();
   if (data > 64 * 1024)
-    {
-      /* very large */
-      load->load = 100.0;
-      return;
-    }
+  {
+    /* very large */
+    load->load = 100.0;
+    return;
+  }
   dv = (uint32_t) data;
   load->cummulative_delay += dv;
   load->cummulative_squared_delay += dv * dv;

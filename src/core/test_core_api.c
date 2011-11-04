@@ -76,7 +76,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received (my) `%s' from transport service\n", "HELLO");
   GNUNET_assert (message != NULL);
-  if ((p == &p1) && (p2.th != NULL))  
+  if ((p == &p1) && (p2.th != NULL))
     GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
   if ((p == &p2) && (p1.th != NULL))
     GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
@@ -165,7 +165,8 @@ transmit_ready (void *cls, size_t size, void *buf)
 
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+                const struct GNUNET_ATS_Information *atsi,
+                unsigned int atsi_count)
 {
   struct PeerContext *pc = cls;
 
@@ -218,7 +219,8 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 static int
 inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+                const struct GNUNET_ATS_Information *atsi,
+                unsigned int atsi_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core provides inbound data from `%4s'.\n", GNUNET_i2s (other));
@@ -229,7 +231,8 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 static int
 outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message,
-                 const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+                 const struct GNUNET_ATS_Information *atsi,
+                 unsigned int atsi_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core notifies about outbound data for `%4s'.\n",
@@ -242,7 +245,8 @@ outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+               const struct GNUNET_ATS_Information *atsi,
+               unsigned int atsi_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving message from `%4s'.\n",
               GNUNET_i2s (peer));
@@ -296,9 +300,8 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
     /* connect p2 */
     p2.ch =
         GNUNET_CORE_connect (p2.cfg, 1, &p2, &init_notify, &connect_notify,
-                             &disconnect_notify, &inbound_notify,
-                             GNUNET_YES, &outbound_notify, GNUNET_YES,
-                             handlers);
+                             &disconnect_notify, &inbound_notify, GNUNET_YES,
+                             &outbound_notify, GNUNET_YES, handlers);
   }
   else
   {
@@ -344,8 +347,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                     &terminate_task_error, NULL);
   p1.ch =
       GNUNET_CORE_connect (p1.cfg, 1, &p1, &init_notify, &connect_notify,
-                           &disconnect_notify, &inbound_notify,
-                           GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
+                           &disconnect_notify, &inbound_notify, GNUNET_YES,
+                           &outbound_notify, GNUNET_YES, handlers);
 }
 
 

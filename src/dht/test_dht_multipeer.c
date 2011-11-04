@@ -95,12 +95,12 @@ struct TestPutContext
 struct TestGetContext
 {
   /**
-   * This is a linked list 
+   * This is a linked list
    */
   struct TestGetContext *next;
 
   /**
-   * This is a linked list 
+   * This is a linked list
    */
   struct TestGetContext *prev;
 
@@ -220,9 +220,7 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-    fprintf (stderr,
-	     "Failed to shutdown testing topology: %s\n",
-	     emsg);
+    fprintf (stderr, "Failed to shutdown testing topology: %s\n", emsg);
     if (ok == 0)
       ok = 2;
   }
@@ -370,18 +368,18 @@ stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (sm);
     i = 0;
     while (stats[i].name != NULL)
-      {
-	fprintf (stderr, "Total  : %12s/%50s = %12llu\n", stats[i].subsystem,
-		 stats[i].name, (unsigned long long) stats[i].total);
-	i++;
-      }
+    {
+      fprintf (stderr, "Total  : %12s/%50s = %12llu\n", stats[i].subsystem,
+               stats[i].name, (unsigned long long) stats[i].total);
+      i++;
+    }
     die_task = GNUNET_SCHEDULER_add_now (&do_stop, NULL);
     return;
   }
   sm->stat =
       GNUNET_STATISTICS_create ("<driver>",
-                                GNUNET_TESTING_daemon_get (pg, 
-							   sm->daemon)->cfg);
+                                GNUNET_TESTING_daemon_get (pg,
+                                                           sm->daemon)->cfg);
   die_task = GNUNET_SCHEDULER_add_now (&stat_run, sm);
 }
 
@@ -404,9 +402,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_cancel (test_put->task);
     if (test_put->dht_handle != NULL)
       GNUNET_DHT_disconnect (test_put->dht_handle);
-    GNUNET_CONTAINER_DLL_remove (all_puts_head,
-				 all_puts_tail,
-				 test_put);
+    GNUNET_CONTAINER_DLL_remove (all_puts_head, all_puts_tail, test_put);
     GNUNET_free (test_put);
   }
 
@@ -418,16 +414,14 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_DHT_get_stop (test_get->get_handle);
     if (test_get->dht_handle != NULL)
       GNUNET_DHT_disconnect (test_get->dht_handle);
-    GNUNET_CONTAINER_DLL_remove (all_gets_head,
-				 all_gets_tail,
-				 test_get);
+    GNUNET_CONTAINER_DLL_remove (all_gets_head, all_gets_tail, test_get);
     GNUNET_free (test_get);
   }
   sm = GNUNET_malloc (sizeof (struct StatMaster));
   sm->stat =
-    GNUNET_STATISTICS_create ("<driver>",
-			      GNUNET_TESTING_daemon_get (pg, 
-							 sm->daemon)->cfg);
+      GNUNET_STATISTICS_create ("<driver>",
+                                GNUNET_TESTING_daemon_get (pg,
+                                                           sm->daemon)->cfg);
   die_task = GNUNET_SCHEDULER_add_now (&stat_run, sm);
 }
 
@@ -445,18 +439,14 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct TestGetContext *test_get;
 
   die_task = GNUNET_SCHEDULER_NO_TASK;
-  fprintf (stderr, 
-	   "Failing test with error: `%s'!\n",
-	   emsg);
+  fprintf (stderr, "Failing test with error: `%s'!\n", emsg);
   while (NULL != (test_put = all_puts_head))
   {
     if (test_put->task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (test_put->task);
     if (test_put->dht_handle != NULL)
       GNUNET_DHT_disconnect (test_put->dht_handle);
-    GNUNET_CONTAINER_DLL_remove (all_puts_head,
-				 all_puts_tail,
-				 test_put);
+    GNUNET_CONTAINER_DLL_remove (all_puts_head, all_puts_tail, test_put);
     GNUNET_free (test_put);
   }
 
@@ -468,9 +458,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_DHT_get_stop (test_get->get_handle);
     if (test_get->dht_handle != NULL)
       GNUNET_DHT_disconnect (test_get->dht_handle);
-    GNUNET_CONTAINER_DLL_remove (all_gets_head,
-				 all_gets_tail,
-				 test_get);
+    GNUNET_CONTAINER_DLL_remove (all_gets_head, all_gets_tail, test_get);
     GNUNET_free (test_get);
   }
   ok = 1;
@@ -495,10 +483,8 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (test_get->succeeded != GNUNET_YES)
   {
     gets_failed++;
-    fprintf (stderr,
-	     "Get from peer %s for key %s failed!\n",
-	     GNUNET_i2s (&test_get->daemon->id), 
-	     GNUNET_h2s (&search_key));
+    fprintf (stderr, "Get from peer %s for key %s failed!\n",
+             GNUNET_i2s (&test_get->daemon->id), GNUNET_h2s (&search_key));
   }
   GNUNET_assert (test_get->get_handle != NULL);
   GNUNET_DHT_get_stop (test_get->get_handle);
@@ -508,29 +494,25 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_DHT_disconnect (test_get->dht_handle);
   test_get->dht_handle = NULL;
 
-  GNUNET_CONTAINER_DLL_remove (all_gets_head,
-			       all_gets_tail,
-			       test_get);
+  GNUNET_CONTAINER_DLL_remove (all_gets_head, all_gets_tail, test_get);
   GNUNET_free (test_get);
-  if ((gets_failed > 10) && (outstanding_gets == 0))       
+  if ((gets_failed > 10) && (outstanding_gets == 0))
   {
     /* Had more than 10% failures */
-    fprintf (stderr,
-	     "%llu gets succeeded, %llu gets failed!\n",
-	     gets_completed, gets_failed);
+    fprintf (stderr, "%llu gets succeeded, %llu gets failed!\n", gets_completed,
+             gets_failed);
     GNUNET_SCHEDULER_cancel (die_task);
-    ok = 1; 
-    die_task = GNUNET_SCHEDULER_add_now (&finish_testing, "not all gets succeeded");
+    ok = 1;
+    die_task =
+        GNUNET_SCHEDULER_add_now (&finish_testing, "not all gets succeeded");
     return;
   }
-  if ( (gets_completed + gets_failed == num_peers * num_peers) && 
-       (outstanding_gets == 0) )  /* All gets successful */
+  if ((gets_completed + gets_failed == num_peers * num_peers) && (outstanding_gets == 0))       /* All gets successful */
   {
-    fprintf (stderr,
-	     "%llu gets succeeded, %llu gets failed!\n",
-	     gets_completed, gets_failed);
+    fprintf (stderr, "%llu gets succeeded, %llu gets failed!\n", gets_completed,
+             gets_failed);
     GNUNET_SCHEDULER_cancel (die_task);
-    ok = 0; 
+    ok = 0;
     die_task = GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
   }
 }
@@ -550,10 +532,10 @@ static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *get_path,
-		     unsigned int get_path_length,
+                     unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
-		     unsigned int put_path_length,
-                     enum GNUNET_BLOCK_Type type, size_t size, const void *data)
+                     unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                     size_t size, const void *data)
 {
   struct TestGetContext *test_get = cls;
   GNUNET_HashCode search_key;   /* Key stored under */
@@ -569,9 +551,8 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   {
     unsigned int i;
 
-    fprintf (stderr, "PUT (%u) Path: ",
-	     test_get->uid);
-    for (i = 0; i<put_path_length; i++)
+    fprintf (stderr, "PUT (%u) Path: ", test_get->uid);
+    for (i = 0; i < put_path_length; i++)
       fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&put_path[i]));
     fprintf (stderr, "\n");
   }
@@ -579,25 +560,22 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   {
     unsigned int i;
 
-    fprintf (stderr, "GET (%u) Path: ",
-	     test_get->uid);
+    fprintf (stderr, "GET (%u) Path: ", test_get->uid);
     for (i = 0; i < get_path_length; i++)
       fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&get_path[i]));
-    fprintf (stderr, "%s%s\n",
-	     get_path_length > 0 ? "->":"",
-	     GNUNET_i2s (&test_get->daemon->id));
+    fprintf (stderr, "%s%s\n", get_path_length > 0 ? "->" : "",
+             GNUNET_i2s (&test_get->daemon->id));
   }
 #endif
 
   if ((0 != memcmp (&search_key, key, sizeof (GNUNET_HashCode))) ||
       (0 != memcmp (original_data, data, sizeof (original_data))))
   {
-    fprintf (stderr,
-	     "Key or data is not the same as was inserted!\n");
+    fprintf (stderr, "Key or data is not the same as was inserted!\n");
     return;
   }
   gets_completed++;
-  test_get->succeeded = GNUNET_YES;  
+  test_get->succeeded = GNUNET_YES;
   GNUNET_SCHEDULER_cancel (test_get->task);
   test_get->task = GNUNET_SCHEDULER_add_now (&get_stop_task, test_get);
 }
@@ -615,7 +593,8 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (outstanding_gets > MAX_OUTSTANDING_GETS)
   {
-    test_get->task = GNUNET_SCHEDULER_add_delayed (GET_DELAY, &do_get, test_get);
+    test_get->task =
+        GNUNET_SCHEDULER_add_delayed (GET_DELAY, &do_get, test_get);
     return;
   }
   memset (data, test_get->uid, sizeof (data));
@@ -624,12 +603,11 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (test_get->dht_handle != NULL);
   outstanding_gets++;
   test_get->get_handle =
-    GNUNET_DHT_get_start (test_get->dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
-			  GNUNET_BLOCK_TYPE_TEST, &key,
-			  1, route_option, NULL, 0,
-			  &get_result_iterator, test_get);
+      GNUNET_DHT_get_start (test_get->dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
+                            GNUNET_BLOCK_TYPE_TEST, &key, 1, route_option, NULL,
+                            0, &get_result_iterator, test_get);
   test_get->task =
-    GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &get_stop_task, test_get);
+      GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &get_stop_task, test_get);
 }
 
 
@@ -644,9 +622,7 @@ put_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   test_put->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_DHT_disconnect (test_put->dht_handle);
   test_put->dht_handle = NULL;
-  GNUNET_CONTAINER_DLL_remove (all_puts_head,
-			       all_puts_tail,
-			       test_put);
+  GNUNET_CONTAINER_DLL_remove (all_puts_head, all_puts_tail, test_put);
   GNUNET_free (test_put);
 }
 
@@ -661,23 +637,19 @@ start_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned long long j;
   struct TestGetContext *test_get;
 
-#if VERBOSE 
-  fprintf (stderr, 
-	   "Issuing %llu GETs\n",
-	   (unsigned long long) (num_peers * num_peers));
+#if VERBOSE
+  fprintf (stderr, "Issuing %llu GETs\n",
+           (unsigned long long) (num_peers * num_peers));
 #endif
   for (i = 0; i < num_peers; i++)
     for (j = 0; j < num_peers; j++)
-      {
-	test_get = GNUNET_malloc (sizeof (struct TestGetContext));
-	test_get->uid = i + j*num_peers;
-	test_get->daemon = GNUNET_TESTING_daemon_get (pg, j);
-	GNUNET_CONTAINER_DLL_insert (all_gets_head,
-				     all_gets_tail,
-				     test_get);
-	test_get->task = GNUNET_SCHEDULER_add_now (&do_get,
-						   test_get);
-      }
+    {
+      test_get = GNUNET_malloc (sizeof (struct TestGetContext));
+      test_get->uid = i + j * num_peers;
+      test_get->daemon = GNUNET_TESTING_daemon_get (pg, j);
+      GNUNET_CONTAINER_DLL_insert (all_gets_head, all_gets_tail, test_get);
+      test_get->task = GNUNET_SCHEDULER_add_now (&do_get, test_get);
+    }
 }
 
 
@@ -692,15 +664,12 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   outstanding_puts--;
   puts_completed++;
   GNUNET_SCHEDULER_cancel (test_put->task);
-  test_put->task =
-      GNUNET_SCHEDULER_add_now (&put_disconnect_task, test_put);
+  test_put->task = GNUNET_SCHEDULER_add_now (&put_disconnect_task, test_put);
   if (puts_completed != num_peers * num_peers)
     return;
-  
+
   GNUNET_assert (outstanding_puts == 0);
-  GNUNET_SCHEDULER_add_delayed (START_DELAY,
-				&start_gets,
-				NULL);
+  GNUNET_SCHEDULER_add_delayed (START_DELAY, &start_gets, NULL);
 }
 
 
@@ -717,7 +686,8 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   test_put->task = GNUNET_SCHEDULER_NO_TASK;
   if (outstanding_puts > MAX_OUTSTANDING_PUTS)
   {
-    test_put->task = GNUNET_SCHEDULER_add_delayed (PUT_DELAY, &do_put, test_put);
+    test_put->task =
+        GNUNET_SCHEDULER_add_delayed (PUT_DELAY, &do_put, test_put);
     return;
   }
   memset (data, test_put->uid, sizeof (data));
@@ -726,46 +696,43 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (test_put->dht_handle != NULL);
   outstanding_puts++;
 #if VERBOSE > 2
-  fprintf (stderr, "PUT %u at `%s'\n",
-	   test_put->uid,
-	   GNUNET_i2s (&test_put->daemon->id));
+  fprintf (stderr, "PUT %u at `%s'\n", test_put->uid,
+           GNUNET_i2s (&test_put->daemon->id));
 #endif
-  GNUNET_DHT_put (test_put->dht_handle, &key, 1,
-                  route_option, GNUNET_BLOCK_TYPE_TEST, sizeof (data), data,
+  GNUNET_DHT_put (test_put->dht_handle, &key, 1, route_option,
+                  GNUNET_BLOCK_TYPE_TEST, sizeof (data), data,
                   GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_REL,
                   &put_finished, test_put);
   test_put->task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				  &put_disconnect_task, test_put);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    &put_disconnect_task, test_put);
 }
 
 
 static void
 run_dht_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{  
+{
   unsigned long long i;
   struct TestPutContext *test_put;
 
 #if PATH_TRACKING
-  route_option = GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
+  route_option =
+      GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
 #else
   route_option = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
 #endif
   die_task =
-    GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
-				  "from setup puts/gets");
-  fprintf (stderr, 
-	   "Issuing %llu PUTs (one per peer)\n", 
-	   (unsigned long long) (num_peers * num_peers));
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
+                                    "from setup puts/gets");
+  fprintf (stderr, "Issuing %llu PUTs (one per peer)\n",
+           (unsigned long long) (num_peers * num_peers));
   for (i = 0; i < num_peers * num_peers; i++)
   {
     test_put = GNUNET_malloc (sizeof (struct TestPutContext));
     test_put->uid = i;
-    test_put->daemon = GNUNET_TESTING_daemon_get (pg, i % num_peers);    
+    test_put->daemon = GNUNET_TESTING_daemon_get (pg, i % num_peers);
     test_put->task = GNUNET_SCHEDULER_add_now (&do_put, test_put);
-    GNUNET_CONTAINER_DLL_insert (all_puts_head,
-				 all_puts_tail,
-				 test_put);
+    GNUNET_CONTAINER_DLL_insert (all_puts_head, all_puts_tail, test_put);
   }
 }
 
@@ -782,17 +749,13 @@ startup_done (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-    fprintf (stderr,
-	     "Failed to setup topology: %s\n",
-	     emsg);
-    die_task =
-      GNUNET_SCHEDULER_add_now (&end_badly,
-				"topology setup failed");
+    fprintf (stderr, "Failed to setup topology: %s\n", emsg);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, "topology setup failed");
     return;
   }
   die_task =
-    GNUNET_SCHEDULER_add_delayed (START_DELAY, &run_dht_test,
-				  "from setup puts/gets");
+      GNUNET_SCHEDULER_add_delayed (START_DELAY, &run_dht_test,
+                                    "from setup puts/gets");
 }
 
 
@@ -813,13 +776,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
-  pg = GNUNET_TESTING_peergroup_start (cfg,
-				       num_peers,
-				       TIMEOUT,
-				       NULL,
-				       &startup_done,
-				       NULL,
-				       NULL);
+  pg = GNUNET_TESTING_peergroup_start (cfg, num_peers, TIMEOUT, NULL,
+                                       &startup_done, NULL, NULL);
   GNUNET_assert (NULL != pg);
 }
 

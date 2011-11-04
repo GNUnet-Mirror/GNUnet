@@ -198,19 +198,20 @@ static char *posixly_correct;
 /* Avoid depending on library functions or files
    whose names are inconsistent.  */
 
-char *getenv ();
+char *
+getenv ();
 
 static char *
 my_index (str, chr)
-     const char *str;
-     int chr;
+  const char *str;
+  int chr;
 {
   while (*str)
-    {
-      if (*str == chr)
-	return (char *) str;
-      str++;
-    }
+  {
+    if (*str == chr)
+      return (char *) str;
+    str++;
+  }
   return 0;
 }
 
@@ -222,7 +223,8 @@ my_index (str, chr)
 #if !defined (__STDC__) || !__STDC__
 /* gcc with -traditional declares the built-in strlen to return int,
    and has done so at least since version 2.4.5. -- rms.  */
-extern int strlen (const char *);
+extern int
+strlen (const char *);
 #endif /* not __STDC__ */
 #endif /* __GNUC__ */
 
@@ -256,7 +258,7 @@ extern pid_t __libc_pid;
    is valid for the getopt call we must make sure that the ARGV passed
    to getopt is that one passed to the process.  */
 static void
-  __attribute__ ((unused)) store_args_and_env (int argc, char *const *argv)
+    __attribute__ ((unused)) store_args_and_env (int argc, char *const *argv)
 {
   /* XXX This is no good solution.  We should rather copy the args so
    * that we can compare them later.  But we must not use malloc(3).  */
@@ -287,12 +289,13 @@ text_set_element (__libc_subinit, store_args_and_env);
    the new indices of the non-options in ARGV after they are moved.  */
 
 #if defined (__STDC__) && __STDC__
-static void exchange (char **);
+static void
+exchange (char **);
 #endif
 
 static void
 exchange (argv)
-     char **argv;
+  char **argv;
 {
   int bottom = first_nonopt;
   int middle = last_nonopt;
@@ -309,61 +312,61 @@ exchange (argv)
    * string can work normally.  Our top argument must be in the range
    * of the string.  */
   if (nonoption_flags_len > 0 && top >= nonoption_flags_max_len)
-    {
-      /* We must extend the array.  The user plays games with us and
-       * presents new arguments.  */
-      char *new_str = malloc (top + 1);
+  {
+    /* We must extend the array.  The user plays games with us and
+     * presents new arguments.  */
+    char *new_str = malloc (top + 1);
 
-      if (new_str == NULL)
-	nonoption_flags_len = nonoption_flags_max_len = 0;
-      else
-	{
-	  memcpy (new_str, __getopt_nonoption_flags, nonoption_flags_max_len);
-	  memset (&new_str[nonoption_flags_max_len], '\0',
-		  top + 1 - nonoption_flags_max_len);
-	  nonoption_flags_max_len = top + 1;
-	  __getopt_nonoption_flags = new_str;
-	}
+    if (new_str == NULL)
+      nonoption_flags_len = nonoption_flags_max_len = 0;
+    else
+    {
+      memcpy (new_str, __getopt_nonoption_flags, nonoption_flags_max_len);
+      memset (&new_str[nonoption_flags_max_len], '\0',
+              top + 1 - nonoption_flags_max_len);
+      nonoption_flags_max_len = top + 1;
+      __getopt_nonoption_flags = new_str;
     }
+  }
 #endif
 
   while (top > middle && middle > bottom)
+  {
+    if (top - middle > middle - bottom)
     {
-      if (top - middle > middle - bottom)
-	{
-	  /* Bottom segment is the short one.  */
-	  int len = middle - bottom;
-	  register int i;
+      /* Bottom segment is the short one.  */
+      int len = middle - bottom;
+      register int i;
 
-	  /* Swap it with the top part of the top segment.  */
-	  for (i = 0; i < len; i++)
-	    {
-	      tem = argv[bottom + i];
-	      argv[bottom + i] = argv[top - (middle - bottom) + i];
-	      argv[top - (middle - bottom) + i] = tem;
-	      SWAP_FLAGS (bottom + i, top - (middle - bottom) + i);
-	    }
-	  /* Exclude the moved bottom segment from further swapping.  */
-	  top -= len;
-	}
-      else
-	{
-	  /* Top segment is the short one.  */
-	  int len = top - middle;
-	  register int i;
-
-	  /* Swap it with the bottom part of the bottom segment.  */
-	  for (i = 0; i < len; i++)
-	    {
-	      tem = argv[bottom + i];
-	      argv[bottom + i] = argv[middle + i];
-	      argv[middle + i] = tem;
-	      SWAP_FLAGS (bottom + i, middle + i);
-	    }
-	  /* Exclude the moved top segment from further swapping.  */
-	  bottom += len;
-	}
+      /* Swap it with the top part of the top segment.  */
+      for (i = 0; i < len; i++)
+      {
+        tem = argv[bottom + i];
+        argv[bottom + i] = argv[top - (middle - bottom) + i];
+        argv[top - (middle - bottom) + i] = tem;
+        SWAP_FLAGS (bottom + i, top - (middle - bottom) + i);
+      }
+      /* Exclude the moved bottom segment from further swapping.  */
+      top -= len;
     }
+    else
+    {
+      /* Top segment is the short one.  */
+      int len = top - middle;
+      register int i;
+
+      /* Swap it with the bottom part of the bottom segment.  */
+      for (i = 0; i < len; i++)
+      {
+        tem = argv[bottom + i];
+        argv[bottom + i] = argv[middle + i];
+        argv[middle + i] = tem;
+        SWAP_FLAGS (bottom + i, middle + i);
+      }
+      /* Exclude the moved top segment from further swapping.  */
+      bottom += len;
+    }
+  }
 
   /* Update records for the slots the non-options now occupy.  */
 
@@ -374,13 +377,14 @@ exchange (argv)
 /* Initialize the internal data when the first call is made.  */
 
 #if defined (__STDC__) && __STDC__
-static const char *_getopt_initialize (int, char *const *, const char *);
+static const char *
+_getopt_initialize (int, char *const *, const char *);
 #endif
 static const char *
 _getopt_initialize (argc, argv, optstring)
-     int argc;
-     char *const *argv;
-     const char *optstring;
+  int argc;
+  char *const *argv;
+  const char *optstring;
 {
   /* Start processing options with ARGV-element 1 (since ARGV-element 0
    * is the program name); the sequence of previously skipped
@@ -395,50 +399,48 @@ _getopt_initialize (argc, argv, optstring)
   /* Determine how to handle the ordering of options and nonoptions.  */
 
   if (optstring[0] == '-')
-    {
-      ordering = RETURN_IN_ORDER;
-      ++optstring;
-    }
+  {
+    ordering = RETURN_IN_ORDER;
+    ++optstring;
+  }
   else if (optstring[0] == '+')
-    {
-      ordering = REQUIRE_ORDER;
-      ++optstring;
-    }
+  {
+    ordering = REQUIRE_ORDER;
+    ++optstring;
+  }
   else if (posixly_correct != NULL)
     ordering = REQUIRE_ORDER;
   else
     ordering = PERMUTE;
 
 #ifdef _LIBC
-  if (posixly_correct == NULL && argc == original_argc
-      && argv == original_argv)
+  if (posixly_correct == NULL && argc == original_argc && argv == original_argv)
+  {
+    if (nonoption_flags_max_len == 0)
     {
-      if (nonoption_flags_max_len == 0)
-	{
-	  if (__getopt_nonoption_flags == NULL ||
-	      __getopt_nonoption_flags[0] == '\0')
-	    nonoption_flags_max_len = -1;
-	  else
-	    {
-	      const char *orig_str = __getopt_nonoption_flags;
-	      int len = nonoption_flags_max_len = strlen (orig_str);
+      if (__getopt_nonoption_flags == NULL ||
+          __getopt_nonoption_flags[0] == '\0')
+        nonoption_flags_max_len = -1;
+      else
+      {
+        const char *orig_str = __getopt_nonoption_flags;
+        int len = nonoption_flags_max_len = strlen (orig_str);
 
-	      if (nonoption_flags_max_len < argc)
-		nonoption_flags_max_len = argc;
-	      __getopt_nonoption_flags =
-		(char *) malloc (nonoption_flags_max_len);
-	      if (__getopt_nonoption_flags == NULL)
-		nonoption_flags_max_len = -1;
-	      else
-		{
-		  memcpy (__getopt_nonoption_flags, orig_str, len);
-		  memset (&__getopt_nonoption_flags[len], '\0',
-			  nonoption_flags_max_len - len);
-		}
-	    }
-	}
-      nonoption_flags_len = nonoption_flags_max_len;
+        if (nonoption_flags_max_len < argc)
+          nonoption_flags_max_len = argc;
+        __getopt_nonoption_flags = (char *) malloc (nonoption_flags_max_len);
+        if (__getopt_nonoption_flags == NULL)
+          nonoption_flags_max_len = -1;
+        else
+        {
+          memcpy (__getopt_nonoption_flags, orig_str, len);
+          memset (&__getopt_nonoption_flags[len], '\0',
+                  nonoption_flags_max_len - len);
+        }
+      }
     }
+    nonoption_flags_len = nonoption_flags_max_len;
+  }
   else
     nonoption_flags_len = 0;
 #endif
@@ -504,8 +506,8 @@ _getopt_initialize (argc, argv, optstring)
 
 static int
 GN_getopt_internal (int argc, char *const *argv, const char *optstring,
-		    const struct GNoption *longopts, int *longind,
-		    int long_only)
+                    const struct GNoption *longopts, int *longind,
+                    int long_only)
 {
   static int __getopt_initialized = 0;
   static int GNopterr = 1;
@@ -513,12 +515,12 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
   GNoptarg = NULL;
 
   if (GNoptind == 0 || !__getopt_initialized)
-    {
-      if (GNoptind == 0)
-	GNoptind = 1;		/* Don't scan ARGV[0], the program name.  */
-      optstring = _getopt_initialize (argc, argv, optstring);
-      __getopt_initialized = 1;
-    }
+  {
+    if (GNoptind == 0)
+      GNoptind = 1;             /* Don't scan ARGV[0], the program name.  */
+    optstring = _getopt_initialize (argc, argv, optstring);
+    __getopt_initialized = 1;
+  }
 
   /* Test whether ARGV[GNoptind] points to a non-option argument.
    * Either it does not have option syntax, or there is an environment flag
@@ -533,80 +535,80 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
 #endif
 
   if (nextchar == NULL || *nextchar == '\0')
+  {
+    /* Advance to the next ARGV-element.  */
+
+    /* Give FIRST_NONOPT & LAST_NONOPT rational values if GNoptind has been
+     * moved back by the user (who may also have changed the arguments).  */
+    if (last_nonopt > GNoptind)
+      last_nonopt = GNoptind;
+    if (first_nonopt > GNoptind)
+      first_nonopt = GNoptind;
+
+    if (ordering == PERMUTE)
     {
-      /* Advance to the next ARGV-element.  */
+      /* If we have just processed some options following some non-options,
+       * exchange them so that the options come first.  */
 
-      /* Give FIRST_NONOPT & LAST_NONOPT rational values if GNoptind has been
-       * moved back by the user (who may also have changed the arguments).  */
-      if (last_nonopt > GNoptind)
-	last_nonopt = GNoptind;
-      if (first_nonopt > GNoptind)
-	first_nonopt = GNoptind;
+      if (first_nonopt != last_nonopt && last_nonopt != GNoptind)
+        exchange ((char **) argv);
+      else if (last_nonopt != GNoptind)
+        first_nonopt = GNoptind;
 
-      if (ordering == PERMUTE)
-	{
-	  /* If we have just processed some options following some non-options,
-	   * exchange them so that the options come first.  */
+      /* Skip any additional non-options
+       * and extend the range of non-options previously skipped.  */
 
-	  if (first_nonopt != last_nonopt && last_nonopt != GNoptind)
-	    exchange ((char **) argv);
-	  else if (last_nonopt != GNoptind)
-	    first_nonopt = GNoptind;
-
-	  /* Skip any additional non-options
-	   * and extend the range of non-options previously skipped.  */
-
-	  while (GNoptind < argc && NONOPTION_P)
-	    GNoptind++;
-	  last_nonopt = GNoptind;
-	}
-
-      /* The special ARGV-element `--' means premature end of options.
-       * Skip it like a null option,
-       * then exchange with previous non-options as if it were an option,
-       * then skip everything else like a non-option.  */
-      if (GNoptind != argc && !strcmp (argv[GNoptind], "--"))
-	{
-	  GNoptind++;
-
-	  if (first_nonopt != last_nonopt && last_nonopt != GNoptind)
-	    exchange ((char **) argv);
-	  else if (first_nonopt == last_nonopt)
-	    first_nonopt = GNoptind;
-	  last_nonopt = argc;
-
-	  GNoptind = argc;
-	}
-
-      /* If we have done all the ARGV-elements, stop the scan
-       * and back over any non-options that we skipped and permuted.  */
-
-      if (GNoptind == argc)
-	{
-	  /* Set the next-arg-index to point at the non-options
-	   * that we previously skipped, so the caller will digest them.  */
-	  if (first_nonopt != last_nonopt)
-	    GNoptind = first_nonopt;
-	  return -1;
-	}
-
-      /* If we have come to a non-option and did not permute it,
-       * either stop the scan or describe it to the caller and pass it by.  */
-
-      if (NONOPTION_P)
-	{
-	  if (ordering == REQUIRE_ORDER)
-	    return -1;
-	  GNoptarg = argv[GNoptind++];
-	  return 1;
-	}
-
-      /* We have found another option-ARGV-element.
-       * Skip the initial punctuation.  */
-
-      nextchar =
-	(argv[GNoptind] + 1 + (longopts != NULL && argv[GNoptind][1] == '-'));
+      while (GNoptind < argc && NONOPTION_P)
+        GNoptind++;
+      last_nonopt = GNoptind;
     }
+
+    /* The special ARGV-element `--' means premature end of options.
+     * Skip it like a null option,
+     * then exchange with previous non-options as if it were an option,
+     * then skip everything else like a non-option.  */
+    if (GNoptind != argc && !strcmp (argv[GNoptind], "--"))
+    {
+      GNoptind++;
+
+      if (first_nonopt != last_nonopt && last_nonopt != GNoptind)
+        exchange ((char **) argv);
+      else if (first_nonopt == last_nonopt)
+        first_nonopt = GNoptind;
+      last_nonopt = argc;
+
+      GNoptind = argc;
+    }
+
+    /* If we have done all the ARGV-elements, stop the scan
+     * and back over any non-options that we skipped and permuted.  */
+
+    if (GNoptind == argc)
+    {
+      /* Set the next-arg-index to point at the non-options
+       * that we previously skipped, so the caller will digest them.  */
+      if (first_nonopt != last_nonopt)
+        GNoptind = first_nonopt;
+      return -1;
+    }
+
+    /* If we have come to a non-option and did not permute it,
+     * either stop the scan or describe it to the caller and pass it by.  */
+
+    if (NONOPTION_P)
+    {
+      if (ordering == REQUIRE_ORDER)
+        return -1;
+      GNoptarg = argv[GNoptind++];
+      return 1;
+    }
+
+    /* We have found another option-ARGV-element.
+     * Skip the initial punctuation.  */
+
+    nextchar =
+        (argv[GNoptind] + 1 + (longopts != NULL && argv[GNoptind][1] == '-'));
+  }
 
   /* Decode the current option-ARGV-element.  */
 
@@ -626,138 +628,134 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
   if (longopts != NULL &&
       (argv[GNoptind][1] == '-' ||
        (long_only &&
-	(argv[GNoptind][2] || !my_index (optstring, argv[GNoptind][1])))))
+        (argv[GNoptind][2] || !my_index (optstring, argv[GNoptind][1])))))
+  {
+    char *nameend;
+    const struct GNoption *p;
+    const struct GNoption *pfound = NULL;
+    int exact = 0;
+    int ambig = 0;
+    int indfound = -1;
+    int option_index;
+
+    for (nameend = nextchar; *nameend && *nameend != '='; nameend++)
+      /* Do nothing.  */ ;
+
+    /* Test all long options for either exact match
+     * or abbreviated matches.  */
+    for (p = longopts, option_index = 0; p->name; p++, option_index++)
+      if (!strncmp (p->name, nextchar, nameend - nextchar))
+      {
+        if ((unsigned int) (nameend - nextchar) ==
+            (unsigned int) strlen (p->name))
+        {
+          /* Exact match found.  */
+          pfound = p;
+          indfound = option_index;
+          exact = 1;
+          break;
+        }
+        else if (pfound == NULL)
+        {
+          /* First nonexact match found.  */
+          pfound = p;
+          indfound = option_index;
+        }
+        else
+          /* Second or later nonexact match found.  */
+          ambig = 1;
+      }
+
+    if (ambig && !exact)
     {
-      char *nameend;
-      const struct GNoption *p;
-      const struct GNoption *pfound = NULL;
-      int exact = 0;
-      int ambig = 0;
-      int indfound = -1;
-      int option_index;
-
-      for (nameend = nextchar; *nameend && *nameend != '='; nameend++)
-	/* Do nothing.  */ ;
-
-      /* Test all long options for either exact match
-       * or abbreviated matches.  */
-      for (p = longopts, option_index = 0; p->name; p++, option_index++)
-	if (!strncmp (p->name, nextchar, nameend - nextchar))
-	  {
-	    if ((unsigned int) (nameend - nextchar) ==
-		(unsigned int) strlen (p->name))
-	      {
-		/* Exact match found.  */
-		pfound = p;
-		indfound = option_index;
-		exact = 1;
-		break;
-	      }
-	    else if (pfound == NULL)
-	      {
-		/* First nonexact match found.  */
-		pfound = p;
-		indfound = option_index;
-	      }
-	    else
-	      /* Second or later nonexact match found.  */
-	      ambig = 1;
-	  }
-
-      if (ambig && !exact)
-	{
-	  if (GNopterr)
-	    fprintf (stderr, _("%s: option `%s' is ambiguous\n"), argv[0],
-		     argv[GNoptind]);
-	  nextchar += strlen (nextchar);
-	  GNoptind++;
-	  return '?';
-	}
-
-      if (pfound != NULL)
-	{
-	  option_index = indfound;
-	  GNoptind++;
-	  if (*nameend)
-	    {
-	      /* Don't test has_arg with >, because some C compilers don't
-	       * allow it to be used on enums.  */
-	      if (pfound->has_arg)
-		GNoptarg = nameend + 1;
-	      else
-		{
-		  if (GNopterr)
-		    {
-		      if (argv[GNoptind - 1][1] == '-')
-			/* --option */
-			fprintf (stderr,
-				 _
-				 ("%s: option `--%s' does not allow an argument\n"),
-				 argv[0], pfound->name);
-		      else
-			/* +option or -option */
-			fprintf (stderr,
-				 _
-				 ("%s: option `%c%s' does not allow an argument\n"),
-				 argv[0], argv[GNoptind - 1][0],
-				 pfound->name);
-		    }
-		  nextchar += strlen (nextchar);
-		  return '?';
-		}
-	    }
-	  else if (pfound->has_arg == 1)
-	    {
-	      if (GNoptind < argc)
-		{
-		  GNoptarg = argv[GNoptind++];
-		}
-	      else
-		{
-		  if (GNopterr)
-		    {
-		      fprintf (stderr,
-			       _("%s: option `%s' requires an argument\n"),
-			       argv[0], argv[GNoptind - 1]);
-		    }
-		  nextchar += strlen (nextchar);
-		  return (optstring[0] == ':') ? ':' : '?';
-		}
-	    }
-	  nextchar += strlen (nextchar);
-	  if (longind != NULL)
-	    *longind = option_index;
-	  if (pfound->flag)
-	    {
-	      *(pfound->flag) = pfound->val;
-	      return 0;
-	    }
-	  return pfound->val;
-	}
-
-      /* Can't find it as a long option.  If this is not getopt_long_only,
-       * or the option starts with '--' or is not a valid short
-       * option, then it's an error.
-       * Otherwise interpret it as a short option.  */
-      if (!long_only || argv[GNoptind][1] == '-' ||
-	  my_index (optstring, *nextchar) == NULL)
-	{
-	  if (GNopterr)
-	    {
-	      if (argv[GNoptind][1] == '-')
-		/* --option */
-		fprintf (stderr, _("%s: unrecognized option `--%s'\n"),
-			 argv[0], nextchar);
-	      else
-		/* +option or -option */
-		fprintf (stderr, _("%s: unrecognized option `%c%s'\n"),
-			 argv[0], argv[GNoptind][0], nextchar);
-	    }
-	  nextchar = (char *) "";
-	  GNoptind++;
-	  return '?';
-	}
+      if (GNopterr)
+        fprintf (stderr, _("%s: option `%s' is ambiguous\n"), argv[0],
+                 argv[GNoptind]);
+      nextchar += strlen (nextchar);
+      GNoptind++;
+      return '?';
     }
+
+    if (pfound != NULL)
+    {
+      option_index = indfound;
+      GNoptind++;
+      if (*nameend)
+      {
+        /* Don't test has_arg with >, because some C compilers don't
+         * allow it to be used on enums.  */
+        if (pfound->has_arg)
+          GNoptarg = nameend + 1;
+        else
+        {
+          if (GNopterr)
+          {
+            if (argv[GNoptind - 1][1] == '-')
+              /* --option */
+              fprintf (stderr,
+                       _("%s: option `--%s' does not allow an argument\n"),
+                       argv[0], pfound->name);
+            else
+              /* +option or -option */
+              fprintf (stderr,
+                       _("%s: option `%c%s' does not allow an argument\n"),
+                       argv[0], argv[GNoptind - 1][0], pfound->name);
+          }
+          nextchar += strlen (nextchar);
+          return '?';
+        }
+      }
+      else if (pfound->has_arg == 1)
+      {
+        if (GNoptind < argc)
+        {
+          GNoptarg = argv[GNoptind++];
+        }
+        else
+        {
+          if (GNopterr)
+          {
+            fprintf (stderr, _("%s: option `%s' requires an argument\n"),
+                     argv[0], argv[GNoptind - 1]);
+          }
+          nextchar += strlen (nextchar);
+          return (optstring[0] == ':') ? ':' : '?';
+        }
+      }
+      nextchar += strlen (nextchar);
+      if (longind != NULL)
+        *longind = option_index;
+      if (pfound->flag)
+      {
+        *(pfound->flag) = pfound->val;
+        return 0;
+      }
+      return pfound->val;
+    }
+
+    /* Can't find it as a long option.  If this is not getopt_long_only,
+     * or the option starts with '--' or is not a valid short
+     * option, then it's an error.
+     * Otherwise interpret it as a short option.  */
+    if (!long_only || argv[GNoptind][1] == '-' ||
+        my_index (optstring, *nextchar) == NULL)
+    {
+      if (GNopterr)
+      {
+        if (argv[GNoptind][1] == '-')
+          /* --option */
+          fprintf (stderr, _("%s: unrecognized option `--%s'\n"), argv[0],
+                   nextchar);
+        else
+          /* +option or -option */
+          fprintf (stderr, _("%s: unrecognized option `%c%s'\n"), argv[0],
+                   argv[GNoptind][0], nextchar);
+      }
+      nextchar = (char *) "";
+      GNoptind++;
+      return '?';
+    }
+  }
 
   /* Look at and handle the next short option-character.  */
 
@@ -770,193 +768,191 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
       ++GNoptind;
 
     if (temp == NULL || c == ':')
+    {
+      if (GNopterr)
       {
-	if (GNopterr)
-	  {
-	    if (posixly_correct)
-	      /* 1003.2 specifies the format of this message.  */
-	      fprintf (stderr, _("%s: illegal option -- %c\n"), argv[0], c);
-	    else
-	      fprintf (stderr, _("%s: invalid option -- %c\n"), argv[0], c);
-	  }
-	return '?';
+        if (posixly_correct)
+          /* 1003.2 specifies the format of this message.  */
+          fprintf (stderr, _("%s: illegal option -- %c\n"), argv[0], c);
+        else
+          fprintf (stderr, _("%s: invalid option -- %c\n"), argv[0], c);
       }
+      return '?';
+    }
     /* Convenience. Treat POSIX -W foo same as long option --foo */
     if (temp[0] == 'W' && temp[1] == ';')
+    {
+      char *nameend;
+      const struct GNoption *p;
+      const struct GNoption *pfound = NULL;
+      int exact = 0;
+      int ambig = 0;
+      int indfound = 0;
+      int option_index;
+
+      /* This is an option that requires an argument.  */
+      if (*nextchar != '\0')
       {
-	char *nameend;
-	const struct GNoption *p;
-	const struct GNoption *pfound = NULL;
-	int exact = 0;
-	int ambig = 0;
-	int indfound = 0;
-	int option_index;
+        GNoptarg = nextchar;
+        /* If we end this ARGV-element by taking the rest as an arg,
+         * we must advance to the next element now.  */
+        GNoptind++;
+      }
+      else if (GNoptind == argc)
+      {
+        if (GNopterr)
+        {
+          /* 1003.2 specifies the format of this message.  */
+          fprintf (stderr, _("%s: option requires an argument -- %c\n"),
+                   argv[0], c);
+        }
+        if (optstring[0] == ':')
+          c = ':';
+        else
+          c = '?';
+        return c;
+      }
+      else
+        /* We already incremented `GNoptind' once;
+         * increment it again when taking next ARGV-elt as argument.  */
+        GNoptarg = argv[GNoptind++];
 
-	/* This is an option that requires an argument.  */
-	if (*nextchar != '\0')
-	  {
-	    GNoptarg = nextchar;
-	    /* If we end this ARGV-element by taking the rest as an arg,
-	     * we must advance to the next element now.  */
-	    GNoptind++;
-	  }
-	else if (GNoptind == argc)
-	  {
-	    if (GNopterr)
-	      {
-		/* 1003.2 specifies the format of this message.  */
-		fprintf (stderr, _("%s: option requires an argument -- %c\n"),
-			 argv[0], c);
-	      }
-	    if (optstring[0] == ':')
-	      c = ':';
-	    else
-	      c = '?';
-	    return c;
-	  }
-	else
-	  /* We already incremented `GNoptind' once;
-	   * increment it again when taking next ARGV-elt as argument.  */
-	  GNoptarg = argv[GNoptind++];
+      /* GNoptarg is now the argument, see if it's in the
+       * table of longopts.  */
 
-	/* GNoptarg is now the argument, see if it's in the
-	 * table of longopts.  */
+      for (nextchar = nameend = GNoptarg; *nameend && *nameend != '=';
+           nameend++)
+        /* Do nothing.  */ ;
 
-	for (nextchar = nameend = GNoptarg; *nameend && *nameend != '=';
-	     nameend++)
-	  /* Do nothing.  */ ;
-
-	/* Test all long options for either exact match
-	 * or abbreviated matches.  */
-	if (longopts != NULL)
-	  for (p = longopts, option_index = 0; p->name; p++, option_index++)
-	    if (!strncmp (p->name, nextchar, nameend - nextchar))
-	      {
-		if ((unsigned int) (nameend - nextchar) == strlen (p->name))
-		  {
-		    /* Exact match found.  */
-		    pfound = p;
-		    indfound = option_index;
-		    exact = 1;
-		    break;
-		  }
-		else if (pfound == NULL)
-		  {
-		    /* First nonexact match found.  */
-		    pfound = p;
-		    indfound = option_index;
-		  }
-		else
-		  /* Second or later nonexact match found.  */
-		  ambig = 1;
-	      }
-	if (ambig && !exact)
-	  {
-	    if (GNopterr)
-	      fprintf (stderr, _("%s: option `-W %s' is ambiguous\n"),
-		       argv[0], argv[GNoptind]);
-	    nextchar += strlen (nextchar);
-	    GNoptind++;
-	    return '?';
-	  }
-	if (pfound != NULL)
-	  {
-	    option_index = indfound;
-	    if (*nameend)
-	      {
-		/* Don't test has_arg with >, because some C compilers don't
-		 * allow it to be used on enums.  */
-		if (pfound->has_arg)
-		  GNoptarg = nameend + 1;
-		else
-		  {
-		    if (GNopterr)
-		      fprintf (stderr, _("\
+      /* Test all long options for either exact match
+       * or abbreviated matches.  */
+      if (longopts != NULL)
+        for (p = longopts, option_index = 0; p->name; p++, option_index++)
+          if (!strncmp (p->name, nextchar, nameend - nextchar))
+          {
+            if ((unsigned int) (nameend - nextchar) == strlen (p->name))
+            {
+              /* Exact match found.  */
+              pfound = p;
+              indfound = option_index;
+              exact = 1;
+              break;
+            }
+            else if (pfound == NULL)
+            {
+              /* First nonexact match found.  */
+              pfound = p;
+              indfound = option_index;
+            }
+            else
+              /* Second or later nonexact match found.  */
+              ambig = 1;
+          }
+      if (ambig && !exact)
+      {
+        if (GNopterr)
+          fprintf (stderr, _("%s: option `-W %s' is ambiguous\n"), argv[0],
+                   argv[GNoptind]);
+        nextchar += strlen (nextchar);
+        GNoptind++;
+        return '?';
+      }
+      if (pfound != NULL)
+      {
+        option_index = indfound;
+        if (*nameend)
+        {
+          /* Don't test has_arg with >, because some C compilers don't
+           * allow it to be used on enums.  */
+          if (pfound->has_arg)
+            GNoptarg = nameend + 1;
+          else
+          {
+            if (GNopterr)
+              fprintf (stderr, _("\
 %s: option `-W %s' does not allow an argument\n"), argv[0], pfound->name);
 
-		    nextchar += strlen (nextchar);
-		    return '?';
-		  }
-	      }
-	    else if (pfound->has_arg == 1)
-	      {
-		if (GNoptind < argc)
-		  GNoptarg = argv[GNoptind++];
-		else
-		  {
-		    if (GNopterr)
-		      fprintf (stderr,
-			       _("%s: option `%s' requires an argument\n"),
-			       argv[0], argv[GNoptind - 1]);
-		    nextchar += strlen (nextchar);
-		    return optstring[0] == ':' ? ':' : '?';
-		  }
-	      }
-	    nextchar += strlen (nextchar);
-	    if (longind != NULL)
-	      *longind = option_index;
-	    if (pfound->flag)
-	      {
-		*(pfound->flag) = pfound->val;
-		return 0;
-	      }
-	    return pfound->val;
-	  }
-	nextchar = NULL;
-	return 'W';		/* Let the application handle it.   */
+            nextchar += strlen (nextchar);
+            return '?';
+          }
+        }
+        else if (pfound->has_arg == 1)
+        {
+          if (GNoptind < argc)
+            GNoptarg = argv[GNoptind++];
+          else
+          {
+            if (GNopterr)
+              fprintf (stderr, _("%s: option `%s' requires an argument\n"),
+                       argv[0], argv[GNoptind - 1]);
+            nextchar += strlen (nextchar);
+            return optstring[0] == ':' ? ':' : '?';
+          }
+        }
+        nextchar += strlen (nextchar);
+        if (longind != NULL)
+          *longind = option_index;
+        if (pfound->flag)
+        {
+          *(pfound->flag) = pfound->val;
+          return 0;
+        }
+        return pfound->val;
       }
+      nextchar = NULL;
+      return 'W';               /* Let the application handle it.   */
+    }
     if (temp[1] == ':')
+    {
+      if (temp[2] == ':')
       {
-	if (temp[2] == ':')
-	  {
-	    /* This is an option that accepts an argument optionally.  */
-	    if (*nextchar != '\0')
-	      {
-		GNoptarg = nextchar;
-		GNoptind++;
-	      }
-	    else
-	      GNoptarg = NULL;
-	    nextchar = NULL;
-	  }
-	else
-	  {
-	    /* This is an option that requires an argument.  */
-	    if (*nextchar != '\0')
-	      {
-		GNoptarg = nextchar;
-		/* If we end this ARGV-element by taking the rest as an arg,
-		 * we must advance to the next element now.  */
-		GNoptind++;
-	      }
-	    else if (GNoptind == argc)
-	      {
-		if (GNopterr)
-		  {
-		    /* 1003.2 specifies the format of this message.  */
-		    fprintf (stderr,
-			     _("%s: option requires an argument -- %c\n"),
-			     argv[0], c);
-		  }
-		if (optstring[0] == ':')
-		  c = ':';
-		else
-		  c = '?';
-	      }
-	    else
-	      /* We already incremented `GNoptind' once;
-	       * increment it again when taking next ARGV-elt as argument.  */
-	      GNoptarg = argv[GNoptind++];
-	    nextchar = NULL;
-	  }
+        /* This is an option that accepts an argument optionally.  */
+        if (*nextchar != '\0')
+        {
+          GNoptarg = nextchar;
+          GNoptind++;
+        }
+        else
+          GNoptarg = NULL;
+        nextchar = NULL;
       }
+      else
+      {
+        /* This is an option that requires an argument.  */
+        if (*nextchar != '\0')
+        {
+          GNoptarg = nextchar;
+          /* If we end this ARGV-element by taking the rest as an arg,
+           * we must advance to the next element now.  */
+          GNoptind++;
+        }
+        else if (GNoptind == argc)
+        {
+          if (GNopterr)
+          {
+            /* 1003.2 specifies the format of this message.  */
+            fprintf (stderr, _("%s: option requires an argument -- %c\n"),
+                     argv[0], c);
+          }
+          if (optstring[0] == ':')
+            c = ':';
+          else
+            c = '?';
+        }
+        else
+          /* We already incremented `GNoptind' once;
+           * increment it again when taking next ARGV-elt as argument.  */
+          GNoptarg = argv[GNoptind++];
+        nextchar = NULL;
+      }
+    }
     return c;
   }
 }
 
 static int
 GNgetopt_long (int argc, char *const *argv, const char *options,
-	       const struct GNoption *long_options, int *opt_index)
+               const struct GNoption *long_options, int *opt_index)
 {
   return GN_getopt_internal (argc, argv, options, long_options, opt_index, 0);
 }
@@ -975,8 +971,8 @@ GNgetopt_long (int argc, char *const *argv, const char *options,
  */
 int
 GNUNET_GETOPT_run (const char *binaryOptions,
-		   const struct GNUNET_GETOPT_CommandLineOption *allOptions,
-		   unsigned int argc, char *const *argv)
+                   const struct GNUNET_GETOPT_CommandLineOption *allOptions,
+                   unsigned int argc, char *const *argv)
 {
   struct GNoption *long_options;
   struct GNUNET_GETOPT_CommandLineProcessorContext clpc;
@@ -1001,15 +997,15 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   shorts = GNUNET_malloc (count * 2 + 1);
   spos = 0;
   for (i = 0; i < count; i++)
-    {
-      long_options[i].name = allOptions[i].name;
-      long_options[i].has_arg = allOptions[i].require_argument;
-      long_options[i].flag = NULL;
-      long_options[i].val = allOptions[i].shortName;
-      shorts[spos++] = allOptions[i].shortName;
-      if (allOptions[i].require_argument != 0)
-	shorts[spos++] = ':';
-    }
+  {
+    long_options[i].name = allOptions[i].name;
+    long_options[i].has_arg = allOptions[i].require_argument;
+    long_options[i].flag = NULL;
+    long_options[i].val = allOptions[i].shortName;
+    shorts[spos++] = allOptions[i].shortName;
+    if (allOptions[i].require_argument != 0)
+      shorts[spos++] = ':';
+  }
   long_options[count].name = NULL;
   long_options[count].has_arg = 0;
   long_options[count].flag = NULL;
@@ -1018,31 +1014,31 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   cont = GNUNET_OK;
   /* main getopt loop */
   while (cont == GNUNET_OK)
+  {
+    int option_index = 0;
+
+    c = GNgetopt_long (argc, argv, shorts, long_options, &option_index);
+
+    if (c == GNUNET_SYSERR)
+      break;                    /* No more flags to process */
+
+    for (i = 0; i < count; i++)
     {
-      int option_index = 0;
-
-      c = GNgetopt_long (argc, argv, shorts, long_options, &option_index);
-
-      if (c == GNUNET_SYSERR)
-	break;			/* No more flags to process */
-
-      for (i = 0; i < count; i++)
-	{
-	  clpc.currentArgument = GNoptind - 1;
-	  if ((char) c == allOptions[i].shortName)
-	    {
-	      cont =
-		allOptions[i].processor (&clpc, allOptions[i].scls,
-					 allOptions[i].name, GNoptarg);
-	      break;
-	    }
-	}
-      if (i == count)
-	{
-	  fprintf (stderr, _("Use --help to get a list of options.\n"));
-	  cont = GNUNET_SYSERR;
-	}
+      clpc.currentArgument = GNoptind - 1;
+      if ((char) c == allOptions[i].shortName)
+      {
+        cont =
+            allOptions[i].processor (&clpc, allOptions[i].scls,
+                                     allOptions[i].name, GNoptarg);
+        break;
+      }
     }
+    if (i == count)
+    {
+      fprintf (stderr, _("Use --help to get a list of options.\n"));
+      cont = GNUNET_SYSERR;
+    }
+  }
 
   GNUNET_free (shorts);
   GNUNET_free (long_options);

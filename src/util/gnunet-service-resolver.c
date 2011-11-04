@@ -89,7 +89,7 @@ getnameinfo_resolve (struct IPCache *cache)
 
   if (0 ==
       getnameinfo (cache->sa, cache->salen, hostname, sizeof (hostname), NULL,
-		   0, 0))
+                   0, 0))
     cache->addr = GNUNET_strdup (hostname);
 }
 #endif
@@ -107,20 +107,20 @@ gethostbyaddr_resolve (struct IPCache *cache)
   struct hostent *ent;
 
   switch (cache->sa->sa_family)
-    {
-    case AF_INET:
-      ent =
-	gethostbyaddr (&((struct sockaddr_in *) cache->sa)->sin_addr,
-		       sizeof (struct in_addr), AF_INET);
-      break;
-    case AF_INET6:
-      ent =
-	gethostbyaddr (&((struct sockaddr_in6 *) cache->sa)->sin6_addr,
-		       sizeof (struct in6_addr), AF_INET6);
-      break;
-    default:
-      ent = NULL;
-    }
+  {
+  case AF_INET:
+    ent =
+        gethostbyaddr (&((struct sockaddr_in *) cache->sa)->sin_addr,
+                       sizeof (struct in_addr), AF_INET);
+    break;
+  case AF_INET6:
+    ent =
+        gethostbyaddr (&((struct sockaddr_in6 *) cache->sa)->sin6_addr,
+                       sizeof (struct in6_addr), AF_INET6);
+    break;
+  default:
+    ent = NULL;
+  }
   if (ent != NULL)
     cache->addr = GNUNET_strdup (ent->h_name);
 }
@@ -158,7 +158,7 @@ cache_resolve (struct IPCache *cache)
  */
 static void
 get_ip_as_string (struct GNUNET_SERVER_Client *client,
-		  const struct sockaddr *sa, socklen_t salen)
+                  const struct sockaddr *sa, socklen_t salen)
 {
   struct IPCache *cache;
   struct IPCache *prev;
@@ -166,73 +166,73 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   struct GNUNET_SERVER_TransmitContext *tc;
 
   if (salen < sizeof (struct sockaddr))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   now = GNUNET_TIME_absolute_get ();
   cache = head;
   prev = NULL;
   while ((cache != NULL) &&
-	 ((cache->salen != salen) || (0 != memcmp (cache->sa, sa, salen))))
+         ((cache->salen != salen) || (0 != memcmp (cache->sa, sa, salen))))
+  {
+    if (GNUNET_TIME_absolute_get_duration (cache->last_request).rel_value <
+        60 * 60 * 1000)
     {
-      if (GNUNET_TIME_absolute_get_duration (cache->last_request).rel_value <
-	  60 * 60 * 1000)
-	{
-	  if (prev != NULL)
-	    {
-	      prev->next = cache->next;
-	      GNUNET_free_non_null (cache->addr);
-	      GNUNET_free (cache->sa);
-	      GNUNET_free (cache);
-	      cache = prev->next;
-	    }
-	  else
-	    {
-	      head = cache->next;
-	      GNUNET_free_non_null (cache->addr);
-	      GNUNET_free (cache->sa);
-	      GNUNET_free (cache);
-	      cache = head;
-	    }
-	  continue;
-	}
-      prev = cache;
-      cache = cache->next;
+      if (prev != NULL)
+      {
+        prev->next = cache->next;
+        GNUNET_free_non_null (cache->addr);
+        GNUNET_free (cache->sa);
+        GNUNET_free (cache);
+        cache = prev->next;
+      }
+      else
+      {
+        head = cache->next;
+        GNUNET_free_non_null (cache->addr);
+        GNUNET_free (cache->sa);
+        GNUNET_free (cache);
+        cache = head;
+      }
+      continue;
     }
+    prev = cache;
+    cache = cache->next;
+  }
   if (cache != NULL)
+  {
+    cache->last_request = now;
+    if (GNUNET_TIME_absolute_get_duration (cache->last_request).rel_value <
+        60 * 60 * 1000)
     {
-      cache->last_request = now;
-      if (GNUNET_TIME_absolute_get_duration (cache->last_request).rel_value <
-	  60 * 60 * 1000)
-	{
-	  GNUNET_free_non_null (cache->addr);
-	  cache->addr = NULL;
-	  cache->salen = 0;
-	  cache_resolve (cache);
-	}
-    }
-  else
-    {
-      cache = GNUNET_malloc (sizeof (struct IPCache));
-      cache->next = head;
-      cache->salen = salen;
-      cache->sa = GNUNET_malloc (salen);
-      memcpy (cache->sa, sa, salen);
-      cache->last_request = GNUNET_TIME_absolute_get ();
-      cache->last_refresh = GNUNET_TIME_absolute_get ();
+      GNUNET_free_non_null (cache->addr);
       cache->addr = NULL;
+      cache->salen = 0;
       cache_resolve (cache);
-      head = cache;
     }
+  }
+  else
+  {
+    cache = GNUNET_malloc (sizeof (struct IPCache));
+    cache->next = head;
+    cache->salen = salen;
+    cache->sa = GNUNET_malloc (salen);
+    memcpy (cache->sa, sa, salen);
+    cache->last_request = GNUNET_TIME_absolute_get ();
+    cache->last_refresh = GNUNET_TIME_absolute_get ();
+    cache->addr = NULL;
+    cache_resolve (cache);
+    head = cache;
+  }
   tc = GNUNET_SERVER_transmit_context_create (client);
   if (cache->addr != NULL)
     GNUNET_SERVER_transmit_context_append_data (tc, cache->addr,
-						strlen (cache->addr) + 1,
-						GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+                                                strlen (cache->addr) + 1,
+                                                GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-					      GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+                                              GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -240,7 +240,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
 #if HAVE_GETADDRINFO
 static int
 getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
-		     const char *hostname, int domain)
+                     const char *hostname, int domain)
 {
   int s;
   struct addrinfo hints;
@@ -254,37 +254,36 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
 #else
   hints.ai_family = AF_INET;
 #endif
-  hints.ai_socktype = SOCK_STREAM;	/* go for TCP */
+  hints.ai_socktype = SOCK_STREAM;      /* go for TCP */
 
   if (0 != (s = getaddrinfo (hostname, NULL, &hints, &result)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Could not resolve `%s' (%s): %s\n"), hostname,
-		  (domain ==
-		   AF_INET) ? "IPv4" : ((domain ==
-					 AF_INET6) ? "IPv6" : "any"),
-		  gai_strerror (s));
-      if ((s == EAI_BADFLAGS) || (s == EAI_MEMORY)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Could not resolve `%s' (%s): %s\n"),
+                hostname,
+                (domain ==
+                 AF_INET) ? "IPv4" : ((domain == AF_INET6) ? "IPv6" : "any"),
+                gai_strerror (s));
+    if ((s == EAI_BADFLAGS) || (s == EAI_MEMORY)
 #ifndef MINGW
-	  || (s == EAI_SYSTEM)
+        || (s == EAI_SYSTEM)
 #else
-	  // FIXME NILS
-	  || 1
+        // FIXME NILS
+        || 1
 #endif
-	)
-	return GNUNET_NO;	/* other function may still succeed */
-      return GNUNET_SYSERR;
-    }
+        )
+      return GNUNET_NO;         /* other function may still succeed */
+    return GNUNET_SYSERR;
+  }
   if (result == NULL)
     return GNUNET_SYSERR;
   pos = result;
   while (pos != NULL)
-    {
-      GNUNET_SERVER_transmit_context_append_data (tc, pos->ai_addr,
-						  pos->ai_addrlen,
-						  GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
-      pos = pos->ai_next;
-    }
+  {
+    GNUNET_SERVER_transmit_context_append_data (tc, pos->ai_addr,
+                                                pos->ai_addrlen,
+                                                GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+    pos = pos->ai_next;
+  }
   freeaddrinfo (result);
   return GNUNET_OK;
 }
@@ -293,7 +292,7 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
 #if HAVE_GETHOSTBYNAME2
 static int
 gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
-			const char *hostname, int domain)
+                        const char *hostname, int domain)
 {
   struct hostent *hp;
   struct sockaddr_in a4;
@@ -302,48 +301,48 @@ gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   int ret2;
 
   if (domain == AF_UNSPEC)
-    {
-      ret1 = gethostbyname2_resolve (tc, hostname, AF_INET);
-      ret2 = gethostbyname2_resolve (tc, hostname, AF_INET6);
-      if ((ret1 == GNUNET_OK) || (ret2 == GNUNET_OK))
-	return GNUNET_OK;
-      if ((ret1 == GNUNET_SYSERR) || (ret2 == GNUNET_SYSERR))
-	return GNUNET_SYSERR;
-      return GNUNET_NO;
-    }
+  {
+    ret1 = gethostbyname2_resolve (tc, hostname, AF_INET);
+    ret2 = gethostbyname2_resolve (tc, hostname, AF_INET6);
+    if ((ret1 == GNUNET_OK) || (ret2 == GNUNET_OK))
+      return GNUNET_OK;
+    if ((ret1 == GNUNET_SYSERR) || (ret2 == GNUNET_SYSERR))
+      return GNUNET_SYSERR;
+    return GNUNET_NO;
+  }
   hp = gethostbyname2 (hostname, domain);
   if (hp == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Could not find IP of host `%s': %s\n"), hostname,
-		  hstrerror (h_errno));
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Could not find IP of host `%s': %s\n"), hostname,
+                hstrerror (h_errno));
+    return GNUNET_SYSERR;
+  }
   GNUNET_assert (hp->h_addrtype == domain);
   if (domain == AF_INET)
-    {
-      GNUNET_assert (hp->h_length == sizeof (struct in_addr));
-      memset (&a4, 0, sizeof (a4));
-      a4.sin_family = AF_INET;
+  {
+    GNUNET_assert (hp->h_length == sizeof (struct in_addr));
+    memset (&a4, 0, sizeof (a4));
+    a4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      a4.sin_len = (u_char) sizeof (struct sockaddr_in);
+    a4.sin_len = (u_char) sizeof (struct sockaddr_in);
 #endif
-      memcpy (&a4.sin_addr, hp->h_addr_list[0], hp->h_length);
-      GNUNET_SERVER_transmit_context_append_data (tc, &a4, sizeof (a4),
-						  GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
-    }
+    memcpy (&a4.sin_addr, hp->h_addr_list[0], hp->h_length);
+    GNUNET_SERVER_transmit_context_append_data (tc, &a4, sizeof (a4),
+                                                GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  }
   else
-    {
-      GNUNET_assert (hp->h_length == sizeof (struct in6_addr));
-      memset (&a6, 0, sizeof (a6));
-      a6.sin6_family = AF_INET6;
+  {
+    GNUNET_assert (hp->h_length == sizeof (struct in6_addr));
+    memset (&a6, 0, sizeof (a6));
+    a6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      a6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
+    a6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
 #endif
-      memcpy (&a6.sin6_addr, hp->h_addr_list[0], hp->h_length);
-      GNUNET_SERVER_transmit_context_append_data (tc, &a6, sizeof (a6),
-						  GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
-    }
+    memcpy (&a6.sin6_addr, hp->h_addr_list[0], hp->h_length);
+    GNUNET_SERVER_transmit_context_append_data (tc, &a6, sizeof (a6),
+                                                GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  }
   return GNUNET_OK;
 }
 #endif
@@ -351,24 +350,24 @@ gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
 #if HAVE_GETHOSTBYNAME
 static int
 gethostbyname_resolve (struct GNUNET_SERVER_TransmitContext *tc,
-		       const char *hostname)
+                       const char *hostname)
 {
   struct hostent *hp;
   struct sockaddr_in addr;
 
   hp = GETHOSTBYNAME (hostname);
   if (hp == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Could not find IP of host `%s': %s\n"), hostname,
-		  hstrerror (h_errno));
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Could not find IP of host `%s': %s\n"), hostname,
+                hstrerror (h_errno));
+    return GNUNET_SYSERR;
+  }
   if (hp->h_addrtype != AF_INET)
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   GNUNET_assert (hp->h_length == sizeof (struct in_addr));
   memset (&addr, 0, sizeof (addr));
   addr.sin_family = AF_INET;
@@ -377,7 +376,7 @@ gethostbyname_resolve (struct GNUNET_SERVER_TransmitContext *tc,
 #endif
   memcpy (&addr.sin_addr, hp->h_addr_list[0], hp->h_length);
   GNUNET_SERVER_transmit_context_append_data (tc, &addr, sizeof (addr),
-					      GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+                                              GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
   return GNUNET_OK;
 }
 #endif
@@ -391,8 +390,8 @@ gethostbyname_resolve (struct GNUNET_SERVER_TransmitContext *tc,
  * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
  */
 static void
-get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
-		      const char *hostname, int domain)
+get_ip_from_hostname (struct GNUNET_SERVER_Client *client, const char *hostname,
+                      int domain)
 {
   int ret;
   struct GNUNET_SERVER_TransmitContext *tc;
@@ -412,7 +411,7 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
     gethostbyname_resolve (tc, hostname);
 #endif
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-					      GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+                                              GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -426,7 +425,7 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
  */
 static void
 handle_get (void *cls, struct GNUNET_SERVER_Client *client,
-	    const struct GNUNET_MessageHeader *message)
+            const struct GNUNET_MessageHeader *message)
 {
   uint16_t msize;
   const struct GNUNET_RESOLVER_GetMessage *msg;
@@ -438,78 +437,78 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
 
   msize = ntohs (message->size);
   if (msize < sizeof (struct GNUNET_RESOLVER_GetMessage))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   msg = (const struct GNUNET_RESOLVER_GetMessage *) message;
   size = msize - sizeof (struct GNUNET_RESOLVER_GetMessage);
   direction = ntohl (msg->direction);
   domain = ntohl (msg->domain);
   if (direction == GNUNET_NO)
+  {
+    /* IP from hostname */
+    hostname = (const char *) &msg[1];
+    if (hostname[size - 1] != '\0')
     {
-      /* IP from hostname */
-      hostname = (const char *) &msg[1];
-      if (hostname[size - 1] != '\0')
-	{
-	  GNUNET_break (0);
-	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-	  return;
-	}
-#if DEBUG_RESOLVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  _("Resolver asked to look up `%s'.\n"), hostname);
-#endif
-      get_ip_from_hostname (client, hostname, domain);
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
     }
+#if DEBUG_RESOLVER
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolver asked to look up `%s'.\n"),
+                hostname);
+#endif
+    get_ip_from_hostname (client, hostname, domain);
+  }
   else
+  {
+#if DEBUG_RESOLVER
+    char buf[INET6_ADDRSTRLEN];
+#endif
+    if (size < sizeof (struct sockaddr))
     {
-#if DEBUG_RESOLVER
-      char buf[INET6_ADDRSTRLEN];
-#endif
-      if (size < sizeof (struct sockaddr))
-	{
-	  GNUNET_break (0);
-	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-	  return;
-	}
-      sa = (const struct sockaddr *) &msg[1];
-      switch (sa->sa_family)
-	{
-	case AF_INET:
-	  if (size != sizeof (struct sockaddr_in))
-	    {
-	      GNUNET_break (0);
-	      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-	      return;
-	    }
-#if DEBUG_RESOLVER
-	  inet_ntop (AF_INET, sa, buf, size);
-#endif
-	  break;
-	case AF_INET6:
-	  if (size != sizeof (struct sockaddr_in6))
-	    {
-	      GNUNET_break (0);
-	      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-	      return;
-	    }
-#if DEBUG_RESOLVER
-	  inet_ntop (AF_INET6, sa, buf, size);
-#endif
-	  break;
-	default:
-	  GNUNET_break (0);
-	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-	  return;
-	}
-#if DEBUG_RESOLVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  _("Resolver asked to look up IP address `%s'.\n"), buf);
-#endif
-      get_ip_as_string (client, sa, size);
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
     }
+    sa = (const struct sockaddr *) &msg[1];
+    switch (sa->sa_family)
+    {
+    case AF_INET:
+      if (size != sizeof (struct sockaddr_in))
+      {
+        GNUNET_break (0);
+        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+        return;
+      }
+#if DEBUG_RESOLVER
+      inet_ntop (AF_INET, sa, buf, size);
+#endif
+      break;
+    case AF_INET6:
+      if (size != sizeof (struct sockaddr_in6))
+      {
+        GNUNET_break (0);
+        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+        return;
+      }
+#if DEBUG_RESOLVER
+      inet_ntop (AF_INET6, sa, buf, size);
+#endif
+      break;
+    default:
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+#if DEBUG_RESOLVER
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                _("Resolver asked to look up IP address `%s'.\n"), buf);
+#endif
+    get_ip_as_string (client, sa, size);
+  }
 }
 
 
@@ -546,18 +545,18 @@ main (int argc, char *const *argv)
   struct IPCache *pos;
 
   ret =
-    (GNUNET_OK ==
-     GNUNET_SERVICE_run (argc, argv, "resolver", GNUNET_SERVICE_OPTION_NONE,
-			 &run, NULL)) ? 0 : 1;
+      (GNUNET_OK ==
+       GNUNET_SERVICE_run (argc, argv, "resolver", GNUNET_SERVICE_OPTION_NONE,
+                           &run, NULL)) ? 0 : 1;
 
   while (head != NULL)
-    {
-      pos = head->next;
-      GNUNET_free_non_null (head->addr);
-      GNUNET_free (head->sa);
-      GNUNET_free (head);
-      head = pos;
-    }
+  {
+    pos = head->next;
+    GNUNET_free_non_null (head->addr);
+    GNUNET_free (head->sa);
+    GNUNET_free (head);
+    head = pos;
+  }
   return ret;
 }
 

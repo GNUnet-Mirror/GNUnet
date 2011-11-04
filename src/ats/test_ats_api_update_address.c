@@ -121,8 +121,7 @@ suggest_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
             const char *plugin_name, const void *plugin_addr,
             size_t plugin_addr_len, struct Session *session,
             struct GNUNET_BANDWIDTH_Value32NBO bandwidth,
-            const struct GNUNET_ATS_Information *ats,
-            uint32_t ats_count)
+            const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   struct ExpectedValues *ex = cls;
 

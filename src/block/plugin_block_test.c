@@ -75,14 +75,14 @@ block_plugin_test_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
     GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
     if (NULL != *bf)
-      {
-	if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
-	  return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-      }
+    {
+      if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+        return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+    }
     else
-      {
-	*bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
-      }
+    {
+      *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+    }
     GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
   }
   return GNUNET_BLOCK_EVALUATION_OK_MORE;

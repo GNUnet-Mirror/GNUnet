@@ -51,7 +51,7 @@ extern "C"
  * @param peer (claimed) identity of the other peer
  * @param message the message
  * @param ats performance data
- * @param ats_count number of entries in ats 
+ * @param ats_count number of entries in ats
  */
 typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
                                                   const struct
@@ -60,8 +60,8 @@ typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
                                                   GNUNET_MessageHeader *
                                                   message,
                                                   const struct
-                                                  GNUNET_ATS_Information
-                                                  * ats, uint32_t ats_count);
+                                                  GNUNET_ATS_Information * ats,
+                                                  uint32_t ats_count);
 
 
 /**
@@ -83,8 +83,8 @@ typedef void (*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
                                                 const struct GNUNET_PeerIdentity
                                                 * peer,
                                                 const struct
-                                                GNUNET_ATS_Information
-                                                * ats, uint32_t ats_count);
+                                                GNUNET_ATS_Information * ats,
+                                                uint32_t ats_count);
 
 /**
  * Function called to notify transport users that another

@@ -53,9 +53,9 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  }
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_close (proc);
   proc = NULL;
@@ -79,28 +79,28 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
 
   if (bytes < 1)
-    {
-      GNUNET_break (0);
-      ok = 1;
-      GNUNET_SCHEDULER_cancel (die_task);
-      GNUNET_SCHEDULER_add_now (&end_task, NULL);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    ok = 1;
+    GNUNET_SCHEDULER_cancel (die_task);
+    GNUNET_SCHEDULER_add_now (&end_task, NULL);
+    return;
+  }
 
   ok = strncmp (&buf[0], test_phrase, strlen (test_phrase));
 #if VERBOSE
   fprintf (stderr, "read %s\n", &buf[0]);
 #endif
   if (ok == 0)
-    {
-      GNUNET_SCHEDULER_cancel (die_task);
-      GNUNET_SCHEDULER_add_now (&end_task, NULL);
-      return;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    GNUNET_SCHEDULER_add_now (&end_task, NULL);
+    return;
+  }
 
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-				  stdout_read_handle, &read_call,
-				  stdout_read_handle);
+                                  stdout_read_handle, &read_call,
+                                  stdout_read_handle);
 
 }
 
@@ -118,16 +118,16 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
 
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
-    {
-      GNUNET_break (0);
-      ok = 1;
-      GNUNET_free (fn);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    ok = 1;
+    GNUNET_free (fn);
+    return;
+  }
 
   proc =
-    GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
-			     "test_gnunet_echo_hello", "-", NULL);
+      GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
+                               "test_gnunet_echo_hello", "-", NULL);
   GNUNET_free (fn);
 
   /* Close the write end of the read pipe */
@@ -140,26 +140,26 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Write the test_phrase to the cat process */
   if (GNUNET_DISK_file_write (wh, test_phrase, strlen (test_phrase) + 1) !=
       strlen (test_phrase) + 1)
-    {
-      GNUNET_break (0);
-      ok = 1;
-      return;
-    }
+  {
+    GNUNET_break (0);
+    ok = 1;
+    return;
+  }
 
   /* Close the write end to end the cycle! */
   GNUNET_DISK_pipe_close_end (hello_pipe_stdin, GNUNET_DISK_PIPE_END_WRITE);
 
   stdout_read_handle =
-    GNUNET_DISK_pipe_handle (hello_pipe_stdout, GNUNET_DISK_PIPE_END_READ);
+      GNUNET_DISK_pipe_handle (hello_pipe_stdout, GNUNET_DISK_PIPE_END_READ);
 
   die_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-				  (GNUNET_TIME_UNIT_MINUTES, 1), &end_task,
-				  NULL);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MINUTES, 1), &end_task,
+                                    NULL);
 
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-				  stdout_read_handle, &read_call,
-				  (void *) stdout_read_handle);
+                                  stdout_read_handle, &read_call,
+                                  (void *) stdout_read_handle);
 
 }
 
@@ -183,11 +183,11 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-os-start-process",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING",
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   ret = check ();
 
   return ret;

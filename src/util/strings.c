@@ -59,8 +59,7 @@
  *         (or number of bytes that would have been written)
  */
 size_t
-GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count,
-			    ...)
+GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count, ...)
 {
   size_t needed;
   size_t slen;
@@ -70,18 +69,18 @@ GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count,
   needed = 0;
   va_start (ap, count);
   while (count > 0)
-    {
-      s = va_arg (ap, const char *);
+  {
+    s = va_arg (ap, const char *);
 
-      slen = strlen (s) + 1;
-      if (buffer != NULL)
-	{
-	  GNUNET_assert (needed + slen <= size);
-	  memcpy (&buffer[needed], s, slen);
-	}
-      needed += slen;
-      count--;
+    slen = strlen (s) + 1;
+    if (buffer != NULL)
+    {
+      GNUNET_assert (needed + slen <= size);
+      memcpy (&buffer[needed], s, slen);
     }
+    needed += slen;
+    count--;
+  }
   va_end (ap);
   return needed;
 }
@@ -102,7 +101,7 @@ GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count,
  */
 unsigned int
 GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
-				unsigned int count, ...)
+                                unsigned int count, ...)
 {
   unsigned int start;
   unsigned int needed;
@@ -112,21 +111,21 @@ GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
   needed = 0;
   va_start (ap, count);
   while (count > 0)
-    {
-      r = va_arg (ap, const char **);
+  {
+    r = va_arg (ap, const char **);
 
-      start = needed;
-      while ((needed < size) && (buffer[needed] != '\0'))
-	needed++;
-      if (needed == size)
-	{
-	  va_end (ap);
-	  return 0;		/* error */
-	}
-      *r = &buffer[start];
-      needed++;			/* skip 0-termination */
-      count--;
+    start = needed;
+    while ((needed < size) && (buffer[needed] != '\0'))
+      needed++;
+    if (needed == size)
+    {
+      va_end (ap);
+      return 0;                 /* error */
     }
+    *r = &buffer[start];
+    needed++;                   /* skip 0-termination */
+    count--;
+  }
   va_end (ap);
   return needed;
 }
@@ -145,25 +144,25 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size)
   char *ret;
 
   if (size > 5 * 1024)
+  {
+    size = size / 1024;
+    unit = "KiB";
+    if (size > 5 * 1024)
     {
       size = size / 1024;
-      unit = "KiB";
+      unit = "MiB";
       if (size > 5 * 1024)
-	{
-	  size = size / 1024;
-	  unit = "MiB";
-	  if (size > 5 * 1024)
-	    {
-	      size = size / 1024;
-	      unit = "GiB";
-	      if (size > 5 * 1024)
-		{
-		  size = size / 1024;
-		  unit = "TiB";
-		}
-	    }
-	}
+      {
+        size = size / 1024;
+        unit = "GiB";
+        if (size > 5 * 1024)
+        {
+          size = size / 1024;
+          unit = "TiB";
+        }
+      }
     }
+  }
   ret = GNUNET_malloc (32);
   GNUNET_snprintf (ret, 32, "%llu %s", size, unit);
   return ret;
@@ -179,26 +178,42 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size)
  */
 int
 GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
-				    unsigned long long *size)
+                                    unsigned long long *size)
 {
-  struct { 
-    const char *name; 
+  struct
+  {
+    const char *name;
     unsigned long long value;
-  } table[] = {
-    { "B", 1 },
-    { "KiB", 1024 },
-    { "kB",  1000 },
-    { "MiB", 1024 * 1024 },
-    { "MB",  1000 * 1000 },
-    { "GiB", 1024 * 1024 * 1024 },
-    { "GB",  1000 * 1000 * 1000 },
-    { "TiB", 1024LL * 1024LL * 1024LL * 1024LL },
-    { "TB",  1000LL * 1000LL * 1000LL * 1024LL },
-    { "PiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL },
-    { "PB",  1000LL * 1000LL * 1000LL * 1024LL * 1000LL},
-    { "EiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL * 1024LL},
-    { "EB",  1000LL * 1000LL * 1000LL * 1024LL * 1000LL * 1000LL },
-    { NULL, 0 }
+  } table[] =
+  {
+    {
+    "B", 1},
+    {
+    "KiB", 1024},
+    {
+    "kB", 1000},
+    {
+    "MiB", 1024 * 1024},
+    {
+    "MB", 1000 * 1000},
+    {
+    "GiB", 1024 * 1024 * 1024},
+    {
+    "GB", 1000 * 1000 * 1000},
+    {
+    "TiB", 1024LL * 1024LL * 1024LL * 1024LL},
+    {
+    "TB", 1000LL * 1000LL * 1000LL * 1024LL},
+    {
+    "PiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL},
+    {
+    "PB", 1000LL * 1000LL * 1000LL * 1024LL * 1000LL},
+    {
+    "EiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL * 1024LL},
+    {
+    "EB", 1000LL * 1000LL * 1000LL * 1024LL * 1000LL * 1000LL},
+    {
+    NULL, 0}
   };
   unsigned long long ret;
   char *in;
@@ -211,9 +226,8 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
   in = GNUNET_strdup (fancy_size);
   for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
   {
-    i=0;
-    while ( (table[i].name != NULL) &&
-	    (0 != strcasecmp (table[i].name, tok) ) )
+    i = 0;
+    while ((table[i].name != NULL) && (0 != strcasecmp (table[i].name, tok)))
       i++;
     if (table[i].name != NULL)
       last *= table[i].value;
@@ -222,8 +236,8 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
       ret += last;
       last = 0;
       if (1 != sscanf (tok, "%llu", &last))
-	return GNUNET_SYSERR; /* expected number */
-    }      
+        return GNUNET_SYSERR;   /* expected number */
+    }
   }
   ret += last;
   *size = ret;
@@ -241,43 +255,54 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
  */
 int
 GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
-				       struct GNUNET_TIME_Relative *rtime)
+                                       struct GNUNET_TIME_Relative *rtime)
 {
-  struct { 
-    const char *name; 
+  struct
+  {
+    const char *name;
     unsigned long long value;
-  } table[] = {
-    { "ms", 1 },
-    { "s", 1000 },
-    { "\"", 1000 },
-    { "min",  60 * 1000 },
-    { "minutes", 60 * 1000 },
-    { "'", 60 * 1000 },
-    { "h", 60 * 60 * 1000 },
-    { "d", 24 * 60 * 60 * 1000 },
-    { "a", 31557600 /* year */ },
-    { NULL, 0 }
+  } table[] =
+  {
+    {
+    "ms", 1},
+    {
+    "s", 1000},
+    {
+    "\"", 1000},
+    {
+    "min", 60 * 1000},
+    {
+    "minutes", 60 * 1000},
+    {
+    "'", 60 * 1000},
+    {
+    "h", 60 * 60 * 1000},
+    {
+    "d", 24 * 60 * 60 * 1000},
+    {
+    "a", 31557600 /* year */ },
+    {
+    NULL, 0}
   };
   unsigned long long ret;
   char *in;
   const char *tok;
   unsigned long long last;
   unsigned int i;
-  
+
   if ((0 == strcasecmp (fancy_size, "infinity")) ||
       (0 == strcasecmp (fancy_size, "forever")))
-    {
-      *rtime = GNUNET_TIME_UNIT_FOREVER_REL;
-      return GNUNET_OK;
-    }
+  {
+    *rtime = GNUNET_TIME_UNIT_FOREVER_REL;
+    return GNUNET_OK;
+  }
   ret = 0;
   last = 0;
   in = GNUNET_strdup (fancy_size);
   for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
   {
-    i=0;
-    while ( (table[i].name != NULL) &&
-	    (0 != strcasecmp (table[i].name, tok) ) )
+    i = 0;
+    while ((table[i].name != NULL) && (0 != strcasecmp (table[i].name, tok)))
       i++;
     if (table[i].name != NULL)
       last *= table[i].value;
@@ -286,8 +311,8 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
       ret += last;
       last = 0;
       if (1 != sscanf (tok, "%llu", &last))
-	return GNUNET_SYSERR; /* expected number */
-    }      
+        return GNUNET_SYSERR;   /* expected number */
+    }
   }
   ret += last;
   rtime->rel_value = (uint64_t) ret;
@@ -317,35 +342,35 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
 
   cd = iconv_open ("UTF-8", charset);
   if (cd == (iconv_t) - 1)
-    {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "iconv_open");
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-	   _("Character set requested was `%s'\n"), charset);
-      ret = GNUNET_malloc (len + 1);
-      memcpy (ret, input, len);
-      ret[len] = '\0';
-      return ret;
-    }
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "iconv_open");
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("Character set requested was `%s'\n"),
+         charset);
+    ret = GNUNET_malloc (len + 1);
+    memcpy (ret, input, len);
+    ret[len] = '\0';
+    return ret;
+  }
   tmpSize = 3 * len + 4;
   tmp = GNUNET_malloc (tmpSize);
   itmp = tmp;
   finSize = tmpSize;
   if (iconv (cd,
 #if FREEBSD || DARWIN || WINDOWS
-	     (const char **) &input,
+             (const char **) &input,
 #else
-	     (char **) &input,
+             (char **) &input,
 #endif
-	     &len, &itmp, &finSize) == SIZE_MAX)
-    {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "iconv");
-      iconv_close (cd);
-      GNUNET_free (tmp);
-      ret = GNUNET_malloc (len + 1);
-      memcpy (ret, input, len);
-      ret[len] = '\0';
-      return ret;
-    }
+             &len, &itmp, &finSize) == SIZE_MAX)
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "iconv");
+    iconv_close (cd);
+    GNUNET_free (tmp);
+    ret = GNUNET_malloc (len + 1);
+    memcpy (ret, input, len);
+    ret[len] = '\0';
+    return ret;
+  }
   ret = GNUNET_malloc (tmpSize - finSize + 1);
   memcpy (ret, tmp, tmpSize - finSize);
   ret[tmpSize - finSize] = '\0';
@@ -392,89 +417,88 @@ GNUNET_STRINGS_filename_expand (const char *fil)
     /* absolute path, just copy */
     return GNUNET_strdup (fil);
   if (fil[0] == '~')
+  {
+    fm = getenv ("HOME");
+    if (fm == NULL)
     {
-      fm = getenv ("HOME");
-      if (fm == NULL)
-	{
-	  LOG (GNUNET_ERROR_TYPE_WARNING,
-	       _
-	       ("Failed to expand `$HOME': environment variable `HOME' not set"));
-	  return NULL;
-	}
-      fm = GNUNET_strdup (fm);
-      /* do not copy '~' */
-      fil_ptr = fil + 1;
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           _("Failed to expand `$HOME': environment variable `HOME' not set"));
+      return NULL;
+    }
+    fm = GNUNET_strdup (fm);
+    /* do not copy '~' */
+    fil_ptr = fil + 1;
 
-      /* skip over dir seperator to be consistent */
-      if (fil_ptr[0] == DIR_SEPARATOR)
-	fil_ptr++;
-    }
+    /* skip over dir seperator to be consistent */
+    if (fil_ptr[0] == DIR_SEPARATOR)
+      fil_ptr++;
+  }
   else
+  {
+    /* relative path */
+    fil_ptr = fil;
+    len = 512;
+    fm = NULL;
+    while (1)
     {
-      /* relative path */
-      fil_ptr = fil;
-      len = 512;
-      fm = NULL;
-      while (1)
-	{
-	  buffer = GNUNET_malloc (len);
-	  if (getcwd (buffer, len) != NULL)
-	    {
-	      fm = buffer;
-	      break;
-	    }
-	  if ((errno == ERANGE) && (len < 1024 * 1024 * 4))
-	    {
-	      len *= 2;
-	      GNUNET_free (buffer);
-	      continue;
-	    }
-	  GNUNET_free (buffer);
-	  break;
-	}
-      if (fm == NULL)
-	{
-	  LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "getcwd");
-	  buffer = getenv ("PWD");	/* alternative */
-	  if (buffer != NULL)
-	    fm = GNUNET_strdup (buffer);
-	}
-      if (fm == NULL)
-	fm = GNUNET_strdup ("./");	/* give up */
+      buffer = GNUNET_malloc (len);
+      if (getcwd (buffer, len) != NULL)
+      {
+        fm = buffer;
+        break;
+      }
+      if ((errno == ERANGE) && (len < 1024 * 1024 * 4))
+      {
+        len *= 2;
+        GNUNET_free (buffer);
+        continue;
+      }
+      GNUNET_free (buffer);
+      break;
     }
+    if (fm == NULL)
+    {
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "getcwd");
+      buffer = getenv ("PWD");  /* alternative */
+      if (buffer != NULL)
+        fm = GNUNET_strdup (buffer);
+    }
+    if (fm == NULL)
+      fm = GNUNET_strdup ("./");        /* give up */
+  }
   n = strlen (fm) + 1 + strlen (fil_ptr) + 1;
   buffer = GNUNET_malloc (n);
   GNUNET_snprintf (buffer, n, "%s%s%s", fm,
-		   (fm[strlen (fm) - 1] ==
-		    DIR_SEPARATOR) ? "" : DIR_SEPARATOR_STR, fil_ptr);
+                   (fm[strlen (fm) - 1] ==
+                    DIR_SEPARATOR) ? "" : DIR_SEPARATOR_STR, fil_ptr);
   GNUNET_free (fm);
   return buffer;
 #else
   fn = GNUNET_malloc (MAX_PATH + 1);
 
   if ((lRet = plibc_conv_to_win_path (fil, fn)) != ERROR_SUCCESS)
-    {
-      SetErrnoFromWinError (lRet);
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "plibc_conv_to_win_path");
-      return NULL;
-    }
+  {
+    SetErrnoFromWinError (lRet);
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "plibc_conv_to_win_path");
+    return NULL;
+  }
   /* is the path relative? */
   if ((strncmp (fn + 1, ":\\", 2) != 0) && (strncmp (fn, "\\\\", 2) != 0))
-    {
-      char szCurDir[MAX_PATH + 1];
+  {
+    char szCurDir[MAX_PATH + 1];
 
-      lRet = GetCurrentDirectory (MAX_PATH + 1, szCurDir);
-      if (lRet + strlen (fn) + 1 > (MAX_PATH + 1))
-	{
-	  SetErrnoFromWinError (ERROR_BUFFER_OVERFLOW);
-	  LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "GetCurrentDirectory");
-	  return NULL;
-	}
-      buffer = GNUNET_malloc (MAX_PATH + 1);
-      GNUNET_snprintf (buffer, MAX_PATH + 1, "%s\\%s", szCurDir, fn);
-      GNUNET_free (fn);
-      fn = buffer;
+    lRet = GetCurrentDirectory (MAX_PATH + 1, szCurDir);
+    if (lRet + strlen (fn) + 1 > (MAX_PATH + 1))
+    {
+      SetErrnoFromWinError (ERROR_BUFFER_OVERFLOW);
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "GetCurrentDirectory");
+      return NULL;
     }
+    buffer = GNUNET_malloc (MAX_PATH + 1);
+    GNUNET_snprintf (buffer, MAX_PATH + 1, "%s\\%s", szCurDir, fn);
+    GNUNET_free (fn);
+    fn = buffer;
+  }
 
   return fn;
 #endif
@@ -497,25 +521,25 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta)
   if (delta.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
     return GNUNET_strdup (_("eternity"));
   if (dval > 5 * 1000)
+  {
+    dval = dval / 1000;
+    unit = _( /* time unit */ "s");
+    if (dval > 5 * 60)
     {
-      dval = dval / 1000;
-      unit = _( /* time unit */ "s");
+      dval = dval / 60;
+      unit = _( /* time unit */ "m");
       if (dval > 5 * 60)
-	{
-	  dval = dval / 60;
-	  unit = _( /* time unit */ "m");
-	  if (dval > 5 * 60)
-	    {
-	      dval = dval / 60;
-	      unit = _( /* time unit */ "h");
-	      if (dval > 5 * 24)
-		{
-		  dval = dval / 24;
-		  unit = _( /* time unit */ " days");
-		}
-	    }
-	}
+      {
+        dval = dval / 60;
+        unit = _( /* time unit */ "h");
+        if (dval > 5 * 24)
+        {
+          dval = dval / 24;
+          unit = _( /* time unit */ " days");
+        }
+      }
     }
+  }
   GNUNET_asprintf (&ret, "%llu %s", dval, unit);
   return ret;
 }

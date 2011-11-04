@@ -162,15 +162,11 @@ display_test_result (struct TestContext *tc, int result)
 {
   if (GNUNET_YES != result)
   {
-    fprintf (stderr, 
-	     "Configuration for plugin `%s' did not work!\n",
-	     tc->name);
+    fprintf (stderr, "Configuration for plugin `%s' did not work!\n", tc->name);
   }
   else
   {
-    fprintf (stderr, 
-	     "Configuration for plugin `%s' is working!\n",
-	     tc->name);
+    fprintf (stderr, "Configuration for plugin `%s' is working!\n", tc->name);
   }
   if (GNUNET_SCHEDULER_NO_TASK != tc->tsk)
   {
@@ -184,8 +180,7 @@ display_test_result (struct TestContext *tc, int result)
   }
   GNUNET_free (tc);
   resolver_users--;
-  if ( (0 == resolver_users) &&
-       (NULL != resolver) )
+  if ((0 == resolver_users) && (NULL != resolver))
   {
     GNUNET_break (0 == GNUNET_OS_process_kill (resolver, SIGTERM));
     GNUNET_OS_process_close (resolver);
@@ -242,52 +237,46 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct TestContext *tc;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-					     "transport",
-					     "plugins",
-					     &plugins))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "transport", "plugins",
+                                             &plugins))
   {
     fprintf (stderr,
-	     _("No transport plugins configured, peer will never communicate\n"));
+             _
+             ("No transport plugins configured, peer will never communicate\n"));
     ret = 4;
     return;
   }
   for (tok = strtok (plugins, " "); tok != NULL; tok = strtok (NULL, " "))
-  {    
-    char section[12+strlen(tok)];
-    
-    GNUNET_snprintf (section,
-		     sizeof (section),
-		     "transport-%s",
-		     tok);    
+  {
+    char section[12 + strlen (tok)];
+
+    GNUNET_snprintf (section, sizeof (section), "transport-%s", tok);
     if (GNUNET_OK !=
-	GNUNET_CONFIGURATION_get_value_number (cfg, section, "PORT",
-					       &bnd_port))
-      {
-	fprintf (stderr,
-		 _("No port configured for plugin `%s', cannot test it\n"),
-		 tok);
-	continue;
-      }
+        GNUNET_CONFIGURATION_get_value_number (cfg, section, "PORT", &bnd_port))
+    {
+      fprintf (stderr,
+               _("No port configured for plugin `%s', cannot test it\n"), tok);
+      continue;
+    }
     if (GNUNET_OK !=
-	GNUNET_CONFIGURATION_get_value_number (cfg, section,
-					       "ADVERTISED_PORT", &adv_port))
+        GNUNET_CONFIGURATION_get_value_number (cfg, section, "ADVERTISED_PORT",
+                                               &adv_port))
       adv_port = bnd_port;
     if (NULL == resolver)
       resolver =
-	GNUNET_OS_start_process (NULL, NULL, "gnunet-service-resolver",
-				 "gnunet-service-resolver", NULL);
+          GNUNET_OS_start_process (NULL, NULL, "gnunet-service-resolver",
+                                   "gnunet-service-resolver", NULL);
     resolver_users++;
     GNUNET_RESOLVER_connect (cfg);
     tc = GNUNET_malloc (sizeof (struct TestContext));
     tc->name = GNUNET_strdup (tok);
     tc->tst =
-      GNUNET_NAT_test_start (cfg, 
-			     (0 == strcasecmp (tok, "udp")) 
-			     ? GNUNET_NO
-			     : GNUNET_YES,
-			     (uint16_t) bnd_port,
-                             (uint16_t) adv_port, &result_callback, tc);
+        GNUNET_NAT_test_start (cfg,
+                               (0 ==
+                                strcasecmp (tok,
+                                            "udp")) ? GNUNET_NO : GNUNET_YES,
+                               (uint16_t) bnd_port, (uint16_t) adv_port,
+                               &result_callback, tc);
     if (NULL == tc->tst)
     {
       display_test_result (tc, GNUNET_SYSERR);
@@ -303,8 +292,7 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * Shutdown, print statistics.
  */
 static void
-do_disconnect (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Relative duration;
 
@@ -317,20 +305,16 @@ do_disconnect (void *cls,
   if (benchmark_receive)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    fprintf (stdout,
-	     _("Received %llu bytes/s (%llu bytes in %llu ms)\n"),
-	     1000 * traffic_received / (1+duration.rel_value),
-	     traffic_received,
-	     (unsigned long long) duration.rel_value);
+    fprintf (stdout, _("Received %llu bytes/s (%llu bytes in %llu ms)\n"),
+             1000 * traffic_received / (1 + duration.rel_value),
+             traffic_received, (unsigned long long) duration.rel_value);
   }
   if (benchmark_send)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    fprintf (stdout,
-	     _("Transmitted %llu bytes/s (%llu bytes in %llu ms)\n"),
-	     1000 * traffic_sent / (1+duration.rel_value),
-	     traffic_sent,
-	     (unsigned long long) duration.rel_value);
+    fprintf (stdout, _("Transmitted %llu bytes/s (%llu bytes in %llu ms)\n"),
+             1000 * traffic_sent / (1 + duration.rel_value), traffic_sent,
+             (unsigned long long) duration.rel_value);
   }
 }
 
@@ -347,8 +331,7 @@ do_disconnect (void *cls,
  * @return number of bytes written to buf
  */
 static size_t
-transmit_data (void *cls, size_t size,
-	       void *buf)
+transmit_data (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *m = buf;
 
@@ -358,17 +341,12 @@ transmit_data (void *cls, size_t size,
   m->type = ntohs (GNUNET_MESSAGE_TYPE_DUMMY);
   memset (&m[1], 52, size - sizeof (struct GNUNET_MessageHeader));
   traffic_sent += size;
-  th = GNUNET_TRANSPORT_notify_transmit_ready (handle,
-					       &pid,
-					       32 * 1024,
-					       0,
-					       GNUNET_TIME_UNIT_FOREVER_REL,
-					       &transmit_data, NULL);
+  th = GNUNET_TRANSPORT_notify_transmit_ready (handle, &pid, 32 * 1024, 0,
+                                               GNUNET_TIME_UNIT_FOREVER_REL,
+                                               &transmit_data, NULL);
   if (verbosity > 0)
-    fprintf (stdout,
-	     _("Transmitting %u bytes to %s\n"),
-	     (unsigned int) size,
-	     GNUNET_i2s (&pid));
+    fprintf (stdout, _("Transmitting %u bytes to %s\n"), (unsigned int) size,
+             GNUNET_i2s (&pid));
   return size;
 }
 
@@ -383,39 +361,27 @@ transmit_data (void *cls, size_t size,
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
-notify_connect (void *cls,
-		const struct GNUNET_PeerIdentity
-		* peer,
-		const struct
-		GNUNET_ATS_Information
-		* ats, uint32_t ats_count)
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   if (verbosity > 0)
-    fprintf (stdout,
-	     _("Connected to %s\n"),
-	     GNUNET_i2s (peer));
-  if (0 != memcmp (&pid,
-		   peer,
-		   sizeof (struct GNUNET_PeerIdentity)))
+    fprintf (stdout, _("Connected to %s\n"), GNUNET_i2s (peer));
+  if (0 != memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   ret = 0;
-  if (benchmark_send) 
+  if (benchmark_send)
   {
     start_time = GNUNET_TIME_absolute_get ();
-    th = GNUNET_TRANSPORT_notify_transmit_ready (handle,
-						 peer,
-						 32 * 1024,
-						 0,
-						 GNUNET_TIME_UNIT_FOREVER_REL,
-						 &transmit_data, NULL);
+    th = GNUNET_TRANSPORT_notify_transmit_ready (handle, peer, 32 * 1024, 0,
+                                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                                 &transmit_data, NULL);
   }
   else
   {
     /* all done, terminate instantly */
     GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&do_disconnect,
-				    NULL);    
-  }  
+    end = GNUNET_SCHEDULER_add_now (&do_disconnect, NULL);
+  }
 }
 
 
@@ -427,24 +393,17 @@ notify_connect (void *cls,
  * @param peer the peer that disconnected
  */
 static void
-notify_disconnect (void *cls,
-		   const struct
-		   GNUNET_PeerIdentity * peer)
+notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (verbosity > 0)
-    fprintf (stdout,
-	     _("Disconnected from %s\n"),
-	     GNUNET_i2s (peer));
-  if ( (0 == memcmp (&pid,
-		     peer,
-		     sizeof (struct GNUNET_PeerIdentity))) &&
-       (NULL != th) )
+    fprintf (stdout, _("Disconnected from %s\n"), GNUNET_i2s (peer));
+  if ((0 == memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity))) &&
+      (NULL != th))
   {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
     th = NULL;
     GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&do_disconnect,
-				    NULL);    
+    end = GNUNET_SCHEDULER_add_now (&do_disconnect, NULL);
   }
 }
 
@@ -456,26 +415,18 @@ notify_disconnect (void *cls,
  * @param peer (claimed) identity of the other peer
  * @param message the message
  * @param ats performance data
- * @param ats_count number of entries in ats 
+ * @param ats_count number of entries in ats
  */
 static void
-notify_receive (void *cls,
-		const struct
-		GNUNET_PeerIdentity * peer,
-		const struct
-		GNUNET_MessageHeader *
-		message,
-		const struct
-		GNUNET_ATS_Information
-		* ats, uint32_t ats_count)
+notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message,
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
-  if (! benchmark_receive)
+  if (!benchmark_receive)
     return;
   if (verbosity > 0)
-    fprintf (stdout,
-	     _("Received %u bytes from %s\n"),
-	     (unsigned int) ntohs (message->size),
-	     GNUNET_i2s (peer));
+    fprintf (stdout, _("Received %u bytes from %s\n"),
+             (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
   if (traffic_received == 0)
     start_time = GNUNET_TIME_absolute_get ();
   traffic_received += ntohs (message->size);
@@ -494,11 +445,12 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   if ((peer != NULL) || (transport != NULL) ||
       ((addr != NULL) && (addrlen > 0)))
-    fprintf (stdout, 
-	     _("Peer `%s' plugin: `%s' address `%s'\n"),
+    fprintf (stdout, _("Peer `%s' plugin: `%s' address `%s'\n"),
              (peer != NULL) ? GNUNET_i2s (peer) : "<unknown>",
-             (transport != NULL) ? transport : "<unknown>", 
-	     ((addr != NULL) && (addrlen > 0) && (transport != NULL)) ?
+             (transport != NULL) ? transport : "<unknown>", ((addr != NULL) &&
+                                                             (addrlen > 0) &&
+                                                             (transport !=
+                                                              NULL)) ?
              "how do i resolve the name without transport service?" :
              "<unknown>");
 }
@@ -523,45 +475,41 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (benchmark_send && (NULL == cpid))
   {
     fprintf (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
-	     "-s", "-C");
+             "-s", "-C");
     return;
   }
   if (NULL != cpid)
   {
     ret = 1;
-    if (GNUNET_OK !=
-	GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey))
+    if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey))
     {
-      fprintf (stderr,
-	       _("Failed to parse peer identity `%s'\n"),
-	       cpid);
+      fprintf (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
       return;
     }
-    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
-				       &notify_receive, 
-				       &notify_connect,
-				       &notify_disconnect);
+    handle =
+        GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
+                                  &notify_connect, &notify_disconnect);
     GNUNET_TRANSPORT_try_connect (handle, &pid);
-    end = GNUNET_SCHEDULER_add_delayed (benchmark_send
-					? GNUNET_TIME_UNIT_FOREVER_REL
-					: GNUNET_TIME_UNIT_SECONDS,
-					&do_disconnect,
-					NULL);    
-  } else if (benchmark_receive)
+    end =
+        GNUNET_SCHEDULER_add_delayed (benchmark_send ?
+                                      GNUNET_TIME_UNIT_FOREVER_REL :
+                                      GNUNET_TIME_UNIT_SECONDS, &do_disconnect,
+                                      NULL);
+  }
+  else if (benchmark_receive)
   {
-    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
-				       &notify_receive, 
-				       &notify_connect,
-				       &notify_disconnect);
+    handle =
+        GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
+                                  &notify_connect, &notify_disconnect);
     GNUNET_TRANSPORT_try_connect (handle, &pid);
-    end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-					&do_disconnect,
-					NULL); 
+    end =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      &do_disconnect, NULL);
   }
   if (iterate_connections)
   {
     GNUNET_TRANSPORT_address_iterate (cfg, GNUNET_TIME_UNIT_MINUTES,
-				      &process_address, NULL);
+                                      &process_address, NULL);
   }
 }
 
@@ -578,20 +526,22 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_string, &cpid},
     {'i', "information", NULL,
      gettext_noop ("provide information about all current connections (once)"),
-     0, &GNUNET_GETOPT_set_one, &iterate_connections},  
+     0, &GNUNET_GETOPT_set_one, &iterate_connections},
     {'s', "send", NULL,
-     gettext_noop ("send data for benchmarking to the other peer (until CTRL-C)"),
-     0, &GNUNET_GETOPT_set_one, &benchmark_send},  
+     gettext_noop
+     ("send data for benchmarking to the other peer (until CTRL-C)"),
+     0, &GNUNET_GETOPT_set_one, &benchmark_send},
     {'t', "test", NULL,
      gettext_noop ("test transport configuration (involves external server)"),
-     0, &GNUNET_GETOPT_set_one, &test_configuration},  
-    GNUNET_GETOPT_OPTION_VERBOSE(&verbosity),
+     0, &GNUNET_GETOPT_set_one, &test_configuration},
+    GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-transport",
-                              gettext_noop ("Direct access to transport service."),
-                              options, &run, NULL)) ? ret : 1;
+                              gettext_noop
+                              ("Direct access to transport service."), options,
+                              &run, NULL)) ? ret : 1;
 }
 
 

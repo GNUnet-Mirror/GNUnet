@@ -1349,13 +1349,13 @@ send_message_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static uint32_t
 get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
-		   unsigned int atsi_count)
+                   unsigned int atsi_count)
 {
   unsigned int i;
 
-  for (i=0;i<atsi_count;i++)
+  for (i = 0; i < atsi_count; i++)
     if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
-      return ntohl (atsi->value); 
+      return ntohl (atsi->value);
   /* FIXME: we do not have distance data? Assume direct neighbor. */
   return DIRECT_NEIGHBOR_COST;
 }
@@ -1369,14 +1369,14 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
  */
 static struct GNUNET_TIME_Relative
 get_atsi_latency (const struct GNUNET_ATS_Information *atsi,
-		  unsigned int atsi_count)
+                  unsigned int atsi_count)
 {
   unsigned int i;
 
-  for (i=0;i<atsi_count;i++)
+  for (i = 0; i < atsi_count; i++)
     if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DELAY)
       return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-					    ntohl (atsi->value));
+                                            ntohl (atsi->value));
   GNUNET_break (0);
   /* how can we not have latency data? */
   return GNUNET_TIME_UNIT_SECONDS;
@@ -1398,7 +1398,7 @@ static int
 handle_dv_data_message (void *cls, const struct GNUNET_PeerIdentity *peer,
                         const struct GNUNET_MessageHeader *message,
                         const struct GNUNET_ATS_Information *atsi,
-			unsigned int atsi_count)
+                        unsigned int atsi_count)
 {
   const p2p_dv_MESSAGE_Data *incoming = (const p2p_dv_MESSAGE_Data *) message;
   const struct GNUNET_MessageHeader *packed_message;
@@ -2076,14 +2076,13 @@ static int
 handle_dv_gossip_message (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
                           const struct GNUNET_ATS_Information *atsi,
-			  unsigned int atsi_count);
+                          unsigned int atsi_count);
 
 static int
 handle_dv_disconnect_message (void *cls, const struct GNUNET_PeerIdentity *peer,
                               const struct GNUNET_MessageHeader *message,
-                              const struct GNUNET_ATS_Information
-                              *atsi,
-			      unsigned int atsi_count);
+                              const struct GNUNET_ATS_Information *atsi,
+                              unsigned int atsi_count);
 /** End forward declarations **/
 
 
@@ -2658,10 +2657,10 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity *peer,
           atsi[1].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
           atsi[1].value =
               htonl ((uint32_t) referrer->pending_messages[i].
-                     latency.rel_value);        
+                     latency.rel_value);
           handle_dv_data_message (NULL, &referrer->pending_messages[i].sender,
-                                  referrer->pending_messages[i].message,
-                                  atsi, 2);
+                                  referrer->pending_messages[i].message, atsi,
+                                  2);
           GNUNET_free (referrer->pending_messages[i].message);
           referrer->pending_messages[i].sender_id = 0;
         }
@@ -2732,9 +2731,8 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity *peer,
 static int
 handle_dv_disconnect_message (void *cls, const struct GNUNET_PeerIdentity *peer,
                               const struct GNUNET_MessageHeader *message,
-                              const struct GNUNET_ATS_Information
-                              *atsi,
-			      unsigned int atsi_count)
+                              const struct GNUNET_ATS_Information *atsi,
+                              unsigned int atsi_count)
 {
   struct DirectNeighbor *referrer;
   struct DistantNeighbor *distant;
@@ -2784,7 +2782,7 @@ static int
 handle_dv_gossip_message (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
                           const struct GNUNET_ATS_Information *atsi,
-			  unsigned int atsi_count)
+                          unsigned int atsi_count)
 {
   struct DirectNeighbor *referrer;
   p2p_dv_MESSAGE_NeighborInfo *enc_message =
@@ -3087,7 +3085,7 @@ process_peerinfo (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                      const struct GNUNET_ATS_Information *atsi,
-		     unsigned int atsi_count)
+                     unsigned int atsi_count)
 {
   struct DirectNeighbor *neighbor;
   struct DistantNeighbor *about;
@@ -3294,8 +3292,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   coreAPI = GNUNET_CORE_connect (cfg, 1, NULL,  /* FIXME: anything we want to pass around? */
                                  &core_init, &handle_core_connect,
-                                 &handle_core_disconnect, NULL, GNUNET_NO,
-                                 NULL, GNUNET_NO, core_handlers);
+                                 &handle_core_disconnect, NULL, GNUNET_NO, NULL,
+                                 GNUNET_NO, core_handlers);
 
   if (coreAPI == NULL)
     return;

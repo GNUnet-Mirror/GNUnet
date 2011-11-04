@@ -90,9 +90,7 @@ struct GNUNET_ATS_SchedulingHandle *GST_ats;
 static void
 transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
                     const struct GNUNET_ATS_Information *ats,
-                    uint32_t ats_count,
-                    const char * transport,
-                    const void * addr,
+                    uint32_t ats_count, const char *transport, const void *addr,
                     size_t addrlen)
 {
   const struct GNUNET_MessageHeader *hello = cls;
@@ -118,7 +116,7 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
 
 
 /**
- * We received some payload.  Prepare to pass it on to our clients. 
+ * We received some payload.  Prepare to pass it on to our clients.
  *
  * @param peer (claimed) identity of the other peer
  * @param message the message, never NULL
@@ -128,48 +126,45 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
  */
 static struct GNUNET_TIME_Relative
 process_payload (const struct GNUNET_PeerIdentity *peer,
-		 const struct GNUNET_MessageHeader *message,
-		 const struct GNUNET_ATS_Information *ats,
-		 uint32_t ats_count)
+                 const struct GNUNET_MessageHeader *message,
+                 const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   struct GNUNET_TIME_Relative ret;
   int do_forward;
   struct InboundMessage *im;
   size_t msg_size = ntohs (message->size);
-  size_t size = sizeof (struct InboundMessage) + msg_size + sizeof (struct GNUNET_ATS_Information) * ats_count;
+  size_t size =
+      sizeof (struct InboundMessage) + msg_size +
+      sizeof (struct GNUNET_ATS_Information) * ats_count;
   char buf[size];
   struct GNUNET_ATS_Information *ap;
-  
+
   ret = GNUNET_TIME_UNIT_ZERO;
   do_forward = GNUNET_SYSERR;
-  ret =
-    GST_neighbours_calculate_receive_delay (peer,
-                                            msg_size,
-					    &do_forward);
+  ret = GST_neighbours_calculate_receive_delay (peer, msg_size, &do_forward);
 
   if (!GST_neighbours_test_connected (peer))
   {
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Discarded %u bytes type %u payload from peer `%s'\n",
-                      msg_size,
-                      ntohs (message->type),
-                      GNUNET_i2s (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Discarded %u bytes type %u payload from peer `%s'\n", msg_size,
+                ntohs (message->type), GNUNET_i2s (peer));
 
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# bytes payload discarded due to not connected peer "),
-                              msg_size,
-                              GNUNET_NO);
+                              gettext_noop
+                              ("# bytes payload discarded due to not connected peer "),
+                              msg_size, GNUNET_NO);
     return ret;
   }
 
   if (do_forward != GNUNET_YES)
     return ret;
-  im = (struct InboundMessage*) buf;    
+  im = (struct InboundMessage *) buf;
   im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
   im->ats_count = htonl (ats_count);
   im->peer = *peer;
-  ap = (struct GNUNET_ATS_Information*) &im[1];
+  ap = (struct GNUNET_ATS_Information *) &im[1];
   memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   memcpy (&ap[ats_count], message, ntohs (message->size));
 
@@ -213,7 +208,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   const char *plugin_name = cls;
   struct GNUNET_TIME_Relative ret;
   uint16_t type;
-  
+
   ret = GNUNET_TIME_UNIT_ZERO;
   if (NULL == message)
     goto end;
@@ -231,43 +226,38 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-		"Processing `%s' from `%s'\n", "PING",
-		(sender_address != NULL) ? GST_plugins_a2s (plugin_name,
-							    sender_address,
-							    sender_address_len)
-		: "<inbound>");
+                "Processing `%s' from `%s'\n", "PING",
+                (sender_address != NULL) ? GST_plugins_a2s (plugin_name,
+                                                            sender_address,
+                                                            sender_address_len)
+                : "<inbound>");
 #endif
     GST_validation_handle_ping (peer, message, plugin_name, session,
-				sender_address, sender_address_len);
+                                sender_address, sender_address_len);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-		"Processing `%s' from `%s'\n", "PONG",
-		(sender_address != NULL) ? GST_plugins_a2s (plugin_name,
-							    sender_address,
-							    sender_address_len)
-		: "<inbound>");
+                "Processing `%s' from `%s'\n", "PONG",
+                (sender_address != NULL) ? GST_plugins_a2s (plugin_name,
+                                                            sender_address,
+                                                            sender_address_len)
+                : "<inbound>");
 #endif
     GST_validation_handle_pong (peer, message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
-    GST_neighbours_handle_connect (message,
-				   peer,
-				   plugin_name, sender_address, sender_address_len,
-				   session, ats, ats_count);
+    GST_neighbours_handle_connect (message, peer, plugin_name, sender_address,
+                                   sender_address_len, session, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK:
-    GST_neighbours_handle_connect_ack (message,
-                                   peer,
-                                   plugin_name, sender_address, sender_address_len,
-                                   session, ats, ats_count);
+    GST_neighbours_handle_connect_ack (message, peer, plugin_name,
+                                       sender_address, sender_address_len,
+                                       session, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
-    GST_neighbours_handle_ack (message,
-                                   peer,
-                                   plugin_name, sender_address, sender_address_len,
-                                   session, ats, ats_count);
+    GST_neighbours_handle_ack (message, peer, plugin_name, sender_address,
+                               sender_address_len, session, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
     GST_neighbours_handle_disconnect_message (peer, message);
@@ -277,25 +267,20 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     break;
   default:
     /* should be payload */
-    ret = process_payload (peer,
-			   message,
-			   ats, ats_count);
+    ret = process_payload (peer, message, ats, ats_count);
     break;
   }
- end:
+end:
 #if 1
   /* FIXME: this should not be needed, and not sure it's good to have it, but without
-     this connections seem to go extra-slow */
-  GNUNET_ATS_address_update (GST_ats, peer,
-			     plugin_name, sender_address, sender_address_len,
-			     session,
-			     ats, ats_count);  
+   * this connections seem to go extra-slow */
+  GNUNET_ATS_address_update (GST_ats, peer, plugin_name, sender_address,
+                             sender_address_len, session, ats, ats_count);
 #endif
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Allowing receive from peer %s to continue in %llu ms\n",
-	      GNUNET_i2s (peer),
-	      (unsigned long long) ret.rel_value);
+              "Allowing receive from peer %s to continue in %llu ms\n",
+              GNUNET_i2s (peer), (unsigned long long) ret.rel_value);
 #endif
   return ret;
 }
@@ -340,16 +325,14 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
                         struct Session *session)
 {
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Session %X to peer `%s' ended \n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
 #endif
   if (NULL != session)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO  | GNUNET_ERROR_TYPE_BULK,
-		     "transport-ats",
-		     "Telling ATS to destroy session %p from peer %s\n",
-		     session,		   
-		     GNUNET_i2s (peer));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+                     "transport-ats",
+                     "Telling ATS to destroy session %p from peer %s\n",
+                     session, GNUNET_i2s (peer));
   GNUNET_ATS_address_destroyed (GST_ats, peer, NULL, NULL, 0, session);
   GST_neighbours_session_terminated (peer, session);
 }
@@ -373,32 +356,32 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static void
 ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
-                            const char *plugin_name,
-                            const void *plugin_addr, size_t plugin_addr_len,
-                            struct Session *session,
+                            const char *plugin_name, const void *plugin_addr,
+                            size_t plugin_addr_len, struct Session *session,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                            const struct GNUNET_ATS_Information * ats,
+                            const struct GNUNET_ATS_Information *ats,
                             uint32_t ats_count)
 {
   uint32_t bw_in = ntohl (bandwidth_in.value__);
   uint32_t bw_out = ntohl (bandwidth_out.value__);
 
-  /* ATS tells me to disconnect from peer*/
+  /* ATS tells me to disconnect from peer */
   if ((bw_in == 0) && (bw_out == 0))
   {
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"ATS tells me to disconnect from peer `%s'\n",
-		GNUNET_i2s (peer));
+                "ATS tells me to disconnect from peer `%s'\n",
+                GNUNET_i2s (peer));
 #endif
-    GST_neighbours_force_disconnect(peer);
+    GST_neighbours_force_disconnect (peer);
     return;
   }
   /* will never return GNUNET_YES since connection is to be established */
   GST_neighbours_switch_to_address_3way (peer, plugin_name, plugin_addr,
-			            plugin_addr_len, session, ats, ats_count,
-			            bandwidth_in, bandwidth_out);
+                                         plugin_addr_len, session, ats,
+                                         ats_count, bandwidth_in,
+                                         bandwidth_out);
 }
 
 
@@ -414,10 +397,11 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 neighbours_connect_notification (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_ATS_Information
-                                 *ats, uint32_t ats_count)
+                                 const struct GNUNET_ATS_Information *ats,
+                                 uint32_t ats_count)
 {
-  size_t len = sizeof (struct ConnectInfoMessage) +
+  size_t len =
+      sizeof (struct ConnectInfoMessage) +
       ats_count * sizeof (struct GNUNET_ATS_Information);
   char buf[len];
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
@@ -428,8 +412,7 @@ neighbours_connect_notification (void *cls,
   connect_msg->ats_count = htonl (ats_count);
   connect_msg->id = *peer;
   ap = (struct GNUNET_ATS_Information *) &connect_msg[1];
-  memcpy (ap, ats,
-          ats_count * sizeof (struct GNUNET_ATS_Information));
+  memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   GST_clients_broadcast (&connect_msg->header, GNUNET_NO);
 }
 
@@ -548,7 +531,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GST_plugins_load (&plugin_env_receive_callback,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_end);
-  GST_ats = GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
+  GST_ats =
+      GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
   GST_neighbours_start (NULL, &neighbours_connect_notification,
                         &neighbours_disconnect_notification);
   GST_clients_start (server);

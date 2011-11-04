@@ -67,11 +67,10 @@
 struct ATS_mechanism;
 struct ATS_peer;
 
-typedef void (*GNUNET_ATS_AddressNotification) (struct ATS_peer **
-                                                          peers, int *c_p,
-                                                          struct ATS_mechanism
-                                                          ** mechanisms,
-                                                          int *c_m);
+typedef void (*GNUNET_ATS_AddressNotification) (struct ATS_peer ** peers,
+                                                int *c_p,
+                                                struct ATS_mechanism **
+                                                mechanisms, int *c_m);
 
 typedef void (*GNUNET_ATS_ResultCallback) (void);
 

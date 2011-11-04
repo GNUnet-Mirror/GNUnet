@@ -82,16 +82,16 @@ static struct DiscoveryCallback *head;
  */
 static void
 internal_notify (const GNUNET_HashCode * id,
-		 const struct GNUNET_CONTAINER_MetaData *md, int rating)
+                 const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
   struct DiscoveryCallback *pos;
 
   pos = head;
   while (pos != NULL)
-    {
-      pos->callback (pos->closure, id, md, rating);
-      pos = pos->next;
-    }
+  {
+    pos->callback (pos->closure, id, md, rating);
+    pos = pos->next;
+  }
 }
 
 /**
@@ -103,10 +103,9 @@ internal_notify (const GNUNET_HashCode * id,
  */
 int
 GNUNET_PSEUDONYM_discovery_callback_register (const struct
-					      GNUNET_CONFIGURATION_Handle
-					      *cfg,
-					      GNUNET_PSEUDONYM_Iterator
-					      iterator, void *closure)
+                                              GNUNET_CONFIGURATION_Handle *cfg,
+                                              GNUNET_PSEUDONYM_Iterator
+                                              iterator, void *closure)
 {
   struct DiscoveryCallback *list;
 
@@ -126,7 +125,7 @@ GNUNET_PSEUDONYM_discovery_callback_register (const struct
  */
 int
 GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
-						iterator, void *closure)
+                                                iterator, void *closure)
 {
   struct DiscoveryCallback *prev;
   struct DiscoveryCallback *pos;
@@ -134,11 +133,11 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
   prev = NULL;
   pos = head;
   while ((pos != NULL) &&
-	 ((pos->callback != iterator) || (pos->closure != closure)))
-    {
-      prev = pos;
-      pos = pos->next;
-    }
+         ((pos->callback != iterator) || (pos->closure != closure)))
+  {
+    prev = pos;
+    pos = pos->next;
+  }
   if (pos == NULL)
     return GNUNET_SYSERR;
   if (prev == NULL)
@@ -160,17 +159,16 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
  */
 static char *
 get_data_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		   const char *prefix, const GNUNET_HashCode * psid)
+                   const char *prefix, const GNUNET_HashCode * psid)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
   if (psid != NULL)
     GNUNET_CRYPTO_hash_to_enc (psid, &enc);
-  return GNUNET_DISK_get_home_filename (cfg, GNUNET_CLIENT_SERVICE_NAME,
-					prefix,
-					(psid ==
-					 NULL) ? NULL : (const char *) &enc,
-					NULL);
+  return GNUNET_DISK_get_home_filename (cfg, GNUNET_CLIENT_SERVICE_NAME, prefix,
+                                        (psid ==
+                                         NULL) ? NULL : (const char *) &enc,
+                                        NULL);
 }
 
 
@@ -184,9 +182,9 @@ get_data_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 static void
 write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		      const GNUNET_HashCode * nsid,
-		      const struct GNUNET_CONTAINER_MetaData *meta,
-		      int32_t ranking, const char *ns_name)
+                      const GNUNET_HashCode * nsid,
+                      const struct GNUNET_CONTAINER_MetaData *meta,
+                      int32_t ranking, const char *ns_name)
 {
   char *fn;
   struct GNUNET_BIO_WriteHandle *fileW;
@@ -195,23 +193,23 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (fn != NULL);
   fileW = GNUNET_BIO_write_open (fn);
   if (NULL != fileW)
+  {
+    if ((GNUNET_OK != GNUNET_BIO_write_int32 (fileW, ranking)) ||
+        (GNUNET_OK != GNUNET_BIO_write_string (fileW, ns_name)) ||
+        (GNUNET_OK != GNUNET_BIO_write_meta_data (fileW, meta)))
     {
-      if ((GNUNET_OK != GNUNET_BIO_write_int32 (fileW, ranking)) ||
-	  (GNUNET_OK != GNUNET_BIO_write_string (fileW, ns_name)) ||
-	  (GNUNET_OK != GNUNET_BIO_write_meta_data (fileW, meta)))
-	{
-	  (void) GNUNET_BIO_write_close (fileW);
-	  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
-	  GNUNET_free (fn);
-	  return;
-	}
-      if (GNUNET_OK != GNUNET_BIO_write_close (fileW))
-	{
-	  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
-	  GNUNET_free (fn);
-	  return;
-	}
+      (void) GNUNET_BIO_write_close (fileW);
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
+      GNUNET_free (fn);
+      return;
     }
+    if (GNUNET_OK != GNUNET_BIO_write_close (fileW))
+    {
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
+      GNUNET_free (fn);
+      return;
+    }
+  }
   GNUNET_free (fn);
   /* create entry for pseudonym name in names */
   /* FIXME: 90% of what this call does is not needed
@@ -230,9 +228,9 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 static int
 read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-	   const GNUNET_HashCode * nsid,
-	   struct GNUNET_CONTAINER_MetaData **meta, int32_t * ranking,
-	   char **ns_name)
+           const GNUNET_HashCode * nsid,
+           struct GNUNET_CONTAINER_MetaData **meta, int32_t * ranking,
+           char **ns_name)
 {
   char *fn;
   char *emsg;
@@ -242,10 +240,10 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (fn != NULL);
   fileR = GNUNET_BIO_read_open (fn);
   if (fileR == NULL)
-    {
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   emsg = NULL;
   *ns_name = NULL;
   if ((GNUNET_OK != GNUNET_BIO_read_int32 (fileR, ranking)) ||
@@ -253,30 +251,29 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
        GNUNET_BIO_read_string (fileR, "Read string error!", ns_name, 200)) ||
       (GNUNET_OK !=
        GNUNET_BIO_read_meta_data (fileR, "Read meta data error!", meta)))
-    {
-      (void) GNUNET_BIO_read_close (fileR, &emsg);
-      GNUNET_free_non_null (emsg);
-      GNUNET_free_non_null (*ns_name);
-      *ns_name = NULL;
-      GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    (void) GNUNET_BIO_read_close (fileR, &emsg);
+    GNUNET_free_non_null (emsg);
+    GNUNET_free_non_null (*ns_name);
+    *ns_name = NULL;
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   if (GNUNET_OK != GNUNET_BIO_read_close (fileR, &emsg))
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-	   _
-	   ("Failed to parse metadata about pseudonym from file `%s': %s\n"),
-	   fn, emsg);
-      GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
-      GNUNET_CONTAINER_meta_data_destroy (*meta);
-      *meta = NULL;
-      GNUNET_free_non_null (*ns_name);
-      *ns_name = NULL;
-      GNUNET_free_non_null (emsg);
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("Failed to parse metadata about pseudonym from file `%s': %s\n"), fn,
+         emsg);
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
+    GNUNET_CONTAINER_meta_data_destroy (*meta);
+    *meta = NULL;
+    GNUNET_free_non_null (*ns_name);
+    *ns_name = NULL;
+    GNUNET_free_non_null (emsg);
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   GNUNET_free (fn);
   return GNUNET_OK;
 }
@@ -292,7 +289,7 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 char *
 GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     const GNUNET_HashCode * nsid)
+                             const GNUNET_HashCode * nsid)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
   char *name;
@@ -310,25 +307,25 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
   meta = NULL;
   name = NULL;
   if (GNUNET_OK == read_info (cfg, nsid, &meta, rank, &name))
+  {
+    if ((meta != NULL) && (name == NULL))
+      name =
+          GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
+                                                         EXTRACTOR_METATYPE_TITLE,
+                                                         EXTRACTOR_METATYPE_FILENAME,
+                                                         EXTRACTOR_METATYPE_DESCRIPTION,
+                                                         EXTRACTOR_METATYPE_SUBJECT,
+                                                         EXTRACTOR_METATYPE_PUBLISHER,
+                                                         EXTRACTOR_METATYPE_AUTHOR_NAME,
+                                                         EXTRACTOR_METATYPE_COMMENT,
+                                                         EXTRACTOR_METATYPE_SUMMARY,
+                                                         -1);
+    if (meta != NULL)
     {
-      if ((meta != NULL) && (name == NULL))
-	name =
-	  GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
-							 EXTRACTOR_METATYPE_TITLE,
-							 EXTRACTOR_METATYPE_FILENAME,
-							 EXTRACTOR_METATYPE_DESCRIPTION,
-							 EXTRACTOR_METATYPE_SUBJECT,
-							 EXTRACTOR_METATYPE_PUBLISHER,
-							 EXTRACTOR_METATYPE_AUTHOR_NAME,
-							 EXTRACTOR_METATYPE_COMMENT,
-							 EXTRACTOR_METATYPE_SUMMARY,
-							 -1);
-      if (meta != NULL)
-	{
-	  GNUNET_CONTAINER_meta_data_destroy (meta);
-	  meta = NULL;
-	}
+      GNUNET_CONTAINER_meta_data_destroy (meta);
+      meta = NULL;
     }
+  }
   if (name == NULL)
     name = GNUNET_strdup (_("no-name"));
   GNUNET_CRYPTO_hash (name, strlen (name), &nh);
@@ -339,31 +336,31 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (0 == STAT (fn, &sbuf))
     GNUNET_DISK_file_size (fn, &len, GNUNET_YES);
   fh = GNUNET_DISK_file_open (fn,
-			      GNUNET_DISK_OPEN_CREATE |
-			      GNUNET_DISK_OPEN_READWRITE,
-			      GNUNET_DISK_PERM_USER_READ |
-			      GNUNET_DISK_PERM_USER_WRITE);
+                              GNUNET_DISK_OPEN_CREATE |
+                              GNUNET_DISK_OPEN_READWRITE,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE);
   i = 0;
   idx = -1;
   while ((len >= sizeof (GNUNET_HashCode)) &&
-	 (sizeof (GNUNET_HashCode) ==
-	  GNUNET_DISK_file_read (fh, &nh, sizeof (GNUNET_HashCode))))
-    {
-      if (0 == memcmp (&nh, nsid, sizeof (GNUNET_HashCode)))
-	{
-	  idx = i;
-	  break;
-	}
-      i++;
-      len -= sizeof (GNUNET_HashCode);
-    }
-  if (idx == -1)
+         (sizeof (GNUNET_HashCode) ==
+          GNUNET_DISK_file_read (fh, &nh, sizeof (GNUNET_HashCode))))
+  {
+    if (0 == memcmp (&nh, nsid, sizeof (GNUNET_HashCode)))
     {
       idx = i;
-      if (sizeof (GNUNET_HashCode) !=
-	  GNUNET_DISK_file_write (fh, nsid, sizeof (GNUNET_HashCode)))
-	LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "write", fn);
+      break;
     }
+    i++;
+    len -= sizeof (GNUNET_HashCode);
+  }
+  if (idx == -1)
+  {
+    idx = i;
+    if (sizeof (GNUNET_HashCode) !=
+        GNUNET_DISK_file_write (fh, nsid, sizeof (GNUNET_HashCode)))
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "write", fn);
+  }
   GNUNET_DISK_file_close (fh);
   ret = GNUNET_malloc (strlen (name) + 32);
   GNUNET_snprintf (ret, strlen (name) + 32, "%s-%u", name, idx);
@@ -382,7 +379,7 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     const char *ns_uname, GNUNET_HashCode * nsid)
+                             const char *ns_uname, GNUNET_HashCode * nsid)
 {
   size_t slen;
   uint64_t len;
@@ -408,24 +405,24 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if ((GNUNET_OK != GNUNET_DISK_file_test (fn) ||
        (GNUNET_OK != GNUNET_DISK_file_size (fn, &len, GNUNET_YES))) ||
       ((idx + 1) * sizeof (GNUNET_HashCode) > len))
-    {
-      GNUNET_free (fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   fh = GNUNET_DISK_file_open (fn,
-			      GNUNET_DISK_OPEN_CREATE |
-			      GNUNET_DISK_OPEN_READWRITE,
-			      GNUNET_DISK_PERM_USER_READ |
-			      GNUNET_DISK_PERM_USER_WRITE);
+                              GNUNET_DISK_OPEN_CREATE |
+                              GNUNET_DISK_OPEN_READWRITE,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_free (fn);
   GNUNET_DISK_file_seek (fh, idx * sizeof (GNUNET_HashCode),
-			 GNUNET_DISK_SEEK_SET);
+                         GNUNET_DISK_SEEK_SET);
   if (sizeof (GNUNET_HashCode) !=
       GNUNET_DISK_file_read (fh, nsid, sizeof (GNUNET_HashCode)))
-    {
-      GNUNET_DISK_file_close (fh);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_DISK_file_close (fh);
+    return GNUNET_SYSERR;
+  }
   GNUNET_DISK_file_close (fh);
   return GNUNET_OK;
 }
@@ -475,15 +472,15 @@ list_pseudonym_helper (void *cls, const char *fullname)
   if (strlen (fullname) < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded))
     return GNUNET_OK;
   fn = &fullname[strlen (fullname) + 1 -
-		 sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)];
+                 sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)];
   if (fn[-1] != DIR_SEPARATOR)
     return GNUNET_OK;
   ret = GNUNET_OK;
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (fn, &id))
-    return GNUNET_OK;		/* invalid name */
+    return GNUNET_OK;           /* invalid name */
   str = NULL;
   if (GNUNET_OK != read_info (c->cfg, &id, &meta, &rating, &str))
-    return GNUNET_OK;		/* ignore entry */
+    return GNUNET_OK;           /* ignore entry */
   GNUNET_free_non_null (str);
   if (c->iterator != NULL)
     ret = c->iterator (c->closure, &id, meta, rating);
@@ -502,7 +499,7 @@ list_pseudonym_helper (void *cls, const char *fullname)
  */
 int
 GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			   GNUNET_PSEUDONYM_Iterator iterator, void *closure)
+                           GNUNET_PSEUDONYM_Iterator iterator, void *closure)
 {
   struct ListPseudonymClosure cls;
   char *fn;
@@ -531,7 +528,7 @@ GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		       const GNUNET_HashCode * nsid, int delta)
+                       const GNUNET_HashCode * nsid, int delta)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
   int ret;
@@ -541,10 +538,10 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
   name = NULL;
   ret = read_info (cfg, nsid, &meta, &ranking, &name);
   if (ret == GNUNET_SYSERR)
-    {
-      ranking = 0;
-      meta = GNUNET_CONTAINER_meta_data_create ();
-    }
+  {
+    ranking = 0;
+    meta = GNUNET_CONTAINER_meta_data_create ();
+  }
   ranking += delta;
   write_pseudonym_info (cfg, nsid, meta, ranking, name);
   GNUNET_CONTAINER_meta_data_destroy (meta);
@@ -564,8 +561,8 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		      const GNUNET_HashCode * id,
-		      const struct GNUNET_CONTAINER_MetaData *meta)
+                      const GNUNET_HashCode * id,
+                      const struct GNUNET_CONTAINER_MetaData *meta)
 {
   char *name;
   int32_t ranking;
@@ -579,16 +576,16 @@ GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if ((0 == STAT (fn, &sbuf)) &&
       (GNUNET_OK == read_info (cfg, id, &old, &ranking, &name)))
-    {
-      GNUNET_CONTAINER_meta_data_merge (old, meta);
-      write_pseudonym_info (cfg, id, old, ranking, name);
-      GNUNET_CONTAINER_meta_data_destroy (old);
-      GNUNET_free_non_null (name);
-    }
+  {
+    GNUNET_CONTAINER_meta_data_merge (old, meta);
+    write_pseudonym_info (cfg, id, old, ranking, name);
+    GNUNET_CONTAINER_meta_data_destroy (old);
+    GNUNET_free_non_null (name);
+  }
   else
-    {
-      write_pseudonym_info (cfg, id, meta, ranking, NULL);
-    }
+  {
+    write_pseudonym_info (cfg, id, meta, ranking, NULL);
+  }
   GNUNET_free (fn);
   internal_notify (id, meta, ranking);
 }

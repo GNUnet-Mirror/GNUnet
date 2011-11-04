@@ -37,12 +37,12 @@ struct PendingMessage
 
   /**
    * Kept in a DLL.
-   */ 
+   */
   struct PendingMessage *next;
 
   /**
    * Kept in a DLL.
-   */ 
+   */
   struct PendingMessage *prev;
 
   /**
@@ -52,7 +52,7 @@ struct PendingMessage
 
   /**
    * Is this the 'ATS_START' message?
-   */ 
+   */
   int is_init;
 };
 
@@ -65,19 +65,19 @@ struct GNUNET_ATS_ReservationContext
 
   /**
    * Kept in a DLL.
-   */ 
+   */
   struct GNUNET_ATS_ReservationContext *next;
 
   /**
    * Kept in a DLL.
-   */ 
+   */
   struct GNUNET_ATS_ReservationContext *prev;
 
   /**
    * Target peer.
    */
   struct GNUNET_PeerIdentity peer;
-			    
+
   /**
    * Desired reservation
    */
@@ -110,7 +110,7 @@ struct GNUNET_ATS_ReservationContext
  */
 struct GNUNET_ATS_PerformanceHandle
 {
- 
+
   /**
    * Our configuration.
    */
@@ -120,7 +120,7 @@ struct GNUNET_ATS_PerformanceHandle
    * Callback to invoke on performance changes.
    */
   GNUNET_ATS_PeerInformationCallback infocb;
-  
+
   /**
    * Closure for 'infocb'.
    */
@@ -158,9 +158,9 @@ struct GNUNET_ATS_PerformanceHandle
 
   /**
    * Task to trigger reconnect.
-   */ 
+   */
   GNUNET_SCHEDULER_TaskIdentifier task;
-  
+
 };
 
 
@@ -180,8 +180,7 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph);
  * @param tc scheduler context
  */
 static void
-reconnect_task (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_ATS_PerformanceHandle *ph = cls;
 
@@ -209,9 +208,7 @@ do_transmit (struct GNUNET_ATS_PerformanceHandle *ph);
  * @return number of bytes copied into buf
  */
 static size_t
-transmit_message_to_ats (void *cls,
-			 size_t size,
-			 void *buf)
+transmit_message_to_ats (void *cls, size_t size, void *buf)
 {
   struct GNUNET_ATS_PerformanceHandle *ph = cls;
   struct PendingMessage *p;
@@ -221,15 +218,12 @@ transmit_message_to_ats (void *cls,
   ph->th = NULL;
   ret = 0;
   cbuf = buf;
-  while ( (NULL != (p = ph->pending_head)) &&
-	  (p->size <= size) )
+  while ((NULL != (p = ph->pending_head)) && (p->size <= size))
   {
-    memcpy (&cbuf[ret], &p[1], p->size);    
+    memcpy (&cbuf[ret], &p[1], p->size);
     ret += p->size;
     size -= p->size;
-    GNUNET_CONTAINER_DLL_remove (ph->pending_head,
-				 ph->pending_tail,
-				 p);
+    GNUNET_CONTAINER_DLL_remove (ph->pending_head, ph->pending_tail, p);
     GNUNET_free (p);
   }
   do_transmit (ph);
@@ -253,12 +247,12 @@ do_transmit (struct GNUNET_ATS_PerformanceHandle *ph)
   if (NULL == (p = ph->pending_head))
     return;
   if (NULL == ph->client)
-    return; /* currently reconnecting */
-  ph->th = GNUNET_CLIENT_notify_transmit_ready (ph->client,
-						p->size,
-						GNUNET_TIME_UNIT_FOREVER_REL,
-						GNUNET_YES,
-						&transmit_message_to_ats, ph);
+    return;                     /* currently reconnecting */
+  ph->th =
+      GNUNET_CLIENT_notify_transmit_ready (ph->client, p->size,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_YES, &transmit_message_to_ats,
+                                           ph);
 }
 
 
@@ -271,7 +265,7 @@ do_transmit (struct GNUNET_ATS_PerformanceHandle *ph)
  */
 static int
 process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
-		    const struct GNUNET_MessageHeader *msg)
+                    const struct GNUNET_MessageHeader *msg)
 {
   const struct PeerInformationMessage *pi;
   const struct GNUNET_ATS_Information *atsi;
@@ -285,37 +279,31 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
-  }    
+  }
   if (ntohs (msg->size) < sizeof (struct PeerInformationMessage))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  pi = (const struct PeerInformationMessage*) msg;
+  pi = (const struct PeerInformationMessage *) msg;
   ats_count = ntohl (pi->ats_count);
   address_length = ntohs (pi->address_length);
   plugin_name_length = ntohs (pi->plugin_name_length);
-  atsi = (const struct GNUNET_ATS_Information*) &pi[1];
-  address = (const char*) &atsi[ats_count];
+  atsi = (const struct GNUNET_ATS_Information *) &pi[1];
+  address = (const char *) &atsi[ats_count];
   plugin_name = &address[address_length];
-  if ( (address_length +
-	plugin_name_length +
-	ats_count * sizeof (struct GNUNET_ATS_Information) +
-	sizeof (struct PeerInformationMessage) != ntohs (msg->size))  ||
-       (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)) ||
-       (plugin_name[plugin_name_length - 1] != '\0') )
+  if ((address_length + plugin_name_length +
+       ats_count * sizeof (struct GNUNET_ATS_Information) +
+       sizeof (struct PeerInformationMessage) != ntohs (msg->size)) ||
+      (ats_count >
+       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information))
+      || (plugin_name[plugin_name_length - 1] != '\0'))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  ph->infocb (ph->infocb_cls,
-	      &pi->peer,
-	      plugin_name,
-	      address, address_length,
-	      pi->bandwidth_out,
-	      pi->bandwidth_in,
-	      atsi,
-	      ats_count);
+  ph->infocb (ph->infocb_cls, &pi->peer, plugin_name, address, address_length,
+              pi->bandwidth_out, pi->bandwidth_in, atsi, ats_count);
   return GNUNET_OK;
 }
 
@@ -329,7 +317,7 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
  */
 static int
 process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
-		    const struct GNUNET_MessageHeader *msg)
+                    const struct GNUNET_MessageHeader *msg)
 {
   const struct ReservationResultMessage *rr;
   struct GNUNET_ATS_ReservationContext *rc;
@@ -340,28 +328,21 @@ process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  rr = (const struct ReservationResultMessage*) msg;
+  rr = (const struct ReservationResultMessage *) msg;
   amount = ntohl (rr->amount);
   rc = ph->reservation_head;
-  if (0 != memcmp (&rr->peer,
-		   &rc->peer,
-		   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != memcmp (&rr->peer, &rc->peer, sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_CONTAINER_DLL_remove (ph->reservation_head,
-			       ph->reservation_tail,
-			       rc);
-  if ( (amount == 0) ||
-       (rc->rcb != NULL) )
+  GNUNET_CONTAINER_DLL_remove (ph->reservation_head, ph->reservation_tail, rc);
+  if ((amount == 0) || (rc->rcb != NULL))
   {
     /* tell client if not cancelled */
     if (rc->rcb != NULL)
-      rc->rcb (rc->rcb_cls,
-	       &rr->peer,
-	       amount,
-	      GNUNET_TIME_relative_ntoh (rr->res_delay));	
+      rc->rcb (rc->rcb_cls, &rr->peer, amount,
+               GNUNET_TIME_relative_ntoh (rr->res_delay));
     GNUNET_free (rc);
     return GNUNET_OK;
   }
@@ -369,7 +350,7 @@ process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
   if (GNUNET_YES != rc->undo)
   {
     GNUNET_free (rc);
-    return GNUNET_OK; /* do not try to undo failed undos or negative amounts */
+    return GNUNET_OK;           /* do not try to undo failed undos or negative amounts */
   }
   GNUNET_free (rc);
   (void) GNUNET_ATS_reserve_bandwidth (ph, &rr->peer, -amount, NULL, NULL);
@@ -385,12 +366,11 @@ process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-process_ats_message (void *cls,
-		     const struct GNUNET_MessageHeader *msg)
+process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_ATS_PerformanceHandle *ph = cls;
 
-  if (NULL == msg) 
+  if (NULL == msg)
     goto reconnect;
   switch (ntohs (msg->type))
   {
@@ -400,22 +380,22 @@ process_ats_message (void *cls,
     break;
   case GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT:
     if (GNUNET_OK != process_rr_message (ph, msg))
-      goto reconnect;    
+      goto reconnect;
     break;
   default:
     GNUNET_break (0);
     goto reconnect;
     return;
   }
-  GNUNET_CLIENT_receive (ph->client,
-			 &process_ats_message, ph,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_CLIENT_receive (ph->client, &process_ats_message, ph,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   return;
- reconnect:
+reconnect:
   GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
   ph->client = NULL;
-  ph->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-					   &reconnect_task, ph);
+  ph->task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect_task,
+                                    ph);
 }
 
 
@@ -433,25 +413,22 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
   GNUNET_assert (NULL == ph->client);
   ph->client = GNUNET_CLIENT_connect ("ats", ph->cfg);
   GNUNET_assert (NULL != ph->client);
-  GNUNET_CLIENT_receive (ph->client,
-			 &process_ats_message, ph,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
-  if ( (NULL == (p = ph->pending_head)) ||
-       (GNUNET_YES != p->is_init) )
+  GNUNET_CLIENT_receive (ph->client, &process_ats_message, ph,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
+  if ((NULL == (p = ph->pending_head)) || (GNUNET_YES != p->is_init))
   {
     p = GNUNET_malloc (sizeof (struct PendingMessage) +
-		       sizeof (struct ClientStartMessage));
+                       sizeof (struct ClientStartMessage));
     p->size = sizeof (struct ClientStartMessage);
     p->is_init = GNUNET_YES;
     init = (struct ClientStartMessage *) &p[1];
     init->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_START);
     init->header.size = htons (sizeof (struct ClientStartMessage));
-    init->start_flag = htonl ((ph->infocb == NULL) 
-			      ? START_FLAG_PERFORMANCE_NO_PIC 
-			      : START_FLAG_PERFORMANCE_WITH_PIC);
-    GNUNET_CONTAINER_DLL_insert (ph->pending_head,
-				 ph->pending_tail,
-				 p);
+    init->start_flag =
+        htonl ((ph->infocb ==
+                NULL) ? START_FLAG_PERFORMANCE_NO_PIC :
+               START_FLAG_PERFORMANCE_WITH_PIC);
+    GNUNET_CONTAINER_DLL_insert (ph->pending_head, ph->pending_tail, p);
   }
   do_transmit (ph);
 }
@@ -468,8 +445,8 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
  */
 struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     GNUNET_ATS_PeerInformationCallback infocb,
-			     void *infocb_cls)
+                             GNUNET_ATS_PeerInformationCallback infocb,
+                             void *infocb_cls)
 {
   struct GNUNET_ATS_PerformanceHandle *ph;
 
@@ -492,22 +469,19 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
 {
   struct PendingMessage *p;
   struct GNUNET_ATS_ReservationContext *rc;
-  
+
   while (NULL != (p = ph->pending_head))
   {
-    GNUNET_CONTAINER_DLL_remove (ph->pending_head,
-				 ph->pending_tail,
-				 p);
+    GNUNET_CONTAINER_DLL_remove (ph->pending_head, ph->pending_tail, p);
     GNUNET_free (p);
   }
   while (NULL != (rc = ph->reservation_head))
   {
-    GNUNET_CONTAINER_DLL_remove (ph->reservation_head,
-				 ph->reservation_tail,
-				 rc);
+    GNUNET_CONTAINER_DLL_remove (ph->reservation_head, ph->reservation_tail,
+                                 rc);
     GNUNET_break (NULL == rc->rcb);
     GNUNET_free (rc);
-  }  
+  }
   if (GNUNET_SCHEDULER_NO_TASK != ph->task)
   {
     GNUNET_SCHEDULER_cancel (ph->task);
@@ -538,10 +512,9 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
  */
 struct GNUNET_ATS_ReservationContext *
 GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
-			      const struct GNUNET_PeerIdentity *peer,
-			      int32_t amount, 
-			      GNUNET_ATS_ReservationCallback rcb, 
-			      void *rcb_cls)
+                              const struct GNUNET_PeerIdentity *peer,
+                              int32_t amount,
+                              GNUNET_ATS_ReservationCallback rcb, void *rcb_cls)
 {
   struct GNUNET_ATS_ReservationContext *rc;
   struct PendingMessage *p;
@@ -552,24 +525,21 @@ GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
   rc->peer = *peer;
   rc->rcb = rcb;
   rc->rcb_cls = rcb_cls;
-  if ( (rcb != NULL) && (amount > 0) )
+  if ((rcb != NULL) && (amount > 0))
     rc->undo = GNUNET_YES;
-  GNUNET_CONTAINER_DLL_insert_tail (ph->reservation_head,
-				    ph->reservation_tail,
-				    rc);
-  
-  p = GNUNET_malloc (sizeof (struct PendingMessage) + 
-		     sizeof (struct ReservationRequestMessage));
+  GNUNET_CONTAINER_DLL_insert_tail (ph->reservation_head, ph->reservation_tail,
+                                    rc);
+
+  p = GNUNET_malloc (sizeof (struct PendingMessage) +
+                     sizeof (struct ReservationRequestMessage));
   p->size = sizeof (struct ReservationRequestMessage);
   p->is_init = GNUNET_NO;
-  m = (struct ReservationRequestMessage*) &p[1];
+  m = (struct ReservationRequestMessage *) &p[1];
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST);
   m->header.size = htons (sizeof (struct ReservationRequestMessage));
   m->amount = htonl (amount);
   m->peer = *peer;
-  GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head,
-				    ph->pending_tail,
-				    p);
+  GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head, ph->pending_tail, p);
   do_transmit (ph);
   return rc;
 }
@@ -581,8 +551,7 @@ GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
  * @param rc context returned by the original GNUNET_ATS_reserve_bandwidth call
  */
 void
-GNUNET_ATS_reserve_bandwidth_cancel (struct
-				     GNUNET_ATS_ReservationContext *rc)
+GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc)
 {
   rc->rcb = NULL;
 }
@@ -591,15 +560,14 @@ GNUNET_ATS_reserve_bandwidth_cancel (struct
 /**
  * Change preferences for the given peer. Preference changes are forgotten if peers
  * disconnect.
- * 
+ *
  * @param ph performance handle
  * @param peer identifies the peer
  * @param ... 0-terminated specification of the desired changes
  */
 void
 GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
-			      const struct GNUNET_PeerIdentity *peer,
-			      ...)
+                              const struct GNUNET_PeerIdentity *peer, ...)
 {
   struct PendingMessage *p;
   struct ChangePreferenceMessage *m;
@@ -611,60 +579,63 @@ GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
 
   count = 0;
   va_start (ap, peer);
-  while (GNUNET_ATS_PREFERENCE_END != (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind)))
+  while (GNUNET_ATS_PREFERENCE_END !=
+         (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind)))
   {
     switch (kind)
     {
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
       count++;
       (void) va_arg (ap, double);
+
       break;
     case GNUNET_ATS_PREFERENCE_LATENCY:
       count++;
       (void) va_arg (ap, double);
+
       break;
     default:
-      GNUNET_assert (0);      
+      GNUNET_assert (0);
     }
   }
   va_end (ap);
-  msize = count * sizeof (struct PreferenceInformation) +
-    sizeof (struct ChangePreferenceMessage);
-  p = GNUNET_malloc (sizeof (struct PendingMessage) + 
-		     msize);
+  msize =
+      count * sizeof (struct PreferenceInformation) +
+      sizeof (struct ChangePreferenceMessage);
+  p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   p->size = msize;
   p->is_init = GNUNET_NO;
-  m = (struct ChangePreferenceMessage*) &p[1];
+  m = (struct ChangePreferenceMessage *) &p[1];
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE);
   m->header.size = htons (msize);
   m->num_preferences = htonl (count);
   m->peer = *peer;
-  pi = (struct PreferenceInformation*) &m[1];
+  pi = (struct PreferenceInformation *) &m[1];
   count = 0;
   va_start (ap, peer);
-  while (GNUNET_ATS_PREFERENCE_END != (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind)))
+  while (GNUNET_ATS_PREFERENCE_END !=
+         (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind)))
   {
     pi[count].preference_kind = htonl (kind);
     switch (kind)
     {
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
       pi[count].preference_value = (float) va_arg (ap, double);
+
       count++;
       break;
     case GNUNET_ATS_PREFERENCE_LATENCY:
       pi[count].preference_value = (float) va_arg (ap, double);
+
       count++;
       break;
     default:
-      GNUNET_assert (0);      
+      GNUNET_assert (0);
     }
   }
   va_end (ap);
-  GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head,
-				    ph->pending_tail,
-				    p);
+  GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head, ph->pending_tail, p);
   do_transmit (ph);
 }
 
 /* end of ats_api_performance.c */
-

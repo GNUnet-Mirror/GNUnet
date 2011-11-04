@@ -56,10 +56,10 @@ update_network_size_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
                               double logestimate, double std_dev)
 {
   GNUNET_STATISTICS_update (GDS_stats,
-			    gettext_noop ("# Network size estimates received"), 1,
-			    GNUNET_NO);
+                            gettext_noop ("# Network size estimates received"),
+                            1, GNUNET_NO);
   /* do not allow estimates < 0.5 */
-  log_of_network_size_estimate = GNUNET_MAX (0.5, logestimate);  
+  log_of_network_size_estimate = GNUNET_MAX (0.5, logestimate);
 }
 
 
@@ -90,9 +90,9 @@ GDS_NSE_init ()
  */
 void
 GDS_NSE_done ()
-{  
+{
   if (NULL != nse)
-    {
+  {
     GNUNET_NSE_disconnect (nse);
     nse = NULL;
   }

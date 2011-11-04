@@ -171,8 +171,8 @@ handle_dv_message_received (void *cls, struct GNUNET_PeerIdentity *sender,
 
   plugin->env->receive (plugin->env->cls, sender,
                         (struct GNUNET_MessageHeader *) msg,
-                        (const struct GNUNET_ATS_Information *) &ats,
-                        2, NULL, sender_address, sender_address_len);
+                        (const struct GNUNET_ATS_Information *) &ats, 2, NULL,
+                        sender_address, sender_address_len);
 
 }
 

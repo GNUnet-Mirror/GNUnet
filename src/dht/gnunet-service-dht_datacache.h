@@ -44,18 +44,17 @@
  */
 void
 GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
-			  const GNUNET_HashCode *key,
-			  unsigned int put_path_length,
-			  const struct GNUNET_PeerIdentity *put_path,
-			  enum GNUNET_BLOCK_Type type,
-			  size_t data_size,
-			  const void *data);
+                          const GNUNET_HashCode * key,
+                          unsigned int put_path_length,
+                          const struct GNUNET_PeerIdentity *put_path,
+                          enum GNUNET_BLOCK_Type type, size_t data_size,
+                          const void *data);
 
 
 /**
  * Handle a GET request we've received from another peer.
  *
- * @param key the query 
+ * @param key the query
  * @param type requested data type
  * @param xquery extended query
  * @param xquery_size number of bytes in xquery
@@ -63,19 +62,18 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
  * @param reply_bf_mutator mutation value for reply_bf
  * @return evaluation result for the local replies
  */
-enum GNUNET_BLOCK_EvaluationResult 
-GDS_DATACACHE_handle_get (const GNUNET_HashCode *key,
-			  enum GNUNET_BLOCK_Type type,
-			  const void *xquery,
-			  size_t xquery_size,
-			  struct GNUNET_CONTAINER_BloomFilter **reply_bf,
-			  uint32_t reply_bf_mutator);
+enum GNUNET_BLOCK_EvaluationResult
+GDS_DATACACHE_handle_get (const GNUNET_HashCode * key,
+                          enum GNUNET_BLOCK_Type type, const void *xquery,
+                          size_t xquery_size,
+                          struct GNUNET_CONTAINER_BloomFilter **reply_bf,
+                          uint32_t reply_bf_mutator);
 
 
 /**
  * Initialize datacache subsystem.
  */
-void 
+void
 GDS_DATACACHE_init (void);
 
 

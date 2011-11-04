@@ -77,19 +77,21 @@ block_plugin_dht_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   if (GNUNET_OK != GNUNET_HELLO_get_id (hello, &pid))
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   if (NULL != bf)
+  {
+    GNUNET_BLOCK_mingle_hash (&pid.hashPubKey, bf_mutator, &mhash);
+    if (NULL != *bf)
     {
-      GNUNET_BLOCK_mingle_hash (&pid.hashPubKey, bf_mutator, &mhash);
-      if (NULL != *bf)
-	{
-	  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
-	    return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-	}
-      else
-	{
-	  *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, GNUNET_CONSTANTS_BLOOMFILTER_K);
-	}
-      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
+      if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+        return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
     }
+    else
+    {
+      *bf =
+          GNUNET_CONTAINER_bloomfilter_init (NULL, 8,
+                                             GNUNET_CONSTANTS_BLOOMFILTER_K);
+    }
+    GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
+  }
   return GNUNET_BLOCK_EVALUATION_OK_MORE;
 }
 

@@ -122,7 +122,8 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 5), &do_shutdown, NULL);
+                                (GNUNET_TIME_UNIT_SECONDS, 5), &do_shutdown,
+                                NULL);
 }
 
 

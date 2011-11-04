@@ -63,9 +63,8 @@ typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
                                                  const struct
                                                  GNUNET_PeerIdentity * peer,
                                                  const struct
-                                                 GNUNET_ATS_Information
-                                                 * atsi,
-						 unsigned int atsi_count);
+                                                 GNUNET_ATS_Information * atsi,
+                                                 unsigned int atsi_count);
 
 
 /**
@@ -97,10 +96,8 @@ typedef int (*GNUNET_CORE_MessageCallback) (void *cls,
                                             other,
                                             const struct GNUNET_MessageHeader *
                                             message,
-                                            const struct
-                                            GNUNET_ATS_Information *
-                                            atsi,
-					    unsigned int atsi_count);
+                                            const struct GNUNET_ATS_Information
+                                            * atsi, unsigned int atsi_count);
 
 
 /**
@@ -142,7 +139,8 @@ struct GNUNET_CORE_MessageHandler
  */
 typedef void (*GNUNET_CORE_StartupCallback) (void *cls,
                                              struct GNUNET_CORE_Handle * server,
-                                             const struct GNUNET_PeerIdentity *my_identity);
+                                             const struct GNUNET_PeerIdentity *
+                                             my_identity);
 
 
 /**

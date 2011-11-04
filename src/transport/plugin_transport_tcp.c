@@ -696,10 +696,9 @@ do_transmit (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
                                  session->pending_messages_tail, pos);
     GNUNET_assert (size >= pos->message_size);
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		     "tcp",
-		     "Transmitting message of type %u\n",
-		     ntohs (((struct GNUNET_MessageHeader*)pos->msg)->type));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+                     "Transmitting message of type %u\n",
+                     ntohs (((struct GNUNET_MessageHeader *) pos->msg)->type));
     /* FIXME: this memcpy can be up to 7% of our total runtime */
     memcpy (cbuf, pos->msg, pos->message_size);
     cbuf += pos->message_size;
@@ -1002,7 +1001,7 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   {
     if (addrlen == sizeof (struct IPv6TcpAddress))
     {
-      GNUNET_assert (NULL != addr); /* make static analysis happy */
+      GNUNET_assert (NULL != addr);     /* make static analysis happy */
       t6 = addr;
       af = AF_INET6;
       memset (&a6, 0, sizeof (a6));
@@ -1019,7 +1018,7 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     }
     else if (addrlen == sizeof (struct IPv4TcpAddress))
     {
-      GNUNET_assert (NULL != addr); /* make static analysis happy */
+      GNUNET_assert (NULL != addr);     /* make static analysis happy */
       t4 = addr;
       af = AF_INET;
       memset (&a4, 0, sizeof (a4));
@@ -1073,7 +1072,7 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
 
       /* append pm to pending_messages list */
       GNUNET_CONTAINER_DLL_insert_tail (session->pending_messages_head,
-                                         session->pending_messages_tail, pm);
+                                        session->pending_messages_tail, pm);
 
       GNUNET_assert (GNUNET_CONTAINER_multihashmap_put
                      (plugin->nat_wait_conns, &target->hashPubKey, session,
@@ -1129,16 +1128,14 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     /* check if session is valid */
     struct Session *ses = plugin->sessions;
 
-    if (0 != memcmp (target,
-		     &session->target,
-		     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 !=
+        memcmp (target, &session->target, sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_break (0);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Got session %p for `%s', but should be for peer `%s'!\n",
-		  session,
-		  GNUNET_i2s (&session->target),
-		  GNUNET_h2s (&target->hashPubKey));
+                  "Got session %p for `%s', but should be for peer `%s'!\n",
+                  session, GNUNET_i2s (&session->target),
+                  GNUNET_h2s (&target->hashPubKey));
       return -1;
     }
 
@@ -1170,7 +1167,7 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
 
   /* append pm to pending_messages list */
   GNUNET_CONTAINER_DLL_insert_tail (session->pending_messages_head,
-				    session->pending_messages_tail, pm);
+                                    session->pending_messages_tail, pm);
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Asked to transmit %u bytes to `%s', added message to list.\n",
@@ -1741,8 +1738,8 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   distance.value = htonl (1);
   delay =
       plugin->env->receive (plugin->env->cls, &session->target, message,
-                            (const struct GNUNET_ATS_Information *)
-                            &distance, 1, session,
+                            (const struct GNUNET_ATS_Information *) &distance,
+                            1, session,
                             (GNUNET_YES ==
                              session->inbound) ? NULL : session->connect_addr,
                             (GNUNET_YES ==

@@ -339,7 +339,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   std_dev = sqrt (variance);
   current_std_dev = std_dev;
   current_size_estimate = mean;
-  
+
   em->header.size = htons (sizeof (struct GNUNET_NSE_ClientMessage));
   em->header.type = htons (GNUNET_MESSAGE_TYPE_NSE_ESTIMATE);
   em->reserved = htonl (0);
@@ -637,7 +637,8 @@ setup_flood_message (unsigned int slot, struct GNUNET_TIME_Absolute ts)
   fm->pkey = my_public_key;
   fm->proof_of_work = my_proof;
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CRYPTO_rsa_sign (my_private_key, &fm->purpose, &fm->signature));
+                 GNUNET_CRYPTO_rsa_sign (my_private_key, &fm->purpose,
+                                         &fm->signature));
 }
 
 
@@ -826,9 +827,11 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
           size_estimate_messages[i].proof_of_work = my_proof;
           GNUNET_assert (GNUNET_OK ==
-			 GNUNET_CRYPTO_rsa_sign (my_private_key,
-						 &size_estimate_messages[i].purpose,
-						 &size_estimate_messages[i].signature));
+                         GNUNET_CRYPTO_rsa_sign (my_private_key,
+                                                 &size_estimate_messages
+                                                 [i].purpose,
+                                                 &size_estimate_messages
+                                                 [i].signature));
         }
       write_proof ();
       return;
@@ -944,7 +947,7 @@ static int
 handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
                           const struct GNUNET_ATS_Information *atsi,
-			  unsigned int atsi_count)
+                          unsigned int atsi_count)
 {
   const struct GNUNET_NSE_FloodMessage *incoming_flood;
   struct GNUNET_TIME_Absolute ts;
@@ -1100,7 +1103,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                      const struct GNUNET_ATS_Information *atsi,
-		     unsigned int atsi_count)
+                     unsigned int atsi_count)
 {
   struct NSEPeerEntry *peer_entry;
 

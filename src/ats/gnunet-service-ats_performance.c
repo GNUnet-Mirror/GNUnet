@@ -40,13 +40,13 @@ struct PerformanceClient
   /**
    * Next in doubly-linked list.
    */
-  struct PerformanceClient * next;
+  struct PerformanceClient *next;
 
   /**
    * Previous in doubly-linked list.
    */
-  struct PerformanceClient * prev;
-  
+  struct PerformanceClient *prev;
+
   /**
    * Actual handle to the client.
    */
@@ -69,7 +69,7 @@ static struct PerformanceClient *pc_head;
  * Tail of linked list of all clients to this service.
  */
 static struct PerformanceClient *pc_tail;
- 
+
 /**
  * Context for sending messages to performance clients.
  */
@@ -82,10 +82,10 @@ static struct GNUNET_SERVER_NotificationContext *nc;
  * @param client server handle
  * @return internal handle
  */
-static struct PerformanceClient * 
+static struct PerformanceClient *
 find_client (struct GNUNET_SERVER_Client *client)
 {
-  struct PerformanceClient * pc;
+  struct PerformanceClient *pc;
 
   for (pc = pc_head; pc != NULL; pc = pc->next)
     if (pc->client == client)
@@ -101,9 +101,9 @@ find_client (struct GNUNET_SERVER_Client *client)
  */
 void
 GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
-			    enum StartFlag flag)
+                            enum StartFlag flag)
 {
-  struct PerformanceClient * pc;
+  struct PerformanceClient *pc;
 
   GNUNET_break (NULL == find_client (client));
   pc = GNUNET_malloc (sizeof (struct PerformanceClient));
@@ -111,7 +111,7 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   pc->flag = flag;
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_client_keep (client);
-  GNUNET_CONTAINER_DLL_insert(pc_head, pc_tail, pc);
+  GNUNET_CONTAINER_DLL_insert (pc_head, pc_tail, pc);
 }
 
 
@@ -124,7 +124,7 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
 void
 GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
 {
-  struct PerformanceClient * pc;
+  struct PerformanceClient *pc;
 
   pc = find_client (client);
   if (NULL == pc)
@@ -150,25 +150,30 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
  */
 void
 GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
-				const char *plugin_name,
-				const void *plugin_addr, size_t plugin_addr_len,
-				const struct GNUNET_ATS_Information *atsi,
-				uint32_t atsi_count,				
-				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+                                const char *plugin_name,
+                                const void *plugin_addr, size_t plugin_addr_len,
+                                const struct GNUNET_ATS_Information *atsi,
+                                uint32_t atsi_count,
+                                struct GNUNET_BANDWIDTH_Value32NBO
+                                bandwidth_out,
+                                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct PerformanceClient *pc;
   struct PeerInformationMessage *msg;
   size_t plugin_name_length = strlen (plugin_name) + 1;
-  size_t msize = sizeof (struct PeerInformationMessage) + atsi_count * sizeof (struct GNUNET_ATS_Information) 
-    + plugin_addr_len + plugin_name_length;
+  size_t msize =
+      sizeof (struct PeerInformationMessage) +
+      atsi_count * sizeof (struct GNUNET_ATS_Information) + plugin_addr_len +
+      plugin_name_length;
   char buf[msize];
   struct GNUNET_ATS_Information *atsp;
   char *addrp;
 
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  GNUNET_assert (atsi_count < GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information));
-  msg = (struct PeerInformationMessage*) buf;
+  GNUNET_assert (atsi_count <
+                 GNUNET_SERVER_MAX_MESSAGE_SIZE /
+                 sizeof (struct GNUNET_ATS_Information));
+  msg = (struct PeerInformationMessage *) buf;
   msg->header.size = htons (msize);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION);
   msg->ats_count = htonl (atsi_count);
@@ -177,22 +182,19 @@ GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
   msg->plugin_name_length = htons (plugin_name_length);
   msg->bandwidth_out = bandwidth_out;
   msg->bandwidth_in = bandwidth_in;
-  atsp = (struct GNUNET_ATS_Information* ) &msg[1];
+  atsp = (struct GNUNET_ATS_Information *) &msg[1];
   memcpy (atsp, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
-  addrp = (char*) &atsp[atsi_count];
+  addrp = (char *) &atsp[atsi_count];
   memcpy (addrp, plugin_addr, plugin_addr_len);
   strcpy (&addrp[plugin_addr_len], plugin_name);
   for (pc = pc_head; pc != NULL; pc = pc->next)
     if (pc->flag == START_FLAG_PERFORMANCE_WITH_PIC)
     {
-      GNUNET_SERVER_notification_context_unicast (nc,
-						  pc->client,
-						  &msg->header,
-						  GNUNET_YES);
+      GNUNET_SERVER_notification_context_unicast (nc, pc->client, &msg->header,
+                                                  GNUNET_YES);
       GNUNET_STATISTICS_update (GSA_stats,
-				"# performance updates given to clients",
-				1,
-				GNUNET_NO);
+                                "# performance updates given to clients", 1,
+                                GNUNET_NO);
     }
 }
 
@@ -206,9 +208,10 @@ GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
  */
 void
 GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
-				const struct GNUNET_MessageHeader *message)
+                                const struct GNUNET_MessageHeader *message)
 {
-  const struct ReservationRequestMessage * msg = (const struct ReservationRequestMessage *) message;
+  const struct ReservationRequestMessage *msg =
+      (const struct ReservationRequestMessage *) message;
   struct ReservationResultMessage result;
   int32_t amount;
   struct GNUNET_TIME_Relative res_delay;
@@ -220,12 +223,10 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received `%s' message\n",
-	      "RESERVATION_REQUEST");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
+              "RESERVATION_REQUEST");
   amount = (int32_t) ntohl (msg->amount);
-  res_delay = GAS_reservations_reserve (&msg->peer,
-					amount);
+  res_delay = GAS_reservations_reserve (&msg->peer, amount);
   if (res_delay.rel_value > 0)
     amount = 0;
   result.header.size = htons (sizeof (struct ReservationResultMessage));
@@ -233,14 +234,10 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
   result.amount = htonl (amount);
   result.peer = msg->peer;
   result.res_delay = GNUNET_TIME_relative_hton (res_delay);
-  GNUNET_STATISTICS_update (GSA_stats,
-			    "# reservation requests processed",
-			    1,
-			    GNUNET_NO);
-  GNUNET_SERVER_notification_context_unicast (nc,
-					      client,
-					      &result.header,
-					      GNUNET_NO);
+  GNUNET_STATISTICS_update (GSA_stats, "# reservation requests processed", 1,
+                            GNUNET_NO);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &result.header,
+                                              GNUNET_NO);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -254,15 +251,16 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
  */
 void
 GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
-			      const struct GNUNET_MessageHeader *message)
+                              const struct GNUNET_MessageHeader *message)
 {
-  const struct ChangePreferenceMessage * msg;
+  const struct ChangePreferenceMessage *msg;
   const struct PreferenceInformation *pi;
   uint16_t msize;
   uint32_t nump;
   uint32_t i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "PREFERENCE_CHANGE");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
+              "PREFERENCE_CHANGE");
   msize = ntohs (message->size);
   if (msize < sizeof (struct ChangePreferenceMessage))
   {
@@ -272,21 +270,22 @@ GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
   }
   msg = (const struct ChangePreferenceMessage *) message;
   nump = ntohl (msg->num_preferences);
-  if (msize != sizeof (struct ChangePreferenceMessage) + nump * sizeof (struct PreferenceInformation))
+  if (msize !=
+      sizeof (struct ChangePreferenceMessage) +
+      nump * sizeof (struct PreferenceInformation))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_STATISTICS_update (GSA_stats,
-			    "# preference change requests processed",
-			    1,
-			    GNUNET_NO);
+  GNUNET_STATISTICS_update (GSA_stats, "# preference change requests processed",
+                            1, GNUNET_NO);
   pi = (const struct PreferenceInformation *) &msg[1];
-  for (i=0;i<nump;i++)
+  for (i = 0; i < nump; i++)
     GAS_addresses_change_preference (&msg->peer,
-				     (enum GNUNET_ATS_PreferenceKind) ntohl (pi[i].preference_kind),
-				     pi[i].preference_value);
+                                     (enum GNUNET_ATS_PreferenceKind)
+                                     ntohl (pi[i].preference_kind),
+                                     pi[i].preference_value);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

@@ -65,7 +65,7 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier timer_task;
 
-struct GNUNET_TRANSPORT_TESTING_handle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
 struct PeerContext *p1;
 
@@ -161,8 +161,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received message of type %d from peer %s!\n",
@@ -171,8 +170,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
               GNUNET_i2s (peer), cls);
@@ -240,23 +238,24 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   timer_task = GNUNET_SCHEDULER_add_now (&timer, NULL);
 }
 
-void start_cb (struct PeerContext * p,
-               void *cls)
+void
+start_cb (struct PeerContext *p, void *cls)
 {
   static int started;
+
   started++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') started\n",
-       p->no,
-       GNUNET_i2s (&p->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') started\n", p->no,
+              GNUNET_i2s (&p->id));
 
   if (started != 2)
     return;
 
   char *sender_c = strdup (GNUNET_i2s (&p1->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
-              p1->no, sender_c,
-              p2->no, GNUNET_i2s (&p2->id));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
+              p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
 
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
                                                NULL);
@@ -269,17 +268,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1,  1,
-                                            &notify_receive,
-                                            &notify_connect,
-                                            &notify_disconnect,
-                                            &start_cb,
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1, 1,
+                                            &notify_receive, &notify_connect,
+                                            &notify_disconnect, &start_cb,
                                             NULL);
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
-                                            &notify_receive,
-                                            &notify_connect,
-                                            &notify_disconnect,
-                                            &start_cb,
+                                            &notify_receive, &notify_connect,
+                                            &notify_disconnect, &start_cb,
                                             NULL);
 
   if ((p1 == NULL) || (p2 == NULL))
@@ -314,8 +309,8 @@ check ()
 
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-transport-api-timeout", "nohelp", options,
-                      &run, &ok);
+                      "test-transport-api-timeout", "nohelp", options, &run,
+                      &ok);
 
   return ok;
 }

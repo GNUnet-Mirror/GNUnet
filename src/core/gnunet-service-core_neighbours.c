@@ -158,10 +158,10 @@ free_neighbour (struct Neighbour *n)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
     n->th = NULL;
   }
-  GNUNET_STATISTICS_update (GSC_stats, 
-			    gettext_noop ("# sessions terminated by transport disconnect"),
-			    1,
-			    GNUNET_NO);
+  GNUNET_STATISTICS_update (GSC_stats,
+                            gettext_noop
+                            ("# sessions terminated by transport disconnect"),
+                            1, GNUNET_NO);
   GSC_SESSIONS_end (&n->peer);
   if (NULL != n->kxinfo)
   {
@@ -175,8 +175,9 @@ free_neighbour (struct Neighbour *n)
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_remove (neighbours,
-						       &n->peer.hashPubKey, n));
-  GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# neighbour entries allocated"),
+                                                       &n->peer.hashPubKey, n));
+  GNUNET_STATISTICS_set (GSC_stats,
+                         gettext_noop ("# neighbour entries allocated"),
                          GNUNET_CONTAINER_multihashmap_size (neighbours),
                          GNUNET_NO);
   GNUNET_free (n);
@@ -239,10 +240,10 @@ transmit_ready (void *cls, size_t size, void *buf)
   ret = m->size;
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Copied message of type %u and size %u into transport buffer for `%4s'\n",
-	      (unsigned int)
-	      ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
-	      (unsigned int) ret, GNUNET_i2s (&n->peer));
+              "Copied message of type %u and size %u into transport buffer for `%4s'\n",
+              (unsigned int)
+              ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
+              (unsigned int) ret, GNUNET_i2s (&n->peer));
 #endif
   GNUNET_free (m);
   process_queue (n);
@@ -271,7 +272,7 @@ process_queue (struct Neighbour *n)
   if (m == NULL)
   {
     /* notify sessions that the queue is empty and more messages
-       could thus be queued now */
+     * could thus be queued now */
     GSC_SESSIONS_solicit (&n->peer);
     return;
   }
@@ -283,12 +284,10 @@ process_queue (struct Neighbour *n)
               GNUNET_TIME_absolute_get_remaining (m->deadline).rel_value);
 #endif
   n->th =
-       GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size,
-					       0,
-					       GNUNET_TIME_absolute_get_remaining
-					       (m->deadline),
-					       &transmit_ready,
-					       n);
+      GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size, 0,
+                                              GNUNET_TIME_absolute_get_remaining
+                                              (m->deadline), &transmit_ready,
+                                              n);
   if (n->th != NULL)
     return;
   /* message request too large or duplicate request */
@@ -313,8 +312,8 @@ process_queue (struct Neighbour *n)
 static void
 handle_transport_notify_connect (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_ATS_Information
-                                 *atsi, uint32_t atsi_count)
+                                 const struct GNUNET_ATS_Information *atsi,
+                                 uint32_t atsi_count)
 {
   struct Neighbour *n;
 
@@ -340,7 +339,8 @@ handle_transport_notify_connect (void *cls,
                  GNUNET_CONTAINER_multihashmap_put (neighbours,
                                                     &n->peer.hashPubKey, n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# neighbour entries allocated"),
+  GNUNET_STATISTICS_set (GSC_stats,
+                         gettext_noop ("# neighbour entries allocated"),
                          GNUNET_CONTAINER_multihashmap_size (neighbours),
                          GNUNET_NO);
   n->kxinfo = GSC_KX_start (peer);
@@ -423,9 +423,7 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     GSC_KX_handle_pong (n->kxinfo, message);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
-    GSC_KX_handle_encrypted_message (n->kxinfo,
-				     message, atsi,
-				     atsi_count);
+    GSC_KX_handle_encrypted_message (n->kxinfo, message, atsi, atsi_count);
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -438,15 +436,15 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 /**
  * Transmit the given message to the given target.
- * 
+ *
  * @param target peer that should receive the message (must be connected)
  * @param msg message to transmit
  * @param timeout by when should the transmission be done?
  */
 void
 GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
-			 const struct GNUNET_MessageHeader *msg,
-			 struct GNUNET_TIME_Relative timeout)
+                         const struct GNUNET_MessageHeader *msg,
+                         struct GNUNET_TIME_Relative timeout)
 {
   struct NeighbourMessageEntry *me;
   struct Neighbour *n;
@@ -463,9 +461,7 @@ GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
   me->deadline = GNUNET_TIME_relative_to_absolute (timeout);
   me->size = msize;
   memcpy (&me[1], msg, msize);
-  GNUNET_CONTAINER_DLL_insert_tail (n->message_head,
-				    n->message_tail,
-				    me);
+  GNUNET_CONTAINER_DLL_insert_tail (n->message_head, n->message_tail, me);
   process_queue (n);
 }
 
@@ -478,8 +474,7 @@ GSC_NEIGHBOURS_init ()
 {
   neighbours = GNUNET_CONTAINER_multihashmap_create (128);
   transport =
-      GNUNET_TRANSPORT_connect (GSC_cfg, 
-				&GSC_my_identity, NULL,
+      GNUNET_TRANSPORT_connect (GSC_cfg, &GSC_my_identity, NULL,
                                 &handle_transport_receive,
                                 &handle_transport_notify_connect,
                                 &handle_transport_notify_disconnect);
@@ -530,4 +525,3 @@ GSC_NEIGHBOURS_done ()
 }
 
 /* end of gnunet-service-core_neighbours.c */
-

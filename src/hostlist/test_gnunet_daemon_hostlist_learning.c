@@ -299,7 +299,7 @@ static int
 ad_arrive_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                    const struct GNUNET_MessageHeader *message,
                    const struct GNUNET_ATS_Information *atsi,
-		   unsigned int atsi_count)
+                   unsigned int atsi_count)
 {
   char *hostname;
   char *expected_uri;
@@ -392,8 +392,8 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
     GNUNET_free (filename);
   }
   p->core =
-    GNUNET_CORE_connect (p->cfg, 1, NULL, NULL, NULL, NULL, NULL,
-                           GNUNET_NO, NULL, GNUNET_NO, learn_handlers);
+      GNUNET_CORE_connect (p->cfg, 1, NULL, NULL, NULL, NULL, NULL, GNUNET_NO,
+                           NULL, GNUNET_NO, learn_handlers);
   GNUNET_assert (NULL != p->core);
   p->stats = GNUNET_STATISTICS_create ("hostlist", p->cfg);
   GNUNET_assert (NULL != p->stats);

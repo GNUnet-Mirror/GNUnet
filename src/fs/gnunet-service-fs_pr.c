@@ -216,10 +216,10 @@ refresh_bloomfilter (struct GSF_PendingRequest *pr)
   if (pr->bf != NULL)
     GNUNET_CONTAINER_bloomfilter_free (pr->bf);
   pr->mingle =
-    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
-  pr->bf = GNUNET_BLOCK_construct_bloomfilter (pr->mingle,
-					       pr->replies_seen,
-					       pr->replies_seen_count);
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+  pr->bf =
+      GNUNET_BLOCK_construct_bloomfilter (pr->mingle, pr->replies_seen,
+                                          pr->replies_seen_count);
 }
 
 
@@ -319,7 +319,8 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   if (NULL != bf_data)
   {
     pr->bf =
-        GNUNET_CONTAINER_bloomfilter_init (bf_data, bf_size, GNUNET_CONSTANTS_BLOOMFILTER_K);
+        GNUNET_CONTAINER_bloomfilter_init (bf_data, bf_size,
+                                           GNUNET_CONSTANTS_BLOOMFILTER_K);
     pr->mingle = mingle;
   }
   else if ((replies_seen_count > 0) &&
@@ -433,17 +434,16 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
       pr->mingle =
           GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
       pr->bf =
-	GNUNET_BLOCK_construct_bloomfilter (pr->mingle,
-					    replies_seen,
-					    replies_seen_count);
-    } 
+          GNUNET_BLOCK_construct_bloomfilter (pr->mingle, replies_seen,
+                                              replies_seen_count);
+    }
     else
     {
       for (i = 0; i < pr->replies_seen_count; i++)
-	{
-	  GNUNET_BLOCK_mingle_hash (&replies_seen[i], pr->mingle, &mhash);
-	  GNUNET_CONTAINER_bloomfilter_add (pr->bf, &mhash);
-	}
+      {
+        GNUNET_BLOCK_mingle_hash (&replies_seen[i], pr->mingle, &mhash);
+        GNUNET_CONTAINER_bloomfilter_add (pr->bf, &mhash);
+      }
     }
   }
 }
@@ -970,10 +970,10 @@ static void
 handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
                   const GNUNET_HashCode * key,
                   const struct GNUNET_PeerIdentity *get_path,
-		  unsigned int get_path_length,
+                  unsigned int get_path_length,
                   const struct GNUNET_PeerIdentity *put_path,
-		  unsigned int put_path_length,
-                  enum GNUNET_BLOCK_Type type, size_t size, const void *data)
+                  unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                  size_t size, const void *data)
 {
   struct GSF_PendingRequest *pr = cls;
   struct ProcessReplyClosure prq;
@@ -1051,11 +1051,10 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
   pr->gh =
       GNUNET_DHT_get_start (GSF_dht, GNUNET_TIME_UNIT_FOREVER_REL,
                             pr->public_data.type, &pr->public_data.query,
-                            5 /* DEFAULT_GET_REPLICATION */,
-                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, 
-			    /* FIXME: can no longer pass pr->bf/pr->mingle... */
-                            xquery, xquery_size, &handle_dht_reply,
-                            pr);
+                            5 /* DEFAULT_GET_REPLICATION */ ,
+                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                            /* FIXME: can no longer pass pr->bf/pr->mingle... */
+                            xquery, xquery_size, &handle_dht_reply, pr);
 }
 
 
@@ -1231,16 +1230,17 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                   /* queue priority */ ,
                                   (0 !=
                                    (GSF_PRO_PRIORITY_UNLIMITED &
-                                    pr->public_data.options)) ? UINT_MAX : datastore_queue_size
+                                    pr->public_data.options)) ? UINT_MAX :
+                                  datastore_queue_size
                                   /* max queue size */ ,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
     if (NULL != pr->qe)
-      return;                   /* we're done */    
+      return;                   /* we're done */
     GNUNET_STATISTICS_update (GSF_stats,
-			      gettext_noop
-			      ("# Datastore lookups concluded (error queueing)"),
-			      1, GNUNET_NO);
+                              gettext_noop
+                              ("# Datastore lookups concluded (error queueing)"),
+                              1, GNUNET_NO);
     goto check_error_and_continue;
   }
   old_rf = pr->public_data.results_found;
@@ -1270,7 +1270,8 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                   /* queue priority */ ,
                                   (0 !=
                                    (GSF_PRO_PRIORITY_UNLIMITED &
-                                    pr->public_data.options)) ? UINT_MAX : datastore_queue_size
+                                    pr->public_data.options)) ? UINT_MAX :
+                                  datastore_queue_size
                                   /* max queue size */ ,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
@@ -1329,7 +1330,8 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                 /* queue priority */ ,
                                 (0 !=
                                  (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                  public_data.options)) ? UINT_MAX : datastore_queue_size
+                                  public_data.options)) ? UINT_MAX :
+                                datastore_queue_size
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
@@ -1353,21 +1355,24 @@ check_error_and_continue:
 
 /**
  * Is the given target a legitimate peer for forwarding the given request?
- * 
+ *
  * @param pr request
  * @param target
  * @return GNUNET_YES if this request could be forwarded to the given peer
  */
 int
 GSF_pending_request_test_target_ (struct GSF_PendingRequest *pr,
-				  const struct GNUNET_PeerIdentity *target)
+                                  const struct GNUNET_PeerIdentity *target)
 {
   struct GNUNET_PeerIdentity pi;
-  
+
   if (0 == pr->origin_pid)
     return GNUNET_YES;
   GNUNET_PEER_resolve (pr->origin_pid, &pi);
-  return (0 == memcmp (&pi, target, sizeof (struct GNUNET_PeerIdentity))) ? GNUNET_NO :GNUNET_YES;
+  return (0 ==
+          memcmp (&pi, target,
+                  sizeof (struct GNUNET_PeerIdentity))) ? GNUNET_NO :
+      GNUNET_YES;
 }
 
 
@@ -1405,16 +1410,17 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                                 /* queue priority */ ,
                                 (0 !=
                                  (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                  public_data.options)) ? UINT_MAX : datastore_queue_size
+                                  public_data.options)) ? UINT_MAX :
+                                datastore_queue_size
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
   if (NULL != pr->qe)
     return;
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop
-			    ("# Datastore lookups concluded (error queueing)"),
-			    1, GNUNET_NO);
+                            gettext_noop
+                            ("# Datastore lookups concluded (error queueing)"),
+                            1, GNUNET_NO);
   GNUNET_SCHEDULER_cancel (pr->warn_task);
   pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
   pr->llc_cont = NULL;
@@ -1566,10 +1572,8 @@ GSF_pending_request_init_ ()
                 "MAX_PENDING_REQUESTS");
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (GSF_cfg,
-					     "core",
-					     "TOTAL_QUOTA_OUT",
-					     &bps))
+      GNUNET_CONFIGURATION_get_value_number (GSF_cfg, "core", "TOTAL_QUOTA_OUT",
+                                             &bps))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _
@@ -1578,9 +1582,10 @@ GSF_pending_request_init_ ()
     bps = 65536;
   }
   /* queue size should be #queries we can have pending and satisfy within
-     a carry interval: */
-  datastore_queue_size = bps * GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY_S / DBLOCK_SIZE;
-  
+   * a carry interval: */
+  datastore_queue_size =
+      bps * GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY_S / DBLOCK_SIZE;
+
   active_to_migration =
       GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg, "FS", "CONTENT_CACHING");
   datastore_put_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);

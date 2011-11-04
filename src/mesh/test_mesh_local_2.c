@@ -268,10 +268,9 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                  &peer_disconnected, (void *) &two);
   GNUNET_MESH_peer_request_connect_by_type (t, 1);
   test_task =
-      GNUNET_SCHEDULER_add_delayed (
-        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
-        &do_connect_peer_1,
-        cfg);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 5),
+                                    &do_connect_peer_1, cfg);
 }
 
 

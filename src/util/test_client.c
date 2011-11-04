@@ -71,25 +71,24 @@ copy_msg (void *cls, size_t size, void *buf)
  */
 static void
 echo_cb (void *cls, struct GNUNET_SERVER_Client *client,
-	 const struct GNUNET_MessageHeader *message)
+         const struct GNUNET_MessageHeader *message)
 {
   struct CopyContext *cc;
   struct GNUNET_MessageHeader *cpy;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Receiving message from client, bouncing back\n");
-  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
-		 ntohs (message->size));
+              "Receiving message from client, bouncing back\n");
+  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size));
   cc = GNUNET_malloc (sizeof (struct CopyContext));
   cc->client = client;
   cpy = GNUNET_malloc (ntohs (message->size));
   memcpy (cpy, message, ntohs (message->size));
   cc->cpy = cpy;
   GNUNET_assert (NULL !=
-		 GNUNET_SERVER_notify_transmit_ready (client,
-						      ntohs (message->size),
-						      GNUNET_TIME_UNIT_SECONDS,
-						      &copy_msg, cc));
+                 GNUNET_SERVER_notify_transmit_ready (client,
+                                                      ntohs (message->size),
+                                                      GNUNET_TIME_UNIT_SECONDS,
+                                                      &copy_msg, cc));
 }
 
 
@@ -105,13 +104,11 @@ recv_bounce (void *cls, const struct GNUNET_MessageHeader *got)
   int *ok = cls;
   struct GNUNET_MessageHeader msg;
 
-  GNUNET_assert (got != NULL);	/* timeout */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Receiving bounce, checking content\n");
+  GNUNET_assert (got != NULL);  /* timeout */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving bounce, checking content\n");
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_assert (0 ==
-		 memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
+  GNUNET_assert (0 == memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
   GNUNET_CLIENT_disconnect (client, GNUNET_YES);
   client = NULL;
   GNUNET_SERVER_destroy (server);
@@ -151,9 +148,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
   server =
-    GNUNET_SERVER_create (NULL, NULL, sap, slens,
-			  GNUNET_TIME_relative_multiply
-			  (GNUNET_TIME_UNIT_MILLISECONDS, 10000), GNUNET_NO);
+      GNUNET_SERVER_create (NULL, NULL, sap, slens,
+                            GNUNET_TIME_relative_multiply
+                            (GNUNET_TIME_UNIT_MILLISECONDS, 10000), GNUNET_NO);
   GNUNET_assert (server != NULL);
   handlers[0].callback_cls = cls;
   handlers[1].callback_cls = cls;
@@ -161,15 +158,15 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   client = GNUNET_CLIENT_connect (MYNAME, cfg);
   GNUNET_assert (client != NULL);
   GNUNET_assert (NULL !=
-		 GNUNET_CLIENT_notify_transmit_ready (client,
-						      sizeof (struct
-							      GNUNET_MessageHeader),
-						      GNUNET_TIME_UNIT_SECONDS,
-						      GNUNET_NO, &make_msg,
-						      NULL));
+                 GNUNET_CLIENT_notify_transmit_ready (client,
+                                                      sizeof (struct
+                                                              GNUNET_MessageHeader),
+                                                      GNUNET_TIME_UNIT_SECONDS,
+                                                      GNUNET_NO, &make_msg,
+                                                      NULL));
   GNUNET_CLIENT_receive (client, &recv_bounce, cls,
-			 GNUNET_TIME_relative_multiply
-			 (GNUNET_TIME_UNIT_MILLISECONDS, 10000));
+                         GNUNET_TIME_relative_multiply
+                         (GNUNET_TIME_UNIT_MILLISECONDS, 10000));
 }
 
 
@@ -184,10 +181,9 @@ check ()
 
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_number (cfg, MYNAME, "PORT", PORT);
-  GNUNET_CONFIGURATION_set_value_string (cfg, MYNAME, "HOSTNAME",
-					 "localhost");
+  GNUNET_CONFIGURATION_set_value_string (cfg, MYNAME, "HOSTNAME", "localhost");
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
-					 "localhost");
+                                         "localhost");
   ok = 1;
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
@@ -201,11 +197,11 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test_client",
 #if VERBOSE
-		    "DEBUG",
+                    "DEBUG",
 #else
-		    "WARNING",
+                    "WARNING",
 #endif
-		    NULL);
+                    NULL);
   ret += check ();
 
   return ret;

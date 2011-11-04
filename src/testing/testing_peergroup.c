@@ -591,8 +591,8 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 
     GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
     GNUNET_free_non_null (pg_start_ctx->fail_reason);
-      pg_start_ctx->fail_reason =
-          GNUNET_strdup ("from continue startup (timeout)");
+    pg_start_ctx->fail_reason =
+        GNUNET_strdup ("from continue startup (timeout)");
     pg_start_ctx->die_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                       (pg_start_ctx->timeout), &end_badly,
@@ -928,7 +928,8 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* Make compilers happy */
   reset_meter (pg_start_ctx->peer_start_meter);
   pg_start_ctx->fail_reason =
-        GNUNET_strdup ("didn't generate all hostkeys within allowed startup time!");
+      GNUNET_strdup
+      ("didn't generate all hostkeys within allowed startup time!");
   pg_start_ctx->die_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (pg_start_ctx->timeout), &end_badly,

@@ -167,9 +167,11 @@ typedef void (*GNUNET_Logger) (void *cls, enum GNUNET_ErrorType kind,
  * Number of log calls to ignore.
  */
 extern unsigned int skip_log;
+
 #if !defined(GNUNET_CULL_LOGGING)
-int 
-GNUNET_get_log_call_status (int caller_level, const char *comp, const char *file, const char *function, int line);
+int
+GNUNET_get_log_call_status (int caller_level, const char *comp,
+                            const char *file, const char *function, int line);
 #endif
 /**
  * Main log function.
@@ -214,7 +216,7 @@ GNUNET_log_nocheck (enum GNUNET_ErrorType kind, const char *message, ...);
  */
 void
 GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
-                 const char *message, ...);
+                         const char *message, ...);
 
 #if !defined(GNUNET_CULL_LOGGING)
 #define GNUNET_log_from(kind,comp,...) do { int log_line = __LINE__;\

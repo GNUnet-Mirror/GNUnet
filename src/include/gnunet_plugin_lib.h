@@ -89,9 +89,9 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg);
  *        of the library (same as what 'GNUNET_PLUGIN_load' would
  *        have returned for the given library name)
  */
-typedef void (*GNUNET_PLUGIN_LoaderCallback)(void *cls,
-					     const char *library_name,
-					     void *lib_ret);
+typedef void (*GNUNET_PLUGIN_LoaderCallback) (void *cls,
+                                              const char *library_name,
+                                              void *lib_ret);
 
 
 /**
@@ -106,11 +106,9 @@ typedef void (*GNUNET_PLUGIN_LoaderCallback)(void *cls,
  * @param cb function to call for each plugin found
  * @param cb_cls closure for 'cb'
  */
-void 
-GNUNET_PLUGIN_load_all (const char *basename, 
-			void *arg,
-			GNUNET_PLUGIN_LoaderCallback cb,
-			void *cb_cls);
+void
+GNUNET_PLUGIN_load_all (const char *basename, void *arg,
+                        GNUNET_PLUGIN_LoaderCallback cb, void *cb_cls);
 
 
 /**

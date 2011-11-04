@@ -405,8 +405,8 @@ add_valid_address (void *cls, const char *tname,
   }
   ve = find_validation_entry (&public_key, &pid, tname, addr, addrlen);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until, expiration);
-  GNUNET_ATS_address_update (GST_ats, &pid, tname, addr,
-                             addrlen, NULL, NULL, 0);
+  GNUNET_ATS_address_update (GST_ats, &pid, tname, addr, addrlen, NULL, NULL,
+                             0);
   return GNUNET_OK;
 }
 
@@ -595,7 +595,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
               sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# PING message for different peer received"), 1,
+                              gettext_noop
+                              ("# PING message for different peer received"), 1,
                               GNUNET_NO);
     return;
   }
@@ -614,27 +615,28 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   {
     addrend = memchr (addr, '\0', alen);
     if (NULL == addrend)
-      {
-	GNUNET_break_op (0);
-	return;
-      }
+    {
+      GNUNET_break_op (0);
+      return;
+    }
     addrend++;
     slen = strlen (addr) + 1;
     alen -= slen;
-    
+
     if (GNUNET_YES !=
-	GST_hello_test_address (addr, addrend, alen, &sig_cache, &sig_cache_exp))
+        GST_hello_test_address (addr, addrend, alen, &sig_cache,
+                                &sig_cache_exp))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _
-		  ("Not confirming PING with address `%s' since I cannot confirm having this address.\n"),
-		  GST_plugins_a2s (addr, addrend, alen));
+                  _
+                  ("Not confirming PING with address `%s' since I cannot confirm having this address.\n"),
+                  GST_plugins_a2s (addr, addrend, alen));
       return;
     }
-  } 
+  }
   else
   {
-    addrend = NULL; /* make gcc happy */
+    addrend = NULL;             /* make gcc happy */
     slen = 0;
     static struct GNUNET_CRYPTO_RsaSignature no_address_signature;
     static struct GNUNET_TIME_Absolute no_address_signature_expiration;
@@ -751,7 +753,8 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
 
   ve->bc = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting plain PING to `%s' %s\n",
-              GNUNET_i2s (pid), GST_plugins_a2s (ve->transport_name, ve->addr, ve->addrlen));
+              GNUNET_i2s (pid), GST_plugins_a2s (ve->transport_name, ve->addr,
+                                                 ve->addrlen));
 
   slen = strlen (ve->transport_name) + 1;
   hello = GST_hello_get ();
@@ -996,12 +999,13 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     struct GNUNET_ATS_Information ats;
 
     ats.type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-    ats.value = htonl ((uint32_t) GNUNET_TIME_absolute_get_duration (ve->send_time).rel_value);
-    GNUNET_ATS_address_update (GST_ats, &ve->pid,
-			       ve->transport_name,ve->addr, ve->addrlen, NULL,
-			       &ats, 1);
+    ats.value =
+        htonl ((uint32_t)
+               GNUNET_TIME_absolute_get_duration (ve->send_time).rel_value);
+    GNUNET_ATS_address_update (GST_ats, &ve->pid, ve->transport_name, ve->addr,
+                               ve->addrlen, NULL, &ats, 1);
   }
-  
+
   /* build HELLO to store in PEERINFO */
   ve->copied = GNUNET_NO;
   hello = GNUNET_HELLO_create (&ve->public_key, &add_valid_peer_address, ve);
@@ -1043,17 +1047,16 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
     GNUNET_break (0);
     return;
   }
-  if (0 == memcmp (&GST_my_identity, &vac.pid, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 ==
+      memcmp (&GST_my_identity, &vac.pid, sizeof (struct GNUNET_PeerIdentity)))
     return;
   /* Add peer identity without addresses to peerinfo service */
   h = GNUNET_HELLO_create (&vac.public_key, NULL, NULL);
   GNUNET_PEERINFO_add_peer (GST_peerinfo, h);
 #if VERBOSE_VALIDATION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _
-              ("Adding `%s' without addresses for peer `%s'\n"),
-              "HELLO",
-              GNUNET_i2s(&vac.pid));
+              _("Adding `%s' without addresses for peer `%s'\n"), "HELLO",
+              GNUNET_i2s (&vac.pid));
 #endif
   GNUNET_free (h);
 

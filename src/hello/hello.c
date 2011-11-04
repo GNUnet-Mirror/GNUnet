@@ -632,8 +632,8 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
 
 static int
 find_min_expire (void *cls, const char *tname,
-		 struct GNUNET_TIME_Absolute expiration, const void *addr,
-		 uint16_t addrlen)
+                 struct GNUNET_TIME_Absolute expiration, const void *addr,
+                 uint16_t addrlen)
 {
   struct GNUNET_TIME_Absolute *min = cls;
 

@@ -156,7 +156,7 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (p2.ch);
     p2.ch = NULL;
   }
- if (connect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (connect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (connect_task);
   if (p1.th != NULL)
   {
@@ -177,8 +177,9 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  connect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-					       &try_connect, NULL);
+  connect_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
+                                    NULL);
   GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
 }
 
@@ -239,7 +240,8 @@ transmit_ready (void *cls, size_t size, void *buf)
 
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+                const struct GNUNET_ATS_Information *atsi,
+                unsigned int atsi_count)
 {
   struct PeerContext *pc = cls;
 
@@ -284,7 +286,8 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 static int
 inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+                const struct GNUNET_ATS_Information *atsi,
+                unsigned int atsi_count)
 {
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -297,7 +300,8 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 static int
 outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message,
-                 const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+                 const struct GNUNET_ATS_Information *atsi,
+                 unsigned int atsi_count)
 {
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -314,7 +318,8 @@ transmit_ready (void *cls, size_t size, void *buf);
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+               const struct GNUNET_ATS_Information *atsi,
+               unsigned int atsi_count)
 {
   static int n;
   unsigned int s;

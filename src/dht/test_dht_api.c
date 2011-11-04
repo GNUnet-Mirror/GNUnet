@@ -179,10 +179,10 @@ static void
 test_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                    const GNUNET_HashCode * key,
                    const struct GNUNET_PeerIdentity *get_path,
-		   unsigned int get_path_length,
+                   unsigned int get_path_length,
                    const struct GNUNET_PeerIdentity *put_path,
-		   unsigned int put_path_length,
-                   enum GNUNET_BLOCK_Type type, size_t size, const void *data)
+                   unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                   size_t size, const void *data)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test_get_iterator called (we got a result), stopping get request!\n");
@@ -213,9 +213,9 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   peer->get_handle =
       GNUNET_DHT_get_start (peer->dht_handle, TOTAL_TIMEOUT,
-                            GNUNET_BLOCK_TYPE_TEST, &hash,
-                            1, GNUNET_DHT_RO_NONE, NULL,
-                            0, &test_get_iterator, NULL);
+                            GNUNET_BLOCK_TYPE_TEST, &hash, 1,
+                            GNUNET_DHT_RO_NONE, NULL, 0, &test_get_iterator,
+                            NULL);
 
   if (peer->get_handle == NULL)
   {
@@ -250,8 +250,8 @@ test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_put (peer->dht_handle, &hash, 1,
-                  GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_TEST, data_size, data,
+  GNUNET_DHT_put (peer->dht_handle, &hash, 1, GNUNET_DHT_RO_NONE,
+                  GNUNET_BLOCK_TYPE_TEST, data_size, data,
                   GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT),
                   TOTAL_TIMEOUT, &test_get, &p1);
   GNUNET_free (data);

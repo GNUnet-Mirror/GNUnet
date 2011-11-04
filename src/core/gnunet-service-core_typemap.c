@@ -36,7 +36,7 @@
  * A type map describing which messages a given neighbour is able
  * to process.
  */
-struct GSC_TypeMap 
+struct GSC_TypeMap
 {
   uint32_t bits[(UINT16_MAX + 1) / 32];
 };
@@ -107,10 +107,8 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
-    GNUNET_STATISTICS_update (GSC_stats, 
-			      gettext_noop ("# type maps received"),
-			      1,
-			      GNUNET_NO);
+    GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# type maps received"),
+                              1, GNUNET_NO);
     if (size != sizeof (struct GSC_TypeMap))
     {
       GNUNET_break_op (0);
@@ -120,16 +118,13 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
     memcpy (ret, &msg[1], sizeof (struct GSC_TypeMap));
     return ret;
   case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
-    GNUNET_STATISTICS_update (GSC_stats, 
-			      gettext_noop ("# type maps received"),
-			      1,
-			      GNUNET_NO);
+    GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# type maps received"),
+                              1, GNUNET_NO);
     ret = GNUNET_malloc (sizeof (struct GSC_TypeMap));
     dlen = sizeof (struct GSC_TypeMap);
-    if ( (Z_OK !=
-	  uncompress ((Bytef*) ret, &dlen,
-		      (const Bytef*) &msg[1], (uLong) size)) ||
-	 (dlen != sizeof (struct GSC_TypeMap) ) )
+    if ((Z_OK !=
+         uncompress ((Bytef *) ret, &dlen, (const Bytef *) &msg[1],
+                     (uLong) size)) || (dlen != sizeof (struct GSC_TypeMap)))
     {
       GNUNET_break_op (0);
       GNUNET_free (ret);
@@ -152,10 +147,9 @@ broadcast_my_type_map ()
   struct GNUNET_MessageHeader *hdr;
 
   hdr = GSC_TYPEMAP_compute_type_map_message ();
-  GNUNET_STATISTICS_update (GSC_stats, 
-			    gettext_noop ("# updates to my type map"),
-			    1,
-			    GNUNET_NO);
+  GNUNET_STATISTICS_update (GSC_stats,
+                            gettext_noop ("# updates to my type map"), 1,
+                            GNUNET_NO);
   GSC_SESSIONS_broadcast (hdr);
   GNUNET_free (hdr);
 }
@@ -165,14 +159,13 @@ broadcast_my_type_map ()
  * Add a set of types to our type map.
  */
 void
-GSC_TYPEMAP_add (const uint16_t *types,
-		 unsigned int tlen)
+GSC_TYPEMAP_add (const uint16_t * types, unsigned int tlen)
 {
   unsigned int i;
   int changed;
 
   changed = GNUNET_NO;
-  for (i=0;i<tlen;i++)
+  for (i = 0; i < tlen; i++)
   {
     if (0 == map_counters[types[i]]++)
     {
@@ -189,14 +182,13 @@ GSC_TYPEMAP_add (const uint16_t *types,
  * Remove a set of types from our type map.
  */
 void
-GSC_TYPEMAP_remove (const uint16_t *types,
-		    unsigned int tlen)
+GSC_TYPEMAP_remove (const uint16_t * types, unsigned int tlen)
 {
   unsigned int i;
   int changed;
 
   changed = GNUNET_NO;
-  for (i=0;i<tlen;i++)
+  for (i = 0; i < tlen; i++)
   {
     if (0 == --map_counters[types[i]])
     {
@@ -217,19 +209,18 @@ GSC_TYPEMAP_remove (const uint16_t *types,
  * @param types array of types
  * @param tcnt number of entries in types
  * @return GNUNET_YES if a type is in the map, GNUNET_NO if not
- */ 
+ */
 int
-GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
-			const uint16_t *types,
-			unsigned int tcnt)
-{  
+GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap, const uint16_t * types,
+                        unsigned int tcnt)
+{
   unsigned int i;
 
   if (NULL == tmap)
     return GNUNET_NO;
   if (0 == tcnt)
-    return GNUNET_YES; /* matches all */
-  for (i=0;i<tcnt;i++) 
+    return GNUNET_YES;          /* matches all */
+  for (i = 0; i < tcnt; i++)
     if (0 != (tmap->bits[types[i] / 32] & (1 << (types[i] % 32))))
       return GNUNET_YES;
   return GNUNET_NO;
@@ -243,11 +234,10 @@ GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
  * @param types array of types to add
  * @param tcnt number of entries in types
  * @return updated type map (fresh copy)
- */ 
+ */
 struct GSC_TypeMap *
-GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
-		    const uint16_t *types,
-		    unsigned int tcnt)
+GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap, const uint16_t * types,
+                    unsigned int tcnt)
 {
   struct GSC_TypeMap *ret;
   unsigned int i;
@@ -255,7 +245,7 @@ GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
   ret = GNUNET_malloc (sizeof (struct GSC_TypeMap));
   if (NULL != tmap)
     memcpy (ret, tmap, sizeof (struct GSC_TypeMap));
-  for (i=0;i<tcnt;i++)
+  for (i = 0; i < tcnt; i++)
     ret->bits[types[i] / 32] |= (1 << (types[i] % 32));
   return ret;
 }

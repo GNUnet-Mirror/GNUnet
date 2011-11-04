@@ -78,13 +78,13 @@ struct ieee80211_frame
  * @return GNUNET_YES at success
  */
 static int
-getRadiotapHeader ( struct Radiotap_Send *header)
+getRadiotapHeader (struct Radiotap_Send *header)
 {
 
 
-    header->rate = 255;
-    header->tx_power = 0;
-    header->antenna = 0;
+  header->rate = 255;
+  header->tx_power = 0;
+  header->antenna = 0;
 
   return GNUNET_YES;
 }
@@ -98,9 +98,8 @@ getRadiotapHeader ( struct Radiotap_Send *header)
  * @return GNUNET_YES if there was no error
  */
 static int
-getWlanHeader (struct ieee80211_frame *Header,
-               const char *to_mac_addr, const char *mac,
-               unsigned int size)
+getWlanHeader (struct ieee80211_frame *Header, const char *to_mac_addr,
+               const char *mac, unsigned int size)
 {
   uint16_t *tmp16;
   const int rate = 11000000;
@@ -108,8 +107,7 @@ getWlanHeader (struct ieee80211_frame *Header,
   Header->i_fc[0] = IEEE80211_FC0_TYPE_DATA;
   Header->i_fc[1] = 0x00;
   memcpy (&Header->i_addr3, &mac_bssid, sizeof (mac_bssid));
-  memcpy (&Header->i_addr2, mac,
-		  sizeof (mac_bssid));
+  memcpy (&Header->i_addr2, mac, sizeof (mac_bssid));
   memcpy (&Header->i_addr1, to_mac_addr, sizeof (mac_bssid));
 
   tmp16 = (uint16_t *) Header->i_dur;
@@ -120,115 +118,133 @@ getWlanHeader (struct ieee80211_frame *Header,
   return GNUNET_YES;
 }
 
-int main(int argc, char *argv[]){
+int
+main (int argc, char *argv[])
+{
   char msg_buf[WLAN_MTU];
-	struct GNUNET_MessageHeader *msg;
-	struct ieee80211_frame *wlan_header;
-	struct Radiotap_Send *radiotap;
+  struct GNUNET_MessageHeader *msg;
+  struct ieee80211_frame *wlan_header;
+  struct Radiotap_Send *radiotap;
 
-	unsigned int temp[6];
-	char inmac[6];
-	char outmac[6];
-	int pos;
-	long long count;
-	double bytes_per_s;
-	time_t start;
-	time_t akt;
-	int i;
+  unsigned int temp[6];
+  char inmac[6];
+  char outmac[6];
+  int pos;
+  long long count;
+  double bytes_per_s;
+  time_t start;
+  time_t akt;
+  int i;
 
-	if (4 != argc) {
-		fprintf(
-				stderr,
-				"This program must be started with the interface and the targets and source mac as argument.\nThis program was compiled at ----- %s ----\n",
-				__TIMESTAMP__);
-		fprintf(stderr, "Usage: interface-name mac-target mac-source\n" "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
-		return 1;
-	}
-	if (6 != 
-	    sscanf(argv[3], "%x-%x-%x-%x-%x-%x", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4],&temp[5]))
-	  {
-	    fprintf(stderr, "Usage: interface-name mac-target mac-source\n" "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
-	    return 1;
-	  }
-	if (6 != 
-	    sscanf(argv[2], "%x-%x-%x-%x-%x-%x", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4],&temp[5]))
-	  {
-	    fprintf(stderr, "Usage: interface-name mac-target mac-source\n" "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
-	    return 1;
-	  }
-	for (i = 0; i < 6; i++)
-	  {
-	    inmac[i] = temp[i];
-	  }	
-	for (i = 0; i < 6; i++)
-	  {
-	    outmac[i] = temp[i];
-	  }
-	
-
-	pid_t pid;
-	int	commpipe[2];		/* This holds the fd for the input & output of the pipe */
-
-	/* Setup communication pipeline first */
-	if(pipe(commpipe)){
-		fprintf(stderr,"Pipe error!\n");
-		exit(1);
-	}
-
-	/* Attempt to fork and check for errors */
-	if( (pid=fork()) == -1){
-		fprintf(stderr,"Fork error. Exiting.\n");  /* something went wrong */
-		exit(1);
-	}
-
-	if(pid){
-		/* A positive (non-negative) PID indicates the parent process */
-		close(commpipe[0]);		/* Close unused side of pipe (in side) */
-		setvbuf(stdout,(char*)NULL,_IONBF,0);	/* Set non-buffered output on stdout */
+  if (4 != argc)
+  {
+    fprintf (stderr,
+             "This program must be started with the interface and the targets and source mac as argument.\nThis program was compiled at ----- %s ----\n",
+             __TIMESTAMP__);
+    fprintf (stderr,
+             "Usage: interface-name mac-target mac-source\n"
+             "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
+    return 1;
+  }
+  if (6 !=
+      sscanf (argv[3], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
+              &temp[3], &temp[4], &temp[5]))
+  {
+    fprintf (stderr,
+             "Usage: interface-name mac-target mac-source\n"
+             "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
+    return 1;
+  }
+  if (6 !=
+      sscanf (argv[2], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
+              &temp[3], &temp[4], &temp[5]))
+  {
+    fprintf (stderr,
+             "Usage: interface-name mac-target mac-source\n"
+             "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
+    return 1;
+  }
+  for (i = 0; i < 6; i++)
+  {
+    inmac[i] = temp[i];
+  }
+  for (i = 0; i < 6; i++)
+  {
+    outmac[i] = temp[i];
+  }
 
 
-		msg = (struct GNUNET_MessageHeader*) msg_buf;
-		msg->type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
-		msg->size = htons (WLAN_MTU);
-		radiotap = (struct Radiotap_Send *) &msg[1];
-		wlan_header = (struct ieee80211_frame *) &radiotap[1];
-		pos = 0;
+  pid_t pid;
+  int commpipe[2];              /* This holds the fd for the input & output of the pipe */
 
-		getRadiotapHeader(radiotap);
-		getWlanHeader(wlan_header, outmac, inmac, WLAN_MTU - sizeof(struct GNUNET_MessageHeader));
+  /* Setup communication pipeline first */
+  if (pipe (commpipe))
+  {
+    fprintf (stderr, "Pipe error!\n");
+    exit (1);
+  }
 
-		start = time(NULL);
-		count = 0;
-		while (1){
-			pos += write(commpipe[1], msg, WLAN_MTU - pos);
-			if (pos % WLAN_MTU == 0){
-				pos = 0;
-				count ++;
+  /* Attempt to fork and check for errors */
+  if ((pid = fork ()) == -1)
+  {
+    fprintf (stderr, "Fork error. Exiting.\n"); /* something went wrong */
+    exit (1);
+  }
 
-				if  (count % 1000 == 0){
-					akt = time(NULL);
-					bytes_per_s = count * WLAN_MTU / (akt - start);
-					bytes_per_s /= 1024;
-					printf("send %f kbytes/s\n", bytes_per_s);
-				}
-			}
+  if (pid)
+  {
+    /* A positive (non-negative) PID indicates the parent process */
+    close (commpipe[0]);        /* Close unused side of pipe (in side) */
+    setvbuf (stdout, (char *) NULL, _IONBF, 0); /* Set non-buffered output on stdout */
 
-		}
-	}
-	else{
-		/* A zero PID indicates that this is the child process */
-	        (void) close(0);
-	        if (-1 == dup2(commpipe[0],0))	/* Replace stdin with the in side of the pipe */
-		  fprintf (stderr,
-			   "dup2 failed: %s\n",
-			   strerror (errno));
-		(void) close(commpipe[1]);		/* Close unused side of pipe (out side) */
-		/* Replace the child fork with a new process */
-		if (execl("gnunet-transport-wlan-helper","gnunet-transport-wlan-helper", argv[1], NULL) == -1)
-		  {
-		    fprintf(stderr,"Could not start gnunet-transport-wlan-helper!");
-		    _exit(1);
-		  }
-	}
-	return 0;
+
+    msg = (struct GNUNET_MessageHeader *) msg_buf;
+    msg->type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+    msg->size = htons (WLAN_MTU);
+    radiotap = (struct Radiotap_Send *) &msg[1];
+    wlan_header = (struct ieee80211_frame *) &radiotap[1];
+    pos = 0;
+
+    getRadiotapHeader (radiotap);
+    getWlanHeader (wlan_header, outmac, inmac,
+                   WLAN_MTU - sizeof (struct GNUNET_MessageHeader));
+
+    start = time (NULL);
+    count = 0;
+    while (1)
+    {
+      pos += write (commpipe[1], msg, WLAN_MTU - pos);
+      if (pos % WLAN_MTU == 0)
+      {
+        pos = 0;
+        count++;
+
+        if (count % 1000 == 0)
+        {
+          akt = time (NULL);
+          bytes_per_s = count * WLAN_MTU / (akt - start);
+          bytes_per_s /= 1024;
+          printf ("send %f kbytes/s\n", bytes_per_s);
+        }
+      }
+
+    }
+  }
+  else
+  {
+    /* A zero PID indicates that this is the child process */
+    (void) close (0);
+    if (-1 == dup2 (commpipe[0], 0))    /* Replace stdin with the in side of the pipe */
+      fprintf (stderr, "dup2 failed: %s\n", strerror (errno));
+    (void) close (commpipe[1]); /* Close unused side of pipe (out side) */
+    /* Replace the child fork with a new process */
+    if (execl
+        ("gnunet-transport-wlan-helper", "gnunet-transport-wlan-helper",
+         argv[1], NULL) == -1)
+    {
+      fprintf (stderr, "Could not start gnunet-transport-wlan-helper!");
+      _exit (1);
+    }
+  }
+  return 0;
 }

@@ -32,14 +32,15 @@
 /**
  * Set the amount of bandwidth the other peer could currently transmit
  * to us (as far as we know) to the given value.
- * 
+ *
  * @param peer identity of the peer
  * @param bandwidth_in currently available bandwidth from that peer to
  *        this peer (estimate)
  */
 void
 GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
-				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+                                struct GNUNET_BANDWIDTH_Value32NBO
+                                bandwidth_in);
 
 
 /**
@@ -55,7 +56,7 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
  */
 struct GNUNET_TIME_Relative
 GAS_reservations_reserve (const struct GNUNET_PeerIdentity *peer,
-			  int32_t amount);
+                          int32_t amount);
 
 
 /**

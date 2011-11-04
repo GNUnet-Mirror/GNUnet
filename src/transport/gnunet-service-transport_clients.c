@@ -165,8 +165,7 @@ setup_client (struct GNUNET_SERVER_Client *client)
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, tc);
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-               "Client %X connected\n", tc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %X connected\n", tc);
 #endif
   return tc;
 }
@@ -333,29 +332,26 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
 static void
 notify_client_about_neighbour (void *cls,
                                const struct GNUNET_PeerIdentity *peer,
-                               const struct GNUNET_ATS_Information
-                               *ats, uint32_t ats_count,
-                               const char * transport,
-                               const void * addr,
-                               size_t addrlen)
+                               const struct GNUNET_ATS_Information *ats,
+                               uint32_t ats_count, const char *transport,
+                               const void *addr, size_t addrlen)
 {
   struct TransportClient *tc = cls;
   struct ConnectInfoMessage *cim;
   struct GNUNET_ATS_Information *ap;
   size_t size =
-    sizeof (struct ConnectInfoMessage) +
-    ats_count * sizeof (struct GNUNET_ATS_Information);
+      sizeof (struct ConnectInfoMessage) +
+      ats_count * sizeof (struct GNUNET_ATS_Information);
   char buf[size];
 
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  cim = (struct ConnectInfoMessage*) buf;
+  cim = (struct ConnectInfoMessage *) buf;
   cim->header.size = htons (size);
   cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim->ats_count = htonl (ats_count);
   cim->id = *peer;
   ap = (struct GNUNET_ATS_Information *) &cim[1];
-  memcpy (ap, ats,
-          ats_count * sizeof (struct GNUNET_ATS_Information));
+  memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   unicast (tc, &cim->header, GNUNET_NO);
 }
 
@@ -401,10 +397,10 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   }
   start = (const struct StartMessage *) message;
   options = ntohl (start->options);
-  if ((0 != (1 & options) ) &&
+  if ((0 != (1 & options)) &&
       (0 !=
        memcmp (&start->self, &GST_my_identity,
-	       sizeof (struct GNUNET_PeerIdentity))))
+               sizeof (struct GNUNET_PeerIdentity))))
   {
     /* client thinks this is a different peer, reject */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -799,26 +795,23 @@ clients_handle_peer_address_lookup (void *cls,
  */
 static void
 output_addresses (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_ATS_Information *ats,
-                  uint32_t ats_count,
-                  const char * transport,
-                  const void * addr,
-                  size_t addrlen)
+                  const struct GNUNET_ATS_Information *ats, uint32_t ats_count,
+                  const char *transport, const void *addr, size_t addrlen)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
-  struct AddressIterateResponseMessage * msg;
+  struct AddressIterateResponseMessage *msg;
   size_t size;
 
   size =
-      (sizeof (struct AddressIterateResponseMessage) + strlen(transport) + 1);
+      (sizeof (struct AddressIterateResponseMessage) + strlen (transport) + 1);
   msg = GNUNET_malloc (size);
   memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&msg[0], transport, strlen(transport)+1);
+  memcpy (&msg[0], transport, strlen (transport) + 1);
   msg->addrlen = ntohs (addrlen);
-  msg->pluginlen = ntohs (strlen(transport)+1);
+  msg->pluginlen = ntohs (strlen (transport) + 1);
 
   transmit_binary_to_client (tc, msg, size);
-  GNUNET_free(msg);
+  GNUNET_free (msg);
 }
 
 
@@ -908,9 +901,8 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop)
 
   for (tc = clients_head; tc != NULL; tc = tc->next)
   {
-    if ( (GNUNET_YES == may_drop) &&
-	 (GNUNET_YES != tc->send_payload) )
-      continue; /* skip, this client does not care about payload */
+    if ((GNUNET_YES == may_drop) && (GNUNET_YES != tc->send_payload))
+      continue;                 /* skip, this client does not care about payload */
     unicast (tc, msg, may_drop);
   }
 }

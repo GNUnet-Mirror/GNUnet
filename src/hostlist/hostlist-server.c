@@ -367,7 +367,7 @@ adv_transmit_ready (void *cls, size_t size, void *buf)
 static void
 connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_ATS_Information *atsi,
-		 unsigned int atsi_count)
+                 unsigned int atsi_count)
 {
   size_t size;
 

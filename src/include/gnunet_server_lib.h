@@ -489,8 +489,7 @@ GNUNET_SERVER_transmit_context_run (struct GNUNET_SERVER_TransmitContext *tc,
  */
 void
 GNUNET_SERVER_transmit_context_destroy (struct GNUNET_SERVER_TransmitContext
-                                        *tc,
-					int success);
+                                        *tc, int success);
 
 
 /**

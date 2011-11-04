@@ -31,13 +31,12 @@
 
 enum StartFlag
 {
-  
+
   START_FLAG_SCHEDULING = 0,
 
   START_FLAG_PERFORMANCE_WITH_PIC = 1,
 
   START_FLAG_PERFORMANCE_NO_PIC = 2
-
 };
 
 
@@ -55,7 +54,7 @@ struct ClientStartMessage
 struct RequestAddressMessage
 {
   struct GNUNET_MessageHeader header;
- 
+
   uint32_t reserved GNUNET_PACKED;
 
   struct GNUNET_PeerIdentity peer;
@@ -77,10 +76,10 @@ struct AddressUpdateMessage
   uint32_t session_id GNUNET_PACKED;
 
   /* followed by:
-     - struct GNUNET_ATS_Information [ats_count];
-     - char address[address_length]
-     - char plugin_name[plugin_name_length] (including '\0'-termination).
-  */
+   * - struct GNUNET_ATS_Information [ats_count];
+   * - char address[address_length]
+   * - char plugin_name[plugin_name_length] (including '\0'-termination).
+   */
 
 };
 
@@ -99,9 +98,9 @@ struct AddressUseMessage
   uint32_t session_id GNUNET_PACKED;
 
   /* followed by:
-     - char address[address_length]
-     - char plugin_name[plugin_name_length] (including '\0'-termination).
-  */
+   * - char address[address_length]
+   * - char plugin_name[plugin_name_length] (including '\0'-termination).
+   */
 
 };
 
@@ -121,9 +120,9 @@ struct AddressDestroyedMessage
   uint32_t session_id GNUNET_PACKED;
 
   /* followed by:
-     - char address[address_length]
-     - char plugin_name[plugin_name_length] (including '\0'-termination).
-  */
+   * - char address[address_length]
+   * - char plugin_name[plugin_name_length] (including '\0'-termination).
+   */
 
 };
 
@@ -143,14 +142,14 @@ struct AddressSuggestionMessage
   uint32_t session_id GNUNET_PACKED;
 
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
-  
+
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
   /* followed by:
-     - struct GNUNET_ATS_Information [ats_count];
-     - char address[address_length]
-     - char plugin_name[plugin_name_length] (including '\0'-termination).
-  */
+   * - struct GNUNET_ATS_Information [ats_count];
+   * - char address[address_length]
+   * - char plugin_name[plugin_name_length] (including '\0'-termination).
+   */
 
 };
 
@@ -168,14 +167,14 @@ struct PeerInformationMessage
   uint16_t plugin_name_length GNUNET_PACKED;
 
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
-  
+
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
-  /* followed by: 
-     - struct GNUNET_ATS_Information [ats_count];
-     - char address[address_length]
-     - char plugin_name[plugin_name_length] (including '\0'-termination).
-  */
+  /* followed by:
+   * - struct GNUNET_ATS_Information [ats_count];
+   * - char address[address_length]
+   * - char plugin_name[plugin_name_length] (including '\0'-termination).
+   */
 
 };
 
@@ -222,7 +221,7 @@ struct PreferenceInformation
   uint32_t preference_kind GNUNET_PACKED;
 
   float preference_value GNUNET_PACKED;
-  
+
 };
 
 
@@ -234,8 +233,8 @@ struct ChangePreferenceMessage
 
   struct GNUNET_PeerIdentity peer;
 
-  /* followed by 'num_preferences' 
-     struct PreferenceInformation values */
+  /* followed by 'num_preferences'
+   * struct PreferenceInformation values */
 };
 
 

@@ -57,6 +57,7 @@ size_t
 send_query (void *cls __attribute__ ((unused)), size_t size, void *buf)
 {
   size_t len;
+
   dns_transmit_handle = NULL;
 
   /*
@@ -100,17 +101,20 @@ send_query (void *cls __attribute__ ((unused)), size_t size, void *buf)
    */
   if (head != NULL)
   {
-    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
-                                         ntohs (head->pkt.hdr.size),
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         GNUNET_YES, &send_query, NULL);
+    dns_transmit_handle =
+        GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+                                             ntohs (head->pkt.hdr.size),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_YES, &send_query, NULL);
   }
   else if (restart_hijack == 1)
   {
-    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
-                                         sizeof (struct GNUNET_MessageHeader),
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         GNUNET_YES, &send_query, NULL);
+    dns_transmit_handle =
+        GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+                                             sizeof (struct
+                                                     GNUNET_MessageHeader),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_YES, &send_query, NULL);
   }
 
   return len;
@@ -144,16 +148,19 @@ connect_to_service_dns (void *cls
 
   /* If a packet is already in the list, schedule to send it */
   if (dns_transmit_handle == NULL && head != NULL)
-    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
-                                         ntohs (head->pkt.hdr.size),
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         GNUNET_YES, &send_query, NULL);
+    dns_transmit_handle =
+        GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+                                             ntohs (head->pkt.hdr.size),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_YES, &send_query, NULL);
   else if (dns_transmit_handle == NULL && restart_hijack == 1)
   {
-    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
-                                         sizeof (struct GNUNET_MessageHeader),
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         GNUNET_YES, &send_query, NULL);
+    dns_transmit_handle =
+        GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+                                             sizeof (struct
+                                                     GNUNET_MessageHeader),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_YES, &send_query, NULL);
   }
 }
 
@@ -170,7 +177,7 @@ dns_answer_handler (void *cls
   if (msg == NULL)
   {
     if (dns_transmit_handle != NULL)
-      GNUNET_CLIENT_notify_transmit_ready_cancel(dns_transmit_handle);
+      GNUNET_CLIENT_notify_transmit_ready_cancel (dns_transmit_handle);
     dns_transmit_handle = NULL;
     GNUNET_CLIENT_disconnect (dns_connection, GNUNET_NO);
     dns_connection = NULL;

@@ -148,7 +148,8 @@ shutdown_callback (void *cls, const char *emsg)
   else
   {
 #if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: All peers successfully shut down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "test: All peers successfully shut down!\n");
 #endif
   }
 }
@@ -189,10 +190,10 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: disconnecting mesh service of peers\n");
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_MESH_disconnect(h1);
-  GNUNET_MESH_disconnect(h2);
+  GNUNET_MESH_disconnect (h1);
+  GNUNET_MESH_disconnect (h2);
   GNUNET_SCHEDULER_cancel (shutdown_handle);
-  shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
+  shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 
@@ -208,16 +209,14 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         (can be NULL -- that's not an error)
  */
 static void *
-incoming_tunnel (void *cls,
-                 struct GNUNET_MESH_Tunnel * tunnel,
-                 const struct GNUNET_PeerIdentity * initiator,
-                 const struct GNUNET_ATS_Information * atsi)
+incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
+                 const struct GNUNET_PeerIdentity *initiator,
+                 const struct GNUNET_ATS_Information *atsi)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Incoming tunnel from %s\n",
-              GNUNET_i2s(initiator));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Incoming tunnel from %s\n",
+              GNUNET_i2s (initiator));
   GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_now(&disconnect_mesh_peers, NULL);
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers, NULL);
   ok = 0;
   return NULL;
 }
@@ -238,7 +237,7 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: tunnel disconnected\n");
 #endif
-  
+
   return;
 }
 
@@ -251,9 +250,8 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
 static void
 dh (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: peer %s disconnected\n",
-              GNUNET_i2s(peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer %s disconnected\n",
+              GNUNET_i2s (peer));
   return;
 }
 
@@ -269,9 +267,8 @@ static void
 ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     const struct GNUNET_ATS_Information *atsi)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: peer %s connected\n",
-              GNUNET_i2s(peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer %s connected\n",
+              GNUNET_i2s (peer));
   return;
 }
 
@@ -280,11 +277,12 @@ static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: test_task\n");
-  GNUNET_MESH_peer_request_connect_add(t, &d2->id);
+  GNUNET_MESH_peer_request_connect_add (t, &d2->id);
   GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_delayed(
-          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30),
-                               &disconnect_mesh_peers, NULL);
+  disconnect_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 30),
+                                    &disconnect_mesh_peers, NULL);
 }
 
 
@@ -300,10 +298,9 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: connect_mesh_service\n");
 
-  GNUNET_PEER_resolve(11, &id);
+  GNUNET_PEER_resolve (11, &id);
   d2 = GNUNET_TESTING_daemon_get_by_id (pg, &id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Peer searched: %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Peer searched: %s\n",
               GNUNET_i2s (&d2->id));
   app = (GNUNET_MESH_ApplicationType) 0;
 
@@ -315,20 +312,10 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "test: connecting to mesh service of peer %s\n",
               GNUNET_i2s (&d2->id));
 #endif
-  h1 = GNUNET_MESH_connect (d1->cfg,
-                            10,
-                            NULL,
-                            NULL,
-                            &tunnel_cleaner,
-                            handlers,
+  h1 = GNUNET_MESH_connect (d1->cfg, 10, NULL, NULL, &tunnel_cleaner, handlers,
                             &app);
-  h2 = GNUNET_MESH_connect (d2->cfg,
-                            10,
-                            NULL,
-                            &incoming_tunnel,
-                            &tunnel_cleaner,
-                            handlers,
-                            &app);
+  h2 = GNUNET_MESH_connect (d2->cfg, 10, NULL, &incoming_tunnel,
+                            &tunnel_cleaner, handlers, &app);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: connected to mesh service of peer %s\n",
@@ -339,9 +326,9 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, NULL);
   test_task =
-      GNUNET_SCHEDULER_add_delayed(
-          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 6),
-          &do_test, NULL);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 6), &do_test,
+                                    NULL);
 }
 
 
@@ -362,8 +349,8 @@ peergroup_ready (void *cls, const char *emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: Peergroup callback called with error, aborting test!\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Error from testing: `%s'\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Error from testing: `%s'\n",
+                emsg);
     ok++;
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
@@ -373,8 +360,7 @@ peergroup_ready (void *cls, const char *emsg)
               "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: Peer Group started successfully!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Have %u connections\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Have %u connections\n",
               total_connections);
 #endif
 
@@ -390,18 +376,14 @@ peergroup_ready (void *cls, const char *emsg)
   for (i = 0; i < num_peers; i++)
   {
     d1 = GNUNET_TESTING_daemon_get (pg, i);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test:   %u: %s\n",
-                GNUNET_PEER_intern(&d1->id),
-                GNUNET_i2s (&d1->id));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   %u: %s\n",
+                GNUNET_PEER_intern (&d1->id), GNUNET_i2s (&d1->id));
   }
   d1 = GNUNET_TESTING_daemon_get (pg, 0);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Peer looking: %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Peer looking: %s\n",
               GNUNET_i2s (&d1->id));
 
-  GNUNET_SCHEDULER_add_now (&connect_mesh_service,
-                                NULL);
+  GNUNET_SCHEDULER_add_now (&connect_mesh_service, NULL);
   disconnect_task =
       GNUNET_SCHEDULER_add_delayed (wait_time, &disconnect_mesh_peers, NULL);
 
@@ -437,8 +419,7 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Problem with new connection (%s)\n",
-                emsg);
+                "test: Problem with new connection (%s)\n", emsg);
   }
 
 }
@@ -495,7 +476,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
   }
 
-  mesh_peers = GNUNET_malloc (sizeof(GNUNET_PEER_Id) * (num_peers + 1));
+  mesh_peers = GNUNET_malloc (sizeof (GNUNET_PEER_Id) * (num_peers + 1));
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (testing_cfg, "test_mesh_small",
@@ -522,15 +503,15 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              &data_filename))
   {
     data_file =
-      GNUNET_DISK_file_open (data_filename,
-                             GNUNET_DISK_OPEN_READWRITE |
-                             GNUNET_DISK_OPEN_CREATE,
-                             GNUNET_DISK_PERM_USER_READ |
-                             GNUNET_DISK_PERM_USER_WRITE);
+        GNUNET_DISK_file_open (data_filename,
+                               GNUNET_DISK_OPEN_READWRITE |
+                               GNUNET_DISK_OPEN_CREATE,
+                               GNUNET_DISK_PERM_USER_READ |
+                               GNUNET_DISK_PERM_USER_WRITE);
     if (data_file == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
-		  data_filename);
+                  data_filename);
       GNUNET_free (data_filename);
     }
   }
@@ -585,8 +566,8 @@ int
 main (int argc, char *argv[])
 {
   GNUNET_PROGRAM_run (argc, argv, "test_mesh_small_unicast",
-                      gettext_noop ("Test mesh unicast in a small network."), options,
-                      &run, NULL);
+                      gettext_noop ("Test mesh unicast in a small network."),
+                      options, &run, NULL);
 #if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/test_mesh_small_unicast");
 #endif

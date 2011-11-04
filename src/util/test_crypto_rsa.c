@@ -54,36 +54,36 @@ testEncryptDecrypt ()
   ok = 0;
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
+  {
+    fprintf (stderr, ".");
+    if (GNUNET_SYSERR ==
+        GNUNET_CRYPTO_rsa_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &pkey,
+                                   &target))
     {
-      fprintf (stderr, ".");
-      if (GNUNET_SYSERR ==
-	  GNUNET_CRYPTO_rsa_encrypt (TESTSTRING, strlen (TESTSTRING) + 1,
-				     &pkey, &target))
-	{
-	  fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
-	  ok++;
-	  continue;
-	}
-      if (-1 ==
-	  GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, result,
-				     strlen (TESTSTRING) + 1))
-	{
-	  fprintf (stderr, "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
-	  ok++;
-	  continue;
-
-	}
-      if (strncmp (TESTSTRING, result, strlen (TESTSTRING)) != 0)
-	{
-	  printf ("%s != %.*s - testEncryptDecrypt failed!\n", TESTSTRING,
-		  (int) MAX_TESTVAL, result);
-	  ok++;
-	  continue;
-	}
+      fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
+      ok++;
+      continue;
     }
+    if (-1 ==
+        GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, result,
+                                   strlen (TESTSTRING) + 1))
+    {
+      fprintf (stderr, "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
+      ok++;
+      continue;
+
+    }
+    if (strncmp (TESTSTRING, result, strlen (TESTSTRING)) != 0)
+    {
+      printf ("%s != %.*s - testEncryptDecrypt failed!\n", TESTSTRING,
+              (int) MAX_TESTVAL, result);
+      ok++;
+      continue;
+    }
+  }
   printf ("%d RSA encrypt/decrypt operations %llums (%d failures)\n", ITER,
-	  (unsigned long long)
-	  GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   if (ok == 0)
     return GNUNET_OK;
@@ -109,20 +109,20 @@ testEncryptPerformance ()
   ok = 0;
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
+  {
+    fprintf (stderr, ".");
+    if (GNUNET_SYSERR ==
+        GNUNET_CRYPTO_rsa_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &pkey,
+                                   &target))
     {
-      fprintf (stderr, ".");
-      if (GNUNET_SYSERR ==
-	  GNUNET_CRYPTO_rsa_encrypt (TESTSTRING, strlen (TESTSTRING) + 1,
-				     &pkey, &target))
-	{
-	  fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
-	  ok++;
-	  continue;
-	}
+      fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
+      ok++;
+      continue;
     }
+  }
   printf ("%d RSA encrypt operations %llu ms (%d failures)\n", ITER,
-	  (unsigned long long)
-	  GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   if (ok != 0)
     return GNUNET_SYSERR;
@@ -149,39 +149,37 @@ testEncryptDecryptSK ()
   ok = 0;
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
+  {
+    fprintf (stderr, ".");
+    GNUNET_CRYPTO_aes_create_session_key (&insk);
+    if (GNUNET_SYSERR ==
+        GNUNET_CRYPTO_rsa_encrypt (&insk,
+                                   sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+                                   &pkey, &target))
     {
-      fprintf (stderr, ".");
-      GNUNET_CRYPTO_aes_create_session_key (&insk);
-      if (GNUNET_SYSERR ==
-	  GNUNET_CRYPTO_rsa_encrypt (&insk,
-				     sizeof (struct
-					     GNUNET_CRYPTO_AesSessionKey),
-				     &pkey, &target))
-	{
-	  fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
-	  ok++;
-	  continue;
-	}
-      if (-1 ==
-	  GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, &outsk,
-				     sizeof (struct
-					     GNUNET_CRYPTO_AesSessionKey)))
-	{
-	  fprintf (stderr, "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
-	  ok++;
-	  continue;
-	}
-      if (0 !=
-	  memcmp (&insk, &outsk, sizeof (struct GNUNET_CRYPTO_AesSessionKey)))
-	{
-	  printf ("testEncryptDecryptSK failed!\n");
-	  ok++;
-	  continue;
-	}
+      fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
+      ok++;
+      continue;
     }
+    if (-1 ==
+        GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, &outsk,
+                                   sizeof (struct GNUNET_CRYPTO_AesSessionKey)))
+    {
+      fprintf (stderr, "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
+      ok++;
+      continue;
+    }
+    if (0 !=
+        memcmp (&insk, &outsk, sizeof (struct GNUNET_CRYPTO_AesSessionKey)))
+    {
+      printf ("testEncryptDecryptSK failed!\n");
+      ok++;
+      continue;
+    }
+  }
   printf ("%d RSA encrypt/decrypt SK operations %llums (%d failures)\n", ITER,
-	  (unsigned long long)
-	  GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   if (ok != 0)
     return GNUNET_SYSERR;
@@ -208,34 +206,34 @@ testSignVerify ()
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
 
   for (i = 0; i < ITER; i++)
+  {
+    fprintf (stderr, ".");
+    if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
     {
-      fprintf (stderr, ".");
-      if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
-	{
-	  fprintf (stderr, "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
-	  ok = GNUNET_SYSERR;
-	  continue;
-	}
-      if (GNUNET_SYSERR ==
-	  GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST, &purp,
-				    &sig, &pkey))
-	{
-	  printf ("GNUNET_CRYPTO_rsa_verify failed!\n");
-	  ok = GNUNET_SYSERR;
-	  continue;
-	}
-      if (GNUNET_SYSERR !=
-	  GNUNET_CRYPTO_rsa_verify
-	  (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN, &purp, &sig, &pkey))
-	{
-	  printf ("GNUNET_CRYPTO_rsa_verify failed to fail!\n");
-	  ok = GNUNET_SYSERR;
-	  continue;
-	}
+      fprintf (stderr, "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
+      ok = GNUNET_SYSERR;
+      continue;
     }
+    if (GNUNET_SYSERR ==
+        GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST, &purp, &sig,
+                                  &pkey))
+    {
+      printf ("GNUNET_CRYPTO_rsa_verify failed!\n");
+      ok = GNUNET_SYSERR;
+      continue;
+    }
+    if (GNUNET_SYSERR !=
+        GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+                                  &purp, &sig, &pkey))
+    {
+      printf ("GNUNET_CRYPTO_rsa_verify failed to fail!\n");
+      ok = GNUNET_SYSERR;
+      continue;
+    }
+  }
   printf ("%d RSA sign/verify operations %llums\n", ITER,
-	  (unsigned long long)
-	  GNUNET_TIME_absolute_get_duration (start).rel_value);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).rel_value);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   return ok;
 }
@@ -260,18 +258,18 @@ testSignPerformance ()
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
+  {
+    fprintf (stderr, ".");
+    if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
     {
-      fprintf (stderr, ".");
-      if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
-	{
-	  fprintf (stderr, "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
-	  ok = GNUNET_SYSERR;
-	  continue;
-	}
+      fprintf (stderr, "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
+      ok = GNUNET_SYSERR;
+      continue;
     }
+  }
   printf ("%d RSA sign operations %llu ms\n", ITER,
-	  (unsigned long long)
-	  GNUNET_TIME_absolute_get_duration (start).rel_value);
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).rel_value);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
   return ok;
 }
@@ -328,9 +326,9 @@ main (int argc, char *argv[])
     failureCount++;
 
   if (failureCount != 0)
-    {
-      printf ("\n\n%d TESTS FAILED!\n\n", failureCount);
-      return -1;
-    }
+  {
+    printf ("\n\n%d TESTS FAILED!\n\n", failureCount);
+    return -1;
+  }
   return 0;
-}				/* end of main */
+}                               /* end of main */

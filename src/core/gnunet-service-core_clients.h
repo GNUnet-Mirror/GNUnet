@@ -41,8 +41,8 @@
  */
 void
 GSC_CLIENTS_send_to_client (struct GNUNET_SERVER_Client *client,
-			    const struct GNUNET_MessageHeader *msg,
-			    int can_drop);
+                            const struct GNUNET_MessageHeader *msg,
+                            int can_drop);
 
 
 /**
@@ -59,11 +59,12 @@ GSC_CLIENTS_send_to_client (struct GNUNET_SERVER_Client *client,
  */
 void
 GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
-					   const struct GNUNET_PeerIdentity *neighbour,
-					   const struct GNUNET_ATS_Information *atsi,
-					   unsigned int atsi_count,
-					   const struct GSC_TypeMap *tmap_old,
-					   const struct GSC_TypeMap *tmap_new);
+                                           const struct GNUNET_PeerIdentity
+                                           *neighbour,
+                                           const struct GNUNET_ATS_Information
+                                           *atsi, unsigned int atsi_count,
+                                           const struct GSC_TypeMap *tmap_old,
+                                           const struct GSC_TypeMap *tmap_new);
 
 
 /**
@@ -78,19 +79,20 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
-GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
-					    const struct GNUNET_ATS_Information *atsi,
-					    unsigned int atsi_count,
-					    const struct GSC_TypeMap *tmap_old,
-					    const struct GSC_TypeMap *tmap_new);
+GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity
+                                            *neighbour,
+                                            const struct GNUNET_ATS_Information
+                                            *atsi, unsigned int atsi_count,
+                                            const struct GSC_TypeMap *tmap_old,
+                                            const struct GSC_TypeMap *tmap_new);
 
 
 /**
  * Deliver P2P message to interested clients. Caller must have checked
- * that the sending peer actually lists the given message type as one 
+ * that the sending peer actually lists the given message type as one
  * of its types.
  *
- * @param sender peer who sent us the message 
+ * @param sender peer who sent us the message
  * @param atsi performance information about neighbour
  * @param atsi_count number of entries in 'ats' array
  * @param msg the message
@@ -100,11 +102,10 @@ GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *ne
  */
 void
 GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
-			     const struct GNUNET_ATS_Information *atsi,
-			     unsigned int atsi_count,
-			     const struct GNUNET_MessageHeader *msg,
-			     uint16_t msize,
-			     int options);
+                             const struct GNUNET_ATS_Information *atsi,
+                             unsigned int atsi_count,
+                             const struct GNUNET_MessageHeader *msg,
+                             uint16_t msize, int options);
 
 
 /**

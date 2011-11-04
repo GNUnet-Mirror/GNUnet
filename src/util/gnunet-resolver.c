@@ -72,9 +72,9 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-	  GNUNET_PROGRAM_run (argc, argv, "gnunet-resolver [hostname]",
-			      gettext_noop ("Test GNUnet DNS resolver code."),
-			      options, &run, NULL)) ? 0 : 1;
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-resolver [hostname]",
+                              gettext_noop ("Test GNUnet DNS resolver code."),
+                              options, &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-resolver.c */

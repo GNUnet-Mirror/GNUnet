@@ -375,7 +375,8 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
                                         ntohl (sm->anonymity_level),
                                         0 /* priority */ ,
                                         0 /* ttl */ ,
-                                        0 /* sender PID */ , 0 /* origin PID */,
+                                        0 /* sender PID */ ,
+                                        0 /* origin PID */ ,
                                         (const GNUNET_HashCode *) &sm[1], sc,
                                         &client_response_handler, cr);
   return cr->pr;

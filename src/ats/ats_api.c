@@ -138,26 +138,22 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
 
   GNUNET_assert (GNUNET_SYSERR != ar->connected);
   /* FIXME: ||1 because we currently NEVER get 'connected' events... */
-  if ( (GNUNET_YES == ar->connected) || 1) 
+  if ((GNUNET_YES == ar->connected) || 1)
   {
     ar->bandwidth_in = sbc->bw_in;
     ar->bandwidth_out = sbc->bw_out;
     GNUNET_BANDWIDTH_tracker_update_quota (&ar->available_recv_window,
                                            ar->bandwidth_in);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Bandwidth assigned to peer %s is i:%u/o:%u bytes/s\n",
-	 GNUNET_i2s ((const struct GNUNET_PeerIdentity *) key),
-	 ntohl (ar->bandwidth_in.value__),
-	 ntohl (ar->bandwidth_out.value__));
+         "Bandwidth assigned to peer %s is i:%u/o:%u bytes/s\n",
+         GNUNET_i2s ((const struct GNUNET_PeerIdentity *) key),
+         ntohl (ar->bandwidth_in.value__), ntohl (ar->bandwidth_out.value__));
     if (NULL != sbc->atc->alloc_cb)
       sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                           (const struct GNUNET_PeerIdentity *) key,
-                          ar->plugin_name, ar->plugin_addr,
-                          ar->plugin_addr_len, 
-			  ar->session,
-			  ar->bandwidth_out,
-                          ar->bandwidth_in,
-			  NULL, 0);
+                          ar->plugin_name, ar->plugin_addr, ar->plugin_addr_len,
+                          ar->session, ar->bandwidth_out, ar->bandwidth_in,
+                          NULL, 0);
   }
   else if (ntohl (ar->bandwidth_out.value__) > 0)
   {
@@ -166,17 +162,16 @@ set_bw_connections (void *cls, const GNUNET_HashCode * key, void *value)
     if (NULL != sbc->atc->alloc_cb)
       sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
                           (const struct GNUNET_PeerIdentity *) key,
-                          ar->plugin_name, ar->plugin_addr,
-                          ar->plugin_addr_len, ar->session, ar->bandwidth_out,
-                          ar->bandwidth_in, NULL, 0);
+                          ar->plugin_name, ar->plugin_addr, ar->plugin_addr_len,
+                          ar->session, ar->bandwidth_out, ar->bandwidth_in,
+                          NULL, 0);
   }
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Not communicating bandwidth assigned to peer %s: not connected and bw is: i:%u/o:%u bytes/s\n",
-	 GNUNET_i2s ((const struct GNUNET_PeerIdentity *) key),
-	 ntohl (ar->bandwidth_in.value__),
-	 ntohl (ar->bandwidth_out.value__));
- 
+         "Not communicating bandwidth assigned to peer %s: not connected and bw is: i:%u/o:%u bytes/s\n",
+         GNUNET_i2s ((const struct GNUNET_PeerIdentity *) key),
+         ntohl (ar->bandwidth_in.value__), ntohl (ar->bandwidth_out.value__));
+
   return GNUNET_YES;
 }
 
@@ -205,9 +200,8 @@ update_bandwidth_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   bwc.bw_out = GNUNET_BANDWIDTH_value_init (atc->total_bps_out / ac);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trivial implementation: bandwidth assigned to each peer is i:%u/o:%u bytes/s\n",
-       ntohl (bwc.bw_in.value__),
-       ntohl (bwc.bw_out.value__));
-   GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &set_bw_connections, &bwc);
+       ntohl (bwc.bw_in.value__), ntohl (bwc.bw_out.value__));
+  GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &set_bw_connections, &bwc);
 }
 
 
@@ -244,9 +238,8 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
 #if DEBUG_ATS
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Suggesting address for peer `%s', starting with i:%u/o:%u bytes/s\n",
-       GNUNET_h2s (key),
-       asc->atc->total_bps_in/32,
-       asc->atc->total_bps_out/32);
+       GNUNET_h2s (key), asc->atc->total_bps_in / 32,
+       asc->atc->total_bps_out / 32);
 #endif
 
   /* trivial strategy: pick first available address... */
@@ -285,8 +278,8 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *atc,
   struct GNUNET_ATS_SuggestionContext *asc;
 
 #if DEBUG_ATS
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Looking up suggested address for peer `%s'\n", GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Looking up suggested address for peer `%s'\n",
+       GNUNET_i2s (peer));
 #endif
   asc = GNUNET_malloc (sizeof (struct GNUNET_ATS_SuggestionContext));
   asc->cb = cb;
@@ -441,70 +434,70 @@ update_session (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (0 != strcmp (arnew->plugin_name, arold->plugin_name))
     return GNUNET_YES;
-  if (! (((arnew->session == arold->session) && (arnew->session != NULL)) ||
-	 ((arold->session == NULL) &&
-	  (arold->plugin_addr_len == arnew->plugin_addr_len) &&
-	  (0 ==
-	   memcmp (arold->plugin_addr, arnew->plugin_addr,
-		   arnew->plugin_addr_len)))))
-    return GNUNET_YES; /* no match */
+  if (!
+      (((arnew->session == arold->session) && (arnew->session != NULL)) ||
+       ((arold->session == NULL) &&
+        (arold->plugin_addr_len == arnew->plugin_addr_len) &&
+        (0 ==
+         memcmp (arold->plugin_addr, arnew->plugin_addr,
+                 arnew->plugin_addr_len)))))
+    return GNUNET_YES;          /* no match */
   /* records match */
 #if DEBUG_ATS
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Updating session for peer `%s' plugin `%s'\n", GNUNET_h2s (key),
-       arold->plugin_name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating session for peer `%s' plugin `%s'\n",
+       GNUNET_h2s (key), arold->plugin_name);
 #endif
   if (arnew->session != arold->session)
-    {
-      arold->session = arnew->session;
-    }
+  {
+    arold->session = arnew->session;
+  }
   if ((arnew->connected == GNUNET_YES) && (arold->connected == GNUNET_NO))
-    {
-      arold->connected = GNUNET_YES;
-    }
-  
+  {
+    arold->connected = GNUNET_YES;
+  }
+
   /* Update existing value */
   c_new = 0;
   while (c_new < arnew->ats_count)
+  {
+    c_old = 0;
+    found = GNUNET_NO;
+    while (c_old < arold->ats_count)
     {
-      c_old = 0;
-      found = GNUNET_NO;
-      while (c_old < arold->ats_count)
-      {
-        if (arold->ats[c_old].type == arnew->ats[c_new].type)
-        {
-#if DEBUG_ATS
-          LOG (GNUNET_ERROR_TYPE_DEBUG,
-               "Found type %i, old value=%i new value=%i\n",
-               ntohl (arold->ats[c_old].type), ntohl (arold->ats[c_old].value),
-               ntohl (arnew->ats[c_new].value));
-#endif
-          arold->ats[c_old].value = arnew->ats[c_new].value;
-          found = GNUNET_YES;
-        }
-        c_old++;
-      }
-      /* Add new value */
-      if (found == GNUNET_NO)
+      if (arold->ats[c_old].type == arnew->ats[c_new].type)
       {
 #if DEBUG_ATS
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Added new type %i new value=%i\n",
-             ntohl (arnew->ats[c_new].type), ntohl (arnew->ats[c_new].value));
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Old array size: %u\n", arold->ats_count);
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Found type %i, old value=%i new value=%i\n",
+             ntohl (arold->ats[c_old].type), ntohl (arold->ats[c_old].value),
+             ntohl (arnew->ats[c_new].value));
 #endif
-        GNUNET_array_grow (arold->ats, arold->ats_count, arold->ats_count + 1);
-        GNUNET_assert (arold->ats_count >= 2);
-        arold->ats[arold->ats_count - 2].type = arnew->ats[c_new].type;
-        arold->ats[arold->ats_count - 2].value = arnew->ats[c_new].value;
-        arold->ats[arold->ats_count - 1].type = htonl (0);
-        arold->ats[arold->ats_count - 1].value = htonl (0);
-#if DEBUG_ATS
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "New array size: %i\n", arold->ats_count);
-#endif
+        arold->ats[c_old].value = arnew->ats[c_new].value;
+        found = GNUNET_YES;
       }
-      c_new++;
+      c_old++;
     }
-  
+    /* Add new value */
+    if (found == GNUNET_NO)
+    {
+#if DEBUG_ATS
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Added new type %i new value=%i\n",
+           ntohl (arnew->ats[c_new].type), ntohl (arnew->ats[c_new].value));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Old array size: %u\n", arold->ats_count);
+#endif
+      GNUNET_array_grow (arold->ats, arold->ats_count, arold->ats_count + 1);
+      GNUNET_assert (arold->ats_count >= 2);
+      arold->ats[arold->ats_count - 2].type = arnew->ats[c_new].type;
+      arold->ats[arold->ats_count - 2].value = arnew->ats[c_new].value;
+      arold->ats[arold->ats_count - 1].type = htonl (0);
+      arold->ats[arold->ats_count - 1].value = htonl (0);
+#if DEBUG_ATS
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "New array size: %i\n", arold->ats_count);
+#endif
+    }
+    c_new++;
+  }
+
   update_bandwidth_assignment (usc->atc, arold);
   return GNUNET_NO;
 }
@@ -538,9 +531,8 @@ create_allocation_record (const char *plugin_name, struct Session *session,
                                  MAX_WINDOW_TIME_S);
   GNUNET_assert (ats_count > 0);
   GNUNET_array_grow (ar->ats, ar->ats_count, ats_count);
-  memcpy (ar->ats, ats,
-          ats_count * sizeof (struct GNUNET_ATS_Information));
-  ar->connected = GNUNET_SYSERR; /* aka: not known / no change */
+  memcpy (ar->ats, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
+  ar->connected = GNUNET_SYSERR;        /* aka: not known / no change */
   return ar;
 }
 
@@ -594,11 +586,9 @@ GNUNET_ATS_peer_connect (struct GNUNET_ATS_SchedulingHandle *atc,
   struct UpdateSessionContext usc;
 
 #if DEBUG_ATS
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Connected to peer %s\n",
-       GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s\n", GNUNET_i2s (peer));
 #endif
-         
+
   (void) GNUNET_CONTAINER_multihashmap_iterate (atc->peers, &disconnect_peer,
                                                 atc);
   ar = create_allocation_record (plugin_name, session, plugin_addr,
@@ -632,8 +622,7 @@ GNUNET_ATS_peer_disconnect (struct GNUNET_ATS_SchedulingHandle *atc,
                             const struct GNUNET_PeerIdentity *peer)
 {
 #if DEBUG_ATS
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Disconnected from peer %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnected from peer %s\n",
        GNUNET_i2s (peer));
 #endif
   (void) GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers,
@@ -768,9 +757,8 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *atc,
   struct UpdateSessionContext usc;
 
 #if DEBUG_ATS
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Updating address for peer `%s', plugin `%s'\n", GNUNET_i2s (peer),
-       plugin_name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s', plugin `%s'\n",
+       GNUNET_i2s (peer), plugin_name);
 #endif
   ar = create_allocation_record (plugin_name, session, plugin_addr,
                                  plugin_addr_len, ats, ats_count);
@@ -783,7 +771,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *atc,
     return;
   }
 #if DEBUG_ATS
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding new address for peer `%s', plugin `%s'\n", GNUNET_i2s (peer),
        plugin_name);
 #endif

@@ -119,14 +119,14 @@ struct GNUNET_CRYPTO_FileHashContext
  */
 static void
 file_hash_finish (struct GNUNET_CRYPTO_FileHashContext *fhc,
-		  const GNUNET_HashCode * res)
+                  const GNUNET_HashCode * res)
 {
   fhc->callback (fhc->callback_cls, res);
   GNUNET_free (fhc->filename);
   if (!GNUNET_DISK_handle_invalid (fhc->fh))
     GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fhc->fh));
   gcry_md_close (fhc->md);
-  GNUNET_free (fhc);		/* also frees fhc->buffer */
+  GNUNET_free (fhc);            /* also frees fhc->buffer */
 }
 
 
@@ -149,19 +149,19 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (fhc->fsize - fhc->offset < delta)
     delta = fhc->fsize - fhc->offset;
   if (delta != GNUNET_DISK_file_read (fhc->fh, fhc->buffer, delta))
-    {
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "read", fhc->filename);
-      file_hash_finish (fhc, NULL);
-      return;
-    }
+  {
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "read", fhc->filename);
+    file_hash_finish (fhc, NULL);
+    return;
+  }
   gcry_md_write (fhc->md, fhc->buffer, delta);
   fhc->offset += delta;
   if (fhc->offset == fhc->fsize)
-    {
-      res = (GNUNET_HashCode *) gcry_md_read (fhc->md, GCRY_MD_SHA512);
-      file_hash_finish (fhc, res);
-      return;
-    }
+  {
+    res = (GNUNET_HashCode *) gcry_md_read (fhc->md, GCRY_MD_SHA512);
+    file_hash_finish (fhc, res);
+    return;
+  }
   fhc->task = GNUNET_SCHEDULER_add_now (&file_hash_task, fhc);
 }
 
@@ -178,43 +178,43 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 struct GNUNET_CRYPTO_FileHashContext *
 GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
-			 const char *filename, size_t blocksize,
-			 GNUNET_CRYPTO_HashCompletedCallback callback,
-			 void *callback_cls)
+                         const char *filename, size_t blocksize,
+                         GNUNET_CRYPTO_HashCompletedCallback callback,
+                         void *callback_cls)
 {
   struct GNUNET_CRYPTO_FileHashContext *fhc;
 
   GNUNET_assert (blocksize > 0);
   fhc =
-    GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_FileHashContext) + blocksize);
+      GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_FileHashContext) + blocksize);
   fhc->callback = callback;
   fhc->callback_cls = callback_cls;
   fhc->buffer = (unsigned char *) &fhc[1];
   fhc->filename = GNUNET_strdup (filename);
   if (GPG_ERR_NO_ERROR != gcry_md_open (&fhc->md, GCRY_MD_SHA512, 0))
-    {
-      GNUNET_break (0);
-      GNUNET_free (fhc);
-      return NULL;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_free (fhc);
+    return NULL;
+  }
   fhc->bsize = blocksize;
   if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fhc->fsize, GNUNET_NO))
-    {
-      GNUNET_free (fhc->filename);
-      GNUNET_free (fhc);
-      return NULL;
-    }
+  {
+    GNUNET_free (fhc->filename);
+    GNUNET_free (fhc);
+    return NULL;
+  }
   fhc->fh =
-    GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
-			   GNUNET_DISK_PERM_NONE);
+      GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+                             GNUNET_DISK_PERM_NONE);
   if (!fhc->fh)
-    {
-      GNUNET_free (fhc->filename);
-      GNUNET_free (fhc);
-      return NULL;
-    }
+  {
+    GNUNET_free (fhc->filename);
+    GNUNET_free (fhc);
+    return NULL;
+  }
   fhc->task =
-    GNUNET_SCHEDULER_add_with_priority (priority, &file_hash_task, fhc);
+      GNUNET_SCHEDULER_add_with_priority (priority, &file_hash_task, fhc);
   return fhc;
 }
 
@@ -260,7 +260,7 @@ getValue__ (unsigned char a)
  */
 void
 GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
-			   struct GNUNET_CRYPTO_HashAsciiEncoded *result)
+                           struct GNUNET_CRYPTO_HashAsciiEncoded *result)
 {
   /**
    * 32 characters for encoding (GNUNET_CRYPTO_hash => 32 characters)
@@ -278,23 +278,22 @@ GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
   rpos = 0;
   bits = 0;
   while ((rpos < sizeof (GNUNET_HashCode)) || (vbit > 0))
+  {
+    if ((rpos < sizeof (GNUNET_HashCode)) && (vbit < 5))
     {
-      if ((rpos < sizeof (GNUNET_HashCode)) && (vbit < 5))
-	{
-	  bits = (bits << 8) | ((unsigned char *) block)[rpos++];	/* eat 8 more bits */
-	  vbit += 8;
-	}
-      if (vbit < 5)
-	{
-	  bits <<= (5 - vbit);	/* zero-padding */
-	  GNUNET_assert (vbit == 2);	/* padding by 3: 512+3 mod 5 == 0 */
-	  vbit = 5;
-	}
-      GNUNET_assert (wpos <
-		     sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1);
-      result->encoding[wpos++] = encTable__[(bits >> (vbit - 5)) & 31];
-      vbit -= 5;
+      bits = (bits << 8) | ((unsigned char *) block)[rpos++];   /* eat 8 more bits */
+      vbit += 8;
     }
+    if (vbit < 5)
+    {
+      bits <<= (5 - vbit);      /* zero-padding */
+      GNUNET_assert (vbit == 2);        /* padding by 3: 512+3 mod 5 == 0 */
+      vbit = 5;
+    }
+    GNUNET_assert (wpos < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1);
+    result->encoding[wpos++] = encTable__[(bits >> (vbit - 5)) & 31];
+    vbit -= 5;
+  }
   GNUNET_assert (wpos == sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1);
   GNUNET_assert (vbit == 0);
   result->encoding[wpos] = '\0';
@@ -318,22 +317,22 @@ GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result)
   if (strlen (enc) != sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1)
     return GNUNET_SYSERR;
 
-  vbit = 2;			/* padding! */
+  vbit = 2;                     /* padding! */
   wpos = sizeof (GNUNET_HashCode);
   rpos = sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1;
   bits = getValue__ (enc[--rpos]) >> 3;
   while (wpos > 0)
+  {
+    GNUNET_assert (rpos > 0);
+    bits = (getValue__ (enc[--rpos]) << vbit) | bits;
+    vbit += 5;
+    if (vbit >= 8)
     {
-      GNUNET_assert (rpos > 0);
-      bits = (getValue__ (enc[--rpos]) << vbit) | bits;
-      vbit += 5;
-      if (vbit >= 8)
-	{
-	  ((unsigned char *) result)[--wpos] = (unsigned char) bits;
-	  bits >>= 8;
-	  vbit -= 8;
-	}
+      ((unsigned char *) result)[--wpos] = (unsigned char) bits;
+      bits >>= 8;
+      vbit -= 8;
     }
+  }
   GNUNET_assert (rpos == 0);
   GNUNET_assert (vbit == 0);
   return GNUNET_OK;
@@ -352,7 +351,7 @@ GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result)
  */
 unsigned int
 GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
-				 const GNUNET_HashCode * b)
+                                 const GNUNET_HashCode * b)
 {
   unsigned int x1 = (a->bits[1] - b->bits[1]) >> 16;
   unsigned int x2 = (b->bits[1] - a->bits[1]) >> 16;
@@ -362,7 +361,7 @@ GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
 
 void
 GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
-				  GNUNET_HashCode * result)
+                                  GNUNET_HashCode * result)
 {
   int i;
 
@@ -372,37 +371,33 @@ GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
 
 void
 GNUNET_CRYPTO_hash_difference (const GNUNET_HashCode * a,
-			       const GNUNET_HashCode * b,
-			       GNUNET_HashCode * result)
+                               const GNUNET_HashCode * b,
+                               GNUNET_HashCode * result)
 {
   int i;
 
-  for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0;
-       i--)
+  for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0; i--)
     result->bits[i] = b->bits[i] - a->bits[i];
 }
 
 void
 GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
-			const GNUNET_HashCode * delta,
-			GNUNET_HashCode * result)
+                        const GNUNET_HashCode * delta, GNUNET_HashCode * result)
 {
   int i;
 
-  for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0;
-       i--)
+  for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0; i--)
     result->bits[i] = delta->bits[i] + a->bits[i];
 }
 
 
 void
 GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a, const GNUNET_HashCode * b,
-			GNUNET_HashCode * result)
+                        GNUNET_HashCode * result)
 {
   int i;
 
-  for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0;
-       i--)
+  for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0; i--)
     result->bits[i] = a->bits[i] ^ b->bits[i];
 }
 
@@ -412,18 +407,17 @@ GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a, const GNUNET_HashCode * b,
  */
 void
 GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
-			       struct GNUNET_CRYPTO_AesSessionKey *skey,
-			       struct GNUNET_CRYPTO_AesInitializationVector
-			       *iv)
+                               struct GNUNET_CRYPTO_AesSessionKey *skey,
+                               struct GNUNET_CRYPTO_AesInitializationVector *iv)
 {
   GNUNET_assert (sizeof (GNUNET_HashCode) >=
-		 GNUNET_CRYPTO_AES_KEY_LENGTH +
-		 sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
+                 GNUNET_CRYPTO_AES_KEY_LENGTH +
+                 sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
   memcpy (skey, hc, GNUNET_CRYPTO_AES_KEY_LENGTH);
   skey->crc32 =
-    htonl (GNUNET_CRYPTO_crc32_n (skey, GNUNET_CRYPTO_AES_KEY_LENGTH));
+      htonl (GNUNET_CRYPTO_crc32_n (skey, GNUNET_CRYPTO_AES_KEY_LENGTH));
   memcpy (iv, &((char *) hc)[GNUNET_CRYPTO_AES_KEY_LENGTH],
-	  sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
+          sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
 }
 
 
@@ -454,13 +448,13 @@ GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code, unsigned int bit)
  */
 unsigned int
 GNUNET_CRYPTO_hash_matching_bits (const GNUNET_HashCode * first,
-				  const GNUNET_HashCode * second)
+                                  const GNUNET_HashCode * second)
 {
   unsigned int i;
 
   for (i = 0; i < sizeof (GNUNET_HashCode) * 8; i++)
     if (GNUNET_CRYPTO_hash_get_bit (first, i) !=
-	GNUNET_CRYPTO_hash_get_bit (second, i))
+        GNUNET_CRYPTO_hash_get_bit (second, i))
       return i;
   return sizeof (GNUNET_HashCode) * 8;
 }
@@ -472,8 +466,7 @@ GNUNET_CRYPTO_hash_matching_bits (const GNUNET_HashCode * first,
  * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
  */
 int
-GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1,
-			const GNUNET_HashCode * h2)
+GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1, const GNUNET_HashCode * h2)
 {
   unsigned int *i1;
   unsigned int *i2;
@@ -481,14 +474,13 @@ GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1,
 
   i1 = (unsigned int *) h1;
   i2 = (unsigned int *) h2;
-  for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0;
-       i--)
-    {
-      if (i1[i] > i2[i])
-	return 1;
-      if (i1[i] < i2[i])
-	return -1;
-    }
+  for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0; i--)
+  {
+    if (i1[i] > i2[i])
+      return 1;
+    if (i1[i] < i2[i])
+      return -1;
+  }
   return 0;
 }
 
@@ -500,22 +492,22 @@ GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1,
  */
 int
 GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
-			   const GNUNET_HashCode * h2,
-			   const GNUNET_HashCode * target)
+                           const GNUNET_HashCode * h2,
+                           const GNUNET_HashCode * target)
 {
   int i;
   unsigned int d1;
   unsigned int d2;
 
   for (i = sizeof (GNUNET_HashCode) / sizeof (unsigned int) - 1; i >= 0; i--)
-    {
-      d1 = ((unsigned int *) h1)[i] ^ ((unsigned int *) target)[i];
-      d2 = ((unsigned int *) h2)[i] ^ ((unsigned int *) target)[i];
-      if (d1 > d2)
-	return 1;
-      else if (d1 < d2)
-	return -1;
-    }
+  {
+    d1 = ((unsigned int *) h1)[i] ^ ((unsigned int *) target)[i];
+    d2 = ((unsigned int *) h2)[i] ^ ((unsigned int *) target)[i];
+    if (d1 > d2)
+      return 1;
+    else if (d1 < d2)
+      return -1;
+  }
   return 0;
 }
 
@@ -530,8 +522,8 @@ GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
  */
 void
 GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
-			       const struct GNUNET_CRYPTO_AesSessionKey *rkey,
-			       const void *salt, size_t salt_len, ...)
+                               const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                               const void *salt, size_t salt_len, ...)
 {
   va_list argp;
 
@@ -551,12 +543,12 @@ GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
  */
 void
 GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
-				 const struct GNUNET_CRYPTO_AesSessionKey
-				 *rkey, const void *salt, size_t salt_len,
-				 va_list argp)
+                                 const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                                 const void *salt, size_t salt_len,
+                                 va_list argp)
 {
   GNUNET_CRYPTO_kdf_v (key->key, sizeof (key->key), salt, salt_len, rkey->key,
-		       sizeof (rkey->key), argp);
+                       sizeof (rkey->key), argp);
 }
 
 
@@ -570,14 +562,14 @@ GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
  */
 void
 GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
-		    const void *plaintext, size_t plaintext_len,
-		    GNUNET_HashCode * hmac)
+                    const void *plaintext, size_t plaintext_len,
+                    GNUNET_HashCode * hmac)
 {
   gcry_md_hd_t md;
   const unsigned char *mc;
 
   GNUNET_assert (GPG_ERR_NO_ERROR ==
-		 gcry_md_open (&md, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC));
+                 gcry_md_open (&md, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC));
   gcry_md_setkey (md, key->key, sizeof (key->key));
   gcry_md_write (md, plaintext, plaintext_len);
   mc = gcry_md_read (md, GCRY_MD_SHA512);

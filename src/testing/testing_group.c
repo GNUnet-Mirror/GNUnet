@@ -2669,8 +2669,8 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg, char *filename,
         return connect_attempts;
       }
 #if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Found %u total peers in topology\n", total_peers);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u total peers in topology\n",
+                  total_peers);
 #endif
       GNUNET_assert (total_peers == pg->total);
       curr_state = PEER_INDEX;
@@ -3348,7 +3348,9 @@ send_core_connect_requests (void *cls,
     while (conn != NULL)
     {
       GNUNET_TRANSPORT_try_connect (send_hello_context->peer->daemon->th,
-				    &send_hello_context->pg->peers[conn->index].daemon->id);
+                                    &send_hello_context->pg->peers[conn->
+                                                                   index].daemon->
+                                    id);
       conn = conn->next;
     }
     send_hello_context->core_connect_task =
@@ -3486,7 +3488,7 @@ core_connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 void
 core_init (void *cls, struct GNUNET_CORE_Handle *server,
-	   struct GNUNET_PeerIdentity *my_identity)
+           struct GNUNET_PeerIdentity *my_identity)
 {
   struct SendHelloContext *send_hello_context = cls;
 
@@ -4878,7 +4880,7 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
 static void
 internal_topology_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_ATS_Information *atsi,
-			    unsigned int atsi_count)
+                            unsigned int atsi_count)
 {
   struct CoreContext *core_ctx = cls;
   struct TopologyIterateContext *iter_ctx = core_ctx->iter_context;
@@ -5835,9 +5837,8 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                "peerStartHelper.pl", tempdir, NULL);
   GNUNET_assert (helper->proc != NULL);
 #if DEBUG_TESTING
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "starting peers with cmd ssh %s %s %s\n", arg,
-              "peerStartHelper.pl", tempdir);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting peers with cmd ssh %s %s %s\n",
+              arg, "peerStartHelper.pl", tempdir);
 #endif
   GNUNET_SCHEDULER_add_now (&check_peers_started, helper);
   GNUNET_free (tempdir);
@@ -6109,8 +6110,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
         fs = 0;
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Found file size %llu for hostkeys\n",
-                  fs);
+                  "Found file size %llu for hostkeys\n", fs);
 #endif
       if (0 != (fs % HOSTKEYFILESIZE))
       {
@@ -6784,9 +6784,8 @@ GNUNET_TESTING_daemons_start_service (struct GNUNET_TESTING_PeerGroup *pg,
   for (i = 0; i < pg->total; i++)
   {
 #if DEBUG_START
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Starting up service %s on peer %d!\n", service,
-                stopped_arr[stopped_permute[i]]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting up service %s on peer %d!\n",
+                service, stopped_arr[stopped_permute[i]]);
 #endif
     peer_start_ctx = GNUNET_malloc (sizeof (struct PeerServiceStartContext));
     peer_start_ctx->start_ctx = start_ctx;

@@ -111,7 +111,8 @@ main (int argc, char *const argv[])
   nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
   if (GNUNET_SYSERR == nat_res)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' file not found\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Cannot run NAT test: `%s' file not found\n",
                 "gnunet-nat-server");
     return 0;
   }

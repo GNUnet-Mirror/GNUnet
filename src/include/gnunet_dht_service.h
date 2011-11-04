@@ -165,10 +165,10 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, const GNUNET_HashCode * key,
 typedef void (*GNUNET_DHT_GetIterator) (void *cls,
                                         struct GNUNET_TIME_Absolute exp,
                                         const GNUNET_HashCode * key,
-                                        const struct GNUNET_PeerIdentity *get_path,
-					unsigned int get_path_length,
-                                        const struct GNUNET_PeerIdentity *put_path,
-					unsigned int put_path_length,
+                                        const struct GNUNET_PeerIdentity *
+                                        get_path, unsigned int get_path_length,
+                                        const struct GNUNET_PeerIdentity *
+                                        put_path, unsigned int put_path_length,
                                         enum GNUNET_BLOCK_Type type,
                                         size_t size, const void *data);
 
@@ -197,8 +197,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
                       enum GNUNET_BLOCK_Type type, const GNUNET_HashCode * key,
                       uint32_t desired_replication_level,
-                      enum GNUNET_DHT_RouteOption options,
-                      const void *xquery,
+                      enum GNUNET_DHT_RouteOption options, const void *xquery,
                       size_t xquery_size, GNUNET_DHT_GetIterator iter,
                       void *iter_cls);
 

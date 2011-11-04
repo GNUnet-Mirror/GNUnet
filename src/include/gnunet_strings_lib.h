@@ -59,7 +59,7 @@ extern "C"
  */
 int
 GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
-				    unsigned long long *size);
+                                    unsigned long long *size);
 
 
 /**
@@ -72,7 +72,7 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
  */
 int
 GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
-				       struct GNUNET_TIME_Relative *rtime);
+                                       struct GNUNET_TIME_Relative *rtime);
 
 
 /**

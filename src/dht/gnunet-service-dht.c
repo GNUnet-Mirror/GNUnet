@@ -81,8 +81,7 @@ static struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
  * @param message HELLO message of peer
  */
 static void
-process_hello (void *cls, 
-	       const struct GNUNET_MessageHeader *message)
+process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (message != NULL);
   GNUNET_free_non_null (GDS_my_hello);
@@ -149,24 +148,22 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GDS_DATACACHE_init ();
   GDS_HELLO_init ();
   GDS_CLIENTS_init (server);
-  if (GNUNET_OK !=
-      GDS_NEIGHBOURS_init ())
-    {
-      shutdown_task (NULL, NULL);
-      return;
-    }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task, NULL);
+  if (GNUNET_OK != GDS_NEIGHBOURS_init ())
+  {
+    shutdown_task (NULL, NULL);
+    return;
+  }
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
   GDS_transport_handle =
-    GNUNET_TRANSPORT_connect (GDS_cfg, NULL, NULL, NULL, NULL, NULL);
+      GNUNET_TRANSPORT_connect (GDS_cfg, NULL, NULL, NULL, NULL, NULL);
   if (GDS_transport_handle == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to connect to transport service!\n"));
-      return;
-    }
-  ghh = GNUNET_TRANSPORT_get_hello (GDS_transport_handle, 
-				    &process_hello, NULL);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to connect to transport service!\n"));
+    return;
+  }
+  ghh = GNUNET_TRANSPORT_get_hello (GDS_transport_handle, &process_hello, NULL);
 }
 
 
@@ -181,12 +178,11 @@ int
 main (int argc, char *const *argv)
 {
   int ret;
-  
-  ret = (GNUNET_OK ==
-	 GNUNET_SERVICE_run (argc, argv, 
-			     "dht", 
-			     GNUNET_SERVICE_OPTION_NONE,
-			     &run, NULL)) ? 0 : 1;
+
+  ret =
+      (GNUNET_OK ==
+       GNUNET_SERVICE_run (argc, argv, "dht", GNUNET_SERVICE_OPTION_NONE, &run,
+                           NULL)) ? 0 : 1;
   GDS_CLIENTS_done ();
   return ret;
 }

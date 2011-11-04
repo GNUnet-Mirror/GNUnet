@@ -70,9 +70,9 @@ struct PeerContext *p1;
 
 struct PeerContext *p2;
 
-struct PeerContext * sender;
+struct PeerContext *sender;
 
-struct PeerContext * receiver;
+struct PeerContext *receiver;
 
 struct GNUNET_TRANSPORT_TransmitHandle *th;
 
@@ -86,7 +86,7 @@ char *gen_cfg_p1;
 unsigned long long quota_in_p2;
 unsigned long long quota_out_p2;
 
-struct GNUNET_TRANSPORT_TESTING_handle * tth;
+struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
@@ -144,26 +144,28 @@ end ()
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   datarate = (total_bytes_sent * 1000) / delta;
 
-  fprintf (stderr, "Throughput was %llu b/s\n",
-           datarate);
+  fprintf (stderr, "Throughput was %llu b/s\n", datarate);
 
   test_failed = GNUNET_NO;
   if (datarate > quota_in_p2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Datarate of %llu b/s higher than allowed inbound quota of %llu b/s\n", datarate, quota_in_p2);
+                "Datarate of %llu b/s higher than allowed inbound quota of %llu b/s\n",
+                datarate, quota_in_p2);
     test_failed = GNUNET_YES;
   }
   if (datarate > quota_out_p1)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Datarate of %llu b/s higher than allowed outbound quota of %llu b/s\n", datarate, quota_out_p1);
+                "Datarate of %llu b/s higher than allowed outbound quota of %llu b/s\n",
+                datarate, quota_out_p1);
     test_failed = GNUNET_YES;
   }
   if (test_failed == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Datarate of %llu b/s complied to allowed outbound quota of %llu b/s and inbound quota of %llu b/s\n", datarate, quota_out_p1, quota_in_p2);
+                "Datarate of %llu b/s complied to allowed outbound quota of %llu b/s and inbound quota of %llu b/s\n",
+                datarate, quota_out_p1, quota_in_p2);
   }
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
@@ -174,7 +176,7 @@ end ()
   th = NULL;
 
   if (cc != NULL)
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
 
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
@@ -200,7 +202,7 @@ end_badly ()
   th = NULL;
 
   if (cc != NULL)
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
 
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
@@ -224,8 +226,7 @@ get_size (unsigned int iter)
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   static int n;
   unsigned int s;
@@ -269,17 +270,19 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (die_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (die_task);
     test_failed = GNUNET_YES;
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly,
-        NULL);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
 #if VERBOSE
   if (ntohl (hdr->num) % 5000 == 0)
   {
     struct PeerContext *p = cls;
-    char * ps = strdup(GNUNET_i2s(&p->id));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
-                p->no, ps, ntohl (hdr->num), ntohs (message->size), GNUNET_i2s(peer));
+    char *ps = strdup (GNUNET_i2s (&p->id));
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
+                p->no, ps, ntohl (hdr->num), ntohs (message->size),
+                GNUNET_i2s (peer));
     GNUNET_free (ps);
   }
 #endif
@@ -300,7 +303,8 @@ notify_ready (void *cls, size_t size, void *buf)
   if (buf == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Timeout occurred while waiting for transmit_ready for message %u of %u\n", msg_scheduled, TOTAL_MSGS);
+                "Timeout occurred while waiting for transmit_ready for message %u of %u\n",
+                msg_scheduled, TOTAL_MSGS);
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
@@ -327,12 +331,12 @@ notify_ready (void *cls, size_t size, void *buf)
     if (n % 5000 == 0)
     {
 
-      char * receiver_s = strdup(GNUNET_i2s (&receiver->id));
+      char *receiver_s = strdup (GNUNET_i2s (&receiver->id));
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending message of size %u from peer %u (`%4s') -> peer %u (`%s') !\n",
-                  n,
-                  sender->no,
-                  GNUNET_i2s (&sender->id), receiver->no, receiver_s);
+                  n, sender->no, GNUNET_i2s (&sender->id), receiver->no,
+                  receiver_s);
       GNUNET_free (receiver_s);
     }
 #endif
@@ -367,11 +371,11 @@ notify_ready (void *cls, size_t size, void *buf)
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
 
   struct PeerContext *p = cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') connected to us!\n",
               p->no, GNUNET_i2s (peer));
 }
@@ -381,8 +385,9 @@ static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') disconnected!\n",
-              p->no, GNUNET_i2s (peer));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') disconnected!\n", p->no,
+              GNUNET_i2s (peer));
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
@@ -403,10 +408,11 @@ static void
 measure (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static int counter;
+
   measure_task = GNUNET_SCHEDULER_NO_TASK;
 
   counter++;
-  if ((DURATION.rel_value / 1000) < counter )
+  if ((DURATION.rel_value / 1000) < counter)
   {
     fprintf (stderr, ".\n");
     GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -414,7 +420,8 @@ measure (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
   {
     fprintf (stderr, ".");
-    measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &measure, NULL);
+    measure_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &measure, NULL);
   }
 }
 
@@ -423,28 +430,29 @@ static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   char *p1_c = strdup (GNUNET_i2s (&p1->id));
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %u (%s) <-> %u (%s)\n",
-              p1->no, p1_c,
-              p2->no, GNUNET_i2s (&p2->id));
+              p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
   cc = NULL;
   test_connected = GNUNET_YES;
 
-  measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &measure, NULL);
+  measure_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &measure, NULL);
   GNUNET_SCHEDULER_add_now (&sendtask, NULL);
 
 }
 
-void start_cb (struct PeerContext * p,
-               void *cls)
+void
+start_cb (struct PeerContext *p, void *cls)
 {
   static int started;
+
   started++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') started\n",
-       p->no,
-       GNUNET_i2s (&p->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') started\n", p->no,
+              GNUNET_i2s (&p->id));
 
   if (started != 2)
     return;
@@ -455,61 +463,66 @@ void start_cb (struct PeerContext * p,
   receiver = p1;
 
   char *sender_c = strdup (GNUNET_i2s (&sender->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test tries to send from %u (%s) -> peer %u (%s)\n",
-              sender->no, sender_c,
-              receiver->no, GNUNET_i2s (&receiver->id));
 
-  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test tries to send from %u (%s) -> peer %u (%s)\n", sender->no,
+              sender_c, receiver->no, GNUNET_i2s (&receiver->id));
+
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
+                                               NULL);
 
 }
 
 static char *
-generate_config (char * cfg_file,  unsigned long long  quota_in,  unsigned long long  quota_out)
+generate_config (char *cfg_file, unsigned long long quota_in,
+                 unsigned long long quota_out)
 {
-  char * fname = NULL;
-  struct GNUNET_CONFIGURATION_Handle *cfg = GNUNET_CONFIGURATION_create();
+  char *fname = NULL;
+  struct GNUNET_CONFIGURATION_Handle *cfg = GNUNET_CONFIGURATION_create ();
+
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (cfg, cfg_file));
-  GNUNET_asprintf (&fname, "q_in_%llu_q_out_%llu_%s", quota_in, quota_out, cfg_file);
-  GNUNET_CONFIGURATION_set_value_string(cfg, "PATHS", "DEFAULTCONFIG", fname);
-  GNUNET_CONFIGURATION_set_value_number(cfg, "core", "TOTAL_QUOTA_OUT", quota_out);
-  GNUNET_CONFIGURATION_set_value_number(cfg, "core", "TOTAL_QUOTA_IN", quota_in);
-  GNUNET_CONFIGURATION_set_value_number(cfg, "ats", "TOTAL_QUOTA_IN", quota_in);
-  GNUNET_CONFIGURATION_set_value_number(cfg, "ats", "TOTAL_QUOTA_OUT", quota_out);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write(cfg, fname));
-  GNUNET_CONFIGURATION_destroy(cfg);
+  GNUNET_asprintf (&fname, "q_in_%llu_q_out_%llu_%s", quota_in, quota_out,
+                   cfg_file);
+  GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "DEFAULTCONFIG", fname);
+  GNUNET_CONFIGURATION_set_value_number (cfg, "core", "TOTAL_QUOTA_OUT",
+                                         quota_out);
+  GNUNET_CONFIGURATION_set_value_number (cfg, "core", "TOTAL_QUOTA_IN",
+                                         quota_in);
+  GNUNET_CONFIGURATION_set_value_number (cfg, "ats", "TOTAL_QUOTA_IN",
+                                         quota_in);
+  GNUNET_CONFIGURATION_set_value_number (cfg, "ats", "TOTAL_QUOTA_OUT",
+                                         quota_out);
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write (cfg, fname));
+  GNUNET_CONFIGURATION_destroy (cfg);
   return fname;
 }
 
 static void
-run_measurement (unsigned long long p1_quota_in, unsigned long long p1_quota_out,
-                 unsigned long long p2_quota_in, unsigned long long p2_quota_out)
+run_measurement (unsigned long long p1_quota_in,
+                 unsigned long long p1_quota_out,
+                 unsigned long long p2_quota_in,
+                 unsigned long long p2_quota_out)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   /* setting ATS quota */
   quota_out_p1 = p1_quota_out;
-  gen_cfg_p1 = generate_config(cfg_file_p1, p1_quota_in, p1_quota_out);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Generated config file `%s'\n",
-      gen_cfg_p1);
+  gen_cfg_p1 = generate_config (cfg_file_p1, p1_quota_in, p1_quota_out);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Generated config file `%s'\n",
+              gen_cfg_p1);
 
   quota_in_p2 = p2_quota_in;
-  gen_cfg_p2 = generate_config(cfg_file_p2, p2_quota_in, p2_quota_out);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Generated config file `%s'\n",
-      gen_cfg_p2);
+  gen_cfg_p2 = generate_config (cfg_file_p2, p2_quota_in, p2_quota_out);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Generated config file `%s'\n",
+              gen_cfg_p2);
 
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, gen_cfg_p1, 1,
-                                            &notify_receive,
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, gen_cfg_p1, 1, &notify_receive,
                                             &notify_connect, &notify_disconnect,
-                                            &start_cb,
-                                            NULL);
+                                            &start_cb, NULL);
 
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, gen_cfg_p2, 2,
-                                            &notify_receive,
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, gen_cfg_p2, 2, &notify_receive,
                                             &notify_connect, &notify_disconnect,
-                                            &start_cb,
-                                            NULL);
+                                            &start_cb, NULL);
 
   if ((p1 == NULL) || (p2 == NULL))
   {
@@ -530,19 +543,19 @@ run (void *cls, char *const *args, const char *cfgfile,
   unsigned long long p2_quota_in = 10000;
   unsigned long long p2_quota_out = 10000;
 
-  if (NULL != strstr (test_name,"asymmetric"))
+  if (NULL != strstr (test_name, "asymmetric"))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Running asymmetric test with sending peer unlimited, receiving peer (in/out): %llu/%llu b/s \n",
-        p2_quota_in, p2_quota_out);
+                "Running asymmetric test with sending peer unlimited, receiving peer (in/out): %llu/%llu b/s \n",
+                p2_quota_in, p2_quota_out);
     p1_quota_out = 1024 * 1024 * 1024;
     p1_quota_in = 1024 * 1024 * 1024;
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Running symmetric test with (in/out) %llu/%llu b/s \n",
-        p2_quota_in, p2_quota_out);
+                "Running symmetric test with (in/out) %llu/%llu b/s \n",
+                p2_quota_in, p2_quota_out);
   }
   run_measurement (p1_quota_in, p1_quota_out, p2_quota_in, p2_quota_out);
 }

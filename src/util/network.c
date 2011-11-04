@@ -90,11 +90,11 @@ socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
   mode = !doBlock;
   if (ioctlsocket (fd->fd, FIONBIO, &mode) == SOCKET_ERROR)
 
-    {
-      SetErrnoFromWinsockError (WSAGetLastError ());
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "ioctlsocket");
-      return GNUNET_SYSERR;
-    }
+  {
+    SetErrnoFromWinsockError (WSAGetLastError ());
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "ioctlsocket");
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 
 #else
@@ -103,10 +103,10 @@ socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
 
   if (flags == -1)
 
-    {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "fcntl");
-      return GNUNET_SYSERR;
-    }
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "fcntl");
+    return GNUNET_SYSERR;
+  }
   if (doBlock)
     flags &= ~O_NONBLOCK;
 
@@ -114,10 +114,10 @@ socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
     flags |= O_NONBLOCK;
   if (0 != fcntl (fd->fd, F_SETFL, flags))
 
-    {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "fcntl");
-      return GNUNET_SYSERR;
-    }
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "fcntl");
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 #endif
 }
@@ -162,7 +162,7 @@ socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
 
   if (0 !=
       setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, &abs_value,
-		  sizeof (abs_value)))
+                  sizeof (abs_value)))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 }
 #endif
@@ -181,15 +181,14 @@ socket_set_nodelay (const struct GNUNET_NETWORK_Handle *h)
 #ifndef WINDOWS
   int value = 1;
 
-  if (0 !=
-      setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof (value)))
+  if (0 != setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof (value)))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 #else
   const char *abs_value = "1";
 
   if (0 !=
       setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, abs_value,
-		  sizeof (abs_value)))
+                  sizeof (abs_value)))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 #endif
 }
@@ -205,8 +204,7 @@ socket_set_nodelay (const struct GNUNET_NETWORK_Handle *h)
  */
 struct GNUNET_NETWORK_Handle *
 GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
-			      struct sockaddr *address,
-			      socklen_t * address_len)
+                              struct sockaddr *address, socklen_t * address_len)
 {
   struct GNUNET_NETWORK_Handle *ret;
 
@@ -219,7 +217,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 
     if (gsn == 0)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Accepting connection on `%s'\n",
-	   GNUNET_a2s (&name, namelen));
+           GNUNET_a2s (&name, namelen));
   }
 #endif
   ret->fd = accept (desc->fd, address, address_len);
@@ -228,36 +226,36 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
   else
     ret->af = desc->af;
   if (ret->fd == INVALID_SOCKET)
-    {
+  {
 #ifdef MINGW
-      SetErrnoFromWinsockError (WSAGetLastError ());
+    SetErrnoFromWinsockError (WSAGetLastError ());
 #endif
-      GNUNET_free (ret);
-      return NULL;
-    }
+    GNUNET_free (ret);
+    return NULL;
+  }
 #ifndef MINGW
   if (ret->fd >= FD_SETSIZE)
-    {
-      GNUNET_break (0 == close (ret->fd));
-      GNUNET_free (ret);
-      errno = EMFILE;
-      return NULL;
-    }
+  {
+    GNUNET_break (0 == close (ret->fd));
+    GNUNET_free (ret);
+    errno = EMFILE;
+    return NULL;
+  }
 #endif
   if (GNUNET_SYSERR == socket_set_blocking (ret, GNUNET_NO))
 
-    {
+  {
 
-      /* we might want to treat this one as fatal... */
-      GNUNET_break (0);
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret));
-      return NULL;
-    }
+    /* we might want to treat this one as fatal... */
+    GNUNET_break (0);
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret));
+    return NULL;
+  }
 
 #ifndef MINGW
   if (GNUNET_OK != socket_set_inheritable (ret))
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		  "socket_set_inheritable");
+                  "socket_set_inheritable");
 #endif
 #ifdef DARWIN
   socket_set_nosigpipe (ret);
@@ -279,8 +277,8 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
  */
 int
 GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
-			    const struct sockaddr *address,
-			    socklen_t address_len)
+                            const struct sockaddr *address,
+                            socklen_t address_len)
 {
   int ret;
 
@@ -289,8 +287,7 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
   const int on = 1;
 
   if (desc->af == AF_INET6)
-    if (0 !=
-	setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)))
+    if (0 != setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)))
       LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
 #endif
 #endif
@@ -302,11 +299,11 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 #ifndef LINUX
 #ifndef MINGW
   if (address->sa_family == AF_UNIX)
-    {
-      const struct sockaddr_un *un = (const struct sockaddr_un *) address;
+  {
+    const struct sockaddr_un *un = (const struct sockaddr_un *) address;
 
-      (void) unlink (un->sun_path);
-    }
+    (void) unlink (un->sun_path);
+  }
 #endif
 #endif
   ret = bind (desc->fd, address, address_len);
@@ -341,8 +338,8 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   DWORD error = 0;
 
 #if DEBUG_NETWORK
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_NETWORK_socket_close",
-       "Closing 0x%x\n", desc->fd);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_NETWORK_socket_close", "Closing 0x%x\n",
+       desc->fd);
 #endif
   SetLastError (0);
   ret = closesocket (desc->fd);
@@ -350,8 +347,8 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   SetErrnoFromWinsockError (error);
 #if DEBUG_NETWORK
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_NETWORK_socket_close",
-       "Closed 0x%x, closesocket() returned %d, GLE is %u\n",
-       desc->fd, ret, error);
+       "Closed 0x%x, closesocket() returned %d, GLE is %u\n", desc->fd, ret,
+       error);
 #endif
 #else
   ret = close (desc->fd);
@@ -359,12 +356,12 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 #ifndef LINUX
 #ifndef MINGW
   if ((desc->af == AF_UNIX) && (NULL != desc->addr))
-    {
-      const struct sockaddr_un *un = (const struct sockaddr_un *) desc->addr;
+  {
+    const struct sockaddr_un *un = (const struct sockaddr_un *) desc->addr;
 
-      if (0 != unlink (un->sun_path))
-	LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", un->sun_path);
-    }
+    if (0 != unlink (un->sun_path))
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", un->sun_path);
+  }
 #endif
 #endif
   GNUNET_free_non_null (desc->addr);
@@ -388,7 +385,7 @@ GNUNET_NETWORK_socket_box_native (int fd)
   struct GNUNET_NETWORK_Handle *ret;
 
   if (fcntl (fd, F_GETFD) < 0)
-    return NULL;		/* invalid FD */
+    return NULL;                /* invalid FD */
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->fd = fd;
   ret->af = AF_UNSPEC;
@@ -406,8 +403,8 @@ GNUNET_NETWORK_socket_box_native (int fd)
  */
 int
 GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
-			       const struct sockaddr *address,
-			       socklen_t address_len)
+                               const struct sockaddr *address,
+                               socklen_t address_len)
 {
   int ret;
 
@@ -415,11 +412,11 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
 
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
-    {
-      SetErrnoFromWinsockError (WSAGetLastError ());
-      if (errno == EWOULDBLOCK)
-	errno = EINPROGRESS;
-    }
+  {
+    SetErrnoFromWinsockError (WSAGetLastError ());
+    if (errno == EWOULDBLOCK)
+      errno = EINPROGRESS;
+  }
 #endif
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
@@ -437,8 +434,8 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
  */
 int
 GNUNET_NETWORK_socket_getsockopt (const struct GNUNET_NETWORK_Handle *desc,
-				  int level, int optname, void *optval,
-				  socklen_t * optlen)
+                                  int level, int optname, void *optval,
+                                  socklen_t * optlen)
 {
   int ret;
 
@@ -463,7 +460,7 @@ GNUNET_NETWORK_socket_getsockopt (const struct GNUNET_NETWORK_Handle *desc,
  */
 int
 GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
-			      int backlog)
+                              int backlog)
 {
   int ret;
 
@@ -486,7 +483,7 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
  */
 ssize_t
 GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle *
-				       desc)
+                                       desc)
 {
   int error;
 
@@ -519,9 +516,8 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle *
  */
 ssize_t
 GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle * desc,
-				void *buffer, size_t length,
-				struct sockaddr * src_addr,
-				socklen_t * addrlen)
+                                void *buffer, size_t length,
+                                struct sockaddr * src_addr, socklen_t * addrlen)
 {
   int ret;
   int flags;
@@ -549,7 +545,7 @@ GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle * desc,
  */
 ssize_t
 GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle * desc,
-			    void *buffer, size_t length)
+                            void *buffer, size_t length)
 {
   int ret;
   int flags;
@@ -578,7 +574,7 @@ GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle * desc,
  */
 ssize_t
 GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
-			    const void *buffer, size_t length)
+                            const void *buffer, size_t length)
 {
   int ret;
   int flags;
@@ -617,9 +613,9 @@ GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
  */
 ssize_t
 GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
-			      const void *message, size_t length,
-			      const struct sockaddr * dest_addr,
-			      socklen_t dest_len)
+                              const void *message, size_t length,
+                              const struct sockaddr * dest_addr,
+                              socklen_t dest_len)
 {
   int ret;
   int flags;
@@ -652,8 +648,8 @@ GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
  */
 int
 GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd, int level,
-				  int option_name, const void *option_value,
-				  socklen_t option_len)
+                                  int option_name, const void *option_value,
+                                  socklen_t option_len)
 {
   int ret;
 
@@ -685,36 +681,36 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
   ret->af = domain;
   ret->fd = socket (domain, type, protocol);
   if (INVALID_SOCKET == ret->fd)
-    {
+  {
 #ifdef MINGW
-      SetErrnoFromWinsockError (WSAGetLastError ());
+    SetErrnoFromWinsockError (WSAGetLastError ());
 #endif
-      GNUNET_free (ret);
-      return NULL;
-    }
+    GNUNET_free (ret);
+    return NULL;
+  }
 
 #ifndef MINGW
   if (ret->fd >= FD_SETSIZE)
-    {
-      GNUNET_break (0 == close (ret->fd));
-      GNUNET_free (ret);
-      errno = EMFILE;
-      return NULL;
-    }
+  {
+    GNUNET_break (0 == close (ret->fd));
+    GNUNET_free (ret);
+    errno = EMFILE;
+    return NULL;
+  }
 
 #endif
   if (GNUNET_SYSERR == socket_set_blocking (ret, GNUNET_NO))
-    {
-      /* we might want to treat this one as fatal... */
-      GNUNET_break (0);
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret));
-      return NULL;
-    }
+  {
+    /* we might want to treat this one as fatal... */
+    GNUNET_break (0);
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret));
+    return NULL;
+  }
 
 #ifndef MINGW
   if (GNUNET_OK != socket_set_inheritable (ret))
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		  "socket_set_inheritable");
+                  "socket_set_inheritable");
 #endif
 #ifdef DARWIN
   socket_set_nosigpipe (ret);
@@ -723,7 +719,7 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
 #ifdef AF_UNIX
       && (domain != AF_UNIX)
 #endif
-    )
+      )
     socket_set_nodelay (ret);
   return ret;
 }
@@ -762,18 +758,19 @@ int
 GNUNET_NETWORK_socket_disable_corking (struct GNUNET_NETWORK_Handle *desc)
 {
   int ret = 0;
+
 #if WINDOWS
   int value = 0;
 
   if (0 !=
       (ret =
        setsockopt (desc->fd, SOL_SOCKET, SO_SNDBUF, (char *) &value,
-		   sizeof (value))))
+                   sizeof (value))))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
   if (0 !=
       (ret =
        setsockopt (desc->fd, SOL_SOCKET, SO_RCVBUF, (char *) &value,
-		   sizeof (value))))
+                   sizeof (value))))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 #elif LINUX
   int value = 0;
@@ -812,7 +809,7 @@ GNUNET_NETWORK_fdset_zero (struct GNUNET_NETWORK_FDSet *fds)
  */
 void
 GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
-			  const struct GNUNET_NETWORK_Handle *desc)
+                          const struct GNUNET_NETWORK_Handle *desc)
 {
   FD_SET (desc->fd, &fds->sds);
   if (desc->fd + 1 > fds->nsds)
@@ -828,7 +825,7 @@ GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
  */
 int
 GNUNET_NETWORK_fdset_isset (const struct GNUNET_NETWORK_FDSet *fds,
-			    const struct GNUNET_NETWORK_Handle *desc)
+                            const struct GNUNET_NETWORK_Handle *desc)
 {
   return FD_ISSET (desc->fd, &fds->sds);
 }
@@ -841,18 +838,18 @@ GNUNET_NETWORK_fdset_isset (const struct GNUNET_NETWORK_FDSet *fds,
  */
 void
 GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
-			  const struct GNUNET_NETWORK_FDSet *src)
+                          const struct GNUNET_NETWORK_FDSet *src)
 {
   int nfds;
 
   for (nfds = src->nsds; nfds > 0; nfds--)
     if (FD_ISSET (nfds, &src->sds))
 
-      {
-	FD_SET (nfds, &dst->sds);
-	if (nfds + 1 > dst->nsds)
-	  dst->nsds = nfds + 1;
-      }
+    {
+      FD_SET (nfds, &dst->sds);
+      if (nfds + 1 > dst->nsds)
+        dst->nsds = nfds + 1;
+    }
 #ifdef MINGW
   GNUNET_CONTAINER_slist_append (dst->handles, src->handles);
 #endif
@@ -867,7 +864,7 @@ GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
  */
 void
 GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
-			   const struct GNUNET_NETWORK_FDSet *from)
+                           const struct GNUNET_NETWORK_FDSet *from)
 {
   FD_COPY (&from->sds, &to->sds);
   to->nsds = from->nsds;
@@ -901,7 +898,7 @@ GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc)
  */
 void
 GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
-				  const fd_set * from, int nfds)
+                                  const fd_set * from, int nfds)
 {
   FD_COPY (from, &to->sds);
   to->nsds = nfds;
@@ -932,7 +929,7 @@ GNUNET_NETWORK_fdset_set_native (struct GNUNET_NETWORK_FDSet *to, int nfd)
  */
 int
 GNUNET_NETWORK_fdset_test_native (const struct GNUNET_NETWORK_FDSet *to,
-				  int nfd)
+                                  int nfd)
 {
   if ((nfd == -1) || (to == NULL))
     return GNUNET_NO;
@@ -947,12 +944,12 @@ GNUNET_NETWORK_fdset_test_native (const struct GNUNET_NETWORK_FDSet *to,
  */
 void
 GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
-				 const struct GNUNET_DISK_FileHandle *h)
+                                 const struct GNUNET_DISK_FileHandle *h)
 {
 #ifdef MINGW
   GNUNET_CONTAINER_slist_add (fds->handles,
-			      GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, h,
-			      sizeof (struct GNUNET_DISK_FileHandle));
+                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, h,
+                              sizeof (struct GNUNET_DISK_FileHandle));
 
 #else
   int fd;
@@ -974,13 +971,13 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
  */
 int
 GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
-				   const struct GNUNET_DISK_FileHandle *h)
+                                   const struct GNUNET_DISK_FileHandle *h)
 {
 
 #ifdef MINGW
   return GNUNET_CONTAINER_slist_contains (fds->handles, h,
-					  sizeof (struct
-						  GNUNET_DISK_FileHandle));
+                                          sizeof (struct
+                                                  GNUNET_DISK_FileHandle));
 #else
   return FD_ISSET (h->fd, &fds->sds);
 #endif
@@ -995,7 +992,7 @@ GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
  */
 int
 GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
-			      const struct GNUNET_NETWORK_FDSet *fds2)
+                              const struct GNUNET_NETWORK_FDSet *fds2)
 {
 #ifndef MINGW
   int nfds;
@@ -1004,11 +1001,11 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
   if (nfds > fds2->nsds)
     nfds = fds2->nsds;
   while (nfds > 0)
-    {
-      nfds--;
-      if (FD_ISSET (nfds, &fds1->sds) && FD_ISSET (nfds, &fds2->sds))
-	return GNUNET_YES;
-    }
+  {
+    nfds--;
+    if (FD_ISSET (nfds, &fds1->sds) && FD_ISSET (nfds, &fds2->sds))
+      return GNUNET_YES;
+  }
 #else
   struct GNUNET_CONTAINER_SList_Iterator it;
   struct GNUNET_DISK_FileHandle *h;
@@ -1019,47 +1016,45 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
    * inside of fd_set; also the O(n^2) is really bad... */
 
   for (i = 0; i < fds1->sds.fd_count; i++)
+  {
+    for (j = 0; j < fds2->sds.fd_count; j++)
     {
-      for (j = 0; j < fds2->sds.fd_count; j++)
-	{
-	  if (fds1->sds.fd_array[i] == fds2->sds.fd_array[j])
-	    return GNUNET_YES;
-	}
+      if (fds1->sds.fd_array[i] == fds2->sds.fd_array[j])
+        return GNUNET_YES;
     }
+  }
   it = GNUNET_CONTAINER_slist_begin (fds1->handles);
   while (GNUNET_CONTAINER_slist_end (&it) != GNUNET_YES)
+  {
+#if DEBUG_NETWORK
+    struct GNUNET_CONTAINER_SList_Iterator t;
+#endif
+    h = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&it,
+                                                                      NULL);
+#if DEBUG_NETWORK
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking that FD 0x%x is in another set:\n",
+         h->h);
+    for (t = GNUNET_CONTAINER_slist_begin (fds2->handles);
+         GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
+         GNUNET_CONTAINER_slist_next (&t))
+    {
+      struct GNUNET_DISK_FileHandle *fh;
+
+      fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
+                                                                         NULL);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "0x%x\n", fh->h);
+    }
+#endif
+    if (GNUNET_CONTAINER_slist_contains
+        (fds2->handles, h, sizeof (struct GNUNET_DISK_FileHandle)))
     {
 #if DEBUG_NETWORK
-      struct GNUNET_CONTAINER_SList_Iterator t;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Match!\n");
 #endif
-      h =
-	(struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&it,
-								      NULL);
-#if DEBUG_NETWORK
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Checking that FD 0x%x is in another set:\n", h->h);
-      for (t = GNUNET_CONTAINER_slist_begin (fds2->handles);
-	   GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (&t))
-	{
-	  struct GNUNET_DISK_FileHandle *fh;
-
-	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
-									  NULL);
-	  LOG (GNUNET_ERROR_TYPE_DEBUG, "0x%x\n", fh->h);
-	}
-#endif
-      if (GNUNET_CONTAINER_slist_contains
-	  (fds2->handles, h, sizeof (struct GNUNET_DISK_FileHandle)))
-	{
-#if DEBUG_NETWORK
-	  LOG (GNUNET_ERROR_TYPE_DEBUG, "Match!\n");
-#endif
-	  return GNUNET_YES;
-	}
-      GNUNET_CONTAINER_slist_next (&it);
+      return GNUNET_YES;
     }
+    GNUNET_CONTAINER_slist_next (&it);
+  }
 #endif
   return GNUNET_NO;
 }
@@ -1106,9 +1101,9 @@ GNUNET_NETWORK_fdset_destroy (struct GNUNET_NETWORK_FDSet *fds)
  */
 int
 GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
-			      struct GNUNET_NETWORK_FDSet *wfds,
-			      struct GNUNET_NETWORK_FDSet *efds,
-			      const struct GNUNET_TIME_Relative timeout)
+                              struct GNUNET_NETWORK_FDSet *wfds,
+                              struct GNUNET_NETWORK_FDSet *efds,
+                              const struct GNUNET_TIME_Relative timeout)
 {
   int nfds = 0;
 
@@ -1138,8 +1133,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   DWORD newretcode = 0;
   int returnedpos = 0;
 
-  struct GNUNET_CONTAINER_SList *handles_read, *handles_write,
-    *handles_except;
+  struct GNUNET_CONTAINER_SList *handles_read, *handles_write, *handles_except;
 
   fd_set aread, awrite, aexcept;
 
@@ -1153,68 +1147,67 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   struct timeval tv;
 #endif
   if (NULL != rfds)
-    {
-      nfds = rfds->nsds;
+  {
+    nfds = rfds->nsds;
 #ifdef MINGW
-      handles += read_handles = GNUNET_CONTAINER_slist_count (rfds->handles);
+    handles += read_handles = GNUNET_CONTAINER_slist_count (rfds->handles);
 #if DEBUG_NETWORK
+    {
+      struct GNUNET_CONTAINER_SList_Iterator t;
+
+      for (t = GNUNET_CONTAINER_slist_begin (rfds->handles);
+           GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
+           GNUNET_CONTAINER_slist_next (&t))
       {
-	struct GNUNET_CONTAINER_SList_Iterator t;
+        struct GNUNET_DISK_FileHandle *fh;
 
-	for (t = GNUNET_CONTAINER_slist_begin (rfds->handles);
-	     GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
-	     GNUNET_CONTAINER_slist_next (&t))
-	  {
-	    struct GNUNET_DISK_FileHandle *fh;
-
-	    fh =
-	      (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
-									    NULL);
-	    LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x (0x%x) is SET in rfds\n",
-		 fh->h, fh);
-	  }
+        fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
+                                                                           NULL);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x (0x%x) is SET in rfds\n", fh->h,
+             fh);
       }
-#endif
-#endif
     }
+#endif
+#endif
+  }
   if (NULL != wfds)
-    {
-      nfds = GNUNET_MAX (nfds, wfds->nsds);
+  {
+    nfds = GNUNET_MAX (nfds, wfds->nsds);
 #ifdef MINGW
-      handles += write_handles = GNUNET_CONTAINER_slist_count (wfds->handles);
+    handles += write_handles = GNUNET_CONTAINER_slist_count (wfds->handles);
 #endif
-    }
+  }
   if (NULL != efds)
-    {
-      nfds = GNUNET_MAX (nfds, efds->nsds);
+  {
+    nfds = GNUNET_MAX (nfds, efds->nsds);
 #ifdef MINGW
-      handles += ex_handles = GNUNET_CONTAINER_slist_count (efds->handles);
+    handles += ex_handles = GNUNET_CONTAINER_slist_count (efds->handles);
 #endif
-    }
+  }
 
   if ((nfds == 0) &&
       (timeout.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
 #ifdef MINGW
       && handles == 0
 #endif
-    )
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-	   _
-	   ("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
-	   "select");
-      GNUNET_break (0);
-    }
+      )
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _
+         ("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
+         "select");
+    GNUNET_break (0);
+  }
 #ifndef MINGW
   tv.tv_sec = timeout.rel_value / GNUNET_TIME_UNIT_SECONDS.rel_value;
   tv.tv_usec =
-    1000 * (timeout.rel_value -
-	    (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value));
+      1000 * (timeout.rel_value -
+              (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value));
   return select (nfds, (rfds != NULL) ? &rfds->sds : NULL,
-		 (wfds != NULL) ? &wfds->sds : NULL,
-		 (efds != NULL) ? &efds->sds : NULL,
-		 (timeout.rel_value ==
-		  GNUNET_TIME_UNIT_FOREVER_REL.rel_value) ? NULL : &tv);
+                 (wfds != NULL) ? &wfds->sds : NULL,
+                 (efds != NULL) ? &efds->sds : NULL,
+                 (timeout.rel_value ==
+                  GNUNET_TIME_UNIT_FOREVER_REL.rel_value) ? NULL : &tv);
 
 #else
 #define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
@@ -1225,10 +1218,10 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     ms_total = timeout.rel_value / GNUNET_TIME_UNIT_MILLISECONDS.rel_value;
   /* select() may be used as a portable way to sleep */
   if (!(rfds || wfds || efds))
-    {
-      Sleep (ms_total);
-      return 0;
-    }
+  {
+    Sleep (ms_total);
+    return 0;
+  }
 
   /* Events for sockets */
   if (!hEventRead)
@@ -1264,194 +1257,184 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   FD_ZERO (&bexcept);
 #endif
   if (rfds)
-    {
-      FD_COPY (&rfds->sds, &aread);
+  {
+    FD_COPY (&rfds->sds, &aread);
 #if DEBUG_NETWORK
-      FD_COPY (&rfds->sds, &bread);
+    FD_COPY (&rfds->sds, &bread);
 #endif
-    }
+  }
   if (wfds)
-    {
-      FD_COPY (&wfds->sds, &awrite);
+  {
+    FD_COPY (&wfds->sds, &awrite);
 #if DEBUG_NETWORK
-      FD_COPY (&wfds->sds, &bwrite);
+    FD_COPY (&wfds->sds, &bwrite);
 #endif
-    }
+  }
   if (efds)
-    {
-      FD_COPY (&efds->sds, &aexcept);
+  {
+    FD_COPY (&efds->sds, &aexcept);
 #if DEBUG_NETWORK
-      FD_COPY (&efds->sds, &bexcept);
+    FD_COPY (&efds->sds, &bexcept);
 #endif
-    }
+  }
   /* We will first Add the PIPES to the events */
   /* Read Pipes */
   if (rfds && read_handles)
+  {
+    struct GNUNET_CONTAINER_SList_Iterator i;
+
+    for (i = GNUNET_CONTAINER_slist_begin (rfds->handles);
+         GNUNET_CONTAINER_slist_end (&i) != GNUNET_YES;
+         GNUNET_CONTAINER_slist_next (&i))
     {
-      struct GNUNET_CONTAINER_SList_Iterator i;
+      struct GNUNET_DISK_FileHandle *fh;
 
-      for (i = GNUNET_CONTAINER_slist_begin (rfds->handles);
-	   GNUNET_CONTAINER_slist_end (&i) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (&i))
-	{
-	  struct GNUNET_DISK_FileHandle *fh;
+      fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&i,
+                                                                         NULL);
+      if (fh->type == GNUNET_PIPE)
+      {
+        /* Read zero bytes to check the status of the pipe */
+#if DEBUG_NETWORK
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Reading 0 bytes from the pipe 0x%x\n",
+             fh->h);
+#endif
+        if (!ReadFile (fh->h, NULL, 0, NULL, fh->oOverlapRead))
+        {
+          DWORD error_code = GetLastError ();
 
-	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&i,
-									  NULL);
-	  if (fh->type == GNUNET_PIPE)
-	    {
-	      /* Read zero bytes to check the status of the pipe */
+          if (error_code == ERROR_IO_PENDING)
+          {
 #if DEBUG_NETWORK
-	      LOG (GNUNET_ERROR_TYPE_DEBUG,
-		   "Reading 0 bytes from the pipe 0x%x\n", fh->h);
+            LOG (GNUNET_ERROR_TYPE_DEBUG,
+                 "Adding the pipe's 0x%x overlapped event to the array as %d\n",
+                 fh->h, nhandles);
 #endif
-	      if (!ReadFile (fh->h, NULL, 0, NULL, fh->oOverlapRead))
-		{
-		  DWORD error_code = GetLastError ();
-
-		  if (error_code == ERROR_IO_PENDING)
-		    {
+            handle_array[nhandles++] = fh->oOverlapRead->hEvent;
+            readArray[readPipes++] = fh;
+          }
+          /*
+           * else
+           * {
+           * SetErrnoFromWinError (error_code);
+           * }
+           */
+        }
+        else
+        {
 #if DEBUG_NETWORK
-		      LOG (GNUNET_ERROR_TYPE_DEBUG,
-			   "Adding the pipe's 0x%x overlapped event to the array as %d\n",
-			   fh->h, nhandles);
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+               "Adding the read ready event to the array as %d\n", nhandles);
 #endif
-		      handle_array[nhandles++] = fh->oOverlapRead->hEvent;
-		      readArray[readPipes++] = fh;
-		    }
-		  /*
-		   * else
-		   * {
-		   * SetErrnoFromWinError (error_code);
-		   * }
-		   */
-		}
-	      else
-		{
-#if DEBUG_NETWORK
-		  LOG (GNUNET_ERROR_TYPE_DEBUG,
-		       "Adding the read ready event to the array as %d\n",
-		       nhandles);
-#endif
-		  handle_array[nhandles++] = hEventReadReady;
-		  readArray[readPipes++] = fh;
-		}
-	    }
-	  else
-	    {
-	      GNUNET_CONTAINER_slist_add (handles_read,
-					  GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-					  fh,
-					  sizeof (struct
-						  GNUNET_DISK_FileHandle));
-	    }
-	}
+          handle_array[nhandles++] = hEventReadReady;
+          readArray[readPipes++] = fh;
+        }
+      }
+      else
+      {
+        GNUNET_CONTAINER_slist_add (handles_read,
+                                    GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                                    fh, sizeof (struct GNUNET_DISK_FileHandle));
+      }
     }
+  }
   if (wfds && write_handles)
+  {
+#if DEBUG_NETWORK
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Adding the write ready event to the array as %d\n", nhandles);
+#endif
+    handle_array[nhandles++] = hEventPipeWrite;
+    writePipePos = nhandles;
+  }
+  if (efds && ex_handles)
+  {
+    struct GNUNET_CONTAINER_SList_Iterator i;
+
+    for (i = GNUNET_CONTAINER_slist_begin (efds->handles);
+         GNUNET_CONTAINER_slist_end (&i) != GNUNET_YES;
+         GNUNET_CONTAINER_slist_next (&i))
+    {
+      struct GNUNET_DISK_FileHandle *fh;
+      DWORD dwBytes;
+
+      fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&i,
+                                                                         NULL);
+      if (fh->type == GNUNET_PIPE)
+      {
+        if (!PeekNamedPipe (fh->h, NULL, 0, NULL, &dwBytes, NULL))
+        {
+          GNUNET_CONTAINER_slist_add (handles_except,
+                                      GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                                      fh,
+                                      sizeof (struct GNUNET_DISK_FileHandle));
+          newretcode++;
+        }
+      }
+    }
+  }
+  if (nfds > 0)
+  {
+    if (rfds)
     {
 #if DEBUG_NETWORK
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Adding the write ready event to the array as %d\n", nhandles);
+           "Adding the socket read event to the array as %d\n", nhandles);
 #endif
-      handle_array[nhandles++] = hEventPipeWrite;
-      writePipePos = nhandles;
+      handle_array[nhandles++] = hEventRead;
+      nSockEvents++;
+      for (i = 0; i < rfds->sds.fd_count; i++)
+      {
+        WSAEventSelect (rfds->sds.fd_array[i], hEventRead,
+                        FD_ACCEPT | FD_READ | FD_CLOSE);
+        nsock++;
+      }
     }
-  if (efds && ex_handles)
+    if (wfds)
     {
-      struct GNUNET_CONTAINER_SList_Iterator i;
+      int wakeup = 0;
 
-      for (i = GNUNET_CONTAINER_slist_begin (efds->handles);
-	   GNUNET_CONTAINER_slist_end (&i) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (&i))
-	{
-	  struct GNUNET_DISK_FileHandle *fh;
-	  DWORD dwBytes;
+#if DEBUG_NETWORK
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Adding the socket write event to the array as %d\n", nhandles);
+#endif
+      handle_array[nhandles++] = hEventWrite;
+      nSockEvents++;
+      for (i = 0; i < wfds->sds.fd_count; i++)
+      {
+        DWORD error;
+        int status;
 
-	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&i,
-									  NULL);
-	  if (fh->type == GNUNET_PIPE)
-	    {
-	      if (!PeekNamedPipe (fh->h, NULL, 0, NULL, &dwBytes, NULL))
-		{
-		  GNUNET_CONTAINER_slist_add (handles_except,
-					      GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-					      fh,
-					      sizeof (struct
-						      GNUNET_DISK_FileHandle));
-		  newretcode++;
-		}
-	    }
-	}
+        status = send (wfds->sds.fd_array[i], NULL, 0, 0);
+        error = GetLastError ();
+#if DEBUG_NETWORK
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "pre-send to the socket %d returned %d (%u)\n", i, status, error);
+#endif
+        if (status == 0 || (error != WSAEWOULDBLOCK && error != WSAENOTCONN))
+          wakeup = 1;
+        WSAEventSelect (wfds->sds.fd_array[i], hEventWrite,
+                        FD_WRITE | FD_CONNECT | FD_CLOSE);
+        nsock++;
+      }
+      if (wakeup)
+        SetEvent (hEventWrite);
     }
-  if (nfds > 0)
+    if (efds)
     {
-      if (rfds)
-	{
 #if DEBUG_NETWORK
-	  LOG (GNUNET_ERROR_TYPE_DEBUG,
-	       "Adding the socket read event to the array as %d\n", nhandles);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Adding the socket error event to the array as %d\n", nhandles);
 #endif
-	  handle_array[nhandles++] = hEventRead;
-	  nSockEvents++;
-	  for (i = 0; i < rfds->sds.fd_count; i++)
-	    {
-	      WSAEventSelect (rfds->sds.fd_array[i], hEventRead,
-			      FD_ACCEPT | FD_READ | FD_CLOSE);
-	      nsock++;
-	    }
-	}
-      if (wfds)
-	{
-	  int wakeup = 0;
-
-#if DEBUG_NETWORK
-	  LOG (GNUNET_ERROR_TYPE_DEBUG,
-	       "Adding the socket write event to the array as %d\n",
-	       nhandles);
-#endif
-	  handle_array[nhandles++] = hEventWrite;
-	  nSockEvents++;
-	  for (i = 0; i < wfds->sds.fd_count; i++)
-	    {
-	      DWORD error;
-	      int status;
-
-	      status = send (wfds->sds.fd_array[i], NULL, 0, 0);
-	      error = GetLastError ();
-#if DEBUG_NETWORK
-	      LOG (GNUNET_ERROR_TYPE_DEBUG,
-		   "pre-send to the socket %d returned %d (%u)\n", i, status,
-		   error);
-#endif
-	      if (status == 0
-		  || (error != WSAEWOULDBLOCK && error != WSAENOTCONN))
-		wakeup = 1;
-	      WSAEventSelect (wfds->sds.fd_array[i], hEventWrite,
-			      FD_WRITE | FD_CONNECT | FD_CLOSE);
-	      nsock++;
-	    }
-	  if (wakeup)
-	    SetEvent (hEventWrite);
-	}
-      if (efds)
-	{
-#if DEBUG_NETWORK
-	  LOG (GNUNET_ERROR_TYPE_DEBUG,
-	       "Adding the socket error event to the array as %d\n",
-	       nhandles);
-#endif
-	  handle_array[nhandles++] = hEventException;
-	  nSockEvents++;
-	  for (i = 0; i < efds->sds.fd_count; i++)
-	    {
-	      WSAEventSelect (efds->sds.fd_array[i], hEventException,
-			      FD_OOB | FD_CLOSE);
-	      nsock++;
-	    }
-	}
+      handle_array[nhandles++] = hEventException;
+      nSockEvents++;
+      for (i = 0; i < efds->sds.fd_count; i++)
+      {
+        WSAEventSelect (efds->sds.fd_array[i], hEventException,
+                        FD_OOB | FD_CLOSE);
+        nsock++;
+      }
     }
+  }
 
   handle_array[nhandles] = NULL;
 
@@ -1464,7 +1447,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
   if (nhandles)
     returncode =
-      WaitForMultipleObjects (nhandles, handle_array, FALSE, ms_total);
+        WaitForMultipleObjects (nhandles, handle_array, FALSE, ms_total);
 #if DEBUG_NETWORK
   LOG (GNUNET_ERROR_TYPE_DEBUG, "WaitForMultipleObjects Returned : %d\n",
        returncode);
@@ -1481,239 +1464,230 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
    * GNUNET_CONTAINER_slist_append (handles_read, rfds->handles);
    */
   if (nhandles && (returnedpos < nhandles))
+  {
+    DWORD waitstatus;
+
+    /* Do the select */
+    if (nfds)
     {
-      DWORD waitstatus;
+      struct timeval tvslice;
 
-      /* Do the select */
-      if (nfds)
-	{
-	  struct timeval tvslice;
-
-	  tvslice.tv_sec = 0;
-	  tvslice.tv_usec = 10;
-	  retcode = select (nfds, &aread, &awrite, &aexcept, &tvslice);
-	  if (retcode == -1)
-	    retcode = 0;
+      tvslice.tv_sec = 0;
+      tvslice.tv_usec = 10;
+      retcode = select (nfds, &aread, &awrite, &aexcept, &tvslice);
+      if (retcode == -1)
+        retcode = 0;
 #if DEBUG_NETWORK
-	  LOG (GNUNET_ERROR_TYPE_DEBUG, "Select retcode : %d\n", retcode);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Select retcode : %d\n", retcode);
 #endif
-	}
-      /* FIXME: <= writePipePos? Really? */
-      if ((writePipePos != -1) && (returnedpos <= writePipePos))
-	{
-	  GNUNET_CONTAINER_slist_append (handles_write, wfds->handles);
-	  retcode += write_handles;
-#if DEBUG_NETWORK
-	  LOG (GNUNET_ERROR_TYPE_DEBUG, "Added write pipe\n");
-#endif
-	}
-#if DEBUG_NETWORK
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "ReadPipes is : %d\n", readPipes);
-#endif
-      /* We have some pipes ready for read. */
-      /* FIXME: it is supposed to work !! Only choose the Pipes who fired the event, but it is not working */
-
-      if (returnedpos < readPipes)
-	{
-	  /*
-	   * for (i = 0; i < readPipes; i++)
-	   * {
-	   * waitstatus = WaitForSingleObject (handle_array[i], 0);
-	   * LOG (GNUNET_ERROR_TYPE_DEBUG, "Read pipe %d wait status is : %d\n", i, waitstatus);
-	   * if (waitstatus != WAIT_OBJECT_0)
-	   * continue;
-	   * GNUNET_CONTAINER_slist_add (handles_read,
-	   * GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-	   * readArray[i], sizeof (struct GNUNET_DISK_FileHandle));
-	   * retcode++;
-	   * LOG (GNUNET_ERROR_TYPE_DEBUG, "Added read Pipe\n");
-	   * }
-	   */
-	  for (i = 0; i < readPipes; i++)
-	    {
-	      DWORD error;
-	      BOOL bret;
-
-	      SetLastError (0);
-	      waitstatus = 0;
-	      bret =
-		PeekNamedPipe (readArray[i]->h, NULL, 0, NULL, &waitstatus,
-			       NULL);
-	      error = GetLastError ();
-#if DEBUG_NETWORK
-	      LOG (GNUNET_ERROR_TYPE_DEBUG,
-		   "Peek at read pipe %d (0x%x) returned %d (%d bytes available) GLE %u\n",
-		   i, readArray[i]->h, bret, waitstatus, error);
-#endif
-	      if (bret == 0)
-		{
-		  if (error != ERROR_BROKEN_PIPE)
-		    continue;
-		}
-	      else if (waitstatus <= 0)
-		continue;
-	      GNUNET_CONTAINER_slist_add (handles_read,
-					  GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-					  readArray[i],
-					  sizeof (struct
-						  GNUNET_DISK_FileHandle));
-	      retcode++;
-#if DEBUG_NETWORK
-	      LOG (GNUNET_ERROR_TYPE_DEBUG, "Added read Pipe 0x%x (0x%x)\n",
-		   readArray[i], readArray[i]->h);
-#endif
-	    }
-	}
-      waitstatus = WaitForSingleObject (hEventWrite, 0);
-#if DEBUG_NETWORK
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Wait for the write event returned %d\n", waitstatus);
-#endif
-      if (waitstatus == WAIT_OBJECT_0)
-	{
-	  for (i = 0; i < wfds->sds.fd_count; i++)
-	    {
-	      DWORD error;
-	      int status;
-	      int so_error = 0;
-	      int sizeof_so_error = sizeof (so_error);
-	      int gso_result =
-		getsockopt (wfds->sds.fd_array[i], SOL_SOCKET, SO_ERROR,
-			    (char *) &so_error, &sizeof_so_error);
-
-	      status = send (wfds->sds.fd_array[i], NULL, 0, 0);
-	      error = GetLastError ();
-#if DEBUG_NETWORK
-	      LOG (GNUNET_ERROR_TYPE_DEBUG,
-		   "send to the socket %d returned %d (%u)\n", i, status,
-		   error);
-#endif
-	      if (status == 0
-		  || (error != WSAEWOULDBLOCK && error != WSAENOTCONN)
-		  || (status == -1 && gso_result == 0 && error == WSAENOTCONN
-		      && so_error == WSAECONNREFUSED))
-		{
-		  FD_SET (wfds->sds.fd_array[i], &awrite);
-		  retcode += 1;
-		}
-	    }
-	}
     }
+    /* FIXME: <= writePipePos? Really? */
+    if ((writePipePos != -1) && (returnedpos <= writePipePos))
+    {
+      GNUNET_CONTAINER_slist_append (handles_write, wfds->handles);
+      retcode += write_handles;
+#if DEBUG_NETWORK
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Added write pipe\n");
+#endif
+    }
+#if DEBUG_NETWORK
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "ReadPipes is : %d\n", readPipes);
+#endif
+    /* We have some pipes ready for read. */
+    /* FIXME: it is supposed to work !! Only choose the Pipes who fired the event, but it is not working */
+
+    if (returnedpos < readPipes)
+    {
+      /*
+       * for (i = 0; i < readPipes; i++)
+       * {
+       * waitstatus = WaitForSingleObject (handle_array[i], 0);
+       * LOG (GNUNET_ERROR_TYPE_DEBUG, "Read pipe %d wait status is : %d\n", i, waitstatus);
+       * if (waitstatus != WAIT_OBJECT_0)
+       * continue;
+       * GNUNET_CONTAINER_slist_add (handles_read,
+       * GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+       * readArray[i], sizeof (struct GNUNET_DISK_FileHandle));
+       * retcode++;
+       * LOG (GNUNET_ERROR_TYPE_DEBUG, "Added read Pipe\n");
+       * }
+       */
+      for (i = 0; i < readPipes; i++)
+      {
+        DWORD error;
+        BOOL bret;
+
+        SetLastError (0);
+        waitstatus = 0;
+        bret =
+            PeekNamedPipe (readArray[i]->h, NULL, 0, NULL, &waitstatus, NULL);
+        error = GetLastError ();
+#if DEBUG_NETWORK
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Peek at read pipe %d (0x%x) returned %d (%d bytes available) GLE %u\n",
+             i, readArray[i]->h, bret, waitstatus, error);
+#endif
+        if (bret == 0)
+        {
+          if (error != ERROR_BROKEN_PIPE)
+            continue;
+        }
+        else if (waitstatus <= 0)
+          continue;
+        GNUNET_CONTAINER_slist_add (handles_read,
+                                    GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                                    readArray[i],
+                                    sizeof (struct GNUNET_DISK_FileHandle));
+        retcode++;
+#if DEBUG_NETWORK
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Added read Pipe 0x%x (0x%x)\n",
+             readArray[i], readArray[i]->h);
+#endif
+      }
+    }
+    waitstatus = WaitForSingleObject (hEventWrite, 0);
+#if DEBUG_NETWORK
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Wait for the write event returned %d\n",
+         waitstatus);
+#endif
+    if (waitstatus == WAIT_OBJECT_0)
+    {
+      for (i = 0; i < wfds->sds.fd_count; i++)
+      {
+        DWORD error;
+        int status;
+        int so_error = 0;
+        int sizeof_so_error = sizeof (so_error);
+        int gso_result =
+            getsockopt (wfds->sds.fd_array[i], SOL_SOCKET, SO_ERROR,
+                        (char *) &so_error, &sizeof_so_error);
+
+        status = send (wfds->sds.fd_array[i], NULL, 0, 0);
+        error = GetLastError ();
+#if DEBUG_NETWORK
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "send to the socket %d returned %d (%u)\n", i, status, error);
+#endif
+        if (status == 0 || (error != WSAEWOULDBLOCK && error != WSAENOTCONN) ||
+            (status == -1 && gso_result == 0 && error == WSAENOTCONN &&
+             so_error == WSAECONNREFUSED))
+        {
+          FD_SET (wfds->sds.fd_array[i], &awrite);
+          retcode += 1;
+        }
+      }
+    }
+  }
 #if DEBUG_NETWORK
   if (!nhandles || (returnedpos >= nhandles))
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Returning from _select() with nothing!\n");
 #endif
   if (rfds)
+  {
+    struct GNUNET_CONTAINER_SList_Iterator t;
+
+    for (i = 0; i < rfds->sds.fd_count; i++)
     {
-      struct GNUNET_CONTAINER_SList_Iterator t;
-
-      for (i = 0; i < rfds->sds.fd_count; i++)
-	{
-	  WSAEventSelect (rfds->sds.fd_array[i], hEventRead, 0);
-	  nsock++;
-	}
-      for (t = GNUNET_CONTAINER_slist_begin (rfds->handles);
-	   GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (&t))
-	{
-	  struct GNUNET_DISK_FileHandle *fh;
-
-	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
-									  NULL);
-	  if (fh->type == GNUNET_PIPE)
-	    {
-	      CancelIo (fh->h);
-	    }
-	}
-#if DEBUG_NETWORK
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing rfds\n");
-#endif
-      GNUNET_NETWORK_fdset_zero (rfds);
-      if (retcode != -1 && nhandles && (returnedpos < nhandles))
-	GNUNET_NETWORK_fdset_copy_native (rfds, &aread, retcode);
-      GNUNET_CONTAINER_slist_append (rfds->handles, handles_read);
+      WSAEventSelect (rfds->sds.fd_array[i], hEventRead, 0);
+      nsock++;
     }
+    for (t = GNUNET_CONTAINER_slist_begin (rfds->handles);
+         GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
+         GNUNET_CONTAINER_slist_next (&t))
+    {
+      struct GNUNET_DISK_FileHandle *fh;
+
+      fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
+                                                                         NULL);
+      if (fh->type == GNUNET_PIPE)
+      {
+        CancelIo (fh->h);
+      }
+    }
+#if DEBUG_NETWORK
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing rfds\n");
+#endif
+    GNUNET_NETWORK_fdset_zero (rfds);
+    if (retcode != -1 && nhandles && (returnedpos < nhandles))
+      GNUNET_NETWORK_fdset_copy_native (rfds, &aread, retcode);
+    GNUNET_CONTAINER_slist_append (rfds->handles, handles_read);
+  }
   if (wfds)
+  {
+    for (i = 0; i < wfds->sds.fd_count; i++)
     {
-      for (i = 0; i < wfds->sds.fd_count; i++)
-	{
-	  WSAEventSelect (wfds->sds.fd_array[i], hEventWrite, 0);
-	  nsock++;
-	}
-#if DEBUG_NETWORK
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing wfds\n");
-#endif
-      GNUNET_NETWORK_fdset_zero (wfds);
-      if (retcode != -1 && nhandles && (returnedpos < nhandles))
-	GNUNET_NETWORK_fdset_copy_native (wfds, &awrite, retcode);
-      GNUNET_CONTAINER_slist_append (wfds->handles, handles_write);
+      WSAEventSelect (wfds->sds.fd_array[i], hEventWrite, 0);
+      nsock++;
     }
+#if DEBUG_NETWORK
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing wfds\n");
+#endif
+    GNUNET_NETWORK_fdset_zero (wfds);
+    if (retcode != -1 && nhandles && (returnedpos < nhandles))
+      GNUNET_NETWORK_fdset_copy_native (wfds, &awrite, retcode);
+    GNUNET_CONTAINER_slist_append (wfds->handles, handles_write);
+  }
   if (efds)
+  {
+    for (i = 0; i < efds->sds.fd_count; i++)
     {
-      for (i = 0; i < efds->sds.fd_count; i++)
-	{
-	  WSAEventSelect (efds->sds.fd_array[i], hEventException, 0);
-	  nsock++;
-	}
-#if DEBUG_NETWORK
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing efds\n");
-#endif
-      GNUNET_NETWORK_fdset_zero (efds);
-      if (retcode != -1 && nhandles && (returnedpos < nhandles))
-	GNUNET_NETWORK_fdset_copy_native (efds, &aexcept, retcode);
-      GNUNET_CONTAINER_slist_append (efds->handles, handles_except);
+      WSAEventSelect (efds->sds.fd_array[i], hEventException, 0);
+      nsock++;
     }
+#if DEBUG_NETWORK
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing efds\n");
+#endif
+    GNUNET_NETWORK_fdset_zero (efds);
+    if (retcode != -1 && nhandles && (returnedpos < nhandles))
+      GNUNET_NETWORK_fdset_copy_native (efds, &aexcept, retcode);
+    GNUNET_CONTAINER_slist_append (efds->handles, handles_except);
+  }
   GNUNET_CONTAINER_slist_destroy (handles_read);
   GNUNET_CONTAINER_slist_destroy (handles_write);
   GNUNET_CONTAINER_slist_destroy (handles_except);
 #if DEBUG_NETWORK
   if (rfds)
+  {
+    struct GNUNET_CONTAINER_SList_Iterator t;
+
+    for (i = 0; i < bread.fd_count; i++)
     {
-      struct GNUNET_CONTAINER_SList_Iterator t;
-
-      for (i = 0; i < bread.fd_count; i++)
-	{
-	  if (bread.fd_array[i] != 0)
-	    LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is %s in rfds\n",
-		 bread.fd_array[i],
-		 (SAFE_FD_ISSET (bread.fd_array[i], rfds)) ? "SET" :
-		 "NOT SET");
-	}
-      for (t = GNUNET_CONTAINER_slist_begin (rfds->handles);
-	   GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
-	   GNUNET_CONTAINER_slist_next (&t))
-	{
-	  struct GNUNET_DISK_FileHandle *fh;
-
-	  fh =
-	    (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
-									  NULL);
-	  LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is SET in rfds\n", fh->h);
-	}
+      if (bread.fd_array[i] != 0)
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is %s in rfds\n",
+             bread.fd_array[i],
+             (SAFE_FD_ISSET (bread.fd_array[i], rfds)) ? "SET" : "NOT SET");
     }
+    for (t = GNUNET_CONTAINER_slist_begin (rfds->handles);
+         GNUNET_CONTAINER_slist_end (&t) != GNUNET_YES;
+         GNUNET_CONTAINER_slist_next (&t))
+    {
+      struct GNUNET_DISK_FileHandle *fh;
+
+      fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
+                                                                         NULL);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is SET in rfds\n", fh->h);
+    }
+  }
   if (wfds)
+  {
+    for (i = 0; i < bwrite.fd_count; i++)
     {
-      for (i = 0; i < bwrite.fd_count; i++)
-	{
-	  if (bwrite.fd_array[i] != 0)
-	    LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is %s in wfds\n",
-		 bwrite.fd_array[i],
-		 (SAFE_FD_ISSET (bwrite.fd_array[i], rfds)) ? "SET" :
-		 "NOT SET");
-	}
+      if (bwrite.fd_array[i] != 0)
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is %s in wfds\n",
+             bwrite.fd_array[i],
+             (SAFE_FD_ISSET (bwrite.fd_array[i], rfds)) ? "SET" : "NOT SET");
     }
+  }
   if (efds)
+  {
+    for (i = 0; i < bexcept.fd_count; i++)
     {
-      for (i = 0; i < bexcept.fd_count; i++)
-	{
-	  if (bexcept.fd_array[i] != 0)
-	    LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is %s in efds\n",
-		 bexcept.fd_array[i],
-		 (SAFE_FD_ISSET (bexcept.fd_array[i], rfds)) ? "SET" :
-		 "NOT SET");
-	}
+      if (bexcept.fd_array[i] != 0)
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "FD 0x%x is %s in efds\n",
+             bexcept.fd_array[i],
+             (SAFE_FD_ISSET (bexcept.fd_array[i], rfds)) ? "SET" : "NOT SET");
     }
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Returning %d or 0\n", retcode);
 #endif
   if (nhandles && (returnedpos < nhandles))

@@ -66,7 +66,7 @@ struct RecentRequest
    * Type of the requested block.
    */
   enum GNUNET_BLOCK_Type type;
-  
+
   /**
    * extended query (see gnunet_block_lib.h).  Allocated at the
    * end of this struct.
@@ -114,7 +114,7 @@ struct ProcessContext
 
   /**
    * Path of the reply.
-   */ 
+   */
   const struct GNUNET_PeerIdentity *get_path;
 
   /**
@@ -156,13 +156,11 @@ struct ProcessContext
  * @param cls the 'struct ProcessContext' with the result
  * @param key the query
  * @param value the 'struct RecentRequest' with the request
- * @return GNUNET_OK (continue to iterate), 
+ * @return GNUNET_OK (continue to iterate),
  *         GNUNET_SYSERR if the result is malformed or type unsupported
  */
 static int
-process (void *cls,
-	 const GNUNET_HashCode *key,
-	 void *value)
+process (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct ProcessContext *pc = cls;
   struct RecentRequest *rr = value;
@@ -172,9 +170,8 @@ process (void *cls,
   GNUNET_HashCode hc;
   const GNUNET_HashCode *eval_key;
 
-  if ( (rr->type != GNUNET_BLOCK_TYPE_ANY) &&
-       (rr->type != pc->type) )
-    return GNUNET_OK; /* type missmatch */
+  if ((rr->type != GNUNET_BLOCK_TYPE_ANY) && (rr->type != pc->type))
+    return GNUNET_OK;           /* type missmatch */
 
   if (0 != (rr->options & GNUNET_DHT_RO_RECORD_ROUTE))
   {
@@ -186,59 +183,48 @@ process (void *cls,
     gpl = 0;
     ppl = 0;
   }
-  if ( (0 != (rr->options & GNUNET_DHT_RO_FIND_PEER)) &&
-       (pc->type == GNUNET_BLOCK_TYPE_DHT_HELLO) )
+  if ((0 != (rr->options & GNUNET_DHT_RO_FIND_PEER)) &&
+      (pc->type == GNUNET_BLOCK_TYPE_DHT_HELLO))
   {
     /* key may not match HELLO, which is OK since
-       the search is approximate.  Still, the evaluation
-       would fail since the match is not exact.  So 
-       we fake it by changing the key to the actual PID ... */
-    GNUNET_BLOCK_get_key (GDS_block_context,
-			  GNUNET_BLOCK_TYPE_DHT_HELLO,
-			  pc->data, pc->data_size,
-			  &hc);
+     * the search is approximate.  Still, the evaluation
+     * would fail since the match is not exact.  So
+     * we fake it by changing the key to the actual PID ... */
+    GNUNET_BLOCK_get_key (GDS_block_context, GNUNET_BLOCK_TYPE_DHT_HELLO,
+                          pc->data, pc->data_size, &hc);
     eval_key = &hc;
   }
   else
   {
     eval_key = key;
   }
-  eval = GNUNET_BLOCK_evaluate (GDS_block_context,
-				pc->type,
-				eval_key,
-				&rr->reply_bf,
-				rr->reply_bf_mutator,
-				rr->xquery,
-				rr->xquery_size,
-				pc->data,
-				pc->data_size);
+  eval =
+      GNUNET_BLOCK_evaluate (GDS_block_context, pc->type, eval_key,
+                             &rr->reply_bf, rr->reply_bf_mutator, rr->xquery,
+                             rr->xquery_size, pc->data, pc->data_size);
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
   case GNUNET_BLOCK_EVALUATION_OK_LAST:
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Good REPLIES matched against routing table"), 1,
-			      GNUNET_NO);
-    GDS_NEIGHBOURS_handle_reply (&rr->peer,
-				 pc->type,
-				 pc->expiration_time,
-				 key,
-				 ppl,
-				 pc->put_path,
-				 gpl,
-				 pc->get_path,
-				 pc->data,
-				 pc->data_size);
+                              gettext_noop
+                              ("# Good REPLIES matched against routing table"),
+                              1, GNUNET_NO);
+    GDS_NEIGHBOURS_handle_reply (&rr->peer, pc->type, pc->expiration_time, key,
+                                 ppl, pc->put_path, gpl, pc->get_path, pc->data,
+                                 pc->data_size);
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Duplicate REPLIES matched against routing table"), 1,
-			      GNUNET_NO);
+                              gettext_noop
+                              ("# Duplicate REPLIES matched against routing table"),
+                              1, GNUNET_NO);
     return GNUNET_OK;
   case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Invalid REPLIES matched against routing table"), 1,
-			      GNUNET_NO);
+                              gettext_noop
+                              ("# Invalid REPLIES matched against routing table"),
+                              1, GNUNET_NO);
     return GNUNET_SYSERR;
   case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
   case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
@@ -246,12 +232,13 @@ process (void *cls,
     return GNUNET_OK;
   case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Unsupported REPLIES matched against routing table"), 1,
-			      GNUNET_NO);
+                              gettext_noop
+                              ("# Unsupported REPLIES matched against routing table"),
+                              1, GNUNET_NO);
     return GNUNET_SYSERR;
   default:
     GNUNET_break (0);
-    return GNUNET_SYSERR;  
+    return GNUNET_SYSERR;
   }
   return GNUNET_OK;
 }
@@ -276,14 +263,12 @@ process (void *cls,
  */
 void
 GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
-		     struct GNUNET_TIME_Absolute expiration_time,
-		     const GNUNET_HashCode *key,
-		     unsigned int put_path_length,
-		     const struct GNUNET_PeerIdentity *put_path,
-		     unsigned int get_path_length,
-		     const struct GNUNET_PeerIdentity *get_path,
-		     const void *data,
-		     size_t data_size)
+                     struct GNUNET_TIME_Absolute expiration_time,
+                     const GNUNET_HashCode * key, unsigned int put_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+                     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *get_path,
+                     const void *data, size_t data_size)
 {
   struct ProcessContext pc;
 
@@ -295,10 +280,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
   pc.get_path = get_path;
   pc.data = data;
   pc.data_size = data_size;
-  GNUNET_CONTAINER_multihashmap_get_multiple (recent_map,
-					      key,
-					      &process,
-					      &pc);
+  GNUNET_CONTAINER_multihashmap_get_multiple (recent_map, key, &process, &pc);
 }
 
 
@@ -316,21 +298,21 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
 */
 void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
-		 enum GNUNET_BLOCK_Type type,
-		 enum GNUNET_DHT_RouteOption options,
-		 const GNUNET_HashCode *key,
-		 const void *xquery,
-		 size_t xquery_size,
-		 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-		 uint32_t reply_bf_mutator)
+                 enum GNUNET_BLOCK_Type type,
+                 enum GNUNET_DHT_RouteOption options,
+                 const GNUNET_HashCode * key, const void *xquery,
+                 size_t xquery_size,
+                 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
+                 uint32_t reply_bf_mutator)
 {
   struct RecentRequest *recent_req;
 
   while (GNUNET_CONTAINER_heap_get_size (recent_heap) >= DHT_MAX_RECENT)
   {
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Entries removed from routing table"), 1,
-			      GNUNET_NO);
+                              gettext_noop
+                              ("# Entries removed from routing table"), 1,
+                              GNUNET_NO);
     recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
     GNUNET_assert (recent_req != NULL);
     GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);
@@ -339,25 +321,22 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
   }
 
   GNUNET_STATISTICS_update (GDS_stats,
-			    gettext_noop ("# Entries added to routing table"), 1,
-			    GNUNET_NO);
+                            gettext_noop ("# Entries added to routing table"),
+                            1, GNUNET_NO);
   recent_req = GNUNET_malloc (sizeof (struct RecentRequest) + xquery_size);
   recent_req->peer = *sender;
   recent_req->key = *key;
   recent_req->heap_node =
-    GNUNET_CONTAINER_heap_insert (recent_heap, recent_req,
-				  GNUNET_TIME_absolute_get ().abs_value);
-  recent_req->reply_bf =
-    GNUNET_CONTAINER_bloomfilter_copy (reply_bf);
+      GNUNET_CONTAINER_heap_insert (recent_heap, recent_req,
+                                    GNUNET_TIME_absolute_get ().abs_value);
+  recent_req->reply_bf = GNUNET_CONTAINER_bloomfilter_copy (reply_bf);
   recent_req->type = type;
   recent_req->options = options;
   recent_req->xquery = &recent_req[1];
   recent_req->xquery_size = xquery_size;
   recent_req->reply_bf_mutator = reply_bf_mutator;
-  GNUNET_CONTAINER_multihashmap_put (recent_map,
-				     key,
-				     recent_req,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_CONTAINER_multihashmap_put (recent_map, key, recent_req,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
 
 }
@@ -369,10 +348,8 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
 void
 GDS_ROUTING_init ()
 {
-  recent_heap =
-    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  recent_map =
-      GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT * 4 / 3);
+  recent_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  recent_map = GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT * 4 / 3);
 }
 
 
@@ -387,8 +364,9 @@ GDS_ROUTING_done ()
   while (GNUNET_CONTAINER_heap_get_size (recent_heap) > 0)
   {
     GNUNET_STATISTICS_update (GDS_stats,
-			      gettext_noop ("# Entries removed from routing table"), 1,
-			      GNUNET_NO);
+                              gettext_noop
+                              ("# Entries removed from routing table"), 1,
+                              GNUNET_NO);
     recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
     GNUNET_assert (recent_req != NULL);
     GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);

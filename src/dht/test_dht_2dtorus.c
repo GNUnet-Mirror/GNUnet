@@ -138,7 +138,8 @@ shutdown_callback (void *cls, const char *emsg)
   else
   {
 #if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: All peers successfully shut down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "test: All peers successfully shut down!\n");
 #endif
   }
 }
@@ -169,22 +170,21 @@ disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: disconnecting peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: disconnecting peers\n");
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_cancel (put_task);
   if (NULL != get_h)
-    GNUNET_DHT_get_stop(get_h);
+    GNUNET_DHT_get_stop (get_h);
   if (NULL != get_h_2)
-    GNUNET_DHT_get_stop(get_h_2);
+    GNUNET_DHT_get_stop (get_h_2);
   if (NULL != get_h_far)
-    GNUNET_DHT_get_stop(get_h_far);
-  for (i = 0; i < num_peers;  i++)
+    GNUNET_DHT_get_stop (get_h_far);
+  for (i = 0; i < num_peers; i++)
   {
-    GNUNET_DHT_disconnect(hs[i]);
+    GNUNET_DHT_disconnect (hs[i]);
   }
   GNUNET_SCHEDULER_cancel (shutdown_handle);
-  shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
+  shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 static void
@@ -193,44 +193,39 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     const struct GNUNET_PeerIdentity *get_path,
                     unsigned int get_path_length,
                     const struct GNUNET_PeerIdentity *put_path,
-                    unsigned int put_path_length,
-                    enum GNUNET_BLOCK_Type type, size_t size, const void *data)
+                    unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                    size_t size, const void *data)
 {
   int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "test: ************* FOUND!!! ***********\n");
-  if (sizeof(GNUNET_HashCode) == size)
+              "test: ************* FOUND!!! ***********\n");
+  if (sizeof (GNUNET_HashCode) == size)
   {
     const GNUNET_HashCode *h = data;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test:   Contents: %s\n",
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   Contents: %s\n",
                 GNUNET_h2s_full (h));
 
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "test: PATH: (get %u, put %u)\n",
-            get_path_length,
-            put_path_length);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "test:   LOCAL\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: PATH: (get %u, put %u)\n",
+              get_path_length, put_path_length);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   LOCAL\n");
   for (i = get_path_length - 1; i >= 0; i--)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "test:   %s\n",
-            GNUNET_i2s (&get_path[i]));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   %s\n",
+                GNUNET_i2s (&get_path[i]));
   }
   for (i = put_path_length - 1; i >= 0; i--)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "test:   %s\n",
-            GNUNET_i2s (&put_path[i]));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   %s\n",
+                GNUNET_i2s (&put_path[i]));
   }
   found++;
   if (found < 3)
     return;
   ok = 0;
-  GNUNET_SCHEDULER_cancel(disconnect_task);
+  GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
 }
 
@@ -263,7 +258,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (strcmp (id_aux, id_near2) == 0)
       d2 = aux;
   }
-  if ( (NULL == o) || (NULL == d) || (NULL == d2) || (NULL == d_far))
+  if ((NULL == o) || (NULL == d) || (NULL == d2) || (NULL == d_far))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "test: Peers not found (hostkey file changed?)\n");
@@ -272,55 +267,39 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: test_task\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: looking for %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: looking for %s\n",
               GNUNET_h2s_full (&d->id.hashPubKey));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: looking for %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: looking for %s\n",
               GNUNET_h2s_full (&d2->id.hashPubKey));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: looking for %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: looking for %s\n",
               GNUNET_h2s_full (&d_far->id.hashPubKey));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test:        from %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:        from %s\n",
               GNUNET_h2s_full (&o->id.hashPubKey));
   found = 0;
-  get_h = GNUNET_DHT_get_start (hs[0],
-                                GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
-                                GNUNET_BLOCK_TYPE_TEST,   /* type */
-                                &d->id.hashPubKey,   /*key to search */
-                                4U,        /* replication level */
-                                GNUNET_DHT_RO_RECORD_ROUTE |
-                                  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                                NULL,     /* xquery */
-                                0,        /* xquery bits */
-                                &dht_get_id_handler,
-                                NULL);
-  get_h_2 = GNUNET_DHT_get_start (hs[0],
-                                  GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
-                                  GNUNET_BLOCK_TYPE_TEST,   /* type */
+  get_h = GNUNET_DHT_get_start (hs[0], GNUNET_TIME_UNIT_FOREVER_REL,    /* timeout */
+                                GNUNET_BLOCK_TYPE_TEST, /* type */
+                                &d->id.hashPubKey,      /*key to search */
+                                4U,     /* replication level */
+                                GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,        /* xquery */
+                                0,      /* xquery bits */
+                                &dht_get_id_handler, NULL);
+  get_h_2 = GNUNET_DHT_get_start (hs[0], GNUNET_TIME_UNIT_FOREVER_REL,  /* timeout */
+                                  GNUNET_BLOCK_TYPE_TEST,       /* type */
                                   &d2->id.hashPubKey,   /*key to search */
-                                  4U,        /* replication level */
-                                  GNUNET_DHT_RO_RECORD_ROUTE |
-                                    GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                                  NULL,     /* xquery */
-                                  0,        /* xquery bits */
-                                  &dht_get_id_handler,
-                                  NULL);
-  get_h_far = GNUNET_DHT_get_start (hs[0],
-                                    GNUNET_TIME_UNIT_FOREVER_REL, /* timeout */
-                                    GNUNET_BLOCK_TYPE_TEST,   /* type */
-                                    &d_far->id.hashPubKey,   /*key to search */
-                                    4U,        /* replication level */
-                                    GNUNET_DHT_RO_RECORD_ROUTE |
-                                      GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                                    NULL,     /* xquery */
-                                    0,        /* xquery bits */
-                                    &dht_get_id_handler,
-                                    NULL);
+                                  4U,   /* replication level */
+                                  GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,      /* xquery */
+                                  0,    /* xquery bits */
+                                  &dht_get_id_handler, NULL);
+  get_h_far = GNUNET_DHT_get_start (hs[0], GNUNET_TIME_UNIT_FOREVER_REL,        /* timeout */
+                                    GNUNET_BLOCK_TYPE_TEST,     /* type */
+                                    &d_far->id.hashPubKey,      /*key to search */
+                                    4U, /* replication level */
+                                    GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,    /* xquery */
+                                    0,  /* xquery bits */
+                                    &dht_get_id_handler, NULL);
   GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_delayed(GET_TIMEOUT,
-                               &disconnect_peers, NULL);
+  disconnect_task =
+      GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &disconnect_peers, NULL);
 }
 
 
@@ -331,28 +310,20 @@ put_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: putting id's in DHT\n");
-  for (i = 0; i < num_peers;  i++)
+  for (i = 0; i < num_peers; i++)
   {
     d = GNUNET_TESTING_daemon_get (pg, i);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test:    putting into DHT: %s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:    putting into DHT: %s\n",
                 GNUNET_h2s_full (&d->id.hashPubKey));
-    GNUNET_DHT_put(hs[i],
-                   &d->id.hashPubKey,
-                   10U,
-                   GNUNET_DHT_RO_RECORD_ROUTE |
-                     GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                    GNUNET_BLOCK_TYPE_TEST,
-                   sizeof(struct GNUNET_PeerIdentity),
-                   (const char *) &d->id,
-                   GNUNET_TIME_UNIT_FOREVER_ABS,
-                   GNUNET_TIME_UNIT_FOREVER_REL,
-                   NULL,
-                   NULL);
+    GNUNET_DHT_put (hs[i], &d->id.hashPubKey, 10U,
+                    GNUNET_DHT_RO_RECORD_ROUTE |
+                    GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                    GNUNET_BLOCK_TYPE_TEST, sizeof (struct GNUNET_PeerIdentity),
+                    (const char *) &d->id, GNUNET_TIME_UNIT_FOREVER_ABS,
+                    GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
 
   }
-  put_task = GNUNET_SCHEDULER_add_delayed(PUT_FREQUENCY,
-					  &put_id, NULL);
+  put_task = GNUNET_SCHEDULER_add_delayed (PUT_FREQUENCY, &put_id, NULL);
 }
 
 
@@ -373,8 +344,8 @@ peergroup_ready (void *cls, const char *emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: Peergroup callback called with error, aborting test!\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Error from testing: `%s'\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Error from testing: `%s'\n",
+                emsg);
     ok++;
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
@@ -384,8 +355,7 @@ peergroup_ready (void *cls, const char *emsg)
               "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: Peer Group started successfully!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Have %u connections\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Have %u connections\n",
               total_connections);
 #endif
 
@@ -398,24 +368,22 @@ peergroup_ready (void *cls, const char *emsg)
     GNUNET_free (buf);
   }
   peers_running = GNUNET_TESTING_daemons_running (pg);
-  
+
   GNUNET_assert (peers_running == num_peers);
-  hs = GNUNET_malloc (num_peers * sizeof(struct GNUNET_DHT_Handle *));
-  for (i = 0; i < num_peers;  i++)
+  hs = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_Handle *));
+  for (i = 0; i < num_peers; i++)
   {
     d = GNUNET_TESTING_daemon_get (pg, i);
-    hs[i] = GNUNET_DHT_connect(d->cfg, 32);
+    hs[i] = GNUNET_DHT_connect (d->cfg, 32);
   }
 
-  put_task = GNUNET_SCHEDULER_add_now(&put_id, NULL);
+  put_task = GNUNET_SCHEDULER_add_now (&put_id, NULL);
   test_task =
-      GNUNET_SCHEDULER_add_delayed(
-          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2),
-          &do_test, NULL);
-  disconnect_task =
-    GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT,
-                                    &disconnect_peers,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 2), &do_test,
                                     NULL);
+  disconnect_task =
+      GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &disconnect_peers, NULL);
 
 }
 
@@ -446,14 +414,13 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
   if (emsg == NULL)
   {
     total_connections++;
-    GNUNET_PEER_intern(first);
-    GNUNET_PEER_intern(second);
+    GNUNET_PEER_intern (first);
+    GNUNET_PEER_intern (second);
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Problem with new connection (%s)\n",
-                emsg);
+                "test: Problem with new connection (%s)\n", emsg);
   }
 
 }
@@ -496,7 +463,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              "num_peers", &num_peers))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Option TESTING:NUM_PEERS is required!\n");
+                "Option TESTING:NUM_PEERS is required!\n");
     return;
   }
 
@@ -516,17 +483,17 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              &data_filename))
   {
     data_file =
-      GNUNET_DISK_file_open (data_filename,
-                             GNUNET_DISK_OPEN_READWRITE |
-                             GNUNET_DISK_OPEN_CREATE,
-                             GNUNET_DISK_PERM_USER_READ |
-                             GNUNET_DISK_PERM_USER_WRITE);
+        GNUNET_DISK_file_open (data_filename,
+                               GNUNET_DISK_OPEN_READWRITE |
+                               GNUNET_DISK_OPEN_CREATE,
+                               GNUNET_DISK_PERM_USER_READ |
+                               GNUNET_DISK_PERM_USER_WRITE);
     if (data_file == NULL)
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
-		    data_filename);
-	GNUNET_free (data_filename);
-      }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
+                  data_filename);
+      GNUNET_free (data_filename);
+    }
   }
 
   if (GNUNET_YES ==
@@ -552,7 +519,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                        hosts);
   GNUNET_assert (pg != NULL);
   shutdown_handle =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, NULL);
 }
 
@@ -584,7 +551,8 @@ main (int xargc, char *xargv[])
     NULL
   };
 
-  GNUNET_PROGRAM_run (sizeof(argv)/sizeof(char*) - 1, argv, "test_dht_2dtorus",
+  GNUNET_PROGRAM_run (sizeof (argv) / sizeof (char *) - 1, argv,
+                      "test_dht_2dtorus",
                       gettext_noop ("Test dht in a small 2D torus."), options,
                       &run, NULL);
 #if REMOVE_DIR

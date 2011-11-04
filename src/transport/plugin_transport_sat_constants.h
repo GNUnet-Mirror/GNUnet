@@ -32,22 +32,26 @@
 
 typedef struct MacAdress
 {
-	uint8_t mac[6];
-}MacAdress;
+  uint8_t mac[6];
+} MacAdress;
 
 //praeamble
-static const struct char praeambel[56] = 
-{{1,0,1,0,10,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0}};
+static const struct char praeambel[56] =
+    { {1, 0, 1, 0, 10, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+       0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+       0, 1, 0, 1, 0, 1, 0}
+};
 
 //start of frame
-static const struct char sof[8]=
-{{1,0,1,0,1,0,1,1}}
+static const struct char sof[8] = { {1, 0, 1, 0, 1, 0, 1, 1} }
 
 // broadcast mac
 static const struct MacAddress bc_all_mac =
-  { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+    { {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF} };
 
 //crc polynom
 static const struct char ploynom[32] =
-	{{1,1,1,0,1,1,0,1,1,0,1,1,1,0,0,0,1,0,0,0,0,0,1,1,0,0,1,0,0,0,0,1}};
+    { {1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1,
+       0, 0, 1, 0, 0, 0, 0, 1}
+};
 #endif

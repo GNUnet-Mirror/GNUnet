@@ -649,8 +649,9 @@ process_interfaces (void *cls, const char *name, int isDefault,
     ip = &s4->sin_addr;
 
     /* Check if address is in 127.0.0.0/8 */
-    uint32_t address = ntohl((in_addr_t)(s4->sin_addr.s_addr));
+    uint32_t address = ntohl ((in_addr_t) (s4->sin_addr.s_addr));
     uint32_t value = (address & 0xFF000000) ^ 0x7F000000;
+
     if ((h->return_localaddress == GNUNET_NO) && (value == 0))
     {
       return GNUNET_OK;
@@ -1139,7 +1140,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
   h->use_localaddresses =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "USE_LOCALADDR");
   h->return_localaddress =
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "RETURN_LOCAL_ADDRESSES");
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat",
+                                            "RETURN_LOCAL_ADDRESSES");
 
   h->use_hostname =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "USE_HOSTNAME");

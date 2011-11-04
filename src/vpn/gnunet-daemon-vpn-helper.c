@@ -45,7 +45,7 @@
 
 struct GNUNET_VPN_HELPER_Handle *helper_handle;
 
-extern struct GNUNET_CLIENT_TransmitHandle* dns_transmit_handle;
+extern struct GNUNET_CLIENT_TransmitHandle *dns_transmit_handle;
 
 /**
  * The tunnels that will be used to send tcp- and udp-packets
@@ -140,10 +140,12 @@ start_helper_and_schedule (void *cls,
    */
   restart_hijack = 1;
   if (NULL != dns_connection && dns_transmit_handle == NULL)
-    dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection,
-                                         sizeof (struct GNUNET_MessageHeader),
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         GNUNET_YES, &send_query, NULL);
+    dns_transmit_handle =
+        GNUNET_CLIENT_notify_transmit_ready (dns_connection,
+                                             sizeof (struct
+                                                     GNUNET_MessageHeader),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_YES, &send_query, NULL);
 
   GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                    helper_handle->fh_to_helper, &helper_write,
@@ -152,10 +154,11 @@ start_helper_and_schedule (void *cls,
 
 /*}}}*/
 
-static void*
-initialize_tunnel_state(int addrlen, struct GNUNET_MESH_TransmitHandle* th)
+static void *
+initialize_tunnel_state (int addrlen, struct GNUNET_MESH_TransmitHandle *th)
 {
-  struct tunnel_state* ts = GNUNET_malloc(sizeof *ts);
+  struct tunnel_state *ts = GNUNET_malloc (sizeof *ts);
+
   ts->addrlen = addrlen;
   ts->th = th;
   return ts;
@@ -186,111 +189,115 @@ helper_write (void *cls
 
   size_t data_len = len - sizeof (struct answer_packet) + 1;
 
-  void* buf;
+  void *buf;
   size_t pkt_len;
 
   if (ans->pkt.addrlen == 16)
-    {
-      size_t net_len = sizeof (struct ip6_hdr) + sizeof (struct udp_dns) + data_len;
-      pkt_len =
-        sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) + net_len;
+  {
+    size_t net_len =
+        sizeof (struct ip6_hdr) + sizeof (struct udp_dns) + data_len;
+    pkt_len =
+        sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
+        net_len;
 
-      struct ip6_udp_dns *pkt = alloca (pkt_len);
+    struct ip6_udp_dns *pkt = alloca (pkt_len);
 
-      GNUNET_assert (pkt != NULL);
-      memset (pkt, 0, pkt_len);
+    GNUNET_assert (pkt != NULL);
+    memset (pkt, 0, pkt_len);
 
-      /* set the gnunet-header */
-      pkt->shdr.size = htons (pkt_len);
-      pkt->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+    /* set the gnunet-header */
+    pkt->shdr.size = htons (pkt_len);
+    pkt->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
 
-      /* set the tun-header (no flags and ethertype of IPv4) */
-      pkt->tun.flags = 0;
-      pkt->tun.type = htons (0x86dd);
+    /* set the tun-header (no flags and ethertype of IPv4) */
+    pkt->tun.flags = 0;
+    pkt->tun.type = htons (0x86dd);
 
-      memcpy(&pkt->ip6_hdr.sadr, ans->pkt.from, 16);
-      memcpy(&pkt->ip6_hdr.dadr, ans->pkt.to, 16);
+    memcpy (&pkt->ip6_hdr.sadr, ans->pkt.from, 16);
+    memcpy (&pkt->ip6_hdr.dadr, ans->pkt.to, 16);
 
-      /* set the udp-header */
-      pkt->udp_dns.udp_hdr.spt = htons (53);
-      pkt->udp_dns.udp_hdr.dpt = ans->pkt.dst_port;
-      pkt->udp_dns.udp_hdr.len = htons (net_len - sizeof (struct ip6_hdr));
-      pkt->udp_dns.udp_hdr.crc = 0;
-      uint32_t sum = 0;
+    /* set the udp-header */
+    pkt->udp_dns.udp_hdr.spt = htons (53);
+    pkt->udp_dns.udp_hdr.dpt = ans->pkt.dst_port;
+    pkt->udp_dns.udp_hdr.len = htons (net_len - sizeof (struct ip6_hdr));
+    pkt->udp_dns.udp_hdr.crc = 0;
+    uint32_t sum = 0;
 
-      sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt->ip6_hdr.sadr, 16);
-      sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt->ip6_hdr.dadr, 16);
-      uint32_t tmp = (pkt->udp_dns.udp_hdr.len & 0xffff);
+    sum = calculate_checksum_update (sum, (uint16_t *) & pkt->ip6_hdr.sadr, 16);
+    sum = calculate_checksum_update (sum, (uint16_t *) & pkt->ip6_hdr.dadr, 16);
+    uint32_t tmp = (pkt->udp_dns.udp_hdr.len & 0xffff);
 
-      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
-      tmp = htons (((pkt->ip6_hdr.nxthdr & 0x00ff)));
-      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    tmp = htons (((pkt->ip6_hdr.nxthdr & 0x00ff)));
+    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
 
-      sum =
+    sum =
         calculate_checksum_update (sum, (uint16_t *) & pkt->udp_dns.udp_hdr,
-                                   ntohs (net_len - sizeof(struct ip6_hdr)));
-      pkt->udp_dns.udp_hdr.crc = calculate_checksum_end (sum);
+                                   ntohs (net_len - sizeof (struct ip6_hdr)));
+    pkt->udp_dns.udp_hdr.crc = calculate_checksum_end (sum);
 
-      pkt->ip6_hdr.version = 6;
-      pkt->ip6_hdr.paylgth = net_len - sizeof (struct ip6_hdr);
-      pkt->ip6_hdr.nxthdr = IPPROTO_UDP;
-      pkt->ip6_hdr.hoplmt = 0xff;
+    pkt->ip6_hdr.version = 6;
+    pkt->ip6_hdr.paylgth = net_len - sizeof (struct ip6_hdr);
+    pkt->ip6_hdr.nxthdr = IPPROTO_UDP;
+    pkt->ip6_hdr.hoplmt = 0xff;
 
-      memcpy (&pkt->udp_dns.data, ans->pkt.data, data_len);
-      buf = pkt;
-    }
+    memcpy (&pkt->udp_dns.data, ans->pkt.data, data_len);
+    buf = pkt;
+  }
   else if (ans->pkt.addrlen == 4)
-    {
-      size_t net_len = sizeof (struct ip_hdr) + sizeof (struct udp_dns) + data_len;
-      pkt_len =
-        sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) + net_len;
+  {
+    size_t net_len =
+        sizeof (struct ip_hdr) + sizeof (struct udp_dns) + data_len;
+    pkt_len =
+        sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
+        net_len;
 
-      struct ip_udp_dns *pkt = alloca (pkt_len);
+    struct ip_udp_dns *pkt = alloca (pkt_len);
 
-      GNUNET_assert (pkt != NULL);
-      memset (pkt, 0, pkt_len);
+    GNUNET_assert (pkt != NULL);
+    memset (pkt, 0, pkt_len);
 
-      /* set the gnunet-header */
-      pkt->shdr.size = htons (pkt_len);
-      pkt->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+    /* set the gnunet-header */
+    pkt->shdr.size = htons (pkt_len);
+    pkt->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
 
-      /* set the tun-header (no flags and ethertype of IPv4) */
-      pkt->tun.flags = 0;
-      pkt->tun.type = htons (0x0800);
+    /* set the tun-header (no flags and ethertype of IPv4) */
+    pkt->tun.flags = 0;
+    pkt->tun.type = htons (0x0800);
 
-      /* set the ip-header */
-      pkt->ip_hdr.version = 4;
-      pkt->ip_hdr.hdr_lngth = 5;
-      pkt->ip_hdr.diff_serv = 0;
-      pkt->ip_hdr.tot_lngth = htons (net_len);
-      pkt->ip_hdr.ident = 0;
-      pkt->ip_hdr.flags = 0;
-      pkt->ip_hdr.frag_off = 0;
-      pkt->ip_hdr.ttl = 255;
-      pkt->ip_hdr.proto = IPPROTO_UDP;
-      pkt->ip_hdr.chks = 0;         /* Will be calculated later */
+    /* set the ip-header */
+    pkt->ip_hdr.version = 4;
+    pkt->ip_hdr.hdr_lngth = 5;
+    pkt->ip_hdr.diff_serv = 0;
+    pkt->ip_hdr.tot_lngth = htons (net_len);
+    pkt->ip_hdr.ident = 0;
+    pkt->ip_hdr.flags = 0;
+    pkt->ip_hdr.frag_off = 0;
+    pkt->ip_hdr.ttl = 255;
+    pkt->ip_hdr.proto = IPPROTO_UDP;
+    pkt->ip_hdr.chks = 0;       /* Will be calculated later */
 
-      memcpy(&pkt->ip_hdr.sadr, ans->pkt.from, 4);
-      memcpy(&pkt->ip_hdr.dadr, ans->pkt.to, 4);
+    memcpy (&pkt->ip_hdr.sadr, ans->pkt.from, 4);
+    memcpy (&pkt->ip_hdr.dadr, ans->pkt.to, 4);
 
-      pkt->ip_hdr.chks = calculate_ip_checksum ((uint16_t *) & pkt->ip_hdr, 5 * 4);
+    pkt->ip_hdr.chks =
+        calculate_ip_checksum ((uint16_t *) & pkt->ip_hdr, 5 * 4);
 
-      /* set the udp-header */
-      pkt->udp_dns.udp_hdr.spt = htons (53);
-      pkt->udp_dns.udp_hdr.dpt = ans->pkt.dst_port;
-      pkt->udp_dns.udp_hdr.len = htons (net_len - sizeof (struct ip_hdr));
-      pkt->udp_dns.udp_hdr.crc = 0; /* Optional for IPv4 */
+    /* set the udp-header */
+    pkt->udp_dns.udp_hdr.spt = htons (53);
+    pkt->udp_dns.udp_hdr.dpt = ans->pkt.dst_port;
+    pkt->udp_dns.udp_hdr.len = htons (net_len - sizeof (struct ip_hdr));
+    pkt->udp_dns.udp_hdr.crc = 0;       /* Optional for IPv4 */
 
-      memcpy (&pkt->udp_dns.data, ans->pkt.data, data_len);
-      buf = pkt;
-    }
+    memcpy (&pkt->udp_dns.data, ans->pkt.data, data_len);
+    buf = pkt;
+  }
   else
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Wrong addrlen = %d\n", ans->pkt.addrlen);
-      GNUNET_assert(0);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Wrong addrlen = %d\n",
+                ans->pkt.addrlen);
+    GNUNET_assert (0);
+  }
 
   GNUNET_CONTAINER_DLL_remove (answer_proc_head, answer_proc_tail, ans);
   GNUNET_free (ans);
@@ -332,37 +339,43 @@ message_token (void *cls __attribute__ ((unused)), void *client
     struct ip6_udp *pkt6_udp;
     struct ip6_icmp *pkt6_icmp;
 
-    pkt6_udp = NULL; /* make compiler happy */
+    pkt6_udp = NULL;            /* make compiler happy */
     switch (pkt6->ip6_hdr.nxthdr)
     {
     case IPPROTO_UDP:
       pkt6_udp = (struct ip6_udp *) pkt6;
       /* Send dns-packets to the service-dns */
       if (ntohs (pkt6_udp->udp_hdr.dpt) == 53)
-        {
-          /* 9 = 8 for the udp-header + 1 for the unsigned char data[1]; */
-          size_t len = sizeof (struct query_packet) + ntohs (pkt6_udp->udp_hdr.len) - 9;
+      {
+        /* 9 = 8 for the udp-header + 1 for the unsigned char data[1]; */
+        size_t len =
+            sizeof (struct query_packet) + ntohs (pkt6_udp->udp_hdr.len) - 9;
 
-          struct query_packet_list *query =
-            GNUNET_malloc (len + sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
-          query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
-          query->pkt.hdr.size = htons (len);
-          memcpy(query->pkt.orig_to, &pkt6->ip6_hdr.dadr, 16);
-          memcpy(query->pkt.orig_from, &pkt6->ip6_hdr.sadr, 16);
-          query->pkt.addrlen = 16;
-          query->pkt.src_port = pkt6_udp->udp_hdr.spt;
-          memcpy (query->pkt.data, pkt6_udp->data, ntohs (pkt6_udp->udp_hdr.len) - 8);
+        struct query_packet_list *query =
+            GNUNET_malloc (len + sizeof (struct answer_packet_list) -
+                           sizeof (struct answer_packet));
+        query->pkt.hdr.type =
+            htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
+        query->pkt.hdr.size = htons (len);
+        memcpy (query->pkt.orig_to, &pkt6->ip6_hdr.dadr, 16);
+        memcpy (query->pkt.orig_from, &pkt6->ip6_hdr.sadr, 16);
+        query->pkt.addrlen = 16;
+        query->pkt.src_port = pkt6_udp->udp_hdr.spt;
+        memcpy (query->pkt.data, pkt6_udp->data,
+                ntohs (pkt6_udp->udp_hdr.len) - 8);
 
-          GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, query);
+        GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, query);
 
-          GNUNET_assert (head != NULL);
+        GNUNET_assert (head != NULL);
 
-          if (dns_connection != NULL && dns_transmit_handle == NULL)
-            dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection, len,
-                                                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                                                       GNUNET_YES, &send_query, NULL);
-          break;
-        } 
+        if (dns_connection != NULL && dns_transmit_handle == NULL)
+          dns_transmit_handle =
+              GNUNET_CLIENT_notify_transmit_ready (dns_connection, len,
+                                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                                   GNUNET_YES, &send_query,
+                                                   NULL);
+        break;
+      }
       /* fall through */
     case IPPROTO_TCP:
       pkt6_tcp = (struct ip6_tcp *) pkt6;
@@ -418,19 +431,20 @@ message_token (void *cls __attribute__ ((unused)), void *client
           }
           else
           {
-            GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "pip: %d\n", port_in_ports(me->desc.ports, pkt6_tcp->tcp_hdr.dpt));
-              GNUNET_assert(0);
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pip: %d\n",
+                        port_in_ports (me->desc.ports, pkt6_tcp->tcp_hdr.dpt));
+            GNUNET_assert (0);
           }
           if (me->tunnel == NULL && NULL != cls)
           {
             *cls =
-              GNUNET_MESH_tunnel_create(mesh_handle, initialize_tunnel_state(16, NULL),
-                                        &send_pkt_to_peer, NULL, cls);
+                GNUNET_MESH_tunnel_create (mesh_handle,
+                                           initialize_tunnel_state (16, NULL),
+                                           &send_pkt_to_peer, NULL, cls);
 
             GNUNET_MESH_peer_request_connect_add (*cls,
-                                                      (struct
-                                                       GNUNET_PeerIdentity *)
-                                                      &me->desc.peer);
+                                                  (struct GNUNET_PeerIdentity *)
+                                                  &me->desc.peer);
             me->tunnel = *cls;
           }
           else if (NULL != cls)
@@ -451,7 +465,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
           memcpy (s->addr, me->addr, me->addrlen);
           s->proto = pkt6->ip6_hdr.nxthdr;
           if (s->proto == IPPROTO_UDP)
-	  {
+          {
             hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP);
             memcpy (hc + 1, &pkt6_udp->udp_hdr, ntohs (pkt6_udp->udp_hdr.len));
             app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
@@ -473,11 +487,11 @@ message_token (void *cls __attribute__ ((unused)), void *client
           if (me->tunnel == NULL && NULL != cls)
           {
             *cls =
-              GNUNET_MESH_tunnel_create(mesh_handle, initialize_tunnel_state(16, NULL),
-                                        &send_pkt_to_peer, NULL, cls);
+                GNUNET_MESH_tunnel_create (mesh_handle,
+                                           initialize_tunnel_state (16, NULL),
+                                           &send_pkt_to_peer, NULL, cls);
 
-            GNUNET_MESH_peer_request_connect_by_type (*cls,
-                                                      app_type);
+            GNUNET_MESH_peer_request_connect_by_type (*cls, app_type);
             me->tunnel = *cls;
             if (GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY == app_type)
               udp_tunnel = *cls;
@@ -538,11 +552,12 @@ message_token (void *cls __attribute__ ((unused)), void *client
       size_t len = sizeof (struct query_packet) + ntohs (udp->udp_hdr.len) - 9;
 
       struct query_packet_list *query =
-          GNUNET_malloc (len + sizeof(struct answer_packet_list) - sizeof(struct answer_packet));
+          GNUNET_malloc (len + sizeof (struct answer_packet_list) -
+                         sizeof (struct answer_packet));
       query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
       query->pkt.hdr.size = htons (len);
-      memcpy(query->pkt.orig_to, &pkt->ip_hdr.dadr, 4);
-      memcpy(query->pkt.orig_from, &pkt->ip_hdr.sadr, 4);
+      memcpy (query->pkt.orig_to, &pkt->ip_hdr.dadr, 4);
+      memcpy (query->pkt.orig_from, &pkt->ip_hdr.sadr, 4);
       query->pkt.addrlen = 4;
       query->pkt.src_port = udp->udp_hdr.spt;
       memcpy (query->pkt.data, udp->data, ntohs (udp->udp_hdr.len) - 8);
@@ -552,9 +567,10 @@ message_token (void *cls __attribute__ ((unused)), void *client
       GNUNET_assert (head != NULL);
 
       if (dns_connection != NULL && dns_transmit_handle == NULL)
-        dns_transmit_handle = GNUNET_CLIENT_notify_transmit_ready (dns_connection, len,
-                                                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                                                   GNUNET_YES, &send_query, NULL);
+        dns_transmit_handle =
+            GNUNET_CLIENT_notify_transmit_ready (dns_connection, len,
+                                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                                 GNUNET_YES, &send_query, NULL);
     }
     else
     {
@@ -625,12 +641,13 @@ message_token (void *cls __attribute__ ((unused)), void *client
             }
             if (me->tunnel == NULL && NULL != cls)
             {
-              *cls = GNUNET_MESH_tunnel_create(mesh_handle,
-                                               initialize_tunnel_state(4, NULL),
-                                               send_pkt_to_peer, NULL, cls);
+              *cls =
+                  GNUNET_MESH_tunnel_create (mesh_handle,
+                                             initialize_tunnel_state (4, NULL),
+                                             send_pkt_to_peer, NULL, cls);
               GNUNET_MESH_peer_request_connect_add (*cls,
-                                                    (struct GNUNET_PeerIdentity *)
-                                                    &me->desc.peer);
+                                                    (struct GNUNET_PeerIdentity
+                                                     *) &me->desc.peer);
               me->tunnel = *cls;
             }
             else if (NULL != cls)
@@ -664,13 +681,15 @@ message_token (void *cls __attribute__ ((unused)), void *client
                       ntohs (pkt->ip_hdr.tot_lngth) -
                       4 * pkt->ip_hdr.hdr_lngth);
               app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
-            } else
-	      GNUNET_assert (0);
+            }
+            else
+              GNUNET_assert (0);
             if (me->tunnel == NULL && NULL != cls)
             {
               *cls =
-                GNUNET_MESH_tunnel_create(mesh_handle, initialize_tunnel_state(4, NULL),
-                                          send_pkt_to_peer, NULL, cls);
+                  GNUNET_MESH_tunnel_create (mesh_handle,
+                                             initialize_tunnel_state (4, NULL),
+                                             send_pkt_to_peer, NULL, cls);
 
               GNUNET_MESH_peer_request_connect_by_type (*cls, app_type);
               me->tunnel = *cls;

@@ -35,15 +35,15 @@
  * when the message queue is empty).  Outbound quotas and memory
  * bounds will then be enfoced (as GSC_SESSION_solicit is only called
  * if sufficient banwdith is available).
- * 
+ *
  * @param target peer that should receive the message (must be connected)
  * @param msg message to transmit
  * @param timeout by when should the transmission be done?
  */
 void
 GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
-			 const struct GNUNET_MessageHeader *msg,
-			 struct GNUNET_TIME_Relative timeout);
+                         const struct GNUNET_MessageHeader *msg,
+                         struct GNUNET_TIME_Relative timeout);
 
 
 /**

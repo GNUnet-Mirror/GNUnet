@@ -148,10 +148,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 #endif
   c1 = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK ==
-	         GNUNET_CONFIGURATION_load (c1, "test_testing_connect_peer1.conf"));
+                 GNUNET_CONFIGURATION_load (c1,
+                                            "test_testing_connect_peer1.conf"));
   c2 = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK ==
-	         GNUNET_CONFIGURATION_load (c2, "test_testing_connect_peer2.conf"));
+                 GNUNET_CONFIGURATION_load (c2,
+                                            "test_testing_connect_peer2.conf"));
   d1 = GNUNET_TESTING_daemon_start (c1, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL,
                                     NULL, NULL, &my_cb1, NULL);
   GNUNET_assert (d1 != NULL);

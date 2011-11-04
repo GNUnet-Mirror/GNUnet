@@ -206,7 +206,7 @@ struct GNUNET_MESH_PathBroken
      * ID of the endpoint
      */
   struct GNUNET_PeerIdentity peer1;
-  
+
     /**
      * ID of the endpoint
      */

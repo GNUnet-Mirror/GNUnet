@@ -152,7 +152,7 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   size = ntohs (fc->msg->size);
   if (bit == size / (fc->mtu - sizeof (struct FragmentHeader)))
     fsize =
-      (size % (fc->mtu - sizeof (struct FragmentHeader))) +
+        (size % (fc->mtu - sizeof (struct FragmentHeader))) +
         sizeof (struct FragmentHeader);
   else
     fsize = fc->mtu;

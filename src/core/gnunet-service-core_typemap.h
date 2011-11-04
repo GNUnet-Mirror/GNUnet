@@ -39,16 +39,14 @@ struct GSC_TypeMap;
  * Add a set of types to our type map.
  */
 void
-GSC_TYPEMAP_add (const uint16_t *types,
-		 unsigned int tlen);
+GSC_TYPEMAP_add (const uint16_t * types, unsigned int tlen);
 
 
 /**
  * Remove a set of types from our type map.
  */
 void
-GSC_TYPEMAP_remove (const uint16_t *types,
-		    unsigned int tlen);
+GSC_TYPEMAP_remove (const uint16_t * types, unsigned int tlen);
 
 
 /**
@@ -78,11 +76,10 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg);
  * @param types array of types
  * @param tcnt number of entries in types
  * @return GNUNET_YES if a type is in the map, GNUNET_NO if not
- */ 
+ */
 int
-GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
-			const uint16_t *types,
-			unsigned int tcnt);
+GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap, const uint16_t * types,
+                        unsigned int tcnt);
 
 
 /**
@@ -92,11 +89,10 @@ GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
  * @param types array of types to add
  * @param tcnt number of entries in types
  * @return updated type map (fresh copy)
- */ 
+ */
 struct GSC_TypeMap *
-GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
-		    const uint16_t *types,
-		    unsigned int tcnt);
+GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap, const uint16_t * types,
+                    unsigned int tcnt);
 
 /**
  * Create an empty type map.

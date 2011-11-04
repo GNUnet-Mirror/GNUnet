@@ -68,7 +68,7 @@ static int ok;
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_ATS_Information *atsi,
-		unsigned int atsi_count)
+                unsigned int atsi_count)
 {
 }
 
@@ -83,7 +83,7 @@ static int
 inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_ATS_Information *atsi,
-		unsigned int atsi_count)
+                unsigned int atsi_count)
 {
   return GNUNET_OK;
 }
@@ -93,7 +93,7 @@ static int
 outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message,
                  const struct GNUNET_ATS_Information *atsi,
-		 unsigned int atsi_count)
+                 unsigned int atsi_count)
 {
   return GNUNET_OK;
 }
@@ -130,9 +130,8 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
     /* connect p2 */
     p2.ch =
         GNUNET_CORE_connect (p2.cfg, 1, &p2, &init_notify, &connect_notify,
-                             &disconnect_notify, &inbound_notify,
-                             GNUNET_YES, &outbound_notify, GNUNET_YES,
-                             handlers);
+                             &disconnect_notify, &inbound_notify, GNUNET_YES,
+                             &outbound_notify, GNUNET_YES, handlers);
   }
   else
   {
@@ -193,8 +192,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                     &timeout_task, NULL);
   p1.ch =
       GNUNET_CORE_connect (p1.cfg, 1, &p1, &init_notify, &connect_notify,
-                           &disconnect_notify, &inbound_notify,
-                           GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
+                           &disconnect_notify, &inbound_notify, GNUNET_YES,
+                           &outbound_notify, GNUNET_YES, handlers);
 }
 
 

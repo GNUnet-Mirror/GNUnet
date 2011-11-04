@@ -299,21 +299,22 @@ struct Plugin
 
 };
 
-int delete_session_iterator (void *cls,
-                             const GNUNET_HashCode * key,
-                             void *value)
+int
+delete_session_iterator (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct Session *s = (struct Session *) value;
+
   if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(s->invalidation_task);
+    GNUNET_SCHEDULER_cancel (s->invalidation_task);
     s->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_CONTAINER_multihashmap_remove(s->plugin->sessions, key, s);
+  GNUNET_CONTAINER_multihashmap_remove (s->plugin->sessions, key, s);
 
   GNUNET_free (s);
   return GNUNET_YES;
 }
+
 /**
  * Disconnect from a remote node.  Clean up session if we have one for this peer
  *
@@ -326,7 +327,8 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
 
-  GNUNET_CONTAINER_multihashmap_get_multiple(plugin, &target->hashPubKey, &delete_session_iterator, NULL);
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin, &target->hashPubKey,
+                                              &delete_session_iterator, NULL);
 
 }
 
@@ -370,25 +372,25 @@ udp_send (struct Plugin *plugin, const struct sockaddr *sa,
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
     LOG (GNUNET_ERROR_TYPE_ERROR,
-                "UDP transmited %u-byte message to %s (%d: %s)\n",
-                (unsigned int) ntohs (msg->size), GNUNET_a2s (sa, slen),
-                (int) sent, (sent < 0) ? STRERROR (errno) : "ok");
+         "UDP transmited %u-byte message to %s (%d: %s)\n",
+         (unsigned int) ntohs (msg->size), GNUNET_a2s (sa, slen), (int) sent,
+         (sent < 0) ? STRERROR (errno) : "ok");
 
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "UDP transmited %u-byte message to %s (%d: %s)\n",
-              (unsigned int) ntohs (msg->size), GNUNET_a2s (sa, slen),
-              (int) sent, (sent < 0) ? STRERROR (errno) : "ok");
+       "UDP transmited %u-byte message to %s (%d: %s)\n",
+       (unsigned int) ntohs (msg->size), GNUNET_a2s (sa, slen), (int) sent,
+       (sent < 0) ? STRERROR (errno) : "ok");
   return sent;
 }
 
 
 static struct Session *
 create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
-    const void *addr, size_t addrlen,
-    GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+                const void *addr, size_t addrlen,
+                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
-  struct Session * s;
+  struct Session *s;
   const struct IPv4UdpAddress *t4;
   const struct IPv6UdpAddress *t6;
   struct sockaddr_in *v4;
@@ -403,9 +405,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
       return NULL;
     }
     t4 = addr;
-    s =
-        GNUNET_malloc (sizeof (struct Session) +
-                       sizeof (struct sockaddr_in));
+    s = GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in));
     len = sizeof (struct sockaddr_in);
     v4 = (struct sockaddr_in *) &s[1];
     v4->sin_family = AF_INET;
@@ -421,9 +421,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
       return NULL;
     }
     t6 = addr;
-    s =
-        GNUNET_malloc (sizeof (struct Session) +
-                       sizeof (struct sockaddr_in6));
+    s = GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in6));
     len = sizeof (struct sockaddr_in6);
     v6 = (struct sockaddr_in6 *) &s[1];
     v6->sin6_family = AF_INET6;
@@ -457,13 +455,17 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
 static void
 invalidation_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session * s = cls;
-  s->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-                   "Session %X (`%s') is now invalid\n", s, GNUNET_a2s (s->sock_addr,s->addrlen));
+  struct Session *s = cls;
 
-  s->plugin->env->session_end(s->plugin->env->cls, &s->target, s);
-  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(s->plugin->sessions, &s->target.hashPubKey, s));
+  s->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
+  LOG (GNUNET_ERROR_TYPE_ERROR, "Session %X (`%s') is now invalid\n", s,
+       GNUNET_a2s (s->sock_addr, s->addrlen));
+
+  s->plugin->env->session_end (s->plugin->env->cls, &s->target, s);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (s->plugin->sessions,
+                                                       &s->target.hashPubKey,
+                                                       s));
   GNUNET_free (s);
 }
 
@@ -534,10 +536,10 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "UDP transmits %u-byte message to `%s' using address `%s' session 0x%X mode %i\n",
-      msgbuf_size, GNUNET_i2s (target),
-      udp_address_to_string (NULL, addr, addrlen),
-      session, force_address);
+       "UDP transmits %u-byte message to `%s' using address `%s' session 0x%X mode %i\n",
+       msgbuf_size, GNUNET_i2s (target), udp_address_to_string (NULL, addr,
+                                                                addrlen),
+       session, force_address);
 
   /* no valid address given */
   if ((addr = NULL) || (addrlen == 0))
@@ -562,10 +564,13 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     if (force_address == GNUNET_SYSERR)
       return GNUNET_SYSERR;
     /* create new session */
-    s = create_session(plugin, target, addr, addrlen, cont, cont_cls);
-    GNUNET_CONTAINER_multihashmap_put(plugin->sessions, &target->hashPubKey, s, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    s = create_session (plugin, target, addr, addrlen, cont, cont_cls);
+    GNUNET_CONTAINER_multihashmap_put (plugin->sessions, &target->hashPubKey, s,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     /* schedule invalidation task */
-    s->invalidation_task = GNUNET_SCHEDULER_add_delayed(GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, &invalidation_task, NULL);
+    s->invalidation_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                      &invalidation_task, NULL);
   }
 
   /* Message */
@@ -576,12 +581,16 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   udp->sender = *plugin->env->my_identity;
   memcpy (&udp[1], msgbuf, msgbuf_size);
 
-  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+
   if (s->flow_delay_from_other_peer.abs_value > now.abs_value)
   {
-    struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference(now, s->flow_delay_from_other_peer);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "We try to send to early! Should in %llu!\n", delta.rel_value);
+    struct GNUNET_TIME_Relative delta =
+        GNUNET_TIME_absolute_get_difference (now,
+                                             s->flow_delay_from_other_peer);
+
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "We try to send to early! Should in %llu!\n",
+         delta.rel_value);
   }
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "We can send!\n");
@@ -598,11 +607,11 @@ udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   /* send with fragmentation */
   else
   {
-    s->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats, UDP_MTU,
+    s->frag =
+        GNUNET_FRAGMENT_context_create (plugin->env->stats, UDP_MTU,
                                         &plugin->tracker,
                                         plugin->last_expected_delay,
-                                        &udp->header, &send_fragment,
-                                        s);
+                                        &udp->header, &send_fragment, s);
   }
   return mlen;
 }
@@ -621,7 +630,7 @@ process_inbound_tokenized_messages (void *cls, void *client,
                                     const struct GNUNET_MessageHeader *hdr)
 {
   struct Plugin *plugin = cls;
-  struct Session * s = client;
+  struct Session *s = client;
   struct GNUNET_ATS_Information distance;
   struct GNUNET_TIME_Relative delay;
 
@@ -629,11 +638,12 @@ process_inbound_tokenized_messages (void *cls, void *client,
   distance.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   distance.value = htonl (1);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-                   "Giving Session %X %s  to transport\n", s->session, GNUNET_i2s(&s->target));
-  delay = plugin->env->receive (plugin->env->cls, &s->target, hdr, &distance, 1, s,
-      // FIXME: USE UDP ADDRESSES!!!!
-                        s->sock_addr, s->addrlen);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Giving Session %X %s  to transport\n",
+       s->session, GNUNET_i2s (&s->target));
+  delay =
+      plugin->env->receive (plugin->env->cls, &s->target, hdr, &distance, 1, s,
+                            // FIXME: USE UDP ADDRESSES!!!!
+                            s->sock_addr, s->addrlen);
   s->flow_delay_for_other_peer = delay;
 }
 
@@ -691,54 +701,54 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
   }
 #if DEBUG_UDP
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-                   "Received message with %u bytes from peer `%s' at `%s'\n",
-                   (unsigned int) ntohs (msg->header.size),
-                   GNUNET_i2s (&msg->sender), GNUNET_a2s (sender_addr,
-                                                          sender_addr_len));
+       "Received message with %u bytes from peer `%s' at `%s'\n",
+       (unsigned int) ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
+       GNUNET_a2s (sender_addr, sender_addr_len));
 #endif
 
-  const struct UDPMessage * udp_msg = (const struct UDPMessage *) msg;
+  const struct UDPMessage *udp_msg = (const struct UDPMessage *) msg;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Lookup inbound UDP sessions for peer `%s' address `%s'\n",
-              GNUNET_i2s (&udp_msg->sender),
-              udp_address_to_string(NULL, arg, args));
+       "Lookup inbound UDP sessions for peer `%s' address `%s'\n",
+       GNUNET_i2s (&udp_msg->sender), udp_address_to_string (NULL, arg, args));
 
   /* create a session for inbound connections */
-  struct Session * s = NULL;
-  s = find_inbound_session (plugin, &udp_msg->sender, sender_addr, sender_addr_len);
+  struct Session *s = NULL;
+
+  s = find_inbound_session (plugin, &udp_msg->sender, sender_addr,
+                            sender_addr_len);
 
   if (s != NULL)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "Found existing inbound UDP sessions 0x%X for peer `%s' address `%s'\n",
-                s,
-                GNUNET_i2s (&s->target),
-                udp_address_to_string(NULL, arg, args));
+         "Found existing inbound UDP sessions 0x%X for peer `%s' address `%s'\n",
+         s, GNUNET_i2s (&s->target), udp_address_to_string (NULL, arg, args));
   }
   else
   {
     s = create_session (plugin, &udp_msg->sender, arg, args, NULL, NULL);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "Creating inbound UDP sessions 0x%X for peer `%s' address `%s'\n",
-                s,
-                GNUNET_i2s (&s->target),
-                udp_address_to_string(NULL, arg, args));
+         "Creating inbound UDP sessions 0x%X for peer `%s' address `%s'\n", s,
+         GNUNET_i2s (&s->target), udp_address_to_string (NULL, arg, args));
 
-    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (plugin->sessions,
-                                                      &s->target.hashPubKey,
-                                                      s,
-                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multihashmap_put (plugin->sessions,
+                                                      &s->target.hashPubKey, s,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   }
-  s->valid_until = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  s->valid_until =
+      GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
+                                GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   if (s->invalidation_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(s->invalidation_task);
+    GNUNET_SCHEDULER_cancel (s->invalidation_task);
     s->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "Rescheduling %X' `%s'\n",
-                s, udp_address_to_string(NULL, arg, args));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Rescheduling %X' `%s'\n", s,
+         udp_address_to_string (NULL, arg, args));
   }
-  s->invalidation_task = GNUNET_SCHEDULER_add_delayed(GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, &invalidation_task, s);
+  s->invalidation_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                    &invalidation_task, s);
   /* we received from peer, so session is bidirectional and reliable */
   s->bidirectional = GNUNET_YES;
 
@@ -768,7 +778,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   struct ReceiveContext *rc;
   struct GNUNET_TIME_Absolute now;
   struct FindReceiveContext frc;
-  struct Session * s = NULL;
+  struct Session *s = NULL;
   struct GNUNET_TIME_Relative flow_delay;
 
   fromlen = sizeof (addr);
@@ -784,8 +794,8 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   msg = (const struct GNUNET_MessageHeader *) buf;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "UDP received %u-byte message from `%s' type %i\n", (unsigned int) ret,
-              GNUNET_a2s ((const struct sockaddr *) addr, fromlen), ntohs(msg->type));
+       "UDP received %u-byte message from `%s' type %i\n", (unsigned int) ret,
+       GNUNET_a2s ((const struct sockaddr *) addr, fromlen), ntohs (msg->type));
 
   if (ret != ntohs (msg->size))
   {
@@ -814,26 +824,25 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     }
     udp_ack = (const struct UDP_ACK_Message *) msg;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "UDP processes %u-byte acknowledgement from `%s' at `%s'\n",
-                (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp->sender),
-                GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
+         "UDP processes %u-byte acknowledgement from `%s' at `%s'\n",
+         (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp->sender),
+         GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
 
     // TODO Guess a session from address, give it defragmenter and check in process_udp if guess was right
     s = guess_session (plugin->sessions, addr, addrlen);
     if (GNUNET_OK != GNUNET_FRAGMENT_process_ack (peer_session->frag, ack))
-    // ... other stuff
-    return;
+      // ... other stuff
+      return;
 
   case GNUNET_MESSAGE_TYPE_FRAGMENT:
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "UDP processes %u-byte fragment from `%s'\n",
-                (unsigned int) ntohs (msg->size),
-                GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "UDP processes %u-byte fragment from `%s'\n",
+         (unsigned int) ntohs (msg->size),
+         GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
     // TODO Guess a session from address, give it defragmenter and check in process_udp if guess was right
     s = guess_session (plugin->sessions, addr, addrlen);
     if (GNUNET_OK == GNUNET_DEFRAGMENT_process_fragment (rc->defrag, msg))
-    // other stuff
-    return;
+      // other stuff
+      return;
   default:
     GNUNET_break_op (0);
     return;
@@ -995,7 +1004,7 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
   }
   inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
   GNUNET_snprintf (rbuf, sizeof (rbuf), (af == AF_INET6) ? "[%s]:%u" : "%s:%u",
-		   buf, port);
+                   buf, port);
   return rbuf;
 }
 
@@ -1206,8 +1215,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
   if (port > 65535)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-                _("Given `%s' option is out of range: %llu > %u\n"), "PORT",
-                port, 65535);
+         _("Given `%s' option is out of range: %llu > %u\n"), "PORT", port,
+         65535);
     return NULL;
   }
   memset (&serverAddrv6, 0, sizeof (serverAddrv6));
@@ -1235,8 +1244,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                              "BINDTO", &plugin->bind4_address))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "Binding udp plugin to specific address: `%s'\n",
-                plugin->bind4_address);
+         "Binding udp plugin to specific address: `%s'\n",
+         plugin->bind4_address);
     if (1 != inet_pton (AF_INET, plugin->bind4_address, &serverAddrv4.sin_addr))
     {
       GNUNET_free (plugin->bind4_address);
@@ -1251,13 +1260,13 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                              "BINDTO6", &plugin->bind6_address))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "Binding udp plugin to specific address: `%s'\n",
-                plugin->bind6_address);
+         "Binding udp plugin to specific address: `%s'\n",
+         plugin->bind6_address);
     if (1 !=
         inet_pton (AF_INET6, plugin->bind6_address, &serverAddrv6.sin6_addr))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid IPv6 address: `%s'\n"),
-                  plugin->bind6_address);
+           plugin->bind6_address);
       GNUNET_free_non_null (plugin->bind4_address);
       GNUNET_free (plugin->bind6_address);
       GNUNET_free (plugin);
@@ -1296,7 +1305,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       serverAddr = (struct sockaddr *) &serverAddrv6;
 #if DEBUG_UDP
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv6 port %d\n",
-                  ntohs (serverAddrv6.sin6_port));
+           ntohs (serverAddrv6.sin6_port));
 #endif
       tries = 0;
       while (GNUNET_NETWORK_socket_bind (plugin->sockv6, serverAddr, addrlen) !=
@@ -1305,8 +1314,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
         serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);        /* Find a good, non-root port */
 #if DEBUG_UDP
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-                    "IPv6 Binding failed, trying new port %d\n",
-                    ntohs (serverAddrv6.sin6_port));
+             "IPv6 Binding failed, trying new port %d\n",
+             ntohs (serverAddrv6.sin6_port));
 #endif
         tries++;
         if (tries > 10)
@@ -1344,7 +1353,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     serverAddr = (struct sockaddr *) &serverAddrv4;
 #if DEBUG_UDP
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv4 port %d\n",
-                ntohs (serverAddrv4.sin_port));
+         ntohs (serverAddrv4.sin_port));
 #endif
     tries = 0;
     while (GNUNET_NETWORK_socket_bind (plugin->sockv4, serverAddr, addrlen) !=
@@ -1352,9 +1361,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     {
       serverAddrv4.sin_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);   /* Find a good, non-root port */
 #if DEBUG_UDP
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "IPv4 Binding failed, trying new port %d\n",
-                  ntohs (serverAddrv4.sin_port));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv4 Binding failed, trying new port %d\n",
+           ntohs (serverAddrv4.sin_port));
 #endif
       tries++;
       if (tries > 10)
@@ -1411,8 +1419,8 @@ libgnunet_plugin_transport_udp_done (void *cls)
                                          NULL);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
   plugin->sessions = NULL;
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->inbound_sessions, &destroy_inbound_session,
-                                         NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->inbound_sessions,
+                                         &destroy_inbound_session, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->inbound_sessions);
   plugin->inbound_sessions = NULL;
   while (NULL != (rc = GNUNET_CONTAINER_heap_remove_root (plugin->defrags)))

@@ -557,9 +557,7 @@ struct TestConnectionContext
 static void
 test_connection_ok (void *cls, const struct GNUNET_PeerIdentity *neighbour,
                     const struct GNUNET_ATS_Information *ats,
-                    uint32_t ats_count,
-                    const char * transport,
-                    const void * addr,
+                    uint32_t ats_count, const char *transport, const void *addr,
                     size_t addrlen)
 {
   struct TestConnectionContext *tcc = cls;

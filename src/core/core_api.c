@@ -781,7 +781,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct GNUNET_MessageHeader *em;
   const struct SendMessageReady *smr;
   const struct GNUNET_CORE_MessageHandler *mh;
-  const struct GNUNET_ATS_Information* ats;
+  const struct GNUNET_ATS_Information *ats;
   GNUNET_CORE_StartupCallback init;
   struct PeerRecord *pr;
   struct GNUNET_CORE_TransmitHandle *th;
@@ -864,8 +864,8 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     cnm = (const struct ConnectNotifyMessage *) msg;
     ats_count = ntohl (cnm->ats_count);
     if (msize !=
-	sizeof (struct ConnectNotifyMessage) +
-	ats_count * sizeof (struct GNUNET_ATS_Information))
+        sizeof (struct ConnectNotifyMessage) +
+        ats_count * sizeof (struct GNUNET_ATS_Information))
     {
       GNUNET_break (0);
       reconnect_later (h);
@@ -896,11 +896,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                    GNUNET_CONTAINER_multihashmap_put (h->peers,
                                                       &cnm->peer.hashPubKey, pr,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-    ats = (const struct GNUNET_ATS_Information*) &cnm[1];
+    ats = (const struct GNUNET_ATS_Information *) &cnm[1];
     if (NULL != h->connects)
-      h->connects (h->cls, &cnm->peer, 
-		   ats,
-		   ats_count);
+      h->connects (h->cls, &cnm->peer, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT:
     if (msize != sizeof (struct DisconnectNotifyMessage))
@@ -949,8 +947,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
          sizeof (struct NotifyTrafficMessage) +
          ats_count * sizeof (struct GNUNET_ATS_Information) +
          sizeof (struct GNUNET_MessageHeader)) ||
-        (GNUNET_ATS_ARRAY_TERMINATOR !=
-         ntohl ((&ntm->ats)[ats_count].type)))
+        (GNUNET_ATS_ARRAY_TERMINATOR != ntohl ((&ntm->ats)[ats_count].type)))
     {
       GNUNET_break (0);
       reconnect_later (h);
@@ -986,23 +983,22 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         continue;
       if ((mh->expected_size != ntohs (em->size)) && (mh->expected_size != 0))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Unexpected message size for message of type %u\n",
-		    mh->type);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Unexpected message size for message of type %u\n",
+                    mh->type);
         GNUNET_break_op (0);
         continue;
       }
       if (GNUNET_OK !=
           h->handlers[hpos].callback (h->cls, &ntm->peer, em, &ntm->ats,
-				      ats_count))
+                                      ats_count))
       {
         /* error in processing, do not process other messages! */
         break;
       }
     }
     if (NULL != h->inbound_notify)
-      h->inbound_notify (h->cls, &ntm->peer, em, &ntm->ats,
-			 ats_count);
+      h->inbound_notify (h->cls, &ntm->peer, em, &ntm->ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND:
     if (msize < sizeof (struct NotifyTrafficMessage))
@@ -1023,8 +1019,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
          sizeof (struct NotifyTrafficMessage) +
          ats_count * sizeof (struct GNUNET_ATS_Information) +
          sizeof (struct GNUNET_MessageHeader)) ||
-        (GNUNET_ATS_ARRAY_TERMINATOR !=
-         ntohl ((&ntm->ats)[ats_count].type)))
+        (GNUNET_ATS_ARRAY_TERMINATOR != ntohl ((&ntm->ats)[ats_count].type)))
     {
       GNUNET_break (0);
       reconnect_later (h);

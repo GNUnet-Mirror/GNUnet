@@ -49,17 +49,16 @@ struct GNUNET_ATS_InformationRequestContext
   GNUNET_ATS_PeerConfigurationInfoCallback info;
 
   void *info_cls;
-  
+
   struct GNUNET_PeerIdentity peer;
-  
+
   GNUNET_SCHEDULER_TaskIdentifier task;
 
 };
 
 
 static void
-exec_pcp (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+exec_pcp (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_ATS_InformationRequestContext *irc = cls;
   int32_t want_reserv;
@@ -69,16 +68,13 @@ exec_pcp (void *cls,
 
   rdelay = GNUNET_TIME_UNIT_ZERO;
   want_reserv = irc->amount;
-  ar = GNUNET_CONTAINER_multihashmap_get (irc->h->peers, &irc->peer.hashPubKey);  
+  ar = GNUNET_CONTAINER_multihashmap_get (irc->h->peers, &irc->peer.hashPubKey);
   if (NULL == ar)
   {
     /* attempt to change preference on peer that is not connected */
     /* FIXME: this can happen if the 'service' didn't yet tell us about
-       a new connection, fake it! */
-    irc->info (irc->info_cls,
-	       &irc->peer,
-	       want_reserv,
-	       rdelay);
+     * a new connection, fake it! */
+    irc->info (irc->info_cls, &irc->peer, want_reserv, rdelay);
     GNUNET_free (irc);
     return;
   }
@@ -89,21 +85,18 @@ exec_pcp (void *cls,
   else if (want_reserv > 0)
   {
     rdelay =
-      GNUNET_BANDWIDTH_tracker_get_delay (&ar->available_recv_window,
-					  want_reserv);
+        GNUNET_BANDWIDTH_tracker_get_delay (&ar->available_recv_window,
+                                            want_reserv);
     if (rdelay.rel_value == 0)
       got_reserv = want_reserv;
     else
-      got_reserv = 0;         /* all or nothing */
+      got_reserv = 0;           /* all or nothing */
   }
   else
     got_reserv = 0;
   GNUNET_BANDWIDTH_tracker_consume (&ar->available_recv_window, got_reserv);
 
-  irc->info (irc->info_cls,
-	     &irc->peer,
-	     got_reserv,
-	     rdelay);
+  irc->info (irc->info_cls, &irc->peer, got_reserv, rdelay);
   GNUNET_free (irc);
 }
 
@@ -125,10 +118,10 @@ exec_pcp (void *cls,
  */
 struct GNUNET_ATS_InformationRequestContext *
 GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_SchedulingHandle *h,
-				   const struct GNUNET_PeerIdentity *peer,
-                                    int32_t amount, uint64_t preference,
-                                    GNUNET_ATS_PeerConfigurationInfoCallback
-                                    info, void *info_cls)
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   int32_t amount, uint64_t preference,
+                                   GNUNET_ATS_PeerConfigurationInfoCallback
+                                   info, void *info_cls)
 {
   struct GNUNET_ATS_InformationRequestContext *irc;
 
@@ -157,8 +150,8 @@ GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_SchedulingHandle *h,
  */
 void
 GNUNET_ATS_peer_change_preference_cancel (struct
-                                           GNUNET_ATS_InformationRequestContext
-                                           *irc)
+                                          GNUNET_ATS_InformationRequestContext
+                                          *irc)
 {
   GNUNET_SCHEDULER_cancel (irc->task);
   GNUNET_free (irc);
@@ -219,10 +212,10 @@ change_preference_send_continuation (void *cls, int success)
  */
 struct GNUNET_ATS_InformationRequestContext *
 GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_SchedulingHandle *h,
-                                    const struct GNUNET_PeerIdentity *peer,
-                                    int32_t amount, uint64_t preference,
-                                    GNUNET_ATS_PeerConfigurationInfoCallback
-                                    info, void *info_cls)
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   int32_t amount, uint64_t preference,
+                                   GNUNET_ATS_PeerConfigurationInfoCallback
+                                   info, void *info_cls)
 {
   struct GNUNET_ATS_InformationRequestContext *irc;
   struct PeerRecord *pr;
@@ -287,8 +280,8 @@ GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_SchedulingHandle *h,
  */
 void
 GNUNET_ATS_peer_change_preference_cancel (struct
-                                           GNUNET_ATS_InformationRequestContext
-                                           *irc)
+                                          GNUNET_ATS_InformationRequestContext
+                                          *irc)
 {
   struct GNUNET_ATS_SchedulingHandle *h = irc->h;
   struct PeerRecord *pr = irc->pr;

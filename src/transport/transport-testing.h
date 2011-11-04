@@ -65,10 +65,10 @@ struct GNUNET_TRANSPORT_TESTING_handle;
  */
 struct PeerContext
 {
-  struct PeerContext * next;
-  struct PeerContext * prev;
+  struct PeerContext *next;
+  struct PeerContext *prev;
 
-  struct GNUNET_TRANSPORT_TESTING_handle * tth;
+  struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -100,8 +100,8 @@ struct PeerContext
 
 struct ConnectingContext
 {
-  struct ConnectingContext * next;
-  struct ConnectingContext * prev;
+  struct ConnectingContext *next;
+  struct ConnectingContext *prev;
   struct PeerContext *p1;
   struct PeerContext *p2;
   GNUNET_SCHEDULER_TaskIdentifier tct;
@@ -115,11 +115,11 @@ struct ConnectingContext
 
 struct GNUNET_TRANSPORT_TESTING_handle
 {
-  struct ConnectingContext * cc_head;
-  struct ConnectingContext * cc_tail;
+  struct ConnectingContext *cc_head;
+  struct ConnectingContext *cc_tail;
 
-  struct PeerContext * p_head;
-  struct PeerContext * p_tail;
+  struct PeerContext *p_head;
+  struct PeerContext *p_tail;
 };
 
 
@@ -134,9 +134,8 @@ struct GNUNET_TRANSPORT_TESTING_handle
  * @return the peer context
  */
 struct PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth,
-                                     const char *cfgname,
-                                     int peer_id,
+GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
+                                     *tth, const char *cfgname, int peer_id,
                                      GNUNET_TRANSPORT_ReceiveCallback rec,
                                      GNUNET_TRANSPORT_NotifyConnect nc,
                                      GNUNET_TRANSPORT_NotifyDisconnect nd,
@@ -150,7 +149,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle * tt
  */
 
 void
-GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth,
+GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                                     struct PeerContext *pc);
 
 
@@ -165,8 +164,8 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle * tth
  * @return a connect request handle
  */
 GNUNET_TRANSPORT_TESTING_ConnectRequest
-GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle * tth,
-                                        struct PeerContext *p1,
+GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle
+                                        *tth, struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
                                         void *cls);
@@ -177,15 +176,16 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *
  * @param cc a connect request handle
  */
 void
-GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct GNUNET_TRANSPORT_TESTING_handle *,
-                                               void *cc);
+GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
+                                               GNUNET_TRANSPORT_TESTING_handle
+                                               *, void *cc);
 
 /**
  * Clean up the transport testing
  * @param tth transport testing handle
  */
 void
-GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle * tth);
+GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth);
 
 /**
  * Initialize the transport testing

@@ -185,11 +185,11 @@ check_value (void *cls, const GNUNET_HashCode * key, size_t size,
   if (NULL == key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Value check failed (got NULL key) in %d/%d\n",
-		crc->phase, crc->i);
+                "Value check failed (got NULL key) in %d/%d\n", crc->phase,
+                crc->i);
     crc->phase = RP_ERROR;
     GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     return;
   }
 #if 0

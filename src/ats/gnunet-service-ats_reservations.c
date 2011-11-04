@@ -27,7 +27,7 @@
 #include "gnunet-service-ats_reservations.h"
 
 /**
- * Number of seconds that available bandwidth carries over 
+ * Number of seconds that available bandwidth carries over
  * (can accumulate).
  */
 #define MAX_BANDWIDTH_CARRY_S 5
@@ -52,32 +52,27 @@ static struct GNUNET_CONTAINER_MultiHashMap *trackers;
  */
 struct GNUNET_TIME_Relative
 GAS_reservations_reserve (const struct GNUNET_PeerIdentity *peer,
-			  int32_t amount)
+                          int32_t amount)
 {
   struct GNUNET_BANDWIDTH_Tracker *tracker;
   struct GNUNET_TIME_Relative ret;
 
-  tracker = GNUNET_CONTAINER_multihashmap_get (trackers,
-					       &peer->hashPubKey);
+  tracker = GNUNET_CONTAINER_multihashmap_get (trackers, &peer->hashPubKey);
   if (NULL == tracker)
-    return GNUNET_TIME_UNIT_ZERO; /* not connected, satisfy now */
+    return GNUNET_TIME_UNIT_ZERO;       /* not connected, satisfy now */
   if (amount >= 0)
   {
-    ret = GNUNET_BANDWIDTH_tracker_get_delay (tracker,
-					      amount);
+    ret = GNUNET_BANDWIDTH_tracker_get_delay (tracker, amount);
     if (ret.rel_value > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Delay to satisfy reservation for %d bytes is %llu ms\n",
-		  (int) amount,
-		  (unsigned long long) ret.rel_value);
+                  "Delay to satisfy reservation for %d bytes is %llu ms\n",
+                  (int) amount, (unsigned long long) ret.rel_value);
       return ret;
     }
   }
   (void) GNUNET_BANDWIDTH_tracker_consume (tracker, amount);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Reserved %d bytes\n",
-	      (int) amount);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reserved %d bytes\n", (int) amount);
   return GNUNET_TIME_UNIT_ZERO;
 }
 
@@ -85,42 +80,37 @@ GAS_reservations_reserve (const struct GNUNET_PeerIdentity *peer,
 /**
  * Set the amount of bandwidth the other peer could currently transmit
  * to us (as far as we know) to the given value.
- * 
+ *
  * @param peer identity of the peer
  * @param bandwidth_in currently available bandwidth from that peer to
  *        this peer (estimate)
  */
 void
 GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
-				struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+                                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct GNUNET_BANDWIDTH_Tracker *tracker;
 
-  tracker = GNUNET_CONTAINER_multihashmap_get (trackers,
-					       &peer->hashPubKey);
+  tracker = GNUNET_CONTAINER_multihashmap_get (trackers, &peer->hashPubKey);
   if (0 == ntohl (bandwidth_in.value__))
   {
     GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_remove (trackers,
-							 &peer->hashPubKey,
-							 tracker));
+                   GNUNET_CONTAINER_multihashmap_remove (trackers,
+                                                         &peer->hashPubKey,
+                                                         tracker));
     GNUNET_free (tracker);
     return;
   }
   if (NULL == tracker)
   {
     tracker = GNUNET_malloc (sizeof (struct GNUNET_BANDWIDTH_Tracker));
-    GNUNET_BANDWIDTH_tracker_init (tracker,
-				   bandwidth_in,
-				   MAX_BANDWIDTH_CARRY_S);
-    GNUNET_CONTAINER_multihashmap_put (trackers,
-				       &peer->hashPubKey,
-				       tracker,
-				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_BANDWIDTH_tracker_init (tracker, bandwidth_in,
+                                   MAX_BANDWIDTH_CARRY_S);
+    GNUNET_CONTAINER_multihashmap_put (trackers, &peer->hashPubKey, tracker,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     return;
   }
-  GNUNET_BANDWIDTH_tracker_update_quota (tracker,
-					 bandwidth_in);
+  GNUNET_BANDWIDTH_tracker_update_quota (tracker, bandwidth_in);
 }
 
 
@@ -130,7 +120,7 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
 void
 GAS_reservations_init ()
 {
-  trackers = GNUNET_CONTAINER_multihashmap_create(128);
+  trackers = GNUNET_CONTAINER_multihashmap_create (128);
 }
 
 
@@ -142,10 +132,8 @@ GAS_reservations_init ()
  * @param value the 'struct GNUNET_BANDWIDTH_Tracker' to free
  * @return GNUNET_OK (continue to iterate)
  */
-static int 
-free_tracker (void *cls,
-	      const GNUNET_HashCode * key,
-	      void *value)
+static int
+free_tracker (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_BANDWIDTH_Tracker *tracker = value;
 

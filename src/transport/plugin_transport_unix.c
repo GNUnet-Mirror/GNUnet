@@ -731,9 +731,8 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
               un->sun_path);
 #endif
   plugin->env->receive (plugin->env->cls, sender, currhdr,
-                        (const struct GNUNET_ATS_Information *)
-                        &distance, 1, NULL, un->sun_path,
-                        strlen (un->sun_path) + 1);
+                        (const struct GNUNET_ATS_Information *) &distance, 1,
+                        NULL, un->sun_path, strlen (un->sun_path) + 1);
 }
 
 

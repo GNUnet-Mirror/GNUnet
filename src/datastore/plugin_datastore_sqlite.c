@@ -325,41 +325,35 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
         &plugin->updRepl) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
-        "FROM gn090 "
+        "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ " "FROM gn090 "
 #if SQLITE_VERSION_NUMBER >= 3007000
-	"INDEXED BY idx_repl_rvalue "
+        "INDEXED BY idx_repl_rvalue "
 #endif
-	"WHERE repl=?2 AND "
-        " (rvalue>=?1 OR "
+        "WHERE repl=?2 AND " " (rvalue>=?1 OR "
         "  NOT EXISTS (SELECT 1 FROM gn090 "
 #if SQLITE_VERSION_NUMBER >= 3007000
-	"INDEXED BY idx_repl_rvalue "
+        "INDEXED BY idx_repl_rvalue "
 #endif
-	"WHERE repl=?2 AND rvalue>=?1 LIMIT 1) ) "
+        "WHERE repl=?2 AND rvalue>=?1 LIMIT 1) ) "
         "ORDER BY rvalue ASC LIMIT 1", &plugin->selRepl) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh, "SELECT MAX(repl) FROM gn090"
+      (sq_prepare (plugin->dbh, "SELECT MAX(repl) FROM gn090"
 #if SQLITE_VERSION_NUMBER >= 3007000
-	" INDEXED BY idx_repl_rvalue"
+                   " INDEXED BY idx_repl_rvalue"
 #endif
-	"",
-        &plugin->maxRepl) != SQLITE_OK) ||
+                   "", &plugin->maxRepl) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
-        "FROM gn090 "
+        "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ " "FROM gn090 "
 #if SQLITE_VERSION_NUMBER >= 3007000
-	"INDEXED BY idx_expire "
+        "INDEXED BY idx_expire "
 #endif
         "WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
         "ORDER BY expire ASC LIMIT 1", &plugin->selExpi) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
-        "FROM gn090 " 
+        "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ " "FROM gn090 "
 #if SQLITE_VERSION_NUMBER >= 3007000
-	"INDEXED BY idx_anon_type_hash " 
+        "INDEXED BY idx_anon_type_hash "
 #endif
         "WHERE (anonLevel = 0 AND type=?1) "
         "ORDER BY hash DESC LIMIT 1 OFFSET ?2",

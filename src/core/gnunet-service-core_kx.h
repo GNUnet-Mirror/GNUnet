@@ -44,8 +44,8 @@ struct GSC_KeyExchangeInfo;
  * @param msg the set key message we received
  */
 void
-GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx, 
-		       const struct GNUNET_MessageHeader *msg);
+GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
+                       const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -56,8 +56,8 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
  * @param msg the encrypted PING message itself
  */
 void
-GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx, 
-		    const struct GNUNET_MessageHeader *msg);
+GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
+                    const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -68,7 +68,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
  */
 void
 GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
-		    const struct GNUNET_MessageHeader *msg);
+                    const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -80,8 +80,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
  */
 void
 GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
-			     const void *payload,
-			     size_t payload_size);
+                             const void *payload, size_t payload_size);
 
 
 /**
@@ -94,10 +93,10 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
  * @param atsi_count number of entries in ats (excluding 0-termination)
  */
 void
-GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx, 
-				 const struct GNUNET_MessageHeader *msg,
-				 const struct GNUNET_ATS_Information *atsi,
-				 uint32_t atsi_count);
+GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
+                                 const struct GNUNET_MessageHeader *msg,
+                                 const struct GNUNET_ATS_Information *atsi,
+                                 uint32_t atsi_count);
 
 
 /**
@@ -124,14 +123,14 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx);
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int 
+int
 GSC_KX_init (void);
 
 
 /**
  * Shutdown KX subsystem.
  */
-void 
+void
 GSC_KX_done (void);
 
 #endif

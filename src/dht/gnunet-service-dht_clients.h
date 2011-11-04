@@ -47,14 +47,13 @@
  */
 void
 GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
-			 const GNUNET_HashCode *key,
-			 unsigned int get_path_length,
-			 const struct GNUNET_PeerIdentity *get_path,
-			 unsigned int put_path_length,
-			 const struct GNUNET_PeerIdentity *put_path,
-			 enum GNUNET_BLOCK_Type type,
-			 size_t data_size,
-			 const void *data);
+                          const GNUNET_HashCode * key,
+                          unsigned int get_path_length,
+                          const struct GNUNET_PeerIdentity *get_path,
+                          unsigned int put_path_length,
+                          const struct GNUNET_PeerIdentity *put_path,
+                          enum GNUNET_BLOCK_Type type, size_t data_size,
+                          const void *data);
 
 
 /**
@@ -62,7 +61,7 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
  *
  * @param server the initialized server
  */
-void 
+void
 GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server);
 
 

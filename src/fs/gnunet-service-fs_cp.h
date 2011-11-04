@@ -174,7 +174,7 @@ struct GSF_PeerTransmitHandle;
 struct GSF_ConnectedPeer *
 GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
                            const struct GNUNET_ATS_Information *atsi,
-			   unsigned int atsi_count);
+                           unsigned int atsi_count);
 
 
 /**
@@ -270,9 +270,8 @@ int
 GSF_handle_p2p_migration_stop_ (void *cls,
                                 const struct GNUNET_PeerIdentity *other,
                                 const struct GNUNET_MessageHeader *message,
-                                const struct GNUNET_ATS_Information
-                                *atsi,
-				unsigned int atsi_count);
+                                const struct GNUNET_ATS_Information *atsi,
+                                unsigned int atsi_count);
 
 
 /**

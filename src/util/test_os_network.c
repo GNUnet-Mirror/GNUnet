@@ -44,10 +44,10 @@ proc (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
     return GNUNET_OK;
 
   inet_ntop (addr->sa_family,
-	     (addr->sa_family ==
-	      AF_INET) ? (void *) &((struct sockaddr_in *) addr)->sin_addr
-	     : (void *) &((struct sockaddr_in6 *) addr)->sin6_addr, buf,
-	     sizeof (buf));
+             (addr->sa_family ==
+              AF_INET) ? (void *) &((struct sockaddr_in *) addr)->sin_addr
+             : (void *) &((struct sockaddr_in6 *) addr)->sin6_addr, buf,
+             sizeof (buf));
   if ((0 == strcmp ("::1", buf)) || (0 == strcmp ("127.0.0.1", buf)))
     *ok = 0;
   return GNUNET_OK;

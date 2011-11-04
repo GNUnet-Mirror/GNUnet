@@ -174,24 +174,23 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "Press <q> to quit or <1> to send from p1 to p2, <2> to send from p2 to p1, <enter> repeat\n");
 
 read:
-  t = getchar();
+  t = getchar ();
   if (t == '1')
   {
-    th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0, TIMEOUT,
-                                                 &notify_ready, p1);
+    th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0,
+                                                 TIMEOUT, &notify_ready, p1);
     return;
   }
   if (t == '2')
   {
-    th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, 256, 0, TIMEOUT,
-                                                 &notify_ready, p2);
+    th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, 256, 0,
+                                                 TIMEOUT, &notify_ready, p2);
     return;
   }
   if (t == 'q')
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Exiting %c!\n", t);
-    GNUNET_SCHEDULER_add_now(&end, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Exiting %c!\n", t);
+    GNUNET_SCHEDULER_add_now (&end, NULL);
     return;
   }
   goto read;
@@ -200,8 +199,7 @@ read:
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received message of type %d from peer %s!\n",
@@ -210,8 +208,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   if ((MTYPE == ntohs (message->type)) &&
       (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Successfully received message\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully received message\n");
 
     send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
   }
@@ -219,8 +216,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
               GNUNET_i2s (peer), cls);
