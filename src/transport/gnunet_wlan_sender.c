@@ -143,7 +143,27 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "Usage: interface-name mac-target mac-source\n" "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
 		return 1;
 	}
-
+	if (6 != 
+	    sscanf(argv[3], "%x-%x-%x-%x-%x-%x", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4],&temp[5]))
+	  {
+	    fprintf(stderr, "Usage: interface-name mac-target mac-source\n" "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
+	    return 1;
+	  }
+	if (6 != 
+	    sscanf(argv[2], "%x-%x-%x-%x-%x-%x", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4],&temp[5]))
+	  {
+	    fprintf(stderr, "Usage: interface-name mac-target mac-source\n" "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
+	    return 1;
+	  }
+	for (i = 0; i < 6; i++)
+	  {
+	    inmac[i] = temp[i];
+	  }	
+	for (i = 0; i < 6; i++)
+	  {
+	    outmac[i] = temp[i];
+	  }
+	
 
 	pid_t pid;
 	int	commpipe[2];		/* This holds the fd for the input & output of the pipe */
@@ -165,14 +185,6 @@ int main(int argc, char *argv[]){
 		close(commpipe[0]);		/* Close unused side of pipe (in side) */
 		setvbuf(stdout,(char*)NULL,_IONBF,0);	/* Set non-buffered output on stdout */
 
-		sscanf(argv[3], "%x-%x-%x-%x-%x-%x", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4],&temp[5]);
-		for (i = 0; i < 6; i++){
-			inmac[i] = temp[i];
-		}
-		sscanf(argv[2], "%x-%x-%x-%x-%x-%x", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4],&temp[5]);
-		for (i = 0; i < 6; i++){
-			outmac[i] = temp[i];
-		}
 
 		msg = (struct GNUNET_MessageHeader*) msg_buf;
 		msg->type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
