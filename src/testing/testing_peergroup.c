@@ -559,10 +559,12 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
     GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
     /* Set up task in case topology creation doesn't finish
      * within a reasonable amount of time */
+    GNUNET_free_non_null (pg_start_ctx->fail_reason);
+    pg_start_ctx->fail_reason = GNUNET_strdup ("from create_topology");
     pg_start_ctx->die_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                       (pg_start_ctx->timeout), &end_badly,
-                                      "from create_topology");
+                                      pg_start_ctx);
     pg_start_ctx->peers_left = pg_start_ctx->total;     /* Reset counter */
     create_expected_connections =
         GNUNET_TESTING_create_topology (pg_start_ctx->pg,
@@ -579,17 +581,22 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
     else
     {
       GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
+      GNUNET_free_non_null (pg_start_ctx->fail_reason);
+      pg_start_ctx->fail_reason =
+          GNUNET_strdup ("from create topology (bad return)");
       pg_start_ctx->die_task =
-          GNUNET_SCHEDULER_add_now (&end_badly,
-                                    "from create topology (bad return)");
+          GNUNET_SCHEDULER_add_now (&end_badly, pg_start_ctx);
       return;
     }
 
     GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
+    GNUNET_free_non_null (pg_start_ctx->fail_reason);
+      pg_start_ctx->fail_reason =
+          GNUNET_strdup ("from continue startup (timeout)");
     pg_start_ctx->die_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                       (pg_start_ctx->timeout), &end_badly,
-                                      "from continue startup (timeout)");
+                                      pg_start_ctx);
   }
 }
 
