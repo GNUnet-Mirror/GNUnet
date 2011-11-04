@@ -58,6 +58,7 @@ bin_PROGRAMS = \
   gnunet-pseudonym \
   gnunet-search \
   gnunet-service-fs \
+  gnunet-fs \
   gnunet-unindex 
 
 gnunet_directory_SOURCES = \
@@ -68,6 +69,16 @@ gnunet_directory_LDADD = \
   -lextractor \
   $(GN_LIBINTL)
 gnunet_directory_DEPENDENCIES = \
+  libgnunetfs.la
+
+gnunet_fs_SOURCES = \
+ gnunet-fs.c
+gnunet_fs_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  -lextractor \
+  $(GN_LIBINTL)
+gnunet_fs_DEPENDENCIES = \
   libgnunetfs.la
 
 gnunet_download_SOURCES =  \

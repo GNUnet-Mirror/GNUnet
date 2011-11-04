@@ -1,0 +1,38 @@
+.TH gnunet\-fs "1" "2 Nov 2011" "GNUnet"
+.SH NAME
+gnunet\-fs \- measure and control the fs subsystem
+
+.SH SYNOPSIS
+.B gnunet\-fs
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.PP
+
+gnunet\-fs is a tool to access various functions of GNUnet's fs subsystem from the command\-line.  Most of these are not expected to be useful for end-users.  gnunet\-fs can currently only be used to obtain a list of indexed files.  Other functions should be added in the near future.  
+
+.TP
+\fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
+configuration file to use
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print help page
+.TP
+\fB\-i\fR, \fB\-\-list-indexed\fR
+print information about files that are currently indexed by file-sharing
+.TP
+\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
+Change the loglevel.  Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+print the version number
+.TP
+\fB\-V\fR, \fB\-\-verbose\fR
+be verbose
+
+.SH NOTES
+
+
+.SH "REPORTING BUGS"
+Report bugs by using mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-publish\fP(1)

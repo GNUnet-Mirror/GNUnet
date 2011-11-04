@@ -2,6 +2,7 @@ man_MANS = \
   gnunet-arm.1 \
   gnunet-directory.1 \
   gnunet-download.1 \
+  gnunet-fs.1 \
   gnunet-nat-server.1 \
   gnunet-peerinfo.1 \
   gnunet-pseudonym.1 \
