@@ -114,7 +114,7 @@ test_mesh_small_multicast_DEPENDENCIES = \
 
 
 if ENABLE_TEST_RUN
-TESTS = test_mesh_api test_mesh_tree_api test_mesh_local_1 test_mesh_local_2 test_mesh_small_unicast
+TESTS = test_mesh_api test_mesh_tree_api test_mesh_local_1 test_mesh_local_2 test_mesh_small_unicast test_mesh_small_multicast
 endif
 
 EXTRA_DIST = \
