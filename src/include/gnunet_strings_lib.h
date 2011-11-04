@@ -63,6 +63,19 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
 
 
 /**
+ * Convert a given fancy human-readable time to our internal
+ * representation.
+ *
+ * @param fancy_size human readable string (i.e. 1 minute)
+ * @param rtime set to the relative time
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
+				       struct GNUNET_TIME_Relative *rtime);
+
+
+/**
  * Convert a given filesize into a fancy human-readable format.
  *
  * @param size number of bytes
