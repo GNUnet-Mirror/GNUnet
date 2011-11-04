@@ -432,15 +432,16 @@ testmode (int argc, char *argv[])
   GNUNET_SERVER_mst_destroy (stdin_mst);
   GNUNET_SERVER_mst_destroy (file_in_mst);
 
-end:if (fpout != NULL)
+end:
+  if (fpout != NULL)
     fclose (fpout);
   if (fpin != NULL)
     fclose (fpin);
 
   if (1 == first)
   {
-    unlink (FIFO_FILE1);
-    unlink (FIFO_FILE2);
+    (void) unlink (FIFO_FILE1);
+    (void) unlink (FIFO_FILE2);
   }
 
   return (0);
