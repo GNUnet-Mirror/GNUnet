@@ -1200,29 +1200,47 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   struct SessionConnectMessage connect_msg;
   size_t msg_len;
   size_t ret;
+  int checks_failed;
 
   // This can happen during shutdown
   if (neighbours == NULL)
   {
     return GNUNET_NO;
   }
+
+  checks_failed = GNUNET_NO;
+
+  if (plugin_name == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "ATS offered suggested us empty address: plugin NULL");
+    GNUNET_break_op(0);
+    checks_failed = GNUNET_YES;
+  }
+  if ((address == NULL) && (address_len == 0 ))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "ATS offered suggested us empty address: address NULL");
+    GNUNET_break_op(0);
+    checks_failed = GNUNET_YES;
+  }
+
   n = lookup_neighbour (peer);
   if (NULL == n)
+    checks_failed = GNUNET_YES;
+
+  if (checks_failed == GNUNET_YES)
   {
-    if (NULL == session)
-      GNUNET_ATS_address_destroyed (GST_ats,
-				    peer,
-				    plugin_name, address,
-				    address_len, NULL);    
+    GNUNET_ATS_address_destroyed (GST_ats,
+                                   peer,
+                                   plugin_name, address,
+                                   address_len, session);
+    if (n != NULL)
+      GNUNET_ATS_suggest_address(GST_ats, peer);
     return GNUNET_NO;
   }
 
-  if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel(n->ats_suggest);
-    n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
-  }
-
+  /* checks successful and neighbour != NULL */
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS tells us to switch to plugin `%s' address '%s' session %X for %s peer `%s'\n",
@@ -1234,35 +1252,38 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
               GNUNET_i2s (peer));
 #endif
 
-  // do not switch addresses just update quotas
-  if (n != NULL)
+  if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
   {
-    if ((is_connected(n)) && (address_len == n->addrlen))
+    GNUNET_SCHEDULER_cancel(n->ats_suggest);
+    n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  // do not switch addresses just update quotas
+  if ((is_connected(n)) && (address_len == n->addrlen))
+  {
+    if ((0 == memcmp (address, n->addr, address_len)) &&
+        (n->session == session))
     {
-      if ((0 == memcmp (address, n->addr, address_len)) &&
-          (n->session == session))
-      {
-        struct QuotaSetMessage q_msg;
+      struct QuotaSetMessage q_msg;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending outbound quota of %u Bps and inbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (n->bandwidth_out.value__),
-              ntohl (n->bandwidth_in.value__),
-              GNUNET_i2s (peer));
+GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Sending outbound quota of %u Bps and inbound quota of %u Bps for peer `%s' to all clients\n",
+            ntohl (n->bandwidth_out.value__),
+            ntohl (n->bandwidth_in.value__),
+            GNUNET_i2s (peer));
 #endif
 
-        n->bandwidth_in = bandwidth_in;
-        n->bandwidth_out = bandwidth_out;
-        GST_neighbours_set_incoming_quota(&n->id, n->bandwidth_in);
+      n->bandwidth_in = bandwidth_in;
+      n->bandwidth_out = bandwidth_out;
+      GST_neighbours_set_incoming_quota(&n->id, n->bandwidth_in);
 
-        q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
-        q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-        q_msg.quota = n->bandwidth_out;
-        q_msg.peer = (*peer);
-        GST_clients_broadcast (&q_msg.header, GNUNET_NO);
-        return GNUNET_NO;
-      }
+      q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
+      q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
+      q_msg.quota = n->bandwidth_out;
+      q_msg.peer = (*peer);
+      GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+      return GNUNET_NO;
     }
   }
 
