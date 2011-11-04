@@ -1016,7 +1016,7 @@ getFrequencyFromChannel (int channel)
     6050, 6055, 6060, 6065, 6070, 6075, 6080, 6085, 6090, 6095, 6100
   };
 
-  return (channel > 0 && channel <= 221) ? frequencies[channel] : -1;
+  return ( (channel > 0) && (channel < sizeof(frequencies) / sizeof(int)) ) ? frequencies[channel] : -1;
 }
 
 /**
