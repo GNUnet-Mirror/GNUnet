@@ -279,6 +279,7 @@ runone ()
 
   putenv ("GNUNET_LOG=");
   putenv ("GNUNET_FORCE_LOG=");
+  putenv ("GNUNET_FORCE_LOGFILE=");
   switch (phase)
   {
   case 0:
