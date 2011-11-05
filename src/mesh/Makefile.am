@@ -47,6 +47,7 @@ check_PROGRAMS = \
  test_mesh_tree_api \
  test_mesh_local_1 \
  test_mesh_local_2 \
+ test_mesh_2dtorus \
  test_mesh_small_unicast \
  test_mesh_small_unicast_far \
  test_mesh_small_multicast
@@ -84,6 +85,12 @@ test_mesh_local_2_LDADD = \
  $(top_builddir)/src/mesh/libgnunetmesh.la
 test_mesh_local_2_DEPENDENCIES = \
   libgnunetmesh.la
+
+test_mesh_2dtorus_SOURCES = \
+ test_mesh_2dtorus.c
+test_mesh_2dtorus_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
 
 test_mesh_small_unicast_SOURCES = \
  test_mesh_small.c
