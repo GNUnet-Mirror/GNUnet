@@ -245,6 +245,13 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
 #define GNUNET_log_from(...)
 #endif
 
+
+/**
+ * Abort the process, generate a core dump if possible.
+ */
+void
+GNUNET_abort (void);
+
 /**
  * Ignore the next n calls to the log function.
  *
@@ -351,12 +358,12 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
 /**
  * Use this for fatal errors that cannot be handled
  */
-#define GNUNET_assert(cond) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), __FILE__, __LINE__); abort(); } } while(0)
+#define GNUNET_assert(cond) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), __FILE__, __LINE__); GNUNET_abort(); } } while(0)
 
 /**
  * Use this for fatal errors that cannot be handled
  */
-#define GNUNET_assert_at(cond, f, l) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), f, l); abort(); } } while(0)
+#define GNUNET_assert_at(cond, f, l) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), f, l); GNUNET_abort(); } } while(0)
 
 /**
  * Use this for internal assertion violations that are

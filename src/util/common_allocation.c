@@ -67,7 +67,7 @@ GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber)
   if (ret == NULL)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "malloc");
-    abort ();
+    GNUNET_abort ();
   }
   return ret;
 }
@@ -103,7 +103,7 @@ GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
   if (ret == NULL)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "malloc");
-    abort ();
+    GNUNET_abort ();
   }
 #ifdef W32_MEM_LIMIT
   *((size_t *) ret) = size;
@@ -174,7 +174,7 @@ GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber)
   if ((NULL == ptr) && (n > 0))
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "realloc");
-    abort ();
+    GNUNET_abort ();
   }
 #ifdef W32_MEM_LIMIT
   ptr = &((size_t *) ptr)[1];

@@ -130,7 +130,6 @@ get_hello_address_size (const char *buf, size_t max, uint16_t * ralen)
   {
     /* 0-termination not found */
     GNUNET_break_op (0);
-    abort ();
     return 0;
   }
   pos++;

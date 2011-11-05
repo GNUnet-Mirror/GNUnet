@@ -260,6 +260,20 @@ resize_logdefs ()
   logdefs = GNUNET_realloc (logdefs, logdefs_size * sizeof (struct LogDef));
 }
 
+
+/**
+ * Abort the process, generate a core dump if possible.
+ */
+void
+GNUNET_abort ()
+{
+#if WINDOWS
+  DebugBreak();
+#endif
+  abort();
+}
+
+
 /**
  * Utility function - adds a parsed definition to logdefs array.
  *

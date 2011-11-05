@@ -266,7 +266,7 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
              _
              ("libgcrypt has not the expected version (version %s is required).\n"),
              GCRYPT_VERSION);
-    abort ();
+    GNUNET_abort ();
   }
 #ifdef gcry_fast_random_poll
   gcry_fast_random_poll ();
