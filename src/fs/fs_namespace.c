@@ -1101,6 +1101,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     }
     GNUNET_CRYPTO_hash (nsn->update, strlen (nsn->update), &hc);
     nsn->nug = nug;
+    nsn->tree_id = UINT_MAX;
     fc.id = UINT_MAX;
     fc.nug = nug;
     fc.namespace = namespace;
