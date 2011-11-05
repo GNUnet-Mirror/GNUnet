@@ -16,6 +16,8 @@ libgnunetfragmentation_la_SOURCES = \
 libgnunetfragmentation_la_LIBADD = -lm \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la  
+libgnunetfragmentation_la_LDFLAGS = \
+ $(GN_LIB_LDFLAGS)
 
 check_PROGRAMS = \
  test_fragmentation

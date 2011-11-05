@@ -77,6 +77,8 @@ libgnunettransporttesting_la_LIBADD = \
   $(GN_LIBINTL) 
 libgnunettransporttesting_la_DEPENDENCIES = \
   libgnunettransport.la
+libgnunettransporttesting_la_LDFLAGS = \
+ $(GN_LIB_LDFLAGS)
 
 libgnunettransport_la_SOURCES = \
   transport_api.c transport.h \

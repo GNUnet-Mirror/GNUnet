@@ -22,6 +22,9 @@ libgnunetats_la_SOURCES = \
 libgnunetats_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
+libgnunetats_la_LDFLAGS = \
+ $(GN_LIB_LDFLAGS)
+
 
 bin_PROGRAMS = \
  gnunet-service-ats

@@ -73,6 +73,8 @@ libgnunetblock_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 libgnunetblock_la_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la  
+libgnunetblock_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)
 
 check_PROGRAMS = \
  test_block

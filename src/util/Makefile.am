@@ -14,7 +14,7 @@ libgnunetutilwin_la_SOURCES = \
   win.cc \
   winproc.c
 libgnunetutilwin_la_LDFLAGS = \
-  -Wl,--no-undefined -Wl,--export-all-symbols 
+  -no-undefined -Wl,--export-all-symbols 
 libgnunetutilwin_la_LIBADD = \
   -lshell32 -liconv -lstdc++ \
   -lcomdlg32 -lgdi32
