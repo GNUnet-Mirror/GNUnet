@@ -62,6 +62,7 @@ check_PROGRAMS = \
  test_testing_topology_line \
  test_testing_topology_blacklist \
  test_testing_group_remote \
+ test_testing_2dtorus \
  test_testing_topology_ring \
  test_testing_topology_2d_torus \
  test_testing_topology_small_world_ring \
@@ -78,7 +79,8 @@ TESTS = \
  test_testing_reconnect \
  test_testing_group \
  test_testing_peergroup \
- test_testing_topology_clique
+ test_testing_topology_clique \
+ test_testing_2dtorus
 endif
 
 test_testing_SOURCES = \
@@ -172,6 +174,12 @@ test_testing_group_remote_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
+test_testing_2dtorus_SOURCES = \
+  test_testing_2dtorus.c
+test_testing_2dtorus_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
+
 test_testing_topology_ring_SOURCES = \
  test_testing_topology.c
 test_testing_topology_ring_LDADD = \
@@ -234,6 +242,7 @@ EXTRA_DIST = \
  test_testing_data.conf \
  test_testing_connect_peer1.conf \
  test_testing_connect_peer2.conf \
+ test_testing_2dtorus.conf \
  test_testing_data_topology_clique.conf \
  test_testing_data_topology_clique_random.conf \
  test_testing_data_topology_clique_minimum.conf \
