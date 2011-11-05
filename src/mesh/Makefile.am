@@ -121,10 +121,10 @@ test_mesh_small_multicast_DEPENDENCIES = \
 
 
 if ENABLE_TEST_RUN
-TESTS = test_mesh_api test_mesh_tree_api test_mesh_local_1 test_mesh_local_2 test_mesh_small_unicast test_mesh_small_multicast
+TESTS = test_mesh_api test_mesh_tree_api test_mesh_local_1 test_mesh_local_2 test_mesh_2dtorus test_mesh_small_unicast test_mesh_small_multicast
 endif
 
 EXTRA_DIST = \
   test_mesh.conf \
-  test_mesh_path.conf \
+  test_mesh_2dtorus.conf \
   test_mesh_small.conf

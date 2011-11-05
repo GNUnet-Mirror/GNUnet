@@ -19,8 +19,8 @@
 */
 
 /**
- * @file mesh/test_mesh_path.c
- * @brief test mesh path: test of path management api
+ * @file mesh/test_mesh_tree_api.c
+ * @brief test mesh tree api: test of tree & path management api
  * @author Bartlomiej Polot
  */
 
@@ -152,7 +152,7 @@ main (int argc, char *argv[])
 
   failed = 0;
   cb_call = 0;
-  GNUNET_log_setup ("test_mesh_api_path",
+  GNUNET_log_setup ("test_mesh_api_tree",
 #if VERBOSE
                     "DEBUG",
 #else
