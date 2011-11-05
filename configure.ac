@@ -142,7 +142,7 @@ netbsd*)
      AC_DEFINE_UNQUOTED(_WIN32,1,[This is a Windows system])
      AC_CHECK_LIB(intl, gettext)
      LDFLAGS="$LDFLAGS -Wl,-no-undefined -Wl,--export-all-symbols"
-     LIBS="$LIBS -lws2_32 -lplibc"
+     LIBS="$LIBS -lws2_32 -lplibc -lgnurx"
      CFLAGS="-mms-bitfields $CFLAGS"
      CPPFLAGS="-D_WIN32_WINNT=0x0501 $CPPFLAGS"
      build_target="mingw"
@@ -182,6 +182,14 @@ AC_CHECK_LIB(c, getloadavg, AC_DEFINE(HAVE_GETLOADAVG,1,[getloadavg supported]))
 # linked against _everywhere_.  For the others, we
 # will be more selective!
 SAVE_LIBS=$LIBS
+
+# libgnurx (regex library for W32)
+gnurx=0
+AC_CHECK_LIB(gnurx, regexec, gnurx=1)
+if test "x$gnurx" = "x0" -a "x$build_target" = "xmingw"
+then
+  AC_MSG_ERROR([on W32 GNUnet needs libgnurx])
+fi
 
 # libgcrypt
 gcrypt=0
