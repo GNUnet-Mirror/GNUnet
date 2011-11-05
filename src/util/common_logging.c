@@ -546,7 +546,8 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   component_nopid = GNUNET_strdup (comp);
 
   env_logfile = getenv ("GNUNET_FORCE_LOGFILE");
-  if (env_logfile != NULL)
+  if ( (env_logfile != NULL) &&
+       (strlen (env_logfile) > 0) )
     logfile = env_logfile;
 
   if (logfile == NULL)
