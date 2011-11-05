@@ -372,7 +372,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
  * we still want to see these problems during
  * development and testing.  "OP == other peer".
  */
-#define GNUNET_break_op(cond)  do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_WARNING, _("External protocol violation detected at %s:%d.\n"), __FILE__, __LINE__); } } while(0)
+#define GNUNET_break_op(cond)  do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK, _("External protocol violation detected at %s:%d.\n"), __FILE__, __LINE__); } } while(0)
 
 /**
  * Log an error message at log-level 'level' that indicates

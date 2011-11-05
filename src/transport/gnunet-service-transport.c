@@ -215,7 +215,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   type = ntohs (message->type);
 #if DEBUG_TRANSPORT
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received Message with type %u\n", type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Message with type %u\n", type);
 #endif
 
   switch (type)

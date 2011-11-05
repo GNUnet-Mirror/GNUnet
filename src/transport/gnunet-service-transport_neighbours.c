@@ -2029,7 +2029,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                              sender_address_len, session, GNUNET_YES);
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting inbound quota of %u for peer `%s' to \n",
               ntohl (n->bandwidth_in.value__), GNUNET_i2s (&n->id));
 #endif
