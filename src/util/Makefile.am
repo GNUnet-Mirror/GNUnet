@@ -17,7 +17,7 @@ libgnunetutilwin_la_LDFLAGS = \
   -no-undefined -Wl,--export-all-symbols 
 libgnunetutilwin_la_LIBADD = \
   -lshell32 -liconv -lstdc++ \
-  -lcomdlg32 -lgdi32 -lole32
+  -lcomdlg32 -lgdi32
 WINLIB = libgnunetutilwin.la
 endif
 

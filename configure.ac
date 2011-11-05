@@ -142,7 +142,7 @@ netbsd*)
      AC_DEFINE_UNQUOTED(_WIN32,1,[This is a Windows system])
      AC_CHECK_LIB(intl, gettext)
      LDFLAGS="$LDFLAGS -Wl,-no-undefined -Wl,--export-all-symbols"
-     LIBS="$LIBS -lws2_32 -lplibc -lgnurx"
+     LIBS="$LIBS -lws2_32 -lplibc -lgnurx -lole32"
      CFLAGS="-mms-bitfields $CFLAGS"
      CPPFLAGS="-D_WIN32_WINNT=0x0501 $CPPFLAGS"
      build_target="mingw"
