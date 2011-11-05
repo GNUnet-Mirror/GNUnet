@@ -93,7 +93,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   if (list_indexed_files)
   {
-    fs = GNUNET_FS_start (cfg, "gnunet-fs", NULL, NULL, GNUNET_FS_FLAGS_NONE);
+    fs = GNUNET_FS_start (cfg, "gnunet-fs", NULL, NULL, GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
     if (NULL == fs)
     {
       ret = 1;
