@@ -862,6 +862,14 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     return;
   change_state (n, S_DISCONNECT);
 
+  if (n->plugin_name != NULL)
+  {
+    struct GNUNET_TRANSPORT_PluginFunctions *papi;
+    papi = GST_plugins_find (n->plugin_name);
+    if (papi != NULL)
+      papi->disconnect (papi->cls, &n->id);
+  }
+
   while (NULL != (mq = n->messages_head))
   {
     GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
