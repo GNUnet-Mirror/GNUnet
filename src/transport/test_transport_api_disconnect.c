@@ -34,7 +34,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_YES
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
 #define START_ARM GNUNET_YES
@@ -125,6 +125,12 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+
+  if (cc != NULL)
+  {
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+    cc = NULL;
+  }
 
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
   {

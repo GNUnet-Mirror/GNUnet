@@ -205,6 +205,10 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
+  GNUNET_assert (cc != NULL);
+  GNUNET_assert (cc->p1 != NULL);
+  GNUNET_assert (cc->p2 != NULL);
+
   char *p2_s = GNUNET_strdup (GNUNET_i2s (&p2->id));
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
@@ -402,9 +406,9 @@ GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
                    "Canceling connect request %X!\n", cc);
+
   if (cc->tct != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (cc->tct);
-
   cc->tct = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_CONTAINER_DLL_remove (tth->cc_head, tth->cc_tail, cc);
