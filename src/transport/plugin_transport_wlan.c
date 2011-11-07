@@ -314,6 +314,11 @@ struct Plugin
    * Tracker for bandwidth limit
    */
   struct GNUNET_BANDWIDTH_Tracker tracker;
+
+  /**
+   * saves the current state of the helper process
+   */
+  int helper_is_running;
 };
 
 /**
@@ -1063,6 +1068,11 @@ set_next_send (struct Plugin *const plugin)
 {
   struct GNUNET_TIME_Relative next_send;
 
+  //abort if helper is not running
+  if (plugin->helper_is_running == GNUNET_NO){
+      return;
+  }
+
   //cancel old task
   if (plugin->server_write_delay_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -1490,6 +1500,14 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   char *filenameloopback = "gnunet-transport-wlan-helper-dummy";
   char *absolute_filename = NULL;
 
+  if (plugin->helper_is_running == GNUNET_YES){
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                     "wlan_transport_start_wlan_helper not needed, helper already running!");
+#endif
+      return GNUNET_YES;
+  }
+
   plugin->server_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (plugin->server_stdout == NULL)
     return GNUNET_SYSERR;
@@ -1633,6 +1651,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
                                       plugin->server_stdout_handle,
                                       &wlan_plugin_helper_read, plugin);
 
+  plugin->helper_is_running = GNUNET_YES;
   return GNUNET_YES;
 }
 
@@ -1649,6 +1668,14 @@ wlan_transport_stop_wlan_helper (struct Plugin *plugin)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                    "Stoping WLAN helper process\n");
 #endif
+
+  if (plugin->helper_is_running == GNUNET_NO){
+#if DEBUG_wlan
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
+                     "wlan_transport_stop_wlan_helper not needed, helper already stopped!");
+#endif
+      return GNUNET_YES;
+  }
 
   if (plugin->server_write_delay_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -1673,6 +1700,8 @@ wlan_transport_stop_wlan_helper (struct Plugin *plugin)
   GNUNET_OS_process_kill (plugin->server_proc, SIGKILL);
   GNUNET_OS_process_wait (plugin->server_proc);
   GNUNET_OS_process_close (plugin->server_proc);
+
+  plugin->helper_is_running = GNUNET_NO;
 
   return GNUNET_YES;
 }
@@ -2181,8 +2210,11 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, PLUGIN_LOG_NAME,
+#if 1
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                    "do_transmit did nothing, should not happen!\n");
+#endif
+  set_next_send (plugin);
 }
 
 /**
