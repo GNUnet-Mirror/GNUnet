@@ -236,11 +236,15 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
       ret += last;
       last = 0;
       if (1 != sscanf (tok, "%llu", &last))
+      {
+	GNUNET_free (in);
         return GNUNET_SYSERR;   /* expected number */
+      }
     }
   }
   ret += last;
   *size = ret;
+  GNUNET_free (in);
   return GNUNET_OK;
 }
 
@@ -311,11 +315,15 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
       ret += last;
       last = 0;
       if (1 != sscanf (tok, "%llu", &last))
+      {
+	GNUNET_free (in);
         return GNUNET_SYSERR;   /* expected number */
+      }
     }
   }
   ret += last;
   rtime->rel_value = (uint64_t) ret;
+  GNUNET_free (in);
   return GNUNET_OK;
 }
 
