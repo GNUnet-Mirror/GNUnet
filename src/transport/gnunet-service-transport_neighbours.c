@@ -426,12 +426,16 @@ reset_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   n->state_reset = GNUNET_SCHEDULER_NO_TASK;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection to peer `%s' %s failed in state `%s', resetting connection attempt \n",
+#endif
+  /* This jut a temporary debug message to check if a the value
+   * SETUP_CONNECTION_TIMEOUT was choosen to small for slow machines
+   */
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Information for developers: Connection to peer `%s' %s failed in state `%s', resetting connection attempt \n",
               GNUNET_i2s (&n->id), GST_plugins_a2s (n->plugin_name, n->addr,
                                                     n->addrlen),
               print_state (n->state));
-#endif
+
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop
                             ("# failed connection attempts due to timeout"), 1,
@@ -478,7 +482,6 @@ change (struct NeighbourMapEntry *n, int state, int line)
             GNUNET_SCHEDULER_add_delayed (SETUP_CONNECTION_TIMEOUT, &reset_task,
                                           n);
       }
-
       break;
     }
     break;
@@ -1331,6 +1334,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
                           plugin_name, address, address_len, GNUNET_YES,
                           &send_connect_continuation, n);
 
+
     return GNUNET_NO;
   }
   /* We received a CONNECT message and asked ATS for an address */
@@ -2013,14 +2017,15 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   n = lookup_neighbour (peer);
   if (NULL == n)
     n = setup_neighbour (peer);
-/*
-  if (n->state != S_CONNECT_SENT)
+
+  if (!is_connecting(n))
   {
-    GNUNET_break (0);
-    send_disconnect(&n->id, n->plugin_name, n->addr, n->addrlen, n->session);
+    GNUNET_STATISTICS_update (GST_stats,
+        gettext_noop ("# unexpected CONNECT_ACK messages"), 1,
+        GNUNET_NO);
     return;
   }
-*/
+
   if (NULL != session)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                      "transport-ats",
@@ -2132,6 +2137,13 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 
   if (is_connected (n))
     return;
+
+  if (!is_connecting(n))
+  {
+    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# unexpected ACK messages"), 1,
+                              GNUNET_NO);
+    return;
+  }
 
   if (NULL != session)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
