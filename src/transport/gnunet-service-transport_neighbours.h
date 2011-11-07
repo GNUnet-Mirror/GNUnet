@@ -265,6 +265,18 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count);
 
+
+/**
+ * Obtain current latency information for the given neighbour.
+ *
+ * @param peer 
+ * @return observed latency of the address, FOREVER if the address was
+ *         never successfully validated
+ */
+struct GNUNET_TIME_Relative
+GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer);
+
+
 /**
  * We received a disconnect message from the given peer,
  * validate and process.

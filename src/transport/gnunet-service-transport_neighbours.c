@@ -870,6 +870,12 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   if (is_disconnecting (n))
     return;
   change_state (n, S_DISCONNECT);
+  GST_validation_set_address_use (&n->id,
+				  n->plugin_name,
+				  n->session,
+				  n->addr,
+				  n->addrlen,
+				  GNUNET_NO);
 
   if (n->plugin_name != NULL)
   {
@@ -1301,7 +1307,13 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
       return GNUNET_NO;
     }
   }
-
+  if (n->state == S_CONNECTED) 
+    GST_validation_set_address_use (&n->id,
+				    n->plugin_name,
+				    n->session,
+				    n->addr,
+				    n->addrlen,
+				    GNUNET_NO);
   GNUNET_free_non_null (n->addr);
   n->addr = GNUNET_malloc (address_len);
   memcpy (n->addr, address, address_len);
@@ -1315,6 +1327,14 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   n->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                     &neighbour_timeout_task, n);
+  if (n->state == S_CONNECTED)
+    GST_validation_set_address_use (&n->id,
+				    n->plugin_name,
+				    n->session,
+				    n->addr,
+				    n->addrlen,
+				    GNUNET_YES);
+
 
   if (n->state == S_DISCONNECT)
   {
@@ -1396,6 +1416,29 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
               "Invalid connection state to switch addresses %u \n", n->state);
   GNUNET_break_op (0);
   return GNUNET_NO;
+}
+
+
+/**
+ * Obtain current latency information for the given neighbour.
+ *
+ * @param peer 
+ * @return observed latency of the address, FOREVER if the address was
+ *         never successfully validated
+ */
+struct GNUNET_TIME_Relative
+GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
+{
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (peer);
+  if (NULL == n)
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+  return GST_validation_get_address_latency (peer,
+					     n->plugin_name,
+					     n->session,
+					     n->addr,
+					     n->addrlen);
 }
 
 
@@ -2042,7 +2085,15 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 
   was_connected = is_connected (n);
   if (!is_connected (n))
+  {
     change_state (n, S_CONNECTED);
+    GST_validation_set_address_use (&n->id,
+				    n->plugin_name,
+				    n->session,
+				    n->addr,
+				    n->addrlen,
+				    GNUNET_YES);
+  }
 
   GNUNET_ATS_address_in_use (GST_ats, &n->id, n->plugin_name, n->addr,
                              n->addrlen, n->addr, GNUNET_YES);
@@ -2174,6 +2225,12 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 
   if (!was_connected)
   {
+    GST_validation_set_address_use (&n->id,
+				    n->plugin_name,
+				    n->session,
+				    n->addr,
+				    n->addrlen,
+				    GNUNET_YES);
     neighbours_connected++;
     GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                               GNUNET_NO);
@@ -2333,19 +2390,20 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   /* do blacklist check */
   bcc =
       GNUNET_malloc (sizeof (struct BlackListCheckContext) +
-                     sizeof (struct GNUNET_ATS_Information) * ats_count +
+                     sizeof (struct GNUNET_ATS_Information) * (ats_count + 1) +
                      sender_address_len + strlen (plugin_name) + 1);
 
   bcc->ts = GNUNET_TIME_absolute_ntoh (scm->timestamp);
 
-  bcc->ats_count = ats_count;
+  bcc->ats_count = ats_count + 1;
   bcc->sender_address_len = sender_address_len;
   bcc->session = session;
 
   bcc->ats = (struct GNUNET_ATS_Information *) &bcc[1];
   memcpy (bcc->ats, ats, sizeof (struct GNUNET_ATS_Information) * ats_count);
-
-  bcc->sender_address = (char *) &bcc->ats[ats_count];
+  bcc->ats[ats_count].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+  bcc->ats[ats_count].value = htonl ((uint32_t) GST_neighbour_get_latency (peer).rel_value);
+  bcc->sender_address = (char *) &bcc->ats[ats_count + 1];
   memcpy (bcc->sender_address, sender_address, sender_address_len);
 
   bcc->plugin_name = &bcc->sender_address[sender_address_len];

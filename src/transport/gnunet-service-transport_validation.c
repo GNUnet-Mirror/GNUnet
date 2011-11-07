@@ -529,13 +529,6 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   ve->revalidation_task = GNUNET_SCHEDULER_NO_TASK;
   delay = GNUNET_TIME_absolute_get_remaining (ve->revalidation_block);
-  if (delay.rel_value > 0)
-  {
-    /* should wait a bit longer */
-    ve->revalidation_task =
-        GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
-    return;
-  }
   /* How long until we can possibly permit the next PING? */
   canonical_delay = 
     (ve->in_use == GNUNET_YES) 
@@ -543,6 +536,19 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     : ( (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value > 0)
 	? VALIDATED_PING_FREQUENCY
 	: UNVALIDATED_PING_KEEPALIVE);   
+  if (delay.rel_value > canonical_delay.rel_value * 2)
+  {
+    /* situation changed, recalculate delay */
+    delay = canonical_delay;
+    ve->revalidation_block = GNUNET_TIME_relative_to_absolute (delay);
+  }
+  if (delay.rel_value > 0)
+  {
+    /* should wait a bit longer */
+    ve->revalidation_task =
+        GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
+    return;
+  }
   ve->revalidation_block =
     GNUNET_TIME_relative_to_absolute (canonical_delay);
 
@@ -1180,10 +1186,9 @@ GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
  * Based on this, the validation module will measure latency for the
  * address more or less often.
  *
- * @param sender peer sending the PING
- * @param hdr the PING
- * @param plugin_name name of plugin that received the PING
- * @param session session we got the PING from
+ * @param sender peer 
+ * @param plugin_name name of plugin 
+ * @param session session 
  * @param sender_address address of the sender as known to the plugin, NULL
  *                       if we did not initiate the connection
  * @param sender_address_len number of bytes in sender_address
@@ -1192,13 +1197,32 @@ GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
  */
 void
 GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
-				const struct GNUNET_MessageHeader *hdr,
 				const char *plugin_name, struct Session *session,
 				const void *sender_address,
 				size_t sender_address_len,
 				int in_use)
 {
-  // FIXME: lookup address, update flag, re-schedule validation task
+  struct ValidationEntry *ve;
+
+  ve = find_validation_entry (NULL, sender, plugin_name, sender_address, sender_address_len);
+  if (NULL == ve)
+  {
+    /* FIXME: this can happen for inbound connections (sender_address_len == 0);
+       in that case, we should hack up some more code here to measure
+       latency for inbound connections! Also, in this case we'll need the session... 
+    */
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_break (ve->in_use != in_use); /* should be different... */
+  ve->in_use = in_use;
+  if (in_use == GNUNET_YES)
+  {
+    /* from now on, higher frequeny, so reschedule now */
+    GNUNET_SCHEDULER_cancel (ve->revalidation_task);
+    ve->revalidation_task =
+      GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
+  }
 }
 
 
@@ -1206,10 +1230,9 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
  * Query validation about the latest observed latency on a given
  * address.
  *
- * @param sender peer sending the PING
- * @param hdr the PING
- * @param plugin_name name of plugin that received the PING
- * @param session session we got the PING from
+ * @param sender peer
+ * @param plugin_name name of plugin 
+ * @param session session 
  * @param sender_address address of the sender as known to the plugin, NULL
  *                       if we did not initiate the connection
  * @param sender_address_len number of bytes in sender_address
@@ -1218,13 +1241,16 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
  */
 struct GNUNET_TIME_Relative
 GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
-				    const struct GNUNET_MessageHeader *hdr,
 				    const char *plugin_name, struct Session *session,
 				    const void *sender_address,
 				    size_t sender_address_len)
 {
-  // FIXME: lookup address, return latency field...
-  return GNUNET_TIME_UNIT_ZERO;
+  struct ValidationEntry *ve;
+
+  ve = find_validation_entry (NULL, sender, plugin_name, sender_address, sender_address_len);
+  if (NULL == ve)
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+  return ve->latency;
 }
 
 

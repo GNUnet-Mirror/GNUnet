@@ -50,10 +50,9 @@ GST_validation_stop (void);
  * Based on this, the validation module will measure latency for the
  * address more or less often.
  *
- * @param sender peer sending the PING
- * @param hdr the PING
- * @param plugin_name name of plugin that received the PING
- * @param session session we got the PING from
+ * @param sender peer 
+ * @param plugin_name name of plugin
+ * @param session session
  * @param sender_address address of the sender as known to the plugin, NULL
  *                       if we did not initiate the connection
  * @param sender_address_len number of bytes in sender_address
@@ -62,7 +61,6 @@ GST_validation_stop (void);
  */
 void
 GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
-				const struct GNUNET_MessageHeader *hdr,
 				const char *plugin_name, struct Session *session,
 				const void *sender_address,
 				size_t sender_address_len,
@@ -73,10 +71,9 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
  * Query validation about the latest observed latency on a given
  * address.
  *
- * @param sender peer sending the PING
- * @param hdr the PING
- * @param plugin_name name of plugin that received the PING
- * @param session session we got the PING from
+ * @param sender peer 
+ * @param plugin_name name of plugin
+ * @param session session
  * @param sender_address address of the sender as known to the plugin, NULL
  *                       if we did not initiate the connection
  * @param sender_address_len number of bytes in sender_address
@@ -85,7 +82,6 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
  */
 struct GNUNET_TIME_Relative
 GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
-				    const struct GNUNET_MessageHeader *hdr,
 				    const char *plugin_name, struct Session *session,
 				    const void *sender_address,
 				    size_t sender_address_len);

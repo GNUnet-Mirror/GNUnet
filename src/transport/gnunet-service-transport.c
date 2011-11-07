@@ -135,7 +135,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   size_t msg_size = ntohs (message->size);
   size_t size =
       sizeof (struct InboundMessage) + msg_size +
-      sizeof (struct GNUNET_ATS_Information) * ats_count;
+    sizeof (struct GNUNET_ATS_Information) * (ats_count + 1);
   char buf[size];
   struct GNUNET_ATS_Information *ap;
 
@@ -162,11 +162,13 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   im = (struct InboundMessage *) buf;
   im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
-  im->ats_count = htonl (ats_count);
+  im->ats_count = htonl (ats_count + 1);
   im->peer = *peer;
   ap = (struct GNUNET_ATS_Information *) &im[1];
   memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
-  memcpy (&ap[ats_count], message, ntohs (message->size));
+  ap[ats_count].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+  ap[ats_count].value = htonl ((uint32_t) GST_neighbour_get_latency (peer).rel_value);
+  memcpy (&ap[ats_count + 1], message, ntohs (message->size));
 
   GST_clients_broadcast (&im->header, GNUNET_YES);
 
