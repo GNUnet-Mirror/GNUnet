@@ -27,7 +27,7 @@
 
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_EXTRA_LOGGING
 
 
 static struct PeerContext *
@@ -170,8 +170,10 @@ get_hello (void *cb_cls, const struct GNUNET_MessageHeader *message)
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &p->id));
+#if VERBOSE
   size_t size =
       GNUNET_HELLO_size ((const struct GNUNET_HELLO_Message *) message);
+#endif
   GNUNET_free_non_null (p->hello);
   p->hello = (struct GNUNET_HELLO_Message *) GNUNET_copy_message (message);
 
@@ -349,7 +351,8 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
  * @param p1 peer 1
  * @param p2 peer 2
  * @param cb the callback to call when both peers notified that they are connected
- * @param cb_cls callback cls
+ * @param cb_cls callback cls (or a pointer to the
+ *        GNUNET_TRANSPORT_TESTING_ConnectRequest itself if null)
  * @return connect context
  */
 GNUNET_TRANSPORT_TESTING_ConnectRequest
@@ -371,7 +374,10 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle
   cc->p2 = p2;
 
   cc->cb = cb;
-  cc->cb_cls = cb_cls;
+  if (cb_cls != NULL)
+    cc->cb_cls = cb_cls;
+  else
+    cc->cb_cls = cc;
 
   cc->th_p1 = p1->th;
   cc->th_p2 = p2->th;

@@ -258,6 +258,7 @@ check_PROGRAMS = \
  test_transport_testing \
  test_transport_startonly \
  test_transport_api_disconnect_tcp \
+ test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
  test_transport_api_timeout_tcp \
  test_transport_api_limited_sockets_tcp \
@@ -296,6 +297,7 @@ TESTS = \
  test_transport_testing \
  test_transport_startonly \
  test_transport_api_disconnect_tcp \
+ test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
  test_transport_api_timeout_tcp \
  test_transport_api_limited_sockets_tcp \
@@ -367,6 +369,14 @@ test_transport_startonly_LDADD = \
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c
 test_transport_api_tcp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+  
+test_transport_api_bidirectional_connect_SOURCES = \
+ test_transport_api_bidirectional_connect.c
+test_transport_api_bidirectional_connect_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
