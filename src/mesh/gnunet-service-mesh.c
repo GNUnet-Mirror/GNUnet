@@ -1449,6 +1449,7 @@ peer_info_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
   for (i = 0; i < peer->ntunnels; i++)
   {
     d = tunnel_notify_connection_broken (peer->tunnels[i], p1, p2);
+    if (0 == d) continue;
     /* TODO
      * Problem: one or more peers have been deleted from the tunnel tree.
      * We don't know who they are to try to add them again.
@@ -1473,7 +1474,9 @@ peer_info_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
     }
     if (NULL != aux)
     {
-      /* No callback, as peer will be already disconnected */
+      /* No callback, as peer will be already disconnected and a connection
+       * scheduled by tunnel_notify_connection_broken.
+       */
       tree_add_path (peer->tunnels[i]->tree, aux, NULL, NULL);
     }
     else
