@@ -46,6 +46,52 @@ GST_validation_stop (void);
 
 
 /**
+ * Update if we are using an address for a connection actively right now.
+ * Based on this, the validation module will measure latency for the
+ * address more or less often.
+ *
+ * @param sender peer sending the PING
+ * @param hdr the PING
+ * @param plugin_name name of plugin that received the PING
+ * @param session session we got the PING from
+ * @param sender_address address of the sender as known to the plugin, NULL
+ *                       if we did not initiate the connection
+ * @param sender_address_len number of bytes in sender_address
+ * @param in_use GNUNET_YES if we are now using the address for a connection,
+ *               GNUNET_NO if we are no longer using the address for a connection
+ */
+void
+GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
+				const struct GNUNET_MessageHeader *hdr,
+				const char *plugin_name, struct Session *session,
+				const void *sender_address,
+				size_t sender_address_len,
+				int in_use);
+
+
+/**
+ * Query validation about the latest observed latency on a given
+ * address.
+ *
+ * @param sender peer sending the PING
+ * @param hdr the PING
+ * @param plugin_name name of plugin that received the PING
+ * @param session session we got the PING from
+ * @param sender_address address of the sender as known to the plugin, NULL
+ *                       if we did not initiate the connection
+ * @param sender_address_len number of bytes in sender_address
+ * @return observed latency of the address, FOREVER if the address was
+ *         never successfully validated
+ */
+struct GNUNET_TIME_Relative
+GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
+				    const struct GNUNET_MessageHeader *hdr,
+				    const char *plugin_name, struct Session *session,
+				    const void *sender_address,
+				    size_t sender_address_len);
+
+
+/**
  * We've received a PING.  If appropriate, generate a PONG.
  *
  * @param sender peer sending the PING
