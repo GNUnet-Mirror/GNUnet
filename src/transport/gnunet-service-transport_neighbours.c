@@ -860,6 +860,12 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
                   GNUNET_i2s (&n->id));
   }
 
+  if (is_connected(n))
+  {
+     GNUNET_ATS_address_in_use (GST_ats, &n->id, n->plugin_name,
+         n->addr, n->addrlen, n->session, GNUNET_NO);
+  }
+
 
   if (is_disconnecting (n))
     return;
@@ -2038,8 +2044,8 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   if (!is_connected (n))
     change_state (n, S_CONNECTED);
 
-  GNUNET_ATS_address_in_use (GST_ats, peer, plugin_name, sender_address,
-                             sender_address_len, session, GNUNET_YES);
+  GNUNET_ATS_address_in_use (GST_ats, &n->id, n->plugin_name, n->addr,
+                             n->addrlen, n->addr, GNUNET_YES);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2156,8 +2162,8 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   was_connected = is_connected (n);
   change_state (n, S_CONNECTED);
 
-  GNUNET_ATS_address_in_use (GST_ats, peer, plugin_name, sender_address,
-                             sender_address_len, session, GNUNET_YES);
+  GNUNET_ATS_address_in_use (GST_ats, &n->id, n->plugin_name, n->addr,
+                             n->addrlen, n->addr, GNUNET_YES);
 
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
 
