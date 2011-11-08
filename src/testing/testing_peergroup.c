@@ -33,7 +33,7 @@
 #include "gnunet_disk_lib.h"
 
 /** Globals **/
-#define DEFAULT_CONNECT_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define DEFAULT_CONNECT_TIMEOUT 30 // FIXME: use fancy time
 
 #define DEFAULT_CONNECT_ATTEMPTS 2
 
@@ -46,7 +46,17 @@ struct PeerGroupStartupContext
   unsigned int total;
   unsigned int peers_left;
   unsigned long long max_concurrent_connections;
+  
+  /**
+   * Maximum attemps to connect two daemons.
+   */
   unsigned long long connect_attempts;
+
+  /**
+   * How long to spend trying to establish all the connections?
+   */
+  unsigned long long connect_timeout; // FIXME: use fancy time
+  
   unsigned long long max_concurrent_ssh;
   struct GNUNET_TIME_Absolute timeout;
   GNUNET_TESTING_NotifyConnection connect_cb;
@@ -498,7 +508,10 @@ internal_peers_started_callback (void *cls,
                                            pg_start_ctx->connect_topology,
                                            pg_start_ctx->connect_topology_option,
                                            pg_start_ctx->connect_topology_option_modifier,
-                                           DEFAULT_CONNECT_TIMEOUT,
+                                           // FIXME: use fancy time
+                                           GNUNET_TIME_relative_multiply(
+                                             GNUNET_TIME_UNIT_SECONDS,
+                                             pg_start_ctx->connect_timeout),
                                            pg_start_ctx->connect_attempts, NULL,
                                            NULL);
 
@@ -741,6 +754,13 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                 "testing", "connect_attempts");
     GNUNET_free (pg_start_ctx);
     return NULL;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_timeout",
+                                             &pg_start_ctx->connect_timeout))
+  {
+    pg_start_ctx->connect_timeout = DEFAULT_CONNECT_TIMEOUT;
   }
 
   if (GNUNET_OK !=
