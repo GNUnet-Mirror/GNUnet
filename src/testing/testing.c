@@ -106,7 +106,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 #endif
   GNUNET_assert (daemon->phase == SP_GET_HELLO ||
                  daemon->phase == SP_START_DONE);
-  daemon->cb = NULL;
+  daemon->cb = NULL; // FIXME: why??? (see fsm:SP_START_CORE, notify_daemon_started)
   if (daemon->task != GNUNET_SCHEDULER_NO_TASK) /* Assertion here instead? */
     GNUNET_SCHEDULER_cancel (daemon->task);
 
@@ -148,13 +148,12 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   daemon->phase = SP_START_DONE;
 }
 
-static void
-start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Notify of a peer being up and running.  Scheduled as a task
  * so that variables which may need to be set are set before
  * the connect callback can set up new operations.
+ * FIXME: what variables?????? where from????
  *
  * @param cls the testing daemon
  * @param tc task scheduler context
@@ -189,7 +188,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int bytes_read;
 
 #if DEBUG_TESTING
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer FSM is in phase %u.\n", d->phase);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %s FSM is in phase %u.\n",
+              GNUNET_i2s (&d->id), d->phase);
 #endif
 
   d->task = GNUNET_SCHEDULER_NO_TASK;

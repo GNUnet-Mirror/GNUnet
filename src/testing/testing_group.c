@@ -5543,6 +5543,15 @@ internal_startup_callback (void *cls, const struct GNUNET_PeerIdentity *id,
                                 emsg);
 }
 
+
+/**
+ * Calls GNUNET_TESTING_daemon_continue_startup to set the daemon's state
+ * from HOSTKEY_CREATED to TOPOLOGY_SETUP. Makes sure not to saturate a host
+ * with requests delaying them when needed.
+ * 
+ * @param cls closure: internal context of the daemon.
+ * @param tc TaskContext
+ */
 static void
 internal_continue_startup (void *cls,
                            const struct GNUNET_SCHEDULER_TaskContext *tc)

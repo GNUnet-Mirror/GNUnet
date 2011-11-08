@@ -416,7 +416,7 @@ internal_topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
 #if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Created %d total connections, which is our target number!  Starting next phase of testing.\n",
-                total_connections);
+                pg_start_ctx->total_connections);
 #endif
 
 #if TIMING
@@ -472,7 +472,8 @@ internal_peers_started_callback (void *cls,
 
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %llu out of %llu\n",
-              (num_peers - peers_left) + 1, num_peers);
+              (pg_start_ctx->total - pg_start_ctx->peers_left) + 1,
+              pg_start_ctx->total);
 #endif
 
   pg_start_ctx->peers_left--;
@@ -481,12 +482,14 @@ internal_peers_started_callback (void *cls,
   {
 #if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "All %d daemons started, now connecting peers!\n", num_peers);
+                "All %d daemons started, now connecting peers!\n",
+                pg_start_ctx->total);
 #endif
     GNUNET_assert (pg_start_ctx->die_task != GNUNET_SCHEDULER_NO_TASK);
     GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
 
     pg_start_ctx->expected_connections = UINT_MAX;
+    // FIXME: why whould peers_left be != 0?? Or pg NULL?
     if ((pg_start_ctx->pg != NULL) && (pg_start_ctx->peers_left == 0))
     {
       pg_start_ctx->connect_start_time = GNUNET_TIME_absolute_get ();
@@ -549,17 +552,18 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostkey (%d/%d) created for peer `%s'\n", num_peers - peers_left,
-              num_peers, GNUNET_i2s (id));
+              "Hostkey (%d/%d) created for peer `%s'\n",
+              pg_start_ctx->total - pg_start_ctx->peers_left,
+              pg_start_ctx->total, GNUNET_i2s (id));
 #endif
 
   pg_start_ctx->peers_left--;
   if (GNUNET_YES == update_meter (pg_start_ctx->hostkey_meter))
   {
     GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
+    GNUNET_free_non_null (pg_start_ctx->fail_reason);
     /* Set up task in case topology creation doesn't finish
      * within a reasonable amount of time */
-    GNUNET_free_non_null (pg_start_ctx->fail_reason);
     pg_start_ctx->fail_reason = GNUNET_strdup ("from create_topology");
     pg_start_ctx->die_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
