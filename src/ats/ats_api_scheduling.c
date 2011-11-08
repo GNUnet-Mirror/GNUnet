@@ -290,8 +290,18 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
     GNUNET_break (0);
     return NULL;
   }
-  if (session_id == 0)
+  /* Check if this session was:
+   *  removed by remove_session (transport service)
+   *  released by release_session (ATS)
+   *  */
+  if (sh->session_array[session_id].session == NULL)
+  {
+    GNUNET_assert (0 ==
+        memcmp (peer, &sh->session_array[session_id].peer,
+                sizeof (struct GNUNET_PeerIdentity)));
     return NULL;
+  }
+
   if (0 !=
       memcmp (peer, &sh->session_array[session_id].peer,
               sizeof (struct GNUNET_PeerIdentity)))
@@ -390,6 +400,10 @@ release_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
     sh->reconnect = GNUNET_YES;
     return;
   }
+
+  /* this slot should have been removed from remove_session before */
+  GNUNET_assert (sh->session_array[session_id].session == NULL);
+
   if (0 !=
       memcmp (peer, &sh->session_array[session_id].peer,
               sizeof (struct GNUNET_PeerIdentity)))
@@ -398,6 +412,7 @@ release_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
     sh->reconnect = GNUNET_YES;
     return;
   }
+
   sh->session_array[session_id].slot_used = GNUNET_NO;
   memset (&sh->session_array[session_id].peer, 0,
           sizeof (struct GNUNET_PeerIdentity));
@@ -471,10 +486,28 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
     force_reconnect (sh);
     return;
   }
+  uint32_t session_id =  ntohl (m->session_id);
+
+  struct Session * s = NULL;
+  if (session_id == 0)
+    s = NULL;
+  else
+  {
+    s = find_session (sh, session_id, &m->peer);
+    if (s == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ATS tries to use outdated session `%s'\n", GNUNET_i2s(&m->peer));
+      GNUNET_break (0);
+    }
+  }
+
   sh->suggest_cb (sh->suggest_cb_cls, &m->peer, plugin_name, address,
-                  address_length, find_session (sh, ntohl (m->session_id),
-                                                &m->peer), m->bandwidth_out,
+                  address_length, s, m->bandwidth_out,
                   m->bandwidth_in, atsi, ats_count);
+
+
+
+
   GNUNET_CLIENT_receive (sh->client, &process_ats_message, sh,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   if (GNUNET_YES == sh->reconnect)
@@ -640,6 +673,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
     GNUNET_break (0);
     return;
   }
+
   p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   p->size = msize;
   p->is_init = GNUNET_NO;
@@ -695,6 +729,7 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
     GNUNET_break (0);
     return;
   }
+
   p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   p->size = msize;
   p->is_init = GNUNET_NO;
@@ -746,6 +781,8 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
     GNUNET_break (0);
     return;
   }
+
+
   p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   p->size = msize;
   p->is_init = GNUNET_NO;
@@ -756,7 +793,8 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   m->peer = *peer;
   m->address_length = htons (plugin_addr_len);
   m->plugin_name_length = htons (namelen);
-  m->session_id = htonl (session_id = get_session_id (sh, session, peer));
+  session_id = get_session_id (sh, session, peer);
+  m->session_id = htonl (session_id);
   pm = (char *) &m[1];
   memcpy (pm, plugin_addr, plugin_addr_len);
   memcpy (&pm[plugin_addr_len], plugin_name, namelen);
