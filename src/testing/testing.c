@@ -65,9 +65,9 @@ static struct GNUNET_CORE_MessageHandler no_handlers[] = { {NULL, 0, 0} };
 
 #if EMPTY_HACK
 static int
-test_address (void *cls, const char *tname,
-              struct GNUNET_TIME_Absolute expiration, const void *addr,
-              uint16_t addrlen)
+test_address (void *cls,
+	      const struct GNUNET_HELLO_Address *address,
+              struct GNUNET_TIME_Absolute expiration)
 {
   int *empty = cls;
 

@@ -117,23 +117,22 @@ make_info_message (const struct HostEntry *he)
  * Address iterator that causes expired entries to be discarded.
  *
  * @param cls pointer to the current time
- * @param tname name of the transport
+ * @param address the address
  * @param expiration expiration time for the address
- * @param addr the address
- * @param addrlen length of addr in bytes
  * @return GNUNET_NO if expiration smaller than the current time
  */
 static int
-discard_expired (void *cls, const char *tname,
-                 struct GNUNET_TIME_Absolute expiration, const void *addr,
-                 uint16_t addrlen)
+discard_expired (void *cls, 
+		 const struct GNUNET_HELLO_Address *address,
+                 struct GNUNET_TIME_Absolute expiration)
 {
   const struct GNUNET_TIME_Absolute *now = cls;
 
   if (now->abs_value > expiration.abs_value)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Removing expired address of transport `%s'\n"), tname);
+                _("Removing expired address of transport `%s'\n"), 
+		address->transport_name);
     return GNUNET_NO;
   }
   return GNUNET_OK;

@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_hello_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_peerinfo_service.h"
@@ -83,15 +84,13 @@ struct GNUNET_ATS_SchedulingHandle *GST_ats;
  * @param target a connected neighbour
  * @param ats performance information (unused)
  * @param ats_count number of records in ats (unused)
- * @param transport plugin
- * @param addr address
- * @param addrlen address length
+ * @param address the address
  */
 static void
 transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
                     const struct GNUNET_ATS_Information *ats,
-                    uint32_t ats_count, const char *transport, const void *addr,
-                    size_t addrlen)
+                    uint32_t ats_count,
+		    const struct GNUNET_HELLO_Address *address)
 {
   const struct GNUNET_MessageHeader *hello = cls;
 
@@ -200,7 +199,8 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
  *         (plugins that do not support this, can ignore the return value)
  */
 static struct GNUNET_TIME_Relative
-plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
+plugin_env_receive_callback (void *cls, 
+			     const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_MessageHeader *message,
                              const struct GNUNET_ATS_Information *ats,
                              uint32_t ats_count, struct Session *session,
@@ -209,8 +209,13 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   const char *plugin_name = cls;
   struct GNUNET_TIME_Relative ret;
+  struct GNUNET_HELLO_Address address;
   uint16_t type;
 
+  address.peer = *peer;
+  address.address = sender_address;
+  address.address_length = sender_address_len;
+  address.transport_name = plugin_name;
   ret = GNUNET_TIME_UNIT_ZERO;
   if (NULL == message)
     goto end;
@@ -229,37 +234,29 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Processing `%s' from `%s'\n", "PING",
-                (sender_address != NULL) ? GST_plugins_a2s (plugin_name,
-                                                            sender_address,
-                                                            sender_address_len)
+                (sender_address != NULL) ? GST_plugins_a2s (&address)
                 : "<inbound>");
 #endif
-    GST_validation_handle_ping (peer, message, plugin_name, session,
-                                sender_address, sender_address_len);
+    GST_validation_handle_ping (peer, message, &address, session);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Processing `%s' from `%s'\n", "PONG",
-                (sender_address != NULL) ? GST_plugins_a2s (plugin_name,
-                                                            sender_address,
-                                                            sender_address_len)
+                (sender_address != NULL) ? GST_plugins_a2s (&address)
                 : "<inbound>");
 #endif
     GST_validation_handle_pong (peer, message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
-    GST_neighbours_handle_connect (message, peer, plugin_name, sender_address,
-                                   sender_address_len, session, ats, ats_count);
+    GST_neighbours_handle_connect (message, peer, &address, session, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK:
-    GST_neighbours_handle_connect_ack (message, peer, plugin_name,
-                                       sender_address, sender_address_len,
+    GST_neighbours_handle_connect_ack (message, peer, &address,
                                        session, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
-    GST_neighbours_handle_ack (message, peer, plugin_name, sender_address,
-                               sender_address_len, session, ats, ats_count);
+    GST_neighbours_handle_ack (message, peer, &address, session, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
     GST_neighbours_handle_disconnect_message (peer, message);
@@ -276,8 +273,7 @@ end:
 #if 1
   /* FIXME: this should not be needed, and not sure it's good to have it, but without
    * this connections seem to go extra-slow */
-  GNUNET_ATS_address_update (GST_ats, peer, plugin_name, sender_address,
-                             sender_address_len, session, ats, ats_count);
+  GNUNET_ATS_address_update (GST_ats, &address, session, ats, ats_count);
 #endif
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -304,8 +300,13 @@ plugin_env_address_change_notification (void *cls, int add_remove,
                                         const void *addr, size_t addrlen)
 {
   const char *plugin_name = cls;
+  struct GNUNET_HELLO_Address address;
 
-  GST_hello_modify_addresses (add_remove, plugin_name, addr, addrlen);
+  address.peer = GST_my_identity;
+  address.transport_name = plugin_name;
+  address.address = addr;
+  address.address_length = addrlen;
+  GST_hello_modify_addresses (add_remove, &address);
 }
 
 
@@ -326,6 +327,8 @@ static void
 plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
                         struct Session *session)
 {
+  struct GNUNET_HELLO_Address address;
+
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
@@ -335,7 +338,11 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
                      "transport-ats",
                      "Telling ATS to destroy session %p from peer %s\n",
                      session, GNUNET_i2s (peer));
-  GNUNET_ATS_address_destroyed (GST_ats, peer, NULL, NULL, 0, session);
+  address.peer = *peer;
+  address.address = NULL;
+  address.address_length = 0;
+  address.transport_name = cls;
+  GNUNET_ATS_address_destroyed (GST_ats, &address, session);
   GST_neighbours_session_terminated (peer, session);
 }
 
@@ -348,18 +355,15 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  * actually happened.
  *
  * @param cls closure
- * @param peer identity of the peer
- * @param plugin_name name of the transport plugin, NULL to disconnect
+ * @param address address to use (for peer given in address)
  * @param session session to use (if available)
- * @param plugin_addr address to use (if available)
- * @param plugin_addr_len number of bytes in addr
  * @param bandwidth_out assigned outbound bandwidth for the connection, 0 to disconnect from peer
  * @param bandwidth_in assigned inbound bandwidth for the connection, 0 to disconnect from peer
  */
 static void
-ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
-                            const char *plugin_name, const void *plugin_addr,
-                            size_t plugin_addr_len, struct Session *session,
+ats_request_address_change (void *cls, 
+			    const struct GNUNET_HELLO_Address *address,
+                            struct Session *session,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                             const struct GNUNET_ATS_Information *ats,
@@ -374,14 +378,14 @@ ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "ATS tells me to disconnect from peer `%s'\n",
-                GNUNET_i2s (peer));
+                GNUNET_i2s (&address->peer));
 #endif
-    GST_neighbours_force_disconnect (peer);
+    GST_neighbours_force_disconnect (&address->peer);
     return;
   }
   /* will never return GNUNET_YES since connection is to be established */
-  GST_neighbours_switch_to_address_3way (peer, plugin_name, plugin_addr,
-                                         plugin_addr_len, session, ats,
+  GST_neighbours_switch_to_address_3way (&address->peer, 
+					 address, session, ats,
                                          ats_count, bandwidth_in,
                                          bandwidth_out);
 }

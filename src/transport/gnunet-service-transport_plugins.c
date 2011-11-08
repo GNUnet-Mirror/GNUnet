@@ -189,22 +189,20 @@ GST_plugins_find (const char *name)
  * Convert a given address to a human-readable format.  Note that the
  * return value will be overwritten on the next call to this function.
  *
- * @param name plugin name
- * @param addr binary address in plugin-specific format
- * @param addrlen number of bytes in 'addr'
+ * @param address the address to convert
  * @return statically allocated (!) human-readable address
  */
 const char *
-GST_plugins_a2s (const char *name, const void *addr, size_t addrlen)
+GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api;
 
-  if (name == NULL)
+  if (address == NULL)
+    return "<inbound>";
+  api = GST_plugins_find (address->transport_name);
+  if ((api == NULL) || (address->address_length == 0) || (address->address == NULL))
     return NULL;
-  api = GST_plugins_find (name);
-  if ((api == NULL) || (addrlen == 0) || (addr == NULL))
-    return NULL;
-  return api->address_to_string (NULL, addr, addrlen);
+  return api->address_to_string (NULL, address->address, address->address_length);
 }
 
 

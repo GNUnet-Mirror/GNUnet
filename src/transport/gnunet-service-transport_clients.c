@@ -325,16 +325,14 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
  * @param peer identity of the neighbour
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
- * @param transport plugin
- * @param addr address
- * @param addrlen address length
+ * @param address the address
  */
 static void
 notify_client_about_neighbour (void *cls,
                                const struct GNUNET_PeerIdentity *peer,
                                const struct GNUNET_ATS_Information *ats,
-                               uint32_t ats_count, const char *transport,
-                               const void *addr, size_t addrlen)
+                               uint32_t ats_count, 
+			       const struct GNUNET_HELLO_Address *address)
 {
   struct TransportClient *tc = cls;
   struct ConnectInfoMessage *cim;
@@ -719,33 +717,28 @@ clients_handle_address_lookup (void *cls, struct GNUNET_SERVER_Client *client,
  *
  * @param cls our 'struct GNUNET_SERVER_TransmitContext' (for sending)
  * @param public_key public key for the peer, never NULL
- * @param target peer this change is about, never NULL
  * @param valid_until until what time do we consider the address valid?
  * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
  *                          is ZERO if the address is considered valid (no validation needed)
  *                          is a time in the future if we're currently denying re-validation
- * @param plugin_name name of the plugin
- * @param plugin_address binary address
- * @param plugin_address_len length of address
+ * @param address address to transmit
  */
 static void
 send_address_to_client (void *cls,
                         const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                        *public_key, const struct GNUNET_PeerIdentity *target,
+                        *public_key,
                         struct GNUNET_TIME_Absolute valid_until,
                         struct GNUNET_TIME_Absolute validation_block,
-                        const char *plugin_name, const void *plugin_address,
-                        size_t plugin_address_len)
+                        const struct GNUNET_HELLO_Address *address)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   char *addr_buf;
 
   /* FIXME: move to a binary format!!! */
   GNUNET_asprintf (&addr_buf, "%s --- %s, %s",
-                   GST_plugins_a2s (plugin_name, plugin_address,
-                                    plugin_address_len),
+                   GST_plugins_a2s (address),
                    (GNUNET_YES ==
-                    GST_neighbours_test_connected (target)) ? "CONNECTED" :
+                    GST_neighbours_test_connected (&address->peer)) ? "CONNECTED" :
                    "DISCONNECTED",
                    (GNUNET_TIME_absolute_get_remaining (valid_until).rel_value >
                     0) ? "VALIDATED" : "UNVALIDATED");
@@ -789,27 +782,26 @@ clients_handle_peer_address_lookup (void *cls,
  * @param neighbour identity of the neighbour
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
- * @param transport plugin
- * @param addr address
- * @param addrlen address length
+ * @param address the address
  */
 static void
 output_addresses (void *cls, const struct GNUNET_PeerIdentity *peer,
                   const struct GNUNET_ATS_Information *ats, uint32_t ats_count,
-                  const char *transport, const void *addr, size_t addrlen)
+                  const struct GNUNET_HELLO_Address *address)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct AddressIterateResponseMessage *msg;
   size_t size;
+  size_t slen;
 
-  size =
-      (sizeof (struct AddressIterateResponseMessage) + strlen (transport) + 1);
+  slen = strlen (address->transport_name) + 1;
+  size = (sizeof (struct AddressIterateResponseMessage) + slen);
   msg = GNUNET_malloc (size);
   memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&msg[0], transport, strlen (transport) + 1);
-  msg->addrlen = ntohs (addrlen);
-  msg->pluginlen = ntohs (strlen (transport) + 1);
-
+  memcpy (&msg[0], address->transport_name, slen);
+  msg->addrlen = ntohs (address->address_length);
+  msg->pluginlen = ntohs (slen);
+  // FIXME: what about 'address->address'!?
   transmit_binary_to_client (tc, msg, size);
   GNUNET_free (msg);
 }

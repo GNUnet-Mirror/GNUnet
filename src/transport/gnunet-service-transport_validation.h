@@ -29,6 +29,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_plugin.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_hello_lib.h"
 
 
 /**
@@ -50,20 +51,16 @@ GST_validation_stop (void);
  * Based on this, the validation module will measure latency for the
  * address more or less often.
  *
- * @param sender peer 
- * @param plugin_name name of plugin
+ * @param sender peer FIXME: redundant!
+ * @param address the address
  * @param session session
- * @param sender_address address of the sender as known to the plugin, NULL
- *                       if we did not initiate the connection
- * @param sender_address_len number of bytes in sender_address
  * @param in_use GNUNET_YES if we are now using the address for a connection,
  *               GNUNET_NO if we are no longer using the address for a connection
  */
 void
 GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
-				const char *plugin_name, struct Session *session,
-				const void *sender_address,
-				size_t sender_address_len,
+				const struct GNUNET_HELLO_Address *address,
+				struct Session *session,
 				int in_use);
 
 
@@ -72,19 +69,15 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
  * address.
  *
  * @param sender peer 
- * @param plugin_name name of plugin
+ * @param address the address
  * @param session session
- * @param sender_address address of the sender as known to the plugin, NULL
- *                       if we did not initiate the connection
- * @param sender_address_len number of bytes in sender_address
  * @return observed latency of the address, FOREVER if the address was
  *         never successfully validated
  */
 struct GNUNET_TIME_Relative
 GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
-				    const char *plugin_name, struct Session *session,
-				    const void *sender_address,
-				    size_t sender_address_len);
+				    const struct GNUNET_HELLO_Address *address,
+				    struct Session *session);
 
 
 /**
@@ -92,18 +85,14 @@ GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
  *
  * @param sender peer sending the PING
  * @param hdr the PING
- * @param plugin_name name of plugin that received the PING
+ * @param sender_address address of the sender, NULL if we did not initiate
  * @param session session we got the PING from
- * @param sender_address address of the sender as known to the plugin, NULL
- *                       if we did not initiate the connection
- * @param sender_address_len number of bytes in sender_address
  */
 void
 GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                             const struct GNUNET_MessageHeader *hdr,
-                            const char *plugin_name, struct Session *session,
-                            const void *sender_address,
-                            size_t sender_address_len);
+                            const struct GNUNET_HELLO_Address *sender_address, 
+			    struct Session *session);
 
 
 /**
@@ -134,29 +123,22 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
  *
  * @param cls closure
  * @param public_key public key for the peer, never NULL
- * @param target peer this change is about, never NULL
  * @param valid_until is ZERO if we never validated the address,
  *                    otherwise a time up to when we consider it (or was) valid
  * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
  *                          is ZERO if the address is considered valid (no validation needed)
  *                          otherwise a time in the future if we're currently denying re-validation
- * @param plugin_name name of the plugin
- * @param plugin_address binary address
- * @param plugin_address_len length of address
+ * @param address the address
  */
 typedef void (*GST_ValidationAddressCallback) (void *cls,
                                                const struct
                                                GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
                                                * public_key,
-                                               const struct GNUNET_PeerIdentity
-                                               * target,
                                                struct GNUNET_TIME_Absolute
                                                valid_until,
                                                struct GNUNET_TIME_Absolute
                                                validation_block,
-                                               const char *plugin_name,
-                                               const void *plugin_address,
-                                               size_t plugin_address_len);
+                                               const struct GNUNET_HELLO_Address *address);
 
 
 /**

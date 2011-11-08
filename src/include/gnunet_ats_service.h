@@ -28,6 +28,7 @@
 
 #include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_hello_lib.h"
 
 
 /**
@@ -439,10 +440,7 @@ struct Session;
  * and address preferences as determined by ATS.
  *
  * @param cls closure
- * @param peer identity of the new peer
- * @param plugin_name name of the plugin, NULL if we have no suggestion
- * @param plugin_addr suggested address, NULL if we have no suggestion
- * @param plugin_addr_len number of bytes in plugin_addr
+ * @param address suggested address (including peer identity of the peer)
  * @param session session to use
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
@@ -450,12 +448,7 @@ struct Session;
  * @param ats_count number of performance records in 'ats'
  */
 typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
-                                                      const struct
-                                                      GNUNET_PeerIdentity *
-                                                      peer,
-                                                      const char *plugin_name,
-                                                      const void *plugin_addr,
-                                                      size_t plugin_addr_len,
+						      const struct GNUNET_HELLO_Address *address,
                                                       struct Session * session,
                                                       struct
                                                       GNUNET_BANDWIDTH_Value32NBO
@@ -512,19 +505,15 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
  * for later use).  Update bandwidth assignments.
  *
  * @param sh handle
- * @param peer identity of the new peer
- * @param plugin_name name of the transport plugin
- * @param plugin_addr address  (if available)
- * @param plugin_addr_len number of bytes in plugin_addr
+ * @param address updated address
  * @param session session handle (if available)
  * @param ats performance data for the address
  * @param ats_count number of performance records in 'ats'
  */
 void
 GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
-                           const struct GNUNET_PeerIdentity *peer,
-                           const char *plugin_name, const void *plugin_addr,
-                           size_t plugin_addr_len, struct Session *session,
+			   const struct GNUNET_HELLO_Address *address,
+                           struct Session *session,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count);
 
@@ -533,36 +522,28 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
  * An address is now in use or not used any more.
  *
  * @param sh handle
- * @param peer identity of the peer
- * @param plugin_name name of the transport plugin
- * @param plugin_addr address  (if available)
- * @param plugin_addr_len number of bytes in plugin_addr
+ * @param address the address
  * @param session session handle
  * @param in_use GNUNET_YES if this address is now used, GNUNET_NO
  * if address is not used any more
  */
 void
 GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
-                           const struct GNUNET_PeerIdentity *peer,
-                           const char *plugin_name, const void *plugin_addr,
-                           size_t plugin_addr_len, struct Session *session,
+                           const struct GNUNET_HELLO_Address *address,
+                           struct Session *session,
                            int in_use);
 
 /**
  * A session got destroyed, stop including it as a valid address.
  *
  * @param sh handle
- * @param peer identity of the peer
- * @param plugin_name name of the transport plugin
- * @param plugin_addr address  (if available)
- * @param plugin_addr_len number of bytes in plugin_addr
+ * @param address the address
  * @param session session handle that is no longer valid (if available)
  */
 void
 GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
-                              const struct GNUNET_PeerIdentity *peer,
-                              const char *plugin_name, const void *plugin_addr,
-                              size_t plugin_addr_len, struct Session *session);
+                              const struct GNUNET_HELLO_Address *address,
+			      struct Session *session);
 
 
 /* ******************************** Performance API ***************************** */
@@ -577,21 +558,14 @@ struct GNUNET_ATS_PerformanceHandle;
  * Signature of a function that is called with QoS information about a peer.
  *
  * @param cls closure
- * @param peer identity of the new peer
- * @param plugin_name name of the plugin, NULL if we have no suggestion
- * @param plugin_addr suggested address, NULL if we have no suggestion
- * @param plugin_addr_len number of bytes in plugin_addr
+ * @param address the address
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
  * @param ats_count number of performance records in 'ats'
  */
 typedef void (*GNUNET_ATS_PeerInformationCallback) (void *cls,
-                                                    const struct
-                                                    GNUNET_PeerIdentity * peer,
-                                                    const char *plugin_name,
-                                                    const void *plugin_addr,
-                                                    size_t plugin_addr_len,
+                                                    const struct GNUNET_HELLO_Address *address,
                                                     struct
                                                     GNUNET_BANDWIDTH_Value32NBO
                                                     bandwidth_out,

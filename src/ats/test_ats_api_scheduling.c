@@ -118,22 +118,22 @@ end ()
 
 
 static void
-address_suggest_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
-                    const char *plugin_name, const void *plugin_addr,
-                    size_t plugin_addr_len, struct Session *session,
+address_suggest_cb (void *cls, 
+                    const struct GNUNET_HELLO_Address *address,
+                    struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                     const struct GNUNET_ATS_Information *ats,
                     uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggests address `%s'\n",
-              GNUNET_i2s (peer));
+              GNUNET_i2s (&address->peer));
 
   GNUNET_assert (0 ==
-                 memcmp (peer, &p[0].id, sizeof (struct GNUNET_PeerIdentity)));
-  GNUNET_assert (0 == strcmp (plugin_name, addr[0].plugin));
-  GNUNET_assert (plugin_addr_len == addr[0].addr_len);
-  GNUNET_assert (0 == memcmp (plugin_addr, addr[0].plugin, plugin_addr_len));
+                 memcmp (&address->peer, &p[0].id, sizeof (struct GNUNET_PeerIdentity)));
+  GNUNET_assert (0 == strcmp (address->transport_name, addr[0].plugin));
+  GNUNET_assert (address->address_length == addr[0].addr_len);
+  GNUNET_assert (0 == memcmp (address->address, addr[0].plugin, address->address_length));
   GNUNET_assert (addr[0].session == session);
 
 
@@ -166,6 +166,8 @@ static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  struct GNUNET_HELLO_Address address0;
+
   ret = GNUNET_SYSERR;
 
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
@@ -198,16 +200,18 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing address creation\n");
 
-  GNUNET_ATS_address_update (ats, &p[0].id, addr[0].plugin, addr[0].addr,
-                             addr[0].addr_len, addr[0].session, NULL, 0);
+  address0.peer = p[0].id;
+  address0.transport_name = addr[0].plugin;
+  address0.address = addr[0].addr;
+  address0.address_length = addr[0].addr_len;
+  GNUNET_ATS_address_update (ats, &address0, addr[0].session, NULL, 0);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info creation\n");
 
   atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_UP);
   atsi[0].value = htonl (1024);
 
-  GNUNET_ATS_address_update (ats, &p[0].id, addr[0].plugin, addr[0].addr,
-                             addr[0].addr_len, addr[0].session, atsi, 1);
+  GNUNET_ATS_address_update (ats, &address0, addr[0].session, atsi, 1);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info update\n");
 
@@ -217,14 +221,12 @@ check (void *cls, char *const *args, const char *cfgfile,
   atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_DOWN);
   atsi[1].value = htonl (1024);
 
-  GNUNET_ATS_address_update (ats, &p[0].id, addr[0].plugin, addr[0].addr,
-                             addr[0].addr_len, addr[0].session, atsi, 2);
+  GNUNET_ATS_address_update (ats, &address0, addr[0].session, atsi, 2);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing manual address deletion \n");
-  GNUNET_ATS_address_update (ats, &p[1].id, addr[0].plugin, addr[0].addr,
-                             addr[0].addr_len, addr[0].session, NULL, 0);
-  GNUNET_ATS_address_destroyed (ats, &p[1].id, addr[0].plugin, addr[0].addr,
-                                addr[0].addr_len, addr[0].session);
+  address0.peer = p[1].id; // FIXME: why? typo in old code?
+  GNUNET_ATS_address_update (ats, &address0, addr[0].session, NULL, 0);
+  GNUNET_ATS_address_destroyed (ats, &address0, addr[0].session);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n",
               GNUNET_i2s (&p[0].id));

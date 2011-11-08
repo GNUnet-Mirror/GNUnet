@@ -89,6 +89,30 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Copy an address struct.
+ *
+ * @param address address to copy
+ * @return a copy of the address struct
+ */
+struct GNUNET_HELLO_Address *
+GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address);
+
+
+/**
+ * Compare two addresses.  Does NOT compare the peer identity,
+ * that is assumed already to match!
+ *
+ * @param a1 first address
+ * @param a2 second address
+ * @return 0 if the addresses are equal, -1 if a1<a2, 1 if a1>a2.
+ */
+int
+GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
+			  const struct GNUNET_HELLO_Address *a2);
+
+
+
+/**
  * Free an address.
  * 
  * @param addr address to free
@@ -109,19 +133,17 @@ struct GNUNET_HELLO_Message;
  * Copy the given address information into
  * the given buffer using the format of HELLOs.
  *
- * @param tname name of the transport plugin
+ * @param address address to add
  * @param expiration expiration for the address
- * @param addr the address
- * @param addr_len length of the address in bytes
  * @param target where to copy the address
  * @param max maximum number of bytes to copy to target
  * @return number of bytes copied, 0 if
  *         the target buffer was not big enough.
  */
 size_t
-GNUNET_HELLO_add_address (const char *tname,
+GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
                           struct GNUNET_TIME_Absolute expiration,
-                          const void *addr, uint16_t addr_len, char *target,
+                          char *target,
                           size_t max);
 
 
@@ -204,18 +226,15 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
  * Iterator callback to go over all addresses.
  *
  * @param cls closure
- * @param tname name of the transport
+ * @param address the address
  * @param expiration expiration time
- * @param addr the address
- * @param addrlen length of the address
  * @return GNUNET_OK to keep the address,
  *         GNUNET_NO to delete it from the HELLO
  *         GNUNET_SYSERR to stop iterating (but keep current address)
  */
-typedef int (*GNUNET_HELLO_AddressIterator) (void *cls, const char *tname,
-                                             struct GNUNET_TIME_Absolute
-                                             expiration, const void *addr,
-                                             uint16_t addrlen);
+typedef int (*GNUNET_HELLO_AddressIterator) (void *cls, 
+					     const struct GNUNET_HELLO_Address *address,
+                                             struct GNUNET_TIME_Absolute expiration);
 
 
 /**

@@ -30,6 +30,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_plugin.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_hello_lib.h"
 
 
 /**
@@ -69,13 +70,11 @@ GST_plugins_find (const char *name);
  * Convert a given address to a human-readable format.  Note that the
  * return value will be overwritten on the next call to this function.
  *
- * @param name plugin name
- * @param addr binary address in plugin-specific format
- * @param addrlen number of bytes in 'addr'
+ * @param address address to convert
  * @return statically allocated (!) human-readable address
  */
 const char *
-GST_plugins_a2s (const char *name, const void *addr, size_t addrlen);
+GST_plugins_a2s (const struct GNUNET_HELLO_Address *address);
 
 
 #endif

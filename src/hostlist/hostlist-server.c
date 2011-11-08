@@ -141,16 +141,13 @@ finish_response (struct HostSet *results)
  * Set 'cls' to GNUNET_YES (we have an address!).
  *
  * @param cls closure, an 'int*'
- * @param tname name of the transport (ignored)
+ * @param address the address (ignored)
  * @param expiration expiration time (call is ignored if this is in the past)
- * @param addr the address (ignored)
- * @param addrlen length of the address (ignored)
  * @return  GNUNET_SYSERR to stop iterating (unless expiration has occured)
  */
 static int
-check_has_addr (void *cls, const char *tname,
-                struct GNUNET_TIME_Absolute expiration, const void *addr,
-                uint16_t addrlen)
+check_has_addr (void *cls, const struct GNUNET_HELLO_Address *address,
+                struct GNUNET_TIME_Absolute expiration)
 {
   int *arg = cls;
 

@@ -45,16 +45,17 @@ static struct GNUNET_PEERINFO_Handle *h;
 static unsigned int retries;
 
 static int
-check_it (void *cls, const char *tname, struct GNUNET_TIME_Absolute expiration,
-          const void *addr, uint16_t addrlen)
+check_it (void *cls, 
+	  const struct GNUNET_HELLO_Address *address,
+	  struct GNUNET_TIME_Absolute expiration)
 {
   unsigned int *agc = cls;
 
-  if (addrlen > 0)
+  if (address != NULL)
   {
-    GNUNET_assert (0 == strcmp ("peerinfotest", tname));
-    GNUNET_assert (0 == strncmp ("Address", addr, addrlen));
-    (*agc) -= (1 << (addrlen - 1));
+    GNUNET_assert (0 == strcmp ("peerinfotest", address->transport_name));
+    GNUNET_assert (0 == strncmp ("Address", address->address, address->address_length));
+    (*agc) -= (1 << (address->address_length - 1));
   }
   return GNUNET_OK;
 }
@@ -65,14 +66,19 @@ address_generator (void *cls, size_t max, void *buf)
 {
   size_t *agc = cls;
   size_t ret;
+  struct GNUNET_HELLO_Address address;
 
   if (0 == *agc)
     return 0;
+  memset (&address.peer, 0, sizeof (struct GNUNET_PeerIdentity));
+  address.address = "Address";
+  address.transport_name = "peerinfotest";
+  address.address_length = *agc;
   ret =
-      GNUNET_HELLO_add_address ("peerinfotest",
-                                GNUNET_TIME_relative_to_absolute
-                                (GNUNET_TIME_UNIT_HOURS), "Address", *agc, buf,
-                                max);
+    GNUNET_HELLO_add_address (&address,
+			      GNUNET_TIME_relative_to_absolute
+			      (GNUNET_TIME_UNIT_HOURS), buf,
+			      max);
   (*agc)--;
   return ret;
 }

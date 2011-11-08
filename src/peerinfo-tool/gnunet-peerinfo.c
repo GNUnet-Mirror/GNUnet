@@ -96,16 +96,14 @@ process_resolved_address (void *cls, const char *address)
  * Iterator callback to go over all addresses.
  *
  * @param cls closure
- * @param tname name of the transport
+ * @param address the address
  * @param expiration expiration time
- * @param addr the address
- * @param addrlen length of the address
  * @return GNUNET_OK to keep the address and continue
  */
 static int
-count_address (void *cls, const char *tname,
-               struct GNUNET_TIME_Absolute expiration, const void *addr,
-               uint16_t addrlen)
+count_address (void *cls, 
+	       const struct GNUNET_HELLO_Address *address,
+               struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
 
@@ -118,20 +116,21 @@ count_address (void *cls, const char *tname,
  * Iterator callback to go over all addresses.
  *
  * @param cls closure
- * @param tname name of the transport
+ * @param address the address
  * @param expiration expiration time
- * @param addr the address
- * @param addrlen length of the address
  * @return GNUNET_OK to keep the address and continue
  */
 static int
-print_address (void *cls, const char *tname,
-               struct GNUNET_TIME_Absolute expiration, const void *addr,
-               uint16_t addrlen)
+print_address (void *cls,
+	       const struct GNUNET_HELLO_Address *address,
+               struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
 
-  GNUNET_TRANSPORT_address_lookup (cfg, addr, addrlen, no_resolve, tname,
+  GNUNET_TRANSPORT_address_lookup (cfg, 
+				   address->address, 
+				   address->address_length, no_resolve, 
+				   address->transport_name,
                                    GNUNET_TIME_relative_multiply
                                    (GNUNET_TIME_UNIT_SECONDS, 10),
                                    &process_resolved_address, pc);

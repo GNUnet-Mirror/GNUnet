@@ -774,16 +774,13 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
  * Iterator called on each address.
  *
  * @param cls flag that we will set if we see any addresses
- * @param tname name of the transport
+ * @param address the address of the peer
  * @param expiration when will the given address expire
- * @param addr the address of the peer
- * @param addrlen number of bytes in addr
  * @return GNUNET_SYSERR always, to terminate iteration
  */
 static int
-address_iterator (void *cls, const char *tname,
-                  struct GNUNET_TIME_Absolute expiration, const void *addr,
-                  uint16_t addrlen)
+address_iterator (void *cls, const struct GNUNET_HELLO_Address *address,
+                  struct GNUNET_TIME_Absolute expiration)
 {
   int *flag = cls;
 

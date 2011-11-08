@@ -293,6 +293,7 @@ struct GNUNET_TRANSPORT_AddressLookupContext;
  * @param aluc_cls closure for aluc
  * @return handle to cancel the operation, NULL on error
  */
+// FIXME: use 'GNUNET_HELLO_Address' here!
 struct GNUNET_TRANSPORT_AddressLookupContext *
 GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char *address, size_t addressLen,

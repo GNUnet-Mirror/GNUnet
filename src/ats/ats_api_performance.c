@@ -269,9 +269,10 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
 {
   const struct PeerInformationMessage *pi;
   const struct GNUNET_ATS_Information *atsi;
-  const char *address;
+  const char *plugin_address;
   const char *plugin_name;
-  uint16_t address_length;
+  struct GNUNET_HELLO_Address address;
+  uint16_t plugin_address_length;
   uint16_t plugin_name_length;
   uint32_t ats_count;
 
@@ -287,12 +288,12 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
   }
   pi = (const struct PeerInformationMessage *) msg;
   ats_count = ntohl (pi->ats_count);
-  address_length = ntohs (pi->address_length);
+  plugin_address_length = ntohs (pi->address_length);
   plugin_name_length = ntohs (pi->plugin_name_length);
   atsi = (const struct GNUNET_ATS_Information *) &pi[1];
-  address = (const char *) &atsi[ats_count];
-  plugin_name = &address[address_length];
-  if ((address_length + plugin_name_length +
+  plugin_address = (const char *) &atsi[ats_count];
+  plugin_name = &plugin_address[plugin_address_length];
+  if ((plugin_address_length + plugin_name_length +
        ats_count * sizeof (struct GNUNET_ATS_Information) +
        sizeof (struct PeerInformationMessage) != ntohs (msg->size)) ||
       (ats_count >
@@ -302,7 +303,11 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  ph->infocb (ph->infocb_cls, &pi->peer, plugin_name, address, address_length,
+  address.peer = pi->peer;
+  address.address = plugin_address;
+  address.address_length = plugin_address_length;
+  address.transport_name = plugin_name;
+  ph->infocb (ph->infocb_cls, &address,
               pi->bandwidth_out, pi->bandwidth_in, atsi, ats_count);
   return GNUNET_OK;
 }

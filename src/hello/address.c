@@ -61,4 +61,49 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
   return addr;
 }
 
+
+/**
+ * Copy an address struct.
+ *
+ * @param address address to copy
+ * @return a copy of the address struct
+ */
+struct GNUNET_HELLO_Address *
+GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address)
+{
+  return GNUNET_HELLO_address_allocate (&address->peer,
+					address->transport_name,
+					address->address,
+					address->address_length);
+}
+
+
+/**
+ * Compare two addresses.  Does NOT compare the peer identity,
+ * that is assumed already to match!
+ *
+ * @param a1 first address
+ * @param a2 second address
+ * @return 0 if the addresses are equal, -1 if a1<a2, 1 if a1>a2.
+ */
+int
+GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
+			  const struct GNUNET_HELLO_Address *a2)
+{
+  int ret;
+
+  ret = strcmp (a1->transport_name,
+		a2->transport_name);
+  if (0 != ret)
+    return ret;
+  if (a1->address_length < a2->address_length) 
+    return -1;
+  if (a1->address_length > a2->address_length) 
+    return 1;
+  return memcmp (a1->address, 
+		 a1->address, 
+		 a1->address_length);
+}
+
+
 /* end of address.c */

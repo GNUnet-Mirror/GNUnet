@@ -65,38 +65,36 @@ struct GNUNET_HELLO_Message
  * Copy the given address information into
  * the given buffer using the format of HELLOs.
  *
- * @param tname name of the transport plugin
+ * @param addess the address
  * @param expiration expiration for the address
- * @param addr the address
- * @param addr_len length of the address in bytes
  * @param target where to copy the address
  * @param max maximum number of bytes to copy to target
  * @return number of bytes copied, 0 if
  *         the target buffer was not big enough.
  */
 size_t
-GNUNET_HELLO_add_address (const char *tname,
+GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
                           struct GNUNET_TIME_Absolute expiration,
-                          const void *addr, uint16_t addr_len, char *target,
+                          char *target,
                           size_t max)
 {
   uint16_t alen;
   size_t slen;
   struct GNUNET_TIME_AbsoluteNBO exp;
 
-  slen = strlen (tname) + 1;
+  slen = strlen (address->transport_name) + 1;
   if (slen + sizeof (uint16_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-      addr_len > max)
+      address->address_length > max)
     return 0;
   exp = GNUNET_TIME_absolute_hton (expiration);
-  alen = htons (addr_len);
-  memcpy (target, tname, slen);
+  alen = htons ((uint16_t) address->address_length);
+  memcpy (target, address->transport_name, slen);
   memcpy (&target[slen], &alen, sizeof (uint16_t));
   slen += sizeof (uint16_t);
   memcpy (&target[slen], &exp, sizeof (struct GNUNET_TIME_AbsoluteNBO));
   slen += sizeof (struct GNUNET_TIME_AbsoluteNBO);
-  memcpy (&target[slen], addr, addr_len);
-  slen += addr_len;
+  memcpy (&target[slen], address->address, address->address_length);
+  slen += address->address_length;
   return slen;
 }
 
@@ -207,6 +205,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
                                 int return_modified,
                                 GNUNET_HELLO_AddressIterator it, void *it_cls)
 {
+  struct GNUNET_HELLO_Address address;
   uint16_t msize;
   struct GNUNET_HELLO_Message *ret;
   const char *inptr;
@@ -232,6 +231,9 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   insize = msize - sizeof (struct GNUNET_HELLO_Message);
   wpos = 0;
   woff = (ret != NULL) ? (char *) &ret[1] : NULL;
+  GNUNET_CRYPTO_hash (&msg->publicKey,
+		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &address.peer.hashPubKey);
   while (insize > 0)
   {
     esize = get_hello_address_size (inptr, insize, &alen);
@@ -244,9 +246,10 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
     memcpy (&expire,
             &inptr[esize - alen - sizeof (struct GNUNET_TIME_AbsoluteNBO)],
             sizeof (struct GNUNET_TIME_AbsoluteNBO));
-    iret =
-        it (it_cls, inptr, GNUNET_TIME_absolute_ntoh (expire),
-            &inptr[esize - alen], alen);
+    address.address = &inptr[esize - alen];
+    address.address_length = alen;
+    address.transport_name = inptr;
+    iret = it (it_cls, &address, GNUNET_TIME_absolute_ntoh (expire));
     if (iret == GNUNET_SYSERR)
     {
       if (ret != NULL)
@@ -270,23 +273,21 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
 
 struct ExpireContext
 {
-  const void *addr;
-  const char *tname;
-  uint16_t addrlen;
+  const struct GNUNET_HELLO_Address *address;
   int found;
   struct GNUNET_TIME_Absolute expiration;
 };
 
 
 static int
-get_match_exp (void *cls, const char *tname,
-               struct GNUNET_TIME_Absolute expiration, const void *addr,
-               uint16_t addrlen)
+get_match_exp (void *cls, 
+	       const struct GNUNET_HELLO_Address *address,
+               struct GNUNET_TIME_Absolute expiration)
 {
   struct ExpireContext *ec = cls;
 
-  if ((addrlen == ec->addrlen) && (0 == memcmp (addr, ec->addr, addrlen)) &&
-      (0 == strcmp (tname, ec->tname)))
+  if (0 == GNUNET_HELLO_address_cmp (address,
+				     ec->address))
   {
     ec->found = GNUNET_YES;
     ec->expiration = expiration;
@@ -310,17 +311,15 @@ struct MergeContext
 
 
 static int
-copy_latest (void *cls, const char *tname,
-             struct GNUNET_TIME_Absolute expiration, const void *addr,
-             uint16_t addrlen)
+copy_latest (void *cls, 
+	     const struct GNUNET_HELLO_Address *address,
+             struct GNUNET_TIME_Absolute expiration)
 {
   struct MergeContext *mc = cls;
   struct ExpireContext ec;
 
-  ec.addr = addr;
-  ec.addrlen = addrlen;
+  ec.address = address;
   ec.found = GNUNET_NO;
-  ec.tname = tname;
   GNUNET_HELLO_iterate_addresses (mc->other, GNUNET_NO, &get_match_exp, &ec);
   if ((ec.found == GNUNET_NO) ||
       (ec.expiration.abs_value < expiration.abs_value) ||
@@ -328,8 +327,9 @@ copy_latest (void *cls, const char *tname,
        (mc->take_equal == GNUNET_YES)))
   {
     mc->ret +=
-        GNUNET_HELLO_add_address (tname, expiration, addr, addrlen,
-                                  &mc->buf[mc->ret], mc->max - mc->ret);
+        GNUNET_HELLO_add_address (address,
+                                  expiration,
+				  &mc->buf[mc->ret], mc->max - mc->ret);
   }
   return GNUNET_OK;
 }
@@ -388,25 +388,23 @@ struct DeltaContext
 
 
 static int
-delta_match (void *cls, const char *tname,
-             struct GNUNET_TIME_Absolute expiration, const void *addr,
-             uint16_t addrlen)
+delta_match (void *cls, 
+	     const struct GNUNET_HELLO_Address *address,
+             struct GNUNET_TIME_Absolute expiration)
 {
   struct DeltaContext *dc = cls;
   int ret;
   struct ExpireContext ec;
 
-  ec.addr = addr;
-  ec.addrlen = addrlen;
+  ec.address = address;
   ec.found = GNUNET_NO;
-  ec.tname = tname;
   GNUNET_HELLO_iterate_addresses (dc->old_hello, GNUNET_NO, &get_match_exp,
                                   &ec);
   if ((ec.found == GNUNET_YES) &&
       ((ec.expiration.abs_value > expiration.abs_value) ||
        (ec.expiration.abs_value >= dc->expiration_limit.abs_value)))
     return GNUNET_YES;          /* skip */
-  ret = dc->it (dc->it_cls, tname, expiration, addr, addrlen);
+  ret = dc->it (dc->it_cls, address, expiration);
   return ret;
 }
 
@@ -532,30 +530,26 @@ struct EqualsContext
 
   const struct GNUNET_HELLO_Message *h2;
 
-  const char *tname;
-
-  const void *addr;
+  const struct GNUNET_HELLO_Address *address;
 
   struct GNUNET_TIME_Absolute expiration;
 
   int found;
 
-  uint16_t addrlen;
-
 };
 
 
 static int
-find_other_matching (void *cls, const char *tname,
-                     struct GNUNET_TIME_Absolute expiration, const void *addr,
-                     uint16_t addrlen)
+find_other_matching (void *cls, const struct GNUNET_HELLO_Address *address,
+                     struct GNUNET_TIME_Absolute expiration)
 {
   struct EqualsContext *ec = cls;
 
   if (expiration.abs_value < ec->expiration_limit.abs_value)
     return GNUNET_YES;
-  if ((addrlen == ec->addrlen) && (0 == strcmp (tname, ec->tname)) &&
-      (0 == memcmp (addr, ec->addr, addrlen)))
+  if (0 == 
+      GNUNET_HELLO_address_cmp (address,
+				ec->address))
   {
     ec->found = GNUNET_YES;
     if (expiration.abs_value < ec->expiration.abs_value)
@@ -567,18 +561,15 @@ find_other_matching (void *cls, const char *tname,
 
 
 static int
-find_matching (void *cls, const char *tname,
-               struct GNUNET_TIME_Absolute expiration, const void *addr,
-               uint16_t addrlen)
+find_matching (void *cls, const struct GNUNET_HELLO_Address *address,
+               struct GNUNET_TIME_Absolute expiration)
 {
   struct EqualsContext *ec = cls;
 
   if (expiration.abs_value < ec->expiration_limit.abs_value)
     return GNUNET_YES;
-  ec->tname = tname;
+  ec->address = address;
   ec->expiration = expiration;
-  ec->addr = addr;
-  ec->addrlen = addrlen;
   ec->found = GNUNET_NO;
   GNUNET_HELLO_iterate_addresses (ec->h2, GNUNET_NO, &find_other_matching, ec);
   if (ec->found == GNUNET_NO)
@@ -630,9 +621,8 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
 
 
 static int
-find_min_expire (void *cls, const char *tname,
-                 struct GNUNET_TIME_Absolute expiration, const void *addr,
-                 uint16_t addrlen)
+find_min_expire (void *cls, const struct GNUNET_HELLO_Address *address,
+                 struct GNUNET_TIME_Absolute expiration)
 {
   struct GNUNET_TIME_Absolute *min = cls;
 

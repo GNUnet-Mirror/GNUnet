@@ -35,55 +35,58 @@ my_addr_gen (void *cls, size_t max, void *buf)
 {
   unsigned int *i = cls;
   size_t ret;
+  struct GNUNET_HELLO_Address address;
 
 #if DEBUG
   fprintf (stderr, "DEBUG: my_addr_gen called with i = %d\n", *i);
 #endif
   if (0 == *i)
     return 0;
+  memset (&address.peer, 0, sizeof (struct GNUNET_PeerIdentity));
+  address.address = "address_information";
+  address.transport_name = "test";
+  address.address_length = *i;
   ret =
-      GNUNET_HELLO_add_address ("test", GNUNET_TIME_absolute_get (),
-                                "address_information", *i, buf, max);
+    GNUNET_HELLO_add_address (&address, GNUNET_TIME_absolute_get (),
+			      buf, max);
   (*i)--;
   return ret;
 }
 
 
 static int
-check_addr (void *cls, const char *tname,
-            struct GNUNET_TIME_Absolute expiration, const void *addr,
-            uint16_t addrlen)
+check_addr (void *cls, const struct GNUNET_HELLO_Address *address,
+            struct GNUNET_TIME_Absolute expiration)
 {
   unsigned int *i = cls;
 
 #if DEBUG
   fprintf (stderr, "DEBUG: check_addr called with i = %d and addrlen = %u\n",
-           *i, addrlen);
+           *i, address->address_length);
 #endif
-  GNUNET_assert (addrlen > 0);
-  GNUNET_assert (*i & (1 << (addrlen - 1)));
-  *i -= (1 << (addrlen - 1));
-  GNUNET_assert (0 == strncmp ("address_information", addr, addrlen));
-  GNUNET_assert (0 == strcmp ("test", tname));
+  GNUNET_assert (address->address_length > 0);
+  GNUNET_assert (*i & (1 << (address->address_length - 1)));
+  *i -= (1 << (address->address_length - 1));
+  GNUNET_assert (0 == strncmp ("address_information", address->address, address->address_length));
+  GNUNET_assert (0 == strcmp ("test", address->transport_name));
   return GNUNET_OK;
 }
 
 
 static int
-remove_some (void *cls, const char *tname,
-             struct GNUNET_TIME_Absolute expiration, const void *addr,
-             uint16_t addrlen)
+remove_some (void *cls, const struct GNUNET_HELLO_Address *address,
+             struct GNUNET_TIME_Absolute expiration)
 {
   unsigned int *i = cls;
 
 #if DEBUG
   fprintf (stderr, "DEBUG: remove_some called with i = %d and addrlen = %u\n",
-           *i, addrlen);
+           *i, address->address_length);
 #endif
-  GNUNET_assert (addrlen > 0);
-  if (*i & (1 << (addrlen - 1)))
+  GNUNET_assert (address->address_length > 0);
+  if (*i & (1 << (address->address_length - 1)))
   {
-    *i -= (1 << (addrlen - 1));
+    *i -= (1 << (address->address_length - 1));
     return GNUNET_NO;
   }
   return GNUNET_OK;

@@ -29,6 +29,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_hello_lib.h"
 
 
 
@@ -72,22 +73,17 @@ GST_hello_get (void);
  * Add or remove an address from this peer's HELLO message.
  *
  * @param addremove GNUNET_YES to add, GNUNET_NO to remove
- * @param plugin_name name of the plugin for which this is an address
- * @param plugin_address address in a plugin-specific format
- * @param plugin_address_len number of bytes in plugin_address
+ * @param address address to add or remove
  */
 void
-GST_hello_modify_addresses (int addremove, const char *plugin_name,
-                            const void *plugin_address,
-                            size_t plugin_address_len);
+GST_hello_modify_addresses (int addremove, 
+			    const struct GNUNET_HELLO_Address *address);
 
 
 /**
  * Test if a particular address is one of ours.
  *
- * @param plugin_name name of the plugin for which this is an address
- * @param plugin_address address in a plugin-specific format
- * @param plugin_address_len number of bytes in plugin_address
+ * @param address the address to test
  * @param sig location where to cache PONG signatures for this address [set]
  * @param sig_expiration how long until the current 'sig' expires?
  *            (ZERO if sig was never created) [set]
@@ -95,8 +91,7 @@ GST_hello_modify_addresses (int addremove, const char *plugin_name,
  *         GNUNET_NO if not
  */
 int
-GST_hello_test_address (const char *plugin_name, const void *plugin_address,
-                        size_t plugin_address_len,
+GST_hello_test_address (const struct GNUNET_HELLO_Address *address,
                         struct GNUNET_CRYPTO_RsaSignature **sig,
                         struct GNUNET_TIME_Absolute **sig_expiration);
 

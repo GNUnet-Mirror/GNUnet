@@ -56,9 +56,9 @@ struct OwnAddressList
   struct OwnAddressList *prev;
 
   /**
-   * Name of the plugin.
+   * The address.
    */
-  char *plugin_name;
+  struct GNUNET_HELLO_Address *address;
 
   /**
    * How long until the current signature expires? (ZERO if the
@@ -70,11 +70,6 @@ struct OwnAddressList
    * Signature for a 'struct TransportPongMessage' for this address.
    */
   struct GNUNET_CRYPTO_RsaSignature pong_signature;
-
-  /**
-   * Length of addr.
-   */
-  size_t addrlen;
 
 };
 
@@ -143,9 +138,8 @@ address_generator (void *cls, size_t max, void *buf)
   if (NULL == gc->addr_pos)
     return 0;
   ret =
-      GNUNET_HELLO_add_address (gc->addr_pos->plugin_name, gc->expiration,
-                                &gc->addr_pos[1], gc->addr_pos->addrlen, buf,
-                                max);
+    GNUNET_HELLO_add_address (gc->addr_pos->address, gc->expiration,
+			      buf, max);
   gc->addr_pos = gc->addr_pos->next;
   return ret;
 }
@@ -253,14 +247,11 @@ GST_hello_get ()
  * Add or remove an address from this peer's HELLO message.
  *
  * @param addremove GNUNET_YES to add, GNUNET_NO to remove
- * @param plugin_name name of the plugin for which this is an address
- * @param plugin_address address in a plugin-specific format
- * @param plugin_address_len number of bytes in plugin_address
+ * @param address address to add or remove
  */
 void
-GST_hello_modify_addresses (int addremove, const char *plugin_name,
-                            const void *plugin_address,
-                            size_t plugin_address_len)
+GST_hello_modify_addresses (int addremove,
+			    const struct GNUNET_HELLO_Address *address)
 {
   struct OwnAddressList *al;
 
@@ -269,18 +260,18 @@ GST_hello_modify_addresses (int addremove, const char *plugin_name,
               (add_remove ==
                GNUNET_YES) ? "Adding `%s':%s to the set of our addresses\n" :
               "Removing `%s':%s from the set of our addresses\n",
-              GST_plugins_a2s (plugin_name, addr, addrlen), p->short_name);
+              GST_plugins_a2s (address), p->short_name);
 #endif
-  GNUNET_assert (plugin_address != NULL);
+  GNUNET_assert (address != NULL);
   if (GNUNET_NO == addremove)
   {
     for (al = oal_head; al != NULL; al = al->next)
-      if ((plugin_address_len == al->addrlen) &&
-          (0 == strcmp (al->plugin_name, plugin_name)) &&
-          (0 == memcmp (plugin_address, &al[1], plugin_address_len)))
-      {
+      if (0 ==
+	  GNUNET_HELLO_address_cmp (address,
+				    al->address))
+	{
         GNUNET_CONTAINER_DLL_remove (oal_head, oal_tail, al);
-        GNUNET_free (al->plugin_name);
+        GNUNET_HELLO_address_free (al->address);
         GNUNET_free (al);
         refresh_hello ();
         return;
@@ -289,11 +280,9 @@ GST_hello_modify_addresses (int addremove, const char *plugin_name,
     GNUNET_break (0);
     return;
   }
-  al = GNUNET_malloc (sizeof (struct OwnAddressList) + plugin_address_len);
+  al = GNUNET_malloc (sizeof (struct OwnAddressList));
   GNUNET_CONTAINER_DLL_insert (oal_head, oal_tail, al);
-  al->plugin_name = GNUNET_strdup (plugin_name);
-  al->addrlen = plugin_address_len;
-  memcpy (&al[1], plugin_address, plugin_address_len);
+  al->address = GNUNET_HELLO_address_copy (address);
   refresh_hello ();
 }
 
@@ -301,9 +290,7 @@ GST_hello_modify_addresses (int addremove, const char *plugin_name,
 /**
  * Test if a particular address is one of ours.
  *
- * @param plugin_name name of the plugin for which this is an address
- * @param plugin_address address in a plugin-specific format
- * @param plugin_address_len number of bytes in plugin_address
+ * @param address address to test
  * @param sig location where to cache PONG signatures for this address [set]
  * @param sig_expiration how long until the current 'sig' expires?
  *            (ZERO if sig was never created) [set]
@@ -311,17 +298,15 @@ GST_hello_modify_addresses (int addremove, const char *plugin_name,
  *         GNUNET_NO if not
  */
 int
-GST_hello_test_address (const char *plugin_name, const void *plugin_address,
-                        size_t plugin_address_len,
+GST_hello_test_address (const struct GNUNET_HELLO_Address *address,
                         struct GNUNET_CRYPTO_RsaSignature **sig,
                         struct GNUNET_TIME_Absolute **sig_expiration)
 {
   struct OwnAddressList *al;
 
   for (al = oal_head; al != NULL; al = al->next)
-    if ((plugin_address_len == al->addrlen) &&
-        (0 == strcmp (al->plugin_name, plugin_name)) &&
-        (0 == memcmp (plugin_address, &al[1], plugin_address_len)))
+    if (0 == GNUNET_HELLO_address_cmp (address,
+				       al->address))
     {
       *sig = &al->pong_signature;
       *sig_expiration = &al->pong_sig_expires;

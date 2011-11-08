@@ -440,11 +440,12 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
   const struct AddressSuggestionMessage *m;
   const struct GNUNET_ATS_Information *atsi;
-  const char *address;
+  const char *plugin_address;
   const char *plugin_name;
-  uint16_t address_length;
+  uint16_t plugin_address_length;
   uint16_t plugin_name_length;
   uint32_t ats_count;
+  struct GNUNET_HELLO_Address address;
 
   if (NULL == msg)
   {
@@ -470,12 +471,12 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   m = (const struct AddressSuggestionMessage *) msg;
   ats_count = ntohl (m->ats_count);
-  address_length = ntohs (m->address_length);
+  plugin_address_length = ntohs (m->address_length);
   atsi = (const struct GNUNET_ATS_Information *) &m[1];
-  address = (const char *) &atsi[ats_count];
-  plugin_name = &address[address_length];
+  plugin_address = (const char *) &atsi[ats_count];
+  plugin_name = &plugin_address[plugin_address_length];
   plugin_name_length = ntohs (m->plugin_name_length);
-  if ((address_length + plugin_name_length +
+  if ((plugin_address_length + plugin_name_length +
        ats_count * sizeof (struct GNUNET_ATS_Information) +
        sizeof (struct AddressSuggestionMessage) != ntohs (msg->size)) ||
       (ats_count >
@@ -500,9 +501,11 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
     }
   }
-
-  sh->suggest_cb (sh->suggest_cb_cls, &m->peer, plugin_name, address,
-                  address_length, s, m->bandwidth_out,
+  address.peer = m->peer;
+  address.address = plugin_address;
+  address.address_length = plugin_address_length;
+  address.transport_name = plugin_name;
+  sh->suggest_cb (sh->suggest_cb_cls, &address, s, m->bandwidth_out,
                   m->bandwidth_in, atsi, ats_count);
 
 
@@ -637,19 +640,15 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
  * for later use).  Update bandwidth assignments.
  *
  * @param sh handle
- * @param peer identity of the new peer
- * @param plugin_name name of the transport plugin
- * @param plugin_addr address  (if available)
- * @param plugin_addr_len number of bytes in plugin_addr
+ * @param address the address
  * @param session session handle (if available)
  * @param ats performance data for the address
  * @param ats_count number of performance records in 'ats'
  */
 void
 GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
-                           const struct GNUNET_PeerIdentity *peer,
-                           const char *plugin_name, const void *plugin_addr,
-                           size_t plugin_addr_len, struct Session *session,
+                           const struct GNUNET_HELLO_Address *address,
+                           struct Session *session,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count)
 {
@@ -660,12 +659,12 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   size_t namelen;
   size_t msize;
 
-  namelen = (plugin_name == NULL) ? 0 : strlen (plugin_name) + 1;
+  namelen = (address->transport_name == NULL) ? 0 : strlen (address->transport_name) + 1;
   msize =
-      sizeof (struct AddressUpdateMessage) + plugin_addr_len +
+      sizeof (struct AddressUpdateMessage) + address->address_length +
       ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
   if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (plugin_addr_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+      (address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
       (namelen >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
       (ats_count >=
        GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)))
@@ -681,15 +680,15 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
   m->header.size = htons (msize);
   m->ats_count = htonl (ats_count);
-  m->peer = *peer;
-  m->address_length = htons (plugin_addr_len);
+  m->peer = address->peer;
+  m->address_length = htons (address->address_length);
   m->plugin_name_length = htons (namelen);
-  m->session_id = htonl (get_session_id (sh, session, peer));
+  m->session_id = htonl (get_session_id (sh, session, &address->peer));
   am = (struct GNUNET_ATS_Information *) &m[1];
   memcpy (am, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   pm = (char *) &am[ats_count];
-  memcpy (pm, plugin_addr, plugin_addr_len);
-  memcpy (&pm[plugin_addr_len], plugin_name, namelen);
+  memcpy (pm, address->address, address->address_length);
+  memcpy (&pm[address->address_length], address->transport_name, namelen);
   GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
   do_transmit (sh);
 }
@@ -699,19 +698,15 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
  * An address is now in use or not used any more.
  *
  * @param sh handle
- * @param peer identity of the peer
- * @param plugin_name name of the transport plugin
- * @param plugin_addr address  (if available)
- * @param plugin_addr_len number of bytes in plugin_addr
+ * @param address the address
  * @param session session handle
  * @param in_use GNUNET_YES if this address is now used, GNUNET_NO
  * if address is not used any more
  */
 void
 GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
-                           const struct GNUNET_PeerIdentity *peer,
-                           const char *plugin_name, const void *plugin_addr,
-                           size_t plugin_addr_len, struct Session *session,
+                           const struct GNUNET_HELLO_Address *address,
+                           struct Session *session,
                            int in_use)
 {
   struct PendingMessage *p;
@@ -720,10 +715,10 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
   size_t namelen;
   size_t msize;
 
-  namelen = (plugin_name == NULL) ? 0 : strlen (plugin_name) + 1;
-  msize = sizeof (struct AddressUseMessage) + plugin_addr_len + namelen;
+  namelen = (address->transport_name == NULL) ? 0 : strlen (address->transport_name) + 1;
+  msize = sizeof (struct AddressUseMessage) + address->address_length + namelen;
   if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (plugin_addr_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+      (address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
       (namelen >= GNUNET_SERVER_MAX_MESSAGE_SIZE))
   {
     GNUNET_break (0);
@@ -736,14 +731,14 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
   m = (struct AddressUseMessage *) &p[1];
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
   m->header.size = htons (msize);
-  m->peer = *peer;
+  m->peer = address->peer;
   m->in_use = htons (in_use);
-  m->address_length = htons (plugin_addr_len);
+  m->address_length = htons (address->address_length);
   m->plugin_name_length = htons (namelen);
-  m->session_id = htonl (get_session_id (sh, session, peer));
+  m->session_id = htonl (get_session_id (sh, session, &address->peer));
   pm = (char *) &m[1];
-  memcpy (pm, plugin_addr, plugin_addr_len);
-  memcpy (&pm[plugin_addr_len], plugin_name, namelen);
+  memcpy (pm, address->address, address->address_length);
+  memcpy (&pm[address->address_length], address->transport_name, namelen);
   GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
 
   do_transmit (sh);
@@ -753,17 +748,13 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
  * A session got destroyed, stop including it as a valid address.
  *
  * @param sh handle
- * @param peer identity of the peer
- * @param plugin_name name of the transport plugin
- * @param plugin_addr address  (if available)
- * @param plugin_addr_len number of bytes in plugin_addr
+ * @param address the address
  * @param session session handle that is no longer valid
  */
 void
 GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
-                              const struct GNUNET_PeerIdentity *peer,
-                              const char *plugin_name, const void *plugin_addr,
-                              size_t plugin_addr_len, struct Session *session)
+                              const struct GNUNET_HELLO_Address *address,
+                              struct Session *session)
 {
   struct PendingMessage *p;
   struct AddressDestroyedMessage *m;
@@ -772,10 +763,10 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   size_t msize;
   uint32_t session_id;
 
-  namelen = (plugin_name == NULL) ? 0 : strlen (plugin_name) + 1;
-  msize = sizeof (struct AddressDestroyedMessage) + plugin_addr_len + namelen;
+  namelen = (address->transport_name == NULL) ? 0 : strlen (address->transport_name) + 1;
+  msize = sizeof (struct AddressDestroyedMessage) + address->address_length + namelen;
   if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (plugin_addr_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+      (address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
       (namelen >= GNUNET_SERVER_MAX_MESSAGE_SIZE))
   {
     GNUNET_break (0);
@@ -790,17 +781,17 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED);
   m->header.size = htons (msize);
   m->reserved = htonl (0);
-  m->peer = *peer;
-  m->address_length = htons (plugin_addr_len);
+  m->peer = address->peer;
+  m->address_length = htons (address->address_length);
   m->plugin_name_length = htons (namelen);
-  session_id = get_session_id (sh, session, peer);
+  session_id = get_session_id (sh, session, &address->peer);
   m->session_id = htonl (session_id);
   pm = (char *) &m[1];
-  memcpy (pm, plugin_addr, plugin_addr_len);
-  memcpy (&pm[plugin_addr_len], plugin_name, namelen);
+  memcpy (pm, address->address, address->address_length);
+  memcpy (&pm[address->address_length], address->transport_name, namelen);
   GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
   do_transmit (sh);
-  remove_session (sh, session_id, peer);
+  remove_session (sh, session_id, &address->peer);
 }
 
 /* end of ats_api_scheduling.c */
