@@ -540,6 +540,7 @@ destroy_inbound_session (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_SCHEDULER_cancel (s->invalidation_task);
   if (GNUNET_SCHEDULER_NO_TASK != s->delayed_cont_task)
     GNUNET_SCHEDULER_cancel (s->delayed_cont_task);
+  GNUNET_CONTAINER_multihashmap_remove(s->plugin->inbound_sessions, &s->target.hashPubKey, s);
   GNUNET_free (s);
   return GNUNET_OK;
 }
@@ -569,7 +570,7 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
                                               &target->hashPubKey,
                                               &destroy_inbound_session, NULL);
   GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
-  LOG (GNUNET_ERROR_TYPE_ERROR, "UDP DISCONNECT\n");
+
 
   plugin->last_expected_delay = GNUNET_FRAGMENT_context_destroy (session->frag);
   if (GNUNET_SCHEDULER_NO_TASK != session->delayed_cont_task)
