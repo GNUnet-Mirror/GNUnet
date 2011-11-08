@@ -1148,6 +1148,9 @@ send_switch_address_continuation (void *cls,
     GNUNET_ATS_suggest_address (GST_ats, &n->id);
     return;
   }
+  /* Tell ATS that switching addresses was successful */
+  GNUNET_ATS_address_in_use (GST_ats, &n->id, n->plugin_name, n->addr,
+                             n->addrlen, n->addr, GNUNET_YES);
 }
 
 /**
@@ -1314,6 +1317,14 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
 				    n->addr,
 				    n->addrlen,
 				    GNUNET_NO);
+  /* This will be a connection switch, tell ATS about it */
+  if (n->state == S_CONNECTED)
+  {
+    GNUNET_ATS_address_in_use (GST_ats, &n->id, n->plugin_name, n->addr,
+                               n->addrlen, n->addr, GNUNET_NO);
+  }
+
+  /* set new address */
   GNUNET_free_non_null (n->addr);
   n->addr = GNUNET_malloc (address_len);
   memcpy (n->addr, address, address_len);
