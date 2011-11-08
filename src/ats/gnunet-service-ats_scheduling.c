@@ -246,9 +246,8 @@ GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t plugin_name_length;
 
   uint16_t size;
+  uint16_t in_use;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
-              "ADDRESS_IN_USE");
   size = ntohs (message->size);
   if (size < sizeof (struct AddressUseMessage))
   {
@@ -276,16 +275,14 @@ GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-
-/*
-  GAS_addresses_update (&m->peer,
+  in_use = ntohs (m->in_use);
+  GAS_addresses_in_use (&m->peer,
                         plugin_name,
                         address,
                         address_length,
                         ntohl (m->session_id),
-                        atsi,
-                        ats_count);
-*/
+                        in_use);
+
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

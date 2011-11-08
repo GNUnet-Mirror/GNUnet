@@ -380,6 +380,18 @@ find_address_it (void *cls, const GNUNET_HashCode * key, void *value)
 
 
 void
+GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
+                      const char *plugin_name, const void *plugin_addr,
+                      size_t plugin_addr_len, uint32_t session_id,
+                      int in_use)
+{
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s': %i\n",
+              "ADDRESS_IN_USE",
+              GNUNET_i2s (peer), in_use);
+}
+
+void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 {
   struct ATS_Address *aa;

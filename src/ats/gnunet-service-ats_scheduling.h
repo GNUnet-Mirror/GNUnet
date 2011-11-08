@@ -114,6 +114,7 @@ void
 GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message);
 
+
 /**
  * Handle 'address destroyed' messages from clients.
  *
