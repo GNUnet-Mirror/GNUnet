@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -37,6 +37,64 @@ extern "C"
 
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
+
+
+/**
+ * An address for communicating with a peer.  We frequently
+ * need this tuple and the components cannot really be
+ * separated.  This is NOT the format that would be used
+ * on the wire.
+ */
+struct GNUNET_HELLO_Address
+{
+
+  /**
+   * For which peer is this an address?
+   */ 
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Name of the transport plugin enabling the communication using
+   * this address.
+   */
+  const char *transport_name;
+
+  /**
+   * Binary representation of the address (plugin-specific).
+   */
+  const void *address;
+
+  /**
+   * Number of bytes in 'address'.
+   */
+  size_t address_length;
+
+};
+
+
+/**
+ * Allocate an address struct.
+ *
+ * @param peer the peer
+ * @param transport_name plugin name
+ * @param address binary address
+ * @param address_length number of bytes in 'address'
+ * @return the address struct
+ */
+struct GNUNET_HELLO_Address *
+GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
+			       const char *transport_name,
+			       const void *address,
+			       size_t address_length);
+
+
+/**
+ * Free an address.
+ * 
+ * @param addr address to free
+ */
+#define GNUNET_HELLO_address_free(addr) GNUNET_free(addr)
+
 
 /**
  * A HELLO message is used to exchange information about
