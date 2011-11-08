@@ -80,7 +80,7 @@ test_address (void *cls,
  * Receive the HELLO from one peer, give it to the other
  * and ask them to connect.
  *
- * @param cls "struct ConnectContext"
+ * @param cls Closure (daemon whose hello is this).
  * @param message HELLO message of peer
  */
 static void
@@ -98,9 +98,9 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
                                   GNUNET_NO, &test_address, &empty);
   if (GNUNET_YES == empty)
   {
-#if DEBUG_TESTING
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Skipping empty HELLO address\n");
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Skipping empty HELLO address of peer %s\n",
+                GNUNET_i2s (&daemon->id));
     return;
   }
 #endif
