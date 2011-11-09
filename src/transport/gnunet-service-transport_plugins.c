@@ -95,6 +95,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
                   GNUNET_TRANSPORT_SessionEnd session_end_cb)
 {
   struct TransportPlugin *plug;
+  struct TransportPlugin *next;
   unsigned long long tneigh;
   char *libname;
   char *plugs;
@@ -132,6 +133,13 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     plug->env.max_connections = tneigh;
     plug->env.stats = GST_stats;
     GNUNET_CONTAINER_DLL_insert (plugins_head, plugins_tail, plug);
+  }
+  GNUNET_free (plugs);
+  next = plugins_head;
+  while (next != NULL)
+  {
+    plug = next;
+    next = plug->next;
     plug->api = GNUNET_PLUGIN_load (libname, &plug->env);
     if (plug->api == NULL)
     {
@@ -143,7 +151,6 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
       GNUNET_free (plug);
     }
   }
-  GNUNET_free (plugs);
 }
 
 
