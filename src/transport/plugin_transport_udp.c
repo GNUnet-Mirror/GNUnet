@@ -341,7 +341,6 @@ struct Plugin
    */
   int broadcast;
 
-
   /**
    * Tokenizer for inbound messages.
    */
@@ -515,6 +514,9 @@ destroy_session (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct Session *peer_session = value;
 
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (peer_session->plugin->sessions, 
+						       &peer_session->target.hashPubKey, peer_session));
   if (peer_session->frag != NULL)
     GNUNET_FRAGMENT_context_destroy (peer_session->frag);
   if (GNUNET_SCHEDULER_NO_TASK != peer_session->delayed_cont_task)
@@ -522,6 +524,7 @@ destroy_session (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_free (peer_session);
   return GNUNET_OK;
 }
+
 
 /**
  * Destroy a session, plugin is being unloaded.
@@ -540,10 +543,11 @@ destroy_inbound_session (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_SCHEDULER_cancel (s->invalidation_task);
   if (GNUNET_SCHEDULER_NO_TASK != s->delayed_cont_task)
     GNUNET_SCHEDULER_cancel (s->delayed_cont_task);
-  GNUNET_CONTAINER_multihashmap_remove(s->plugin->inbound_sessions, &s->target.hashPubKey, s);
+  GNUNET_CONTAINER_multihashmap_remove (s->plugin->inbound_sessions, &s->target.hashPubKey, s);
   GNUNET_free (s);
   return GNUNET_OK;
 }
+
 
 /**
  * Disconnect from a remote node.  Clean up session if we have one for this peer
@@ -569,9 +573,6 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->inbound_sessions,
                                               &target->hashPubKey,
                                               &destroy_inbound_session, NULL);
-  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
-
-
   plugin->last_expected_delay = GNUNET_FRAGMENT_context_destroy (session->frag);
   if (GNUNET_SCHEDULER_NO_TASK != session->delayed_cont_task)
     GNUNET_SCHEDULER_cancel (session->delayed_cont_task);
