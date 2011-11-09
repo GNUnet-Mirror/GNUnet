@@ -1152,7 +1152,6 @@ send_connect_ack_continuation (void *cls,
   struct NeighbourMapEntry *n = cls;
 
   GNUNET_assert (n != NULL);
-
   if (GNUNET_YES == success)
     return;                     /* sending successful */
 
@@ -1231,10 +1230,11 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   /* checks successful and neighbour != NULL */
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS tells us to switch to address '%s' session %p for %s peer `%s'\n",
+              "ATS tells us to switch to address '%s' session %p for peer `%s' in state `%s'\n",
               GST_plugins_a2s (address),
-              session, (S_CONNECTED == n->state) ? "CONNECTED" : "NOT CONNECTED",
-              GNUNET_i2s (peer));
+              session,
+              GNUNET_i2s (peer),
+              print_state(n->state));
 #endif
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -1994,10 +1994,11 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   size_t ret;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Received CONNECT_ACK message from peer `%s'\n",
               GNUNET_i2s (peer));
 #endif
+
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
     GNUNET_break_op (0);
@@ -2012,13 +2013,22 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_break_op (0);
     return;
   }  
-  if (n->state != S_CONNECT_SENT)
+
+  /* Additional check
+   *
+   * ((n->state != S_CONNECT_RECV) && (n->address != NULL)):
+   *
+   * We also received an CONNECT message, switched from SENDT to RECV and
+   * ATS already suggested us an address after a successful blacklist check
+   */
+  if ((n->state != S_CONNECT_SENT) && ((n->state != S_CONNECT_RECV) && (n->address != NULL)))
   {
     GNUNET_STATISTICS_update (GST_stats,
 			      gettext_noop ("# unexpected CONNECT_ACK messages"), 1,
 			      GNUNET_NO);
     return;
   }
+
   if (NULL != session)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                      "transport-ats",
@@ -2026,6 +2036,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                      session, address->transport_name, GNUNET_i2s (peer));
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
   GNUNET_assert (NULL != n->address);
+
   change_state (n, S_CONNECTED);
   GST_validation_set_address_use (&n->id,
 				  n->address,
