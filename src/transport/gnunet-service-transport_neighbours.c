@@ -1247,6 +1247,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   if (n->state == S_CONNECTED) 
   {
     /* mark old address as no longer used */
+    GNUNET_assert (NULL != n->address);
     GST_validation_set_address_use (&n->id,
 				    n->address,
 				    n->session,
@@ -1472,9 +1473,9 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
 
-  // This can happen during shutdown
   if (neighbours == NULL)
   {
+    /* This can happen during shutdown */
     return;
   }
 
@@ -1488,17 +1489,22 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     return;
   if (session != n->session)
     return;                     /* doesn't affect us */
-
+  if (n->state == S_CONNECTED)
+    GST_validation_set_address_use (&n->id,
+				    n->address,
+				    n->session,
+				    GNUNET_NO);
   n->session = NULL;
   if (NULL != n->address)
   {
     GNUNET_HELLO_address_free (n->address);
     n->address = NULL;
   }
-
+  
   /* not connected anymore anyway, shouldn't matter */
   if ((S_CONNECTED != n->state) && (!is_connecting (n)))
     return;
+  // FIXME: n->state = S_FAST_RECONNECT;
 
   /* We are connected, so ask ATS to switch addresses */
   GNUNET_SCHEDULER_cancel (n->timeout_task);
@@ -1509,7 +1515,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (n->ats_suggest);
   n->ats_suggest =
-      GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel,
+      GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, &ats_suggest_cancel,
                                     n);
   GNUNET_ATS_suggest_address (GST_ats, peer);
 }
