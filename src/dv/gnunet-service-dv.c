@@ -2452,6 +2452,7 @@ static size_t
 generate_hello_address (void *cls, size_t max, void *buf)
 {
   struct HelloContext *hello_context = cls;
+  struct GNUNET_HELLO_Address hello_address;
   char *addr_buffer;
   size_t offset;
   size_t size;
@@ -2473,11 +2474,14 @@ generate_hello_address (void *cls, size_t max, void *buf)
   /* Copy the direct peer identity to buffer */
   memcpy (&addr_buffer[offset], hello_context->direct_peer,
           sizeof (struct GNUNET_PeerIdentity));
+  memset (&hello_address.peer, 0, sizeof (struct GNUNET_PeerIdentity));
+  hello_address.address = addr_buffer;
+  hello_address.transport_name = "dv";
+  hello_address.address_length = size;
   ret =
-      GNUNET_HELLO_add_address ("dv",
+      GNUNET_HELLO_add_address (&hello_address,
                                 GNUNET_TIME_relative_to_absolute
-                                (GNUNET_TIME_UNIT_HOURS), addr_buffer, size,
-                                buf, max);
+                                (GNUNET_TIME_UNIT_HOURS), buf, max);
 
   hello_context->addresses_to_add--;
 
