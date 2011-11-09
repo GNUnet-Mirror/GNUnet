@@ -17,7 +17,7 @@ gnunet to access legacy services!
 Offering Services
 -----------------
 
-If you want to offer services such as your webpage vi gnunet you have to have
+If you want to offer services such as your webpage via gnunet you have to have
 add "exit" to the DEFAULTSERVICES and an entry like the following to
 ~/.gnunet/gnunet.conf:
 
@@ -51,8 +51,6 @@ If you want to allow other users to send traffic over your
 internet-connection, add the options "ENABLE_UDP = YES" and "ENABLE_TCP = YES"
 to the section "exit" of the configuration.
 
-TODO: routing
-
 Be aware, that this enables people to use your internet connection for
 nefarious things which might make you liable!
 
@@ -61,7 +59,7 @@ For Developers
 
 The gnunet-vpn is a combination of three programs:
 
-- gnunet-daemon-vpn opens a tap-interface, configures it and controls the
+- gnunet-daemon-vpn opens a tun-interface, configures it and controls the
   network
 - gnunet-service-dns configures a hijack for outgoing DNS-requests, so that
   they get sent to gnunet-daemon-vpn, which sends them on to
@@ -82,6 +80,16 @@ These programs exchange whole TCP- or UDP-packets, they only strip of the
 IP-header. This way gnunet achieves translation between IPv6-services and
 IPv4-clients and vice versa!
 
+The gnunet-daemon-vpn receives packets on the tun-interface and routes them:
+- everything to port 53 (dns) will be sent to the gnunet-service-dns
+    replies to these queries will be sent from the gnunet-service-dns back to
+    gnunet-daemon-vpn which will then fill in a newly generated IP-Adress, save
+    it and a descriptor of what kind of address it is (for a .gnunet-service or for
+    a "real" service) to a hashmap and send the reply back through the interface
+- for every non-dns packet the hashmap is queried if the destination-adress is known
+  if it is, the packet gets sent to either the peer advertising the service or
+  (via the mesh by-type mechanism) to any peer that allows exit-functionality
+- everything else is dropped
 
 Hijacking the DNS-Traffic
 -------------------------
@@ -126,3 +134,16 @@ beforehand (\texttt{\$LOCALPORT}) will be routed normally. Line 2 marks every
 other packet to a DNS-Server with mark $3$ (chosen arbitrarily). The third
 line adds a routing policy based on this mark $3$ via the routing table
 "table2" which is populated with just the default route.
+
+
+Performance Measurements
+========================
+
+These tests were done between hosts (i7 with 2.67GHz and Core 2 with 2GHz)
+connected by a switched Gigabit Ethernet.
+
+scp direct (100MiB file):                 33.3MiB/s (as shown by scp)
+udp echo direct (6 Bytes of data):        0.000333 (measured by tcpdump)
+
+scp over gnunet (100MiB file):            20KiB/s (as shown by scp)
+udp echo over gnunet (6 Bytes of data):   0.078410s (measured by tcpdump)
