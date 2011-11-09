@@ -497,6 +497,16 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
+ * We want to cancel ATS suggesting addresses for a peer.
+ *
+ * @param sh handle
+ * @param peer identity of the peer
+ */
+void
+GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
+                            const struct GNUNET_PeerIdentity *peer);
+
+/**
  * We have updated performance statistics for a given address.  Note
  * that this function can be called for addresses that are currently
  * in use as well as addresses that are valid but not actively in use.
