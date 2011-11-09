@@ -499,8 +499,9 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
     s = find_session (sh, session_id, &m->peer);
     if (s == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ATS tries to use outdated session `%s'\n", GNUNET_i2s(&m->peer));
-      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS tries to use outdated session `%s'\n", GNUNET_i2s(&m->peer));
+      //GNUNET_break (0);
+      return;
     }
   }
   address.peer = m->peer;
@@ -632,6 +633,32 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
   do_transmit (sh);
 }
 
+
+/**
+ * We would like to stop receiving address updates for this peer
+ *
+ * @param sh handle
+ * @param peer identity of the peer
+ */
+void
+GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
+                                   const struct GNUNET_PeerIdentity *peer)
+{
+  struct PendingMessage *p;
+  struct RequestAddressMessage *m;
+
+  p = GNUNET_malloc (sizeof (struct PendingMessage) +
+                     sizeof (struct RequestAddressMessage));
+  p->size = sizeof (struct RequestAddressMessage);
+  p->is_init = GNUNET_NO;
+  m = (struct RequestAddressMessage *) &p[1];
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL);
+  m->header.size = htons (sizeof (struct RequestAddressMessage));
+  m->reserved = htonl (0);
+  m->peer = *peer;
+  GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
+  do_transmit (sh);
+}
 
 /**
  * We have updated performance statistics for a given address.  Note

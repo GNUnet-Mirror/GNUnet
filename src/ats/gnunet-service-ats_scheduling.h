@@ -90,6 +90,16 @@ GAS_handle_request_address (void *cls, struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message);
 
 
+/**
+ * Cancel 'request address' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_request_address_cancel (void *cls, struct GNUNET_SERVER_Client *client,
+    const struct GNUNET_MessageHeader *message);
 
 /**
  * Handle 'address update' messages from clients.

@@ -171,6 +171,30 @@ GAS_handle_request_address (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handle 'request address' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_request_address_cancel (void *cls, struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *message)
+{
+  const struct RequestAddressMessage *msg =
+      (const struct RequestAddressMessage *) message;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
+              "REQUEST_ADDRESS_CANCEL");
+  GNUNET_break (0 == ntohl (msg->reserved));
+
+  /* TODO */
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * Handle 'address update' messages from clients.
  *
  * @param cls unused, NULL
