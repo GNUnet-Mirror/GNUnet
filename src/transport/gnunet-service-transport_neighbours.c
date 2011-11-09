@@ -950,7 +950,7 @@ neighbour_keepalive_task (void *cls,
   n->keepalive_task =
       GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
                                     &neighbour_keepalive_task, n);
-  GNUNET_assert (is_connected (n));
+  GNUNET_assert (S_CONNECTED == n->state);
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# keepalives sent"), 1,
                             GNUNET_NO);
   m.size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -979,7 +979,7 @@ disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting peer `%4s', %s\n",
               GNUNET_i2s (&n->id), "SHUTDOWN_TASK");
 #endif
-  if (is_connected (n))
+  if (S_CONNECTED == n->state)
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
                               ("# peers disconnected due to global disconnect"),
@@ -1209,7 +1209,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS tells us to switch to address '%s' session %p for %s peer `%s'\n",
               GST_plugins_a2s (address),
-              session, (is_connected (n) ? "CONNECTED" : "NOT CONNECTED"),
+              session, (S_CONNECTED == n->state) ? "CONNECTED" : "NOT CONNECTED",
               GNUNET_i2s (peer));
 #endif
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
@@ -1417,7 +1417,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 
   if (NULL != n)
   {
-    if ((is_connected (n)) || (is_connecting (n)))
+    if ((S_CONNECTED == n->state) || (is_connecting (n)))
       return;                   /* already connecting or connected */
     if (is_disconnecting (n))
       change_state (n, S_NOT_CONNECTED);
@@ -1454,7 +1454,7 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
 
   n = lookup_neighbour (target);
 
-  if ((NULL == n) || (!is_connected (n)))
+  if ((NULL == n) || (S_CONNECTED != n->state))
     return GNUNET_NO;           /* not connected */
   return GNUNET_YES;
 }
@@ -1497,7 +1497,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   }
 
   /* not connected anymore anyway, shouldn't matter */
-  if ((!is_connected (n)) && (!is_connecting (n)))
+  if ((S_CONNECTED != n->state) && (!is_connecting (n)))
     return;
 
   /* We are connected, so ask ATS to switch addresses */
@@ -2086,7 +2086,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0);
     return;
   }
-  if (is_connected (n))
+  if (S_CONNECTED == n->state)
     return;
   if (!is_connecting(n))
   {
@@ -2246,14 +2246,12 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   GNUNET_break_op (ntohl (scm->reserved) == 0);
 
   n = lookup_neighbour (peer);
-  if (n != NULL)
+  if ( (n != NULL) &&
+       (S_CONNECTED == n->state) )
   {
     /* connected peer switches addresses */
-    if (is_connected (n))
-    {
-      GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
-      return;
-    }
+    GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
+    return;
   }
 
   /* we are not connected to this peer */
