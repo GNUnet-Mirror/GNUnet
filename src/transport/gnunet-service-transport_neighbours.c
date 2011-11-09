@@ -819,10 +819,12 @@ static void
 disconnect_neighbour (struct NeighbourMapEntry *n)
 {
   struct MessageQueue *mq;
-  int was_connected = is_connected (n);
+  int is_connected;
+
+  is_connected = (n->state == S_CONNECTED);
 
   /* send DISCONNECT MESSAGE */
-  if (is_connected (n) || is_connecting (n))
+  if (is_connected || is_connecting (n))
   {
     if (GNUNET_OK ==
         send_disconnect (&n->id, n->address,
@@ -835,7 +837,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
                   GNUNET_i2s (&n->id));
   }
 
-  if (is_connected(n))
+  if (is_connected)
   {
      GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
   }
@@ -869,7 +871,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     n->is_active->n = NULL;
     n->is_active = NULL;
   }
-  if (was_connected)
+  if (is_connected)
   {
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->keepalive_task);
     GNUNET_SCHEDULER_cancel (n->keepalive_task);
@@ -2053,6 +2055,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 
 }
 
+
 void
 GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
                            const struct GNUNET_PeerIdentity *peer,
@@ -2063,10 +2066,10 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 {
   struct NeighbourMapEntry *n;
   struct QuotaSetMessage q_msg;
-  int was_connected;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ACK message from peer `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received ACK message from peer `%s'\n",
               GNUNET_i2s (peer));
 #endif
 
@@ -2075,7 +2078,6 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_break_op (0);
     return;
   }
-
   n = lookup_neighbour (peer);
   if (NULL == n)
   {
@@ -2084,27 +2086,22 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0);
     return;
   }
-
   if (is_connected (n))
     return;
-
   if (!is_connecting(n))
   {
     GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# unexpected ACK messages"), 1,
                               GNUNET_NO);
     return;
   }
-
   if (NULL != session)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                      "transport-ats",
                      "Giving ATS session %p of plugin %s for peer %s\n",
                      session, address->transport_name, GNUNET_i2s (peer));
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
-
-  was_connected = is_connected (n);
+  GNUNET_assert (n->address != NULL);
   change_state (n, S_CONNECTED);
-
   GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
 
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
@@ -2113,26 +2110,22 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
     n->keepalive_task =
         GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
                                       &neighbour_keepalive_task, n);
-
-  if (!was_connected)
-  {
-    GST_validation_set_address_use (&n->id,
-				    n->address,
-				    n->session,
-				    GNUNET_YES);
-    neighbours_connected++;
-    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
-                              GNUNET_NO);
-
+  GST_validation_set_address_use (&n->id,
+				  n->address,
+				  n->session,
+				  GNUNET_YES);
+  neighbours_connected++;
+  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
+			    GNUNET_NO);
+  
 #if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Notify about connect of `%4s' using address '%s' session %X LINE %u\n",
-                GNUNET_i2s (&n->id),
-                GST_plugins_a2s (n->address), n->session,
-                __LINE__);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Notify about connect of `%4s' using address '%s' session %X LINE %u\n",
+	      GNUNET_i2s (&n->id),
+	      GST_plugins_a2s (n->address), n->session,
+	      __LINE__);
 #endif
-    connect_notify_cb (callback_cls, &n->id, ats, ats_count);
-  }
+  connect_notify_cb (callback_cls, &n->id, ats, ats_count);  
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
