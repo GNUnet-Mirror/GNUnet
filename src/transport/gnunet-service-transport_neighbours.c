@@ -208,6 +208,11 @@ enum State
   S_CONNECTED,
 
   /**
+   * connection ended, fast reconnect
+   */
+  S_FAST_RECONNECT,
+
+  /**
    * Disconnect in progress 
    */
   S_DISCONNECT
@@ -406,6 +411,9 @@ print_state (int state)
   case S_NOT_CONNECTED:
     return "S_NOT_CONNECTED";
     break;
+  case S_FAST_RECONNECT:
+    return "S_FAST_RECONNECT";
+    break;
   default:
     GNUNET_break (0);
     break;
@@ -476,10 +484,14 @@ change (struct NeighbourMapEntry *n, int state, int line)
     allowed = GNUNET_YES;
     break;
   case S_CONNECTED:
-    if (state == S_DISCONNECT)
+    if ((state == S_DISCONNECT) || (state == S_FAST_RECONNECT))
       allowed = GNUNET_YES;
     break;
   case S_DISCONNECT:
+    break;
+  case S_FAST_RECONNECT:
+    if ((state == S_CONNECT_SENT) || (state == S_DISCONNECT))
+      allowed = GNUNET_YES;
     break;
   default:
     GNUNET_break (0);
@@ -497,21 +509,22 @@ change (struct NeighbourMapEntry *n, int state, int line)
     GNUNET_free (new);
     return GNUNET_SYSERR;
   }
-
-  n->state = state;
 #if DEBUG_TRANSPORT
   {
     char *old = GNUNET_strdup (print_state (n->state));
     char *new = GNUNET_strdup (print_state (state));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"State for neighbour `%s' %X changed from `%s' to `%s' in line %u\n",
-		GNUNET_i2s (&n->id), n, old, new, line);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "State for neighbour `%s' %X changed from `%s' to `%s' in line %u\n",
+                GNUNET_i2s (&n->id), n, old, new, line);
     GNUNET_free (old);
     GNUNET_free (new);
   }
 #endif
+  n->state = state;
+
   switch (n->state)
   {
+  case S_FAST_RECONNECT:
   case S_CONNECT_RECV:
   case S_CONNECT_SENT:
     if (n->state_reset != GNUNET_SCHEDULER_NO_TASK)
@@ -540,6 +553,7 @@ change (struct NeighbourMapEntry *n, int state, int line)
       n->state_reset = GNUNET_SCHEDULER_NO_TASK;
     }
     break;
+
   default:
     GNUNET_assert (0);
   }
@@ -819,12 +833,15 @@ static void
 disconnect_neighbour (struct NeighbourMapEntry *n)
 {
   struct MessageQueue *mq;
-  int is_connected;
+  int previous_state;
 
-  is_connected = (n->state == S_CONNECTED);
+  previous_state = n->state;
+
+  if (is_disconnecting (n))
+    return;
 
   /* send DISCONNECT MESSAGE */
-  if (is_connected || is_connecting (n))
+  if ((previous_state == S_CONNECTED)|| is_connecting (n))
   {
     if (GNUNET_OK ==
         send_disconnect (&n->id, n->address,
@@ -837,19 +854,17 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
                   GNUNET_i2s (&n->id));
   }
 
-  if (is_connected)
-  {
-     GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
-  }
-
-
-  if (is_disconnecting (n))
-    return;
   change_state (n, S_DISCONNECT);
   GST_validation_set_address_use (&n->id,
 				  n->address,
 				  n->session,
 				  GNUNET_NO);
+
+  if (n->state == S_CONNECTED)
+  {
+    GNUNET_assert (NULL != n->address);
+    GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
+  }
 
   if (n->address != NULL)
   {
@@ -858,7 +873,6 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     if (papi != NULL)
       papi->disconnect (papi->cls, &n->id);
   }
-
   while (NULL != (mq = n->messages_head))
   {
     GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
@@ -871,17 +885,28 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     n->is_active->n = NULL;
     n->is_active = NULL;
   }
-  if (is_connected)
-  {
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->keepalive_task);
-    GNUNET_SCHEDULER_cancel (n->keepalive_task);
-    n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_assert (neighbours_connected > 0);
-    neighbours_connected--;
-    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
-                              GNUNET_NO);
-    disconnect_notify_cb (callback_cls, &n->id);
+
+  switch (previous_state) {
+    case S_CONNECTED:
+      GNUNET_assert (neighbours_connected > 0);
+      neighbours_connected--;
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->keepalive_task);
+      GNUNET_SCHEDULER_cancel (n->keepalive_task);
+      n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;
+      GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
+                                GNUNET_NO);
+      disconnect_notify_cb (callback_cls, &n->id);
+      break;
+    case S_FAST_RECONNECT:
+      GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
+                                GNUNET_NO);
+      disconnect_notify_cb (callback_cls, &n->id);
+    default:
+      break;
   }
+
+  GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
+
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (neighbours,
                                                        &n->id.hashPubKey, n));
@@ -1269,6 +1294,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   {
   case S_NOT_CONNECTED:  
   case S_CONNECT_SENT:
+  case S_FAST_RECONNECT:
     msg_len = sizeof (struct SessionConnectMessage);
     connect_msg.header.size = htons (msg_len);
     connect_msg.header.type =
@@ -1503,7 +1529,16 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   /* not connected anymore anyway, shouldn't matter */
   if ((S_CONNECTED != n->state) && (!is_connecting (n)))
     return;
-  // FIXME: n->state = S_FAST_RECONNECT;
+  change_state (n, S_FAST_RECONNECT);
+
+  GNUNET_assert (neighbours_connected > 0);
+  neighbours_connected--;
+
+  if (n->keepalive_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (n->keepalive_task);
+    n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   /* We are connected, so ask ATS to switch addresses */
   GNUNET_SCHEDULER_cancel (n->timeout_task);
@@ -1854,14 +1889,6 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
   n = lookup_neighbour (target);
   if (NULL == n)
     return;                     /* not active */
-  if (is_connected (n))
-  {
-    send_disconnect (&n->id, n->address, n->session);
-
-    n = lookup_neighbour (target);
-    if (NULL == n)
-      return;                   /* gone already */
-  }
   disconnect_neighbour (n);
 }
 
