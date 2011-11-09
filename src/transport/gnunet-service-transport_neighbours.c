@@ -1250,6 +1250,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
 
   // do not switch addresses just update quotas
   if ( (is_connected (n)) && 
+       (NULL != n->address) &&
        (0 == GNUNET_HELLO_address_cmp (address,
 				       n->address)) &&
        (n->session == session) )
