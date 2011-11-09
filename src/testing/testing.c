@@ -124,11 +124,15 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   msize = ntohs (message->size);
   if (msize < 1)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "HELLO message of peer %s is of size 0\n",
+                GNUNET_i2s (&daemon->id));
     return;
   }
   if (daemon->ghh != NULL)
   {
     GNUNET_TRANSPORT_get_hello_cancel (daemon->ghh);
+    daemon->ghh = NULL;
   }
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1970,6 +1974,13 @@ core_init_notify (void *cls, struct GNUNET_CORE_Handle *server,
 }
 
 
+/**
+ * Try to connect again some peers that failed in an earlier attempt. This will
+ * be tried as many times as connection_attempts in the configuration file.
+ *
+ * @param cls Closure (connection context between the two peers).
+ * @param tc TaskContext.
+ */
 static void
 reattempt_daemons_connect (void *cls,
                            const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -2004,6 +2015,11 @@ reattempt_daemons_connect (void *cls,
   /* Don't know reason for initial connect failure, update the HELLO for the second peer */
   if (NULL != ctx->d2->hello)
   {
+#if DEBUG_TESTING_RECONNECT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "updating %s's HELLO\n",
+                ctx->d2->shortname);
+#endif
     GNUNET_free (ctx->d2->hello);
     ctx->d2->hello = NULL;
     if (NULL != ctx->d2->th)
@@ -2019,13 +2035,26 @@ reattempt_daemons_connect (void *cls,
     ctx->d2->ghh =
         GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
   }
+#if DEBUG_TESTING_RECONNECT
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "didn't have %s's HELLO\n",
+                ctx->d2->shortname);
+  }
+#endif
 
   if ((NULL == ctx->d2->hello) && (ctx->d2->th == NULL))
   {
+#if DEBUG_TESTING_RECONNECT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "didn't have %s's HELLO, trying to get it now\n",
+                ctx->d2->shortname);
+#endif
     ctx->d2->th =
         GNUNET_TRANSPORT_connect (ctx->d2->cfg, &ctx->d2->id, NULL, NULL, NULL,
                                   NULL);
-    if (ctx->d2->th == NULL)
+    if (NULL == ctx->d2->th)
     {
       GNUNET_CORE_disconnect (ctx->d1core);
       GNUNET_free (ctx);
@@ -2038,9 +2067,25 @@ reattempt_daemons_connect (void *cls,
     ctx->d2->ghh =
         GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
   }
+#if DEBUG_TESTING_RECONNECT
+  else
+  {
+    if (NULL == ctx->d2->hello)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "didn't have %s's HELLO but th wasn't NULL, not trying!!\n",
+                  ctx->d2->shortname);
+    }
+  }
+#endif
 
   if (ctx->send_hello == GNUNET_YES)
   {
+#if DEBUG_TESTING_RECONNECT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending %s's HELLO to %s\n",
+                ctx->d1->shortname, ctx->d2->shortname);
+#endif
     ctx->d1th =
         GNUNET_TRANSPORT_connect (ctx->d1->cfg, &ctx->d1->id, ctx->d1, NULL,
                                   NULL, NULL);
@@ -2059,6 +2104,11 @@ reattempt_daemons_connect (void *cls,
   }
   else
   {
+#if DEBUG_TESTING_RECONNECT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Trying to reconnect %s to %s\n",
+                ctx->d1->shortname, ctx->d2->shortname);
+#endif
     GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id);
   }
   ctx->timeout_task =
@@ -2124,6 +2174,10 @@ core_initial_iteration (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if ((NULL == ctx->d2->hello) && (ctx->d2->th == NULL))        /* Do not yet have the second peer's hello, set up a task to get it */
   {
+#if DEBUG_TESTING
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Don't have d2's HELLO, trying to get it!\n");
+#endif
     ctx->d2->th =
         GNUNET_TRANSPORT_connect (ctx->d2->cfg, &ctx->d2->id, NULL, NULL, NULL,
                                   NULL);
