@@ -1208,6 +1208,11 @@ GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
 {
   struct ValidationEntry *ve;
 
+  if (NULL == address)
+  {
+    GNUNET_break (0); // FIXME: support having latency only with session...
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+  }
   ve = find_validation_entry (NULL, address);
   if (NULL == ve)
     return GNUNET_TIME_UNIT_FOREVER_REL;

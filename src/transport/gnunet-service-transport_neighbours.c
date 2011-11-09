@@ -1397,7 +1397,8 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   struct NeighbourMapEntry *n;
 
   n = lookup_neighbour (peer);
-  if (NULL == n)
+  if ( (NULL == n) ||
+       ( (n->address == NULL) && (n->session == NULL) ) )
     return GNUNET_TIME_UNIT_FOREVER_REL;
   return GST_validation_get_address_latency (peer,
 					     n->address,
