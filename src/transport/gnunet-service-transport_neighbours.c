@@ -1249,17 +1249,17 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
        (n->session == session) )
   {
     struct QuotaSetMessage q_msg;
-    
-#if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Sending outbound quota of %u Bps and inbound quota of %u Bps for peer `%s' to all clients\n",
-		ntohl (n->bandwidth_out.value__),
-		ntohl (n->bandwidth_in.value__), GNUNET_i2s (peer));
-#endif
-    
+
     n->bandwidth_in = bandwidth_in;
     n->bandwidth_out = bandwidth_out;
     GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
+    
+#if DEBUG_TRANSPORT
+#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Sending outbound quota of %u Bps and inbound quota of %u Bps for peer `%s' to all clients\n",
+                ntohl (n->bandwidth_out.value__),
+                ntohl (n->bandwidth_in.value__), GNUNET_i2s (peer));
     
     q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
     q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
@@ -1794,6 +1794,10 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
                               1, GNUNET_NO);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Setting inbound quota of %u Bps for peer `%s' to all clients\n",
+              ntohl (quota.value__), GNUNET_i2s (&n->id));
+
   GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker, quota);
   if (0 != ntohl (quota.value__))
     return;
@@ -2043,11 +2047,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 				  n->session,
 				  GNUNET_YES);
   GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Setting inbound quota of %u for peer `%s' to \n",
-              ntohl (n->bandwidth_in.value__), GNUNET_i2s (&n->id));
-#endif
+
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
 
   /* send ACK (ACK) */
@@ -2086,10 +2086,11 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   connect_notify_cb (callback_cls, &n->id, ats, ats_count);  
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
               ntohl (n->bandwidth_out.value__), GNUNET_i2s (peer));
-#endif
+
   q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
   q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
   q_msg.quota = n->bandwidth_out;
@@ -2170,10 +2171,11 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 #endif
   connect_notify_cb (callback_cls, &n->id, ats, ats_count);  
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
               ntohl (n->bandwidth_out.value__), GNUNET_i2s (peer));
-#endif
+
   q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
   q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
   q_msg.quota = n->bandwidth_out;
