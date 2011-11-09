@@ -454,8 +454,8 @@ neighbours_disconnect_notification (void *cls,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GST_validation_stop ();
   GST_neighbours_stop ();
+  GST_validation_stop ();
   GST_plugins_unload ();
 
   GNUNET_ATS_scheduling_done (GST_ats);
