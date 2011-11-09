@@ -30,9 +30,9 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE_TESTING 2
+#define VERBOSE_TESTING GNUNET_EXTRA_LOGGING
 
-#define VERBOSE_TOPOLOGY 2
+#define VERBOSE_TOPOLOGY GNUNET_EXTRA_LOGGING
 
 #define DEBUG_CHURN GNUNET_EXTRA_LOGGING
 
