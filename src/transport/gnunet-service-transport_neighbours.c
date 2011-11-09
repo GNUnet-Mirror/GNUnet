@@ -1092,10 +1092,9 @@ send_switch_address_continuation (void *cls,
   {
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Failed to switch connected peer `%s' to plugin `%s' address '%s' session %X, asking ATS for new address \n",
-                GNUNET_i2s (&n->id), n->address->transport_name,
-                (n->addrlen ==
-                 0) ? "<inbound>" : GST_plugins_a2s (n->address), n->session);
+                "Failed to switch connected peer `%s' to address '%s' session %X, asking ATS for new address \n",
+                GNUNET_i2s (&n->id), 
+		GST_plugins_a2s (n->address), n->session);
 #endif
 
     GNUNET_ATS_address_destroyed (GST_ats, n->address, NULL);
@@ -1135,9 +1134,9 @@ send_connect_ack_continuation (void *cls,
   /* sending failed, ask for next address  */
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Failed to send CONNECT_MSG to peer `%4s' with plugin `%s' address '%s' session %X, asking ATS for new address \n",
-              GNUNET_i2s (&n->id), n->address->transport_name,
-              (n->addrlen == 0) ? "<inbound>" : GST_plugins_a2s (n->address),
+              "Failed to send CONNECT_MSG to peer `%4s' with address '%s' session %X, asking ATS for new address \n",
+              GNUNET_i2s (&n->id), 
+              GST_plugins_a2s (n->address),
               n->session);
 #endif
   change_state (n, S_NOT_CONNECTED);

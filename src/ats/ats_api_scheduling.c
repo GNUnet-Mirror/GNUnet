@@ -290,13 +290,15 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
     GNUNET_break (0);
     return NULL;
   }
+  if (0 == session_id)
+    return NULL;
   /* Check if this session was:
    *  removed by remove_session (transport service)
    *  released by release_session (ATS)
    *  */
   if (sh->session_array[session_id].session == NULL)
   {
-    GNUNET_assert (0 ==
+    GNUNET_break (0 ==
         memcmp (peer, &sh->session_array[session_id].peer,
                 sizeof (struct GNUNET_PeerIdentity)));
     return NULL;
@@ -715,6 +717,7 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
   size_t namelen;
   size_t msize;
 
+  GNUNET_assert (NULL != address);
   namelen = (address->transport_name == NULL) ? 0 : strlen (address->transport_name) + 1;
   msize = sizeof (struct AddressUseMessage) + address->address_length + namelen;
   if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
