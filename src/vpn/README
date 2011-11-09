@@ -142,8 +142,8 @@ Performance Measurements
 These tests were done between hosts (i7 with 2.67GHz and Core 2 with 2GHz)
 connected by a switched Gigabit Ethernet.
 
-scp direct (100MiB file):                 33.3MiB/s (as shown by scp)
-udp echo direct (6 Bytes of data):        0.000333 (measured by tcpdump)
+scp direct (100MiB file):                                 33.3MiB/s (as shown by scp)
+udp echo direct (6 Bytes of data):                        0.000333 (measured by tcpdump)
 
-scp over gnunet (100MiB file):            20KiB/s (as shown by scp)
-udp echo over gnunet (6 Bytes of data):   0.078410s (measured by tcpdump)
+scp over gnunet (100MiB file, stopped after 5 minutes):   20KiB/s (as shown by scp)
+udp echo over gnunet (6 Bytes of data):                   0.078410s (measured by tcpdump)
