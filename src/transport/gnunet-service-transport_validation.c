@@ -1169,7 +1169,10 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
 {
   struct ValidationEntry *ve;
 
-  ve = find_validation_entry (NULL, address);
+  if (NULL != address)
+    ve = find_validation_entry (NULL, address);
+  else
+    ve = NULL; /* FIXME: lookup based on session... */
   if (NULL == ve)
   {
     /* FIXME: this can happen for inbound connections (sender_address_len == 0);
