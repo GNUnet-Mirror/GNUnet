@@ -566,7 +566,7 @@ internal_hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostkey (%d/%d) created for peer `%s'\n",
-              pg_start_ctx->total - pg_start_ctx->peers_left,
+              pg_start_ctx->total - pg_start_ctx->peers_left + 1,
               pg_start_ctx->total, GNUNET_i2s (id));
 #endif
 
