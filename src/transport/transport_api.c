@@ -581,6 +581,9 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     n = neighbour_find (h, &qm->peer);
     if (n == NULL)
       break;
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Received `%s' message, setting outbound quoto to %u\n",
+        "SET_QUOTA",
+        ntohl(qm->quota.value__));
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, qm->quota);
     break;
   default:
