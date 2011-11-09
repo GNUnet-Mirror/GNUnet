@@ -184,21 +184,35 @@ struct MessageQueue
 
 };
 
+
 enum State
 {
-  /* fresh peer or completely disconnected */
-  S_NOT_CONNECTED = 0,
-  /* sent CONNECT message to other peer, waiting for CONNECT_ACK */
-  S_CONNECT_SENT = 1,
-  /* received CONNECT message to other peer, sending CONNECT_ACK */
-  S_CONNECT_RECV = 4,
-  /* sent CONNECT_ACK message to other peer, wait for ACK or payload */
-  S_CONNECT_RECV_ACK_SENT = 8,
-  /* received ACK or payload */
-  S_CONNECTED = 16,
-  /* Disconnect in progress */
-  S_DISCONNECT = 32
+  /**
+   * fresh peer or completely disconnected 
+   */
+  S_NOT_CONNECTED,
+
+  /**
+   * sent CONNECT message to other peer, waiting for CONNECT_ACK 
+   */
+  S_CONNECT_SENT,
+
+  /**
+   * received CONNECT message to other peer, sending CONNECT_ACK 
+   */
+  S_CONNECT_RECV,
+
+  /**
+   * received ACK or payload 
+   */
+  S_CONNECTED,
+
+  /**
+   * Disconnect in progress 
+   */
+  S_DISCONNECT
 };
+
 
 /**
  * Entry in neighbours.
@@ -383,9 +397,6 @@ print_state (int state)
   case S_CONNECT_RECV:
     return "S_CONNECT_RECV";
     break;
-  case S_CONNECT_RECV_ACK_SENT:
-    return "S_CONNECT_RECV_ACK_SENT";
-    break;
   case S_CONNECT_SENT:
     return "S_CONNECT_SENT";
     break;
@@ -448,9 +459,6 @@ reset_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 change (struct NeighbourMapEntry *n, int state, int line)
 {
-  char *old = strdup (print_state (n->state));
-  char *new = strdup (print_state (state));
-
   /* allowed transitions */
   int allowed = GNUNET_NO;
 
@@ -459,89 +467,28 @@ change (struct NeighbourMapEntry *n, int state, int line)
   case S_NOT_CONNECTED:
     if ((state == S_CONNECT_RECV) || (state == S_CONNECT_SENT) ||
         (state == S_DISCONNECT))
-    {
       allowed = GNUNET_YES;
-
-      /* Schedule reset task */
-      if ((state == S_CONNECT_RECV) || (state == S_CONNECT_SENT))
-      {
-        GNUNET_assert (n->state_reset == GNUNET_SCHEDULER_NO_TASK);
-        n->state_reset =
-            GNUNET_SCHEDULER_add_delayed (SETUP_CONNECTION_TIMEOUT, &reset_task,
-                                          n);
-      }
-      break;
-    }
     break;
   case S_CONNECT_RECV:
-    if ((state == S_NOT_CONNECTED) || (state == S_DISCONNECT) ||
-        (state == S_CONNECTED) ||
-        /* FIXME SENT -> RECV ISSUE! */ (state == S_CONNECT_SENT))
-    {
-      if ((state == S_CONNECTED) || (state == S_DISCONNECT) ||
-          (state == S_NOT_CONNECTED))
-      {
-#if DEBUG_TRANSPORT
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Removed reset task for peer `%s' %s failed in state transition `%s' -> `%s' \n",
-                    GNUNET_i2s (&n->id), GST_plugins_a2s (n->address),
-                    print_state (n->state), print_state (state));
-#endif
-        GNUNET_assert (n->state_reset != GNUNET_SCHEDULER_NO_TASK);
-        GNUNET_SCHEDULER_cancel (n->state_reset);
-        n->state_reset = GNUNET_SCHEDULER_NO_TASK;
-      }
-
-      allowed = GNUNET_YES;
-      break;
-    }
+    allowed = GNUNET_YES;
     break;
   case S_CONNECT_SENT:
-    if ((state == S_NOT_CONNECTED) || (state == S_CONNECTED) ||
-        (state == S_DISCONNECT) ||
-        /* FIXME SENT -> RECV ISSUE! */ (state == S_CONNECT_RECV))
-    {
-      if ((state == S_CONNECTED) || (state == S_DISCONNECT) ||
-          (state == S_NOT_CONNECTED))
-      {
-#if DEBUG_TRANSPORT
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Removed reset task for peer `%s' %s failed in state transition `%s' -> `%s' \n",
-                    GNUNET_i2s (&n->id), GST_plugins_a2s (n->address),
-                    print_state (n->state), print_state (state));
-#endif
-        GNUNET_assert (n->state_reset != GNUNET_SCHEDULER_NO_TASK);
-        GNUNET_SCHEDULER_cancel (n->state_reset);
-        n->state_reset = GNUNET_SCHEDULER_NO_TASK;
-      }
-
-      allowed = GNUNET_YES;
-      break;
-    }
+    allowed = GNUNET_YES;
     break;
   case S_CONNECTED:
     if (state == S_DISCONNECT)
-    {
       allowed = GNUNET_YES;
-      break;
-    }
     break;
   case S_DISCONNECT:
-    /*
-     * if (state == S_NOT_CONNECTED)
-     * {
-     * allowed = GNUNET_YES;
-     * break;
-     * } */
     break;
   default:
     GNUNET_break (0);
     break;
-
   }
-
   if (allowed == GNUNET_NO)
   {
+    char *old = GNUNET_strdup (print_state (n->state));
+    char *new = GNUNET_strdup (print_state (state));
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Illegal state transition from `%s' to `%s' in line %u \n", old,
                 new, line);
@@ -553,12 +500,52 @@ change (struct NeighbourMapEntry *n, int state, int line)
 
   n->state = state;
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "State for neighbour `%s' %X changed from `%s' to `%s' in line %u\n",
-              GNUNET_i2s (&n->id), n, old, new, line);
+  {
+    char *old = GNUNET_strdup (print_state (n->state));
+    char *new = GNUNET_strdup (print_state (state));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"State for neighbour `%s' %X changed from `%s' to `%s' in line %u\n",
+		GNUNET_i2s (&n->id), n, old, new, line);
+    GNUNET_free (old);
+    GNUNET_free (new);
+  }
 #endif
-  GNUNET_free (old);
-  GNUNET_free (new);
+  switch (n->state)
+  {
+  case S_CONNECT_RECV:
+  case S_CONNECT_SENT:
+    if (n->state_reset != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (n->state_reset);
+    n->state_reset =
+      GNUNET_SCHEDULER_add_delayed (SETUP_CONNECTION_TIMEOUT, &reset_task,
+				    n);   
+    break;
+  case S_CONNECTED:
+  case S_NOT_CONNECTED:
+  case S_DISCONNECT:
+    if (GNUNET_SCHEDULER_NO_TASK != n->state_reset)
+    {
+#if DEBUG_TRANSPORT
+      char *old = GNUNET_strdup (print_state (n->state));
+      char *new = GNUNET_strdup (print_state (state));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Removed reset task for peer `%s' %s failed in state transition `%s' -> `%s' \n",
+		  GNUNET_i2s (&n->id), GST_plugins_a2s (n->address),
+		  old, new);
+      GNUNET_free (old);
+      GNUNET_free (new);
+#endif
+      GNUNET_assert (n->state_reset != GNUNET_SCHEDULER_NO_TASK);
+      GNUNET_SCHEDULER_cancel (n->state_reset);
+      n->state_reset = GNUNET_SCHEDULER_NO_TASK;
+    }
+    break;
+  default:
+    GNUNET_assert (0);
+  }
+  
+
+
   return GNUNET_OK;
 }
 
@@ -1042,45 +1029,41 @@ GST_neighbours_stop ()
  * succeeded, we change the state.  If it failed, we should tell
  * ATS to not use this address anymore (until it is re-validated).
  *
- * @param cls the 'struct NeighbourMapEntry'
+ * @param cls the 'struct GNUNET_HELLO_Address' of the address that was tried
  * @param success GNUNET_OK on success
  */
 static void
 send_connect_continuation (void *cls, const struct GNUNET_PeerIdentity *target,
                            int success)
 {
-  struct NeighbourMapEntry *n = cls;
-
-  GNUNET_assert (n != NULL);
-  GNUNET_assert (!is_connected (n));
-
-  if (is_disconnecting (n))
-    return;                     /* neighbour is going away */
-
+  struct GNUNET_HELLO_Address *address = cls;
+  struct NeighbourMapEntry *n;
+  
   if (GNUNET_YES != success)
+    GNUNET_ATS_address_destroyed (GST_ats, address, NULL);  
+  if ( (NULL == neighbours) ||
+       (NULL == (n = lookup_neighbour (&address->peer))) ||
+       (n->state == S_DISCONNECT) ||
+       (GNUNET_YES == success) )
   {
-#if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Failed to send CONNECT_MSG to peer `%4s' with plugin `%s' address '%s' session %X, asking ATS for new address \n",
-                GNUNET_i2s (&n->id), n->address->transport_name,
-                (n->addrlen ==
-                 0) ? "<inbound>" : GST_plugins_a2s (n->address), n->session);
-#endif
-
-    GNUNET_ATS_address_destroyed (GST_ats, n->address, NULL);
-
-    change_state (n, S_NOT_CONNECTED);
-
-    if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (n->ats_suggest);
-    n->ats_suggest =
-        GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel,
-                                      n);
-    GNUNET_ATS_suggest_address (GST_ats, &n->id);
+    GNUNET_HELLO_address_free (address);
     return;
   }
-
-
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Failed to send CONNECT_MSG to peer `%4s' with address '%s' session %p, asking ATS for new address \n",
+	      GNUNET_i2s (&n->id), 
+	      GST_plugins_a2s (n->address), 
+	      n->session);
+#endif
+  change_state (n, S_NOT_CONNECTED);
+  if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (n->ats_suggest);
+  n->ats_suggest =
+    GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, &ats_suggest_cancel,
+				  n);
+  GNUNET_ATS_suggest_address (GST_ats, &n->id);
+  GNUNET_HELLO_address_free (address);
 }
 
 
@@ -1167,6 +1150,7 @@ send_connect_ack_continuation (void *cls,
   GNUNET_ATS_suggest_address (GST_ats, &n->id);
 }
 
+
 /**
  * For an existing neighbour record, set the active connection to
  * the given address.
@@ -1195,61 +1179,44 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   struct SessionConnectMessage connect_msg;
   size_t msg_len;
   size_t ret;
-  int checks_failed;
 
-  // This can happen during shutdown
   if (neighbours == NULL)
   {
+    /* This can happen during shutdown */
     return GNUNET_NO;
   }
-
-  checks_failed = GNUNET_NO;
-
-  if (address == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "ATS offered suggested us empty address: plugin NULL");
-    GNUNET_break_op (0);
-    checks_failed = GNUNET_YES;
-  }
-  if ( (session == NULL) && (address == NULL) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "ATS offered suggested us empty address: address NULL & session NULL");
-    GNUNET_break_op (0);
-    checks_failed = GNUNET_YES;
-  }
-
   n = lookup_neighbour (peer);
   if (NULL == n)
-    checks_failed = GNUNET_YES;
-
-  if (checks_failed == GNUNET_YES)
+    return GNUNET_NO;
+  if (n->state == S_DISCONNECT)
   {
+    /* We are disconnecting, nothing to do here */
+    return GNUNET_NO;
+  }
+  GNUNET_assert (address->transport_name != NULL);
+  if ( (session == NULL) && (0 == address->address_length) )
+  {
+    GNUNET_break_op (0);
     GNUNET_ATS_address_destroyed (GST_ats, address, session);
-    if (n != NULL)
-      GNUNET_ATS_suggest_address (GST_ats, peer);
+    GNUNET_ATS_suggest_address (GST_ats, peer);
     return GNUNET_NO;
   }
 
   /* checks successful and neighbour != NULL */
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS tells us to switch to plugin `%s' address '%s' session %X for %s peer `%s'\n",
-              address->transport_name,
-              (address_len == 0) ? "<inbound>" : GST_plugins_a2s (address),
+              "ATS tells us to switch to address '%s' session %p for %s peer `%s'\n",
+              GST_plugins_a2s (address),
               session, (is_connected (n) ? "CONNECTED" : "NOT CONNECTED"),
               GNUNET_i2s (peer));
 #endif
-
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (n->ats_suggest);
     n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
   }
-
-  // do not switch addresses just update quotas
-  if ( (is_connected (n)) && 
+  /* do not switch addresses just update quotas */
+  if ( (n->state == S_CONNECTED) && 
        (NULL != n->address) &&
        (0 == GNUNET_HELLO_address_cmp (address,
 				       n->address)) &&
@@ -1276,42 +1243,30 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_NO;    
   }
   if (n->state == S_CONNECTED) 
+  {
+    /* mark old address as no longer used */
     GST_validation_set_address_use (&n->id,
 				    n->address,
 				    n->session,
 				    GNUNET_NO);
-  /* This will be a connection switch, tell ATS about it */
-  if (n->state == S_CONNECTED)
-  {
     GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
   }
 
   /* set new address */
   if (NULL != n->address)
-  GNUNET_HELLO_address_free (n->address);
+    GNUNET_HELLO_address_free (n->address);
   n->address = GNUNET_HELLO_address_copy (address);
+  n->session = session;
   n->bandwidth_in = bandwidth_in;
   n->bandwidth_out = bandwidth_out;
-  n->session = session;
   GNUNET_SCHEDULER_cancel (n->timeout_task);
   n->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                     &neighbour_timeout_task, n);
-  if (n->state == S_CONNECTED)
-    GST_validation_set_address_use (&n->id,
-				    n->address,
-				    n->session,
-				    GNUNET_YES);
-
-
-  if (n->state == S_DISCONNECT)
+  switch (n->state)
   {
-    /* We are disconnecting, nothing to do here */
-    return GNUNET_NO;
-  }
-  /* We are not connected/connecting and initiate a fresh connect */
-  if (n->state == S_NOT_CONNECTED)
-  {
+  case S_NOT_CONNECTED:  
+  case S_CONNECT_SENT:
     msg_len = sizeof (struct SessionConnectMessage);
     connect_msg.header.size = htons (msg_len);
     connect_msg.header.type =
@@ -1319,21 +1274,16 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     connect_msg.reserved = htonl (0);
     connect_msg.timestamp =
         GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-
     change_state (n, S_CONNECT_SENT);
-
     ret =
         send_with_plugin (peer, (const char *) &connect_msg, msg_len,
                           UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, session,
                           address, GNUNET_YES,
-                          &send_connect_continuation, n);
-
-
+                          &send_connect_continuation, 
+			  GNUNET_HELLO_address_copy (address));
     return GNUNET_NO;
-  }
-  /* We received a CONNECT message and asked ATS for an address */
-  else if (n->state == S_CONNECT_RECV)
-  {
+  case S_CONNECT_RECV:
+    /* We received a CONNECT message and asked ATS for an address */
     msg_len = sizeof (struct SessionConnectMessage);
     connect_msg.header.size = htons (msg_len);
     connect_msg.header.type =
@@ -1341,17 +1291,18 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     connect_msg.reserved = htonl (0);
     connect_msg.timestamp =
         GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-
     ret =
         send_with_plugin (&n->id, (const void *) &connect_msg, msg_len,
                           UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, session,
                           address, GNUNET_YES,
                           &send_connect_ack_continuation, n);
     return GNUNET_NO;
-  }
-  /* connected peer is switching addresses */
-  else if (n->state == S_CONNECTED)
-  {
+  case S_CONNECTED:
+    /* connected peer is switching addresses */
+    GST_validation_set_address_use (&n->id,
+				    n->address,
+				    n->session,
+				    GNUNET_YES);
     msg_len = sizeof (struct SessionConnectMessage);
     connect_msg.header.size = htons (msg_len);
     connect_msg.header.type =
@@ -1359,7 +1310,6 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     connect_msg.reserved = htonl (0);
     connect_msg.timestamp =
         GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-
     ret =
         send_with_plugin (peer, (const char *) &connect_msg, msg_len,
                           UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, session,
@@ -1373,15 +1323,12 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
 		  GST_plugins_a2s (address), session);
     }
     return GNUNET_NO;
-  }
-  else if (n->state == S_CONNECT_SENT)
-  {
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Invalid connection state to switch addresses %u \n", n->state);
+    GNUNET_break_op (0);
     return GNUNET_NO;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Invalid connection state to switch addresses %u \n", n->state);
-  GNUNET_break_op (0);
-  return GNUNET_NO;
 }
 
 
@@ -2011,53 +1958,46 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   struct NeighbourMapEntry *n;
   size_t msg_len;
   size_t ret;
-  int was_connected;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CONNECT_ACK message from peer `%s'\n",
               GNUNET_i2s (peer));
 #endif
-
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
     GNUNET_break_op (0);
     return;
   }
-
   scm = (const struct SessionConnectMessage *) message;
   GNUNET_break_op (ntohl (scm->reserved) == 0);
   n = lookup_neighbour (peer);
   if (NULL == n)
-    n = setup_neighbour (peer);
-
-  if (!is_connecting(n))
+  {
+    /* we did not send 'CONNECT' (how could we? no record for this peer!) */
+    GNUNET_break_op (0);
+    return;
+  }  
+  if (n->state != S_CONNECT_SENT)
   {
     GNUNET_STATISTICS_update (GST_stats,
-        gettext_noop ("# unexpected CONNECT_ACK messages"), 1,
-        GNUNET_NO);
+			      gettext_noop ("# unexpected CONNECT_ACK messages"), 1,
+			      GNUNET_NO);
     return;
   }
-
   if (NULL != session)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                      "transport-ats",
                      "Giving ATS session %p of plugin %s for peer %s\n",
                      session, address->transport_name, GNUNET_i2s (peer));
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
-
-  was_connected = is_connected (n);
-  if (!is_connected (n))
-  {
-    change_state (n, S_CONNECTED);
-    GST_validation_set_address_use (&n->id,
-				    n->address,
-				    n->session,
-				    GNUNET_YES);
-  }
-
-  GNUNET_ATS_address_in_use (GST_ats, n->address, NULL, GNUNET_YES);
-
+  GNUNET_assert (NULL != n->address);
+  change_state (n, S_CONNECTED);
+  GST_validation_set_address_use (&n->id,
+				  n->address,
+				  n->session,
+				  GNUNET_YES);
+  GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting inbound quota of %u for peer `%s' to \n",
@@ -2083,25 +2023,22 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                 GST_plugins_a2s (n->address), n->session);
 
 
-  if (!was_connected)
-  {
-    if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
-      n->keepalive_task =
-          GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
-                                        &neighbour_keepalive_task, n);
-
-    neighbours_connected++;
-    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
-                              GNUNET_NO);
+  if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
+    n->keepalive_task =
+      GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
+				    &neighbour_keepalive_task, n);
+  
+  neighbours_connected++;
+  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
+			    GNUNET_NO);
 #if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Notify about connect of `%4s' using address '%s' session %X LINE %u\n",
-                GNUNET_i2s (&n->id),
-                GST_plugins_a2s (n->address), n->session,
-                __LINE__);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Notify about connect of `%4s' using address '%s' session %X LINE %u\n",
+	      GNUNET_i2s (&n->id),
+	      GST_plugins_a2s (n->address), n->session,
+	      __LINE__);
 #endif
-    connect_notify_cb (callback_cls, &n->id, ats, ats_count);
-  }
+  connect_notify_cb (callback_cls, &n->id, ats, ats_count);  
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
