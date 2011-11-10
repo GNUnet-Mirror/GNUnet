@@ -2906,7 +2906,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if MESH_DEBUG
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:  mid %u not seen yet, forwarding\n",
                 ntohl (msg->mid));
   }
