@@ -1025,7 +1025,6 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     return;
   }
 
-  ve->expecting_pong = GNUNET_NO;
   if (GNUNET_TIME_absolute_get_remaining
       (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value == 0)
   {
@@ -1043,6 +1042,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 #endif
 
   /* validity achieved, remember it! */
+  ve->expecting_pong = GNUNET_NO;
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
   ve->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
   {

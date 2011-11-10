@@ -124,6 +124,17 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
 void
 GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
 
+/**
+ * We received a KEEP_ALIVE_RESPONSE message and use this to calculate latency
+ * to this peer
+ *
+ * @param neighbour neighbour to keep alive
+ */
+void
+GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
+                                   const struct GNUNET_ATS_Information * ats,
+                                   uint32_t ats_count);
+
 
 /**
  * Change the incoming quota for the given peer.

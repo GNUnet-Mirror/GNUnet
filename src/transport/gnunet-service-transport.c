@@ -264,6 +264,9 @@ plugin_env_receive_callback (void *cls,
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE:
     GST_neighbours_keepalive (peer);
     break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE:
+    GST_neighbours_keepalive_response (peer, ats, ats_count);
+    break;
   default:
     /* should be payload */
     ret = process_payload (peer, message, ats, ats_count);

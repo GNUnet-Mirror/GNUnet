@@ -48,12 +48,13 @@
 #define QUOTA_VIOLATION_DROP_THRESHOLD 10
 
 /**
- * How often do we send KEEPALIVE messages to each of our neighbours?
- * (idle timeout is 5 minutes or 300 seconds, so with 90s interval we
- * send 3 keepalives in each interval, so 3 messages would need to be
+ * How often do we send KEEPALIVE messages to each of our neighbours and measure
+ * the latency with this neighbour?
+ * (idle timeout is 5 minutes or 300 seconds, so with 30s interval we
+ * send 10 keepalives in each interval, so 10 messages would need to be
  * lost in a row for a disconnect).
  */
-#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
+#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 
 #define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
@@ -300,6 +301,16 @@ struct NeighbourMapEntry
   struct GNUNET_TIME_Absolute connect_ts;
 
   /**
+   * When did we sent the last keep-alive message?
+   */
+  struct GNUNET_TIME_Absolute keep_alive_sent;
+
+  /**
+   * Latest calculated latency value
+   */
+  struct GNUNET_TIME_Relative latency;
+
+  /**
    * Timeout for ATS
    * We asked ATS for a new address for this peer
    */
@@ -325,6 +336,10 @@ struct NeighbourMapEntry
    */
   int state;
 
+  /**
+   * Did we sent an KEEP_ALIVE message and are we expecting a response?
+   */
+  int expect_latency_response;
 };
 
 
@@ -971,20 +986,32 @@ neighbour_keepalive_task (void *cls,
 {
   struct NeighbourMapEntry *n = cls;
   struct GNUNET_MessageHeader m;
+  int ret;
 
   n->keepalive_task =
       GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
                                     &neighbour_keepalive_task, n);
+
   GNUNET_assert (S_CONNECTED == n->state);
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# keepalives sent"), 1,
                             GNUNET_NO);
   m.size = htons (sizeof (struct GNUNET_MessageHeader));
   m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE);
 
-  send_with_plugin (&n->id, (const void *) &m, sizeof (m),
+
+  ret = send_with_plugin (&n->id, (const void *) &m, sizeof (m),
                     UINT32_MAX /* priority */ ,
                     GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->address, 
 		    GNUNET_YES, NULL, NULL);
+
+  n->expect_latency_response = GNUNET_NO;
+  n->keep_alive_sent = GNUNET_TIME_absolute_get_zero();
+  if (ret != GNUNET_SYSERR)
+  {
+    n->expect_latency_response = GNUNET_YES;
+    n->keep_alive_sent = GNUNET_TIME_absolute_get();
+  }
+
 }
 
 
@@ -1375,9 +1402,8 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   if ( (NULL == n) ||
        ( (n->address == NULL) && (n->session == NULL) ) )
     return GNUNET_TIME_UNIT_FOREVER_REL;
-  return GST_validation_get_address_latency (peer,
-					     n->address,
-					     n->session);
+
+  return n->latency;
 }
 
 
@@ -1399,6 +1425,7 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   n = GNUNET_malloc (sizeof (struct NeighbourMapEntry));
   n->id = *peer;
   n->state = S_NOT_CONNECTED;
+  n->latency = GNUNET_TIME_relative_get_forever();
   GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
                                  GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_BANDWIDTH_CARRY_S);
@@ -1763,6 +1790,88 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
   n->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                     &neighbour_timeout_task, n);
+
+  /* send reply to measure latency */
+  if (S_CONNECTED != n->state)
+    return;
+
+  struct GNUNET_MessageHeader m;
+  m.size = htons (sizeof (struct GNUNET_MessageHeader));
+  m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE);
+
+  send_with_plugin (&n->id, (const void *) &m, sizeof (m),
+                    UINT32_MAX /* priority */ ,
+                    GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->address,
+                    GNUNET_YES, NULL, NULL);
+}
+
+/**
+ * We received a KEEP_ALIVE_RESPONSE message and use this to calculate latency
+ * to this peer
+ *
+ * @param neighbour neighbour to keep alive
+ */
+void
+GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
+                                   const struct GNUNET_ATS_Information * ats,
+                                   uint32_t ats_count)
+{
+  struct NeighbourMapEntry *n;
+  struct GNUNET_ATS_Information * ats_new;
+  uint32_t latency;
+
+  if (neighbours == NULL)
+  {
+    // This can happen during shutdown
+    return;
+  }
+
+  n = lookup_neighbour (neighbour);
+  if (NULL == n)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# KEEPALIVE_RESPONSE messages discarded (not connected)"),
+                              1, GNUNET_NO);
+    return;
+  }
+  if (n->expect_latency_response != GNUNET_YES)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# KEEPALIVE_RESPONSE messages discarded (not expected)"),
+                              1, GNUNET_NO);
+    return;
+  }
+  n->expect_latency_response = GNUNET_NO;
+
+  GNUNET_assert (n->keep_alive_sent.abs_value != GNUNET_TIME_absolute_get_zero().abs_value);
+  n->latency = GNUNET_TIME_absolute_get_difference(n->keep_alive_sent, GNUNET_TIME_absolute_get());
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Latency for peer `%s' is %llu ms\n",
+              GNUNET_i2s (&n->id), n->latency.rel_value);
+#endif
+
+
+  if (n->latency.rel_value == GNUNET_TIME_relative_get_forever().rel_value)
+    GNUNET_ATS_address_update (GST_ats, n->address, n->session, ats, ats_count);
+  else
+  {
+    ats_new = GNUNET_malloc (sizeof (struct GNUNET_ATS_Information) * (ats_count + 1));
+    memcpy (ats_new, ats, sizeof (struct GNUNET_ATS_Information) * ats_count);
+
+    /* add latency */
+    ats_new[ats_count].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+    if (n->latency.rel_value > UINT32_MAX)
+      latency = UINT32_MAX;
+    else
+      latency = n->latency.rel_value;
+    ats_new[ats_count].value = htonl (latency);
+
+    GNUNET_ATS_address_update (GST_ats, n->address, n->session, ats_new, ats_count + 1);
+    GNUNET_free (ats_new);
+  }
 }
 
 
@@ -2069,9 +2178,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 
 
   if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
-    n->keepalive_task =
-      GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
-				    &neighbour_keepalive_task, n);
+    n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task, n);
   
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
@@ -2150,9 +2257,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
 
   if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
-    n->keepalive_task =
-        GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
-                                      &neighbour_keepalive_task, n);
+        n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task, n);
   GST_validation_set_address_use (&n->id,
 				  n->address,
 				  n->session,
