@@ -2474,6 +2474,7 @@ handle_connect_blacklist_cont (void *cls,
     n->connect_ts = bcc->ts;
   }
 
+  GNUNET_HELLO_address_free (bcc->address);
   GNUNET_free (bcc);
 
   if (n->state != S_CONNECT_RECV)
