@@ -41,6 +41,7 @@
  * - speed requirement specification (change?) in mesh API -- API call
  * - add ping message
  * - relay corking down to core
+ * - set ttl relative to tree depth
  */
 
 #include "platform.h"
@@ -68,8 +69,11 @@
 #define UNACKNOWLEDGED_WAIT     GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
                                     2)
+#define DEFAULT_TTL     64
 
 #define MESH_DEBUG_DHT GNUNET_NO
+
+
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
@@ -260,6 +264,11 @@ struct MeshTunnel
      * Local tunnel number ( >= GNUNET_MESH_LOCAL_TUNNEL_ID_CLI or 0 )
      */
   MESH_TunnelNumber local_tid;
+
+    /**
+     * ID of the last multicast packet seen/sent.
+     */
+  uint32_t mid;
 
     /**
      * Last time the tunnel was used
@@ -2012,9 +2021,26 @@ tunnel_send_multicast (struct MeshTunnel *t,
   mdata = GNUNET_malloc (sizeof (struct MeshMulticastData));
   mdata->data_len = ntohs (msg->size);
   mdata->reference_counter = GNUNET_malloc (sizeof (unsigned int));
-  mdata->data = GNUNET_malloc (mdata->data_len);
   mdata->t = t;
+  mdata->data = GNUNET_malloc (mdata->data_len);
   memcpy (mdata->data, msg, mdata->data_len);
+  if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_MESH_MULTICAST)
+  {
+    struct GNUNET_MESH_Multicast *mcast;
+
+    mcast = (struct GNUNET_MESH_Multicast *) mdata->data;
+    mcast->ttl = htonl (ntohl (mcast->ttl) - 1);
+#if MESH_DEBUG
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   data packet, ttl: %u\n",
+                ntohl (mcast->ttl));
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MESH:   not a data packet, no ttl\n");
+#endif
+  }
   if (NULL != t->client)
   {
     mdata->task = GNUNET_malloc (sizeof (GNUNET_SCHEDULER_TaskIdentifier));
@@ -2869,6 +2895,23 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+  if (t->mid == ntohl (msg->mid))
+  {
+    /* FIXME: already seen this packet, log dropping */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "MESH:  Already seen mid %u, DROPPING!\n",
+                t->mid);
+    return GNUNET_OK;
+  }
+#if MESH_DEBUG
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "MESH:  mid %u not seen yet, forwarding\n",
+                ntohl (msg->mid));
+  }
+#endif
+  t->mid = ntohl (msg->mid);
   tunnel_reset_timeout (t);
 
   /* Transmit to locally interested clients */
@@ -2876,6 +2919,18 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_CONTAINER_multihashmap_contains (t->peers, &my_full_id.hashPubKey))
   {
     send_subscribed_clients (message, &msg[1].header);
+  }
+#if MESH_DEBUG
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MESH:    ttl: %u\n",
+              ntohl (msg->ttl));
+#endif
+  if (ntohl (msg->ttl) == 0)
+  {
+    /* FIXME: ttl is 0, log dropping */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "MESH:  TTL is 0, DROPPING!\n");
+    return GNUNET_OK;
   }
   tunnel_send_multicast (t, message);
   return GNUNET_OK;
@@ -4042,6 +4097,8 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     memcpy (buf, message, ntohs (message->size));
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
+    copy->ttl = htonl (DEFAULT_TTL);
+    copy->mid = htonl (t->mid + 1);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MESH:   calling generic handler...\n");
     handle_mesh_data_multicast (client, &my_full_id, &copy->header, NULL, 0);

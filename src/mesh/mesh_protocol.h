@@ -81,6 +81,16 @@ struct GNUNET_MESH_Multicast
   uint32_t tid GNUNET_PACKED;
 
     /**
+     * Number of hops to live
+     */
+  uint32_t ttl GNUNET_PACKED;
+
+    /**
+     * Unique ID of the packet
+     */
+  uint32_t mid GNUNET_PACKED;
+
+    /**
      * OID of the tunnel
      */
   struct GNUNET_PeerIdentity oid;
