@@ -1183,11 +1183,7 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
     ve = NULL; /* FIXME: lookup based on session... */
   if (NULL == ve)
   {
-    /* FIXME: this can happen for inbound connections (sender_address_len == 0);
-       in that case, we should hack up some more code here to measure
-       latency for inbound connections! Also, in this case we'll need the session... 
-    */
-    GNUNET_break (0);
+    /* this can happen for inbound connections (sender_address_len == 0); */
     return;
   }
   GNUNET_break (ve->in_use != in_use); /* should be different... */
