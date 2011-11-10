@@ -245,6 +245,10 @@ struct ValidationEntry
    */
   int in_use;
 
+  /**
+   * Are we expecting a PONG message for this validation entry?
+   */
+  int expecting_pong;
 };
 
 
@@ -488,6 +492,7 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
                               gettext_noop
                               ("# PING without HELLO messages sent"), 1,
                               GNUNET_NO);
+    ve->expecting_pong = GNUNET_YES;
   }
 }
 
@@ -591,6 +596,7 @@ find_validation_entry (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
 						   &timeout_hello_validation, ve);
   GNUNET_CONTAINER_multihashmap_put (validation_map, &address->peer.hashPubKey, ve,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  ve->expecting_pong = GNUNET_NO;
   return ve;
 }
 
@@ -995,7 +1001,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   address.address_length = addrlen;
   address.transport_name = tname;
   ve = find_validation_entry (NULL, &address);
-  if (NULL == ve)
+  if ((NULL == ve) || (ve->expecting_pong == GNUNET_NO))
   {
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
@@ -1010,6 +1016,16 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     return;
   }
 
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+                                &pong->purpose, &pong->signature,
+                                &ve->public_key))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
+  ve->expecting_pong = GNUNET_NO;
   if (GNUNET_TIME_absolute_get_remaining
       (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value == 0)
   {
@@ -1017,14 +1033,6 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
                               gettext_noop
                               ("# PONGs dropped, signature expired"), 1,
                               GNUNET_NO);
-    return;
-  }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-                                &pong->purpose, &pong->signature,
-                                &ve->public_key))
-  {
-    GNUNET_break_op (0);
     return;
   }
 #if DEBUG_TRANSPORT
