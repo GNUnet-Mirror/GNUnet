@@ -46,9 +46,12 @@ static struct GNUNET_PEERINFO_Handle *h;
 
 static unsigned int numpeers;
 
+static struct GNUNET_PeerIdentity pid;
+
+
 static int
-check_it (void *cls, const char *tname, struct GNUNET_TIME_Absolute expiration,
-          const void *addr, uint16_t addrlen)
+check_it (void *cls,
+	  const struct GNUNET_HELLO_Address *address, struct GNUNET_TIME_Absolute expiration)
 {
 #if DEBUG
   if (addrlen > 0)
@@ -65,19 +68,22 @@ address_generator (void *cls, size_t max, void *buf)
 {
   size_t *agc = cls;
   size_t ret;
-  char *address;
+  char *caddress;
+  struct GNUNET_HELLO_Address address;
 
   if (*agc == 0)
     return 0;
 
-  GNUNET_asprintf (&address, "Address%d", *agc);
-
+  GNUNET_asprintf (&caddress, "Address%d", *agc);
+  address.peer = pid;
+  address.address_length = strlen (caddress) + 1;
+  address.address = caddress;
+  address.transport_name = "peerinfotest";
   ret =
-      GNUNET_HELLO_add_address ("peerinfotest",
+    GNUNET_HELLO_add_address (&address,
                                 GNUNET_TIME_relative_to_absolute
-                                (GNUNET_TIME_UNIT_HOURS), address,
-                                strlen (address) + 1, buf, max);
-  GNUNET_free (address);
+                                (GNUNET_TIME_UNIT_HOURS), buf, max);
+  GNUNET_free (caddress);
   *agc = 0;
   return ret;
 }
@@ -87,7 +93,6 @@ static void
 add_peer (size_t i)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
-  struct GNUNET_PeerIdentity pid;
   struct GNUNET_HELLO_Message *h2;
 
   memset (&pkey, i, sizeof (pkey));
