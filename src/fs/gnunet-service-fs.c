@@ -97,7 +97,7 @@ struct GNUNET_LOAD_Value *GSF_rt_entry_lifetime;
  * Running average of the observed latency to other peers (round trip).
  * Initialized to 5s as the initial default.
  */
-struct GNUNET_TIME_Relative GSF_avg_latency = { 5000 };
+struct GNUNET_TIME_Relative GSF_avg_latency = { 500 };
 
 /**
  * Typical priorities we're seeing from other peers right now.  Since
@@ -234,8 +234,9 @@ update_latencies (const struct GNUNET_ATS_Information *atsi,
   {
     if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DELAY)
     {
-      GSF_avg_latency.rel_value =
-          (GSF_avg_latency.rel_value * 31 + ntohl (atsi[i].value)) / 32;
+      GSF_avg_latency.rel_value = (GSF_avg_latency.rel_value * 31 + 
+				   GNUNET_MIN (5000,
+					       ntohl (atsi[i].value))) / 32;
       GNUNET_STATISTICS_set (GSF_stats,
                              gettext_noop
                              ("# running average P2P latency (ms)"),
