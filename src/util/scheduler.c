@@ -1308,7 +1308,7 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
  *         only valid until "task" is started!
  */
 #ifndef MINGW
-GNUNET_SCHEDULER_TaskIdentifier
+static GNUNET_SCHEDULER_TaskIdentifier
 add_without_sets (struct GNUNET_TIME_Relative delay, int rfd, int wfd,
                   GNUNET_SCHEDULER_Task task, void *task_cls)
 {
