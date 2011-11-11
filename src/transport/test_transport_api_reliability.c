@@ -165,7 +165,7 @@ end_badly ()
   die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
-  if (test_connected == GNUNET_NO)
+  if (test_connected == GNUNET_YES)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got connected\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got NOT connected\n");
@@ -400,6 +400,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
+  test_connected = GNUNET_YES;
   cc = NULL;
 
   GNUNET_SCHEDULER_add_now (&sendtask, NULL);
