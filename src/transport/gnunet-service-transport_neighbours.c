@@ -1239,7 +1239,15 @@ send_switch_address_continuation (void *cls,
   /* Tell ATS that switching addresses was successful */
   switch (n->state) {
     case S_CONNECTED:
-      GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
+      if (n->address_state == FRESH)
+      {
+          GST_validation_set_address_use (&n->id,
+                    cc->address,
+                    cc->session,
+                    GNUNET_YES);
+          GNUNET_ATS_address_in_use (GST_ats, cc->address, cc->session, GNUNET_YES);
+          n->address_state = USED;
+      }
       break;
     case S_FAST_RECONNECT:
 #if DEBUG_TRANSPORT
@@ -1257,9 +1265,9 @@ send_switch_address_continuation (void *cls,
                     cc->address,
                     cc->session,
                     GNUNET_YES);
+          GNUNET_ATS_address_in_use (GST_ats, cc->address, cc->session, GNUNET_YES);
           n->address_state = USED;
       }
-      GNUNET_ATS_address_in_use (GST_ats, cc->address, cc->session, GNUNET_YES);
 
       if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
             n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task, n);
@@ -2304,9 +2312,9 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
             n->address,
             n->session,
             GNUNET_YES);
+    GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
     n->address_state = USED;
   }
-  GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
 
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
 
@@ -2392,10 +2400,8 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
   GNUNET_assert (n->address != NULL);
   change_state (n, S_CONNECTED);
-  GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
 
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
-
   if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
         n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task, n);
   if (n->address_state == FRESH)
@@ -2404,6 +2410,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 				  n->address,
 				  n->session,
 				  GNUNET_YES);
+    GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
     n->address_state = USED;
   }
   neighbours_connected++;
