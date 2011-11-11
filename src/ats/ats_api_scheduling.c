@@ -297,21 +297,8 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
    *  released by release_session (ATS)
    *  */
   if (sh->session_array[session_id].session == NULL)
-  {
-    GNUNET_break (0 ==
-        memcmp (peer, &sh->session_array[session_id].peer,
-                sizeof (struct GNUNET_PeerIdentity)));
     return NULL;
-  }
 
-  if (0 !=
-      memcmp (peer, &sh->session_array[session_id].peer,
-              sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_break (0);
-    sh->reconnect = GNUNET_YES;
-    return NULL;
-  }
   return sh->session_array[session_id].session;
 }
 
@@ -339,10 +326,11 @@ get_session_id (struct GNUNET_ATS_SchedulingHandle *sh, struct Session *session,
   {
     if (session == sh->session_array[i].session)
     {
-      GNUNET_assert (0 ==
-                     memcmp (peer, &sh->session_array[i].peer,
-                             sizeof (struct GNUNET_PeerIdentity)));
-      return i;
+      if (0 !=  memcmp (peer, &sh->session_array[i].peer,
+                             sizeof (struct GNUNET_PeerIdentity)))
+        continue;
+      else
+        return i;
     }
     if ((f == 0) && (sh->session_array[i].slot_used == GNUNET_NO))
       f = i;
@@ -377,8 +365,7 @@ remove_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
     return;
   GNUNET_assert (session_id < sh->session_array_size);
   GNUNET_assert (GNUNET_YES == sh->session_array[session_id].slot_used);
-  GNUNET_assert (0 ==
-                 memcmp (peer, &sh->session_array[session_id].peer,
+  GNUNET_assert (0 == memcmp (peer, &sh->session_array[session_id].peer,
                          sizeof (struct GNUNET_PeerIdentity)));
   sh->session_array[session_id].session = NULL;
 }
@@ -406,15 +393,13 @@ release_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
   /* this slot should have been removed from remove_session before */
   GNUNET_assert (sh->session_array[session_id].session == NULL);
 
-  if (0 !=
-      memcmp (peer, &sh->session_array[session_id].peer,
+  if (0 != memcmp (peer, &sh->session_array[session_id].peer,
               sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
     sh->reconnect = GNUNET_YES;
     return;
   }
-
   sh->session_array[session_id].slot_used = GNUNET_NO;
   memset (&sh->session_array[session_id].peer, 0,
           sizeof (struct GNUNET_PeerIdentity));
@@ -510,9 +495,6 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   address.transport_name = plugin_name;
   sh->suggest_cb (sh->suggest_cb_cls, &address, s, m->bandwidth_out,
                   m->bandwidth_in, atsi, ats_count);
-
-
-
 
   GNUNET_CLIENT_receive (sh->client, &process_ats_message, sh,
                          GNUNET_TIME_UNIT_FOREVER_REL);
