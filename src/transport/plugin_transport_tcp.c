@@ -1143,7 +1143,6 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
       ses = ses->next;
     if (ses == NULL)
     {
-      GNUNET_break (0);
       return -1;
     }
   }
