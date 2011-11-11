@@ -125,6 +125,8 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
  */
 static struct GNUNET_TIME_Relative
 process_payload (const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_HELLO_Address *address,
+                 struct Session *session,
                  const struct GNUNET_MessageHeader *message,
                  const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
@@ -169,6 +171,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   ap[ats_count].value = htonl ((uint32_t) GST_neighbour_get_latency (peer).rel_value);
   memcpy (&ap[ats_count + 1], message, ntohs (message->size));
 
+  GNUNET_ATS_address_update (GST_ats, address, session, ap, ats_count +1 );
   GST_clients_broadcast (&im->header, GNUNET_YES);
 
   return ret;
@@ -269,7 +272,7 @@ plugin_env_receive_callback (void *cls,
     break;
   default:
     /* should be payload */
-    ret = process_payload (peer, message, ats, ats_count);
+    ret = process_payload (peer, &address, session, message, ats, ats_count);
     break;
   }
 end:
