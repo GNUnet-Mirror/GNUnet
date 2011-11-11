@@ -140,7 +140,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
   {
     plug = next;
     next = plug->next;
-    plug->api = GNUNET_PLUGIN_load (libname, &plug->env);
+    plug->api = GNUNET_PLUGIN_load (plug->lib_name, &plug->env);
     if (plug->api == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
