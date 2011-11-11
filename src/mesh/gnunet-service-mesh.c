@@ -405,7 +405,7 @@ struct MeshClient
 /************************      DEBUG FUNCTIONS     ****************************/
 /******************************************************************************/
 
-
+#if MESH_DEBUG
 /**
  * GNUNET_SCHEDULER_Task for printing a message after some operation is done
  * @param cls string to print
@@ -422,7 +422,7 @@ mesh_debug (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: %s\n", s);
 }
-
+#endif
 
 /******************************************************************************/
 /***********************      GLOBAL VARIABLES     ****************************/
@@ -822,7 +822,9 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
   *tid = htonl (t->local_tid);
   for (count = 0, c = clients; c != NULL; c = c->next)
   {
+#if MESH_DEBUG
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    client %u\n", c->id);
+#endif
     if (client_is_subscribed (type, c))
     {
       count++;
@@ -3413,9 +3415,9 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   c = GNUNET_malloc (sizeof (struct MeshClient));
 #if MESH_DEBUG
   c->id = next_client_id++;
-#endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   CLIENT NEW %u at %p\n", c->id,
               c);
+#endif
   c->handle = client;
   GNUNET_SERVER_client_keep (client);
   a = (GNUNET_MESH_ApplicationType *) &cc_msg[1];
