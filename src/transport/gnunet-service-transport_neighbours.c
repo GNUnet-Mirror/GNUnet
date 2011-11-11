@@ -220,6 +220,12 @@ enum State
   S_DISCONNECT
 };
 
+enum Address_State
+{
+  USED,
+  UNUSED,
+  FRESH,
+};
 
 /**
  * Entry in neighbours.
@@ -341,6 +347,7 @@ struct NeighbourMapEntry
    * Did we sent an KEEP_ALIVE message and are we expecting a response?
    */
   int expect_latency_response;
+  int address_state;
 };
 
 
@@ -519,6 +526,7 @@ change (struct NeighbourMapEntry *n, int state, int line)
     return GNUNET_SYSERR;
   }
 #if DEBUG_TRANSPORT
+
   {
     char *old = GNUNET_strdup (print_state (n->state));
     char *new = GNUNET_strdup (print_state (state));
@@ -844,6 +852,7 @@ send_disconnect (const struct GNUNET_PeerIdentity *target,
   return GNUNET_OK;
 }
 
+
 /**
  * Disconnect from the given neighbour, clean up the record.
  *
@@ -876,15 +885,20 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   }
 
   change_state (n, S_DISCONNECT);
-  GST_validation_set_address_use (&n->id,
-				  n->address,
-				  n->session,
-				  GNUNET_NO);
 
-  if (n->state == S_CONNECTED)
+  if (previous_state == S_CONNECTED)
   {
     GNUNET_assert (NULL != n->address);
-    GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
+    if (n->address_state == USED)
+    {
+      GST_validation_set_address_use (&n->id,
+                                      n->address,
+                                      n->session,
+                                      GNUNET_NO);
+
+      GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
+      n->address_state = UNUSED;
+    }
   }
 
   if (n->address != NULL)
@@ -909,7 +923,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
 
   switch (previous_state) {
     case S_CONNECTED:
-      GNUNET_assert (neighbours_connected > 0);
+//      GNUNET_assert (neighbours_connected > 0);
       neighbours_connected--;
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->keepalive_task);
       GNUNET_SCHEDULER_cancel (n->keepalive_task);
@@ -1080,7 +1094,7 @@ GST_neighbours_stop ()
   GNUNET_CONTAINER_multihashmap_iterate (neighbours, &disconnect_all_neighbours,
                                          NULL);
   GNUNET_CONTAINER_multihashmap_destroy (neighbours);
-  GNUNET_assert (neighbours_connected == 0);
+//  GNUNET_assert (neighbours_connected == 0);
   neighbours = NULL;
   callback_cls = NULL;
   connect_notify_cb = NULL;
@@ -1093,6 +1107,21 @@ struct ContinutionContext
 
   struct Session *session;
 };
+
+static void send_outbound_quota (const struct GNUNET_PeerIdentity *target, struct GNUNET_BANDWIDTH_Value32NBO quota)
+{
+   struct QuotaSetMessage q_msg;
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
+                ntohl (quota.value__), GNUNET_i2s (target));
+#endif
+    q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
+    q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
+    q_msg.quota = quota;
+    q_msg.peer = (*target);
+    GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+}
 
 /**
  * We tried to send a SESSION_CONNECT message to another peer.  If this
@@ -1154,7 +1183,6 @@ send_connect_continuation (void *cls, const struct GNUNET_PeerIdentity *target,
   GNUNET_HELLO_address_free (cc->address);
   GNUNET_free (cc);
 }
-
 
 /**
  * We tried to switch addresses with an peer already connected. If it failed,
@@ -1223,29 +1251,23 @@ send_switch_address_continuation (void *cls,
       GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
                                 GNUNET_NO);
 
-      GST_validation_set_address_use (&n->id,
-                                      cc->address,
-                                      cc->session,
-                                      GNUNET_YES);
-
+      if (n->address_state == FRESH)
+      {
+          GST_validation_set_address_use (&n->id,
+                    cc->address,
+                    cc->session,
+                    GNUNET_YES);
+          n->address_state = USED;
+      }
       GNUNET_ATS_address_in_use (GST_ats, cc->address, cc->session, GNUNET_YES);
 
       if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
             n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task, n);
 
       /* Updating quotas */
-      struct QuotaSetMessage q_msg;
       GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-                  ntohl (n->bandwidth_out.value__), GNUNET_i2s (peer));
-#endif
-      q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
-      q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-      q_msg.quota = n->bandwidth_out;
-      q_msg.peer = (*target);
-      GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+      send_outbound_quota(target, n->bandwidth_out);
+
     default:
       break;
   }
@@ -1369,7 +1391,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
 
   /* checks successful and neighbour != NULL */
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "ATS tells us to switch to address '%s' session %p for peer `%s' in state `%s'\n",
               GST_plugins_a2s (address),
               session,
@@ -1388,40 +1410,33 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
 				       n->address)) &&
        (n->session == session) )
   {
-    struct QuotaSetMessage q_msg;
-
     n->bandwidth_in = bandwidth_in;
     n->bandwidth_out = bandwidth_out;
     GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
-    
-#if DEBUG_TRANSPORT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending outbound quota of %u Bps and inbound quota of %u Bps for peer `%s' to all clients\n",
-                ntohl (n->bandwidth_out.value__),
-                ntohl (n->bandwidth_in.value__), GNUNET_i2s (peer));
-#endif
-    q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
-    q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-    q_msg.quota = n->bandwidth_out;
-    q_msg.peer = (*peer);
-    GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+    send_outbound_quota(peer, n->bandwidth_out);
     return GNUNET_NO;    
   }
   if (n->state == S_CONNECTED)
   {
     /* mark old address as no longer used */
     GNUNET_assert (NULL != n->address);
-    GST_validation_set_address_use (&n->id,
-				    n->address,
-				    n->session,
-				    GNUNET_NO);
-    GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
+    if (n->address_state == USED)
+    {
+      GST_validation_set_address_use (&n->id,
+                                      n->address,
+                                      n->session,
+                                      GNUNET_NO);
+      GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
+      n->address_state = UNUSED;
+    }
+
   }
 
   /* set new address */
   if (NULL != n->address)
     GNUNET_HELLO_address_free (n->address);
   n->address = GNUNET_HELLO_address_copy (address);
+  n->address_state = FRESH;
   n->session = session;
   n->bandwidth_in = bandwidth_in;
   n->bandwidth_out = bandwidth_out;
@@ -1472,10 +1487,6 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   case S_CONNECTED:
   case S_FAST_RECONNECT:
     /* connected peer is switching addresses or tries fast reconnect*/
-    GST_validation_set_address_use (&n->id,
-				    n->address,
-				    n->session,
-				    GNUNET_YES);
     msg_len = sizeof (struct SessionConnectMessage);
     connect_msg.header.size = htons (msg_len);
     connect_msg.header.type =
@@ -1652,7 +1663,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   }
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %X to peer `%s' ended \n",
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
 #endif
 
@@ -1663,11 +1674,15 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     return;                     /* doesn't affect us */
   if (n->state == S_CONNECTED)
   {
-    GST_validation_set_address_use (&n->id,
-				    n->address,
-				    n->session,
-				    GNUNET_NO);
-    GNUNET_ATS_address_in_use (GST_ats,n->address, n->session, GNUNET_NO);
+    if (n->address_state == USED)
+    {
+      GST_validation_set_address_use (&n->id,
+                                      n->address,
+                                      n->session,
+                                      GNUNET_NO);
+      GNUNET_ATS_address_in_use (GST_ats,n->address, n->session, GNUNET_NO);
+      n->address_state = UNUSED;
+    }
   }
 
 
@@ -2233,7 +2248,6 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                    uint32_t ats_count)
 {
   const struct SessionConnectMessage *scm;
-  struct QuotaSetMessage q_msg;
   struct GNUNET_MessageHeader msg;
   struct NeighbourMapEntry *n;
   size_t msg_len;
@@ -2284,10 +2298,14 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   GNUNET_assert (NULL != n->address);
 
   change_state (n, S_CONNECTED);
-  GST_validation_set_address_use (&n->id,
-				  n->address,
-				  n->session,
-				  GNUNET_YES);
+  if (n->address_state == FRESH)
+  {
+    GST_validation_set_address_use (&n->id,
+            n->address,
+            n->session,
+            GNUNET_YES);
+    n->address_state = USED;
+  }
   GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
 
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
@@ -2324,17 +2342,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 	      __LINE__);
 #endif
   connect_notify_cb (callback_cls, &n->id, ats, ats_count);  
-
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (n->bandwidth_out.value__), GNUNET_i2s (peer));
-#endif
-  q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
-  q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-  q_msg.quota = n->bandwidth_out;
-  q_msg.peer = (*peer);
-  GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+  send_outbound_quota(peer, n->bandwidth_out);
 
 }
 
@@ -2348,7 +2356,6 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
                            uint32_t ats_count)
 {
   struct NeighbourMapEntry *n;
-  struct QuotaSetMessage q_msg;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -2391,10 +2398,14 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 
   if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
         n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task, n);
-  GST_validation_set_address_use (&n->id,
+  if (n->address_state == FRESH)
+  {
+    GST_validation_set_address_use (&n->id,
 				  n->address,
 				  n->session,
 				  GNUNET_YES);
+    n->address_state = USED;
+  }
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
 			    GNUNET_NO);
@@ -2407,16 +2418,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 	      __LINE__);
 #endif
   connect_notify_cb (callback_cls, &n->id, ats, ats_count);  
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (n->bandwidth_out.value__), GNUNET_i2s (peer));
-#endif
-  q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
-  q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-  q_msg.quota = n->bandwidth_out;
-  q_msg.peer = (*peer);
-  GST_clients_broadcast (&q_msg.header, GNUNET_NO);
+  send_outbound_quota(peer, n->bandwidth_out);
 }
 
 struct BlackListCheckContext
