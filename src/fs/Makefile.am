@@ -138,7 +138,7 @@ gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(GN_LIBINTL)
+ $(GN_LIBINTL) -lm
 gnunet_service_fs_DEPENDENCIES = \
   libgnunetfs.la
 
