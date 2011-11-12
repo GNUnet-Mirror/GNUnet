@@ -2572,20 +2572,31 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (own_pos == size - 1)
   {
     /* It is for us! Send ack. */
-    struct GNUNET_MESH_TunnelNotification cmsg;
     struct MeshDataDescriptor *info;
     unsigned int j;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   It's for us!\n");
     peer_info_add_path_to_origin (orig_peer_info, path, GNUNET_NO);
     if (NULL == t->peers)
+    {
+      /* New tunnel! Notify clients! */
+      struct GNUNET_MESH_TunnelNotification cmsg;
+
+      cmsg.header.size = htons (sizeof (cmsg));
+      cmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
+      GNUNET_PEER_resolve (t->id.oid, &cmsg.peer);
+      cmsg.tunnel_id = htonl (t->local_tid);
+      GNUNET_SERVER_notification_context_broadcast (nc, &cmsg.header,
+                                                    GNUNET_NO);
+
       t->peers = GNUNET_CONTAINER_multihashmap_create (4);
+    }
     GNUNET_break (GNUNET_OK ==
                   GNUNET_CONTAINER_multihashmap_put (t->peers,
                                                      &my_full_id.hashPubKey,
                                                      peer_info_get
                                                      (&my_full_id),
-                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
     /* FIXME use send_message */
     info = GNUNET_malloc (sizeof (struct MeshDataDescriptor));
     info->origin = &t->id;
@@ -2600,11 +2611,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                                            GNUNET_TIME_UNIT_FOREVER_REL, peer,
                                            sizeof (struct GNUNET_MESH_PathACK),
                                            &send_core_path_ack, info);
-    cmsg.header.size = htons (sizeof (cmsg));
-    cmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
-    GNUNET_PEER_resolve (t->id.oid, &cmsg.peer);
-    cmsg.tunnel_id = htonl (t->local_tid);
-    GNUNET_SERVER_notification_context_broadcast (nc, &cmsg.header, GNUNET_NO);
   }
   else
   {
