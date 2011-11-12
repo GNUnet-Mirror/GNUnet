@@ -3074,8 +3074,11 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       t->dht_get_type = NULL;
     }
     peer_info = peer_info_get (&msg->peer_id);
-    tree_set_status (t->tree, peer_info->id, MESH_PEER_READY);
-    send_client_peer_connected (t, peer_info->id);
+    if (tree_get_status(t->tree, peer_info->id) != MESH_PEER_READY)
+    {
+      tree_set_status (t->tree, peer_info->id, MESH_PEER_READY);
+      send_client_peer_connected (t, peer_info->id);
+    }
     return GNUNET_OK;
   }
 
