@@ -101,19 +101,6 @@ path_duplicate (struct MeshPeerPath *path);
 
 
 /**
- * Find the first peer whom to send a packet to go down this path
- *
- * @param t The tunnel tree to use
- * @param peer The peerinfo of the peer we are trying to reach
- *
- * @return peerinfo of the peer who is the first hop in the tunnel
- *         NULL on error
- */
-struct GNUNET_PeerIdentity *
-path_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
-
-
-/**
  * Get the length of a path
  *
  * @param p The path to measure, with the local peer at any point of it
@@ -172,27 +159,6 @@ tree_new (GNUNET_PEER_Id peer);
 
 
 /**
- * Set own identity in the tree
- *
- * @param tree Tree.
- * @param peer A short peer id of local peer.
- */
-void
-tree_set_me (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer);
-
-
-/**
- * Get the id of the local id of the tree.
- *
- * @param tree Tree whose local id we want to now.
- *
- * @return Short peer id of local peer.
- */
-GNUNET_PEER_Id
-tree_get_me (struct MeshTunnelTree *tree);
-
-
-/**
  * Set the status of a node.
  *
  * @param tree Tree.
@@ -223,6 +189,19 @@ tree_get_status (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer);
  */
 GNUNET_PEER_Id
 tree_get_predecessor (struct MeshTunnelTree *tree);
+
+
+/**
+ * Find the first peer whom to send a packet to go down this path
+ *
+ * @param t The tunnel tree to use
+ * @param peer The peerinfo of the peer we are trying to reach
+ *
+ * @return peerinfo of the peer who is the first hop in the tunnel
+ *         NULL on error
+ */
+struct GNUNET_PeerIdentity *
+tree_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
 
 
 /**

@@ -1278,7 +1278,7 @@ send_destroy_path (struct MeshTunnel *t, GNUNET_PEER_Id destination)
     {
       GNUNET_PEER_resolve (p->peers[i], &pi[i]);
     }
-    send_message (&msg->header, path_get_first_hop (t->tree, destination));
+    send_message (&msg->header, tree_get_first_hop (t->tree, destination));
   }
   path_destroy (p);
 }
@@ -1888,12 +1888,10 @@ tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p,
 
   GNUNET_assert (0 != own_pos);
   tree_add_path (t->tree, p, NULL, NULL);
-  if (tree_get_me (t->tree) == 0)
-    tree_set_me (t->tree, p->peers[own_pos]);
   if (own_pos < p->length - 1)
   {
     GNUNET_PEER_resolve (p->peers[own_pos + 1], &id);
-    tree_update_first_hops (t->tree, tree_get_me (t->tree), &id);
+    tree_update_first_hops (t->tree, myid, &id);
   }
 }
 
@@ -2019,7 +2017,6 @@ tunnel_send_multicast (struct MeshTunnel *t,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:  sending a multicast packet...\n");
 #endif
-  GNUNET_assert (tree_get_me (t->tree) != 0);
   mdata = GNUNET_malloc (sizeof (struct MeshMulticastData));
   mdata->data_len = ntohs (msg->size);
   mdata->reference_counter = GNUNET_malloc (sizeof (unsigned int));
@@ -2280,7 +2277,7 @@ send_core_create_path (void *cls, size_t size, void *buf)
     info->peer->core_transmit[info->pos] =
         GNUNET_CORE_notify_transmit_ready (core_handle, 0, 0,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                           path_get_first_hop (t->tree,
+                                           tree_get_first_hop (t->tree,
                                                                peer->id),
                                            size_needed, &send_core_create_path,
                                            info);
@@ -2851,7 +2848,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:   not for us, retransmitting...\n");
-  send_message (message, path_get_first_hop (t->tree, pid));
+  send_message (message, tree_get_first_hop (t->tree, pid));
   return GNUNET_OK;
 }
 
@@ -3565,7 +3562,6 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   t->tree = tree_new (myid);
-  tree_set_me (t->tree, myid);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
