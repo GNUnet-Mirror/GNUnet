@@ -900,6 +900,8 @@ tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tree:   New node added.\n");
 #endif
+  if (NULL == t->me)
+    t->me = tree_find_peer (t, 1);
   return GNUNET_OK;
 }
 
