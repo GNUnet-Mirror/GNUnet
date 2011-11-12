@@ -512,7 +512,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
 {
   struct Plugin *plugin = cls;
   struct HTTP_Message *msg;
-
+  struct Session *s;
   GNUNET_assert (plugin != NULL);
 
   int res = GNUNET_SYSERR;
@@ -528,7 +528,6 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                    session, force_address);
 #endif
 
-  struct Session *s = NULL;
 
 
   if (addrlen != 0)
