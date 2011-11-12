@@ -718,7 +718,6 @@ tree_get_path_to_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
 {
   struct MeshTunnelTreeNode *n;
   struct MeshPeerPath *p;
-  GNUNET_PEER_Id myid = t->me->peer;
 
   n = tree_find_peer (t, peer);
   if (NULL == n)
@@ -726,7 +725,7 @@ tree_get_path_to_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
   p = path_new (0);
 
   /* Building the path (inverted!) */
-  while (n->peer != myid)
+  while (n->peer != 1)
   {
     GNUNET_array_append (p->peers, p->length, n->peer);
     GNUNET_PEER_change_rc (n->peer, 1);
@@ -737,8 +736,8 @@ tree_get_path_to_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
       return NULL;
     }
   }
-  GNUNET_array_append (p->peers, p->length, myid);
-  GNUNET_PEER_change_rc (myid, 1);
+  GNUNET_array_append (p->peers, p->length, 1);
+  GNUNET_PEER_change_rc (1, 1);
 
   path_invert (p);
 
