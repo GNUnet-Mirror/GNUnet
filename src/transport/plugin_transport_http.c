@@ -585,22 +585,25 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   {
 #if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Using outbound client session to send to `%s'\n",
+                     "Using outbound client session %p to send to `%s'\n",
+                     s,
                      GNUNET_i2s (target));
 #endif
+
     client_send (s, msg);
     res = msgbuf_size;
   }
   if (s->inbound == GNUNET_YES)
   {
-    server_send (s, msg);
-    res = msgbuf_size;
 #if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Using inbound server session to send to `%s'\n",
+                     "Using inbound server %p session to send to `%s'\n",
+                     s,
                      GNUNET_i2s (target));
 #endif
 
+    server_send (s, msg);
+    res = msgbuf_size;
   }
   return res;
 }
@@ -634,6 +637,22 @@ http_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
       else
         GNUNET_assert (GNUNET_OK == server_disconnect (s));
       GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+
+      struct HTTP_Message * msg = s->msg_head;
+      struct HTTP_Message * tmp = s->msg_head;
+      while (msg != NULL)
+      {
+        tmp = msg->next;
+
+        GNUNET_CONTAINER_DLL_remove(s->msg_head,s->msg_tail, msg);
+        if (msg->transmit_cont != NULL)
+        {
+          msg->transmit_cont(msg->transmit_cont_cls, target, GNUNET_SYSERR);
+        }
+        GNUNET_free (msg);
+        msg = tmp;
+      }
+
       delete_session (s);
     }
     s = next;
@@ -1387,8 +1406,23 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   while (s != NULL)
   {
     struct Session *t = s->next;
-
     GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+
+    struct HTTP_Message * msg = s->msg_head;
+    struct HTTP_Message * tmp = s->msg_head;
+    while (msg != NULL)
+    {
+      tmp = msg->next;
+
+      GNUNET_CONTAINER_DLL_remove(s->msg_head,s->msg_tail, msg);
+      if (msg->transmit_cont != NULL)
+      {
+        msg->transmit_cont(msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+      }
+      GNUNET_free (msg);
+      msg = tmp;
+    }
+
     delete_session (s);
     s = t;
   }

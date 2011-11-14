@@ -311,7 +311,10 @@ static ssize_t
 server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 {
   struct Session *s = cls;
-
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+                   "Server: %X can sent maximum  %u \n", s, max);
+#endif
   struct HTTP_Message *msg;
   int bytes_read = 0;
 
@@ -345,8 +348,7 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 
 #if VERBOSE_CLIENT
   struct Plugin *plugin = s->plugin;
-
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                    "Server: %X: sent %u bytes\n", s, bytes_read);
 #endif
   return bytes_read;
@@ -852,8 +854,6 @@ server_disconnect (struct Session *s)
     }
     t = t->next;
   }
-
-
   return GNUNET_OK;
 }
 
@@ -884,7 +884,10 @@ server_v4_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Running IPv6 server\n");
+#endif
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
   if (plugin->server_v4 != NULL)
     plugin->server_v4_task =
@@ -909,7 +912,10 @@ server_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Running IPv6 server\n");
+#endif
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
   if (plugin->server_v6 != NULL)
     plugin->server_v6_task =
@@ -972,6 +978,7 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
+
   if (daemon_handle == plugin->server_v4)
   {
     if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
@@ -979,7 +986,10 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
       GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
       plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
     }
-
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Scheduling IPv4 server task in %llu ms\n", tv);
+#endif
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                      GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
@@ -992,7 +1002,10 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
       GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
       plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
     }
-
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Scheduling IPv6 server task in %llu ms\n", tv);
+#endif
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                      GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
@@ -1139,6 +1152,11 @@ server_stop (struct Plugin *plugin)
   struct Session *s = NULL;
   struct Session *t = NULL;
 
+#if VERBOSE_SERVER
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "server_stop\n");
+#endif
+
   struct MHD_Daemon *server_v4_tmp = plugin->server_v4;
 
   plugin->server_v4 = NULL;
@@ -1171,7 +1189,26 @@ server_stop (struct Plugin *plugin)
   s = plugin->server_semi_head;
   while (s != NULL)
   {
+#if VERBOSE_SERVER
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Deleting semi-sessions %p\n", s);
+#endif
     t = s->next;
+    struct HTTP_Message * msg = s->msg_head;
+    struct HTTP_Message * tmp = s->msg_head;
+    while (msg != NULL)
+    {
+      tmp = msg->next;
+
+      GNUNET_CONTAINER_DLL_remove(s->msg_head,s->msg_tail, msg);
+      if (msg->transmit_cont != NULL)
+      {
+        msg->transmit_cont(msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+      }
+      GNUNET_free (msg);
+      msg = tmp;
+    }
+
     delete_session (s);
     s = t;
   }
