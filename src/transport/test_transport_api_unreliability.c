@@ -191,7 +191,7 @@ end_badly ()
 
   if (test_sending == GNUNET_NO)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Testcase did not send all messages / timeout\n");
+                "Testcase did not send any messages before timeout\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Reliability failed: Last message sent %u, Next message scheduled %u, Last message received %u, Message expected %u\n",
@@ -332,12 +332,12 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
   n++;
   set_bit (ntohl (hdr->num));
+  test_sending = GNUNET_YES;
   if (0 == (n % (TOTAL_MSGS / 100)))
   {
     fprintf (stderr, ".");
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
-    test_sending = GNUNET_YES;
     die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   }
   if (n == TOTAL_MSGS)
