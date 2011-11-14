@@ -191,7 +191,7 @@ end_badly ()
 
   if (test_sending == GNUNET_NO)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Testcase did not send any messages timeout\n");
+                "Testcase did not send all messages / timeout\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Reliability failed: Last message sent %u, Next message scheduled %u, Last message received %u, Message expected %u\n",
