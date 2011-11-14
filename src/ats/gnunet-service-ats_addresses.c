@@ -206,7 +206,7 @@ find_address (const struct GNUNET_PeerIdentity *peer,
   cac.result = NULL;
   cac.search = addr;
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
-                                              compare_address_it, &cac);
+                                              &compare_address_it, &cac);
   return cac.result;
 }
 
@@ -290,46 +290,73 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
 }
 
 
+/**
+ * Update a bandwidth assignment for a peer.  This trivial method currently
+ * simply assigns the same share to all active connections.
+ *
+ * @param cls unused
+ * @param key unused
+ * @param value the 'struct ATS_Address'
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  const struct ATS_Address *info = cls;
+  struct ATS_Address *aa = value;
+
+  GNUNET_assert (0 == memcmp (&aa->peer,
+			      &info->peer,
+			      sizeof (struct GNUNET_PeerIdentity)));
+  if ( (info->session_id == 0) &&
+       (0 == strcmp (info->plugin,
+		     aa->plugin)) &&
+       (aa->addr_len == info->addr_len) &&
+       (0 == memcmp (info->addr,
+		     aa->addr,
+		     aa->addr_len)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Deleting address for peer `%s': `%s'\n",
+		GNUNET_i2s (&aa->peer), aa->plugin);
+    if (GNUNET_YES == destroy_address (aa))
+      recalculate_assigned_bw ();
+    return GNUNET_OK;
+  }
+  if (aa->session_id != info->session_id)
+    return GNUNET_OK; /* irrelevant */
+  GNUNET_assert (0 == strcmp (info->plugin,
+			      aa->plugin));
+  /* session died */
+  aa->session_id = 0;
+  if (GNUNET_YES == aa->active)
+  {
+    aa->active = GNUNET_NO;
+    active_addr_count--;
+    if (aa->addr_len == 0)
+      (void) destroy_address (aa);
+    recalculate_assigned_bw ();
+  }
+  return GNUNET_OK;
+}
+
+
 void
 GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
                        const char *plugin_name, const void *plugin_addr,
                        size_t plugin_addr_len, uint32_t session_id)
 {
   struct ATS_Address aa;
-  struct ATS_Address *res;
 
   aa.peer = *peer;
   aa.addr_len = plugin_addr_len;
   aa.addr = plugin_addr;
   aa.plugin = (char *) plugin_name;
   aa.session_id = session_id;
-  res = find_address (peer, &aa);
-  if (res == NULL)
-  {
-    /* we don't even know this one, can this happen? */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Asked to delete unknown address for peer `%s'\n",
-                GNUNET_i2s (peer));
-    return;
-  }
-  if ((aa.session_id == session_id) && (session_id != 0) && (res->addr_len > 0))
-  {
-    /* just session died */
-    res->session_id = 0;
-    if (GNUNET_YES == res->active)
-    {
-      res->active = GNUNET_NO;
-      active_addr_count--;
-      recalculate_assigned_bw ();
-    }
-    return;
-  }
-  /* destroy address entirely (either was only session or was
-   * not even with a session) */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting address for peer `%s': `%s'\n",
-              GNUNET_i2s (peer), plugin_name);
-  if (GNUNET_YES == destroy_address (res))
-    recalculate_assigned_bw ();
+  GNUNET_CONTAINER_multihashmap_get_multiple (addresses,
+					      &peer->hashPubKey,
+					      &destroy_by_session_id,
+					      &aa);
 }
 
 
