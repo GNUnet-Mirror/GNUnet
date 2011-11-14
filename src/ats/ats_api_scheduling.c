@@ -27,6 +27,7 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
+#define DEBUG_ATS GNUNET_EXTRA_LOGGING
 
 /**
  * Message in linked list we should send to the ATS service.  The
@@ -285,6 +286,13 @@ static struct Session *
 find_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
               const struct GNUNET_PeerIdentity *peer)
 {
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Find session %u from peer %s in %p\n",
+	      (unsigned int) session_id,
+	      GNUNET_i2s (peer),
+	      sh);
+#endif
   if (session_id >= sh->session_array_size)
   {
     GNUNET_break (0);
@@ -292,13 +300,22 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
   }
   if (0 == session_id)
     return NULL;
-  /* Check if this session was:
-   *  removed by remove_session (transport service)
-   *  released by release_session (ATS)
-   *  */
   if (sh->session_array[session_id].session == NULL)
+  {
+    GNUNET_break (0 ==
+		  memcmp (peer, &sh->session_array[session_id].peer,
+			  sizeof (struct GNUNET_PeerIdentity)));
     return NULL;
+  }
 
+  if (0 !=
+      memcmp (peer, &sh->session_array[session_id].peer,
+             sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break (0);
+    sh->reconnect = GNUNET_YES;
+    return NULL;
+  }
   return sh->session_array[session_id].session;
 }
 
@@ -319,6 +336,13 @@ get_session_id (struct GNUNET_ATS_SchedulingHandle *sh, struct Session *session,
   unsigned int i;
   unsigned int f;
 
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Get session ID for session %p from peer %s in %p\n",
+	      session,
+	      GNUNET_i2s (peer),
+	      sh);
+#endif
   if (NULL == session)
     return 0;
   f = 0;
@@ -326,11 +350,9 @@ get_session_id (struct GNUNET_ATS_SchedulingHandle *sh, struct Session *session,
   {
     if (session == sh->session_array[i].session)
     {
-      if (0 !=  memcmp (peer, &sh->session_array[i].peer,
-                             sizeof (struct GNUNET_PeerIdentity)))
-        continue;
-      else
-        return i;
+      GNUNET_assert (0 == memcmp (peer, &sh->session_array[i].peer,
+				  sizeof (struct GNUNET_PeerIdentity)));
+      return i;
     }
     if ((f == 0) && (sh->session_array[i].slot_used == GNUNET_NO))
       f = i;
@@ -345,6 +367,14 @@ get_session_id (struct GNUNET_ATS_SchedulingHandle *sh, struct Session *session,
   sh->session_array[f].session = session;
   sh->session_array[f].peer = *peer;
   sh->session_array[f].slot_used = GNUNET_YES;
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Assigning session ID %u for session %p of peer %s in %p\n",
+	      f,
+	      session,
+	      GNUNET_i2s (peer),
+	      sh);
+#endif
   return f;
 }
 
@@ -361,6 +391,13 @@ static void
 remove_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
                 const struct GNUNET_PeerIdentity *peer)
 {
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Remove sessionID %u from peer %s in %p\n",
+	      (unsigned int) session_id,
+	      GNUNET_i2s (peer),
+	      sh);
+#endif
   if (0 == session_id)
     return;
   GNUNET_assert (session_id < sh->session_array_size);
@@ -383,6 +420,13 @@ static void
 release_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
                  const struct GNUNET_PeerIdentity *peer)
 {
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Release sessionID %u from peer %s in %p\n",
+	      (unsigned int) session_id,
+	      GNUNET_i2s (peer),
+	      sh);
+#endif
   if (session_id >= sh->session_array_size)
   {
     GNUNET_break (0);
@@ -433,6 +477,7 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   uint16_t plugin_name_length;
   uint32_t ats_count;
   struct GNUNET_HELLO_Address address;
+  struct Session * s;
 
   if (NULL == msg)
   {
@@ -476,7 +521,6 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   uint32_t session_id =  ntohl (m->session_id);
 
-  struct Session * s = NULL;
   if (session_id == 0)
     s = NULL;
   else
@@ -484,8 +528,11 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
     s = find_session (sh, session_id, &m->peer);
     if (s == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS tries to use outdated session `%s'\n", GNUNET_i2s(&m->peer));
-      //GNUNET_break (0);
+#if DEBUG_ATS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "ATS tries to use outdated session `%s'\n", 
+		  GNUNET_i2s(&m->peer));
+#endif
       return;
     }
   }
@@ -784,7 +831,6 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
     GNUNET_break (0);
     return;
   }
-
 
   p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   p->size = msize;
