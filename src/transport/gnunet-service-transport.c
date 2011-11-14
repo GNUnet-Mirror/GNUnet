@@ -333,6 +333,7 @@ static void
 plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
                         struct Session *session)
 {
+  const char *transport_name = cls;
   struct GNUNET_HELLO_Address address;
 
 #if DEBUG_TRANSPORT
@@ -347,9 +348,9 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
   address.peer = *peer;
   address.address = NULL;
   address.address_length = 0;
-  address.transport_name = cls;
-  GNUNET_ATS_address_destroyed (GST_ats, &address, session);
+  address.transport_name = transport_name;
   GST_neighbours_session_terminated (peer, session);
+  GNUNET_ATS_address_destroyed (GST_ats, &address, session);
 }
 
 
