@@ -144,7 +144,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     if (plug->api == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to load transport plugin for `%s'\n"), pos);
+                  _("Failed to load transport plugin for `%s'\n"), plug->lib_name);
       GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
       GNUNET_free (plug->short_name);
       GNUNET_free (plug->lib_name);
