@@ -1521,6 +1521,12 @@ peer_info_add_path (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path,
     path_destroy (path);
     return;
   }
+  if (path->peers[path->length - 1] != peer_info->id)
+  {
+    GNUNET_break (0);
+    path_destroy (path);
+    return;
+  }
   if (path->length <= 2 && GNUNET_NO == trusted)
   {
     /* Only allow CORE to tell us about direct paths */
@@ -3047,7 +3053,9 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_MESH_PathACK *msg;
   struct GNUNET_PeerIdentity id;
   struct MeshPeerInfo *peer_info;
+  struct MeshPeerPath *p;
   struct MeshTunnel *t;
+  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Received a path ACK msg [%s]\n",
               GNUNET_i2s (&my_full_id));
@@ -3057,6 +3065,21 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     /* TODO notify that we don't know the tunnel */
     return GNUNET_OK;
+  }
+
+  /* Add paths to peers */
+  peer_info = peer_info_get (&msg->peer_id);
+  p = tree_get_path_to_peer(t->tree, peer_info->id);
+  for (i = 1; i < p->length && p->peers[i] != myid; i++) /* skip'em */;
+  for (i++; i < p->length; i++)
+  {
+    struct MeshPeerInfo *aux;
+    struct MeshPeerPath *copy;
+
+    aux = peer_info_get_short(p->peers[i]);
+    copy = path_duplicate(p);
+    copy->length = i;
+    peer_info_add_path(aux, copy, 0);
   }
 
   /* Message for us? */
@@ -3073,7 +3096,6 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_DHT_get_stop (t->dht_get_type);
       t->dht_get_type = NULL;
     }
-    peer_info = peer_info_get (&msg->peer_id);
     if (tree_get_status(t->tree, peer_info->id) != MESH_PEER_READY)
     {
       tree_set_status (t->tree, peer_info->id, MESH_PEER_READY);
