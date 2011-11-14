@@ -904,7 +904,7 @@ main (int argc, char *argv[])
 #if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/test_mesh_small");
 #endif
-  if (ok_goal != ok)
+  if (ok_goal < ok)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "***************** test: FAILED! (%d/%d)\n", ok, ok_goal);
