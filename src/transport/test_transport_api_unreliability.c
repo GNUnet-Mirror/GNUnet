@@ -226,6 +226,14 @@ get_size (unsigned int iter)
   unsigned int ret;
 
   ret = (iter * iter * iter);
+
+#ifndef LINUX
+  /* FreeBSD/OSX etc. Unix DGRAMs do not work
+     with large messages */
+  if (0 == strcmp ("unix",
+		   test_plugin))
+    return sizeof (struct TestMessage) + (ret % 1024); 
+#endif
   return sizeof (struct TestMessage) + (ret % 60000);
 }
 
