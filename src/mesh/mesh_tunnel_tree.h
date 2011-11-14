@@ -113,19 +113,6 @@ path_get_length (struct MeshPeerPath *p);
 
 
 /**
- * Get the cost of the path relative to the already built tunnel tree
- *
- * @param t The tunnel tree to which compare
- * @param path The individual path to reach a peer
- *
- * @return Number of hops to reach destination, UINT_MAX in case the peer is not
- * in the path
- */
-unsigned int
-path_get_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path);
-
-
-/**
  * Destroy the path and free any allocated resources linked to it
  *
  * @param p the path to destroy
@@ -323,6 +310,20 @@ tree_notify_connection_broken (struct MeshTunnelTree *t, GNUNET_PEER_Id p1,
 int
 tree_del_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer,
                MeshTreeCallback cb, void *cbcls);
+
+
+/**
+ * Get the cost of the path relative to the already built tunnel tree
+ *
+ * @param t The tunnel tree to which compare
+ * @param path The individual path to reach a peer
+ *
+ * @return Number of hops to reach destination, UINT_MAX in case the peer is not
+ * in the path
+ */
+unsigned int
+tree_get_path_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path);
+
 
 /**
  * Print the tree on stderr

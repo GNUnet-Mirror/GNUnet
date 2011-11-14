@@ -200,24 +200,6 @@ path_get_length (struct MeshPeerPath *path)
 
 
 /**
- * Get the cost of the path relative to the already built tunnel tree
- *
- * @param t The tunnel tree to which compare
- * @param path The individual path to reach a peer
- *
- * @return Number of hops to reach destination, UINT_MAX in case the peer is not
- * in the path
- *
- * TODO: remove dummy implementation, look into the tunnel tree
- */
-unsigned int
-path_get_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path)
-{
-  return path_get_length (path);
-}
-
-
-/**
  * Destroy the path and free any allocated resources linked to it
  *
  * @param p the path to destroy
@@ -986,6 +968,52 @@ tree_del_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer,
     return GNUNET_NO;
   }
   return GNUNET_YES;
+}
+
+
+
+/**
+ * Get the cost of the path relative to the already built tunnel tree.
+ *
+ * @param t The tunnel tree to which compare.
+ * @param path The individual path to reach a peer. It has to start at the
+ *             root of the tree to be comparable.
+ *
+ * @return Number of hops to reach destination, UINT_MAX in case the peer is not
+ *         in the path.
+ * 
+ * TODO: adapt to allow any start / root combination
+ * TODO: take in account state of the nodes
+ */
+unsigned int
+tree_get_path_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path)
+{
+  struct MeshTunnelTreeNode *n;
+  struct MeshTunnelTreeNode *p;
+  unsigned int i;
+  unsigned int l;
+
+  l = path_get_length (path);
+  p = t->root;
+  if (t->root->peer != path->peers[0])
+  {
+    GNUNET_break (0);
+    return UINT_MAX;
+  }
+  for (i = 1; i < l; i++)
+  {
+    for (n = p->children_head; NULL != n; n = n->next)
+    {
+      if (path->peers[i] == n->peer)
+      {
+        break;
+      }
+    }
+    if (NULL == n)
+      return l - i;
+    p = n;
+  }
+  return l - i;
 }
 
 

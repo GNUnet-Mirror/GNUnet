@@ -215,6 +215,43 @@ main (int argc, char *argv[])
   test_assert (2, MESH_PEER_RELAY, 1, 0);
   test_assert (1, MESH_PEER_ROOT, 1, 0);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Calculating costs...\n");
+  for (i = 1; i < 5; i++)
+  {
+    path->length = i;
+    if (tree_get_path_cost(tree, path) != 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "test: length %u cost failed!\n",
+                  i);
+      failed++;
+    }
+  }
+  path->length++;
+  path->peers[4] = 6;
+  if (tree_get_path_cost(tree, path) != 1)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "test: length %u cost failed!\n",
+                i);
+    failed++;
+  }
+  path->peers[3] = 7;
+  if (tree_get_path_cost(tree, path) != 2)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "test: length %u cost failed!\n",
+                i);
+    failed++;
+  }
+  path->length--;
+  if (tree_get_path_cost(tree, path) != 1)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "test: length %u cost failed!\n",
+                i);
+    failed++;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Deleting third path (5)\n");
   tree_set_status(tree, 5, MESH_PEER_READY);
   cb_call = 1;

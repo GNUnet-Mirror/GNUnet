@@ -1477,7 +1477,7 @@ peer_info_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
     aux = NULL;
     for (p = peer_d->path_head; NULL != p; p = p->next)
     {
-      if ((cost = path_get_cost (peer->tunnels[i]->tree, p)) < best)
+      if ((cost = tree_get_path_cost (peer->tunnels[i]->tree, p)) < best)
       {
         best = cost;
         aux = p;
@@ -1848,10 +1848,10 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
   if (NULL != (p = peer->path_head))
   {
     best_p = p;
-    best_cost = path_get_cost (t->tree, p);
+    best_cost = tree_get_path_cost (t->tree, p);
     while (NULL != p)
     {
-      if ((cost = path_get_cost (t->tree, p)) < best_cost)
+      if ((cost = tree_get_path_cost (t->tree, p)) < best_cost)
       {
         best_cost = cost;
         best_p = p;
@@ -1865,7 +1865,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
   }
   else
   {
-    /* Start a DHT get if necessary */
+    /* Start a DHT get */
     peer_info_connect (peer, t);
   }
 }
@@ -3253,8 +3253,6 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Got results from DHT!\n");
   GNUNET_PEER_resolve (path_info->peer->id, &pi);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   for %s\n", GNUNET_i2s (&pi));
-//   GNUNET_DHT_get_stop(path_info->peer->dhtget);
-//   path_info->peer->dhtget = NULL;
 
   p = path_build_from_dht (get_path, get_path_length, put_path,
                            put_path_length);
@@ -3264,7 +3262,6 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     tunnel_add_peer (path_info->peer->tunnels[i], path_info->peer);
     peer_info_connect (path_info->peer, path_info->t);
   }
-//   GNUNET_free (path_info);
 
   return;
 }
