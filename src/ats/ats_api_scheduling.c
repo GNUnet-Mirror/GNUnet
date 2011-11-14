@@ -822,6 +822,7 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   size_t msize;
   uint32_t session_id;
 
+  GNUNET_break (address->transport_name != NULL);
   namelen = (address->transport_name == NULL) ? 0 : strlen (address->transport_name) + 1;
   msize = sizeof (struct AddressDestroyedMessage) + address->address_length + namelen;
   if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
