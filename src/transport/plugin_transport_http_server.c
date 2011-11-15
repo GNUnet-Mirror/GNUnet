@@ -642,7 +642,6 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   /* Check if both directions are connected */
   if ((sc->session->server_recv == NULL) || (sc->session->server_send == NULL))
   {
-    (*upload_data_size) = 0;
     return MHD_YES;
   }
 
