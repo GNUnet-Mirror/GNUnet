@@ -534,6 +534,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     GNUNET_assert ((addrlen == sizeof (struct IPv4HttpAddress)) ||
                    (addrlen == sizeof (struct IPv6HttpAddress)));
 
+
   /* look for existing connection */
   s = lookup_session (plugin, target, session, addr, addrlen, 1);
 #if DEBUG_HTTP
@@ -561,13 +562,36 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                      "Initiiating new connection to peer `%s'\n",
                      GNUNET_i2s (target));
 #endif
-    s = create_session (plugin, target, addr, addrlen, cont, cont_cls);
-    GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
-    // initiate new connection
-    if (GNUNET_SYSERR == (res = client_connect (s)))
+    int res = GNUNET_OK;
+
+    if (addrlen == sizeof (struct IPv4HttpAddress))
     {
-      GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
-      delete_session (s);
+      struct IPv4HttpAddress * a4 = (struct IPv4HttpAddress *) addr;
+      if (ntohs(a4->u4_port) == 0)
+          res = GNUNET_SYSERR;
+    }
+    if (addrlen == sizeof (struct IPv6HttpAddress))
+    {
+      struct IPv6HttpAddress * a6 = (struct IPv6HttpAddress *) addr;
+      if (ntohs(a6->u6_port) == 0)
+          res = GNUNET_SYSERR;
+    }
+    if (res == GNUNET_OK)
+    {
+      s = create_session (plugin, target, addr, addrlen, cont, cont_cls);
+      GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
+      // initiate new connection
+      res = client_connect (s);
+    }
+    if (res == GNUNET_SYSERR)
+    {
+      if (s != NULL)
+      {
+        GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+        delete_session (s);
+      }
+      if (cont != NULL)
+        cont (cont_cls, target, GNUNET_SYSERR);
       return GNUNET_SYSERR;
     }
   }
