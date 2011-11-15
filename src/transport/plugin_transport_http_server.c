@@ -639,6 +639,13 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   }
 
   GNUNET_assert (s != NULL);
+  /* Check if both directions are connected */
+  if ((sc->session->server_recv == NULL) || (sc->session->server_recv == NULL))
+  {
+    (*upload_data_size) = 0;
+    return MHD_YES;
+  }
+
   if (sc->direction == _SEND)
   {
     response =
