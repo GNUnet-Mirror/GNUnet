@@ -52,6 +52,115 @@
  */
 #define DATASTORE_LOAD_AUTODECLINE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
+/**
+ * Only the (mandatory) query is included.
+ */
+#define GET_MESSAGE_BIT_QUERY_ONLY 0
+
+/**
+ * The peer identity of a peer waiting for the
+ * reply is included (used if the response
+ * should be transmitted to someone other than
+ * the sender of the GET).
+ */
+#define GET_MESSAGE_BIT_RETURN_TO 1
+
+/**
+ * The hash of the public key of the target
+ * namespace is included (for SKS queries).
+ */
+#define GET_MESSAGE_BIT_SKS_NAMESPACE 2
+
+/**
+ * The peer identity of a peer that had claimed to have the content
+ * previously is included (can be used if responder-anonymity is not
+ * desired; note that the precursor presumably lacked a direct
+ * connection to the specified peer; still, the receiver is in no way
+ * required to limit forwarding only to the specified peer, it should
+ * only prefer it somewhat if possible).
+ */
+#define GET_MESSAGE_BIT_TRANSMIT_TO 4
+
+
+/**
+ * Message sent between peers asking for FS-content.
+ */
+struct GetMessage
+{
+
+  /**
+   * Message type will be GNUNET_MESSAGE_TYPE_FS_GET.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Type of the query (block type).
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * How important is this request (network byte order)
+   */
+  uint32_t priority GNUNET_PACKED;
+
+  /**
+   * Relative time to live in MILLISECONDS (network byte order)
+   */
+  int32_t ttl GNUNET_PACKED;
+
+  /**
+   * The content hash should be mutated using this value
+   * before checking against the bloomfilter (used to
+   * get many different filters for the same hash codes).
+   * The number should be in big-endian format when used
+   * for mingling.
+   */
+  uint32_t filter_mutator GNUNET_PACKED;
+
+  /**
+   * Which of the optional hash codes are present at the end of the
+   * message?  See GET_MESSAGE_BIT_xx constants.  For each bit that is
+   * set, an additional GNUNET_HashCode with the respective content
+   * (in order of the bits) will be appended to the end of the GET
+   * message.
+   */
+  uint32_t hash_bitmap GNUNET_PACKED;
+
+  /**
+   * Hashcodes of the file(s) we're looking for.
+   * Details depend on the query type.
+   */
+  GNUNET_HashCode query GNUNET_PACKED;
+
+  /* this is followed by hash codes as specified in the "hash_bitmap";
+   * after that, an optional bloomfilter (with bits set for replies
+   * that should be suppressed) can be present */
+};
+
+
+/**
+ * Message send by a peer that wants to be excluded
+ * from migration for a while.
+ */
+struct MigrationStopMessage
+{
+  /**
+   * Message type will be
+   * GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * How long should the block last?
+   */
+  struct GNUNET_TIME_RelativeNBO duration;
+
+};
 
 
 /**
