@@ -640,7 +640,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
 
   GNUNET_assert (s != NULL);
   /* Check if both directions are connected */
-  if ((sc->session->server_recv == NULL) || (sc->session->server_recv == NULL))
+  if ((sc->session->server_recv == NULL) || (sc->session->server_send == NULL))
   {
     (*upload_data_size) = 0;
     return MHD_YES;
@@ -895,7 +895,7 @@ server_v4_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 #if VERBOSE_SERVER
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       "Running IPv6 server\n");
+                       "Running IPv4 server\n");
 #endif
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
   if (plugin->server_v4 != NULL)
