@@ -590,8 +590,6 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
         GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
         delete_session (s);
       }
-      if (cont != NULL)
-        cont (cont_cls, target, GNUNET_SYSERR);
       return GNUNET_SYSERR;
     }
   }
