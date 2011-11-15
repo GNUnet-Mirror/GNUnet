@@ -461,7 +461,7 @@ notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct Plugin *plugin = cls;
 
-  plugin->env->session_end (NULL, peer, s);
+  plugin->env->session_end (plugin->env->cls, peer, s);
   GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
   delete_session (s);
 }
