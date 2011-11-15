@@ -471,7 +471,7 @@ reset_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   n->state = S_NOT_CONNECTED;
 
   /* destroying address */
-
+  GNUNET_assert (strlen(n->address->transport_name) > 0); 
   GNUNET_ATS_address_destroyed (GST_ats, n->address, n->session);
 
   /* request new address */
@@ -1142,7 +1142,10 @@ send_connect_continuation (void *cls, const struct GNUNET_PeerIdentity *target,
   struct NeighbourMapEntry *n = lookup_neighbour (&cc->address->peer);
   
   if (GNUNET_YES != success)
+  {
+    GNUNET_assert (strlen(cc->address->transport_name) > 0);
     GNUNET_ATS_address_destroyed (GST_ats, cc->address, cc->session);
+  }
   if ( (NULL == neighbours) ||
        (NULL == n) ||
        (n->state == S_DISCONNECT))
@@ -1172,9 +1175,6 @@ send_connect_continuation (void *cls, const struct GNUNET_PeerIdentity *target,
                 n->session);
 #endif
     change_state (n, S_NOT_CONNECTED);
-
-    GNUNET_ATS_address_destroyed (GST_ats, cc->address, cc->session);
-
     if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (n->ats_suggest);
     n->ats_suggest =
@@ -1225,6 +1225,7 @@ send_switch_address_continuation (void *cls,
                 GNUNET_i2s (&n->id), 
 		GST_plugins_a2s (n->address), n->session);
 #endif
+    GNUNET_assert (strlen(cc->address->transport_name) > 0);
     GNUNET_ATS_address_destroyed (GST_ats, cc->address, cc->session);
 
     if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
@@ -1333,7 +1334,7 @@ send_connect_ack_continuation (void *cls,
               n->session);
 #endif
   change_state (n, S_NOT_CONNECTED);
-
+  GNUNET_assert (strlen(cc->address->transport_name) > 0);
   GNUNET_ATS_address_destroyed (GST_ats, cc->address, cc->session);
 
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
@@ -1342,7 +1343,6 @@ send_connect_ack_continuation (void *cls,
       GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, ats_suggest_cancel,
                                     n);
   GNUNET_ATS_suggest_address (GST_ats, &n->id);
-
   GNUNET_HELLO_address_free (cc->address);
   GNUNET_free (cc);
 }
@@ -1394,7 +1394,9 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   if ( (session == NULL) && (0 == address->address_length) )
   {
     GNUNET_break_op (0);
-    GNUNET_ATS_address_destroyed (GST_ats, address, session);
+    /* FIXME: is this actually possible? When does this happen? */
+    if (strlen(address->transport_name) > 0)
+      GNUNET_ATS_address_destroyed (GST_ats, address, session);
     GNUNET_ATS_suggest_address (GST_ats, peer);
     return GNUNET_NO;
   }

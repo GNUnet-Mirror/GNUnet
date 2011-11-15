@@ -336,6 +336,7 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
   const char *transport_name = cls;
   struct GNUNET_HELLO_Address address;
 
+  GNUNET_assert (strlen(transport_name) > 0);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
