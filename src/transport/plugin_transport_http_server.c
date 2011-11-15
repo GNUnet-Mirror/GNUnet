@@ -290,10 +290,11 @@ server_receive_mst_cb (void *cls, void *client,
 
   if (delay.rel_value > 0)
   {
-#if VERBOSE_CLIENT
+#if VERBOSE_SERVER
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Server: peer `%s' address `%s' next read delayed for %llu ms\n",
-                     GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen),
+                     GNUNET_i2s (&s->target),
+                     http_plugin_address_to_string (NULL, s->addr, s->addrlen),
                      delay);
 #endif
   }
@@ -654,8 +655,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
 #if VERBOSE_SERVER
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Server: Peer `%s' PUT on address `%s' connected\n",
-                       GNUNET_i2s (&s->target), GNUNET_a2s (s->addr,
-                                                            s->addrlen));
+                       GNUNET_i2s (&s->target),
+                       http_plugin_address_to_string (NULL, s->addr, s->addrlen));
 #endif
       return MHD_YES;
     }
@@ -666,8 +667,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
 #if VERBOSE_SERVER
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Server: peer `%s' PUT on address `%s' received %Zu bytes\n",
-                       GNUNET_i2s (&s->target), GNUNET_a2s (s->addr,
-                                                            s->addrlen),
+                       GNUNET_i2s (&s->target),
+                       http_plugin_address_to_string (NULL,s->addr, s->addrlen),
                        *upload_data_size);
 #endif
       struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
@@ -760,7 +761,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                      "Server: %X peer `%s' GET on address `%s' disconnected\n",
                      s->server_send, GNUNET_i2s (&s->target),
-                     GNUNET_a2s (s->addr, s->addrlen));
+                     http_plugin_address_to_string (NULL, s->addr, s->addrlen));
 #endif
     s->server_send = NULL;
 
@@ -780,7 +781,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                      "Server: %X peer `%s' PUT on address `%s' disconnected\n",
                      s->server_recv, GNUNET_i2s (&s->target),
-                     GNUNET_a2s (s->addr, s->addrlen));
+                     http_plugin_address_to_string (NULL, s->addr, s->addrlen));
 #endif
     s->server_recv = NULL;
     if (s->server_send != NULL)
@@ -821,7 +822,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
 #if VERBOSE_SERVER
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Server: peer `%s' on address `%s' disconnected\n",
-                     GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen));
+                     GNUNET_i2s (&s->target),
+                     http_plugin_address_to_string (NULL, s->addr, s->addrlen));
 #endif
     if (s->msg_tk != NULL)
     {
