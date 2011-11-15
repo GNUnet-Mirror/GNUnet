@@ -20,7 +20,7 @@ lib_LTLIBRARIES = libgnunetfs.la
 noinst_LIBRARIES = libgnunetfstest.a
 
 libgnunetfs_la_SOURCES = \
-  fs.c fs.h \
+  fs_api.c fs_api.h fs.h \
   fs_directory.c \
   fs_download.c \
   fs_file_information.c \

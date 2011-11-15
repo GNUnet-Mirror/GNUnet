@@ -25,8 +25,6 @@
  *
  * To use:
  * - consider re-issue GSF_dht_lookup_ after non-DHT reply received
- * - implement 'SUPPORT_DELAYS'
- *
  */
 #include "platform.h"
 #include <float.h>

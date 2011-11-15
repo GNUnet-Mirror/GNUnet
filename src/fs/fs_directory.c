@@ -34,7 +34,7 @@
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
-#include "fs.h"
+#include "fs_api.h"
 
 /**
  * String that is used to indicate that a file

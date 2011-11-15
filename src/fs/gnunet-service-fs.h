@@ -37,26 +37,13 @@
 
 #define DEBUG_FS_CLIENT GNUNET_EXTRA_LOGGING
 
-
 /**
- * Should we introduce random latency in processing?  Required for proper
- * implementation of GAP, but can be disabled for performance evaluation of
- * the basic routing algorithm.
- *
- * Note that with delays enabled, performance can be significantly lower
- * (several orders of magnitude in 2-peer test runs); if you want to
- * measure throughput of other components, set this to NO.  Also, you
- * might want to consider changing 'RETRY_PROBABILITY_INV' to 1 for
- * a rather wasteful mode of operation (that might still get the highest
- * throughput overall).
- *
- * Performance measurements (for 50 MB file, 2 peers):
- *
- * - Without delays: 3300 kb/s
- * - With    delays:  101 kb/s
+ * By which amount do we decrement the TTL for simple forwarding /
+ * indirection of the query; in milli-seconds.  Set somewhat in
+ * accordance to your network latency (above the time it'll take you
+ * to send a packet and get a reply).
  */
-#define SUPPORT_DELAYS GNUNET_NO
-
+#define TTL_DECREMENT 5000
 
 /**
  * At what frequency should our datastore load decrease

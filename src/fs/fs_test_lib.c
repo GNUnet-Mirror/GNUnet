@@ -27,7 +27,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "fs.h"
+#include "fs_api.h"
 #include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 

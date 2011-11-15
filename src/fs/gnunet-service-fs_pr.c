@@ -32,6 +32,21 @@
 #include "gnunet-service-fs_pr.h"
 
 /**
+ * Maximum size of the datastore queue for P2P operations.  Needs to
+ * be large enough to queue MAX_QUEUE_PER_PEER operations for roughly
+ * the number of active (connected) peers.
+ */
+#define MAX_DATASTORE_QUEUE (16 * MAX_QUEUE_PER_PEER)
+
+/**
+ * Bandwidth value of a 0-priority content (must be fairly high
+ * compared to query since content is typically significantly larger
+ * -- and more valueable since it can take many queries to get one
+ * piece of content).
+ */
+#define CONTENT_BANDWIDTH_VALUE 800
+
+/**
  * Hard limit on the number of results we may get from the datastore per query.
  */
 #define MAX_RESULTS (100 * 1024)

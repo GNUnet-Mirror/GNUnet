@@ -31,10 +31,15 @@
 #include "gnunet_signatures.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
-#include "fs.h"
+#include "fs_api.h"
 #include "fs_tree.h"
 
 #define DEBUG_PUBLISH GNUNET_EXTRA_LOGGING
+
+/**
+ * Maximum legal size for a kblock.
+ */
+#define MAX_KBLOCK_SIZE (60 * 1024)
 
 
 /**

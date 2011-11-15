@@ -28,9 +28,14 @@
 #include "gnunet_constants.h"
 #include "gnunet_fs_service.h"
 #include "gnunet_protocols.h"
-#include "fs.h"
+#include "fs_api.h"
 
 #define DEBUG_SEARCH GNUNET_EXTRA_LOGGING
+
+/**
+ * Number of availability trials we perform per search result.
+ */
+#define AVAILABILITY_TRIALS_MAX 8
 
 /**
  * Fill in all of the generic fields for a search event and

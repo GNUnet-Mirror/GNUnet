@@ -81,7 +81,7 @@
 #include "platform.h"
 #include "gnunet_fs_service.h"
 #include "gnunet_signatures.h"
-#include "fs.h"
+#include "fs_api.h"
 
 
 /**

@@ -28,7 +28,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_fs_service.h"
 #include "gnunet_protocols.h"
-#include "fs.h"
+#include "fs_api.h"
 
 
 /**

@@ -27,7 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
-#include "fs.h"
+#include "fs_api.h"
 
 #define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); return 1; }
 

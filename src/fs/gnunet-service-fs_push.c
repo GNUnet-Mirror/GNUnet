@@ -34,6 +34,17 @@
 #define DEBUG_FS_MIGRATION GNUNET_EXTRA_LOGGING
 
 /**
+ * Maximum number of blocks we keep in memory for migration.
+ */
+#define MAX_MIGRATION_QUEUE 8
+
+/**
+ * Blocks are at most migrated to this number of peers
+ * plus one, each time they are fetched from the database.
+ */
+#define MIGRATION_LIST_SIZE 2
+
+/**
  * How long must content remain valid for us to consider it for migration?
  * If content will expire too soon, there is clearly no point in pushing
  * it to other peers.  This value gives the threshold for migration.  Note

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file fs/fs.c
+ * @file fs/fs_api.c
  * @brief main FS functions (master initialization, serialization, deserialization, shared code)
  * @author Christian Grothoff
  */
@@ -27,7 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
-#include "fs.h"
+#include "fs_api.h"
 #include "fs_tree.h"
 
 

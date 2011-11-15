@@ -30,7 +30,7 @@
 #include "platform.h"
 #include <extractor.h>
 #include "gnunet_fs_service.h"
-#include "fs.h"
+#include "fs_api.h"
 #include "fs_tree.h"
 
 

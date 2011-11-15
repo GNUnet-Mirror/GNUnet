@@ -32,7 +32,7 @@
 #ifndef GNUNET_FS_TREE_H
 #define GNUNET_FS_TREE_H
 
-#include "fs.h"
+#include "fs_api.h"
 
 /**
  * Compute the depth of the CHK tree.

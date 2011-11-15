@@ -32,6 +32,14 @@
 #include "gnunet-service-fs_pr.h"
 #include "gnunet-service-fs_push.h"
 
+
+/**
+ * Ratio for moving average delay calculation.  The previous
+ * average goes in with a factor of (n-1) into the calculation.
+ * Must be > 0.
+ */
+#define RUNAVG_DELAY_N 16
+
 /**
  * How often do we flush trust values to disk?
  */

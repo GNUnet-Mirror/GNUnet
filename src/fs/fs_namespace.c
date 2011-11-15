@@ -28,9 +28,21 @@
 #include "gnunet_signatures.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
-#include "fs.h"
+#include "fs_api.h"
 
 #define DEBUG_NAMESPACE GNUNET_EXTRA_LOGGING
+
+
+/**
+ * Maximum legal size for an sblock.
+ */
+#define MAX_SBLOCK_SIZE (60 * 1024)
+
+/**
+ * Maximum legal size for an nblock.
+ */
+#define MAX_NBLOCK_SIZE (60 * 1024)
+
 
 /**
  * Return the name of the directory in which we store
