@@ -274,8 +274,10 @@ do_transmit (void *cls, size_t size, void *buf)
     return 0;
   if (buf == NULL)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+#if DEBUG_PEERINFO
+    LOG (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
          _("Failed to transmit message to `%s' service.\n"), "PEERINFO");
+#endif
     GNUNET_CONTAINER_DLL_remove (h->tq_head, h->tq_tail, tqe);
     reconnect (h);
     if (tqe->cont != NULL)
