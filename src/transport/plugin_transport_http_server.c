@@ -666,7 +666,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     {
 #if VERBOSE_SERVER
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Server: peer `%s' PUT on address `%s' received %Zu bytes\n",
+                       "Server: peer `%s' PUT on address `%s' received %u bytes\n",
                        GNUNET_i2s (&s->target),
                        http_plugin_address_to_string (NULL,s->addr, s->addrlen),
                        *upload_data_size);
@@ -694,7 +694,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
 
 #if VERBOSE_SERVER
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "Server: Received %Zu bytes\n", *upload_data_size);
+                         "Server: Received %u bytes\n", *upload_data_size);
 #endif
 
         /* Setting timeouts for other connections */
