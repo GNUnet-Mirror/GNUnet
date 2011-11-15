@@ -297,6 +297,7 @@ helper_write (void *cls
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Wrong addrlen = %d\n",
                 ans->pkt.addrlen);
     GNUNET_assert (0);
+    return; /* convince compiler that we're done here */
   }
 
   GNUNET_CONTAINER_DLL_remove (answer_proc_head, answer_proc_tail, ans);
@@ -401,7 +402,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
             htons (sizeof (struct GNUNET_MessageHeader) +
                    sizeof (GNUNET_HashCode) + ntohs (pkt6->ip6_hdr.paylgth));
 
-        GNUNET_MESH_ApplicationType app_type;
+        GNUNET_MESH_ApplicationType app_type = 0; /* fix compiler uninitialized warning... */
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "me->addrlen is %d\n",
                     me->addrlen);
