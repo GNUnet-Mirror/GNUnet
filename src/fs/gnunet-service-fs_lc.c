@@ -362,9 +362,10 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
   cr->lc = lc;
   GNUNET_CONTAINER_DLL_insert (lc->cr_head, lc->cr_tail, cr);
   options = GSF_PRO_LOCAL_REQUEST;
-  if (0 != (1 & ntohl (sm->options)))
+  if (0 != (GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY & ntohl (sm->options)))
     options |= GSF_PRO_LOCAL_ONLY;
-  cr->pr = GSF_pending_request_create_ (options, type, &sm->query, (type == GNUNET_BLOCK_TYPE_FS_SBLOCK) ? &sm->target  /* namespace */
+  cr->pr = GSF_pending_request_create_ (options, type, &sm->query,
+					(type == GNUNET_BLOCK_TYPE_FS_SBLOCK) ? &sm->target  /* namespace */
                                         : NULL,
                                         (0 !=
                                          memcmp (&sm->target, &all_zeros,

@@ -1284,9 +1284,9 @@ transmit_download_request (void *cls, size_t size, void *buf)
     sm->header.size = htons (sizeof (struct SearchMessage));
     sm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
     if (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_LOOPBACK_ONLY))
-      sm->options = htonl (1);
+      sm->options = htonl (GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY);
     else
-      sm->options = htonl (0);
+      sm->options = htonl (GNUNET_FS_SEARCH_OPTION_NONE);
     if (dr->depth == 0)
       sm->type = htonl (GNUNET_BLOCK_TYPE_FS_DBLOCK);
     else

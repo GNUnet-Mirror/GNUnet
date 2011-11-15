@@ -968,6 +968,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
   GNUNET_HashCode key;
   GNUNET_HashCode idh;
   unsigned int sqms;
+  uint32_t options;
 
   if (NULL == buf)
   {
@@ -979,6 +980,9 @@ transmit_search_request (void *cls, size_t size, void *buf)
   sm = buf;
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
   mbc.xoff = (GNUNET_HashCode *) & sm[1];
+  options = SEARCH_MESSAGE_OPTION_NONE;
+  if (0 != (sc->options & GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY))
+    options |= SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY;
   if (GNUNET_FS_uri_test_ksk (sc->uri))
   {
     msize = sizeof (struct SearchMessage);
@@ -994,10 +998,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
       GNUNET_assert (mbc.put_cnt > 0);
 
     sm->header.size = htons (msize);
-    if (0 != (sc->options & GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY))
-      sm->options = htonl (1);
-    else
-      sm->options = htonl (0);
+    sm->options = htonl (options);
     sm->type = htonl (GNUNET_BLOCK_TYPE_ANY);
     sm->anonymity_level = htonl (sc->anonymity);
     memset (&sm->target, 0, sizeof (GNUNET_HashCode));
@@ -1025,10 +1026,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_assert (GNUNET_FS_uri_test_sks (sc->uri));
     msize = sizeof (struct SearchMessage);
     GNUNET_assert (size >= msize);
-    if (0 != (sc->options & GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY))
-      sm->options = htonl (1);
-    else
-      sm->options = htonl (0);
+    sm->options = htonl (options);
     sm->type = htonl (GNUNET_BLOCK_TYPE_FS_SBLOCK);
     sm->anonymity_level = htonl (sc->anonymity);
     sm->target = sc->uri->data.sks.namespace;

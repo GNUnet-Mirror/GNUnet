@@ -178,6 +178,25 @@ struct UnindexMessage
 
 
 /**
+ * No options.
+ */
+#define SEARCH_MESSAGE_OPTION_NONE 0
+
+/**
+ * Only search the local datastore (no network)
+ */
+#define SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY 1
+
+/**
+ * Request is too large to fit in 64k format.  The list of
+ * already-known search results will be continued in another message
+ * for the same type/query/target and additional already-known results
+ * following this one).
+ */
+#define SEARCH_MESSAGE_OPTION_CONTINUED 2
+
+
+/**
  * Message sent from a GNUnet (fs) search activity to the
  * gnunet-service-fs to start a search.
  */
@@ -191,10 +210,15 @@ struct SearchMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Bitmask with options.  Zero for no options, one for loopback-only.
+   * Bitmask with options.  Zero for no options, one for
+   * loopback-only, two for 'to be continued' (with a second search
+   * message for the same type/query/target and additional
+   * already-known results following this one).  See
+   * SEARCH_MESSAGE_OPTION_ defines.
+   *
    * Other bits are currently not defined.
    */
-  int32_t options GNUNET_PACKED;
+  uint32_t options GNUNET_PACKED;
 
   /**
    * Type of the content that we're looking for.
