@@ -667,7 +667,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       return MHD_YES;
     }
 
-    /* Recieving data */
+    /* Receiving data */
     if ((*upload_data_size > 0))
     {
 #if VERBOSE_SERVER
