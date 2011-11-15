@@ -553,7 +553,7 @@ unix_real_send (void *cls, struct RetrySendContext *incoming_retry_context,
 
   sent = GNUNET_NETWORK_socket_sendto (send_handle, message, ssize, sb, sbs);
 
-  if ((GNUNET_SYSERR == sent) && (errno == EAGAIN))
+  if ((GNUNET_SYSERR == sent) && ((errno == EAGAIN) || (errno == ENOBUFS)))
     retry = GNUNET_YES;
 
   if ((GNUNET_SYSERR == sent) && (errno == EMSGSIZE))
