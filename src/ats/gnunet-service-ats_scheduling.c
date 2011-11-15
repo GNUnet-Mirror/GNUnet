@@ -359,8 +359,8 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  if ((plugin_name_length != 0) &&
-      (plugin_name[plugin_name_length - 1] != '\0'))
+  if ( (plugin_name_length == 0) ||
+       (plugin_name[plugin_name_length - 1] != '\0'))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);

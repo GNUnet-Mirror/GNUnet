@@ -348,6 +348,7 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
 {
   struct ATS_Address aa;
 
+  GNUNET_break (0 < strlen (plugin_name));
   aa.peer = *peer;
   aa.addr_len = plugin_addr_len;
   aa.addr = plugin_addr;
