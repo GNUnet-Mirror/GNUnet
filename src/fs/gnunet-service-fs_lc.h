@@ -48,12 +48,16 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client);
  *
  * @param client identification of the client
  * @param message the actual message
- * @return pending request handle for the request, NULL on error
+ * @param where to store the pending request handle for the request
+ * @return GNUNET_YES to start local processing,
+ *         GNUNET_NO to not (yet) start local processing,
+ *         GNUNET_SYSERR on error
  */
-struct GSF_PendingRequest *
+int
 GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
                                         const struct GNUNET_MessageHeader
-                                        *message);
+                                        *message,
+					struct GSF_PendingRequest **prptr);
 
 
 /**

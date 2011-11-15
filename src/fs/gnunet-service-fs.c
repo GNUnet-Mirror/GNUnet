@@ -402,14 +402,25 @@ handle_start_search (void *cls, struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *message)
 {
   struct GSF_PendingRequest *pr;
+  int ret;
 
-  pr = GSF_local_client_start_search_handler_ (client, message);
-  if (NULL == pr)
+  pr = NULL;
+  ret = GSF_local_client_start_search_handler_ (client, message,
+						&pr);
+  switch (ret)
   {
-    /* GNUNET_SERVER_receive_done was already called! */
-    return;
+  case GNUNET_SYSERR:
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    break;
+  case GNUNET_NO:
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    break;
+  case GNUNET_YES:
+    GSF_local_lookup_ (pr, &start_p2p_processing, client);
+    break;
+  default:
+    GNUNET_assert (0);
   }
-  GSF_local_lookup_ (pr, &start_p2p_processing, client);
 }
 
 

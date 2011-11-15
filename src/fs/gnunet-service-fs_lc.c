@@ -280,15 +280,22 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
 
 /**
  * Handle START_SEARCH-message (search request from local client).
+ * Only responsible for creating the request entry itself and setting
+ * up reply callback and cancellation on client disconnect.  Does NOT
+ * execute the actual request strategy (planning).
  *
  * @param client identification of the client
  * @param message the actual message
- * @return pending request handle for the request, NULL on error
+ * @param where to store the pending request handle for the request
+ * @return GNUNET_YES to start local processing,
+ *         GNUNET_NO to not (yet) start local processing,
+ *         GNUNET_SYSERR on error
  */
-struct GSF_PendingRequest *
+int
 GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
                                         const struct GNUNET_MessageHeader
-                                        *message)
+                                        *message,
+					struct GSF_PendingRequest **prptr)
 {
   static GNUNET_HashCode all_zeros;
   const struct SearchMessage *sm;
@@ -305,8 +312,8 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
       (0 != (msize - sizeof (struct SearchMessage)) % sizeof (GNUNET_HashCode)))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return NULL;
+    *prptr = NULL;
+    return GNUNET_SYSERR;
   }
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# client searches received"), 1,
@@ -320,7 +327,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
               GNUNET_h2s (&sm->query), (unsigned int) type);
 #endif
   lc = GSF_local_client_lookup_ (client);
-
+  cr = NULL;
   /* detect duplicate KBLOCK requests */
   if ((type == GNUNET_BLOCK_TYPE_FS_KBLOCK) ||
       (type == GNUNET_BLOCK_TYPE_FS_NBLOCK) || (type == GNUNET_BLOCK_TYPE_ANY))
@@ -338,49 +345,50 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
         break;
       cr = cr->next;
     }
-    if (cr != NULL)
-    {
-#if DEBUG_FS_CLIENT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Have existing request, merging content-seen lists.\n");
-#endif
-      GSF_pending_request_update_ (cr->pr, (const GNUNET_HashCode *) &sm[1],
-                                   sc);
-      GNUNET_STATISTICS_update (GSF_stats,
-                                gettext_noop
-                                ("# client searches updated (merged content seen list)"),
-                                1, GNUNET_NO);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return NULL;
-    }
   }
-
-  GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# client searches active"), 1,
-                            GNUNET_NO);
-  cr = GNUNET_malloc (sizeof (struct ClientRequest));
-  cr->lc = lc;
-  GNUNET_CONTAINER_DLL_insert (lc->cr_head, lc->cr_tail, cr);
-  options = GSF_PRO_LOCAL_REQUEST;
-  if (0 != (GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY & ntohl (sm->options)))
-    options |= GSF_PRO_LOCAL_ONLY;
-  cr->pr = GSF_pending_request_create_ (options, type, &sm->query,
-					(type == GNUNET_BLOCK_TYPE_FS_SBLOCK) ? &sm->target  /* namespace */
-                                        : NULL,
-                                        (0 !=
-                                         memcmp (&sm->target, &all_zeros,
-                                                 sizeof (GNUNET_HashCode)))
-                                        ? (const struct GNUNET_PeerIdentity *)
-                                        &sm->target : NULL, NULL, 0,
-                                        0 /* bf */ ,
-                                        ntohl (sm->anonymity_level),
-                                        0 /* priority */ ,
-                                        0 /* ttl */ ,
-                                        0 /* sender PID */ ,
-                                        0 /* origin PID */ ,
-                                        (const GNUNET_HashCode *) &sm[1], sc,
-                                        &client_response_handler, cr);
-  return cr->pr;
+  if (cr != NULL)
+  {
+#if DEBUG_FS_CLIENT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Have existing request, merging content-seen lists.\n");
+#endif
+    GSF_pending_request_update_ (cr->pr, (const GNUNET_HashCode *) &sm[1],
+				 sc);
+    GNUNET_STATISTICS_update (GSF_stats,
+			      gettext_noop
+			      ("# client searches updated (merged content seen list)"),
+			      1, GNUNET_NO);
+  } 
+  else
+  {
+    GNUNET_STATISTICS_update (GSF_stats,
+			      gettext_noop ("# client searches active"), 1,
+			      GNUNET_NO);
+    cr = GNUNET_malloc (sizeof (struct ClientRequest));
+    cr->lc = lc;
+    GNUNET_CONTAINER_DLL_insert (lc->cr_head, lc->cr_tail, cr);
+    options = GSF_PRO_LOCAL_REQUEST;
+    if (0 != (SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY & ntohl (sm->options)))
+      options |= GSF_PRO_LOCAL_ONLY;
+    cr->pr = GSF_pending_request_create_ (options, type, &sm->query,
+					  (type == GNUNET_BLOCK_TYPE_FS_SBLOCK) ? &sm->target  /* namespace */
+					  : NULL,
+					  (0 !=
+					   memcmp (&sm->target, &all_zeros,
+						   sizeof (GNUNET_HashCode)))
+					  ? (const struct GNUNET_PeerIdentity *)
+					  &sm->target : NULL, NULL, 0,
+					  0 /* bf */ ,
+					  ntohl (sm->anonymity_level),
+					  0 /* priority */ ,
+					  0 /* ttl */ ,
+					  0 /* sender PID */ ,
+					  0 /* origin PID */ ,
+					  (const GNUNET_HashCode *) &sm[1], sc,
+					  &client_response_handler, cr);
+  }
+  *prptr = cr->pr;
+  return (0 != (SEARCH_MESSAGE_OPTION_CONTINUED & ntohl (sm->options))) ? GNUNET_NO : GNUNET_YES;
 }
 
 
