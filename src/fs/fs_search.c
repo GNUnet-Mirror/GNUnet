@@ -893,9 +893,8 @@ struct MessageBuilderContext
 
 
 /**
- * Iterating over the known results, pick those
- * matching the given result range and store
- * their keys at 'xoff'.
+ * Iterating over the known results, pick those matching the given
+ * result range and store their keys at 'xoff'.
  *
  * @param cls the 'struct MessageBuilderContext'
  * @param key key for a result
@@ -996,9 +995,8 @@ transmit_search_request (void *cls, size_t size, void *buf)
     mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
     if (sc->search_request_map_offset < sqms)
       GNUNET_assert (mbc.put_cnt > 0);
-
+    
     sm->header.size = htons (msize);
-    sm->options = htonl (options);
     sm->type = htonl (GNUNET_BLOCK_TYPE_ANY);
     sm->anonymity_level = htonl (sc->anonymity);
     memset (&sm->target, 0, sizeof (GNUNET_HashCode));
@@ -1010,9 +1008,11 @@ transmit_search_request (void *cls, size_t size, void *buf)
     if (sqms != sc->search_request_map_offset)
     {
       /* more requesting to be done... */
+      sm->options = htonl (options | SEARCH_MESSAGE_OPTION_CONTINUED);
       schedule_transmit_search_request (sc);
       return msize;
     }
+    sm->options = htonl (options);
     sc->keyword_offset++;
     if (sc->uri->data.ksk.keywordCount != sc->keyword_offset)
     {
@@ -1026,7 +1026,6 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_assert (GNUNET_FS_uri_test_sks (sc->uri));
     msize = sizeof (struct SearchMessage);
     GNUNET_assert (size >= msize);
-    sm->options = htonl (options);
     sm->type = htonl (GNUNET_BLOCK_TYPE_FS_SBLOCK);
     sm->anonymity_level = htonl (sc->anonymity);
     sm->target = sc->uri->data.sks.namespace;
@@ -1047,9 +1046,11 @@ transmit_search_request (void *cls, size_t size, void *buf)
     if (sqms != sc->search_request_map_offset)
     {
       /* more requesting to be done... */
+      sm->options = htonl (options | SEARCH_MESSAGE_OPTION_CONTINUED);
       schedule_transmit_search_request (sc);
       return msize;
     }
+    sm->options = htonl (options);
   }
   GNUNET_CLIENT_receive (sc->client, &receive_results, sc,
                          GNUNET_TIME_UNIT_FOREVER_REL);
