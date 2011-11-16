@@ -642,6 +642,12 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   /* Check if both directions are connected */
   if ((sc->session->server_recv == NULL) || (sc->session->server_send == NULL))
   {
+#if VERBOSE_SERVER
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Server: Delayed read from `%s' `%s' since not both semi-connections are connected\n",
+                       GNUNET_i2s (&s->target),
+                       http_plugin_address_to_string (NULL, s->addr, s->addrlen));
+#endif
     return MHD_YES;
   }
 

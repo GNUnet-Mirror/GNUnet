@@ -492,10 +492,11 @@ client_connect (struct Session *s)
   CURLMcode mret;
 
 #if VERBOSE_CLIENT
+#endif
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Initiating outbound session peer `%s'\n",
                    GNUNET_i2s (&s->target));
-#endif
+
 
   s->inbound = GNUNET_NO;
 
@@ -506,8 +507,9 @@ client_connect (struct Session *s)
                    GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey),
                    plugin->last_tag);
 #if 0
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "URL `%s'\n", url);
 #endif
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name, "URL `%s'\n", url);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name, "ADDRESS `%s'\n", http_plugin_address_to_string (plugin, s->addr, s->addrlen));
   /* create get connection */
   s->client_get = curl_easy_init ();
 #if VERBOSE_CURL
