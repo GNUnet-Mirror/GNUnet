@@ -963,7 +963,7 @@ invalidation_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Session *s = cls;
 
   s->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Session %X (`%s') is now invalid\n", s,
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Session %X (`%s') is now invalid\n", s,
        GNUNET_a2s (s->sock_addr, s->addrlen));
 
   s->plugin->env->session_end (s->plugin->env->cls, &s->target, s);
