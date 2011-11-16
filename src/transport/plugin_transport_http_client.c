@@ -507,9 +507,8 @@ client_connect (struct Session *s)
                    GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey),
                    plugin->last_tag);
 #if 0
-#endif
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name, "URL `%s'\n", url);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name, "ADDRESS `%s'\n", http_plugin_address_to_string (plugin, s->addr, s->addrlen));
+#endif
   /* create get connection */
   s->client_get = curl_easy_init ();
 #if VERBOSE_CURL
