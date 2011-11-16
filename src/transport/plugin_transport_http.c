@@ -563,17 +563,16 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                      GNUNET_i2s (target));
 #endif
     int res = GNUNET_OK;
-
     if (addrlen == sizeof (struct IPv4HttpAddress))
     {
       struct IPv4HttpAddress * a4 = (struct IPv4HttpAddress *) addr;
-      if (ntohs(a4->u4_port) == 0)
+      if ((ntohs(a4->u4_port) == 0) || (plugin->ipv4 == GNUNET_NO))
           res = GNUNET_SYSERR;
     }
     if (addrlen == sizeof (struct IPv6HttpAddress))
     {
       struct IPv6HttpAddress * a6 = (struct IPv6HttpAddress *) addr;
-      if (ntohs(a6->u6_port) == 0)
+      if ((ntohs(a6->u6_port) == 0) || (plugin->ipv6 == GNUNET_NO))
           res = GNUNET_SYSERR;
     }
     if (res == GNUNET_OK)
