@@ -654,10 +654,13 @@ transmit_send_continuation (void *cls,
 {
   struct MessageQueue *mq;
   struct NeighbourMapEntry *n;
+  struct NeighbourMapEntry *tmp;
+
+  tmp = lookup_neighbour(receiver);
 
   mq = cls;
   n = mq->n;
-  if (NULL != n)
+  if ((NULL != n) && (tmp != NULL) && (tmp == n))
   {
     GNUNET_assert (n->is_active == mq);
     n->is_active = NULL;
