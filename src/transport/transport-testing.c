@@ -28,7 +28,30 @@
 #include "transport-testing.h"
 
 #define VERBOSE GNUNET_EXTRA_LOGGING
+#define HOSTKEYFILESIZE 914
 
+static const char *
+get_host_key (struct GNUNET_TRANSPORT_TESTING_handle *tth)
+{
+  if (tth->hostkey_data == NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                     "No precomputed hostkeys available\n");
+    return NULL;
+  }
+  if (tth->hostkeys_total > tth->hostkeys_last)
+  {
+    tth->hostkeys_last++;
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                     "Used hostkey %u of %u available hostkeys\n",
+                     tth->hostkeys_last, tth->hostkeys_total);
+    return &tth->hostkey_data[(tth->hostkeys_last - 1) * HOSTKEYFILESIZE];
+  }
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                   "No hostkey available (%u of %u already used)\n",
+                   tth->hostkeys_last, tth->hostkeys_total);
+  return NULL;
+}
 
 static struct PeerContext *
 find_peer_context (struct GNUNET_TRANSPORT_TESTING_handle *tth,
@@ -246,6 +269,9 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
                                      GNUNET_TRANSPORT_TESTING_start_cb start_cb,
                                      void *cb_cls)
 {
+  const char *hostkey = NULL;
+  struct GNUNET_DISK_FileHandle *fn;
+
   GNUNET_assert (tth != NULL);
   if (GNUNET_DISK_file_test (cfgname) == GNUNET_NO)
   {
@@ -259,13 +285,36 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
   p->cfg = GNUNET_CONFIGURATION_create ();
 
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+
+
   if (GNUNET_CONFIGURATION_have_value (p->cfg, "PATHS", "SERVICEHOME"))
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS",
                                                           "SERVICEHOME",
                                                           &p->servicehome));
-  if (NULL != p->servicehome)
-    GNUNET_DISK_directory_remove (p->servicehome);
+
+    if (NULL != p->servicehome)
+      GNUNET_DISK_directory_remove (p->servicehome);
+
+  hostkey = get_host_key(tth);
+  if (hostkey != NULL)
+  {
+
+    GNUNET_asprintf (&p->hostkeyfile, "%s/.hostkey", p->servicehome);
+    GNUNET_assert(GNUNET_OK == GNUNET_DISK_directory_create_for_file (p->hostkeyfile));
+    fn = GNUNET_DISK_file_open (p->hostkeyfile,
+                                GNUNET_DISK_OPEN_READWRITE |
+                                GNUNET_DISK_OPEN_CREATE,
+                                GNUNET_DISK_PERM_USER_READ |
+                                GNUNET_DISK_PERM_USER_WRITE);
+    GNUNET_assert (fn != NULL);
+    GNUNET_assert (HOSTKEYFILESIZE ==
+                   GNUNET_DISK_file_write (fn, hostkey, HOSTKEYFILESIZE));
+    GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fn));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                     "Wrote hostkey to file: `%s' \n", p->hostkeyfile);
+  }
+
   p->arm_proc =
       GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm", "-c", cfgname,
@@ -324,6 +373,12 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
     GNUNET_OS_process_wait (p->arm_proc);
     GNUNET_OS_process_close (p->arm_proc);
     p->arm_proc = NULL;
+  }
+
+  if (p->hostkeyfile != NULL)
+  {
+    GNUNET_DISK_directory_remove (p->hostkeyfile);
+    GNUNET_free (p->hostkeyfile);
   }
 
   if (p->servicehome != NULL)
@@ -454,6 +509,8 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth)
     p = t;
   }
 
+  GNUNET_free_non_null (tth->hostkey_data);
+
   GNUNET_free (tth);
   tth = NULL;
 }
@@ -467,6 +524,50 @@ GNUNET_TRANSPORT_TESTING_init ()
 {
   struct GNUNET_TRANSPORT_TESTING_handle *tth =
       GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TESTING_handle));
+  struct GNUNET_DISK_FileHandle *fd;
+  uint64_t fs;
+  uint64_t total_hostkeys;
+
+
+  /* prepare hostkeys */
+  tth->hostkey_data = NULL;
+  char * hostkeys_file = "../../contrib/testing_hostkeys.dat";
+  if (GNUNET_YES != GNUNET_DISK_file_test (hostkeys_file))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Could not read hostkeys file!\n"));
+  }
+  else
+  {
+    /* Check hostkey file size, read entire thing into memory */
+    fd = GNUNET_DISK_file_open (hostkeys_file, GNUNET_DISK_OPEN_READ,
+                                GNUNET_DISK_PERM_NONE);
+    if (NULL == fd)
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open",
+                                hostkeys_file);
+      return NULL;
+    }
+
+    if (GNUNET_YES != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES))
+      fs = 0;
+
+    if (0 != (fs % HOSTKEYFILESIZE))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
+                  "File size %llu seems incorrect for hostkeys...\n", fs);
+    }
+    else
+    {
+      total_hostkeys = fs / HOSTKEYFILESIZE;
+      tth->hostkey_data = GNUNET_malloc_large (fs);
+      GNUNET_assert (fs == GNUNET_DISK_file_read (fd, tth->hostkey_data, fs));
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                  "Read %llu hostkeys from file\n", total_hostkeys);
+      tth->hostkeys_total = total_hostkeys;
+    }
+    GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
+  }
 
   return tth;
 }

@@ -94,6 +94,8 @@ struct PeerContext
 
   char *servicehome;
 
+  char *hostkeyfile;
+
   unsigned int no;
 };
 
@@ -117,6 +119,10 @@ struct GNUNET_TRANSPORT_TESTING_handle
 {
   struct ConnectingContext *cc_head;
   struct ConnectingContext *cc_tail;
+
+  char *hostkey_data;
+  int hostkeys_total;
+  int hostkeys_last;
 
   struct PeerContext *p_head;
   struct PeerContext *p_tail;

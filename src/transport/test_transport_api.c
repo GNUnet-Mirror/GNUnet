@@ -370,12 +370,10 @@ main (int argc, char *argv[])
   int ret;
   int nat_res;
 
-  tth = GNUNET_TRANSPORT_TESTING_init ();
-
+  GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
   GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
   GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0], test_source,
                                                  &test_plugin);
-  GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
 
   GNUNET_log_setup (test_name,
 #if VERBOSE
@@ -384,6 +382,8 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
+
+  tth = GNUNET_TRANSPORT_TESTING_init ();
 
   if ((strcmp (test_plugin, "tcp_nat") == 0) ||
       (strcmp (test_plugin, "udp_nat") == 0))

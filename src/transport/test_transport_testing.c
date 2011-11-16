@@ -145,6 +145,7 @@ start_cb (struct PeerContext *p, void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
               p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
+  GNUNET_free (sender_c);
 
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
                                                NULL);
@@ -165,10 +166,15 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             "test_transport_api_tcp_peer1.conf",
                                             1, &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb, p1);
+
+  GNUNET_assert (p1->hostkeyfile != NULL);
+
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                             "test_transport_api_tcp_peer2.conf",
                                             2, &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb, p2);
+
+  GNUNET_assert (p2->hostkeyfile != NULL);
 
   if (p1 == NULL)
   {

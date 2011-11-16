@@ -437,6 +437,7 @@ start_cb (struct PeerContext *p, void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test triest to send from %u (%s) -> peer %u (%s)\n", sender->no,
               sender_c, receiver->no, GNUNET_i2s (&receiver->id));
+  GNUNET_free (sender_c);
 
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
                                                NULL);
@@ -500,11 +501,6 @@ main (int argc, char *argv[])
   int ret;
   int nat_res;
 
-  tth = GNUNET_TRANSPORT_TESTING_init ();
-
-  GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
-  GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0], test_source,
-                                                 &test_plugin);
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
 
   GNUNET_log_setup (test_name,
@@ -514,6 +510,12 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
+
+  GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
+  GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0], test_source,
+                                                 &test_plugin);
+
+  tth = GNUNET_TRANSPORT_TESTING_init ();
 
   if ((strcmp (test_plugin, "tcp_nat") == 0) ||
       (strcmp (test_plugin, "udp_nat") == 0))
