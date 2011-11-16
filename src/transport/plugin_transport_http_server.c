@@ -243,9 +243,9 @@ server_load_certificate (struct Plugin *plugin)
  */
 
 static void
-server_reschedule (struct Plugin *plugin, int now)
+server_reschedule (struct Plugin *plugin, struct MHD_Daemon *server, int now)
 {
-  if (plugin->server_v4 != NULL)
+  if ((server == plugin->server_v4) && (plugin->server_v4 != NULL))
   {
     if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -255,7 +255,7 @@ server_reschedule (struct Plugin *plugin, int now)
     plugin->server_v4_task = server_schedule (plugin, plugin->server_v4, now);
   }
 
-  if (plugin->server_v6 != NULL)
+  if ((server == plugin->server_v6) && (plugin->server_v6 != NULL))
   {
     if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -347,7 +347,7 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
     }
   }
 
-#if VERBOSE_CLIENT
+#if VERBOSE_SERVER
   struct Plugin *plugin = s->plugin;
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                    "Server: %X: sent %u bytes\n", s, bytes_read);
@@ -536,7 +536,6 @@ create:
     GNUNET_break (0);
     goto error;
   }
-
   s = create_session (plugin, &target, a, a_len, NULL, NULL);
 
   s->inbound = GNUNET_YES;
@@ -575,7 +574,14 @@ found:
                    "Server: Setting timeout for %X to %u sec.\n", sc, to);
 #endif
   MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
-  server_reschedule (plugin, GNUNET_NO);
+
+  struct MHD_Daemon * d = NULL;
+  if (s->addrlen == sizeof (struct IPv6HttpAddress))
+    d = plugin->server_v6;
+  if (s->addrlen == sizeof (struct IPv4HttpAddress))
+    d = plugin->server_v4;
+
+  server_reschedule (plugin, d, GNUNET_NO);
 #endif
   return sc;
 }
@@ -732,7 +738,12 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
           MHD_set_connection_option (t->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
                                      to);
         }
-        server_reschedule (plugin, GNUNET_NO);
+        struct MHD_Daemon *d = NULL;
+        if (s->addrlen == sizeof (struct IPv6HttpAddress))
+          d = plugin->server_v6;
+        if (s->addrlen == sizeof (struct IPv4HttpAddress))
+          d = plugin->server_v4;
+        server_reschedule (plugin, d, GNUNET_NO);
 #endif
         (*upload_data_size) = 0;
       }
@@ -827,7 +838,12 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   }
   plugin->cur_connections--;
 
-  server_reschedule (plugin, GNUNET_NO);
+  struct MHD_Daemon *d = NULL;
+  if (s->addrlen == sizeof (struct IPv6HttpAddress))
+    d = plugin->server_v6;
+  if (s->addrlen == sizeof (struct IPv4HttpAddress))
+    d = plugin->server_v4;
+  server_reschedule (plugin, d, GNUNET_NO);
 
   if ((s->server_send == NULL) && (s->server_recv == NULL))
   {
@@ -875,7 +891,17 @@ int
 server_send (struct Session *s, struct HTTP_Message *msg)
 {
   GNUNET_CONTAINER_DLL_insert (s->msg_head, s->msg_tail, msg);
-  server_reschedule (s->plugin, GNUNET_YES);
+
+  if (s->addrlen == sizeof (struct IPv4HttpAddress))
+  {
+    server_reschedule (s->plugin, s->plugin->server_v4 , GNUNET_YES);
+  }
+  else if (s->addrlen == sizeof (struct IPv6HttpAddress))
+  {
+    server_reschedule (s->plugin, s->plugin->server_v6 , GNUNET_YES);
+  }
+  else
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 
@@ -1142,6 +1168,8 @@ server_start (struct Plugin *plugin)
                      plugin->name, plugin->port);
     return GNUNET_SYSERR;
   }
+  server_reschedule (plugin, plugin->server_v4, GNUNET_NO);
+
   if ((plugin->ipv6 == GNUNET_YES) && (plugin->server_v6 == NULL))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
@@ -1149,8 +1177,8 @@ server_start (struct Plugin *plugin)
                      plugin->name, plugin->port);
     return GNUNET_SYSERR;
   }
+  server_reschedule (plugin, plugin->server_v6, GNUNET_NO);
 
-  server_reschedule (plugin, GNUNET_NO);
 
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
