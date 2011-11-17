@@ -92,6 +92,7 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_BANDWIDTH_Tracker *tracker;
 
   tracker = GNUNET_CONTAINER_multihashmap_get (trackers, &peer->hashPubKey);
+  GNUNET_break (NULL != tracker);
   if (0 == ntohl (bandwidth_in.value__))
   {
     GNUNET_assert (GNUNET_YES ==

@@ -33,7 +33,7 @@
 #include "gnunet_disk_lib.h"
 
 /** Globals **/
-#define DEFAULT_CONNECT_TIMEOUT 30 // FIXME: use fancy time
+#define DEFAULT_CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 #define DEFAULT_CONNECT_ATTEMPTS 2
 
@@ -55,7 +55,7 @@ struct PeerGroupStartupContext
   /**
    * How long to spend trying to establish all the connections?
    */
-  unsigned long long connect_timeout; // FIXME: use fancy time
+  struct GNUNET_TIME_Relative connect_timeout;
   
   unsigned long long max_concurrent_ssh;
   struct GNUNET_TIME_Absolute timeout;
@@ -508,10 +508,7 @@ internal_peers_started_callback (void *cls,
                                            pg_start_ctx->connect_topology,
                                            pg_start_ctx->connect_topology_option,
                                            pg_start_ctx->connect_topology_option_modifier,
-                                           // FIXME: use fancy time
-                                           GNUNET_TIME_relative_multiply(
-                                             GNUNET_TIME_UNIT_SECONDS,
-                                             pg_start_ctx->connect_timeout),
+					   pg_start_ctx->connect_timeout,
                                            pg_start_ctx->connect_attempts, NULL,
                                            NULL);
 
@@ -740,6 +737,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   unsigned long long temp_config_number;
   char *temp_str;
   int temp;
+  struct GNUNET_TIME_Relative rtimeout;
 
   GNUNET_assert (total > 0);
   GNUNET_assert (cfg != NULL);
@@ -757,10 +755,10 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_timeout",
-                                             &pg_start_ctx->connect_timeout))
+      GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "CONNECT_TIMEOUT",
+					   &pg_start_ctx->connect_timeout))
   {
-    pg_start_ctx->connect_timeout = DEFAULT_CONNECT_TIMEOUT;
+      pg_start_ctx->connect_timeout = DEFAULT_CONNECT_TIMEOUT;
   }
 
   if (GNUNET_OK !=
@@ -796,21 +794,18 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   }
 
-  if (GNUNET_OK ==
+  if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
-                                             "peergroup_timeout",
-                                             &temp_config_number))
-    pg_start_ctx->timeout =
-        GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
-                                          (GNUNET_TIME_UNIT_SECONDS,
-                                           temp_config_number));
-  else
+                                             "PEERGROUP_TIMEOUT",
+                                             &rtimeout))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
-                "testing", "peergroup_timeout");
+                "testing", "PEERGROUP_TIMEOUT");
     GNUNET_free (pg_start_ctx);
     return NULL;
   }
+  pg_start_ctx->timeout =
+    GNUNET_TIME_relative_to_absolute (rtimeout);
 
 
   /* Read topology related options from the configuration file */

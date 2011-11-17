@@ -999,7 +999,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *blacklist_topology_str;
   char *connect_topology_option_str;
   char *connect_topology_option_modifier_string;
-  unsigned long long temp_settle;
   unsigned long long max_outstanding_connections;
 
   ok = 1;
@@ -1101,21 +1100,21 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_free_non_null (topology_str);
   GNUNET_free_non_null (blacklist_topology_str);
 
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "settle_time",
-                                             &temp_settle))
-    settle_time =
-        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_settle);
-
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_timeout",
-                                             &temp_settle))
-    connect_timeout =
-        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_settle);
-  else
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "SETTLE_TIME",
+					   &settle_time))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
-                "testing", "connect_timeout");
+                "testing", "SETTLE_TIME");
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "CONNECT_TIMEOUT",
+					   &connect_timeout))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
+                "testing", "CONNECT_TIMEOUT");
     return;
   }
 

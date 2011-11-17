@@ -557,8 +557,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (testing_cfg, "nse-profiler",
-                                             "wait_time", &temp_wait))
+      GNUNET_CONFIGURATION_get_value_time (testing_cfg, "nse-profiler",
+					   "WAIT_TIME", &wait_time))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Option nse-profiler:wait_time is required!\n");
@@ -610,9 +610,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                   GNUNET_TIME_UNIT_MINUTES.rel_value);
   }
 
-
-  wait_time =
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_wait);
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "nse-profiler", "output_file",

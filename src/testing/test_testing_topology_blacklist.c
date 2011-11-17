@@ -390,7 +390,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   unsigned long long connect_topology_num;
   unsigned long long blacklist_topology_num;
   unsigned long long connect_topology_option_num;
-  unsigned long long temp_connect;
   char *connect_topology_option_modifier_string;
 
   ok = 1;
@@ -485,15 +484,12 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
 
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_timeout",
-                                             &temp_connect))
-    connect_timeout =
-        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_connect);
-  else
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "CONNECT_TIMEOUT",
+					   &connect_timeout))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
-                "testing", "connect_timeout");
+                "testing", "CONNECT_TIMEOUT");
     return;
   }
 

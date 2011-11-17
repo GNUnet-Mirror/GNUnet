@@ -479,8 +479,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   mesh_peers = GNUNET_malloc (sizeof (GNUNET_PEER_Id) * (num_peers + 1));
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (testing_cfg, "test_mesh_small",
-                                             "wait_time", &temp_wait))
+      GNUNET_CONFIGURATION_get_value_time (testing_cfg, "test_mesh_small",
+					   "WAIT_TIME", &wait_time))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Option test_mesh_small:wait_time is required!\n");
@@ -515,9 +515,6 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_free (data_filename);
     }
   }
-
-  wait_time =
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_wait);
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "test_mesh_small",
