@@ -103,19 +103,18 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-#if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Shutdown of peers failed!\n");
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "test: Shutdown of peers failed! (%s)\n",
+                emsg);
     ok--;
   }
+#if VERBOSE
   else
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: All peers successfully shut down!\n");
-#endif
   }
+#endif
 }
 
 
