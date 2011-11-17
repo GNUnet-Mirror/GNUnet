@@ -3081,6 +3081,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     copy->length = i;
     peer_info_add_path(aux, copy, 0);
   }
+  path_destroy(p);
 
   /* Message for us? */
   if (0 == memcmp (&msg->oid, &my_full_id, sizeof (struct GNUNET_PeerIdentity)))
