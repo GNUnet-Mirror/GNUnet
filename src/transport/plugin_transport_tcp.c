@@ -428,7 +428,7 @@ tcp_nat_port_map_callback (void *cls, int add_remove,
   void *arg;
   size_t args;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
                    "NPMC called with %d for address `%s'\n", add_remove,
                    GNUNET_a2s (addr, addrlen));
   /* convert 'addr' to our internal format */

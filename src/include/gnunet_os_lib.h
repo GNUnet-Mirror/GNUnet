@@ -146,13 +146,17 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind);
  * @param name name of the interface (can be NULL for unknown)
  * @param isDefault is this presumably the default interface
  * @param addr address of this interface (can be NULL for unknown or unassigned)
+ * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
+ * @param netmask the network mask (can be NULL for unknown or unassigned))
  * @param addrlen length of the address
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_OS_NetworkInterfaceProcessor) (void *cls, const char *name,
                                                     int isDefault,
-                                                    const struct sockaddr *
-                                                    addr, socklen_t addrlen);
+                                                    const struct sockaddr * addr,
+                                                    const struct sockaddr * broadcast_addr,
+                                                    const struct sockaddr * netmask,
+                                                    socklen_t addrlen);
 
 
 /**

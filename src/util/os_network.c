@@ -157,7 +157,10 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
         if (GNUNET_OK !=
             proc (proc_cls, szEntry,
                   pTable->table[dwIfIdx].dwIndex == dwExternalNIC,
-                  (const struct sockaddr *) &sa, sizeof (sa)))
+                  (const struct sockaddr *) &sa,
+                  NULL,
+                  NULL,
+                  sizeof (sa)))
           break;
       }
     }
@@ -190,7 +193,10 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
         if (GNUNET_OK !=
             proc (proc_cls, ifa_ptr->ifa_name,
                   0 == strcmp (ifa_ptr->ifa_name, GNUNET_DEFAULT_INTERFACE),
-                  ifa_ptr->ifa_addr, alen))
+                  ifa_ptr->ifa_addr,
+                  NULL,
+                  NULL,
+                  alen))
           break;
       }
     }
@@ -262,7 +268,10 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
         a4.sin_addr = v4;
         if (GNUNET_OK !=
             proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
-                  (const struct sockaddr *) &a4, sizeof (a4)))
+                  (const struct sockaddr *) &a4,
+                  NULL,
+                  NULL,
+                  sizeof (a4)))
           break;
         continue;
       }
@@ -277,7 +286,10 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
         a6.sin6_addr = v6;
         if (GNUNET_OK !=
             proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
-                  (const struct sockaddr *) &a6, sizeof (a6)))
+                  (const struct sockaddr *) &a6,
+                  NULL,
+                  NULL,
+                  sizeof (a6)))
           break;
         continue;
       }

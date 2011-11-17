@@ -633,8 +633,12 @@ process_hostname_ip (void *cls, const struct sockaddr *addr, socklen_t addrlen)
  * @return GNUNET_OK to continue iterating
  */
 static int
-process_interfaces (void *cls, const char *name, int isDefault,
-                    const struct sockaddr *addr, socklen_t addrlen)
+process_interfaces(void *cls, const char *name,
+                  int isDefault,
+                  const struct sockaddr * addr,
+                  const struct sockaddr * broadcast_addr,
+                  const struct sockaddr * netmask,
+                  socklen_t addrlen)
 {
   struct GNUNET_NAT_Handle *h = cls;
   const struct sockaddr_in *s4;
