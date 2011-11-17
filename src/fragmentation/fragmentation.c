@@ -208,7 +208,7 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fc->num_rounds++;
     delay =
         GNUNET_TIME_relative_max (GNUNET_TIME_relative_multiply (delay, 2),
-                                  GNUNET_TIME_relative_multiply (fc->delay, fc->num_rounds);
+                                  GNUNET_TIME_relative_multiply (fc->delay, fc->num_rounds));
     /* never use zero, need some time for ACK always */
     delay = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS, delay);
     fc->last_round = GNUNET_TIME_absolute_get ();
