@@ -100,6 +100,11 @@ struct GNUNET_FRAGMENT_Context
   unsigned int next_transmission;
 
   /**
+   * How many rounds of transmission have we completed so far?
+   */
+  unsigned int num_rounds;
+
+  /**
    * GNUNET_YES if we called 'proc' and are now waiting for 'GNUNET_FRAGMENT_transmission_done'
    */
   int8_t proc_busy;
@@ -112,7 +117,7 @@ struct GNUNET_FRAGMENT_Context
   /**
    * Target fragment size.
    */
-  uint16_t mtu;
+  uint16_t mtu;  
 
 };
 
@@ -207,6 +212,7 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     delay = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS, delay);
     fc->last_round = GNUNET_TIME_absolute_get ();
     fc->wack = GNUNET_YES;
+    fc->num_rounds++;
   }
   fc->proc_busy = GNUNET_YES;
   fc->delay_until = GNUNET_TIME_relative_to_absolute (delay);
@@ -330,7 +336,7 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     /* normal ACK, can update running average of delay... */
     fc->wack = GNUNET_NO;
     ndelay = GNUNET_TIME_absolute_get_duration (fc->last_round);
-    fc->delay.rel_value = (ndelay.rel_value + 3 * fc->delay.rel_value) / 4;
+    fc->delay.rel_value = (ndelay.rel_value * fc->num_rounds + 3 * fc->delay.rel_value) / 4;
   }
   GNUNET_STATISTICS_update (fc->stats,
                             _("# fragment acknowledgements received"), 1,
