@@ -324,7 +324,8 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
   if (ntohl (fa->fragment_id) != fc->fragment_id)
     return GNUNET_SYSERR;       /* not our ACK */
   abits = GNUNET_ntohll (fa->bits);
-  if (GNUNET_YES == fc->wack)
+  if ( (GNUNET_YES == fc->wack) &&
+       (abits == (fc->acks & abits)) )
   {
     /* normal ACK, can update running average of delay... */
     fc->wack = GNUNET_NO;
