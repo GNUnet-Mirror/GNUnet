@@ -1,0 +1,116 @@
+{
+   logsetup_addr
+   Memcheck:Addr8
+   obj:/lib/libc-2.14.1.so
+   ...
+   fun:get_type
+   fun:GNUNET_log_setup
+   fun:GNUNET_SERVICE_run
+   fun:main
+}
+
+{
+   scanf_addr
+   Memcheck:Addr8
+   obj:/lib/libc-2.14.1.so
+   ...
+   fun:vsscanf
+   fun:sscanf
+   fun:GNUNET_CONFIGURATION_get_value_number
+   fun:GNUNET_SERVICE_get_server_addresses
+   fun:setup_service
+   fun:GNUNET_SERVICE_run
+   fun:main
+}
+
+{
+   mylog_addr
+   Memcheck:Addr8
+   obj:/lib/libc-2.14.1.so
+   ...
+   fun:service_task
+   fun:GNUNET_SCHEDULER_run
+   fun:GNUNET_SERVICE_run
+   fun:main
+}
+
+{
+   mylog_uninit
+   Memcheck:Value8
+   obj:/lib/libc-2.14.1.so
+   ...
+   fun:mylog
+   fun:GNUNET_log_from_nocheck
+   fun:service_task
+   ...
+   fun:GNUNET_SCHEDULER_run
+   fun:GNUNET_SERVICE_run
+   fun:main
+}
+
+{
+   mylog_from_cond
+   Memcheck:Cond
+   obj:/lib/libc-2.14.1.so
+   ...
+   fun:mylog
+   fun:GNUNET_log_from_nocheck
+   ...
+   fun:service_task
+   fun:GNUNET_SCHEDULER_run
+   fun:GNUNET_SERVICE_run
+   fun:main
+}
+
+{
+   mylog_cond
+   Memcheck:Cond
+   obj:/lib/libc-2.14.1.so
+   ...
+   fun:mylog
+   fun:GNUNET_log_nocheck
+   ...
+   fun:service_task
+   fun:GNUNET_SCHEDULER_run
+   fun:GNUNET_SERVICE_run
+   fun:main
+}
+
+{
+   inet_ntop_cond
+   Memcheck:Cond
+   obj:/lib/libc-2.14.1.so
+   ...
+   fun:inet_ntop
+   fun:GNUNET_a2s
+   ...
+   fun:service_task
+   fun:GNUNET_SCHEDULER_run
+   fun:GNUNET_SERVICE_run
+   fun:main
+}
+
+{
+   create_key_from_file
+   Memcheck:Addr8
+   obj:/lib/libc-2.14.1.so
+   ...
+   fun:GNUNET_CRYPTO_rsa_key_create_from_file
+   fun:run
+   fun:service_task
+   fun:GNUNET_SCHEDULER_run
+   fun:GNUNET_SERVICE_run
+   fun:main
+}
+
+{
+   main_notify_handler
+   Memcheck:Addr8
+   obj:/lib/libc-2.14.1.so
+   ...
+   fun:main_notify_handler
+   fun:receive_ready
+   fun:GNUNET_SCHEDULER_run
+   fun:GNUNET_SERVICE_run
+   fun:main
+}
