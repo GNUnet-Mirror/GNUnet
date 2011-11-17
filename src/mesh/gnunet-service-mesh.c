@@ -3070,18 +3070,25 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Add paths to peers */
   peer_info = peer_info_get (&msg->peer_id);
   p = tree_get_path_to_peer(t->tree, peer_info->id);
-  for (i = 1; i < p->length && p->peers[i] != myid; i++) /* skip'em */;
-  for (i++; i < p->length; i++)
+  if (NULL != p)
   {
-    struct MeshPeerInfo *aux;
-    struct MeshPeerPath *copy;
+    for (i = 1; i < p->length && p->peers[i] != myid; i++) /* skip'em */;
+    for (i++; i < p->length; i++)
+    {
+      struct MeshPeerInfo *aux;
+      struct MeshPeerPath *copy;
 
-    aux = peer_info_get_short(p->peers[i]);
-    copy = path_duplicate(p);
-    copy->length = i;
-    peer_info_add_path(aux, copy, 0);
+      aux = peer_info_get_short(p->peers[i]);
+      copy = path_duplicate(p);
+      copy->length = i;
+      peer_info_add_path(aux, copy, 0);
+    }
+    path_destroy(p);
   }
-  path_destroy(p);
+  else
+  {
+    GNUNET_break (0);
+  }
 
   /* Message for us? */
   if (0 == memcmp (&msg->oid, &my_full_id, sizeof (struct GNUNET_PeerIdentity)))

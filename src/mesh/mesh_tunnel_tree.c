@@ -703,7 +703,10 @@ tree_get_path_to_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
 
   n = tree_find_peer (t, peer);
   if (NULL == n)
+  {
+    GNUNET_break (0);
     return NULL;
+  }
   p = path_new (0);
 
   /* Building the path (inverted!) */
@@ -714,6 +717,7 @@ tree_get_path_to_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
     n = n->parent;
     if (NULL == n)
     {
+      GNUNET_break (0);
       path_destroy (p);
       return NULL;
     }
