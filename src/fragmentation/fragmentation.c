@@ -205,14 +205,14 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (wrap)
   {
     /* full round transmitted wait 2x delay for ACK before going again */
+    fc->num_rounds++;
     delay =
         GNUNET_TIME_relative_max (GNUNET_TIME_relative_multiply (delay, 2),
-                                  fc->delay);
+                                  GNUNET_TIME_relative_multiply (fc->delay, fc->num_rounds);
     /* never use zero, need some time for ACK always */
     delay = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS, delay);
     fc->last_round = GNUNET_TIME_absolute_get ();
     fc->wack = GNUNET_YES;
-    fc->num_rounds++;
   }
   fc->proc_busy = GNUNET_YES;
   fc->delay_until = GNUNET_TIME_relative_to_absolute (delay);
