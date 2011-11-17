@@ -262,6 +262,15 @@ struct ReceiveContext
 
 };
 
+struct BroadcastAddress
+{
+  struct BroadcastAddress *next;
+  struct BroadcastAddress *prev;
+
+  void * addr;
+  socklen_t addrlen;
+};
+
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -350,6 +359,9 @@ struct Plugin
    * The read socket for IPv4
    */
   struct GNUNET_NETWORK_Handle *sockv4_broadcast;
+
+  struct BroadcastAddress *head;
+  struct BroadcastAddress *tail;
 
   /**
    * ID of select broadcast task
@@ -1506,14 +1518,10 @@ udp_broadcast_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 //  /ssize_t ret;
   const struct GNUNET_MessageHeader *hello;
   struct UDP_Beacon_Message *msg;
+  struct BroadcastAddress * baddr;
 
   plugin->send_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
 
-  struct sockaddr_in baddr;
-
-  baddr.sin_family = AF_INET;
-  baddr.sin_port = htons (plugin->broadcast_port);
-  baddr.sin_addr.s_addr = htonl (-1);   /* send message to 255.255.255.255 */
 
   hello = plugin->env->get_our_hello ();
   hello_size = GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello);
@@ -1528,14 +1536,21 @@ udp_broadcast_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg->header.size = ntohs (msg_size);
   msg->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON);
   memcpy (&msg[1], hello, hello_size);
+  sent = 0;
 
-  sent =
-      GNUNET_NETWORK_socket_sendto (plugin->sockv4_broadcast, msg, msg_size,
-                                    (const struct sockaddr *) &baddr,
-                                    sizeof (struct sockaddr_in));
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sent HELLO beacon broadcast with  %i bytes\n",
-       sent);
+  baddr = plugin->head;
+  while (baddr != NULL)
+  {
+    sent = GNUNET_NETWORK_socket_sendto (plugin->sockv4_broadcast, msg, msg_size,
+                                      baddr->addr,
+                                      baddr->addrlen);
+    if (sent == GNUNET_SYSERR)
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "sendto");
+    else
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Sent HELLO beacon broadcast with  %i bytes to address %s\n",
+           sent, GNUNET_a2s(baddr->addr, baddr->addrlen));
+      baddr = baddr->next;
+  }
 
   plugin->send_broadcast_task =
       GNUNET_SCHEDULER_add_delayed (plugin->broadcast_interval,
@@ -1869,6 +1884,32 @@ udp_nat_port_map_callback (void *cls, int add_remove,
 }
 
 
+static int
+iface_proc (void *cls, const char *name,
+            int isDefault,
+            const struct sockaddr * addr,
+            const struct sockaddr * broadcast_addr,
+            const struct sockaddr * netmask,
+            socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+
+  if (broadcast_addr != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding broadcast address %s for interface %s %p\n ",
+        GNUNET_a2s(broadcast_addr,addrlen), name, broadcast_addr);
+
+    struct BroadcastAddress * ba = GNUNET_malloc(sizeof (struct BroadcastAddress));
+    ba->addr = GNUNET_malloc(addrlen);
+    memcpy(ba->addr, broadcast_addr, addrlen);
+    ba->addrlen = addrlen;
+
+    GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, ba);
+  }
+  return GNUNET_OK;
+}
+
+
 /**
  * The exported method. Makes the core api available via a global and
  * returns the udp transport API.
@@ -2183,8 +2224,10 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                        plugin->broadcast_rs, NULL,
                                        &udp_plugin_broadcast_select, plugin);
 
+      GNUNET_OS_network_interfaces_list(iface_proc, plugin);
       plugin->send_broadcast_task =
-          GNUNET_SCHEDULER_add_now (&udp_broadcast_send, plugin);
+        GNUNET_SCHEDULER_add_now (&udp_broadcast_send, plugin);
+
     }
     else
       plugin->broadcast = GNUNET_NO;
@@ -2265,6 +2308,14 @@ libgnunet_plugin_transport_udp_done (void *cls)
       plugin->sockv4_broadcast = NULL;
     }
     GNUNET_NETWORK_fdset_destroy (plugin->broadcast_rs);
+
+    while (plugin->head != NULL)
+    {
+      struct BroadcastAddress * p= plugin->head;
+      GNUNET_CONTAINER_DLL_remove(plugin->head, plugin->tail, p);
+      GNUNET_free (p->addr);
+      GNUNET_free (p);
+    }
   }
 
   GNUNET_SERVER_mst_destroy (plugin->mst);

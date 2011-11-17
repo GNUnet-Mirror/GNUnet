@@ -194,8 +194,8 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
             proc (proc_cls, ifa_ptr->ifa_name,
                   0 == strcmp (ifa_ptr->ifa_name, GNUNET_DEFAULT_INTERFACE),
                   ifa_ptr->ifa_addr,
-                  NULL,
-                  NULL,
+                  ifa_ptr->ifa_broadaddr,
+                  ifa_ptr->ifa_netmask,
                   alen))
           break;
       }
