@@ -33,7 +33,6 @@
 #include "gnunet-service-core_typemap.h"
 #include "core.h"
 
-#define DEBUG_CONNECTS GNUNET_YES
 
 /**
  * How many messages do we queue up at most for optional
@@ -76,12 +75,10 @@ struct GSC_Client
    */
   struct GNUNET_CONTAINER_MultiHashMap *requests;
 
-#if DEBUG_CONNECTS
   /**
    * Map containing all peers that this client knows we're connected to.
    */
   struct GNUNET_CONTAINER_MultiHashMap *connectmap;
-#endif
 
   /**
    * Options for messages this client cares about,
@@ -234,11 +231,9 @@ send_to_all_clients (const struct GNUNET_PeerIdentity *sender,
                 "Sending message to client interested in messages of type %u.\n",
                 (unsigned int) type);
 #endif
-#if DEBUG_CONNECTS
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
                                                            &sender->hashPubKey));
-#endif
     send_to_client (c, msg, can_drop);
   }
 }
@@ -287,15 +282,12 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
   c->tcnt = msize / sizeof (uint16_t);
   c->options = ntohl (im->options);
   c->types = (const uint16_t *) &c[1];
-#if DEBUG_CONNECTS
   c->connectmap = GNUNET_CONTAINER_multihashmap_create (16);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_put (c->connectmap,
                                                     &GSC_my_identity.hashPubKey,
                                                     NULL,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-#endif
-
   wtypes = (uint16_t *) & c[1];
   for (i = 0; i < c->tcnt; i++)
     wtypes[i] = ntohs (types[i]);
@@ -331,6 +323,7 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
   const struct SendMessageRequest *req;
   struct GSC_Client *c;
   struct GSC_ClientActiveRequest *car;
+  int is_loopback;
 
   req = (const struct SendMessageRequest *) message;
   c = find_client (client);
@@ -348,6 +341,25 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
               "Client asked for transmission to `%s'\n",
               GNUNET_i2s (&req->peer));
 #endif
+  is_loopback = (0 ==
+		 memcmp (&req->peer, &GSC_my_identity,
+			 sizeof (struct GNUNET_PeerIdentity)));
+  if ( (! is_loopback) &&
+       (GNUNET_YES !=
+	GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
+						&req->peer.hashPubKey)) )
+  {
+    /* neighbour must have disconnected since request was issued,
+     * ignore (client will realize it once it processes the
+     * disconnect notification) */
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop
+                              ("# send requests dropped (disconnected)"), 1,
+                              GNUNET_NO);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
   car = GNUNET_CONTAINER_multihashmap_get (c->requests, &req->peer.hashPubKey);
   if (car == NULL)
   {
@@ -370,12 +382,14 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
   car->msize = ntohs (req->size);
   car->smr_id = req->smr_id;
   car->was_solicited = GNUNET_NO;
-  if (0 ==
-      memcmp (&req->peer, &GSC_my_identity,
-              sizeof (struct GNUNET_PeerIdentity)))
+  if (is_loopback)
+  {
+    /* loopback, satisfy immediately */
     GSC_CLIENTS_solicit_request (car);
-  else
-    GSC_SESSIONS_queue_request (car);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }  
+  GSC_SESSIONS_queue_request (car);  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -571,9 +585,8 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
                                            NULL);
     GNUNET_CONTAINER_multihashmap_destroy (c->requests);
   }
-#if DEBUG_CONNECTS
   GNUNET_CONTAINER_multihashmap_destroy (c->connectmap);
-#endif
+  c->connectmap = NULL;
   GSC_TYPEMAP_remove (c->types, c->tcnt);
   GNUNET_free (c);
 }
@@ -598,12 +611,10 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
   smr.size = htons (car->msize);
   smr.smr_id = car->smr_id;
   smr.peer = car->target;
-#if DEBUG_CONNECTS
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
                                                          &car->
                                                          target.hashPubKey));
-#endif
   send_to_client (c, &smr.header, GNUNET_NO);
 }
 
@@ -670,7 +681,6 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   if (old_match == GNUNET_NO)
   {
     /* send connect */
-#if DEBUG_CONNECTS
     GNUNET_assert (GNUNET_NO ==
                    GNUNET_CONTAINER_multihashmap_contains (client->connectmap,
                                                            &neighbour->hashPubKey));
@@ -679,7 +689,6 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
                                                       &neighbour->hashPubKey,
                                                       NULL,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-#endif
     size =
         sizeof (struct ConnectNotifyMessage) +
         (atsi_count) * sizeof (struct GNUNET_ATS_Information);
@@ -706,7 +715,6 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   else
   {
     /* send disconnect */
-#if DEBUG_CONNECTS
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_contains (client->connectmap,
                                                            &neighbour->hashPubKey));
@@ -714,7 +722,6 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
                    GNUNET_CONTAINER_multihashmap_remove (client->connectmap,
                                                          &neighbour->hashPubKey,
                                                          NULL));
-#endif
     dcm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
     dcm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
     dcm.reserved = htonl (0);

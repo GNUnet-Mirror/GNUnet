@@ -335,17 +335,11 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
   session = find_session (&car->target);
   if (session == NULL)
   {
-    /* neighbour must have disconnected since request was issued,
-     * ignore (client will realize it once it processes the
-     * disconnect notification) */
 #if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Dropped client request for transmission (am disconnected)\n");
 #endif
-    GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop
-                              ("# send requests dropped (disconnected)"), 1,
-                              GNUNET_NO);
+    GNUNET_break (0); /* should have been rejected earlier */
     GSC_CLIENTS_reject_request (car);
     return;
   }
