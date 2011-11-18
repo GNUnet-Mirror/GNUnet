@@ -536,7 +536,6 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *temp_str;
-  unsigned long long temp_wait;
   struct GNUNET_TESTING_Host *hosts;
   char *data_filename;
 
