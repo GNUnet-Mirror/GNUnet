@@ -471,13 +471,13 @@ void
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_number (cfg, "core",
-                                                        "TOTAL_QUOTA_IN",
-                                                        &total_quota_in));
+                 GNUNET_CONFIGURATION_get_value_size (cfg, "core",
+						      "TOTAL_QUOTA_IN",
+						      &total_quota_in));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_number (cfg, "core",
-                                                        "TOTAL_QUOTA_OUT",
-                                                        &total_quota_out));
+                 GNUNET_CONFIGURATION_get_value_size (cfg, "core",
+						      "TOTAL_QUOTA_OUT",
+						      &total_quota_out));
   addresses = GNUNET_CONTAINER_multihashmap_create (128);
 }
 
