@@ -421,6 +421,11 @@ tree_new (GNUNET_PEER_Id peer)
   tree->root = tree_node_new (NULL, peer);
   tree->root->status = MESH_PEER_ROOT;
 
+  if (1 == peer)
+  {
+    tree->me = tree->root;
+  }
+
   return tree;
 }
 
