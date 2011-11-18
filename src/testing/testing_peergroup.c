@@ -795,7 +795,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
+      GNUNET_CONFIGURATION_get_value_time (cfg, "testing",
                                              "PEERGROUP_TIMEOUT",
                                              &rtimeout))
   {
