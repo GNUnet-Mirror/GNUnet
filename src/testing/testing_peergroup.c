@@ -734,7 +734,6 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                 const struct GNUNET_TESTING_Host *hostnames)
 {
   struct PeerGroupStartupContext *pg_start_ctx;
-  unsigned long long temp_config_number;
   char *temp_str;
   int temp;
   struct GNUNET_TIME_Relative rtimeout;
