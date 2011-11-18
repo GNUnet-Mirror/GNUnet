@@ -1587,8 +1587,8 @@ GSF_pending_request_init_ ()
                 "MAX_PENDING_REQUESTS");
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (GSF_cfg, "core", "TOTAL_QUOTA_OUT",
-                                             &bps))
+      GNUNET_CONFIGURATION_get_value_size (GSF_cfg, "core", "TOTAL_QUOTA_OUT",
+					   &bps))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _

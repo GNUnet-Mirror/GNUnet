@@ -629,21 +629,21 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_assert (test != -1);
   GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONFIGURATION_get_value_number (p1.cfg, "CORE",
-                                                        "TOTAL_QUOTA_IN",
-                                                        &current_quota_p1_in));
+                 GNUNET_CONFIGURATION_get_value_size (p1.cfg, "CORE",
+						      "TOTAL_QUOTA_IN",
+						      &current_quota_p1_in));
   GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONFIGURATION_get_value_number (p2.cfg, "CORE",
-                                                        "TOTAL_QUOTA_IN",
-                                                        &current_quota_p2_in));
+                 GNUNET_CONFIGURATION_get_value_size (p2.cfg, "CORE",
+						      "TOTAL_QUOTA_IN",
+						      &current_quota_p2_in));
   GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONFIGURATION_get_value_number (p1.cfg, "CORE",
-                                                        "TOTAL_QUOTA_OUT",
-                                                        &current_quota_p1_out));
+                 GNUNET_CONFIGURATION_get_value_size (p1.cfg, "CORE",
+						      "TOTAL_QUOTA_OUT",
+						      &current_quota_p1_out));
   GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONFIGURATION_get_value_number (p2.cfg, "CORE",
-                                                        "TOTAL_QUOTA_OUT",
-                                                        &current_quota_p2_out));
+                 GNUNET_CONFIGURATION_get_value_size (p2.cfg, "CORE",
+						      "TOTAL_QUOTA_OUT",
+						      &current_quota_p2_out));
 
   p1.ch =
       GNUNET_CORE_connect (p1.cfg, 1, &p1, &init_notify, &connect_notify,
