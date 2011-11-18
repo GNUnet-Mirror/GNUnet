@@ -1539,15 +1539,19 @@ udp_broadcast_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   sent = 0;
 
   baddr = plugin->head;
-  while (baddr != NULL)
+  /* just IPv4 */
+  while ((baddr != NULL) && (baddr->addrlen == sizeof (struct sockaddr_in)))
   {
+    struct sockaddr_in * addr = (struct sockaddr_in * ) baddr->addr;
+    addr->sin_port = htons (plugin->broadcast_port);
+
     sent = GNUNET_NETWORK_socket_sendto (plugin->sockv4_broadcast, msg, msg_size,
-                                      baddr->addr,
-                                      baddr->addrlen);
+                                        (const struct sockaddr *) addr,
+                                        baddr->addrlen);
     if (sent == GNUNET_SYSERR)
       GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "sendto");
     else
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Sent HELLO beacon broadcast with  %i bytes to address %s\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Sent HELLO beacon broadcast with  %i bytes to address %s\n",
            sent, GNUNET_a2s(baddr->addr, baddr->addrlen));
       baddr = baddr->next;
   }
