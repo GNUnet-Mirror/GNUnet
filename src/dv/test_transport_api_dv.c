@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE 1
 
 #define TEST_ALL GNUNET_NO
 
@@ -394,24 +394,28 @@ send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @return connected transport distance
  */
 static uint32_t
-get_atsi_distance (const struct GNUNET_ATS_Information *atsi)
+get_atsi_distance (const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
 {
-  while ((ntohl (atsi->type) != GNUNET_ATS_ARRAY_TERMINATOR) &&
-         (ntohl (atsi->type) != GNUNET_ATS_QUALITY_NET_DISTANCE))
-    atsi++;
-  if (ntohl (atsi->type) == GNUNET_ATS_ARRAY_TERMINATOR)
-  {
-    GNUNET_break (0);
-    /* FIXME: we do not have distance data? Assume direct neighbor. */
-    return 1;
-  }
-  return ntohl (atsi->value);
+  unsigned int i;
+
+  for (i = 0; i < atsi_count; i++)
+    {
+      if (ntohl (atsi->type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
+        return ntohl (atsi->value);
+    }
+
+  GNUNET_break (0);
+  /* FIXME: we do not have distance data? Assume direct neighbor. */
+  return 1;
 }
 
+
 static int
-process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
+process_mtype (void *cls,
+               const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_ATS_Information *atsi)
+               const struct GNUNET_ATS_Information *atsi,
+               unsigned int atsi_count)
 {
   struct TestMessageContext *pos = cls;
   struct GNUNET_TestMessage *msg = (struct GNUNET_TestMessage *) message;
@@ -423,7 +427,7 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
 
 #if VERBOSE
-  distance = get_atsi_distance (atsi);
+  distance = get_atsi_distance (atsi, atsi_count);
 #endif
   GNUNET_assert (0 ==
                  memcmp (peer, &pos->peer1->id,
@@ -450,7 +454,7 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                 GNUNET_i2s (peer), ntohs (message->type), ntohl (msg->uid),
                 distance);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Total messages received %d, expected %d.\n",
+                "Total OTHER messages received %d, expected %d.\n",
                 total_other_messages, total_other_expected_messages);
 #endif
   }
@@ -459,18 +463,12 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
       (total_other_messages == 0))
   {
     GNUNET_SCHEDULER_cancel (die_task);
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scheduling timeout from DV connections.\n");
+#endif
     die_task =
         GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, &end_badly,
                                       "waiting for DV peers to connect!");
-    /*
-     * if ((num_peers == 3) && (total_other_expected_messages == 2))
-     * {
-     * GNUNET_SCHEDULER_add_now (&send_other_messages, NULL);
-     * }
-     * else
-     * {
-     * GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20), &send_other_messages, NULL);
-     * } */
   }
   else if ((total_other_expected_messages > 0) &&
            (total_other_messages == total_other_expected_messages))
@@ -524,10 +522,12 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
  * @param cls closure
  * @param peer peer identity this notification is about
  * @param atsi performance data for the connection
+ * @param atsi_count number of ATS information included
  */
 static void
 connect_notify_peer2 (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi,
+                      unsigned int atsi_count)
 {
   struct TestMessageContext *pos = cls;
 
@@ -577,10 +577,12 @@ init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
  * @param cls closure
  * @param peer peer identity this notification is about
  * @param atsi performance data for the connection
+ * @param atsi_count number of atsi datums
  */
 static void
 connect_notify_peer1 (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_ATS_Information *atsi)
+                      const struct GNUNET_ATS_Information *atsi,
+                      unsigned int atsi_count)
 {
   struct TestMessageContext *pos = cls;
 
@@ -835,12 +837,14 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other'
+ * @param atsi performance data about this peer's connection
+ * @param atsi_count number of atsi datums
+ *
  */
 static void
 all_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_ATS_Information *atsi)
+                     const struct GNUNET_ATS_Information *atsi,
+                     unsigned int atsi_count)
 {
   struct GNUNET_TESTING_Daemon *d = cls;
   struct GNUNET_TESTING_Daemon *second_daemon;
@@ -854,7 +858,7 @@ all_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 == memcmp (&d->id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   second_shortname = GNUNET_strdup (GNUNET_i2s (peer));
-  distance = get_atsi_distance (atsi);
+  distance = get_atsi_distance (atsi, atsi_count);
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

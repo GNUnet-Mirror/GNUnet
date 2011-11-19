@@ -160,18 +160,21 @@ handle_dv_message_received (void *cls, struct GNUNET_PeerIdentity *sender,
                    my_id, GNUNET_i2s (sender),
                    ntohs (((struct GNUNET_MessageHeader *) msg)->type),
                    distance);
+  if (sender_address_len == (2 * sizeof(struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "plugin_transport_dv", "Parsed sender address: %s:%s\n", GNUNET_i2s((struct GNUNET_PeerIdentity *)sender_address), GNUNET_h2s(&((struct GNUNET_PeerIdentity *)&sender_address[sizeof(struct GNUNET_PeerIdentity)])->hashPubKey));
+    }
+
   GNUNET_free_non_null (my_id);
 #endif
-  struct GNUNET_ATS_Information ats[2];
+  struct GNUNET_ATS_Information ats[1];
 
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (distance);
-  ats[1].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
-  ats[1].value = htonl (0);
 
   plugin->env->receive (plugin->env->cls, sender,
                         (struct GNUNET_MessageHeader *) msg,
-                        (const struct GNUNET_ATS_Information *) &ats, 2, NULL,
+                        (const struct GNUNET_ATS_Information *) &ats, 1, NULL,
                         sender_address, sender_address_len);
 
 }
@@ -367,6 +370,7 @@ dv_plugin_check_address (void *cls, const void *addr, size_t addrlen)
     }
     return GNUNET_SYSERR;
   }
+
   return GNUNET_OK;
 }
 
