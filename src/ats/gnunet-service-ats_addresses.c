@@ -325,8 +325,8 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
   }
   if (aa->session_id != info->session_id)
     return GNUNET_OK; /* irrelevant */
-  GNUNET_break (0 == strcmp (info->plugin,
-			      aa->plugin));
+  if (aa->session_id != 0)
+    GNUNET_break (0 == strcmp (info->plugin, aa->plugin));
   /* session died */
   aa->session_id = 0;
   if (GNUNET_YES == aa->active)
