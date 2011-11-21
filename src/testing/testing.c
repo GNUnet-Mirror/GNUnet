@@ -540,7 +540,10 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_free_non_null (d->hostname);
         GNUNET_free_non_null (d->username);
         GNUNET_free (d->proc);
-        GNUNET_free (d);
+//         GNUNET_free (d); // FIXME (could this leak)
+        d->hostname = NULL; // Quick hack to avoid crashing (testing need to be
+                            // overhauled anyway, and the error managing is
+                            // pretty broken anyway.
         return;
       }
       /* wait some more */
