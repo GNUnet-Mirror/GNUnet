@@ -58,6 +58,7 @@ typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1,
                                                      void *cls);
 
 
+
 struct GNUNET_TRANSPORT_TESTING_handle;
 
 /**
@@ -158,6 +159,16 @@ void
 GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                                     struct PeerContext *pc);
 
+
+/**
+ * Restart the given peer
+ * @param tth testing handle
+ * @param p the peer
+ */
+void
+GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
+                                       struct PeerContext *p,
+                                       const char *cfgname);
 
 /**
  * Connect the given peers and call the callback when both peers report the

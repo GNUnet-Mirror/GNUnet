@@ -260,6 +260,8 @@ check_PROGRAMS = \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
+ test_transport_api_restart_1peer \
+ test_transport_api_restart_2peers \
  test_transport_api_timeout_tcp \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
@@ -299,6 +301,8 @@ TESTS = \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
+ test_transport_api_restart_1peer \
+ test_transport_api_restart_2peers \
  test_transport_api_timeout_tcp \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
@@ -381,6 +385,24 @@ test_transport_api_bidirectional_connect_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+test_transport_api_restart_1peer_SOURCES = \
+ test_transport_api_restart_1peer.c
+test_transport_api_restart_1peer_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_transport_api_restart_2peers_SOURCES = \
+ test_transport_api_restart_2peers.c
+test_transport_api_restart_2peers_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
   
 test_transport_api_limited_sockets_tcp_SOURCES = \
  test_transport_api_limited_sockets.c

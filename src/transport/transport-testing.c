@@ -283,11 +283,10 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
   struct PeerContext *p = GNUNET_malloc (sizeof (struct PeerContext));
 
   p->cfg = GNUNET_CONFIGURATION_create ();
-
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 
-
-  if (GNUNET_CONFIGURATION_have_value (p->cfg, "PATHS", "SERVICEHOME"))
+  if (GNUNET_CONFIGURATION_have_value (p->
+      cfg, "PATHS", "SERVICEHOME"))
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS",
                                                           "SERVICEHOME",
@@ -350,6 +349,100 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
 }
 
 /**
+* Restart the given peer
+* @param tth testing handle
+* @param p the peer
+*/
+void
+GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
+                                       struct PeerContext *p,
+                                       const char *cfgname)
+{
+  GNUNET_assert (p != NULL);
+  /* shutdown */
+#if VERBOSE
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                     "Stopping peer %u (`%s')\n", p->no,
+                     GNUNET_i2s (&p->id));
+#endif
+  if (p->ghh != NULL)
+    GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+  p->ghh = NULL;
+
+  if (p->th != NULL)
+    GNUNET_TRANSPORT_disconnect (p->th);
+
+  if (NULL != p->arm_proc)
+  {
+    if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    GNUNET_OS_process_wait (p->arm_proc);
+    GNUNET_OS_process_close (p->arm_proc);
+    p->arm_proc = NULL;
+  }
+  if (p->hello != NULL)
+    GNUNET_free (p->hello);
+  p->hello = NULL;
+
+  if (p->cfg != NULL)
+    GNUNET_CONFIGURATION_destroy (p->cfg);
+  p->cfg = NULL;
+
+  /* start */
+#if VERBOSE
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                     "Restarting peer %u (`%s')\n", p->no,
+                     GNUNET_i2s (&p->id));
+#endif
+  struct GNUNET_DISK_FileHandle *fn;
+
+  GNUNET_assert (tth != NULL);
+  if (GNUNET_DISK_file_test (cfgname) == GNUNET_NO)
+  {
+   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
+                    "File not found: `%s' \n", cfgname);
+   return;
+  }
+
+  p->cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  if (GNUNET_CONFIGURATION_have_value (p->cfg, "PATHS", "SERVICEHOME"))
+   GNUNET_assert (GNUNET_OK ==
+                  GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS",
+                                                         "SERVICEHOME",
+                                                         &p->servicehome));
+
+   GNUNET_assert (p->hostkeyfile != NULL);
+   GNUNET_asprintf (&p->hostkeyfile, "%s/.hostkey", p->servicehome);
+   fn = GNUNET_DISK_file_open (p->hostkeyfile,
+                               GNUNET_DISK_OPEN_READWRITE |
+                               GNUNET_DISK_OPEN_CREATE,
+                               GNUNET_DISK_PERM_USER_READ |
+                               GNUNET_DISK_PERM_USER_WRITE);
+   GNUNET_assert (fn != NULL);
+   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fn));
+
+   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                                "gnunet-service-arm", "-c", cfgname,
+ #if VERBOSE_PEERS
+                                "-L", "DEBUG",
+ #else
+                                "-L", "ERROR",
+ #endif
+                                NULL);
+
+   p->th =
+       GNUNET_TRANSPORT_connect (p->cfg, NULL, p, &notify_receive,
+                                 &notify_connect, &notify_disconnect);
+   GNUNET_assert (p->th != NULL);
+
+   p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &get_hello, p);
+   GNUNET_assert (p->ghh != NULL);
+
+   return ;
+}
+
+/**
  * shutdown the given peer
  * @param p the peer
  */
@@ -389,9 +482,11 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 
   if (p->hello != NULL)
     GNUNET_free (p->hello);
+  p->hello = NULL;
 
   if (p->cfg != NULL)
     GNUNET_CONFIGURATION_destroy (p->cfg);
+  p->cfg = NULL;
 
   GNUNET_CONTAINER_DLL_remove (tth->p_head, tth->p_tail, p);
 
