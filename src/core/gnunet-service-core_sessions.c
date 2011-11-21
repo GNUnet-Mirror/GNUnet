@@ -171,7 +171,8 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
 {
   struct Session *session;
   struct GSC_ClientActiveRequest *car;
-
+  struct SessionMessageEntry *sme;
+ 
   session = find_session (pid);
   if (NULL == session)
     return;
@@ -189,6 +190,13 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
     GNUNET_CONTAINER_DLL_remove (session->active_client_request_head,
                                  session->active_client_request_tail, car);
     GSC_CLIENTS_reject_request (car);
+  }
+  while (NULL != (sme = session->sme_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (session->sme_head,
+                                 session->sme_tail, 
+				 sme);
+    GNUNET_free (sme);
   }
   GNUNET_SCHEDULER_cancel (session->typemap_task);
   GSC_CLIENTS_notify_clients_about_neighbour (&session->peer, NULL,
