@@ -361,35 +361,6 @@ struct Plugin
   int broadcast_ipv4;
 
   /**
-   * Tokenizer for inbound messages.
-   */
-  struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_ipv4_mst;
-
-  /**
-   * The read socket for IPv4
-   */
-  struct GNUNET_NETWORK_Handle *sockv4_broadcast;
-
-  struct BroadcastAddress *tail;
-  struct BroadcastAddress *head;
-
-  /**
-   * ID of select broadcast task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier select_ipv4_broadcast_task;
-
-  /**
-   * ID of select broadcast task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier send_ipv4_broadcast_task;
-
-  /**
-   * FD Read set
-   */
-  struct GNUNET_NETWORK_FDSet *broadcast_ipv4_rs;
-
-
-  /**
    * Broadcast with IPv6
    */
   int broadcast_ipv6;
@@ -399,33 +370,28 @@ struct Plugin
    * Tokenizer for inbound messages.
    */
   struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_ipv6_mst;
-
-  /**
-   * The read socket for IPv6
-   */
-  struct GNUNET_NETWORK_Handle *sockv6_broadcast;
-
+  struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_ipv4_mst;
 
   /**
    * ID of select broadcast task
    */
-  GNUNET_SCHEDULER_TaskIdentifier select_ipv6_broadcast_task;
+  GNUNET_SCHEDULER_TaskIdentifier send_ipv4_broadcast_task;
 
   /**
    * ID of select broadcast task
    */
   GNUNET_SCHEDULER_TaskIdentifier send_ipv6_broadcast_task;
 
-
-  /**
-   * FD Read set
-   */
-  struct GNUNET_NETWORK_FDSet *broadcast_ipv6_rs;
-
   /**
    * IPv6 multicast address
    */
   struct sockaddr_in6 ipv6_multicast_address;
+
+  /**
+   * DLL of IPv4 broadcast addresses
+   */
+  struct BroadcastAddress *ipv4_broadcast_tail;
+  struct BroadcastAddress *ipv4_broadcast_head;
 
 
   /**
@@ -1270,6 +1236,20 @@ find_receive_context (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
   return GNUNET_YES;
 }
 
+struct Mstv4Context
+{
+  struct Plugin *plugin;
+
+  struct IPv4UdpAddress addr;
+};
+
+struct Mstv6Context
+{
+  struct Plugin *plugin;
+
+  struct IPv6UdpAddress addr;
+};
+
 
 /**
  * Read and process a message from the given socket.
@@ -1317,6 +1297,43 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   }
   switch (ntohs (msg->type))
   {
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON:
+    {
+      if (fromlen == sizeof (struct sockaddr_in))
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Received IPv4 HELLO beacon broadcast with %i bytes from address %s\n",
+            ret, GNUNET_a2s((const struct sockaddr *) &addr, fromlen));
+
+        struct Mstv4Context *mc;
+        mc = GNUNET_malloc (sizeof (struct Mstv4Context));
+        struct sockaddr_in *av4 = (struct sockaddr_in *) &addr;
+
+        mc->addr.ipv4_addr = av4->sin_addr.s_addr;
+        mc->addr.u4_port = av4->sin_port;
+        if (GNUNET_OK !=
+          GNUNET_SERVER_mst_receive (plugin->broadcast_ipv4_mst, mc, buf, ret, GNUNET_NO,
+                                     GNUNET_NO))
+        GNUNET_free (mc);
+      }
+      else if (fromlen == sizeof (struct sockaddr_in6))
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Received IPv6 HELLO beacon broadcast with %i bytes from address %s\n",
+            ret, GNUNET_a2s((const struct sockaddr *) &addr, fromlen));
+
+        struct Mstv6Context *mc;
+        mc = GNUNET_malloc (sizeof (struct Mstv6Context));
+        struct sockaddr_in6 *av6 = (struct sockaddr_in6 *) &addr;
+
+        mc->addr.ipv6_addr = av6->sin6_addr;
+        mc->addr.u6_port = av6->sin6_port;
+
+        if (GNUNET_OK !=
+            GNUNET_SERVER_mst_receive (plugin->broadcast_ipv6_mst, mc, buf, ret, GNUNET_NO,
+                                       GNUNET_NO))
+          GNUNET_free (mc);
+      }
+      return;
+    }
   case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE:
     if (ntohs (msg->size) < sizeof (struct UDPMessage))
     {
@@ -1468,20 +1485,6 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-struct Mstv4Context
-{
-  struct Plugin *plugin;
-
-  struct IPv4UdpAddress addr;
-};
-
-struct Mstv6Context
-{
-  struct Plugin *plugin;
-
-  struct IPv6UdpAddress addr;
-};
-
 void
 broadcast_ipv4_mst_cb (void *cls, void *client,
                       const struct GNUNET_MessageHeader *message)
@@ -1555,68 +1558,6 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
 }
 
 
-
-
-/**
- * Read and process a message from the given socket.
- *
- * @param plugin the overall plugin
- * @param rsock socket to read from
- */
-static void
-udp_broadcast_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
-{
-  socklen_t fromlen;
-  char addr[32];
-  char buf[65536];
-  ssize_t ret;
-
-
-
-  fromlen = sizeof (addr);
-  memset (&addr, 0, sizeof (addr));
-  ret =
-      GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof (buf),
-                                      (struct sockaddr *) &addr, &fromlen);
-  if (ret < sizeof (struct GNUNET_MessageHeader))
-  {
-    /* malformed beacon, just throw it away */
-    return;
-  }
-
-  if (fromlen == sizeof (struct sockaddr_in))
-  {
-    struct Mstv4Context *mc;
-    mc = GNUNET_malloc (sizeof (struct Mstv4Context));
-    struct sockaddr_in *av4 = (struct sockaddr_in *) &addr;
-
-    mc->addr.ipv4_addr = av4->sin_addr.s_addr;
-    mc->addr.u4_port = av4->sin_port;
-    if (GNUNET_OK !=
-      GNUNET_SERVER_mst_receive (plugin->broadcast_ipv4_mst, mc, buf, ret, GNUNET_NO,
-                                 GNUNET_NO))
-    GNUNET_free (mc);
-  }
-  else if (fromlen == sizeof (struct sockaddr_in6))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received IPv6 HELLO beacon broadcast with %i bytes from address %s\n",
-        ret, GNUNET_a2s((const struct sockaddr *) &addr, fromlen));
-
-    struct Mstv6Context *mc;
-    mc = GNUNET_malloc (sizeof (struct Mstv6Context));
-    struct sockaddr_in6 *av6 = (struct sockaddr_in6 *) &addr;
-
-    mc->addr.ipv6_addr = av6->sin6_addr;
-    mc->addr.u6_port = av6->sin6_port;
-
-    if (GNUNET_OK !=
-        GNUNET_SERVER_mst_receive (plugin->broadcast_ipv6_mst, mc, buf, ret, GNUNET_NO,
-                                   GNUNET_NO))
-      GNUNET_free (mc);
-  }
-}
-
-
 static void
 udp_ipv4_broadcast_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -1631,7 +1572,6 @@ udp_ipv4_broadcast_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
   struct BroadcastAddress * baddr;
 
   plugin->send_ipv4_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
-
 
   hello = plugin->env->get_our_hello ();
   hello_size = GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello);
@@ -1648,14 +1588,14 @@ udp_ipv4_broadcast_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
   memcpy (&msg[1], hello, hello_size);
   sent = 0;
 
-  baddr = plugin->head;
+  baddr = plugin->ipv4_broadcast_head;
   /* just IPv4 */
   while ((baddr != NULL) && (baddr->addrlen == sizeof (struct sockaddr_in)))
   {
     struct sockaddr_in * addr = (struct sockaddr_in * ) baddr->addr;
-    addr->sin_port = htons (plugin->broadcast_port);
+    addr->sin_port = htons (plugin->port);
 
-    sent = GNUNET_NETWORK_socket_sendto (plugin->sockv4_broadcast, msg, msg_size,
+    sent = GNUNET_NETWORK_socket_sendto (plugin->sockv4, msg, msg_size,
                                         (const struct sockaddr *) addr,
                                         baddr->addrlen);
     if (sent == GNUNET_SYSERR)
@@ -1700,7 +1640,7 @@ udp_ipv6_broadcast_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
   memcpy (&msg[1], hello, hello_size);
   sent = 0;
 
-  sent = GNUNET_NETWORK_socket_sendto (plugin->sockv6_broadcast, msg, msg_size,
+  sent = GNUNET_NETWORK_socket_sendto (plugin->sockv6, msg, msg_size,
                                       (const struct sockaddr *) &plugin->ipv6_multicast_address,
                                       sizeof(struct sockaddr_in6));
   if (sent == GNUNET_SYSERR)
@@ -1715,69 +1655,6 @@ udp_ipv6_broadcast_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
       GNUNET_SCHEDULER_add_delayed (plugin->broadcast_interval,
                                     &udp_ipv6_broadcast_send, plugin);
 }
-
-/**
- * We have been notified that our writeset has something to read.  We don't
- * know which socket needs to be read, so we have to check each one
- * Then reschedule this function to be called again once more is available.
- *
- * @param cls the plugin handle
- * @param tc the scheduling context (for rescheduling this function again)
- */
-static void
-udp_plugin_ipv4_broadcast_select (void *cls,
-                             const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Plugin *plugin = cls;
-
-  plugin->select_ipv4_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-
-  if ((NULL != plugin->sockv4_broadcast) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv4_broadcast)))
-    udp_broadcast_read (plugin, plugin->sockv4_broadcast);
-
-  plugin->select_ipv4_broadcast_task =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   plugin->broadcast_ipv4_rs, NULL,
-                                   &udp_plugin_ipv4_broadcast_select, plugin);
-}
-
-/**
- * We have been notified that our writeset has something to read.  We don't
- * know which socket needs to be read, so we have to check each one
- * Then reschedule this function to be called again once more is available.
- *
- * @param cls the plugin handle
- * @param tc the scheduling context (for rescheduling this function again)
- */
-static void
-udp_plugin_ipv6_broadcast_select (void *cls,
-                             const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Plugin *plugin = cls;
-
-  plugin->select_ipv6_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-
-  if ((NULL != plugin->sockv6_broadcast) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv6_broadcast)))
-  {
-    udp_broadcast_read (plugin, plugin->sockv6_broadcast);
-  }
-
-  plugin->select_ipv6_broadcast_task =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   plugin->broadcast_ipv6_rs, NULL,
-                                   &udp_plugin_ipv6_broadcast_select, plugin);
-}
-
 
 /**
  * Check if the given port is plausible (must be either our listen
@@ -2098,7 +1975,7 @@ iface_proc (void *cls, const char *name,
       ba->addr = GNUNET_malloc(addrlen);
       memcpy(ba->addr, broadcast_addr, addrlen);
       ba->addrlen = addrlen;
-      GNUNET_CONTAINER_DLL_insert(plugin->head, plugin->tail, ba);
+      GNUNET_CONTAINER_DLL_insert(plugin->ipv4_broadcast_head, plugin->ipv4_broadcast_tail, ba);
     }
   }
   return GNUNET_OK;
@@ -2118,7 +1995,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   unsigned long long port;
   unsigned long long aport;
-  unsigned long long bport;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
   int sockets_created;
@@ -2151,11 +2027,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp",
-                                             "BROADCAST_PORT", &bport))
-    bport = 20086;
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp",
                                              "MAX_BPS", &udp_max_bps))
     udp_max_bps = 1024 * 1024 * 50;     /* 50 MB/s == infinity for practical purposes */
   if (GNUNET_OK !=
@@ -2179,8 +2050,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   plugin->last_expected_delay = GNUNET_TIME_UNIT_SECONDS;
   plugin->port = port;
   plugin->aport = aport;
-  plugin->broadcast_port = bport;
-  plugin->broadcast_ipv4 = broadcast;
   plugin->env = env;
   plugin->broadcast_interval = interval;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
@@ -2351,152 +2220,53 @@ libgnunet_plugin_transport_udp_init (void *cls)
   if (broadcast)
   {
     /* create IPv4 broadcast socket */
-    plugin->sockv4_broadcast =
-        GNUNET_NETWORK_socket_create (PF_INET, SOCK_DGRAM, 0);
-    if (NULL == plugin->sockv4_broadcast)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
-    }
-    else
-    {
-#if HAVE_SOCKADDR_IN_SIN_LEN
-      serverAddrv4.sin_len = sizeof (serverAddrv4);
-#endif
-      serverAddrv4.sin_family = AF_INET;
-      serverAddrv4.sin_addr.s_addr = INADDR_ANY;
-      serverAddrv4.sin_port = htons (plugin->broadcast_port);
-      addrlen = sizeof (serverAddrv4);
-      serverAddr = (struct sockaddr *) &serverAddrv4;
-#if DEBUG_UDP
-#endif
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding Broadcast to IPv4 port %d\n",
-           ntohs (serverAddrv4.sin_port));
-
-      if (GNUNET_NETWORK_socket_bind
-          (plugin->sockv4_broadcast, serverAddr, addrlen) != GNUNET_OK)
-      {
-        LOG (GNUNET_ERROR_TYPE_WARNING,
-             _("Failed to create IPv4 broadcast socket on port %d\n"),
-             ntohs (serverAddrv4.sin_port));
-        GNUNET_NETWORK_socket_close (plugin->sockv4_broadcast);
-        plugin->sockv4_broadcast = NULL;
-      }
-      if (plugin->sockv4_broadcast != NULL)
+    plugin->broadcast_ipv4 = GNUNET_NO;
+      if (plugin->sockv4 != NULL)
       {
         int yes = 1;
 
         if (GNUNET_NETWORK_socket_setsockopt
-            (plugin->sockv4_broadcast, SOL_SOCKET, SO_BROADCAST, &yes,
-             sizeof (int)) != GNUNET_OK)
+            (plugin->sockv4, SOL_SOCKET, SO_BROADCAST, &yes, sizeof (int)) != GNUNET_OK)
         {
           LOG (GNUNET_ERROR_TYPE_WARNING,
                _
                ("Failed to set IPv4 broadcast option for broadcast socket on port %d\n"),
                ntohs (serverAddrv4.sin_port));
-          GNUNET_NETWORK_socket_close (plugin->sockv4_broadcast);
-          plugin->sockv4_broadcast = NULL;
         }
         else
         {
-          plugin->broadcast_ipv4_rs = GNUNET_NETWORK_fdset_create ();
-          GNUNET_NETWORK_fdset_set (plugin->broadcast_ipv4_rs,
-                                    plugin->sockv4_broadcast);
+          GNUNET_OS_network_interfaces_list(iface_proc, plugin);
+          plugin->send_ipv4_broadcast_task =
+            GNUNET_SCHEDULER_add_now (&udp_ipv4_broadcast_send, plugin);
+
+          plugin->broadcast_ipv4_mst =
+              GNUNET_SERVER_mst_create (broadcast_ipv4_mst_cb, plugin);
+
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv4 Broadcasting running\n");
+          plugin->broadcast_ipv4 = GNUNET_YES;
         }
       }
-    if (plugin->sockv4_broadcast != NULL)
-    {
-      plugin->broadcast_ipv4 = GNUNET_YES;
-      plugin->broadcast_ipv4_mst =
-          GNUNET_SERVER_mst_create (broadcast_ipv4_mst_cb, plugin);
-      GNUNET_STATISTICS_update (plugin->env->stats,
-                                _("# IPv4 broadcast HELLO beacons received via udp"), 1,
-                                GNUNET_NO);
-      plugin->select_ipv4_broadcast_task =
-          GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                       GNUNET_SCHEDULER_NO_TASK,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       plugin->broadcast_ipv4_rs, NULL,
-                                       &udp_plugin_ipv4_broadcast_select, plugin);
 
-      GNUNET_OS_network_interfaces_list(iface_proc, plugin);
-      plugin->send_ipv4_broadcast_task =
-        GNUNET_SCHEDULER_add_now (&udp_ipv4_broadcast_send, plugin);
-
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv4 Broadcasting on port %d running\n",
-           ntohs (serverAddrv4.sin_port));
-    }
-    else
-      plugin->broadcast_ipv4 = GNUNET_NO;
-
-    /* create IPv6 broadcast socket */
-    plugin->sockv6_broadcast =
-        GNUNET_NETWORK_socket_create (PF_INET6, SOCK_DGRAM, 0);
-    if (NULL == plugin->sockv6_broadcast)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
-    }
-    else
-    {
-#if HAVE_SOCKADDR_IN_SIN_LEN
-      serverAddrv6.sin6_len = sizeof (serverAddrv6);
-#endif
-      serverAddrv6.sin6_family = AF_INET6;
-      serverAddrv6.sin6_addr = in6addr_any;
-      serverAddrv6.sin6_port = htons (plugin->broadcast_port);
-      addrlen = sizeof (serverAddrv6);
-      serverAddr = (struct sockaddr *) &serverAddrv6;
-#if DEBUG_UDP
-#endif
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding Broadcast to IPv6 port %d\n",
-           ntohs (serverAddrv6.sin6_port));
-
-      if (GNUNET_NETWORK_socket_bind
-          (plugin->sockv6_broadcast, serverAddr, addrlen) != GNUNET_OK)
-      {
-        LOG (GNUNET_ERROR_TYPE_WARNING,
-             _("Failed to create IPv6 broadcast socket on port %d\n"),
-             ntohs (serverAddrv6.sin6_port));
-        GNUNET_NETWORK_socket_close (plugin->sockv6_broadcast);
-        plugin->sockv6_broadcast = NULL;
-      }
-      plugin->broadcast_ipv6_rs = GNUNET_NETWORK_fdset_create ();
-      GNUNET_NETWORK_fdset_set (plugin->broadcast_ipv6_rs,
-                                plugin->sockv6_broadcast);
-      }
-    }
-
-    if (plugin->sockv6_broadcast != NULL)
-    {
-      plugin->broadcast_ipv6 = GNUNET_YES;
-      plugin->broadcast_ipv6_mst =
-          GNUNET_SERVER_mst_create (broadcast_ipv6_mst_cb, plugin);
-
-      GNUNET_STATISTICS_update (plugin->env->stats,
-                                _("# IPv6 multicast HELLO beacons received via udp"), 1,
-                                GNUNET_NO);
-      plugin->select_ipv6_broadcast_task =
-          GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                       GNUNET_SCHEDULER_NO_TASK,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       plugin->broadcast_ipv6_rs, NULL,
-                                       &udp_plugin_ipv6_broadcast_select, plugin);
-
-      memset (&plugin->ipv6_multicast_address, 0, sizeof (struct sockaddr_in6));
-      GNUNET_assert (1 == inet_pton(AF_INET6, "ff02::1", &plugin->ipv6_multicast_address.sin6_addr));
-
-      plugin->ipv6_multicast_address.sin6_family = AF_INET6;
-      plugin->ipv6_multicast_address.sin6_port = htons(plugin->broadcast_port);
-
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 Broadcasting on port %d running\n",
-           ntohs (serverAddrv6.sin6_port));
-
-      plugin->send_ipv6_broadcast_task =
-        GNUNET_SCHEDULER_add_now (&udp_ipv6_broadcast_send, plugin);
-    }
-    else
       plugin->broadcast_ipv6 = GNUNET_NO;
-  }
+      if (plugin->sockv6 != NULL)
+      {
+        memset (&plugin->ipv6_multicast_address, 0, sizeof (struct sockaddr_in6));
+        GNUNET_assert (1 == inet_pton(AF_INET6, "ff02::1", &plugin->ipv6_multicast_address.sin6_addr));
 
+        plugin->ipv6_multicast_address.sin6_family = AF_INET6;
+        plugin->ipv6_multicast_address.sin6_port = htons(plugin->port);
+
+        plugin->broadcast_ipv6_mst =
+            GNUNET_SERVER_mst_create (broadcast_ipv6_mst_cb, plugin);
+
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 Broadcasting running\n");
+
+
+        plugin->send_ipv6_broadcast_task =
+          GNUNET_SCHEDULER_add_now (&udp_ipv6_broadcast_send, plugin);
+        plugin->broadcast_ipv6 = GNUNET_YES;
+      }
+  }
 
   if (sockets_created == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UDP sockets\n"));
@@ -2555,30 +2325,19 @@ libgnunet_plugin_transport_udp_done (void *cls)
 
   if (plugin->broadcast_ipv4)
   {
-    if (plugin->select_ipv4_broadcast_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (plugin->select_ipv4_broadcast_task);
-      plugin->select_ipv4_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
-    }
     if (plugin->send_ipv4_broadcast_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (plugin->send_ipv4_broadcast_task);
       plugin->send_ipv4_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
     }
+
     if (plugin->broadcast_ipv4_mst != NULL)
       GNUNET_SERVER_mst_destroy (plugin->broadcast_ipv4_mst);
-    if (plugin->sockv4_broadcast != NULL)
-    {
-      GNUNET_break (GNUNET_OK ==
-                    GNUNET_NETWORK_socket_close (plugin->sockv4_broadcast));
-      plugin->sockv4_broadcast = NULL;
-    }
-    GNUNET_NETWORK_fdset_destroy (plugin->broadcast_ipv4_rs);
 
-    while (plugin->head != NULL)
+    while (plugin->ipv4_broadcast_head != NULL)
     {
-      struct BroadcastAddress * p= plugin->head;
-      GNUNET_CONTAINER_DLL_remove(plugin->head, plugin->tail, p);
+      struct BroadcastAddress * p= plugin->ipv4_broadcast_head;
+      GNUNET_CONTAINER_DLL_remove(plugin->ipv4_broadcast_head, plugin->ipv4_broadcast_tail, p);
       GNUNET_free (p->addr);
       GNUNET_free (p);
     }
@@ -2586,25 +2345,14 @@ libgnunet_plugin_transport_udp_done (void *cls)
 
   if (plugin->broadcast_ipv6)
   {
-    if (plugin->select_ipv6_broadcast_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (plugin->select_ipv6_broadcast_task);
-      plugin->select_ipv6_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
-    }
     if (plugin->send_ipv6_broadcast_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (plugin->send_ipv6_broadcast_task);
       plugin->send_ipv6_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
     }
+
     if (plugin->broadcast_ipv6_mst != NULL)
       GNUNET_SERVER_mst_destroy (plugin->broadcast_ipv6_mst);
-    if (plugin->sockv6_broadcast != NULL)
-    {
-      GNUNET_break (GNUNET_OK ==
-                    GNUNET_NETWORK_socket_close (plugin->sockv6_broadcast));
-      plugin->sockv6_broadcast = NULL;
-    }
-    GNUNET_NETWORK_fdset_destroy (plugin->broadcast_ipv6_rs);
   }
 
   GNUNET_SERVER_mst_destroy (plugin->mst);
