@@ -227,6 +227,7 @@ enum Address_State
   FRESH,
 };
 
+
 /**
  * Entry in neighbours.
  */
@@ -244,11 +245,6 @@ struct NeighbourMapEntry
    * contain at most one message per client.
    */
   struct MessageQueue *messages_tail;
-
-  /**
-   * Performance data for the peer.
-   */
-  //struct GNUNET_ATS_Information *ats;
 
   /**
    * Are we currently trying to send a message? If so, which one?
@@ -328,6 +324,7 @@ struct NeighbourMapEntry
    * unsuccessful connection setup
    */
   GNUNET_SCHEDULER_TaskIdentifier state_reset;
+
 
   /**
    * How often has the other peer (recently) violated the inbound
@@ -455,6 +452,8 @@ static void
 reset_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NeighbourMapEntry *n = cls;
+  if (n == NULL)
+    return;
 
   n->state_reset = GNUNET_SCHEDULER_NO_TASK;
   if (n->state == S_CONNECTED)
@@ -471,8 +470,11 @@ reset_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   n->state = S_NOT_CONNECTED;
 
   /* destroying address */
-  GNUNET_assert (strlen(n->address->transport_name) > 0); 
-  GNUNET_ATS_address_destroyed (GST_ats, n->address, n->session);
+  if (n->address != NULL)
+  {
+    GNUNET_assert (strlen(n->address->transport_name) > 0);
+    GNUNET_ATS_address_destroyed (GST_ats, n->address, n->session);
+  }
 
   /* request new address */
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
