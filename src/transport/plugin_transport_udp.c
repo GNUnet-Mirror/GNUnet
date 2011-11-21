@@ -1512,7 +1512,7 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
                         (const char *) &mc->addr, sizeof (mc->addr));
 
   GNUNET_STATISTICS_update (plugin->env->stats,
-                            _("# HELLO beacons received via udp"), 1,
+                            _("# IPv4 broadcast HELLO beacons received via udp"), 1,
                             GNUNET_NO);
   GNUNET_free (mc);
 }
@@ -1549,7 +1549,7 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
                         (const char *) &mc->addr, sizeof (mc->addr));
 
   GNUNET_STATISTICS_update (plugin->env->stats,
-                            _("# HELLO beacons received via udp"), 1,
+                            _("# IPv6 multicast HELLO beacons received via udp"), 1,
                             GNUNET_NO);
   GNUNET_free (mc);
 }
@@ -2409,7 +2409,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       plugin->broadcast_ipv4_mst =
           GNUNET_SERVER_mst_create (broadcast_ipv4_mst_cb, plugin);
       GNUNET_STATISTICS_update (plugin->env->stats,
-                                _("# HELLO beacons received via udp"), 1,
+                                _("# IPv4 broadcast HELLO beacons received via udp"), 1,
                                 GNUNET_NO);
       plugin->select_ipv4_broadcast_task =
           GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
@@ -2470,6 +2470,10 @@ libgnunet_plugin_transport_udp_init (void *cls)
       plugin->broadcast_ipv6 = GNUNET_YES;
       plugin->broadcast_ipv6_mst =
           GNUNET_SERVER_mst_create (broadcast_ipv6_mst_cb, plugin);
+
+      GNUNET_STATISTICS_update (plugin->env->stats,
+                                _("# IPv6 multicast HELLO beacons received via udp"), 1,
+                                GNUNET_NO);
       plugin->select_ipv6_broadcast_task =
           GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                        GNUNET_SCHEDULER_NO_TASK,
