@@ -1,34 +1,4 @@
-0.9.0:
-* Transport:
-  - When receiving SESSION_CONNECT: actually consider switching session /
-    (test this!)
-* big code review
-* Determine RC bugs and fix those (release should have no known real bugs)
-
 0.9.1:
-* TRANSPORT: [MW]
-  - 'TransmitFunction' requires plugins to have "unbounded" queue (or at least 
-    queue of size > 2), might be better to have at MOST one message pending
-    per plugin/target and only send the next one after the continuation was
-    called (or use 'notify_transmit_ready-style API?)
-  - WLAN transport backend (code cleanup) [MW]
-  - need to periodically probe latency/transport cost changes & possibly switch transport 
-    (working ATS)
-* DV: 
-  - proper bandwidth allocation
-  - performance tests
-* PEERINFO:	
-  - merge multiple HELLOs of the same peer in the transmission queue
-    (theoretically reduces overhead; bounds message queue size)
-  - merge multiple iteration requests over "all" peers in the queue
-    (theoretically reduces overhead; bounds messgae queue size)
-* STATISTICS:
-  - should use BIO instead of mmap
-* FS: [CG]
-  - implement multi-peer FS performance tests + gauger them!
-    + insert
-    + download
-    + search
 * GNUNET-GTK: [CG]
   - add tool bar
   - add progress dialog for 'add_dir_at_iter' scan (can take a while...)
@@ -46,20 +16,6 @@
 
 0.9.2:
 * PEERINFO: [NN]
-  - expire 'ancient' HELLOs (those without valid addresses AND that 
-    we have not 'used' (for their public keys) in a while; need a way
-    to track actual 'use')
-  - make sue we also trigger notifications whenever HELLOs expire
-* WLAN:
-  - nice signal strength adjustment [MW]
-  - energy cost in ATS [MW]
-* PEERINFO: [NN]
   - complete peerinfo GUI (=> start from gnunet-gtk by button!)
   - extend peer dialog with green-yellow-red connectivity status lights
   - extend peer dialog with country flags and names
-
-0.9.3:
-* VPN 
-  - "DNS" .gnunet [MW]
-* MESH:
-  - optimized routes (beyond DHT/DV)
