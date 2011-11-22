@@ -1969,6 +1969,8 @@ iface_proc (void *cls, const char *name,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "netmask %s for interface %s %p\n ",
         GNUNET_a2s(netmask,addrlen), name, netmask);
 
+
+    /* Collecting broadcast addresses*/
     if (broadcast_addr != NULL)
     {
       struct BroadcastAddress * ba = GNUNET_malloc(sizeof (struct BroadcastAddress));

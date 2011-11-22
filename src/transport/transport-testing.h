@@ -161,11 +161,13 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 
 
 /**
- * Restart the given peer
- * @param tth testing handle
- * @param p the peer
- */
-void
+* Restart the given peer
+* @param tth testing handle
+* @param p the peer
+* @param cfgname the cfg file used to restart
+* @return GNUNET_OK in success otherwise GNUNET_SYSERR
+*/
+int
 GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                                        struct PeerContext *p,
                                        const char *cfgname);
