@@ -1,22 +1,12 @@
 0.9.0:
-* GNUNET-GTK: [CG]
-  - provide context menus to allow aborts of downloads/uploads
-  - provide way to handle errors (search, download, publish errors)
 * new webpage:
   - write chapter on DHT/block [Nate] 
-  - make a NICE download page 
 * big code review
 * Determine RC bugs and fix those (release should have no known real bugs)
 * Transport:
   - When receiving SESSION_CONNECT: actually consider switching session
     (test this!)
 * FS [CG]
-  - implement multi-peer FS performance tests + gauger them!
-    + insert
-    + download
-    + search
-* blocks:
-  + should block plugins live in block/ or with fs/dht/vpn?
 
 0.9.1:
 * TRANSPORT: [MW]
@@ -41,8 +31,10 @@
   - Remove KBlocks in gnunet-unindex (see discussion with Kenneth Almquist on gnunet-devs in 9/2009)
   - use different queue prioritization for probe-downloads vs. normal downloads
   - re-implement gnunet-auto-share
-  - implement 'GNUNET_FS_file_information_create_from_directory', avoiding
-    code duplication with gnunet-gtk's similar code (!)
+  - implement multi-peer FS performance tests + gauger them!
+    + insert
+    + download
+    + search
 * GNUNET-GTK: [CG]
   - add tool bar
   - do meaningful update to status line (starting up, peer running, #connections, shutdown, ...)
@@ -56,6 +48,8 @@
     + normalize keywords (edit subdialog)
   - implement download by URI dialog; figure out where to display those downloads!
   - add combo box to select desired mime type for search
+  - provide context menus to allow aborts of downloads/uploads
+  - provide way to handle errors (search, download, publish errors)
 * ARM: [CG]
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)

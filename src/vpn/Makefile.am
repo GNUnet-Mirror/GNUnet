@@ -10,6 +10,8 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+plugindir = $(libdir)/gnunet
+
 dist_pkgcfg_DATA = \
   vpn.conf
 
@@ -71,6 +73,18 @@ gnunet_daemon_exit_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
+
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_dns.la 
+
+libgnunet_plugin_block_dns_la_SOURCES = \
+  plugin_block_dns.c
+libgnunet_plugin_block_dns_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
+libgnunet_plugin_block_dns_la_LDFLAGS = \
+  $(top_builddir)/src/block/$(GN_PLUGIN_LDFLAGS)
+
 
 #check_PROGRAMS = \
 # test_XXX

@@ -14,8 +14,13 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 dist_pkgcfg_DATA = \
   fs.conf
 
+plugindir = $(libdir)/gnunet
+
 
 lib_LTLIBRARIES = libgnunetfs.la
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_fs.la 
 
 noinst_LIBRARIES = libgnunetfstest.a
 
@@ -150,6 +155,19 @@ gnunet_unindex_LDADD = \
   $(GN_LIBINTL)
 gnunet_unindex_DEPENDENCIES = \
   libgnunetfs.la
+
+
+libgnunet_plugin_block_fs_la_SOURCES = \
+  plugin_block_fs.c
+libgnunet_plugin_block_fs_la_LIBADD = \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+libgnunet_plugin_block_fs_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_block_fs_la_DEPENDENCIES = \
+  $(top_builddir)/src/block/libgnunetblock.la
+
+
 
 if HAVE_BENCHMARKS
  FS_BENCHMARKS = \

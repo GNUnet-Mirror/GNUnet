@@ -22,7 +22,6 @@ endif
 lib_LTLIBRARIES = \
  libgnunetdht.la 
 
-
 libgnunetdht_la_SOURCES = \
   dht_api.c dht.h 
 libgnunetdht_la_LIBADD = \
@@ -31,6 +30,23 @@ libgnunetdht_la_LIBADD = \
 libgnunetdht_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
+
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_dht.la 
+
+libgnunet_plugin_block_dht_la_SOURCES = \
+  plugin_block_dht.c
+libgnunet_plugin_block_dht_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+libgnunet_plugin_block_dht_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_block_dht_la_DEPENDENCIES = \
+  $(top_builddir)/src/block/libgnunetblock.la 
+
+
 
 bin_PROGRAMS = \
  gnunet-service-dht \
