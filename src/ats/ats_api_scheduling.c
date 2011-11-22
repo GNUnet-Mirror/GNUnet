@@ -533,6 +533,8 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
 		  "ATS tries to use outdated session `%s'\n", 
 		  GNUNET_i2s(&m->peer));
 #endif
+      GNUNET_CLIENT_receive (sh->client, &process_ats_message, sh,
+                             GNUNET_TIME_UNIT_FOREVER_REL);
       return;
     }
   }
