@@ -628,8 +628,15 @@ add_valid_address (void *cls,
     GNUNET_break (0);
     return GNUNET_OK;           /* invalid HELLO !? */
   }
+  if (0 == memcmp(&GST_my_identity, &pid, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    /* Peerinfo returned own identity, skip validation */
+    return GNUNET_OK;
+  }
+
   ve = find_validation_entry (&public_key, address);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until, expiration);
+
   if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
   GNUNET_ATS_address_update (GST_ats, address, NULL, NULL,
