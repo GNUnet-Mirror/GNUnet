@@ -44,7 +44,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * How long until we give up on transmitting the message?
@@ -53,10 +53,6 @@
 
 #define MTYPE 12345
 
-static char *test_source;
-
-static char *test_plugin;
-
 static char *test_name;
 
 static int ok;
@@ -64,6 +60,8 @@ static int ok;
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier send_task;
+
+static GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
 struct PeerContext *p1;
 
@@ -95,9 +93,15 @@ end ()
 
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (send_task);
+  send_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (reconnect_task);
+  reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
+  die_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -115,13 +119,18 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
   if (restarted == GNUNET_YES)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers were restarted\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was restarted\n");
 
   if (restarted == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers were NOT restarted\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was NOT restarted\n");
+
+  if (reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (reconnect_task);
+  reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (send_task);
+  send_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (cc != NULL)
   {
@@ -142,6 +151,33 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = GNUNET_SYSERR;
 }
 
+static void
+reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerContext *p = cls;
+  reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_TRANSPORT_try_connect (p1->th, &p2->id);
+  reconnect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &reconnect, p);
+}
+
+static void
+restart_cb (struct PeerContext *p, void *cls)
+{
+  static int c;
+  c++;
+
+  if (c != 2)
+    return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Restarted peer %u (`%4s'), issuing reconnect\n",
+              p->no,
+              GNUNET_i2s (&p->id));
+
+  reconnect_task = GNUNET_SCHEDULER_add_now(&reconnect, p);
+}
+
 static
 void restart (struct PeerContext *p , char * cfg_file)
 {
@@ -150,7 +186,7 @@ void restart (struct PeerContext *p , char * cfg_file)
               "Restarting peer %u (`%4s')\n",
               p->no,
               GNUNET_i2s (&p->id));
-  GNUNET_TRANSPORT_TESTING_restart_peer (tth, p, cfg_file);
+  GNUNET_TRANSPORT_TESTING_restart_peer (tth, p, cfg_file, &restart_cb, p);
   return;
 }
 
@@ -169,18 +205,29 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (t != NULL);
 
   char *ps = strdup (GNUNET_i2s (&p->id));
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s') received message of type %d and size %u size from peer %u (`%4s')!\n",
               p->no, ps, ntohs (message->type), ntohs (message->size), t->no,
               GNUNET_i2s (&t->id));
+  GNUNET_free (ps);
 
   if ((MTYPE == ntohs (message->type)) &&
       (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
   {
-    restarted = GNUNET_YES;
-    restart (p1, cfg_file_p1);
-    restart (p2, cfg_file_p2);
+    if (restarted == GNUNET_NO)
+    {
+      restarted = GNUNET_YES;
+      restart (p1, cfg_file_p1);
+      restart (p2, cfg_file_p2);
+      return;
+    }
+    else
+    {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Restarted peers connected, stopping test...\n");
+      ok = 0;
+      end ();
+    }
   }
   else
   {
@@ -269,13 +316,15 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   char *ps = strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s'): peer %u (`%s') connected to me!\n", p->no, ps,
               t->no, GNUNET_i2s (peer));
   GNUNET_free (ps);
 
   if ((restarted == GNUNET_YES) && (c == 4))
-    end ();
+  {
+    send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
+  }
 }
 
 
@@ -283,11 +332,13 @@ static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
-  char *ps = strdup (GNUNET_i2s (&p->id));
 
+
+  char *ps = strdup (GNUNET_i2s (&p->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s'): peer (`%s') disconnected from me!\n", p->no, ps,
               GNUNET_i2s (peer));
+  GNUNET_free (ps);
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -323,10 +374,10 @@ start_cb (struct PeerContext *p, void *cls)
     return;
 
   char *sender_c = strdup (GNUNET_i2s (&p1->id));
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
               p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
+  GNUNET_free (sender_c);
 
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
                                                NULL);
@@ -391,12 +442,9 @@ int
 main (int argc, char *argv[])
 {
   int ret;
-  int nat_res;
 
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
-  GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
-  GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0], test_source,
-                                                 &test_plugin);
+
 
   GNUNET_log_setup (test_name,
 #if VERBOSE
@@ -408,23 +456,6 @@ main (int argc, char *argv[])
 
   tth = GNUNET_TRANSPORT_TESTING_init ();
 
-  if ((strcmp (test_plugin, "tcp_nat") == 0) ||
-      (strcmp (test_plugin, "udp_nat") == 0))
-  {
-    nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
-    if (GNUNET_NO == nat_res)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
-                  "gnunet-nat-server", "SUID not set");
-      return 0;
-    }
-    if (GNUNET_SYSERR == nat_res)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
-                  "gnunet-nat-server", "file not found");
-      return 0;
-    }
-  }
 
   GNUNET_asprintf(&cfg_file_p1,"test_transport_api_tcp_peer1.conf");
   GNUNET_asprintf(&cfg_file_p2,"test_transport_api_tcp_peer2.conf");
@@ -435,13 +466,10 @@ main (int argc, char *argv[])
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
 
-  GNUNET_free (test_source);
-  GNUNET_free (test_plugin);
   GNUNET_free (test_name);
 
   GNUNET_TRANSPORT_TESTING_done (tth);
 
   return ret;
 }
-
 /* end of test_transport_api_restart_2peers.c */

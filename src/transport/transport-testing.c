@@ -27,7 +27,6 @@
 
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_YES
 #define HOSTKEYFILESIZE 914
 
 static const char *
@@ -358,11 +357,14 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
 int
 GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                                        struct PeerContext *p,
-                                       const char *cfgname)
+                                       const char *cfgname,
+                                       GNUNET_TRANSPORT_TESTING_start_cb restart_cb,
+                                       void *cb_cls)
 {
   struct GNUNET_DISK_FileHandle *fn;
   int success = GNUNET_OK;
 
+  GNUNET_assert (tth != NULL);
   GNUNET_assert (p != NULL);
   GNUNET_assert (p->hostkeyfile != NULL);
   GNUNET_assert (p->servicehome != NULL);
@@ -396,6 +398,7 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *t
     GNUNET_CONFIGURATION_destroy (p->cfg);
   p->cfg = NULL;
 
+
   /* start */
 #if VERBOSE
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
@@ -403,8 +406,8 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *t
                      GNUNET_i2s (&p->id));
 #endif
 
+  sleep (5);
 
-  GNUNET_assert (tth != NULL);
   if (GNUNET_DISK_file_test (cfgname) == GNUNET_NO)
   {
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
@@ -446,6 +449,9 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *t
      GNUNET_TRANSPORT_connect (p->cfg, NULL, p, &notify_receive,
                                &notify_connect, &notify_disconnect);
   GNUNET_assert (p->th != NULL);
+
+  p->start_cb = restart_cb;
+  p->cb_cls = cb_cls;
 
   p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &get_hello, p);
   GNUNET_assert (p->ghh != NULL);

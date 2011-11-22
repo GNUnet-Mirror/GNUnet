@@ -34,6 +34,7 @@
 #include "gnunet_container_lib.h"
 #include "gnunet_transport_service.h"
 
+
 #define GNUNET_TRANSPORT_TESTING_ConnectRequest void *
 
 
@@ -170,7 +171,9 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 int
 GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                                        struct PeerContext *p,
-                                       const char *cfgname);
+                                       const char *cfgname,
+                                       GNUNET_TRANSPORT_TESTING_start_cb start_cb,
+                                       void *cb_cls);
 
 /**
  * Connect the given peers and call the callback when both peers report the
