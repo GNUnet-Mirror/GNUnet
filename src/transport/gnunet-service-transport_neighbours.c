@@ -531,7 +531,6 @@ change (struct NeighbourMapEntry *n, int state, int line)
     return GNUNET_SYSERR;
   }
 #if DEBUG_TRANSPORT
-
   {
     char *old = GNUNET_strdup (print_state (n->state));
     char *new = GNUNET_strdup (print_state (state));
@@ -1081,7 +1080,7 @@ ats_suggest_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " ATS did not suggested address to connect to peer `%s'\n",
+              "ATS did not suggested address to connect to peer `%s'\n",
               GNUNET_i2s (&n->id));
 
   disconnect_neighbour (n);
@@ -2504,6 +2503,7 @@ handle_connect_blacklist_cont (void *cls,
   if (n->state != S_CONNECT_RECV)
     change_state (n, S_CONNECT_RECV);
 
+
   /* Ask ATS for an address to connect via that address */
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (n->ats_suggest);
@@ -2534,8 +2534,8 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
                                uint32_t ats_count)
 {
   const struct SessionConnectMessage *scm;
-  struct NeighbourMapEntry *n;
   struct BlackListCheckContext *bcc = NULL;
+  struct NeighbourMapEntry *n;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2551,14 +2551,15 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   scm = (const struct SessionConnectMessage *) message;
   GNUNET_break_op (ntohl (scm->reserved) == 0);
 
+  GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
+
   n = lookup_neighbour (peer);
-  if ( (n != NULL) &&
-       (S_CONNECTED == n->state) )
+  if ( (n != NULL) && (S_CONNECTED == n->state) )
   {
-    /* connected peer switches addresses */
-    GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
-    return;
+     /* connected peer switches addresses */
+     return;
   }
+
 
   /* we are not connected to this peer */
   /* do blacklist check */
