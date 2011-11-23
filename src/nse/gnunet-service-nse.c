@@ -64,7 +64,7 @@
 /**
  * Over how many values do we calculate the weighted average?
  */
-#define HISTORY_SIZE 8
+#define HISTORY_SIZE 64
 
 /**
  * Size of the queue to core.
@@ -344,16 +344,26 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   /* non-weighted trivial version */
   sum = 0.0;
   vsq = 0.0;
+  variance = 0.0;
+  mean = 0.0;
+
   for (i = 0; i < estimate_count; i++)
   {
-    val = htonl (size_estimate_messages
-		 [(estimate_index - i +
-		   HISTORY_SIZE) % HISTORY_SIZE].matching_bits);
+    int j;
+
+    j = (estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE;
+    val = htonl (size_estimate_messages[j].matching_bits);
     sum += val;
-    vsq += val * val;    
-  }  
-  mean = sum / estimate_count;
-  variance = vsq + mean * mean - 2 * mean * sum; // terrible for numerical stability...
+    vsq += val * val;
+  }
+  if (0 != estimate_count)
+  {
+    mean = sum / estimate_count;
+    variance = (vsq - mean * sum) / estimate_count; // terrible for numerical stability...
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "(%f - %f) / %u = %f\n", 
+      vsq, mean * sum, estimate_count, variance);
+
+  }
 #endif
   GNUNET_assert (variance >= 0);
   std_dev = sqrt (variance);
