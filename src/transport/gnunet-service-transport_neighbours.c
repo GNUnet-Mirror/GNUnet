@@ -820,13 +820,13 @@ send_disconnect (const struct GNUNET_PeerIdentity *target,
   struct SessionDisconnectMessage disconnect_msg;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Sending DISCONNECT message to peer `%4s'\n",
               GNUNET_i2s (target));
 #endif
 
   disconnect_msg.header.size = htons (sizeof (struct SessionDisconnectMessage));
-  disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
+  disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT);
   disconnect_msg.reserved = htonl (0);
   disconnect_msg.purpose.size =
       htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
@@ -2187,7 +2187,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
   GNUNET_HashCode hc;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Received DISCONNECT message from peer `%s'\n",
               GNUNET_i2s (peer));
 #endif
