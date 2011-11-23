@@ -1,0 +1,13 @@
+#!/bin/sh
+echo "Are you sure you want to commit changes to these files?"
+svn status
+read dummy
+svn diff
+echo "Are you sure you want to commit the changes above (CTRL-C to abort)"
+read dummy
+if test 0 != $#
+then
+  svn commit -m "$*"
+else
+  svn commit 
+fi
