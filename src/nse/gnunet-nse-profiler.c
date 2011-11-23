@@ -29,7 +29,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_nse_service.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE 3
 
 struct NSEPeer
 {
@@ -540,7 +540,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *data_filename;
 
   ok = 1;
-  testing_cfg = GNUNET_CONFIGURATION_create ();
+  //testing_cfg = GNUNET_CONFIGURATION_create ();
+  testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
   GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing",
