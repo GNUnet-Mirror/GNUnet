@@ -19,3 +19,8 @@ ChangeLog:
 			xsltproc --stringparam strip-prefix "-" \
 				 --stringparam include-rev "yes" $(top_srcdir)/contrib/svn2cl.xsl - > $@; \
 	fi
+
+dist: ChangeLog
+
+.PHONY: ChangeLog
+
