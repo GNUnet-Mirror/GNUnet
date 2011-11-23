@@ -710,7 +710,6 @@ gnunet-transport-certificate-creation \
 template_cfg_peer1.conf\
 template_cfg_peer2.conf\
 test_plugin_transport_data.conf\
-test_plugin_transport_data_http.conf\
 test_plugin_transport_data_udp.conf\
 test_quota_compliance_data.conf\
 test_quota_compliance_http_peer1.conf\
