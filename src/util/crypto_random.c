@@ -34,6 +34,35 @@
 
 #define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
 
+/* TODO: ndurner, move this to plibc? */
+/* The code is derived from glibc, obviously */
+#if MINGW
+#ifdef RANDOM
+#  undef RANDOM
+#endif
+#ifdef SRANDOM
+#  undef SRANDOM
+#endif
+#define RANDOM() glibc_weak_rand32()
+#define SRANDOM(s) glibc_weak_srand32(s)
+static int32_t glibc_weak_rand32_state = 1;
+
+void
+glibc_weak_srand32 (int32_t s)
+{
+  glibc_weak_rand32_state = s;
+}
+
+int32_t
+glibc_weak_rand32 ()
+{
+  int32_t val = glibc_weak_rand32_state;
+  val = ((glibc_weak_rand32_state * 1103515245) + 12345) & 0x7fffffff;
+  glibc_weak_rand32_state = val;
+  return val;
+}
+#endif
+
 /**
  * Create a cryptographically weak pseudo-random number in the interval of 0 to 1.
  *
