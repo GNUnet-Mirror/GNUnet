@@ -135,7 +135,7 @@ src/fs/fs_unindex.c
 src/fs/gnunet-download.c
 src/fs/fs_getopt.c
 src/fs/fs_publish.c
-src/fs/fs.c
+src/fs/fs_api.c
 src/fs/fs_download.c
 src/fs/gnunet-service-fs.c
 src/fs/fs_file_information.c
@@ -182,11 +182,11 @@ src/nat/gnunet-helper-nat-client-windows.c
 src/nat/nat_test.c
 src/nat/gnunet-helper-nat-client.c
 src/nat/nat_mini.c
-src/block/plugin_block_dht.c
-src/block/plugin_block_fs.c
+src/dht/plugin_block_dht.c
+src/fs/plugin_block_fs.c
 src/block/block.c
 src/block/plugin_block_test.c
-src/block/plugin_block_dns.c
+src/vpn/plugin_block_dns.c
 src/block/plugin_block_template.c
 src/mesh/mesh_api.c
 src/mesh/mesh_tunnel_tree.c
