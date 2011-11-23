@@ -222,6 +222,14 @@ struct GNUNET_CRYPTO_AuthKey
 
 /* **************** Functions and Macros ************* */
 
+/**
+ * Seed a weak random generator. Only GNUNET_CRYPTO_QUALITY_WEAK-mode generator
+ * can be seeded.
+ *
+ * @param seed the seed to use
+ */
+void
+GNUNET_CRYPTO_seed_weak_random (int32_t seed);
 
 /**
  * Compute the CRC32 checksum for the first len

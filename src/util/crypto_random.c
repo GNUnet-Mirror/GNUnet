@@ -74,6 +74,17 @@ weak_random ()
   return ((double) RANDOM () / RAND_MAX);
 }
 
+/**
+ * Seed a weak random generator. Only GNUNET_CRYPTO_QUALITY_WEAK-mode generator
+ * can be seeded.
+ *
+ * @param seed the seed to use
+ */
+void
+GNUNET_CRYPTO_seed_weak_random (int32_t seed)
+{
+  SRANDOM (seed);
+}
 
 /**
  * Produce a random value.
@@ -302,8 +313,8 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
 #endif
   gcry_set_progress_handler (&entropy_generator, NULL);
   atexit (&killfind);
-  SRANDOM (time (NULL) ^
-           GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
+  GNUNET_CRYPTO_seed_weak_random (time (NULL) ^
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
 }
 
 
