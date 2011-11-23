@@ -303,6 +303,7 @@ static void
 setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
 {
   unsigned int i;
+  unsigned int j;
   double mean;
   double sum;
   double std_dev;
@@ -323,20 +324,19 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   sumweight = 0.0;
   for (i = 0; i < estimate_count; i++)
   {
-    val =
-        htonl (size_estimate_messages
-               [(estimate_index - i +
-                 HISTORY_SIZE) % HISTORY_SIZE].matching_bits);
-    weight = 1;                 /* was: estimate_count + 1 - i; */
+    j = (estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE;
+    val = htonl (size_estimate_messages[j].matching_bits);
+    weight = 1.0;              /* was: estimate_count + 1 - i; */
 
     temp = weight + sumweight;
     q = val - mean;
     r = q * weight / temp;
-    sum += sumweight * q * r;
     mean += r;
+    sum += sumweight * q * r;
     sumweight = temp;
   }
-  variance = sum / (sumweight - 1.0);
+  if (estimate_count > 0)
+    variance = (sum / sumweight) * estimate_count / (estimate_count - 1.0);
 #else
   /* trivial version for debugging */
   double vsq;
@@ -349,8 +349,6 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
 
   for (i = 0; i < estimate_count; i++)
   {
-    unsigned int j;
-
     j = (estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE;
     val = htonl (size_estimate_messages[j].matching_bits);
     sum += val;
@@ -360,8 +358,9 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   {
     mean = sum / estimate_count;
     variance = (vsq - mean * sum) / (estimate_count - 1.0); // terrible for numerical stability...
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "(%f - %f) / %u = %f\n", 
-      vsq, mean * sum, estimate_count - 1, variance);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"(%f - %f) / %u = %f\n", 
+		vsq, mean * sum, estimate_count - 1, variance);
 
   }
 #endif
