@@ -2253,7 +2253,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       if (plugin->sockv6 != NULL)
       {
         memset (&plugin->ipv6_multicast_address, 0, sizeof (struct sockaddr_in6));
-        GNUNET_assert (1 == inet_pton(AF_INET6, "ff02::1", &plugin->ipv6_multicast_address.sin6_addr));
+        GNUNET_assert (1 == inet_pton(AF_INET6, "FF05::13B", &plugin->ipv6_multicast_address.sin6_addr));
 
         plugin->ipv6_multicast_address.sin6_family = AF_INET6;
         plugin->ipv6_multicast_address.sin6_port = htons(plugin->port);
@@ -2261,12 +2261,34 @@ libgnunet_plugin_transport_udp_init (void *cls)
         plugin->broadcast_ipv6_mst =
             GNUNET_SERVER_mst_create (broadcast_ipv6_mst_cb, plugin);
 
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 Broadcasting running\n");
+        /* Create IPv6 multicast request */
+        struct ipv6_mreq multicastRequest;
+        multicastRequest.ipv6mr_multiaddr = plugin->ipv6_multicast_address.sin6_addr;
+        /* TODO: 0 selects the "best" interface, tweak to use all interfaces
+         *
+         * http://tools.ietf.org/html/rfc2553#section-5.2:
+         *
+         * IPV6_JOIN_GROUP
+         *
+         * Join a multicast group on a specified local interface.  If the
+         * interface index is specified as 0, the kernel chooses the local
+         * interface.  For example, some kernels look up the multicast
+         * group in the normal IPv6 routing table and using the resulting
+         * interface.
+         * */
+        multicastRequest.ipv6mr_interface = 0;
 
+        /* Join the multicast group */
+        if ( GNUNET_NETWORK_socket_setsockopt( plugin->sockv6, IPPROTO_IPV6, IPV6_JOIN_GROUP, (char*) &multicastRequest, sizeof(multicastRequest)) == GNUNET_OK )
+        {
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 broadcasting running\n");
 
-        plugin->send_ipv6_broadcast_task =
-          GNUNET_SCHEDULER_add_now (&udp_ipv6_broadcast_send, plugin);
-        plugin->broadcast_ipv6 = GNUNET_YES;
+          plugin->send_ipv6_broadcast_task =
+            GNUNET_SCHEDULER_add_now (&udp_ipv6_broadcast_send, plugin);
+          plugin->broadcast_ipv6 = GNUNET_YES;
+        }
+        else
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 broadcasting not running\n");
       }
   }
 
@@ -2277,7 +2299,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
                            (const struct sockaddr **) addrs, addrlens,
                            &udp_nat_port_map_callback, NULL, plugin);
   return api;
-  udp_ipv6_broadcast_send(NULL, NULL);
 }
 
 /**
@@ -2347,12 +2368,28 @@ libgnunet_plugin_transport_udp_done (void *cls)
 
   if (plugin->broadcast_ipv6)
   {
+    /* Create IPv6 multicast request */
+    struct ipv6_mreq multicastRequest;
+    multicastRequest.ipv6mr_multiaddr = plugin->ipv6_multicast_address.sin6_addr;
+    multicastRequest.ipv6mr_interface = 0;
+
+    /* Join the multicast address */
+    if ( GNUNET_NETWORK_socket_setsockopt( plugin->sockv6, IPPROTO_IPV6, IPV6_LEAVE_GROUP, (char*) &multicastRequest, sizeof(multicastRequest)) == 0 )
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 Broadcasting stopped\n");
+
+      plugin->send_ipv6_broadcast_task =
+        GNUNET_SCHEDULER_add_now (&udp_ipv6_broadcast_send, plugin);
+      plugin->broadcast_ipv6 = GNUNET_YES;
+    }
+    else
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, setsockopt);
+
     if (plugin->send_ipv6_broadcast_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (plugin->send_ipv6_broadcast_task);
       plugin->send_ipv6_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
     }
-
     if (plugin->broadcast_ipv6_mst != NULL)
       GNUNET_SERVER_mst_destroy (plugin->broadcast_ipv6_mst);
   }
