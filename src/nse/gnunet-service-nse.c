@@ -308,14 +308,16 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   double std_dev;
   double variance;
   double val;
-  double weight;
-  double sumweight;
-  double q;
-  double r;
-  double temp;
   double nsize;
 
   /* Weighted incremental algorithm for stddev according to West (1979) */
+#if WEST
+  double sumweight;
+  double weight;
+  double q;
+  double r;
+  double temp;
+
   mean = 0.0;
   sum = 0.0;
   sumweight = 0.0;
@@ -335,6 +337,24 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
     sumweight = temp;
   }
   variance = sum / (sumweight - 1.0);
+#else
+  /* trivial version for debugging */
+  double vsq;
+
+  /* non-weighted trivial version */
+  sum = 0.0;
+  vsq = 0.0;
+  for (i = 0; i < estimate_count; i++)
+  {
+    val = htonl (size_estimate_messages
+		 [(estimate_index - i +
+		   HISTORY_SIZE) % HISTORY_SIZE].matching_bits);
+    sum += val;
+    vsq += val * val;    
+  }  
+  mean = sum / estimate_count;
+  variance = vsq + mean * mean - 2 * mean * sum; // terrible for numerical stability...
+#endif
   GNUNET_assert (variance >= 0);
   std_dev = sqrt (variance);
   current_std_dev = std_dev;
