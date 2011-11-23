@@ -2335,16 +2335,6 @@ libgnunet_plugin_transport_udp_done (void *cls)
     GNUNET_SCHEDULER_cancel (plugin->select_task);
     plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (plugin->sockv4 != NULL)
-  {
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv4));
-    plugin->sockv4 = NULL;
-  }
-  if (plugin->sockv6 != NULL)
-  {
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv6));
-    plugin->sockv6 = NULL;
-  }
 
   if (plugin->broadcast_ipv4)
   {
@@ -2377,10 +2367,6 @@ libgnunet_plugin_transport_udp_done (void *cls)
     if ( GNUNET_NETWORK_socket_setsockopt( plugin->sockv6, IPPROTO_IPV6, IPV6_LEAVE_GROUP, (char*) &multicastRequest, sizeof(multicastRequest)) == 0 )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 Broadcasting stopped\n");
-
-      plugin->send_ipv6_broadcast_task =
-        GNUNET_SCHEDULER_add_now (&udp_ipv6_broadcast_send, plugin);
-      plugin->broadcast_ipv6 = GNUNET_YES;
     }
     else
       GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, setsockopt);
@@ -2392,6 +2378,18 @@ libgnunet_plugin_transport_udp_done (void *cls)
     }
     if (plugin->broadcast_ipv6_mst != NULL)
       GNUNET_SERVER_mst_destroy (plugin->broadcast_ipv6_mst);
+  }
+
+
+  if (plugin->sockv4 != NULL)
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv4));
+    plugin->sockv4 = NULL;
+  }
+  if (plugin->sockv6 != NULL)
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv6));
+    plugin->sockv6 = NULL;
   }
 
   GNUNET_SERVER_mst_destroy (plugin->mst);
