@@ -916,7 +916,7 @@ create_session (struct Plugin *plugin, struct MacEndpoint *endpoint,
 
   queue->content = (struct Session *) &queue[1];
   queue->content->mac = endpoint;
-  memcpy (&(queue->content->target), peer, sizeof (struct GNUNET_PeerIdentity));
+  queue->content->target = *peer;
   queue->content->last_activity = GNUNET_TIME_absolute_get ();
   queue->content->timeout_task =
       GNUNET_SCHEDULER_add_delayed (SESSION_TIMEOUT, &session_timeout, queue);
