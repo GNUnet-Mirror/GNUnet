@@ -657,9 +657,12 @@ setup_flood_message (unsigned int slot, struct GNUNET_TIME_Absolute ts)
   fm->timestamp = GNUNET_TIME_absolute_hton (ts);
   fm->pkey = my_public_key;
   fm->proof_of_work = my_proof;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_sign (my_private_key, &fm->purpose,
-                                         &fm->signature));
+  if (nse_work_required > 0)
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CRYPTO_rsa_sign (my_private_key, &fm->purpose,
+					   &fm->signature));
+  else
+    memset (&fm->signature, 0, sizeof (fm->signature));
 }
 
 
@@ -847,12 +850,15 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         if (ntohl (size_estimate_messages[i].hop_count) == 0)
         {
           size_estimate_messages[i].proof_of_work = my_proof;
-          GNUNET_assert (GNUNET_OK ==
-                         GNUNET_CRYPTO_rsa_sign (my_private_key,
-                                                 &size_estimate_messages
-                                                 [i].purpose,
-                                                 &size_estimate_messages
-                                                 [i].signature));
+	  if (nse_work_required > 0)
+	    GNUNET_assert (GNUNET_OK ==
+			   GNUNET_CRYPTO_rsa_sign (my_private_key,
+						   &size_estimate_messages
+						   [i].purpose,
+						   &size_estimate_messages
+						   [i].signature));
+	  else
+	    memset (&size_estimate_messages[i].signature, 0, sizeof (struct GNUNET_CRYPTO_RsaSignature));
         }
       write_proof ();
       return;
@@ -902,11 +908,12 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
     GNUNET_break_op (0);
     return GNUNET_NO;
   }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
-                                &incoming_flood->purpose,
-                                &incoming_flood->signature,
-                                &incoming_flood->pkey))
+  if ( (nse_work_required > 0) &&
+       (GNUNET_OK !=
+	GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
+				  &incoming_flood->purpose,
+				  &incoming_flood->signature,
+				  &incoming_flood->pkey)) )
   {
     GNUNET_break_op (0);
     return GNUNET_NO;
