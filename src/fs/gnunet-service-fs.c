@@ -572,7 +572,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
     {NULL, NULL, 0, 0}
   };
 
-  GSF_core = GNUNET_CORE_connect (GSF_cfg, 2,   /* larger? */
+  GSF_core = GNUNET_CORE_connect (GSF_cfg, 1,
                                   NULL, &peer_init_handler,
                                   &peer_connect_handler,
                                   &GSF_peer_disconnect_handler_, NULL,
