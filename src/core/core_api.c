@@ -1423,15 +1423,12 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
     GNUNET_free (minp);
   }
 
-  /* Order entries by deadline, but SKIP 'HEAD' if
-   * we're in the 'ready_peer_*' DLL */
+  /* Order entries by deadline, but SKIP 'HEAD' (as we may have transmitted
+     that request already or might even already be approved to transmit that
+     message to core) */
   pos = pr->pending_head;
-  if ((pr->prev != NULL) || (pr->next != NULL) ||
-      (pr == handle->ready_peer_head))
-  {
-    GNUNET_assert (pos != NULL);
+  if (pos != NULL)
     pos = pos->next;            /* skip head */
-  }
 
   /* insertion sort */
   prev = pos;
