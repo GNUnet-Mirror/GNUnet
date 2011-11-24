@@ -427,8 +427,10 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Unsupported message of type %u received.\n"),
-                (unsigned int) type);
+                _("Unsupported message of type %u (%u bytes) received from peer `%s'\n"),
+                (unsigned int) type,
+		(unsigned int) ntohs (message->size),
+		GNUNET_i2s (peer));
     return;
   }
 }
