@@ -98,9 +98,11 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
                                   GNUNET_NO, &test_address, &empty);
   if (GNUNET_YES == empty)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_TESTING
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Skipping empty HELLO address of peer %s\n",
                 GNUNET_i2s (&daemon->id));
+#endif
     return;
   }
 #endif
