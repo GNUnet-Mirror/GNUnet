@@ -1137,8 +1137,9 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
   peer_entry = GNUNET_malloc (sizeof (struct NSEPeerEntry));
   peer_entry->id = *peer;
-  GNUNET_CONTAINER_multihashmap_put (peers, &peer->hashPubKey, peer_entry,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_put (peers, &peer->hashPubKey, peer_entry,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   peer_entry->transmit_task =
       GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task,
                                     peer_entry);
