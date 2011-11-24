@@ -368,8 +368,10 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
  * - Cancels all outgoing traffic for that tunnel, calling respective notifys
  * - Calls cleaner if tunnel was inbound
  * - Frees all memory used
- * @param tid ID of the wanted tunnel
- * @return handle to the required tunnel or NULL if not found
+ *
+ * @param t Pointer to the tunnel.
+ *
+ * @return Handle to the required tunnel or NULL if not found.
  */
 static void
 destroy_tunnel (struct GNUNET_MESH_Tunnel *t)
@@ -1304,7 +1306,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
 /**
  * Destroy an existing tunnel.
  *
- * @param tun tunnel handle
+ * @param tunnel tunnel handle
  */
 void
 GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)

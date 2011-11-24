@@ -19,7 +19,7 @@
 */
 
 /**
- * @file mesh/mesh_tree_tree.h
+ * @file mesh/mesh_tunnel_tree.h
  * @brief Tunnel tree handling functions
  * @author Bartlomiej Polot
  */
@@ -72,9 +72,9 @@ struct MeshTunnelTree;
 /******************************************************************************/
 
 /**
- * Create a new path
+ * Create a new path.
  *
- * @param lenght How many hops will the path have.
+ * @param length How many hops will the path have.
  *
  * @return A newly allocated path with a peer array of the specified length.
  */
@@ -83,33 +83,33 @@ path_new (unsigned int length);
 
 
 /**
- * Invert the path
+ * Invert the path.
  *
- * @param p the path to invert
+ * @param path The path to invert.
  */
 void
-path_invert (struct MeshPeerPath *p);
+path_invert (struct MeshPeerPath *path);
 
 
 /**
  * Duplicate a path, incrementing short peer's rc.
  *
- * @param p The path to duplicate.
+ * @param path The path to duplicate.
  */
 struct MeshPeerPath *
 path_duplicate (struct MeshPeerPath *path);
 
 
 /**
- * Get the length of a path
+ * Get the length of a path.
  *
- * @param p The path to measure, with the local peer at any point of it
+ * @param path The path to measure, with the local peer at any point of it.
  *
- * @return Number of hops to reach destination
- *         UINT_MAX in case the peer is not in the path
+ * @return Number of hops to reach destination.
+ *         UINT_MAX in case the peer is not in the path.
  */
 unsigned int
-path_get_length (struct MeshPeerPath *p);
+path_get_length (struct MeshPeerPath *path);
 
 
 /**
@@ -149,7 +149,8 @@ tree_new (GNUNET_PEER_Id peer);
  * Set the status of a node.
  *
  * @param tree Tree.
- * @param peer A short peer id of local peer.
+ * @param peer A short peer id of the node.
+ * @param status New status to set.
  */
 void
 tree_set_status (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer,
@@ -160,6 +161,7 @@ tree_set_status (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer,
  * Get the status of a node.
  *
  * @param tree Tree whose local id we want to now.
+ * @param peer A short peer id of the node.
  *
  * @return Short peer id of local peer.
  */
@@ -233,7 +235,7 @@ tree_update_first_hops (struct MeshTunnelTree *tree, GNUNET_PEER_Id parent_id,
  * a new path to it or destroy it explicitly, taking care of it's child nodes.
  *
  * @param t Tunnel tree where to delete the path from.
- * @param peer Destination peer whose path we want to remove.
+ * @param peer_id Short ID of the destination peer whose path we want to remove.
  * @param cb Callback to use to notify about which peers are going to be
  *           disconnected.
  * @param cbcls Closure for cb.
@@ -242,7 +244,7 @@ tree_update_first_hops (struct MeshTunnelTree *tree, GNUNET_PEER_Id parent_id,
  *         NULL when not found
  */
 struct MeshTunnelTreeNode *
-tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer,
+tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
                MeshTreeCallback cb, void *cbcls);
 
 

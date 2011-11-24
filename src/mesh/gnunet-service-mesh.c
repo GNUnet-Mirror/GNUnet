@@ -769,6 +769,7 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
  * Send the message to all clients that have subscribed to its type
  *
  * @param msg Pointer to the message itself
+ * @param payload Pointer to the payload of the message.
  * @return number of clients this message was sent to
  */
 static unsigned int
@@ -2178,7 +2179,7 @@ tunnel_destroy (struct MeshTunnel *t)
  * The tunnel itself is also destoyed if results in a remote empty tunnel.
  *
  * @param t Tunnel from which to remove the path.
- * @param p Peer which should be removed.
+ * @param peer Short id of the peer which should be removed.
  */
 static void
 tunnel_delete_peer (struct MeshTunnel *t, GNUNET_PEER_Id peer)
@@ -3260,6 +3261,10 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
+ * @param get_path path of the get request
+ * @param get_path_length lenght of get_path
+ * @param put_path path of the put request
+ * @param put_path_length length of the put_path
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -3305,6 +3310,10 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
+ * @param get_path path of the get request
+ * @param get_path_length lenght of get_path
+ * @param put_path path of the put request
+ * @param put_path_length length of the put_path
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
