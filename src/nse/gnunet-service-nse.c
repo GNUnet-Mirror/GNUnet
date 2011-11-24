@@ -317,6 +317,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   mean = 0.0;
   sum = 0.0;
   sumweight = 0.0;
+  variance = 0.0;
   for (i = 0; i < estimate_count; i++)
   {
     j = (estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE;
@@ -353,10 +354,6 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   {
     mean = sum / estimate_count;
     variance = (vsq - mean * sum) / (estimate_count - 1.0); // terrible for numerical stability...
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"(%f - %f) / %u = %f\n", 
-		vsq, mean * sum, estimate_count - 1, variance);
-
   }
 #endif
   GNUNET_assert (variance >= 0);
