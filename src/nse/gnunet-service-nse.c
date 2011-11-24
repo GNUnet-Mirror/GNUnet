@@ -433,15 +433,14 @@ get_delay_randomization (uint32_t matching_bits)
 {
 #if USE_RANDOM_DELAYS
   struct GNUNET_TIME_Relative ret;
+  uint32_t i;
+  double d;
 
   if (matching_bits == 0)
     return GNUNET_TIME_UNIT_ZERO;
-  ret.rel_value =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                (uint32_t) (1 + (get_matching_bits_delay
-						 (matching_bits -
-						  1) / (double) (hop_count_max +
-								 1))));
+  d = get_matching_bits_delay (matching_bits - 1);
+  i = d / (double) (hop_count_max + 1);
+  ret.rel_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, i + 1);
   return ret;
 #else
   return GNUNET_TIME_UNIT_ZERO;
