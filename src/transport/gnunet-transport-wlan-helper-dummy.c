@@ -23,14 +23,9 @@
  * @author David Brodski
  */
 #include "platform.h"
-#include "gnunet_constants.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_transport_plugin.h"
-#include "transport.h"
+#include "gnunet_protocols.h"
 #include "gnunet_util_lib.h"
 #include "plugin_transport_wlan.h"
-#include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
 
 #define FIFO_FILE1       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_in"
 #define FIFO_FILE2       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_out"
