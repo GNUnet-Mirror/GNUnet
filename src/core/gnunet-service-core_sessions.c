@@ -432,12 +432,15 @@ static void
 solicit_messages (struct Session *session)
 {
   struct GSC_ClientActiveRequest *car;
+  struct GSC_ClientActiveRequest *nxt;
   size_t so_size;
 
   discard_expired_requests (session);
   so_size = 0;
-  for (car = session->active_client_request_head; NULL != car; car = car->next)
+  nxt = session->active_client_request_head;
+  while (NULL != (car = nxt) )
   {
+    nxt = car->next;
     if (so_size + car->msize > GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
       break;
     so_size += car->msize;

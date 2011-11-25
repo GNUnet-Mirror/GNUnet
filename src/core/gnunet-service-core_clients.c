@@ -606,15 +606,24 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
   struct SendMessageReady smr;
 
   c = car->client_handle;
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
+					      &car->
+					      target.hashPubKey))
+  {
+    /* connection has gone down since, drop request */
+    GNUNET_assert (0 !=
+		   memcmp (&car->target, &GSC_my_identity,
+			   sizeof (struct GNUNET_PeerIdentity)));
+    GSC_SESSIONS_dequeue_request (car);
+    GSC_CLIENTS_reject_request (car);
+    return;
+  }
   smr.header.size = htons (sizeof (struct SendMessageReady));
   smr.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_READY);
   smr.size = htons (car->msize);
   smr.smr_id = car->smr_id;
   smr.peer = car->target;
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
-                                                         &car->
-                                                         target.hashPubKey));
   send_to_client (c, &smr.header, GNUNET_NO);
 }
 
