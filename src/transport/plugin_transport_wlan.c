@@ -1482,7 +1482,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   {
     if (GNUNET_OS_check_helper_binary (filenameloopback) == GNUNET_YES)
     {
-      absolute_filename = strdup (filenameloopback);
+      absolute_filename = GNUNET_strdup (filenameloopback);
     }
     else
     {

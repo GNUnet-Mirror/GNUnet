@@ -199,7 +199,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     t = p2;
   GNUNET_assert (t != NULL);
 
-  char *ps = strdup (GNUNET_i2s (&p->id));
+  char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s') received message of type %d and size %u size from peer %u (`%4s')!\n",
               p->no, ps, ntohs (message->type), ntohs (message->size), t->no,
@@ -261,7 +261,7 @@ notify_ready (void *cls, size_t size, void *buf)
     hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
     hdr->type = htons (MTYPE);
   }
-  char *ps = strdup (GNUNET_i2s (&p2->id));
+  char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
@@ -279,7 +279,7 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
-  char *receiver_s = strdup (GNUNET_i2s (&p1->id));
+  char *receiver_s = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending message from peer %u (`%4s') -> peer %u (`%s') !\n",
@@ -308,7 +308,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     t = p2;
   GNUNET_assert (t != NULL);
 
-  char *ps = strdup (GNUNET_i2s (&p->id));
+  char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s'): peer %u (`%s') connected to me!\n", p->no, ps,
@@ -328,7 +328,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *p = cls;
 
 
-  char *ps = strdup (GNUNET_i2s (&p->id));
+  char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s'): peer (`%s') disconnected from me!\n", p->no, ps,
               GNUNET_i2s (peer));
@@ -343,7 +343,7 @@ static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   cc = NULL;
-  char *p1_c = strdup (GNUNET_i2s (&p1->id));
+  char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %u (%s) <-> %u (%s)\n",
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
@@ -367,7 +367,7 @@ start_cb (struct PeerContext *p, void *cls)
   if (started != 2)
     return;
 
-  char *sender_c = strdup (GNUNET_i2s (&p1->id));
+  char *sender_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
               p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));

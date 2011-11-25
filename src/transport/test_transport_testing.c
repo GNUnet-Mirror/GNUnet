@@ -94,7 +94,7 @@ end_badly ()
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
-  char *ps = strdup (GNUNET_i2s (&p1->id));
+  char *ps = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s') connected to peer %u (`%s')!\n", p1->no, ps,
@@ -140,7 +140,7 @@ start_cb (struct PeerContext *p, void *cls)
   if (started != 2)
     return;
 
-  char *sender_c = strdup (GNUNET_i2s (&p1->id));
+  char *sender_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",

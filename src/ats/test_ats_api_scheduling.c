@@ -195,7 +195,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   addr[0].plugin = "test";
   addr[0].session = NULL;
-  addr[0].addr = strdup ("test");
+  addr[0].addr = GNUNET_strdup ("test");
   addr[0].addr_len = 4;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing address creation\n");

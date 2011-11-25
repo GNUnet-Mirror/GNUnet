@@ -252,7 +252,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (ntohl (hdr->num) % 5000 == 0)
   {
     struct PeerContext *p = cls;
-    char *ps = strdup (GNUNET_i2s (&p->id));
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
@@ -319,7 +319,7 @@ notify_ready (void *cls, size_t size, void *buf)
     if (n % 5000 == 0)
     {
 
-      char *receiver_s = strdup (GNUNET_i2s (&receiver->id));
+      char *receiver_s = GNUNET_strdup (GNUNET_i2s (&receiver->id));
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending message of size %u from peer %u (`%4s') -> peer %u (`%s') !\n",
@@ -394,7 +394,7 @@ sendtask ()
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
-  char *p1_c = strdup (GNUNET_i2s (&p1->id));
+  char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %u (%s) <-> %u (%s)\n",
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
@@ -432,7 +432,7 @@ start_cb (struct PeerContext *p, void *cls)
   sender = p2;
   receiver = p1;
 
-  char *sender_c = strdup (GNUNET_i2s (&sender->id));
+  char *sender_c = GNUNET_strdup (GNUNET_i2s (&sender->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test triest to send from %u (%s) -> peer %u (%s)\n", sender->no,

@@ -638,8 +638,8 @@ daemon_connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
                    struct GNUNET_TESTING_Daemon *second_daemon,
                    const char *emsg)
 {
-  char *firstc = strdup (GNUNET_i2s (first));
-  char *secondc = strdup (GNUNET_i2s (second));
+  char *firstc = GNUNET_strdup (GNUNET_i2s (first));
+  char *secondc = GNUNET_strdup (GNUNET_i2s (second));
 
   connected++;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peers `%s'<->`%s' (%i/%i)\n",
