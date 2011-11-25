@@ -1832,7 +1832,7 @@ send_hello_beacon (struct Plugin *plugin)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
                      _
-                     ("Error writing to wlan healper. errno == %d, ERROR: %s\n"),
+                     ("Error writing to wlan helper. errno == %d, ERROR: %s\n"),
                      errno, strerror (errno));
     finish = GNUNET_malloc (sizeof (struct Finish_send));
     finish->plugin = plugin;
@@ -2047,7 +2047,7 @@ send_ack (struct Plugin *plugin)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
                      _
-                     ("Error writing to wlan healper. errno == %d, ERROR: %s\n"),
+                     ("Error writing to wlan helper. errno == %d, ERROR: %s\n"),
                      errno, strerror (errno));
     finish = GNUNET_malloc (sizeof (struct Finish_send));
     finish->plugin = plugin;
@@ -2142,7 +2142,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
                          _
-                         ("Error writing to wlan healper. errno == %d, ERROR: %s\n"),
+                         ("Error writing to wlan helper. errno == %d, ERROR: %s\n"),
                          errno, strerror (errno));
 
         finish->head_of_next_write = fm->frag;
