@@ -255,13 +255,6 @@ src/transport/plugin_transport_sat_constants.h
 src/transport/ieee80211_radiotap.h
 src/transport/gnunet-service-transport_hello.h
 src/transport/gnunet-service-transport.h
-src/transport/wlan/helper_common.h
-src/transport/wlan/radiotap-parser.h
-src/transport/wlan/ieee80211.h
-src/transport/wlan/crctable_osdep.h
-src/transport/wlan/byteorder.h
-src/transport/wlan/ieee80211_radiotap.h
-src/transport/wlan/loopback_helper.h
 src/transport/gnunet-service-transport_blacklist.h
 src/transport/gnunet-service-transport_plugins.h
 src/dv/dv.h

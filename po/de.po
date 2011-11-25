@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0b\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-11-23 11:01+0100\n"
+"POT-Creation-Date: 2011-11-25 17:20+0100\n"
 "PO-Revision-Date: 2006-03-17 21:37+0100\n"
 "Last-Translator: Nils Durner <durner@gnunet.org>\n"
 "Language-Team: German <de@li.org>\n"
@@ -430,7 +430,7 @@ msgstr "# gap Anfragen verworfen: Kollision in RT"
 msgid "# messages discarded (session disconnected)"
 msgstr "# defragmentierter Nachrichten"
 
-#: src/core/gnunet-service-core_clients.c:791
+#: src/core/gnunet-service-core_clients.c:800
 #, fuzzy, c-format
 msgid "# bytes of messages of type %u received"
 msgstr "# Bytes Rauschen empfangen"
@@ -466,7 +466,7 @@ msgstr ""
 
 #: src/core/gnunet-service-core_neighbours.c:430
 #, fuzzy, c-format
-msgid "Unsupported message of type %u received.\n"
+msgid "Unsupported message of type %u (%u bytes) received from peer `%s'\n"
 msgstr "Ungültige Nachricht des Typs %u empfangen. Nachricht wird verworfen.\n"
 
 #: src/core/gnunet-service-core_kx.c:491
@@ -911,12 +911,12 @@ msgid ""
 "GNUNET_SERVER_receive_done after %llums\n"
 msgstr ""
 
-#: src/util/crypto_random.c:239
+#: src/util/crypto_random.c:279
 #, c-format
 msgid "Starting `%s' process to generate entropy\n"
 msgstr ""
 
-#: src/util/crypto_random.c:267
+#: src/util/crypto_random.c:307
 #, c-format
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr ""
@@ -1265,34 +1265,34 @@ msgstr "Aufruf von `%s' mit Schlüssel `%s'.\n"
 msgid "RSA signature verification failed at %s:%d: %s\n"
 msgstr "RSA Signaturüberprüfung fehlgeschlagen bei %s:%d: %s\n"
 
-#: src/nse/gnunet-nse-profiler.c:646 src/dht/gnunet-dht-get.c:213
+#: src/nse/gnunet-nse-profiler.c:647 src/dht/gnunet-dht-get.c:213
 #: src/dht/gnunet-dht-put.c:184 src/fs/gnunet-unindex.c:169
 #: src/fs/gnunet-search.c:297 src/fs/gnunet-publish.c:591
 #: src/fs/gnunet-download.c:263
 msgid "be verbose (print progress information)"
 msgstr ""
 
-#: src/nse/gnunet-nse-profiler.c:664
+#: src/nse/gnunet-nse-profiler.c:665
 #, fuzzy
 msgid "Measure quality and performance of the NSE service."
 msgstr "Auf den Dienst konnte nicht zugegriffen werden"
 
-#: src/nse/gnunet-service-nse.c:878
+#: src/nse/gnunet-service-nse.c:904
 #, c-format
 msgid "Proof of work invalid: %llu!\n"
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1301 src/nse/gnunet-service-nse.c:1320
-#: src/nse/gnunet-service-nse.c:1341
+#: src/nse/gnunet-service-nse.c:1329 src/nse/gnunet-service-nse.c:1348
+#: src/nse/gnunet-service-nse.c:1369
 msgid "NSE service is lacking key configuration settings.  Exiting.\n"
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1308
+#: src/nse/gnunet-service-nse.c:1336
 #, fuzzy
 msgid "Invalid work requirement for NSE service. Exiting.\n"
 msgstr "Ungültige Parameter. Abbruch.\n"
 
-#: src/nse/gnunet-service-nse.c:1329
+#: src/nse/gnunet-service-nse.c:1357
 #, fuzzy
 msgid "NSE service could not access hostkey.  Exiting.\n"
 msgstr "Auf die Namespace Informationen konnte nicht zugegriffen werden.\n"
@@ -3153,38 +3153,38 @@ msgstr ""
 msgid "Failed to open file `%s' for writing"
 msgstr "Datei wurde als `%s' gespeichert.\n"
 
-#: src/fs/fs_download.c:872
+#: src/fs/fs_download.c:873
 #, fuzzy, c-format
 msgid "Failed to create directory for recursive download of `%s'\n"
 msgstr "Fehler beim Aktualisieren der Daten des Moduls `%s'\n"
 
-#: src/fs/fs_download.c:958
+#: src/fs/fs_download.c:959
 #, c-format
 msgid ""
 "Internal error or bogus download URI (expected %u bytes at depth %u and "
 "offset %llu/%llu, got %u bytes)\n"
 msgstr ""
 
-#: src/fs/fs_download.c:985
+#: src/fs/fs_download.c:986
 msgid "internal error decrypting content"
 msgstr ""
 
-#: src/fs/fs_download.c:1008
+#: src/fs/fs_download.c:1009
 #, fuzzy, c-format
 msgid "Download failed: could not open file `%s': %s\n"
 msgstr "Datei wurde als `%s' gespeichert.\n"
 
-#: src/fs/fs_download.c:1020
+#: src/fs/fs_download.c:1021
 #, fuzzy, c-format
 msgid "Failed to seek to offset %llu in file `%s': %s\n"
 msgstr "Datei wurde als `%s' gespeichert.\n"
 
-#: src/fs/fs_download.c:1029
+#: src/fs/fs_download.c:1030
 #, c-format
 msgid "Failed to write block of %u bytes at offset %llu in file `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_download.c:1826
+#: src/fs/fs_download.c:1829
 #, fuzzy
 msgid "Invalid URI"
 msgstr "Ungültiger Parameter: `%s'\n"
@@ -3388,7 +3388,7 @@ msgstr "Ungültiger Parameter: `%s'\n"
 msgid "Failed to set IPv4 broadcast option for broadcast socket on port %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:2274
+#: src/transport/plugin_transport_udp.c:2296
 #: src/transport/plugin_transport_udp_new.c:1396
 #, fuzzy
 msgid "Failed to open UDP sockets\n"
@@ -3630,111 +3630,111 @@ msgstr "Teste Transport(e) %s\n"
 msgid "Failed to load transport plugin for `%s'\n"
 msgstr "Anwendung `%s' konnte nicht initialisiert werden.\n"
 
-#: src/transport/plugin_transport_wlan.c:884
+#: src/transport/plugin_transport_wlan.c:881
 #, fuzzy
 msgid "# wlan session timeouts"
 msgstr "# Sitzungsschlüssel akzeptiert"
 
-#: src/transport/plugin_transport_wlan.c:909
+#: src/transport/plugin_transport_wlan.c:905
 #, fuzzy
 msgid "# wlan session created"
 msgstr "# Sitzungsschlüssel akzeptiert"
 
-#: src/transport/plugin_transport_wlan.c:993
-#: src/transport/plugin_transport_wlan.c:1157
-#: src/transport/plugin_transport_wlan.c:1178
-#: src/transport/plugin_transport_wlan.c:1209
-#: src/transport/plugin_transport_wlan.c:2447
-#: src/transport/plugin_transport_wlan.c:3304
+#: src/transport/plugin_transport_wlan.c:989
+#: src/transport/plugin_transport_wlan.c:1151
+#: src/transport/plugin_transport_wlan.c:1172
+#: src/transport/plugin_transport_wlan.c:1203
+#: src/transport/plugin_transport_wlan.c:2406
+#: src/transport/plugin_transport_wlan.c:3265
 msgid "# wlan pending sessions"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1252
-#: src/transport/plugin_transport_wlan.c:2000
+#: src/transport/plugin_transport_wlan.c:1246
+#: src/transport/plugin_transport_wlan.c:1961
 #, fuzzy
 msgid "# wlan pending fragments"
 msgstr "# verworfener Nachrichten"
 
-#: src/transport/plugin_transport_wlan.c:1475
+#: src/transport/plugin_transport_wlan.c:1437
 #, c-format
 msgid "Finished reading from wlan-helper stdout with code: %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1840
+#: src/transport/plugin_transport_wlan.c:1802
 msgid "# wlan hello beacons send"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1873
-#: src/transport/plugin_transport_wlan.c:2089
-#: src/transport/plugin_transport_wlan.c:2184
+#: src/transport/plugin_transport_wlan.c:1835
+#: src/transport/plugin_transport_wlan.c:2050
+#: src/transport/plugin_transport_wlan.c:2145
 #, c-format
 msgid "Error writing to wlan healper. errno == %d, ERROR: %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2075
+#: src/transport/plugin_transport_wlan.c:2036
 msgid "# wlan acks send"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2146
+#: src/transport/plugin_transport_wlan.c:2107
 #, fuzzy
 msgid "# wlan fragments send"
 msgstr "# verworfener Nachrichten"
 
-#: src/transport/plugin_transport_wlan.c:2312
+#: src/transport/plugin_transport_wlan.c:2273
 #, c-format
 msgid "Wlan Address len %d is wrong\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2317
+#: src/transport/plugin_transport_wlan.c:2278
 #, fuzzy
 msgid "# wlan messages queued"
 msgstr "# verschlüsselter PING Nachrichten empfangen"
 
-#: src/transport/plugin_transport_wlan.c:2408
-#: src/transport/plugin_transport_wlan.c:3060
-#: src/transport/plugin_transport_wlan.c:3307
+#: src/transport/plugin_transport_wlan.c:2367
+#: src/transport/plugin_transport_wlan.c:3021
+#: src/transport/plugin_transport_wlan.c:3268
 msgid "# wlan mac endpoints"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2636
+#: src/transport/plugin_transport_wlan.c:2595
 #, fuzzy
 msgid "# wlan whole messages received"
 msgstr "# verschlüsselter PING Nachrichten empfangen"
 
-#: src/transport/plugin_transport_wlan.c:2836
+#: src/transport/plugin_transport_wlan.c:2795
 #, fuzzy
 msgid "# wlan hello messages received"
 msgstr "# verschlüsselter PING Nachrichten empfangen"
 
-#: src/transport/plugin_transport_wlan.c:2873
+#: src/transport/plugin_transport_wlan.c:2832
 #, fuzzy
 msgid "# wlan fragments received"
 msgstr "# verworfener Nachrichten"
 
-#: src/transport/plugin_transport_wlan.c:2925
+#: src/transport/plugin_transport_wlan.c:2884
 #, fuzzy
 msgid "# wlan acks received"
 msgstr "# gap Anfragen insgesamt empfangen"
 
-#: src/transport/plugin_transport_wlan.c:3020
+#: src/transport/plugin_transport_wlan.c:2981
 msgid "# wlan mac endpoints timeouts"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:3044
+#: src/transport/plugin_transport_wlan.c:3005
 #, fuzzy
 msgid "# wlan mac endpoints created"
 msgstr "# Client Trace-Anfragen empfangen"
 
-#: src/transport/plugin_transport_wlan.c:3102
+#: src/transport/plugin_transport_wlan.c:3063
 msgid "# wlan WLAN_HELPER_DATA received"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:3158
+#: src/transport/plugin_transport_wlan.c:3119
 #, fuzzy
 msgid "# wlan messages for this client received"
 msgstr "# verschlüsselter PING Nachrichten empfangen"
 
-#: src/transport/plugin_transport_wlan.c:3169
+#: src/transport/plugin_transport_wlan.c:3130
 #, fuzzy
 msgid "# wlan messages inside WLAN_HELPER_DATA received"
 msgstr "# verschlüsselter PING Nachrichten empfangen"
@@ -4366,16 +4366,16 @@ msgstr ""
 msgid "Loading block plugin `%s'\n"
 msgstr "Teste Transport(e) %s\n"
 
-#: src/mesh/gnunet-service-mesh.c:4192
+#: src/mesh/gnunet-service-mesh.c:4201
 msgid "MESH: Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:4397
+#: src/mesh/gnunet-service-mesh.c:4406
 #, fuzzy
 msgid "Mesh service is lacking key configuration settings.  Exiting.\n"
 msgstr "GNUnet Konfiguration"
 
-#: src/mesh/gnunet-service-mesh.c:4406
+#: src/mesh/gnunet-service-mesh.c:4415
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "Auf die Namespace Informationen konnte nicht zugegriffen werden.\n"
