@@ -109,20 +109,11 @@ gnunet_transport_certificate_creation_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_transport_wlan_helper_SOURCES = \
- wlan/byteorder.h \
- wlan/crctable_osdep.h \
- wlan/helper_common.c wlan/helper_common.h \
- wlan/ieee80211.h \
- wlan/ieee80211_radiotap.h \
- wlan/loopback_helper.h \
- wlan/radiotap-parser.c wlan/radiotap-parser.h \
- gnunet-transport-wlan-helper.c gnunet-transport-wlan-helper.h
+ gnunet-transport-wlan-helper.c
 gnunet_transport_wlan_helper_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_transport_wlan_helper_dummy_SOURCES = \
- wlan/radiotap-parser.c \
- wlan/helper_common.c \
  gnunet-transport-wlan-helper-dummy.c
 gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 

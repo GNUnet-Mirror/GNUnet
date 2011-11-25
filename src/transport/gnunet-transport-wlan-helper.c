@@ -1,21 +1,64 @@
 /*
- This file is part of GNUnet.
- (C) 2010, 2011 Christian Grothoff (and other contributing authors)
+   This file is part of GNUnet.
+   (C) 2010, 2011 Christian Grothoff (and other contributing authors)
+   Copyright (c) 2007, 2008, Andy Green <andy@warmcat.com>
+   Copyright (C) 2009 Thomas d'Otreppe
+   
+   GNUnet is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published
+   by the Free Software Foundation; either version 3, or (at your
+   option) any later version.
+   
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+   
+   You should have received a copy of the GNU General Public License
+   along with GNUnet; see the file COPYING.  If not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+/*-
+ * we use our local copy of ieee80211_radiotap.h
+ *
+ * - since we can't support extensions we don't understand
+ * - since linux does not include it in userspace headers
+ *
+ * Portions of this code were taken from the ieee80211_radiotap.h header,
+ * which is
+ *
+ * Copyright (c) 2003, 2004 David Young.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. The name of David Young may not be used to endorse or promote
+ *    products derived from this software without specific prior
+ *    written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY DAVID YOUNG ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL DAVID
+ * YOUNG BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ */
 
- GNUnet is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published
- by the Free Software Foundation; either version 3, or (at your
- option) any later version.
-
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with GNUnet; see the file COPYING.  If not, write to the
- Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- Boston, MA 02111-1307, USA.
+/*
+ * Modifications to fit into the linux IEEE 802.11 stack,
+ * Mike Kershaw (dragorn@kismetwireless.net)
  */
 
 /**
@@ -31,7 +74,6 @@
 /**
  * parts taken from aircrack-ng, parts changend.
  */
-
 #define _GNU_SOURCE
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -53,40 +95,949 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <dirent.h>
-//#include <sys/utsname.h>
 #include <sys/param.h>
+#include "gnunet_protocols.h"
+#include "gnunet_server_lib.h"
+#include "plugin_transport_wlan.h"
+
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t u8;
+
+
+
+/* Radiotap header version (from official NetBSD feed) */
+#define IEEE80211RADIOTAP_VERSION	"1.5"
+/* Base version of the radiotap packet header data */
+#define PKTHDR_RADIOTAP_VERSION		0
+
+/* A generic radio capture format is desirable. There is one for
+ * Linux, but it is neither rigidly defined (there were not even
+ * units given for some fields) nor easily extensible.
+ *
+ * I suggest the following extensible radio capture format. It is
+ * based on a bitmap indicating which fields are present.
+ *
+ * I am trying to describe precisely what the application programmer
+ * should expect in the following, and for that reason I tell the
+ * units and origin of each measurement (where it applies), or else I
+ * use sufficiently weaselly language ("is a monotonically nondecreasing
+ * function of...") that I cannot set false expectations for lawyerly
+ * readers.
+ */
+
+/* XXX tcpdump/libpcap do not tolerate variable-length headers,
+ * yet, so we pad every radiotap header to 64 bytes. Ugh.
+ */
+#define IEEE80211_RADIOTAP_HDRLEN	64
+
+/* The radio capture header precedes the 802.11 header.
+ * All data in the header is little endian on all platforms.
+ */
+struct ieee80211_radiotap_header
+{
+  u8 it_version;                /* Version 0. Only increases
+                                 * for drastic changes,
+                                 * introduction of compatible
+                                 * new fields does not count.
+                                 */
+  u8 it_pad;
+  u16 it_len;                   /* length of the whole
+                                 * header in bytes, including
+                                 * it_version, it_pad,
+                                 * it_len, and data fields.
+                                 */
+  u32 it_present;               /* A bitmap telling which
+                                 * fields are present. Set bit 31
+                                 * (0x80000000) to extend the
+                                 * bitmap by another 32 bits.
+                                 * Additional extensions are made
+                                 * by setting bit 31.
+                                 */
+};
+
+#define IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK 0x80000000
+
+/* Name                                 Data type    Units
+ * ----                                 ---------    -----
+ *
+ * IEEE80211_RADIOTAP_TSFT              __le64       microseconds
+ *
+ *      Value in microseconds of the MAC's 64-bit 802.11 Time
+ *      Synchronization Function timer when the first bit of the
+ *      MPDU arrived at the MAC. For received frames, only.
+ *
+ * IEEE80211_RADIOTAP_CHANNEL           2 x __le16   MHz, bitmap
+ *
+ *      Tx/Rx frequency in MHz, followed by flags (see below).
+ *
+ * IEEE80211_RADIOTAP_FHSS              __le16       see below
+ *
+ *      For frequency-hopping radios, the hop set (first byte)
+ *      and pattern (second byte).
+ *
+ * IEEE80211_RADIOTAP_RATE              u8           500kb/s
+ *
+ *      Tx/Rx data rate
+ *
+ * IEEE80211_RADIOTAP_DBM_ANTSIGNAL     s8           decibels from
+ *                                                   one milliwatt (dBm)
+ *
+ *      RF signal power at the antenna, decibel difference from
+ *      one milliwatt.
+ *
+ * IEEE80211_RADIOTAP_DBM_ANTNOISE      s8           decibels from
+ *                                                   one milliwatt (dBm)
+ *
+ *      RF noise power at the antenna, decibel difference from one
+ *      milliwatt.
+ *
+ * IEEE80211_RADIOTAP_DB_ANTSIGNAL      u8           decibel (dB)
+ *
+ *      RF signal power at the antenna, decibel difference from an
+ *      arbitrary, fixed reference.
+ *
+ * IEEE80211_RADIOTAP_DB_ANTNOISE       u8           decibel (dB)
+ *
+ *      RF noise power at the antenna, decibel difference from an
+ *      arbitrary, fixed reference point.
+ *
+ * IEEE80211_RADIOTAP_LOCK_QUALITY      __le16       unitless
+ *
+ *      Quality of Barker code lock. Unitless. Monotonically
+ *      nondecreasing with "better" lock strength. Called "Signal
+ *      Quality" in datasheets.  (Is there a standard way to measure
+ *      this?)
+ *
+ * IEEE80211_RADIOTAP_TX_ATTENUATION    __le16       unitless
+ *
+ *      Transmit power expressed as unitless distance from max
+ *      power set at factory calibration.  0 is max power.
+ *      Monotonically nondecreasing with lower power levels.
+ *
+ * IEEE80211_RADIOTAP_DB_TX_ATTENUATION __le16       decibels (dB)
+ *
+ *      Transmit power expressed as decibel distance from max power
+ *      set at factory calibration.  0 is max power.  Monotonically
+ *      nondecreasing with lower power levels.
+ *
+ * IEEE80211_RADIOTAP_DBM_TX_POWER      s8           decibels from
+ *                                                   one milliwatt (dBm)
+ *
+ *      Transmit power expressed as dBm (decibels from a 1 milliwatt
+ *      reference). This is the absolute power level measured at
+ *      the antenna port.
+ *
+ * IEEE80211_RADIOTAP_FLAGS             u8           bitmap
+ *
+ *      Properties of transmitted and received frames. See flags
+ *      defined below.
+ *
+ * IEEE80211_RADIOTAP_ANTENNA           u8           antenna index
+ *
+ *      Unitless indication of the Rx/Tx antenna for this packet.
+ *      The first antenna is antenna 0.
+ *
+ * IEEE80211_RADIOTAP_RX_FLAGS          __le16       bitmap
+ *
+ *     Properties of received frames. See flags defined below.
+ *
+ * IEEE80211_RADIOTAP_TX_FLAGS          __le16       bitmap
+ *
+ *     Properties of transmitted frames. See flags defined below.
+ *
+ * IEEE80211_RADIOTAP_RTS_RETRIES       u8           data
+ *
+ *     Number of rts retries a transmitted frame used.
+ *
+ * IEEE80211_RADIOTAP_DATA_RETRIES      u8           data
+ *
+ *     Number of unicast retries a transmitted frame used.
+ *
+ */
+enum ieee80211_radiotap_type
+{
+  IEEE80211_RADIOTAP_TSFT = 0,
+  IEEE80211_RADIOTAP_FLAGS = 1,
+  IEEE80211_RADIOTAP_RATE = 2,
+  IEEE80211_RADIOTAP_CHANNEL = 3,
+  IEEE80211_RADIOTAP_FHSS = 4,
+  IEEE80211_RADIOTAP_DBM_ANTSIGNAL = 5,
+  IEEE80211_RADIOTAP_DBM_ANTNOISE = 6,
+  IEEE80211_RADIOTAP_LOCK_QUALITY = 7,
+  IEEE80211_RADIOTAP_TX_ATTENUATION = 8,
+  IEEE80211_RADIOTAP_DB_TX_ATTENUATION = 9,
+  IEEE80211_RADIOTAP_DBM_TX_POWER = 10,
+  IEEE80211_RADIOTAP_ANTENNA = 11,
+  IEEE80211_RADIOTAP_DB_ANTSIGNAL = 12,
+  IEEE80211_RADIOTAP_DB_ANTNOISE = 13,
+  IEEE80211_RADIOTAP_RX_FLAGS = 14,
+  IEEE80211_RADIOTAP_TX_FLAGS = 15,
+  IEEE80211_RADIOTAP_RTS_RETRIES = 16,
+  IEEE80211_RADIOTAP_DATA_RETRIES = 17,
+  IEEE80211_RADIOTAP_EXT = 31
+};
+
+/* Channel flags. */
+#define	IEEE80211_CHAN_TURBO	0x0010  /* Turbo channel */
+#define	IEEE80211_CHAN_CCK	0x0020  /* CCK channel */
+#define	IEEE80211_CHAN_OFDM	0x0040  /* OFDM channel */
+#define	IEEE80211_CHAN_2GHZ	0x0080  /* 2 GHz spectrum channel. */
+#define	IEEE80211_CHAN_5GHZ	0x0100  /* 5 GHz spectrum channel */
+#define	IEEE80211_CHAN_PASSIVE	0x0200  /* Only passive scan allowed */
+#define	IEEE80211_CHAN_DYN	0x0400  /* Dynamic CCK-OFDM channel */
+#define	IEEE80211_CHAN_GFSK	0x0800  /* GFSK channel (FHSS PHY) */
+
+/* For IEEE80211_RADIOTAP_FLAGS */
+#define	IEEE80211_RADIOTAP_F_CFP	0x01    /* sent/received
+                                                 * during CFP
+                                                 */
+#define	IEEE80211_RADIOTAP_F_SHORTPRE	0x02    /* sent/received
+                                                 * with short
+                                                 * preamble
+                                                 */
+#define	IEEE80211_RADIOTAP_F_WEP	0x04    /* sent/received
+                                                 * with WEP encryption
+                                                 */
+#define	IEEE80211_RADIOTAP_F_FRAG	0x08    /* sent/received
+                                                 * with fragmentation
+                                                 */
+#define	IEEE80211_RADIOTAP_F_FCS	0x10    /* frame includes FCS */
+#define	IEEE80211_RADIOTAP_F_DATAPAD	0x20    /* frame has padding between
+                                                 * 802.11 header and payload
+                                                 * (to 32-bit boundary)
+                                                 */
+/* For IEEE80211_RADIOTAP_RX_FLAGS */
+#define IEEE80211_RADIOTAP_F_RX_BADFCS	0x0001  /* frame failed crc check */
+
+/* For IEEE80211_RADIOTAP_TX_FLAGS */
+#define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001  /* failed due to excessive
+                                                 * retries */
+#define IEEE80211_RADIOTAP_F_TX_CTS	0x0002  /* used cts 'protection' */
+#define IEEE80211_RADIOTAP_F_TX_RTS	0x0004  /* used rts/cts handshake */
+#define IEEE80211_RADIOTAP_F_TX_NOACK	0x0008  /* frame should not be ACKed */
+#define IEEE80211_RADIOTAP_F_TX_NOSEQ	0x0010  /* sequence number handled
+                                                 * by userspace */
+
+/* Ugly macro to convert literal channel numbers into their mhz equivalents
+ * There are certianly some conditions that will break this (like feeding it '30')
+ * but they shouldn't arise since nothing talks on channel 30. */
+#define ieee80211chan2mhz(x) \
+	(((x) <= 14) ? \
+	(((x) == 14) ? 2484 : ((x) * 5) + 2407) : \
+	((x) + 1000) * 5)
+
+
+
+ /* *INDENT-OFF* */
+#define ___my_swab16(x) \
+((u_int16_t)( \
+  (((u_int16_t)(x) & (u_int16_t)0x00ffU) << 8) | \
+  (((u_int16_t)(x) & (u_int16_t)0xff00U) >> 8) ))
+
+#define ___my_swab32(x) \
+((u_int32_t)( \
+  (((u_int32_t)(x) & (u_int32_t)0x000000ffUL) << 24) | \
+  (((u_int32_t)(x) & (u_int32_t)0x0000ff00UL) <<  8) | \
+  (((u_int32_t)(x) & (u_int32_t)0x00ff0000UL) >>  8) | \
+  (((u_int32_t)(x) & (u_int32_t)0xff000000UL) >> 24) ))
+#define ___my_swab64(x) \
+((u_int64_t)( \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00000000000000ffULL) << 56) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x000000000000ff00ULL) << 40) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x0000000000ff0000ULL) << 24) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00000000ff000000ULL) <<  8) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x000000ff00000000ULL) >>  8) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x0000ff0000000000ULL) >> 24) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00ff000000000000ULL) >> 40) | \
+  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0xff00000000000000ULL) >> 56) ))
+ /* *INDENT-ON* */
+    /*
+     * Linux
+     */
+#if defined(linux) || defined(Linux) || defined(__linux__) || defined(__linux) || defined(__gnu_linux__)
+#include <endian.h>
+#include <unistd.h>
+#include <stdint.h>
+
+#ifndef __int8_t_defined
+typedef uint64_t u_int64_t;
+typedef uint32_t u_int32_t;
+typedef uint16_t u_int16_t;
+typedef uint8_t u_int8_t;
+
+
+#endif /*  */
+
+#ifndef htole16
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define htobe16(x) ___my_swab16 (x)
+#define htole16(x) (x)
+#define be16toh(x) ___my_swab16 (x)
+#define le16toh(x) (x)
+
+#define htobe32(x) ___my_swab32 (x)
+#define htole32(x) (x)
+#define be32toh(x) ___my_swab32 (x)
+#define le32toh(x) (x)
+
+#define htobe64(x) ___my_swab64 (x)
+#define htole64(x) (x)
+#define be64toh(x) ___my_swab64 (x)
+#define le64toh(x) (x)
+#else /*  */
+#define htobe16(x) (x)
+#define htole16(x) ___my_swab16 (x)
+#define be16toh(x) (x)
+#define le16toh(x) ___my_swab16 (x)
+
+#define htobe32(x) (x)
+#define htole32(x) ___my_swab32 (x)
+#define be32toh(x) (x)
+#define le32toh(x) ___my_swab32 (x)
+
+#define htobe64(x) (x)
+#define htole64(x) ___my_swab64 (x)
+#define be64toh(x) (x)
+#define le64toh(x) ___my_swab64 (x)
+#endif /*  */
+#endif /*  */
+
+#endif /*  */
+    /*
+     * Cygwin
+     */
+#if defined(__CYGWIN32__)
+#include <asm/byteorder.h>
+#include <unistd.h>
+#define __be64_to_cpu(x) ___my_swab64(x)
+#define __be32_to_cpu(x) ___my_swab32(x)
+#define __be16_to_cpu(x) ___my_swab16(x)
+#define __cpu_to_be64(x) ___my_swab64(x)
+#define __cpu_to_be32(x) ___my_swab32(x)
+#define __cpu_to_be16(x) ___my_swab16(x)
+#define __le64_to_cpu(x) (x)
+#define __le32_to_cpu(x) (x)
+#define __le16_to_cpu(x) (x)
+#define __cpu_to_le64(x) (x)
+#define __cpu_to_le32(x) (x)
+#define __cpu_to_le16(x) (x)
+#define AIRCRACK_NG_BYTE_ORDER_DEFINED
+#endif /*  */
+    /*
+     * Windows (DDK)
+     */
+#if defined(__WIN__)
+#include <io.h>
+#define __be64_to_cpu(x) ___my_swab64(x)
+#define __be32_to_cpu(x) ___my_swab32(x)
+#define __be16_to_cpu(x) ___my_swab16(x)
+#define __cpu_to_be64(x) ___my_swab64(x)
+#define __cpu_to_be32(x) ___my_swab32(x)
+#define __cpu_to_be16(x) ___my_swab16(x)
+#define __le64_to_cpu(x) (x)
+#define __le32_to_cpu(x) (x)
+#define __le16_to_cpu(x) (x)
+#define __cpu_to_le64(x) (x)
+#define __cpu_to_le32(x) (x)
+#define __cpu_to_le16(x) (x)
+#define AIRCRACK_NG_BYTE_ORDER_DEFINED
+#endif /*  */
+    /*
+     * MAC (Darwin)
+     */
+#if defined(__APPLE_CC__)
+#if defined(__x86_64__) && defined(__APPLE__)
+#include <libkern/OSByteOrder.h>
+#define __swab64(x)      (unsigned long long) OSSwapInt64((uint64_t)x)
+#define __swab32(x)      (unsigned long) OSSwapInt32((uint32_t)x)
+#define __swab16(x)      (unsigned short) OSSwapInt16((uint16_t)x)
+#define __be64_to_cpu(x) (unsigned long long) OSSwapBigToHostInt64((uint64_t)x)
+#define __be32_to_cpu(x) (unsigned long) OSSwapBigToHostInt32((uint32_t)x)
+#define __be16_to_cpu(x) (unsigned short) OSSwapBigToHostInt16((uint16_t)x)
+#define __le64_to_cpu(x) (unsigned long long) OSSwapLittleToHostInt64((uint64_t)x)
+#define __le32_to_cpu(x) (unsigned long) OSSwapLittleToHostInt32((uint32_t)x)
+#define __le16_to_cpu(x) (unsigned short) OSSwapLittleToHostInt16((uint16_t)x)
+#define __cpu_to_be64(x) (unsigned long long) OSSwapHostToBigInt64((uint64_t)x)
+#define __cpu_to_be32(x) (unsigned long) OSSwapHostToBigInt32((uint32_t)x)
+#define __cpu_to_be16(x) (unsigned short) OSSwapHostToBigInt16((uint16_t)x)
+#define __cpu_to_le64(x) (unsigned long long) OSSwapHostToLittleInt64((uint64_t)x)
+#define __cpu_to_le32(x) (unsigned long) OSSwapHostToLittleInt32((uint32_t)x)
+#define __cpu_to_le16(x) (unsigned short) OSSwapHostToLittleInt16((uint16_t)x)
+#else /*  */
+#include <architecture/byte_order.h>
+#define __swab64(x)      NXSwapLongLong(x)
+#define __swab32(x)      NXSwapLong(x)
+#define __swab16(x)      NXSwapShort(x)
+#define __be64_to_cpu(x) NXSwapBigLongLongToHost(x)
+#define __be32_to_cpu(x) NXSwapBigLongToHost(x)
+#define __be16_to_cpu(x) NXSwapBigShortToHost(x)
+#define __le64_to_cpu(x) NXSwapLittleLongLongToHost(x)
+#define __le32_to_cpu(x) NXSwapLittleLongToHost(x)
+#define __le16_to_cpu(x) NXSwapLittleShortToHost(x)
+#define __cpu_to_be64(x) NXSwapHostLongLongToBig(x)
+#define __cpu_to_be32(x) NXSwapHostLongToBig(x)
+#define __cpu_to_be16(x) NXSwapHostShortToBig(x)
+#define __cpu_to_le64(x) NXSwapHostLongLongToLittle(x)
+#define __cpu_to_le32(x) NXSwapHostLongToLittle(x)
+#define __cpu_to_le16(x) NXSwapHostShortToLittle(x)
+#endif /*  */
+#define __LITTLE_ENDIAN 1234
+#define __BIG_ENDIAN    4321
+#define __PDP_ENDIAN    3412
+#define __BYTE_ORDER    __BIG_ENDIAN
+#define AIRCRACK_NG_BYTE_ORDER_DEFINED
+#endif /*  */
+    /*
+     * Solaris
+     * -------
+     */
+#if defined(__sparc__) && defined(__sun__)
+#include <sys/byteorder.h>
+#include <sys/types.h>
+#include <unistd.h>
+#define __be64_to_cpu(x) (x)
+#define __be32_to_cpu(x) (x)
+#define __be16_to_cpu(x) (x)
+#define __cpu_to_be64(x) (x)
+#define __cpu_to_be32(x) (x)
+#define __cpu_to_be16(x) (x)
+#define __le64_to_cpu(x) ___my_swab64(x)
+#define __le32_to_cpu(x) ___my_swab32(x)
+#define __le16_to_cpu(x) ___my_swab16(x)
+#define __cpu_to_le64(x) ___my_swab64(x)
+#define __cpu_to_le32(x) ___my_swab32(x)
+#define __cpu_to_le16(x) ___my_swab16(x)
+typedef uint64_t u_int64_t;
+typedef uint32_t u_int32_t;
+typedef uint16_t u_int16_t;
+typedef uint8_t u_int8_t;
+
+
+#define AIRCRACK_NG_BYTE_ORDER_DEFINED
+#endif /*  */
+    /*
+     * Custom stuff
+     */
+#if  defined(__MACH__) && !defined(__APPLE_CC__)
+#include <libkern/OSByteOrder.h>
+#define __cpu_to_be64(x) = OSSwapHostToBigInt64(x)
+#define __cpu_to_be32(x) = OSSwapHostToBigInt32(x)
+#define AIRCRACK_NG_BYTE_ORDER_DEFINED
+#endif /*  */
+
+    // FreeBSD
+#ifdef __FreeBSD__
+#include <machine/endian.h>
+#endif /*  */
+    // XXX: Is there anything to include on OpenBSD/NetBSD/DragonFlyBSD/...?
+
+    // XXX: Mac: Check http://www.opensource.apple.com/source/CF/CF-476.18/CFByteOrder.h
+    //           http://developer.apple.com/DOCUMENTATION/CoreFoundation/Reference/CFByteOrderUtils/Reference/reference.html
+    //           Write to apple to ask what should be used.
+#if defined(LITTLE_ENDIAN)
+#define AIRCRACK_NG_LITTLE_ENDIAN LITTLE_ENDIAN
+#elif defined(__LITTLE_ENDIAN)
+#define AIRCRACK_NG_LITTLE_ENDIAN __LITTLE_ENDIAN
+#elif defined(_LITTLE_ENDIAN)
+#define AIRCRACK_NG_LITTLE_ENDIAN _LITTLE_ENDIAN
+#endif /*  */
+#if defined(BIG_ENDIAN)
+#define AIRCRACK_NG_BIG_ENDIAN BIG_ENDIAN
+#elif defined(__BIG_ENDIAN)
+#define AIRCRACK_NG_BIG_ENDIAN __BIG_ENDIAN
+#elif defined(_BIG_ENDIAN)
+#define AIRCRACK_NG_BIG_ENDIAN _BIG_ENDIAN
+#endif /*  */
+#if !defined(AIRCRACK_NG_LITTLE_ENDIAN) && !defined(AIRCRACK_NG_BIG_ENDIAN)
+#error Impossible to determine endianness (Little or Big endian), please contact the author.
+#endif /*  */
+#if defined(BYTE_ORDER)
+#if (BYTE_ORDER == AIRCRACK_NG_LITTLE_ENDIAN)
+#define AIRCRACK_NG_BYTE_ORDER AIRCRACK_NG_LITTLE_ENDIAN
+#elif (BYTE_ORDER == AIRCRACK_NG_BIG_ENDIAN)
+#define AIRCRACK_NG_BYTE_ORDER AIRCRACK_NG_BIG_ENDIAN
+#endif /*  */
+#elif defined(__BYTE_ORDER)
+#if (__BYTE_ORDER == AIRCRACK_NG_LITTLE_ENDIAN)
+#define AIRCRACK_NG_BYTE_ORDER AIRCRACK_NG_LITTLE_ENDIAN
+#elif (__BYTE_ORDER == AIRCRACK_NG_BIG_ENDIAN)
+#define AIRCRACK_NG_BYTE_ORDER AIRCRACK_NG_BIG_ENDIAN
+#endif /*  */
+#elif defined(_BYTE_ORDER)
+#if (_BYTE_ORDER == AIRCRACK_NG_LITTLE_ENDIAN)
+#define AIRCRACK_NG_BYTE_ORDER AIRCRACK_NG_LITTLE_ENDIAN
+#elif (_BYTE_ORDER == AIRCRACK_NG_BIG_ENDIAN)
+#define AIRCRACK_NG_BYTE_ORDER AIRCRACK_NG_BIG_ENDIAN
+#endif /*  */
+#endif /*  */
+#ifndef AIRCRACK_NG_BYTE_ORDER
+#error Impossible to determine endianness (Little or Big endian), please contact the author.
+#endif /*  */
+#if (AIRCRACK_NG_BYTE_ORDER == AIRCRACK_NG_LITTLE_ENDIAN)
+#ifndef AIRCRACK_NG_BYTE_ORDER_DEFINED
+#define __be64_to_cpu(x) ___my_swab64(x)
+#define __be32_to_cpu(x) ___my_swab32(x)
+#define __be16_to_cpu(x) ___my_swab16(x)
+#define __cpu_to_be64(x) ___my_swab64(x)
+#define __cpu_to_be32(x) ___my_swab32(x)
+#define __cpu_to_be16(x) ___my_swab16(x)
+#define __le64_to_cpu(x) (x)
+#define __le32_to_cpu(x) (x)
+#define __le16_to_cpu(x) (x)
+#define __cpu_to_le64(x) (x)
+#define __cpu_to_le32(x) (x)
+#define __cpu_to_le16(x) (x)
+#endif /*  */
+#ifndef htobe16
+#define htobe16 ___my_swab16
+#endif /*  */
+#ifndef htobe32
+#define htobe32 ___my_swab32
+#endif /*  */
+#ifndef betoh16
+#define betoh16 ___my_swab16
+#endif /*  */
+#ifndef betoh32
+#define betoh32 ___my_swab32
+#endif /*  */
+#ifndef htole16
+#define htole16(x) (x)
+#endif /*  */
+#ifndef htole32
+#define htole32(x) (x)
+#endif /*  */
+#ifndef letoh16
+#define letoh16(x) (x)
+#endif /*  */
+#ifndef letoh32
+#define letoh32(x) (x)
+#endif /*  */
+#endif /*  */
+#if (AIRCRACK_NG_BYTE_ORDER == AIRCRACK_NG_BIG_ENDIAN)
+#ifndef AIRCRACK_NG_BYTE_ORDER_DEFINED
+#define __be64_to_cpu(x) (x)
+#define __be32_to_cpu(x) (x)
+#define __be16_to_cpu(x) (x)
+#define __cpu_to_be64(x) (x)
+#define __cpu_to_be32(x) (x)
+#define __cpu_to_be16(x) (x)
+#define __le64_to_cpu(x) ___my_swab64(x)
+#define __le32_to_cpu(x) ___my_swab32(x)
+#define __le16_to_cpu(x) ___my_swab16(x)
+#define __cpu_to_le64(x) ___my_swab64(x)
+#define __cpu_to_le32(x) ___my_swab32(x)
+#define __cpu_to_le16(x) ___my_swab16(x)
+#endif /*  */
+#ifndef htobe16
+#define htobe16(x) (x)
+#endif /*  */
+#ifndef htobe32
+#define htobe32(x) (x)
+#endif /*  */
+#ifndef betoh16
+#define betoh16(x) (x)
+#endif /*  */
+#ifndef betoh32
+#define betoh32(x) (x)
+#endif /*  */
+#ifndef htole16
+#define htole16 ___my_swab16
+#endif /*  */
+#ifndef htole32
+#define htole32 ___my_swab32
+#endif /*  */
+#ifndef letoh16
+#define letoh16 ___my_swab16
+#endif /*  */
+#ifndef letoh32
+#define letoh32 ___my_swab32
+#endif /*  */
+#endif /*  */
+    // Common defines
+#define cpu_to_le64 __cpu_to_le64
+#define le64_to_cpu __le64_to_cpu
+#define cpu_to_le32 __cpu_to_le32
+#define le32_to_cpu __le32_to_cpu
+#define cpu_to_le16 __cpu_to_le16
+#define le16_to_cpu __le16_to_cpu
+#define cpu_to_be64 __cpu_to_be64
+#define be64_to_cpu __be64_to_cpu
+#define cpu_to_be32 __cpu_to_be32
+#define be32_to_cpu __be32_to_cpu
+#define cpu_to_be16 __cpu_to_be16
+#define be16_to_cpu __be16_to_cpu
+#ifndef le16toh
+#define le16toh le16_to_cpu
+#endif /*  */
+#ifndef be16toh
+#define be16toh be16_to_cpu
+#endif /*  */
+#ifndef le32toh
+#define le32toh le32_to_cpu
+#endif /*  */
+#ifndef be32toh
+#define be32toh be32_to_cpu
+#endif /*  */
+
+#ifndef htons
+#define htons be16_to_cpu
+#endif /*  */
+#ifndef htonl
+#define htonl cpu_to_be16
+#endif /*  */
+#ifndef ntohs
+#define ntohs cpu_to_be16
+#endif /*  */
+#ifndef ntohl
+#define ntohl cpu_to_be32
+#endif /*  */
+
+
 
 /*
- //#include <resolv.h>
- #include <string.h>
- #include <utime.h>
- #include <getopt.h>
+ * Radiotap header iteration
+ *   implemented in src/radiotap-parser.c
+ *
+ * call __ieee80211_radiotap_iterator_init() to init a semi-opaque iterator
+ * struct ieee80211_radiotap_iterator (no need to init the struct beforehand)
+ * then loop calling __ieee80211_radiotap_iterator_next()... it returns -1
+ * if there are no more args in the header, or the next argument type index
+ * that is present.  The iterator's this_arg member points to the start of the
+ * argument associated with the current argument index that is present,
+ * which can be found in the iterator's this_arg_index member.  This arg
+ * index corresponds to the IEEE80211_RADIOTAP_... defines.
  */
-//#include "platform.h"
-#include "gnunet_constants.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_transport_plugin.h"
-#include "transport.h"
-#include "gnunet_util_lib.h"
-#include "plugin_transport_wlan.h"
-#include "gnunet_common.h"
-#include "gnunet-transport-wlan-helper.h"
-#include "gnunet_crypto_lib.h"
+/**
+ * struct ieee80211_radiotap_iterator - tracks walk thru present radiotap args
+ * @rtheader: pointer to the radiotap header we are walking through
+ * @max_length: length of radiotap header in cpu byte ordering
+ * @this_arg_index: IEEE80211_RADIOTAP_... index of current arg
+ * @this_arg: pointer to current radiotap arg
+ * @arg_index: internal next argument index
+ * @arg: internal next argument pointer
+ * @next_bitmap: internal pointer to next present u32
+ * @bitmap_shifter: internal shifter for curr u32 bitmap, b0 set == arg present
+ */
 
-#include "wlan/radiotap-parser.h"
-/* radiotap-parser defines types like u8 that
- * ieee80211_radiotap.h needs
+struct ieee80211_radiotap_iterator
+{
+  struct ieee80211_radiotap_header *rtheader;
+  int max_length;
+  int this_arg_index;
+  u8 *this_arg;
+
+  int arg_index;
+  u8 *arg;
+  u32 *next_bitmap;
+  u32 bitmap_shifter;
+};
+
+
+/*
+ * Radiotap header iteration
+ *   implemented in src/radiotap-parser.c
  *
- * we use our local copy of ieee80211_radiotap.h
- *
- * - since we can't support extensions we don't understand
- * - since linux does not include it in userspace headers
+ * call __ieee80211_radiotap_iterator_init() to init a semi-opaque iterator
+ * struct ieee80211_radiotap_iterator (no need to init the struct beforehand)
+ * then loop calling __ieee80211_radiotap_iterator_next()... it returns -1
+ * if there are no more args in the header, or the next argument type index
+ * that is present.  The iterator's this_arg member points to the start of the
+ * argument associated with the current argument index that is present,
+ * which can be found in the iterator's this_arg_index member.  This arg
+ * index corresponds to the IEEE80211_RADIOTAP_... defines.
  */
-#include "wlan/ieee80211_radiotap.h"
-#include "wlan/crctable_osdep.h"
-//#include "wlan/loopback_helper.h"
-//#include "wlan/ieee80211.h"
-#include "wlan/helper_common.h"
+
+
+int
+ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator *iterator,
+                                  struct ieee80211_radiotap_header
+                                  *radiotap_header, int max_length)
+{
+  if (iterator == NULL)
+    return (-EINVAL);
+
+  if (radiotap_header == NULL)
+    return (-EINVAL);
+  /* Linux only supports version 0 radiotap format */
+
+  if (radiotap_header->it_version)
+    return (-EINVAL);
+
+  /* sanity check for allowed length and radiotap length field */
+
+  if (max_length < (le16_to_cpu (radiotap_header->it_len)))
+    return (-EINVAL);
+
+  iterator->rtheader = radiotap_header;
+  iterator->max_length = le16_to_cpu (radiotap_header->it_len);
+  iterator->arg_index = 0;
+  iterator->bitmap_shifter = le32_to_cpu (radiotap_header->it_present);
+  iterator->arg =
+      ((u8 *) radiotap_header) + sizeof (struct ieee80211_radiotap_header);
+  iterator->this_arg = 0;
+
+  /* find payload start allowing for extended bitmap(s) */
+
+  if ((iterator->bitmap_shifter & IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK))
+  {
+    while (le32_to_cpu (*((u32 *) iterator->arg)) &
+           IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK)
+    {
+      iterator->arg += sizeof (u32);
+
+      /*
+       * check for insanity where the present bitmaps
+       * keep claiming to extend up to or even beyond the
+       * stated radiotap header length
+       */
+
+      if ((((void *) iterator->arg) - ((void *) iterator->rtheader)) >
+          iterator->max_length)
+        return (-EINVAL);
+
+    }
+
+    iterator->arg += sizeof (u32);
+
+    /*
+     * no need to check again for blowing past stated radiotap
+     * header length, becuase ieee80211_radiotap_iterator_next
+     * checks it before it is dereferenced
+     */
+
+  }
+
+  /* we are all initialized happily */
+
+  return (0);
+}
+
+
+/**
+ * ieee80211_radiotap_iterator_next - return next radiotap parser iterator arg
+ * @iterator: radiotap_iterator to move to next arg (if any)
+ *
+ * Returns: next present arg index on success or negative if no more or error
+ *
+ * This function returns the next radiotap arg index (IEEE80211_RADIOTAP_...)
+ * and sets iterator->this_arg to point to the payload for the arg.  It takes
+ * care of alignment handling and extended present fields.  interator->this_arg
+ * can be changed by the caller.  The args pointed to are in little-endian
+ * format.
+ */
+
+int
+ieee80211_radiotap_iterator_next (struct ieee80211_radiotap_iterator *iterator)
+{
+
+  /*
+   * small length lookup table for all radiotap types we heard of
+   * starting from b0 in the bitmap, so we can walk the payload
+   * area of the radiotap header
+   *
+   * There is a requirement to pad args, so that args
+   * of a given length must begin at a boundary of that length
+   * -- but note that compound args are allowed (eg, 2 x u16
+   * for IEEE80211_RADIOTAP_CHANNEL) so total arg length is not
+   * a reliable indicator of alignment requirement.
+   *
+   * upper nybble: content alignment for arg
+   * lower nybble: content length for arg
+   */
+
+  static const u8 rt_sizes[] = {
+    [IEEE80211_RADIOTAP_TSFT] = 0x88,
+    [IEEE80211_RADIOTAP_FLAGS] = 0x11,
+    [IEEE80211_RADIOTAP_RATE] = 0x11,
+    [IEEE80211_RADIOTAP_CHANNEL] = 0x24,
+    [IEEE80211_RADIOTAP_FHSS] = 0x22,
+    [IEEE80211_RADIOTAP_DBM_ANTSIGNAL] = 0x11,
+    [IEEE80211_RADIOTAP_DBM_ANTNOISE] = 0x11,
+    [IEEE80211_RADIOTAP_LOCK_QUALITY] = 0x22,
+    [IEEE80211_RADIOTAP_TX_ATTENUATION] = 0x22,
+    [IEEE80211_RADIOTAP_DB_TX_ATTENUATION] = 0x22,
+    [IEEE80211_RADIOTAP_DBM_TX_POWER] = 0x11,
+    [IEEE80211_RADIOTAP_ANTENNA] = 0x11,
+    [IEEE80211_RADIOTAP_DB_ANTSIGNAL] = 0x11,
+    [IEEE80211_RADIOTAP_DB_ANTNOISE] = 0x11,
+    [IEEE80211_RADIOTAP_TX_FLAGS] = 0x22,
+    [IEEE80211_RADIOTAP_RX_FLAGS] = 0x22,
+    [IEEE80211_RADIOTAP_RTS_RETRIES] = 0x11,
+    [IEEE80211_RADIOTAP_DATA_RETRIES] = 0x11
+        /*
+         * add more here as they are defined in
+         * include/net/ieee80211_radiotap.h
+         */
+  };
+
+  /*
+   * for every radiotap entry we can at
+   * least skip (by knowing the length)...
+   */
+
+  while (iterator->arg_index < (int) sizeof (rt_sizes))
+  {
+    int hit = 0;
+
+    if (!(iterator->bitmap_shifter & 1))
+      goto next_entry;          /* arg not present */
+
+    /*
+     * arg is present, account for alignment padding
+     *  8-bit args can be at any alignment
+     * 16-bit args must start on 16-bit boundary
+     * 32-bit args must start on 32-bit boundary
+     * 64-bit args must start on 64-bit boundary
+     *
+     * note that total arg size can differ from alignment of
+     * elements inside arg, so we use upper nybble of length
+     * table to base alignment on
+     *
+     * also note: these alignments are ** relative to the
+     * start of the radiotap header **.  There is no guarantee
+     * that the radiotap header itself is aligned on any
+     * kind of boundary.
+     */
+
+    if ((((void *) iterator->arg) -
+         ((void *) iterator->rtheader)) & ((rt_sizes[iterator->arg_index] >> 4)
+                                           - 1))
+      iterator->arg_index +=
+          (rt_sizes[iterator->arg_index] >> 4) -
+          ((((void *) iterator->arg) -
+            ((void *) iterator->rtheader)) & ((rt_sizes[iterator->arg_index] >>
+                                               4) - 1));
+
+    /*
+     * this is what we will return to user, but we need to
+     * move on first so next call has something fresh to test
+     */
+
+    iterator->this_arg_index = iterator->arg_index;
+    iterator->this_arg = iterator->arg;
+    hit = 1;
+
+    /* internally move on the size of this arg */
+
+    iterator->arg += rt_sizes[iterator->arg_index] & 0x0f;
+
+    /*
+     * check for insanity where we are given a bitmap that
+     * claims to have more arg content than the length of the
+     * radiotap section.  We will normally end up equalling this
+     * max_length on the last arg, never exceeding it.
+     */
+
+    if ((((void *) iterator->arg) - ((void *) iterator->rtheader)) >
+        iterator->max_length)
+      return (-EINVAL);
+
+next_entry:
+
+    iterator->arg_index++;
+    if (((iterator->arg_index & 31) == 0))
+    {
+      /* completed current u32 bitmap */
+      if (iterator->bitmap_shifter & 1)
+      {
+        /* b31 was set, there is more */
+        /* move to next u32 bitmap */
+        iterator->bitmap_shifter = le32_to_cpu (*iterator->next_bitmap);
+        iterator->next_bitmap++;
+      }
+      else
+      {
+        /* no more bitmaps: end */
+        iterator->arg_index = sizeof (rt_sizes);
+      }
+    }
+    else
+    {                           /* just try the next bit */
+      iterator->bitmap_shifter >>= 1;
+    }
+
+    /* if we found a valid arg earlier, return it now */
+
+    if (hit)
+      return (iterator->this_arg_index);
+
+  }
+
+  /* we don't know how to handle any more args, we're done */
+
+  return (-1);
+}
+
+
+const unsigned long int crc_tbl_osdep[256] = {
+  0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F,
+  0xE963A535, 0x9E6495A3,
+  0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988, 0x09B64C2B, 0x7EB17CBD,
+  0xE7B82D07, 0x90BF1D91,
+  0x1DB71064, 0x6AB020F2, 0xF3B97148, 0x84BE41DE, 0x1ADAD47D, 0x6DDDE4EB,
+  0xF4D4B551, 0x83D385C7,
+  0x136C9856, 0x646BA8C0, 0xFD62F97A, 0x8A65C9EC, 0x14015C4F, 0x63066CD9,
+  0xFA0F3D63, 0x8D080DF5,
+  0x3B6E20C8, 0x4C69105E, 0xD56041E4, 0xA2677172, 0x3C03E4D1, 0x4B04D447,
+  0xD20D85FD, 0xA50AB56B,
+  0x35B5A8FA, 0x42B2986C, 0xDBBBC9D6, 0xACBCF940, 0x32D86CE3, 0x45DF5C75,
+  0xDCD60DCF, 0xABD13D59,
+  0x26D930AC, 0x51DE003A, 0xC8D75180, 0xBFD06116, 0x21B4F4B5, 0x56B3C423,
+  0xCFBA9599, 0xB8BDA50F,
+  0x2802B89E, 0x5F058808, 0xC60CD9B2, 0xB10BE924, 0x2F6F7C87, 0x58684C11,
+  0xC1611DAB, 0xB6662D3D,
+  0x76DC4190, 0x01DB7106, 0x98D220BC, 0xEFD5102A, 0x71B18589, 0x06B6B51F,
+  0x9FBFE4A5, 0xE8B8D433,
+  0x7807C9A2, 0x0F00F934, 0x9609A88E, 0xE10E9818, 0x7F6A0DBB, 0x086D3D2D,
+  0x91646C97, 0xE6635C01,
+  0x6B6B51F4, 0x1C6C6162, 0x856530D8, 0xF262004E, 0x6C0695ED, 0x1B01A57B,
+  0x8208F4C1, 0xF50FC457,
+  0x65B0D9C6, 0x12B7E950, 0x8BBEB8EA, 0xFCB9887C, 0x62DD1DDF, 0x15DA2D49,
+  0x8CD37CF3, 0xFBD44C65,
+  0x4DB26158, 0x3AB551CE, 0xA3BC0074, 0xD4BB30E2, 0x4ADFA541, 0x3DD895D7,
+  0xA4D1C46D, 0xD3D6F4FB,
+  0x4369E96A, 0x346ED9FC, 0xAD678846, 0xDA60B8D0, 0x44042D73, 0x33031DE5,
+  0xAA0A4C5F, 0xDD0D7CC9,
+  0x5005713C, 0x270241AA, 0xBE0B1010, 0xC90C2086, 0x5768B525, 0x206F85B3,
+  0xB966D409, 0xCE61E49F,
+  0x5EDEF90E, 0x29D9C998, 0xB0D09822, 0xC7D7A8B4, 0x59B33D17, 0x2EB40D81,
+  0xB7BD5C3B, 0xC0BA6CAD,
+  0xEDB88320, 0x9ABFB3B6, 0x03B6E20C, 0x74B1D29A, 0xEAD54739, 0x9DD277AF,
+  0x04DB2615, 0x73DC1683,
+  0xE3630B12, 0x94643B84, 0x0D6D6A3E, 0x7A6A5AA8, 0xE40ECF0B, 0x9309FF9D,
+  0x0A00AE27, 0x7D079EB1,
+  0xF00F9344, 0x8708A3D2, 0x1E01F268, 0x6906C2FE, 0xF762575D, 0x806567CB,
+  0x196C3671, 0x6E6B06E7,
+  0xFED41B76, 0x89D32BE0, 0x10DA7A5A, 0x67DD4ACC, 0xF9B9DF6F, 0x8EBEEFF9,
+  0x17B7BE43, 0x60B08ED5,
+  0xD6D6A3E8, 0xA1D1937E, 0x38D8C2C4, 0x4FDFF252, 0xD1BB67F1, 0xA6BC5767,
+  0x3FB506DD, 0x48B2364B,
+  0xD80D2BDA, 0xAF0A1B4C, 0x36034AF6, 0x41047A60, 0xDF60EFC3, 0xA867DF55,
+  0x316E8EEF, 0x4669BE79,
+  0xCB61B38C, 0xBC66831A, 0x256FD2A0, 0x5268E236, 0xCC0C7795, 0xBB0B4703,
+  0x220216B9, 0x5505262F,
+  0xC5BA3BBE, 0xB2BD0B28, 0x2BB45A92, 0x5CB36A04, 0xC2D7FFA7, 0xB5D0CF31,
+  0x2CD99E8B, 0x5BDEAE1D,
+  0x9B64C2B0, 0xEC63F226, 0x756AA39C, 0x026D930A, 0x9C0906A9, 0xEB0E363F,
+  0x72076785, 0x05005713,
+  0x95BF4A82, 0xE2B87A14, 0x7BB12BAE, 0x0CB61B38, 0x92D28E9B, 0xE5D5BE0D,
+  0x7CDCEFB7, 0x0BDBDF21,
+  0x86D3D2D4, 0xF1D4E242, 0x68DDB3F8, 0x1FDA836E, 0x81BE16CD, 0xF6B9265B,
+  0x6FB077E1, 0x18B74777,
+  0x88085AE6, 0xFF0F6A70, 0x66063BCA, 0x11010B5C, 0x8F659EFF, 0xF862AE69,
+  0x616BFFD3, 0x166CCF45,
+  0xA00AE278, 0xD70DD2EE, 0x4E048354, 0x3903B3C2, 0xA7672661, 0xD06016F7,
+  0x4969474D, 0x3E6E77DB,
+  0xAED16A4A, 0xD9D65ADC, 0x40DF0B66, 0x37D83BF0, 0xA9BCAE53, 0xDEBB9EC5,
+  0x47B2CF7F, 0x30B5FFE9,
+  0xBDBDF21C, 0xCABAC28A, 0x53B39330, 0x24B4A3A6, 0xBAD03605, 0xCDD70693,
+  0x54DE5729, 0x23D967BF,
+  0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1,
+  0x5A05DF1B, 0x2D02EF8D
+};
+
 
 #define ARPHRD_IEEE80211        801
 #define ARPHRD_IEEE80211_PRISM  802
@@ -98,6 +1049,15 @@
 
 
 #define IEEE80211_ADDR_LEN      6       /* size of 802.11 address */
+
+#define MAXLINE 4096
+
+struct sendbuf
+{
+  unsigned int pos;
+  unsigned int size;
+  char buf[MAXLINE * 2];
+};
 
 /*
  * generic definitions for IEEE 802.11 frames
@@ -135,7 +1095,8 @@ struct Hardware_Infos
    * Name of the interface, not necessarily 0-terminated (!).
    */
   char iface[IFNAMSIZ];
-  unsigned char pl_mac[MAC_ADDR_SIZE];
+
+  struct MacAddress pl_mac;
 };
 
 struct RadioTapheader
@@ -145,6 +1106,32 @@ struct RadioTapheader
   u8 pad1;
   u16 txflags;
 };
+
+
+
+
+
+/**
+ * function to create GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL message for plugin
+ * @param buffer pointer to buffer for the message
+ * @param mac pointer to the mac address
+ * @return number of bytes written
+ */
+int
+send_mac_to_plugin (char *buffer, struct MacAddress *mac)
+{
+
+  struct Wlan_Helper_Control_Message macmsg;
+
+  memcpy (&macmsg.mac, (char *) mac, sizeof (struct MacAddress));
+  macmsg.hdr.size = htons (sizeof (struct Wlan_Helper_Control_Message));
+  macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
+
+  memcpy (buffer, &macmsg, sizeof (struct Wlan_Helper_Control_Message));
+  return sizeof (struct Wlan_Helper_Control_Message);
+}
+
+
 
 // FIXME: inline?
 int
@@ -508,7 +1495,7 @@ openraw (struct Hardware_Infos *dev)
     return 1;
   }
 
-  memcpy (dev->pl_mac, ifr.ifr_hwaddr.sa_data, MAC_ADDR_SIZE);
+  memcpy (&dev->pl_mac, ifr.ifr_hwaddr.sa_data, MAC_ADDR_SIZE);
   dev->arptype_in = ifr.ifr_hwaddr.sa_family;
   if ((ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) &&
       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) &&
@@ -595,7 +1582,7 @@ mac_test (const struct ieee80211_frame *u8aIeeeHeader,
 {
   if (0 != memcmp (u8aIeeeHeader->i_addr3, &mac_bssid, MAC_ADDR_SIZE))
     return 1;
-  if (0 == memcmp (u8aIeeeHeader->i_addr1, dev->pl_mac, MAC_ADDR_SIZE))
+  if (0 == memcmp (u8aIeeeHeader->i_addr1, &dev->pl_mac, MAC_ADDR_SIZE))
     return 0;
   if (0 == memcmp (u8aIeeeHeader->i_addr1, &bc_all_mac, MAC_ADDR_SIZE))
     return 0;
@@ -614,7 +1601,7 @@ mac_set (struct ieee80211_frame *u8aIeeeHeader,
 {
   u8aIeeeHeader->i_fc[0] = 0x08;
   u8aIeeeHeader->i_fc[1] = 0x00;
-  memcpy (u8aIeeeHeader->i_addr2, dev->pl_mac, MAC_ADDR_SIZE);
+  memcpy (u8aIeeeHeader->i_addr2, &dev->pl_mac, MAC_ADDR_SIZE);
   memcpy (u8aIeeeHeader->i_addr3, &mac_bssid, MAC_ADDR_SIZE);
 
 }
@@ -746,7 +1733,7 @@ maketest (unsigned char *buf, struct Hardware_Infos *dev)
   if (0 == first)
   {
     memcpy (&u8aIeeeHeader, u8aIeeeHeader_def, sizeof (struct ieee80211_frame));
-    memcpy (u8aIeeeHeader.i_addr2, dev->pl_mac, MAC_ADDR_SIZE);
+    memcpy (u8aIeeeHeader.i_addr2, &dev->pl_mac, MAC_ADDR_SIZE);
     first = 1;
   }
 
@@ -807,7 +1794,7 @@ hardwaremode (int argc, char *argv[])
 
   /* send mac to STDOUT first */
   write_std.pos = 0;
-  write_std.size = send_mac_to_plugin ((char *) &write_std.buf, dev.pl_mac);
+  write_std.size = send_mac_to_plugin ((char *) &write_std.buf, &dev.pl_mac);
   stdin_open = 1;
 
   while (1)

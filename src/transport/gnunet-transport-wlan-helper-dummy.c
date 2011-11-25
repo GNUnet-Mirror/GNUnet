@@ -18,27 +18,10 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file transport/test_transport_wlan_dummy.c
+ * @file transport/gnunet-transport-wlan-helper-dummy.c
  * @brief helper for the testcases for plugin_transport_wlan.c
  * @author David Brodski
  */
-
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <errno.h>
-#include <resolv.h>
-#include <string.h>
-#include <utime.h>
-#include <unistd.h>
-#include <getopt.h>
-
 #include "platform.h"
 #include "gnunet_constants.h"
 #include "gnunet_os_lib.h"
@@ -47,12 +30,23 @@
 #include "gnunet_util_lib.h"
 #include "plugin_transport_wlan.h"
 #include "gnunet_common.h"
-//#include "gnunet-transport-wlan-helper.h"
 #include "gnunet_crypto_lib.h"
-#include "wlan/loopback_helper.h"
-#include "wlan/helper_common.h"
+
+#define FIFO_FILE1       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_in"
+#define FIFO_FILE2       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_out"
+
+#define MAXLINE 4096
+
+struct sendbuf
+{
+  unsigned int pos;
+  unsigned int size;
+  char buf[MAXLINE * 2];
+};
 
 static int first;
+
+static int closeprog;
 
 static void
 sigfunc (int sig)
@@ -60,6 +54,26 @@ sigfunc (int sig)
   closeprog = 1;
   (void) unlink (FIFO_FILE1);
   (void) unlink (FIFO_FILE2);
+}
+
+/**
+ * function to create GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL message for plugin
+ * @param buffer pointer to buffer for the message
+ * @param mac pointer to the mac address
+ * @return number of bytes written
+ */
+int
+send_mac_to_plugin (char *buffer, struct MacAddress *mac)
+{
+
+  struct Wlan_Helper_Control_Message macmsg;
+
+  memcpy (&macmsg.mac, (char *) mac, sizeof (struct MacAddress));
+  macmsg.hdr.size = htons (sizeof (struct Wlan_Helper_Control_Message));
+  macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
+
+  memcpy (buffer, &macmsg, sizeof (struct Wlan_Helper_Control_Message));
+  return sizeof (struct Wlan_Helper_Control_Message);
 }
 
 static void
@@ -132,7 +146,6 @@ file_in_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   write_std->size += sendsize;
 }
 
-int closeprog;
 
 
 int
@@ -284,7 +297,7 @@ testmode (int argc, char *argv[])
   macaddr.mac[4] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 256);
   macaddr.mac[5] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, 256);
 
-  write_std.size = send_mac_to_plugin (write_std.buf, macaddr.mac);
+  write_std.size = send_mac_to_plugin (write_std.buf, &macaddr);
 
   while (0 == closeprog)
   {
