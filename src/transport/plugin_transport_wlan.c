@@ -38,8 +38,6 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_fragmentation_lib.h"
 #include "gnunet_constants.h"
-//#include "wlan/ieee80211.h"
-//#include  <netinet/ip.h>
 
 #include <string.h>
 
@@ -482,7 +480,6 @@ struct AckSendQueue
 /**
  * Session infos gathered from a messages
  */
-
 struct Session_light
 {
   /**
@@ -647,14 +644,12 @@ struct MacEndpoint
 /**
  * Struct for Messages in the fragment queue
  */
-
 struct FragmentMessage
 {
 
   /**
    * Session this message belongs to
    */
-
   struct Session *session;
 
   /**
@@ -704,9 +699,11 @@ struct FragmentMessage
 
 static void
 do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 static void
 free_session (struct Plugin *plugin, struct Sessionqueue *queue,
               int do_free_macendpoint);
+
 static struct MacEndpoint *
 create_macendpoint (struct Plugin *plugin, const struct MacAddress *addr);
 
@@ -899,7 +896,6 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param peer peer identity to use for this session
  * @return returns the session
  */
-
 static struct Session *
 create_session (struct Plugin *plugin, struct MacEndpoint *endpoint,
                 const struct GNUNET_PeerIdentity *peer)
@@ -1025,7 +1021,6 @@ delay_fragment_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Function to calculate the time of the next periodic "hello-beacon"
  * @param plugin pointer to the plugin struct
  */
-
 static void
 set_next_beacon_time (struct Plugin *const plugin)
 {
@@ -1062,7 +1057,6 @@ set_next_beacon_time (struct Plugin *const plugin)
  * Function to set the timer for the next timeout of the fragment queue
  * @param plugin the handle to the plugin struct
  */
-
 static void
 set_next_send (struct Plugin *const plugin)
 {
@@ -1359,45 +1353,13 @@ getWlanHeader (struct ieee80211_frame *Header,
   return GNUNET_YES;
 }
 
-/**
- * 32bit CRC
- *
- * @param msgbuf pointer tor the data
- * @param msgbuf_size size of the data
- *
- * @return 32bit crc value
- */
-
-uint32_t
-getcrc32 (const char *msgbuf, size_t msgbuf_size)
-{
-
-  return GNUNET_CRYPTO_crc32_n (msgbuf, msgbuf_size);;
-}
-
-/**
- * 16bit CRC
- *
- * @param msgbuf pointer tor the data
- * @param msgbuf_size size of the data
- *
- * @return 16bit crc value
- */
-
-uint16_t
-getcrc16 (const char *msgbuf, size_t msgbuf_size)
-{
-  //TODO calc some crc
-  return 0;
-}
 
 /**
  * function to add a fragment of a message to send
  * @param cls FragmentMessage this message belongs to
  * @param hdr pointer to the start of the message
  */
-
-void
+static void
 add_message_for_send (void *cls, const struct GNUNET_MessageHeader *hdr)
 {
 
@@ -1900,7 +1862,6 @@ send_hello_beacon (struct Plugin *plugin)
  * @param hdr pointer to the hdr where the ack is stored
  *
  */
-
 static void
 add_ack_for_send (void *cls, uint32_t msg_id,
                   const struct GNUNET_MessageHeader *hdr)
@@ -2344,10 +2305,8 @@ wlan_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   wlanheader->crc = 0;
   memcpy (&wlanheader[1], msgbuf, msgbuf_size);
   wlanheader->crc =
-      htonl (getcrc32
+      htonl (GNUNET_CRYPTO_crc32_n
              ((char *) wlanheader, msgbuf_size + sizeof (struct WlanHeader)));
-  //GNUNET_log_from(GNUNET_ERROR_TYPE_INFO, PLUGIN_LOG_NAME,  "Wlan message Header crc: %u, %u\n",getcrc32((char*) wlanheader, msgbuf_size + sizeof(struct WlanHeader)), wlanheader->crc);
-  //hexdump(newmsg->msg, msgbuf_size + sizeof(struct WlanHeader));
 
   newmsg->transmit_cont = cont;
   newmsg->transmit_cont_cls = cont_cls;
@@ -2642,13 +2601,13 @@ wlan_data_message_handler (void *cls, const struct GNUNET_MessageHeader *hdr)
     temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
     crc = ntohl (wlanheader->crc);
     wlanheader->crc = 0;
-    if (getcrc32 ((char *) wlanheader, ntohs (wlanheader->header.size)) != crc)
+    if (GNUNET_CRYPTO_crc32_n ((char *) wlanheader, ntohs (wlanheader->header.size)) != crc)
     {
       //wrong crc, dispose message
       GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, PLUGIN_LOG_NAME,
                        "Wlan message header crc was wrong: %u != %u\n",
-                       getcrc32 ((char *) wlanheader,
-                                 ntohs (wlanheader->header.size)), crc);
+                       GNUNET_CRYPTO_crc32_n ((char *) wlanheader,
+					      ntohs (wlanheader->header.size)), crc);
       hexdump ((void *) hdr, ntohs (hdr->size));
       return;
     }
@@ -2980,12 +2939,13 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
 
 }
 
+#if DEBUG_wlan
 /**
  * Function to print mac addresses nice *
  * @param pointer to 6 byte with the mac address
  * @return pointer to the chars which hold the print out
  */
-const char *
+static const char *
 macprinter (const u_int8_t * mac)
 {
   static char macstr[20];
@@ -2994,6 +2954,7 @@ macprinter (const u_int8_t * mac)
                    mac[2], mac[3], mac[4], mac[5]);
   return macstr;
 }
+#endif
 
 /**
  * Function for the scheduler if a mac endpoint times out
