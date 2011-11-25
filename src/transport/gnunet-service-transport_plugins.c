@@ -203,12 +203,19 @@ const char *
 GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api;
+  static char unable_to_show[1024];
 
   if (address == NULL)
     return "<inbound>";
   api = GST_plugins_find (address->transport_name);
   if ((api == NULL) || (address->address_length == 0) || (address->address == NULL))
-    return NULL;
+  {
+    snprintf (unable_to_show, 1024,
+        "<unable to stringify %u-byte long address 0x%x used by %s transport>",
+        address->address_length, address, address->transport_name);
+    unable_to_show[1023] = '\0';
+    return unable_to_show;
+  }
   return api->address_to_string (NULL, address->address, address->address_length);
 }
 
