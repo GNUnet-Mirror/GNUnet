@@ -2284,8 +2284,10 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   n = lookup_neighbour (peer);
   if (NULL == n)
   {
-    /* we did not send 'CONNECT' (how could we? no record for this peer!) */
-    GNUNET_break_op (0);
+    /* we did not send 'CONNECT' -- at least not recently */
+    GNUNET_STATISTICS_update (GST_stats,
+			      gettext_noop ("# unexpected CONNECT_ACK messages (no peer)"), 1,
+			      GNUNET_NO);
     return;
   }  
 
