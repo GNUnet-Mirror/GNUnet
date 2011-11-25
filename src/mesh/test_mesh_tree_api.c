@@ -181,7 +181,7 @@ main (int argc, char *argv[])
   tree_add_path (tree, path, &cb, NULL);
   tree_debug (tree);
   path1 = tree_get_path_to_peer (tree, 4);
-  if (path->length != path1->length ||
+  if (NULL == path1 || path->length != path1->length ||
       memcmp (path->peers, path1->peers, path->length) != 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Retrieved path != original\n");
