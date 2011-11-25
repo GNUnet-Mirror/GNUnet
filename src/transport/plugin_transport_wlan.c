@@ -1497,7 +1497,7 @@ static int
 wlan_transport_start_wlan_helper (struct Plugin *plugin)
 {
   const char *filenamehw = "gnunet-transport-wlan-helper";
-  char *filenameloopback = "gnunet-transport-wlan-helper-dummy";
+  const char *filenameloopback = "gnunet-transport-wlan-helper-dummy";
   char *absolute_filename = NULL;
 
   if (plugin->helper_is_running == GNUNET_YES){
@@ -1577,7 +1577,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
 
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, PLUGIN_LOG_NAME,
-                     "Starting gnunet-wlan-helper loopback 1 process cmd: %s %s %i\n",
+                     "Starting gnunet-transport-wlan-helper-dummy loopback 1 process cmd: %s %s %i\n",
                      absolute_filename, plugin->interface, plugin->testmode);
 #endif
     plugin->server_proc =
@@ -1596,7 +1596,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   {
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, PLUGIN_LOG_NAME,
-                     "Starting gnunet-wlan-helper loopback 2 process cmd: %s %s %i\n",
+                     "Starting gnunet-transport-wlan-helper-dummy loopback 2 process cmd: %s %s %i\n",
                      absolute_filename, plugin->interface, plugin->testmode);
 #endif
 
@@ -1618,7 +1618,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   {
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Failed to start gnunet-wlan-helper process\n");
+                     "Failed to start gnunet-transport-wlan-helper process\n");
 #endif
     return GNUNET_SYSERR;
   }

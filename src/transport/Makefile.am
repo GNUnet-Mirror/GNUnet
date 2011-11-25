@@ -123,7 +123,7 @@ gnunet_transport_wlan_helper_LDADD = \
 gnunet_transport_wlan_helper_dummy_SOURCES = \
  wlan/radiotap-parser.c \
  wlan/helper_common.c \
- test_plugin_transport_wlan_dummy.c
+ gnunet-transport-wlan-helper-dummy.c
 gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 
