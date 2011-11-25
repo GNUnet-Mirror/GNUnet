@@ -245,9 +245,7 @@ src/fs/fs_tree.h
 src/fs/gnunet-service-fs_pe.h
 src/fs/gnunet-service-fs_put.h
 src/transport/gnunet-service-transport_neighbours.h
-src/transport/plugin_transport_wlan.h
 src/transport/plugin_transport_http.h
-src/transport/gnunet-transport-wlan-helper.h
 src/transport/gnunet-service-transport_validation.h
 src/transport/transport.h
 src/transport/gnunet-service-transport_clients.h
