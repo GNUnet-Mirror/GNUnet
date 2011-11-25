@@ -162,8 +162,6 @@ src/transport/gnunet-service-transport_validation.c
 src/transport/plugin_transport_udp_new.c
 src/transport/transport_api_address_iterate.c
 src/transport/gnunet-transport-certificate-creation.c
-src/transport/wlan/helper_common.c
-src/transport/wlan/radiotap-parser.c
 src/transport/gnunet-service-transport_clients.c
 src/transport/transport_api.c
 src/transport/gnunet-service-transport.c
