@@ -305,7 +305,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   double variance;
   double val;
   double nsize;
-
+#define WEST 1
   /* Weighted incremental algorithm for stddev according to West (1979) */
 #if WEST
   double sumweight;
@@ -322,7 +322,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   {
     j = (estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE;
     val = htonl (size_estimate_messages[j].matching_bits);
-    weight = 1.0;              /* was: estimate_count + 1 - i; */
+    weight = estimate_count + 1 - i;
 
     temp = weight + sumweight;
     q = val - mean;
