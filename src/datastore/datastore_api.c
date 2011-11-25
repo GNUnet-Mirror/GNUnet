@@ -601,8 +601,10 @@ transmit_request (void *cls, size_t size, void *buf)
     return 0;                   /* no entry in queue */
   if (buf == NULL)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _("Failed to transmit request to DATASTORE.\n"));
+#if DEBUG_DATASTORE
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to transmit request to DATASTORE.\n");
+#endif
     GNUNET_STATISTICS_update (h->stats,
                               gettext_noop ("# transmission request failures"),
                               1, GNUNET_NO);
