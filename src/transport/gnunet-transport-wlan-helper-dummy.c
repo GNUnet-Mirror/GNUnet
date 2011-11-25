@@ -56,13 +56,14 @@ sigfunc (int sig)
   (void) unlink (FIFO_FILE2);
 }
 
+
 /**
  * function to create GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL message for plugin
  * @param buffer pointer to buffer for the message
  * @param mac pointer to the mac address
  * @return number of bytes written
  */
-int
+static int
 send_mac_to_plugin (char *buffer, struct MacAddress *mac)
 {
 
@@ -123,6 +124,7 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
       sizeof (struct GNUNET_MessageHeader);
 }
 
+
 static void
 file_in_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 {
@@ -147,18 +149,37 @@ file_in_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 }
 
 
-
 int
-testmode (int argc, char *argv[])
+main (int argc, char *argv[])
 {
   struct stat st;
   int erg;
-
   FILE *fpin = NULL;
   FILE *fpout = NULL;
-
   int fdpin;
   int fdpout;
+  char readbuf[MAXLINE];
+  int readsize = 0;
+  struct sendbuf write_std;
+  struct sendbuf write_pout;
+  int ret = 0;
+  int maxfd = 0;
+  fd_set rfds;
+  fd_set wfds;
+  struct timeval tv;
+  int retval;
+  struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
+  struct GNUNET_SERVER_MessageStreamTokenizer *file_in_mst;
+  struct MacAddress macaddr;
+
+  if (2 != argc)
+  {
+    fprintf (stderr,
+             "This program must be started with the operating mode (1 or 2) as the only argument.\n");
+    return 1;
+  }
+  if ((0 != strstr (argv[1], "1")) && (0 != strstr (argv[1], "2")))
+    return 1;
 
   //make the fifos if needed
   if (0 != stat (FIFO_FILE1, &st))
@@ -168,34 +189,34 @@ testmode (int argc, char *argv[])
       fprintf (stderr, "FIFO_FILE2 exists, but FIFO_FILE1 not\n");
       exit (1);
     }
-
     umask (0);
-    //unlink(FIFO_FILE1);
-    //unlink(FIFO_FILE2);
-    // FIXME: use mkfifo!
     erg = mkfifo (FIFO_FILE1, 0666);
     if (0 != erg)
     {
-      fprintf (stderr, "Error at mkfifo1: %s\n", strerror (errno));
+      fprintf (stderr, 
+	       "Error in mkfifo(%s): %s\n", 
+	       FIFO_FILE1,
+	       strerror (errno));
       //exit(1);
     }
     erg = mkfifo (FIFO_FILE2, 0666);
     if (0 != erg)
     {
-      fprintf (stderr, "Error at mkfifo2: %s\n", strerror (errno));
+      fprintf (stderr,
+	       "Error in mkfifo(%s): %s\n", 
+	       FIFO_FILE2,
+	       strerror (errno));
       //exit(1);
     }
 
   }
   else
   {
-
     if (0 != stat (FIFO_FILE2, &st))
     {
       fprintf (stderr, "FIFO_FILE1 exists, but FIFO_FILE2 not\n");
       exit (1);
     }
-
   }
 
   if (strstr (argv[1], "1"))
@@ -240,7 +261,9 @@ testmode (int argc, char *argv[])
 
   if (fdpin >= FD_SETSIZE)
   {
-    fprintf (stderr, "File fdpin number too large (%d > %u)\n", fdpin,
+    fprintf (stderr, 
+	     "File fdpin number too large (%d > %u)\n",
+	     fdpin,
              (unsigned int) FD_SETSIZE);
     goto end;
   }
@@ -250,7 +273,9 @@ testmode (int argc, char *argv[])
 
   if (fdpout >= FD_SETSIZE)
   {
-    fprintf (stderr, "File fdpout number too large (%d > %u)\n", fdpout,
+    fprintf (stderr, 
+	     "File fdpout number too large (%d > %u)\n", 
+	     fdpout,
              (unsigned int) FD_SETSIZE);
     goto end;
 
@@ -259,35 +284,12 @@ testmode (int argc, char *argv[])
   signal (SIGINT, &sigfunc);
   signal (SIGTERM, &sigfunc);
 
-  char readbuf[MAXLINE];
-  int readsize = 0;
-  struct sendbuf write_std;
-
   write_std.size = 0;
   write_std.pos = 0;
-
-  struct sendbuf write_pout;
-
   write_pout.size = 0;
   write_pout.pos = 0;
-
-  int ret = 0;
-  int maxfd = 0;
-
-  fd_set rfds;
-  fd_set wfds;
-  struct timeval tv;
-  int retval;
-
-  struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
-  struct GNUNET_SERVER_MessageStreamTokenizer *file_in_mst;
-
   stdin_mst = GNUNET_SERVER_mst_create (&stdin_send, &write_pout);
   file_in_mst = GNUNET_SERVER_mst_create (&file_in_send, &write_std);
-
-  //send mac first
-
-  struct MacAddress macaddr;
 
   //Send random mac address
   macaddr.mac[0] = 0x13;
@@ -296,14 +298,11 @@ testmode (int argc, char *argv[])
   macaddr.mac[3] = 0x44;
   macaddr.mac[4] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 256);
   macaddr.mac[5] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, 256);
-
   write_std.size = send_mac_to_plugin (write_std.buf, &macaddr);
 
   while (0 == closeprog)
   {
-
-    maxfd = 0;
-
+    maxfd = -1;
     //set timeout
     tv.tv_sec = 5;
     tv.tv_usec = 0;
@@ -313,12 +312,12 @@ testmode (int argc, char *argv[])
     if (0 == write_pout.size)
     {
       FD_SET (STDIN_FILENO, &rfds);
-
+      maxfd = MAX (STDIN_FILENO, maxfd);
     }
     if (0 == write_std.size)
     {
       FD_SET (fdpin, &rfds);
-      maxfd = fdpin;
+      maxfd = MAX (fdpin, maxfd);
     }
     FD_ZERO (&wfds);
     // if there is something to write
@@ -327,7 +326,6 @@ testmode (int argc, char *argv[])
       FD_SET (STDOUT_FILENO, &wfds);
       maxfd = MAX (maxfd, STDOUT_FILENO);
     }
-
     if (0 < write_pout.size)
     {
       FD_SET (fdpout, &wfds);
@@ -335,14 +333,13 @@ testmode (int argc, char *argv[])
     }
 
     retval = select (maxfd + 1, &rfds, &wfds, NULL, &tv);
-
-    if (-1 == retval && EINTR == errno)
-    {
-      continue;
-    }
+    if ( (-1 == retval) && (EINTR == errno) )    
+      continue;    
     if (0 > retval)
     {
-      fprintf (stderr, "select failed: %s\n", strerror (errno));
+      fprintf (stderr, 
+	       "select failed: %s\n", 
+	       strerror (errno));
       closeprog = 1;
       break;
     }
@@ -355,7 +352,9 @@ testmode (int argc, char *argv[])
       if (0 > ret)
       {
         closeprog = 1;
-        fprintf (stderr, "Write ERROR to STDOUT\n");
+        fprintf (stderr, 
+		 "Write ERROR to STDOUT_FILENO: %s\n",
+		 strerror (errno));
         break;
       }
       else
@@ -379,7 +378,9 @@ testmode (int argc, char *argv[])
       if (0 > ret)
       {
         closeprog = 1;
-        fprintf (stderr, "Write ERROR to fdpout\n");
+        fprintf (stderr, 
+		 "Write ERROR to fdpout: %s\n",
+		 strerror (errno));
       }
       else
       {
@@ -400,7 +401,9 @@ testmode (int argc, char *argv[])
       if (0 > readsize)
       {
         closeprog = 1;
-        fprintf (stderr, "Read ERROR to STDIN_FILENO\n");
+        fprintf (stderr, 
+		 "Error reading from STDIN_FILENO: %s\n",
+		 strerror (errno));
       }
       else if (0 < readsize)
       {
@@ -418,18 +421,18 @@ testmode (int argc, char *argv[])
     if (FD_ISSET (fdpin, &rfds))
     {
       readsize = read (fdpin, readbuf, sizeof (readbuf));
-
       if (0 > readsize)
       {
         closeprog = 1;
-        fprintf (stderr, "Read ERROR to fdpin: %s\n", strerror (errno));
+        fprintf (stderr, 
+		 "Error reading from fdpin: %s\n", 
+		 strerror (errno));
         break;
       }
       else if (0 < readsize)
       {
         GNUNET_SERVER_mst_receive (file_in_mst, NULL, readbuf, readsize,
                                    GNUNET_NO, GNUNET_NO);
-
       }
       else
       {
@@ -437,11 +440,9 @@ testmode (int argc, char *argv[])
         closeprog = 1;
       }
     }
-
   }
 
   //clean up
-
   GNUNET_SERVER_mst_destroy (stdin_mst);
   GNUNET_SERVER_mst_destroy (file_in_mst);
 
@@ -450,29 +451,11 @@ end:
     fclose (fpout);
   if (fpin != NULL)
     fclose (fpin);
-
   if (1 == first)
   {
     (void) unlink (FIFO_FILE1);
     (void) unlink (FIFO_FILE2);
   }
-
-  return (0);
+  return 0;
 }
 
-int
-main (int argc, char *argv[])
-{
-  if (2 != argc)
-  {
-    fprintf (stderr,
-             "This program must be started with the operating mode as argument.\n");
-    fprintf (stderr,
-             "Usage: options\n" "options:\n" "1 = first loopback file\n"
-             "2 = second loopback file\n" "\n");
-    return 1;
-  }
-  if (strstr (argv[1], "1") || strstr (argv[1], "2"))
-    return testmode (argc, argv);
-  return 1;
-}
