@@ -30,9 +30,14 @@
 #include <stdint.h>
 #include "gnunet_common.h"
 
+/**
+ * Number fo bytes in a mac address.
+ */
+#define MAC_ADDR_SIZE 6
+
 struct MacAddress
 {
-  u_int8_t mac[6];
+  uint8_t mac[MAC_ADDR_SIZE];
 };
 
 struct Wlan_Helper_Control_Message

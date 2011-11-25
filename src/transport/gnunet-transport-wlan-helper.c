@@ -104,13 +104,9 @@
 #include "gnunet_server_lib.h"
 #include "plugin_transport_wlan.h"
 
-#define DEBUG 1
-
 #define ARPHRD_IEEE80211        801
 #define ARPHRD_IEEE80211_PRISM  802
 #define ARPHRD_IEEE80211_FULL   803
-
-#define MAC_ADDR_SIZE 6
 
 /**
  * size of 802.11 address
@@ -458,7 +454,7 @@ struct ieee80211_radiotap_iterator
  * which can be found in the iterator's this_arg_index member.  This arg
  * index corresponds to the IEEE80211_RADIOTAP_... defines.
  */
-int
+static int
 ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator
 				  *iterator,
 				  struct ieee80211_radiotap_header
@@ -535,7 +531,7 @@ ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator
  * can be changed by the caller.  The args pointed to are in little-endian
  * format.
  */
-int
+static int
 ieee80211_radiotap_iterator_next (struct ieee80211_radiotap_iterator
 				  *iterator)
 {
