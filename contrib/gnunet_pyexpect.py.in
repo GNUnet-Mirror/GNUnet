@@ -31,7 +31,12 @@ class pexpect (object):
     super (pexpect, self).__init__ ()
 
   def spawn (self, stdin, arglist, *pargs, **kwargs):
-    self.proc = subprocess.Popen (arglist, *pargs, **kwargs)
+    env = kwargs.pop ('env', None)
+    if env is None:
+      env = os.environ.copy ()
+    # This messes up some testcases, disable log redirection
+    env.pop ('GNUNET_FORCE_LOGFILE', None)
+    self.proc = subprocess.Popen (arglist, *pargs, env=env, **kwargs)
     if self.proc is None:
       print ("Failed to spawn a process {0}".format (arglist))
       sys.exit (1)
