@@ -1087,6 +1087,7 @@ send_callback (void *cls, size_t size, void *buf)
           mc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
           mc.tid = htonl (th->tunnel->tid);
           mc.mid = 0;
+          mc.ttl = 0;
           memset (&mc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &mc, sizeof (mc));
         }
