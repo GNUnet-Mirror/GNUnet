@@ -595,11 +595,7 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
                                        &fd_stdin_write, sizeof (int));
   }
 
-#if HAVE_WORKING_VFORK
-  ret = vfork ();
-#else
   ret = fork ();
-#endif
   if (ret != 0)
   {
     if (ret == -1)
@@ -611,22 +607,6 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
     }
     else
     {
-
-#if HAVE_WORKING_VFORK
-      /* let's hope vfork actually works; for some extreme cases (including
-       * a testcase) we need 'execvp' to have run before we return, since
-       * we may send a signal to the process next and we don't want it
-       * to be caught by OUR signal handler (but either by the default
-       * handler or the actual handler as installed by the process itself). */
-#else
-      /* let's give the child process a chance to run execvp, 1s should
-       * be plenty in practice */
-      if (pipe_stdout != NULL)
-        GNUNET_DISK_pipe_close_end (pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
-      if (pipe_stdin != NULL)
-        GNUNET_DISK_pipe_close_end (pipe_stdin, GNUNET_DISK_PIPE_END_READ);
-      sleep (1);
-#endif
       gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
       gnunet_proc->pid = ret;
 #if ENABLE_WINDOWS_WORKAROUNDS
@@ -906,11 +886,7 @@ GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
       GNUNET_array_append (lscp, ls, k);
     GNUNET_array_append (lscp, ls, -1);
   }
-#if HAVE_WORKING_VFORK
-  ret = vfork ();
-#else
   ret = fork ();
-#endif
   if (ret != 0)
   {
     if (ret == -1)
@@ -922,17 +898,6 @@ GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
     }
     else
     {
-#if HAVE_WORKING_VFORK
-      /* let's hope vfork actually works; for some extreme cases (including
-       * a testcase) we need 'execvp' to have run before we return, since
-       * we may send a signal to the process next and we don't want it
-       * to be caught by OUR signal handler (but either by the default
-       * handler or the actual handler as installed by the process itself). */
-#else
-      /* let's give the child process a chance to run execvp, 1s should
-       * be plenty in practice */
-      sleep (1);
-#endif
       gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
       gnunet_proc->pid = ret;
 #if ENABLE_WINDOWS_WORKAROUNDS

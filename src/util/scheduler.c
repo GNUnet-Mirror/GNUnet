@@ -702,6 +702,12 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
 static struct GNUNET_DISK_PipeHandle *shutdown_pipe_handle;
 
 /**
+ * Process ID of this process at the time we installed the various
+ * signal handlers.
+ */
+static pid_t my_pid;
+
+/**
  * Signal handler called for SIGPIPE.
  */
 #ifndef MINGW
@@ -720,6 +726,9 @@ sighandler_shutdown ()
   static char c;
   int old_errno = errno;        /* backup errno */
 
+  if (getpid() != my_pid)
+    exit(1); /* we have fork'ed since the signal handler was created,
+		ignore the signal, see https://gnunet.org/vfork discussion */
   GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
                           (shutdown_pipe_handle, GNUNET_DISK_PIPE_END_WRITE),
                           &c, sizeof (c));
@@ -799,6 +808,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   pr = GNUNET_DISK_pipe_handle (shutdown_pipe_handle,
                                 GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
+  my_pid = getpid ();
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT, &sighandler_shutdown);
   shc_term = GNUNET_SIGNAL_handler_install (SIGTERM, &sighandler_shutdown);
 #ifndef MINGW
