@@ -537,8 +537,16 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               (NULL ==
                d->hostname) ? _("`gnunet-arm' does not seem to terminate.\n") :
               _("`ssh' does not seem to terminate.\n"));
-        GNUNET_CONFIGURATION_destroy (d->cfg);
-        GNUNET_free (d->cfgfile);
+        if (d->cfg != NULL)
+        {
+          GNUNET_CONFIGURATION_destroy (d->cfg);
+          d->cfg = NULL;
+        }
+        if (d->cfgfile != NULL)
+        {
+          GNUNET_free (d->cfgfile);
+          d->cfgfile = NULL;
+        }
         GNUNET_free_non_null (d->hostname);
         GNUNET_free_non_null (d->username);
         GNUNET_free (d->proc);
@@ -722,8 +730,16 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_TRANSPORT_disconnect (d->th);
           d->th = NULL;
         }
-        GNUNET_CONFIGURATION_destroy (d->cfg);
-        GNUNET_free (d->cfgfile);
+        if (d->cfg != NULL)
+        {
+          GNUNET_CONFIGURATION_destroy (d->cfg);
+          d->cfg = NULL;
+        }
+        if (d->cfgfile != NULL)
+        {
+          GNUNET_free (d->cfgfile);
+          d->cfgfile = NULL;
+        }
         GNUNET_free_non_null (d->hello);
         GNUNET_free_non_null (d->hostname);
         GNUNET_free_non_null (d->username);

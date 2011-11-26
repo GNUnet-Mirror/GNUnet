@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.8.0a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-11-25 17:20+0100\n"
+"POT-Creation-Date: 2011-11-26 14:53+0100\n"
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
@@ -151,86 +151,82 @@ msgstr "# các kết nối dht"
 msgid "# reconnected to DATASTORE"
 msgstr ""
 
-#: src/datastore/datastore_api.c:605
-msgid "Failed to transmit request to DATASTORE.\n"
-msgstr ""
-
-#: src/datastore/datastore_api.c:607
+#: src/datastore/datastore_api.c:609
 #, fuzzy
 msgid "# transmission request failures"
 msgstr "# các sự truyền PONG bị lỗi"
 
-#: src/datastore/datastore_api.c:630
+#: src/datastore/datastore_api.c:632
 #, fuzzy
 msgid "# bytes sent to datastore"
 msgstr "# các byte trong kho dữ liệu"
 
-#: src/datastore/datastore_api.c:767
+#: src/datastore/datastore_api.c:769
 #, fuzzy
 msgid "Failed to receive status response from database."
 msgstr ""
 "\n"
 "Không nhận được đáp ứng từ gnunetd.\n"
 
-#: src/datastore/datastore_api.c:780
+#: src/datastore/datastore_api.c:782
 msgid "Error reading response from datastore service"
 msgstr ""
 
-#: src/datastore/datastore_api.c:792 src/datastore/datastore_api.c:798
+#: src/datastore/datastore_api.c:794 src/datastore/datastore_api.c:800
 #, fuzzy
 msgid "Invalid error message received from datastore service"
 msgstr "Nhận được thông báo « %s » sai từ đồng đẳng « %s ».\n"
 
-#: src/datastore/datastore_api.c:804
+#: src/datastore/datastore_api.c:806
 #, fuzzy
 msgid "# status messages received"
 msgstr "# các thông báo phát hiện dht được nhận"
 
-#: src/datastore/datastore_api.c:875
+#: src/datastore/datastore_api.c:877
 #, fuzzy
 msgid "# PUT requests executed"
 msgstr "# các yêu cầu dht được định tuyến"
 
-#: src/datastore/datastore_api.c:946
+#: src/datastore/datastore_api.c:948
 #, fuzzy
 msgid "# RESERVE requests executed"
 msgstr "# các yêu cầu dht được định tuyến"
 
-#: src/datastore/datastore_api.c:1011
+#: src/datastore/datastore_api.c:1013
 msgid "# RELEASE RESERVE requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1072
+#: src/datastore/datastore_api.c:1074
 #, fuzzy
 msgid "# UPDATE requests executed"
 msgstr "# các yêu cầu dht được định tuyến"
 
-#: src/datastore/datastore_api.c:1140
+#: src/datastore/datastore_api.c:1142
 #, fuzzy
 msgid "# REMOVE requests executed"
 msgstr "# các yêu cầu dht được định tuyến"
 
-#: src/datastore/datastore_api.c:1185
+#: src/datastore/datastore_api.c:1187
 #, fuzzy
 msgid "Failed to receive response from database.\n"
 msgstr ""
 "\n"
 "Không nhận được đáp ứng từ gnunetd.\n"
 
-#: src/datastore/datastore_api.c:1245
+#: src/datastore/datastore_api.c:1247
 #, fuzzy
 msgid "# Results received"
 msgstr "# các kết quả dht được nhận"
 
-#: src/datastore/datastore_api.c:1316
+#: src/datastore/datastore_api.c:1318
 msgid "# GET REPLICATION requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1383
+#: src/datastore/datastore_api.c:1385
 msgid "# GET ZERO ANONYMITY requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1447
+#: src/datastore/datastore_api.c:1449
 #, fuzzy
 msgid "# GET requests executed"
 msgstr "# các yêu cầu dht được định tuyến"
@@ -2703,8 +2699,8 @@ msgstr ""
 #: src/transport/gnunet-service-transport_neighbours.c:938
 #: src/transport/gnunet-service-transport_neighbours.c:943
 #: src/transport/gnunet-service-transport_neighbours.c:1266
-#: src/transport/gnunet-service-transport_neighbours.c:2352
-#: src/transport/gnunet-service-transport_neighbours.c:2423
+#: src/transport/gnunet-service-transport_neighbours.c:2354
+#: src/transport/gnunet-service-transport_neighbours.c:2425
 #: src/topology/gnunet-daemon-topology.c:654
 #: src/topology/gnunet-daemon-topology.c:756
 #, fuzzy
@@ -3282,12 +3278,17 @@ msgstr ""
 msgid "# disconnect messages ignored (timestamp)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2302
+#: src/transport/gnunet-service-transport_neighbours.c:2289
+#, fuzzy
+msgid "# unexpected CONNECT_ACK messages (no peer)"
+msgstr "gửi ĐẾM thông báo"
+
+#: src/transport/gnunet-service-transport_neighbours.c:2304
 #, fuzzy
 msgid "# unexpected CONNECT_ACK messages"
 msgstr "gửi ĐẾM thông báo"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2400
+#: src/transport/gnunet-service-transport_neighbours.c:2402
 #, fuzzy
 msgid "# unexpected ACK messages"
 msgstr "# các thông báo PONG đã mật mã được gửi"
@@ -3649,7 +3650,7 @@ msgstr ""
 #: src/transport/plugin_transport_wlan.c:2050
 #: src/transport/plugin_transport_wlan.c:2145
 #, c-format
-msgid "Error writing to wlan healper. errno == %d, ERROR: %s\n"
+msgid "Error writing to wlan helper. errno == %d, ERROR: %s\n"
 msgstr ""
 
 #: src/transport/plugin_transport_wlan.c:2036
