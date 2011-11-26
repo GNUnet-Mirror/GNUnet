@@ -550,6 +550,12 @@ struct PeerData
    * stagger hostkey generation and peer startup.
    */
   struct InternalStartContext internal_context;
+
+  /**
+   * Task ID for the queued internal_continue_startup task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier startup_task;
+
 };
 
 /**
@@ -5557,6 +5563,7 @@ internal_continue_startup (void *cls,
                            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct InternalStartContext *internal_context = cls;
+  internal_context->peer->startup_task = GNUNET_SCHEDULER_NO_TASK;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
   {
@@ -5579,7 +5586,7 @@ internal_continue_startup (void *cls,
   }
   else
   {
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+    internal_context->peer->startup_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &internal_continue_startup, internal_context);
   }
@@ -5887,7 +5894,7 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg)
     pg->starting = 0;
     for (i = 0; i < pg->total; i++)
     {
-      GNUNET_SCHEDULER_add_now (&internal_continue_startup,
+      pg->peers[i].startup_task = GNUNET_SCHEDULER_add_now (&internal_continue_startup,
                                 &pg->peers[i].internal_context);
     }
   }
@@ -5895,7 +5902,7 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg)
   pg->starting = 0;
   for (i = 0; i < pg->total; i++)
   {
-    GNUNET_SCHEDULER_add_now (&internal_continue_startup,
+    pg->peers[i].startup_task = GNUNET_SCHEDULER_add_now (&internal_continue_startup,
                               &pg->peers[i].internal_context);
   }
 #endif
@@ -6903,6 +6910,7 @@ internal_shutdown_callback (void *cls, const char *emsg)
   struct PeerShutdownContext *peer_shutdown_ctx = cls;
   struct ShutdownContext *shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
   unsigned int off;
+  int i;
   struct OutstandingSSH *ssh_pos;
 
   shutdown_ctx->outstanding--;
@@ -6933,6 +6941,11 @@ internal_shutdown_callback (void *cls, const char *emsg)
     else
       shutdown_ctx->cb (shutdown_ctx->cb_cls, NULL);
 
+    for (i = 0; i < shutdown_ctx->pg->total; i++)
+    {
+      if (shutdown_ctx->pg->peers[i].startup_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (shutdown_ctx->pg->peers[i].startup_task);
+    }
     GNUNET_free (shutdown_ctx->pg->peers);
     GNUNET_free_non_null (shutdown_ctx->pg->hostkey_data);
     for (off = 0; off < shutdown_ctx->pg->num_hosts; off++)
