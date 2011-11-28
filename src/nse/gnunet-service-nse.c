@@ -828,6 +828,7 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
            sizeof (uint64_t)];
   GNUNET_HashCode result;
   unsigned int i;
+  const struct GNUNET_CRYPTO_RsaSignature *sig_cache;
 
   proof_task = GNUNET_SCHEDULER_NO_TASK;
   memcpy (&buf[sizeof (uint64_t)], &my_public_key,
@@ -845,19 +846,34 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Proof of work found: %llu!\n",
                   (unsigned long long) GNUNET_ntohll (counter));
 #endif
+      sig_cache = NULL;
       for (i = 0; i < HISTORY_SIZE; i++)
         if (ntohl (size_estimate_messages[i].hop_count) == 0)
         {
           size_estimate_messages[i].proof_of_work = my_proof;
 	  if (nse_work_required > 0)
-	    GNUNET_assert (GNUNET_OK ==
-			   GNUNET_CRYPTO_rsa_sign (my_private_key,
-						   &size_estimate_messages
-						   [i].purpose,
-						   &size_estimate_messages
-						   [i].signature));
+	  {
+	    if (sig_cache == NULL)
+	    {
+	      GNUNET_assert (GNUNET_OK ==
+			     GNUNET_CRYPTO_rsa_sign (my_private_key,
+						     &size_estimate_messages
+						     [i].purpose,
+						     &size_estimate_messages
+						     [i].signature));
+	      sig_cache = &size_estimate_messages[i].signature;
+	    }
+	    else
+	    {	      
+	      /* use cached signature */
+	      size_estimate_messages[i].signature = *sig_cache;
+	    }
+	  }
 	  else
+	  {
+	    /* no signature required */
 	    memset (&size_estimate_messages[i].signature, 0, sizeof (struct GNUNET_CRYPTO_RsaSignature));
+	  }
         }
       write_proof ();
       return;
