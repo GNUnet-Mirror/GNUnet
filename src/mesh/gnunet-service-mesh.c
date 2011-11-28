@@ -1709,7 +1709,7 @@ path_add_to_peers (struct MeshPeerPath *p, int confirmed)
   unsigned int i;
 
   /* TODO: invert and add */
-  for (i = 1; i < p->length && p->peers[i] != myid; i++) /* skip'em */;
+  for (i = 0; i < p->length && p->peers[i] != myid; i++) /* skip'em */;
   for (i++; i < p->length; i++)
   {
     struct MeshPeerInfo *aux;
@@ -1717,7 +1717,7 @@ path_add_to_peers (struct MeshPeerPath *p, int confirmed)
 
     aux = peer_info_get_short(p->peers[i]);
     copy = path_duplicate(p);
-    copy->length = i;
+    copy->length = i + 1;
     peer_info_add_path(aux, copy, GNUNET_NO);
   }
 }
