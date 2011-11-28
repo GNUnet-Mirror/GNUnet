@@ -275,7 +275,7 @@ tree_node_find_peer (struct MeshTunnelTreeNode *parent, GNUNET_PEER_Id peer_id)
  * Recusively update the info about what is the first hop to reach the node
  *
  * @param tree Tree this nodes belongs to.
- * @param parent_id Short ID from node form which to start updating.
+ * @param parent ID from node form which to start updating.
  * @param hop If known, ID of the first hop.
  *            If not known, NULL to find out and pass on children.
  */

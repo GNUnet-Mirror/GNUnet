@@ -606,7 +606,7 @@ clients_handle_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
  * the client.
  *
  * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
- * @param address the resolved name, NULL to indicate the last response
+ * @param buf text to transmit
  */
 static void
 transmit_address_to_client (void *cls, const char *buf)
@@ -630,7 +630,8 @@ transmit_address_to_client (void *cls, const char *buf)
  * the client.
  *
  * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
- * @param address the resolved name, NULL to indicate the last response
+ * @param buf data to transmit
+ * @param size number of bytes in buf
  */
 static void
 transmit_binary_to_client (void *cls, void *buf, size_t size)
@@ -779,7 +780,7 @@ clients_handle_peer_address_lookup (void *cls,
  * Output the active address of connected neighbours to the given client.
  *
  * @param cls the 'struct GNUNET_SERVER_TransmitContext' for transmission to the client
- * @param neighbour identity of the neighbour
+ * @param peer identity of the neighbour
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  * @param address the address

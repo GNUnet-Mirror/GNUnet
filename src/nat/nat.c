@@ -629,6 +629,8 @@ process_hostname_ip (void *cls, const struct sockaddr *addr, socklen_t addrlen)
  * @param name name of the interface
  * @param isDefault do we think this may be our default interface
  * @param addr address of the interface
+ * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
+ * @param netmask the network mask (can be NULL for unknown or unassigned))
  * @param addrlen number of bytes in addr
  * @return GNUNET_OK to continue iterating
  */
