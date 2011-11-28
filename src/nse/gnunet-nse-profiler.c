@@ -137,8 +137,6 @@ static GNUNET_SCHEDULER_TaskIdentifier churn_task;
 
 static char *topology_file;
 
-static uint64_t clock_skew;
-
 /**
  * Check whether peers successfully shut down.
  */
@@ -599,17 +597,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                   data_filename);
     GNUNET_free (data_filename);
   }
-
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (testing_cfg, "nse-profiler",
-                                            "skew_clock"))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Setting our clock as skewed...\n");
-    clock_skew =
-        GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                  GNUNET_TIME_UNIT_MINUTES.rel_value);
-  }
-
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "nse-profiler", "output_file",
