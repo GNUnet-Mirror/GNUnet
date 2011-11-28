@@ -354,6 +354,9 @@ struct Sessionqueue
   struct Sessionqueue *next;
   struct Sessionqueue *prev;
   struct Session *content;
+#if !HAVE_UNALIGNED_64_ACCESS
+  void *dummy; /* for alignment, see #1909 */
+#endif
 };
 
 /**
