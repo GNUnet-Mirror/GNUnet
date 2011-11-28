@@ -1245,7 +1245,7 @@ cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
  * @param cfg_ configuration
  */
 static void
-run (void *cls, char *const *args GNUNET_UNUSED, const char *cfgfilep
+run (void *cls, char *const *args GNUNET_UNUSED, const char *cfgfile
      GNUNET_UNUSED, const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   static const struct GNUNET_MESH_MessageHandler handlers[] = {
