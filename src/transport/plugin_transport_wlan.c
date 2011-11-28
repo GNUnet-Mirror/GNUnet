@@ -2377,7 +2377,7 @@ free_macendpoint (struct Plugin *plugin, struct MacEndpoint *endpoint)
  * function to free a session
  * @param plugin pointer to the plugin
  * @param queue pointer to the sessionqueue element to free
- * @param free_macendpoint if GNUNET_YES and mac endpoint would be empty, free mac endpoint
+ * @param do_free_macendpoint if GNUNET_YES and mac endpoint would be empty, free mac endpoint
  */
 static void
 free_session (struct Plugin *plugin, struct Sessionqueue *queue,

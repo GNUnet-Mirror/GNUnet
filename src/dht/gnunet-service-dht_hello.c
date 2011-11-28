@@ -64,7 +64,7 @@ GDS_HELLO_get (const struct GNUNET_PeerIdentity *peer)
  * @param cls closure
  * @param peer id of the peer, NULL for last call
  * @param hello hello message for the peer (can be NULL)
- * @param error message
+ * @param err_msg error message (not used)
  */
 static void
 process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,

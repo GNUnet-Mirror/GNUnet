@@ -205,7 +205,7 @@ GSC_TYPEMAP_remove (const uint16_t * types, unsigned int tlen)
  * Test if any of the types from the types array is in the
  * given type map.
  *
- * @param map map to test
+ * @param tmap map to test
  * @param types array of types
  * @param tcnt number of entries in types
  * @return GNUNET_YES if a type is in the map, GNUNET_NO if not
@@ -230,7 +230,7 @@ GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap, const uint16_t * types,
 /**
  * Add additional types to a given typemap.
  *
- * @param map map to extend (not changed)
+ * @param tmap map to extend (not changed)
  * @param types array of types to add
  * @param tcnt number of entries in types
  * @return updated type map (fresh copy)
@@ -254,7 +254,7 @@ GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap, const uint16_t * types,
 /**
  * Create an empty type map.
  *
- * @param map a type map
+ * @return an empty type map
  */
 struct GSC_TypeMap *
 GSC_TYPEMAP_create ()
@@ -266,7 +266,7 @@ GSC_TYPEMAP_create ()
 /**
  * Free the given type map.
  *
- * @param map a type map
+ * @param tmap a type map
  */
 void
 GSC_TYPEMAP_destroy (struct GSC_TypeMap *tmap)

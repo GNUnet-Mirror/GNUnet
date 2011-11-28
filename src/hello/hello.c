@@ -65,7 +65,7 @@ struct GNUNET_HELLO_Message
  * Copy the given address information into
  * the given buffer using the format of HELLOs.
  *
- * @param addess the address
+ * @param address the address
  * @param expiration expiration for the address
  * @param target where to copy the address
  * @param max maximum number of bytes to copy to target

@@ -193,7 +193,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Transmit messages from the message queue to the service
  * (if there are any, and if we are not already trying).
  *
- * @param sh handle to use
+ * @param ph handle to use
  */
 static void
 do_transmit (struct GNUNET_ATS_PerformanceHandle *ph);

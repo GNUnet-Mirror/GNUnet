@@ -98,6 +98,7 @@ find_client (struct GNUNET_SERVER_Client *client)
  * Register a new performance client.
  *
  * @param client handle of the new client
+ * @param flag flag specifying the type of the client
  */
 void
 GAS_performance_add_client (struct GNUNET_SERVER_Client *client,

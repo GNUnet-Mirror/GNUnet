@@ -19,7 +19,7 @@
 */
 
 /**
- * @file block/plugin_block_fs.c
+ * @file fs/plugin_block_fs.c
  * @brief blocks used for file-sharing
  * @author Christian Grothoff
  */

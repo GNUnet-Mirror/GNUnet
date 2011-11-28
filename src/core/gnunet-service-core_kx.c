@@ -1068,7 +1068,7 @@ update_timeout (struct GSC_KeyExchangeInfo *kx)
  * We received a PONG message.  Validate and update our status.
  *
  * @param kx key exchange context for the the PONG
- * @param m the encrypted PONG message itself
+ * @param msg the encrypted PONG message itself
  */
 void
 GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
@@ -1322,7 +1322,7 @@ struct DeliverMessageContext
  * pass on to the appropriate clients.
  *
  * @param kx key exchange context for encrypting the message
- * @param m encrypted message
+ * @param msg encrypted message
  * @param atsi performance data
  * @param atsi_count number of entries in ats (excluding 0-termination)
  */

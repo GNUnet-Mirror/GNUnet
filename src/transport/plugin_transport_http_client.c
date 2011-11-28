@@ -75,6 +75,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * Function setting up file descriptors and scheduling task to run
  *
  * @param  plugin plugin as closure
+ * @param now schedule task in 1ms, regardless of what curl may say
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
 static int
@@ -115,7 +116,7 @@ client_schedule (struct Plugin *plugin, int now)
   else
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
   if (now == GNUNET_YES)
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 1);
+    timeout = GNUNET_TIME_UNIT_MILLISECONDS;
 
   if (mret != CURLM_OK)
   {
@@ -358,7 +359,7 @@ client_wake_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 * @param stream pointer where to write data
 * @param size size of an individual element
 * @param nmemb count of elements that can be written to the buffer
-* @param ptr destination pointer, passed to the libcurl handle
+* @param cls destination pointer, passed to the libcurl handle
 * @return bytes read from stream
 */
 static size_t
@@ -413,7 +414,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
  * @param stream pointer where to write data
  * @param size size of an individual element
  * @param nmemb count of elements that can be written to the buffer
- * @param ptr source pointer, passed to the libcurl handle
+ * @param cls source pointer, passed to the libcurl handle
  * @return bytes written to stream, returning 0 will terminate connection!
  */
 static size_t

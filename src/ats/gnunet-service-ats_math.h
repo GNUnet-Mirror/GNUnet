@@ -19,12 +19,12 @@
 */
 
 /**
- * @file transport/gnunet-service-transport_ats.h
+ * @file transport/gnunet-service-ats_math.h
  * @brief common internal definitions for transport service's ats code
  * @author Matthias Wachs
  */
-#ifndef GNUNET_SERVICE_TRANSPORT_ATS_H
-#define GNUNET_SERVICE_TRANSPORT_ATS_H
+#ifndef GNUNET_SERVICE_TRANSPORT_MATH_H
+#define GNUNET_SERVICE_TRANSPORT_MATH_H
 
 #include "platform.h"
 #include "gnunet_constants.h"

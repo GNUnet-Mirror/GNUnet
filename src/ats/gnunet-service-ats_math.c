@@ -19,8 +19,8 @@
 */
 
 /**
- * @file transport/gnunet-service-transport_ats.c
- * @brief automatic transport selection
+ * @file transport/gnunet-service-transport_math.c
+ * @brief automatic transport selection, LP code
  * @author Matthias Wachs
  *
  */
@@ -506,10 +506,8 @@ _dummy2 ()
 
 /**
  * Initialize ATS
- * @param cfg configuration handle to retrieve configuration (to be removed)
  * @return
  */
-
 struct ATS_Handle *
 ats_init (double D, double U, double R, int v_b_min, int v_n_min,
           int max_iterations, struct GNUNET_TIME_Relative max_duration,

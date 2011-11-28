@@ -461,6 +461,8 @@ inbound_session_iterator (void *cls, const GNUNET_HashCode * key, void *value)
  *
  * @param plugin the plugin
  * @param peer peer's identity
+ * @param addr address
+ * @param addrlen address length
  * @return NULL if we have no session
  */
 static struct Session *

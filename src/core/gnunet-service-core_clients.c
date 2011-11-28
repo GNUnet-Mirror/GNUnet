@@ -207,6 +207,8 @@ type_match (uint16_t type, struct GSC_Client *c)
  * Send a message to all of our current clients that have the right
  * options set.
  *
+ * @param sender origin of the message (used to check that this peer is
+ *        known to be connected to the respective client)
  * @param msg message to multicast
  * @param can_drop can this message be discarded if the queue is too long
  * @param options mask to use
@@ -659,7 +661,6 @@ GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
  * @param atsi_count number of entries in 'ats' array
  * @param tmap_old previous type map for the neighbour, NULL for disconnect
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
- * @param is_new GNUNET_YES if this is a completely new neighbour
  */
 void
 GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file block/plugin_block_dht.c
+ * @file dht/plugin_block_dht.c
  * @brief block plugin for DHT internals (right now, find-peer requests only);
  *        other plugins should be used to store "useful" data in the
  *        DHT (see fs block plugin)
