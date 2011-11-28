@@ -362,7 +362,6 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *t
                                        void *cb_cls)
 {
   struct GNUNET_DISK_FileHandle *fn;
-  int success = GNUNET_OK;
 
   GNUNET_assert (tth != NULL);
   GNUNET_assert (p != NULL);
@@ -406,35 +405,30 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *t
                      GNUNET_i2s (&p->id));
 #endif
 
-  sleep (5);
+  sleep (5); // YUCK!
 
   if (GNUNET_DISK_file_test (cfgname) == GNUNET_NO)
   {
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                  "File not found: `%s' \n", cfgname);
-  success = GNUNET_SYSERR;
-  goto fail;
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
+		     "File not found: `%s' \n", cfgname);
+    goto fail;
   }
 
   p->cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  if (GNUNET_CONFIGURATION_have_value (p->cfg, "PATHS", "SERVICEHOME"))
+
+  if (! GNUNET_CONFIGURATION_have_value (p->cfg, "PATHS", "SERVICEHOME"))  
+    goto fail;
 
   fn = GNUNET_DISK_file_open (p->hostkeyfile,
-                             GNUNET_DISK_OPEN_READWRITE |
-                             GNUNET_DISK_OPEN_CREATE,
-                             GNUNET_DISK_PERM_USER_READ |
-                             GNUNET_DISK_PERM_USER_WRITE);
+			      GNUNET_DISK_OPEN_READWRITE |
+			      GNUNET_DISK_OPEN_CREATE,
+			      GNUNET_DISK_PERM_USER_READ |
+			      GNUNET_DISK_PERM_USER_WRITE);
   if (fn == NULL)
-  {
-   success = GNUNET_SYSERR;
    goto fail;
-  }
   if (GNUNET_OK != GNUNET_DISK_file_close (fn))
-  {
-   success = GNUNET_SYSERR;
    goto fail;
-  }
 
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                               "gnunet-service-arm", "-c", cfgname,
@@ -455,16 +449,14 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *t
 
   p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &get_hello, p);
   GNUNET_assert (p->ghh != NULL);
+  return GNUNET_OK;
 
-  fail:
-  if (success == GNUNET_SYSERR)
-  {
-   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                    "Restarting peer %u (`%s') failed, removing peer\n", p->no,
-                    GNUNET_i2s (&p->id));
-   GNUNET_TRANSPORT_TESTING_stop_peer (tth,p);
-  }
-  return success;
+ fail:
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+		   "Restarting peer %u (`%s') failed, removing peer\n", p->no,
+		   GNUNET_i2s (&p->id));
+  GNUNET_TRANSPORT_TESTING_stop_peer (tth,p);  
+  return GNUNET_SYSERR;
 }
 
 /**
@@ -642,16 +634,16 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth)
 struct GNUNET_TRANSPORT_TESTING_handle *
 GNUNET_TRANSPORT_TESTING_init ()
 {
-  struct GNUNET_TRANSPORT_TESTING_handle *tth =
-      GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TESTING_handle));
+  struct GNUNET_TRANSPORT_TESTING_handle *tth;
   struct GNUNET_DISK_FileHandle *fd;
   uint64_t fs;
   uint64_t total_hostkeys;
 
 
   /* prepare hostkeys */
+  tth = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TESTING_handle));
   tth->hostkey_data = NULL;
-  char * hostkeys_file = "../../contrib/testing_hostkeys.dat";
+  const char * hostkeys_file = "../../contrib/testing_hostkeys.dat";
   if (GNUNET_YES != GNUNET_DISK_file_test (hostkeys_file))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -666,6 +658,7 @@ GNUNET_TRANSPORT_TESTING_init ()
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open",
                                 hostkeys_file);
+      GNUNET_free (tth);
       return NULL;
     }
 

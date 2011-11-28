@@ -137,7 +137,12 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 /**
  * Core handler for p2p hostlist advertisements
  *
+ * @param cls closure
+ * @param peer identity of the sender
+ * @param message advertisement message we got
+ * @param atsi performance information
  * @param atsi_count number of records in 'atsi'
+ * @return GNUNET_OK on success
  */
 static int
 advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
