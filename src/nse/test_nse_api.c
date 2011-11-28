@@ -161,6 +161,8 @@ check ()
   GNUNET_PROGRAM_run (5, argv, "test-nse-api", "nohelp", options, &run, &ok);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping arm.\n");
   stop_arm (&p1);
+  if (0 != ok)
+    fprintf (stderr, "No information received from NSE service!\n");
   return ok;
 }
 
