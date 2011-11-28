@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -104,6 +104,7 @@ typedef void (*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
  * @param cls closure
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
+// RENAME: AddressToStringCallback
 typedef void (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
                                                         const char *address);
 
@@ -117,6 +118,9 @@ typedef void (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
  * @param addr address
  * @param addrlen address length
  */
+// FIXME: use GNUNET_HELLO_Address (as 2nd arg, replacing others)
+// FIXME: rename: remove "Binary"
+// FIXME: use NULL for address on disconnect IF in monitor mode (one_shot = NO)
 typedef void (*GNUNET_TRANSPORT_AddressLookUpBinaryCallback) (void *cls,
                                                               const struct
                                                               GNUNET_PeerIdentity
@@ -294,6 +298,7 @@ struct GNUNET_TRANSPORT_AddressLookupContext;
  * @return handle to cancel the operation, NULL on error
  */
 // FIXME: use 'GNUNET_HELLO_Address' here!
+// => rename: address_to_string
 struct GNUNET_TRANSPORT_AddressLookupContext *
 GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char *address, size_t addressLen,
@@ -323,18 +328,29 @@ struct GNUNET_TRANSPORT_AddressLookupContext;
 /**
  * Return all the known addresses for a peer. FIXME: document better!
  * FIXME: use better name!
+ * CHANGE: Returns the address(es) that we are currently using for this
+ * peer.  Upon completion, the 'AddressLookUpCallback' is called one more
+ * time with 'NULL' for the address and the peer.  After this, the operation must no
+ * longer be explicitly cancelled.
+ * TODO: change code that uses this API to see if this is fine...
  *
  * @param cfg configuration to use
- * @param peer peer identity to look up the addresses of
+ * @param peer peer identity to look up the addresses of, CHANGE: allow NULL for all (connected) peers
+ * FIXME: @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL), 
+ *                        GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly cancelled)
  * @param timeout how long is the lookup allowed to take at most
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
  */
+// RENAME: peer_get_active_addresses
 struct GNUNET_TRANSPORT_PeerAddressLookupContext *
 GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
                                       *cfg,
                                       const struct GNUNET_PeerIdentity *peer,
+				      // FIXME: add argument: one_shot
                                       struct GNUNET_TIME_Relative timeout,
+				      // FIXME: change to the 'Binary' lookup callback (which will
+				      // be renamed, so the argument type actually won't change)
                                       GNUNET_TRANSPORT_AddressLookUpCallback
                                       peer_address_callback,
                                       void *peer_address_callback_cls);
@@ -353,7 +369,9 @@ GNUNET_TRANSPORT_peer_address_lookup_cancel (struct
 
 /**
  * Return all the known addresses. FIXME: document better!
- * FIXME: use better name! FIXME: extend API to allow cancellation!
+ * 
+ * FIXME: remove, replace with new 'peer_address_lookup' API
+ * 
  *
  * @param cfg configuration to use
  * @param timeout how long is the lookup allowed to take at most
