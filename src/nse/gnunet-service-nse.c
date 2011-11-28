@@ -711,6 +711,8 @@ update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
 
   flood_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   offset = GNUNET_TIME_absolute_get_remaining (next_timestamp);
   if (0 != offset.rel_value)
   {
