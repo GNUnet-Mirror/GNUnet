@@ -356,8 +356,10 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
     variance = (vsq - mean * sum) / (estimate_count - 1.0); // terrible for numerical stability...
   }
 #endif
-  GNUNET_assert (variance >= 0);
-  std_dev = sqrt (variance);
+  if (variance >= 0)
+    std_dev = sqrt (variance);
+  else
+    std_dev = variance; /* must be infinity due to estimate_count == 0 */
   current_std_dev = std_dev;
   current_size_estimate = mean;
 
@@ -562,11 +564,18 @@ transmit_ready (void *cls, size_t size, void *buf)
         GNUNET_SCHEDULER_add_delayed (get_transmit_delay (0), &transmit_task,
                                       peer_entry);
   }
-  if ((ntohl (size_estimate_messages[idx].hop_count) == 0) &&
-      (GNUNET_SCHEDULER_NO_TASK != proof_task))
+  if ( (ntohl (size_estimate_messages[idx].hop_count) == 0) &&
+       (GNUNET_SCHEDULER_NO_TASK != proof_task) )
   {
     GNUNET_STATISTICS_update (stats,
                               "# flood messages not generated (no proof yet)",
+                              1, GNUNET_NO);
+    return 0;
+  }
+  if (ntohs (size_estimate_messages[idx].header.size) == 0)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# flood messages not generated (lack of history)",
                               1, GNUNET_NO);
     return 0;
   }
