@@ -542,6 +542,18 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   address.address = plugin_address;
   address.address_length = plugin_address_length;
   address.transport_name = plugin_name;
+
+  if ((s == NULL) && (0 == address.address_length))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+        "ATS returned invalid address for peer `%s' transport `%s' address length %i, session_id %i\n",
+        GNUNET_i2s(&address.peer) , address.transport_name, plugin_address_length, session_id);
+    GNUNET_break_op (0);
+    GNUNET_CLIENT_receive (sh->client, &process_ats_message, sh,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
+    return;
+  }
+
   sh->suggest_cb (sh->suggest_cb_cls, &address, s, m->bandwidth_out,
                   m->bandwidth_in, atsi, ats_count);
 

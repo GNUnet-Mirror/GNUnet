@@ -316,7 +316,7 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
 		     aa->addr,
 		     aa->addr_len)) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Deleting address for peer `%s': `%s'\n",
 		GNUNET_i2s (&aa->peer), aa->plugin);
     if (GNUNET_YES == destroy_address (aa))
@@ -329,14 +329,18 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_break (0 == strcmp (info->plugin, aa->plugin));
   /* session died */
   aa->session_id = 0;
+
   if (GNUNET_YES == aa->active)
   {
     aa->active = GNUNET_NO;
     active_addr_count--;
-    if (aa->addr_len == 0)
-      (void) destroy_address (aa);
     recalculate_assigned_bw ();
   }
+
+  /* session == 0 and addrlen == 0 : destroy address */
+  if (aa->addr_len == 0)
+    (void) destroy_address (aa);
+
   return GNUNET_OK;
 }
 
