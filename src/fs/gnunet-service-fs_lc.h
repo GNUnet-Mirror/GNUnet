@@ -48,7 +48,7 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client);
  *
  * @param client identification of the client
  * @param message the actual message
- * @param where to store the pending request handle for the request
+ * @param prptr where to store the pending request handle for the request
  * @return GNUNET_YES to start local processing,
  *         GNUNET_NO to not (yet) start local processing,
  *         GNUNET_SYSERR on error

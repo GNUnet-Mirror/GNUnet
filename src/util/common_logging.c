@@ -405,7 +405,7 @@ GNUNET_get_log_call_status (int caller_level, const char *comp,
  *
  * @param constname name of the environment variable from which to get the
  *   string to be parsed
- * @param force 1 if definitions found in @constname are to be forced
+ * @param force 1 if definitions found in constname are to be forced
  * @return number of added definitions
  */
 static int

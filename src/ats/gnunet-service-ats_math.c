@@ -19,7 +19,7 @@
 */
 
 /**
- * @file ats/gnunet-service-transport_math.c
+ * @file ats/gnunet-service-ats_math.c
  * @brief automatic transport selection, LP code
  * @author Matthias Wachs
  *
