@@ -830,7 +830,6 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
            sizeof (uint64_t)];
   GNUNET_HashCode result;
   unsigned int i;
-  const struct GNUNET_CRYPTO_RsaSignature *sig_cache;
 
   proof_task = GNUNET_SCHEDULER_NO_TASK;
   memcpy (&buf[sizeof (uint64_t)], &my_public_key,
@@ -848,36 +847,8 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Proof of work found: %llu!\n",
                   (unsigned long long) GNUNET_ntohll (counter));
 #endif
-      sig_cache = NULL;
-      for (i = 0; i < HISTORY_SIZE; i++)
-        if (ntohl (size_estimate_messages[i].hop_count) == 0)
-        {
-          size_estimate_messages[i].proof_of_work = my_proof;
-	  if (nse_work_required > 0)
-	  {
-	    if (sig_cache == NULL)
-	    {
-	      GNUNET_assert (GNUNET_OK ==
-			     GNUNET_CRYPTO_rsa_sign (my_private_key,
-						     &size_estimate_messages
-						     [i].purpose,
-						     &size_estimate_messages
-						     [i].signature));
-	      sig_cache = &size_estimate_messages[i].signature;
-	    }
-	    else
-	    {	      
-	      /* use cached signature */
-	      size_estimate_messages[i].signature = *sig_cache;
-	    }
-	  }
-	  else
-	  {
-	    /* no signature required */
-	    memset (&size_estimate_messages[i].signature, 0, sizeof (struct GNUNET_CRYPTO_RsaSignature));
-	  }
-        }
       write_proof ();
+      setup_flood_message (estimate_index, current_timestamp);
       return;
     }
     counter++;
@@ -1270,7 +1241,6 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 {
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_TIME_Absolute prev_time;
-  unsigned int i;
 
   if (server == NULL)
   {
@@ -1288,17 +1258,17 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
       (now.abs_value / gnunet_nse_interval.rel_value) *
       gnunet_nse_interval.rel_value;
   next_timestamp.abs_value =
-      current_timestamp.abs_value + gnunet_nse_interval.rel_value;
-
-  for (i = 0; i < HISTORY_SIZE; i++)
+    current_timestamp.abs_value + gnunet_nse_interval.rel_value;
+  estimate_index = HISTORY_SIZE - 1;
+  estimate_count = 0;
+  if (GNUNET_YES == check_proof_of_work (&my_public_key,
+					 my_proof))
   {
     prev_time.abs_value =
-        current_timestamp.abs_value - (HISTORY_SIZE - i -
-                                       1) * gnunet_nse_interval.rel_value;
-    setup_flood_message (i, prev_time);
+      current_timestamp.abs_value - (estimate_index - 1) * gnunet_nse_interval.rel_value;
+    setup_flood_message (estimate_index, prev_time);
+    estimate_count++;
   }
-  estimate_index = HISTORY_SIZE - 1;
-  estimate_count = 2;
   flood_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (next_timestamp), &update_flood_message,
