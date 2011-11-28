@@ -1698,6 +1698,32 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
 
 
 /**
+ * Adds a path to the peer_infos of all the peers in the path
+ * 
+ * @param p Path to process.
+ * @param confirmed Whether we know if the path works or not. FIXME use
+ */
+static void
+path_add_to_peers (struct MeshPeerPath *p, int confirmed)
+{
+  unsigned int i;
+
+  /* TODO: invert and add */
+  for (i = 1; i < p->length && p->peers[i] != myid; i++) /* skip'em */;
+  for (i++; i < p->length; i++)
+  {
+    struct MeshPeerInfo *aux;
+    struct MeshPeerPath *copy;
+
+    aux = peer_info_get_short(p->peers[i]);
+    copy = path_duplicate(p);
+    copy->length = i;
+    peer_info_add_path(aux, copy, GNUNET_NO);
+  }
+}
+
+
+/**
  * Send keepalive packets for a peer
  *
  * @param cls Closure (tunnel for which to send the keepalive).
@@ -2575,6 +2601,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* FIXME error. destroy tunnel? leave for timeout? */
     return 0;
   }
+  path_add_to_peers(path, GNUNET_NO);
   tunnel_add_path (t, path, own_pos);
   if (own_pos == size - 1)
   {
@@ -3056,7 +3083,6 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *p;
   struct MeshTunnel *t;
-  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Received a path ACK msg [%s]\n",
               GNUNET_i2s (&my_full_id));
@@ -3068,22 +3094,13 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  /* Add paths to peers */
   peer_info = peer_info_get (&msg->peer_id);
+
+  /* Add paths to peers? */
   p = tree_get_path_to_peer(t->tree, peer_info->id);
   if (NULL != p)
   {
-    for (i = 1; i < p->length && p->peers[i] != myid; i++) /* skip'em */;
-    for (i++; i < p->length; i++)
-    {
-      struct MeshPeerInfo *aux;
-      struct MeshPeerPath *copy;
-
-      aux = peer_info_get_short(p->peers[i]);
-      copy = path_duplicate(p);
-      copy->length = i;
-      peer_info_add_path(aux, copy, 0);
-    }
+    path_add_to_peers (p, GNUNET_YES);
     path_destroy(p);
   }
   else
@@ -3291,7 +3308,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   p = path_build_from_dht (get_path, get_path_length, put_path,
                            put_path_length);
-  peer_info_add_path (path_info->peer, p, GNUNET_NO);
+  path_add_to_peers(p, GNUNET_NO);
   for (i = 0; i < path_info->peer->ntunnels; i++)
   {
     tunnel_add_peer (path_info->peer->tunnels[i], path_info->peer);
@@ -3345,7 +3362,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   p = path_build_from_dht (get_path, get_path_length, put_path,
                            put_path_length);
-  peer_info_add_path (peer_info, p, GNUNET_NO);
+  path_add_to_peers(p, GNUNET_NO);
   tunnel_add_peer (t, peer_info);
   peer_info_connect (peer_info, t);
 }
