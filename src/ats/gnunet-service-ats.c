@@ -43,6 +43,7 @@ struct GNUNET_STATISTICS_Handle *GSA_stats;
  * We have received a 'ClientStartMessage' from a client.  Find out which
  * type of client it is and notify the respective subsystem.
  *
+ * @param cls closure, unused
  * @param client handle to the client
  * @param message the start message
  */

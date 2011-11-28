@@ -54,7 +54,7 @@ struct GNUNET_CLIENT_TransmitHandle *dns_transmit_handle;
  * {{{
  */
 size_t
-send_query (void *cls __attribute__ ((unused)), size_t size, void *buf)
+send_query (void *cls GNUNET_UNUSED, size_t size, void *buf)
 {
   size_t len;
 
@@ -128,7 +128,7 @@ send_query (void *cls __attribute__ ((unused)), size_t size, void *buf)
  */
 void
 connect_to_service_dns (void *cls
-                        __attribute__ ((unused)),
+                        GNUNET_UNUSED,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   conn_task = GNUNET_SCHEDULER_NO_TASK;
@@ -170,7 +170,7 @@ connect_to_service_dns (void *cls
  */
 void
 dns_answer_handler (void *cls
-                    __attribute__ ((unused)),
+                    GNUNET_UNUSED,
                     const struct GNUNET_MessageHeader *msg)
 {
   /* the service disconnected, reconnect after short wait */

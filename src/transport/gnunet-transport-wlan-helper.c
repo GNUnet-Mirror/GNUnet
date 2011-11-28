@@ -543,16 +543,17 @@ ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator
 
 
 /**
- * ieee80211_radiotap_iterator_next - return next radiotap parser iterator arg
- * @iterator: radiotap_iterator to move to next arg (if any)
- *
- * Returns: next present arg index on success or negative if no more or error
+ * @brief ieee80211_radiotap_iterator_next - return next radiotap parser iterator arg 
  *
  * This function returns the next radiotap arg index (IEEE80211_RADIOTAP_...)
  * and sets iterator->this_arg to point to the payload for the arg.  It takes
  * care of alignment handling and extended present fields.  interator->this_arg
  * can be changed by the caller.  The args pointed to are in little-endian
  * format.
+ *
+ * @param iterator: radiotap_iterator to move to next arg (if any)
+ *
+ * @return next present arg index on success or negative if no more or error
  */
 static int
 ieee80211_radiotap_iterator_next (struct ieee80211_radiotap_iterator

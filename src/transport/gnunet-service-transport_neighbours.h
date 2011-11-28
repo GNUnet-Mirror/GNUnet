@@ -129,6 +129,8 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
  * to this peer
  *
  * @param neighbour neighbour to keep alive
+ * @param ats performance data
+ * @param ats_count number of entries in ats
  */
 void
 GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,

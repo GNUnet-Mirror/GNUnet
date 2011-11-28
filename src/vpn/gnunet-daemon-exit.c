@@ -170,8 +170,8 @@ struct tunnel_state
  * Function that frees everything from a hashmap
  */
 static int
-free_iterate (void *cls __attribute__ ((unused)), const GNUNET_HashCode * hash
-              __attribute__ ((unused)), void *value)
+free_iterate (void *cls GNUNET_UNUSED, const GNUNET_HashCode * hash
+              GNUNET_UNUSED, void *value)
 {
   GNUNET_free (value);
   return GNUNET_YES;
@@ -182,7 +182,7 @@ free_iterate (void *cls __attribute__ ((unused)), const GNUNET_HashCode * hash
  */
 static void
 cleanup (void *cls
-         __attribute__ ((unused)),
+         GNUNET_UNUSED,
          const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 {
   GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
@@ -200,10 +200,10 @@ cleanup (void *cls
 
 static void *
 new_tunnel (void *cls
-            __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+            GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
             const struct GNUNET_PeerIdentity *initiator
-            __attribute__ ((unused)), const struct GNUNET_ATS_Information *ats
-            __attribute__ ((unused)))
+            GNUNET_UNUSED, const struct GNUNET_ATS_Information *ats
+            GNUNET_UNUSED)
 {
   struct tunnel_state *s = GNUNET_malloc (sizeof *s);
 
@@ -215,7 +215,7 @@ new_tunnel (void *cls
 
 static void
 clean_tunnel (void *cls
-              __attribute__ ((unused)), const struct GNUNET_MESH_Tunnel *tunnel,
+              GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
               void *tunnel_ctx)
 {
   GNUNET_free (tunnel_ctx);
@@ -531,8 +531,8 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
  * Receive packets from the helper-process
  */
 static void
-message_token (void *cls __attribute__ ((unused)), void *client
-               __attribute__ ((unused)),
+message_token (void *cls GNUNET_UNUSED, void *client
+               GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_HELPER);
@@ -584,7 +584,7 @@ message_token (void *cls __attribute__ ((unused)), void *client
  * @param section name of section in config, equal to hostname
  */
 static void
-read_service_conf (void *cls __attribute__ ((unused)), const char *section)
+read_service_conf (void *cls GNUNET_UNUSED, const char *section)
 {
   if ((strlen (section) < 8) ||
       (0 != strcmp (".gnunet.", section + (strlen (section) - 8))))
@@ -1039,14 +1039,14 @@ prepare_ipv6_packet (size_t len, uint16_t pktlen, void *payload,
  */
 static int
 receive_tcp_service (void *cls
-                     __attribute__ ((unused)),
+                     GNUNET_UNUSED,
                      struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx
-                     __attribute__ ((unused)),
+                     GNUNET_UNUSED,
                      const struct GNUNET_PeerIdentity *sender
-                     __attribute__ ((unused)),
+                     GNUNET_UNUSED,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information *atsi
-                     __attribute__ ((unused)))
+                     GNUNET_UNUSED)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
@@ -1145,14 +1145,14 @@ receive_tcp_service (void *cls
 
 static int
 receive_tcp_remote (void *cls
-                    __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                    GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                     void **tunnel_ctx
-                    __attribute__ ((unused)),
+                    GNUNET_UNUSED,
                     const struct GNUNET_PeerIdentity *sender
-                    __attribute__ ((unused)),
+                    GNUNET_UNUSED,
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi
-                    __attribute__ ((unused)))
+                    GNUNET_UNUSED)
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
@@ -1221,14 +1221,14 @@ receive_tcp_remote (void *cls
 
 static int
 receive_udp_remote (void *cls
-                    __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                    GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                     void **tunnel_ctx
-                    __attribute__ ((unused)),
+                    GNUNET_UNUSED,
                     const struct GNUNET_PeerIdentity *sender
-                    __attribute__ ((unused)),
+                    GNUNET_UNUSED,
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi
-                    __attribute__ ((unused)))
+                    GNUNET_UNUSED)
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1301,13 +1301,13 @@ receive_udp_remote (void *cls
  */
 static int
 receive_udp_service (void *cls
-                     __attribute__ ((unused)),
+                     GNUNET_UNUSED,
                      struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                      const struct GNUNET_PeerIdentity *sender
-                     __attribute__ ((unused)),
+                     GNUNET_UNUSED,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information *atsi
-                     __attribute__ ((unused)))
+                     GNUNET_UNUSED)
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1463,8 +1463,8 @@ connect_to_mesh ()
  * @param cfg_ configuration
  */
 static void
-run (void *cls, char *const *args __attribute__ ((unused)), const char *cfgfile
-     __attribute__ ((unused)), const struct GNUNET_CONFIGURATION_Handle *cfg_)
+run (void *cls, char *const *args GNUNET_UNUSED, const char *cfgfile
+     GNUNET_UNUSED, const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   cfg = cfg_;
 

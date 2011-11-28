@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/gnunet-service-ats_math.h
+ * @file ats/gnunet-service-ats_math.h
  * @brief common internal definitions for transport service's ats code
  * @author Matthias Wachs
  */

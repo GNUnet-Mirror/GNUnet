@@ -168,7 +168,7 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  */
 static void
 hijack (void *cls
-        __attribute__ ((unused)), const struct GNUNET_SCHEDULER_TaskContext *tc)
+        GNUNET_UNUSED, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -208,10 +208,10 @@ hijack (void *cls
 
 static void *
 new_tunnel (void *cls
-            __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+            GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
             const struct GNUNET_PeerIdentity *initiator
-            __attribute__ ((unused)), const struct GNUNET_ATS_Information *ats
-            __attribute__ ((unused)))
+            GNUNET_UNUSED, const struct GNUNET_ATS_Information *ats
+            GNUNET_UNUSED)
 {
   struct tunnel_state *s = GNUNET_malloc (sizeof *s);
 
@@ -223,7 +223,7 @@ new_tunnel (void *cls
 
 static void
 clean_tunnel (void *cls
-              __attribute__ ((unused)), const struct GNUNET_MESH_Tunnel *tunnel,
+              GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
               void *tunnel_ctx)
 {
   GNUNET_free (tunnel_ctx);
@@ -387,7 +387,7 @@ mesh_send (void *cls, size_t size, void *buf)
 void
 mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
               const struct GNUNET_ATS_Information *atsi
-              __attribute__ ((unused)))
+              GNUNET_UNUSED)
 {
   if (NULL == peer)
     return;
@@ -448,14 +448,14 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static int
 receive_mesh_query (void *cls
-                    __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                    GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                     void **ctx
-                    __attribute__ ((unused)),
+                    GNUNET_UNUSED,
                     const struct GNUNET_PeerIdentity *sender
-                    __attribute__ ((unused)),
+                    GNUNET_UNUSED,
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi
-                    __attribute__ ((unused)))
+                    GNUNET_UNUSED)
 {
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
 
@@ -501,13 +501,13 @@ receive_mesh_query (void *cls
 
 static int
 receive_mesh_answer (void *cls
-                     __attribute__ ((unused)),
+                     GNUNET_UNUSED,
                      struct GNUNET_MESH_Tunnel *tunnel, void **ctx
-                     __attribute__ ((unused)),
+                     GNUNET_UNUSED,
                      const struct GNUNET_PeerIdentity *sender,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information *atsi
-                     __attribute__ ((unused)))
+                     GNUNET_UNUSED)
 {
   /* TODo: size check */
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
@@ -750,14 +750,14 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
-             __attribute__ ((unused)), const GNUNET_HashCode * key
-             __attribute__ ((unused)),
+             GNUNET_UNUSED, const GNUNET_HashCode * key
+             GNUNET_UNUSED,
              const struct GNUNET_PeerIdentity *get_path
-             __attribute__ ((unused)), unsigned int get_path_length
-             __attribute__ ((unused)),
+             GNUNET_UNUSED, unsigned int get_path_length
+             GNUNET_UNUSED,
              const struct GNUNET_PeerIdentity *put_path
-             __attribute__ ((unused)), unsigned int put_path_length
-             __attribute__ ((unused)), enum GNUNET_BLOCK_Type type, size_t size,
+             GNUNET_UNUSED, unsigned int put_path_length
+             GNUNET_UNUSED, enum GNUNET_BLOCK_Type type, size_t size,
              const void *data)
 {
 
@@ -869,8 +869,8 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
  */
 static void
 rehijack (void *cls
-          __attribute__ ((unused)), struct GNUNET_SERVER_Client *client,
-          const struct GNUNET_MessageHeader *message __attribute__ ((unused)))
+          GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
+          const struct GNUNET_MessageHeader *message GNUNET_UNUSED)
 {
   unhijack (dnsoutport);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &hijack, NULL);
@@ -883,7 +883,7 @@ rehijack (void *cls
  */
 static void
 receive_query (void *cls
-               __attribute__ ((unused)), struct GNUNET_SERVER_Client *client,
+               GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   struct query_packet *pkt = (struct query_packet *) message;
@@ -1232,7 +1232,7 @@ handle_response (struct dns_pkt *dns, struct sockaddr *addr, socklen_t addrlen,
  */
 static void
 read_response6 (void *cls
-                __attribute__ ((unused)),
+                GNUNET_UNUSED,
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in6 addr;
@@ -1282,7 +1282,7 @@ read_response6 (void *cls
  */
 static void
 read_response (void *cls
-               __attribute__ ((unused)),
+               GNUNET_UNUSED,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in addr;
@@ -1439,7 +1439,7 @@ handle_response (struct dns_pkt *dns, struct sockaddr *addr, socklen_t addrlen,
  */
 static void
 cleanup_task (void *cls
-              __attribute__ ((unused)),
+              GNUNET_UNUSED,
               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
@@ -1590,7 +1590,7 @@ publish_name (const char *name, uint64_t ports, uint32_t service_type,
  * @param section the current section
  */
 static void
-publish_iterate (void *cls __attribute__ ((unused)), const char *section)
+publish_iterate (void *cls GNUNET_UNUSED, const char *section)
 {
   char *udp_redirects;
   char *tcp_redirects;
@@ -1666,7 +1666,7 @@ publish_iterate (void *cls __attribute__ ((unused)), const char *section)
  */
 static void
 publish_names (void *cls
-               __attribute__ ((unused)),
+               GNUNET_UNUSED,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))

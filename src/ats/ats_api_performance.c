@@ -167,7 +167,7 @@ struct GNUNET_ATS_PerformanceHandle
 /**
  * Re-establish the connection to the ATS service.
  *
- * @param sh handle to use to re-connect.
+ * @param ph handle to use to re-connect.
  */
 static void
 reconnect (struct GNUNET_ATS_PerformanceHandle *ph);

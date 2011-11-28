@@ -79,7 +79,7 @@ GNUNET_SCHEDULER_TaskIdentifier shs_task;
  */
 static void
 cleanup (void *cls
-         __attribute__ ((unused)),
+         GNUNET_UNUSED,
          const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 {
   GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
@@ -169,7 +169,7 @@ address4_mapping_exists (uint32_t addr)
 
 static void
 collect_mappings (void *cls
-                  __attribute__ ((unused)),
+                  GNUNET_UNUSED,
                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
@@ -336,7 +336,7 @@ port_in_ports (uint64_t ports, uint16_t port)
 void
 send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
                   const struct GNUNET_ATS_Information *atsi
-                  __attribute__ ((unused)))
+                  GNUNET_UNUSED)
 {
   /* peer == NULL means that all peers in this request are connected */
   if (peer == NULL)
@@ -857,11 +857,11 @@ add_additional_port (struct map_entry *me, uint16_t port)
 
 static int
 receive_udp_back (void *cls
-                  __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                  GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                   void **tunnel_ctx, const struct GNUNET_PeerIdentity *sender,
                   const struct GNUNET_MessageHeader *message,
                   const struct GNUNET_ATS_Information *atsi
-                  __attribute__ ((unused)))
+                  GNUNET_UNUSED)
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr *s = (struct remote_addr *) desc;
@@ -1034,12 +1034,12 @@ receive_udp_back (void *cls
 
 static int
 receive_tcp_back (void *cls
-                  __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                  GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                   void **tunnel_ctx, const struct GNUNET_PeerIdentity *sender
-                  __attribute__ ((unused)),
+                  GNUNET_UNUSED,
                   const struct GNUNET_MessageHeader *message,
                   const struct GNUNET_ATS_Information *atsi
-                  __attribute__ ((unused)))
+                  GNUNET_UNUSED)
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr *s = (struct remote_addr *) desc;
@@ -1245,8 +1245,8 @@ cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
  * @param cfg_ configuration
  */
 static void
-run (void *cls, char *const *args __attribute__ ((unused)), const char *cfgfilep
-     __attribute__ ((unused)), const struct GNUNET_CONFIGURATION_Handle *cfg_)
+run (void *cls, char *const *args GNUNET_UNUSED, const char *cfgfilep
+     GNUNET_UNUSED, const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   static const struct GNUNET_MESH_MessageHandler handlers[] = {
     {receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK, 0},

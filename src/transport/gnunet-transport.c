@@ -437,7 +437,10 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * Function to call with a human-readable format of an address
  *
  * @param cls closure
- * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
+ * @param peer identity of the peer
+ * @param transport name of the plugin
+ * @param addr binary address
+ * @param addrlen number of bytes in addr
  */
 static void
 process_address (void *cls, const struct GNUNET_PeerIdentity *peer,

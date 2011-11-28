@@ -1136,6 +1136,7 @@ static void send_outbound_quota (const struct GNUNET_PeerIdentity *target, struc
  * ATS to not use this address anymore (until it is re-validated).
  *
  * @param cls the 'struct GNUNET_HELLO_Address' of the address that was tried
+ * @param target peer to send the message to
  * @param success GNUNET_OK on success
  */
 static void
@@ -1190,11 +1191,13 @@ send_connect_continuation (void *cls, const struct GNUNET_PeerIdentity *target,
   GNUNET_free (cc);
 }
 
+
 /**
  * We tried to switch addresses with an peer already connected. If it failed,
  * we should tell ATS to not use this address anymore (until it is re-validated).
  *
  * @param cls the 'struct NeighbourMapEntry'
+ * @param target peer to send the message to
  * @param success GNUNET_OK on success
  */
 static void
@@ -1291,12 +1294,14 @@ send_switch_address_continuation (void *cls,
   GNUNET_free (cc);
 }
 
+
 /**
  * We tried to send a SESSION_CONNECT message to another peer.  If this
  * succeeded, we change the state.  If it failed, we should tell
  * ATS to not use this address anymore (until it is re-validated).
  *
  * @param cls the 'struct NeighbourMapEntry'
+ * @param target peer to send the message to
  * @param success GNUNET_OK on success
  */
 static void
@@ -1350,6 +1355,7 @@ send_connect_ack_continuation (void *cls,
   GNUNET_HELLO_address_free (cc->address);
   GNUNET_free (cc);
 }
+
 
 /**
  * For an existing neighbour record, set the active connection to
@@ -1971,6 +1977,8 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
  * to this peer
  *
  * @param neighbour neighbour to keep alive
+ * @param ats performance data
+ * @param ats_count number of entries in ats
  */
 void
 GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,

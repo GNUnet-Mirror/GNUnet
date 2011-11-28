@@ -169,7 +169,7 @@ initialize_tunnel_state (int addrlen, struct GNUNET_MESH_TransmitHandle *th)
  */
 void
 helper_write (void *cls
-              __attribute__ ((unused)),
+              GNUNET_UNUSED,
               const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
 {
   if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
@@ -321,8 +321,8 @@ helper_write (void *cls
  * Receive packets from the helper-process
  */
 void
-message_token (void *cls __attribute__ ((unused)), void *client
-               __attribute__ ((unused)),
+message_token (void *cls GNUNET_UNUSED, void *client
+               GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_HELPER);

@@ -77,6 +77,11 @@
  */
 #define GNUNET_PACKED __attribute__((packed))
 
+/**
+ * gcc-ism to document unused arguments
+ */
+#define GNUNET_UNUSED __attribute__((unused))
+
 
 /* ************************ super-general types *********************** */
 
