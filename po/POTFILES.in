@@ -140,9 +140,7 @@ src/fs/fs_download.c
 src/fs/gnunet-service-fs.c
 src/fs/fs_file_information.c
 src/transport/gnunet-service-transport_neighbours.c
-src/transport/transport_api_address_lookup.c
 src/transport/gnunet-service-transport_blacklist.c
-src/transport/transport_api_blacklist.c
 src/transport/gnunet-transport-wlan-helper.c
 src/transport/plugin_transport_http_server.c
 src/transport/gnunet-service-transport_hello.c
@@ -153,14 +151,12 @@ src/transport/plugin_transport_template.c
 src/transport/plugin_transport_tcp.c
 src/transport/plugin_transport_http.c
 src/transport/plugin_transport_unix.c
-src/transport/transport_api_peer_address_lookup.c
 src/transport/plugin_transport_smtp.c
 src/transport/gnunet-service-transport_plugins.c
 src/transport/plugin_transport_wlan.c
 src/transport/gnunet-transport.c
 src/transport/gnunet-service-transport_validation.c
 src/transport/plugin_transport_udp_new.c
-src/transport/transport_api_address_iterate.c
 src/transport/gnunet-transport-certificate-creation.c
 src/transport/gnunet-service-transport_clients.c
 src/transport/transport_api.c
