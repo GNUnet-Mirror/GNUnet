@@ -23,7 +23,8 @@ lib_LTLIBRARIES = \
   libgnunetmesh.la
 
 gnunet_service_mesh_SOURCES = \
- gnunet-service-mesh.c mesh_tunnel_tree.c
+ gnunet-service-mesh.c \
+ mesh_tunnel_tree.c mesh_tunnel_tree.h
 gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la\
   $(top_builddir)/src/dht/libgnunetdht.la \
@@ -34,7 +35,7 @@ gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 
 libgnunetmesh_la_SOURCES = \
-  mesh_api.c mesh.h
+  mesh_api.c mesh.h mesh_protocol.h
 libgnunetmesh_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB)
