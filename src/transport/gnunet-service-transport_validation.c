@@ -1195,7 +1195,7 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
   }
   if (ve->in_use == in_use)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "GST_validation_set_address_use: %s %s: ve->in_use %i <-> in_use %i",
+        "GST_validation_set_address_use: %s %s: ve->in_use %i <-> in_use %i\n",
         GNUNET_i2s(sender),
         GST_plugins_a2s(address),
         ve->in_use,
