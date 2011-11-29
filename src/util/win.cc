@@ -44,48 +44,585 @@ extern "C" {
 
 int plibc_conv_to_win_path(const char *pszUnix, char *pszWindows);
 
-/**
- * Enumerate all network adapters
- */
-void EnumNICs(PMIB_IFTABLE *pIfTable, PMIB_IPADDRTABLE *pAddrTable)
+#define _IP_ADAPTER_UNICAST_ADDRESS_HEAD \
+  union { \
+    struct { \
+      ULONG Length; \
+      DWORD Flags; \
+    }; \
+  }; \
+
+#define _IP_ADAPTER_UNICAST_ADDRESS_BASE \
+  SOCKET_ADDRESS                     Address; \
+  IP_PREFIX_ORIGIN                   PrefixOrigin; \
+  IP_SUFFIX_ORIGIN                   SuffixOrigin; \
+  IP_DAD_STATE                       DadState; \
+  ULONG                              ValidLifetime; \
+  ULONG                              PreferredLifetime; \
+  ULONG                              LeaseLifetime;
+
+#define _IP_ADAPTER_UNICAST_ADDRESS_ADD_VISTA \
+  UINT8                              OnLinkPrefixLength;
+
+
+#define _IP_ADAPTER_UNICAST_ADDRESS_DEFINE(suffix,addition) \
+typedef struct _IP_ADAPTER_UNICAST_ADDRESS##suffix { \
+  _IP_ADAPTER_UNICAST_ADDRESS_HEAD \
+  struct _IP_ADAPTER_UNICAST_ADDRESS##suffix *Next; \
+  _IP_ADAPTER_UNICAST_ADDRESS_BASE \
+  addition \
+} IP_ADAPTER_UNICAST_ADDRESS##suffix, *PIP_ADAPTER_UNICAST_ADDRESS##suffix;
+
+/* _IP_ADAPTER_UNICAST_ADDRESS_DEFINE(,) defined in w32api headers */
+_IP_ADAPTER_UNICAST_ADDRESS_DEFINE(_VISTA,_IP_ADAPTER_UNICAST_ADDRESS_ADD_VISTA)
+
+
+typedef struct _IP_ADAPTER_WINS_SERVER_ADDRESS {
+  union {
+    ULONGLONG Alignment;
+    struct {
+      ULONG Length;
+      DWORD Reserved;
+    };
+  };
+  struct _IP_ADAPTER_WINS_SERVER_ADDRESS  *Next;
+  SOCKET_ADDRESS                         Address;
+} IP_ADAPTER_WINS_SERVER_ADDRESS, *PIP_ADAPTER_WINS_SERVER_ADDRESS, *PIP_ADAPTER_WINS_SERVER_ADDRESS_LH;
+
+typedef struct _IP_ADAPTER_GATEWAY_ADDRESS {
+  union {
+    ULONGLONG Alignment;
+    struct {
+      ULONG Length;
+      DWORD Reserved;
+    };
+  };
+  struct _IP_ADAPTER_GATEWAY_ADDRESS  *Next;
+  SOCKET_ADDRESS                     Address;
+} IP_ADAPTER_GATEWAY_ADDRESS, *PIP_ADAPTER_GATEWAY_ADDRESS, *PIP_ADAPTER_GATEWAY_ADDRESS_LH;
+
+typedef UINT32 NET_IF_COMPARTMENT_ID;
+typedef GUID NET_IF_NETWORK_GUID;
+
+typedef enum _NET_IF_CONNECTION_TYPE {
+  NET_IF_CONNECTION_DEDICATED   = 1,
+  NET_IF_CONNECTION_PASSIVE,
+  NET_IF_CONNECTION_DEMAND,
+  NET_IF_CONNECTION_MAXIMUM 
+} NET_IF_CONNECTION_TYPE, *PNET_IF_CONNECTION_TYPE;
+
+typedef enum  {
+  TUNNEL_TYPE_NONE      = 0,
+  TUNNEL_TYPE_OTHER,
+  TUNNEL_TYPE_DIRECT,
+  TUNNEL_TYPE_6TO4,
+  TUNNEL_TYPE_ISATAP,
+  TUNNEL_TYPE_TEREDO,
+  TUNNEL_TYPE_IPHTTPS 
+} TUNNEL_TYPE, *PTUNNEL_TYPE;
+
+/*
+A DUID consists of a two-octet type code represented in network byte
+   order, followed by a variable number of octets that make up the
+   actual identifier.  A DUID can be no more than 128 octets long (not
+   including the type code).
+*/
+#define MAX_DHCPV6_DUID_LENGTH 130
+
+typedef union _NET_LUID {
+  ULONG64 Value;
+  struct {
+    ULONG64 Reserved  :24;
+    ULONG64 NetLuidIndex  :24;
+    ULONG64 IfType  :16;
+  } Info;
+} NET_LUID, *PNET_LUID, IF_LUID;
+
+#define MAX_DNS_SUFFIX_STRING_LENGTH 246
+
+typedef struct _IP_ADAPTER_DNS_SUFFIX {
+  struct _IP_ADAPTER_DNS_SUFFIX  *Next;
+  WCHAR                         String[MAX_DNS_SUFFIX_STRING_LENGTH];
+} IP_ADAPTER_DNS_SUFFIX, *PIP_ADAPTER_DNS_SUFFIX;
+
+
+
+#define _IP_ADAPTER_ADDRESSES_HEAD \
+  union { \
+    ULONGLONG Alignment; \
+    struct { \
+      ULONG Length; \
+      DWORD IfIndex; \
+    }; \
+  };
+
+#define _IP_ADAPTER_ADDRESSES_BASE \
+  PCHAR                              AdapterName; \
+  PIP_ADAPTER_UNICAST_ADDRESS        FirstUnicastAddress; \
+  PIP_ADAPTER_ANYCAST_ADDRESS        FirstAnycastAddress; \
+  PIP_ADAPTER_MULTICAST_ADDRESS      FirstMulticastAddress; \
+  PIP_ADAPTER_DNS_SERVER_ADDRESS     FirstDnsServerAddress; \
+  PWCHAR                             DnsSuffix; \
+  PWCHAR                             Description; \
+  PWCHAR                             FriendlyName; \
+  BYTE                               PhysicalAddress[MAX_ADAPTER_ADDRESS_LENGTH]; \
+  DWORD                              PhysicalAddressLength; \
+  DWORD                              Flags; \
+  DWORD                              Mtu; \
+  DWORD                              IfType; \
+  IF_OPER_STATUS                     OperStatus;
+
+#define _IP_ADAPTER_ADDRESSES_ADD_XPSP1 \
+  DWORD                              Ipv6IfIndex; \
+  DWORD                              ZoneIndices[16]; \
+  PIP_ADAPTER_PREFIX                 FirstPrefix; \
+
+
+#define _IP_ADAPTER_ADDRESSES_ADD_VISTA \
+  _IP_ADAPTER_ADDRESSES_ADD_XPSP1 \
+  ULONG64                            TransmitLinkSpeed; \
+  ULONG64                            ReceiveLinkSpeed; \
+  PIP_ADAPTER_WINS_SERVER_ADDRESS_LH FirstWinsServerAddress; \
+  PIP_ADAPTER_GATEWAY_ADDRESS_LH     FirstGatewayAddress; \
+  ULONG                              Ipv4Metric; \
+  ULONG                              Ipv6Metric; \
+  IF_LUID                            Luid; \
+  SOCKET_ADDRESS                     Dhcpv4Server; \
+  NET_IF_COMPARTMENT_ID              CompartmentId; \
+  NET_IF_NETWORK_GUID                NetworkGuid; \
+  NET_IF_CONNECTION_TYPE             ConnectionType; \
+  TUNNEL_TYPE                        TunnelType; \
+  SOCKET_ADDRESS                     Dhcpv6Server; \
+  BYTE                               Dhcpv6ClientDuid[MAX_DHCPV6_DUID_LENGTH]; \
+  ULONG                              Dhcpv6ClientDuidLength; \
+  ULONG                              Dhcpv6Iaid;
+
+#define _IP_ADAPTER_ADDRESSES_ADD_2008_OR_VISTASP1 \
+  _IP_ADAPTER_ADDRESSES_ADD_VISTA \
+  PIP_ADAPTER_DNS_SUFFIX             FirstDnsSuffix;
+
+#define _IP_ADAPTER_ADDRESSES_DEFINE(suffix,addition) \
+typedef struct _IP_ADAPTER_ADDRESSES##suffix { \
+  _IP_ADAPTER_ADDRESSES_HEAD \
+  struct _IP_ADAPTER_ADDRESSES##suffix *Next; \
+  _IP_ADAPTER_ADDRESSES_BASE \
+  addition \
+} IP_ADAPTER_ADDRESSES##suffix, *PIP_ADAPTER_ADDRESSES##suffix;
+  
+
+/* _IP_ADAPTER_ADDRESSES_DEFINE(,) defined in w32api headers */
+_IP_ADAPTER_ADDRESSES_DEFINE(_XPSP1,_IP_ADAPTER_ADDRESSES_ADD_XPSP1)
+_IP_ADAPTER_ADDRESSES_DEFINE(_VISTA,_IP_ADAPTER_ADDRESSES_ADD_VISTA)
+_IP_ADAPTER_ADDRESSES_DEFINE(_2008_OR_VISTASP1,_IP_ADAPTER_ADDRESSES_ADD_2008_OR_VISTASP1)
+
+static int
+EnumNICs_IPv6_get_ifs_count (SOCKET s)
 {
-  DWORD dwSize, dwRet;
+  DWORD dwret = 0, err;
+  int iret;
+  iret = WSAIoctl (s, SIO_ADDRESS_LIST_QUERY, NULL, 0, NULL, 0,
+      &dwret, NULL, NULL);
+  err = GetLastError ();
+  if (iret == SOCKET_ERROR && err == WSAEFAULT)
+    return dwret;
+  else if (iret == 0)
+    return 0;
+  return GNUNET_SYSERR;
+}
 
-  *pIfTable = NULL;
+static int
+EnumNICs_IPv6_get_ifs (SOCKET s, SOCKET_ADDRESS_LIST *inf, int size)
+{
+  int iret;
+  DWORD dwret = 0;
+  iret = WSAIoctl (s, SIO_ADDRESS_LIST_QUERY, NULL, 0, inf, size,
+      &dwret, NULL, NULL);
 
-  if (pAddrTable)
-    *pAddrTable = NULL;
-
-  if (GNGetIfTable)
+  if (iret != 0 || dwret != size)
   {
-    dwSize = dwRet = 0;
+    /* It's supposed to succeed! And size should be the same */
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
 
-    *pIfTable = (MIB_IFTABLE *) GlobalAlloc(GPTR, sizeof(MIB_IFTABLE));
+#undef GNUNET_malloc
+#define GNUNET_malloc(a) HeapAlloc(GetProcessHeap (), HEAP_ZERO_MEMORY | \
+    HEAP_GENERATE_EXCEPTIONS, a)
 
-    /* Get size of table */
-    if (GNGetIfTable(*pIfTable, &dwSize, 0) == ERROR_INSUFFICIENT_BUFFER)
+#undef GNUNET_free
+#define GNUNET_free(a) HeapFree(GetProcessHeap (), 0, a)
+
+#undef GNUNET_free_non_null
+#define GNUNET_free_non_null(a) do { if ((a) != NULL) GNUNET_free(a); } while (0)
+
+static int
+EnumNICs_IPv4_get_ifs (SOCKET s, INTERFACE_INFO **inf, int *size)
+{
+  int iret;
+  DWORD dwret = 0;
+  DWORD error;
+  INTERFACE_INFO *ii = NULL;
+  DWORD ii_size = sizeof (INTERFACE_INFO) * 15;
+  while (TRUE)
+  {
+    if (ii_size >= sizeof (INTERFACE_INFO) * 1000)
+      return GNUNET_SYSERR;
+    ii = (INTERFACE_INFO *) GNUNET_malloc (ii_size);
+    dwret = 0;
+    iret = WSAIoctl (s, SIO_GET_INTERFACE_LIST, NULL, 0, ii, ii_size,
+        &dwret, NULL, NULL);
+    error = GetLastError ();
+    if (iret == SOCKET_ERROR)
     {
-      GlobalFree(*pIfTable);
-      *pIfTable = (MIB_IFTABLE *) GlobalAlloc(GPTR, dwSize);
-    }
-
-    if ((dwRet = GNGetIfTable(*pIfTable, &dwSize, 0)) == NO_ERROR &&
-      pAddrTable)
-    {
-      DWORD dwIfIdx, dwSize = sizeof(MIB_IPADDRTABLE);
-      *pAddrTable = (MIB_IPADDRTABLE *) GlobalAlloc(GPTR, dwSize);
-
-      /* Make an initial call to GetIpAddrTable to get the
-         necessary size */
-      if (GNGetIpAddrTable(*pAddrTable, &dwSize, 0) == ERROR_INSUFFICIENT_BUFFER)
+      if (error == WSAEFAULT)
       {
-        GlobalFree(*pAddrTable);
-        *pAddrTable = (MIB_IPADDRTABLE *) GlobalAlloc(GPTR, dwSize);
+        GNUNET_free (ii);
+        ii_size *= 2;
+        continue;
       }
-      GNGetIpAddrTable(*pAddrTable, &dwSize, 0);
+      GNUNET_free (ii);
+      return GNUNET_SYSERR;
+    }
+    else
+    {
+      *inf = ii;
+      *size = dwret;
+      return GNUNET_OK;
     }
   }
+  return GNUNET_SYSERR;
 }
+
+int
+EnumNICs2 (INTERFACE_INFO **ifs4, int *ifs4_len, SOCKET_ADDRESS_LIST **ifs6)
+{
+  int result = 0;
+  SOCKET s4 = INVALID_SOCKET, s6 = INVALID_SOCKET;
+  DWORD dwret1 = 0, dwret2;
+  DWORD err1, err2;
+  int ifs4len = 0, ifs6len = 0;
+  INTERFACE_INFO *interfaces4 = NULL;
+  SOCKET_ADDRESS_LIST *interfaces6 = NULL;
+  SetLastError (0);
+  s4 = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  err1 = GetLastError ();
+  SetLastError (0);
+  s6 = socket (AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+  err2 = GetLastError ();
+  if (s6 != INVALID_SOCKET)
+  {
+    ifs6len = EnumNICs_IPv6_get_ifs_count (s6);
+    if (ifs6len > 0)
+    {
+      interfaces6 = (SOCKET_ADDRESS_LIST *) GNUNET_malloc (ifs6len);
+      result = EnumNICs_IPv6_get_ifs (s6, interfaces6, ifs6len) || result;
+    }
+    closesocket (s6);
+    s6 = INVALID_SOCKET;
+  }
+
+  if (s4 != INVALID_SOCKET)
+  {
+    result = EnumNICs_IPv4_get_ifs (s4, &interfaces4, &ifs4len) || result;
+    closesocket (s4);
+    s4 = INVALID_SOCKET;
+  }
+  if (ifs6len + ifs4len == 0)
+    goto error;
+
+  if (!result)
+  {
+    *ifs4 = interfaces4;
+    *ifs4_len = ifs4len;
+    *ifs6 = interfaces6;
+    return GNUNET_OK;
+  }
+error:
+  if (interfaces4 != NULL)
+    GNUNET_free (interfaces4);
+  if (interfaces6 != NULL)
+    GNUNET_free (interfaces6);
+  if (s4 != INVALID_SOCKET)
+    closesocket (s4);
+  if (s6 != INVALID_SOCKET)
+    closesocket (s6);
+  return GNUNET_SYSERR;
+}
+
+/**
+ * Returns GNUNET_OK on OK, GNUNET_SYSERR on error
+ */
+int
+EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
+{
+  DWORD dwRetVal = 0;
+  int count = 0;
+  ULONG flags = /*GAA_FLAG_INCLUDE_PREFIX |*/ GAA_FLAG_SKIP_ANYCAST |
+      GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+  struct sockaddr_in6 examplecom6;
+  IPAddr examplecom;
+  DWORD best_interface = 0;
+  DWORD best_interface6 = 0;
+
+  int use_enum2 = 0;
+  INTERFACE_INFO *interfaces4 = NULL;
+  int interfaces4_len = 0;
+  SOCKET_ADDRESS_LIST *interfaces6 = NULL;
+
+  unsigned long outBufLen = sizeof (IP_ADAPTER_ADDRESSES);
+  IP_ADAPTER_ADDRESSES *pCurrentAddress = NULL;
+  IP_ADAPTER_ADDRESSES *pAddresses = (IP_ADAPTER_ADDRESSES *) GNUNET_malloc (outBufLen);
+
+  if (GetAdaptersAddresses (AF_UNSPEC, flags, NULL, pAddresses, &outBufLen)
+      == ERROR_BUFFER_OVERFLOW)
+  {
+    GNUNET_free (pAddresses);
+    pAddresses = (IP_ADAPTER_ADDRESSES *) GNUNET_malloc (outBufLen);
+  }
+
+  dwRetVal = GetAdaptersAddresses (AF_UNSPEC, flags, NULL, pAddresses, &outBufLen);
+
+  if (dwRetVal != NO_ERROR)
+  {
+    GNUNET_free (pAddresses);
+    return GNUNET_SYSERR;
+  }
+
+  if (pAddresses->Length < sizeof (IP_ADAPTER_ADDRESSES_VISTA))
+  {
+    use_enum2 = 1;
+
+    /* Enumerate NICs using WSAIoctl() */
+    if (GNUNET_OK != EnumNICs2 (&interfaces4, &interfaces4_len, &interfaces6))
+    {
+      GNUNET_free (pAddresses);
+      return GNUNET_SYSERR;
+    }
+  }
+
+  examplecom = inet_addr("192.0.34.166"); /* www.example.com */
+  if (GetBestInterface (examplecom, &best_interface) != NO_ERROR)
+    best_interface = 0;
+
+  if (GNGetBestInterfaceEx != NULL)
+  {
+    examplecom6.sin6_family = AF_INET6;
+    examplecom6.sin6_port = 0;
+    examplecom6.sin6_flowinfo = 0;
+    examplecom6.sin6_scope_id = 0;
+    inet_pton (AF_INET6, "2001:500:88:200:0:0:0:10",
+        (struct sockaddr *) &examplecom6.sin6_addr);
+    dwRetVal = GNGetBestInterfaceEx ((struct sockaddr *) &examplecom6,
+        &best_interface6);
+    if (dwRetVal != NO_ERROR)
+      best_interface6 = 0;
+  }
+
+  /* Give IPv6 a priority */
+  if (best_interface6 != 0)
+    best_interface = best_interface6;
+
+  count = 0;
+  for (pCurrentAddress = pAddresses;
+      pCurrentAddress != NULL; pCurrentAddress = pCurrentAddress->Next)
+  {
+    if (pCurrentAddress->OperStatus == IfOperStatusUp)
+    {
+      IP_ADAPTER_UNICAST_ADDRESS *unicast = NULL;
+      for (unicast = pCurrentAddress->FirstUnicastAddress; unicast != NULL;
+          unicast = unicast->Next)
+      {
+        if ((unicast->Address.lpSockaddr->sa_family == AF_INET ||
+            unicast->Address.lpSockaddr->sa_family == AF_INET6) &&
+            (unicast->DadState == IpDadStateDeprecated ||
+            unicast->DadState == IpDadStatePreferred))
+          count += 1;
+      }
+    }
+  }
+
+  if (count == 0)
+  {
+    *results = NULL;
+    *results_count = 0;
+    GNUNET_free (pAddresses);
+    GNUNET_free_non_null (interfaces4);
+    GNUNET_free_non_null (interfaces6);
+    return GNUNET_OK;
+  }
+
+  *results = (struct EnumNICs3_results *) GNUNET_malloc (
+      sizeof (struct EnumNICs3_results) * count);
+  *results_count = count;
+
+  count = 0;
+  for (pCurrentAddress = pAddresses;
+      pCurrentAddress != NULL; pCurrentAddress = pCurrentAddress->Next)
+  {
+    struct EnumNICs3_results *r;
+    IP_ADAPTER_UNICAST_ADDRESS *unicast = NULL;
+    if (pCurrentAddress->OperStatus != IfOperStatusUp)
+      continue;
+    for (unicast = pCurrentAddress->FirstUnicastAddress; unicast != NULL;
+        unicast = unicast->Next)
+    {
+      int i, j;
+      int mask_length = -1;
+      char dst[INET6_ADDRSTRLEN + 1];
+
+      if ((unicast->Address.lpSockaddr->sa_family != AF_INET &&
+          unicast->Address.lpSockaddr->sa_family != AF_INET6) ||
+          (unicast->DadState != IpDadStateDeprecated &&
+          unicast->DadState != IpDadStatePreferred))
+        continue;
+
+      r = &(*results)[count];
+      r->flags = 0;
+      if (pCurrentAddress->IfIndex > 0 &&
+          pCurrentAddress->IfIndex == best_interface &&
+          unicast->Address.lpSockaddr->sa_family == AF_INET)
+        r->is_default = 1;
+      else if (pCurrentAddress->Ipv6IfIndex > 0 &&
+          pCurrentAddress->Ipv6IfIndex == best_interface6 &&
+          unicast->Address.lpSockaddr->sa_family == AF_INET6)
+        r->is_default = 1;
+      else
+        r->is_default = 0;
+
+      /* Don't choose default interface twice */
+      if (r->is_default)
+        best_interface = best_interface6 = 0;
+
+      if (!use_enum2)
+      {
+        memcpy (&r->address, unicast->Address.lpSockaddr,
+            unicast->Address.iSockaddrLength);
+        memset (&r->mask, 0, sizeof (struct sockaddr));
+        mask_length = ((IP_ADAPTER_UNICAST_ADDRESS_VISTA *) unicast)->
+              OnLinkPrefixLength;
+        /* OnLinkPrefixLength is the number of leading 1s in the mask.
+         * OnLinkPrefixLength is available on Vista and later (hence use_enum2).
+         */
+        if (unicast->Address.lpSockaddr->sa_family == AF_INET)
+        {
+          struct sockaddr_in *m = (struct sockaddr_in *) &r->mask;
+          for (i = 0; i < mask_length; i++)
+              ((unsigned char *) &m->sin_addr)[i / 8] |= 0x80 >> (i % 8);
+        }
+        else if (unicast->Address.lpSockaddr->sa_family == AF_INET6)
+        {
+          struct sockaddr_in6 *m = (struct sockaddr_in6 *) &r->mask;
+          struct sockaddr_in6 *b = (struct sockaddr_in6 *) &r->broadcast;
+          for (i = 0; i < mask_length; i++)
+            ((unsigned char *) &m->sin6_addr)[i / 8] |= 0x80 >> (i % 8);
+          memcpy (&r->broadcast, &r->address, unicast->Address.iSockaddrLength);
+          for (i = mask_length; i < 128; i++)
+            ((unsigned char *) &b->sin6_addr)[i / 8] |= 0x80 >> (i % 8);
+        }
+        r->flags |= ENUMNICS3_MASK_OK;
+      }
+      else
+      {
+        int found = 0;
+        if (unicast->Address.lpSockaddr->sa_family == AF_INET)
+        {
+          for (i = 0; !found && i < interfaces4_len / sizeof (INTERFACE_INFO); i++)
+          {
+            struct sockaddr_in *m = (struct sockaddr_in *) &r->mask;
+            if (memcpy (&interfaces4[i].iiAddress.Address,
+                unicast->Address.lpSockaddr,
+                unicast->Address.iSockaddrLength) != 0)
+              continue;
+            found = 1;
+            memcpy (&r->address, &interfaces4[i].iiAddress.Address,
+                sizeof (struct sockaddr_in));
+            memcpy (&r->mask, &interfaces4[i].iiNetmask.Address,
+                sizeof (struct sockaddr_in));
+            for (mask_length = 0;
+                ((unsigned char *) &m->sin_addr)[mask_length / 8] &
+                0x80 >> (mask_length % 8); mask_length++)
+            {
+            }
+            r->flags |= ENUMNICS3_MASK_OK;
+          }
+        }
+        else if (unicast->Address.lpSockaddr->sa_family == AF_INET6)
+        {
+          for (i = 0;
+              interfaces6 != NULL && !found && i < interfaces6->iAddressCount;
+              i++)
+          {
+            if (memcpy (interfaces6->Address[i].lpSockaddr,
+                unicast->Address.lpSockaddr,
+                unicast->Address.iSockaddrLength) != 0)
+              continue;
+            found = 1;
+            memcpy (&r->address, interfaces6->Address[i].lpSockaddr,
+                sizeof (struct sockaddr_in6));
+            /* TODO: Find a way to reliably get network mask for IPv6 on XP */
+            memset (&r->mask, 0, sizeof (struct sockaddr));
+            r->flags &= ~ENUMNICS3_MASK_OK;
+          }
+        }
+        if (!found)
+        {
+          DebugBreak ();
+        }
+      }
+      if (unicast->Address.lpSockaddr->sa_family == AF_INET)
+      {
+        struct sockaddr_in *m = (struct sockaddr_in *) &r->mask;
+        struct sockaddr_in *a = (struct sockaddr_in *) &r->address;
+        /* copy address to broadcast, then flip all the trailing bits not
+         * falling under netmask to 1,
+         * so we get, 192.168.0.255 from, say, 192.168.0.43 with mask == 24.
+         */
+        memcpy (&r->broadcast, &r->address, unicast->Address.iSockaddrLength);
+        for (i = mask_length; i < 32; i++)
+          ((unsigned char *) &m->sin_addr)[i / 8] |= 0x80 >> (i % 8);
+        r->flags |= ENUMNICS3_BCAST_OK;
+        r->addr_size = sizeof (struct sockaddr_in);
+        inet_ntop (AF_INET, &a->sin_addr, dst, INET_ADDRSTRLEN);
+      }
+      else if (unicast->Address.lpSockaddr->sa_family == AF_INET6)
+      {
+        struct sockaddr_in6 *a = (struct sockaddr_in6 *) &r->address;
+        /* for IPv6 broadcast is not defined, zero it down */
+        memset (&r->broadcast, 0, sizeof (struct sockaddr));
+        r->flags &= ~ENUMNICS3_BCAST_OK;
+        r->addr_size = sizeof (struct sockaddr_in6);
+        inet_ntop (AF_INET6, &a->sin6_addr, dst, INET6_ADDRSTRLEN);
+      }
+
+      i = 0;
+      i += snprintf (&r->pretty_name[i], 1000 - i > 0 ? 1000 - i : 0,
+          "%S (%s", pCurrentAddress->FriendlyName, dst);
+      for (j = 0; j < pCurrentAddress->PhysicalAddressLength; j++)
+        i += snprintf (&r->pretty_name[i], 1000 - i > 0 ? 1000 - i : 0,
+            "%s%02X",j > 0 ? ":" : " - ", pCurrentAddress->PhysicalAddress[j]);
+      i += snprintf (&r->pretty_name[i], 1000 - i > 0 ? 1000 - i : 0, ")");
+      r->pretty_name[1000] = '\0';
+      count += 1;
+    }
+  }
+
+  if (use_enum2)
+  {
+    GNUNET_free_non_null (interfaces4);
+    GNUNET_free_non_null (interfaces6);
+  }
+
+  GNUNET_free (pAddresses);
+  return GNUNET_OK;
+}
+
+void
+EnumNICs3_free (struct EnumNICs3_results *r)
+{
+  GNUNET_free (r);
+}
+
 
 /**
  * Lists all network interfaces in a combo box
@@ -94,111 +631,21 @@ void EnumNICs(PMIB_IFTABLE *pIfTable, PMIB_IPADDRTABLE *pAddrTable)
  * @param callback function to call for each NIC
  * @param callback_cls closure for callback
  */
-  int ListNICs(void (*callback) (void *, const char *, int), void * callback_cls)
+int
+ListNICs (void (*callback) (void *, const char *, int), void * callback_cls)
 {
-  PMIB_IFTABLE pTable;
-  PMIB_IPADDRTABLE pAddrTable;
-  DWORD dwIfIdx, dwExternalNIC;
-  IPAddr theIP;
+  int r;
+  int i;
+  struct EnumNICs3_results *results = NULL;
+  int results_count;
 
-  /* Determine our external NIC  */
-  theIP = inet_addr("192.0.34.166"); /* www.example.com */
-  if ((! GNGetBestInterface) ||
-      (GNGetBestInterface(theIP, &dwExternalNIC) != NO_ERROR))
-  {
-    dwExternalNIC = 0;
-  }
+  r = EnumNICs3 (&results, &results_count);
+  if (r != GNUNET_OK)
+    return GNUNET_NO;
 
-  /* Enumerate NICs */
-  EnumNICs(&pTable, &pAddrTable);
-
-  if (pTable)
-  {
-    for(dwIfIdx=0; dwIfIdx <= pTable->dwNumEntries; dwIfIdx++)
-    {
-      char szEntry[1001];
-      DWORD dwIP = 0;
-      int iItm;
-  		PIP_ADAPTER_INFO pAdapterInfo;
-  		PIP_ADAPTER_INFO pAdapter = NULL;
-  		DWORD dwRetVal = 0;
-
-      /* Get IP-Address */
-      int i;
-      for(i = 0; i < pAddrTable->dwNumEntries; i++)
-      {
-        if (pAddrTable->table[i].dwIndex == pTable->table[dwIfIdx].dwIndex)
-        {
-          dwIP = pAddrTable->table[i].dwAddr;
-          break;
-        }
-      }
-
-      if (dwIP)
-      {
-        BYTE bPhysAddr[MAXLEN_PHYSADDR];
-  		  char *pszIfName = NULL;
-        char dst[INET_ADDRSTRLEN];
-
-        /* Get friendly interface name */
-  			pAdapterInfo = (IP_ADAPTER_INFO *) malloc(sizeof(IP_ADAPTER_INFO));
-  			ULONG ulOutBufLen = sizeof(IP_ADAPTER_INFO);
-
-  			/* Make an initial call to GetAdaptersInfo to get
-  			   the necessary size into the ulOutBufLen variable */
-  			if (GGetAdaptersInfo(pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
-  			  free(pAdapterInfo);
-  			  pAdapterInfo = (IP_ADAPTER_INFO *) malloc (ulOutBufLen);
-  			}
-
-  			if ((dwRetVal = GGetAdaptersInfo( pAdapterInfo, &ulOutBufLen)) == NO_ERROR) {
-  			  pAdapter = pAdapterInfo;
-  			  while (pAdapter) {
-  			  	if (pTable->table[dwIfIdx].dwIndex == pAdapter->Index)
-  			  	{
-  			  		char szKey[251];
-  			  		long lLen = 250;
-
-  			  		sprintf(szKey, "SYSTEM\\CurrentControlSet\\Control\\Network\\"
-  			  			"{4D36E972-E325-11CE-BFC1-08002BE10318}\\%s\\Connection",
-  			  			pAdapter->AdapterName);
-  			  		pszIfName = (char *) malloc(251);
-  			  		if (QueryRegistry(HKEY_LOCAL_MACHINE, szKey, "Name", pszIfName,
-  			  			&lLen) != ERROR_SUCCESS)
-  			  		{
-  			  			free(pszIfName);
-  			  			pszIfName = NULL;
-  			  		}
-  			  	}
-  			    pAdapter = pAdapter->Next;
-  			  }
-  			}
-  			free(pAdapterInfo);
-
-  			/* Set entry */
-        memset(bPhysAddr, 0, MAXLEN_PHYSADDR);
-        memcpy(bPhysAddr,
-          pTable->table[dwIfIdx].bPhysAddr,
-          pTable->table[dwIfIdx].dwPhysAddrLen);
-
-        snprintf(szEntry, 1000, "%s (%s - %I64u)",
-          pszIfName ? pszIfName : (char *) pTable->table[dwIfIdx].bDescr,
-          inet_ntop (AF_INET, &dwIP, dst, INET_ADDRSTRLEN),
-          *((unsigned long long *) bPhysAddr));
-        szEntry[1000] = 0;
-
-        if (pszIfName)
-         	free(pszIfName);
-
-        callback(callback_cls,
-		 szEntry, 
-		 pAddrTable->table[dwIfIdx].dwIndex == dwExternalNIC);
-      }
-    }
-    GlobalFree(pAddrTable);
-    GlobalFree(pTable);
-  }
-
+  for (i = 0; i < results_count; i++)
+    callback (callback_cls, results[i].pretty_name, results[i].is_default);
+  GNUNET_free_non_null (results);
   return GNUNET_YES;
 }
 

@@ -62,6 +62,10 @@ extern "C"
                                            PULONG pdwSize, BOOL bOrder);
   typedef DWORD WINAPI (*TGetIfTable) (PMIB_IFTABLE pIfTable, PULONG pdwSize,
                                        BOOL bOrder);
+  typedef DWORD WINAPI (*TGetBestInterfaceEx) (struct sockaddr *, PDWORD);
+  /* TODO: Explicitly import -A variants (i.e. TCreateHardLinkA) or -W
+   * variants (TCreateHardLinkW), etc.
+   */
   typedef DWORD WINAPI (*TCreateHardLink) (LPCTSTR lpFileName,
                                            LPCTSTR lpExistingFileName,
                                            LPSECURITY_ATTRIBUTES
@@ -99,8 +103,6 @@ extern "C"
   typedef SC_HANDLE WINAPI (*TOpenService) (SC_HANDLE hSCManager,
                                             LPCTSTR lpServiceName,
                                             DWORD dwDesiredAccess);
-  typedef DWORD WINAPI (*TGetBestInterface) (IPAddr dwDestAddr,
-                                             PDWORD pdwBestIfIndex);
   typedef DWORD WINAPI (*TGetAdaptersInfo) (PIP_ADAPTER_INFO pAdapterInfo,
                                             PULONG pOutBufLen);
   typedef NET_API_STATUS WINAPI (*TNetUserAdd) (LPCWSTR, DWORD, PBYTE, PDWORD);
@@ -158,6 +160,7 @@ extern "C"
                                                 PSID psidGroup, PACL pDacl,
                                                 PACL pSacl);
 
+  extern TGetBestInterfaceEx GNGetBestInterfaceEx;
   extern TNtQuerySystemInformation GNNtQuerySystemInformation;
   extern TGetIfEntry GNGetIfEntry;
   extern TGetIpAddrTable GNGetIpAddrTable;
@@ -172,8 +175,7 @@ extern "C"
   extern TStartServiceCtrlDispatcher GNStartServiceCtrlDispatcher;
   extern TControlService GNControlService;
   extern TOpenService GNOpenService;
-  extern TGetBestInterface GNGetBestInterface;
-  extern TGetAdaptersInfo GGetAdaptersInfo;
+  extern TGetAdaptersInfo GNGetAdaptersInfo;
   extern TNetUserAdd GNNetUserAdd;
   extern TNetUserSetInfo GNNetUserSetInfo;
   extern TLsaOpenPolicy GNLsaOpenPolicy;
@@ -202,6 +204,23 @@ extern "C"
                             DWORD dwAccessMask);
   char *winErrorStr (const char *prefix, int dwErr);
   void EnumNICs (PMIB_IFTABLE * pIfTable, PMIB_IPADDRTABLE * pAddrTable);
+
+#define ENUMNICS3_MASK_OK 0x01
+#define ENUMNICS3_BCAST_OK 0x02
+
+struct EnumNICs3_results
+{
+  unsigned char flags;
+  int is_default;
+  char pretty_name[1001];
+  size_t addr_size;
+  struct sockaddr address;
+  struct sockaddr mask;
+  struct sockaddr broadcast;
+};
+
+  int EnumNICs3 (struct EnumNICs3_results **, int *EnumNICs3_results_count);
+  void EnumNICs3_free (struct EnumNICs3_results *);
   int GNInitWinEnv ();
   void GNShutdownWinEnv ();
 

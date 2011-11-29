@@ -25,6 +25,7 @@
  * @author Nils Durner
  * @author Heikki Lindholm
  * @author Jake Dust
+ * @author LRN
  */
 
 #include "platform.h"
@@ -46,128 +47,26 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
                                    void *proc_cls)
 {
 #ifdef MINGW
-  PMIB_IFTABLE pTable;
-  PMIB_IPADDRTABLE pAddrTable;
-  DWORD dwIfIdx, dwExternalNIC;
-  IPAddr theIP;
+  int r;
+  int i;
+  struct EnumNICs3_results *results = NULL;
+  int results_count;
 
-  /* Determine our external NIC  */
-  theIP = inet_addr ("192.0.34.166");   /* www.example.com */
-  if ((!GNGetBestInterface) ||
-      (GNGetBestInterface (theIP, &dwExternalNIC) != NO_ERROR))
+  r = EnumNICs3 (&results, &results_count);
+  if (r != GNUNET_OK)
+    return;
+
+  for (i = 0; i < results_count; i++)
   {
-    dwExternalNIC = 0;
+    if (GNUNET_OK != proc (proc_cls, results[i].pretty_name,
+        results[i].is_default,
+        &results[i].address,
+        results[i].flags & ENUMNICS3_MASK_OK ? &results[i].mask : NULL,
+        results[i].flags & ENUMNICS3_BCAST_OK ? &results[i].broadcast : NULL,
+        results[i].addr_size))
+      break;
   }
-
-  /* Enumerate NICs */
-  EnumNICs (&pTable, &pAddrTable);
-
-  if (pTable)
-  {
-    for (dwIfIdx = 0; dwIfIdx <= pTable->dwNumEntries; dwIfIdx++)
-    {
-      char szEntry[1001];
-      DWORD dwIP = 0;
-      PIP_ADAPTER_INFO pAdapterInfo;
-      PIP_ADAPTER_INFO pAdapter = NULL;
-      DWORD dwRetVal = 0;
-
-      /* Get IP-Address */
-      int i;
-
-      for (i = 0; i < pAddrTable->dwNumEntries; i++)
-      {
-        if (pAddrTable->table[i].dwIndex == pTable->table[dwIfIdx].dwIndex)
-        {
-          dwIP = pAddrTable->table[i].dwAddr;
-          break;
-        }
-      }
-
-      if (dwIP)
-      {
-        BYTE bPhysAddr[MAXLEN_PHYSADDR];
-        char *pszIfName = NULL;
-        char dst[INET_ADDRSTRLEN];
-        struct sockaddr_in sa;
-
-        /* Get friendly interface name */
-        pAdapterInfo = (IP_ADAPTER_INFO *) malloc (sizeof (IP_ADAPTER_INFO));
-        ULONG ulOutBufLen = sizeof (IP_ADAPTER_INFO);
-
-        /* Make an initial call to GetAdaptersInfo to get
-         * the necessary size into the ulOutBufLen variable */
-        if (GGetAdaptersInfo (pAdapterInfo, &ulOutBufLen) ==
-            ERROR_BUFFER_OVERFLOW)
-        {
-          free (pAdapterInfo);
-          pAdapterInfo = (IP_ADAPTER_INFO *) malloc (ulOutBufLen);
-        }
-
-        if ((dwRetVal =
-             GGetAdaptersInfo (pAdapterInfo, &ulOutBufLen)) == NO_ERROR)
-        {
-          pAdapter = pAdapterInfo;
-          while (pAdapter)
-          {
-            if (pTable->table[dwIfIdx].dwIndex == pAdapter->Index)
-            {
-              char szKey[251];
-              long lLen = 250;
-
-              sprintf (szKey,
-                       "SYSTEM\\CurrentControlSet\\Control\\Network\\"
-                       "{4D36E972-E325-11CE-BFC1-08002BE10318}\\%s\\Connection",
-                       pAdapter->AdapterName);
-              pszIfName = (char *) malloc (251);
-              if (QueryRegistry
-                  (HKEY_LOCAL_MACHINE, szKey, "Name", pszIfName,
-                   &lLen) != ERROR_SUCCESS)
-              {
-                free (pszIfName);
-                pszIfName = NULL;
-              }
-            }
-            pAdapter = pAdapter->Next;
-          }
-        }
-        free (pAdapterInfo);
-
-        /* Set entry */
-        memset (bPhysAddr, 0, MAXLEN_PHYSADDR);
-        memcpy (bPhysAddr, pTable->table[dwIfIdx].bPhysAddr,
-                pTable->table[dwIfIdx].dwPhysAddrLen);
-
-        snprintf (szEntry, 1000, "%s (%s - %I64u)",
-                  pszIfName ? pszIfName : (char *) pTable->
-                  table[dwIfIdx].bDescr, inet_ntop (AF_INET, &dwIP, dst,
-                                                    INET_ADDRSTRLEN),
-                  *((unsigned long long *) bPhysAddr));
-        szEntry[1000] = 0;
-
-        if (pszIfName)
-          free (pszIfName);
-
-        sa.sin_family = AF_INET;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-        sa.sin_len = (u_char) sizeof (struct sockaddr_in);
-#endif
-        sa.sin_addr.S_un.S_addr = dwIP;
-
-        if (GNUNET_OK !=
-            proc (proc_cls, szEntry,
-                  pTable->table[dwIfIdx].dwIndex == dwExternalNIC,
-                  (const struct sockaddr *) &sa,
-                  NULL,
-                  NULL,
-                  sizeof (sa)))
-          break;
-      }
-    }
-    GlobalFree (pAddrTable);
-    GlobalFree (pTable);
-  }
-
+  EnumNICs3_free (results);
   return;
 
 #elif HAVE_GETIFADDRS && HAVE_FREEIFADDRS

@@ -46,8 +46,8 @@ TSetServiceStatus GNSetServiceStatus;
 TStartServiceCtrlDispatcher GNStartServiceCtrlDispatcher;
 TControlService GNControlService;
 TOpenService GNOpenService;
-TGetBestInterface GNGetBestInterface;
-TGetAdaptersInfo GGetAdaptersInfo;
+TGetBestInterfaceEx GNGetBestInterfaceEx;
+TGetAdaptersInfo GNGetAdaptersInfo;
 TNetUserAdd GNNetUserAdd;
 TNetUserSetInfo GNNetUserSetInfo;
 TLsaOpenPolicy GNLsaOpenPolicy;
@@ -117,9 +117,9 @@ GNInitWinEnv ()
     GNGetIpAddrTable =
         (TGetIpAddrTable) GetProcAddress (hIphlpapi, "GetIpAddrTable");
     GNGetIfTable = (TGetIfTable) GetProcAddress (hIphlpapi, "GetIfTable");
-    GNGetBestInterface =
-        (TGetBestInterface) GetProcAddress (hIphlpapi, "GetBestInterface");
-    GGetAdaptersInfo =
+    GNGetBestInterfaceEx =
+        (TGetBestInterfaceEx) GetProcAddress (hIphlpapi, "GetBestInterfaceEx");
+    GNGetAdaptersInfo =
         (TGetAdaptersInfo) GetProcAddress (hIphlpapi, "GetAdaptersInfo");
   }
   else
@@ -127,8 +127,8 @@ GNInitWinEnv ()
     GNGetIfEntry = NULL;
     GNGetIpAddrTable = NULL;
     GNGetIfTable = NULL;
-    GNGetBestInterface = NULL;
-    GGetAdaptersInfo = NULL;
+    GNGetBestInterfaceEx = NULL;
+    GNGetAdaptersInfo = NULL;
   }
 
   /* Service & Account functions */
