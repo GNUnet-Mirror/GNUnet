@@ -76,9 +76,9 @@ struct ATS_Address
 
 static struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
-static unsigned long long total_quota_in;
+static unsigned long long wan_quota_in;
 
-static unsigned long long total_quota_out;
+static unsigned long long wan_quota_out;
 
 static unsigned int active_addr_count;
 
@@ -100,8 +100,8 @@ update_bw_it (void *cls, const GNUNET_HashCode * key, void *value)
   if (GNUNET_YES != aa->active)
     return GNUNET_OK;
   GNUNET_assert (active_addr_count > 0);
-  aa->assigned_bw_in.value__ = htonl (total_quota_in / active_addr_count);
-  aa->assigned_bw_out.value__ = htonl (total_quota_out / active_addr_count);
+  aa->assigned_bw_in.value__ = htonl (wan_quota_in / active_addr_count);
+  aa->assigned_bw_out.value__ = htonl (wan_quota_out / active_addr_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New bandwidth for peer %s is %u/%u\n",
               GNUNET_i2s (&aa->peer), ntohl (aa->assigned_bw_in.value__),
               ntohl (aa->assigned_bw_out.value__));
@@ -475,13 +475,13 @@ void
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_size (cfg, "core",
-						      "TOTAL_QUOTA_IN",
-						      &total_quota_in));
+                 GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+						      "WAN_QUOTA_IN",
+						      &wan_quota_in));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_size (cfg, "core",
-						      "TOTAL_QUOTA_OUT",
-						      &total_quota_out));
+                 GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+						      "WAN_QUOTA_OUT",
+						      &wan_quota_out));
   addresses = GNUNET_CONTAINER_multihashmap_create (128);
 }
 

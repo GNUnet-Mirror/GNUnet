@@ -484,13 +484,9 @@ generate_config (char *cfg_file, unsigned long long quota_in,
   GNUNET_asprintf (&fname, "q_in_%llu_q_out_%llu_%s", quota_in, quota_out,
                    cfg_file);
   GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "DEFAULTCONFIG", fname);
-  GNUNET_CONFIGURATION_set_value_number (cfg, "core", "TOTAL_QUOTA_OUT",
-                                         quota_out);
-  GNUNET_CONFIGURATION_set_value_number (cfg, "core", "TOTAL_QUOTA_IN",
+  GNUNET_CONFIGURATION_set_value_number (cfg, "ats", "WAN_QUOTA_IN",
                                          quota_in);
-  GNUNET_CONFIGURATION_set_value_number (cfg, "ats", "TOTAL_QUOTA_IN",
-                                         quota_in);
-  GNUNET_CONFIGURATION_set_value_number (cfg, "ats", "TOTAL_QUOTA_OUT",
+  GNUNET_CONFIGURATION_set_value_number (cfg, "ats", "WAN_QUOTA_OUT",
                                          quota_out);
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write (cfg, fname));
   GNUNET_CONFIGURATION_destroy (cfg);
