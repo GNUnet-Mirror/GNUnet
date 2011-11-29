@@ -94,10 +94,13 @@ dump_pc (struct PrintContext *pc)
  * Function to call with a human-readable format of an address
  *
  * @param cls closure
+ * @param peer peer this update is about
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 static void
-process_resolved_address (void *cls, const struct GNUNET_HELLO_Address *address)
+process_resolved_address (void *cls,
+			  const struct GNUNET_PeerIdentity *peer,
+			  const struct GNUNET_HELLO_Address *address)
 {
   struct PrintContext *pc = cls;
 //  struct AddressStringList *new_address;
