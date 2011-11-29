@@ -1193,6 +1193,13 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
     /* this can happen for inbound connections (sender_address_len == 0); */
     return;
   }
+  if (ve->in_use == in_use)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "GST_validation_set_address_use: %s %s: ve->in_use %i <-> in_use %i",
+        GNUNET_i2s(sender),
+        GST_plugins_a2s(address),
+        ve->in_use,
+        in_use);
   GNUNET_break (ve->in_use != in_use); /* should be different... */
   ve->in_use = in_use;
   if (in_use == GNUNET_YES)
