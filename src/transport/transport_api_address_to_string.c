@@ -125,13 +125,16 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
 {
   size_t len;
   size_t alen;
+  size_t slen;
   struct AddressLookupMessage *msg;
   struct GNUNET_TRANSPORT_AddressToStringContext *alc;
   struct GNUNET_CLIENT_Connection *client;
   char *addrbuf;
 
   GNUNET_assert (address != NULL);
-  len = sizeof (struct AddressLookupMessage) + GNUNET_HELLO_address_get_size (address);
+  alen = address->address_length;
+  slen = strlen (address->transport_name) + 1;
+  len = sizeof (struct AddressLookupMessage) + alen + slen;
   if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
@@ -141,19 +144,19 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (client == NULL)
     return NULL;
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNUNET_TRANSPORT_address_to_string\n");
-
-  alen = address->address_length;
+#endif
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING);
-  msg->numeric_only = htonl (numeric);
+  msg->numeric_only = htons ((int16_t) numeric);
+  msg->addrlen = htons ((uint16_t) alen);
   msg->timeout = GNUNET_TIME_relative_hton (timeout);
-  msg->addrlen = htonl (alen);
   addrbuf = (char *) &msg[1];
   memcpy (addrbuf, address->address, alen);
-  strcpy (&addrbuf[alen], address->transport_name);
+  memcpy (&addrbuf[alen], address->transport_name, slen);
 
   alc = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_AddressToStringContext));
   alc->cb = aluc;

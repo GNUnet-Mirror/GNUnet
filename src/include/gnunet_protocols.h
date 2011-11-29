@@ -1083,12 +1083,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT 378
 
 /**
- * Request to look up addresses of peers.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP 379
-
-/**
- * Request to iterate over all known addresses.
+ * Request to monitor addresses used by a peer or all peers.
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE 380
 

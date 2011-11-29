@@ -99,10 +99,14 @@ typedef void (*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
 
 
 /**
- * Function to call with a binary format of an address
+ * Function to call with a textual representation of an address.
+ * This function will be called several times with different possible
+ * textual representations, and a last time with NULL to signal the end
+ * of the iteration.
  *
  * @param cls closure
- * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
+ * @param address NULL on error or end of iteration,
+ *        otherwise 0-terminated printable UTF-8 string
  */
 typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
                                                         const char *address);
@@ -112,11 +116,12 @@ typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
  * Function to call with a binary format of an address
  *
  * @param cls closure
- * @param address address
+ * @param peer peer this update is about (never NULL)
+ * @param address address, NULL for disconnect notification in monitor mode
  */
-// FIXME: use NULL for address on disconnect IF in monitor mode (one_shot = NO)
 typedef void (*GNUNET_TRANSPORT_PeerIterateCallback) (void *cls,
-                                                        const struct GNUNET_HELLO_Address *address);
+						      const struct GNUNET_PeerIdentity *peer,
+						      const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -317,7 +322,7 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
  * @param cfg configuration to use
  * @param peer peer identity to look up the addresses of, CHANGE: allow NULL for all (connected) peers
  * @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL),
- *                 GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly cancelled)
+ *                 GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly canceled, NOT implemented yet!)
  * @param timeout how long is the lookup allowed to take at most
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
@@ -340,21 +345,6 @@ void
 GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
                                              GNUNET_TRANSPORT_PeerIterateContext
 *alc);
-
-
-/**
- * Return all the known addresses.
- * @param cfg configuration to use
- * @param timeout how long is the lookup allowed to take at most
- * @param peer_address_callback function to call with the results
- * @param peer_address_callback_cls closure for peer_address_callback
- */
-void
-GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                  struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_TRANSPORT_PeerIterateCallback
-                                  peer_address_callback,
-                                  void *peer_address_callback_cls);
 
 
 /**

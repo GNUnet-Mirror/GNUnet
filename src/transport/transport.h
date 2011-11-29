@@ -295,17 +295,17 @@ struct AddressLookupMessage
    * Should the conversion use numeric IP addresses (otherwise
    * a reverse DNS lookup is OK -- if applicable).
    */
-  int32_t numeric_only GNUNET_PACKED;
+  int16_t numeric_only GNUNET_PACKED;
+
+  /**
+   * Length of the (binary) address in bytes, in big-endian.
+   */
+  uint16_t addrlen GNUNET_PACKED;
 
   /**
    * timeout to give up.
    */
   struct GNUNET_TIME_RelativeNBO timeout;
-
-  /**
-   * Length of the (binary) address in bytes, in big-endian.
-   */
-  uint32_t addrlen GNUNET_PACKED;
 
   /* followed by 'addrlen' bytes of the actual address, then
    * followed by the 0-terminated name of the transport */
@@ -352,9 +352,9 @@ struct AddressIterateMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * For alignment.
+   * One shot call or continous replies?
    */
-  uint32_t reserved;
+  uint32_t one_shot;
 
   /**
    * timeout to give up.  FIXME: remove in the future
@@ -366,12 +366,8 @@ struct AddressIterateMessage
    */
   struct GNUNET_PeerIdentity peer;
 
-  /**
-   * One shot call or continous replies?
-   */
-  uint32_t one_shot;
-
 };
+
 
 /**
  * Message from the transport service to the library
@@ -382,7 +378,7 @@ struct AddressIterateMessage
 struct AddressIterateResponseMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 
