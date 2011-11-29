@@ -34,11 +34,8 @@
  * (success).
  */
 static int
-proc (void *cls, const char *name,
-      int isDefault,
-      const struct sockaddr * addr,
-      const struct sockaddr * broadcast_addr,
-      const struct sockaddr * netmask,
+proc (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
+      const struct sockaddr *broadcast_addr, const struct sockaddr *netmask,
       socklen_t addrlen)
 {
   int *ok = cls;

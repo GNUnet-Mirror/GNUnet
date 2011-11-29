@@ -602,8 +602,7 @@ transmit_request (void *cls, size_t size, void *buf)
   if (buf == NULL)
   {
 #if DEBUG_DATASTORE
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Failed to transmit request to DATASTORE.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to transmit request to DATASTORE.\n");
 #endif
     GNUNET_STATISTICS_update (h->stats,
                               gettext_noop ("# transmission request failures"),

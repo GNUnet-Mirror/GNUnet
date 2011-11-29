@@ -295,7 +295,7 @@ int
 GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
                                         const struct GNUNET_MessageHeader
                                         *message,
-					struct GSF_PendingRequest **prptr)
+                                        struct GSF_PendingRequest **prptr)
 {
   static GNUNET_HashCode all_zeros;
   const struct SearchMessage *sm;
@@ -350,45 +350,45 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
   {
 #if DEBUG_FS_CLIENT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Have existing request, merging content-seen lists.\n");
+                "Have existing request, merging content-seen lists.\n");
 #endif
-    GSF_pending_request_update_ (cr->pr, (const GNUNET_HashCode *) &sm[1],
-				 sc);
+    GSF_pending_request_update_ (cr->pr, (const GNUNET_HashCode *) &sm[1], sc);
     GNUNET_STATISTICS_update (GSF_stats,
-			      gettext_noop
-			      ("# client searches updated (merged content seen list)"),
-			      1, GNUNET_NO);
-  } 
+                              gettext_noop
+                              ("# client searches updated (merged content seen list)"),
+                              1, GNUNET_NO);
+  }
   else
   {
     GNUNET_STATISTICS_update (GSF_stats,
-			      gettext_noop ("# client searches active"), 1,
-			      GNUNET_NO);
+                              gettext_noop ("# client searches active"), 1,
+                              GNUNET_NO);
     cr = GNUNET_malloc (sizeof (struct ClientRequest));
     cr->lc = lc;
     GNUNET_CONTAINER_DLL_insert (lc->cr_head, lc->cr_tail, cr);
     options = GSF_PRO_LOCAL_REQUEST;
     if (0 != (SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY & ntohl (sm->options)))
       options |= GSF_PRO_LOCAL_ONLY;
-    cr->pr = GSF_pending_request_create_ (options, type, &sm->query,
-					  (type == GNUNET_BLOCK_TYPE_FS_SBLOCK) ? &sm->target  /* namespace */
-					  : NULL,
-					  (0 !=
-					   memcmp (&sm->target, &all_zeros,
-						   sizeof (GNUNET_HashCode)))
-					  ? (const struct GNUNET_PeerIdentity *)
-					  &sm->target : NULL, NULL, 0,
-					  0 /* bf */ ,
-					  ntohl (sm->anonymity_level),
-					  0 /* priority */ ,
-					  0 /* ttl */ ,
-					  0 /* sender PID */ ,
-					  0 /* origin PID */ ,
-					  (const GNUNET_HashCode *) &sm[1], sc,
-					  &client_response_handler, cr);
+    cr->pr = GSF_pending_request_create_ (options, type, &sm->query, (type == GNUNET_BLOCK_TYPE_FS_SBLOCK) ? &sm->target        /* namespace */
+                                          : NULL,
+                                          (0 !=
+                                           memcmp (&sm->target, &all_zeros,
+                                                   sizeof (GNUNET_HashCode)))
+                                          ? (const struct GNUNET_PeerIdentity *)
+                                          &sm->target : NULL, NULL, 0,
+                                          0 /* bf */ ,
+                                          ntohl (sm->anonymity_level),
+                                          0 /* priority */ ,
+                                          0 /* ttl */ ,
+                                          0 /* sender PID */ ,
+                                          0 /* origin PID */ ,
+                                          (const GNUNET_HashCode *) &sm[1], sc,
+                                          &client_response_handler, cr);
   }
   *prptr = cr->pr;
-  return (0 != (SEARCH_MESSAGE_OPTION_CONTINUED & ntohl (sm->options))) ? GNUNET_NO : GNUNET_YES;
+  return (0 !=
+          (SEARCH_MESSAGE_OPTION_CONTINUED & ntohl (sm->options))) ? GNUNET_NO :
+      GNUNET_YES;
 }
 
 

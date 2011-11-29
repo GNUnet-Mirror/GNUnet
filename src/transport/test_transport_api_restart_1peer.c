@@ -155,10 +155,12 @@ static void
 reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *p = cls;
+
   reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_TRANSPORT_try_connect (p->th, &p2->id);
-  reconnect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &reconnect, p);
+  reconnect_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect, p);
 }
 
 static void
@@ -166,20 +168,17 @@ restart_cb (struct PeerContext *p, void *cls)
 {
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Restarted peer %u (`%4s'), issuing reconnect\n",
-              p->no,
+              "Restarted peer %u (`%4s'), issuing reconnect\n", p->no,
               GNUNET_i2s (&p->id));
 
-  reconnect_task = GNUNET_SCHEDULER_add_now(&reconnect, p);
+  reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, p);
 }
 
-static
-void restart (struct PeerContext *p , char * cfg_file)
+static void
+restart (struct PeerContext *p, char *cfg_file)
 {
   GNUNET_assert (p != NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Restarting peer %u (`%4s')\n",
-              p->no,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Restarting peer %u (`%4s')\n", p->no,
               GNUNET_i2s (&p->id));
   GNUNET_TRANSPORT_TESTING_restart_peer (tth, p, cfg_file, &restart_cb, p);
   return;
@@ -200,6 +199,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (t != NULL);
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s') received message of type %d and size %u size from peer %u (`%4s')!\n",
               p->no, ps, ntohs (message->type), ntohs (message->size), t->no,
@@ -217,8 +217,8 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     else
     {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Restarted peers connected, stopping test...\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Restarted peers connected, stopping test...\n");
       ok = 0;
       end ();
     }
@@ -329,6 +329,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s'): peer (`%s') disconnected from me!\n", p->no, ps,
               GNUNET_i2s (peer));
@@ -368,6 +369,7 @@ start_cb (struct PeerContext *p, void *cls)
     return;
 
   char *sender_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
               p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
@@ -451,8 +453,8 @@ main (int argc, char *argv[])
   tth = GNUNET_TRANSPORT_TESTING_init ();
 
 
-  GNUNET_asprintf(&cfg_file_p1,"test_transport_api_tcp_peer1.conf");
-  GNUNET_asprintf(&cfg_file_p2,"test_transport_api_tcp_peer2.conf");
+  GNUNET_asprintf (&cfg_file_p1, "test_transport_api_tcp_peer1.conf");
+  GNUNET_asprintf (&cfg_file_p2, "test_transport_api_tcp_peer2.conf");
 
 
   ret = check ();

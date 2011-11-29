@@ -992,7 +992,7 @@ tree_del_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer,
  *
  * @return Number of hops to reach destination, UINT_MAX in case the peer is not
  *         in the path.
- * 
+ *
  * TODO: adapt to allow any start / root combination
  * TODO: take in account state of the nodes
  */

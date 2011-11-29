@@ -305,26 +305,22 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
   const struct ATS_Address *info = cls;
   struct ATS_Address *aa = value;
 
-  GNUNET_assert (0 == memcmp (&aa->peer,
-			      &info->peer,
-			      sizeof (struct GNUNET_PeerIdentity)));
-  if ( (info->session_id == 0) &&
-       (0 == strcmp (info->plugin,
-		     aa->plugin)) &&
-       (aa->addr_len == info->addr_len) &&
-       (0 == memcmp (info->addr,
-		     aa->addr,
-		     aa->addr_len)) )
+  GNUNET_assert (0 ==
+                 memcmp (&aa->peer, &info->peer,
+                         sizeof (struct GNUNET_PeerIdentity)));
+  if ((info->session_id == 0) && (0 == strcmp (info->plugin, aa->plugin)) &&
+      (aa->addr_len == info->addr_len) &&
+      (0 == memcmp (info->addr, aa->addr, aa->addr_len)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Deleting address for peer `%s': `%s'\n",
-		GNUNET_i2s (&aa->peer), aa->plugin);
+                "Deleting address for peer `%s': `%s'\n",
+                GNUNET_i2s (&aa->peer), aa->plugin);
     if (GNUNET_YES == destroy_address (aa))
       recalculate_assigned_bw ();
     return GNUNET_OK;
   }
   if (aa->session_id != info->session_id)
-    return GNUNET_OK; /* irrelevant */
+    return GNUNET_OK;           /* irrelevant */
   if (aa->session_id != 0)
     GNUNET_break (0 == strcmp (info->plugin, aa->plugin));
   /* session died */
@@ -358,10 +354,8 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
   aa.addr = plugin_addr;
   aa.plugin = (char *) plugin_name;
   aa.session_id = session_id;
-  GNUNET_CONTAINER_multihashmap_get_multiple (addresses,
-					      &peer->hashPubKey,
-					      &destroy_by_session_id,
-					      &aa);
+  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
+                                              &destroy_by_session_id, &aa);
 }
 
 
@@ -414,12 +408,11 @@ find_address_it (void *cls, const GNUNET_HashCode * key, void *value)
 void
 GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
                       const char *plugin_name, const void *plugin_addr,
-                      size_t plugin_addr_len, uint32_t session_id,
-                      int in_use)
+                      size_t plugin_addr_len, uint32_t session_id, int in_use)
 {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s': %i\n",
-              "ADDRESS_IN_USE",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message for peer `%s': %i\n", "ADDRESS_IN_USE",
               GNUNET_i2s (peer), in_use);
 }
 
@@ -476,12 +469,12 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-						      "WAN_QUOTA_IN",
-						      &wan_quota_in));
+                                                      "WAN_QUOTA_IN",
+                                                      &wan_quota_in));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-						      "WAN_QUOTA_OUT",
-						      &wan_quota_out));
+                                                      "WAN_QUOTA_OUT",
+                                                      &wan_quota_out));
   addresses = GNUNET_CONTAINER_multihashmap_create (128);
 }
 

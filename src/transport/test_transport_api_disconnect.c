@@ -128,7 +128,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (cc != NULL)
   {
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
     cc = NULL;
   }
 

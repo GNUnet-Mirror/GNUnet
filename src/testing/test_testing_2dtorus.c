@@ -104,8 +104,7 @@ shutdown_callback (void *cls, const char *emsg)
   if (emsg != NULL)
   {
 #if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Shutdown of peers failed!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Shutdown of peers failed!\n");
 #endif
     ok--;
   }
@@ -123,8 +122,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Ending test.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Ending test.\n");
 #endif
 
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
@@ -135,8 +133,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: disconnecting peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: disconnecting peers\n");
 
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
   {
@@ -163,33 +160,26 @@ topo_cb (void *cls, const struct GNUNET_PeerIdentity *first,
   topo_connections++;
   if (NULL != emsg)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "test: Error by topo %u: %s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: Error by topo %u: %s\n",
                 topo_connections, emsg);
   }
   else
   {
     if (first == NULL || second == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "test: Connection %u NULL\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Connection %u NULL\n",
                   topo_connections);
       if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
       {
         GNUNET_SCHEDULER_cancel (disconnect_task);
-        GNUNET_SCHEDULER_add_now(&disconnect_peers, NULL);
+        GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
       }
       return;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Connection %u ok\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Connection %u ok\n",
                 topo_connections);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test:   %s\n",
-                GNUNET_i2s (first));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test:   %s\n",
-                GNUNET_i2s (second));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   %s\n", GNUNET_i2s (first));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   %s\n", GNUNET_i2s (second));
   }
 }
 
@@ -206,8 +196,8 @@ peergroup_ready (void *cls, const char *emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: Peergroup callback called with error, aborting test!\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Error from testing: `%s'\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Error from testing: `%s'\n",
+                emsg);
     ok--;
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
@@ -217,8 +207,7 @@ peergroup_ready (void *cls, const char *emsg)
               "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: Peer Group started successfully!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Have %u connections\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Have %u connections\n",
               total_connections);
 #endif
 
@@ -226,8 +215,7 @@ peergroup_ready (void *cls, const char *emsg)
   if (0 < failed_connections)
   {
     ok = GNUNET_SYSERR;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "test: %u connections have FAILED!\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: %u connections have FAILED!\n",
                 failed_connections);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
 
@@ -273,12 +261,9 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
   {
     failed_connections++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Problem with new connection (%s)\n",
-                emsg);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   (%s)\n",
-                GNUNET_i2s (first));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   (%s)\n",
-                GNUNET_i2s (second));
+                "test: Problem with new connection (%s)\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   (%s)\n", GNUNET_i2s (first));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   (%s)\n", GNUNET_i2s (second));
   }
 
 }
@@ -311,8 +296,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                     NULL);
 
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Starting daemons.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Starting daemons.\n");
   GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing",
                                          "use_progressbars", "YES");
 #endif
@@ -371,15 +355,14 @@ main (int argc, char *argv[])
 
   GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                       "test_testing_2dtorus",
-                      gettext_noop ("Test testing 2d torus."), options,
-                      &run, NULL);
+                      gettext_noop ("Test testing 2d torus."), options, &run,
+                      NULL);
 #if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/test_testing_2dtorus");
 #endif
   if (GNUNET_OK != ok)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "test: FAILED!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: FAILED!\n");
     return 1;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: success\n");

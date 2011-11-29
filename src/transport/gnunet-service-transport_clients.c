@@ -331,8 +331,8 @@ static void
 notify_client_about_neighbour (void *cls,
                                const struct GNUNET_PeerIdentity *peer,
                                const struct GNUNET_ATS_Information *ats,
-                               uint32_t ats_count, 
-			       const struct GNUNET_HELLO_Address *address)
+                               uint32_t ats_count,
+                               const struct GNUNET_HELLO_Address *address)
 {
   struct TransportClient *tc = cls;
   struct ConnectInfoMessage *cim;
@@ -633,8 +633,9 @@ transmit_address_to_client (void *cls, const char *buf)
  * @param message the resolution request
  */
 static void
-clients_handle_address_to_string (void *cls, struct GNUNET_SERVER_Client *client,
-				  const struct GNUNET_MessageHeader *message)
+clients_handle_address_to_string (void *cls,
+                                  struct GNUNET_SERVER_Client *client,
+                                  const struct GNUNET_MessageHeader *message)
 {
   const struct AddressLookupMessage *alum;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
@@ -699,34 +700,38 @@ clients_handle_address_to_string (void *cls, struct GNUNET_SERVER_Client *client
  */
 static void
 output_address (void *cls, const struct GNUNET_PeerIdentity *peer,
-		const struct GNUNET_ATS_Information *ats, uint32_t ats_count,
-		const struct GNUNET_HELLO_Address *address)
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count,
+                const struct GNUNET_HELLO_Address *address)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct AddressIterateResponseMessage *msg;
   size_t size;
   size_t tlen;
   size_t alen;
-  char * addr;
+  char *addr;
 
   tlen = strlen (address->transport_name) + 1;
   alen = address->address_length;
   size = (sizeof (struct AddressIterateResponseMessage) + alen + tlen);
   {
     char buf[size];
-    
-    msg = (struct AddressIterateResponseMessage*) buf;
+
+    msg = (struct AddressIterateResponseMessage *) buf;
     msg->reserved = htonl (0);
     msg->peer = *peer;
     msg->addrlen = htonl (alen);
     msg->pluginlen = htonl (tlen);
     addr = (char *) &msg[1];
-    memcpy (addr,address->address, alen);
+    memcpy (addr, address->address, alen);
     memcpy (&addr[alen], address->transport_name, tlen);
-    GNUNET_SERVER_transmit_context_append_data (tc, 
-						&buf[sizeof(struct GNUNET_MessageHeader)], 
-						size - sizeof (struct GNUNET_MessageHeader),
-						GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
+    GNUNET_SERVER_transmit_context_append_data (tc,
+                                                &buf[sizeof
+                                                     (struct
+                                                      GNUNET_MessageHeader)],
+                                                size -
+                                                sizeof (struct
+                                                        GNUNET_MessageHeader),
+                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   }
 }
 
@@ -746,7 +751,7 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
 {
   static struct GNUNET_PeerIdentity all_zeros;
   struct GNUNET_SERVER_TransmitContext *tc;
-  struct AddressIterateMessage * msg;
+  struct AddressIterateMessage *msg;
   struct GNUNET_HELLO_Address *address;
 
   if (ntohs (message->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE)
@@ -765,7 +770,7 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_YES != ntohl (msg->one_shot))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Address monitoring not implemented\n");
+                "Address monitoring not implemented\n");
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -779,12 +784,12 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
   else
   {
     /* just return one neighbour */
-    address = GST_neighbour_get_current_address(&msg->peer);
+    address = GST_neighbour_get_current_address (&msg->peer);
     if (address != NULL)
       output_address (tc, &msg->peer, NULL, 0, address);
   }
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
+                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -809,7 +814,7 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
      sizeof (struct TransportRequestConnectMessage)},
     {&clients_handle_address_to_string, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING, 0},
-     {&clients_handle_address_iterate, NULL,
+    {&clients_handle_address_iterate, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE,
      sizeof (struct AddressIterateMessage)},
     {&GST_blacklist_handle_init, NULL,

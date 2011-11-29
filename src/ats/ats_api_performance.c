@@ -307,8 +307,8 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
   address.address = plugin_address;
   address.address_length = plugin_address_length;
   address.transport_name = plugin_name;
-  ph->infocb (ph->infocb_cls, &address,
-              pi->bandwidth_out, pi->bandwidth_in, atsi, ats_count);
+  ph->infocb (ph->infocb_cls, &address, pi->bandwidth_out, pi->bandwidth_in,
+              atsi, ats_count);
   return GNUNET_OK;
 }
 

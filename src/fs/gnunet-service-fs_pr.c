@@ -1588,7 +1588,7 @@ GSF_pending_request_init_ ()
   }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_size (GSF_cfg, "ats", "WAN_QUOTA_OUT",
-					   &bps))
+                                           &bps))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _

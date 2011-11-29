@@ -314,14 +314,13 @@ runone ()
     break;
   }
 
-  proc =
-      GNUNET_OS_start_process (NULL, pipe_stdout, 
+  proc = GNUNET_OS_start_process (NULL, pipe_stdout,
 #if MINGW
-			       "test_common_logging_dummy",
+                                  "test_common_logging_dummy",
 #else
-			       "./test_common_logging_dummy",
+                                  "./test_common_logging_dummy",
 #endif
-                               "test_common_logging_dummy", NULL);
+                                  "test_common_logging_dummy", NULL);
   putenv ("GNUNET_FORCE_LOG=");
   putenv ("GNUNET_LOG=");
 

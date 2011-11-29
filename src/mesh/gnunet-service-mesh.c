@@ -1461,7 +1461,8 @@ peer_info_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
   for (i = 0; i < peer->ntunnels; i++)
   {
     d = tunnel_notify_connection_broken (peer->tunnels[i], p1, p2);
-    if (0 == d) continue;
+    if (0 == d)
+      continue;
     /* TODO
      * Problem: one or more peers have been deleted from the tunnel tree.
      * We don't know who they are to try to add them again.
@@ -1699,7 +1700,7 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
 
 /**
  * Adds a path to the peer_infos of all the peers in the path
- * 
+ *
  * @param p Path to process.
  * @param confirmed Whether we know if the path works or not. FIXME use
  */
@@ -1709,16 +1710,16 @@ path_add_to_peers (struct MeshPeerPath *p, int confirmed)
   unsigned int i;
 
   /* TODO: invert and add */
-  for (i = 0; i < p->length && p->peers[i] != myid; i++) /* skip'em */;
+  for (i = 0; i < p->length && p->peers[i] != myid; i++) /* skip'em */ ;
   for (i++; i < p->length; i++)
   {
     struct MeshPeerInfo *aux;
     struct MeshPeerPath *copy;
 
-    aux = peer_info_get_short(p->peers[i]);
-    copy = path_duplicate(p);
+    aux = peer_info_get_short (p->peers[i]);
+    copy = path_duplicate (p);
     copy->length = i + 1;
-    peer_info_add_path(aux, copy, GNUNET_NO);
+    peer_info_add_path (aux, copy, GNUNET_NO);
   }
 }
 
@@ -2063,14 +2064,12 @@ tunnel_send_multicast (struct MeshTunnel *t,
     mcast = (struct GNUNET_MESH_Multicast *) mdata->data;
     mcast->ttl = htonl (ntohl (mcast->ttl) - 1);
 #if MESH_DEBUG
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   data packet, ttl: %u\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   data packet, ttl: %u\n",
                 ntohl (mcast->ttl));
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   not a data packet, no ttl\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   not a data packet, no ttl\n");
 #endif
   }
   if (NULL != t->client)
@@ -2601,7 +2600,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* FIXME error. destroy tunnel? leave for timeout? */
     return 0;
   }
-  path_add_to_peers(path, GNUNET_NO);
+  path_add_to_peers (path, GNUNET_NO);
   tunnel_add_path (t, path, own_pos);
   if (own_pos == size - 1)
   {
@@ -2938,16 +2937,14 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     /* FIXME: already seen this packet, log dropping */
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "MESH:  Already seen mid %u, DROPPING!\n",
-                t->mid);
+                "MESH:  Already seen mid %u, DROPPING!\n", t->mid);
     return GNUNET_OK;
   }
 #if MESH_DEBUG
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:  mid %u not seen yet, forwarding\n",
-                ntohl (msg->mid));
+                "MESH:  mid %u not seen yet, forwarding\n", ntohl (msg->mid));
   }
 #endif
   t->mid = ntohl (msg->mid);
@@ -2960,15 +2957,12 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     send_subscribed_clients (message, &msg[1].header);
   }
 #if MESH_DEBUG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:    ttl: %u\n",
-              ntohl (msg->ttl));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    ttl: %u\n", ntohl (msg->ttl));
 #endif
   if (ntohl (msg->ttl) == 0)
   {
     /* FIXME: ttl is 0, log dropping */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "MESH:  TTL is 0, DROPPING!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "MESH:  TTL is 0, DROPPING!\n");
     return GNUNET_OK;
   }
   tunnel_send_multicast (t, message);
@@ -3097,11 +3091,11 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   peer_info = peer_info_get (&msg->peer_id);
 
   /* Add paths to peers? */
-  p = tree_get_path_to_peer(t->tree, peer_info->id);
+  p = tree_get_path_to_peer (t->tree, peer_info->id);
   if (NULL != p)
   {
     path_add_to_peers (p, GNUNET_YES);
-    path_destroy(p);
+    path_destroy (p);
   }
   else
   {
@@ -3122,7 +3116,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_DHT_get_stop (t->dht_get_type);
       t->dht_get_type = NULL;
     }
-    if (tree_get_status(t->tree, peer_info->id) != MESH_PEER_READY)
+    if (tree_get_status (t->tree, peer_info->id) != MESH_PEER_READY)
     {
       tree_set_status (t->tree, peer_info->id, MESH_PEER_READY);
       send_client_peer_connected (t, peer_info->id);
@@ -3308,7 +3302,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   p = path_build_from_dht (get_path, get_path_length, put_path,
                            put_path_length);
-  path_add_to_peers(p, GNUNET_NO);
+  path_add_to_peers (p, GNUNET_NO);
   for (i = 0; i < path_info->peer->ntunnels; i++)
   {
     tunnel_add_peer (path_info->peer->tunnels[i], path_info->peer);
@@ -3362,7 +3356,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   p = path_build_from_dht (get_path, get_path_length, put_path,
                            put_path_length);
-  path_add_to_peers(p, GNUNET_NO);
+  path_add_to_peers (p, GNUNET_NO);
   tunnel_add_peer (t, peer_info);
   peer_info_connect (peer_info, t);
 }

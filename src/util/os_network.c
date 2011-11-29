@@ -58,12 +58,13 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
 
   for (i = 0; i < results_count; i++)
   {
-    if (GNUNET_OK != proc (proc_cls, results[i].pretty_name,
-        results[i].is_default,
-        &results[i].address,
-        results[i].flags & ENUMNICS3_MASK_OK ? &results[i].mask : NULL,
-        results[i].flags & ENUMNICS3_BCAST_OK ? &results[i].broadcast : NULL,
-        results[i].addr_size))
+    if (GNUNET_OK !=
+        proc (proc_cls, results[i].pretty_name, results[i].is_default,
+              &results[i].address,
+              results[i].flags & ENUMNICS3_MASK_OK ? &results[i].mask : NULL,
+              results[i].
+              flags & ENUMNICS3_BCAST_OK ? &results[i].broadcast : NULL,
+              results[i].addr_size))
       break;
   }
   EnumNICs3_free (results);
@@ -92,10 +93,8 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
         if (GNUNET_OK !=
             proc (proc_cls, ifa_ptr->ifa_name,
                   0 == strcmp (ifa_ptr->ifa_name, GNUNET_DEFAULT_INTERFACE),
-                  ifa_ptr->ifa_addr,
-                  ifa_ptr->ifa_broadaddr,
-                  ifa_ptr->ifa_netmask,
-                  alen))
+                  ifa_ptr->ifa_addr, ifa_ptr->ifa_broadaddr,
+                  ifa_ptr->ifa_netmask, alen))
           break;
       }
     }
@@ -169,9 +168,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
             proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
                   (const struct sockaddr *) &a4,
                   /* TODO broadcast and netmask */
-                  NULL,
-                  NULL,
-                  sizeof (a4)))
+                  NULL, NULL, sizeof (a4)))
           break;
         continue;
       }
@@ -188,9 +185,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
             proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
                   (const struct sockaddr *) &a6,
                   /* TODO broadcast and netmask */
-                  NULL,
-                  NULL,
-                  sizeof (a6)))
+                  NULL, NULL, sizeof (a6)))
           break;
         continue;
       }

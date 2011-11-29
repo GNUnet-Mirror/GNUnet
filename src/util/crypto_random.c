@@ -38,10 +38,10 @@
 /* The code is derived from glibc, obviously */
 #if MINGW
 #ifdef RANDOM
-#  undef RANDOM
+#undef RANDOM
 #endif
 #ifdef SRANDOM
-#  undef SRANDOM
+#undef SRANDOM
 #endif
 #define RANDOM() glibc_weak_rand32()
 #define SRANDOM(s) glibc_weak_srand32(s)
@@ -57,6 +57,7 @@ int32_t
 glibc_weak_rand32 ()
 {
   int32_t val = glibc_weak_rand32_state;
+
   val = ((glibc_weak_rand32_state * 1103515245) + 12345) & 0x7fffffff;
   glibc_weak_rand32_state = val;
   return val;
@@ -314,7 +315,8 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
   gcry_set_progress_handler (&entropy_generator, NULL);
   atexit (&killfind);
   GNUNET_CRYPTO_seed_weak_random (time (NULL) ^
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
+                                  GNUNET_CRYPTO_random_u32
+                                  (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
 }
 
 

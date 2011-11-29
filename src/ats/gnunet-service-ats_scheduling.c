@@ -142,8 +142,10 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity
   memcpy (addrp, plugin_addr, plugin_addr_len);
   strcpy (&addrp[plugin_addr_len], plugin_name);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS sends quota for peer `%s': (in/out) %u/%u\n",
-      GNUNET_i2s (peer), ntohl (bandwidth_in.value__), ntohl(bandwidth_out.value__));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ATS sends quota for peer `%s': (in/out) %u/%u\n",
+              GNUNET_i2s (peer), ntohl (bandwidth_in.value__),
+              ntohl (bandwidth_out.value__));
 
   GNUNET_SERVER_notification_context_unicast (nc, my_client, &msg->header,
                                               GNUNET_YES);
@@ -182,8 +184,9 @@ GAS_handle_request_address (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the request message
  */
 void
-GAS_handle_request_address_cancel (void *cls, struct GNUNET_SERVER_Client *client,
-                            const struct GNUNET_MessageHeader *message)
+GAS_handle_request_address_cancel (void *cls,
+                                   struct GNUNET_SERVER_Client *client,
+                                   const struct GNUNET_MessageHeader *message)
 {
   const struct RequestAddressMessage *msg =
       (const struct RequestAddressMessage *) message;
@@ -304,12 +307,8 @@ GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   in_use = ntohs (m->in_use);
-  GAS_addresses_in_use (&m->peer,
-                        plugin_name,
-                        address,
-                        address_length,
-                        ntohl (m->session_id),
-                        in_use);
+  GAS_addresses_in_use (&m->peer, plugin_name, address, address_length,
+                        ntohl (m->session_id), in_use);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -359,8 +358,8 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  if ( (plugin_name_length == 0) ||
-       (plugin_name[plugin_name_length - 1] != '\0'))
+  if ((plugin_name_length == 0) ||
+      (plugin_name[plugin_name_length - 1] != '\0'))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);

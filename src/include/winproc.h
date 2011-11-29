@@ -208,16 +208,16 @@ extern "C"
 #define ENUMNICS3_MASK_OK 0x01
 #define ENUMNICS3_BCAST_OK 0x02
 
-struct EnumNICs3_results
-{
-  unsigned char flags;
-  int is_default;
-  char pretty_name[1001];
-  size_t addr_size;
-  struct sockaddr address;
-  struct sockaddr mask;
-  struct sockaddr broadcast;
-};
+  struct EnumNICs3_results
+  {
+    unsigned char flags;
+    int is_default;
+    char pretty_name[1001];
+    size_t addr_size;
+    struct sockaddr address;
+    struct sockaddr mask;
+    struct sockaddr broadcast;
+  };
 
   int EnumNICs3 (struct EnumNICs3_results **, int *EnumNICs3_results_count);
   void EnumNICs3_free (struct EnumNICs3_results *);

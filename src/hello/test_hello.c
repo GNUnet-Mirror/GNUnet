@@ -47,8 +47,8 @@ my_addr_gen (void *cls, size_t max, void *buf)
   address.transport_name = "test";
   address.address_length = *i;
   ret =
-    GNUNET_HELLO_add_address (&address, GNUNET_TIME_absolute_get (),
-			      buf, max);
+      GNUNET_HELLO_add_address (&address, GNUNET_TIME_absolute_get (), buf,
+                                max);
   (*i)--;
   return ret;
 }
@@ -67,7 +67,9 @@ check_addr (void *cls, const struct GNUNET_HELLO_Address *address,
   GNUNET_assert (address->address_length > 0);
   GNUNET_assert (*i & (1 << (address->address_length - 1)));
   *i -= (1 << (address->address_length - 1));
-  GNUNET_assert (0 == strncmp ("address_information", address->address, address->address_length));
+  GNUNET_assert (0 ==
+                 strncmp ("address_information", address->address,
+                          address->address_length));
   GNUNET_assert (0 == strcmp ("test", address->transport_name));
   return GNUNET_OK;
 }

@@ -168,8 +168,7 @@ initialize_tunnel_state (int addrlen, struct GNUNET_MESH_TransmitHandle *th)
  * Send an dns-answer-packet to the helper
  */
 void
-helper_write (void *cls
-              GNUNET_UNUSED,
+helper_write (void *cls GNUNET_UNUSED,
               const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
 {
   if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
@@ -297,7 +296,7 @@ helper_write (void *cls
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Wrong addrlen = %d\n",
                 ans->pkt.addrlen);
     GNUNET_assert (0);
-    return; /* convince compiler that we're done here */
+    return;                     /* convince compiler that we're done here */
   }
 
   GNUNET_CONTAINER_DLL_remove (answer_proc_head, answer_proc_tail, ans);
@@ -321,8 +320,7 @@ helper_write (void *cls
  * Receive packets from the helper-process
  */
 void
-message_token (void *cls GNUNET_UNUSED, void *client
-               GNUNET_UNUSED,
+message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_HELPER);
@@ -402,7 +400,7 @@ message_token (void *cls GNUNET_UNUSED, void *client
             htons (sizeof (struct GNUNET_MessageHeader) +
                    sizeof (GNUNET_HashCode) + ntohs (pkt6->ip6_hdr.paylgth));
 
-        GNUNET_MESH_ApplicationType app_type = 0; /* fix compiler uninitialized warning... */
+        GNUNET_MESH_ApplicationType app_type = 0;       /* fix compiler uninitialized warning... */
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "me->addrlen is %d\n",
                     me->addrlen);

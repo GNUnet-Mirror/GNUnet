@@ -93,7 +93,8 @@ peer_address_response_processor (void *cls,
     return;
   }
   size = ntohs (msg->size);
-  GNUNET_break (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
+  GNUNET_break (ntohs (msg->type) ==
+                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
     /* done! */
@@ -102,8 +103,11 @@ peer_address_response_processor (void *cls,
     return;
   }
 
-  if ( (size < sizeof (struct GNUNET_MessageHeader) + sizeof (struct AddressIterateResponseMessage)) ||
-       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE) )
+  if ((size <
+       sizeof (struct GNUNET_MessageHeader) +
+       sizeof (struct AddressIterateResponseMessage)) ||
+      (ntohs (msg->type) !=
+       GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE))
   {
     GNUNET_break (0);
     pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
@@ -112,8 +116,8 @@ peer_address_response_processor (void *cls,
   }
 
   air_msg = (struct AddressIterateResponseMessage *) msg;
-  tlen = ntohl(air_msg->pluginlen);
-  alen = ntohl(air_msg->addrlen);
+  tlen = ntohl (air_msg->pluginlen);
+  alen = ntohl (air_msg->addrlen);
 
   if (size != sizeof (struct AddressIterateResponseMessage) + tlen + alen)
   {
@@ -126,7 +130,7 @@ peer_address_response_processor (void *cls,
   addr = (const char *) &air_msg[1];
   transport_name = &addr[alen];
 
-  if (transport_name[tlen-1] != '\0')
+  if (transport_name[tlen - 1] != '\0')
   {
     GNUNET_break_op (0);
     pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
@@ -135,13 +139,14 @@ peer_address_response_processor (void *cls,
   }
 
   /* expect more replies */
-  GNUNET_CLIENT_receive (pal_ctx->client, 
-			 &peer_address_response_processor, pal_ctx,
+  GNUNET_CLIENT_receive (pal_ctx->client, &peer_address_response_processor,
+                         pal_ctx,
                          GNUNET_TIME_absolute_get_remaining (pal_ctx->timeout));
 
   /* notify client */
-  address = GNUNET_HELLO_address_allocate (&air_msg->peer, 
-					   transport_name, addr, alen);
+  address =
+      GNUNET_HELLO_address_allocate (&air_msg->peer, transport_name, addr,
+                                     alen);
   pal_ctx->cb (pal_ctx->cb_cls, &air_msg->peer, address);
   GNUNET_HELLO_address_free (address);
 }
@@ -165,11 +170,13 @@ peer_address_response_processor (void *cls,
  * @param peer_address_callback_cls closure for peer_address_callback
  */
 struct GNUNET_TRANSPORT_PeerIterateContext *
-GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                            const struct GNUNET_PeerIdentity *peer,
-                                            int one_shot,
+GNUNET_TRANSPORT_peer_get_active_addresses (const struct
+                                            GNUNET_CONFIGURATION_Handle *cfg,
+                                            const struct GNUNET_PeerIdentity
+                                            *peer, int one_shot,
                                             struct GNUNET_TIME_Relative timeout,
-                                            GNUNET_TRANSPORT_PeerIterateCallback peer_address_callback,
+                                            GNUNET_TRANSPORT_PeerIterateCallback
+                                            peer_address_callback,
                                             void *peer_address_callback_cls)
 {
   struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx;
@@ -180,7 +187,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Ha
   if (GNUNET_YES != one_shot)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Address monitoring not implemented\n");
+                "Address monitoring not implemented\n");
     return NULL;
   }
   client = GNUNET_CLIENT_connect ("transport", cfg);
@@ -192,7 +199,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Ha
   msg.one_shot = htonl (one_shot);
   msg.timeout = GNUNET_TIME_absolute_hton (abs_timeout);
   if (peer == NULL)
-   memset (&msg.peer, 0 , sizeof (struct GNUNET_PeerIdentity));
+    memset (&msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
   else
     msg.peer = *peer;
   pal_ctx = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PeerIterateContext));
@@ -216,8 +223,8 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Ha
  */
 void
 GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
-                                             GNUNET_TRANSPORT_PeerIterateContext
-                                             *alc)
+                                                   GNUNET_TRANSPORT_PeerIterateContext
+                                                   *alc)
 {
   GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
   GNUNET_free (alc);

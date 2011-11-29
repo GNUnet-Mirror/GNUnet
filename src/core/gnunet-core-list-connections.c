@@ -98,11 +98,11 @@ dump_pc (struct PrintContext *pc)
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 static void
-process_resolved_address (void *cls,
-			  const struct GNUNET_PeerIdentity *peer,
-			  const struct GNUNET_HELLO_Address *address)
+process_resolved_address (void *cls, const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_HELLO_Address *address)
 {
   struct PrintContext *pc = cls;
+
 //  struct AddressStringList *new_address;
 
   if (address == NULL)
@@ -111,16 +111,16 @@ process_resolved_address (void *cls,
     return;
   }
 
-  /* This does exactly the same as gnunet-transport -i !*/
+  /* This does exactly the same as gnunet-transport -i ! */
   /*
-  new_address = GNUNET_malloc (sizeof (struct AddressStringList));
-#if VERBOSE
-  fprintf (stderr, "Received address %s\n", address);
-#endif
-
-  new_address->address_string = GNUNET_strdup ("FIXME");
-  GNUNET_CONTAINER_DLL_insert (pc->address_list_head, pc->address_list_tail,
-                               new_address);
+   * new_address = GNUNET_malloc (sizeof (struct AddressStringList));
+   * #if VERBOSE
+   * fprintf (stderr, "Received address %s\n", address);
+   * #endif
+   *
+   * new_address->address_string = GNUNET_strdup ("FIXME");
+   * GNUNET_CONTAINER_DLL_insert (pc->address_list_head, pc->address_list_tail,
+   * new_address);
    */
 }
 
@@ -143,12 +143,9 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
     pc = GNUNET_malloc (sizeof (struct PrintContext));
     pc->peer = *peer;
-    GNUNET_TRANSPORT_peer_get_active_addresses (cfg,
-                                                peer,
-                                                GNUNET_YES,
+    GNUNET_TRANSPORT_peer_get_active_addresses (cfg, peer, GNUNET_YES,
                                                 GNUNET_TIME_UNIT_MINUTES,
-                                                &process_resolved_address,
-                                                pc);
+                                                &process_resolved_address, pc);
   }
 #if VERBOSE
   else

@@ -237,7 +237,7 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
       last = 0;
       if (1 != sscanf (tok, "%llu", &last))
       {
-	GNUNET_free (in);
+        GNUNET_free (in);
         return GNUNET_SYSERR;   /* expected number */
       }
     }
@@ -316,7 +316,7 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
       last = 0;
       if (1 != sscanf (tok, "%llu", &last))
       {
-	GNUNET_free (in);
+        GNUNET_free (in);
         return GNUNET_SYSERR;   /* expected number */
       }
     }

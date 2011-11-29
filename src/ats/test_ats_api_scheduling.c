@@ -118,8 +118,7 @@ end ()
 
 
 static void
-address_suggest_cb (void *cls, 
-                    const struct GNUNET_HELLO_Address *address,
+address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
@@ -130,10 +129,13 @@ address_suggest_cb (void *cls,
               GNUNET_i2s (&address->peer));
 
   GNUNET_assert (0 ==
-                 memcmp (&address->peer, &p[0].id, sizeof (struct GNUNET_PeerIdentity)));
+                 memcmp (&address->peer, &p[0].id,
+                         sizeof (struct GNUNET_PeerIdentity)));
   GNUNET_assert (0 == strcmp (address->transport_name, addr[0].plugin));
   GNUNET_assert (address->address_length == addr[0].addr_len);
-  GNUNET_assert (0 == memcmp (address->address, addr[0].plugin, address->address_length));
+  GNUNET_assert (0 ==
+                 memcmp (address->address, addr[0].plugin,
+                         address->address_length));
   GNUNET_assert (addr[0].session == session);
 
 
@@ -224,7 +226,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_ATS_address_update (ats, &address0, addr[0].session, atsi, 2);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing manual address deletion \n");
-  address0.peer = p[1].id; // FIXME: why? typo in old code?
+  address0.peer = p[1].id;      // FIXME: why? typo in old code?
   GNUNET_ATS_address_update (ats, &address0, addr[0].session, NULL, 0);
   GNUNET_ATS_address_destroyed (ats, &address0, addr[0].session);
 

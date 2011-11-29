@@ -76,7 +76,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   GNUNET_break (ntohs (msg->type) ==
-      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
   size = ntohs (msg->size);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
@@ -116,12 +116,13 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
  * @return handle to cancel the operation, NULL on error
  */
 struct GNUNET_TRANSPORT_AddressToStringContext *
-GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const struct GNUNET_HELLO_Address *address,
-                                 int numeric,
-                                 struct GNUNET_TIME_Relative timeout,
-                                 GNUNET_TRANSPORT_AddressToStringCallback aluc,
-                                 void *aluc_cls)
+GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle
+                                    *cfg,
+                                    const struct GNUNET_HELLO_Address *address,
+                                    int numeric,
+                                    struct GNUNET_TIME_Relative timeout,
+                                    GNUNET_TRANSPORT_AddressToStringCallback
+                                    aluc, void *aluc_cls)
 {
   size_t len;
   size_t alen;
@@ -145,8 +146,7 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
   if (client == NULL)
     return NULL;
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "GNUNET_TRANSPORT_address_to_string\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_TRANSPORT_address_to_string\n");
 #endif
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
@@ -180,8 +180,8 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
  */
 void
 GNUNET_TRANSPORT_address_to_string_cancel (struct
-                                        GNUNET_TRANSPORT_AddressToStringContext
-                                        *alc)
+                                           GNUNET_TRANSPORT_AddressToStringContext
+                                           *alc)
 {
   GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
   GNUNET_free (alc);

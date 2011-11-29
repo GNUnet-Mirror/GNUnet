@@ -76,8 +76,8 @@ GST_hello_get (void);
  * @param address address to add or remove
  */
 void
-GST_hello_modify_addresses (int addremove, 
-			    const struct GNUNET_HELLO_Address *address);
+GST_hello_modify_addresses (int addremove,
+                            const struct GNUNET_HELLO_Address *address);
 
 
 /**

@@ -167,8 +167,7 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * Hijack all outgoing DNS-Traffic but for traffic leaving "our" port.
  */
 static void
-hijack (void *cls
-        GNUNET_UNUSED, const struct GNUNET_SCHEDULER_TaskContext *tc)
+hijack (void *cls GNUNET_UNUSED, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -207,11 +206,9 @@ hijack (void *cls
 }
 
 static void *
-new_tunnel (void *cls
-            GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-            const struct GNUNET_PeerIdentity *initiator
-            GNUNET_UNUSED, const struct GNUNET_ATS_Information *ats
-            GNUNET_UNUSED)
+new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+            const struct GNUNET_PeerIdentity *initiator GNUNET_UNUSED,
+            const struct GNUNET_ATS_Information *ats GNUNET_UNUSED)
 {
   struct tunnel_state *s = GNUNET_malloc (sizeof *s);
 
@@ -222,8 +219,7 @@ new_tunnel (void *cls
 }
 
 static void
-clean_tunnel (void *cls
-              GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
+clean_tunnel (void *cls GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
               void *tunnel_ctx)
 {
   GNUNET_free (tunnel_ctx);
@@ -386,8 +382,7 @@ mesh_send (void *cls, size_t size, void *buf)
 
 void
 mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_ATS_Information *atsi
-              GNUNET_UNUSED)
+              const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
   if (NULL == peer)
     return;
@@ -447,15 +442,11 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static int
-receive_mesh_query (void *cls
-                    GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-                    void **ctx
-                    GNUNET_UNUSED,
-                    const struct GNUNET_PeerIdentity *sender
-                    GNUNET_UNUSED,
+receive_mesh_query (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+                    void **ctx GNUNET_UNUSED,
+                    const struct GNUNET_PeerIdentity *sender GNUNET_UNUSED,
                     const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_ATS_Information *atsi
-                    GNUNET_UNUSED)
+                    const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
 
@@ -500,14 +491,11 @@ receive_mesh_query (void *cls
 }
 
 static int
-receive_mesh_answer (void *cls
-                     GNUNET_UNUSED,
-                     struct GNUNET_MESH_Tunnel *tunnel, void **ctx
-                     GNUNET_UNUSED,
+receive_mesh_answer (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+                     void **ctx GNUNET_UNUSED,
                      const struct GNUNET_PeerIdentity *sender,
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_ATS_Information *atsi
-                     GNUNET_UNUSED)
+                     const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
   /* TODo: size check */
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
@@ -749,16 +737,13 @@ send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Receive a block from the dht.
  */
 static void
-receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
-             GNUNET_UNUSED, const GNUNET_HashCode * key
-             GNUNET_UNUSED,
-             const struct GNUNET_PeerIdentity *get_path
-             GNUNET_UNUSED, unsigned int get_path_length
-             GNUNET_UNUSED,
-             const struct GNUNET_PeerIdentity *put_path
-             GNUNET_UNUSED, unsigned int put_path_length
-             GNUNET_UNUSED, enum GNUNET_BLOCK_Type type, size_t size,
-             const void *data)
+receive_dht (void *cls, struct GNUNET_TIME_Absolute exp GNUNET_UNUSED,
+             const GNUNET_HashCode * key GNUNET_UNUSED,
+             const struct GNUNET_PeerIdentity *get_path GNUNET_UNUSED,
+             unsigned int get_path_length GNUNET_UNUSED,
+             const struct GNUNET_PeerIdentity *put_path GNUNET_UNUSED,
+             unsigned int put_path_length GNUNET_UNUSED,
+             enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
 
   unsigned short id = ((struct receive_dht_cls *) cls)->id;
@@ -868,8 +853,7 @@ receive_dht (void *cls, struct GNUNET_TIME_Absolute exp
  * This receives a GNUNET_MESSAGE_TYPE_REHIJACK and rehijacks the DNS
  */
 static void
-rehijack (void *cls
-          GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
+rehijack (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
           const struct GNUNET_MessageHeader *message GNUNET_UNUSED)
 {
   unhijack (dnsoutport);
@@ -882,8 +866,7 @@ rehijack (void *cls
  * This receives the dns-payload from the daemon-vpn and sends it on over the udp-socket
  */
 static void
-receive_query (void *cls
-               GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
+receive_query (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   struct query_packet *pkt = (struct query_packet *) message;
@@ -1231,8 +1214,7 @@ handle_response (struct dns_pkt *dns, struct sockaddr *addr, socklen_t addrlen,
  * Read a response-packet of the UDP-Socket
  */
 static void
-read_response6 (void *cls
-                GNUNET_UNUSED,
+read_response6 (void *cls GNUNET_UNUSED,
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in6 addr;
@@ -1281,8 +1263,7 @@ read_response6 (void *cls
  * Read a response-packet of the UDP-Socket
  */
 static void
-read_response (void *cls
-               GNUNET_UNUSED,
+read_response (void *cls GNUNET_UNUSED,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in addr;
@@ -1438,8 +1419,7 @@ handle_response (struct dns_pkt *dns, struct sockaddr *addr, socklen_t addrlen,
  * @param tc unused
  */
 static void
-cleanup_task (void *cls
-              GNUNET_UNUSED,
+cleanup_task (void *cls GNUNET_UNUSED,
               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
@@ -1665,8 +1645,7 @@ publish_iterate (void *cls GNUNET_UNUSED, const char *section)
  * Publish a DNS-record in the DHT.
  */
 static void
-publish_names (void *cls
-               GNUNET_UNUSED,
+publish_names (void *cls GNUNET_UNUSED,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))

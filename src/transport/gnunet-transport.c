@@ -437,14 +437,14 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   traffic_received += ntohs (message->size);
 }
 
-void process_string (void *cls,
-                     const char *address)
+void
+process_string (void *cls, const char *address)
 {
-  struct GNUNET_PeerIdentity * peer = cls;
+  struct GNUNET_PeerIdentity *peer = cls;
 
   if ((address != NULL))
   {
-    fprintf (stdout, _("Peer `%s': %s\n"), GNUNET_i2s(peer), address);
+    fprintf (stdout, _("Peer `%s': %s\n"), GNUNET_i2s (peer), address);
   }
   else
   {
@@ -463,29 +463,25 @@ void process_string (void *cls,
  * @param addrlen number of bytes in addr
  */
 static void
-process_address (void *cls, 
-		 const struct GNUNET_PeerIdentity *peer,
-		 const struct GNUNET_HELLO_Address *address)
+process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_HELLO_Address *address)
 {
-  const struct GNUNET_CONFIGURATION_Handle * cfg = cls;
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_PeerIdentity *peercp;
 
-  if ( (address == NULL) || (peer == NULL) )
+  if ((address == NULL) || (peer == NULL))
   {
     /* done */
     return;
   }
 
-  peercp = GNUNET_malloc(sizeof (struct GNUNET_PeerIdentity));
+  peercp = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
   *peercp = *peer;
 
   /* Resolve address to string */
-  GNUNET_TRANSPORT_address_to_string (cfg,
-				      address,
-				      numeric,
-				      GNUNET_TIME_UNIT_MINUTES,
-				      &process_string,
-				      peercp);
+  GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
+                                      GNUNET_TIME_UNIT_MINUTES, &process_string,
+                                      peercp);
 }
 
 
@@ -542,8 +538,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (iterate_connections)
   {
     GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL, GNUNET_YES,
-						GNUNET_TIME_UNIT_MINUTES,
-						&process_address, (void *)cfg);
+                                                GNUNET_TIME_UNIT_MINUTES,
+                                                &process_address, (void *) cfg);
   }
 }
 
@@ -568,9 +564,9 @@ main (int argc, char *const *argv)
     {'t', "test", NULL,
      gettext_noop ("test transport configuration (involves external server)"),
      0, &GNUNET_GETOPT_set_one, &test_configuration},
-     {'n', "numeric", NULL,
-      gettext_noop ("do not resolve hostnames"),
-      0, &GNUNET_GETOPT_set_one, &numeric},
+    {'n', "numeric", NULL,
+     gettext_noop ("do not resolve hostnames"),
+     0, &GNUNET_GETOPT_set_one, &numeric},
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };

@@ -78,16 +78,15 @@ test_assert (GNUNET_PEER_Id peer_id, enum MeshPeerState status,
   if (n->peer != peer_id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Retrieved peer has wrong ID! (Got %u, expected %u)\n",
-                n->peer, peer_id);
+                "Retrieved peer has wrong ID! (Got %u, expected %u)\n", n->peer,
+                peer_id);
     failed++;
   }
   if (n->status != status)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Retrieved peer has wrong status! (Got %u, expected %u)\n",
-                n->status,
-                status);
+                n->status, status);
     failed++;
   }
   for (c = n->children_head, i = 0; NULL != c; c = c->next, i++) ;
@@ -101,7 +100,8 @@ test_assert (GNUNET_PEER_Id peer_id, enum MeshPeerState status,
   if (0 != first_hop &&
       GNUNET_PEER_search (tree_get_first_hop (tree, peer_id)) != first_hop)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Wrong first hop! (Got %u, expected %u)\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Wrong first hop! (Got %u, expected %u)\n",
                 GNUNET_PEER_search (tree_get_first_hop (tree, peer_id)),
                 first_hop);
     failed++;
@@ -112,8 +112,8 @@ test_assert (GNUNET_PEER_Id peer_id, enum MeshPeerState status,
 
     GNUNET_PEER_resolve (peer_id, &id);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "*** Peer %s (%u) has failed %d checks!\n",
-                GNUNET_i2s (&id), peer_id, failed - pre_failed);
+                "*** Peer %s (%u) has failed %d checks!\n", GNUNET_i2s (&id),
+                peer_id, failed - pre_failed);
   }
 }
 
@@ -219,41 +219,34 @@ main (int argc, char *argv[])
   for (i = 1; i < 5; i++)
   {
     path->length = i;
-    if (tree_get_path_cost(tree, path) != 0)
+    if (tree_get_path_cost (tree, path) != 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "test: length %u cost failed!\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: length %u cost failed!\n",
                   i);
       failed++;
     }
   }
   path->length++;
   path->peers[4] = 6;
-  if (tree_get_path_cost(tree, path) != 1)
+  if (tree_get_path_cost (tree, path) != 1)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "test: length %u cost failed!\n",
-                i);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: length %u cost failed!\n", i);
     failed++;
   }
   path->peers[3] = 7;
-  if (tree_get_path_cost(tree, path) != 2)
+  if (tree_get_path_cost (tree, path) != 2)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "test: length %u cost failed!\n",
-                i);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: length %u cost failed!\n", i);
     failed++;
   }
   path->length--;
-  if (tree_get_path_cost(tree, path) != 1)
+  if (tree_get_path_cost (tree, path) != 1)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "test: length %u cost failed!\n",
-                i);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: length %u cost failed!\n", i);
     failed++;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Deleting third path (5)\n");
-  tree_set_status(tree, 5, MESH_PEER_READY);
+  tree_set_status (tree, 5, MESH_PEER_READY);
   cb_call = 1;
   node = tree_del_path (tree, 5, &cb, NULL);
   tree_debug (tree);

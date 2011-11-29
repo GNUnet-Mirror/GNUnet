@@ -394,15 +394,16 @@ send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @return connected transport distance
  */
 static uint32_t
-get_atsi_distance (const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
+                   unsigned int atsi_count)
 {
   unsigned int i;
 
   for (i = 0; i < atsi_count; i++)
-    {
-      if (ntohl (atsi->type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
-        return ntohl (atsi->value);
-    }
+  {
+    if (ntohl (atsi->type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
+      return ntohl (atsi->value);
+  }
 
   GNUNET_break (0);
   /* FIXME: we do not have distance data? Assume direct neighbor. */
@@ -411,8 +412,7 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi, unsigned int atsi_
 
 
 static int
-process_mtype (void *cls,
-               const struct GNUNET_PeerIdentity *peer,
+process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
                const struct GNUNET_ATS_Information *atsi,
                unsigned int atsi_count)
@@ -464,7 +464,8 @@ process_mtype (void *cls,
   {
     GNUNET_SCHEDULER_cancel (die_task);
 #if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scheduling timeout from DV connections.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Scheduling timeout from DV connections.\n");
 #endif
     die_task =
         GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, &end_badly,

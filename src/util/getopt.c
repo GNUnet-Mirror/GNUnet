@@ -257,8 +257,8 @@ extern pid_t __libc_pid;
 /* Make sure the environment variable bash 2.0 puts in the environment
    is valid for the getopt call we must make sure that the ARGV passed
    to getopt is that one passed to the process.  */
-static void
-    GNUNET_UNUSED store_args_and_env (int argc, char *const *argv)
+static void GNUNET_UNUSED
+store_args_and_env (int argc, char *const *argv)
 {
   /* XXX This is no good solution.  We should rather copy the args so
    * that we can compare them later.  But we must not use malloc(3).  */

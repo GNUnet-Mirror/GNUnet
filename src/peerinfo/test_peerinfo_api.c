@@ -45,16 +45,17 @@ static struct GNUNET_PEERINFO_Handle *h;
 static unsigned int retries;
 
 static int
-check_it (void *cls, 
-	  const struct GNUNET_HELLO_Address *address,
-	  struct GNUNET_TIME_Absolute expiration)
+check_it (void *cls, const struct GNUNET_HELLO_Address *address,
+          struct GNUNET_TIME_Absolute expiration)
 {
   unsigned int *agc = cls;
 
   if (address != NULL)
   {
     GNUNET_assert (0 == strcmp ("peerinfotest", address->transport_name));
-    GNUNET_assert (0 == strncmp ("Address", address->address, address->address_length));
+    GNUNET_assert (0 ==
+                   strncmp ("Address", address->address,
+                            address->address_length));
     (*agc) -= (1 << (address->address_length - 1));
   }
   return GNUNET_OK;
@@ -75,10 +76,9 @@ address_generator (void *cls, size_t max, void *buf)
   address.transport_name = "peerinfotest";
   address.address_length = *agc;
   ret =
-    GNUNET_HELLO_add_address (&address,
-			      GNUNET_TIME_relative_to_absolute
-			      (GNUNET_TIME_UNIT_HOURS), buf,
-			      max);
+      GNUNET_HELLO_add_address (&address,
+                                GNUNET_TIME_relative_to_absolute
+                                (GNUNET_TIME_UNIT_HOURS), buf, max);
   (*agc)--;
   return ret;
 }

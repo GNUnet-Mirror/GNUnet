@@ -105,7 +105,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
   {
-    /* Error, timeout, death */    
+    /* Error, timeout, death */
     GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
     h->client = NULL;
     h->reconnect_task =

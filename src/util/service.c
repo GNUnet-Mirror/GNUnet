@@ -1566,12 +1566,12 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Service `%s' runs with configuration from `%s'\n", serviceName, cfg_fn);
 #endif
-  if ( (GNUNET_OK ==
-	GNUNET_CONFIGURATION_get_value_number (sctx.cfg, "TESTING", "SKEW_OFFSET",
-					       &skew_offset)) &&
-       (GNUNET_OK ==
-	GNUNET_CONFIGURATION_get_value_number (sctx.cfg, "TESTING",
-					       "SKEW_VARIANCE", &skew_variance)) )
+  if ((GNUNET_OK ==
+       GNUNET_CONFIGURATION_get_value_number (sctx.cfg, "TESTING",
+                                              "SKEW_OFFSET", &skew_offset)) &&
+      (GNUNET_OK ==
+       GNUNET_CONFIGURATION_get_value_number (sctx.cfg, "TESTING",
+                                              "SKEW_VARIANCE", &skew_variance)))
   {
     clock_offset = skew_offset - skew_variance;
     GNUNET_TIME_set_offset (clock_offset);

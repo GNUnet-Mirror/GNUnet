@@ -57,7 +57,7 @@ int
 GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
                                         const struct GNUNET_MessageHeader
                                         *message,
-					struct GSF_PendingRequest **prptr);
+                                        struct GSF_PendingRequest **prptr);
 
 
 /**

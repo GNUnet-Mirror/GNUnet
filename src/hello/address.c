@@ -39,21 +39,20 @@
  */
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
-			       const char *transport_name,
-			       const void *address,
-			       size_t address_length)
+                               const char *transport_name, const void *address,
+                               size_t address_length)
 {
   struct GNUNET_HELLO_Address *addr;
   size_t slen;
   char *end;
 
   slen = strlen (transport_name) + 1;
-  addr = GNUNET_malloc (sizeof (struct GNUNET_HELLO_Address) + 
-			address_length + 
-			slen);
+  addr =
+      GNUNET_malloc (sizeof (struct GNUNET_HELLO_Address) + address_length +
+                     slen);
   addr->peer = *peer;
   addr->address = &addr[1];
-  end = (char*) &addr[1];
+  end = (char *) &addr[1];
   memcpy (end, address, address_length);
   addr->address_length = address_length;
   addr->transport_name = &end[address_length];
@@ -69,11 +68,10 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
  * @return the size
  */
 size_t
-GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address)
+GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address * address)
 {
-  return sizeof (struct GNUNET_HELLO_Address) +
-         address->address_length +
-         strlen(address->transport_name) + 1;
+  return sizeof (struct GNUNET_HELLO_Address) + address->address_length +
+      strlen (address->transport_name) + 1;
 }
 
 
@@ -86,10 +84,9 @@ GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address)
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address)
 {
-  return GNUNET_HELLO_address_allocate (&address->peer,
-					address->transport_name,
-					address->address,
-					address->address_length);
+  return GNUNET_HELLO_address_allocate (&address->peer, address->transport_name,
+                                        address->address,
+                                        address->address_length);
 }
 
 
@@ -103,21 +100,18 @@ GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address)
  */
 int
 GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
-			  const struct GNUNET_HELLO_Address *a2)
+                          const struct GNUNET_HELLO_Address *a2)
 {
   int ret;
 
-  ret = strcmp (a1->transport_name,
-		a2->transport_name);
+  ret = strcmp (a1->transport_name, a2->transport_name);
   if (0 != ret)
     return ret;
-  if (a1->address_length < a2->address_length) 
+  if (a1->address_length < a2->address_length)
     return -1;
-  if (a1->address_length > a2->address_length) 
+  if (a1->address_length > a2->address_length)
     return 1;
-  return memcmp (a1->address, 
-		 a1->address, 
-		 a1->address_length);
+  return memcmp (a1->address, a1->address, a1->address_length);
 }
 
 

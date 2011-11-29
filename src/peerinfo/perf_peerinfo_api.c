@@ -50,8 +50,8 @@ static struct GNUNET_PeerIdentity pid;
 
 
 static int
-check_it (void *cls,
-	  const struct GNUNET_HELLO_Address *address, struct GNUNET_TIME_Absolute expiration)
+check_it (void *cls, const struct GNUNET_HELLO_Address *address,
+          struct GNUNET_TIME_Absolute expiration)
 {
 #if DEBUG
   if (addrlen > 0)
@@ -80,7 +80,7 @@ address_generator (void *cls, size_t max, void *buf)
   address.address = caddress;
   address.transport_name = "peerinfotest";
   ret =
-    GNUNET_HELLO_add_address (&address,
+      GNUNET_HELLO_add_address (&address,
                                 GNUNET_TIME_relative_to_absolute
                                 (GNUNET_TIME_UNIT_HOURS), buf, max);
   GNUNET_free (caddress);

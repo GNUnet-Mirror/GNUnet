@@ -1045,7 +1045,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "SETTLE_TIME",
-					   &settle_time))
+                                           &settle_time))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
                 "testing", "SETTLE_TIME");

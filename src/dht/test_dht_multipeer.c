@@ -463,7 +463,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   ok = 1;
   /* testing_peergroup will do that in its own end_badly() handler */
-  /*GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);*/
+  /*GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL); */
   pg = NULL;
 }
 

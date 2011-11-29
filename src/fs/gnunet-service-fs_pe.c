@@ -265,7 +265,7 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
                          gettext_noop ("# average retransmission delay (ms)"),
                          total_delay * 1000LL / plan_count, GNUNET_NO);
   prd = GSF_pending_request_get_data_ (rp->prl_head->pr);
-  
+
   if (rp->transmission_counter < 8)
     delay =
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
@@ -283,30 +283,32 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 delay.rel_value + 1);
   /* Add 0.01 to avg_delay to avoid division-by-zero later */
-  avg_delay = (((avg_delay * (N-1.0)) + delay.rel_value) / N) + 0.01;
+  avg_delay = (((avg_delay * (N - 1.0)) + delay.rel_value) / N) + 0.01;
 
   /*
-     For the priority, we need to consider a few basic rules:
-     1) if we just started requesting (delay is small), we should
-        virtually always have a priority of zero.
-     2) for requests with average latency, our priority should match
-        the average priority observed on the network
-     3) even the longest-running requests should not be WAY out of
-        the observed average (thus we bound by a factor of 2)
-     4) we add +1 to the observed average priority to avoid everyone
-        staying put at zero (2 * 0 = 0...).
-
-     Using the specific calculation below, we get:
-
-     delay = 0 => priority = 0;
-     delay = avg delay => priority = running-average-observed-priority;
-     delay >> avg_delay => priority = 2 * running-average-observed-priority;
-
-     which satisfies all of the rules above.
-     
-     Note: M_PI_4 = PI/4 = arctan(1)
-  */     
-  rp->priority = round ((GSF_current_priorities + 1.0) * atan (delay.rel_value / avg_delay)) / M_PI_4;
+   * For the priority, we need to consider a few basic rules:
+   * 1) if we just started requesting (delay is small), we should
+   * virtually always have a priority of zero.
+   * 2) for requests with average latency, our priority should match
+   * the average priority observed on the network
+   * 3) even the longest-running requests should not be WAY out of
+   * the observed average (thus we bound by a factor of 2)
+   * 4) we add +1 to the observed average priority to avoid everyone
+   * staying put at zero (2 * 0 = 0...).
+   *
+   * Using the specific calculation below, we get:
+   *
+   * delay = 0 => priority = 0;
+   * delay = avg delay => priority = running-average-observed-priority;
+   * delay >> avg_delay => priority = 2 * running-average-observed-priority;
+   *
+   * which satisfies all of the rules above.
+   *
+   * Note: M_PI_4 = PI/4 = arctan(1)
+   */
+  rp->priority =
+      round ((GSF_current_priorities +
+              1.0) * atan (delay.rel_value / avg_delay)) / M_PI_4;
   /* Note: usage of 'round' and 'atan' requires -lm */
 
   if (rp->transmission_counter != 0)

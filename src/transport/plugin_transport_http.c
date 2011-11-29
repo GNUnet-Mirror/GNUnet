@@ -513,6 +513,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   struct Plugin *plugin = cls;
   struct HTTP_Message *msg;
   struct Session *s;
+
   GNUNET_assert (plugin != NULL);
 
   int res = GNUNET_SYSERR;
@@ -563,17 +564,20 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                      GNUNET_i2s (target));
 #endif
     int res = GNUNET_OK;
+
     if (addrlen == sizeof (struct IPv4HttpAddress))
     {
-      struct IPv4HttpAddress * a4 = (struct IPv4HttpAddress *) addr;
-      if ((ntohs(a4->u4_port) == 0) || (plugin->ipv4 == GNUNET_NO))
-          res = GNUNET_SYSERR;
+      struct IPv4HttpAddress *a4 = (struct IPv4HttpAddress *) addr;
+
+      if ((ntohs (a4->u4_port) == 0) || (plugin->ipv4 == GNUNET_NO))
+        res = GNUNET_SYSERR;
     }
     if (addrlen == sizeof (struct IPv6HttpAddress))
     {
-      struct IPv6HttpAddress * a6 = (struct IPv6HttpAddress *) addr;
-      if ((ntohs(a6->u6_port) == 0) || (plugin->ipv6 == GNUNET_NO))
-          res = GNUNET_SYSERR;
+      struct IPv6HttpAddress *a6 = (struct IPv6HttpAddress *) addr;
+
+      if ((ntohs (a6->u6_port) == 0) || (plugin->ipv6 == GNUNET_NO))
+        res = GNUNET_SYSERR;
     }
     if (res == GNUNET_OK)
     {
@@ -606,8 +610,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   {
 #if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Using outbound client session %p to send to `%s'\n",
-                     s,
+                     "Using outbound client session %p to send to `%s'\n", s,
                      GNUNET_i2s (target));
 #endif
 
@@ -618,8 +621,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   {
 #if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Using inbound server %p session to send to `%s'\n",
-                     s,
+                     "Using inbound server %p session to send to `%s'\n", s,
                      GNUNET_i2s (target));
 #endif
 
@@ -659,16 +661,17 @@ http_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
         GNUNET_assert (GNUNET_OK == server_disconnect (s));
       GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
 
-      struct HTTP_Message * msg = s->msg_head;
-      struct HTTP_Message * tmp = s->msg_head;
+      struct HTTP_Message *msg = s->msg_head;
+      struct HTTP_Message *tmp = s->msg_head;
+
       while (msg != NULL)
       {
         tmp = msg->next;
 
-        GNUNET_CONTAINER_DLL_remove(s->msg_head,s->msg_tail, msg);
+        GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
         if (msg->transmit_cont != NULL)
         {
-          msg->transmit_cont(msg->transmit_cont_cls, target, GNUNET_SYSERR);
+          msg->transmit_cont (msg->transmit_cont_cls, target, GNUNET_SYSERR);
         }
         GNUNET_free (msg);
         msg = tmp;
@@ -1427,18 +1430,20 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   while (s != NULL)
   {
     struct Session *t = s->next;
+
     GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
 
-    struct HTTP_Message * msg = s->msg_head;
-    struct HTTP_Message * tmp = s->msg_head;
+    struct HTTP_Message *msg = s->msg_head;
+    struct HTTP_Message *tmp = s->msg_head;
+
     while (msg != NULL)
     {
       tmp = msg->next;
 
-      GNUNET_CONTAINER_DLL_remove(s->msg_head,s->msg_tail, msg);
+      GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
       if (msg->transmit_cont != NULL)
       {
-        msg->transmit_cont(msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+        msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
       }
       GNUNET_free (msg);
       msg = tmp;

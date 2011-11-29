@@ -97,12 +97,9 @@ struct addr_cls
  * @return GNUNET_OK to continue iterating
  */
 static int
-process_if (void *cls, const char *name,
-            int isDefault,
-            const struct sockaddr * addr,
-            const struct sockaddr * broadcast_addr,
-            const struct sockaddr * netmask,
-            socklen_t addrlen)
+process_if (void *cls, const char *name, int isDefault,
+            const struct sockaddr *addr, const struct sockaddr *broadcast_addr,
+            const struct sockaddr *netmask, socklen_t addrlen)
 {
   struct addr_cls *data = cls;
 

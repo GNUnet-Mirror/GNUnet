@@ -74,8 +74,7 @@ struct GNUNET_HELLO_Message
  */
 size_t
 GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
-                          struct GNUNET_TIME_Absolute expiration,
-                          char *target,
+                          struct GNUNET_TIME_Absolute expiration, char *target,
                           size_t max)
 {
   uint16_t alen;
@@ -232,8 +231,8 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   wpos = 0;
   woff = (ret != NULL) ? (char *) &ret[1] : NULL;
   GNUNET_CRYPTO_hash (&msg->publicKey,
-		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-		      &address.peer.hashPubKey);
+                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      &address.peer.hashPubKey);
   while (insize > 0)
   {
     esize = get_hello_address_size (inptr, insize, &alen);
@@ -280,14 +279,12 @@ struct ExpireContext
 
 
 static int
-get_match_exp (void *cls, 
-	       const struct GNUNET_HELLO_Address *address,
+get_match_exp (void *cls, const struct GNUNET_HELLO_Address *address,
                struct GNUNET_TIME_Absolute expiration)
 {
   struct ExpireContext *ec = cls;
 
-  if (0 == GNUNET_HELLO_address_cmp (address,
-				     ec->address))
+  if (0 == GNUNET_HELLO_address_cmp (address, ec->address))
   {
     ec->found = GNUNET_YES;
     ec->expiration = expiration;
@@ -311,8 +308,7 @@ struct MergeContext
 
 
 static int
-copy_latest (void *cls, 
-	     const struct GNUNET_HELLO_Address *address,
+copy_latest (void *cls, const struct GNUNET_HELLO_Address *address,
              struct GNUNET_TIME_Absolute expiration)
 {
   struct MergeContext *mc = cls;
@@ -327,9 +323,8 @@ copy_latest (void *cls,
        (mc->take_equal == GNUNET_YES)))
   {
     mc->ret +=
-        GNUNET_HELLO_add_address (address,
-                                  expiration,
-				  &mc->buf[mc->ret], mc->max - mc->ret);
+        GNUNET_HELLO_add_address (address, expiration, &mc->buf[mc->ret],
+                                  mc->max - mc->ret);
   }
   return GNUNET_OK;
 }
@@ -388,8 +383,7 @@ struct DeltaContext
 
 
 static int
-delta_match (void *cls, 
-	     const struct GNUNET_HELLO_Address *address,
+delta_match (void *cls, const struct GNUNET_HELLO_Address *address,
              struct GNUNET_TIME_Absolute expiration)
 {
   struct DeltaContext *dc = cls;
@@ -547,9 +541,7 @@ find_other_matching (void *cls, const struct GNUNET_HELLO_Address *address,
 
   if (expiration.abs_value < ec->expiration_limit.abs_value)
     return GNUNET_YES;
-  if (0 == 
-      GNUNET_HELLO_address_cmp (address,
-				ec->address))
+  if (0 == GNUNET_HELLO_address_cmp (address, ec->address))
   {
     ec->found = GNUNET_YES;
     if (expiration.abs_value < ec->expiration.abs_value)

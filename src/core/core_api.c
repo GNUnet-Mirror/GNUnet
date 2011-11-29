@@ -1424,8 +1424,8 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   }
 
   /* Order entries by deadline, but SKIP 'HEAD' (as we may have transmitted
-     that request already or might even already be approved to transmit that
-     message to core) */
+   * that request already or might even already be approved to transmit that
+   * message to core) */
   pos = pr->pending_head;
   if (pos != NULL)
     pos = pos->next;            /* skip head */

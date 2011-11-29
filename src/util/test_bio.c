@@ -195,7 +195,7 @@ test_bigmeta_rw ()
 static int
 test_directory_r ()
 {
-#if LINUX 
+#if LINUX
   char *msg;
   char readResult[200];
   struct GNUNET_BIO_ReadHandle *fileR;

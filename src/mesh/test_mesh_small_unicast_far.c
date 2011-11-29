@@ -480,7 +480,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (testing_cfg, "test_mesh_small",
-					   "WAIT_TIME", &wait_time))
+                                           "WAIT_TIME", &wait_time))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Option test_mesh_small:wait_time is required!\n");

@@ -144,7 +144,8 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     if (plug->api == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to load transport plugin for `%s'\n"), plug->lib_name);
+                  _("Failed to load transport plugin for `%s'\n"),
+                  plug->lib_name);
       GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
       GNUNET_free (plug->short_name);
       GNUNET_free (plug->lib_name);
@@ -210,16 +211,16 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
   api = GST_plugins_find (address->transport_name);
   if (NULL == api)
     return "<plugin unknown>";
-  if (0 == address->address_length) 
+  if (0 == address->address_length)
   {
-    GNUNET_snprintf (unable_to_show, 
-		     sizeof (unable_to_show),
-		     "<unable to stringify %u-byte long address of %s transport>",
-		     (unsigned int) address->address_length, 
-		     address->transport_name);
+    GNUNET_snprintf (unable_to_show, sizeof (unable_to_show),
+                     "<unable to stringify %u-byte long address of %s transport>",
+                     (unsigned int) address->address_length,
+                     address->transport_name);
     return unable_to_show;
   }
-  return api->address_to_string (NULL, address->address, address->address_length);
+  return api->address_to_string (NULL, address->address,
+                                 address->address_length);
 }
 
 

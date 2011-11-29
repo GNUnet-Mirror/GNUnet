@@ -109,7 +109,7 @@ typedef void (*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
  *        otherwise 0-terminated printable UTF-8 string
  */
 typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
-                                                        const char *address);
+                                                          const char *address);
 
 
 /**
@@ -120,8 +120,12 @@ typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
  * @param address address, NULL for disconnect notification in monitor mode
  */
 typedef void (*GNUNET_TRANSPORT_PeerIterateCallback) (void *cls,
-						      const struct GNUNET_PeerIdentity *peer,
-						      const struct GNUNET_HELLO_Address *address);
+                                                      const struct
+                                                      GNUNET_PeerIdentity *
+                                                      peer,
+                                                      const struct
+                                                      GNUNET_HELLO_Address *
+                                                      address);
 
 
 /**
@@ -291,12 +295,13 @@ struct GNUNET_TRANSPORT_AddressToStringContext;
  * @return handle to cancel the operation, NULL on error
  */
 struct GNUNET_TRANSPORT_AddressToStringContext *
-GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const struct GNUNET_HELLO_Address *address,
-                                 int numeric,
-                                 struct GNUNET_TIME_Relative timeout,
-                                 GNUNET_TRANSPORT_AddressToStringCallback aluc,
-                                 void *aluc_cls);
+GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle
+                                    *cfg,
+                                    const struct GNUNET_HELLO_Address *address,
+                                    int numeric,
+                                    struct GNUNET_TIME_Relative timeout,
+                                    GNUNET_TRANSPORT_AddressToStringCallback
+                                    aluc, void *aluc_cls);
 
 
 /**
@@ -306,8 +311,8 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
  */
 void
 GNUNET_TRANSPORT_address_to_string_cancel (struct
-                                        GNUNET_TRANSPORT_AddressToStringContext
-                                        *alc);
+                                           GNUNET_TRANSPORT_AddressToStringContext
+                                           *alc);
 
 
 /**
@@ -328,12 +333,14 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
  * @param peer_address_callback_cls closure for peer_address_callback
  */
 struct GNUNET_TRANSPORT_PeerIterateContext *
-GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                      const struct GNUNET_PeerIdentity *peer,
-				      int one_shot,
-                                      struct GNUNET_TIME_Relative timeout,
-                                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_callback,
-                                      void *peer_address_callback_cls);
+GNUNET_TRANSPORT_peer_get_active_addresses (const struct
+                                            GNUNET_CONFIGURATION_Handle *cfg,
+                                            const struct GNUNET_PeerIdentity
+                                            *peer, int one_shot,
+                                            struct GNUNET_TIME_Relative timeout,
+                                            GNUNET_TRANSPORT_PeerIterateCallback
+                                            peer_address_callback,
+                                            void *peer_address_callback_cls);
 
 
 /**
@@ -343,8 +350,8 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Ha
  */
 void
 GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
-                                             GNUNET_TRANSPORT_PeerIterateContext
-*alc);
+                                                   GNUNET_TRANSPORT_PeerIterateContext
+                                                   *alc);
 
 
 /**

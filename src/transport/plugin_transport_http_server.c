@@ -312,6 +312,7 @@ static ssize_t
 server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 {
   struct Session *s = cls;
+
 #if VERBOSE_SERVER
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
                    "Server: %X can sent maximum  %u \n", s, max);
@@ -349,6 +350,7 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 
 #if VERBOSE_SERVER
   struct Plugin *plugin = s->plugin;
+
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                    "Server: %X: sent %u bytes\n", s, bytes_read);
 #endif
@@ -575,7 +577,8 @@ found:
 #endif
   MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
 
-  struct MHD_Daemon * d = NULL;
+  struct MHD_Daemon *d = NULL;
+
   if (s->addrlen == sizeof (struct IPv6HttpAddress))
     d = plugin->server_v6;
   if (s->addrlen == sizeof (struct IPv4HttpAddress))
@@ -649,10 +652,10 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   if ((sc->session->server_recv == NULL) || (sc->session->server_send == NULL))
   {
 #if VERBOSE_SERVER
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Server: Delayed read from `%s' `%s' since not both semi-connections are connected\n",
-                       GNUNET_i2s (&s->target),
-                       http_plugin_address_to_string (NULL, s->addr, s->addrlen));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Server: Delayed read from `%s' `%s' since not both semi-connections are connected\n",
+                     GNUNET_i2s (&s->target),
+                     http_plugin_address_to_string (NULL, s->addr, s->addrlen));
 #endif
     return MHD_YES;
   }
@@ -674,7 +677,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Server: Peer `%s' PUT on address `%s' connected\n",
                        GNUNET_i2s (&s->target),
-                       http_plugin_address_to_string (NULL, s->addr, s->addrlen));
+                       http_plugin_address_to_string (NULL, s->addr,
+                                                      s->addrlen));
 #endif
       return MHD_YES;
     }
@@ -686,7 +690,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Server: peer `%s' PUT on address `%s' received %u bytes\n",
                        GNUNET_i2s (&s->target),
-                       http_plugin_address_to_string (NULL,s->addr, s->addrlen),
+                       http_plugin_address_to_string (NULL, s->addr,
+                                                      s->addrlen),
                        *upload_data_size);
 #endif
       struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
@@ -739,6 +744,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                                      to);
         }
         struct MHD_Daemon *d = NULL;
+
         if (s->addrlen == sizeof (struct IPv6HttpAddress))
           d = plugin->server_v6;
         if (s->addrlen == sizeof (struct IPv4HttpAddress))
@@ -839,6 +845,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   plugin->cur_connections--;
 
   struct MHD_Daemon *d = NULL;
+
   if (s->addrlen == sizeof (struct IPv6HttpAddress))
     d = plugin->server_v6;
   if (s->addrlen == sizeof (struct IPv4HttpAddress))
@@ -894,11 +901,11 @@ server_send (struct Session *s, struct HTTP_Message *msg)
 
   if (s->addrlen == sizeof (struct IPv4HttpAddress))
   {
-    server_reschedule (s->plugin, s->plugin->server_v4 , GNUNET_YES);
+    server_reschedule (s->plugin, s->plugin->server_v4, GNUNET_YES);
   }
   else if (s->addrlen == sizeof (struct IPv6HttpAddress))
   {
-    server_reschedule (s->plugin, s->plugin->server_v6 , GNUNET_YES);
+    server_reschedule (s->plugin, s->plugin->server_v6, GNUNET_YES);
   }
   else
     return GNUNET_SYSERR;
@@ -926,7 +933,7 @@ server_v4_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 #if VERBOSE_SERVER
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       "Running IPv4 server\n");
+                   "Running IPv4 server\n");
 #endif
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
   if (plugin->server_v4 != NULL)
@@ -954,7 +961,7 @@ server_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 #if VERBOSE_SERVER
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       "Running IPv6 server\n");
+                   "Running IPv6 server\n");
 #endif
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
   if (plugin->server_v6 != NULL)
@@ -1027,8 +1034,8 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
       plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
     }
 #if VERBOSE_SERVER
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       "Scheduling IPv4 server task in %llu ms\n", tv);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Scheduling IPv4 server task in %llu ms\n", tv);
 #endif
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
@@ -1043,8 +1050,8 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
       plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
     }
 #if VERBOSE_SERVER
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       "Scheduling IPv6 server task in %llu ms\n", tv);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Scheduling IPv6 server task in %llu ms\n", tv);
 #endif
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
@@ -1195,8 +1202,7 @@ server_stop (struct Plugin *plugin)
   struct Session *t = NULL;
 
 #if VERBOSE_SERVER
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                   "server_stop\n");
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name, "server_stop\n");
 #endif
 
   struct MHD_Daemon *server_v4_tmp = plugin->server_v4;
@@ -1236,16 +1242,17 @@ server_stop (struct Plugin *plugin)
                      "Deleting semi-sessions %p\n", s);
 #endif
     t = s->next;
-    struct HTTP_Message * msg = s->msg_head;
-    struct HTTP_Message * tmp = s->msg_head;
+    struct HTTP_Message *msg = s->msg_head;
+    struct HTTP_Message *tmp = s->msg_head;
+
     while (msg != NULL)
     {
       tmp = msg->next;
 
-      GNUNET_CONTAINER_DLL_remove(s->msg_head,s->msg_tail, msg);
+      GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
       if (msg->transmit_cont != NULL)
       {
-        msg->transmit_cont(msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+        msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
       }
       GNUNET_free (msg);
       msg = tmp;

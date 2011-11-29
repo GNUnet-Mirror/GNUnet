@@ -127,8 +127,7 @@ send_query (void *cls GNUNET_UNUSED, size_t size, void *buf)
  * Connect to the service-dns
  */
 void
-connect_to_service_dns (void *cls
-                        GNUNET_UNUSED,
+connect_to_service_dns (void *cls GNUNET_UNUSED,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   conn_task = GNUNET_SCHEDULER_NO_TASK;
@@ -169,8 +168,7 @@ connect_to_service_dns (void *cls
  * handle it
  */
 void
-dns_answer_handler (void *cls
-                    GNUNET_UNUSED,
+dns_answer_handler (void *cls GNUNET_UNUSED,
                     const struct GNUNET_MessageHeader *msg)
 {
   /* the service disconnected, reconnect after short wait */

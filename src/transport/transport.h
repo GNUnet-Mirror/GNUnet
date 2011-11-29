@@ -401,7 +401,7 @@ struct AddressIterateResponseMessage
    * length of the plugin name
    */
   uint32_t pluginlen GNUNET_PACKED;
-  
+
 };
 
 

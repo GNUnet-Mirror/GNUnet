@@ -52,8 +52,7 @@ GAS_addresses_done (void);
 void
 GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
                       const char *plugin_name, const void *plugin_addr,
-                      size_t plugin_addr_len, uint32_t session_id,
-                      int in_use);
+                      size_t plugin_addr_len, uint32_t session_id, int in_use);
 
 void
 GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,

@@ -995,7 +995,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
     if (sc->search_request_map_offset < sqms)
       GNUNET_assert (mbc.put_cnt > 0);
-    
+
     sm->header.size = htons (msize);
     sm->type = htonl (GNUNET_BLOCK_TYPE_ANY);
     sm->anonymity_level = htonl (sc->anonymity);

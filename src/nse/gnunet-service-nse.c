@@ -305,6 +305,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   double variance;
   double val;
   double nsize;
+
 #define WEST 1
   /* Weighted incremental algorithm for stddev according to West (1979) */
 #if WEST
@@ -353,13 +354,13 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   if (0 != estimate_count)
   {
     mean = sum / estimate_count;
-    variance = (vsq - mean * sum) / (estimate_count - 1.0); // terrible for numerical stability...
+    variance = (vsq - mean * sum) / (estimate_count - 1.0);     // terrible for numerical stability...
   }
 #endif
   if (variance >= 0)
     std_dev = sqrt (variance);
   else
-    std_dev = variance; /* must be infinity due to estimate_count == 0 */
+    std_dev = variance;         /* must be infinity due to estimate_count == 0 */
   current_std_dev = std_dev;
   current_size_estimate = mean;
 
@@ -564,8 +565,8 @@ transmit_ready (void *cls, size_t size, void *buf)
         GNUNET_SCHEDULER_add_delayed (get_transmit_delay (0), &transmit_task,
                                       peer_entry);
   }
-  if ( (ntohl (size_estimate_messages[idx].hop_count) == 0) &&
-       (GNUNET_SCHEDULER_NO_TASK != proof_task) )
+  if ((ntohl (size_estimate_messages[idx].hop_count) == 0) &&
+      (GNUNET_SCHEDULER_NO_TASK != proof_task))
   {
     GNUNET_STATISTICS_update (stats,
                               "# flood messages not generated (no proof yet)",
@@ -667,8 +668,8 @@ setup_flood_message (unsigned int slot, struct GNUNET_TIME_Absolute ts)
   fm->proof_of_work = my_proof;
   if (nse_work_required > 0)
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CRYPTO_rsa_sign (my_private_key, &fm->purpose,
-					   &fm->signature));
+                   GNUNET_CRYPTO_rsa_sign (my_private_key, &fm->purpose,
+                                           &fm->signature));
   else
     memset (&fm->signature, 0, sizeof (fm->signature));
 }
@@ -905,12 +906,12 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
     GNUNET_break_op (0);
     return GNUNET_NO;
   }
-  if ( (nse_work_required > 0) &&
-       (GNUNET_OK !=
-	GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
-				  &incoming_flood->purpose,
-				  &incoming_flood->signature,
-				  &incoming_flood->pkey)) )
+  if ((nse_work_required > 0) &&
+      (GNUNET_OK !=
+       GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
+                                 &incoming_flood->purpose,
+                                 &incoming_flood->signature,
+                                 &incoming_flood->pkey)))
   {
     GNUNET_break_op (0);
     return GNUNET_NO;
@@ -1139,8 +1140,9 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   peer_entry = GNUNET_malloc (sizeof (struct NSEPeerEntry));
   peer_entry->id = *peer;
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multihashmap_put (peers, &peer->hashPubKey, peer_entry,
-						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                 GNUNET_CONTAINER_multihashmap_put (peers, &peer->hashPubKey,
+                                                    peer_entry,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   peer_entry->transmit_task =
       GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task,
                                     peer_entry);
@@ -1267,14 +1269,14 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
       (now.abs_value / gnunet_nse_interval.rel_value) *
       gnunet_nse_interval.rel_value;
   next_timestamp.abs_value =
-    current_timestamp.abs_value + gnunet_nse_interval.rel_value;
+      current_timestamp.abs_value + gnunet_nse_interval.rel_value;
   estimate_index = HISTORY_SIZE - 1;
   estimate_count = 0;
-  if (GNUNET_YES == check_proof_of_work (&my_public_key,
-					 my_proof))
+  if (GNUNET_YES == check_proof_of_work (&my_public_key, my_proof))
   {
     prev_time.abs_value =
-      current_timestamp.abs_value - (estimate_index - 1) * gnunet_nse_interval.rel_value;
+        current_timestamp.abs_value - (estimate_index -
+                                       1) * gnunet_nse_interval.rel_value;
     setup_flood_message (estimate_index, prev_time);
     estimate_count++;
   }
@@ -1386,8 +1388,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   /* Connect to core service and register core handlers */
   coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
-                                 1,
-                                 NULL,  /* Closure passed to functions */
+                                 1, NULL,       /* Closure passed to functions */
                                  &core_init,    /* Call core_init once connected */
                                  &handle_core_connect,  /* Handle connects */
                                  &handle_core_disconnect,       /* Handle disconnects */

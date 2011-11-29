@@ -5554,7 +5554,7 @@ internal_startup_callback (void *cls, const struct GNUNET_PeerIdentity *id,
  * Calls GNUNET_TESTING_daemon_continue_startup to set the daemon's state
  * from HOSTKEY_CREATED to TOPOLOGY_SETUP. Makes sure not to saturate a host
  * with requests delaying them when needed.
- * 
+ *
  * @param cls closure: internal context of the daemon.
  * @param tc TaskContext
  */
@@ -5563,6 +5563,7 @@ internal_continue_startup (void *cls,
                            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct InternalStartContext *internal_context = cls;
+
   internal_context->peer->startup_task = GNUNET_SCHEDULER_NO_TASK;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
@@ -5586,9 +5587,11 @@ internal_continue_startup (void *cls,
   }
   else
   {
-    internal_context->peer->startup_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_MILLISECONDS, 100),
-                                  &internal_continue_startup, internal_context);
+    internal_context->peer->startup_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_MILLISECONDS, 100),
+                                      &internal_continue_startup,
+                                      internal_context);
   }
 }
 
@@ -5894,16 +5897,18 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg)
     pg->starting = 0;
     for (i = 0; i < pg->total; i++)
     {
-      pg->peers[i].startup_task = GNUNET_SCHEDULER_add_now (&internal_continue_startup,
-                                &pg->peers[i].internal_context);
+      pg->peers[i].startup_task =
+          GNUNET_SCHEDULER_add_now (&internal_continue_startup,
+                                    &pg->peers[i].internal_context);
     }
   }
 #else
   pg->starting = 0;
   for (i = 0; i < pg->total; i++)
   {
-    pg->peers[i].startup_task = GNUNET_SCHEDULER_add_now (&internal_continue_startup,
-                              &pg->peers[i].internal_context);
+    pg->peers[i].startup_task =
+        GNUNET_SCHEDULER_add_now (&internal_continue_startup,
+                                  &pg->peers[i].internal_context);
   }
 #endif
 }

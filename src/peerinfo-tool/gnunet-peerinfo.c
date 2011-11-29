@@ -101,8 +101,7 @@ process_resolved_address (void *cls, const char *address)
  * @return GNUNET_OK to keep the address and continue
  */
 static int
-count_address (void *cls, 
-	       const struct GNUNET_HELLO_Address *address,
+count_address (void *cls, const struct GNUNET_HELLO_Address *address,
                struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
@@ -121,17 +120,15 @@ count_address (void *cls,
  * @return GNUNET_OK to keep the address and continue
  */
 static int
-print_address (void *cls,
-	       const struct GNUNET_HELLO_Address *address,
+print_address (void *cls, const struct GNUNET_HELLO_Address *address,
                struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
-  GNUNET_TRANSPORT_address_to_string (cfg, 
-                                   address,
-				   no_resolve,
-                                   GNUNET_TIME_relative_multiply
-                                   (GNUNET_TIME_UNIT_SECONDS, 10),
-                                   &process_resolved_address, pc);
+
+  GNUNET_TRANSPORT_address_to_string (cfg, address, no_resolve,
+                                      GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_SECONDS, 10),
+                                      &process_resolved_address, pc);
   return GNUNET_OK;
 }
 

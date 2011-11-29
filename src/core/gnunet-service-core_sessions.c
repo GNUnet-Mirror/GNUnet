@@ -172,7 +172,7 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
   struct Session *session;
   struct GSC_ClientActiveRequest *car;
   struct SessionMessageEntry *sme;
- 
+
   session = find_session (pid);
   if (NULL == session)
     return;
@@ -193,9 +193,7 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
   }
   while (NULL != (sme = session->sme_head))
   {
-    GNUNET_CONTAINER_DLL_remove (session->sme_head,
-                                 session->sme_tail, 
-				 sme);
+    GNUNET_CONTAINER_DLL_remove (session->sme_head, session->sme_tail, sme);
     GNUNET_free (sme);
   }
   GNUNET_SCHEDULER_cancel (session->typemap_task);
@@ -347,7 +345,7 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Dropped client request for transmission (am disconnected)\n");
 #endif
-    GNUNET_break (0); /* should have been rejected earlier */
+    GNUNET_break (0);           /* should have been rejected earlier */
     GSC_CLIENTS_reject_request (car);
     return;
   }
@@ -438,7 +436,7 @@ solicit_messages (struct Session *session)
   discard_expired_requests (session);
   so_size = 0;
   nxt = session->active_client_request_head;
-  while (NULL != (car = nxt) )
+  while (NULL != (car = nxt))
   {
     nxt = car->next;
     if (so_size + car->msize > GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)

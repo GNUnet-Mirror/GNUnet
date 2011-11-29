@@ -232,9 +232,9 @@ update_latencies (const struct GNUNET_ATS_Information *atsi,
   {
     if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DELAY)
     {
-      GSF_avg_latency.rel_value = (GSF_avg_latency.rel_value * 31 + 
-				   GNUNET_MIN (5000,
-					       ntohl (atsi[i].value))) / 32;
+      GSF_avg_latency.rel_value =
+          (GSF_avg_latency.rel_value * 31 +
+           GNUNET_MIN (5000, ntohl (atsi[i].value))) / 32;
       GNUNET_STATISTICS_set (GSF_stats,
                              gettext_noop
                              ("# running average P2P latency (ms)"),
@@ -405,8 +405,7 @@ handle_start_search (void *cls, struct GNUNET_SERVER_Client *client,
   int ret;
 
   pr = NULL;
-  ret = GSF_local_client_start_search_handler_ (client, message,
-						&pr);
+  ret = GSF_local_client_start_search_handler_ (client, message, &pr);
   switch (ret)
   {
   case GNUNET_SYSERR:
@@ -572,11 +571,10 @@ main_init (struct GNUNET_SERVER_Handle *server,
     {NULL, NULL, 0, 0}
   };
 
-  GSF_core = GNUNET_CORE_connect (GSF_cfg, 1,
-                                  NULL, &peer_init_handler,
-                                  &peer_connect_handler,
-                                  &GSF_peer_disconnect_handler_, NULL,
-                                  GNUNET_NO, NULL, GNUNET_NO, p2p_handlers);
+  GSF_core =
+      GNUNET_CORE_connect (GSF_cfg, 1, NULL, &peer_init_handler,
+                           &peer_connect_handler, &GSF_peer_disconnect_handler_,
+                           NULL, GNUNET_NO, NULL, GNUNET_NO, p2p_handlers);
   if (NULL == GSF_core)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

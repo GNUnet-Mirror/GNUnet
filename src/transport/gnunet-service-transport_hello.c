@@ -138,8 +138,8 @@ address_generator (void *cls, size_t max, void *buf)
   if (NULL == gc->addr_pos)
     return 0;
   ret =
-    GNUNET_HELLO_add_address (gc->addr_pos->address, gc->expiration,
-			      buf, max);
+      GNUNET_HELLO_add_address (gc->addr_pos->address, gc->expiration, buf,
+                                max);
   gc->addr_pos = gc->addr_pos->next;
   return ret;
 }
@@ -251,7 +251,7 @@ GST_hello_get ()
  */
 void
 GST_hello_modify_addresses (int addremove,
-			    const struct GNUNET_HELLO_Address *address)
+                            const struct GNUNET_HELLO_Address *address)
 {
   struct OwnAddressList *al;
 
@@ -266,10 +266,8 @@ GST_hello_modify_addresses (int addremove,
   if (GNUNET_NO == addremove)
   {
     for (al = oal_head; al != NULL; al = al->next)
-      if (0 ==
-	  GNUNET_HELLO_address_cmp (address,
-				    al->address))
-	{
+      if (0 == GNUNET_HELLO_address_cmp (address, al->address))
+      {
         GNUNET_CONTAINER_DLL_remove (oal_head, oal_tail, al);
         GNUNET_HELLO_address_free (al->address);
         GNUNET_free (al);
@@ -305,8 +303,7 @@ GST_hello_test_address (const struct GNUNET_HELLO_Address *address,
   struct OwnAddressList *al;
 
   for (al = oal_head; al != NULL; al = al->next)
-    if (0 == GNUNET_HELLO_address_cmp (address,
-				       al->address))
+    if (0 == GNUNET_HELLO_address_cmp (address, al->address))
     {
       *sig = &al->pong_signature;
       *sig_expiration = &al->pong_sig_expires;

@@ -312,10 +312,12 @@ start_cb (struct PeerContext *p, void *cls)
               "Test tries to connect peer %u (`%s') <-> peer %u (`%s')\n",
               p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
 
-  cc1 = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p2, p1, &testing_connect_cb,
-                                               NULL);
-  cc2 = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
-                                               NULL);
+  cc1 =
+      GNUNET_TRANSPORT_TESTING_connect_peers (tth, p2, p1, &testing_connect_cb,
+                                              NULL);
+  cc2 =
+      GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
+                                              NULL);
 }
 
 static void

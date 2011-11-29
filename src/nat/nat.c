@@ -635,12 +635,10 @@ process_hostname_ip (void *cls, const struct sockaddr *addr, socklen_t addrlen)
  * @return GNUNET_OK to continue iterating
  */
 static int
-process_interfaces(void *cls, const char *name,
-                  int isDefault,
-                  const struct sockaddr * addr,
-                  const struct sockaddr * broadcast_addr,
-                  const struct sockaddr * netmask,
-                  socklen_t addrlen)
+process_interfaces (void *cls, const char *name, int isDefault,
+                    const struct sockaddr *addr,
+                    const struct sockaddr *broadcast_addr,
+                    const struct sockaddr *netmask, socklen_t addrlen)
 {
   struct GNUNET_NAT_Handle *h = cls;
   const struct sockaddr_in *s4;
@@ -655,7 +653,7 @@ process_interfaces(void *cls, const char *name,
     ip = &s4->sin_addr;
 
     /* Check if address is in 127.0.0.0/8 */
-    uint32_t address = ntohl ((uint32_t)(s4->sin_addr.s_addr));
+    uint32_t address = ntohl ((uint32_t) (s4->sin_addr.s_addr));
     uint32_t value = (address & 0xFF000000) ^ 0x7F000000;
 
     if ((h->return_localaddress == GNUNET_NO) && (value == 0))

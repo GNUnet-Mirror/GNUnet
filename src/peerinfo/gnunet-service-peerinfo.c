@@ -122,8 +122,7 @@ make_info_message (const struct HostEntry *he)
  * @return GNUNET_NO if expiration smaller than the current time
  */
 static int
-discard_expired (void *cls, 
-		 const struct GNUNET_HELLO_Address *address,
+discard_expired (void *cls, const struct GNUNET_HELLO_Address *address,
                  struct GNUNET_TIME_Absolute expiration)
 {
   const struct GNUNET_TIME_Absolute *now = cls;
@@ -131,8 +130,8 @@ discard_expired (void *cls,
   if (now->abs_value > expiration.abs_value)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Removing expired address of transport `%s'\n"), 
-		address->transport_name);
+                _("Removing expired address of transport `%s'\n"),
+                address->transport_name);
     return GNUNET_NO;
   }
   return GNUNET_OK;

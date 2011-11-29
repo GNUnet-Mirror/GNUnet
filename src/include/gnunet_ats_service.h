@@ -448,7 +448,9 @@ struct Session;
  * @param ats_count number of performance records in 'ats'
  */
 typedef void (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
-						      const struct GNUNET_HELLO_Address *address,
+                                                      const struct
+                                                      GNUNET_HELLO_Address *
+                                                      address,
                                                       struct Session * session,
                                                       struct
                                                       GNUNET_BANDWIDTH_Value32NBO
@@ -504,7 +506,7 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
  */
 void
 GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
-                            const struct GNUNET_PeerIdentity *peer);
+                                   const struct GNUNET_PeerIdentity *peer);
 
 /**
  * We have updated performance statistics for a given address.  Note
@@ -522,7 +524,7 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
  */
 void
 GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
-			   const struct GNUNET_HELLO_Address *address,
+                           const struct GNUNET_HELLO_Address *address,
                            struct Session *session,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count);
@@ -540,8 +542,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
 void
 GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
                            const struct GNUNET_HELLO_Address *address,
-                           struct Session *session,
-                           int in_use);
+                           struct Session *session, int in_use);
 
 /**
  * A session got destroyed, stop including it as a valid address.
@@ -553,7 +554,7 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
 void
 GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
                               const struct GNUNET_HELLO_Address *address,
-			      struct Session *session);
+                              struct Session *session);
 
 
 /* ******************************** Performance API ***************************** */
@@ -575,7 +576,9 @@ struct GNUNET_ATS_PerformanceHandle;
  * @param ats_count number of performance records in 'ats'
  */
 typedef void (*GNUNET_ATS_PeerInformationCallback) (void *cls,
-                                                    const struct GNUNET_HELLO_Address *address,
+                                                    const struct
+                                                    GNUNET_HELLO_Address *
+                                                    address,
                                                     struct
                                                     GNUNET_BANDWIDTH_Value32NBO
                                                     bandwidth_out,

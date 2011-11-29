@@ -153,10 +153,12 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind);
  */
 typedef int (*GNUNET_OS_NetworkInterfaceProcessor) (void *cls, const char *name,
                                                     int isDefault,
-                                                    const struct sockaddr * addr,
-                                                    const struct sockaddr * broadcast_addr,
-                                                    const struct sockaddr * netmask,
-                                                    socklen_t addrlen);
+                                                    const struct sockaddr *
+                                                    addr,
+                                                    const struct sockaddr *
+                                                    broadcast_addr,
+                                                    const struct sockaddr *
+                                                    netmask, socklen_t addrlen);
 
 
 /**

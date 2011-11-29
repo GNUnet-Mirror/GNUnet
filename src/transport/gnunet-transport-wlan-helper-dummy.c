@@ -188,19 +188,15 @@ main (int argc, char *argv[])
     erg = mkfifo (FIFO_FILE1, 0666);
     if (0 != erg)
     {
-      fprintf (stderr, 
-	       "Error in mkfifo(%s): %s\n", 
-	       FIFO_FILE1,
-	       strerror (errno));
+      fprintf (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE1,
+               strerror (errno));
       //exit(1);
     }
     erg = mkfifo (FIFO_FILE2, 0666);
     if (0 != erg)
     {
-      fprintf (stderr,
-	       "Error in mkfifo(%s): %s\n", 
-	       FIFO_FILE2,
-	       strerror (errno));
+      fprintf (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE2,
+               strerror (errno));
       //exit(1);
     }
 
@@ -256,9 +252,7 @@ main (int argc, char *argv[])
 
   if (fdpin >= FD_SETSIZE)
   {
-    fprintf (stderr, 
-	     "File fdpin number too large (%d > %u)\n",
-	     fdpin,
+    fprintf (stderr, "File fdpin number too large (%d > %u)\n", fdpin,
              (unsigned int) FD_SETSIZE);
     goto end;
   }
@@ -268,9 +262,7 @@ main (int argc, char *argv[])
 
   if (fdpout >= FD_SETSIZE)
   {
-    fprintf (stderr, 
-	     "File fdpout number too large (%d > %u)\n", 
-	     fdpout,
+    fprintf (stderr, "File fdpout number too large (%d > %u)\n", fdpout,
              (unsigned int) FD_SETSIZE);
     goto end;
 
@@ -328,13 +320,11 @@ main (int argc, char *argv[])
     }
 
     retval = select (maxfd + 1, &rfds, &wfds, NULL, &tv);
-    if ( (-1 == retval) && (EINTR == errno) )    
-      continue;    
+    if ((-1 == retval) && (EINTR == errno))
+      continue;
     if (0 > retval)
     {
-      fprintf (stderr, 
-	       "select failed: %s\n", 
-	       strerror (errno));
+      fprintf (stderr, "select failed: %s\n", strerror (errno));
       closeprog = 1;
       break;
     }
@@ -347,9 +337,8 @@ main (int argc, char *argv[])
       if (0 > ret)
       {
         closeprog = 1;
-        fprintf (stderr, 
-		 "Write ERROR to STDOUT_FILENO: %s\n",
-		 strerror (errno));
+        fprintf (stderr, "Write ERROR to STDOUT_FILENO: %s\n",
+                 strerror (errno));
         break;
       }
       else
@@ -373,9 +362,7 @@ main (int argc, char *argv[])
       if (0 > ret)
       {
         closeprog = 1;
-        fprintf (stderr, 
-		 "Write ERROR to fdpout: %s\n",
-		 strerror (errno));
+        fprintf (stderr, "Write ERROR to fdpout: %s\n", strerror (errno));
       }
       else
       {
@@ -396,9 +383,8 @@ main (int argc, char *argv[])
       if (0 > readsize)
       {
         closeprog = 1;
-        fprintf (stderr, 
-		 "Error reading from STDIN_FILENO: %s\n",
-		 strerror (errno));
+        fprintf (stderr, "Error reading from STDIN_FILENO: %s\n",
+                 strerror (errno));
       }
       else if (0 < readsize)
       {
@@ -419,9 +405,7 @@ main (int argc, char *argv[])
       if (0 > readsize)
       {
         closeprog = 1;
-        fprintf (stderr, 
-		 "Error reading from fdpin: %s\n", 
-		 strerror (errno));
+        fprintf (stderr, "Error reading from fdpin: %s\n", strerror (errno));
         break;
       }
       else if (0 < readsize)
@@ -453,4 +437,3 @@ end:
   }
   return 0;
 }
-

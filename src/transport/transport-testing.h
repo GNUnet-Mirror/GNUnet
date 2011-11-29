@@ -169,11 +169,11 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 * @return GNUNET_OK in success otherwise GNUNET_SYSERR
 */
 int
-GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
-                                       struct PeerContext *p,
+GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle
+                                       *tth, struct PeerContext *p,
                                        const char *cfgname,
-                                       GNUNET_TRANSPORT_TESTING_start_cb start_cb,
-                                       void *cb_cls);
+                                       GNUNET_TRANSPORT_TESTING_start_cb
+                                       start_cb, void *cb_cls);
 
 /**
  * Connect the given peers and call the callback when both peers report the

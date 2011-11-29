@@ -65,8 +65,7 @@ static struct GNUNET_CORE_MessageHandler no_handlers[] = { {NULL, 0, 0} };
 
 #if EMPTY_HACK
 static int
-test_address (void *cls,
-	      const struct GNUNET_HELLO_Address *address,
+test_address (void *cls, const struct GNUNET_HELLO_Address *address,
               struct GNUNET_TIME_Absolute expiration)
 {
   int *empty = cls;
@@ -108,7 +107,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 #endif
   GNUNET_assert (daemon->phase == SP_GET_HELLO ||
                  daemon->phase == SP_START_DONE);
-  daemon->cb = NULL; // FIXME: why??? (see fsm:SP_START_CORE, notify_daemon_started)
+  daemon->cb = NULL;            // FIXME: why??? (see fsm:SP_START_CORE, notify_daemon_started)
   if (daemon->task != GNUNET_SCHEDULER_NO_TASK) /* Assertion here instead? */
     GNUNET_SCHEDULER_cancel (daemon->task);
 
@@ -551,9 +550,9 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_free_non_null (d->username);
         GNUNET_free (d->proc);
 //         GNUNET_free (d); // FIXME (could this leak)
-        d->hostname = NULL; // Quick hack to avoid crashing (testing need to be
-        d->cfg = NULL;      // overhauled anyway, and the error managing is
-                            // pretty broken anyway.
+        d->hostname = NULL;     // Quick hack to avoid crashing (testing need to be
+        d->cfg = NULL;          // overhauled anyway, and the error managing is
+        // pretty broken anyway.
         return;
       }
       /* wait some more */
@@ -2037,8 +2036,7 @@ reattempt_daemons_connect (void *cls,
   if (NULL != ctx->d2->hello)
   {
 #if DEBUG_TESTING_RECONNECT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "updating %s's HELLO\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "updating %s's HELLO\n",
                 ctx->d2->shortname);
 #endif
     GNUNET_free (ctx->d2->hello);
@@ -2059,8 +2057,7 @@ reattempt_daemons_connect (void *cls,
 #if DEBUG_TESTING_RECONNECT
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "didn't have %s's HELLO\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "didn't have %s's HELLO\n",
                 ctx->d2->shortname);
   }
 #endif
@@ -2103,8 +2100,7 @@ reattempt_daemons_connect (void *cls,
   if (ctx->send_hello == GNUNET_YES)
   {
 #if DEBUG_TESTING_RECONNECT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending %s's HELLO to %s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending %s's HELLO to %s\n",
                 ctx->d1->shortname, ctx->d2->shortname);
 #endif
     ctx->d1th =
@@ -2126,8 +2122,7 @@ reattempt_daemons_connect (void *cls,
   else
   {
 #if DEBUG_TESTING_RECONNECT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Trying to reconnect %s to %s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to reconnect %s to %s\n",
                 ctx->d1->shortname, ctx->d2->shortname);
 #endif
     GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id);

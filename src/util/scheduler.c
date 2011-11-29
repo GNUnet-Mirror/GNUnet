@@ -676,7 +676,7 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
     if (((tc.reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0) &&
         (pos->write_fd != -1) &&
         (!GNUNET_NETWORK_fdset_test_native (ws, pos->write_fd)))
-      GNUNET_abort ();                 // added to ready in previous select loop!
+      GNUNET_abort ();          // added to ready in previous select loop!
 #if DEBUG_TASKS
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Running task: %llu / %p\n", pos->id,
          pos->callback_cls);
@@ -726,9 +726,9 @@ sighandler_shutdown ()
   static char c;
   int old_errno = errno;        /* backup errno */
 
-  if (getpid() != my_pid)
-    exit(1); /* we have fork'ed since the signal handler was created,
-		ignore the signal, see https://gnunet.org/vfork discussion */
+  if (getpid () != my_pid)
+    exit (1);                   /* we have fork'ed since the signal handler was created,
+                                 * ignore the signal, see https://gnunet.org/vfork discussion */
   GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
                           (shutdown_pipe_handle, GNUNET_DISK_PIPE_END_WRITE),
                           &c, sizeof (c));

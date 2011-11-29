@@ -268,9 +268,9 @@ void
 GNUNET_abort ()
 {
 #if WINDOWS
-  DebugBreak();
+  DebugBreak ();
 #endif
-  abort();
+  abort ();
 }
 
 
@@ -292,6 +292,7 @@ add_definition (char *component, char *file, char *function, int from_line,
 {
   struct LogDef n;
   int r;
+
   if (logdefs_size == logdefs_len)
     resize_logdefs ();
   memset (&n, 0, sizeof (n));
@@ -299,27 +300,26 @@ add_definition (char *component, char *file, char *function, int from_line,
     component = (char *) ".*";
   r = regcomp (&n.component_regex, (const char *) component, REG_NOSUB);
   if (r != 0)
-    {
-      return r;
-    }
+  {
+    return r;
+  }
   if (strlen (file) == 0)
     file = (char *) ".*";
   r = regcomp (&n.file_regex, (const char *) file, REG_NOSUB);
   if (r != 0)
-    {
-      regfree (&n.component_regex);
-      return r;
-    }
-  if ( (NULL == function) ||
-       (strlen (function) == 0))
+  {
+    regfree (&n.component_regex);
+    return r;
+  }
+  if ((NULL == function) || (strlen (function) == 0))
     function = (char *) ".*";
   r = regcomp (&n.function_regex, (const char *) function, REG_NOSUB);
   if (r != 0)
-    {
-      regfree (&n.component_regex);
-      regfree (&n.file_regex);
-      return r;
-    }
+  {
+    regfree (&n.component_regex);
+    regfree (&n.file_regex);
+    return r;
+  }
   n.from_line = from_line;
   n.to_line = to_line;
   n.level = level;
@@ -364,16 +364,16 @@ GNUNET_get_log_call_status (int caller_level, const char *comp,
   force_only = min_level >= 0;
   for (i = 0; i < logdefs_len; i++)
   {
-      ld = &logdefs[i];
-      if ((!force_only || ld->force) &&
-	  (line >= ld->from_line && line <= ld->to_line) &&
-	  (regexec (&ld->component_regex, comp, 0, NULL, 0) == 0) &&
-	  (regexec (&ld->file_regex, file, 0, NULL, 0) == 0) &&
-	  (regexec (&ld->function_regex, function, 0, NULL, 0) == 0))
-	{
-	  /* We're finished */
-	  return caller_level <= ld->level;
-	}
+    ld = &logdefs[i];
+    if ((!force_only || ld->force) &&
+        (line >= ld->from_line && line <= ld->to_line) &&
+        (regexec (&ld->component_regex, comp, 0, NULL, 0) == 0) &&
+        (regexec (&ld->file_regex, file, 0, NULL, 0) == 0) &&
+        (regexec (&ld->function_regex, function, 0, NULL, 0) == 0))
+    {
+      /* We're finished */
+      return caller_level <= ld->level;
+    }
   }
   /* No matches - use global level, if defined */
   if (min_level >= 0)
@@ -434,83 +434,83 @@ parse_definitions (const char *constname, int force)
   to_line = INT_MAX;
   for (p = def, state = 0, start = def; keep_looking; p++)
   {
-      switch (p[0])
-	{
-	case ';':		/* found a field separator */
-	  p[0] = '\0';
-	  switch (state)
-	    {
-	    case 0:		/* within a component name */
-	      comp = start;
-	      break;
-	    case 1:		/* within a file name */
-	      file = start;
-	      break;
-	    case 2:		/* within a function name */
-	      /* after a file name there must be a function name */
-	      function = start;
-	      break;
-	    case 3:		/* within a from-to line range */
-	      if (strlen (start) > 0)
-		{
-		  errno = 0;
-		  from_line = strtol (start, &t, 10);
-		  if (errno != 0 || from_line < 0)
-		    {
-		      free (def);
-		      return counter;
-		    }
-		  if (t < p && t[0] == '-')
-		    {
-		      errno = 0;
-		      start = t + 1;
-		      to_line = strtol (start, &t, 10);
-		      if (errno != 0 || to_line < 0 || t != p)
-			{
-			  free (def);
-			  return counter;
-			}
-		    }
-		  else		/* one number means "match this line only" */
-		    to_line = from_line;
-		}
-	      else		/* default to 0-max */
-		{
-		  from_line = 0;
-		  to_line = INT_MAX;
-		}
-	      break;
-	    }
-	  start = p + 1;
-	  state += 1;
-	  break;
-	case '\0':		/* found EOL */
-	  keep_looking = 0;
-	  /* fall through to '/' */
-	case '/':		/* found a definition separator */
-	  switch (state)
-	    {
-	    case 4:		/* within a log level */
-	      p[0] = '\0';
-	      state = 0;
-	      level = get_type ((const char *) start);
-	      if (level == GNUNET_ERROR_TYPE_INVALID
-		  || level == GNUNET_ERROR_TYPE_UNSPECIFIED
-	          || 0 != add_definition (comp, file, function, from_line,
-                                          to_line, level, force))
-		{
-		  free (def);
-		  return counter;
-		}
-	      counter += 1;
-	      start = p + 1;
-	      break;
-	    default:
-	      break;
-	    }
-	default:
-	  break;
-	}
+    switch (p[0])
+    {
+    case ';':                  /* found a field separator */
+      p[0] = '\0';
+      switch (state)
+      {
+      case 0:                  /* within a component name */
+        comp = start;
+        break;
+      case 1:                  /* within a file name */
+        file = start;
+        break;
+      case 2:                  /* within a function name */
+        /* after a file name there must be a function name */
+        function = start;
+        break;
+      case 3:                  /* within a from-to line range */
+        if (strlen (start) > 0)
+        {
+          errno = 0;
+          from_line = strtol (start, &t, 10);
+          if (errno != 0 || from_line < 0)
+          {
+            free (def);
+            return counter;
+          }
+          if (t < p && t[0] == '-')
+          {
+            errno = 0;
+            start = t + 1;
+            to_line = strtol (start, &t, 10);
+            if (errno != 0 || to_line < 0 || t != p)
+            {
+              free (def);
+              return counter;
+            }
+          }
+          else                  /* one number means "match this line only" */
+            to_line = from_line;
+        }
+        else                    /* default to 0-max */
+        {
+          from_line = 0;
+          to_line = INT_MAX;
+        }
+        break;
+      }
+      start = p + 1;
+      state += 1;
+      break;
+    case '\0':                 /* found EOL */
+      keep_looking = 0;
+      /* fall through to '/' */
+    case '/':                  /* found a definition separator */
+      switch (state)
+      {
+      case 4:                  /* within a log level */
+        p[0] = '\0';
+        state = 0;
+        level = get_type ((const char *) start);
+        if (level == GNUNET_ERROR_TYPE_INVALID ||
+            level == GNUNET_ERROR_TYPE_UNSPECIFIED ||
+            0 != add_definition (comp, file, function, from_line, to_line,
+                                 level, force))
+        {
+          free (def);
+          return counter;
+        }
+        counter += 1;
+        start = p + 1;
+        break;
+      default:
+        break;
+      }
+    default:
+      break;
+    }
   }
   free (def);
   return counter;
@@ -560,8 +560,7 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   component_nopid = GNUNET_strdup (comp);
 
   env_logfile = getenv ("GNUNET_FORCE_LOGFILE");
-  if ( (env_logfile != NULL) &&
-       (strlen (env_logfile) > 0) )
+  if ((env_logfile != NULL) && (strlen (env_logfile) > 0))
     logfile = env_logfile;
 
   if (logfile == NULL)

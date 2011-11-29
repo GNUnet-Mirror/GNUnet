@@ -134,7 +134,7 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
  */
 void
 GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
-                                   const struct GNUNET_ATS_Information * ats,
+                                   const struct GNUNET_ATS_Information *ats,
                                    uint32_t ats_count);
 
 
@@ -172,7 +172,8 @@ typedef void (*GST_NeighbourIterator) (void *cls,
                                        neighbour,
                                        const struct GNUNET_ATS_Information *
                                        ats, uint32_t ats_count,
-                                       const struct GNUNET_HELLO_Address *address);
+                                       const struct GNUNET_HELLO_Address *
+                                       address);
 
 
 /**
@@ -213,10 +214,10 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  */
 int
 GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
-				       const struct GNUNET_HELLO_Address *address,
-				       struct Session *session,
-				       const struct GNUNET_ATS_Information *ats,
-				       uint32_t ats_count,
+                                       const struct GNUNET_HELLO_Address
+                                       *address, struct Session *session,
+                                       const struct GNUNET_ATS_Information *ats,
+                                       uint32_t ats_count,
                                        struct GNUNET_BANDWIDTH_Value32NBO
                                        bandwidth_in,
                                        struct GNUNET_BANDWIDTH_Value32NBO
@@ -259,7 +260,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
 void
 GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                    const struct GNUNET_PeerIdentity *peer,
-				   const struct GNUNET_HELLO_Address *address,
+                                   const struct GNUNET_HELLO_Address *address,
                                    struct Session *session,
                                    const struct GNUNET_ATS_Information *ats,
                                    uint32_t ats_count);
@@ -268,7 +269,7 @@ void
 GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
                            const struct GNUNET_PeerIdentity *peer,
                            const struct GNUNET_HELLO_Address *address,
-			   struct Session *session,
+                           struct Session *session,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count);
 
@@ -276,7 +277,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 /**
  * Obtain current latency information for the given neighbour.
  *
- * @param peer 
+ * @param peer
  * @return observed latency of the address, FOREVER if the address was
  *         never successfully validated
  */

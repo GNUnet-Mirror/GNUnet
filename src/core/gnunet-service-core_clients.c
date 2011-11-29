@@ -343,13 +343,14 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
               "Client asked for transmission to `%s'\n",
               GNUNET_i2s (&req->peer));
 #endif
-  is_loopback = (0 ==
-		 memcmp (&req->peer, &GSC_my_identity,
-			 sizeof (struct GNUNET_PeerIdentity)));
-  if ( (! is_loopback) &&
-       (GNUNET_YES !=
-	GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
-						&req->peer.hashPubKey)) )
+  is_loopback =
+      (0 ==
+       memcmp (&req->peer, &GSC_my_identity,
+               sizeof (struct GNUNET_PeerIdentity)));
+  if ((!is_loopback) &&
+      (GNUNET_YES !=
+       GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
+                                               &req->peer.hashPubKey)))
   {
     /* neighbour must have disconnected since request was issued,
      * ignore (client will realize it once it processes the
@@ -390,8 +391,8 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
     GSC_CLIENTS_solicit_request (car);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
-  }  
-  GSC_SESSIONS_queue_request (car);  
+  }
+  GSC_SESSIONS_queue_request (car);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -610,13 +611,12 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
   c = car->client_handle;
   if (GNUNET_YES !=
       GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
-					      &car->
-					      target.hashPubKey))
+                                              &car->target.hashPubKey))
   {
     /* connection has gone down since, drop request */
     GNUNET_assert (0 !=
-		   memcmp (&car->target, &GSC_my_identity,
-			   sizeof (struct GNUNET_PeerIdentity)));
+                   memcmp (&car->target, &GSC_my_identity,
+                           sizeof (struct GNUNET_PeerIdentity)));
     GSC_SESSIONS_dequeue_request (car);
     GSC_CLIENTS_reject_request (car);
     return;

@@ -50,7 +50,7 @@ struct GNUNET_HELLO_Address
 
   /**
    * For which peer is this an address?
-   */ 
+   */
   struct GNUNET_PeerIdentity peer;
 
   /**
@@ -83,9 +83,8 @@ struct GNUNET_HELLO_Address
  */
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
-			       const char *transport_name,
-			       const void *address,
-			       size_t address_length);
+                               const char *transport_name, const void *address,
+                               size_t address_length);
 
 
 /**
@@ -108,7 +107,7 @@ GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address);
  */
 int
 GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
-			  const struct GNUNET_HELLO_Address *a2);
+                          const struct GNUNET_HELLO_Address *a2);
 
 
 /**
@@ -122,7 +121,7 @@ GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
 
 /**
  * Free an address.
- * 
+ *
  * @param addr address to free
  */
 #define GNUNET_HELLO_address_free(addr) GNUNET_free(addr)
@@ -150,8 +149,7 @@ struct GNUNET_HELLO_Message;
  */
 size_t
 GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
-                          struct GNUNET_TIME_Absolute expiration,
-                          char *target,
+                          struct GNUNET_TIME_Absolute expiration, char *target,
                           size_t max);
 
 
@@ -240,9 +238,11 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
  *         GNUNET_NO to delete it from the HELLO
  *         GNUNET_SYSERR to stop iterating (but keep current address)
  */
-typedef int (*GNUNET_HELLO_AddressIterator) (void *cls, 
-					     const struct GNUNET_HELLO_Address *address,
-                                             struct GNUNET_TIME_Absolute expiration);
+typedef int (*GNUNET_HELLO_AddressIterator) (void *cls,
+                                             const struct GNUNET_HELLO_Address *
+                                             address,
+                                             struct GNUNET_TIME_Absolute
+                                             expiration);
 
 
 /**

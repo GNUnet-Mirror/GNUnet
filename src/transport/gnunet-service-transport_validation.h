@@ -59,16 +59,15 @@ GST_validation_stop (void);
  */
 void
 GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
-				const struct GNUNET_HELLO_Address *address,
-				struct Session *session,
-				int in_use);
+                                const struct GNUNET_HELLO_Address *address,
+                                struct Session *session, int in_use);
 
 
 /**
  * Query validation about the latest observed latency on a given
  * address.
  *
- * @param sender peer 
+ * @param sender peer
  * @param address the address
  * @param session session
  * @return observed latency of the address, FOREVER if the address was
@@ -76,8 +75,8 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
  */
 struct GNUNET_TIME_Relative
 GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
-				    const struct GNUNET_HELLO_Address *address,
-				    struct Session *session);
+                                    const struct GNUNET_HELLO_Address *address,
+                                    struct Session *session);
 
 
 /**
@@ -91,8 +90,8 @@ GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
 void
 GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                             const struct GNUNET_MessageHeader *hdr,
-                            const struct GNUNET_HELLO_Address *sender_address, 
-			    struct Session *session);
+                            const struct GNUNET_HELLO_Address *sender_address,
+                            struct Session *session);
 
 
 /**
@@ -138,7 +137,8 @@ typedef void (*GST_ValidationAddressCallback) (void *cls,
                                                valid_until,
                                                struct GNUNET_TIME_Absolute
                                                validation_block,
-                                               const struct GNUNET_HELLO_Address *address);
+                                               const struct GNUNET_HELLO_Address
+                                               * address);
 
 
 /**

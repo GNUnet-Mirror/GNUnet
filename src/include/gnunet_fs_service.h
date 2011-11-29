@@ -1036,10 +1036,10 @@ struct GNUNET_FS_ProgressInfo
 	   */
           unsigned int depth;
 
-	  /**
+          /**
 	   * How much trust did we offer for downloading this block?
 	   */
-	  unsigned int trust_offered;
+          unsigned int trust_offered;
 
         } progress;
 

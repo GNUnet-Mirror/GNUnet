@@ -486,7 +486,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "CONNECT_TIMEOUT",
-					   &connect_timeout))
+                                           &connect_timeout))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
                 "testing", "CONNECT_TIMEOUT");

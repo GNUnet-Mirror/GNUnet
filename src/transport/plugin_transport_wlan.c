@@ -355,7 +355,7 @@ struct Sessionqueue
   struct Sessionqueue *prev;
   struct Session *content;
 #if !HAVE_UNALIGNED_64_ACCESS
-  void *dummy; /* for alignment, see #1909 */
+  void *dummy;                  /* for alignment, see #1909 */
 #endif
 };
 
@@ -1066,8 +1066,9 @@ set_next_send (struct Plugin *const plugin)
   struct GNUNET_TIME_Relative next_send;
 
   //abort if helper is not running
-  if (plugin->helper_is_running == GNUNET_NO){
-      return;
+  if (plugin->helper_is_running == GNUNET_NO)
+  {
+    return;
   }
 
   //cancel old task
@@ -1465,12 +1466,13 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   const char *filenameloopback = "gnunet-transport-wlan-helper-dummy";
   char *absolute_filename = NULL;
 
-  if (plugin->helper_is_running == GNUNET_YES){
+  if (plugin->helper_is_running == GNUNET_YES)
+  {
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                      "wlan_transport_start_wlan_helper not needed, helper already running!");
 #endif
-      return GNUNET_YES;
+    return GNUNET_YES;
   }
 
   plugin->server_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
@@ -1634,12 +1636,13 @@ wlan_transport_stop_wlan_helper (struct Plugin *plugin)
                    "Stoping WLAN helper process\n");
 #endif
 
-  if (plugin->helper_is_running == GNUNET_NO){
+  if (plugin->helper_is_running == GNUNET_NO)
+  {
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                      "wlan_transport_stop_wlan_helper not needed, helper already stopped!");
 #endif
-      return GNUNET_YES;
+    return GNUNET_YES;
   }
 
   if (plugin->server_write_delay_task != GNUNET_SCHEDULER_NO_TASK)
@@ -2604,13 +2607,15 @@ wlan_data_message_handler (void *cls, const struct GNUNET_MessageHeader *hdr)
     temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
     crc = ntohl (wlanheader->crc);
     wlanheader->crc = 0;
-    if (GNUNET_CRYPTO_crc32_n ((char *) wlanheader, ntohs (wlanheader->header.size)) != crc)
+    if (GNUNET_CRYPTO_crc32_n
+        ((char *) wlanheader, ntohs (wlanheader->header.size)) != crc)
     {
       //wrong crc, dispose message
       GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, PLUGIN_LOG_NAME,
                        "Wlan message header crc was wrong: %u != %u\n",
                        GNUNET_CRYPTO_crc32_n ((char *) wlanheader,
-					      ntohs (wlanheader->header.size)), crc);
+                                              ntohs (wlanheader->header.size)),
+                       crc);
       hexdump ((void *) hdr, ntohs (hdr->size));
       return;
     }
