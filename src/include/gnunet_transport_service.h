@@ -310,8 +310,7 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
 
 
 /**
- * Return all the known addresses for a peer. FIXME: document better!
- * FIXME: use better name!
+ * Return all the known addresses for a peer.
  * CHANGE: Returns the address(es) that we are currently using for this
  * peer.  Upon completion, the 'AddressLookUpCallback' is called one more
  * time with 'NULL' for the address and the peer.  After this, the operation must no
@@ -329,7 +328,7 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
 struct GNUNET_TRANSPORT_PeerAddressLookupContext *
 GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                       const struct GNUNET_PeerIdentity *peer,
-				      // FIXME: add argument: one_shot
+				      int one_shot,
                                       struct GNUNET_TIME_Relative timeout,
                                       GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
                                       void *peer_address_callback_cls);

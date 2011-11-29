@@ -137,8 +137,12 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
     pc = GNUNET_malloc (sizeof (struct PrintContext));
     pc->peer = *peer;
-    GNUNET_TRANSPORT_peer_get_active_addresses (cfg, peer, GNUNET_TIME_UNIT_MINUTES,
-                                          &process_resolved_address, pc);
+    GNUNET_TRANSPORT_peer_get_active_addresses (cfg,
+                                                peer,
+                                                GNUNET_YES,
+                                                GNUNET_TIME_UNIT_MINUTES,
+                                                &process_resolved_address,
+                                                pc);
   }
 #if VERBOSE
   else
