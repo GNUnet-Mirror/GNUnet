@@ -42,12 +42,12 @@
 /**
  * Context for the address lookup.
  */
-struct GNUNET_TRANSPORT_PeerAddressLookupContext
+struct GNUNET_TRANSPORT_PeerIterateContext
 {
   /**
-   * Function to call with the human-readable address.
+   * Function to call with the binary address.
    */
-  GNUNET_TRANSPORT_AddressLookUpCallback cb;
+  GNUNET_TRANSPORT_PeerIterateCallback cb;
 
   /**
    * Closure for cb.
@@ -76,11 +76,12 @@ static void
 peer_address_response_processor (void *cls,
                                  const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_TRANSPORT_PeerAddressLookupContext *pal_ctx = cls;
-  struct AddressIterateResponseMessage *air_msg = (struct AddressIterateResponseMessage *) &msg[1];
-  const struct GNUNET_HELLO_Address *address;
+  struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx = cls;
+  struct AddressIterateResponseMessage *air_msg;
+  struct GNUNET_HELLO_Address *address;
   uint16_t size;
-  if (air_msg == NULL)
+
+  if (msg == NULL)
   {
     pal_ctx->cb (pal_ctx->cb_cls, NULL);
     GNUNET_CLIENT_disconnect (pal_ctx->client, GNUNET_NO);
@@ -98,6 +99,16 @@ peer_address_response_processor (void *cls,
     return;
   }
 
+  if (size < sizeof (struct GNUNET_MessageHeader) + sizeof (struct AddressIterateResponseMessage))
+  {
+    GNUNET_break_op (0);
+    pal_ctx->cb (pal_ctx->cb_cls, NULL );
+    GNUNET_CLIENT_disconnect (pal_ctx->client, GNUNET_NO);
+    GNUNET_free (pal_ctx);
+    return;
+  }
+
+  air_msg = (struct AddressIterateResponseMessage *) &msg[1];
   size_t tlen = ntohl(air_msg->pluginlen);
   size_t alen = ntohl(air_msg->addrlen);
 
@@ -113,7 +124,7 @@ peer_address_response_processor (void *cls,
   char * addr = (char *) &air_msg[1];
   char * transport_name = &addr[alen];
 
-  if (transport_name[tlen] != '\0')
+  if (transport_name[tlen-1] != '\0')
   {
     GNUNET_break_op (0);
     pal_ctx->cb (pal_ctx->cb_cls, NULL );
@@ -122,8 +133,6 @@ peer_address_response_processor (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "peer %s transport_name: %s\n",GNUNET_i2s(&air_msg->peer), transport_name);
-
   address = GNUNET_HELLO_address_allocate(&air_msg->peer, transport_name, addr, alen);
 
   /* expect more replies */
@@ -131,28 +140,36 @@ peer_address_response_processor (void *cls,
                          GNUNET_TIME_absolute_get_remaining (pal_ctx->timeout));
 
   pal_ctx->cb (pal_ctx->cb_cls, address);
+  GNUNET_free (address);
 }
 
 
 /**
- * Return all the known addresses for a peer.
+ * Return all the known addresses for a specific peer or all peers.
+ * Returns continously all address if one_shot is set to GNUNET_NO
+ *
+ * CHANGE: Returns the address(es) that we are currently using for this
+ * peer.  Upon completion, the 'AddressLookUpCallback' is called one more
+ * time with 'NULL' for the address and the peer.  After this, the operation must no
+ * longer be explicitly cancelled.
  *
  * @param cfg configuration to use
- * @param peer peer identity to look up the addresses of
+ * @param peer peer identity to look up the addresses of, CHANGE: allow NULL for all (connected) peers
+ * @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL),
+ *                 GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly cancelled)
  * @param timeout how long is the lookup allowed to take at most
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
- * @return handle to cancel the operation, NULL on error
  */
-struct GNUNET_TRANSPORT_PeerAddressLookupContext *
+struct GNUNET_TRANSPORT_PeerIterateContext *
 GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                             const struct GNUNET_PeerIdentity *peer,
                                             int one_shot,
                                             struct GNUNET_TIME_Relative timeout,
-                                            GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
+                                            GNUNET_TRANSPORT_PeerIterateCallback peer_address_callback,
                                             void *peer_address_callback_cls)
 {
-  struct GNUNET_TRANSPORT_PeerAddressLookupContext *pal_ctx;
+  struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx;
   struct AddressIterateMessage msg;
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_TIME_Absolute abs_timeout;
@@ -174,7 +191,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Ha
   else
    memcpy (&msg.peer, peer , sizeof (struct GNUNET_PeerIdentity));
 
-  pal_ctx = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PeerAddressLookupContext));
+  pal_ctx = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PeerIterateContext));
   pal_ctx->cb = peer_address_callback;
   pal_ctx->cb_cls = peer_address_callback_cls;
   pal_ctx->timeout = abs_timeout;
@@ -195,7 +212,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Ha
  */
 void
 GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
-                                             GNUNET_TRANSPORT_PeerAddressLookupContext
+                                             GNUNET_TRANSPORT_PeerIterateContext
                                              *alc)
 {
   GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
@@ -203,7 +220,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
 }
 
 /**
- * Return all the known addresses for all peers.
+ * Return all addresses for all peers.
  *
  * @param cfg configuration to use
  * @param timeout how long is the lookup allowed to take at most
@@ -213,7 +230,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
 void
 GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_TRANSPORT_AddressLookUpCallback
+                                  GNUNET_TRANSPORT_PeerIterateCallback
                                   peer_address_callback,
                                   void *peer_address_callback_cls)
 {

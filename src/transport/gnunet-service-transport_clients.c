@@ -612,7 +612,6 @@ static void
 transmit_address_to_client (void *cls, const char *buf)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
-
   if (NULL == buf)
   {
     GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
@@ -712,6 +711,9 @@ clients_handle_address_to_string (void *cls, struct GNUNET_SERVER_Client *client
                                 tc);
 }
 
+#if 0
+
+THIS FUNCTIONALITY IS NOT USED ANYWHERE!
 
 /**
  * Send an address to the client.
@@ -749,16 +751,15 @@ send_address_to_client (void *cls,
 
 
 /**
- * Client asked to obtain information about a peer's addresses.
+ * Client asked to obtain information about all addresses of a peer.
  * Process the request.
- * FIXME: use better name!
  *
  * @param cls unused
  * @param client the client
  * @param message the peer address information request
  */
 static void
-clients_handle_peer_address_lookup (void *cls,
+clients_handle_peer_address_iterate (void *cls,
                                     struct GNUNET_SERVER_Client *client,
                                     const struct GNUNET_MessageHeader *message)
 {
@@ -768,13 +769,15 @@ clients_handle_peer_address_lookup (void *cls,
   peer_address_lookup = (const struct PeerAddressLookupMessage *) message;
   GNUNET_break (ntohl (peer_address_lookup->reserved) == 0);
   tc = GNUNET_SERVER_transmit_context_create (client);
+
   GST_validation_get_addresses (&peer_address_lookup->peer,
                                 &send_address_to_client, tc);
+
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
       GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
-
+#endif
 
 /**
  * Output the active address of connected neighbours to the given client.
@@ -811,15 +814,14 @@ output_addresses (void *cls, const struct GNUNET_PeerIdentity *peer,
   memcpy(&addr[alen], address->transport_name, tlen);
 
   transmit_binary_to_client (tc, msg, size);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "output_addresses: peer `%s' transport %s address %s   %s\n",GNUNET_i2s(&msg->peer), &addr[alen], GNUNET_a2s((struct sockaddr *) addr, alen), GNUNET_a2s((struct sockaddr *) address->address, address->address_length));
   GNUNET_free (msg);
 }
 
 
 /**
- * Client asked to obtain information about all actively used addresses.
- * Process the request.  FIXME: use better name!
+ * Client asked to obtain information about all actively used addresses
+ * of connected peers
+ * Process the request.
  *
  * @param cls unused
  * @param client the client
@@ -830,11 +832,41 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
                                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVER_TransmitContext *tc;
+  struct AddressIterateMessage * msg;
+  struct GNUNET_PeerIdentity dummy;
+  struct GNUNET_HELLO_Address * address;
+
 
   GNUNET_SERVER_disable_receive_done_warning (client);
   tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "clients_handle_address_iterate: \n");
-  GST_neighbours_iterate (&output_addresses, tc);
+
+  if (ntohs (message->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE)
+  {
+    GNUNET_break_op(0);
+    return;
+  }
+  if (ntohs (message->size) != sizeof (struct AddressIterateMessage))
+  {
+    GNUNET_break_op(0);
+    return;
+  }
+
+  msg = (struct AddressIterateMessage *) message;
+  memset (&dummy, 0,  sizeof (struct GNUNET_PeerIdentity));
+
+  if (0 == memcmp (&msg->peer, &dummy, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    /* iterate over all neighbours */
+    GST_neighbours_iterate (&output_addresses, tc);
+  }
+  else
+  {
+    /* just return one neighbour */
+    address = GST_neighbour_get_current_address(&msg->peer);
+    if (address != NULL)
+      output_addresses(tc, &msg->peer, NULL, 0, address);
+  }
+
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
       GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -859,12 +891,16 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
     {&clients_handle_request_connect, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT,
      sizeof (struct TransportRequestConnectMessage)},
+    /* converts a binary address to a human readable address */
     {&clients_handle_address_to_string, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING, 0},
-    {&clients_handle_peer_address_lookup, NULL,
+#if 0
+    /* Not used at the moment, gets all addresses of a peer */
+    {&clients_handle_peer_address_iterate, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP,
      sizeof (struct PeerAddressLookupMessage)},
-    {&clients_handle_address_iterate, NULL,
+#endif
+     {&clients_handle_address_iterate, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE,
      sizeof (struct AddressIterateMessage)},
     {&GST_blacklist_handle_init, NULL,

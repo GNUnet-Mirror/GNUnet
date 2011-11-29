@@ -285,6 +285,16 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer);
 
 
 /**
+ * Obtain current address information for the given neighbour.
+ *
+ * @param peer
+ * @return address currently used
+ */
+struct GNUNET_HELLO_Address *
+GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer);
+
+
+/**
  * We received a disconnect message from the given peer,
  * validate and process.
  *

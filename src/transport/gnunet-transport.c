@@ -76,6 +76,11 @@ static int iterate_connections;
 static int test_configuration;
 
 /**
+ * Option -n.
+ */
+static int numeric;
+
+/**
  * Global return value (0 success).
  */
 static int ret;
@@ -150,7 +155,6 @@ struct TestContext
 
 };
 
-struct GNUNET_CONFIGURATION_Handle * cfg;
 
 /**
  * Display the result of the test.
@@ -436,7 +440,17 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 void process_string (void *cls,
                      const char *address)
 {
-  fprintf (stdout, _("process_string\n"));
+  struct GNUNET_PeerIdentity * peer = cls;
+
+  if ((address != NULL))
+  {
+    fprintf (stdout, _("Peer `%s' : %s\n"), GNUNET_i2s(peer), address);
+  }
+  else
+  {
+    /* done */
+    GNUNET_free (peer);
+  }
 }
 
 /**
@@ -451,23 +465,24 @@ void process_string (void *cls,
 static void
 process_address (void *cls, const struct GNUNET_HELLO_Address *address)
 {
+  const struct GNUNET_CONFIGURATION_Handle * cfg = cls;
+
   if (address == NULL)
   {
+    /* done */
     return;
   }
 
-  fprintf (stdout, _("Peer `%s'\n"),
-           GNUNET_i2s (&address->peer));
+  struct GNUNET_PeerIdentity * peer = GNUNET_malloc(sizeof (struct GNUNET_PeerIdentity));
+  *peer = address->peer;
 
   /* Resolve address to string */
-  /*
   GNUNET_TRANSPORT_address_to_string (cfg,
-      address,
-      GNUNET_NO,
-      GNUNET_TIME_UNIT_MINUTES,
-      &process_string,
-      NULL);
-      */
+    address,
+    numeric,
+    GNUNET_TIME_UNIT_MINUTES,
+    &process_string,
+    peer);
 }
 
 
@@ -483,7 +498,6 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  cfg = cfg;
   if (test_configuration)
   {
     do_test_configuration (cfg);
@@ -525,7 +539,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (iterate_connections)
   {
     GNUNET_TRANSPORT_address_iterate (cfg, GNUNET_TIME_UNIT_MINUTES,
-                                      &process_address, NULL);
+                                      &process_address, (void *)cfg);
   }
 }
 
@@ -550,6 +564,9 @@ main (int argc, char *const *argv)
     {'t', "test", NULL,
      gettext_noop ("test transport configuration (involves external server)"),
      0, &GNUNET_GETOPT_set_one, &test_configuration},
+     {'n', "numeric", NULL,
+      gettext_noop ("do not resolve hostnames"),
+      0, &GNUNET_GETOPT_set_one, &numeric},
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };

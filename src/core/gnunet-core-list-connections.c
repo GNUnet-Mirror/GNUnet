@@ -100,7 +100,7 @@ static void
 process_resolved_address (void *cls, const struct GNUNET_HELLO_Address *address)
 {
   struct PrintContext *pc = cls;
-  struct AddressStringList *new_address;
+//  struct AddressStringList *new_address;
 
   if (address == NULL)
   {
@@ -108,14 +108,17 @@ process_resolved_address (void *cls, const struct GNUNET_HELLO_Address *address)
     return;
   }
 
+  /* This does exactly the same as gnunet-transport -i !*/
+  /*
   new_address = GNUNET_malloc (sizeof (struct AddressStringList));
 #if VERBOSE
   fprintf (stderr, "Received address %s\n", address);
 #endif
-  // FIXME : GNUNET_TRANSPORT_address_to_string
+
   new_address->address_string = GNUNET_strdup ("FIXME");
   GNUNET_CONTAINER_DLL_insert (pc->address_list_head, pc->address_list_tail,
                                new_address);
+   */
 }
 
 

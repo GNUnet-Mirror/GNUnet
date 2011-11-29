@@ -1561,6 +1561,26 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   return n->latency;
 }
 
+/**
+ * Obtain current address information for the given neighbour.
+ *
+ * @param peer
+ * @return address currently used
+ */
+struct GNUNET_HELLO_Address *
+GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer)
+{
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (peer);
+  if ( (NULL == n) ||
+       ( (n->address == NULL) && (n->session == NULL) ) )
+    return NULL;
+
+  return n->address;
+}
+
+
 
 /**
  * Create an entry in the neighbour map for the given peer

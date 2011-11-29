@@ -115,7 +115,7 @@ typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
  * @param address address
  */
 // FIXME: use NULL for address on disconnect IF in monitor mode (one_shot = NO)
-typedef void (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
+typedef void (*GNUNET_TRANSPORT_PeerIterateCallback) (void *cls,
                                                         const struct GNUNET_HELLO_Address *address);
 
 
@@ -322,12 +322,12 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
  */
-struct GNUNET_TRANSPORT_PeerAddressLookupContext *
+struct GNUNET_TRANSPORT_PeerIterateContext *
 GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                       const struct GNUNET_PeerIdentity *peer,
 				      int one_shot,
                                       struct GNUNET_TIME_Relative timeout,
-                                      GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
+                                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_callback,
                                       void *peer_address_callback_cls);
 
 
@@ -338,16 +338,12 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Ha
  */
 void
 GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
-                                             GNUNET_TRANSPORT_PeerAddressLookupContext
+                                             GNUNET_TRANSPORT_PeerIterateContext
 *alc);
 
 
 /**
- * Return all the known addresses. FIXME: document better!
- * 
- * FIXME: remove, replace with new 'peer_address_lookup' API
- * 
- *
+ * Return all the known addresses.
  * @param cfg configuration to use
  * @param timeout how long is the lookup allowed to take at most
  * @param peer_address_callback function to call with the results
@@ -356,7 +352,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
 void
 GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_TRANSPORT_AddressLookUpCallback
+                                  GNUNET_TRANSPORT_PeerIterateCallback
                                   peer_address_callback,
                                   void *peer_address_callback_cls);
 
