@@ -1020,12 +1020,12 @@ extern "C"
 /**
  * Request to look addresses of peers in server.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP 367
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING 367
 
 /**
  * Response to the address lookup request.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY 368
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY 368
 
 /**
  * Register a client that wants to do blacklisting.
@@ -1106,9 +1106,14 @@ extern "C"
 
 
 /**
+ * Request to iterate over all known addresses.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE 383
+
+/**
  * Message send by a peer to notify the other to keep the session alive.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON 383
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON 384
 
 
 /**

@@ -616,12 +616,12 @@ transmit_address_to_client (void *cls, const char *buf)
   if (NULL == buf)
   {
     GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
     GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
     return;
   }
   GNUNET_SERVER_transmit_context_append_data (tc, buf, strlen (buf) + 1,
-                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
 }
 
 
@@ -641,12 +641,12 @@ transmit_binary_to_client (void *cls, void *buf, size_t size)
   if (NULL == buf)
   {
     GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+        GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
     GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
     return;
   }
   GNUNET_SERVER_transmit_context_append_data (tc, buf, size,
-                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
 }
 
 
@@ -658,7 +658,7 @@ transmit_binary_to_client (void *cls, void *buf, size_t size)
  * @param message the resolution request
  */
 static void
-clients_handle_address_lookup (void *cls, struct GNUNET_SERVER_Client *client,
+clients_handle_address_to_string (void *cls, struct GNUNET_SERVER_Client *client,
                                const struct GNUNET_MessageHeader *message)
 {
   const struct AddressLookupMessage *alum;
@@ -702,7 +702,7 @@ clients_handle_address_lookup (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL == papi)
   {
     GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
     GNUNET_SERVER_transmit_context_run (tc, rtimeout);
     return;
   }
@@ -771,7 +771,7 @@ clients_handle_peer_address_lookup (void *cls,
   GST_validation_get_addresses (&peer_address_lookup->peer,
                                 &send_address_to_client, tc);
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -793,17 +793,26 @@ output_addresses (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct AddressIterateResponseMessage *msg;
   size_t size;
-  size_t slen;
+  size_t tlen;
+  size_t alen;
+  char * addr;
 
-  slen = strlen (address->transport_name) + 1;
-  size = (sizeof (struct AddressIterateResponseMessage) + slen);
+  tlen = strlen (address->transport_name) + 1;
+  alen = address->address_length;
+
+  size = (sizeof (struct AddressIterateResponseMessage) + alen + tlen);
   msg = GNUNET_malloc (size);
-  memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&msg[0], address->transport_name, slen);
-  msg->addrlen = ntohs (address->address_length);
-  msg->pluginlen = ntohs (slen);
-  // FIXME: what about 'address->address'!?
+  msg->addrlen = htonl (alen);
+  msg->pluginlen = htonl (tlen);
+  msg->peer = *peer;
+
+  addr = (char *) &msg[1];
+  memcpy(addr,address->address, alen);
+  memcpy(&addr[alen], address->transport_name, tlen);
+
   transmit_binary_to_client (tc, msg, size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "output_addresses: peer `%s' transport %s address %s   %s\n",GNUNET_i2s(&msg->peer), &addr[alen], GNUNET_a2s((struct sockaddr *) addr, alen), GNUNET_a2s((struct sockaddr *) address->address, address->address_length));
   GNUNET_free (msg);
 }
 
@@ -824,9 +833,10 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
 
   GNUNET_SERVER_disable_receive_done_warning (client);
   tc = GNUNET_SERVER_transmit_context_create (client);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "clients_handle_address_iterate: \n");
   GST_neighbours_iterate (&output_addresses, tc);
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -849,8 +859,8 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
     {&clients_handle_request_connect, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT,
      sizeof (struct TransportRequestConnectMessage)},
-    {&clients_handle_address_lookup, NULL,
-     GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP, 0},
+    {&clients_handle_address_to_string, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING, 0},
     {&clients_handle_peer_address_lookup, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP,
      sizeof (struct PeerAddressLookupMessage)},

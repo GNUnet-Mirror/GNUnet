@@ -112,12 +112,8 @@ typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
  * Function to call with a binary format of an address
  *
  * @param cls closure
- * @param peer peer identity
- * @param transport transport plugin
- * @param addr address
- * @param addrlen address length
+ * @param address address
  */
-// FIXME: use GNUNET_HELLO_Address (as 2nd arg, replacing others)
 // FIXME: use NULL for address on disconnect IF in monitor mode (one_shot = NO)
 typedef void (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
                                                         const struct GNUNET_HELLO_Address *address);
@@ -310,17 +306,18 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
 
 
 /**
- * Return all the known addresses for a peer.
+ * Return all the known addresses for a specific peer or all peers.
+ * Returns continously all address if one_shot is set to GNUNET_NO
+ *
  * CHANGE: Returns the address(es) that we are currently using for this
  * peer.  Upon completion, the 'AddressLookUpCallback' is called one more
  * time with 'NULL' for the address and the peer.  After this, the operation must no
  * longer be explicitly cancelled.
- * TODO: change code that uses this API to see if this is fine...
  *
  * @param cfg configuration to use
  * @param peer peer identity to look up the addresses of, CHANGE: allow NULL for all (connected) peers
- * FIXME: @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL), 
- *                        GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly cancelled)
+ * @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL),
+ *                 GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly cancelled)
  * @param timeout how long is the lookup allowed to take at most
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback

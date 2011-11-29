@@ -76,7 +76,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   GNUNET_break (ntohs (msg->type) ==
-                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   size = ntohs (msg->size);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
@@ -108,10 +108,8 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
  *
  * @param cfg configuration to use
  * @param address address to convert (binary format)
- * @param addressLen number of bytes in address
  * @param numeric should (IP) addresses be displayed in numeric form
  *                (otherwise do reverse DNS lookup)
- * @param nameTrans name of the transport to which the address belongs
  * @param timeout how long is the lookup allowed to take at most
  * @param aluc function to call with the results
  * @param aluc_cls closure for aluc
@@ -132,6 +130,7 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
   struct GNUNET_CLIENT_Connection *client;
   char *addrbuf;
 
+  GNUNET_assert (address != NULL);
   alen = GNUNET_HELLO_address_get_size (address);
   len = sizeof (struct AddressLookupMessage) + alen;
   if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -139,12 +138,15 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
     GNUNET_break (0);
     return NULL;
   }
+
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (client == NULL)
     return NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNUNET_TRANSPORT_address_to_string\n");
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING);
   msg->numeric_only = htonl (numeric);
   msg->timeout = GNUNET_TIME_relative_hton (timeout);
   msg->addrlen = htonl (alen);

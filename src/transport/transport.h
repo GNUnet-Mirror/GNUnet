@@ -360,11 +360,24 @@ struct AddressIterateMessage
    * timeout to give up.  FIXME: remove in the future
    */
   struct GNUNET_TIME_AbsoluteNBO timeout;
+
+  /**
+   * The identity of the peer to look up.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * One shot call or continous replies?
+   */
+  uint32_t one_shot;
+
 };
 
 /**
- * Message from the library to the transport service
- * asking for human readable addresses known for a peer.
+ * Message from the transport service to the library
+ * containing binary addresses known for a peer.
+ * Memory layout:
+ * [AddressIterateResponseMessage][address[addrlen]][transportname[pluginlen]]
  */
 struct AddressIterateResponseMessage
 {
@@ -378,7 +391,7 @@ struct AddressIterateResponseMessage
    */
   uint32_t reserved;
 
-  /**
+    /**
    * Peer identity
    */
   struct GNUNET_PeerIdentity peer;
@@ -392,6 +405,7 @@ struct AddressIterateResponseMessage
    * length of the plugin name
    */
   uint32_t pluginlen GNUNET_PACKED;
+  
 };
 
 
