@@ -104,8 +104,7 @@ typedef void (*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
  * @param cls closure
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
-// RENAME: AddressToStringCallback
-typedef void (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
+typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
                                                         const char *address);
 
 
@@ -119,16 +118,9 @@ typedef void (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
  * @param addrlen address length
  */
 // FIXME: use GNUNET_HELLO_Address (as 2nd arg, replacing others)
-// FIXME: rename: remove "Binary"
 // FIXME: use NULL for address on disconnect IF in monitor mode (one_shot = NO)
-typedef void (*GNUNET_TRANSPORT_AddressLookUpBinaryCallback) (void *cls,
-                                                              const struct
-                                                              GNUNET_PeerIdentity
-                                                              * peer,
-                                                              const char
-                                                              *transport,
-                                                              const void *addr,
-                                                              size_t addrlen);
+typedef void (*GNUNET_TRANSPORT_AddressLookUpCallback) (void *cls,
+                                                        const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -280,7 +272,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
 /**
  * Handle to cancel a pending address lookup.
  */
-struct GNUNET_TRANSPORT_AddressLookupContext;
+struct GNUNET_TRANSPORT_AddressToStringContext;
 
 
 /**
@@ -297,14 +289,12 @@ struct GNUNET_TRANSPORT_AddressLookupContext;
  * @param aluc_cls closure for aluc
  * @return handle to cancel the operation, NULL on error
  */
-// FIXME: use 'GNUNET_HELLO_Address' here!
-// => rename: address_to_string
-struct GNUNET_TRANSPORT_AddressLookupContext *
-GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const char *address, size_t addressLen,
-                                 int numeric, const char *nameTrans,
+struct GNUNET_TRANSPORT_AddressToStringContext *
+GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 const struct GNUNET_HELLO_Address *address,
+                                 int numeric,
                                  struct GNUNET_TIME_Relative timeout,
-                                 GNUNET_TRANSPORT_AddressLookUpCallback aluc,
+                                 GNUNET_TRANSPORT_AddressToStringCallback aluc,
                                  void *aluc_cls);
 
 
@@ -314,15 +304,9 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param alc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_address_lookup_cancel (struct
-                                        GNUNET_TRANSPORT_AddressLookupContext
+GNUNET_TRANSPORT_address_to_string_cancel (struct
+                                        GNUNET_TRANSPORT_AddressToStringContext
                                         *alc);
-
-
-/**
- * Handle to cancel a pending address lookup.
- */
-struct GNUNET_TRANSPORT_AddressLookupContext;
 
 
 /**
@@ -342,17 +326,12 @@ struct GNUNET_TRANSPORT_AddressLookupContext;
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
  */
-// RENAME: peer_get_active_addresses
 struct GNUNET_TRANSPORT_PeerAddressLookupContext *
-GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
-                                      *cfg,
+GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                       const struct GNUNET_PeerIdentity *peer,
 				      // FIXME: add argument: one_shot
                                       struct GNUNET_TIME_Relative timeout,
-				      // FIXME: change to the 'Binary' lookup callback (which will
-				      // be renamed, so the argument type actually won't change)
-                                      GNUNET_TRANSPORT_AddressLookUpCallback
-                                      peer_address_callback,
+                                      GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
                                       void *peer_address_callback_cls);
 
 
@@ -362,9 +341,9 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
  * @param alc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_peer_address_lookup_cancel (struct
+GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
                                              GNUNET_TRANSPORT_PeerAddressLookupContext
-                                             *alc);
+*alc);
 
 
 /**
@@ -381,7 +360,7 @@ GNUNET_TRANSPORT_peer_address_lookup_cancel (struct
 void
 GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_TRANSPORT_AddressLookUpBinaryCallback
+                                  GNUNET_TRANSPORT_AddressLookUpCallback
                                   peer_address_callback,
                                   void *peer_address_callback_cls);
 

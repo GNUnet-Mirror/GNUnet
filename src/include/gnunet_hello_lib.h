@@ -111,6 +111,14 @@ GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
 			  const struct GNUNET_HELLO_Address *a2);
 
 
+/**
+ * Get the size of an address struct.
+ *
+ * @param address address
+ * @return the size
+ */
+size_t
+GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
 
 /**
  * Free an address.

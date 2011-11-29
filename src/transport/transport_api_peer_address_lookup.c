@@ -78,7 +78,7 @@ peer_address_response_processor (void *cls,
                                  const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_PeerAddressLookupContext *alucb = cls;
-  const char *address;
+  const struct GNUNET_HELLO_Address *address;
   uint16_t size;
 
   if (msg == NULL)
@@ -94,25 +94,29 @@ peer_address_response_processor (void *cls,
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
     /* done! */
-    alucb->cb (alucb->cb_cls, NULL);
+    alucb->cb (alucb->cb_cls, NULL );
     GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
     GNUNET_free (alucb);
     return;
   }
-  address = (const char *) &msg[1];
+  address = (const struct GNUNET_HELLO_Address *) &msg[1];
+#if 0
   if (address[size - sizeof (struct GNUNET_MessageHeader) - 1] != '\0')
   {
     /* invalid reply */
     GNUNET_break (0);
-    alucb->cb (alucb->cb_cls, NULL);
+    alucb->cb (alucb->cb_cls, NULL );
     GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
     GNUNET_free (alucb);
     return;
   }
+#endif
   /* expect more replies */
   GNUNET_CLIENT_receive (alucb->client, &peer_address_response_processor, alucb,
                          GNUNET_TIME_absolute_get_remaining (alucb->timeout));
-  alucb->cb (alucb->cb_cls, address);
+
+  /* REFACTOR FIX THIS */
+  alucb->cb (alucb->cb_cls, address );
 }
 
 
@@ -127,12 +131,10 @@ peer_address_response_processor (void *cls,
  * @return handle to cancel the operation, NULL on error
  */
 struct GNUNET_TRANSPORT_PeerAddressLookupContext *
-GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
-                                      *cfg,
+GNUNET_TRANSPORT_peer_get_active_addresses (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                       const struct GNUNET_PeerIdentity *peer,
                                       struct GNUNET_TIME_Relative timeout,
-                                      GNUNET_TRANSPORT_AddressLookUpCallback
-                                      peer_address_callback,
+                                      GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
                                       void *peer_address_callback_cls)
 {
   struct PeerAddressLookupMessage msg;
@@ -147,8 +149,7 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
   msg.reserved = htonl (0);
   msg.timeout = GNUNET_TIME_relative_hton (timeout);
   memcpy (&msg.peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  alc =
-      GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PeerAddressLookupContext));
+  alc = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PeerAddressLookupContext));
   alc->cb = peer_address_callback;
   alc->cb_cls = peer_address_callback_cls;
   alc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
@@ -168,7 +169,7 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle
  * @param alc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_peer_address_lookup_cancel (struct
+GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
                                              GNUNET_TRANSPORT_PeerAddressLookupContext
                                              *alc)
 {

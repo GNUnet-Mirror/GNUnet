@@ -126,11 +126,9 @@ print_address (void *cls,
                struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
-
-  GNUNET_TRANSPORT_address_lookup (cfg, 
-				   address->address, 
-				   address->address_length, no_resolve, 
-				   address->transport_name,
+  GNUNET_TRANSPORT_address_to_string (cfg, 
+                                   address,
+				   no_resolve,
                                    GNUNET_TIME_relative_multiply
                                    (GNUNET_TIME_UNIT_SECONDS, 10),
                                    &process_resolved_address, pc);

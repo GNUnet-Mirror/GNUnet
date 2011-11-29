@@ -63,6 +63,21 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Get the size of an address struct.
+ *
+ * @param address address
+ * @return the size
+ */
+size_t
+GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address)
+{
+  return sizeof (struct GNUNET_HELLO_Address) +
+         address->address_length +
+         strlen(address->transport_name) + 1;
+}
+
+
+/**
  * Copy an address struct.
  *
  * @param address address to copy

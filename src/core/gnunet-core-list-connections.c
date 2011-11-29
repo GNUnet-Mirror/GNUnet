@@ -97,7 +97,7 @@ dump_pc (struct PrintContext *pc)
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 static void
-process_resolved_address (void *cls, const char *address)
+process_resolved_address (void *cls, const struct GNUNET_HELLO_Address *address)
 {
   struct PrintContext *pc = cls;
   struct AddressStringList *new_address;
@@ -112,7 +112,8 @@ process_resolved_address (void *cls, const char *address)
 #if VERBOSE
   fprintf (stderr, "Received address %s\n", address);
 #endif
-  new_address->address_string = GNUNET_strdup (address);
+  // FIXME : GNUNET_TRANSPORT_address_to_string
+  new_address->address_string = GNUNET_strdup ("FIXME");
   GNUNET_CONTAINER_DLL_insert (pc->address_list_head, pc->address_list_tail,
                                new_address);
 }
@@ -136,7 +137,7 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
     pc = GNUNET_malloc (sizeof (struct PrintContext));
     pc->peer = *peer;
-    GNUNET_TRANSPORT_peer_address_lookup (cfg, peer, GNUNET_TIME_UNIT_MINUTES,
+    GNUNET_TRANSPORT_peer_get_active_addresses (cfg, peer, GNUNET_TIME_UNIT_MINUTES,
                                           &process_resolved_address, pc);
   }
 #if VERBOSE

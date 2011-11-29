@@ -443,11 +443,15 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param addrlen number of bytes in addr
  */
 static void
-process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const char *transport, const void *addr, size_t addrlen)
+process_address (void *cls, const struct GNUNET_HELLO_Address *address)
 {
-  if ((peer != NULL) || (transport != NULL) ||
-      ((addr != NULL) && (addrlen > 0)))
+  if ((address->transport_name != NULL) ||
+      ((address->address != NULL) && (address->address_length > 0)))
+  {
+    /* Call GNUNET_TRANSPORT_address_to_string to convert to human readable */
+    //GNUNET_TRANSPORT_address_to_string(cfg, address, GNUNET_NO)
+
+#if 0
     fprintf (stdout, _("Peer `%s' plugin: `%s' address `%s'\n"),
              (peer != NULL) ? GNUNET_i2s (peer) : "<unknown>",
              (transport != NULL) ? transport : "<unknown>", ((addr != NULL) &&
@@ -456,6 +460,8 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
                                                               NULL)) ?
              "how do i resolve the name without transport service?" :
              "<unknown>");
+#endif
+  }
 }
 
 

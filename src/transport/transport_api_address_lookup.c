@@ -30,12 +30,12 @@
 /**
  * Context for the address lookup.
  */
-struct GNUNET_TRANSPORT_AddressLookupContext
+struct GNUNET_TRANSPORT_AddressToStringContext
 {
   /**
    * Function to call with the human-readable address.
    */
-  GNUNET_TRANSPORT_AddressLookUpCallback cb;
+  GNUNET_TRANSPORT_AddressToStringCallback cb;
 
   /**
    * Closure for cb.
@@ -64,7 +64,7 @@ struct GNUNET_TRANSPORT_AddressLookupContext
 static void
 address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_TRANSPORT_AddressLookupContext *alucb = cls;
+  struct GNUNET_TRANSPORT_AddressToStringContext *alucb = cls;
   const char *address;
   uint16_t size;
 
@@ -117,23 +117,23 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param aluc_cls closure for aluc
  * @return handle to cancel the operation, NULL on error
  */
-struct GNUNET_TRANSPORT_AddressLookupContext *
-GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const char *address, size_t addressLen,
-                                 int numeric, const char *nameTrans,
+struct GNUNET_TRANSPORT_AddressToStringContext *
+GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 const struct GNUNET_HELLO_Address *address,
+                                 int numeric,
                                  struct GNUNET_TIME_Relative timeout,
-                                 GNUNET_TRANSPORT_AddressLookUpCallback aluc,
+                                 GNUNET_TRANSPORT_AddressToStringCallback aluc,
                                  void *aluc_cls)
 {
-  size_t slen;
   size_t len;
+  size_t alen;
   struct AddressLookupMessage *msg;
-  struct GNUNET_TRANSPORT_AddressLookupContext *alc;
+  struct GNUNET_TRANSPORT_AddressToStringContext *alc;
   struct GNUNET_CLIENT_Connection *client;
   char *addrbuf;
 
-  slen = strlen (nameTrans) + 1;
-  len = sizeof (struct AddressLookupMessage) + addressLen + slen;
+  alen = GNUNET_HELLO_address_get_size (address);
+  len = sizeof (struct AddressLookupMessage) + alen;
   if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
@@ -147,11 +147,10 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP);
   msg->numeric_only = htonl (numeric);
   msg->timeout = GNUNET_TIME_relative_hton (timeout);
-  msg->addrlen = htonl (addressLen);
+  msg->addrlen = htonl (alen);
   addrbuf = (char *) &msg[1];
-  memcpy (addrbuf, address, addressLen);
-  memcpy (&addrbuf[addressLen], nameTrans, slen);
-  alc = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_AddressLookupContext));
+  memcpy (addrbuf, address, alen);
+  alc = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_AddressToStringContext));
   alc->cb = aluc;
   alc->cb_cls = aluc_cls;
   alc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
@@ -172,8 +171,8 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param alc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_address_lookup_cancel (struct
-                                        GNUNET_TRANSPORT_AddressLookupContext
+GNUNET_TRANSPORT_address_to_string_cancel (struct
+                                        GNUNET_TRANSPORT_AddressToStringContext
                                         *alc)
 {
   GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
