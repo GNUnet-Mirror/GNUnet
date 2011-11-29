@@ -475,14 +475,12 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "***************** test: add peer 2\n");
   GNUNET_MESH_peer_request_connect_add (t, &d2->id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "***************** test: schedule timeout in 30s\n");
+              "***************** test: schedule timeout in 90s\n");
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                      (GNUNET_TIME_UNIT_SECONDS, 30),
-                                      &disconnect_mesh_peers, NULL);
+        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers, NULL);
   }
 }
 
