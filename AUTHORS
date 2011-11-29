@@ -1,3 +1,10 @@
+Program: GNUnet
+Homepage: https://gnunet.org/
+Maintainer: Christian Grothoff <christian@grothoff.org>
+Bug reports: https://gnunet.org/bugs/
+Security related bug reports: security@gnunet.org
+License: some GPLv2+, mostly GPLv3+ 
+
 Primary developers (0.9.x series):
 Bart Polot <bart@net.in.tum.de>
 Christian Grothoff <christian@grothoff.org>
