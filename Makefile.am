@@ -5,7 +5,6 @@ EXTRA_DIST = \
  ABOUT-NLS \
  config.rpath \
  install-sh \
- HACKING \
  acinclude.m4
 
 gnunetincludedir = $(includedir)/gnunet
