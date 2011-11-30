@@ -253,9 +253,13 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Start a peer with the given configuration
+ * @param tth the testing handle
+ * @param cfgname configuration file
+ * @param peer_id the peer_id
  * @param rec receive callback
  * @param nc connect callback
  * @param nd disconnect callback
+ * @param start_cb start callback
  * @param cb_cls closure for callback
  * @return the peer context
  */
@@ -352,6 +356,8 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
 * @param tth testing handle
 * @param p the peer
 * @param cfgname the cfg file used to restart
+* @param restart_cb callback to call when restarted
+* @param cb_cls callback closure
 * @return GNUNET_OK in success otherwise GNUNET_SYSERR
 */
 int
@@ -460,6 +466,7 @@ fail:
 
 /**
  * shutdown the given peer
+ * @param tth testing handle
  * @param p the peer
  */
 void
@@ -563,7 +570,9 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle
 /**
  * Cancel the request to connect two peers
  * Tou MUST cancel the request if you stop the peers before the peers connected succesfully
- * @param cc a connect request handle
+ *
+ * @param tth transport testing handle
+ * @param ccr a connect request handle
  */
 void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
@@ -829,8 +838,9 @@ suc:
 /**
  * This function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
  * if existing ".exe"-prefix and adds the peer-number
+ *
  * @param file filename of the test, e.g. argv[0]
- * @param cfgname where to write the result
+ * @param dest where to write the filename
  * @param count peer number
  */
 void

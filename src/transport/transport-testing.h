@@ -131,16 +131,18 @@ struct GNUNET_TRANSPORT_TESTING_handle
 };
 
 
-
 /**
- * Start a peer with the given configuration
- * @param rec receive callback
- * @param nc connect callback
- * @param nd disconnect callback
- * @param cb_cls closure for callback
- *   if NULL passed the PeerContext * will be used!
- * @return the peer context
- */
+* Start a peer with the given configuration
+* @param tth the testing handle
+* @param cfgname configuration file
+* @param peer_id the peer_id
+* @param rec receive callback
+* @param nc connect callback
+* @param nd disconnect callback
+* @param start_cb start callback
+* @param cb_cls closure for callback
+* @return the peer context
+*/
 struct PeerContext *
 GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
                                      *tth, const char *cfgname, int peer_id,
@@ -153,6 +155,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
 
 /**
  * shutdown the given peer
+ * @param tth the testing handle
  * @param p the peer
  */
 
@@ -166,6 +169,8 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 * @param tth testing handle
 * @param p the peer
 * @param cfgname the cfg file used to restart
+* @param restart_cb restart callback
+* @param cb_cls callback closure
 * @return GNUNET_OK in success otherwise GNUNET_SYSERR
 */
 int
@@ -173,12 +178,14 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle
                                        *tth, struct PeerContext *p,
                                        const char *cfgname,
                                        GNUNET_TRANSPORT_TESTING_start_cb
-                                       start_cb, void *cb_cls);
+                                       restart_cb, void *cb_cls);
 
 /**
  * Connect the given peers and call the callback when both peers report the
  * inbound connection. Remarks: start_peer's notify_connect callback can be called
  * before.
+ *
+ * @param tth transport testing handle
  * @param p1 peer 1
  * @param p2 peer 2
  * @param cb the callback to call when both peers notified that they are connected
@@ -195,12 +202,15 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle
 /**
  * Cancel the request to connect two peers
  * Tou MUST cancel the request if you stop the peers before the peers connected succesfully
+ * @param tth testing
  * @param cc a connect request handle
  */
 void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
                                                GNUNET_TRANSPORT_TESTING_handle
-                                               *, void *cc);
+                                               *tth,
+                                               GNUNET_TRANSPORT_TESTING_ConnectRequest
+                                               ccr);
 
 /**
  * Clean up the transport testing
@@ -231,12 +241,13 @@ GNUNET_TRANSPORT_TESTING_get_test_name (const char *file, char **dest);
 /**
  * This function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
  * if existing ".exe"-prefix and adds the peer-number
+ *
  * @param file filename of the test, e.g. argv[0]
- * @param cfgname where to write the result
+ * @param dest where to write the filename
  * @param count peer number
  */
 void
-GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **cfgname,
+GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **dest,
                                           int count);
 
 

@@ -47,10 +47,12 @@ struct ServerConnection
  * starts the task waiting for them.
  * @param plugin plugin
  * @param daemon_handle the MHD daemon handle
+ * @param now schedule now or with MHD delay
  * @return gnunet task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier
-server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
+server_schedule (struct Plugin *plugin,
+                 struct MHD_Daemon *daemon_handle,
                  int now);
 
 static void
@@ -238,6 +240,7 @@ server_load_certificate (struct Plugin *plugin)
 /**
  * Reschedule the execution of both IPv4 and IPv6 server
  * @param plugin the plugin
+ * @param server which server to schedule v4 or v6?
  * @param now GNUNET_YES to schedule execution immediately, GNUNET_NO to wait
  * until timeout
  */
