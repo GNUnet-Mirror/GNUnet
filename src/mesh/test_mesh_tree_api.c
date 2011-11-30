@@ -170,7 +170,7 @@ main (int argc, char *argv[])
   }
   tree = tree_new (1);
   tree->me = tree->root;
-  path = path_new (4);
+  path = path_new (5);
   path->peers[0] = 1;
   path->peers[1] = 2;
   path->peers[2] = 3;
