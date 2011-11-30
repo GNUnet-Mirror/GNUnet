@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0b\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-11-29 21:38+0100\n"
+"POT-Creation-Date: 2011-11-30 16:20+0100\n"
 "PO-Revision-Date: 2006-01-21 17:16+0100\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -146,74 +146,74 @@ msgstr "Nätverksanslutning"
 msgid "# reconnected to DATASTORE"
 msgstr ""
 
-#: src/datastore/datastore_api.c:609
+#: src/datastore/datastore_api.c:608
 #, fuzzy
 msgid "# transmission request failures"
 msgstr "# klartext PONG-meddelanden mottagna"
 
-#: src/datastore/datastore_api.c:632
+#: src/datastore/datastore_api.c:631
 #, fuzzy
 msgid "# bytes sent to datastore"
 msgstr "# byte krypterade"
 
-#: src/datastore/datastore_api.c:769
+#: src/datastore/datastore_api.c:768
 #, fuzzy
 msgid "Failed to receive status response from database."
 msgstr "Misslyckades att ta emot svar till \"%s\" meddelande från gnunetd\n"
 
-#: src/datastore/datastore_api.c:782
+#: src/datastore/datastore_api.c:781
 msgid "Error reading response from datastore service"
 msgstr ""
 
-#: src/datastore/datastore_api.c:794 src/datastore/datastore_api.c:800
+#: src/datastore/datastore_api.c:793 src/datastore/datastore_api.c:799
 #, fuzzy
 msgid "Invalid error message received from datastore service"
 msgstr "Ogiltigt meddelande mottogs den %s:%d."
 
-#: src/datastore/datastore_api.c:806
+#: src/datastore/datastore_api.c:805
 #, fuzzy
 msgid "# status messages received"
 msgstr "# krypterade PONG-meddelanden mottagna"
 
-#: src/datastore/datastore_api.c:877
+#: src/datastore/datastore_api.c:876
 msgid "# PUT requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:948
+#: src/datastore/datastore_api.c:947
 msgid "# RESERVE requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1013
+#: src/datastore/datastore_api.c:1012
 msgid "# RELEASE RESERVE requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1074
+#: src/datastore/datastore_api.c:1073
 msgid "# UPDATE requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1142
+#: src/datastore/datastore_api.c:1141
 msgid "# REMOVE requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1187
+#: src/datastore/datastore_api.c:1186
 #, fuzzy
 msgid "Failed to receive response from database.\n"
 msgstr "Misslyckades att ta emot svar till \"%s\" meddelande från gnunetd\n"
 
-#: src/datastore/datastore_api.c:1247
+#: src/datastore/datastore_api.c:1246
 #, fuzzy
 msgid "# Results received"
 msgstr "# byte mottogs via TCP"
 
-#: src/datastore/datastore_api.c:1318
+#: src/datastore/datastore_api.c:1317
 msgid "# GET REPLICATION requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1385
+#: src/datastore/datastore_api.c:1384
 msgid "# GET ZERO ANONYMITY requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1449
+#: src/datastore/datastore_api.c:1448
 msgid "# GET requests executed"
 msgstr ""
 
@@ -365,16 +365,16 @@ msgstr ""
 msgid "Failed to initialize bloomfilter.\n"
 msgstr "Misslyckades att initiera tjänsten \"%s\".\n"
 
-#: src/core/gnunet-service-core_sessions.c:210
-#: src/core/gnunet-service-core_sessions.c:275
+#: src/core/gnunet-service-core_sessions.c:208
+#: src/core/gnunet-service-core_sessions.c:273
 msgid "# entries in session map"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:240
+#: src/core/gnunet-service-core_sessions.c:238
 msgid "# type map refreshes sent"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:416
+#: src/core/gnunet-service-core_sessions.c:414
 msgid "# messages discarded (expired prior to transmission)"
 msgstr ""
 
@@ -384,27 +384,27 @@ msgstr ""
 msgid "Peer `%s'\n"
 msgstr "Jag är ändpunkt \"%s\".\n"
 
-#: src/core/gnunet-core-list-connections.c:178
-#: src/peerinfo-tool/gnunet-peerinfo.c:197
+#: src/core/gnunet-core-list-connections.c:175
+#: src/peerinfo-tool/gnunet-peerinfo.c:194
 #, fuzzy, c-format
 msgid "Invalid command line argument `%s'\n"
 msgstr "Ogiltiga kommandoradsargument:\n"
 
-#: src/core/gnunet-core-list-connections.c:199
-#: src/peerinfo-tool/gnunet-peerinfo.c:255
+#: src/core/gnunet-core-list-connections.c:196
+#: src/peerinfo-tool/gnunet-peerinfo.c:252
 msgid "don't resolve host names"
 msgstr ""
 
-#: src/core/gnunet-core-list-connections.c:206
+#: src/core/gnunet-core-list-connections.c:203
 #, fuzzy
 msgid "Print information about connected peers."
 msgstr "Skriv ut information om GNUnets motparter."
 
-#: src/core/gnunet-service-core_clients.c:359
+#: src/core/gnunet-service-core_clients.c:360
 msgid "# send requests dropped (disconnected)"
 msgstr ""
 
-#: src/core/gnunet-service-core_clients.c:464
+#: src/core/gnunet-service-core_clients.c:465
 #, fuzzy
 msgid "# messages discarded (session disconnected)"
 msgstr "Nätverksannonsering avstängd i konfigurationen!\n"
@@ -443,7 +443,7 @@ msgstr ""
 msgid "# encrypted bytes given to transport"
 msgstr ""
 
-#: src/core/gnunet-service-core_neighbours.c:430
+#: src/core/gnunet-service-core_neighbours.c:431
 #, c-format
 msgid "Unsupported message of type %u (%u bytes) received from peer `%s'\n"
 msgstr ""
@@ -457,7 +457,7 @@ msgid "# bytes decrypted"
 msgstr "# byte dekrypterade"
 
 #: src/core/gnunet-service-core_kx.c:602 src/dv/gnunet-service-dv.c:3002
-#: src/hostlist/hostlist-server.c:436 src/peerinfo-tool/gnunet-peerinfo.c:154
+#: src/hostlist/hostlist-server.c:436 src/peerinfo-tool/gnunet-peerinfo.c:151
 #, fuzzy, c-format
 msgid "Error in communication with PEERINFO service\n"
 msgstr "Skriv ut information om GNUnets motparter."
@@ -490,7 +490,7 @@ msgid "# SET_KEY messages decrypted"
 msgstr "# PING-meddelanden skapade"
 
 #: src/core/gnunet-service-core_kx.c:878
-#: src/transport/gnunet-service-transport_validation.c:781
+#: src/transport/gnunet-service-transport_validation.c:778
 #, fuzzy
 msgid "# PING messages received"
 msgstr "# PING-meddelanden skapade"
@@ -518,7 +518,7 @@ msgid "# keepalive messages sent"
 msgstr "# PING-meddelanden i klartext skickade"
 
 #: src/core/gnunet-service-core_kx.c:1090
-#: src/transport/gnunet-service-transport_validation.c:991
+#: src/transport/gnunet-service-transport_validation.c:983
 #, fuzzy
 msgid "# PONG messages received"
 msgstr "# krypterade PONG-meddelanden mottagna"
@@ -578,8 +578,8 @@ msgid "Core service could not access hostkey.  Exiting.\n"
 msgstr ""
 
 #: src/core/gnunet-service-core_kx.c:1539
-#: src/transport/gnunet-service-transport.c:537
-#: src/hostlist/hostlist-server.c:555 src/peerinfo-tool/gnunet-peerinfo.c:205
+#: src/transport/gnunet-service-transport.c:542
+#: src/hostlist/hostlist-server.c:555 src/peerinfo-tool/gnunet-peerinfo.c:202
 #, fuzzy, c-format
 msgid "Could not access PEERINFO service.  Exiting.\n"
 msgstr "Kunde inte komma åt namnrymdsinformation.\n"
@@ -588,11 +588,11 @@ msgstr "Kunde inte komma åt namnrymdsinformation.\n"
 msgid "Client was disconnected from core service, trying to reconnect.\n"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-exit.c:1513
+#: src/vpn/gnunet-daemon-exit.c:1494
 msgid "Daemon to run to provide an IP exit node for the VPN"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-vpn.c:1294
+#: src/vpn/gnunet-daemon-vpn.c:1288
 #, fuzzy
 msgid "help text"
 msgstr "hjälptext för -t"
@@ -610,45 +610,45 @@ msgstr ""
 msgid "You must pass a number to the `%s' option.\n"
 msgstr "Du måste skicka med ett nummer till flaggan \"%s\".\n"
 
-#: src/util/common_logging.c:239 src/util/common_logging.c:861
+#: src/util/common_logging.c:239 src/util/common_logging.c:860
 msgid "DEBUG"
 msgstr "FELSÖKNING"
 
-#: src/util/common_logging.c:241 src/util/common_logging.c:859
+#: src/util/common_logging.c:241 src/util/common_logging.c:858
 msgid "INFO"
 msgstr "INFO"
 
-#: src/util/common_logging.c:243 src/util/common_logging.c:857
+#: src/util/common_logging.c:243 src/util/common_logging.c:856
 msgid "WARNING"
 msgstr "VARNING"
 
-#: src/util/common_logging.c:245 src/util/common_logging.c:855
+#: src/util/common_logging.c:245 src/util/common_logging.c:854
 msgid "ERROR"
 msgstr "FEL"
 
-#: src/util/common_logging.c:247 src/util/common_logging.c:863
+#: src/util/common_logging.c:247 src/util/common_logging.c:862
 msgid "NONE"
 msgstr ""
 
-#: src/util/common_logging.c:579
+#: src/util/common_logging.c:578
 #, fuzzy, c-format
 msgid "Failed to create or access directory for log file `%s'\n"
 msgstr "Kunde inte tolka konfigurationsfil \"%s\".\n"
 
-#: src/util/common_logging.c:696
+#: src/util/common_logging.c:695
 #, c-format
 msgid "Message `%.*s' repeated %u times in the last %s\n"
 msgstr ""
 
-#: src/util/common_logging.c:864
+#: src/util/common_logging.c:863
 msgid "INVALID"
 msgstr ""
 
-#: src/util/common_logging.c:946
+#: src/util/common_logging.c:945
 msgid "unknown address"
 msgstr ""
 
-#: src/util/common_logging.c:984
+#: src/util/common_logging.c:983
 msgid "invalid address"
 msgstr ""
 
@@ -888,12 +888,12 @@ msgid ""
 "GNUNET_SERVER_receive_done after %llums\n"
 msgstr ""
 
-#: src/util/crypto_random.c:279
+#: src/util/crypto_random.c:280
 #, c-format
 msgid "Starting `%s' process to generate entropy\n"
 msgstr ""
 
-#: src/util/crypto_random.c:307
+#: src/util/crypto_random.c:308
 #, c-format
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr "libgcrypt har inte den förväntande versionen (version %s krävs).\n"
@@ -998,12 +998,12 @@ msgstr ""
 msgid "Have neither PORT nor UNIXPATH for service `%s', but one is required\n"
 msgstr ""
 
-#: src/util/service.c:947 src/transport/plugin_transport_http.c:993
+#: src/util/service.c:947 src/transport/plugin_transport_http.c:996
 #, fuzzy, c-format
 msgid "Failed to resolve `%s': %s\n"
 msgstr "Misslyckades att leverera \"%s\" meddelande.\n"
 
-#: src/util/service.c:964 src/transport/plugin_transport_http.c:1010
+#: src/util/service.c:964 src/transport/plugin_transport_http.c:1013
 #, fuzzy, c-format
 msgid "Failed to find %saddress for `%s'.\n"
 msgstr "Misslyckades att binda till UDP-port %d.\n"
@@ -1254,42 +1254,42 @@ msgstr ""
 msgid "Measure quality and performance of the NSE service."
 msgstr "Kan inte tillgå tjänsten"
 
-#: src/nse/gnunet-service-nse.c:902
+#: src/nse/gnunet-service-nse.c:903
 #, c-format
 msgid "Proof of work invalid: %llu!\n"
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1326 src/nse/gnunet-service-nse.c:1345
-#: src/nse/gnunet-service-nse.c:1366
+#: src/nse/gnunet-service-nse.c:1328 src/nse/gnunet-service-nse.c:1347
+#: src/nse/gnunet-service-nse.c:1368
 msgid "NSE service is lacking key configuration settings.  Exiting.\n"
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1333
+#: src/nse/gnunet-service-nse.c:1335
 #, fuzzy
 msgid "Invalid work requirement for NSE service. Exiting.\n"
 msgstr "Ogiltiga argument. Avslutar.\n"
 
-#: src/nse/gnunet-service-nse.c:1354
+#: src/nse/gnunet-service-nse.c:1356
 #, fuzzy
 msgid "NSE service could not access hostkey.  Exiting.\n"
 msgstr "Kunde inte komma åt namnrymdsinformation.\n"
 
-#: src/peerinfo/gnunet-service-peerinfo.c:134
+#: src/peerinfo/gnunet-service-peerinfo.c:133
 #, fuzzy, c-format
 msgid "Removing expired address of transport `%s'\n"
 msgstr "Tillgängliga transport(er): %s\n"
 
-#: src/peerinfo/gnunet-service-peerinfo.c:196
+#: src/peerinfo/gnunet-service-peerinfo.c:195
 msgid "# peers known"
 msgstr ""
 
-#: src/peerinfo/gnunet-service-peerinfo.c:240
+#: src/peerinfo/gnunet-service-peerinfo.c:239
 #, c-format
 msgid ""
 "File `%s' in directory `%s' does not match naming convention. Removed.\n"
 msgstr ""
 
-#: src/peerinfo/gnunet-service-peerinfo.c:305
+#: src/peerinfo/gnunet-service-peerinfo.c:304
 #, c-format
 msgid "Still no peers found in `%s'!\n"
 msgstr ""
@@ -1958,23 +1958,23 @@ msgstr "# byte skickade av typen %d"
 msgid "# fragments retransmitted"
 msgstr "# byte skickade av typen %d"
 
-#: src/fragmentation/fragmentation.c:254
+#: src/fragmentation/fragmentation.c:255
 msgid "# messages fragmented"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:257
+#: src/fragmentation/fragmentation.c:258
 msgid "# total size of fragmented messages"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:342
+#: src/fragmentation/fragmentation.c:343
 msgid "# fragment acknowledgements received"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:348
+#: src/fragmentation/fragmentation.c:349
 msgid "# bits removed from fragmentation ACKs"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:372
+#: src/fragmentation/fragmentation.c:373
 #, fuzzy
 msgid "# fragmentation transmissions completed"
 msgstr "# klartext PONG-meddelanden mottagna"
@@ -2348,7 +2348,7 @@ msgid "Option `%s' is required when using option `%s'.\n"
 msgstr "Kommando \"%s\" kräver ett argument (\"%s\").\n"
 
 #: src/fs/gnunet-publish.c:393 src/fs/gnunet-publish.c:400
-#: src/transport/gnunet-transport.c:510
+#: src/transport/gnunet-transport.c:506
 #, c-format
 msgid "Option `%s' makes no sense without option `%s'.\n"
 msgstr ""
@@ -2444,7 +2444,7 @@ msgstr ""
 msgid "Got result with unknown block type `%d', ignoring"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_lc.c:202 src/fs/gnunet-service-fs_lc.c:365
+#: src/fs/gnunet-service-fs_lc.c:202 src/fs/gnunet-service-fs_lc.c:364
 #: src/fs/gnunet-service-fs_lc.c:490
 #, fuzzy
 msgid "# client searches active"
@@ -2460,7 +2460,7 @@ msgstr "Meddelande mottaget från klient är ogiltig.\n"
 msgid "# client searches received"
 msgstr "# klartext PONG-meddelanden mottagna"
 
-#: src/fs/gnunet-service-fs_lc.c:359
+#: src/fs/gnunet-service-fs_lc.c:358
 msgid "# client searches updated (merged content seen list)"
 msgstr ""
 
@@ -2614,45 +2614,45 @@ msgstr "Konfigurationsfil \"%s\" skapad.\n"
 msgid "# average retransmission delay (ms)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pe.c:392
+#: src/fs/gnunet-service-fs_pe.c:394
 #, fuzzy
 msgid "# transmission failed (core has no bandwidth)"
 msgstr "Ingen transport av typ %d är känd.\n"
 
-#: src/fs/gnunet-service-fs_pe.c:423
+#: src/fs/gnunet-service-fs_pe.c:425
 #, fuzzy
 msgid "# query messages sent to other peers"
 msgstr "# byte skickade av typen %d"
 
-#: src/fs/gnunet-service-fs_pe.c:476
+#: src/fs/gnunet-service-fs_pe.c:478
 msgid "# delay heap timeout"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pe.c:483
+#: src/fs/gnunet-service-fs_pe.c:485
 msgid "# query plans executed"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pe.c:547
+#: src/fs/gnunet-service-fs_pe.c:549
 #, fuzzy
 msgid "# requests merged"
 msgstr "# byte mottogs via TCP"
 
-#: src/fs/gnunet-service-fs_pe.c:553
+#: src/fs/gnunet-service-fs_pe.c:555
 #, fuzzy
 msgid "# requests refreshed"
 msgstr "# byte mottogs via TCP"
 
-#: src/fs/gnunet-service-fs_pe.c:606 src/fs/gnunet-service-fs_pe.c:692
-#: src/fs/gnunet-service-fs_pe.c:734
+#: src/fs/gnunet-service-fs_pe.c:608 src/fs/gnunet-service-fs_pe.c:694
+#: src/fs/gnunet-service-fs_pe.c:736
 msgid "# query plan entries"
 msgstr ""
 
 #: src/fs/gnunet-service-fs_cp.c:615 src/fs/gnunet-service-fs_cp.c:1543
-#: src/transport/gnunet-service-transport_neighbours.c:938
-#: src/transport/gnunet-service-transport_neighbours.c:943
-#: src/transport/gnunet-service-transport_neighbours.c:1269
-#: src/transport/gnunet-service-transport_neighbours.c:2382
-#: src/transport/gnunet-service-transport_neighbours.c:2453
+#: src/transport/gnunet-service-transport_neighbours.c:934
+#: src/transport/gnunet-service-transport_neighbours.c:939
+#: src/transport/gnunet-service-transport_neighbours.c:1263
+#: src/transport/gnunet-service-transport_neighbours.c:2364
+#: src/transport/gnunet-service-transport_neighbours.c:2430
 #: src/topology/gnunet-daemon-topology.c:654
 #: src/topology/gnunet-daemon-topology.c:756
 #, fuzzy
@@ -3122,11 +3122,11 @@ msgstr "Ogiltiga argument: "
 msgid "# running average P2P latency (ms)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs.c:300 src/fs/gnunet-service-fs.c:490
+#: src/fs/gnunet-service-fs.c:300 src/fs/gnunet-service-fs.c:489
 msgid "# Loopback routes suppressed"
 msgstr ""
 
-#: src/fs/gnunet-service-fs.c:583 src/topology/gnunet-daemon-topology.c:1290
+#: src/fs/gnunet-service-fs.c:581 src/topology/gnunet-daemon-topology.c:1290
 #: src/topology/gnunet-daemon-topology.c:1297
 #: src/hostlist/gnunet-daemon-hostlist.c:295
 #, fuzzy, c-format
@@ -3139,98 +3139,98 @@ msgstr "Misslyckades att initiera tjänsten \"%s\".\n"
 msgid "`%s' failed on file `%s': %s"
 msgstr "\"%s\" misslyckades för enhet %s: %u\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:465
+#: src/transport/gnunet-service-transport_neighbours.c:466
 msgid "# failed connection attempts due to timeout"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:857
+#: src/transport/gnunet-service-transport_neighbours.c:855
 #, fuzzy
 msgid "# peers disconnected due to external request"
 msgstr "# av anslutna parter"
 
-#: src/transport/gnunet-service-transport_neighbours.c:947
+#: src/transport/gnunet-service-transport_neighbours.c:942
 #, fuzzy
 msgid "# fast reconnects failed"
 msgstr "# av anslutna parter"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1002
+#: src/transport/gnunet-service-transport_neighbours.c:997
 #, fuzzy
 msgid "# peers disconnected due to timeout"
 msgstr "# av anslutna parter"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1027
+#: src/transport/gnunet-service-transport_neighbours.c:1022
 #, fuzzy
 msgid "# keepalives sent"
 msgstr "# sessionsnycklar skickade"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1068
+#: src/transport/gnunet-service-transport_neighbours.c:1064
 #, fuzzy
 msgid "# peers disconnected due to global disconnect"
 msgstr "Nätverksannonsering avstängd i konfigurationen!\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1800
-#: src/transport/gnunet-service-transport_neighbours.c:1821
+#: src/transport/gnunet-service-transport_neighbours.c:1778
+#: src/transport/gnunet-service-transport_neighbours.c:1799
 msgid "# messages not sent (no such peer or not connected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1837
+#: src/transport/gnunet-service-transport_neighbours.c:1815
 msgid "# bytes in message queue for other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1889
+#: src/transport/gnunet-service-transport_neighbours.c:1867
 #, fuzzy
 msgid "# messages discarded due to lack of neighbour record"
 msgstr "Nätverksannonsering avstängd i konfigurationen!\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1925
+#: src/transport/gnunet-service-transport_neighbours.c:1903
 msgid "# bandwidth quota violations by other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1943
+#: src/transport/gnunet-service-transport_neighbours.c:1921
 msgid "# ms throttling suggested"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1972
+#: src/transport/gnunet-service-transport_neighbours.c:1950
 msgid "# KEEPALIVE messages discarded (not connected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2023
+#: src/transport/gnunet-service-transport_neighbours.c:2002
 #, fuzzy
 msgid "# KEEPALIVE_RESPONSE messages discarded (not connected)"
 msgstr "Nätverksannonsering avstängd i konfigurationen!\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2031
+#: src/transport/gnunet-service-transport_neighbours.c:2010
 #, fuzzy
 msgid "# KEEPALIVE_RESPONSE messages discarded (not expected)"
 msgstr "Nätverksannonsering avstängd i konfigurationen!\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2092
+#: src/transport/gnunet-service-transport_neighbours.c:2076
 msgid "# SET QUOTA messages ignored (no such peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2110
+#: src/transport/gnunet-service-transport_neighbours.c:2094
 msgid "# disconnects due to quota of 0"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2228
+#: src/transport/gnunet-service-transport_neighbours.c:2212
 msgid "# disconnect messages ignored (old format)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2241
+#: src/transport/gnunet-service-transport_neighbours.c:2225
 msgid "# disconnect messages ignored (timestamp)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2317
+#: src/transport/gnunet-service-transport_neighbours.c:2302
 #, fuzzy
 msgid "# unexpected CONNECT_ACK messages (no peer)"
 msgstr "skicka ANTAL meddelanden"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2332
+#: src/transport/gnunet-service-transport_neighbours.c:2319
 #, fuzzy
 msgid "# unexpected CONNECT_ACK messages"
 msgstr "skicka ANTAL meddelanden"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2430
+#: src/transport/gnunet-service-transport_neighbours.c:2410
 #, fuzzy
 msgid "# unexpected ACK messages"
 msgstr "# krypterade PONG-meddelanden skickade"
@@ -3277,13 +3277,13 @@ msgstr ""
 msgid "# disconnects due to blacklist"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:189
+#: src/transport/plugin_transport_http_server.c:191
 msgid ""
 "Could not create a new TLS certificate, program `gnunet-transport-"
 "certificate-creation' could not be started!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:213
+#: src/transport/plugin_transport_http_server.c:215
 msgid "No usable TLS certificate found and creating one failed!\n"
 msgstr ""
 
@@ -3291,34 +3291,34 @@ msgstr ""
 msgid "# refreshed my HELLO"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:1520
+#: src/transport/plugin_transport_udp.c:1529
 #, fuzzy
 msgid "# IPv4 broadcast HELLO beacons received via udp"
 msgstr "# krypterade PONG-meddelanden mottagna"
 
-#: src/transport/plugin_transport_udp.c:1557
+#: src/transport/plugin_transport_udp.c:1567
 #, fuzzy
 msgid "# IPv6 multicast HELLO beacons received via udp"
 msgstr "# krypterade PONG-meddelanden mottagna"
 
-#: src/transport/plugin_transport_udp.c:2043
+#: src/transport/plugin_transport_udp.c:2063
 #: src/transport/plugin_transport_udp_new.c:1218
 #, c-format
 msgid "Given `%s' option is out of range: %llu > %u\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:2094
+#: src/transport/plugin_transport_udp.c:2114
 #: src/transport/plugin_transport_udp_new.c:1268
 #, fuzzy, c-format
 msgid "Invalid IPv6 address: `%s'\n"
 msgstr "Ogiltigt svar på \"%s\".\n"
 
-#: src/transport/plugin_transport_udp.c:2237
+#: src/transport/plugin_transport_udp.c:2258
 #, c-format
 msgid "Failed to set IPv4 broadcast option for broadcast socket on port %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:2298
+#: src/transport/plugin_transport_udp.c:2325
 #: src/transport/plugin_transport_udp_new.c:1396
 #, fuzzy
 msgid "Failed to open UDP sockets\n"
@@ -3439,46 +3439,46 @@ msgstr ""
 msgid "TCP transport advertises itself as being on port %llu\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:920
+#: src/transport/plugin_transport_http.c:923
 msgid "Disabling IPv6 since it is not supported on this system!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:968
+#: src/transport/plugin_transport_http.c:971
 #, fuzzy
 msgid "Require valid port number for service in configuration!\n"
 msgstr "Inga applikationer definierade i konfiguration!\n"
 
-#: src/transport/plugin_transport_http.c:1115
+#: src/transport/plugin_transport_http.c:1118
 #, c-format
 msgid "Found %u addresses to report to NAT service\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:1128
+#: src/transport/plugin_transport_http.c:1131
 #, c-format
 msgid "FREEING %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:1203
+#: src/transport/plugin_transport_http.c:1206
 msgid "Neither IPv4 nor IPv6 are enabled! Fix in configuration\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:1216
+#: src/transport/plugin_transport_http.c:1219
 #, fuzzy
 msgid "Port is required! Fix in configuration\n"
 msgstr " gconfig\tGTK-konfiguration\n"
 
-#: src/transport/plugin_transport_http.c:1227
+#: src/transport/plugin_transport_http.c:1230
 msgid "Port 0, client only mode\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:1247
+#: src/transport/plugin_transport_http.c:1250
 #, c-format
 msgid ""
 "Specific IPv4 address `%s' for plugin %s in configuration file is invalid! "
 "Binding to all addresses!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http.c:1277
+#: src/transport/plugin_transport_http.c:1280
 #, c-format
 msgid ""
 "Specific IPv6 address `%s' for plugin %s in configuration file is invalid! "
@@ -3568,100 +3568,100 @@ msgid "# wlan session created"
 msgstr "# sessionsnycklar accepterade"
 
 #: src/transport/plugin_transport_wlan.c:992
-#: src/transport/plugin_transport_wlan.c:1154
-#: src/transport/plugin_transport_wlan.c:1175
-#: src/transport/plugin_transport_wlan.c:1206
-#: src/transport/plugin_transport_wlan.c:2409
-#: src/transport/plugin_transport_wlan.c:3268
+#: src/transport/plugin_transport_wlan.c:1155
+#: src/transport/plugin_transport_wlan.c:1176
+#: src/transport/plugin_transport_wlan.c:1207
+#: src/transport/plugin_transport_wlan.c:2412
+#: src/transport/plugin_transport_wlan.c:3273
 msgid "# wlan pending sessions"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1249
-#: src/transport/plugin_transport_wlan.c:1964
+#: src/transport/plugin_transport_wlan.c:1250
+#: src/transport/plugin_transport_wlan.c:1967
 #, fuzzy
 msgid "# wlan pending fragments"
 msgstr "# byte mottogs via TCP"
 
-#: src/transport/plugin_transport_wlan.c:1440
+#: src/transport/plugin_transport_wlan.c:1441
 #, c-format
 msgid "Finished reading from wlan-helper stdout with code: %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1805
+#: src/transport/plugin_transport_wlan.c:1808
 msgid "# wlan hello beacons send"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1838
-#: src/transport/plugin_transport_wlan.c:2053
-#: src/transport/plugin_transport_wlan.c:2148
+#: src/transport/plugin_transport_wlan.c:1841
+#: src/transport/plugin_transport_wlan.c:2056
+#: src/transport/plugin_transport_wlan.c:2151
 #, c-format
 msgid "Error writing to wlan helper. errno == %d, ERROR: %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2039
+#: src/transport/plugin_transport_wlan.c:2042
 msgid "# wlan acks send"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2110
+#: src/transport/plugin_transport_wlan.c:2113
 #, fuzzy
 msgid "# wlan fragments send"
 msgstr "# byte mottogs via TCP"
 
-#: src/transport/plugin_transport_wlan.c:2276
+#: src/transport/plugin_transport_wlan.c:2279
 #, c-format
 msgid "Wlan Address len %d is wrong\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2281
+#: src/transport/plugin_transport_wlan.c:2284
 #, fuzzy
 msgid "# wlan messages queued"
 msgstr "# krypterade PONG-meddelanden mottagna"
 
-#: src/transport/plugin_transport_wlan.c:2370
-#: src/transport/plugin_transport_wlan.c:3024
-#: src/transport/plugin_transport_wlan.c:3271
+#: src/transport/plugin_transport_wlan.c:2373
+#: src/transport/plugin_transport_wlan.c:3029
+#: src/transport/plugin_transport_wlan.c:3276
 msgid "# wlan mac endpoints"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2598
+#: src/transport/plugin_transport_wlan.c:2601
 #, fuzzy
 msgid "# wlan whole messages received"
 msgstr "# krypterade PONG-meddelanden mottagna"
 
-#: src/transport/plugin_transport_wlan.c:2798
+#: src/transport/plugin_transport_wlan.c:2803
 #, fuzzy
 msgid "# wlan hello messages received"
 msgstr "# krypterade PONG-meddelanden mottagna"
 
-#: src/transport/plugin_transport_wlan.c:2835
+#: src/transport/plugin_transport_wlan.c:2840
 #, fuzzy
 msgid "# wlan fragments received"
 msgstr "# byte mottogs via TCP"
 
-#: src/transport/plugin_transport_wlan.c:2887
+#: src/transport/plugin_transport_wlan.c:2892
 #, fuzzy
 msgid "# wlan acks received"
 msgstr "# klartext PONG-meddelanden mottagna"
 
-#: src/transport/plugin_transport_wlan.c:2984
+#: src/transport/plugin_transport_wlan.c:2989
 msgid "# wlan mac endpoints timeouts"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:3008
+#: src/transport/plugin_transport_wlan.c:3013
 #, fuzzy
 msgid "# wlan mac endpoints created"
 msgstr "# byte mottogs via TCP"
 
-#: src/transport/plugin_transport_wlan.c:3066
+#: src/transport/plugin_transport_wlan.c:3071
 msgid "# wlan WLAN_HELPER_DATA received"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:3122
+#: src/transport/plugin_transport_wlan.c:3127
 #, fuzzy
 msgid "# wlan messages for this client received"
 msgstr "# krypterade PONG-meddelanden mottagna"
 
-#: src/transport/plugin_transport_wlan.c:3133
+#: src/transport/plugin_transport_wlan.c:3138
 #, fuzzy
 msgid "# wlan messages inside WLAN_HELPER_DATA received"
 msgstr "# krypterade PONG-meddelanden mottagna"
@@ -3711,55 +3711,55 @@ msgstr ""
 msgid "Peer `%s': %s\n"
 msgstr "Jag är ändpunkt \"%s\".\n"
 
-#: src/transport/gnunet-transport.c:519
+#: src/transport/gnunet-transport.c:515
 #, fuzzy, c-format
 msgid "Failed to parse peer identity `%s'\n"
 msgstr "Misslyckades att läsa kompislista från \"%s\"\n"
 
-#: src/transport/gnunet-transport.c:556
+#: src/transport/gnunet-transport.c:552
 msgid "measure how fast we are receiving data (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:559
+#: src/transport/gnunet-transport.c:555
 #, fuzzy
 msgid "try to connect to the given peer"
 msgstr "Misslyckades att ansluta till gnunetd.\n"
 
-#: src/transport/gnunet-transport.c:562
+#: src/transport/gnunet-transport.c:558
 #, fuzzy
 msgid "provide information about all current connections (once)"
 msgstr "Skriv ut information om GNUnets motparter."
 
-#: src/transport/gnunet-transport.c:566
+#: src/transport/gnunet-transport.c:562
 msgid "send data for benchmarking to the other peer (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:569
+#: src/transport/gnunet-transport.c:565
 msgid "test transport configuration (involves external server)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:572
+#: src/transport/gnunet-transport.c:568
 #, fuzzy
 msgid "do not resolve hostnames"
 msgstr "Misslyckades att läsa kompislista från \"%s\"\n"
 
-#: src/transport/gnunet-transport.c:580
+#: src/transport/gnunet-transport.c:576
 #, fuzzy
 msgid "Direct access to transport service."
 msgstr "Misslyckades att ansluta till gnunetd.\n"
 
-#: src/transport/gnunet-service-transport_validation.c:412
+#: src/transport/gnunet-service-transport_validation.c:408
 msgid "# address records discarded"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:458
+#: src/transport/gnunet-service-transport_validation.c:457
 #, c-format
 msgid ""
 "Not transmitting `%s' with `%s', message too big (%u bytes!). This should "
 "not happen.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:493
+#: src/transport/gnunet-service-transport_validation.c:494
 #, fuzzy
 msgid "# PING without HELLO messages sent"
 msgstr "# PING-meddelanden i klartext skickade"
@@ -3768,35 +3768,35 @@ msgstr "# PING-meddelanden i klartext skickade"
 msgid "# address revalidations started"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:776
+#: src/transport/gnunet-service-transport_validation.c:773
 #, fuzzy
 msgid "# PING message for different peer received"
 msgstr "# PING-meddelanden skapade"
 
-#: src/transport/gnunet-service-transport_validation.c:812
+#: src/transport/gnunet-service-transport_validation.c:808
 #, c-format
 msgid ""
 "Not confirming PING with address `%s' since I cannot confirm having this "
 "address.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:882
+#: src/transport/gnunet-service-transport_validation.c:876
 msgid "# PONGs unicast via reliable transport"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:891
+#: src/transport/gnunet-service-transport_validation.c:885
 msgid "# PONGs multicast to all available addresses"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1015
+#: src/transport/gnunet-service-transport_validation.c:1007
 msgid "# PONGs dropped, no matching pending validation"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1040
+#: src/transport/gnunet-service-transport_validation.c:1032
 msgid "# PONGs dropped, signature expired"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1099
+#: src/transport/gnunet-service-transport_validation.c:1091
 #, fuzzy, c-format
 msgid "Adding `%s' without addresses for peer `%s'\n"
 msgstr "Motpart \"%s\" med pålitlighet %8u och adress \"%s\"\n"
@@ -3834,16 +3834,16 @@ msgstr "# krypterade PONG-meddelanden mottagna"
 msgid "Received unexpected message of type %u in %s:%u\n"
 msgstr "Mottog skadat meddelande från motpart \"%s\"i %s:%d.\n"
 
-#: src/transport/gnunet-service-transport.c:156
+#: src/transport/gnunet-service-transport.c:158
 #, fuzzy
 msgid "# bytes payload discarded due to not connected peer "
 msgstr "Nätverksannonsering avstängd i konfigurationen!\n"
 
-#: src/transport/gnunet-service-transport.c:514
+#: src/transport/gnunet-service-transport.c:519
 msgid "Transport service is lacking key configuration settings.  Exiting.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport.c:523
+#: src/transport/gnunet-service-transport.c:528
 msgid "Transport service could not access hostkey.  Exiting.\n"
 msgstr ""
 
@@ -4234,33 +4234,33 @@ msgstr ""
 msgid "GNUnet NAT traversal test helper daemon"
 msgstr ""
 
-#: src/nat/nat.c:805
+#: src/nat/nat.c:803
 #, c-format
 msgid "gnunet-helper-nat-server generated malformed address `%s'\n"
 msgstr ""
 
-#: src/nat/nat.c:854
+#: src/nat/nat.c:852
 #, fuzzy, c-format
 msgid "Failed to start %s\n"
 msgstr "Misslyckades att starta samling.\n"
 
-#: src/nat/nat.c:1123
+#: src/nat/nat.c:1121
 #, fuzzy, c-format
 msgid "Malformed %s `%s' given in configuration!\n"
 msgstr "Kunde inte spara konfiguration!"
 
-#: src/nat/nat.c:1189 src/nat/nat.c:1199
+#: src/nat/nat.c:1187 src/nat/nat.c:1197
 #, c-format
 msgid ""
 "Configuration requires `%s', but binary is not installed properly (SUID bit "
 "not set).  Option disabled.\n"
 msgstr ""
 
-#: src/nat/nat.c:1331
+#: src/nat/nat.c:1329
 msgid "Internal IP address not known, cannot use ICMP NAT traversal method\n"
 msgstr ""
 
-#: src/nat/nat.c:1343
+#: src/nat/nat.c:1341
 #, c-format
 msgid "Running gnunet-helper-nat-client %s %s %u\n"
 msgstr ""
@@ -4298,16 +4298,16 @@ msgstr ""
 msgid "Loading block plugin `%s'\n"
 msgstr "Testar transport(er) %s\n"
 
-#: src/mesh/gnunet-service-mesh.c:4218
+#: src/mesh/gnunet-service-mesh.c:4212
 msgid "MESH: Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:4423
+#: src/mesh/gnunet-service-mesh.c:4417
 #, fuzzy
 msgid "Mesh service is lacking key configuration settings.  Exiting.\n"
 msgstr "GNUnet-konfiguration"
 
-#: src/mesh/gnunet-service-mesh.c:4432
+#: src/mesh/gnunet-service-mesh.c:4426
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "Kunde inte komma åt namnrymdsinformation.\n"
@@ -4603,30 +4603,30 @@ msgstr "Misslyckades att läsa kompislista från \"%s\"\n"
 msgid "Could not start hostlist HTTP server on port %u\n"
 msgstr ""
 
-#: src/peerinfo-tool/gnunet-peerinfo.c:219
+#: src/peerinfo-tool/gnunet-peerinfo.c:216
 #, fuzzy, c-format
 msgid "Could not find option `%s:%s' in configuration.\n"
 msgstr "Kunde inte hitta motpart \"%s\" i routingtabell!\n"
 
-#: src/peerinfo-tool/gnunet-peerinfo.c:226
+#: src/peerinfo-tool/gnunet-peerinfo.c:223
 #, fuzzy, c-format
 msgid "Loading hostkey from `%s' failed.\n"
 msgstr "Tolkning av HTTP-svar för URL \"%s\" misslyckades.\n"
 
-#: src/peerinfo-tool/gnunet-peerinfo.c:238
+#: src/peerinfo-tool/gnunet-peerinfo.c:235
 #, c-format
 msgid "I am peer `%s'.\n"
 msgstr "Jag är ändpunkt \"%s\".\n"
 
-#: src/peerinfo-tool/gnunet-peerinfo.c:258
+#: src/peerinfo-tool/gnunet-peerinfo.c:255
 msgid "output only the identity strings"
 msgstr ""
 
-#: src/peerinfo-tool/gnunet-peerinfo.c:261
+#: src/peerinfo-tool/gnunet-peerinfo.c:258
 msgid "output our own identity only"
 msgstr ""
 
-#: src/peerinfo-tool/gnunet-peerinfo.c:267
+#: src/peerinfo-tool/gnunet-peerinfo.c:264
 #, fuzzy
 msgid "Print information about peers."
 msgstr "Skriv ut information om GNUnets motparter."
