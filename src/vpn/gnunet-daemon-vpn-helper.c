@@ -607,7 +607,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
                      sizeof (GNUNET_HashCode) + ntohs (pkt->ip_hdr.tot_lngth) -
                      4 * pkt->ip_hdr.hdr_lngth);
 
-          GNUNET_MESH_ApplicationType app_type;
+          GNUNET_MESH_ApplicationType app_type = 0; /* make compiler happy */
 
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "me->addrlen is %d\n",
                       me->addrlen);
