@@ -118,7 +118,9 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
  * We received some payload.  Prepare to pass it on to our clients.
  *
  * @param peer (claimed) identity of the other peer
- * @param message the message, never NULL
+ * @param address the address
+ * @param session session used
+ * @param msg the message to process
  * @param ats performance information
  * @param ats_count number of records in ats
  * @return how long the plugin should wait until receiving more data
@@ -369,6 +371,8 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param session session to use (if available)
  * @param bandwidth_out assigned outbound bandwidth for the connection, 0 to disconnect from peer
  * @param bandwidth_in assigned inbound bandwidth for the connection, 0 to disconnect from peer
+ * @param ats ATS information
+ * @param number of ATS elements
  */
 static void
 ats_request_address_change (void *cls,

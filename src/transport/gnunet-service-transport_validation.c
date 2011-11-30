@@ -705,13 +705,12 @@ GST_validation_stop ()
  *
  * @param cls the PONG message
  * @param public_key public key for the peer, never NULL
- * @param target peer this change is about, never NULL
  * @param valid_until is ZERO if we never validated the address,
  *                    otherwise a time up to when we consider it (or was) valid
  * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
  *                          is ZERO if the address is considered valid (no validation needed)
  *                          otherwise a time in the future if we're currently denying re-validation
- * @param adress target address
+ * @param address target address
  */
 static void
 multicast_pong (void *cls,
@@ -1165,15 +1164,15 @@ GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
  * Based on this, the validation module will measure latency for the
  * address more or less often.
  *
- * @param sender peer FIXME: redundant!
  * @param address the address
+ * @param session the session
  * @param in_use GNUNET_YES if we are now using the address for a connection,
  *               GNUNET_NO if we are no longer using the address for a connection
  */
 void
-GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
-                                const struct GNUNET_HELLO_Address *address,
-                                struct Session *session, int in_use)
+GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
+                                struct Session *session,
+                                int in_use)
 {
   struct ValidationEntry *ve;
 
@@ -1189,7 +1188,7 @@ GST_validation_set_address_use (const struct GNUNET_PeerIdentity *sender,
   if (ve->in_use == in_use)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "GST_validation_set_address_use: %s %s: ve->in_use %i <-> in_use %i\n",
-                GNUNET_i2s (sender), GST_plugins_a2s (address), ve->in_use,
+                GNUNET_i2s (&address->peer), GST_plugins_a2s (address), ve->in_use,
                 in_use);
   GNUNET_break (ve->in_use != in_use);  /* should be different... */
   ve->in_use = in_use;

@@ -894,7 +894,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     GNUNET_assert (NULL != n->address);
     if (n->address_state == USED)
     {
-      GST_validation_set_address_use (&n->id, n->address, n->session,
+      GST_validation_set_address_use (n->address, n->session,
                                       GNUNET_NO);
 
       GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
@@ -1245,7 +1245,7 @@ send_switch_address_continuation (void *cls,
   case S_CONNECTED:
     if (n->address_state == FRESH)
     {
-      GST_validation_set_address_use (&n->id, cc->address, cc->session,
+      GST_validation_set_address_use (cc->address, cc->session,
                                       GNUNET_YES);
       GNUNET_ATS_address_update (GST_ats, cc->address, cc->session, NULL, 0);
       GNUNET_ATS_address_in_use (GST_ats, cc->address, cc->session, GNUNET_YES);
@@ -1265,7 +1265,7 @@ send_switch_address_continuation (void *cls,
 
     if (n->address_state == FRESH)
     {
-      GST_validation_set_address_use (&n->id, cc->address, cc->session,
+      GST_validation_set_address_use (cc->address, cc->session,
                                       GNUNET_YES);
       GNUNET_ATS_address_update (GST_ats, cc->address, cc->session, NULL, 0);
       GNUNET_ATS_address_in_use (GST_ats, cc->address, cc->session, GNUNET_YES);
@@ -1431,7 +1431,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     GNUNET_assert (NULL != n->address);
     if (n->address_state == USED)
     {
-      GST_validation_set_address_use (&n->id, n->address, n->session,
+      GST_validation_set_address_use (n->address, n->session,
                                       GNUNET_NO);
       GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
       n->address_state = UNUSED;
@@ -1698,7 +1698,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   {
     if (n->address_state == USED)
     {
-      GST_validation_set_address_use (&n->id, n->address, n->session,
+      GST_validation_set_address_use (n->address, n->session,
                                       GNUNET_NO);
       GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
       n->address_state = UNUSED;
@@ -2334,7 +2334,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   GNUNET_assert (NULL != n->address);
   if (n->address_state == FRESH)
   {
-    GST_validation_set_address_use (&n->id, n->address, n->session, GNUNET_YES);
+    GST_validation_set_address_use (n->address, n->session, GNUNET_YES);
     GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
     n->address_state = USED;
   }
@@ -2421,7 +2421,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   GNUNET_assert (n->address != NULL);
   if (n->address_state == FRESH)
   {
-    GST_validation_set_address_use (&n->id, n->address, n->session, GNUNET_YES);
+    GST_validation_set_address_use (n->address, n->session, GNUNET_YES);
     GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
     n->address_state = USED;
   }
