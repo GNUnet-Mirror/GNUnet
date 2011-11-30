@@ -105,7 +105,7 @@ libgnunetutil_la_LIBADD = \
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-  -version-info 4:0:0
+  -version-info 5:0:0
 
 
 bin_PROGRAMS = \
