@@ -37,7 +37,7 @@
  * those take too long to run them in the usual "make check"
  * sequence.  Hence the value used for shipping is tiny.
  */
-#define MAX_SIZE 1024LL * 1024 * 16 * 1
+#define MAX_SIZE 1024LL * 1024 * 16 * 10
 
 #define ITERATIONS 2
 
