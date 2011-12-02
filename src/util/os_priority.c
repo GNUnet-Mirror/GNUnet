@@ -38,6 +38,8 @@
 
 #define GNUNET_OS_CONTROL_PIPE "GNUNET_OS_CONTROL_PIPE"
 
+#define DEBUG_OS GNUNET_EXTRA_LOGGING
+
 struct GNUNET_OS_Process
 {
   pid_t pid;
@@ -113,6 +115,7 @@ GNUNET_OS_install_parent_control_handler (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_INFO, _("Not installing a handler because $%s=%s\n"),
          GNUNET_OS_CONTROL_PIPE, env_buf);
+    putenv ("GNUNET_OS_CONTROL_PIPE=");
     return;
   }
   control_pipe =
@@ -122,6 +125,7 @@ GNUNET_OS_install_parent_control_handler (void *cls,
   if (control_pipe == NULL)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "open", env_buf);
+    putenv ("GNUNET_OS_CONTROL_PIPE=");
     return;
   }
 #if DEBUG_OS
@@ -130,6 +134,7 @@ GNUNET_OS_install_parent_control_handler (void *cls,
 #endif
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, control_pipe,
                                   &parent_control_handler, control_pipe);
+  putenv ("GNUNET_OS_CONTROL_PIPE=");
 }
 
 
