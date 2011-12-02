@@ -338,7 +338,7 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   DWORD error = 0;
 
 #if DEBUG_NETWORK
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_NETWORK_socket_close", "Closing 0x%x\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Closing 0x%x\n",
        desc->fd);
 #endif
   SetLastError (0);
@@ -346,7 +346,7 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   error = WSAGetLastError ();
   SetErrnoFromWinsockError (error);
 #if DEBUG_NETWORK
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_NETWORK_socket_close",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Closed 0x%x, closesocket() returned %d, GLE is %u\n", desc->fd, ret,
        error);
 #endif
