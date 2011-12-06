@@ -111,7 +111,7 @@ getWlanHeader (struct ieee80211_frame *Header, const char *to_mac_addr,
   memcpy (&Header->i_addr1, to_mac_addr, sizeof (mac_bssid));
 
   tmp16 = (uint16_t *) Header->i_dur;
-  *tmp16 = (uint16_t) htole16 ((size * 1000000) / rate + 290);
+  *tmp16 = (uint16_t) GNUNET_htole16 ((size * 1000000) / rate + 290);
   Header->llc[0] = WLAN_LLC_DSAP_FIELD;
   Header->llc[1] = WLAN_LLC_SSAP_FIELD;
 

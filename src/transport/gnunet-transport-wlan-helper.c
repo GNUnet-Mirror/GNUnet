@@ -96,7 +96,6 @@
 #include <errno.h>
 #include <dirent.h>
 #include <sys/param.h>
-#include <endian.h>
 #include <unistd.h>
 #include <stdint.h>
 
@@ -399,24 +398,6 @@ struct Hardware_Infos
   (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0xff00000000000000ULL) >> 56) ))
  /* *INDENT-ON* */
 
-#ifndef htole16
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define htole16(x) (x)
-#define le16toh(x) (x)
-#define htole32(x) (x)
-#define le32toh(x) (x)
-#define htole64(x) (x)
-#define le64toh(x) (x)
-#else
-#define htole16(x) ___my_swab16 (x)
-#define le16toh(x) ___my_swab16 (x)
-#define htole32(x) ___my_swab32 (x)
-#define le32toh(x) ___my_swab32 (x)
-#define htole64(x) ___my_swab64 (x)
-#define le64toh(x) ___my_swab64 (x)
-#endif
-#endif
-
 
 /**
  * struct ieee80211_radiotap_iterator - tracks walk through present radiotap args
@@ -494,13 +475,13 @@ ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator *iterator,
 
   /* sanity check for allowed length and radiotap length field */
 
-  if (max_length < (le16toh (radiotap_header->it_len)))
+  if (max_length < (GNUNET_le16toh (radiotap_header->it_len)))
     return (-EINVAL);
 
   iterator->rtheader = radiotap_header;
-  iterator->max_length = le16toh (radiotap_header->it_len);
+  iterator->max_length = GNUNET_le16toh (radiotap_header->it_len);
   iterator->arg_index = 0;
-  iterator->bitmap_shifter = le32toh (radiotap_header->it_present);
+  iterator->bitmap_shifter = GNUNET_le32toh (radiotap_header->it_present);
   iterator->arg =
       ((uint8_t *) radiotap_header) + sizeof (struct ieee80211_radiotap_header);
   iterator->this_arg = 0;
@@ -509,7 +490,7 @@ ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator *iterator,
 
   if ((iterator->bitmap_shifter & IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK))
   {
-    while (le32toh (*((uint32_t *) iterator->arg)) &
+    while (GNUNET_le32toh (*((uint32_t *) iterator->arg)) &
            IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK)
     {
       iterator->arg += sizeof (uint32_t);
@@ -670,7 +651,7 @@ next_entry:
       {
         /* b31 was set, there is more */
         /* move to next uint32_t bitmap */
-        iterator->bitmap_shifter = le32toh (*iterator->next_bitmap);
+        iterator->bitmap_shifter = GNUNET_le32toh (*iterator->next_bitmap);
         iterator->next_bitmap++;
       }
       else
@@ -963,7 +944,7 @@ linux_read (struct Hardware_Infos *dev, unsigned char *buf, size_t buf_size,
       {
 
       case IEEE80211_RADIOTAP_TSFT:
-        ri->ri_mactime = le64toh (*((uint64_t *) iterator.this_arg));
+        ri->ri_mactime = GNUNET_le64toh (*((uint64_t *) iterator.this_arg));
         break;
 
       case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
@@ -1043,7 +1024,7 @@ linux_read (struct Hardware_Infos *dev, unsigned char *buf, size_t buf_size,
         break;
       }
     }
-    n = le16toh (rthdr->it_len);
+    n = GNUNET_le16toh (rthdr->it_len);
     if (n <= 0 || n >= caplen)
       return 0;
   }
@@ -1285,12 +1266,12 @@ stdin_send_hw (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   struct RadioTapheader rtheader;
 
   rtheader.header.it_version = 0;
-  rtheader.header.it_len = htole16 (0x0c);
-  rtheader.header.it_present = htole32 (0x00008004);
+  rtheader.header.it_len = GNUNET_htole16 (0x0c);
+  rtheader.header.it_present = GNUNET_le16toh (0x00008004);
   rtheader.rate = 0x00;
   rtheader.pad1 = 0x00;
   rtheader.txflags =
-      htole16 (IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
+      GNUNET_htole16 (IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
 
   /*  { 0x00, 0x00, <-- radiotap version
    * 0x0c, 0x00, <- radiotap header length
@@ -1321,7 +1302,7 @@ stdin_send_hw (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
     exit (1);
   }
 
-  rtheader.header.it_len = htole16 (sizeof (rtheader));
+  rtheader.header.it_len = GNUNET_htole16 (sizeof (rtheader));
   rtheader.rate = header->rate;
   memcpy (write_pout->buf, &rtheader, sizeof (rtheader));
   memcpy (write_pout->buf + sizeof (rtheader), &header[1], sendsize);
