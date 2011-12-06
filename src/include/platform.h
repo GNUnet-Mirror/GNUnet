@@ -77,6 +77,9 @@
 #endif
 
 #ifdef _MSC_VER
+#ifndef FD_SETSIZE
+#define FD_SETSIZE 1024
+#endif
 #include <Winsock2.h>
 #include <ws2tcpip.h>
 #else
