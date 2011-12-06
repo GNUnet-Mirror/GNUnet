@@ -136,7 +136,6 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
     return NULL;
 #endif
 
-  GNUNET_assert_at (size < INT_MAX, filename, linenumber);
   result = malloc (size);
   if (result == NULL)
     return NULL;

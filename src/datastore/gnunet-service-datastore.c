@@ -1492,7 +1492,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   cache_size = quota / 8;       /* Or should we make this an option? */
   GNUNET_STATISTICS_set (stats, gettext_noop ("# cache size"), cache_size,
                          GNUNET_NO);
-  bf_size = quota / 32;         /* 8 bit per entry, 1 bit per 32 kb in DB */
+  if (quota / 32LL > (1 << 31)) 
+    bf_size = (1 << 31);          /* absolute limit: ~2 GB, beyond that BF just won't help anyway */
+  else
+    bf_size = quota / 32;         /* 8 bit per entry, 1 bit per 32 kb in DB */
   fn = NULL;
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_filename (cfg, "DATASTORE", "BLOOMFILTER",

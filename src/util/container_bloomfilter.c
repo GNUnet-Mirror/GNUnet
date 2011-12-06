@@ -463,7 +463,8 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
   if (size < BUFFSIZE)
     size = BUFFSIZE;
   ui = 1;
-  while (ui < size)
+  while ( (ui < size) &&
+	  (ui * 2 > ui) )
     ui *= 2;
   size = ui;                    /* make sure it's a power of 2 */
 
