@@ -535,20 +535,6 @@ GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
 }
 
 
-#define GNUNET_MIN(a,b) (((a) < (b)) ? (a) : (b))
-
-/**
- * Named constants for return values.  The following
- * invariants hold: "GNUNET_NO == 0" (to allow "if (GNUNET_NO)")
- * "GNUNET_OK != GNUNET_SYSERR", "GNUNET_OK != GNUNET_NO", "GNUNET_NO != GNUNET_SYSERR"
- * and finally "GNUNET_YES != GNUNET_NO".
- */
-#define GNUNET_OK      1
-#define GNUNET_SYSERR -1
-#define GNUNET_YES     1
-#define GNUNET_NO      0
-
-
 /**
  * Add incoming data to the receive buffer and call the
  * callback for all complete messages.
