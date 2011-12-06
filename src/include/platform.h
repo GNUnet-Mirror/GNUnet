@@ -69,11 +69,6 @@
 
 #ifdef CYGWIN
 #include <sys/reent.h>
-#define _REENT_ONLY
-#endif
-
-#ifdef CYGWIN
-#undef _REENT_ONLY
 #endif
 
 #ifdef _MSC_VER
