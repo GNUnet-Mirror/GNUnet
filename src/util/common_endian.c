@@ -30,7 +30,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
 
 uint64_t
-GNUNET_ntohll (uint64_t)
+GNUNET_ntohll (uint64_t n)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
   return n;
