@@ -461,10 +461,9 @@ struct ieee80211_radiotap_iterator
  * complete message is received by the tokenizer.
  *
  * @param cls closure
- * @param client identification of the client
  * @param message the actual message
  */
-typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls, void *client,
+typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls, 
                                                         const struct
                                                         GNUNET_MessageHeader *
                                                         message);
@@ -540,20 +539,14 @@ GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
  * callback for all complete messages.
  *
  * @param mst tokenizer to use
- * @param client_identity ID of client for which this is a buffer
  * @param buf input data to add
  * @param size number of bytes in buf
- * @param purge should any excess bytes in the buffer be discarded
- *       (i.e. for packet-based services like UDP)
- * @param one_shot only call callback once, keep rest of message in buffer
  * @return GNUNET_OK if we are done processing (need more data)
- *         GNUNET_NO if one_shot was set and we have another message ready
  *         GNUNET_SYSERR if the data stream is corrupt
  */
 int
 GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
-                           void *client_identity, const char *buf, size_t size,
-                           int purge, int one_shot)
+                           const char *buf, size_t size)
 {
   const struct GNUNET_MessageHeader *hdr;
   size_t delta;
@@ -588,11 +581,6 @@ do_align:
     }
     if (mst->pos - mst->off < sizeof (struct GNUNET_MessageHeader))
     {
-      if (purge)
-      {
-        mst->off = 0;
-        mst->pos = 0;
-      }
       return GNUNET_OK;
     }
     hdr = (const struct GNUNET_MessageHeader *) &ibuf[mst->off];
@@ -628,23 +616,9 @@ do_align:
     }
     if (mst->pos - mst->off < want)
     {
-      if (purge)
-      {
-        mst->off = 0;
-        mst->pos = 0;
-      }
       return GNUNET_OK;
     }
-    if (one_shot == GNUNET_SYSERR)
-    {
-      /* cannot call callback again, but return value saying that
-       * we have another full message in the buffer */
-      ret = GNUNET_NO;
-      goto copy;
-    }
-    if (one_shot == GNUNET_YES)
-      one_shot = GNUNET_SYSERR;
-    mst->cb (mst->cb_cls, client_identity, hdr);
+    mst->cb (mst->cb_cls, hdr);
     mst->off += want;
     if (mst->off == mst->pos)
     {
@@ -672,16 +646,7 @@ do_align:
       }
       if (size < want)
         break;                  /* or not, buffer incomplete, so copy to private buffer... */
-      if (one_shot == GNUNET_SYSERR)
-      {
-        /* cannot call callback again, but return value saying that
-         * we have another full message in the buffer */
-        ret = GNUNET_NO;
-        goto copy;
-      }
-      if (one_shot == GNUNET_YES)
-        one_shot = GNUNET_SYSERR;
-      mst->cb (mst->cb_cls, client_identity, hdr);
+      mst->cb (mst->cb_cls, hdr);
       buf += want;
       size -= want;
     }
@@ -692,8 +657,7 @@ do_align:
       goto do_align;
     }
   }
-copy:
-  if ((size > 0) && (!purge))
+  if (size > 0)
   {
     if (size + mst->pos > mst->curr_buf)
     {
@@ -707,8 +671,6 @@ copy:
     memcpy (&ibuf[mst->pos], buf, size);
     mst->pos += size;
   }
-  if (purge)
-    mst->off = 0;
   return ret;
 }
 
@@ -1536,11 +1498,10 @@ mac_set (struct ieee80211_frame *uint8_taIeeeHeader,
 /**
  * function to process the data from the stdin
  * @param cls pointer to the device struct
- * @param client not used
  * @param hdr pointer to the start of the packet
  */
 static void
-stdin_send_hw (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
+stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
 {
   struct Hardware_Infos *dev = cls;
   struct sendbuf *write_pout = &dev->write_pout;
@@ -1730,8 +1691,7 @@ main (int argc, char *argv[])
         /* stop reading... */
         stdin_open = 0;
       }
-      GNUNET_SERVER_mst_receive (stdin_mst, NULL, readbuf, ret, GNUNET_NO,
-                                 GNUNET_NO);
+      GNUNET_SERVER_mst_receive (stdin_mst, readbuf, ret);
     }
 
     if (FD_ISSET (dev.fd_raw, &rfds))
