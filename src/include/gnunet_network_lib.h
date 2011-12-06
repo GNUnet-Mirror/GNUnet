@@ -96,7 +96,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
  * @return NULL on error (including not supported on target platform)
  */
 struct GNUNET_NETWORK_Handle *
-GNUNET_NETWORK_socket_box_native (int fd);
+GNUNET_NETWORK_socket_box_native (SOCKTYPE fd);
 
 
 /**
@@ -320,8 +320,7 @@ GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
                           const struct GNUNET_NETWORK_Handle *desc);
 
 
-#ifdef __MINGW32__
-/* TODO: maybe #ifdef WINDOWS? -ndurner */
+#if WINDOWS
 /**
  * Add a W32 file handle to the fd set
  * @param fds fd set

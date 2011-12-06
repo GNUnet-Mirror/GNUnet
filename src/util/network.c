@@ -377,13 +377,20 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
  * @return NULL on error (including not supported on target platform)
  */
 struct GNUNET_NETWORK_Handle *
-GNUNET_NETWORK_socket_box_native (int fd)
+GNUNET_NETWORK_socket_box_native (SOCKTYPE fd)
 {
-#if MINGW
-  return NULL;
-#else
   struct GNUNET_NETWORK_Handle *ret;
-
+#if MINGW
+  unsigned long i;
+  DWORD d;
+  /* FIXME: Find a better call to check that FD is valid */
+  if (WSAIoctl (fd, FIONBIO, (void *) &i, sizeof (i), NULL, 0, &d, NULL, NULL) != 0)
+    return NULL;                /* invalid FD */
+  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
+  ret->fd = fd;
+  ret->af = AF_UNSPEC;
+  return ret;
+#else
   if (fcntl (fd, F_GETFD) < 0)
     return NULL;                /* invalid FD */
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));

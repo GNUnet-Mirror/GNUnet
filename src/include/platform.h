@@ -246,4 +246,12 @@ atoll (const char *nptr);
 #define MAKE_UNALIGNED(val) val
 #endif
 
+#if WINDOWS
+#define FDTYPE HANDLE
+#define SOCKTYPE SOCKET
+#else
+#define FDTYPE int
+#define SOCKTYPE int
+#endif
+
 #endif

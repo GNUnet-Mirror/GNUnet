@@ -275,7 +275,7 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
+GNUNET_OS_start_process_v (const SOCKTYPE *lsocks, const char *filename,
                            char *const argv[]);
 
 

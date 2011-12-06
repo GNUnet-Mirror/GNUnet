@@ -37,7 +37,7 @@
  */
 int
 start_service (struct GNUNET_SERVER_Client *client, const char *servicename,
-               const int *lsocks);
+               const SOCKTYPE *lsocks);
 
 /**
  * Stop listening for connections to a service.

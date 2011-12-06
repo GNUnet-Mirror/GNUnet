@@ -13,7 +13,7 @@
  * @return PID of the started process, -1 on error
  */
 static struct GNUNET_OS_Process *
-do_start_process (const int *lsocks, const char *first_arg, ...)
+do_start_process (const SOCKTYPE *lsocks, const char *first_arg, ...)
 {
   va_list ap;
   char **argv;

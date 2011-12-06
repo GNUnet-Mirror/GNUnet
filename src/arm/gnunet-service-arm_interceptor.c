@@ -980,9 +980,9 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ServiceListeningInfo *sli = cls;
   struct ServiceListeningInfo *pos;
   struct ServiceListeningInfo *next;
-  int *lsocks;
+  SOCKTYPE *lsocks;
   unsigned int ls;
-  int use_lsocks;
+  int disable_lsocks;
 
   sli->acceptTask = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
@@ -1025,11 +1025,19 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        GNUNET_NETWORK_get_fd (sli->listeningSocket));
   GNUNET_free (sli->listeningSocket);   /* deliberately no closing! */
   GNUNET_free (sli->service_addr);
+#if WINDOWS
+  GNUNET_array_append (lsocks, ls, INVALID_SOCKET);
+#else
   GNUNET_array_append (lsocks, ls, -1);
+#endif
   start_service (NULL, sli->serviceName, lsocks);
   ls = 0;
   while (lsocks[ls] != -1)
+#if WINDOWS
+    GNUNET_break (0 == closesocket (lsocks[ls++]));
+#else
     GNUNET_break (0 == close (lsocks[ls++]));
+#endif
   GNUNET_array_grow (lsocks, ls, 0);
   GNUNET_free (sli->serviceName);
   GNUNET_free (sli);

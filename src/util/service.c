@@ -1079,6 +1079,89 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 }
 
 
+#ifdef MINGW
+/**
+ * @return GNUNET_YES if ok, GNUNET_NO if not ok (must bind yourself),
+ * and GNUNET_SYSERR on error.
+ */
+static int
+receive_sockets_from_parent (struct GNUNET_SERVICE_Context *sctx)
+{
+  const char *env_buf;
+  int fail;
+  uint64_t count, i;
+  HANDLE lsocks_pipe;
+
+  env_buf = getenv ("GNUNET_OS_READ_LSOCKS");
+  if ((env_buf == NULL) || (strlen (env_buf) <= 0))
+  {
+    return GNUNET_NO;
+  }
+  /* Using W32 API directly here, because this pipe will
+   * never be used outside of this function, and it's just too much of a bother
+   * to create a GNUnet API that boxes a HANDLE (the way it is done with socks)
+   */
+  lsocks_pipe = (HANDLE) strtoul (env_buf, NULL, 10);
+  if (lsocks_pipe == 0 || lsocks_pipe == INVALID_HANDLE_VALUE)
+    return GNUNET_NO;
+
+  fail = 1;
+  do
+  {
+    int ret;
+    int fail2;
+    DWORD rd;
+
+    ret = ReadFile (lsocks_pipe, &count, sizeof (count), &rd, NULL);
+    if (ret == 0 || rd != sizeof (count) || count == 0)
+      break;
+    sctx->lsocks =
+        GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle *) * (count + 1));
+
+    fail2 = 1;
+    for (i = 0; i < count; i++)
+    {
+      WSAPROTOCOL_INFOA pi;
+      uint64_t size;
+      SOCKET s;
+      ret = ReadFile (lsocks_pipe, &size, sizeof (size), &rd, NULL);
+      if (ret == 0 || rd != sizeof (size) || size != sizeof (pi))
+        break;
+      ret = ReadFile (lsocks_pipe, &pi, sizeof (pi), &rd, NULL);
+      if (ret == 0 || rd != sizeof (pi))
+        break;
+      s = WSASocketA (pi.iAddressFamily, pi.iSocketType, pi.iProtocol, &pi, 0, WSA_FLAG_OVERLAPPED);
+      sctx->lsocks[i] = GNUNET_NETWORK_socket_box_native (s);
+      if (sctx->lsocks[i] == NULL)
+        break;
+      else if (i == count - 1)
+        fail2 = 0;
+    }
+    if (fail2)
+      break;
+    sctx->lsocks[count] = NULL;
+    fail = 0;
+  }
+  while (fail);
+
+  CloseHandle (lsocks_pipe);
+
+  if (fail)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Could not access a pre-bound socket, will try to bind myself\n"));
+    for (i = 0; sctx->lsocks[i] != NULL && i < count; i++)
+      GNUNET_break (0 == GNUNET_NETWORK_socket_close (sctx->lsocks[i]));
+    GNUNET_free (sctx->lsocks);
+    sctx->lsocks = NULL;
+    return GNUNET_NO;
+  }
+
+  return GNUNET_YES;
+}
+#endif
+
+
 /**
  * Setup addr, addrlen, idle_timeout
  * based on configuration!
@@ -1174,6 +1257,12 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     }
     unsetenv ("LISTEN_PID");
     unsetenv ("LISTEN_FDS");
+  }
+#else
+  if (getenv ("GNUNET_OS_READ_LSOCKS") != NULL)
+  {
+    receive_sockets_from_parent (sctx);
+    putenv ("GNUNET_OS_READ_LSOCKS=");
   }
 #endif
 

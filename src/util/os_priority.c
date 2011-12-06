@@ -852,7 +852,8 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  * @return process ID of the new process, -1 on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
+GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
+                           const char *filename,
                            char *const argv[])
 {
 #if ENABLE_WINDOWS_WORKAROUNDS
@@ -979,7 +980,7 @@ GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
 
   char path[MAX_PATH + 1];
 
-  char *our_env[3] = { NULL, NULL, NULL };
+  char *our_env[5] = { NULL, NULL, NULL, NULL, NULL };
   char *env_block = NULL;
   char *pathbuf;
   DWORD pathbuf_len, alloc_len;
@@ -988,8 +989,12 @@ GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
   char *libdir;
   char *ptr;
   char *non_const_filename;
+  struct GNUNET_DISK_PipeHandle *lsocks_pipe;
+  const struct GNUNET_DISK_FileHandle *lsocks_write_fd;
+  HANDLE lsocks_read;
+  HANDLE lsocks_write;
 
-  GNUNET_assert (lsocks == NULL);
+  int fail;
 
   /* Search in prefix dir (hopefully - the directory from which
    * the current module was loaded), bindir and libdir, then in PATH
@@ -1103,6 +1108,25 @@ GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
     GNUNET_free (path);
     return NULL;
   }
+  if (lsocks != NULL)
+  {
+    lsocks_pipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
+
+    if (lsocks_pipe == NULL)
+    {
+      GNUNET_free (cmd);
+      GNUNET_free (path);
+      GNUNET_DISK_pipe_close (lsocks_pipe);
+      return NULL;
+    }
+    lsocks_write_fd = GNUNET_DISK_pipe_handle (lsocks_pipe,
+        GNUNET_DISK_PIPE_END_WRITE);
+    GNUNET_DISK_internal_file_handle_ (lsocks_write_fd,
+                                       &lsocks_write, sizeof (HANDLE));
+    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+                                       (lsocks_pipe, GNUNET_DISK_PIPE_END_READ),
+                                       &lsocks_read, sizeof (HANDLE));
+  }
 
 #if DEBUG_OS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n",
@@ -1111,17 +1135,31 @@ GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
 
   GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
   GNUNET_asprintf (&our_env[1], "%s", childpipename);
-  our_env[2] = NULL;
+  GNUNET_free (childpipename);
+  if (lsocks == NULL)
+    our_env[2] = NULL;
+  else
+  {
+    /*This will tell the child that we're going to send lsocks over the pipe*/
+    GNUNET_asprintf (&our_env[2], "%s=", "GNUNET_OS_READ_LSOCKS");
+    GNUNET_asprintf (&our_env[3], "%lu", lsocks_read);
+    our_env[4] = NULL;
+  }
   env_block = CreateCustomEnvTable (our_env);
-  GNUNET_free (our_env[0]);
-  GNUNET_free (our_env[1]);
+  GNUNET_free_non_null (our_env[0]);
+  GNUNET_free_non_null (our_env[1]);
+  GNUNET_free_non_null (our_env[2]);
+  GNUNET_free_non_null (our_env[3]);
 
-  if (!CreateProcess
-      (path, cmd, NULL, NULL, FALSE, DETACHED_PROCESS | CREATE_SUSPENDED,
+  if (!CreateProcessA
+      (path, cmd, NULL, NULL, TRUE, DETACHED_PROCESS | CREATE_SUSPENDED,
        env_block, NULL, &start, &proc))
   {
     SetErrnoFromWinError (GetLastError ());
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "CreateProcess");
+    GNUNET_DISK_npipe_close (control_pipe);
+    if (lsocks != NULL)
+      GNUNET_DISK_pipe_close (lsocks_pipe);
     GNUNET_free (env_block);
     GNUNET_free (cmd);
     return NULL;
@@ -1139,6 +1177,85 @@ GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
   ResumeThread (proc.hThread);
   CloseHandle (proc.hThread);
   GNUNET_free (cmd);
+
+  if (lsocks == NULL)
+    return gnunet_proc;
+
+  GNUNET_DISK_pipe_close_end (lsocks_pipe, GNUNET_DISK_PIPE_END_READ);
+
+  /* This is a replacement for "goto error" that doesn't use goto */
+  fail = 1;
+  do
+  {
+    int wrote;
+    uint64_t size, count, i;
+
+    /* Tell the number of sockets */
+    for (count = 0; lsocks && lsocks[count] != INVALID_SOCKET; count++);
+
+    wrote = GNUNET_DISK_file_write (lsocks_write_fd, &count, sizeof (count));
+    if (wrote != sizeof (count))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to write %u count bytes to the child: %u\n", sizeof (count), GetLastError ());
+      break;
+    }
+    for (i = 0; lsocks && lsocks[i] != INVALID_SOCKET; i++)
+    {
+      WSAPROTOCOL_INFOA pi;
+      /* Get a socket duplication info */
+      if (SOCKET_ERROR == WSADuplicateSocketA (lsocks[i], gnunet_proc->pid, &pi))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to duplicate an socket[%llu]: %u\n", i, GetLastError ());
+        LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "CreateProcess");
+        break;
+      }
+      /* Synchronous I/O is not nice, but we can't schedule this:
+       * lsocks will be closed/freed by the caller soon, and until
+       * the child creates a duplicate, closing a socket here will
+       * close it for good.
+       */
+      /* Send the size of the structure
+       * (the child might be built with different headers...)
+       */
+      size = sizeof (pi);
+      wrote = GNUNET_DISK_file_write (lsocks_write_fd, &size, sizeof (size));
+      if (wrote != sizeof (size))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to write %u size[%llu] bytes to the child: %u\n", sizeof (size), i, GetLastError ());
+        break;
+      }
+      /* Finally! Send the data */
+      wrote = GNUNET_DISK_file_write (lsocks_write_fd, &pi, sizeof (pi));
+      if (wrote != sizeof (pi))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to write %u socket[%llu] bytes to the child: %u\n", sizeof (pi), i, GetLastError ());
+        break;
+      }
+    }
+    /* This will block us until the child makes a final read or closes
+     * the pipe (hence no 'wrote' check), since we have to wait for it
+     * to duplicate the last socket, before we return and start closing
+     * our own copies)
+     */
+    wrote = GNUNET_DISK_file_write (lsocks_write_fd, &count, sizeof (count));
+    fail = 0;
+  }
+  while (fail);
+
+  GNUNET_DISK_file_sync (lsocks_write_fd);
+  GNUNET_DISK_pipe_close (lsocks_pipe);
+
+  if (fail)
+  {
+    /* If we can't pass on the socket(s), the child will block forever,
+     * better put it out of its misery.
+     */
+    TerminateProcess (gnunet_proc->handle, 0);
+    CloseHandle (gnunet_proc->handle);
+    GNUNET_DISK_npipe_close (gnunet_proc->control_pipe);
+    GNUNET_free (gnunet_proc);
+    return NULL;
+  }
 
   return gnunet_proc;
 #endif

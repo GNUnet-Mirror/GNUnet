@@ -331,7 +331,7 @@ free_service (struct ServiceList *pos)
  * @param lsocks -1 terminated list of listen sockets to pass (systemd style), or NULL
  */
 static void
-start_process (struct ServiceList *sl, const int *lsocks)
+start_process (struct ServiceList *sl, const SOCKTYPE *lsocks)
 {
   char *loprefix;
   char *options;
@@ -422,7 +422,7 @@ start_process (struct ServiceList *sl, const int *lsocks)
  */
 int
 start_service (struct GNUNET_SERVER_Client *client, const char *servicename,
-               const int *lsocks)
+               const SOCKTYPE *lsocks)
 {
   struct ServiceList *sl;
   char *binary;
