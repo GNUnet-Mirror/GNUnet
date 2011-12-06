@@ -139,8 +139,7 @@ main (int argc, char *argv[])
   if (4 != argc)
   {
     fprintf (stderr,
-             "This program must be started with the interface and the targets and source mac as argument.\nThis program was compiled at ----- %s ----\n",
-             __TIMESTAMP__);
+             "This program must be started with the interface and the targets and source mac as argument.\n");
     fprintf (stderr,
              "Usage: interface-name mac-target mac-source\n"
              "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
