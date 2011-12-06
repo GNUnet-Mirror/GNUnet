@@ -989,7 +989,6 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
                                serviceListeningInfoList_tail, sli);
-#ifndef MINGW
   use_lsocks = GNUNET_NO;
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_have_value (cfg, sli->serviceName,
@@ -997,9 +996,6 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     use_lsocks =
         GNUNET_CONFIGURATION_get_value_yesno (cfg, sli->serviceName,
                                               "DISABLE_SOCKET_FORWARDING");
-#else
-  use_lsocks = GNUNET_YES;
-#endif
   if (GNUNET_NO != use_lsocks)
   {
     accept_and_forward (sli);

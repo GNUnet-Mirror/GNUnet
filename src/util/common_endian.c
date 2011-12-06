@@ -29,23 +29,23 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
 
-unsigned long long
-GNUNET_ntohll (unsigned long long n)
+uint64_t
+GNUNET_ntohll (uint64_t)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
   return n;
 #else
-  return (((unsigned long long) ntohl (n)) << 32) + ntohl (n >> 32);
+  return (((uint64_t) ntohl (n)) << 32) + ntohl (n >> 32);
 #endif
 }
 
-unsigned long long
-GNUNET_htonll (unsigned long long n)
+uint64_t
+GNUNET_htonll (uint64_t n)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
   return n;
 #else
-  return (((unsigned long long) htonl (n)) << 32) + htonl (n >> 32);
+  return (((uint64_t) htonl (n)) << 32) + htonl (n >> 32);
 #endif
 }
 

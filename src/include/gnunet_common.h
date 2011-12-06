@@ -417,20 +417,20 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
 /* ************************* endianess conversion ****************** */
 
 /**
- * Convert a long-long to host-byte-order.
+ * Convert unsigned 64-bit integer to host-byte-order.
  * @param n the value in network byte order
  * @return the same value in host byte order
  */
-unsigned long long
-GNUNET_ntohll (unsigned long long n);
+uint64_t
+GNUNET_ntohll (uint64_t n);
 
 /**
- * Convert a long long to network-byte-order.
+ * Convert unsigned 64-bit integer to network-byte-order.
  * @param n the value in host byte order
  * @return the same value in network byte order
  */
-unsigned long long
-GNUNET_htonll (unsigned long long n);
+uint64_t
+GNUNET_htonll (uint64_t n);
 
 
 /* ************************* allocation functions ****************** */
