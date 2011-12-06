@@ -546,6 +546,7 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   int dirwarn;
   char *fn;
   const char *env_logfile = NULL;
+  int altlog_fd;
 
   min_level = get_type (loglevel);
 #if !defined(GNUNET_CULL_LOGGING)
@@ -569,8 +570,33 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   if (NULL == fn)
     return GNUNET_SYSERR;
   dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
-  altlog = FOPEN (fn, "a");
-  if (altlog == NULL)
+  altlog_fd = OPEN (fn, O_APPEND |
+#if WINDOWS
+                        O_BINARY |
+#endif
+                        O_WRONLY);
+  if (altlog_fd != -1)
+  {
+    int dup_return;
+    if (GNUNET_stderr != NULL)
+      fclose (GNUNET_stderr);
+    dup_return = dup2 (altlog_fd, 2);
+    close (altlog_fd);
+    if (dup_return != -1)
+    {
+      altlog = fdopen (2, "ab");
+      if (altlog == NULL)
+      {
+        close (2);
+        altlog_fd = -1;
+      }
+    }
+    else
+    {
+      altlog_fd = -1;
+    }
+  }
+  if (altlog_fd == -1)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
     if (dirwarn)
@@ -581,8 +607,6 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
     return GNUNET_SYSERR;
   }
   GNUNET_free (fn);
-  if (GNUNET_stderr != NULL)
-    fclose (GNUNET_stderr);
   GNUNET_stderr = altlog;
   return GNUNET_OK;
 }
