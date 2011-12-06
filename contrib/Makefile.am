@@ -21,6 +21,7 @@ EXTRA_DIST = \
  hostlist.cgi \
  hostlist.php \
  report.sh \
+ testing_hostkeys.dat \
  gnunet_pyexpect.py.in \
  gnunet_janitor.py.in
 
