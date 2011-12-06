@@ -574,7 +574,13 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
 #if WINDOWS
                         O_BINARY |
 #endif
-                        O_WRONLY);
+                        O_WRONLY | O_CREAT,
+#if WINDOWS
+                        _S_IREAD | _S_IWRITE
+#else
+                        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
+#endif
+                   );
   if (altlog_fd != -1)
   {
     int dup_return;
