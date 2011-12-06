@@ -982,7 +982,7 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ServiceListeningInfo *next;
   SOCKTYPE *lsocks;
   unsigned int ls;
-  int disable_lsocks;
+  int use_lsocks;
 
   sli->acceptTask = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
