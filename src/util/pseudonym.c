@@ -47,6 +47,13 @@
 
 
 /**
+ * Configuration section we use.
+ */
+#define GNUNET_CLIENT_SERVICE_NAME "client"
+
+
+
+/**
  * Registered callbacks for discovery of pseudonyms.
  */
 struct DiscoveryCallback

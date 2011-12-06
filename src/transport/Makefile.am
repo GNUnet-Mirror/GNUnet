@@ -109,8 +109,6 @@ gnunet_transport_certificate_creation_LDADD = \
 
 gnunet_transport_wlan_helper_SOURCES = \
  gnunet-transport-wlan-helper.c
-gnunet_transport_wlan_helper_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_transport_wlan_helper_dummy_SOURCES = \
  gnunet-transport-wlan-helper-dummy.c

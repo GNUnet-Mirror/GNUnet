@@ -89,7 +89,6 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
                               socklen_t * address_len);
 
 
-#ifdef MINGW
 /**
  * Box a native socket (and check that it is a socket).
  *
@@ -98,7 +97,6 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
  */
 struct GNUNET_NETWORK_Handle *
 GNUNET_NETWORK_socket_box_native (SOCKTYPE fd);
-#endif
 
 
 /**

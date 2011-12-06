@@ -52,12 +52,6 @@
 #define GNUNET_UTIL_VERSION 0x00090000
 
 /**
- * Name used for "services" that are actually command-line
- * programs invoked by the end user.
- */
-#define GNUNET_CLIENT_SERVICE_NAME "client"
-
-/**
  * Named constants for return values.  The following
  * invariants hold: "GNUNET_NO == 0" (to allow "if (GNUNET_NO)")
  * "GNUNET_OK != GNUNET_SYSERR", "GNUNET_OK != GNUNET_NO", "GNUNET_NO != GNUNET_SYSERR"

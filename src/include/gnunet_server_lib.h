@@ -46,7 +46,7 @@ extern "C"
 #define GNUNET_SERVER_MAX_MESSAGE_SIZE 65536
 
 /**
- * Largest supported message.
+ * Smallest supported message.
  */
 #define GNUNET_SERVER_MIN_BUFFER_SIZE sizeof (struct GNUNET_MessageHeader)
 
