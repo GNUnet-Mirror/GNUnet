@@ -989,14 +989,15 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
                                serviceListeningInfoList_tail, sli);
-  use_lsocks = GNUNET_NO;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_have_value (cfg, sli->serviceName,
-                                       "DISABLE_SOCKET_FORWARDING"))
-    use_lsocks =
-        GNUNET_CONFIGURATION_get_value_yesno (cfg, sli->serviceName,
-                                              "DISABLE_SOCKET_FORWARDING");
-  if (GNUNET_NO != use_lsocks)
+  use_lsocks = GNUNET_YES;
+  if ((GNUNET_YES ==
+       GNUNET_CONFIGURATION_have_value (cfg, "arm",
+					"ENABLE_INTERCEPTOR")) &&
+      (GNUNET_YES ==
+       GNUNET_CONFIGURATION_get_value_yesno (cfg, "arm",
+					     "ENABLE_INTERCEPTOR")) )
+    use_lsocks = GNUNET_NO;
+  if (GNUNET_YES != use_lsocks)
   {
     accept_and_forward (sli);
     return;
