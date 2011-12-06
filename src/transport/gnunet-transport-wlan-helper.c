@@ -453,7 +453,7 @@ struct ieee80211_radiotap_iterator
 /**
  * Smallest supported message.
  */
-#define GNUNET_SERVER_MIN_BUFFER_SIZE sizeof (struct GNUNET_MessageHeader)
+#define MIN_BUFFER_SIZE sizeof (struct GNUNET_MessageHeader)
 
 
 /**
@@ -463,7 +463,7 @@ struct ieee80211_radiotap_iterator
  * @param cls closure
  * @param message the actual message
  */
-typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls, 
+typedef void (*MessageTokenizerCallback) (void *cls, 
                                                         const struct
                                                         GNUNET_MessageHeader *
                                                         message);
@@ -471,13 +471,13 @@ typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls,
 /**
  * Handle to a message stream tokenizer.
  */
-struct GNUNET_SERVER_MessageStreamTokenizer
+struct MessageStreamTokenizer
 {
 
   /**
    * Function to call on completed messages.
    */
-  GNUNET_SERVER_MessageTokenizerCallback cb;
+  MessageTokenizerCallback cb;
 
   /**
    * Closure for cb.
@@ -515,19 +515,19 @@ struct GNUNET_SERVER_MessageStreamTokenizer
  * @param cb_cls closure for cb
  * @return handle to tokenizer
  */
-struct GNUNET_SERVER_MessageStreamTokenizer *
-GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
+static struct MessageStreamTokenizer *
+mst_create (MessageTokenizerCallback cb,
                           void *cb_cls)
 {
-  struct GNUNET_SERVER_MessageStreamTokenizer *ret;
+  struct MessageStreamTokenizer *ret;
 
-  ret = malloc (sizeof (struct GNUNET_SERVER_MessageStreamTokenizer));
+  ret = malloc (sizeof (struct MessageStreamTokenizer));
   if (NULL == ret)
     exit (1);
-  ret->hdr = malloc (GNUNET_SERVER_MIN_BUFFER_SIZE);
+  ret->hdr = malloc (MIN_BUFFER_SIZE);
   if (NULL == ret->hdr)
     exit (2);
-  ret->curr_buf = GNUNET_SERVER_MIN_BUFFER_SIZE;
+  ret->curr_buf = MIN_BUFFER_SIZE;
   ret->cb = cb;
   ret->cb_cls = cb_cls;
   return ret;
@@ -544,8 +544,8 @@ GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
  * @return GNUNET_OK if we are done processing (need more data)
  *         GNUNET_SYSERR if the data stream is corrupt
  */
-int
-GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
+static int
+mst_receive (struct MessageStreamTokenizer *mst,
                            const char *buf, size_t size)
 {
   const struct GNUNET_MessageHeader *hdr;
@@ -680,8 +680,8 @@ do_align:
  *
  * @param mst tokenizer to destroy
  */
-void
-GNUNET_SERVER_mst_destroy (struct GNUNET_SERVER_MessageStreamTokenizer *mst)
+static void
+mst_destroy (struct MessageStreamTokenizer *mst)
 {
   free (mst->hdr);
   free (mst);
@@ -1578,7 +1578,7 @@ main (int argc, char *argv[])
   fd_set wfds;
   int retval;
   int stdin_open;
-  struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
+  struct MessageStreamTokenizer *stdin_mst;
 
   if (2 != argc)
   {
@@ -1597,7 +1597,7 @@ main (int argc, char *argv[])
 
   dev.write_pout.size = 0;
   dev.write_pout.pos = 0;
-  stdin_mst = GNUNET_SERVER_mst_create (&stdin_send_hw, &dev);  
+  stdin_mst = mst_create (&stdin_send_hw, &dev);  
 
   /* send mac to STDOUT first */
   write_std.pos = 0;
@@ -1691,7 +1691,7 @@ main (int argc, char *argv[])
         /* stop reading... */
         stdin_open = 0;
       }
-      GNUNET_SERVER_mst_receive (stdin_mst, readbuf, ret);
+      mst_receive (stdin_mst, readbuf, ret);
     }
 
     if (FD_ISSET (dev.fd_raw, &rfds))
@@ -1724,7 +1724,7 @@ main (int argc, char *argv[])
 
   }
   /* Error handling, try to clean up a bit at least */
-  GNUNET_SERVER_mst_destroy (stdin_mst);
+  mst_destroy (stdin_mst);
   close (dev.fd_raw);
   return 1;                     /* we never exit 'normally' */
 }
