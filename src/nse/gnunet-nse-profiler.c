@@ -40,6 +40,8 @@ struct NSEPeer
   struct GNUNET_TESTING_Daemon *daemon;
 
   struct GNUNET_NSE_Handle *nse_handle;
+
+  struct GNUNET_STATISTICS_Handle *stats;
 };
 
 
@@ -226,7 +228,87 @@ handle_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
 
 }
 
+/**
+ * Process core statistic values.
+ *
+ * @param cls closure
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+core_stats_iterator (void *cls, const char *subsystem, const char *name,
+                     uint64_t value, int is_persistent)
+{
+  struct NSEPeer *peer = cls;
+  char *output_buffer;
+  size_t size;
 
+  if (output_file != NULL)
+  {
+    size =
+        GNUNET_asprintf (&output_buffer, "%s -> %s [%s]: %llu\n",
+                          GNUNET_i2s (&peer->daemon->id),
+                         subsystem, name, value);
+    if (size != GNUNET_DISK_file_write (output_file, output_buffer, size))
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
+    GNUNET_free (output_buffer);
+  }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "%s -> %s [%s]: %llu\n",
+                GNUNET_i2s (&peer->daemon->id), subsystem, name, value);
+
+  return GNUNET_OK;
+}
+
+/**
+ * Continuation called by "get_stats" function.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK if statistics were
+ *        successfully obtained, GNUNET_SYSERR if not.
+ */
+static void
+core_stats_cont (void *cls, int success);
+
+static void
+core_get_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct NSEPeer *peer = cls;
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  {
+    GNUNET_STATISTICS_destroy(peer->stats, GNUNET_YES);
+  }
+  else
+  {
+    GNUNET_STATISTICS_get(peer->stats, "core", NULL,
+                          GNUNET_TIME_UNIT_FOREVER_REL,
+                          &core_stats_cont, &core_stats_iterator, peer);
+  }
+}
+
+/**
+ * Continuation called by "get_stats" function.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK if statistics were
+ *        successfully obtained, GNUNET_SYSERR if not.
+ */
+static void
+core_stats_cont (void *cls, int success)
+{
+  struct NSEPeer *peer = cls;
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                &core_get_stats, peer);
+}
+
+
+/**
+ *
+ */
 static void
 connect_nse_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -254,6 +336,13 @@ connect_nse_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                               current_peer);
       GNUNET_assert (current_peer->nse_handle != NULL);
     }
+    current_peer->stats = GNUNET_STATISTICS_create("profiler", current_peer->daemon->cfg);
+    GNUNET_STATISTICS_get(current_peer->stats, "core", NULL, GNUNET_TIME_UNIT_FOREVER_REL,
+                          &core_stats_cont, &core_stats_iterator, current_peer);
+    GNUNET_STATISTICS_get(current_peer->stats, "transport", NULL, GNUNET_TIME_UNIT_FOREVER_REL,
+                          NULL, &core_stats_iterator, current_peer);
+    GNUNET_STATISTICS_get(current_peer->stats, "nse", NULL, GNUNET_TIME_UNIT_FOREVER_REL,
+                          NULL, &core_stats_iterator, current_peer);
     GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, current_peer);
   }
 }
