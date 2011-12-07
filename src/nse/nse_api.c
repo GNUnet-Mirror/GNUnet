@@ -102,6 +102,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_NSE_Handle *h = cls;
   const struct GNUNET_NSE_ClientMessage *client_msg;
+  double std_dev;
 
   if (msg == NULL)
   {
@@ -119,8 +120,12 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   client_msg = (const struct GNUNET_NSE_ClientMessage *) msg;
+  if (isnormal (client_msg->std_deviation))
+    std_dev = client_msg->std_deviation;
+  else
+    std_dev = 0.0;
   h->recv_cb (h->recv_cb_cls, GNUNET_TIME_absolute_ntoh (client_msg->timestamp),
-              client_msg->size_estimate, client_msg->std_deviation);
+              client_msg->size_estimate, std_dev);
   GNUNET_CLIENT_receive (h->client, &message_handler, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 }
