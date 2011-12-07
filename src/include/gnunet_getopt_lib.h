@@ -232,7 +232,7 @@ GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 
 
 /**
- * Set an option of type 'unsigned long long' from the command line.
+ * Set an option of type 'unsigned int' from the command line.
  * A pointer to this function should be passed as part of the
  * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
  * of this type.  It should be followed by a pointer to a value of
