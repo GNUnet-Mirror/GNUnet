@@ -48,6 +48,9 @@ libgnunettesting_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la 
 libgnunettesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS)
+ 
+bin_PROGRAMS = \
+ gnunet-testing
 
 check_PROGRAMS = \
  test_testing \
@@ -84,6 +87,16 @@ TESTS = \
  test_testing_topology_clique \
  test_testing_2dtorus
 endif
+
+gnunet_testing_SOURCES = \
+ gnunet-testing.c         
+gnunet_testing_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la \  
+ $(GN_LIBINTL)
+#gnunet_testing_DEPENDENCIES =
+#  libgnunetttesting.la				
+
 
 test_testing_SOURCES = \
  test_testing.c
