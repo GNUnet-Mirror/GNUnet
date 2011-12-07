@@ -41,8 +41,7 @@ gnunet_arm_DEPENDENCIES = \
   libgnunetarm.la			  
 
 gnunet_service_arm_SOURCES = \
- gnunet-service-arm.c  gnunet-service-arm.h \
- gnunet-service-arm_interceptor.c       
+ gnunet-service-arm.c 
 gnunet_service_arm_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)

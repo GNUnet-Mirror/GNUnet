@@ -35,7 +35,6 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet-service-arm.h"
 #include "arm.h"
 
 
@@ -150,6 +149,67 @@ static GNUNET_SCHEDULER_TaskIdentifier child_death_task;
  */
 static GNUNET_SCHEDULER_TaskIdentifier child_restart_task;
 
+/**
+ *
+ */
+struct ServiceListeningInfo
+{
+  /**
+   * This is a linked list.
+   */
+  struct ServiceListeningInfo *next;
+
+  /**
+   * This is a linked list.
+   */
+  struct ServiceListeningInfo *prev;
+
+  /**
+   * Name of the service being forwarded.
+   */
+  char *serviceName;
+
+  /**
+   *
+   */
+  struct sockaddr *service_addr;
+
+  /**
+   *
+   */
+  socklen_t service_addr_len;
+
+  /**
+   * Our listening socket.
+   */
+  struct GNUNET_NETWORK_Handle *listeningSocket;
+
+  /**
+   * Task doing the accepting.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier acceptTask;
+};
+
+
+/**
+ * Array with the names of the services started by default.
+ */
+static char **defaultServicesList;
+
+/**
+ * Size of the defaultServicesList array.
+ */
+static unsigned int numDefaultServices;
+
+/**
+ *
+ */
+static struct ServiceListeningInfo *serviceListeningInfoList_head;
+
+/**
+ *
+ */
+static struct ServiceListeningInfo *serviceListeningInfoList_tail;
 
 
 /**
@@ -181,36 +241,181 @@ static int in_shutdown;
 static struct GNUNET_SERVER_Handle *server;
 
 
+#include "do_start_process.c"
+
+
 /**
- * If the configuration file changes, restart tasks that depended on that
- * option.
+ * Actually start the process for the given service.
  *
- * @param cls closure, NULL if we need to self-restart
- * @param tc context
+ * @param sl identifies service to start
+ * @param lsocks -1 terminated list of listen sockets to pass (systemd style), or NULL
  */
 static void
-config_change_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+start_process (struct ServiceList *sl, const SOCKTYPE *lsocks)
 {
-  struct ServiceList *pos;
-  struct stat sbuf;
+  char *loprefix;
+  char *options;
+  char *optpos;
+  char *optend;
+  const char *next;
+  int use_debug;
+  char b;
+  char *val;
 
-  pos = running_head;
-  while (pos != NULL)
+  /* start service */
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, sl->name, "PREFIX",
+                                             &loprefix))
+    loprefix = GNUNET_strdup (prefix_command);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, sl->name, "OPTIONS",
+                                             &options))
   {
-    /* FIXME: this test for config change may be a bit too coarse grained */
-    if ((0 == STAT (pos->config, &sbuf)) && (pos->mtime < sbuf.st_mtime) &&
-        (pos->proc != NULL))
+    options = GNUNET_strdup (final_option);
+    if (NULL == strstr (options, "%"))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _
-                  ("Restarting service `%s' due to configuration file change.\n"));
-      if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      else
-        pos->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+      /* replace '{}' with service name */
+      while (NULL != (optpos = strstr (options, "{}")))
+      {
+        optpos[0] = '%';
+        optpos[1] = 's';
+        GNUNET_asprintf (&optpos, options, sl->name);
+        GNUNET_free (options);
+        options = optpos;
+      }
+      /* replace '$PATH' with value associated with "PATH" */
+      while (NULL != (optpos = strstr (options, "$")))
+      {
+        optend = optpos + 1;
+        while (isupper ((unsigned char) *optend))
+          optend++;
+        b = *optend;
+        if ('\0' == b)
+          next = "";
+        else
+          next = optend + 1;
+        *optend = '\0';
+        if (GNUNET_OK !=
+            GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", optpos + 1,
+                                                   &val))
+          val = GNUNET_strdup ("");
+        *optpos = '\0';
+        GNUNET_asprintf (&optpos, "%s%s%c%s", options, val, b, next);
+        GNUNET_free (options);
+        GNUNET_free (val);
+        options = optpos;
+      }
     }
-    pos = pos->next;
   }
+  use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
+
+#if DEBUG_ARM
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting service `%s' using binary `%s' and configuration `%s'\n",
+              sl->name, sl->binary, sl->config);
+#endif
+  if (GNUNET_YES == use_debug)
+    sl->proc =
+        do_start_process (lsocks, loprefix, sl->binary, "-c", sl->config, "-L",
+                          "DEBUG", options, NULL);
+  else
+    sl->proc =
+        do_start_process (lsocks, loprefix, sl->binary, "-c", sl->config,
+                          options, NULL);
+  if (sl->proc == NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to start service `%s'\n"),
+                sl->name);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting service `%s'\n"), sl->name);
+  GNUNET_free (loprefix);
+  GNUNET_free (options);
+}
+
+
+/**
+ * Put the default services represented by a space separated string into an array of strings
+ *
+ * @param services space separated string of default services
+ */
+static void
+addDefaultServicesToList (const char *services)
+{
+  unsigned int i;
+  const char *token;
+  char *s;
+
+  if (strlen (services) == 0)
+    return;
+  s = GNUNET_strdup (services);
+  token = strtok (s, " ");
+  while (NULL != token)
+  {
+    numDefaultServices++;
+    token = strtok (NULL, " ");
+  }
+  GNUNET_free (s);
+
+  defaultServicesList = GNUNET_malloc (numDefaultServices * sizeof (char *));
+  i = 0;
+  s = GNUNET_strdup (services);
+  token = strtok (s, " ");
+  while (NULL != token)
+  {
+    defaultServicesList[i++] = GNUNET_strdup (token);
+    token = strtok (NULL, " ");
+  }
+  GNUNET_free (s);
+  GNUNET_assert (i == numDefaultServices);
+}
+
+
+/**
+ * Checks whether the serviceName is in the list of default services
+ *
+ * @param serviceName string to check its existance in the list
+ * @return GNUNET_YES if the service is started by default
+ */
+static int
+isInDefaultList (const char *serviceName)
+{
+  unsigned int i;
+
+  for (i = 0; i < numDefaultServices; i++)
+    if (strcmp (serviceName, defaultServicesList[i]) == 0)
+      return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
+/**
+ *
+ */
+static int
+stop_listening (const char *serviceName)
+{
+  struct ServiceListeningInfo *pos;
+  struct ServiceListeningInfo *next;
+  int ret;
+
+  ret = GNUNET_NO;
+  next = serviceListeningInfoList_head;
+  while (NULL != (pos = next))
+  {
+    next = pos->next;
+    if ((serviceName != NULL) && (strcmp (pos->serviceName, serviceName) != 0))
+      continue;
+    if (pos->acceptTask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (pos->acceptTask);
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_NETWORK_socket_close (pos->listeningSocket));
+    GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
+                                 serviceListeningInfoList_tail, pos);
+    GNUNET_free (pos->serviceName);
+    GNUNET_free (pos->service_addr);
+    GNUNET_free (pos);
+    ret = GNUNET_OK;
+  }
+  return ret;
 }
 
 
@@ -306,113 +511,6 @@ find_service (const char *name)
 
 
 /**
- * Remove and free an entry in the service list.
- *
- * @param pos entry to free
- */
-static void
-free_service (struct ServiceList *pos)
-{
-  GNUNET_CONTAINER_DLL_remove (running_head, running_tail, pos);
-  GNUNET_free_non_null (pos->config);
-  GNUNET_free_non_null (pos->binary);
-  GNUNET_free (pos->name);
-  GNUNET_free (pos);
-}
-
-
-#include "do_start_process.c"
-
-
-/**
- * Actually start the process for the given service.
- *
- * @param sl identifies service to start
- * @param lsocks -1 terminated list of listen sockets to pass (systemd style), or NULL
- */
-static void
-start_process (struct ServiceList *sl, const SOCKTYPE *lsocks)
-{
-  char *loprefix;
-  char *options;
-  char *optpos;
-  char *optend;
-  const char *next;
-  int use_debug;
-  char b;
-  char *val;
-
-  /* start service */
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, sl->name, "PREFIX",
-                                             &loprefix))
-    loprefix = GNUNET_strdup (prefix_command);
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, sl->name, "OPTIONS",
-                                             &options))
-  {
-    options = GNUNET_strdup (final_option);
-    if (NULL == strstr (options, "%"))
-    {
-      /* replace '{}' with service name */
-      while (NULL != (optpos = strstr (options, "{}")))
-      {
-        optpos[0] = '%';
-        optpos[1] = 's';
-        GNUNET_asprintf (&optpos, options, sl->name);
-        GNUNET_free (options);
-        options = optpos;
-      }
-      /* replace '$PATH' with value associated with "PATH" */
-      while (NULL != (optpos = strstr (options, "$")))
-      {
-        optend = optpos + 1;
-        while (isupper ((unsigned char) *optend))
-          optend++;
-        b = *optend;
-        if ('\0' == b)
-          next = "";
-        else
-          next = optend + 1;
-        *optend = '\0';
-        if (GNUNET_OK !=
-            GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", optpos + 1,
-                                                   &val))
-          val = GNUNET_strdup ("");
-        *optpos = '\0';
-        GNUNET_asprintf (&optpos, "%s%s%c%s", options, val, b, next);
-        GNUNET_free (options);
-        GNUNET_free (val);
-        options = optpos;
-      }
-    }
-  }
-  use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
-
-#if DEBUG_ARM
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting service `%s' using binary `%s' and configuration `%s'\n",
-              sl->name, sl->binary, sl->config);
-#endif
-  if (GNUNET_YES == use_debug)
-    sl->proc =
-        do_start_process (lsocks, loprefix, sl->binary, "-c", sl->config, "-L",
-                          "DEBUG", options, NULL);
-  else
-    sl->proc =
-        do_start_process (lsocks, loprefix, sl->binary, "-c", sl->config,
-                          options, NULL);
-  if (sl->proc == NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to start service `%s'\n"),
-                sl->name);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting service `%s'\n"), sl->name);
-  GNUNET_free (loprefix);
-  GNUNET_free (options);
-}
-
-
-/**
  * Start the specified service.
  *
  * @param client who is asking for this
@@ -420,7 +518,7 @@ start_process (struct ServiceList *sl, const SOCKTYPE *lsocks)
  * @param lsocks -1 terminated list of listen sockets to pass (systemd style), or NULL
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int
+static int
 start_service (struct GNUNET_SERVER_Client *client, const char *servicename,
                const SOCKTYPE *lsocks)
 {
@@ -481,6 +579,269 @@ start_service (struct GNUNET_SERVER_Client *client, const char *servicename,
   if (NULL != client)
     signal_result (client, servicename, GNUNET_MESSAGE_TYPE_ARM_IS_UP);
   return GNUNET_OK;
+}
+
+
+/**
+ * First connection has come to the listening socket associated with the service,
+ * create the service in order to relay the incoming connection to it
+ *
+ * @param cls callback data, struct ServiceListeningInfo describing a listen socket
+ * @param tc context
+ */
+static void
+acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ServiceListeningInfo *sli = cls;
+  struct ServiceListeningInfo *pos;
+  struct ServiceListeningInfo *next;
+  SOCKTYPE *lsocks;
+  unsigned int ls;
+
+  sli->acceptTask = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+  GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
+                               serviceListeningInfoList_tail, sli);
+  lsocks = NULL;
+  ls = 0;
+  next = serviceListeningInfoList_head;
+  while (NULL != (pos = next))
+  {
+    next = pos->next;
+    if (0 == strcmp (pos->serviceName, sli->serviceName))
+    {
+      GNUNET_array_append (lsocks, ls,
+                           GNUNET_NETWORK_get_fd (pos->listeningSocket));
+      GNUNET_free (pos->listeningSocket);       /* deliberately no closing! */
+      GNUNET_free (pos->service_addr);
+      GNUNET_free (pos->serviceName);
+      GNUNET_SCHEDULER_cancel (pos->acceptTask);
+      GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
+                                   serviceListeningInfoList_tail, pos);
+      GNUNET_free (pos);
+    }
+  }
+  GNUNET_array_append (lsocks, ls,
+                       GNUNET_NETWORK_get_fd (sli->listeningSocket));
+  GNUNET_free (sli->listeningSocket);   /* deliberately no closing! */
+  GNUNET_free (sli->service_addr);
+#if WINDOWS
+  GNUNET_array_append (lsocks, ls, INVALID_SOCKET);
+#else
+  GNUNET_array_append (lsocks, ls, -1);
+#endif
+  start_service (NULL, sli->serviceName, lsocks);
+  ls = 0;
+  while (lsocks[ls] != -1)
+#if WINDOWS
+    GNUNET_break (0 == closesocket (lsocks[ls++]));
+#else
+    GNUNET_break (0 == close (lsocks[ls++]));
+#endif
+  GNUNET_array_grow (lsocks, ls, 0);
+  GNUNET_free (sli->serviceName);
+  GNUNET_free (sli);
+}
+
+
+/**
+ * Creating a listening socket for each of the service's addresses and
+ * wait for the first incoming connection to it
+ *
+ * @param sa address associated with the service
+ * @param addr_len length of sa
+ * @param serviceName the name of the service in question
+ */
+static void
+createListeningSocket (struct sockaddr *sa, socklen_t addr_len,
+                       const char *serviceName)
+{
+  const static int on = 1;
+  struct GNUNET_NETWORK_Handle *sock;
+  struct ServiceListeningInfo *serviceListeningInfo;
+
+  switch (sa->sa_family)
+  {
+  case AF_INET:
+    sock = GNUNET_NETWORK_socket_create (PF_INET, SOCK_STREAM, 0);
+    break;
+  case AF_INET6:
+    sock = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
+    break;
+  case AF_UNIX:
+    if (strcmp (GNUNET_a2s (sa, addr_len), "@") == 0)   /* Do not bind to blank UNIX path! */
+      return;
+    sock = GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
+    break;
+  default:
+    GNUNET_break (0);
+    sock = NULL;
+    errno = EAFNOSUPPORT;
+    break;
+  }
+  if (NULL == sock)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Unable to create socket for service `%s': %s\n"),
+                serviceName, STRERROR (errno));
+    GNUNET_free (sa);
+    return;
+  }
+  if (GNUNET_NETWORK_socket_setsockopt
+      (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                         "setsockopt");
+#ifdef IPV6_V6ONLY
+  if ((sa->sa_family == AF_INET6) &&
+      (GNUNET_NETWORK_socket_setsockopt
+       (sock, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)) != GNUNET_OK))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                         "setsockopt");
+#endif
+
+  if (GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) sa, addr_len)
+      != GNUNET_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _
+                ("Unable to bind listening socket for service `%s' to address `%s': %s\n"),
+                serviceName, GNUNET_a2s (sa, addr_len), STRERROR (errno));
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
+    GNUNET_free (sa);
+    return;
+  }
+  if (GNUNET_NETWORK_socket_listen (sock, 5) != GNUNET_OK)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
+    GNUNET_free (sa);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("ARM now monitors connections to service `%s' at `%s'\n"),
+              serviceName, GNUNET_a2s (sa, addr_len));
+  serviceListeningInfo = GNUNET_malloc (sizeof (struct ServiceListeningInfo));
+  serviceListeningInfo->serviceName = GNUNET_strdup (serviceName);
+  serviceListeningInfo->service_addr = sa;
+  serviceListeningInfo->service_addr_len = addr_len;
+  serviceListeningInfo->listeningSocket = sock;
+  serviceListeningInfo->acceptTask =
+      GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, sock,
+                                     &acceptConnection, serviceListeningInfo);
+  GNUNET_CONTAINER_DLL_insert (serviceListeningInfoList_head,
+                               serviceListeningInfoList_tail,
+                               serviceListeningInfo);
+}
+
+
+/**
+ * Callback function, checks whether the current tokens are representing a service,
+ * gets its addresses and create listening socket for it.
+ *
+ * @param cls callback data, not used
+ * @param section configuration section
+ * @param option configuration option
+ * @param value the option's value
+ */
+static void
+checkPortNumberCB (void *cls, const char *section, const char *option,
+                   const char *value)
+{
+  struct sockaddr **addrs;
+  socklen_t *addr_lens;
+  int ret;
+  unsigned int i;
+
+  if ((strcasecmp (section, "arm") == 0) ||
+      (strcasecmp (option, "AUTOSTART") != 0) ||
+      (strcasecmp (value, "YES") != 0) ||
+      (isInDefaultList (section) == GNUNET_YES))
+    return;
+  if (0 >=
+      (ret =
+       GNUNET_SERVICE_get_server_addresses (section, cfg, &addrs, &addr_lens)))
+    return;
+  /* this will free (or capture) addrs[i] */
+  for (i = 0; i < ret; i++)
+    createListeningSocket (addrs[i], addr_lens[i], section);
+  GNUNET_free (addrs);
+  GNUNET_free (addr_lens);
+}
+
+
+/**
+ * Entry point to the Service Manager
+ *
+ * @param configurationHandle configuration to use to get services
+ */
+static void
+prepare_services (const struct GNUNET_CONFIGURATION_Handle *configurationHandle)
+{
+  char *defaultServicesString;
+
+  cfg = configurationHandle;
+  /* Split the default services into a list */
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "arm", "DEFAULTSERVICES",
+                                             &defaultServicesString))
+  {
+    addDefaultServicesToList (defaultServicesString);
+    GNUNET_free (defaultServicesString);
+  }
+  /* Spot the services from the configuration and create a listening
+   * socket for each */
+  GNUNET_CONFIGURATION_iterate (cfg, &checkPortNumberCB, NULL);
+}
+
+
+
+/**
+ * If the configuration file changes, restart tasks that depended on that
+ * option.
+ *
+ * @param cls closure, NULL if we need to self-restart
+ * @param tc context
+ */
+static void
+config_change_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ServiceList *pos;
+  struct stat sbuf;
+
+  pos = running_head;
+  while (pos != NULL)
+  {
+    /* FIXME: this test for config change may be a bit too coarse grained */
+    if ((0 == STAT (pos->config, &sbuf)) && (pos->mtime < sbuf.st_mtime) &&
+        (pos->proc != NULL))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _
+                  ("Restarting service `%s' due to configuration file change.\n"));
+      if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+      else
+        pos->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+    }
+    pos = pos->next;
+  }
+}
+
+
+/**
+ * Remove and free an entry in the service list.
+ *
+ * @param pos entry to free
+ */
+static void
+free_service (struct ServiceList *pos)
+{
+  GNUNET_CONTAINER_DLL_remove (running_head, running_tail, pos);
+  GNUNET_free_non_null (pos->config);
+  GNUNET_free_non_null (pos->binary);
+  GNUNET_free (pos->name);
+  GNUNET_free (pos);
 }
 
 
@@ -992,7 +1353,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
   }
 
   /* create listening sockets for future services */
-  prepareServices (cfg);
+  prepare_services (cfg);
 
   /* process client requests */
   GNUNET_SERVER_add_handlers (server, handlers);
