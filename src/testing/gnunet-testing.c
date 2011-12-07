@@ -26,11 +26,30 @@
 #include "platform.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_program_lib.h"
+#include "gnunet_testing_lib.h"
 
 /**
  * Final status code.
  */
 static int ret;
+
+unsigned int create_cfg;
+
+ int create_cfg_no;
+
+static char * create_cfg_template;
+
+
+static int
+create_unique_cfgs (const char * template, const unsigned int no)
+{
+  if (GNUNET_NO == GNUNET_DISK_file_test(template))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Configuration template `%s': file not found\n", create_cfg_template);
+    return 1;
+  }
+  return 0;
+}
 
 /**
  * Main function that will be run by the scheduler.
@@ -45,6 +64,18 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   /* main code here */
+  if ((create_cfg == GNUNET_YES) &&
+      (create_cfg_no > 0) &&
+      (create_cfg_template != NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating %u configuration files based on template `%s'\n", create_cfg_no, create_cfg_template);
+    ret = create_unique_cfgs (create_cfg_template, create_cfg_no);
+  }
+  else
+  {
+    ret = 1;
+  }
+  GNUNET_free_non_null (create_cfg_template);
 }
 
 
@@ -59,7 +90,12 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    /* FIMXE: add options here */
+    {'C', "create", NULL, gettext_noop ("create unique configuration files"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &create_cfg},
+    {'n', "number", NULL, gettext_noop ("number of unique configuration files to create"),
+     GNUNET_YES, &GNUNET_GETOPT_set_uint, &create_cfg_no},
+    {'t', "template", NULL, gettext_noop ("configuration template"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &create_cfg_template},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
