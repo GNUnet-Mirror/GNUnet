@@ -1435,8 +1435,8 @@ update_config (void *cls, const char *section, const char *option,
  *
  * @return new configuration, NULL on error
  */
-static struct GNUNET_CONFIGURATION_Handle *
-make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
+struct GNUNET_CONFIGURATION_Handle *
+GNUNET_TESTING_create_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
              uint16_t * port, uint32_t * upnum, const char *hostname,
              uint32_t * fdnum)
 {
@@ -1540,6 +1540,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
   }
   else
   {
+
     GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp",
                                            "USE_LOCALADDR", "YES");
     GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp",
@@ -1550,7 +1551,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
                                            "127.0.0.1");
     GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat", "EXTERNAL_ADDRESS",
                                            "127.0.0.1");
-    GNUNET_CONFIGURATION_set_value_string (uc.ret, "disablev6", "BINDTO",
+    GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat", "disablev6",
                                            "YES");
   }
 
@@ -6159,7 +6160,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       username = pg->hosts[off % hostcnt].username;
       sshport = pg->hosts[off % hostcnt].sshport;
       pcfg =
-          make_config (cfg, off, &pg->hosts[off % hostcnt].minport, &upnum,
+          GNUNET_TESTING_create_cfg (cfg, off, &pg->hosts[off % hostcnt].minport, &upnum,
                        hostname, &fdnum);
     }
     else
@@ -6167,7 +6168,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       hostname = NULL;
       username = NULL;
       sshport = 0;
-      pcfg = make_config (cfg, off, &minport, &upnum, hostname, &fdnum);
+      pcfg = GNUNET_TESTING_create_cfg (cfg, off, &minport, &upnum, hostname, &fdnum);
     }
 
     if (NULL == pcfg)

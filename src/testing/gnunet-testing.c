@@ -43,12 +43,56 @@ static char * create_cfg_template;
 static int
 create_unique_cfgs (const char * template, const unsigned int no)
 {
+  int fail = GNUNET_NO;
+
+  uint16_t port = 20000;
+  uint32_t upnum = 1;
+  uint32_t fdnum = 1;
+
   if (GNUNET_NO == GNUNET_DISK_file_test(template))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Configuration template `%s': file not found\n", create_cfg_template);
     return 1;
   }
-  return 0;
+
+  int cur = 0;
+  char * cur_file;
+  struct GNUNET_CONFIGURATION_Handle *cfg_tmpl = GNUNET_CONFIGURATION_create();
+  struct GNUNET_CONFIGURATION_Handle *cfg_new = NULL;
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg_tmpl, create_cfg_template))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not load template `%s'\n", create_cfg_template);
+    GNUNET_CONFIGURATION_destroy(cfg_tmpl);
+
+    return 1;
+  }
+
+  while (cur < no)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating configuration no. %u \n", cur);
+    GNUNET_asprintf(&cur_file,"%04u-%s",cur, create_cfg_template);
+    cfg_new = GNUNET_TESTING_create_cfg(cfg_tmpl, cur, &port, &upnum, NULL, &fdnum);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Writing configuration no. %u to file `%s' \n", cur, cur_file);
+    if (GNUNET_OK != GNUNET_CONFIGURATION_write(cfg_new, cur_file))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to write configuration no. %u \n", cur);
+      fail = GNUNET_YES;
+    }
+
+
+    GNUNET_free (cur_file);
+    if (fail == GNUNET_YES)
+      break;
+    cur ++;
+  }
+
+  GNUNET_CONFIGURATION_destroy(cfg_tmpl);
+  if (fail == GNUNET_NO)
+    return 0;
+  else
+    return 1;
 }
 
 /**

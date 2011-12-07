@@ -614,6 +614,29 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
                             int delete_files, int allow_restart);
 
 
+
+/**
+ * Create a new configuration using the given configuration
+ * as a template; however, each PORT in the existing cfg
+ * must be renumbered by incrementing "*port".  If we run
+ * out of "*port" numbers, return NULL.
+ *
+ * @param cfg template configuration
+ * @param off the current peer offset
+ * @param port port numbers to use, update to reflect
+ *             port numbers that were used
+ * @param upnum number to make unix domain socket names unique
+ * @param hostname hostname of the controlling host, to allow control connections from
+ * @param fdnum number used to offset the unix domain socket for grouped processes
+ *              (such as statistics or peerinfo, which can be shared among others)
+ *
+ * @return new configuration, NULL on error
+ */
+struct GNUNET_CONFIGURATION_Handle *
+GNUNET_TESTING_create_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
+             uint16_t * port, uint32_t * upnum, const char *hostname,
+             uint32_t * fdnum);
+
 /**
  * Changes the configuration of a GNUnet daemon.
  *
