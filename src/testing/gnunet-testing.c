@@ -28,14 +28,18 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_testing_lib.h"
 
+#define HOSTKEYFILESIZE 914
+
 /**
  * Final status code.
  */
 static int ret;
 
-unsigned int create_cfg;
+static unsigned int create_hostkey;
 
- int create_cfg_no;
+static unsigned int create_cfg;
+
+static int create_no;
 
 static char * create_cfg_template;
 
@@ -57,8 +61,13 @@ create_unique_cfgs (const char * template, const unsigned int no)
 
   int cur = 0;
   char * cur_file;
-  struct GNUNET_CONFIGURATION_Handle *cfg_tmpl = GNUNET_CONFIGURATION_create();
+  char *service_home = NULL;
+  char *cur_service_home = NULL;
+
   struct GNUNET_CONFIGURATION_Handle *cfg_new = NULL;
+  struct GNUNET_CONFIGURATION_Handle *cfg_tmpl = GNUNET_CONFIGURATION_create();
+
+
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg_tmpl, create_cfg_template))
   {
@@ -68,20 +77,38 @@ create_unique_cfgs (const char * template, const unsigned int no)
     return 1;
   }
 
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg_tmpl, "PATHS", "SERVICEHOME", &service_home))
+  {
+    GNUNET_asprintf(&service_home, "%s", "/tmp/testing");
+  }
+  else
+  {
+    int s = strlen (service_home);
+    if (service_home[s-1] == DIR_SEPARATOR)
+      service_home[s-1] = '\0';
+  }
+
   while (cur < no)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating configuration no. %u \n", cur);
-    GNUNET_asprintf(&cur_file,"%04u-%s",cur, create_cfg_template);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating configuration no. %u \n", cur);
+    GNUNET_asprintf (&cur_file,"%04u-%s",cur, create_cfg_template);
+
+
+    GNUNET_asprintf (&cur_service_home, "%s-%04u%c",service_home, cur, DIR_SEPARATOR);
+    GNUNET_CONFIGURATION_set_value_string (cfg_tmpl,"PATHS","SERVICEHOME", cur_service_home);
+    GNUNET_CONFIGURATION_set_value_string (cfg_tmpl,"PATHS","DEFAULTCONFIG", cur_file);
+    GNUNET_free (cur_service_home);
+
     cfg_new = GNUNET_TESTING_create_cfg(cfg_tmpl, cur, &port, &upnum, NULL, &fdnum);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Writing configuration no. %u to file `%s' \n", cur, cur_file);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Writing configuration no. %u to file `%s' \n", cur, cur_file);
     if (GNUNET_OK != GNUNET_CONFIGURATION_write(cfg_new, cur_file))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to write configuration no. %u \n", cur);
       fail = GNUNET_YES;
     }
 
-
+    GNUNET_CONFIGURATION_destroy (cfg_new);
     GNUNET_free (cur_file);
     if (fail == GNUNET_YES)
       break;
@@ -89,10 +116,83 @@ create_unique_cfgs (const char * template, const unsigned int no)
   }
 
   GNUNET_CONFIGURATION_destroy(cfg_tmpl);
+  GNUNET_free (service_home);
   if (fail == GNUNET_NO)
     return 0;
   else
     return 1;
+}
+
+static int
+create_hostkeys (const unsigned int no)
+{
+  struct GNUNET_DISK_FileHandle *fd;
+  int cur = 0;
+  uint64_t fs;
+  uint64_t total_hostkeys;
+  char *hostkey_data;
+  char *hostkeyfile;
+
+  /* prepare hostkeys */
+  const char *hostkeys_file = "../../contrib/testing_hostkeys.dat";
+
+  if (GNUNET_YES != GNUNET_DISK_file_test (hostkeys_file))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not read hostkeys file!\n"));
+  }
+  else
+  {
+    /* Check hostkey file size, read entire thing into memory */
+    fd = GNUNET_DISK_file_open (hostkeys_file, GNUNET_DISK_OPEN_READ,
+                                GNUNET_DISK_PERM_NONE);
+    if (NULL == fd)
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", hostkeys_file);
+      return 1;
+    }
+
+    if (GNUNET_YES != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES))
+      fs = 0;
+
+    if (0 != (fs % HOSTKEYFILESIZE))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "File size %llu seems incorrect for hostkeys...\n", fs);
+    }
+    else
+    {
+      total_hostkeys = fs / HOSTKEYFILESIZE;
+      hostkey_data = GNUNET_malloc_large (fs);
+      GNUNET_assert (fs == GNUNET_DISK_file_read (fd, hostkey_data, fs));
+      GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG,
+                       "Read %llu hostkeys from file\n", total_hostkeys);
+    }
+    GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
+  }
+
+  while (cur < no)
+  {
+    GNUNET_asprintf (&hostkeyfile, "%04u-hostkey",cur);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_DISK_directory_create_for_file (hostkeyfile));
+    fd = GNUNET_DISK_file_open (hostkeyfile,
+                                GNUNET_DISK_OPEN_READWRITE |
+                                GNUNET_DISK_OPEN_CREATE,
+                                GNUNET_DISK_PERM_USER_READ |
+                                GNUNET_DISK_PERM_USER_WRITE);
+    GNUNET_assert (fd != NULL);
+    GNUNET_assert (HOSTKEYFILESIZE ==
+                   GNUNET_DISK_file_write (fd, &hostkey_data[cur * HOSTKEYFILESIZE], HOSTKEYFILESIZE));
+    GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                     "Wrote hostkey to file: `%s' \n", hostkeyfile);
+    GNUNET_free (hostkeyfile);
+    cur ++;
+  }
+
+  GNUNET_free (hostkey_data);
+
+  return 0;
 }
 
 /**
@@ -109,11 +209,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   /* main code here */
   if ((create_cfg == GNUNET_YES) &&
-      (create_cfg_no > 0) &&
+      (create_no > 0) &&
       (create_cfg_template != NULL))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating %u configuration files based on template `%s'\n", create_cfg_no, create_cfg_template);
-    ret = create_unique_cfgs (create_cfg_template, create_cfg_no);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating %u configuration files based on template `%s'\n", create_no, create_cfg_template);
+    ret = create_unique_cfgs (create_cfg_template, create_no);
+  }
+  else if ((create_hostkey == GNUNET_YES) && (create_no > 0))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating %u hostkeys \n", create_no);
+    ret = create_hostkeys (create_no);
   }
   else
   {
@@ -134,10 +239,12 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'C', "create", NULL, gettext_noop ("create unique configuration files"),
+    {'C', "cfg", NULL, gettext_noop ("create unique configuration files"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &create_cfg},
-    {'n', "number", NULL, gettext_noop ("number of unique configuration files to create"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &create_cfg_no},
+    {'k', "key", NULL, gettext_noop ("create hostkey files from pre-computed hostkey list"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &create_hostkey},
+    {'n', "number", NULL, gettext_noop ("number of unique configuration files or hostkeys to create"),
+     GNUNET_YES, &GNUNET_GETOPT_set_uint, &create_no},
     {'t', "template", NULL, gettext_noop ("configuration template"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &create_cfg_template},
     GNUNET_GETOPT_OPTION_END
