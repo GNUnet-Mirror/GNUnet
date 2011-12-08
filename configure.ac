@@ -807,6 +807,7 @@ src/transport/Makefile
 src/util/Makefile
 src/vpn/Makefile
 src/chat/Makefile
+src/integration-tests/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc
 pkgconfig/gnunetblock.pc
