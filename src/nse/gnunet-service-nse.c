@@ -438,6 +438,11 @@ get_delay_randomization (uint32_t matching_bits)
     return GNUNET_TIME_UNIT_ZERO;
   d = get_matching_bits_delay (matching_bits - 1);
   i = (uint32_t) (d / (double) (hop_count_max + 1));
+#if DEBUG_NSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Randomizing flood using latencies up to %u ms\n",
+	      (unsigned int) i);
+#endif
   ret.rel_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, i + 1);
   return ret;
 #else
