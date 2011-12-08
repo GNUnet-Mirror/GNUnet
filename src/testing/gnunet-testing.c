@@ -43,6 +43,7 @@ static int create_no;
 
 static char * create_cfg_template;
 
+static char * create_hostkey_file;
 
 static int
 create_unique_cfgs (const char * template, const unsigned int no)
@@ -131,27 +132,37 @@ create_hostkeys (const unsigned int no)
   uint64_t fs;
   uint64_t total_hostkeys;
   char *hostkey_data;
-  char *hostkeyfile;
+  char *hostkey_src_file;
+  char *hostkey_dest_file;
 
   /* prepare hostkeys */
-  const char *hostkeys_file = "../../contrib/testing_hostkeys.dat";
-
-  if (GNUNET_YES != GNUNET_DISK_file_test (hostkeys_file))
+  if (create_hostkey_file == NULL)
+    hostkey_src_file = "../../contrib/testing_hostkeys.dat";
+  else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not read hostkeys file!\n"));
+    hostkey_src_file = create_hostkey_file;
+  }
+
+  if (GNUNET_YES != GNUNET_DISK_file_test (hostkey_src_file))
+  {
+    if (create_hostkey_file == NULL)
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not read hostkeys file, specify hostkey file with -H!\n"));
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Specified hostkey file `%s' not found!\n"), create_hostkey_file);
+    return 1;
   }
   else
   {
     /* Check hostkey file size, read entire thing into memory */
-    fd = GNUNET_DISK_file_open (hostkeys_file, GNUNET_DISK_OPEN_READ,
+    fd = GNUNET_DISK_file_open (hostkey_src_file, GNUNET_DISK_OPEN_READ,
                                 GNUNET_DISK_PERM_NONE);
     if (NULL == fd)
     {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", hostkeys_file);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", hostkey_src_file);
       return 1;
     }
 
-    if (GNUNET_YES != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES))
+    if (GNUNET_YES != GNUNET_DISK_file_size (hostkey_src_file, &fs, GNUNET_YES))
       fs = 0;
 
     if (0 != (fs % HOSTKEYFILESIZE))
@@ -172,10 +183,10 @@ create_hostkeys (const unsigned int no)
 
   while (cur < no)
   {
-    GNUNET_asprintf (&hostkeyfile, "%04u-hostkey",cur);
+    GNUNET_asprintf (&hostkey_dest_file, "%04u-hostkey",cur);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_DISK_directory_create_for_file (hostkeyfile));
-    fd = GNUNET_DISK_file_open (hostkeyfile,
+                   GNUNET_DISK_directory_create_for_file (hostkey_dest_file));
+    fd = GNUNET_DISK_file_open (hostkey_dest_file,
                                 GNUNET_DISK_OPEN_READWRITE |
                                 GNUNET_DISK_OPEN_CREATE,
                                 GNUNET_DISK_PERM_USER_READ |
@@ -185,8 +196,8 @@ create_hostkeys (const unsigned int no)
                    GNUNET_DISK_file_write (fd, &hostkey_data[cur * HOSTKEYFILESIZE], HOSTKEYFILESIZE));
     GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                     "Wrote hostkey to file: `%s' \n", hostkeyfile);
-    GNUNET_free (hostkeyfile);
+                     "Wrote hostkey to file: `%s' \n", hostkey_dest_file);
+    GNUNET_free (hostkey_dest_file);
     cur ++;
   }
 
@@ -241,8 +252,10 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'C', "cfg", NULL, gettext_noop ("create unique configuration files"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &create_cfg},
-    {'k', "key", NULL, gettext_noop ("create hostkey files from pre-computed hostkey list"),
+     {'k', "key", NULL, gettext_noop ("create hostkey files from pre-computed hostkey list"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &create_hostkey},
+     {'H', "hostkeys", NULL, gettext_noop ("host key file"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &create_hostkey_file},
     {'n', "number", NULL, gettext_noop ("number of unique configuration files or hostkeys to create"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &create_no},
     {'t', "template", NULL, gettext_noop ("configuration template"),
