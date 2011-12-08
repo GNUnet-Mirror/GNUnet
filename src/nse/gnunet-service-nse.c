@@ -1123,6 +1123,9 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
       htonl (ntohl (incoming_flood->hop_count) + 1);
   hop_count_max =
       GNUNET_MAX (ntohl (incoming_flood->hop_count) + 1, hop_count_max);
+  GNUNET_STATISTICS_set (stats,
+			 "# estimated network diameter",
+			 hop_count_max, GNUNET_NO);
 
   /* have a new, better size estimate, inform clients */
   update_network_size_estimate ();
