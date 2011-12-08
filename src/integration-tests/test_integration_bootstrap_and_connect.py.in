@@ -23,6 +23,7 @@ import os
 import subprocess
 import re
 import shutil
+import time
 
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
@@ -31,80 +32,102 @@ import shutil
 
 #definitions
 
-def vpfrint (msg):
+testname = "test_integration_bootstrap_and_connect"
+verbose = True
+gnunetarm = ""
+#fix this!
+success = True
+timeout = 2
+
+def vprintf (msg):
     if verbose == True:
         print msg
 
+def setup ():
+	srcdir = "../.."
+	gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
+	if gnunet_pyexpect_dir not in sys.path:
+	  sys.path.append (gnunet_pyexpect_dir)
+	
+	from gnunet_pyexpect import pexpect
 
-testname = "test_integration_bootstrap_and_connect"
-verbose = True
+	global gnunetarm	
+	if os.name == 'posix':
+	  gnunetarm = 'gnunet-arm'
+	elif os.name == 'nt':
+	  gnunetarm = 'gnunet-arm.exe'
+	
+	if os.name == "nt":
+	  shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
+	else:
+	  shutil.rmtree ("/tmp/" + testname, True)
 
-# setup
+def start ():
+	vprintf ("Starting bootstrap server & client")
+	try:
+	    server = subprocess.Popen ([gnunetarm, '-sq', '-c', './confs/c_bootstrap_server.conf'])
+	    server.communicate ()    
+	except OSError:
+	    print "Can not start bootstrap server, exiting..."
+	    exit (1)
+	try:
+	    client = subprocess.Popen ([gnunetarm, '-sq', '-c', 'confs/c_no_nat_client.conf'])
+	    client.communicate ()    
+	except OSError:
+	    print "Can not start bootstrap client, exiting..."
+	    exit (1)
+	vprintf ("Bootstrap server & client started")
 
-srcdir = "../.."
-gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
-if gnunet_pyexpect_dir not in sys.path:
-  sys.path.append (gnunet_pyexpect_dir)
+def stop ():
+	vprintf ("Shutting down bootstrap server")
+	try:
+	    server = subprocess.Popen ([gnunetarm, '-eq', '-c', './confs/c_bootstrap_server.conf'])
+	    server.communicate ()    
+	except OSError:
+	    print "Can not stop bootstrap server, exiting..."
+	    exit (1)
+	try:
+	    client = subprocess.Popen ([gnunetarm, '-eq', '-c', 'confs/c_no_nat_client.conf'])
+	    client.communicate ()    
+	except OSError:
+	    print "Can not stop bootstrap client, exiting..."
+	    exit (1)
+	vprintf ("Bootstrap server & client stopped")
 
-from gnunet_pyexpect import pexpect
 
-if os.name == 'posix':
-  gnunetarm = 'gnunet-arm'
-elif os.name == 'nt':
-  gnunetarm = 'gnunet-arm.exe'
+def cleanup ():
+	if os.name == "nt":
+	    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
+	else:
+	    shutil.rmtree ("/tmp/gnunet-test-fs-py-ns", True)
 
-if os.name == "nt":
-  shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
+def check ():
+	global success
+	global timeout
+	count = 1
+
+	while ((success == False) and (count < timeout)):
+		time.sleep(1)
+		count += 1 
+
+# 
+# Test execution
+# 
+
+vprintf ("Running " + testname)
+setup ()
+start ()
+
+check ()
+
+stop ()
+cleanup ()
+
+if (success == False):
+	print ('Test failed')
+	exit (1)
 else:
-  shutil.rmtree ("/tmp/" + testname, True)
+	print ('Test successful')
+	exit (0)
 
-vpfrint ("Running " + testname)
-
-
-
-# start nodes
-
-vpfrint ("Starting bootstrap server & client")
-try:
-    server = subprocess.Popen ([gnunetarm, '-sq', '-c', './confs/c_bootstrap_server.conf'])
-    server.communicate ()    
-except OSError:
-    print "Can not start bootstrap server, exiting..."
-    exit (1)
-try:
-    client = subprocess.Popen ([gnunetarm, '-sq', '-c', 'confs/c_no_nat_client.conf'])
-    client.communicate ()    
-except OSError:
-    print "Can not start bootstrap client, exiting..."
-    exit (1)
-vpfrint ("Bootstrap server & client started")
-
-
-import time
-time.sleep(5)
-
-# shutdown
-vpfrint ("Shutting down bootstrap server")
-try:
-    server = subprocess.Popen ([gnunetarm, '-eq', '-c', './confs/c_bootstrap_server.conf'])
-    server.communicate ()    
-except OSError:
-    print "Can not stop bootstrap server, exiting..."
-    exit (1)
-try:
-    client = subprocess.Popen ([gnunetarm, '-eq', '-c', 'confs/c_no_nat_client.conf'])
-    client.communicate ()    
-except OSError:
-    print "Can not stop bootstrap client, exiting..."
-    exit (1)
-vpfrint ("Bootstrap server & client stopped")
-
-# clean up
-
-if os.name == "nt":
-    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
-else:
-    shutil.rmtree ("/tmp/gnunet-test-fs-py-ns", True)
-
-exit (0)
 
