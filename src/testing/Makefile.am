@@ -92,7 +92,7 @@ gnunet_testing_SOURCES = \
  gnunet-testing.c         
 gnunet_testing_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/util/libgnunetutil.la \  
+ $(top_builddir)/src/util/libgnunetutil.la \
  $(GN_LIBINTL)
 #gnunet_testing_DEPENDENCIES =
 #  libgnunetttesting.la				
