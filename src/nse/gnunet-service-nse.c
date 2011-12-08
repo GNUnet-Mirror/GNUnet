@@ -105,11 +105,6 @@ struct NSEPeerEntry
 {
 
   /**
-   * Pending message for this peer.
-   */
-  struct GNUNET_MessageHeader *pending_message;
-
-  /**
    * Core handle for sending messages to this peer.
    */
   struct GNUNET_CORE_TransmitHandle *th;
@@ -1077,7 +1072,29 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
   }
   if (matching_bits == ntohl (size_estimate_messages[idx].matching_bits))
+  {
+    /* cancel transmission in the other direction, as this peer clearly has
+       up-to-date information already */
+    if (idx != estimate_index)
+    {
+      /* do not transmit information for the previous round to this peer 
+	 anymore (but allow current round) */
+      peer_entry->previous_round = GNUNET_YES;
+      return GNUNET_OK;
+    }
+    /* got up-to-date information for current round, cancel transmission altogether */
+    if (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task)
+    {
+      GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
+      peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    if (peer_entry->th != NULL)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (peer_entry->th);
+      peer_entry->th = NULL;
+    }
     return GNUNET_OK;
+  }
   if (matching_bits <= ntohl (size_estimate_messages[idx].matching_bits))
   {
     if ((idx < estimate_index) && (peer_entry->previous_round == GNUNET_YES))
