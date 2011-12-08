@@ -1146,6 +1146,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   peer_entry->transmit_task =
       GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task,
                                     peer_entry);
+  GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
 }
 
 
@@ -1181,6 +1182,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     pos->th = NULL;
   }
   GNUNET_free (pos);
+  GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
 }
 
 
