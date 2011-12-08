@@ -78,31 +78,15 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_ARM_STOP 9
 
 /**
- * Response from ARM: service is now up.
+ * Request ARM service itself to shutdown.
  */
-#define GNUNET_MESSAGE_TYPE_ARM_IS_UP 10
+#define GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN 10
 
 /**
- * Response from ARM: service is now down.
- * (failed to start it or shut it down).
+ * Response from ARM.
  */
-#define GNUNET_MESSAGE_TYPE_ARM_IS_DOWN 11
+#define GNUNET_MESSAGE_TYPE_ARM_RESULT 11
 
-/**
- * Response from ARM: service status is unknown.
- */
-#define GNUNET_MESSAGE_TYPE_ARM_IS_UNKNOWN 12
-
-/**
- * Request ARM service shutdown.
- */
-#define GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN 13
-
-/**
- * Acknowledge service shutting down, disconnect
- * indicates service stopped.
- */
-#define GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN_ACK 14
 
 /*******************************************************************************
  * HELLO message types

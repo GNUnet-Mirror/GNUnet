@@ -46,7 +46,7 @@ transmit_shutdown_ack (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transmitting shutdown ACK.\n"));
 
   msg = (struct GNUNET_MessageHeader *) buf;
-  msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN_ACK);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_SERVER_client_drop (client);

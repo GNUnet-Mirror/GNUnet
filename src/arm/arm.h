@@ -33,4 +33,23 @@
  */
 #define DEBUG_ARM GNUNET_EXTRA_LOGGING
 
+
+/**
+ * Reply from ARM to client.
+ */
+struct GNUNET_ARM_ResultMessage
+{
+
+  /**
+   * Reply to client, of type is GNUNET_MESSAGE_TYPE_ARM_RESULT. 
+   */
+  struct GNUNET_MessageHeader header;
+  
+  /**
+   * Status from the 'enum GNUNET_ARM_ProcessStatus'
+   */
+  uint32_t status;
+};
+
+
 #endif

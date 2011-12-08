@@ -40,28 +40,6 @@ sleep 1
 echo "PASS"
 
 # ----------------------------------------------------------------------------------
-echo -n "TEST: Test -t on running service... "
-if ! $exe $DEBUG -t resolver > $out; then
-    echo "FAIL: error running $exe"
-    exit 1
-fi
-LINES=`cat $out | grep resolver | grep not | wc -l`
-if test $LINES -ne 0; then
-  echo "FAIL: unexpected output:"
-  cat $out
-  $exe -e
-  exit 1
-fi
-LINES=`cat $out | grep resolver | grep -v not | wc -l`
-if test $LINES -ne 1; then
-  echo "FAIL: unexpected output"
-  cat $out
-  $exe -e
-  exit 1
-fi
-echo "PASS"
-
-# ----------------------------------------------------------------------------------
 echo -n "TEST: Stop a service... "
 
 if ! $exe $DEBUG -k resolver > $out; then
@@ -70,23 +48,6 @@ if ! $exe $DEBUG -k resolver > $out; then
   exit 1
 fi
 sleep 1
-echo "PASS"
-
-# ----------------------------------------------------------------------------------
-echo -n "TEST: Test -t on stopped service... "
-if ! $exe $DEBUG -t resolver > $out; then
-  echo "FAIL: error running $exe"
-  cat $out
-  $exe -e > /dev/null
-  exit 1
-fi
-LINES=`cat $out | grep resolver | grep not | wc -l`
-if test $LINES -ne 1; then
-  echo "FAIL: unexpected output"
-  cat $out 
-  $exe -e > /dev/null
-  exit 1
-fi
 echo "PASS"
 
 # ----------------------------------------------------------------------------------

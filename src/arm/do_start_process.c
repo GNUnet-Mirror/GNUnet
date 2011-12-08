@@ -10,10 +10,10 @@
  * @param lsocks array of listen sockets to dup starting at fd3 (systemd-style), or NULL
  * @param first_arg first argument for argv (may be an empty string)
  * @param ... more arguments, NULL terminated
- * @return PID of the started process, -1 on error
+ * @return handle of the started process, NULL on error
  */
 static struct GNUNET_OS_Process *
-do_start_process (const SOCKTYPE *lsocks, const char *first_arg, ...)
+do_start_process (const SOCKTYPE * lsocks, const char *first_arg, ...)
 {
   va_list ap;
   char **argv;
@@ -35,20 +35,20 @@ do_start_process (const SOCKTYPE *lsocks, const char *first_arg, ...)
 /* *INDENT-ON* */
   rpos = arg;
   while ('\0' != *rpos)
-  {
-    if (' ' == *rpos)
     {
-      if (last != NULL)
-        argv_size++;
-      last = NULL;
-      while (' ' == *rpos)
-        rpos++;
+      if (' ' == *rpos)
+	{
+	  if (last != NULL)
+	    argv_size++;
+	  last = NULL;
+	  while (' ' == *rpos)
+	    rpos++;
+	}
+      if ((last == NULL) && (*rpos != '\0'))
+	last = rpos;
+      if (*rpos != '\0')
+	rpos++;
     }
-    if ((last == NULL) && (*rpos != '\0'))
-      last = rpos;
-    if (*rpos != '\0')
-      rpos++;
-  }
   if (last != NULL)
     argv_size++;
 /* *INDENT-OFF* */
@@ -69,22 +69,22 @@ do_start_process (const SOCKTYPE *lsocks, const char *first_arg, ...)
   cp = GNUNET_strdup (arg);
   pos = cp;
   while ('\0' != *pos)
-  {
-    if (' ' == *pos)
     {
-      *pos = '\0';
-      if (last != NULL)
-        argv[argv_size++] = GNUNET_strdup (last);
-      last = NULL;
-      pos++;
-      while (' ' == *pos)
-        pos++;
+      if (' ' == *pos)
+	{
+	  *pos = '\0';
+	  if (last != NULL)
+	    argv[argv_size++] = GNUNET_strdup (last);
+	  last = NULL;
+	  pos++;
+	  while (' ' == *pos)
+	    pos++;
+	}
+      if ((last == NULL) && (*pos != '\0'))
+	last = pos;
+      if (*pos != '\0')
+	pos++;
     }
-    if ((last == NULL) && (*pos != '\0'))
-      last = pos;
-    if (*pos != '\0')
-      pos++;
-  }
   if (last != NULL)
     argv[argv_size++] = GNUNET_strdup (last);
   last = NULL;

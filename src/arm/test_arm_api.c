@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -45,18 +45,20 @@ static struct GNUNET_ARM_Handle *arm;
 static int ok = 1;
 
 static void
-arm_stopped (void *cls, int success)
+arm_stopped (void *cls,  enum GNUNET_ARM_ProcessStatus success)
 {
-  if (success != GNUNET_NO)
+  GNUNET_break (success == GNUNET_ARM_PROCESS_DOWN);
+  if (success != GNUNET_ARM_PROCESS_DOWN)
     ok = 3;
   else if (ok == 1)
     ok = 0;
 }
 
+
 static void
-arm_notify_stop (void *cls, int success)
+arm_notify_stop (void *cls, enum GNUNET_ARM_ProcessStatus success)
 {
-  GNUNET_assert (success == GNUNET_NO);
+  GNUNET_break (success == GNUNET_ARM_PROCESS_DOWN);
 #if START_ARM
   GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
@@ -67,49 +69,50 @@ static void
 dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 {
   if (addr == NULL)
-  {
-    if (ok != 0)
     {
-      GNUNET_break (0);
-      ok = 2;
+      if (ok != 0)
+	{
+	  GNUNET_break (0);
+	  ok = 2;
+	}
+      GNUNET_ARM_stop_service (arm, "resolver", TIMEOUT, &arm_notify_stop,
+			       NULL);
+      return;
     }
-    GNUNET_ARM_stop_service (arm, "resolver", TIMEOUT, &arm_notify_stop, NULL);
-    return;
-  }
-  GNUNET_assert (addr != NULL);
+  GNUNET_break (addr != NULL);
   ok = 0;
 }
 
 
 static void
-resolver_notify (void *cls, int success)
+resolver_notify (void *cls, enum GNUNET_ARM_ProcessStatus success)
 {
-  if (success != GNUNET_YES)
-  {
-    GNUNET_break (0);
-    ok = 2;
+  if (success != GNUNET_ARM_PROCESS_STARTING)
+    {
+      GNUNET_break (0);
+      ok = 2;
 #if START_ARM
-    GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
-    return;
-  }
+      return;
+    }
   GNUNET_RESOLVER_ip_get ("localhost", AF_INET, TIMEOUT, &dns_notify, NULL);
 }
 
 
 static void
-arm_notify (void *cls, int success)
+arm_notify (void *cls, enum GNUNET_ARM_ProcessStatus success)
 {
-  if (success != GNUNET_YES)
-  {
-    GNUNET_break (0);
-    ok = 2;
+  if (success != GNUNET_ARM_PROCESS_STARTING)
+    {
+      GNUNET_break (0);
+      ok = 2;
 #if START_ARM
-    GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
-  }
+    }
   GNUNET_ARM_start_service (arm, "resolver", START_TIMEOUT, &resolver_notify,
-                            NULL);
+			    NULL);
 }
 
 
@@ -143,9 +146,9 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                                     argv, "test-arm-api", "nohelp", options,
-                                     &task, NULL));
+		 GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+				     argv, "test-arm-api", "nohelp", options,
+				     &task, NULL));
   return ok;
 }
 
@@ -157,11 +160,11 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-arm-api",
 #if VERBOSE
-                    "DEBUG",
+		    "DEBUG",
 #else
-                    "WARNING",
+		    "WARNING",
 #endif
-                    NULL);
+		    NULL);
   ret = check ();
 
   return ret;

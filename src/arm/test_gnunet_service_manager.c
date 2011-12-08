@@ -51,17 +51,17 @@ static struct GNUNET_ARM_Handle *arm;
 #endif
 
 static void
-arm_stopped (void *cls, int success)
+arm_stopped (void *cls, enum GNUNET_ARM_ProcessStatus success)
 {
-  if (success != GNUNET_NO)
-  {
-    GNUNET_break (0);
-    ret = 4;
-  }
+  if (success != GNUNET_ARM_PROCESS_DOWN)
+    {
+      GNUNET_break (0);
+      ret = 4;
+    }
   else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM stopped\n");
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM stopped\n");
+    }
 #if START_ARM
   GNUNET_ARM_disconnect (arm);
   arm = NULL;
@@ -74,15 +74,16 @@ hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   if ((ret == 0) || (ret == 4))
     return;
   if (NULL == addr)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Name not resolved!\n");
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Name not resolved!\n");
 #if START_ARM
-    GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
-    ret = 3;
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Resolved hostname, now stopping ARM\n");
+      ret = 3;
+      return;
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Resolved hostname, now stopping ARM\n");
   ret = 0;
 #if START_ARM
   GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
@@ -91,27 +92,28 @@ hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 
 
 static void
-arm_notify (void *cls, int success)
+arm_notify (void *cls, enum GNUNET_ARM_ProcessStatus success)
 {
-  if (success != GNUNET_YES)
-  {
-    GNUNET_break (0);
-    ret = 1;
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to resolve our own hostname!\n");
+  if (success != GNUNET_ARM_PROCESS_STARTING)
+    {
+      GNUNET_break (0);
+      ret = 1;
+      return;
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Trying to resolve our own hostname!\n");
   /* connect to the resolver service */
   if (NULL ==
-      GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC, TIMEOUT, &hostNameResolveCB,
-                                        NULL))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable initiate connection to resolver service\n");
-    ret = 2;
+      GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC, TIMEOUT,
+					&hostNameResolveCB, NULL))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Unable initiate connection to resolver service\n");
+      ret = 2;
 #if START_ARM
-    GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
-  }
+    }
 }
 
 
@@ -144,9 +146,9 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                                     argv, "test-gnunet-service-manager",
-                                     "nohelp", options, &run, NULL));
+		 GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+				     argv, "test-gnunet-service-manager",
+				     "nohelp", options, &run, NULL));
 }
 
 
@@ -156,27 +158,28 @@ main (int argc, char *argv[])
   char hostname[GNUNET_OS_get_hostname_max_length () + 1];
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                         "gethostname");
-    fprintf (stderr,
-             "Failed to determine my own hostname, testcase not run.\n");
-    return 0;
-  }
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+			   "gethostname");
+      fprintf (stderr,
+	       "Failed to determine my own hostname, testcase not run.\n");
+      return 0;
+    }
   if (NULL == gethostbyname (hostname))
-  {
-    fprintf (stderr, "Failed to resolve my hostname `%s', testcase not run.\n",
-             hostname);
-    return 0;
-  }
+    {
+      fprintf (stderr,
+	       "Failed to resolve my hostname `%s', testcase not run.\n",
+	       hostname);
+      return 0;
+    }
 
   GNUNET_log_setup ("test-gnunet-service-manager",
 #if VERBOSE
-                    "DEBUG",
+		    "DEBUG",
 #else
-                    "WARNING",
+		    "WARNING",
 #endif
-                    NULL);
+		    NULL);
   check ();
   return ret;
 }

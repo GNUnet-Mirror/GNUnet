@@ -42,19 +42,74 @@ extern "C"
 /**
  * Version of the arm API.
  */
-#define GNUNET_ARM_VERSION 0x00000000
+#define GNUNET_ARM_VERSION 0x00000001
+
+
+/**
+ * Values characterizing GNUnet process states.
+ */
+enum GNUNET_ARM_ProcessStatus
+{
+  /**
+   * Service name is unknown to ARM.
+   */
+  GNUNET_ARM_PROCESS_UNKNOWN = -1,
+
+  /**
+   * Service is now down (due to client request).
+   */
+  GNUNET_ARM_PROCESS_DOWN = 0,
+
+  /**
+   * Service is already running.
+   */
+  GNUNET_ARM_PROCESS_ALREADY_RUNNING = 1,
+
+  /**
+   * Service is currently being started (due to client request).
+   */
+  GNUNET_ARM_PROCESS_STARTING = 2,
+  
+  /**
+   * Service is already being stopped by some other client.
+   */
+  GNUNET_ARM_PROCESS_ALREADY_STOPPING = 3,
+
+  /**
+   * Service is already down (no action taken)
+   */
+  GNUNET_ARM_PROCESS_ALREADY_DOWN = 4,
+
+  /**
+   * ARM is currently being shut down (no more process starts)
+   */
+  GNUNET_ARM_PROCESS_SHUTDOWN = 5,
+
+  /**
+   * Error in communication with ARM
+   */
+  GNUNET_ARM_PROCESS_COMMUNICATION_ERROR = 6,
+
+  /**
+   * Timeout in communication with ARM
+   */
+  GNUNET_ARM_PROCESS_COMMUNICATION_TIMEOUT = 7,
+
+  /**
+   * Failure to perform operation
+   */
+  GNUNET_ARM_PROCESS_FAILURE = 8
+};
 
 
 /**
  * Callback function invoked when operation is complete.
  *
  * @param cls closure
- * @param success GNUNET_YES if we think the service is running
- *                GNUNET_NO if we think the service is stopped
- *                GNUNET_SYSERR if we think ARM was not running or
- *                          if the service status is unknown
+ * @param result outcome of the operation
  */
-typedef void (*GNUNET_ARM_Callback) (void *cls, int success);
+typedef void (*GNUNET_ARM_Callback) (void *cls, 
+				     enum GNUNET_ARM_ProcessStatus result);
 
 
 /**

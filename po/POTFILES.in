@@ -95,7 +95,6 @@ src/arm/gnunet-arm.c
 src/arm/mockup-service.c
 src/arm/gnunet-service-arm.c
 src/arm/arm_api.c
-src/arm/gnunet-service-arm_interceptor.c
 src/arm/do_start_process.c
 src/ats/gnunet-service-ats_reservations.c
 src/ats/ats_api.c
@@ -219,7 +218,6 @@ src/dht/gnunet-service-dht.h
 src/dht/gnunet-service-dht_hello.h
 src/dht/gnunet-service-dht_nse.h
 src/arm/arm.h
-src/arm/gnunet-service-arm.h
 src/ats/gnunet-service-ats_performance.h
 src/ats/gnunet-service-ats_math.h
 src/ats/gnunet-service-ats.h
