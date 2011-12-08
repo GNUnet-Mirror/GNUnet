@@ -434,9 +434,7 @@ get_delay_randomization (uint32_t matching_bits)
   uint32_t i;
   double d;
 
-  if (matching_bits == 0)
-    return GNUNET_TIME_UNIT_ZERO;
-  d = get_matching_bits_delay (matching_bits - 1);
+  d = get_matching_bits_delay (matching_bits);
   i = (uint32_t) (d / (double) (hop_count_max + 1));
 #if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
