@@ -1152,7 +1152,7 @@ receive_sockets_from_parent (struct GNUNET_SERVICE_Context *sctx)
          _("Could not access a pre-bound socket, will try to bind myself\n"));
     for (i = 0; i < count && sctx->lsocks[i] != NULL; i++)
       GNUNET_break (0 == GNUNET_NETWORK_socket_close (sctx->lsocks[i]));
-    GNUNET_free (sctx->lsocks);
+    GNUNET_free_non_null (sctx->lsocks);
     sctx->lsocks = NULL;
     return GNUNET_NO;
   }
