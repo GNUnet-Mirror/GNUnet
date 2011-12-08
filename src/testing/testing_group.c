@@ -5149,13 +5149,15 @@ stats_check_existing (struct GNUNET_TESTING_PeerGroup *pg,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (specific_peer->cfg, "statistics",
                                              "unixpath", &unix_domain_socket))
+  {
+    GNUNET_free (unix_domain_socket);
     return GNUNET_NO;
+  }
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (specific_peer->cfg, "statistics",
                                              "port", &port))
   {
-    GNUNET_free (unix_domain_socket);
     return GNUNET_NO;
   }
 
