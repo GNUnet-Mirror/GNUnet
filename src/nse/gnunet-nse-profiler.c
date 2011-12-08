@@ -42,6 +42,8 @@ struct NSEPeer
   struct GNUNET_NSE_Handle *nse_handle;
 
   struct GNUNET_STATISTICS_Handle *stats;
+  
+  GNUNET_SCHEDULER_TaskIdentifier stats_task;
 };
 
 
@@ -121,6 +123,11 @@ static struct GNUNET_DISK_FileHandle *data_file;
  * How many data points to capture before triggering next round?
  */
 static struct GNUNET_TIME_Relative wait_time;
+
+/**
+ * NSE interval.
+ */
+static struct GNUNET_TIME_Relative interval;
 
 /**
  * Task called to disconnect peers.
@@ -249,7 +256,7 @@ core_stats_iterator (void *cls, const char *subsystem, const char *name,
   if (output_file != NULL)
   {
     size =
-        GNUNET_asprintf (&output_buffer, "%s -> %s [%s]: %llu\n",
+        GNUNET_asprintf (&output_buffer, "%s [%s] %s %llu\n",
                           GNUNET_i2s (&peer->daemon->id),
                          subsystem, name, value);
     if (size != GNUNET_DISK_file_write (output_file, output_buffer, size))
@@ -278,15 +285,24 @@ static void
 core_get_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NSEPeer *peer = cls;
+  
+  peer->stats_task = GNUNET_SCHEDULER_NO_TASK;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
   {
-    GNUNET_STATISTICS_destroy(peer->stats, GNUNET_YES);
+    GNUNET_STATISTICS_destroy(peer->stats, GNUNET_NO);
+    peer->stats = NULL;
   }
   else
   {
     GNUNET_STATISTICS_get(peer->stats, "core", NULL,
                           GNUNET_TIME_UNIT_FOREVER_REL,
                           &core_stats_cont, &core_stats_iterator, peer);
+    GNUNET_STATISTICS_get(peer->stats, "transport", NULL,
+                          GNUNET_TIME_UNIT_FOREVER_REL,
+                          NULL, &core_stats_iterator, peer);
+    GNUNET_STATISTICS_get(peer->stats, "nse", NULL,
+                          GNUNET_TIME_UNIT_FOREVER_REL,
+                          NULL, &core_stats_iterator, peer);
   }
 }
 
@@ -301,8 +317,8 @@ static void
 core_stats_cont (void *cls, int success)
 {
   struct NSEPeer *peer = cls;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                &core_get_stats, peer);
+  peer->stats_task = GNUNET_SCHEDULER_add_delayed (interval, &core_get_stats,
+                                                   peer);
 }
 
 
@@ -337,11 +353,14 @@ connect_nse_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert (current_peer->nse_handle != NULL);
     }
     current_peer->stats = GNUNET_STATISTICS_create("profiler", current_peer->daemon->cfg);
-    GNUNET_STATISTICS_get(current_peer->stats, "core", NULL, GNUNET_TIME_UNIT_FOREVER_REL,
+    GNUNET_STATISTICS_get(current_peer->stats, "core", NULL,
+                          GNUNET_TIME_UNIT_FOREVER_REL,
                           &core_stats_cont, &core_stats_iterator, current_peer);
-    GNUNET_STATISTICS_get(current_peer->stats, "transport", NULL, GNUNET_TIME_UNIT_FOREVER_REL,
+    GNUNET_STATISTICS_get(current_peer->stats, "transport", NULL,
+                          GNUNET_TIME_UNIT_FOREVER_REL,
                           NULL, &core_stats_iterator, current_peer);
-    GNUNET_STATISTICS_get(current_peer->stats, "nse", NULL, GNUNET_TIME_UNIT_FOREVER_REL,
+    GNUNET_STATISTICS_get(current_peer->stats, "nse", NULL,
+                          GNUNET_TIME_UNIT_FOREVER_REL,
                           NULL, &core_stats_iterator, current_peer);
     GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, current_peer);
   }
@@ -429,6 +448,10 @@ disconnect_nse_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       pos->nse_handle = NULL;
     }
     GNUNET_CONTAINER_DLL_remove (peer_head, peer_tail, pos);
+    if (NULL != pos->stats)
+      GNUNET_STATISTICS_destroy(pos->stats, GNUNET_NO);
+    if (GNUNET_SCHEDULER_NO_TASK != pos->stats_task)
+      GNUNET_SCHEDULER_cancel (pos->stats_task);
     GNUNET_free (pos);
   }
 
@@ -649,6 +672,15 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Option nse-profiler:wait_time is required!\n");
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (testing_cfg, "nse",
+                                           "INTERVAL", &interval))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Option nse:interval is required!\n");
     return;
   }
 
