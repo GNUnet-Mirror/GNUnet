@@ -1150,7 +1150,7 @@ receive_sockets_from_parent (struct GNUNET_SERVICE_Context *sctx)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Could not access a pre-bound socket, will try to bind myself\n"));
-    for (i = 0; sctx->lsocks[i] != NULL && i < count; i++)
+    for (i = 0; i < count && sctx->lsocks[i] != NULL; i++)
       GNUNET_break (0 == GNUNET_NETWORK_socket_close (sctx->lsocks[i]));
     GNUNET_free (sctx->lsocks);
     sctx->lsocks = NULL;
