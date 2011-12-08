@@ -17,12 +17,16 @@
 #    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 #    Boston, MA 02111-1307, USA.
 #
-# Testcase for file-sharing command-line tools (namespaces)
+# 
 import sys
 import os
 import subprocess
 import re
 import shutil
+
+
+testname = "test_integration_clique"
+verbose = True
 
 srcdir = "../.."
 gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
@@ -31,29 +35,24 @@ if gnunet_pyexpect_dir not in sys.path:
 
 from gnunet_pyexpect import pexpect
 
-exit ()
-
-
-# dummy copied from fs
-
 if os.name == 'posix':
-  pseudonym = 'gnunet-pseudonym'
   gnunetarm = 'gnunet-arm'
-  publish = 'gnunet-publish'
-  unindex = 'gnunet-unindex'
-  search = 'gnunet-search'
 elif os.name == 'nt':
-  pseudonym = 'gnunet-pseudonym.exe'
   gnunetarm = 'gnunet-arm.exe'
-  publish = 'gnunet-publish.exe'
-  unindex = 'gnunet-unindex.exe'
-  search = 'gnunet-search.exe'
 
 if os.name == "nt":
-  shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
+  shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
 else:
-  shutil.rmtree ("/tmp/gnunet-test-fs-py-ns", True)
+  shutil.rmtree ("/tmp/" + testname, True)
 
+if verbose == True:
+	print "Running " + testname
+
+
+
+
+exit ()
+# dummy copied from fs
 arm = subprocess.Popen ([gnunetarm, '-sq', '-c', 'test_gnunet_fs_ns_data.conf'])
 arm.communicate ()
 

@@ -1,0 +1,110 @@
+#!@PYTHON@
+#    This file is part of GNUnet.
+#    (C) 2010 Christian Grothoff (and other contributing authors)
+#
+#    GNUnet is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published
+#    by the Free Software Foundation; either version 2, or (at your
+#    option) any later version.
+#
+#    GNUnet is distributed in the hope that it will be useful, but
+#    WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with GNUnet; see the file COPYING.  If not, write to the
+#    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+#    Boston, MA 02111-1307, USA.
+#
+# 
+import sys
+import os
+import subprocess
+import re
+import shutil
+
+#
+# This test tests if a fresh peer bootstraps from a hostlist server and then
+# successfully connects to the server 
+#
+
+#definitions
+
+def vpfrint (msg):
+    if verbose == True:
+        print msg
+
+
+testname = "test_integration_bootstrap_and_connect"
+verbose = True
+
+# setup
+
+srcdir = "../.."
+gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
+if gnunet_pyexpect_dir not in sys.path:
+  sys.path.append (gnunet_pyexpect_dir)
+
+from gnunet_pyexpect import pexpect
+
+if os.name == 'posix':
+  gnunetarm = 'gnunet-arm'
+elif os.name == 'nt':
+  gnunetarm = 'gnunet-arm.exe'
+
+if os.name == "nt":
+  shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
+else:
+  shutil.rmtree ("/tmp/" + testname, True)
+
+vpfrint ("Running " + testname)
+
+
+
+# start nodes
+
+vpfrint ("Starting bootstrap server & client")
+try:
+    server = subprocess.Popen ([gnunetarm, '-sq', '-c', './confs/c_bootstrap_server.conf'])
+    server.communicate ()    
+except OSError:
+    print "Can not start bootstrap server, exiting..."
+    exit (1)
+try:
+    client = subprocess.Popen ([gnunetarm, '-sq', '-c', 'confs/c_no_nat_client.conf'])
+    client.communicate ()    
+except OSError:
+    print "Can not start bootstrap client, exiting..."
+    exit (1)
+vpfrint ("Bootstrap server & client started")
+
+
+import time
+time.sleep(5)
+
+# shutdown
+vpfrint ("Shutting down bootstrap server")
+try:
+    server = subprocess.Popen ([gnunetarm, '-eq', '-c', './confs/c_bootstrap_server.conf'])
+    server.communicate ()    
+except OSError:
+    print "Can not stop bootstrap server, exiting..."
+    exit (1)
+try:
+    client = subprocess.Popen ([gnunetarm, '-eq', '-c', 'confs/c_no_nat_client.conf'])
+    client.communicate ()    
+except OSError:
+    print "Can not stop bootstrap client, exiting..."
+    exit (1)
+vpfrint ("Bootstrap server & client stopped")
+
+# clean up
+
+if os.name == "nt":
+    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
+else:
+    shutil.rmtree ("/tmp/gnunet-test-fs-py-ns", True)
+
+exit (0)
+
