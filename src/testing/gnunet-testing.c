@@ -68,15 +68,17 @@ create_unique_cfgs (const char * template, const unsigned int no)
   struct GNUNET_CONFIGURATION_Handle *cfg_new = NULL;
   struct GNUNET_CONFIGURATION_Handle *cfg_tmpl = GNUNET_CONFIGURATION_create();
 
-
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg_tmpl, create_cfg_template))
+  /* load template */
+  if ((create_cfg_template != NULL) && (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg_tmpl, create_cfg_template)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not load template `%s'\n", create_cfg_template);
     GNUNET_CONFIGURATION_destroy(cfg_tmpl);
 
     return 1;
   }
+  /* load defaults */
+  else
+    GNUNET_CONFIGURATION_load(cfg_tmpl,  NULL);
 
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg_tmpl, "PATHS", "SERVICEHOME", &service_home))
   {
@@ -92,7 +94,10 @@ create_unique_cfgs (const char * template, const unsigned int no)
   while (cur < no)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating configuration no. %u \n", cur);
-    GNUNET_asprintf (&cur_file,"%04u-%s",cur, create_cfg_template);
+    if (create_cfg_template != NULL)
+      GNUNET_asprintf (&cur_file,"%04u-%s",cur, create_cfg_template);
+    else
+      GNUNET_asprintf (&cur_file,"%04u%s",cur, ".conf");
 
 
     GNUNET_asprintf (&cur_service_home, "%s-%04u%c",service_home, cur, DIR_SEPARATOR);
@@ -219,22 +224,34 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   /* main code here */
-  if ((create_cfg == GNUNET_YES) &&
-      (create_no > 0) &&
-      (create_cfg_template != NULL))
+  if (create_cfg == GNUNET_YES)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating %u configuration files based on template `%s'\n", create_no, create_cfg_template);
-    ret = create_unique_cfgs (create_cfg_template, create_no);
+    if (create_no > 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating %u configuration files based on template `%s'\n", create_no, create_cfg_template);
+      ret = create_unique_cfgs (create_cfg_template, create_no);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Missing arguments! \n");
+      ret = 1;
+    }
   }
-  else if ((create_hostkey == GNUNET_YES) && (create_no > 0))
+
+  if (create_hostkey == GNUNET_YES)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating %u hostkeys \n", create_no);
-    ret = create_hostkeys (create_no);
+    if  (create_no > 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating %u hostkeys \n", create_no);
+      ret = create_hostkeys (create_no);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Missing arguments! \n");
+      ret = 1;
+    }
   }
-  else
-  {
-    ret = 1;
-  }
+
   GNUNET_free_non_null (create_cfg_template);
 }
 
