@@ -49,7 +49,7 @@ struct NSEPeer
 
 struct StatsContext
 {
-  unsigned long long total_nse_bytes;
+  unsigned long long total_nse_messages;
 };
 
 
@@ -390,8 +390,8 @@ stats_finished_callback (void *cls, int success)
     /* Stats lookup successful, write out data */
     buf = NULL;
     buf_len =
-        GNUNET_asprintf (&buf, "TOTAL_NSE_BYTES: %u\n",
-                         stats_context->total_nse_bytes);
+        GNUNET_asprintf (&buf, "TOTAL_NSE_MESSAGES: %u\n",
+                         stats_context->total_nse_messages);
     if (buf_len > 0)
     {
       GNUNET_DISK_file_write (data_file, buf, buf_len);
@@ -423,9 +423,27 @@ statistics_iterator (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct StatsContext *stats_context = cls;
 
-  if ((0 == strstr (subsystem, "nse")) &&
-      (0 == strstr (name, "# flood messages received")))
-    stats_context->total_nse_bytes += value;
+  if ((0 == strcmp (subsystem, "nse")) &&
+      (0 == strcmp (name, "# flood messages received")))
+  {
+    stats_context->total_nse_messages += value;
+#if VERBOSE
+    if (data_file != NULL)
+    {
+      char *buf;
+      int buf_len;
+
+      buf = NULL;
+      buf_len =
+          GNUNET_asprintf (&buf, "Peer %s: %u\n", GNUNET_i2s(peer), value);
+      if (buf_len > 0)
+      {
+        GNUNET_DISK_file_write (data_file, buf, buf_len);
+      }
+      GNUNET_free_non_null (buf);
+    }
+#endif
+  }
   return GNUNET_OK;
 }
 
@@ -710,6 +728,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     data_file =
         GNUNET_DISK_file_open (data_filename,
                                GNUNET_DISK_OPEN_READWRITE |
+                               GNUNET_DISK_OPEN_TRUNCATE |
                                GNUNET_DISK_OPEN_CREATE,
                                GNUNET_DISK_PERM_USER_READ |
                                GNUNET_DISK_PERM_USER_WRITE);
