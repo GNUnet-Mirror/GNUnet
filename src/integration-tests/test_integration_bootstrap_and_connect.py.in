@@ -24,6 +24,10 @@ import subprocess
 import re
 import shutil
 import time
+import pexpect
+
+
+
 
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
@@ -35,32 +39,45 @@ import time
 testname = "test_integration_bootstrap_and_connect"
 verbose = True
 gnunetarm = ""
+gnunetstatistics = ""
 #fix this!
-success = True
-timeout = 2
+success = False
+timeout = 10
+
+#test conditions
+
+#server
+server_transport_connected = False
+server_topology_connected = False
+server_core_connected = False
+
+client_transport_connected = False
+client_topology_connected = False
+client_core_connected = False
+
 
 def vprintf (msg):
     if verbose == True:
         print msg
 
 def setup ():
-	srcdir = "../.."
-	gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
-	if gnunet_pyexpect_dir not in sys.path:
-	  sys.path.append (gnunet_pyexpect_dir)
-	
-	from gnunet_pyexpect import pexpect
-
-	global gnunetarm	
-	if os.name == 'posix':
-	  gnunetarm = 'gnunet-arm'
-	elif os.name == 'nt':
-	  gnunetarm = 'gnunet-arm.exe'
-	
-	if os.name == "nt":
-	  shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
-	else:
-	  shutil.rmtree ("/tmp/" + testname, True)
+  srcdir = "../.."
+  gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
+  if gnunet_pyexpect_dir not in sys.path:
+    sys.path.append (gnunet_pyexpect_dir)
+  from gnunet_pyexpect import pexpect
+  global gnunetarm    	
+  global gnunetstatistics
+  if os.name == 'posix':
+    gnunetarm = 'gnunet-arm'
+    gnunetstatistics = 'gnunet-statistics'
+  elif os.name == 'nt':
+    gnunetarm = 'gnunet-arm.exe'
+    gnunetstatistics = 'gnunet-statistics.exe'    
+  if os.name == "nt":
+    shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
+  else:
+    shutil.rmtree ("/tmp/" + testname, True)
 
 def start ():
 	vprintf ("Starting bootstrap server & client")
@@ -101,14 +118,33 @@ def cleanup ():
 	else:
 	    shutil.rmtree ("/tmp/gnunet-test-fs-py-ns", True)
 
-def check ():
-	global success
-	global timeout
-	count = 1
+def check_statistics (conf, subsystem, name, value):
+    from gnunet_pyexpect import pexpect
+    server = pexpect ()
+    server.spawn (None, [gnunetstatistics, '-c', conf ,'-q','-n', name, '-s', subsystem ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    #server.expect ("stdout", re.compile (r""))
+    test = server.read("stdout", 10240)
+    if (test.find(str(value)) == -1): 
+        return False
+    else:
+        return True 
+    
+    
 
-	while ((success == False) and (count < timeout)):
-		time.sleep(1)
-		count += 1 
+def check ():
+  global success
+  global timeout
+  global publish
+
+  count = 1
+  print 'check'
+  while ((success == False) and (count <= timeout)):
+    if (True == check_statistics ('./confs/c_bootstrap_server.conf', 'transport', '# peers connected',1)):
+        vprintf ('Server transport services is connected')
+    if (True == check_statistics ('./confs/c_no_nat_client.conf', 'transport', '# peers connected',1)):
+        vprintf ('Client transport services is connected')           
+    time.sleep(1)
+    count += 1 
 
 # 
 # Test execution
@@ -120,7 +156,7 @@ start ()
 
 check ()
 
-stop ()
+#stop ()
 cleanup ()
 
 if (success == False):
@@ -129,5 +165,6 @@ if (success == False):
 else:
 	print ('Test successful')
 	exit (0)
+
 
 
