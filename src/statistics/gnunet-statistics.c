@@ -53,6 +53,11 @@ static char *name;
 static int persistent;
 
 /**
+ * Quiet mode
+ */
+static int quiet;
+
+/**
  * Callback function to process statistic values.
  *
  * @param cls closure
@@ -66,8 +71,12 @@ static int
 printer (void *cls, const char *subsystem, const char *name, uint64_t value,
          int is_persistent)
 {
-  FPRINTF (stdout, "%s%-12s %-50s: %16llu\n", is_persistent ? "!" : " ",
+  if (quiet == GNUNET_NO)
+    FPRINTF (stdout, "%s%-12s %-50s: %16llu\n", is_persistent ? "!" : " ",
            subsystem, _(name), (unsigned long long) value);
+  else
+    FPRINTF (stdout, "%llu\n", (unsigned long long) value);
+
   return GNUNET_OK;
 }
 
@@ -152,7 +161,7 @@ main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'n', "name", "NAME",
-     gettext_noop ("limit output to statistcs for the given NAME"), 1,
+     gettext_noop ("limit output to statistics for the given NAME"), 1,
      &GNUNET_GETOPT_set_string, &name},
     {'p', "persistent", NULL,
      gettext_noop ("make the value being set persistent"), 0,
@@ -160,6 +169,9 @@ main (int argc, char *const *argv)
     {'s', "subsystem", "SUBSYSTEM",
      gettext_noop ("limit output to the given SUBSYSTEM"), 1,
      &GNUNET_GETOPT_set_string, &subsystem},
+    {'q', "quiet", NULL,
+     gettext_noop ("just print the statistics value"), 0,
+     &GNUNET_GETOPT_set_one, &quiet},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
