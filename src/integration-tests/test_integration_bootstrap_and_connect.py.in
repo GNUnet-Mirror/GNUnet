@@ -26,23 +26,21 @@ import shutil
 import time
 import pexpect
 
-
-
-
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
 # successfully connects to the server 
 #
+# Conditions for successful exit:
+# Both peers have 1 connected peer in transport, core, topology, fs
 
 #definitions
 
 testname = "test_integration_bootstrap_and_connect"
-verbose = True
+verbose = False
 gnunetarm = ""
 gnunetstatistics = ""
-#fix this!
 success = False
-timeout = 10
+timeout = 100
 
 #test conditions
 
@@ -50,11 +48,12 @@ timeout = 10
 server_transport_connected = False
 server_topology_connected = False
 server_core_connected = False
+server_fs_connected = False
 
 client_transport_connected = False
 client_topology_connected = False
 client_core_connected = False
-
+client_fs_connected = False
 
 def vprintf (msg):
     if verbose == True:
@@ -115,8 +114,10 @@ def stop ():
 def cleanup ():
 	if os.name == "nt":
 	    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
+	    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "c_no_nat_client"), True)
 	else:
-	    shutil.rmtree ("/tmp/gnunet-test-fs-py-ns", True)
+	    shutil.rmtree ("/tmp/c_bootstrap_server/", True)
+	    shutil.rmtree ("/tmp/c_no_nat_client/", True)
 
 def check_statistics (conf, subsystem, name, value):
     from gnunet_pyexpect import pexpect
@@ -135,16 +136,73 @@ def check ():
   global success
   global timeout
   global publish
+  global server_transport_connected
+  global server_topology_connected
+  global server_core_connected
+  global server_fs_connected
+  
+  global client_transport_connected
+  global client_topology_connected
+  global client_core_connected
+  global client_fs_connected
 
   count = 1
-  print 'check'
   while ((success == False) and (count <= timeout)):
-    if (True == check_statistics ('./confs/c_bootstrap_server.conf', 'transport', '# peers connected',1)):
-        vprintf ('Server transport services is connected')
-    if (True == check_statistics ('./confs/c_no_nat_client.conf', 'transport', '# peers connected',1)):
-        vprintf ('Client transport services is connected')           
-    time.sleep(1)
-    count += 1 
+  	# Perform checks   	
+	if ((False == server_transport_connected) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'transport', '# peers connected',1))):
+	  server_transport_connected = True
+	  vprintf ('Server transport services is connected')
+	  
+	if ((False == client_transport_connected) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'transport', '# peers connected',1))):
+	  client_transport_connected = True
+	  vprintf ('Client transport services is connected')
+
+	if ((False == server_core_connected) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'core', '# neighbour entries allocated',1))):
+	  server_core_connected = True
+	  vprintf ('Server core services is connected')
+	  
+	if ((False == client_core_connected) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'core', '# neighbour entries allocated',1))):
+	  client_core_connected = True
+	  vprintf ('Client core services is connected')
+
+	if ((False == server_topology_connected) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'topology', '# peers connected',1))):
+	  server_topology_connected = True
+	  vprintf ('Server topology services is connected')
+	  
+	if ((False == client_topology_connected) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'topology', '# peers connected',1))):
+	  client_topology_connected = True
+	  vprintf ('Client topology services is connected')
+	  
+	if ((False == client_fs_connected) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'fs', '# peers connected',1))):
+	  client_fs_connected = True
+	  vprintf ('Client fs services is connected')
+	if ((False == server_fs_connected) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'fs', '# peers connected',1))):
+	  server_fs_connected = True
+	  vprintf ('Server fs services is connected')	  
+	    
+	# Check if conditions fulfilled
+	if ((True == client_transport_connected) and (True == server_transport_connected) and 
+	(True == client_topology_connected) and (True == server_topology_connected) and 
+	(True == client_core_connected) and (True == server_core_connected) and
+	(True == client_fs_connected) and (True == server_fs_connected)):
+		success = True
+		break 
+	print '.'
+	time.sleep(1)
+	count += 1
+  if (success == False):
+		if (client_transport_connected == False):
+			print ('Client transport was NOT connected')
+		if (server_transport_connected == False):
+			print ('Server transport was NOT connected')
+		if (client_topology_connected == False):
+			print ('Client topology was NOT connected')
+		if (server_topology_connected == False):
+			print ('Server topology was NOT connected')
+		if (client_core_connected == False):
+			print ('Client core was NOT connected')
+		if (server_core_connected == False):
+			print ('Server core was NOT connected')
 
 # 
 # Test execution
@@ -156,7 +214,7 @@ start ()
 
 check ()
 
-#stop ()
+stop ()
 cleanup ()
 
 if (success == False):
