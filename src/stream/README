@@ -1,0 +1,11 @@
+The aim of the stream library is to provide stream connections between peers in
+GNUnet. This is a convenience library which hides the complexity of dividing
+data stream into packets, transmitting them and retransmitting them in case of
+errors.
+
+This library's API are similar to unix PIPE API. The user is expected to open a
+stream to a listening target peer. Once the stream is established, the user can
+use it as a pipe. Any data written into the stream will be readable by the
+target peer.
+
+This library uses mesh API for establishing streams between peers.
