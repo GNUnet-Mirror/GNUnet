@@ -679,6 +679,8 @@ transmit_action (void *cls, size_t size, void *buf)
   size_t ret;
 
   handle->th = NULL;
+  if (NULL == handle->current)
+    return 0;
   switch (handle->current->type)
   {
   case ACTION_GET:
@@ -877,6 +879,7 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
   }
   GNUNET_CONTAINER_DLL_remove (h->action_head, h->action_tail, h->current);
   timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
+  GNUNET_assert (NULL == h->th);
   if (NULL ==
       (h->th =
        GNUNET_CLIENT_notify_transmit_ready (h->client, h->current->msize,
