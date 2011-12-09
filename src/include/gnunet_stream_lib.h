@@ -54,39 +54,69 @@ enum GNUNET_STREAM_Status
     GNUNET_STREAM_TIMEOUT = 1,
 
     /**
+     * Other side has shutdown the socket for this type of operation
+     * (reading/writing)
+     */
+    GNUNET_STREAM_SHUTDOWN = 2
+
+    /**
      * A serious error occured while operating of this stream
      */
-    GNUNET_STREAM_SYSERR = 2
+    GNUNET_STREAM_SYSERR = 3
   };
 
 /**
  * Opaque handler for stream
  */
-struct GNUNET_STREAM_socket;
+struct GNUNET_STREAM_Socket;
 
 /**
  * Functions of this type will be called when a stream is established
  *
  * @param cls the closure from GNUNET_STREAM_open
+ * @param socket socket to use to communicate with the other side (read/write)
  */
-typedef void (*GNUNET_STREAM_OpenCallback) (void *cls);
+typedef void (*GNUNET_STREAM_OpenCallback) (void *cls,
+					    struct GNUNET_STREAM_Socket *socket);
+
 
 /**
  * Tries to open a stream to the target peer
  *
- * @param cls the closure
  * @param target the target peer to which the stream has to be opened
  * @param app_port the application port number which uniquely identifies this
  *            stream
  * @param open_cb this function will be called after stream has be established 
+ * @param open_cb_cls the closure for open_cb
  * @return if successful it returns the stream socket; NULL if stream cannot be
  *         opened 
  */
-struct GNUNET_STREAM_socket *
-GNUNET_STREAM_open (void *cls,
-                    const struct GNUNET_PeerIdentity *target,
+struct GNUNET_STREAM_Socket *
+GNUNET_STREAM_open (const struct GNUNET_PeerIdentity *target,
                     GNUNET_MESH_ApplicationType app_port,
-                    GNUNET_STREAM_OpenCallback open_cb);
+                    GNUNET_STREAM_OpenCallback open_cb,
+		    void *open_cb_cls);
+
+
+/**
+ * Shutdown the stream for reading or writing (man 2 shutdown).
+ *
+ * @param socket the stream socket
+ * @param how SHUT_RD, SHUT_WR or SHUT_RDWR 
+ */
+void
+GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
+			int how);
+
+
+/**
+ * Closes the stream
+ *
+ * @param socket the stream socket
+ */
+void
+GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket);
+
 
 /**
  * Functions of this type are called upon new stream connection from other peers
@@ -99,9 +129,15 @@ GNUNET_STREAM_open (void *cls,
  *             stream (the socket will be invalid after the call)
  */
 typedef int (*GNUNET_STREAM_ListenCallback) (void *cls,
-                                             struct GNUNET_STREAM_socket *socket,
+                                             struct GNUNET_STREAM_Socket *socket,
                                              const struct 
                                              GNUNET_PeerIdentity *initiator);
+
+
+/**
+ * A socket for listening.
+ */
+struct GNUNET_STREAM_ListenSocket;
 
 /**
  * Listens for stream connections for a specific application ports
@@ -109,25 +145,43 @@ typedef int (*GNUNET_STREAM_ListenCallback) (void *cls,
  * @param app_port the application port for which new streams will be accepted
  * @param listen_cb this function will be called when a peer tries to establish
  *            a stream with us
- * @return GNUNET_OK if we are listening, GNUNET_SYSERR for any error
+ * @param listen_cb_cls closure for listen_cb
+ * @return listen socket, NULL for any error
  */
-int
+struct GNUNET_STREAM_ListenSocket *
 GNUNET_STREAM_listen (GNUNET_MESH_ApplicationType app_port,
                       GNUNET_STREAM_ListenCallback listen_cb,
-                      void *cls);
+                      void *listen_cb_cls);
+
 
 /**
- * Functions of this signature are called whenever reading/writing operations
+ * Closes the listen socket
+ *
+ * @param socket the listen socket
+ */
+void
+GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *socket);
+
+
+/**
+ * Functions of this signature are called whenever writing operations
  * on a stream are executed
  *
  * @param cls the closure from GNUNET_STREAM_write/read
  * @param status the status of the stream at the time this function is called
  * @param size the number of bytes read or written
  */
-typedef void (*GNUNET_STREAM_CompletionCallback) (void *cls,
-                                                  enum GNUNET_STREAM_Status
-                                                  status,
-                                                  size_t size);
+typedef void (*GNUNET_STREAM_CompletionContinuation) (void *cls,
+						      enum GNUNET_STREAM_Status
+						      status,
+						      size_t size);
+
+
+/**
+ * Handle to cancel IO operations.
+ */
+struct GNUNET_STREAM_IOHandle;
+
 
 /**
  * Tries to write the given data to the stream
@@ -135,43 +189,59 @@ typedef void (*GNUNET_STREAM_CompletionCallback) (void *cls,
  * @param socket the socket representing a stream
  * @param data the data buffer from where the data is written into the stream
  * @param size the number of bytes to be written from the data buffer
- * @param write_cb the function to call upon writing some bytes into the stream
  * @param timeout the timeout period
- * @param cls the closure
+ * @param write_cont the function to call upon writing some bytes into the stream
+ * @param write_cont_cls the closure
+ * @return handle to cancel the operation
  */
-void
-GNUNET_STREAM_write (const struct GNUNET_STREAM_socket *socket,
-                     void *data,
+struct GNUNET_STREAM_IOHandle *
+GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
+                     const void *data,
                      size_t size,
-                     GNUNET_STREAM_CompletionCallback write_cb,
                      struct GNUNET_TIME_Relative timeout,
-                     void *cls);
+                     GNUNET_STREAM_CompletionContinuation write_cont,
+                     void *write_cont_cls);
+
+
+/**
+ * Functions of this signature are called whenever data is available from the
+ * stream.
+ *
+ * @param cls the closure from GNUNET_STREAM_write/read
+ * @param status the status of the stream at the time this function is called
+ * @param data traffic from the other side
+ * @param size the number of bytes available in data read 
+ */
+typedef void (*GNUNET_STREAM_DataProcessor) (void *cls,
+					     enum GNUNET_STREAM_Status status,
+					     const char *data,
+					     size_t size);
+
 
 /**
  * Tries to read data from the stream
  *
  * @param socket the socket representing a stream
- * @param buffer the buffer into which the read data is stored
- * @param size the number of bytes that are to be read
- * @param read_cb the completion callback function which is called after
- *            attempting to read size number of bytes from the stream
  * @param timeout the timeout period
- * @param cls the closure
+ * @param proc function to call with data
+ * @param proc_cls the closure for proc
+ * @return handle to cancel the operation
  */
-void
-GNUNET_STREAM_read (const struct GNUNET_STREAM_socket *socket,
-                    void *buffer,
-                    size_t size,
-                    GNUNET_STREAM_CompletionCallback read_cb,
+struct GNUNET_STREAM_IOHandle *
+GNUNET_STREAM_read (const struct GNUNET_STREAM_Socket *socket,
                     struct GNUNET_TIME_Relative timeout,
-                    void *cls);
+		    GNUNET_STREAM_DataProcessor proc,
+		    void *proc_cls);
+
+
 /**
- * Closes the stream
+ * Cancel pending read or write operation.
  *
- * @param socket the stream socket
+ * @param ioh handle to operation to cancel
  */
 void
-GNUNET_STREAM_close (struct GNUNET_STREAM_socket *socket);
+GNUNET_STREAM_io_cancel (struct GNUNET_STREAM_IOHandle *ioh);
+
 
 #if 0
 {
