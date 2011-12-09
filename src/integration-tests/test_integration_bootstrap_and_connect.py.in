@@ -48,11 +48,13 @@ timeout = 100
 server_transport_connected = False
 server_topology_connected = False
 server_core_connected = False
+server_core_session_map = False
 server_fs_connected = False
 
 client_transport_connected = False
 client_topology_connected = False
 client_core_connected = False
+client_core_session_map = False
 client_fs_connected = False
 
 def vprintf (msg):
@@ -139,11 +141,13 @@ def check ():
   global server_transport_connected
   global server_topology_connected
   global server_core_connected
+  global server_core_session_map
   global server_fs_connected
   
   global client_transport_connected
   global client_topology_connected
   global client_core_connected
+  global client_core_session_map
   global client_fs_connected
 
   count = 1
@@ -164,6 +168,14 @@ def check ():
 	if ((False == client_core_connected) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'core', '# neighbour entries allocated',1))):
 	  client_core_connected = True
 	  vprintf ('Client core services is connected')
+	  
+	if ((False == client_core_session_map) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'core', '# entries in session map',1))):
+	  client_core_session_map = True
+	  vprintf ('Server core services is connected')
+	  
+	if ((False == server_core_session_map) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'core', '# entries in session map',1))):
+	  server_core_session_map = True
+	  vprintf ('Client core notifies about connected')
 
 	if ((False == server_topology_connected) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'topology', '# peers connected',1))):
 	  server_topology_connected = True
@@ -184,13 +196,15 @@ def check ():
 	if ((True == client_transport_connected) and (True == server_transport_connected) and 
 	(True == client_topology_connected) and (True == server_topology_connected) and 
 	(True == client_core_connected) and (True == server_core_connected) and
+	(True == client_core_session_map) and (True == server_core_session_map) and
 	(True == client_fs_connected) and (True == server_fs_connected)):
 		success = True
 		break 
-	print '.'
+	print '.',
 	time.sleep(1)
 	count += 1
   if (success == False):
+  		print ''
 		if (client_transport_connected == False):
 			print ('Client transport was NOT connected')
 		if (server_transport_connected == False):
@@ -203,6 +217,10 @@ def check ():
 			print ('Client core was NOT connected')
 		if (server_core_connected == False):
 			print ('Server core was NOT connected')
+		if (server_core_session_map == False):
+			print ('Client core sessions did NOT increase')
+		if (server_core_session_map == False):
+			print ('Server core sessions did NOT increase')
 
 # 
 # Test execution
@@ -221,7 +239,6 @@ if (success == False):
 	print ('Test failed')
 	exit (1)
 else:
-	print ('Test successful')
 	exit (0)
 
 
