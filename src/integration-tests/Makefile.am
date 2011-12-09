@@ -17,7 +17,7 @@ check_PROGRAMS =
 if HAVE_PYTHON_PEXPECT
 check_SCRIPTS = \
  test_integration_bootstrap_and_connect.py \
- test_integration_clique.py 
+ test_integration_disconnect.py
 endif
 
 
@@ -36,8 +36,14 @@ test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connec
 	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect.py.in > test_integration_bootstrap_and_connect.py
 	chmod +x test_integration_bootstrap_and_connect.py
 
+test_integration_disconnect.py: test_integration_disconnect.py.in Makefile
+	$(do_subst) < $(srcdir)/test_integration_disconnect.py.in > test_integration_disconnect.py
+	chmod +x test_integration_disconnect.py
+
+
 EXTRA_DIST = \
-   test_integration_bootstrap_and_connect.py.in
+   test_integration_bootstrap_and_connect.py.in \
+   test_integration_disconnect.py.in 
 #  test_integration_clique.py.in
 
 

@@ -28,14 +28,15 @@ import pexpect
 
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
-# successfully connects to the server 
+# successfully connects to the server. When both peers are connected
+# in transport, core, topology, fs, the server is shutdown
 #
 # Conditions for successful exit:
-# Both peers have 1 connected peer in transport, core, topology, fs
+# Both peers have 0 connected peer in transport, core, topology, fs
 
 #definitions
 
-testname = "test_integration_bootstrap_and_connect"
+testname = "test_integration_disconnect"
 verbose = False
 gnunetarm = ""
 gnunetstatistics = ""
@@ -44,18 +45,6 @@ timeout = 100
 
 #test conditions
 
-#server
-server_transport_connected = False
-server_topology_connected = False
-server_core_connected = False
-server_core_session_map = False
-server_fs_connected = False
-
-client_transport_connected = False
-client_topology_connected = False
-client_core_connected = False
-client_core_session_map = False
-client_fs_connected = False
 
 def vprintf (msg):
     if verbose == True:
@@ -97,20 +86,13 @@ def start ():
 	vprintf ("Bootstrap server & client started")
 
 def stop ():
-	vprintf ("Shutting down bootstrap server")
-	try:
-	    server = subprocess.Popen ([gnunetarm, '-eq', '-c', './confs/c_bootstrap_server.conf'])
-	    server.communicate ()    
-	except OSError:
-	    print "Can not stop bootstrap server, exiting..."
-	    exit (1)
 	try:
 	    client = subprocess.Popen ([gnunetarm, '-eq', '-c', 'confs/c_no_nat_client.conf'])
 	    client.communicate ()    
 	except OSError:
 	    print "Can not stop bootstrap client, exiting..."
 	    exit (1)
-	vprintf ("Bootstrap server & client stopped")
+	vprintf ("Bootstrap client stopped")
 
 
 def cleanup ():
@@ -134,24 +116,21 @@ def check_statistics (conf, subsystem, name, value):
     
     
 
-def check ():
-  global success
-  global timeout
-  global publish
-  global server_transport_connected
-  global server_topology_connected
-  global server_core_connected
-  global server_core_session_map
-  global server_fs_connected
+def check_connect ():
+  server_transport_connected = False
+  server_topology_connected = False
+  server_core_connected = False
+  server_core_session_map = False
+  server_fs_connected = False
+  client_transport_connected = False
+  client_topology_connected = False
+  client_core_connected = False
+  client_core_session_map = False
+  client_fs_connected = False
   
-  global client_transport_connected
-  global client_topology_connected
-  global client_core_connected
-  global client_core_session_map
-  global client_fs_connected
-
+  connected = False
   count = 1
-  while ((success == False) and (count <= timeout)):
+  while ((connected == False) and (count <= timeout)):
   	# Perform checks   	
 	if ((False == server_transport_connected) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'transport', '# peers connected',1))):
 	  server_transport_connected = True
@@ -169,12 +148,12 @@ def check ():
 	  client_core_connected = True
 	  vprintf ('Client core services is connected')
 	  
-	if ((False == server_core_session_map) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'core', '# entries in session map',1))):
-	  server_core_session_map = True
+	if ((False == client_core_session_map) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'core', '# entries in session map',1))):
+	  client_core_session_map = True
 	  vprintf ('Server core services is connected')
 	  
-	if ((False == client_core_session_map) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'core', '# entries in session map',1))):
-	  client_core_session_map = True
+	if ((False == server_core_session_map) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'core', '# entries in session map',1))):
+	  server_core_session_map = True
 	  vprintf ('Client core notifies about connected')
 
 	if ((False == server_topology_connected) and (True == check_statistics ('./confs/c_bootstrap_server.conf', 'topology', '# peers connected',1))):
@@ -198,12 +177,12 @@ def check ():
 	(True == client_core_connected) and (True == server_core_connected) and
 	(True == client_core_session_map) and (True == server_core_session_map) and
 	(True == client_fs_connected) and (True == server_fs_connected)):
-		success = True
+		connected = True
 		break 
 	print '.',
 	time.sleep(1)
 	count += 1
-  if (success == False):
+  if (connected == False):
   		print ''
 		if (client_transport_connected == False):
 			print ('Client transport was NOT connected')
@@ -221,6 +200,72 @@ def check ():
 			print ('Client core sessions did NOT increase')
 		if (server_core_session_map == False):
 			print ('Server core sessions did NOT increase')
+		return False
+  else:
+	return True
+
+def check_disconnect ():
+	vprintf ("Shutting down bootstrap server")
+	try:
+	    server = subprocess.Popen ([gnunetarm, '-eq', '-c', './confs/c_bootstrap_server.conf'])
+	    server.communicate ()    
+	except OSError:
+	    print "Can not stop bootstrap server, exiting..."
+	    exit (1)
+	    
+	client_transport_disconnected = False
+	client_topology_disconnected = False
+	client_core_disconnected = False
+	client_core_session_map = False
+	client_fs_disconnected = False
+	    
+	disconnected = False
+  	count = 1
+  	while ((disconnected == False) and (count <= timeout)):   		  
+		if ((False == client_transport_disconnected) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'transport', '# peers connected',0))):
+		  client_transport_disconnected = True
+		  vprintf ('Client transport services is disconnected')
+		  
+		if ((False == client_core_disconnected) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'core', '# neighbour entries allocated',0))):
+		  client_core_disconnected = True
+		  vprintf ('Client core services is disconnected')
+		  
+		if ((False == client_core_session_map) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'core', '# entries in session map',0))):
+		  client_core_session_map = True
+		  vprintf ('Client core notifies about disconnected')
+		  
+		if ((False == client_topology_disconnected) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'topology', '# peers connected',0))):
+		  client_topology_disconnected = True
+		  vprintf ('Client topology services is disconnected')
+		  
+		if ((False == client_fs_disconnected) and (True == check_statistics ('./confs/c_no_nat_client.conf', 'fs', '# peers connected',0))):
+		  client_fs_disconnected = True
+		  vprintf ('Client fs services is disconnected')
+		    
+		# Check if conditions fulfilled
+		if ((True == client_transport_disconnected) and
+		(True == client_topology_disconnected) and 
+		(True == client_core_disconnected) and 
+		(True == client_core_session_map) and 
+		(True == client_fs_disconnected)):
+			disconnected = True
+			break 
+		print '.'
+		time.sleep(1)
+		count += 1
+	if (disconnected == False):
+		print ''
+		if (client_transport_disconnected == False):
+			print ('Client transport was NOT disconnected')
+		if (client_topology_disconnected == False):
+			print ('Client topology was NOT disconnected')
+		if (client_core_disconnected == False):
+			print ('Client core was NOT disconnected')
+		if (server_core_session_map == False):
+			print ('Server core sessions did NOT increase')
+		return False
+	else:
+		return True	    
 
 # 
 # Test execution
@@ -230,9 +275,15 @@ vprintf ("Running " + testname)
 setup ()
 start ()
 
-check ()
+ret = check_connect ()
+if (ret == True):
+	vprintf ('Peers connected')
+	if (True == check_disconnect ()):
+		success = True
 
 stop ()
+
+
 cleanup ()
 
 if (success == False):
