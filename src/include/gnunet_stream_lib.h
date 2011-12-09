@@ -152,10 +152,13 @@ GNUNET_STREAM_write (const struct GNUNET_STREAM_socket *socket,
  *
  * @param socket the socket representing a stream
  * @param buffer the buffer into which the read data is stored
-
- * @return 
+ * @param size the number of bytes that are to be read
+ * @param read_cb the completion callback function which is called after
+ *            attempting to read size number of bytes from the stream
+ * @param timeout the timeout period
+ * @param cls the closure
  */
-size_t
+void
 GNUNET_STREAM_read (const struct GNUNET_STREAM_socket *socket,
                     void *buffer,
                     size_t size,
