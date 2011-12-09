@@ -1108,7 +1108,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
     GNUNET_free (path);
     return NULL;
   }
-  if (lsocks != NULL)
+  if (lsocks != NULL && lsocks[0] != INVALID_SOCKET)
   {
     lsocks_pipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
 
@@ -1136,7 +1136,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
   GNUNET_asprintf (&our_env[1], "%s", childpipename);
   GNUNET_free (childpipename);
-  if (lsocks == NULL)
+  if (lsocks == NULL || lsocks[0] == INVALID_SOCKET)
     our_env[2] = NULL;
   else
   {
@@ -1178,7 +1178,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   CloseHandle (proc.hThread);
   GNUNET_free (cmd);
 
-  if (lsocks == NULL)
+  if (lsocks == NULL || lsocks[0] == INVALID_SOCKET)
     return gnunet_proc;
 
   GNUNET_DISK_pipe_close_end (lsocks_pipe, GNUNET_DISK_PIPE_END_READ);
