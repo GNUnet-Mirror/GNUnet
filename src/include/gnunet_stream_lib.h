@@ -57,7 +57,7 @@ enum GNUNET_STREAM_Status
      * Other side has shutdown the socket for this type of operation
      * (reading/writing)
      */
-    GNUNET_STREAM_SHUTDOWN = 2
+    GNUNET_STREAM_SHUTDOWN = 2,
 
     /**
      * A serious error occured while operating of this stream
