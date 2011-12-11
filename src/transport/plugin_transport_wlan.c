@@ -399,6 +399,36 @@ struct Plugin_Session_pair
   struct Session *session;
 };
 
+
+/**
+ * Header for messages which need fragmentation
+ */
+struct WlanHeader
+{
+
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * checksum/error correction
+   */
+  uint32_t crc GNUNET_PACKED;
+
+  /**
+   * To whom are we talking to (set to our identity
+   * if we are still waiting for the welcome message)
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   *  Where the packet came from
+   */
+  struct GNUNET_PeerIdentity source;
+
+// followed by payload
+
+};
+
+
 /**
  * Information kept for each message that is yet to
  * be transmitted.
