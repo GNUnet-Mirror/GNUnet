@@ -121,41 +121,6 @@
 #define IEEE80211_FC0_TYPE_DATA                 0x08
 
 /*
- * Structure of an internet header, naked of options.
- */
-struct iph
-{
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-  unsigned int ip_hl:4;         /* header length */
-  unsigned int ip_v:4;          /* version */
-#endif
-#if __BYTE_ORDER == __BIG_ENDIAN
-  unsigned int ip_v:4;          /* version */
-  unsigned int ip_hl:4;         /* header length */
-#endif
-  u_int8_t ip_tos;              /* type of service */
-  u_short ip_len;               /* total length */
-  u_short ip_id;                /* identification */
-  u_short ip_off;               /* fragment offset field */
-#define IP_RF 0x8000            /* reserved fragment flag */
-#define IP_DF 0x4000            /* dont fragment flag */
-#define IP_MF 0x2000            /* more fragments flag */
-#define IP_OFFMASK 0x1fff       /* mask for fragmenting bits */
-  u_int8_t ip_ttl;              /* time to live */
-  u_int8_t ip_p;                /* protocol */
-  u_short ip_sum;               /* checksum */
-  struct in_addr ip_src, ip_dst;        /* source and dest address */
-};
-
-struct udphdr
-{
-  u_int16_t source;
-  u_int16_t dest;
-  u_int16_t len;
-  u_int16_t check;
-};
-
-/*
  * generic definitions for IEEE 802.11 frames
  */
 struct ieee80211_frame
@@ -167,10 +132,6 @@ struct ieee80211_frame
   u_int8_t i_addr3[IEEE80211_ADDR_LEN];
   u_int8_t i_seq[2];
   u_int8_t llc[4];
-#if DEBUG_wlan_ip_udp_packets_on_air > 1
-  struct iph ip;
-  struct udphdr udp;
-#endif
 } GNUNET_PACKED;
 
 /**
@@ -1344,7 +1305,7 @@ getWlanHeader (struct ieee80211_frame *Header,
 
   Header->i_fc[0] = IEEE80211_FC0_TYPE_DATA;
   Header->i_fc[1] = 0x00;
-  memcpy (&Header->i_addr3, &mac_bssid, sizeof (mac_bssid));
+  memcpy (&Header->i_addr3, &mac_bssid_gnunet, sizeof (mac_bssid_gnunet));
   memcpy (&Header->i_addr2, plugin->mac_address.mac,
           sizeof (plugin->mac_address));
   memcpy (&Header->i_addr1, to_mac_addr, sizeof (struct MacAddress));
@@ -1353,36 +1314,6 @@ getWlanHeader (struct ieee80211_frame *Header,
   *tmp16 = (uint16_t) GNUNET_htole16 ((size * 1000000) / rate + 290);
   Header->llc[0] = WLAN_LLC_DSAP_FIELD;
   Header->llc[1] = WLAN_LLC_SSAP_FIELD;
-
-#if DEBUG_wlan_ip_udp_packets_on_air > 1
-  uint crc = 0;
-  uint16_t *x;
-  int count;
-
-  Header->ip.ip_dst.s_addr = *((uint32_t *) & to_mac_addr->mac[2]);
-  Header->ip.ip_src.s_addr = *((uint32_t *) & plugin->mac_address.mac[2]);
-  Header->ip.ip_v = 4;
-  Header->ip.ip_hl = 5;
-  Header->ip.ip_p = 17;
-  Header->ip.ip_ttl = 1;
-  Header->ip.ip_len = htons (size + 8);
-  Header->ip.ip_sum = 0;
-  x = (uint16_t *) & Header->ip;
-  count = sizeof (struct iph);
-  while (count > 1)
-  {
-    /* This is the inner loop */
-    crc += (unsigned short) *x++;
-    count -= 2;
-  }
-  /* Add left-over byte, if any */
-  if (count > 0)
-    crc += *(unsigned char *) x;
-  crc = (crc & 0xffff) + (crc >> 16);
-  Header->ip.ip_sum = htons (~(unsigned short) crc);
-  Header->udp.len = htons (size - sizeof (struct ieee80211_frame));
-
-#endif
 
   return GNUNET_YES;
 }
@@ -3124,7 +3055,7 @@ wlan_process_helper (void *cls, void *client,
 
     //check for bssid
     if (memcmp
-        (&(wlanIeeeHeader->i_addr3), &mac_bssid,
+        (&(wlanIeeeHeader->i_addr3), &mac_bssid_gnunet,
          sizeof (struct MacAddress)) == 0)
     {
       //check for broadcast or mac
@@ -3204,7 +3135,7 @@ wlan_process_helper (void *cls, void *client,
     break;
   case GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL:
     //TODO more control messages
-    if (ntohs (hdr->size) != sizeof (struct Wlan_Helper_Control_Message))
+    if (ntohs (hdr->size) != sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage))
     {
       GNUNET_break (0);
       /* FIXME: restart SUID process */

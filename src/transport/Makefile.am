@@ -35,7 +35,7 @@ endif
 if LINUX
  WLAN_BIN = gnunet-transport-wlan-helper
  WLAN_BIN_DUMMY = gnunet-transport-wlan-helper-dummy
- WLAN_BIN_SENDER = gnunet_wlan_sender
+ WLAN_BIN_SENDER = gnunet-transport-wlan-sender
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
  WLAN_API_TEST = test_transport_api_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
@@ -115,9 +115,9 @@ gnunet_transport_wlan_helper_dummy_SOURCES = \
 gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 
-gnunet_wlan_sender_SOURCES = \
- gnunet_wlan_sender.c
-gnunet_wlan_sender_LDADD = \
+gnunet_transport_wlan_sender_SOURCES = \
+ gnunet-transport-wlan-sender.c
+gnunet_transport_wlan_sender_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_transport_SOURCES = \

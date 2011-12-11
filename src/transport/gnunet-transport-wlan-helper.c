@@ -352,9 +352,10 @@ struct HardwareInfos
 {
 
   /**
-  * send buffer
-  */
+   * send buffer
+   */
   struct SendBuffer write_pout;
+
   /**
    * file descriptor for the raw socket
    */
@@ -928,13 +929,13 @@ next_entry:
 static int
 send_mac_to_plugin (char *buffer, struct MacAddress *mac)
 {
-  struct Wlan_Helper_Control_Message macmsg;
+  struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
 
   memcpy (&macmsg.mac, (char *) mac, sizeof (struct MacAddress));
-  macmsg.hdr.size = htons (sizeof (struct Wlan_Helper_Control_Message));
+  macmsg.hdr.size = htons (sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
   macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
-  memcpy (buffer, &macmsg, sizeof (struct Wlan_Helper_Control_Message));
-  return sizeof (struct Wlan_Helper_Control_Message);
+  memcpy (buffer, &macmsg, sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
+  return sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage);
 }
 
 
@@ -1078,7 +1079,7 @@ linux_get_channel (const struct HardwareInfos *dev)
   strncpy (wrq.ifr_name, dev->iface, IFNAMSIZ);
   fd = dev->fd_raw;
   if (0 > ioctl (fd, SIOCGIWFREQ, &wrq))
-    return (-1);
+    return -1;
 
   frequency = wrq.u.freq.m;
   if (100000000 < frequency)
@@ -1151,8 +1152,8 @@ linux_read (struct HardwareInfos *dev, unsigned char *buf, size_t buf_size,
       n = *(int *) (tmpbuf + 4);
     }
 
-    if (n < 8 || n >= caplen)
-      return (0);
+    if ( (n < 8) || (n >= caplen) )
+      return 0;
   }
     break;
 
@@ -1164,7 +1165,7 @@ linux_read (struct HardwareInfos *dev, unsigned char *buf, size_t buf_size,
     rthdr = (struct ieee80211_radiotap_header *) tmpbuf;
 
     if (ieee80211_radiotap_iterator_init (&iterator, rthdr, caplen) < 0)
-      return (0);
+      return 0;
 
     /* go through the radiotap arguments we have been given
      * by the driver
@@ -1456,7 +1457,7 @@ static int
 mac_test (const struct ieee80211_frame *uint8_taIeeeHeader,
           const struct HardwareInfos *dev)
 {
-  if (0 != memcmp (uint8_taIeeeHeader->i_addr3, &mac_bssid, MAC_ADDR_SIZE))
+  if (0 != memcmp (uint8_taIeeeHeader->i_addr3, &mac_bssid_gnunet, MAC_ADDR_SIZE))
     return 1;
   if (0 == memcmp (uint8_taIeeeHeader->i_addr1, &dev->pl_mac, MAC_ADDR_SIZE))
     return 0;
@@ -1478,7 +1479,7 @@ mac_set (struct ieee80211_frame *uint8_taIeeeHeader,
   uint8_taIeeeHeader->i_fc[0] = 0x08;
   uint8_taIeeeHeader->i_fc[1] = 0x00;
   memcpy (uint8_taIeeeHeader->i_addr2, &dev->pl_mac, MAC_ADDR_SIZE);
-  memcpy (uint8_taIeeeHeader->i_addr3, &mac_bssid, MAC_ADDR_SIZE);
+  memcpy (uint8_taIeeeHeader->i_addr3, &mac_bssid_gnunet, MAC_ADDR_SIZE);
 }
 
 

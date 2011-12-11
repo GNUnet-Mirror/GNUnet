@@ -19,18 +19,11 @@
  */
 
 /**
- * @file transport/gnunet_wlan_sender.c
+ * @file transport/gnunet-transport-wlan-sender.c
  * @brief program to send via WLAN as much as possible (to test physical/theoretical throughput)
  * @author David Brodski
  */
-
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <time.h>
-#include <errno.h>
+#include "platform.h"
 #include "gnunet_protocols.h"
 #include "plugin_transport_wlan.h"
 
@@ -66,11 +59,8 @@ struct ieee80211_frame
   u_int8_t i_addr3[IEEE80211_ADDR_LEN];
   u_int8_t i_seq[2];
   u_int8_t llc[4];
-#if DEBUG_wlan_ip_udp_packets_on_air > 1
-  struct iph ip;
-  struct udphdr udp;
-#endif
 } GNUNET_PACKED;
+
 
 /**
  * function to fill the radiotap header
@@ -80,8 +70,6 @@ struct ieee80211_frame
 static int
 getRadiotapHeader (struct Radiotap_Send *header)
 {
-
-
   header->rate = 255;
   header->tx_power = 0;
   header->antenna = 0;
@@ -106,9 +94,9 @@ getWlanHeader (struct ieee80211_frame *Header, const char *to_mac_addr,
 
   Header->i_fc[0] = IEEE80211_FC0_TYPE_DATA;
   Header->i_fc[1] = 0x00;
-  memcpy (&Header->i_addr3, &mac_bssid, sizeof (mac_bssid));
-  memcpy (&Header->i_addr2, mac, sizeof (mac_bssid));
-  memcpy (&Header->i_addr1, to_mac_addr, sizeof (mac_bssid));
+  memcpy (&Header->i_addr3, &mac_bssid_gnunet, sizeof (mac_bssid_gnunet));
+  memcpy (&Header->i_addr2, mac, sizeof (mac_bssid_gnunet));
+  memcpy (&Header->i_addr1, to_mac_addr, sizeof (mac_bssid_gnunet));
 
   tmp16 = (uint16_t *) Header->i_dur;
   *tmp16 = (uint16_t) GNUNET_htole16 ((size * 1000000) / rate + 290);
@@ -117,6 +105,7 @@ getWlanHeader (struct ieee80211_frame *Header, const char *to_mac_addr,
 
   return GNUNET_YES;
 }
+
 
 int
 main (int argc, char *argv[])
@@ -164,14 +153,9 @@ main (int argc, char *argv[])
     return 1;
   }
   for (i = 0; i < 6; i++)
-  {
     inmac[i] = temp[i];
-  }
   for (i = 0; i < 6; i++)
-  {
     outmac[i] = temp[i];
-  }
-
 
   pid_t pid;
   int commpipe[2];              /* This holds the fd for the input & output of the pipe */
@@ -179,14 +163,17 @@ main (int argc, char *argv[])
   /* Setup communication pipeline first */
   if (pipe (commpipe))
   {
-    fprintf (stderr, "Pipe error!\n");
+    fprintf (stderr, 
+	     "Failed to create pipe: %s\n",
+	     STRERROR (errno));
     exit (1);
   }
 
   /* Attempt to fork and check for errors */
   if ((pid = fork ()) == -1)
   {
-    fprintf (stderr, "Fork error. Exiting.\n"); /* something went wrong */
+    fprintf (stderr, "Failed to fork: %s\n", 
+	     STRERROR (errno));    
     exit (1);
   }
 

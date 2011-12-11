@@ -62,14 +62,14 @@ static int
 send_mac_to_plugin (char *buffer, struct MacAddress *mac)
 {
 
-  struct Wlan_Helper_Control_Message macmsg;
+  struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
 
   memcpy (&macmsg.mac, (char *) mac, sizeof (struct MacAddress));
-  macmsg.hdr.size = htons (sizeof (struct Wlan_Helper_Control_Message));
+  macmsg.hdr.size = htons (sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
   macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
 
-  memcpy (buffer, &macmsg, sizeof (struct Wlan_Helper_Control_Message));
-  return sizeof (struct Wlan_Helper_Control_Message);
+  memcpy (buffer, &macmsg, sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
+  return sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage);
 }
 
 static void

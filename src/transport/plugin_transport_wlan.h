@@ -46,7 +46,7 @@ struct MacAddress
 /**
  * Format of a WLAN Control Message.
  */
-struct Wlan_Helper_Control_Message
+struct GNUNET_TRANSPORT_WLAN_HelperControlMessage
 {
   /**
    * Message header. FIXME: type?
@@ -63,7 +63,7 @@ struct Wlan_Helper_Control_Message
 /**
  * GNUnet bssid
  */
-static const struct MacAddress mac_bssid = {
+static const struct MacAddress mac_bssid_gnunet = {
   {0x13, 0x22, 0x33, 0x44, 0x55, 0x66}
 };
 
