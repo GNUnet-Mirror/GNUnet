@@ -170,22 +170,22 @@ struct Plugin
   struct GNUNET_SERVER_MessageStreamTokenizer *data_tokenizer;
 
   /**
-   * stdout pipe handle for the gnunet-wlan-helper process
+   * stdout pipe handle for the gnunet-helper-transport-wlan process
    */
   struct GNUNET_DISK_PipeHandle *server_stdout;
 
   /**
-   * stdout file handle for the gnunet-wlan-helper process
+   * stdout file handle for the gnunet-helper-transport-wlan process
    */
   const struct GNUNET_DISK_FileHandle *server_stdout_handle;
 
   /**
-   * stdin pipe handle for the gnunet-wlan-helper process
+   * stdin pipe handle for the gnunet-helper-transport-wlan process
    */
   struct GNUNET_DISK_PipeHandle *server_stdin;
 
   /**
-   * stdin file handle for the gnunet-wlan-helper process
+   * stdin file handle for the gnunet-helper-transport-wlan process
    */
   const struct GNUNET_DISK_FileHandle *server_stdin_handle;
 
@@ -1370,7 +1370,7 @@ add_message_for_send (void *cls, const struct GNUNET_MessageHeader *hdr)
 
 
 /**
- * We have been notified that wlan-helper has written something to stdout.
+ * We have been notified that gnunet-helper-transport-wlan has written something to stdout.
  * Handle the output, then reschedule this function to be called again once
  * more is available.
  *
@@ -1399,7 +1399,7 @@ wlan_plugin_helper_read (void *cls,
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                      _
-                     ("Finished reading from wlan-helper stdout with code: %d\n"),
+                     ("Finished reading from gnunet-helper-transport-wlan stdout with code: %d\n"),
                      bytes);
 #endif
     return;
@@ -1415,7 +1415,7 @@ wlan_plugin_helper_read (void *cls,
 }
 
 /**
- * Start the gnunet-wlan-helper process.
+ * Start the gnunet-helper-transport-wlan process.
  *
  * @param plugin the transport plugin
  * @return GNUNET_YES if process was started, GNUNET_SYSERR on error
@@ -1423,8 +1423,8 @@ wlan_plugin_helper_read (void *cls,
 static int
 wlan_transport_start_wlan_helper (struct Plugin *plugin)
 {
-  const char *filenamehw = "gnunet-transport-wlan-helper";
-  const char *filenameloopback = "gnunet-transport-wlan-helper-dummy";
+  const char *filenamehw = "gnunet-helper-transport-wlan";
+  const char *filenameloopback = "gnunet-helper-transport-wlan-dummy";
   char *absolute_filename = NULL;
 
   if (plugin->helper_is_running == GNUNET_YES)
@@ -1475,7 +1475,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
 
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Starting gnunet-wlan-helper process cmd: %s %s %i\n",
+                     "Starting gnunet-helper-transport-wlan process cmd: %s %s %i\n",
                      filenamehw, plugin->interface, plugin->testmode);
 #endif
 
@@ -1489,13 +1489,13 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
     else if (GNUNET_OS_check_helper_binary (filenamehw) == GNUNET_NO)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "gnunet-transport-wlan-helper is not suid, please change it or look at the doku\n");
+                       "gnunet-helper-transport-wlan is not suid, please change it or look at the doku\n");
       GNUNET_break (0);
     }
     else
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "gnunet-transport-wlan-helper not found, please look if it exists and is the $PATH variable!\n");
+                       "gnunet-helper-transport-wlan not found, please look if it exists and is the $PATH variable!\n");
       GNUNET_break (0);
     }
 
@@ -1505,7 +1505,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
 
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, PLUGIN_LOG_NAME,
-                     "Starting gnunet-transport-wlan-helper-dummy loopback 1 process cmd: %s %s %i\n",
+                     "Starting gnunet-helper-transport-wlan-dummy loopback 1 process cmd: %s %s %i\n",
                      absolute_filename, plugin->interface, plugin->testmode);
 #endif
     plugin->server_proc =
@@ -1524,7 +1524,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   {
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, PLUGIN_LOG_NAME,
-                     "Starting gnunet-transport-wlan-helper-dummy loopback 2 process cmd: %s %s %i\n",
+                     "Starting gnunet-helper-transport-wlan-dummy loopback 2 process cmd: %s %s %i\n",
                      absolute_filename, plugin->interface, plugin->testmode);
 #endif
 
@@ -1546,7 +1546,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   {
 #if DEBUG_wlan
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Failed to start gnunet-transport-wlan-helper process\n");
+                     "Failed to start gnunet-helper-transport-wlan process\n");
 #endif
     return GNUNET_SYSERR;
   }
@@ -1571,7 +1571,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
 
 #if DEBUG_wlan
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                   "Adding server_read_task for the wlan-helper\n");
+                   "Adding server_read_task for the gnunet-helper-transport-wlan\n");
 #endif
 
   plugin->server_read_task =
@@ -1584,7 +1584,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
 }
 
 /**
- * Stops the gnunet-wlan-helper process.
+ * Stops the gnunet-helper-transport-wlan process.
  *
  * @param plugin the transport plugin
  * @return GNUNET_YES if process was started, GNUNET_SYSERR on error

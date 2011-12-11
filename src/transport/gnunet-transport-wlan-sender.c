@@ -225,10 +225,10 @@ main (int argc, char *argv[])
     (void) close (commpipe[1]); /* Close unused side of pipe (out side) */
     /* Replace the child fork with a new process */
     if (execl
-        ("gnunet-transport-wlan-helper", "gnunet-transport-wlan-helper",
+        ("gnunet-helper-transport-wlan", "gnunet-helper-transport-wlan",
          argv[1], NULL) == -1)
     {
-      fprintf (stderr, "Could not start gnunet-transport-wlan-helper!");
+      fprintf (stderr, "Could not start gnunet-helper-transport-wlan!");
       _exit (1);
     }
   }

@@ -18,7 +18,7 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file transport/gnunet-transport-wlan-helper-dummy.c
+ * @file transport/gnunet-helper-transport-wlan-dummy.c
  * @brief helper for the testcases for plugin_transport_wlan.c
  * @author David Brodski
  */

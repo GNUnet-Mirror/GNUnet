@@ -33,8 +33,8 @@ if USE_COVERAGE
 endif
 
 if LINUX
- WLAN_BIN = gnunet-transport-wlan-helper
- WLAN_BIN_DUMMY = gnunet-transport-wlan-helper-dummy
+ WLAN_BIN = gnunet-helper-transport-wlan
+ WLAN_BIN_DUMMY = gnunet-helper-transport-wlan-dummy
  WLAN_BIN_SENDER = gnunet-transport-wlan-sender
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
  WLAN_API_TEST = test_transport_api_wlan
@@ -45,8 +45,8 @@ endif
 
 if LINUX
 install-exec-hook:
-	$(SUDO_BINARY) chown root:root $(bindir)/gnunet-transport-wlan-helper || true
-	$(SUDO_BINARY) chmod u+s $(bindir)/gnunet-transport-wlan-helper || true
+	$(SUDO_BINARY) chown root:root $(bindir)/gnunet-helper-transport-wlan || true
+	$(SUDO_BINARY) chmod u+s $(bindir)/gnunet-helper-transport-wlan || true
 else
 install-exec-hook:
 endif
@@ -107,12 +107,12 @@ gnunet_transport_certificate_creation_SOURCES = \
 gnunet_transport_certificate_creation_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 
-gnunet_transport_wlan_helper_SOURCES = \
- gnunet-transport-wlan-helper.c
+gnunet_helper_transport_wlan_SOURCES = \
+ gnunet-helper-transport-wlan.c
 
-gnunet_transport_wlan_helper_dummy_SOURCES = \
- gnunet-transport-wlan-helper-dummy.c
-gnunet_transport_wlan_helper_dummy_LDADD = \
+gnunet_helper_transport_wlan_dummy_SOURCES = \
+ gnunet-helper-transport-wlan-dummy.c
+gnunet_helper_transport_wlan_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_transport_wlan_sender_SOURCES = \
