@@ -31,4 +31,5 @@ SUBDIRS = \
   fs \
   mesh \
   vpn \
+  integration-tests \
   $(EXP_DIR) 

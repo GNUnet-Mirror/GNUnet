@@ -297,7 +297,7 @@ def check_disconnect_client ():
 		(True == client_fs_disconnected)):
 			disconnected = True
 			break 
-		print '.'
+		print '.',
 		time.sleep(1)
 		count += 1
 	if (disconnected == False):
