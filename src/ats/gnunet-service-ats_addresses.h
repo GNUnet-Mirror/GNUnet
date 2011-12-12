@@ -53,7 +53,7 @@ GAS_addresses_done (void);
  */
 
 struct GNUNET_ATS_Information
-GAS_addresses_type (struct sockaddr * addr, socklen_t addrlen);
+GAS_addresses_type (const struct sockaddr * addr, socklen_t addrlen);
 
 /**
  * This address is now used or not used anymore

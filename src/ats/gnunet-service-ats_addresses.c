@@ -79,7 +79,8 @@ struct ATS_Network
 
   struct ATS_Network * prev;
 
-  void *network;
+  struct sockaddr *network;
+  struct sockaddr *netmask;
   socklen_t length;
 };
 
@@ -482,12 +483,67 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
  */
 
 struct GNUNET_ATS_Information
-GAS_addresses_type (struct sockaddr * addr, socklen_t addrlen)
+GAS_addresses_type (const struct sockaddr * addr, socklen_t addrlen)
 {
   struct GNUNET_ATS_Information ats;
-  /* FIXME */
-  ats.type = ntohl(GNUNET_ATS_ARRAY_TERMINATOR);
-  ats.value = ntohl(GNUNET_ATS_ARRAY_TERMINATOR);
+  struct ATS_Network * cur = net_head;
+  int is_lan = GNUNET_NO;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Checking type of address `%s'\n", GNUNET_a2s(addr, addrlen));
+
+  while (cur != NULL)
+  {
+    if (addrlen != cur->length)
+    {
+      cur = cur->next;
+      continue;
+    }
+
+    if (addr->sa_family == AF_INET)
+    {
+      struct sockaddr_in * a4 = (struct sockaddr_in *) addr;
+      struct sockaddr_in * net4 = (struct sockaddr_in *) cur->network;
+      struct sockaddr_in * mask4 = (struct sockaddr_in *) cur->netmask;
+
+      if (((a4->sin_addr.s_addr & mask4->sin_addr.s_addr) & net4->sin_addr.s_addr) == net4->sin_addr.s_addr)
+      {
+        char * net = strdup (GNUNET_a2s ((const struct sockaddr *) net4, addrlen));
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' in network `%s': YES \n",
+            GNUNET_a2s ((const struct sockaddr *)a4, addrlen),
+            net);
+        GNUNET_free (net);
+        is_lan = GNUNET_YES;
+      }
+      else
+      {
+        char * net = strdup (GNUNET_a2s ((const struct sockaddr *) net4, addrlen));
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' in network `%s': NO \n",
+            GNUNET_a2s ((const struct sockaddr *)a4, addrlen),
+            net);
+        GNUNET_free (net);
+        is_lan = GNUNET_YES;
+      }
+    }
+    if (addr->sa_family == AF_INET6)
+    {
+
+    }
+
+    if (is_lan == GNUNET_YES)
+      break;
+    cur = cur->next;
+  }
+
+  if (is_lan == GNUNET_NO)
+  {
+    ats.type = ntohl(GNUNET_ATS_ARRAY_TERMINATOR);
+    ats.value = ntohl(GNUNET_ATS_ARRAY_TERMINATOR);
+  }
+  else
+  {
+    ats.type = ntohl(GNUNET_ATS_ARRAY_TERMINATOR);
+    ats.value = ntohl(GNUNET_ATS_ARRAY_TERMINATOR);
+  }
   return ats;
 }
 
@@ -501,14 +557,50 @@ interface_proc (void *cls, const char *name,
                 const struct sockaddr *
                 netmask, socklen_t addrlen)
 {
- // GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Address: %s\n", GNUNET_a2s(addr, addrlen));
-
-  struct ATS_Network *net = GNUNET_malloc(sizeof (struct ATS_Network) + addrlen);
   /* Calculate network */
-  net->length = addrlen;
+  struct ATS_Network *net = NULL;
+  if (addr->sa_family == AF_INET)
+  {
+    struct ATS_Network *net = NULL;
+    struct sockaddr_in *addr4 = (struct sockaddr_in *) addr;
+    struct sockaddr_in *netmask4 = (struct sockaddr_in *) netmask;
+    struct sockaddr * tmp = NULL;
+    struct sockaddr_in network4;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding %s address: %s\n", (addr->sa_family == AF_INET) ? "IPv4" : "IPv6" ,GNUNET_a2s(addr, addrlen));
+
+    net = GNUNET_malloc(sizeof (struct ATS_Network) + 2 * sizeof (struct sockaddr_in));
+    tmp = (struct sockaddr *) &net[1];
+    net->network = &tmp[0];
+    net->netmask = &tmp[1];
+    net->length = addrlen;
+
+    network4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    network4.sin_len = sizeof (network4);
+#endif
+    network4.sin_addr.s_addr = (addr4->sin_addr.s_addr & netmask4->sin_addr.s_addr);
+
+    memcpy (net->netmask, netmask4, sizeof (struct sockaddr_in));
+    memcpy (net->network, &network4, sizeof (struct sockaddr_in));
+
+    char * netmask = strdup (GNUNET_a2s((struct sockaddr *) net->netmask, addrlen));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding network `%s', netmask `%s'\n",
+        GNUNET_a2s((struct sockaddr *) net->network, addrlen),
+        netmask);
+    GNUNET_free (netmask);
+
+  }
+  if (addr->sa_family == AF_INET6)
+  {
+
+  }
 
   /* Store in list */
-  GNUNET_CONTAINER_DLL_insert(net_head, net_tail, net);
+  if (net != NULL)
+    GNUNET_CONTAINER_DLL_insert(net_head, net_tail, net);
+
+  //GAS_addresses_type (addr, addrlen);
 
   return GNUNET_OK;
 }
