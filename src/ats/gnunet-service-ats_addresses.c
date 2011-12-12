@@ -489,8 +489,6 @@ GAS_addresses_type (const struct sockaddr * addr, socklen_t addrlen)
   struct ATS_Network * cur = net_head;
   int type = GNUNET_ATS_NET_UNSPECIFIED;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Checking type of address `%s'\n", GNUNET_a2s(addr, addrlen));
-
   /* IPv4 loopback check */
   if  (addr->sa_family == AF_INET)
   {
