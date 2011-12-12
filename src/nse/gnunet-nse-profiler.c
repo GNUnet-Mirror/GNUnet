@@ -49,7 +49,14 @@ struct NSEPeer
 
 struct StatsContext
 {
-  unsigned long long total_nse_messages;
+  /**
+   * How many messages have peers received during the test.
+   */
+  unsigned long long total_nse_received_messages;
+  /**
+   * How many messages have peers send during the test (should be == received).
+   */
+  unsigned long long total_nse_sent_messages;
 };
 
 
@@ -390,8 +397,17 @@ stats_finished_callback (void *cls, int success)
     /* Stats lookup successful, write out data */
     buf = NULL;
     buf_len =
-        GNUNET_asprintf (&buf, "TOTAL_NSE_MESSAGES: %u\n",
-                         stats_context->total_nse_messages);
+        GNUNET_asprintf (&buf, "TOTAL_NSE_RECEIVED_MESSAGES: %u\n",
+                         stats_context->total_nse_received_messages);
+    if (buf_len > 0)
+    {
+      GNUNET_DISK_file_write (data_file, buf, buf_len);
+    }
+    GNUNET_free_non_null (buf);
+    buf = NULL;
+    buf_len =
+        GNUNET_asprintf (&buf, "TOTAL_NSE_SENT_MESSAGES: %u\n",
+                         stats_context->total_nse_sent_messages);
     if (buf_len > 0)
     {
       GNUNET_DISK_file_write (data_file, buf, buf_len);
@@ -423,26 +439,48 @@ statistics_iterator (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct StatsContext *stats_context = cls;
 
-  if ((0 == strcmp (subsystem, "nse")) &&
-      (0 == strcmp (name, "# flood messages received")))
+  if (0 == strcmp (subsystem, "nse"))
   {
-    stats_context->total_nse_messages += value;
-#if VERBOSE
-    if (data_file != NULL)
+    if (0 == strcmp (name, "# flood messages received"))
     {
-      char *buf;
-      int buf_len;
-
-      buf = NULL;
-      buf_len =
-          GNUNET_asprintf (&buf, "Peer %s: %u\n", GNUNET_i2s(peer), value);
-      if (buf_len > 0)
+      stats_context->total_nse_received_messages += value;
+#if VERBOSE
+      if (data_file != NULL)
       {
-        GNUNET_DISK_file_write (data_file, buf, buf_len);
+        char *buf;
+        int buf_len;
+
+        buf = NULL;
+        buf_len =
+            GNUNET_asprintf (&buf, "%s %u RECEIVED\n", GNUNET_i2s(peer), value);
+        if (buf_len > 0)
+        {
+          GNUNET_DISK_file_write (data_file, buf, buf_len);
+        }
+        GNUNET_free_non_null (buf);
       }
-      GNUNET_free_non_null (buf);
-    }
 #endif
+    }
+    if (0 == strcmp (name, "# flood messages sent"))
+    {
+      stats_context->total_nse_sent_messages += value;
+#if VERBOSE
+      if (data_file != NULL)
+      {
+        char *buf;
+        int buf_len;
+
+        buf = NULL;
+        buf_len =
+            GNUNET_asprintf (&buf, "%s %u SENT\n", GNUNET_i2s(peer), value);
+        if (buf_len > 0)
+        {
+          GNUNET_DISK_file_write (data_file, buf, buf_len);
+        }
+        GNUNET_free_non_null (buf);
+      }
+#endif
+    }
   }
   return GNUNET_OK;
 }
