@@ -73,6 +73,20 @@ struct ATS_Address
 
 };
 
+struct ATS_Network
+{
+  struct ATS_Network * next;
+
+  struct ATS_Network * prev;
+
+  void *network;
+  socklen_t length;
+};
+
+
+struct ATS_Network * net_head;
+
+struct ATS_Network * net_tail;
 
 static struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
@@ -81,6 +95,8 @@ static unsigned long long wan_quota_in;
 static unsigned long long wan_quota_out;
 
 static unsigned int active_addr_count;
+
+static GNUNET_SCHEDULER_TaskIdentifier interface_task;
 
 
 /**
@@ -458,6 +474,66 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
   // do nothing for now...
 }
 
+/**
+ * Returns where the address is located: LAN or WAN or ...
+ * @param addr address
+ * @param addrlen address length
+ * @return location as GNUNET_ATS_Information
+ */
+
+struct GNUNET_ATS_Information
+GAS_addresses_type (struct sockaddr * addr, socklen_t addrlen)
+{
+  struct GNUNET_ATS_Information ats;
+  /* FIXME */
+  ats.type = ntohl(GNUNET_ATS_ARRAY_TERMINATOR);
+  ats.value = ntohl(GNUNET_ATS_ARRAY_TERMINATOR);
+  return ats;
+}
+
+static int
+interface_proc (void *cls, const char *name,
+                int isDefault,
+                const struct sockaddr *
+                addr,
+                const struct sockaddr *
+                broadcast_addr,
+                const struct sockaddr *
+                netmask, socklen_t addrlen)
+{
+ // GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Address: %s\n", GNUNET_a2s(addr, addrlen));
+
+  struct ATS_Network *net = GNUNET_malloc(sizeof (struct ATS_Network) + addrlen);
+  /* Calculate network */
+  net->length = addrlen;
+
+  /* Store in list */
+  GNUNET_CONTAINER_DLL_insert(net_head, net_tail, net);
+
+  return GNUNET_OK;
+}
+
+static void
+delete_networks ()
+{
+  struct ATS_Network * cur = net_head;
+  while (cur != NULL)
+  {
+    GNUNET_CONTAINER_DLL_remove(net_head, net_tail, cur);
+    GNUNET_free (cur);
+    cur = net_head;
+  }
+}
+
+static void
+get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  interface_task = GNUNET_SCHEDULER_NO_TASK;
+  delete_networks ();
+  GNUNET_OS_network_interfaces_list(interface_proc, NULL);
+
+  interface_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, get_addresses, NULL);
+}
 
 /**
  * Initialize address subsystem.
@@ -476,6 +552,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                                       "WAN_QUOTA_OUT",
                                                       &wan_quota_out));
   addresses = GNUNET_CONTAINER_multihashmap_create (128);
+
+  interface_task = GNUNET_SCHEDULER_add_now(get_addresses, NULL);
 }
 
 
@@ -512,6 +590,12 @@ GAS_addresses_destroy_all ()
 void
 GAS_addresses_done ()
 {
+  delete_networks ();
+  if (interface_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(interface_task);
+    interface_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GAS_addresses_destroy_all ();
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
   addresses = NULL;

@@ -45,6 +45,15 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
 void
 GAS_addresses_done (void);
 
+/**
+ * Returns where the address is located: LAN or WAN or ...
+ * @param addr address
+ * @param addrlen address length
+ * @return location as GNUNET_ATS_Information
+ */
+
+struct GNUNET_ATS_Information
+GAS_addresses_type (struct sockaddr * addr, socklen_t addrlen);
 
 /**
  * This address is now used or not used anymore
