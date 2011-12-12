@@ -31,6 +31,14 @@
 #include "gnunet_hello_lib.h"
 
 
+enum GNUNET_ATS_Network_Type
+{
+  GNUNET_ATS_NET_UNSPECIFIED,
+  GNUNET_ATS_NET_LOOPBACK,
+  GNUNET_ATS_NET_LAN,
+  GNUNET_ATS_NET_WAN
+};
+
 /**
  * Enum defining all known property types for ATS Enum values are used
  * in the GNUNET_ATS_Information struct as
@@ -61,6 +69,12 @@ enum GNUNET_ATS_Property
    * Unit: [bytes/second]
    */
   GNUNET_ATS_UTILIZATION_DOWN,
+
+  /**
+   * Is this address located in WAN, LAN or a loopback address
+   * Value is element of GNUNET_ATS_Network_Type
+   */
+  GNUNET_ATS_NETWORK_TYPE,
 
   /**
    * Delay
