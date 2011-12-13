@@ -719,10 +719,12 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
                     const struct GNUNET_MessageHeader *currhdr,
                     const struct sockaddr_un *un, size_t fromlen)
 {
-  struct GNUNET_ATS_Information distance;
+  struct GNUNET_ATS_Information ats[2];
 
-  distance.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  distance.value = htonl (UNIX_DIRECT_DISTANCE);
+  ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  ats[0].value = htonl (UNIX_DIRECT_DISTANCE);
+  ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats[1].value = htonl (GNUNET_ATS_NET_LOOPBACK);
 
   GNUNET_assert (fromlen >= sizeof (struct sockaddr_un));
 
@@ -731,7 +733,7 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
               un->sun_path);
 #endif
   plugin->env->receive (plugin->env->cls, sender, currhdr,
-                        (const struct GNUNET_ATS_Information *) &distance, 1,
+                        (const struct GNUNET_ATS_Information *) &ats, 2,
                         NULL, un->sun_path, strlen (un->sun_path) + 1);
 }
 
