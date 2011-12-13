@@ -860,7 +860,7 @@ GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sh->suggest_cb_cls = suggest_cb_cls;
   GNUNET_array_grow (sh->session_array, sh->session_array_size, 4);
   GNUNET_OS_network_interfaces_list(interface_proc, sh);
-  sh->interface_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, get_addresses, NULL);
+  sh->interface_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, get_addresses, sh);
   reconnect (sh);
   return sh;
 }

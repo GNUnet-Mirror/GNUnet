@@ -62,6 +62,8 @@ struct ATS_Address
 
   uint32_t atsp_cost_wlan;
 
+  uint32_t atsp_network_type;
+
   struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
 
   struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
@@ -279,6 +281,10 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
     case GNUNET_ATS_COST_WLAN:
       old->atsp_cost_wlan = ntohl (atsi[i].value);
       break;
+    case GNUNET_ATS_NETWORK_TYPE:
+      old->atsp_network_type = ntohl (atsi[i].value);
+      break;
+
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Received unsupported ATS type %u\n", ntohl (atsi[i].type));
