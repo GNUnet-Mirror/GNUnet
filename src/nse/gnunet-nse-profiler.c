@@ -50,6 +50,11 @@ struct NSEPeer
 struct StatsContext
 {
   /**
+   * Whether or not shoutdown after finishing.
+   */
+  int shutdown;
+
+  /**
    * How many messages have peers received during the test.
    */
   unsigned long long total_nse_received_messages;
@@ -397,7 +402,8 @@ stats_finished_callback (void *cls, int success)
     /* Stats lookup successful, write out data */
     buf = NULL;
     buf_len =
-        GNUNET_asprintf (&buf, "TOTAL_NSE_RECEIVED_MESSAGES: %u\n",
+        GNUNET_asprintf (&buf, "TOTAL_NSE_RECEIVED_MESSAGES_%d: %u \n",
+                         stats_context->shutdown, 
                          stats_context->total_nse_received_messages);
     if (buf_len > 0)
     {
@@ -406,8 +412,9 @@ stats_finished_callback (void *cls, int success)
     GNUNET_free_non_null (buf);
     buf = NULL;
     buf_len =
-        GNUNET_asprintf (&buf, "TOTAL_NSE_SENT_MESSAGES: %u\n",
-                         stats_context->total_nse_sent_messages);
+        GNUNET_asprintf (&buf, "TOTAL_NSE_SENT_MESSAGES_%d: %u\n",
+                         stats_context->shutdown, 
+                         stats_context->total_nse_received_messages);
     if (buf_len > 0)
     {
       GNUNET_DISK_file_write (data_file, buf, buf_len);
@@ -415,8 +422,16 @@ stats_finished_callback (void *cls, int success)
     GNUNET_free_non_null (buf);
   }
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == shutdown_handle);
-  shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+  if (GNUNET_YES == stats_context->shutdown)
+  {
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == shutdown_handle);
+    shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+  }
+  else
+  {
+    GNUNET_assert (churn_task == GNUNET_SCHEDULER_NO_TASK);
+    churn_task = GNUNET_SCHEDULER_add_now (&churn_peers, NULL);
+  }
   GNUNET_free (stats_context);
 }
 
@@ -517,12 +532,23 @@ disconnect_nse_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                              &peers_next_round))
   {
     current_round++;
-    GNUNET_assert (churn_task == GNUNET_SCHEDULER_NO_TASK);
-    churn_task = GNUNET_SCHEDULER_add_now (&churn_peers, NULL);
+    if (current_round == 1)
+    {
+      stats_context = GNUNET_malloc (sizeof (struct StatsContext));
+      stats_context->shutdown = GNUNET_NO;
+      GNUNET_TESTING_get_statistics (pg, &stats_finished_callback,
+                                    &statistics_iterator, stats_context);
+    }
+    else
+    {
+      GNUNET_assert (churn_task == GNUNET_SCHEDULER_NO_TASK);
+      churn_task = GNUNET_SCHEDULER_add_now (&churn_peers, NULL);
+    }
   }
   else                          /* No more rounds, let's shut it down! */
   {
     stats_context = GNUNET_malloc (sizeof (struct StatsContext));
+    stats_context->shutdown = GNUNET_YES;
     GNUNET_SCHEDULER_cancel (shutdown_handle);
     shutdown_handle = GNUNET_SCHEDULER_NO_TASK;
     GNUNET_TESTING_get_statistics (pg, &stats_finished_callback,

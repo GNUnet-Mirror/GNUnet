@@ -59,7 +59,7 @@
  * production).  The associated code should also probably be removed
  * once we're done with experiments.
  */
-#define ENABLE_HISTOGRAM GNUNET_YES
+#define ENABLE_HISTOGRAM GNUNET_NO
 
 /**
  * Over how many values do we calculate the weighted average?
@@ -301,7 +301,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   double val;
   double nsize;
 
-#define WEST 0
+#define WEST 1
   /* Weighted incremental algorithm for stddev according to West (1979) */
 #if WEST
   double sumweight;
