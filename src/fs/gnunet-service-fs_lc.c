@@ -332,15 +332,15 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
   if ((type == GNUNET_BLOCK_TYPE_FS_KBLOCK) ||
       (type == GNUNET_BLOCK_TYPE_FS_NBLOCK) || (type == GNUNET_BLOCK_TYPE_ANY))
   {
-    /* FIXME: this does currently not work to filter duplicate
-     * results from *local* datastore since the local store is
-     * queried before we continue to process additional
-     * messages from the client! -- fix protocol? */
     cr = lc->cr_head;
     while (cr != NULL)
     {
       prd = GSF_pending_request_get_data_ (cr->pr);
-      if ((0 != memcmp (&prd->query, &sm->query, sizeof (GNUNET_HashCode))) &&
+      /* only unify with queries that hae not yet started local processing
+	 (SEARCH_MESSAGE_OPTION_CONTINUED was always set) and that have a
+	 matching query and type */
+      if ((GNUNET_YES != prd->has_started) &&
+	  (0 != memcmp (&prd->query, &sm->query, sizeof (GNUNET_HashCode))) &&
           (prd->type == type))
         break;
       cr = cr->next;

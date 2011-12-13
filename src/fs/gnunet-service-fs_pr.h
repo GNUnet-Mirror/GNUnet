@@ -146,6 +146,12 @@ struct GSF_PendingRequestData
    */
   int has_target;
 
+  /**
+   * Has this request been started yet (local/p2p operations)?  Or are
+   * we still constructing it?
+   */
+  int has_started;
+
 };
 
 

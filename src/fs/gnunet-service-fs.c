@@ -348,6 +348,7 @@ handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
   pr = GSF_handle_p2p_query_ (other, message);
   if (NULL == pr)
     return GNUNET_SYSERR;
+  GSF_pending_request_get_data_ (pr)->has_started = GNUNET_YES;
   GSF_local_lookup_ (pr, &consider_forwarding, NULL);
   update_latencies (atsi, atsi_count);
   return GNUNET_OK;
@@ -415,6 +416,7 @@ handle_start_search (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     break;
   case GNUNET_YES:
+    GSF_pending_request_get_data_ (pr)->has_started = GNUNET_YES;
     GSF_local_lookup_ (pr, &start_p2p_processing, client);
     break;
   default:
