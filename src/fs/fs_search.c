@@ -389,6 +389,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   int is_new;
 
   /* check if new */
+  GNUNET_assert (NULL != sc);
   GNUNET_FS_uri_to_key (uri, &key);
   if (GNUNET_SYSERR ==
       GNUNET_CONTAINER_multihashmap_get_multiple (ent->results, &key,
@@ -470,6 +471,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
   struct GNUNET_FS_SearchResult *sr;
 
   /* check if new */
+  GNUNET_assert (NULL != sc);
   GNUNET_FS_uri_to_key (uri, &key);
   GNUNET_CRYPTO_hash_xor (&uri->data.chk.chk.key, &uri->data.chk.chk.query,
                           &key);

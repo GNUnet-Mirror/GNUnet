@@ -2077,6 +2077,7 @@ deserialize_search_result (void *cls, const char *filename)
   download = NULL;
   update_srch = NULL;
   sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
+  sr->sc = sc;
   sr->serialization = ser;
   if ((GNUNET_OK != GNUNET_BIO_read_string (rh, "result-uri", &uris, 10 * 1024))
       || (NULL == (sr->uri = GNUNET_FS_uri_parse (uris, &emsg))) ||
