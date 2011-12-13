@@ -203,6 +203,12 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   struct GNUNET_STATISTICS_Handle *stats;
 
   /**
+   * ATS Handle to request address type.
+   */
+  struct GNUNET_ATS_SchedulingHandle *ats;
+
+
+  /**
    * Function that should be called by the transport plugin
    * whenever a message is received.
    */
