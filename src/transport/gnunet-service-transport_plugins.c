@@ -132,6 +132,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     plug->env.session_end = session_end_cb;
     plug->env.max_connections = tneigh;
     plug->env.stats = GST_stats;
+    plug->env.ats = GST_ats;
     GNUNET_CONTAINER_DLL_insert (plugins_head, plugins_tail, plug);
   }
   GNUNET_free (plugs);

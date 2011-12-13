@@ -295,6 +295,10 @@ struct Session
    */
   int is_nat;
 
+  /**
+   * ATS network type in NBO
+   */
+  uint32_t ats_address_network_type;
 };
 
 
@@ -1122,6 +1126,15 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     session->connect_addr = GNUNET_malloc (addrlen);
     memcpy (session->connect_addr, addr, addrlen);
     session->connect_alen = addrlen;
+    if ((addrlen != 0) && (plugin->env->ats != NULL))
+    {
+      struct GNUNET_ATS_Information ats;
+      GNUNET_assert(plugin->env->ats != NULL);
+      ats = GNUNET_ATS_address_get_type(plugin->env->ats, sb ,sbs);
+      session->ats_address_network_type = ats.value;
+    }
+    else
+      GNUNET_break (0);
   }
   else                          /* session != NULL */
   {
@@ -1605,6 +1618,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
                        "Found address `%s' for incoming connection\n",
                        GNUNET_a2s (vaddr, alen));
 #endif
+
       if (alen == sizeof (struct sockaddr_in))
       {
         s4 = vaddr;
@@ -1624,6 +1638,15 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
         session->connect_alen = sizeof (struct IPv6TcpAddress);
       }
 
+      if (plugin->env->ats != NULL)
+      {
+        struct GNUNET_ATS_Information ats;
+        GNUNET_assert(plugin->env->ats != NULL);
+        ats = GNUNET_ATS_address_get_type(plugin->env->ats, vaddr ,alen);
+        session->ats_address_network_type = ats.value;
+      }
+      else
+        GNUNET_break (0);
       GNUNET_free (vaddr);
     }
     else
@@ -1731,10 +1754,14 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# bytes received via TCP"),
                             ntohs (message->size), GNUNET_NO);
-  struct GNUNET_ATS_Information distance;
+  struct GNUNET_ATS_Information distance[2];
 
-  distance.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  distance.value = htonl (1);
+  distance[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  distance[0].value = htonl (1);
+  distance[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  distance[1].value = session->ats_address_network_type;
+  GNUNET_break (ntohl(session->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
+
   delay =
       plugin->env->receive (plugin->env->cls, &session->target, message,
                             (const struct GNUNET_ATS_Information *) &distance,

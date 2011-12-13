@@ -547,11 +547,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /* start subsystems */
   GST_hello_start (&process_hello_update, NULL);
   GST_blacklist_start (server);
+  GST_ats =
+      GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
   GST_plugins_load (&plugin_env_receive_callback,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_end);
-  GST_ats =
-      GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
   GST_neighbours_start (NULL, &neighbours_connect_notification,
                         &neighbours_disconnect_notification);
   GST_clients_start (server);
