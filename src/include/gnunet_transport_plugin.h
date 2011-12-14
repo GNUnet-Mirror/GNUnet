@@ -128,6 +128,20 @@ typedef struct
 
 
 /**
+ * Function that will be called to figure if an address is an loopback,
+ * LAN, WAN etc. address
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return ATS Information containing the network type
+ */
+typedef const struct GNUNET_ATS_Information
+(*GNUNET_TRANSPORT_AddressToType) (void *cls,
+                                   const struct sockaddr *addr,
+                                   size_t addrlen);
+
+/**
  * Function that will be called for each address the transport
  * is aware that it might be reachable under.
  *
@@ -203,12 +217,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   struct GNUNET_STATISTICS_Handle *stats;
 
   /**
-   * ATS Handle to request address type.
-   */
-  struct GNUNET_ATS_SchedulingHandle *ats;
-
-
-  /**
    * Function that should be called by the transport plugin
    * whenever a message is received.
    */
@@ -232,6 +240,13 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * session handle stops being valid (is destroyed).
    */
   GNUNET_TRANSPORT_SessionEnd session_end;
+
+  /**
+   * Function that will be called to figure if an address is an loopback,
+   * LAN, WAN etc. address
+   */
+  GNUNET_TRANSPORT_AddressToType get_address_type;
+
 
   /**
    * What is the maximum number of connections that this transport
@@ -464,7 +479,6 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * to a string (numeric conversion only).
    */
   GNUNET_TRANSPORT_AddressToString address_to_string;
-
 };
 
 

@@ -1126,11 +1126,10 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     session->connect_addr = GNUNET_malloc (addrlen);
     memcpy (session->connect_addr, addr, addrlen);
     session->connect_alen = addrlen;
-    if ((addrlen != 0) && (plugin->env->ats != NULL))
+    if (addrlen != 0)
     {
       struct GNUNET_ATS_Information ats;
-      GNUNET_assert(plugin->env->ats != NULL);
-      ats = GNUNET_ATS_address_get_type(plugin->env->ats, sb ,sbs);
+      ats = plugin->env->get_address_type (plugin->env->cls, sb ,sbs);
       session->ats_address_network_type = ats.value;
     }
     else
@@ -1638,15 +1637,10 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
         session->connect_alen = sizeof (struct IPv6TcpAddress);
       }
 
-      if (plugin->env->ats != NULL)
-      {
-        struct GNUNET_ATS_Information ats;
-        GNUNET_assert(plugin->env->ats != NULL);
-        ats = GNUNET_ATS_address_get_type(plugin->env->ats, vaddr ,alen);
-        session->ats_address_network_type = ats.value;
-      }
-      else
-        GNUNET_break (0);
+      struct GNUNET_ATS_Information ats;
+      ats = plugin->env->get_address_type (plugin->env->cls, vaddr ,alen);
+      session->ats_address_network_type = ats.value;
+
       GNUNET_free (vaddr);
     }
     else
