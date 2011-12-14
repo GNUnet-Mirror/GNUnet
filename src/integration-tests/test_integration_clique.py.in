@@ -308,7 +308,7 @@ def check_disconnect_client ():
 			print ('Client topology was NOT disconnected')
 		if (client_core_disconnected == False):
 			print ('Client core was NOT disconnected')
-		if (server_core_session_map == False):
+		if (client_core_session_map == False):
 			print ('Server core sessions did NOT increase')
 		return False
 	else:
