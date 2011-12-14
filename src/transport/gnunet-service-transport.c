@@ -381,7 +381,9 @@ plugin_env_address_to_type (void *cls,
     GNUNET_break (0);
     return ats;
   }
-  if ((addrlen != sizeof (struct sockaddr_in)) && (addrlen != sizeof (struct sockaddr_in6)))
+  if (((addr->sa_family != AF_INET) && (addrlen != sizeof (struct sockaddr_in))) &&
+      ((addr->sa_family != AF_INET6) && (addrlen != sizeof (struct sockaddr_in6))) &&
+      (addr->sa_family != AF_UNIX))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed address with length %u `%s'\n",
                 addrlen,

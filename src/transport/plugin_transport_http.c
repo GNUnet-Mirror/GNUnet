@@ -577,6 +577,9 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
       s4.sin_family = AF_INET;
       s4.sin_addr.s_addr = a4->ipv4_addr;
       s4.sin_port = a4->u4_port;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      s4.sin_len = sizeof (struct sockaddr_in);
+#endif
       ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s4, sizeof (struct sockaddr_in));
 
       if ((ntohs (a4->u4_port) == 0) || (plugin->ipv4 == GNUNET_NO))
@@ -590,6 +593,9 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
       s6.sin6_family = AF_INET6;
       s6.sin6_addr = a6->ipv6_addr;
       s6.sin6_port = a6->u6_port;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      s6.sin6_len = sizeof (struct sockaddr_in6);
+#endif
       ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s6, sizeof (struct sockaddr_in6));
 
       if ((ntohs (a6->u6_port) == 0) || (plugin->ipv6 == GNUNET_NO))

@@ -193,6 +193,11 @@ struct Session
   size_t addrlen;
 
   /**
+   * ATS network type in NBO
+   */
+  uint32_t ats_address_network_type;
+
+  /**
    * Function to call upon completion of the transmission.
    */
   GNUNET_TRANSPORT_TransmitContinuation cont;
@@ -693,6 +698,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   struct sockaddr_in *v4;
   struct sockaddr_in6 *v6;
   size_t len;
+  struct GNUNET_ATS_Information ats;
 
   switch (addrlen)
   {
@@ -712,6 +718,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
 #endif
     v4->sin_port = t4->u4_port;
     v4->sin_addr.s_addr = t4->ipv4_addr;
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) v4, sizeof (struct sockaddr_in));
     break;
   case sizeof (struct IPv6UdpAddress):
     if (NULL == plugin->sockv6)
@@ -729,6 +736,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
 #endif
     v6->sin6_port = t6->u6_port;
     v6->sin6_addr = t6->ipv6_addr;
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) v6, sizeof (struct sockaddr_in6));
     break;
   default:
     /* Must have a valid address to send to */
@@ -736,6 +744,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     return NULL;
   }
 
+  peer_session->ats_address_network_type = ats.value;
   peer_session->valid_until = GNUNET_TIME_absolute_get_zero ();
   peer_session->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
   peer_session->addrlen = len;
@@ -971,17 +980,22 @@ process_inbound_tokenized_messages (void *cls, void *client,
 {
   struct Plugin *plugin = cls;
   struct SourceInformation *si = client;
-  struct GNUNET_ATS_Information distance;
+  struct GNUNET_ATS_Information atsi[2];
   struct GNUNET_TIME_Relative delay;
 
   /* setup ATS */
-  distance.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  distance.value = htonl (1);
+  atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  atsi[0].value = htonl (1);
+  atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  atsi[1].value = si->session->ats_address_network_type;
+  GNUNET_break (ntohl(si->session->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
+
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Giving Session %X %s  to transport\n",
        si->session, GNUNET_i2s (&si->session->target));
   delay =
-      plugin->env->receive (plugin->env->cls, &si->sender, hdr, &distance, 1,
+      plugin->env->receive (plugin->env->cls, &si->sender, hdr,
+                            (const struct GNUNET_ATS_Information *) &atsi, 2,
                             si->session, si->arg, si->args);
   si->session->flow_delay_for_other_peer = delay;
 }
@@ -1021,6 +1035,7 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
   struct SourceInformation si;
   struct IPv4UdpAddress u4;
   struct IPv6UdpAddress u6;
+  struct GNUNET_ATS_Information ats;
   const void *arg;
   size_t args;
 
@@ -1036,6 +1051,8 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
     return;
   }
 
+  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
   /* convert address */
   switch (sender_addr->sa_family)
   {
@@ -1085,6 +1102,8 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
   else
   {
     s = create_session (plugin, &udp_msg->sender, arg, args, NULL, NULL);
+    ats = plugin->env->get_address_type (plugin->env->cls, sender_addr, sender_addr_len);
+    s->ats_address_network_type = ats.value;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Creating inbound UDP sessions 0x%X for peer `%s' address `%s'\n", s,
          GNUNET_i2s (&s->target), udp_address_to_string (NULL, arg, args));
@@ -1247,6 +1266,10 @@ struct Mstv4Context
   struct Plugin *plugin;
 
   struct IPv4UdpAddress addr;
+  /**
+   * ATS network type in NBO
+   */
+  uint32_t ats_address_network_type;
 };
 
 struct Mstv6Context
@@ -1254,6 +1277,10 @@ struct Mstv6Context
   struct Plugin *plugin;
 
   struct IPv6UdpAddress addr;
+  /**
+   * ATS network type in NBO
+   */
+  uint32_t ats_address_network_type;
 };
 
 
@@ -1279,6 +1306,7 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   struct FindReceiveContext frc;
   struct Session *s = NULL;
   struct GNUNET_TIME_Relative flow_delay;
+  struct GNUNET_ATS_Information ats;
 
   fromlen = sizeof (addr);
   memset (&addr, 0, sizeof (addr));
@@ -1318,6 +1346,8 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
 
       mc->addr.ipv4_addr = av4->sin_addr.s_addr;
       mc->addr.u4_port = av4->sin_port;
+      ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &addr, fromlen);
+      mc->ats_address_network_type = ats.value;
       if (GNUNET_OK !=
           GNUNET_SERVER_mst_receive (plugin->broadcast_ipv4_mst, mc, buf, ret,
                                      GNUNET_NO, GNUNET_NO))
@@ -1336,6 +1366,8 @@ udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
 
       mc->addr.ipv6_addr = av6->sin6_addr;
       mc->addr.u6_port = av6->sin6_port;
+      ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &addr, fromlen);
+      mc->ats_address_network_type = ats.value;
 
       if (GNUNET_OK !=
           GNUNET_SERVER_mst_receive (plugin->broadcast_ipv6_mst, mc, buf, ret,
@@ -1515,13 +1547,18 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
        ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
        udp_address_to_string (NULL, &mc->addr, sizeof (mc->addr)));
 
-  struct GNUNET_ATS_Information ats;
+  struct GNUNET_ATS_Information atsi[2];
 
-  ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats.value = htonl (1);
+  /* setup ATS */
+  atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  atsi[0].value = htonl (1);
+  atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  atsi[1].value = mc->ats_address_network_type;
+  GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
-  plugin->env->receive (plugin->env->cls, &msg->sender, hello, &ats, 1, NULL,
+  plugin->env->receive (plugin->env->cls, &msg->sender, hello,
+                        (const struct GNUNET_ATS_Information *) &atsi, 2, NULL,
                         (const char *) &mc->addr, sizeof (mc->addr));
 
   GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1553,13 +1590,18 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
        ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
        udp_address_to_string (NULL, &mc->addr, sizeof (mc->addr)));
 
-  struct GNUNET_ATS_Information ats;
+  struct GNUNET_ATS_Information atsi[2];
 
-  ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats.value = htonl (1);
+  /* setup ATS */
+  atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  atsi[0].value = htonl (1);
+  atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  atsi[1].value = mc->ats_address_network_type;
+  GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
-  plugin->env->receive (plugin->env->cls, &msg->sender, hello, &ats, 1, NULL,
+  plugin->env->receive (plugin->env->cls, &msg->sender, hello,
+                        (const struct GNUNET_ATS_Information *) &atsi, 2, NULL,
                         (const char *) &mc->addr, sizeof (mc->addr));
 
   GNUNET_STATISTICS_update (plugin->env->stats,

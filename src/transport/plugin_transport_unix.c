@@ -331,6 +331,10 @@ struct Plugin
    */
   char *unix_socket_path;
 
+  /**
+   * ATS network
+   */
+  struct GNUNET_ATS_Information ats_network;
 };
 
 /**
@@ -723,8 +727,8 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (UNIX_DIRECT_DISTANCE);
-  ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats[1].value = htonl (GNUNET_ATS_NET_LOOPBACK);
+  ats[1] = plugin->ats_network;
+  GNUNET_break (ntohl(plugin->ats_network.value) != GNUNET_ATS_NET_UNSPECIFIED);
 
   GNUNET_assert (fromlen >= sizeof (struct sockaddr_un));
 
@@ -867,7 +871,7 @@ unix_transport_server_start (void *cls)
 #if LINUX
   un.sun_path[0] = '\0';
 #endif
-
+  plugin->ats_network = plugin->env->get_address_type (plugin->env->cls, serverAddr, addrlen);
   plugin->unix_sock.desc =
       GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
   if (NULL == plugin->unix_sock.desc)
