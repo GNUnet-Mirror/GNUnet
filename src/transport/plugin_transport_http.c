@@ -264,16 +264,19 @@ http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct Session *s = cls;
   struct Plugin *plugin = s->plugin;
-  struct GNUNET_ATS_Information distance;
   struct GNUNET_TIME_Relative delay;
+  struct GNUNET_ATS_Information atsi[2];
 
-  distance.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  distance.value = htonl (1);
+  atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  atsi[0].value = htonl (1);
+  atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  atsi[1].value = session->ats_address_network_type;
+  GNUNET_break (session->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
 
   delay =
       plugin->env->receive (plugin->env->cls, &s->target, message,
-                            (const struct GNUNET_ATS_Information *) &distance,
-                            1, s, s->addr, s->addrlen);
+                            (const struct GNUNET_ATS_Information *) &atsi,
+                            2, s, s->addr, s->addrlen);
   return delay;
 }
 
@@ -452,6 +455,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->addrlen = addrlen;
   s->next = NULL;
   s->next_receive = GNUNET_TIME_absolute_get_zero ();
+  s->ats_address_network_type = htonl (GNUNET_ATS_NET_UNSPECIFIED);
   return s;
 }
 
@@ -564,10 +568,16 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                      GNUNET_i2s (target));
 #endif
     int res = GNUNET_OK;
-
+    struct GNUNET_ATS_Information ats;
     if (addrlen == sizeof (struct IPv4HttpAddress))
     {
       struct IPv4HttpAddress *a4 = (struct IPv4HttpAddress *) addr;
+      struct sockaddr_in s4;
+
+      s4.sin_family = AF_INET;
+      s4.sin_addr.s_addr = a4->ipv4_addr;
+      s4.sin_port = a4->u4_port;
+      ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s4, sizeof (struct sockaddr_in));
 
       if ((ntohs (a4->u4_port) == 0) || (plugin->ipv4 == GNUNET_NO))
         res = GNUNET_SYSERR;
@@ -575,6 +585,12 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     if (addrlen == sizeof (struct IPv6HttpAddress))
     {
       struct IPv6HttpAddress *a6 = (struct IPv6HttpAddress *) addr;
+      struct sockaddr_in6 s6;
+
+      s6.sin6_family = AF_INET6;
+      s6.sin6_addr = a6->ipv6_addr;
+      s6.sin6_port = a6->u6_port;
+      ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s6, sizeof (struct sockaddr_in6));
 
       if ((ntohs (a6->u6_port) == 0) || (plugin->ipv6 == GNUNET_NO))
         res = GNUNET_SYSERR;
@@ -582,6 +598,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
     if (res == GNUNET_OK)
     {
       s = create_session (plugin, target, addr, addrlen, cont, cont_cls);
+      s->ats_address_network_type = ats.value;
       GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
       // initiate new connection
       res = client_connect (s);

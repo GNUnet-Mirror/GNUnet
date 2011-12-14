@@ -325,6 +325,11 @@ struct Session
   size_t addrlen;
 
   /**
+   * ATS network type in NBO
+   */
+  uint32_t ats_address_network_type;
+
+  /**
    * To whom are we talking to
    */
   struct GNUNET_PeerIdentity target;

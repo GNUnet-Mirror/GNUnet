@@ -581,6 +581,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   ret->client = client;
   ret->target = *target;
   ret->expecting_welcome = GNUNET_YES;
+  ret->ats_address_network_type = htonl (GNUNET_ATS_NET_UNSPECIFIED);
   pm = GNUNET_malloc (sizeof (struct PendingMessage) +
                       sizeof (struct WelcomeMessage));
   pm->msg = (const char *) &pm[1];

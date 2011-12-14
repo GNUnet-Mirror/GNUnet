@@ -369,7 +369,7 @@ server_lookup_session (struct Plugin *plugin,
   struct Session *t;
   struct ServerConnection *sc = NULL;
   const union MHD_ConnectionInfo *conn_info;
-
+  struct GNUNET_ATS_Information ats;
   struct IPv4HttpAddress a4;
   struct IPv6HttpAddress a6;
   struct sockaddr_in *s4;
@@ -521,6 +521,7 @@ create:
                    GNUNET_i2s (&target));
 #endif
 
+
   switch (conn_info->client_addr->sa_family)
   {
   case (AF_INET):
@@ -529,6 +530,7 @@ create:
     memcpy (&a4.ipv4_addr, &s4->sin_addr, sizeof (struct in_addr));
     a = &a4;
     a_len = sizeof (struct IPv4HttpAddress);
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) s4, sizeof (struct sockaddr_in));
     break;
   case (AF_INET6):
     s6 = ((struct sockaddr_in6 *) conn_info->client_addr);
@@ -536,12 +538,14 @@ create:
     memcpy (&a6.ipv6_addr, &s6->sin6_addr, sizeof (struct in6_addr));
     a = &a6;
     a_len = sizeof (struct IPv6HttpAddress);
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) s6, sizeof (struct sockaddr_in6));
     break;
   default:
     GNUNET_break (0);
     goto error;
   }
   s = create_session (plugin, &target, a, a_len, NULL, NULL);
+  s->ats_address_network_type = ats.value;
 
   s->inbound = GNUNET_YES;
   s->next_receive = GNUNET_TIME_absolute_get_zero ();
