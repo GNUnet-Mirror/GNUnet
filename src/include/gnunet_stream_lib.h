@@ -211,8 +211,10 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
  * @param status the status of the stream at the time this function is called
  * @param data traffic from the other side
  * @param size the number of bytes available in data read 
+ * @return number of bytes of processed from 'data' (any data remaining should be
+ *         given to the next time the read processor is called).
  */
-typedef void (*GNUNET_STREAM_DataProcessor) (void *cls,
+typedef size_t (*GNUNET_STREAM_DataProcessor) (void *cls,
 					     enum GNUNET_STREAM_Status status,
 					     const char *data,
 					     size_t size);
@@ -223,7 +225,7 @@ typedef void (*GNUNET_STREAM_DataProcessor) (void *cls,
  *
  * @param socket the socket representing a stream
  * @param timeout the timeout period
- * @param proc function to call with data
+ * @param proc function to call with data (once only)
  * @param proc_cls the closure for proc
  * @return handle to cancel the operation
  */
