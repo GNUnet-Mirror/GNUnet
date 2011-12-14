@@ -744,7 +744,7 @@ get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   delete_networks (sh);
   GNUNET_OS_network_interfaces_list(interface_proc, sh);
 
-  sh->interface_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, get_addresses, NULL);
+  sh->interface_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, get_addresses, sh);
 }
 
 /**
