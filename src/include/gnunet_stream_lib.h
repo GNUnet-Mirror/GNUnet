@@ -81,6 +81,28 @@ typedef void (*GNUNET_STREAM_OpenCallback) (void *cls,
 
 
 /**
+ * Options for the stream.
+ */
+enum GNUNET_STREAM_Option
+  {
+    /**
+     * End of the option list.
+     */
+    GNUNET_STREAM_OPTION_END = 0,
+
+    /**
+     * Option to set the initial retransmission timeout (when do we retransmit
+     * a packet that did not yield an acknowledgement for the first time?).  
+     * Repeated retransmissions will then use an exponential back-off.
+     * Takes a 'struct GNUNET_TIME_Relative' as the only argument.  A value
+     * of '0' means to use the round-trip time (plus a tiny grace period);
+     * this is also the default.
+     */
+    GNUNET_STREAM_OPTION_INITIAL_RETRANSMIT_TIMEOUT
+  };
+
+
+/**
  * Tries to open a stream to the target peer
  *
  * @param target the target peer to which the stream has to be opened
@@ -88,6 +110,7 @@ typedef void (*GNUNET_STREAM_OpenCallback) (void *cls,
  *            stream
  * @param open_cb this function will be called after stream has be established 
  * @param open_cb_cls the closure for open_cb
+ * @param ... options to the stream, terminated by GNUNET_STREAM_OPTION_END
  * @return if successful it returns the stream socket; NULL if stream cannot be
  *         opened 
  */
@@ -95,7 +118,8 @@ struct GNUNET_STREAM_Socket *
 GNUNET_STREAM_open (const struct GNUNET_PeerIdentity *target,
                     GNUNET_MESH_ApplicationType app_port,
                     GNUNET_STREAM_OpenCallback open_cb,
-		    void *open_cb_cls);
+		    void *open_cb_cls,
+		    ...);
 
 
 /**
