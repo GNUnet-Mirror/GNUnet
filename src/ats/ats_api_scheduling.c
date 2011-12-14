@@ -761,6 +761,11 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
   struct ATS_Network * cur = sh->net_head;
   int type = GNUNET_ATS_NET_UNSPECIFIED;
 
+  if  (addr->sa_family == AF_UNIX)
+  {
+    type = GNUNET_ATS_NET_LOOPBACK;
+  }
+
   /* IPv4 loopback check */
   if  (addr->sa_family == AF_INET)
   {
@@ -830,9 +835,30 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
     cur = cur->next;
   }
 
-  /* local network found for this address, default: WAN */
+  /* no local network found for this address, default: WAN */
   if (type == GNUNET_ATS_NET_UNSPECIFIED)
     type = GNUNET_ATS_NET_WAN;
+
+#if VERBOSE
+  char * range;
+  switch (type) {
+    case GNUNET_ATS_NET_WAN:
+        range = "WAN";
+      break;
+    case GNUNET_ATS_NET_LAN:
+        range = "LAN";
+      break;
+    case GNUNET_ATS_NET_LOOPBACK:
+        range = "LOOPBACK";
+      break;
+    default:
+
+      break;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "`%s' is in network `%s'\n",
+        GNUNET_a2s ((const struct sockaddr *) addr, addrlen),
+        range);
+#endif
 
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (type);
