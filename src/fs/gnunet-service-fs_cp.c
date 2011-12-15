@@ -1694,6 +1694,9 @@ create_migration_stop_message (void *cls, size_t size, void *buf)
       GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining
                                  (cp->last_migration_block));
   memcpy (buf, &msm, sizeof (struct MigrationStopMessage));
+  GNUNET_STATISTICS_update (GSF_stats,
+                            gettext_noop ("# migration stop messages sent"),
+                            1, GNUNET_NO);
   return sizeof (struct MigrationStopMessage);
 }
 

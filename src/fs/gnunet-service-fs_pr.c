@@ -927,9 +927,10 @@ put_migration_continuation (void *cls, int success, const char *msg)
     }
   }
   GNUNET_free (pmc);
-  /* FIXME: should we really update the load value on failure? */
+  /* on failure, increase the put load dramatically */
   if (NULL != datastore_put_load)
-    GNUNET_LOAD_update (datastore_put_load, delay.rel_value);
+    GNUNET_LOAD_update (datastore_put_load, 
+			GNUNET_TIME_UNIT_HOURS.rel_value);
   if (GNUNET_OK == success)
     return;
   GNUNET_STATISTICS_update (GSF_stats,
