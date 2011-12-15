@@ -86,10 +86,11 @@ class StatisticsCondition (Condition):
         self.type = 'statistics'
         self.peer = peer;
         self.subsystem = subsystem;
-        self.name = value;
+        self.name = name;
+        self.value = value;
     def check(self):
         if (self.fulfilled == False):
-            res = self.peer.check (subsystem, name, value);
+            res = self.peer.check (self.subsystem, self.name, self.value);
             if (res == True):
                 self.fulfilled = True
                 return True

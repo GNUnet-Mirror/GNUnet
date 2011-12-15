@@ -13,6 +13,8 @@ bin_PROGRAMS =
 
 check_PROGRAMS =
 
+noinst_SCRIPTS = \
+ gnunet_testing.py
 
 if HAVE_PYTHON_PEXPECT
 check_SCRIPTS = \
@@ -29,6 +31,10 @@ endif
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
+%.py: %.py.in Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
 test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect.py.in > test_integration_bootstrap_and_connect.py
 	chmod +x test_integration_bootstrap_and_connect.py
@@ -42,9 +48,11 @@ test_integration_clique.py: test_integration_clique.py.in Makefile
 	chmod +x test_integration_clique.py	
 
 EXTRA_DIST = \
+   gnunet_testing.py.in \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_disconnect.py.in \ 
    test_integration_clique.py.in
 
-
-CLEANFILES = $(check_SCRIPTS)
+CLEANFILES = \
+	$(check_SCRIPTS) \
+	gnunet_testing.py

@@ -41,6 +41,10 @@ gnunetstatistics = ""
 success = False
 timeout = 10
 
+s_server = False;
+s_c1 = False;
+s_c2 = False;
+
 #test conditions
 
 
