@@ -25,6 +25,78 @@ import sys
 import shutil
 import time
 
+
+class Check:
+    def __init__(self):
+        self.fulfilled = False
+        self.conditions = list()
+    def add (self, condition):
+        self.conditions.append(condition)
+    def run (self):
+        fulfilled = True
+        pos = 0
+        neg = 0
+        for c in self.conditions:
+            if (False == c.check ()):
+                fulfilled = False
+                neg += 1
+            else:
+                pos += 1
+        print (str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled')
+        return fulfilled
+    def run_blocking (self, timeout, pos_cont, neg_cont):
+        execs = 0;
+        res = False
+        while ((False == res) and (execs < timeout)):
+            res = self.run()
+            time.sleep(1)
+            execs += 1
+        if (res == False):
+            neg_cont ()
+        else:
+            pos_cont ()
+        
+
+class Condition:
+    def __init__(self, type):
+        self.fulfilled = False
+        self.type = type
+    def check(self):
+        return False;
+
+class FileExistCondition (Condition):
+    def __init__(self, file):
+        self.fulfilled = False
+        self.type = 'file'
+        self.file = file
+    def check(self):
+        if (self.fulfilled == False):
+            res = os.path.isfile(self.file)
+            if (res == True):
+                self.fulfilled = True
+                return True
+            else:
+                return False
+        else:
+            return True
+
+class StatisticsCondition (Condition):
+    def __init__(self, peer, subsystem, name, value):
+        self.fulfilled = False
+        self.type = 'statistics'
+        self.peer = peer;
+        self.subsystem = subsystem;
+        self.name = value;
+    def check(self):
+        if (self.fulfilled == False):
+            res = self.peer.check (subsystem, name, value);
+            if (res == True):
+                self.fulfilled = True
+                return True
+            else:
+                return False
+        else:
+            return True
 class Test:
     def __init__(self, testname, verbose):
     	self.verbose = verbose;
