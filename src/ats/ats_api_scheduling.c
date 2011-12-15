@@ -840,7 +840,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
     type = GNUNET_ATS_NET_WAN;
 
 #if VERBOSE
-  char * range;
+  const char * range;
   switch (type) {
     case GNUNET_ATS_NET_WAN:
         range = "WAN";
