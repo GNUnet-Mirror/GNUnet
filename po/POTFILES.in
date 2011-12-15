@@ -140,7 +140,6 @@ src/fs/gnunet-service-fs.c
 src/fs/fs_file_information.c
 src/transport/gnunet-service-transport_neighbours.c
 src/transport/gnunet-service-transport_blacklist.c
-src/transport/gnunet-transport-wlan-helper.c
 src/transport/plugin_transport_http_server.c
 src/transport/gnunet-service-transport_hello.c
 src/transport/plugin_transport_udp.c
