@@ -1,0 +1,90 @@
+#!@PYTHON@
+#    This file is part of GNUnet.
+#    (C) 2010 Christian Grothoff (and other contributing authors)
+#
+#    GNUnet is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published
+#    by the Free Software Foundation; either version 2, or (at your
+#    option) any later version.
+#
+#    GNUnet is distributed in the hope that it will be useful, but
+#    WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with GNUnet; see the file COPYING.  If not, write to the
+#    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+#    Boston, MA 02111-1307, USA.
+#
+# Functions for integration testing
+import os
+import re
+import subprocess
+import sys
+import shutil
+import time
+
+class Test:
+    def __init__(self, testname, verbose):
+    	self.verbose = verbose;
+    	self.name = testname;
+    	srcdir = "../.."
+        gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
+        if gnunet_pyexpect_dir not in sys.path:
+        	sys.path.append (gnunet_pyexpect_dir)
+        	from gnunet_pyexpect import pexpect
+        self.gnunetarm = ''        
+        self.gnunetstatistics = ''
+        if os.name == 'posix':
+           self.gnunetarm = 'gnunet-arm'
+           self.gnunetstatistics = 'gnunet-statistics'
+        elif os.name == 'nt':
+           self.gnunetarm = 'gnunet-arm.exe'
+           self.gnunetstatistics = 'gnunet-statistics.exe'    
+        if os.name == "nt":
+            shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
+        else:
+            shutil.rmtree ("/tmp/" + testname, True)
+    def p (self, msg):
+    	print msg    
+
+class Peer:
+    def __init__(self, test, cfg_file):
+        if (False == os.path.isfile(cfg_file)):
+            print ("Peer cfg " + cfg_file + ": FILE NOT FOUND")
+        self.test = test
+        self.started = False
+        self.cfg = cfg_file 
+    def start (self):
+        self.test.p ("Starting peer using cfg " + self.cfg)
+        try:
+            server = subprocess.Popen ([self.test.gnunetarm, '-sq', '-c', self.cfg])
+            server.communicate ()    
+        except OSError:
+            print "Can not start peer"
+            self.started = False
+            return False
+        self.started = True
+        return True 
+    def stop (self):
+        self.test.p ("Stopping peer using cfg " + self.cfg)
+        try:
+            server = subprocess.Popen ([self.test.gnunetarm, '-eq', '-c', self.cfg])
+            server.communicate ()    
+        except OSError:
+            print "Can not stop peer"
+            return False
+        self.started = False
+        return True;
+    def check (self, subsystem, name, value):
+        from gnunet_pyexpect import pexpect
+        server = pexpect ()
+        server.spawn (None, [self.test.gnunetstatistics, '-c', self.cfg ,'-q','-n', name, '-s', subsystem ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        #server.expect ("stdout", re.compile (r""))
+        test = server.read("stdout", 10240)
+        if (test.find(str(value)) == -1): 
+            return False
+        else:
+            return True  
+        
