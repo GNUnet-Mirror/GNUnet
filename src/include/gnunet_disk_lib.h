@@ -368,6 +368,19 @@ struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
                        enum GNUNET_DISK_AccessPermissions perm);
 
+
+/**
+ * Get the size of an open file.
+ *
+ * @param fh open file handle
+ * @param size where to write size of the file
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
+			      off_t *size);
+
+
 /**
  * Creates an interprocess channel
  * @param blocking creates an asynchronous pipe if set to GNUNET_NO

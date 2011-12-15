@@ -206,6 +206,26 @@ GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
 
 
 /**
+ * Get the size of an open file.
+ *
+ * @param fh open file handle
+ * @param size where to write size of the file
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
+			      off_t *size)
+{
+  struct stat sbuf;
+
+  if (0 != FSTAT (fh->fd, &sbuf))
+    return GNUNET_SYSERR;
+  *size = sbuf.st_size;
+  return GNUNET_OK;
+}
+
+
+/**
  * Move the read/write pointer in a file
  *
  * @param h handle of an open file

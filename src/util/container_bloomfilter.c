@@ -456,6 +456,7 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
   off_t pos;
   int i;
   size_t ui;
+  off_t fsize;
 
   GNUNET_assert (NULL != filename);
   if ((k == 0) || (size == 0))
@@ -481,6 +482,21 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
     GNUNET_free (bf);
     return NULL;
   }
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_handle_size (bf->fh, &fsize))
+  {
+    GNUNET_DISK_file_close (bf->fh);
+    GNUNET_free (bf);
+    return NULL;
+  }
+  if (fsize != size * 8LL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Size of file on disk is incorrect for this Bloom filter\n"));
+    GNUNET_DISK_file_close (bf->fh);
+    GNUNET_free (bf);
+    return NULL;
+  }
   bf->filename = GNUNET_strdup (filename);
   /* Alloc block */
   bf->bitArray = GNUNET_malloc_large (size);
@@ -499,7 +515,7 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
   /* Read from the file what bits we can */
   rbuff = GNUNET_malloc (BUFFSIZE);
   pos = 0;
-  while (pos < size * 8)
+  while (pos < size * 8LL)
   {
     int res;
 
@@ -507,6 +523,11 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
     if (res == -1)
     {
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "read", bf->filename);
+      GNUNET_free (rbuff);
+      GNUNET_free (bf->filename);
+      GNUNET_DISK_file_close (bf->fh);
+      GNUNET_free (bf);
+      return NULL;
     }
     if (res == 0)
       break;                    /* is ok! we just did not use that many bits yet */
