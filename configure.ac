@@ -562,7 +562,7 @@ AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
 LIBS=$SAVE_LIBS
 
 # check for python & pexpect (used for some testcases only)
-AM_PATH_PYTHON([2.5],, [:])
+AM_PATH_PYTHON([2.6],, [:])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 if test "$PYTHON" != :
