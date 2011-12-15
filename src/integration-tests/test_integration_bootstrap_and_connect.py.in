@@ -42,8 +42,7 @@ from gnunet_testing import *
 #definitions
 
 testname = "test_integration_bootstrap_and_connect"
-verbose = True
-success = False
+verbose = False
 timeout = 100
 
 
@@ -55,16 +54,18 @@ def cleanup ():
 	    shutil.rmtree ("/tmp/c_bootstrap_server/", True)
 	    shutil.rmtree ("/tmp/c_no_nat_client/", True)    
 
-def success ():
+def success_cont (check):
     global success
     success = True;
-def fail ():    
+    
+def fail_cont (check):    
     global success 
     success= False;
+    check.eval(True)
 
 def check ():
   
-  check = Check ()
+  check = Check (test)
   check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
   check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (client, 'core', '# entries in session map',1))
@@ -78,11 +79,12 @@ def check ():
   check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
   check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
   
-  check.run_blocking (10, success, fail)
+  check.run_blocking (10, success_cont, fail_cont)
 
 # 
 # Test execution
 # 
+success = False
 
 test = Test ('test_integration_bootstrap_and_connect.py', verbose)
 
@@ -93,6 +95,7 @@ client = Peer(test, './confs/c_no_nat_client.conf');
 client.start();
 
 if ((client.started == True) and (server.started == True)):
+    test.p ('Peers started, running check')
     check ()
 	
 server.stop ()

@@ -27,9 +27,10 @@ import time
 
 
 class Check:
-    def __init__(self):
+    def __init__(self, test):
         self.fulfilled = False
         self.conditions = list()
+        self.test = test
     def add (self, condition):
         self.conditions.append(condition)
     def run (self):
@@ -42,7 +43,7 @@ class Check:
                 neg += 1
             else:
                 pos += 1
-        print (str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled')
+        self.test.p (str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled')
         return fulfilled
     def run_blocking (self, timeout, pos_cont, neg_cont):
         execs = 0;
@@ -52,17 +53,37 @@ class Check:
             time.sleep(1)
             execs += 1
         if (res == False):
-            neg_cont ()
+            neg_cont (self)
         else:
-            pos_cont ()
+            pos_cont (self)
+    def eval(self, failed_only):
+        pos = 0
+        neg = 0
+        for c in self.conditions:
+            if (False == c.eval (failed_only)):
+                neg += 1
+            else:
+                pos += 1
+        print (str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled')
+        return self.fulfilled
+        
         
 
 class Condition:
+    def __init__(self):
+        self.fulfilled = False
+        self.type = 'generic'
     def __init__(self, type):
         self.fulfilled = False
         self.type = type
     def check(self):
         return False;
+    def eval(self, failed_only):
+        if ((self.fulfilled == False) and (failed_only == True)):
+            print str(self.type) + 'condition for was ' + str(self.fulfilled)
+        elif (failed_only == False): 
+            print str(self.type) + 'condition for was ' + str(self.fulfilled)
+        return self.fulfilled            
 
 class FileExistCondition (Condition):
     def __init__(self, file):
@@ -79,6 +100,12 @@ class FileExistCondition (Condition):
                 return False
         else:
             return True
+    def eval(self, failed_only):
+        if ((self.fulfilled == False) and (failed_only == True)):
+            print str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled)
+        elif (failed_only == False): 
+            print str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled)
+        return self.fulfilled
 
 class StatisticsCondition (Condition):
     def __init__(self, peer, subsystem, name, value):
@@ -98,6 +125,13 @@ class StatisticsCondition (Condition):
                 return False
         else:
             return True
+    def eval(self, failed_only):
+        if ((self.fulfilled == False) and (failed_only == True)):
+            print str(self.type) + ' condition for value "'+str(self.value)+'" in subsystem "' + self.subsystem +'" : "' + self.name +'" was ' + str(self.fulfilled)
+        elif (failed_only == False): 
+            print str(self.type) + ' condition for value "'+str(self.value)+'" in subsystem "' + self.subsystem +'" : "' + self.name +'" was ' + str(self.fulfilled)
+        return self.fulfilled    
+        
 class Test:
     def __init__(self, testname, verbose):
     	self.verbose = verbose;
@@ -120,7 +154,8 @@ class Test:
         else:
             shutil.rmtree ("/tmp/" + testname, True)
     def p (self, msg):
-    	print msg    
+        if (self.verbose == True):
+    	   print msg    
 
 class Peer:
     def __init__(self, test, cfg_file):
@@ -147,6 +182,8 @@ class Peer:
         self.started = True
         return True 
     def stop (self):
+    	if (self.started == False):
+    		return False
         self.test.p ("Stopping peer using cfg " + self.cfg)
         try:
             server = subprocess.Popen ([self.test.gnunetarm, '-eq', '-c', self.cfg])
