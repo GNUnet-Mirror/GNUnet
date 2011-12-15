@@ -457,6 +457,7 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
   int i;
   size_t ui;
   off_t fsize;
+  int must_read;
 
   GNUNET_assert (NULL != filename);
   if ((k == 0) || (size == 0))
@@ -473,29 +474,44 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
   /* Try to open a bloomfilter file */
   bf->fh =
       GNUNET_DISK_file_open (filename,
-                             GNUNET_DISK_OPEN_READWRITE |
-                             GNUNET_DISK_OPEN_CREATE,
+                             GNUNET_DISK_OPEN_READWRITE,
                              GNUNET_DISK_PERM_USER_READ |
                              GNUNET_DISK_PERM_USER_WRITE);
   if (NULL == bf->fh)
   {
-    GNUNET_free (bf);
-    return NULL;
+    /* file did not exist, don't read */
+    must_read = GNUNET_NO;
+    bf->fh =
+      GNUNET_DISK_file_open (filename,
+                             GNUNET_DISK_OPEN_CREATE |
+                             GNUNET_DISK_OPEN_READWRITE,
+                             GNUNET_DISK_PERM_USER_READ |
+                             GNUNET_DISK_PERM_USER_WRITE);
+    if (NULL == bf->fh)
+      {
+	GNUNET_free (bf);
+	return NULL;
+      }
   }
-  if (GNUNET_OK !=
-      GNUNET_DISK_file_handle_size (bf->fh, &fsize))
+  else
   {
-    GNUNET_DISK_file_close (bf->fh);
-    GNUNET_free (bf);
-    return NULL;
-  }
-  if (fsize != size * 8LL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Size of file on disk is incorrect for this Bloom filter\n"));
-    GNUNET_DISK_file_close (bf->fh);
-    GNUNET_free (bf);
-    return NULL;
+    /* file existed, try to read it! */
+    must_read = GNUNET_YES;
+    if (GNUNET_OK !=
+	GNUNET_DISK_file_handle_size (bf->fh, &fsize))
+    {
+      GNUNET_DISK_file_close (bf->fh);
+      GNUNET_free (bf);
+      return NULL;
+    }
+    if (fsize != size * 8LL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Size of file on disk is incorrect for this Bloom filter\n"));
+      GNUNET_DISK_file_close (bf->fh);
+      GNUNET_free (bf);
+      return NULL;
+    }
   }
   bf->filename = GNUNET_strdup (filename);
   /* Alloc block */
@@ -512,6 +528,8 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
   bf->addressesPerElement = k;
   memset (bf->bitArray, 0, bf->bitArraySize);
 
+  if (GNUNET_YES != must_read)
+    return bf; /* already done! */
   /* Read from the file what bits we can */
   rbuff = GNUNET_malloc (BUFFSIZE);
   pos = 0;
