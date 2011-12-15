@@ -56,6 +56,12 @@ class Peer:
         self.test = test
         self.started = False
         self.cfg = cfg_file 
+    def __del__(self):
+    	if (self.started == True):
+    		print 'ERROR! Peer using cfg ' + self.cfg + ' was not stopped'
+    		self.started == False
+    		if (False == self.stop ()):
+    			print 'ERROR! Peer using cfg ' + self.cfg + ' could not be stopped'
     def start (self):
         self.test.p ("Starting peer using cfg " + self.cfg)
         try:
