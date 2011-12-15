@@ -1444,6 +1444,24 @@ cleanup_reservations (void *cls, struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * Adds a given key to the bloomfilter 'count' times.
+ *
+ * @param cls the bloomfilter
+ * @param key key to add
+ * @param count number of times to add key
+ */
+static void
+add_key_to_bloomfilter (void *cls,
+			const GNUNET_HashCode *key,
+			unsigned int count)
+{
+  struct GNUNET_CONTAINER_BloomFilter *bf = cls;
+  while (0 < count--)
+    GNUNET_CONTAINER_bloomfilter_add (bf, key);
+}
+
+
+/**
  * Process datastore requests.
  *
  * @param cls closure
@@ -1477,6 +1495,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
   char *fn;
   unsigned int bf_size;
+  int refresh_bf;
 
   cfg = c;
   if (GNUNET_OK !=
@@ -1509,9 +1528,58 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     fn = NULL;
   }
   if (fn != NULL)
-    filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);        /* approx. 3% false positives at max use */
+  {
+    if (GNUNET_YES == GNUNET_DISK_file_test (fn))
+    {
+      filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);        /* approx. 3% false positives at max use */
+      if (NULL == filter)
+      {
+	/* file exists but not valid, remove and try again, but refresh */
+	if (0 != UNLINK (fn))
+	{
+	  /* failed to remove, run without file */
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Failed to remove bogus bloomfilter file `%s'\n"),
+		      fn);
+	  GNUNET_free (fn);
+	  fn = NULL;
+	  filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);        /* approx. 3% false positives at max use */
+	  refresh_bf = GNUNET_YES;
+	}
+	else
+	{
+	  /* try again after remove */
+	  filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);        /* approx. 3% false positives at max use */
+	  refresh_bf = GNUNET_YES;
+	  if (NULL == filter)
+	  {
+	    /* failed yet again, give up on using file */
+	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			_("Failed to remove bogus bloomfilter file `%s'\n"),
+			fn);
+	    GNUNET_free (fn);
+	    fn = NULL;
+	    filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);        /* approx. 3% false positives at max use */
+	  }
+	}
+      }
+      else
+      {
+	/* normal case: have an existing valid bf file, no need to refresh */
+	refresh_bf = GNUNET_NO;
+      }
+    }
+    else
+    {
+      filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);        /* approx. 3% false positives at max use */
+      refresh_bf = GNUNET_YES;
+    }
+  }
   else
+  {
     filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5);      /* approx. 3% false positives at max use */
+    refresh_bf = GNUNET_YES;
+  }
   GNUNET_free_non_null (fn);
   if (filter == NULL)
   {
@@ -1542,6 +1610,19 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                              &process_stat_in, plugin);
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
+  if (GNUNET_YES == refresh_bf)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Rebuilding bloomfilter.  Please be patient.\n"));
+    if (NULL != plugin->api->get_keys)
+      plugin->api->get_keys (plugin->api->cls, &add_key_to_bloomfilter, filter);  
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Plugin does not support get_keys function. Please fix!\n"));
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Bloomfilter construction complete.\n"));
+  }
   expired_kill_task =
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
                                           &delete_expired, NULL);

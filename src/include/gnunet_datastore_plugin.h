@@ -135,6 +135,29 @@ typedef int (*PluginPut) (void *cls, const GNUNET_HashCode * key, uint32_t size,
 
 
 /**
+ * An processor over a set of keys stored in the datastore.
+ *
+ * @param cls closure
+ * @param key key in the data store
+ * @param count how many values are stored under this key in the datastore
+ */
+typedef void (*PluginKeyProcessor) (void *cls, 
+				   const GNUNET_HashCode *key,
+				   unsigned int count);
+
+
+/**
+ * Get all of the keys in the datastore.
+ *
+ * @param cls closure
+ * @param proc function to call on each key
+ * @param proc_cls closure for proc
+ */
+typedef void (*PluginGetKeys) (void *cls,
+			       PluginKeyProcessor proc, void *proc_cls);
+
+
+/**
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
@@ -148,6 +171,8 @@ typedef int (*PluginPut) (void *cls, const GNUNET_HashCode * key, uint32_t size,
  *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
+ * @param min find the smallest key that is larger than the given min,
+ *            NULL for no minimum (return smallest key)
  * @param proc function to call on the matching value;
  *        proc should be called with NULL if there is no result
  * @param proc_cls closure for proc
@@ -157,7 +182,6 @@ typedef void (*PluginGetKey) (void *cls, uint64_t offset,
                               const GNUNET_HashCode * vhash,
                               enum GNUNET_BLOCK_Type type,
                               PluginDatumProcessor proc, void *proc_cls);
-
 
 
 /**
@@ -172,6 +196,8 @@ typedef void (*PluginGetKey) (void *cls, uint64_t offset,
  */
 typedef void (*PluginGetRandom) (void *cls, PluginDatumProcessor proc,
                                  void *proc_cls);
+
+
 
 
 /**
@@ -296,6 +322,11 @@ struct GNUNET_DATASTORE_PluginFunctions
    */
   PluginDrop drop;
 
+  /**
+   * Iterate over all keys in the database.
+   */
+  PluginGetKeys get_keys;
+  
 };
 
 
