@@ -197,10 +197,11 @@ $ make install
 $ export GNUNET_PREFIX=$SOMEWHERE
 $ make check
 
-If any testcases fail to pass on your system, run "contrib/report.sh"
-and report the output together with information about the failing
-testcase to the Mantis bugtracking system at
-https://gnunet.org/bugs/.
+Some of the testcases require python >= 2.6 and pexpect to be
+installed.  If any testcases fail to pass on your system, run 
+"contrib/report.sh" and report the output together with 
+information about the failing testcase to the Mantis bugtracking 
+system at https://gnunet.org/bugs/.
 
 
 Running http on port 80 and https on port 443
