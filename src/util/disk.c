@@ -216,11 +216,23 @@ int
 GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
 			      off_t *size)
 {
+#if WINDOWS
+  BOOL b;
+  LARGE_INTEGER li;
+  b = GetFileSizeEx (fh->h, &li);
+  if (!b)
+  {
+    SetErrnoFromWinError (GetLastError ());
+    return GNUNET_SYSERR;
+  }
+  *size = (off_t) li.QuadPart;
+#else
   struct stat sbuf;
 
   if (0 != FSTAT (fh->fd, &sbuf))
     return GNUNET_SYSERR;
   *size = sbuf.st_size;
+#endif
   return GNUNET_OK;
 }
 
