@@ -406,91 +406,92 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
 }
 
 
-/**
- * Create an ICMP raw socket for writing.
- *
- * @return -1 on error
- */
-static int
-make_raw_socket ()
-{
-  const int one = 1;
-  int ret;
-
-  ret = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
-  if (-1 == ret)
-  {
-    fprintf (stderr, "Error opening RAW socket: %s\n", strerror (errno));
-    return -1;
-  }
-  if (0 !=
-      setsockopt (ret, SOL_SOCKET, SO_BROADCAST, (char *) &one, sizeof (one)))
-  {
-    fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
-    (void) close (ret);
-    return -1;
-  }
-  if (0 !=
-      setsockopt (ret, IPPROTO_IP, IP_HDRINCL, (char *) &one, sizeof (one)))
-  {
-    fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
-    (void) close (ret);
-    return -1;
-  }
-  return ret;
-}
-
-
 int
 main (int argc, char *const *argv)
 {
+  const int one = 1;
   struct in_addr external;
   struct in_addr target;
   uid_t uid;
   unsigned int p;
+  int raw_eno;
+  int global_ret;
 
-  if (4 != argc)
-  {
-    fprintf (stderr,
-             "This program must be started with our IP, the targets external IP, and our port as arguments.\n");
-    return 1;
-  }
-  if ((1 != inet_pton (AF_INET, argv[1], &external)) ||
-      (1 != inet_pton (AF_INET, argv[2], &target)))
-  {
-    fprintf (stderr, "Error parsing IPv4 address: %s\n", strerror (errno));
-    return 1;
-  }
-  if ((1 != sscanf (argv[3], "%u", &p)) || (0 == p) || (0xFFFF < p))
-  {
-    fprintf (stderr, "Error parsing port value `%s'\n", argv[3]);
-    return 1;
-  }
-  port = (uint16_t) p;
-  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
-  {
-    fprintf (stderr, "Internal error converting dummy IP to binary.\n");
-    return 2;
-  }
-  if (-1 == (rawsock = make_raw_socket ()))
-    return 2;
+  /* Create an ICMP raw socket for writing (only operation that requires root) */
+  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+  raw_eno = errno; /* for later error checking */
+
+  /* now drop root privileges */
   uid = getuid ();
 #ifdef HAVE_SETRESUID
   if (0 != setresuid (uid, uid, uid))
   {
     fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
-    return 3;
+    global_ret = 1;
+    goto cleanup;
   }
 #else
   if (0 != (setuid (uid) | seteuid (uid)))
   {
     fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
-    return 6;
+    global_ret = 2;
+    goto cleanup;
   }
 #endif
+  if (-1 == rawsock)
+  {
+    fprintf (stderr, "Error opening RAW socket: %s\n", strerror (raw_eno));
+    global_ret = 3;
+    goto cleanup;
+  }
+  if (0 !=
+      setsockopt (rawsock, SOL_SOCKET, SO_BROADCAST, (char *) &one, sizeof (one)))
+  {
+    fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
+    global_ret = 4;
+    goto cleanup;
+  }
+  if (0 !=
+      setsockopt (rawsock, IPPROTO_IP, IP_HDRINCL, (char *) &one, sizeof (one)))
+  {
+    fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
+    global_ret = 5;
+    goto cleanup;
+  }
+
+  if (4 != argc)
+  {
+    fprintf (stderr,
+             "This program must be started with our IP, the targets external IP, and our port as arguments.\n");
+    global_ret = 6;
+    goto cleanup;
+  }
+  if ((1 != inet_pton (AF_INET, argv[1], &external)) ||
+      (1 != inet_pton (AF_INET, argv[2], &target)))
+  {
+    fprintf (stderr, "Error parsing IPv4 address: %s\n", strerror (errno));
+    global_ret = 7;
+    goto cleanup;
+  }
+  if ((1 != sscanf (argv[3], "%u", &p)) || (0 == p) || (0xFFFF < p))
+  {
+    fprintf (stderr, "Error parsing port value `%s'\n", argv[3]);
+    global_ret = 8;
+    goto cleanup;
+  }
+  port = (uint16_t) p;
+  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
+  {
+    fprintf (stderr, "Internal error converting dummy IP to binary.\n");
+    global_ret = 9;
+    goto cleanup;
+  }
   send_icmp (&external, &target);
   send_icmp_udp (&external, &target);
-  (void) close (rawsock);
+  global_ret = 0;
+ cleanup:
+  if (-1 != rawsock)
+    (void) close (rawsock);
   return 0;
 }
 
