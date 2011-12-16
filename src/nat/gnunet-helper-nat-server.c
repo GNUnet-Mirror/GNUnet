@@ -434,7 +434,7 @@ make_icmp_socket ()
   {
     fprintf (stderr, "Socket number too large (%d > %u)\n", ret,
              (unsigned int) FD_SETSIZE);
-    close (ret);
+    (void) close (ret);
     return -1;
   }
   return ret;
@@ -462,14 +462,14 @@ make_raw_socket ()
       setsockopt (ret, SOL_SOCKET, SO_BROADCAST, (char *) &one, sizeof (one)))
   {
     fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
-    close (ret);
+    (void) close (ret);
     return -1;
   }
   if (-1 ==
       setsockopt (ret, IPPROTO_IP, IP_HDRINCL, (char *) &one, sizeof (one)))
   {
     fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
-    close (ret);
+    (void) close (ret);
     return -1;
   }
   return ret;
@@ -506,7 +506,7 @@ make_udp_socket (const struct in_addr *my_ip)
   {
     fprintf (stderr, "Error binding UDP socket to port %u: %s\n", NAT_TRAV_PORT,
              strerror (errno));
-    close (ret);
+    (void) close (ret);
     return -1;
   }
   return ret;
@@ -544,7 +544,7 @@ main (int argc, char *const *argv)
   }
   if (-1 == (rawsock = make_raw_socket ()))
   {
-    close (icmpsock);
+    (void) close (icmpsock);
     return 4;
   }
   uid = getuid ();
@@ -552,19 +552,23 @@ main (int argc, char *const *argv)
   if (0 != setresuid (uid, uid, uid))
   {
     fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
+    (void) close (icmpsock);
+    (void) close (rawsock);
     return 5;
   }
 #else
   if (0 != (setuid (uid) | seteuid (uid)))
   {
     fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
+    (void) close (icmpsock);
+    (void) close (rawsock);
     return 6;
   }
 #endif
   if (-1 == (udpsock = make_udp_socket (&external)))
   {
-    close (icmpsock);
-    close (rawsock);
+    (void) close (icmpsock);
+    (void) close (rawsock);
     return 7;
   }
   alt = 0;
@@ -591,9 +595,9 @@ main (int argc, char *const *argv)
       send_udp ();
   }
   /* select failed (internal error or OS out of resources) */
-  close (icmpsock);
-  close (rawsock);
-  close (udpsock);
+  (void) close (icmpsock);
+  (void) close (rawsock);
+  (void) close (udpsock);
   return 8;
 }
 
