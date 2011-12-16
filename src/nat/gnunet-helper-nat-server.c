@@ -472,7 +472,7 @@ make_raw_socket ()
 
 
 /**
- * Create a UDP socket for writinging.
+ * Create a UDP socket for writing.
  *
  * @param my_ip source address (our ip address)
  * @return -1 on error
@@ -501,7 +501,8 @@ make_udp_socket (const struct in_addr *my_ip)
   {
     fprintf (stderr, "Error binding UDP socket to port %u: %s\n", NAT_TRAV_PORT,
              strerror (errno));
-    /* likely problematic, but not certain, try to continue */
+    close (ret);
+    return -1;
   }
   return ret;
 }
@@ -539,19 +540,27 @@ main (int argc, char *const *argv)
   if (-1 == (rawsock = make_raw_socket ()))
   {
     close (icmpsock);
-    return 3;
+    return 4;
   }
   uid = getuid ();
+#ifdef HAVE_SETRESUID
   if (0 != setresuid (uid, uid, uid))
   {
     fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
-    /* not critical, continue anyway */
+    return 5;
   }
+#else
+  if (0 != (setuid (uid) | seteuid (uid)))
+  {
+    fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
+    return 6;
+  }
+#endif
   if (-1 == (udpsock = make_udp_socket (&external)))
   {
     close (icmpsock);
     close (rawsock);
-    return 3;
+    return 7;
   }
   alt = 0;
   while (1)
@@ -580,7 +589,7 @@ main (int argc, char *const *argv)
   close (icmpsock);
   close (rawsock);
   close (udpsock);
-  return 4;
+  return 8;
 }
 
 
