@@ -125,22 +125,20 @@ class StatisticsCondition (Condition):
         else:
             return True
     def eval(self, failed_only):
+    	if (self.result == -1):
+    		res = 'NaN'
+    	else:
+    		res = str(self.result)
+        if (self.fulfilled == False):
+            fail = " FAIL!" 
+            op = " != "
+        else: 
+            fail = ""
+            op = " == "
         if ((self.fulfilled == False) and (failed_only == True)):
-            if (self.fulfilled == False):
-                fail = " FAIL!" 
-                op = " != "
-            else: 
-                fail = ""
-                op = " == "
-            print self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : ' + str(self.value) + op + str(self.result) + fail
+            print self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : ' + str(self.value) + op + res + fail
         elif (failed_only == False): 
-            if (self.fulfilled == False):
-                fail = " FAIL!" 
-                op = " != "
-            else: 
-                fail = ""
-                op = " == "
-            print self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : ' + str(self.value) + op + str(self.result) + fail 
+            print self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : ' + str(self.value) + op + res + fail 
         return self.fulfilled    
         
 class Test:

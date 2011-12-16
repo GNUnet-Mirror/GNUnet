@@ -42,7 +42,7 @@ from gnunet_testing import *
 #definitions
 testname = "test_integration_clique_nat"
 verbose = True
-check_timeout = 120
+check_timeout = 30
 
 
 def cleanup ():
