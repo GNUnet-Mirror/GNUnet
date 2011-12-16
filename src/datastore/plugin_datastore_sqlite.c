@@ -1084,6 +1084,43 @@ sqlite_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
 }
 
 
+
+/**
+ * Get all of the keys in the datastore.
+ *
+ * @param cls closure
+ * @param proc function to call on each key
+ * @param proc_cls closure for proc
+ */
+static void
+sqlite_plugin_get_keys (void *cls,
+			PluginKeyProcessor proc,
+			void *proc_cls)
+{
+  struct Plugin *plugin = cls;
+  const GNUNET_HashCode *key;
+  sqlite3_stmt *stmt;
+  int ret;
+
+  GNUNET_assert (proc != NULL);
+  if (sq_prepare (plugin->dbh, "SELECT hash FROM gn090", &stmt) != SQLITE_OK)
+  {
+    LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"sqlite_prepare");
+    return;
+  }
+  while (SQLITE_ROW == (ret = sqlite3_step (stmt)))
+  {
+    key = sqlite3_column_blob (stmt, 1);
+    if (sizeof (GNUNET_HashCode) == sqlite3_column_bytes (stmt, 1))
+      proc (proc_cls, key, 1);
+  }
+  if (SQLITE_DONE != ret)
+    LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
+  sqlite3_finalize (stmt);
+}
+
+
 /**
  * Drop database.
  *
@@ -1177,6 +1214,7 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   api->get_replication = &sqlite_plugin_get_replication;
   api->get_expiration = &sqlite_plugin_get_expiration;
   api->get_zero_anonymity = &sqlite_plugin_get_zero_anonymity;
+  api->get_keys = &sqlite_plugin_get_keys;
   api->drop = &sqlite_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "sqlite",
                    _("Sqlite database running\n"));
