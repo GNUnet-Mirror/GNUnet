@@ -259,8 +259,8 @@ static void
 insert_ai (struct GNUNET_STATISTICS_Handle *h,
            struct GNUNET_STATISTICS_GetHandle *ai)
 {
-  GNUNET_CONTAINER_DLL_insert_after (h->action_head, h->action_tail,
-                                     h->action_tail, ai);
+  GNUNET_CONTAINER_DLL_insert_tail (h->action_head, h->action_tail,
+				    ai);
   if (h->action_head == ai)
     schedule_action (h);
 }
