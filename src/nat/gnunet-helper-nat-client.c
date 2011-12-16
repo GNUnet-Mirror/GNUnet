@@ -427,14 +427,14 @@ make_raw_socket ()
       setsockopt (ret, SOL_SOCKET, SO_BROADCAST, (char *) &one, sizeof (one)))
   {
     fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
-    close (ret);
+    (void) close (ret);
     return -1;
   }
   if (0 !=
       setsockopt (ret, IPPROTO_IP, IP_HDRINCL, (char *) &one, sizeof (one)))
   {
     fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
-    close (ret);
+    (void) close (ret);
     return -1;
   }
   return ret;
@@ -490,7 +490,7 @@ main (int argc, char *const *argv)
 #endif
   send_icmp (&external, &target);
   send_icmp_udp (&external, &target);
-  close (rawsock);
+  (void) close (rawsock);
   return 0;
 }
 
