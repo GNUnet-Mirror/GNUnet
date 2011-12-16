@@ -69,6 +69,11 @@
 #define NAT_TRAV_PORT 22225
 
 /**
+ * Must match packet ID used by gnunet-helper-nat-server.c
+ */
+#define PACKET_ID 256
+
+/**
  * IPv4 header.
  */
 struct ip_header
@@ -228,7 +233,7 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len = htons (sizeof (packet));
-  ip_pkt.id = htons (256);
+  ip_pkt.id = htons (PACKET_ID);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = 128;
   ip_pkt.proto = IPPROTO_ICMP;
@@ -325,7 +330,7 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len = htons (sizeof (packet));
-  ip_pkt.id = htons (256);
+  ip_pkt.id = htons (PACKET_ID);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = IPDEFTTL;
   ip_pkt.proto = IPPROTO_ICMP;
@@ -350,7 +355,7 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.tos = 0;
   ip_pkt.pkt_len =
       htons (sizeof (struct ip_header) + sizeof (struct icmp_echo_header));
-  ip_pkt.id = htons (256);
+  ip_pkt.id = htons (PACKET_ID);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = 1;               /* real TTL would be 1 on a time exceeded packet */
   ip_pkt.proto = IPPROTO_ICMP;
@@ -470,11 +475,19 @@ main (int argc, char *const *argv)
   if (-1 == (rawsock = make_raw_socket ()))
     return 2;
   uid = getuid ();
+#ifdef HAVE_SETRESUID
   if (0 != setresuid (uid, uid, uid))
   {
     fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
-    /* not critical, continue anyway */
+    return 3;
   }
+#else
+  if (0 != (setuid (uid) | seteuid (uid)))
+  {
+    fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
+    return 6;
+  }
+#endif
   send_icmp (&external, &target);
   send_icmp_udp (&external, &target);
   close (rawsock);

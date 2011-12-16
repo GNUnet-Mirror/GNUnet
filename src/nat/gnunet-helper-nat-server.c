@@ -70,6 +70,11 @@
 #define VERBOSE 0
 
 /**
+ * Must match packet ID used by gnunet-helper-nat-client.c
+ */
+#define PACKET_ID 256
+
+/**
  * Must match IP given in the client.
  */
 #define DUMMY_IP "192.0.2.86"
@@ -245,7 +250,7 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len = htons (sizeof (packet));
-  ip_pkt.id = htons (256);
+  ip_pkt.id = htons (PACKET_ID);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = IPDEFTTL;
   ip_pkt.proto = IPPROTO_ICMP;
