@@ -359,7 +359,6 @@ process_icmp_response ()
   off = 0;
   memcpy (&ip_pkt, &buf[off], sizeof (struct ip_header));
   off += sizeof (struct ip_header);
-  memcpy (&source_ip, &ip_pkt.src_ip, sizeof (source_ip));
   memcpy (&icmp_ttl, &buf[off], sizeof (struct icmp_ttl_exceeded_header));
   off += sizeof (struct icmp_ttl_exceeded_header);
   if ((ICMP_TIME_EXCEEDED != icmp_ttl.type) || (0 != icmp_ttl.code))
@@ -403,6 +402,7 @@ process_icmp_response ()
     return;
   }
 
+  source_ip.s_addr = ip_pkt.src_ip;
   if (port == 0)
     fprintf (stdout, "%s\n",
              inet_ntop (AF_INET, &source_ip, buf, sizeof (buf)));
