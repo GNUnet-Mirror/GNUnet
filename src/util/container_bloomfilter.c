@@ -282,33 +282,33 @@ decrementBit (char *bitArray, unsigned int bitIdx,
  * @return GNUNET_OK if created ok, GNUNET_SYSERR otherwise
  */
 static int
-makeEmptyFile (const struct GNUNET_DISK_FileHandle *fh, size_t size)
+make_empty_file (const struct GNUNET_DISK_FileHandle *fh, size_t size)
 {
-  char *buffer;
+  char buffer[BUFFSIZE];
   size_t bytesleft = size;
   int res = 0;
 
   if (GNUNET_DISK_handle_invalid (fh))
     return GNUNET_SYSERR;
-  buffer = GNUNET_malloc (BUFFSIZE);
-  memset (buffer, 0, BUFFSIZE);
+  memset (buffer, 0, sizeof (buffer));
   GNUNET_DISK_file_seek (fh, 0, GNUNET_DISK_SEEK_SET);
-
   while (bytesleft > 0)
   {
-    if (bytesleft > BUFFSIZE)
+    if (bytesleft > sizeof (buffer))
     {
-      res = GNUNET_DISK_file_write (fh, buffer, BUFFSIZE);
-      bytesleft -= BUFFSIZE;
+      res = GNUNET_DISK_file_write (fh, buffer, sizeof (buffer));
+      if (res >= 0)
+	bytesleft -= res;
     }
     else
     {
       res = GNUNET_DISK_file_write (fh, buffer, bytesleft);
-      bytesleft = 0;
+      if (res >= 0)
+	bytesleft -= res;
     }
-    GNUNET_assert (res != GNUNET_SYSERR);
+    if (GNUNET_SYSERR == res)
+      return GNUNET_SYSERR;
   }
-  GNUNET_free (buffer);
   return GNUNET_OK;
 }
 
@@ -472,7 +472,8 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
 
   bf = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_BloomFilter));
   /* Try to open a bloomfilter file */
-  bf->fh =
+  if (GNUNET_YES == GNUNET_DISK_file_test (filename))
+    bf->fh =
       GNUNET_DISK_file_open (filename,
                              GNUNET_DISK_OPEN_READWRITE,
                              GNUNET_DISK_PERM_USER_READ |
@@ -492,6 +493,14 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
 	GNUNET_free (bf);
 	return NULL;
       }
+    if (GNUNET_OK != make_empty_file (bf->fh, size * 4LL))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			   "write");
+      GNUNET_DISK_file_close (bf->fh);
+      GNUNET_free (bf);
+      return NULL;
+    }
   }
   else
   {
@@ -504,10 +513,12 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
       GNUNET_free (bf);
       return NULL;
     }
-    if (fsize != size * 8LL)
+    if (fsize != size * 4LL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Size of file on disk is incorrect for this Bloom filter\n"));
+		  _("Size of file on disk is incorrect for this Bloom filter (want %llu, have %llu)\n"),
+		  (unsigned long long) fsize,
+		  (unsigned long long) (size * 4LL));
       GNUNET_DISK_file_close (bf->fh);
       GNUNET_free (bf);
       return NULL;
@@ -528,8 +539,8 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
   bf->addressesPerElement = k;
   memset (bf->bitArray, 0, bf->bitArraySize);
 
-  if (GNUNET_YES != must_read)
-    return bf; /* already done! */
+  if (GNUNET_YES != must_read)      
+    return bf; /* already done! */  
   /* Read from the file what bits we can */
   rbuff = GNUNET_malloc (BUFFSIZE);
   pos = 0;
@@ -670,7 +681,7 @@ GNUNET_CONTAINER_bloomfilter_clear (struct GNUNET_CONTAINER_BloomFilter *bf)
 
   memset (bf->bitArray, 0, bf->bitArraySize);
   if (bf->filename != NULL)
-    makeEmptyFile (bf->fh, bf->bitArraySize * 4);
+    make_empty_file (bf->fh, bf->bitArraySize * 4LL);
 }
 
 
@@ -827,7 +838,7 @@ GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
   bf->bitArray = GNUNET_malloc (size);
   memset (bf->bitArray, 0, bf->bitArraySize);
   if (bf->filename != NULL)
-    makeEmptyFile (bf->fh, bf->bitArraySize * 4);
+    make_empty_file (bf->fh, bf->bitArraySize * 4LL);
   while (GNUNET_YES == iterator (iterator_cls, &hc))
     GNUNET_CONTAINER_bloomfilter_add (bf, &hc);
 }
