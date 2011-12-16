@@ -116,8 +116,8 @@ class StatisticsCondition (Condition):
         self.result = -1;
     def check(self):
         if (self.fulfilled == False):
-            self.result = self.peer.check (self.subsystem, self.name, self.value);
-            if (self.result == self.value):
+            self.result = self.peer.get_statistics_value (self.subsystem, self.name);
+            if (str(self.result) == str(self.value)):
                 self.fulfilled = True
                 return True
             else:
@@ -208,15 +208,15 @@ class Peer:
             return False
         self.started = False
         return True;
-    def check (self, subsystem, name, value):
+    def get_statistics_value (self, subsystem, name):
         from gnunet_pyexpect import pexpect
         server = pexpect ()
         server.spawn (None, [self.test.gnunetstatistics, '-c', self.cfg ,'-q','-n', name, '-s', subsystem ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         #server.expect ("stdout", re.compile (r""))
         test = server.read("stdout", 10240)
-        if (test.find(str(value)) == -1): 
-            return -1
+        tests = test.partition('\n')[0]
+        if (tests.isdigit() == True):
+            return tests
         else:
-            return value  
-
+            return -1
         

@@ -110,7 +110,6 @@ def check_disconnect_server ():
 
 
 def success_connect_cont (check):  
-    check.eval(False)
     check_disconnect_server ()
 
 
