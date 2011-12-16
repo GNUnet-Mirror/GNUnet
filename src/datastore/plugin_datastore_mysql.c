@@ -1305,6 +1305,86 @@ mysql_plugin_get_replication (void *cls, PluginDatumProcessor proc,
 
 
 /**
+ * Get all of the keys in the datastore.
+ *
+ * @param cls closure
+ * @param proc function to call on each key
+ * @param proc_cls closure for proc
+ */
+static void
+mysql_plugin_get_keys (void *cls,
+			PluginKeyProcessor proc,
+			void *proc_cls)
+{
+  struct Plugin *plugin = cls;
+  const char *query = "SELECT hash FROM gn090";
+  int ret;
+  MYSQL_STMT *statement;
+  GNUNET_HashCode key;
+  MYSQL_BIND cbind[1];
+  unsigned long length;
+ 
+  statement = mysql_stmt_init (plugin->dbf);
+  if (statement == NULL)
+  {
+    iclose (plugin);
+    return;
+  }
+  if (mysql_stmt_prepare (statement, query, strlen (query)))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
+                     _("Failed to prepare statement `%s'\n"), query);
+    LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_stmt_prepare", plugin);
+    mysql_stmt_close (statement);
+    iclose (plugin);
+    return;
+  }
+  GNUNET_assert (proc != NULL);
+  if (mysql_stmt_execute (statement))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("`%s' for `%s' failed at %s:%d with error: %s\n"),
+                "mysql_stmt_execute", query, __FILE__, __LINE__,
+                mysql_stmt_error (statement));
+    mysql_stmt_close (statement);
+    iclose (plugin);
+    return;
+  }
+  memset (cbind, 0, sizeof (cbind));
+  cbind[0].buffer_type = MYSQL_TYPE_BLOB;
+  cbind[0].buffer = &key;
+  cbind[0].buffer_length = sizeof (key);
+  cbind[0].length = &length;
+  cbind[0].is_unsigned = GNUNET_NO;
+  if (mysql_stmt_bind_result (statement, cbind))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("`%s' failed at %s:%d with error: %s\n"),
+                "mysql_stmt_bind_result", __FILE__, __LINE__,
+                mysql_stmt_error (statement));
+    iclose (plugin);
+    return;
+  }
+  while (0 == (ret = mysql_stmt_fetch (statement)))
+  {
+    if (sizeof (GNUNET_HashCode) == length)
+      proc (proc_cls, &key, 1);    
+  }
+  if (ret != MYSQL_NO_DATA)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("`%s' failed at %s:%d with error: %s\n"),
+		     "mysql_stmt_fetch", __FILE__, __LINE__,
+		     mysql_stmt_error (statement));    
+    mysql_stmt_close (statement);
+    iclose (plugin);
+    return;
+  }
+  mysql_stmt_close (statement);
+}
+
+
+/**
  * Context for 'expi_proc' function.
  */
 struct ExpiCtx
@@ -1495,6 +1575,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
   api->get_replication = &mysql_plugin_get_replication;
   api->get_expiration = &mysql_plugin_get_expiration;
   api->get_zero_anonymity = &mysql_plugin_get_zero_anonymity;
+  api->get_keys = &mysql_plugin_get_keys;
   api->drop = &mysql_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "mysql",
                    _("Mysql database running\n"));
