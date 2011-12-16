@@ -1412,12 +1412,6 @@ wlan_initialize (struct HardwareInfos *dev, const char *iface)
   struct stat sbuf;
   int ret;
 
-  dev->fd_raw = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
-  if (0 > dev->fd_raw)
-  {
-    fprintf (stderr, "Failed to create raw socket: %s\n", strerror (errno));
-    return 1;
-  }
   if (dev->fd_raw >= FD_SETSIZE)
   {
     fprintf (stderr, "File descriptor too large for select (%d > %d)\n",
@@ -1559,22 +1553,46 @@ main (int argc, char *argv[])
   int retval;
   int stdin_open;
   struct MessageStreamTokenizer *stdin_mst;
+  int raw_eno;
 
+  dev.fd_raw = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
+  raw_eno = errno; /* remember for later */
+  uid = getuid ();
+#ifdef HAVE_SETRESUID
+  if (0 != setresuid (uid, uid, uid))
+  {
+    fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
+    if (-1 != dev.fd_raw)
+      (void) close (dev.fd_raw);
+    return 1;
+  }
+#else
+  if (0 != (setuid (uid) | seteuid (uid)))
+  {
+    fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
+    if (-1 != dev.fd_raw)
+      (void) close (dev.fd_raw);
+    return 1;
+  }
+#endif
+
+  /* now that we've dropped root rights, we can do error checking */
   if (2 != argc)
   {
     fprintf (stderr,
              "You must specify the name of the interface as the first and only argument to this program.\n");
+    if (-1 != dev.fd_raw)
+      (void) close (dev.fd_raw);
+    return 1;
+  }
+
+  if (-1 == dev.fd_raw)
+  {
+    fprintf (stderr, "Failed to create raw socket: %s\n", strerror (raw_eno));
     return 1;
   }
   if (0 != wlan_initialize (&dev, argv[1]))
     return 1;
-  uid = getuid ();
-  if (0 != setresuid (uid, uid, uid))
-  {
-    fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
-    /* not critical, continue anyway */
-  }
-
   dev.write_pout.size = 0;
   dev.write_pout.pos = 0;
   stdin_mst = mst_create (&stdin_send_hw, &dev);  
@@ -1705,7 +1723,7 @@ main (int argc, char *argv[])
   }
   /* Error handling, try to clean up a bit at least */
   mst_destroy (stdin_mst);
-  close (dev.fd_raw);
+  (void) close (dev.fd_raw);
   return 1;                     /* we never exit 'normally' */
 }
 
