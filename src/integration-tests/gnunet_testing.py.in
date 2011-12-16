@@ -217,7 +217,7 @@ class Peer:
         #server.expect ("stdout", re.compile (r""))
         test = server.read("stdout", 10240)
         if (test.find(str(value)) == -1): 
-            return value
+            return -1
         else:
             return value  
 

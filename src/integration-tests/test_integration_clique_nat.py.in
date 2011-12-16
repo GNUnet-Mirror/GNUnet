@@ -41,7 +41,7 @@ from gnunet_testing import *
 
 #definitions
 testname = "test_integration_clique_nat"
-verbose = False
+verbose = True
 check_timeout = 120
 
 
@@ -110,6 +110,7 @@ def check_disconnect_server ():
 
 
 def success_connect_cont (check):  
+    check.eval(False)
     check_disconnect_server ()
 
 
