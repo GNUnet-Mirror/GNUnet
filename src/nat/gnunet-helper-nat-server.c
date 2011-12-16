@@ -415,64 +415,28 @@ process_icmp_response ()
 
 
 /**
- * Create an ICMP raw socket for reading.
+ * Fully initialize the raw socket.
  *
- * @return -1 on error
+ * @return -1 on error, 0 on success
  */
 static int
-make_icmp_socket ()
-{
-  int ret;
-
-  ret = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
-  if (-1 == ret)
-  {
-    fprintf (stderr, "Error opening RAW socket: %s\n", strerror (errno));
-    return -1;
-  }
-  if (ret >= FD_SETSIZE)
-  {
-    fprintf (stderr, "Socket number too large (%d > %u)\n", ret,
-             (unsigned int) FD_SETSIZE);
-    (void) close (ret);
-    return -1;
-  }
-  return ret;
-}
-
-
-/**
- * Create an ICMP raw socket for writing.
- *
- * @return -1 on error
- */
-static int
-make_raw_socket ()
+setup_raw_socket ()
 {
   const int one = 1;
-  int ret;
 
-  ret = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
-  if (-1 == ret)
+  if (-1 ==
+      setsockopt (rawsock, SOL_SOCKET, SO_BROADCAST, (char *) &one, sizeof (one)))
   {
-    fprintf (stderr, "Error opening RAW socket: %s\n", strerror (errno));
+    fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
     return -1;
   }
   if (-1 ==
-      setsockopt (ret, SOL_SOCKET, SO_BROADCAST, (char *) &one, sizeof (one)))
+      setsockopt (rawsock, IPPROTO_IP, IP_HDRINCL, (char *) &one, sizeof (one)))
   {
     fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
-    (void) close (ret);
     return -1;
   }
-  if (-1 ==
-      setsockopt (ret, IPPROTO_IP, IP_HDRINCL, (char *) &one, sizeof (one)))
-  {
-    fprintf (stderr, "setsockopt failed: %s\n", strerror (errno));
-    (void) close (ret);
-    return -1;
-  }
-  return ret;
+  return 0;
 }
 
 
@@ -521,56 +485,97 @@ main (int argc, char *const *argv)
   struct timeval tv;
   uid_t uid;
   unsigned int alt;
+  int icmp_eno;
+  int raw_eno;
+  int global_ret;
 
-  if (2 != argc)
-  {
-    fprintf (stderr,
-             "This program must be started with our (internal NAT) IP as the only argument.\n");
-    return 1;
-  }
-  if (1 != inet_pton (AF_INET, argv[1], &external))
-  {
-    fprintf (stderr, "Error parsing IPv4 address: %s\n", strerror (errno));
-    return 1;
-  }
-  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
-  {
-    fprintf (stderr, "Internal error converting dummy IP to binary.\n");
-    return 2;
-  }
-  if (-1 == (icmpsock = make_icmp_socket ()))
-  {
-    return 3;
-  }
-  if (-1 == (rawsock = make_raw_socket ()))
-  {
-    (void) close (icmpsock);
-    return 4;
-  }
+  /* Create an ICMP raw socket for reading (we'll check errors later) */
+  icmpsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  icmp_eno = errno;
+
+  /* Create an (ICMP) raw socket for writing (we'll check errors later) */
+  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+  raw_eno = errno;
+  udpsock = -1;
+
+  /* drop root rights */
   uid = getuid ();
 #ifdef HAVE_SETRESUID
   if (0 != setresuid (uid, uid, uid))
   {
     fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
-    (void) close (icmpsock);
-    (void) close (rawsock);
-    return 5;
+    global_ret = 1;
+    goto error_exit;
   }
 #else
   if (0 != (setuid (uid) | seteuid (uid)))
   {
     fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
-    (void) close (icmpsock);
-    (void) close (rawsock);
-    return 6;
+    global_ret = 2;
+    goto error_exit;
   }
 #endif
+
+  /* Now that we run without root rights, we can do error checking... */
+  if (2 != argc)
+  {
+    fprintf (stderr,
+             "This program must be started with our (internal NAT) IP as the only argument.\n");
+    global_ret = 3;
+    goto error_exit;
+  }
+  if (1 != inet_pton (AF_INET, argv[1], &external))
+  {
+    fprintf (stderr, "Error parsing IPv4 address: %s\n", strerror (errno));
+    global_ret = 4;
+    goto error_exit;
+  }
+  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
+  {
+    fprintf (stderr, "Internal error converting dummy IP to binary.\n");
+    global_ret = 5;
+    goto error_exit;
+  }
+
+  /* error checking icmpsock */
+  if (-1 == icmpsock)
+  {
+    fprintf (stderr, "Error opening RAW socket: %s\n", strerror (icmp_eno));
+    global_ret = 6;
+    goto error_exit;
+  }
+  if (icmpsock >= FD_SETSIZE)
+  {
+    /* this could happen if we were started with a large number of already-open
+       file descriptors... */
+    fprintf (stderr, "Socket number too large (%d > %u)\n", icmpsock,
+             (unsigned int) FD_SETSIZE);
+    global_ret = 7;
+    goto error_exit;
+  }
+
+  /* error checking rawsock */
+  if (-1 == rawsock)
+  {
+    fprintf (stderr, "Error opening RAW socket: %s\n", strerror (raw_eno));
+    global_ret = 8;
+    goto error_exit;
+  }
+  /* no need to check 'rawsock' against FD_SETSIZE as it is never used
+     with 'select' */
+
+  if (0 != setup_raw_socket ())
+  {
+    global_ret = 9;
+    goto error_exit;
+  }
+
   if (-1 == (udpsock = make_udp_socket (&external)))
   {
-    (void) close (icmpsock);
-    (void) close (rawsock);
-    return 7;
+    global_ret = 10;
+    goto error_exit;
   }
+
   alt = 0;
   while (1)
   {
@@ -594,11 +599,17 @@ main (int argc, char *const *argv)
     else
       send_udp ();
   }
+
   /* select failed (internal error or OS out of resources) */
-  (void) close (icmpsock);
-  (void) close (rawsock);
-  (void) close (udpsock);
-  return 8;
+  global_ret = 11; 
+error_exit:
+  if (-1 != icmpsock)
+    (void) close (icmpsock);
+  if (-1 != rawsock)
+    (void) close (rawsock);
+  if (-1 != udpsock)
+    (void) close (udpsock);
+  return global_ret;
 }
 
 
