@@ -43,7 +43,7 @@ from gnunet_testing import *
 #definitions
 
 testname = "test_integration_disconnect"
-verbose = False
+verbose = True
 check_timeout = 30
 
 
@@ -112,28 +112,45 @@ def check_connect ():
 # 
 # Test execution
 # 
-success = False
-
-test = Test ('test_integration_disconnect', verbose)
-
-server = Peer(test, './confs/c_bootstrap_server.conf');
-server.start();
-
-client = Peer(test, './confs/c_no_nat_client.conf');
-client.start();
-
-
-if ((client.started == True) and (server.started == True)):
-    test.p ('Peers started, running check')
-    check_connect ()
+def run ():
+	global test
+	global server
+	global client
+	global success
 	
-server.stop ()    
-client.stop ()
+	success = False
+	
+	test = Test ('test_integration_disconnect', verbose)
+	
+	server = Peer(test, './confs/c_bootstrap_server.conf');
+	server.start();
+	
+	client = Peer(test, './confs/c_no_nat_client.conf');
+	client.start();
+	
+	
+	if ((client.started == True) and (server.started == True)):
+	    test.p ('Peers started, running check')
+	    check_connect ()
+		
+	server.stop ()    
+	client.stop ()
+	
+	cleanup ()
+	
+	if (success == False):
+		print ('Test failed')
+		return True
+	else:
+		return False
 
-cleanup ()
-
-if (success == False):
-	print ('Test failed')
-	exit (1)
-else:
-	exit (0)
+	
+try:
+    run ()
+except (KeyboardInterrupt, SystemExit):    
+    print 'Test interrupted'
+    server.stop ()
+    client.stop ()
+    cleanup ()
+sys.exit(success)  	
+	

@@ -39,11 +39,18 @@ from gnunet_testing import *
 # Conditions for successful exit:
 # Both peers have 1 connected peer in transport, core, topology, fs
 
+#
+# This test tests if a fresh peer bootstraps from a hostlist server and then
+# successfully connects to the server 
+#
+# Conditions for successful exit:
+# Both peers have 1 connected peer in transport, core, topology, fs
+
 #definitions
 
 testname = "test_integration_bootstrap_and_connect"
-verbose = False
-timeout = 100
+verbose = True
+check_timeout = 30
 
 
 def cleanup ():
@@ -64,7 +71,10 @@ def fail_cont (check):
     check.eval(True)
 
 def check ():
-  
+  global test
+  global server
+  global client
+  global success
   check = Check (test)
   check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
   check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',1))  
@@ -79,32 +89,50 @@ def check ():
   check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
   check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
   
-  check.run_blocking (10, success_cont, fail_cont)
+  check.run_blocking (check_timeout, success_cont, fail_cont)
 
 # 
 # Test execution
 # 
-success = False
 
-test = Test ('test_integration_bootstrap_and_connect.py', verbose)
+def run ():
+    global test
+    global server
+    global client
+    global success
+    
+    success = False  
+    test = Test ('test_integration_bootstrap_and_connect.py', verbose)
+    
+    server = Peer(test, './confs/c_bootstrap_server.conf');
+    client = Peer(test, './confs/c_no_nat_client.conf');
 
-server = Peer(test, './confs/c_bootstrap_server.conf');
-server.start();
+    server.start();
+    client.start();
+    
+    if ((client.started == True) and (server.started == True)):
+        test.p ('Peers started, running check')
+        time.sleep(5)
+        check ()
+    	
+    print 'stop in run'
+    server.stop ()
+    client.stop ()
+    
+    cleanup ()
+    
+    if (success == False):
+    	print ('Test failed')
+    	return False 
+    else:
+    	return True
 
-client = Peer(test, './confs/c_no_nat_client.conf');
-client.start();
-
-if ((client.started == True) and (server.started == True)):
-    test.p ('Peers started, running check')
-    check ()
-	
-server.stop ()
-client.stop ()
-
-cleanup ()
-
-if (success == False):
-	print ('Test failed')
-	exit (1)
-else:
-	exit (0)
+try:
+    run ()
+except (KeyboardInterrupt, SystemExit):    
+    print 'Test interrupted'
+    server.stop ()
+    client.stop ()
+    cleanup ()
+sys.exit(success)    
+    

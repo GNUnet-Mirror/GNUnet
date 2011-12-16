@@ -134,6 +134,7 @@ class StatisticsCondition (Condition):
         
 class Test:
     def __init__(self, testname, verbose):
+        self.peers = list()
     	self.verbose = verbose;
     	self.name = testname;
     	srcdir = "../.."
@@ -153,6 +154,8 @@ class Test:
             shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
         else:
             shutil.rmtree ("/tmp/" + testname, True)
+    def add_peer (peer):
+    	self.conditions.append(condition)
     def p (self, msg):
         if (self.verbose == True):
     	   print msg    
@@ -167,9 +170,12 @@ class Peer:
     def __del__(self):
     	if (self.started == True):
     		print 'ERROR! Peer using cfg ' + self.cfg + ' was not stopped'
-    		self.started == False
-    		if (False == self.stop ()):
+    		if (ret == self.stop ()):
     			print 'ERROR! Peer using cfg ' + self.cfg + ' could not be stopped'
+    		self.started == False
+    		return ret
+    	else:
+    		return False
     def start (self):
         self.test.p ("Starting peer using cfg " + self.cfg)
         try:
