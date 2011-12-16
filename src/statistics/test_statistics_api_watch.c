@@ -33,8 +33,6 @@
 
 #define START_SERVICE GNUNET_YES
 
-#define ROUNDS (1024 * 1024)
-
 static int ok;
 
 static struct GNUNET_STATISTICS_Handle *h;
