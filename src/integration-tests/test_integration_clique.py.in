@@ -145,11 +145,12 @@ def check_connect ():
 # Test execution
 # 
 def run ():
-    global test
-    global server
-    global client
-    global success
-    
+	global success
+	global test
+	global server
+	global client
+	global client2	
+	
 	success = False
 	
 	test = Test ('test_integration_disconnect', verbose)
@@ -172,12 +173,12 @@ def run ():
 	client2.stop ()
 	
 	cleanup ()
-
-    if (success == False):
-    	print ('Test failed')
-    	return False 
-    else:
-    	return True
+	
+	if (success == False):
+		print ('Test failed')
+		return False 
+	else:
+		return True
 
     
 try:
@@ -188,6 +189,9 @@ except (KeyboardInterrupt, SystemExit):
     client.stop ()
     client2.stop ()
     cleanup ()
-sys.exit(success)  	
+if (success == False):
+	sys.exit(1)   
+else:
+	sys.exit(0)    
 	    
 

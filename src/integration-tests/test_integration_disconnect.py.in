@@ -109,14 +109,11 @@ def check_connect ():
 # Test execution
 # 
 
-# 
-# Test execution
-# 
 def run ():
+	global success
 	global test
 	global server
 	global client
-	global success
 	
 	success = False
 	
@@ -152,5 +149,8 @@ except (KeyboardInterrupt, SystemExit):
     server.stop ()
     client.stop ()
     cleanup ()
-sys.exit(success)  	
+if (success == False):
+	sys.exit(1)   
+else:
+	sys.exit(0)    
 	

@@ -67,14 +67,10 @@ def success_cont (check):
     
 def fail_cont (check):    
     global success 
-    success= False;
+    success = False;
     check.eval(True)
 
 def check ():
-  global test
-  global server
-  global client
-  global success
   check = Check (test)
   check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
   check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',1))  
@@ -96,36 +92,34 @@ def check ():
 # 
 
 def run ():
-    global test
-    global server
-    global client
-    global success
-    
-    success = False  
-    test = Test ('test_integration_bootstrap_and_connect.py', verbose)
-    
-    server = Peer(test, './confs/c_bootstrap_server.conf');
-    client = Peer(test, './confs/c_no_nat_client.conf');
-
-    server.start();
-    client.start();
-    
-    if ((client.started == True) and (server.started == True)):
-        test.p ('Peers started, running check')
-        time.sleep(5)
-        check ()
-    	
-    print 'stop in run'
-    server.stop ()
-    client.stop ()
-    
-    cleanup ()
-    
-    if (success == False):
-    	print ('Test failed')
-    	return False 
-    else:
-    	return True
+	global success
+	global test
+	global server
+	global client    
+	
+	success = False  
+	test = Test ('test_integration_bootstrap_and_connect.py', verbose)
+	
+	server = Peer(test, './confs/c_bootstrap_server.conf');
+	client = Peer(test, './confs/c_no_nat_client.conf');
+	
+	server.start();
+	client.start();
+	
+	if ((client.started == True) and (server.started == True)):
+	    test.p ('Peers started, running check')
+	    time.sleep(5)
+	    check ()
+	server.stop ()
+	client.stop ()
+	
+	cleanup ()
+	
+	if (success == False):
+		print ('Test failed')
+		return False 
+	else:
+		return True
 
 try:
     run ()
@@ -134,5 +128,8 @@ except (KeyboardInterrupt, SystemExit):
     server.stop ()
     client.stop ()
     cleanup ()
-sys.exit(success)    
+if (success == False):
+	sys.exit(1)   
+else:
+	sys.exit(0)    
     
