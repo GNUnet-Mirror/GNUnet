@@ -67,8 +67,6 @@ class Check:
         print (str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled')
         return self.fulfilled
         
-        
-
 class Condition:
     def __init__(self):
         self.fulfilled = False
@@ -115,10 +113,11 @@ class StatisticsCondition (Condition):
         self.subsystem = subsystem;
         self.name = name;
         self.value = value;
+        self.result = -1;
     def check(self):
         if (self.fulfilled == False):
-            res = self.peer.check (self.subsystem, self.name, self.value);
-            if (res == True):
+            self.result = self.peer.check (self.subsystem, self.name, self.value);
+            if (self.result == self.value):
                 self.fulfilled = True
                 return True
             else:
@@ -127,9 +126,21 @@ class StatisticsCondition (Condition):
             return True
     def eval(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            print str(self.type) + ' condition for value "'+str(self.value)+'" in subsystem "' + self.subsystem +'" : "' + self.name +'" was ' + str(self.fulfilled)
+            if (self.fulfilled == False):
+                fail = " FAIL!" 
+                op = " != "
+            else: 
+                fail = ""
+                op = " == "
+            print self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : ' + str(self.value) + op + str(self.result) + fail
         elif (failed_only == False): 
-            print str(self.type) + ' condition for value "'+str(self.value)+'" in subsystem "' + self.subsystem +'" : "' + self.name +'" was ' + str(self.fulfilled)
+            if (self.fulfilled == False):
+                fail = " FAIL!" 
+                op = " != "
+            else: 
+                fail = ""
+                op = " == "
+            print self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : ' + str(self.value) + op + str(self.result) + fail 
         return self.fulfilled    
         
 class Test:
@@ -206,7 +217,8 @@ class Peer:
         #server.expect ("stdout", re.compile (r""))
         test = server.read("stdout", 10240)
         if (test.find(str(value)) == -1): 
-            return False
+            return value
         else:
-            return True  
+            return value  
+
         
