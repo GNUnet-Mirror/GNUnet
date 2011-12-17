@@ -517,8 +517,8 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Size of file on disk is incorrect for this Bloom filter (want %llu, have %llu)\n"),
-		  (unsigned long long) fsize,
-		  (unsigned long long) (size * 4LL));
+		  (unsigned long long) (size * 4LL),
+		  (unsigned long long) fsize);
       GNUNET_DISK_file_close (bf->fh);
       GNUNET_free (bf);
       return NULL;
