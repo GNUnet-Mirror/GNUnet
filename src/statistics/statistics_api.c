@@ -330,8 +330,8 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
   
   if (NULL != h->th)
   {
-    h->th = NULL;
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
   } 
   GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   h->client = NULL;
