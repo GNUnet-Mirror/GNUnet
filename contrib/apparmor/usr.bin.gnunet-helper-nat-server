@@ -1,0 +1,30 @@
+# ------------------------------------------------------------------
+#
+#  Copyright (C) 2011 Jacob Appelbaum <jacob@appelbaum.net>
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of version 2 of the GNU General Public
+#  License published by the Free Software Foundation.
+#
+#  This should be placed in /etc/apparmor.d/usr.sbin.gnunet-helper-nat-server
+#  This profile may be a reasonable starting point for other NAT helpers.
+#
+# ------------------------------------------------------------------
+
+#include <tunables/global>
+/usr/bin/gnunet-helper-nat-server {
+  #include <abstractions/base>
+  #include <abstractions/consoles>
+
+  # Allow these
+  capability net_raw,
+  capability setuid,
+  network inet raw,
+  network inet dgram, # UDP IPv4
+
+  # Deny these
+  deny network inet6 stream, # TCP IPv6
+  deny network inet6 dgram, # UDP IPv6
+
+  # Deny everything else by default with AppArmor
+}
