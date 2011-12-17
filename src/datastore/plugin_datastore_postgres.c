@@ -317,6 +317,9 @@ init_connection (struct Plugin *plugin)
                    "ORDER BY repl DESC,RANDOM() LIMIT 1", 0, __LINE__)) ||
       (GNUNET_OK !=
        pq_prepare (plugin, "delrow", "DELETE FROM gn090 " "WHERE oid=$1", 1,
+                   __LINE__)) ||
+      (GNUNET_OK !=
+       pq_prepare (plugin, "get_keys", "SELECT hash FROM gn090", 0,
                    __LINE__)))
   {
     PQfinish (plugin->dbh);
@@ -933,6 +936,40 @@ postgres_plugin_update (void *cls, uint64_t uid, int delta,
 }
 
 
+
+/**
+ * Get all of the keys in the datastore.
+ *
+ * @param cls closure
+ * @param proc function to call on each key
+ * @param proc_cls closure for proc
+ */
+static void
+postgres_plugin_get_keys (void *cls,
+			  PluginKeyProcessor proc,
+			  void *proc_cls)
+{
+  struct Plugin *plugin = cls;
+  int ret;
+  int i;
+  GNUNET_HashCode key;
+  PGresult * res;
+
+  res = PQexecPrepared (plugin->dbh, "get_keys", 0, NULL, NULL, NULL, 1);
+  ret = PQntuples (res);
+  for (i=0;i<ret;i++)
+  {
+    if (sizeof (GNUNET_HashCode) != PQgetlength (res, i, 0))
+    {
+      memcpy (&key, PQgetvalue (res, i, 0), sizeof (GNUNET_HashCode));
+      proc (proc_cls, &key, 1);    
+    }
+  }
+  PQclear (res);
+}
+
+
+
 /**
  * Drop database.
  */
@@ -974,6 +1011,7 @@ libgnunet_plugin_datastore_postgres_init (void *cls)
   api->get_replication = &postgres_plugin_get_replication;
   api->get_expiration = &postgres_plugin_get_expiration;
   api->get_zero_anonymity = &postgres_plugin_get_zero_anonymity;
+  api->get_keys = &postgres_plugin_get_keys;
   api->drop = &postgres_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "datastore-postgres",
                    _("Postgres database running\n"));
