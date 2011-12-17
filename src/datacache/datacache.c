@@ -161,9 +161,16 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
     ret->filter = GNUNET_CONTAINER_bloomfilter_load (ret->bloom_name, quota / 1024,     /* 8 bit per entry in DB, expect 1k entries */
                                                      5);
   }
-  else
+  if (NULL == ret->filter)
   {
     ret->filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5); /* approx. 3% false positives at max use */
+  }
+  if (NULL == ret->filter)
+  {
+    GNUNET_free (name);
+    GNUNET_free (ret->bloom_name);
+    GNUNET_free (ret);
+    return NULL;
   }
   ret->stats = GNUNET_STATISTICS_create ("datacache", cfg);
   ret->section = GNUNET_strdup (section);
