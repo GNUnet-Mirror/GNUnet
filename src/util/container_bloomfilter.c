@@ -478,9 +478,43 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
                              GNUNET_DISK_OPEN_READWRITE,
                              GNUNET_DISK_PERM_USER_READ |
                              GNUNET_DISK_PERM_USER_WRITE);
-  if (NULL == bf->fh)
+  if (NULL != bf->fh)
   {
-    /* file did not exist, don't read */
+    /* file existed, try to read it! */
+    must_read = GNUNET_YES;
+    if (GNUNET_OK !=
+	GNUNET_DISK_file_handle_size (bf->fh, &fsize))
+    {
+      GNUNET_DISK_file_close (bf->fh);
+      GNUNET_free (bf);
+      return NULL;
+    }
+    if (fsize == 0)
+    {
+      /* found existing empty file, just overwrite */
+      if (GNUNET_OK != make_empty_file (bf->fh, size * 4LL))
+      {
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			     "write");
+	GNUNET_DISK_file_close (bf->fh);
+	GNUNET_free (bf);
+	return NULL;
+      }
+    }
+    else if (fsize != size * 4LL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Size of file on disk is incorrect for this Bloom filter (want %llu, have %llu)\n"),
+		  (unsigned long long) (size * 4LL),
+		  (unsigned long long) fsize);
+      GNUNET_DISK_file_close (bf->fh);
+      GNUNET_free (bf);
+      return NULL;
+    }
+  }
+  else
+  {
+    /* file did not exist, don't read, just create */
     must_read = GNUNET_NO;
     bf->fh =
       GNUNET_DISK_file_open (filename,
@@ -497,28 +531,6 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
 			   "write");
-      GNUNET_DISK_file_close (bf->fh);
-      GNUNET_free (bf);
-      return NULL;
-    }
-  }
-  else
-  {
-    /* file existed, try to read it! */
-    must_read = GNUNET_YES;
-    if (GNUNET_OK !=
-	GNUNET_DISK_file_handle_size (bf->fh, &fsize))
-    {
-      GNUNET_DISK_file_close (bf->fh);
-      GNUNET_free (bf);
-      return NULL;
-    }
-    if (fsize != size * 4LL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Size of file on disk is incorrect for this Bloom filter (want %llu, have %llu)\n"),
-		  (unsigned long long) (size * 4LL),
-		  (unsigned long long) fsize);
       GNUNET_DISK_file_close (bf->fh);
       GNUNET_free (bf);
       return NULL;
