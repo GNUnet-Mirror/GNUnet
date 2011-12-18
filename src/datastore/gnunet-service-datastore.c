@@ -48,8 +48,10 @@
  */
 #define MIN_EXPIRE_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
-
-#define QUOTA_STAT_NAME gettext_noop ("# bytes used in file-sharing datastore")
+/**
+ * Name under which we store current space consumption.
+ */
+static char *quota_stat_name;
 
 /**
  * After how many payload-changing operations
@@ -205,7 +207,8 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static void
 sync_stats ()
 {
-  GNUNET_STATISTICS_set (stats, QUOTA_STAT_NAME, payload, GNUNET_YES);
+  GNUNET_STATISTICS_set (stats, quota_stat_name, payload, GNUNET_YES);
+  GNUNET_STATISTICS_set (stats, "# utilization by current datastore", payload, GNUNET_NO);
   lastSync = 0;
 }
 
@@ -1296,6 +1299,9 @@ load_plugin ()
                 "DATASTORE");
     return NULL;
   }
+  GNUNET_asprintf (&quota_stat_name,
+		   _("# bytes used in file-sharing datastore `%s'"),
+		   name);
   ret = GNUNET_malloc (sizeof (struct DatastorePlugin));
   ret->env.cfg = cfg;
   ret->env.duc = &disk_utilization_change_cb;
@@ -1336,6 +1342,8 @@ unload_plugin (struct DatastorePlugin *plug)
   GNUNET_free (plug->lib_name);
   GNUNET_free (plug->short_name);
   GNUNET_free (plug);
+  GNUNET_free (quota_stat_name);
+  quota_stat_name = NULL;
 }
 
 
@@ -1346,6 +1354,8 @@ unload_plugin (struct DatastorePlugin *plug)
 static void
 unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (lastSync > 0)
+    sync_stats ();
   if (GNUNET_YES == do_drop)
     plugin->api->drop (plugin->api->cls);
   unload_plugin (plugin);
@@ -1355,8 +1365,6 @@ unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_bloomfilter_free (filter);
     filter = NULL;
   }
-  if (lastSync > 0)
-    sync_stats ();
   if (stat_get != NULL)
   {
     GNUNET_STATISTICS_get_cancel (stat_get);
@@ -1605,7 +1613,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
   stat_get =
-      GNUNET_STATISTICS_get (stats, "datastore", QUOTA_STAT_NAME,
+      GNUNET_STATISTICS_get (stats, "datastore", quota_stat_name,
                              GNUNET_TIME_UNIT_SECONDS, &process_stat_done,
                              &process_stat_in, plugin);
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
