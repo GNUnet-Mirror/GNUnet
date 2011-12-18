@@ -152,6 +152,11 @@ static unsigned long long quota;
 static int do_drop;
 
 /**
+ * Name of our plugin.
+ */
+static char *plugin_name;
+
+/**
  * How much space are we using for the cache?  (space available for
  * insertions that will be instantly reclaimed by discarding less
  * important content --- or possibly whatever we just inserted into
@@ -1288,34 +1293,21 @@ load_plugin ()
 {
   struct DatastorePlugin *ret;
   char *libname;
-  char *name;
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "DATASTORE", "DATABASE",
-                                             &name))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No `%s' specified for `%s' in configuration!\n"), "DATABASE",
-                "DATASTORE");
-    return NULL;
-  }
-  GNUNET_asprintf (&quota_stat_name,
-		   _("# bytes used in file-sharing datastore `%s'"),
-		   name);
   ret = GNUNET_malloc (sizeof (struct DatastorePlugin));
   ret->env.cfg = cfg;
   ret->env.duc = &disk_utilization_change_cb;
   ret->env.cls = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' datastore plugin\n"),
-              name);
-  GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
-  ret->short_name = name;
+              plugin_name);
+  GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", plugin_name);
+  ret->short_name = GNUNET_strdup (plugin_name);
   ret->lib_name = libname;
   ret->api = GNUNET_PLUGIN_load (libname, &ret->env);
   if (ret->api == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to load datastore plugin for `%s'\n"), name);
+                _("Failed to load datastore plugin for `%s'\n"), plugin_name);
     GNUNET_free (ret->short_name);
     GNUNET_free (libname);
     GNUNET_free (ret);
@@ -1375,6 +1367,8 @@ unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
     stats = NULL;
   }
+  GNUNET_free_non_null (plugin_name);
+  plugin_name = NULL;
 }
 
 
@@ -1501,11 +1495,24 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
-  char *fn;
+  char *fn;  
+  char *pfn;
   unsigned int bf_size;
   int refresh_bf;
 
   cfg = c;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "DATASTORE", "DATABASE",
+                                             &plugin_name))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No `%s' specified for `%s' in configuration!\n"), "DATABASE",
+                "DATASTORE");
+    return;
+  }
+  GNUNET_asprintf (&quota_stat_name,
+		   _("# bytes used in file-sharing datastore `%s'"),
+		   plugin_name);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_size (cfg, "DATASTORE", "QUOTA", &quota))
   {
@@ -1537,36 +1544,37 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   if (fn != NULL)
   {
-    if (GNUNET_YES == GNUNET_DISK_file_test (fn))
+    GNUNET_asprintf (&pfn, "%s.%s\n", fn, plugin_name);
+    if (GNUNET_YES == GNUNET_DISK_file_test (pfn))
     {
-      filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);        /* approx. 3% false positives at max use */
+      filter = GNUNET_CONTAINER_bloomfilter_load (pfn, bf_size, 5);        /* approx. 3% false positives at max use */
       if (NULL == filter)
       {
 	/* file exists but not valid, remove and try again, but refresh */
-	if (0 != UNLINK (fn))
+	if (0 != UNLINK (pfn))
 	{
 	  /* failed to remove, run without file */
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		      _("Failed to remove bogus bloomfilter file `%s'\n"),
-		      fn);
-	  GNUNET_free (fn);
-	  fn = NULL;
+		      pfn);
+	  GNUNET_free (pfn);
+	  pfn = NULL;
 	  filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);        /* approx. 3% false positives at max use */
 	  refresh_bf = GNUNET_YES;
 	}
 	else
 	{
 	  /* try again after remove */
-	  filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);        /* approx. 3% false positives at max use */
+	  filter = GNUNET_CONTAINER_bloomfilter_load (pfn, bf_size, 5);        /* approx. 3% false positives at max use */
 	  refresh_bf = GNUNET_YES;
 	  if (NULL == filter)
 	  {
 	    /* failed yet again, give up on using file */
 	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 			_("Failed to remove bogus bloomfilter file `%s'\n"),
-			fn);
-	    GNUNET_free (fn);
-	    fn = NULL;
+			pfn);
+	    GNUNET_free (pfn);
+	    pfn = NULL;
 	    filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);        /* approx. 3% false positives at max use */
 	  }
 	}
@@ -1579,9 +1587,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     }
     else
     {
-      filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);        /* approx. 3% false positives at max use */
+      filter = GNUNET_CONTAINER_bloomfilter_load (pfn, bf_size, 5);        /* approx. 3% false positives at max use */
       refresh_bf = GNUNET_YES;
     }
+    GNUNET_free (pfn);
   }
   else
   {
