@@ -505,93 +505,93 @@ enum GNUNET_FS_Status
   /**
    * Notification that we have started to publish a file structure.
    */
-  GNUNET_FS_STATUS_PUBLISH_START,
+  GNUNET_FS_STATUS_PUBLISH_START = 0,
 
   /**
    * Notification that we have resumed sharing a file structure.
    */
-  GNUNET_FS_STATUS_PUBLISH_RESUME,
+  GNUNET_FS_STATUS_PUBLISH_RESUME = 1,
 
   /**
    * Notification that we have suspended sharing a file structure.
    */
-  GNUNET_FS_STATUS_PUBLISH_SUSPEND,
+  GNUNET_FS_STATUS_PUBLISH_SUSPEND = 2,
 
   /**
    * Notification that we are making progress sharing a file structure.
    */
-  GNUNET_FS_STATUS_PUBLISH_PROGRESS,
+  GNUNET_FS_STATUS_PUBLISH_PROGRESS = 3,
 
   /**
    * Notification that an error was encountered  sharing a file structure.
    * The application will continue to receive resume/suspend events for
    * this structure until "GNUNET_FS_publish_stop" is called.
    */
-  GNUNET_FS_STATUS_PUBLISH_ERROR,
+  GNUNET_FS_STATUS_PUBLISH_ERROR = 4,
 
   /**
    * Notification that we completed sharing a file structure.
    * The application will continue to receive resume/suspend events for
    * this structure until "GNUNET_FS_publish_stop" is called.
    */
-  GNUNET_FS_STATUS_PUBLISH_COMPLETED,
+  GNUNET_FS_STATUS_PUBLISH_COMPLETED = 5,
 
   /**
    * Notification that we have stopped
    * the process of uploading a file structure; no
    * futher events will be generated for this action.
    */
-  GNUNET_FS_STATUS_PUBLISH_STOPPED,
+  GNUNET_FS_STATUS_PUBLISH_STOPPED = 6,
 
   /**
    * Notification that we have started this download.
    */
-  GNUNET_FS_STATUS_DOWNLOAD_START,
+  GNUNET_FS_STATUS_DOWNLOAD_START = 7,
 
   /**
    * Notification that this download is being resumed.
    */
-  GNUNET_FS_STATUS_DOWNLOAD_RESUME,
+  GNUNET_FS_STATUS_DOWNLOAD_RESUME = 8,
 
   /**
    * Notification that this download was suspended.
    */
-  GNUNET_FS_STATUS_DOWNLOAD_SUSPEND,
+  GNUNET_FS_STATUS_DOWNLOAD_SUSPEND = 9,
 
   /**
    * Notification about progress with this download.
    */
-  GNUNET_FS_STATUS_DOWNLOAD_PROGRESS,
+  GNUNET_FS_STATUS_DOWNLOAD_PROGRESS = 10,
 
   /**
    * Notification that this download encountered an error.
    */
-  GNUNET_FS_STATUS_DOWNLOAD_ERROR,
+  GNUNET_FS_STATUS_DOWNLOAD_ERROR = 11,
 
   /**
    * Notification that this download completed.  Note that for
    * directories, completion does not imply completion of all files in
    * the directory.
    */
-  GNUNET_FS_STATUS_DOWNLOAD_COMPLETED,
+  GNUNET_FS_STATUS_DOWNLOAD_COMPLETED = 12,
 
   /**
    * Notification that this download was stopped
    * (final event with respect to this action).
    */
-  GNUNET_FS_STATUS_DOWNLOAD_STOPPED,
+  GNUNET_FS_STATUS_DOWNLOAD_STOPPED = 13,
 
   /**
    * Notification that this download is now actively being
    * pursued (as opposed to waiting in the queue).
    */
-  GNUNET_FS_STATUS_DOWNLOAD_ACTIVE,
+  GNUNET_FS_STATUS_DOWNLOAD_ACTIVE = 14,
 
   /**
    * Notification that this download is no longer actively
    * being pursued (back in the queue).
    */
-  GNUNET_FS_STATUS_DOWNLOAD_INACTIVE,
+  GNUNET_FS_STATUS_DOWNLOAD_INACTIVE = 15,
 
   /**
    * Notification that this download is no longer part of a
@@ -599,122 +599,122 @@ enum GNUNET_FS_Status
    * download (and may thus need to be moved in the GUI
    * into a different category).
    */
-  GNUNET_FS_STATUS_DOWNLOAD_LOST_PARENT,
+  GNUNET_FS_STATUS_DOWNLOAD_LOST_PARENT = 16,
 
   /**
    * First event generated when a client requests
    * a search to begin or when a namespace result
    * automatically triggers the search for updates.
    */
-  GNUNET_FS_STATUS_SEARCH_START,
+  GNUNET_FS_STATUS_SEARCH_START = 17,
 
   /**
    * Last event when a search is being resumed;
    * note that "GNUNET_FS_SEARCH_START" will not
    * be generated in this case.
    */
-  GNUNET_FS_STATUS_SEARCH_RESUME,
+  GNUNET_FS_STATUS_SEARCH_RESUME = 18,
 
   /**
    * Event generated for each search result
    * when the respective search is resumed.
    */
-  GNUNET_FS_STATUS_SEARCH_RESUME_RESULT,
+  GNUNET_FS_STATUS_SEARCH_RESUME_RESULT = 19,
 
   /**
    * Last event when a search is being suspended;
    * note that "GNUNET_FS_SEARCH_STOPPED" will not
    * be generated in this case.
    */
-  GNUNET_FS_STATUS_SEARCH_SUSPEND,
+  GNUNET_FS_STATUS_SEARCH_SUSPEND = 20,
 
   /**
    * This search has yielded a result.
    */
-  GNUNET_FS_STATUS_SEARCH_RESULT,
+  GNUNET_FS_STATUS_SEARCH_RESULT = 21,
 
   /**
    * We have discovered a new namespace.
    */
-  GNUNET_FS_STATUS_SEARCH_RESULT_NAMESPACE,
+  GNUNET_FS_STATUS_SEARCH_RESULT_NAMESPACE = 22,
 
   /**
    * We have additional data about the quality
    * or availability of a search result.
    */
-  GNUNET_FS_STATUS_SEARCH_UPDATE,
+  GNUNET_FS_STATUS_SEARCH_UPDATE = 23,
 
   /**
    * Signals a problem with this search.
    */
-  GNUNET_FS_STATUS_SEARCH_ERROR,
+  GNUNET_FS_STATUS_SEARCH_ERROR = 24,
 
   /**
    * Signals that this search was paused.
    */
-  GNUNET_FS_STATUS_SEARCH_PAUSED,
+  GNUNET_FS_STATUS_SEARCH_PAUSED = 25,
 
   /**
    * Signals that this search was continued (unpaused).
    */
-  GNUNET_FS_STATUS_SEARCH_CONTINUED,
+  GNUNET_FS_STATUS_SEARCH_CONTINUED = 26,
 
   /**
    * Event generated for each search result
    * when the respective search is stopped.
    */
-  GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED,
+  GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED = 27,
 
   /**
    * Event generated for each search result
    * when the respective search is suspended.
    */
-  GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND,
+  GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND = 28,
 
   /**
    * Last message from a search; this signals
    * that there will be no further events associated
    * with this search.
    */
-  GNUNET_FS_STATUS_SEARCH_STOPPED,
+  GNUNET_FS_STATUS_SEARCH_STOPPED = 29,
 
   /**
    * Notification that we started to unindex a file.
    */
-  GNUNET_FS_STATUS_UNINDEX_START,
+  GNUNET_FS_STATUS_UNINDEX_START = 30,
 
   /**
    * Notification that we resumed unindexing of a file.
    */
-  GNUNET_FS_STATUS_UNINDEX_RESUME,
+  GNUNET_FS_STATUS_UNINDEX_RESUME = 31,
 
   /**
    * Notification that we suspended unindexing a file.
    */
-  GNUNET_FS_STATUS_UNINDEX_SUSPEND,
+  GNUNET_FS_STATUS_UNINDEX_SUSPEND = 32,
 
   /**
    * Notification that we made progress unindexing a file.
    */
-  GNUNET_FS_STATUS_UNINDEX_PROGRESS,
+  GNUNET_FS_STATUS_UNINDEX_PROGRESS = 33,
 
   /**
    * Notification that we encountered an error unindexing
    * a file.
    */
-  GNUNET_FS_STATUS_UNINDEX_ERROR,
+  GNUNET_FS_STATUS_UNINDEX_ERROR = 34,
 
   /**
    * Notification that the unindexing of this file
    * was completed.
    */
-  GNUNET_FS_STATUS_UNINDEX_COMPLETED,
+  GNUNET_FS_STATUS_UNINDEX_COMPLETED = 35,
 
   /**
    * Notification that the unindexing of this file
    * was stopped (final event for this action).
    */
-  GNUNET_FS_STATUS_UNINDEX_STOPPED
+  GNUNET_FS_STATUS_UNINDEX_STOPPED = 36
 };
 
 
