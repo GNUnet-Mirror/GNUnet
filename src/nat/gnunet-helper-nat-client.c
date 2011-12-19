@@ -492,7 +492,7 @@ main (int argc, char *const *argv)
  cleanup:
   if (-1 != rawsock)
     (void) close (rawsock);
-  return 0;
+  return global_ret;
 }
 
 /* end of gnunet-helper-nat-client.c */
