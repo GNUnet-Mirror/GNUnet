@@ -529,7 +529,7 @@ get_transmit_delay (int round_offset)
  * @param tc scheduler context
  */
 static void
-transmit_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+transmit_task_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -560,7 +560,7 @@ transmit_ready (void *cls, size_t size, void *buf)
     idx = (idx + HISTORY_SIZE - 1) % HISTORY_SIZE;
     peer_entry->previous_round = GNUNET_YES;
     peer_entry->transmit_task =
-        GNUNET_SCHEDULER_add_delayed (get_transmit_delay (0), &transmit_task,
+        GNUNET_SCHEDULER_add_delayed (get_transmit_delay (0), &transmit_task_cb,
                                       peer_entry);
   }
   if ((ntohl (size_estimate_messages[idx].hop_count) == 0) &&
@@ -605,7 +605,7 @@ transmit_ready (void *cls, size_t size, void *buf)
  * @param tc scheduler context
  */
 static void
-transmit_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_task_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NSEPeerEntry *peer_entry = cls;
 
@@ -701,7 +701,7 @@ schedule_current_round (void *cls, const GNUNET_HashCode * key, void *value)
   delay =
       get_transmit_delay ((peer_entry->previous_round == GNUNET_NO) ? -1 : 0);
   peer_entry->transmit_task =
-      GNUNET_SCHEDULER_add_delayed (delay, &transmit_task, peer_entry);
+      GNUNET_SCHEDULER_add_delayed (delay, &transmit_task_cb, peer_entry);
   return GNUNET_OK;
 }
 
@@ -942,8 +942,7 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
   {
     /* still stuck in previous round, no point to update, check that
      * we are active here though... */
-    GNUNET_break ((peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK) ||
-                  (peer_entry->th != NULL));
+    GNUNET_break ((peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK));
     return GNUNET_OK;
   }
   if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
@@ -953,7 +952,7 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
   }
   delay = get_transmit_delay (0);
   peer_entry->transmit_task =
-      GNUNET_SCHEDULER_add_delayed (delay, &transmit_task, peer_entry);
+      GNUNET_SCHEDULER_add_delayed (delay, &transmit_task_cb, peer_entry);
   return GNUNET_OK;
 }
 
@@ -1085,6 +1084,10 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
       peer_entry->previous_round = GNUNET_YES;
       return GNUNET_OK;
     }
+    /* even if we didn't talk to this peer in the previous round, we should
+       no longer send it stale information as it told us about the current
+       round! */
+    peer_entry->previous_round = GNUNET_YES;
     /* got up-to-date information for current round, cancel transmission altogether */
     if (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task)
     {
@@ -1108,7 +1111,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
       if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
       peer_entry->transmit_task =
-          GNUNET_SCHEDULER_add_now (&transmit_task, peer_entry);
+          GNUNET_SCHEDULER_add_now (&transmit_task_cb, peer_entry);
     }
     /* Not closer than our most recent message, no need to do work here */
     GNUNET_STATISTICS_update (stats,
@@ -1167,7 +1170,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                                                     peer_entry,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   peer_entry->transmit_task =
-      GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task,
+      GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task_cb,
                                     peer_entry);
   GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
 }
