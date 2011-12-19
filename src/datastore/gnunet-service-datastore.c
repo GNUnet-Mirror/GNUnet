@@ -198,6 +198,13 @@ static GNUNET_SCHEDULER_TaskIdentifier expired_kill_task;
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ * Minimum time that content should have to not be discarded instantly
+ * (time stamp of any content that we've been discarding recently to
+ * stay below the quota).  FOREVER if we had to expire content with
+ * non-zero priority.
+ */
+static struct GNUNET_TIME_Absolute min_expiration;
 
 /**
  * Handle for reporting statistics.
@@ -336,6 +343,7 @@ expired_processor (void *cls, const GNUNET_HashCode * key, uint32_t size,
               GNUNET_h2s (key), type,
               (unsigned long long) (now.abs_value - expiration.abs_value));
 #endif
+  min_expiration = now;
   GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes expired"), size,
                             GNUNET_YES);
   GNUNET_CONTAINER_bloomfilter_remove (filter, key);
@@ -401,6 +409,10 @@ quota_processor (void *cls, const GNUNET_HashCode * key, uint32_t size,
     *need = 0;
   else
     *need -= size + GNUNET_DATASTORE_ENTRY_OVERHEAD;
+  if (priority > 0)
+    min_expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  else
+    min_expiration = expiration;
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# bytes purged (low-priority)"),
                             size, GNUNET_YES);
@@ -543,6 +555,7 @@ transmit_status (struct GNUNET_SERVER_Client *client, int code, const char *msg)
   sm->header.size = htons (sizeof (struct StatusMessage) + slen);
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_DATASTORE_STATUS);
   sm->status = htonl (code);
+  sm->min_expiration = GNUNET_TIME_absolute_hton (min_expiration);
   if (slen > 0)
     memcpy (&sm[1], msg, slen);
   transmit (client, &sm->header);
