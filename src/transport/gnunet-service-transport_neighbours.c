@@ -874,9 +874,8 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   if (is_disconnecting (n))
     return;
 
-
   /* send DISCONNECT MESSAGE */
-  if ((previous_state == S_CONNECTED) || is_connecting (n))
+  if (previous_state == S_CONNECTED)
   {
     if (GNUNET_OK == send_disconnect (&n->id, n->address, n->session))
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent DISCONNECT_MSG to `%s'\n",
@@ -926,22 +925,22 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   switch (previous_state)
   {
   case S_CONNECTED:
-//      GNUNET_assert (neighbours_connected > 0);
+    GNUNET_assert (neighbours_connected > 0);
     neighbours_connected--;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->keepalive_task);
     GNUNET_SCHEDULER_cancel (n->keepalive_task);
     n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;
+    n->expect_latency_response = GNUNET_NO;
     GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
                               GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
     break;
   case S_FAST_RECONNECT:
-    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
-                              GNUNET_NO);
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# fast reconnects failed"), 1,
                               GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
+    break;
   default:
     break;
   }
@@ -1014,11 +1013,11 @@ neighbour_keepalive_task (void *cls,
   struct GNUNET_MessageHeader m;
   int ret;
 
+  GNUNET_assert (S_CONNECTED == n->state);
   n->keepalive_task =
       GNUNET_SCHEDULER_add_delayed (KEEPALIVE_FREQUENCY,
                                     &neighbour_keepalive_task, n);
 
-  GNUNET_assert (S_CONNECTED == n->state);
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# keepalives sent"), 1,
                             GNUNET_NO);
   m.size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -1716,31 +1715,37 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   if (S_CONNECTED != n->state)
     return;
 
-  /* connected, try fast reconnect */
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying fast reconnect to peer `%s'\n",
-              GNUNET_i2s (peer));
-#endif
-  change_state (n, S_FAST_RECONNECT);
-  GNUNET_assert (neighbours_connected > 0);
-  neighbours_connected--;
-
   if (n->keepalive_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (n->keepalive_task);
     n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;
+    n->expect_latency_response = GNUNET_NO;
   }
+
+  /* connected, try fast reconnect */
+  /* statistics "transport" : "# peers connected" -= 1
+   * neighbours_connected -= 1
+   * BUT: no disconnect_cb to notify clients about disconnect
+   */
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying fast reconnect to peer `%s'\n",
+              GNUNET_i2s (peer));
+#endif
+  GNUNET_assert (neighbours_connected > 0);
+  change_state (n, S_FAST_RECONNECT);
+  neighbours_connected--;
+  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
+                            GNUNET_NO);
+
 
   /* We are connected, so ask ATS to switch addresses */
   GNUNET_SCHEDULER_cancel (n->timeout_task);
-  n->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT,
+  n->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT,
                                     &neighbour_timeout_task, n);
   /* try QUICKLY to re-establish a connection, reduce timeout! */
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (n->ats_suggest);
-  n->ats_suggest =
-      GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, &ats_suggest_cancel,
+  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, &ats_suggest_cancel,
                                     n);
   GNUNET_ATS_suggest_address (GST_ats, peer);
 }
@@ -1995,7 +2000,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   }
 
   n = lookup_neighbour (neighbour);
-  if (NULL == n)
+  if ((NULL == n) || (n->state != S_CONNECTED))
   {
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
