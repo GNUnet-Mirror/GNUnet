@@ -721,11 +721,13 @@ interface_proc (void *cls, const char *name,
   /* Store in list */
   if (net != NULL)
   {
+#if VERBOSE_ATS
     char * netmask = strdup (GNUNET_a2s((struct sockaddr *) net->netmask, addrlen));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding network `%s', netmask `%s'\n",
         GNUNET_a2s((struct sockaddr *) net->network, addrlen),
         netmask);
     GNUNET_free (netmask);
+# endif
     GNUNET_CONTAINER_DLL_insert(sh->net_head, sh->net_tail, net);
   }
   return GNUNET_OK;
