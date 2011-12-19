@@ -1231,7 +1231,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
       (0 !=
        (bm & GET_MESSAGE_BIT_TRANSMIT_TO)) ? ((const struct GNUNET_PeerIdentity
                                                *) &opt[bits++]) : NULL;
-  options = 0;
+  options = GSF_PRO_DEFAULTS;
   spid = 0;
   if ((GNUNET_LOAD_get_load (cp->ppd.transmission_delay) > 3 * (1 + priority))
       || (GNUNET_LOAD_get_average (cp->ppd.transmission_delay) >

@@ -34,6 +34,12 @@
  */
 enum GSF_PendingRequestOptions
 {
+
+  /**
+   * No special options (P2P-default).
+   */
+  GSF_PRO_DEFAULTS = 0,
+
     /**
      * Request must only be processed locally.
      */
@@ -47,7 +53,7 @@ enum GSF_PendingRequestOptions
     /**
      * Request persists indefinitely (no expiration).
      */
-  GSF_PRO_REQUEST_EXPIRES = 4,
+  GSF_PRO_REQUEST_NEVER_EXPIRES = 4,
 
     /**
      * Request is allowed to refresh bloomfilter and change mingle value.
@@ -63,7 +69,7 @@ enum GSF_PendingRequestOptions
      * Option mask for typical local requests.
      */
   GSF_PRO_LOCAL_REQUEST =
-      (GSF_PRO_BLOOMFILTER_FULL_REFRESH | GSF_PRO_PRIORITY_UNLIMITED)
+      (GSF_PRO_BLOOMFILTER_FULL_REFRESH | GSF_PRO_PRIORITY_UNLIMITED | GSF_PRO_REQUEST_NEVER_EXPIRES)
 };
 
 

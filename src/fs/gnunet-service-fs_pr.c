@@ -345,7 +345,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   }
   GNUNET_CONTAINER_multihashmap_put (pr_map, query, pr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  if (0 != (options & GSF_PRO_REQUEST_EXPIRES))
+  if (0 == (options & GSF_PRO_REQUEST_NEVER_EXPIRES))
   {
     pr->hnode =
         GNUNET_CONTAINER_heap_insert (requests_by_expiration_heap, pr,
