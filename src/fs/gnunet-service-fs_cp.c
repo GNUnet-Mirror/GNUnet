@@ -1710,12 +1710,11 @@ create_migration_stop_message (void *cls, size_t size, void *buf)
  */
 void
 GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
-                           struct GNUNET_TIME_Relative block_time)
+                           struct GNUNET_TIME_Absolute block_time)
 {
-  if (GNUNET_TIME_absolute_get_remaining (cp->last_migration_block).rel_value >
-      block_time.rel_value)
+  if (cp->last_migration_block.abs_value > block_time.abs_value)
   {
-#if DEBUG_FS && 0
+#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Migration already blocked for another %llu ms\n",
                 (unsigned long long)
@@ -1726,9 +1725,9 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
   }
 #if DEBUG_FS && 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking to stop migration for %llu ms\n",
-              (unsigned long long) block_time.rel_value);
+              (unsigned long long) GNUNET_TIME_absolute_get_remaining (block_time).rel_value);
 #endif
-  cp->last_migration_block = GNUNET_TIME_relative_to_absolute (block_time);
+  cp->last_migration_block = block_time;
   if (cp->migration_pth != NULL)
     GSF_peer_transmit_cancel_ (cp->migration_pth);
   cp->migration_pth =

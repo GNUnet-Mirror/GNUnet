@@ -899,34 +899,12 @@ put_migration_continuation (void *cls, int success,
 			    const char *msg)
 {
   struct PutMigrationContext *pmc = cls;
-  struct GNUNET_TIME_Relative block_time;
   struct GSF_ConnectedPeer *cp;
-  struct GSF_PeerPerformanceData *ppd;
 
   cp = GSF_peer_get_ (&pmc->origin);
-  if ((GNUNET_OK != success) && (GNUNET_NO == pmc->requested))
-  {
-    /* block migration for a bit... */
-    if (NULL != cp)
-    {
-      ppd = GSF_get_peer_performance_data_ (cp);
-      ppd->migration_duplication++;
-      block_time =
-          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                         5 * ppd->migration_duplication +
-                                         GNUNET_CRYPTO_random_u32
-                                         (GNUNET_CRYPTO_QUALITY_WEAK, 5));
-      GSF_block_peer_migration_ (cp, block_time);
-    }
-  }
-  else
-  {
-    if (NULL != cp)
-    {
-      ppd = GSF_get_peer_performance_data_ (cp);
-      ppd->migration_duplication = 0;   /* reset counter */
-    }
-  }
+  if ((GNUNET_OK != success) && (GNUNET_NO == pmc->requested) && (min_expiration.abs_value > 0)&&
+      (NULL != cp) )
+    GSF_block_peer_migration_ (cp, min_expiration);      
   GNUNET_free (pmc);
   /* on failure, increase the put load dramatically */
   if (NULL != datastore_put_load)
@@ -1564,7 +1542,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                                        GNUNET_CRYPTO_random_u32
                                        (GNUNET_CRYPTO_QUALITY_WEAK,
                                         (unsigned int) (60000 * putl * putl)));
-    GSF_block_peer_migration_ (cp, block_time);
+    GSF_block_peer_migration_ (cp, GNUNET_TIME_relative_to_absolute (block_time));
   }
   return GNUNET_OK;
 }

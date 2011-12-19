@@ -140,10 +140,6 @@ struct GSF_PeerPerformanceData
    */
   unsigned int pending_replies;
 
-  /**
-   * How many of the last blocks from migration were duplicates?
-   */
-  unsigned int migration_duplication;
 };
 
 
@@ -339,7 +335,7 @@ GSF_get_peer_performance_data_ (struct GSF_ConnectedPeer *cp);
  */
 void
 GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
-                           struct GNUNET_TIME_Relative block_time);
+                           struct GNUNET_TIME_Absolute block_time);
 
 
 /**
