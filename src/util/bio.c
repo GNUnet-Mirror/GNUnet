@@ -492,7 +492,7 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * Write an (u)int32_t.
  *
  * @param h hande to open file
- * @param i address of 32-bit integer to write
+ * @param i 32-bit integer to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
@@ -509,7 +509,7 @@ GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h, int32_t i)
  * Write an (u)int64_t.
  *
  * @param h hande to open file
- * @param i address of 64-bit integer to write
+ * @param i 64-bit integer to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
