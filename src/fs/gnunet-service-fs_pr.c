@@ -980,6 +980,9 @@ handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
   memset (&prq, 0, sizeof (prq));
   prq.data = data;
   prq.expiration = exp;
+  /* do not allow migrated content to live longer than 1 year */
+  prq.expiration = GNUNET_TIME_absolute_min (GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS),
+					     prq.expiration);
   prq.size = size;
   prq.type = type;
   process_reply (&prq, key, pr);
@@ -1463,6 +1466,9 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   dsize = msize - sizeof (struct PutMessage);
   type = ntohl (put->type);
   expiration = GNUNET_TIME_absolute_ntoh (put->expiration);
+  /* do not allow migrated content to live longer than 1 year */
+  expiration = GNUNET_TIME_absolute_min (GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS),
+					 expiration);
   if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
     return GNUNET_SYSERR;
   if (GNUNET_OK !=
