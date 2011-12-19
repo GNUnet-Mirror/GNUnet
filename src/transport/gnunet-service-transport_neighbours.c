@@ -632,6 +632,7 @@ send_with_plugin (const struct GNUNET_PeerIdentity *target, const char *msgbuf,
   return ret;
 }
 
+
 /**
  * Task invoked to start a transmission to another peer.
  *
@@ -654,13 +655,11 @@ transmit_send_continuation (void *cls,
                             const struct GNUNET_PeerIdentity *receiver,
                             int success)
 {
-  struct MessageQueue *mq;
+  struct MessageQueue *mq = cls;
   struct NeighbourMapEntry *n;
   struct NeighbourMapEntry *tmp;
 
   tmp = lookup_neighbour (receiver);
-
-  mq = cls;
   n = mq->n;
   if ((NULL != n) && (tmp != NULL) && (tmp == n))
   {
@@ -721,8 +720,11 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 
   if (n->address == NULL)
   {
+#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No address for peer `%s'\n",
                 GNUNET_i2s (&n->id));
+#endif
+    GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
     transmit_send_continuation (mq, &n->id, GNUNET_SYSERR);
     GNUNET_assert (n->transmission_task == GNUNET_SCHEDULER_NO_TASK);
     n->transmission_task = GNUNET_SCHEDULER_add_now (&transmission_task, n);
