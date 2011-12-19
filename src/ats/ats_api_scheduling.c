@@ -29,6 +29,8 @@
 
 #define DEBUG_ATS GNUNET_EXTRA_LOGGING
 
+#define INTERFACE_PROCESSING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+
 /**
  * Message in linked list we should send to the ATS service.  The
  * actual binary message follows this struct.
@@ -743,8 +745,9 @@ get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   sh->interface_task = GNUNET_SCHEDULER_NO_TASK;
   delete_networks (sh);
   GNUNET_OS_network_interfaces_list(interface_proc, sh);
-
-  sh->interface_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, get_addresses, sh);
+  sh->interface_task = GNUNET_SCHEDULER_add_delayed (INTERFACE_PROCESSING_INTERVALL,
+                                                     get_addresses,
+                                                     sh);
 }
 
 /**
@@ -757,6 +760,7 @@ get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 struct GNUNET_ATS_Information
 GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const struct sockaddr * addr, socklen_t addrlen)
 {
+  GNUNET_assert (sh != NULL);
   struct GNUNET_ATS_Information ats;
   struct ATS_Network * cur = sh->net_head;
   int type = GNUNET_ATS_NET_UNSPECIFIED;
@@ -886,7 +890,9 @@ GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sh->suggest_cb_cls = suggest_cb_cls;
   GNUNET_array_grow (sh->session_array, sh->session_array_size, 4);
   GNUNET_OS_network_interfaces_list(interface_proc, sh);
-  sh->interface_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, get_addresses, sh);
+  sh->interface_task = GNUNET_SCHEDULER_add_delayed (INTERFACE_PROCESSING_INTERVALL,
+      get_addresses,
+      sh);
   reconnect (sh);
   return sh;
 }
@@ -924,9 +930,9 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
     GNUNET_SCHEDULER_cancel(sh->interface_task);
     sh->interface_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   GNUNET_array_grow (sh->session_array, sh->session_array_size, 0);
   GNUNET_free (sh);
+  sh = NULL;
 }
 
 
