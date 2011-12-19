@@ -40,6 +40,7 @@
  * - Christian Grothoff
  * - Nathan Evans
  * - Benjamin Kuperman (22 Aug 2010)
+ * - Jacob Appelbaum (19 Dec 2011)
  */
 #if HAVE_CONFIG_H
 /* Just needed for HAVE_SOCKADDR_IN_SIN_LEN test macro! */
