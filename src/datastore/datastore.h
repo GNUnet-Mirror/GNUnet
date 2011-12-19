@@ -72,6 +72,12 @@ struct StatusMessage
    */
   int32_t status GNUNET_PACKED;
 
+  /**
+   * Minimum expiration time required for content to be stored
+   * by the datacache at this time, zero for unknown or no limit.
+   */
+  struct GNUNET_TIME_AbsoluteNBO min_expiration;
+
 };
 
 

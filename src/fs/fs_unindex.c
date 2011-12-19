@@ -144,10 +144,11 @@ signal_unindex_error (struct GNUNET_FS_UnindexContext *uc)
  *
  * @param cls closure
  * @param success GNUNET_SYSERR on failure
+ * @param min_expiration minimum expiration time required for content to be stored
  * @param msg NULL on success, otherwise an error message
  */
 static void
-process_cont (void *cls, int success, const char *msg)
+process_cont (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, const char *msg)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
 

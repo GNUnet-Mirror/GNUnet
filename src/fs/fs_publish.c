@@ -124,10 +124,13 @@ publish_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls the 'struct GNUNET_FS_PublishContext'
  * @param success GNUNET_OK on success
+ * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message (or NULL)
  */
 static void
-ds_put_cont (void *cls, int success, const char *msg)
+ds_put_cont (void *cls, int success, 
+	     struct GNUNET_TIME_Absolute min_expiration,
+	     const char *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -224,10 +227,13 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
  *
  * @param cls the 'struct GNUNET_FS_PublishContext'
  * @param success success code (not used)
+ * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message (typically NULL, not used)
  */
 static void
-finish_release_reserve (void *cls, int success, const char *msg)
+finish_release_reserve (void *cls, int success, 
+			struct GNUNET_TIME_Absolute min_expiration,
+			const char *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
@@ -271,7 +277,7 @@ publish_sblocks_cont (void *cls, const struct GNUNET_FS_Uri *uri,
   }
   else
   {
-    finish_release_reserve (pc, GNUNET_OK, NULL);
+    finish_release_reserve (pc, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
   }
 }
 
@@ -1067,10 +1073,13 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
  *
  * @param cls the 'struct GNUNET_FS_PublishContext*'
  * @param success positive reservation ID on success
+ * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message on error, otherwise NULL
  */
 static void
-finish_reserve (void *cls, int success, const char *msg)
+finish_reserve (void *cls, int success, 
+		struct GNUNET_TIME_Absolute min_expiration,
+		const char *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
@@ -1348,10 +1357,13 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  *
  * @param cls closure of type "struct PublishKskContext*"
  * @param success GNUNET_OK on success
+ * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message (or NULL)
  */
 static void
-kb_put_cont (void *cls, int success, const char *msg)
+kb_put_cont (void *cls, int success, 
+	     struct GNUNET_TIME_Absolute min_expiration,
+	     const char *msg)
 {
   struct PublishKskContext *pkc = cls;
 

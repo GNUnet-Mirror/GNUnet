@@ -477,10 +477,13 @@ GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
  *
  * @param cls unused
  * @param success did the deletion work?
+ * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message
  */
 static void
-remove_cont (void *cls, int success, const char *msg)
+remove_cont (void *cls, int success, 
+	     struct GNUNET_TIME_Absolute min_expiration,
+	     const char *msg)
 {
   if (GNUNET_OK != success)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

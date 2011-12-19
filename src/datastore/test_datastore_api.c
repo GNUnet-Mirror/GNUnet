@@ -139,7 +139,7 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
-check_success (void *cls, int success, const char *msg)
+check_success (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
@@ -158,7 +158,7 @@ check_success (void *cls, int success, const char *msg)
 
 
 static void
-get_reserved (void *cls, int success, const char *msg)
+get_reserved (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
@@ -450,7 +450,7 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-run_tests (void *cls, int32_t success, const char *msg)
+run_tests (void *cls, int32_t success, struct GNUNET_TIME_Absolute min_expiration, const char *msg)
 {
   struct CpsRunContext *crc = cls;
 

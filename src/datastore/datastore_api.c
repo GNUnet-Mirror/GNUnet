@@ -697,10 +697,13 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
  *
  * @param cls closure
  * @param result result
+ * @param min_expiration expiration time
  * @param emsg error message
  */
 static void
-drop_status_cont (void *cls, int32_t result, const char *emsg)
+drop_status_cont (void *cls, int32_t result, 
+		  struct GNUNET_TIME_Absolute min_expiration,
+		  const char *emsg)
 {
   /* do nothing */
 }
@@ -765,6 +768,7 @@ process_status_message (void *cls, const struct GNUNET_MessageHeader *msg)
       process_queue (h);
     if (rc.cont != NULL)
       rc.cont (rc.cont_cls, GNUNET_SYSERR,
+	       GNUNET_TIME_UNIT_ZERO_ABS,
                _("Failed to receive status response from database."));
     return;
   }
@@ -778,6 +782,7 @@ process_status_message (void *cls, const struct GNUNET_MessageHeader *msg)
     do_disconnect (h);
     if (rc.cont != NULL)
       rc.cont (rc.cont_cls, GNUNET_SYSERR,
+	       GNUNET_TIME_UNIT_ZERO_ABS,
                _("Error reading response from datastore service"));
     return;
   }
@@ -807,7 +812,9 @@ process_status_message (void *cls, const struct GNUNET_MessageHeader *msg)
   h->retry_time.rel_value = 0;
   process_queue (h);
   if (rc.cont != NULL)
-    rc.cont (rc.cont_cls, status, emsg);
+    rc.cont (rc.cont_cls, status, 
+	     GNUNET_TIME_absolute_ntoh (sm->min_expiration),
+	     emsg);
 }
 
 

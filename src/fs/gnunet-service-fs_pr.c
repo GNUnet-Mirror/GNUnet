@@ -890,18 +890,19 @@ struct PutMigrationContext
  *
  * @param cls closure
  * @param success GNUNET_SYSERR on failure
+ * @param min_expiration minimum expiration time required for content to be stored
  * @param msg NULL on success, otherwise an error message
  */
 static void
-put_migration_continuation (void *cls, int success, const char *msg)
+put_migration_continuation (void *cls, int success, 
+			    struct GNUNET_TIME_Absolute min_expiration,
+			    const char *msg)
 {
   struct PutMigrationContext *pmc = cls;
-  struct GNUNET_TIME_Relative delay;
   struct GNUNET_TIME_Relative block_time;
   struct GSF_ConnectedPeer *cp;
   struct GSF_PeerPerformanceData *ppd;
 
-  delay = GNUNET_TIME_absolute_get_duration (pmc->start);
   cp = GSF_peer_get_ (&pmc->origin);
   if ((GNUNET_OK != success) && (GNUNET_NO == pmc->requested))
   {
@@ -1023,7 +1024,7 @@ handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
                               GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &put_migration_continuation, pmc))
     {
-      put_migration_continuation (pmc, GNUNET_NO, NULL);
+      put_migration_continuation (pmc, GNUNET_NO, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
     }
   }
 }
@@ -1538,7 +1539,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                               GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &put_migration_continuation, pmc))
     {
-      put_migration_continuation (pmc, GNUNET_NO, NULL);
+      put_migration_continuation (pmc, GNUNET_NO, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
     }
   }
   else

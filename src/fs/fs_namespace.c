@@ -311,10 +311,13 @@ do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls closure (our struct AdvertismentContext)
  * @param success GNUNET_SYSERR on failure
+ * @param min_expiration minimum expiration time required for content to be stored
  * @param msg NULL on success, otherwise an error message
  */
 static void
-advertisement_cont (void *cls, int success, const char *msg)
+advertisement_cont (void *cls, int success, 
+		    struct GNUNET_TIME_Absolute min_expiration,
+		    const char *msg)
 {
   struct AdvertisementContext *ac = cls;
   const char *keyword;
@@ -475,7 +478,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
   ctx->ns = namespace;
   ctx->ns->rc++;
   ctx->bo = *bo;
-  advertisement_cont (ctx, GNUNET_OK, NULL);
+  advertisement_cont (ctx, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
 }
 
 
@@ -697,10 +700,13 @@ struct PublishSksContext
  *
  * @param cls closure of type "struct PublishSksContext*"
  * @param success GNUNET_OK on success
+ * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message (or NULL)
  */
 static void
-sb_put_cont (void *cls, int success, const char *msg)
+sb_put_cont (void *cls, int success, 
+	     struct GNUNET_TIME_Absolute min_expiration,
+	     const char *msg)
 {
   struct PublishSksContext *psc = cls;
   GNUNET_HashCode hc;
@@ -867,7 +873,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   {
     GNUNET_free (sb_enc);
     GNUNET_free (sb);
-    sb_put_cont (psc, GNUNET_OK, NULL);
+    sb_put_cont (psc, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
     return;
   }
   psc->dsh = GNUNET_DATASTORE_connect (h->cfg);
@@ -875,7 +881,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   {
     GNUNET_free (sb_enc);
     GNUNET_free (sb);
-    sb_put_cont (psc, GNUNET_NO, _("Failed to connect to datastore."));
+    sb_put_cont (psc, GNUNET_NO, GNUNET_TIME_UNIT_ZERO_ABS, _("Failed to connect to datastore."));
     return;
   }
   GNUNET_CRYPTO_hash_xor (&sks_uri->data.sks.namespace, &id, &query);

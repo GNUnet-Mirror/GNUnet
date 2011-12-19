@@ -86,10 +86,13 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop);
  * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
  *                GNUNET_NO if content was already there
  *                GNUNET_YES (or other positive value) on success
+ * @param min_expiration minimum expiration time required for content to be stored
+ *                by the datacache at this time, zero for unknown
  * @param msg NULL on success, otherwise an error message
  */
 typedef void (*GNUNET_DATASTORE_ContinuationWithStatus) (void *cls,
                                                          int32_t success,
+							 struct GNUNET_TIME_Absolute min_expiration,
                                                          const char *msg);
 
 

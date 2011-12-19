@@ -111,7 +111,7 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
-check_success (void *cls, int success, const char *msg)
+check_success (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration,  const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
@@ -149,10 +149,12 @@ check_success (void *cls, int success, const char *msg)
  *
  * @param cls closure
  * @param success GNUNET_SYSERR on failure
+ * @param min_expiration minimum expiration time required for content to be stored
+ *                by the datacache at this time, zero for unknown
  * @param msg NULL on success, otherwise an error message
  */
 static void
-remove_next (void *cls, int success, const char *msg)
+remove_next (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
@@ -276,7 +278,7 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-run_tests (void *cls, int success, const char *msg)
+run_tests (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
