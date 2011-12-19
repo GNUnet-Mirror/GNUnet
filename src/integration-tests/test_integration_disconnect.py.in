@@ -103,7 +103,7 @@ def check_connect ():
   check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
   check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
   
-  check.run_blocking (10, success_connect_cont, fail_connect_cont)
+  check.run_blocking (check_timeout, success_connect_cont, fail_connect_cont)
 
 # 
 # Test execution
