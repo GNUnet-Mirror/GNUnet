@@ -492,7 +492,8 @@ process_statistics_value_message (struct GNUNET_STATISTICS_Handle *h,
  *
  * @param h statistics handle
  * @param msg the watch value message
- * @return GNUNET_OK if the message was well-formed, GNUNET_SYSERR if not
+ * @return GNUNET_OK if the message was well-formed, GNUNET_SYSERR if not,
+ *         GNUNET_NO if this watch has been cancelled
  */
 static int
 process_watch_value (struct GNUNET_STATISTICS_Handle *h,
@@ -516,6 +517,8 @@ process_watch_value (struct GNUNET_STATISTICS_Handle *h,
     return GNUNET_SYSERR;
   }
   w = h->watches[wid];
+  if (NULL == w)  
+    return GNUNET_NO;  
   (void) w->proc (w->proc_cls, w->subsystem, w->name,
                   GNUNET_ntohll (wvm->value),
                   0 != (ntohl (wvm->flags) & GNUNET_STATISTICS_PERSIST_BIT));
@@ -534,7 +537,7 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
   struct GNUNET_STATISTICS_GetHandle *c;
- 
+  int ret;
 
   if (msg == NULL)
   {
@@ -594,9 +597,11 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   case GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE:
     if (GNUNET_OK != 
-	process_watch_value (h, msg))
+	(ret = process_watch_value (h, msg)))
     {
       do_disconnect (h);
+      if (GNUNET_NO == ret)
+	h->backoff = GNUNET_TIME_UNIT_MILLISECONDS; 
       reconnect_later (h);
       return;
     }
@@ -1076,8 +1081,6 @@ GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh)
 
 /**
  * Watch statistics from the peer (be notified whenever they change).
- * Note that the only way to cancel a "watch" request is to destroy
- * the statistics handle given as the first argument to this call.
  *
  * @param handle identification of the statistics service
  * @param subsystem limit to the specified subsystem, never NULL
@@ -1104,6 +1107,46 @@ GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
   schedule_watch_request (handle, w);
   return GNUNET_OK;
 }
+
+
+/**
+ * Stop watching statistics from the peer.  
+ *
+ * @param handle identification of the statistics service
+ * @param subsystem limit to the specified subsystem, never NULL
+ * @param name name of the statistic value, never NULL
+ * @param proc function to call on each value
+ * @param proc_cls closure for proc
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error (no such watch)
+ */
+int
+GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
+				const char *subsystem, const char *name,
+				GNUNET_STATISTICS_Iterator proc, void *proc_cls)
+{
+  struct GNUNET_STATISTICS_WatchEntry *w;
+  unsigned int i;
+
+  if (handle == NULL)
+    return GNUNET_SYSERR;
+  for (i=0;i<handle->watches_size;i++)
+  {
+    w = handle->watches[i];
+    if ( (w->proc == proc) &&
+	 (w->proc_cls == proc_cls) &&
+	 (0 == strcmp (w->name, name)) &&
+	 (0 == strcmp (w->subsystem, subsystem)) )
+    {
+      GNUNET_free (w->name);
+      GNUNET_free (w->subsystem);
+      GNUNET_free (w);
+      handle->watches[i] = NULL;      
+      return GNUNET_OK;
+    }	 
+  }
+  return GNUNET_SYSERR;
+}
+
 
 
 /**

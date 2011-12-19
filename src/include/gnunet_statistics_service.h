@@ -91,8 +91,6 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first);
 
 /**
  * Watch statistics from the peer (be notified whenever they change).
- * Note that the only way to cancel a "watch" request is to destroy
- * the statistics handle given as the first argument to this call.
  *
  * @param handle identification of the statistics service
  * @param subsystem limit to the specified subsystem, never NULL
@@ -108,6 +106,22 @@ GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
 
 
 /**
+ * Stop watching statistics from the peer.
+ *
+ * @param handle identification of the statistics service
+ * @param subsystem limit to the specified subsystem, never NULL
+ * @param name name of the statistic value, never NULL
+ * @param proc function to call on each value
+ * @param proc_cls closure for proc
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error (no such watch)
+ */
+int
+GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
+				const char *subsystem, const char *name,
+				GNUNET_STATISTICS_Iterator proc, void *proc_cls);
+
+
+/**
  * Continuation called by the "get_all" and "get" functions.
  *
  * @param cls closure
@@ -115,6 +129,7 @@ GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
  *        successfully obtained, GNUNET_SYSERR if not.
  */
 typedef void (*GNUNET_STATISTICS_Callback) (void *cls, int success);
+
 
 /**
  * Handle that can be used to cancel a statistics 'get' operation.
