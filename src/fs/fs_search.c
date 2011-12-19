@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001-2006, 2008-2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1012,6 +1012,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
     sm->header.size = htons (msize);
+    GNUNET_assert (sqms >= sc->search_request_map_offset);
     if (sqms != sc->search_request_map_offset)
     {
       /* more requesting to be done... */
@@ -1050,6 +1051,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
     sm->header.size = htons (msize);
+    GNUNET_assert (sqms >= sc->search_request_map_offset);
     if (sqms != sc->search_request_map_offset)
     {
       /* more requesting to be done... */
