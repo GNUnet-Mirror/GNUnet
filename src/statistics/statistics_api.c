@@ -856,7 +856,6 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
 {
   struct GNUNET_STATISTICS_GetHandle *pos;
   struct GNUNET_STATISTICS_GetHandle *next;
-  struct GNUNET_STATISTICS_GetHandle *prev;
   struct GNUNET_TIME_Relative timeout;
   int i;
 
@@ -879,36 +878,23 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
         h->current = NULL;
       }
     }
-    pos = h->action_head;
-    prev = NULL;
-    while (pos != NULL)
+    next = h->action_head; 
+    while (NULL != (pos = next))
     {
       next = pos->next;
       if (pos->type == ACTION_GET)
       {
-        if (prev == NULL)
-          h->action_head = next;
-        else
-          prev->next = next;
+	GNUNET_CONTAINER_DLL_remove (h->action_head,
+				     h->action_tail,
+				     pos);
         free_action_item (pos);
       }
-      else
-      {
-        prev = pos;
-      }
-      pos = next;
     }
-    h->action_tail = prev;
-    if (h->current == NULL)
-    {
-      h->current = h->action_head;
-      if (h->action_head != NULL)
-      {
-        h->action_head = h->action_head->next;
-        if (h->action_head == NULL)
-          h->action_tail = NULL;
-      }
-    }
+    if ( (NULL == h->current) &&
+	 (NULL != (h->current = h->action_head)) )
+      GNUNET_CONTAINER_DLL_remove (h->action_head,
+				   h->action_tail,
+				   h->current);
     h->do_destroy = GNUNET_YES;
     if ((h->current != NULL) && (h->th == NULL))
     {
@@ -928,7 +914,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
       }
     }
     if (h->th != NULL)
-      return;
+      return; /* do not finish destruction just yet */
   }
   while (NULL != (pos = h->action_head))
   {
