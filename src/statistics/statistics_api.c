@@ -904,12 +904,25 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
     h->do_destroy = GNUNET_YES;
     if ((h->current != NULL) && (h->th == NULL))
     {
-      timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
-      h->th =
+      if (NULL == h->client)
+      {
+	/* instant-connect (regardless of back-off) to submit final value */
+	if (GNUNET_SCHEDULER_NO_TASK != h->backoff_task)
+	{
+	  GNUNET_SCHEDULER_cancel (h->backoff_task);
+	  h->backoff_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+	h->client = GNUNET_CLIENT_connect ("statistics", h->cfg);
+      }
+      if (NULL != h->client)
+      {
+	timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
+	h->th =
           GNUNET_CLIENT_notify_transmit_ready (h->client, h->current->msize,
                                                timeout, GNUNET_YES,
                                                &transmit_action, h);
-      GNUNET_assert (NULL != h->th);
+	GNUNET_assert (NULL != h->th);
+      }
     }
     if (h->th != NULL)
       return;
