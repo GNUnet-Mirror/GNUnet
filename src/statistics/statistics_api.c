@@ -858,7 +858,10 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
   if (h == NULL)
     return;
   if (GNUNET_SCHEDULER_NO_TASK != h->backoff_task)
+  {
     GNUNET_SCHEDULER_cancel (h->backoff_task);
+    h->backoff_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (sync_first)
   {
     if (h->current != NULL)
@@ -907,11 +910,6 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
       if (NULL == h->client)
       {
 	/* instant-connect (regardless of back-off) to submit final value */
-	if (GNUNET_SCHEDULER_NO_TASK != h->backoff_task)
-	{
-	  GNUNET_SCHEDULER_cancel (h->backoff_task);
-	  h->backoff_task = GNUNET_SCHEDULER_NO_TASK;
-	}
 	h->client = GNUNET_CLIENT_connect ("statistics", h->cfg);
       }
       if (NULL != h->client)
