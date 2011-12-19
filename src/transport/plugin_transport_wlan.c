@@ -2691,7 +2691,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (1);
   ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats[1].value = htonl (GNUNET_ATS_NET_LAN);
+  ats[1].value = htonl (GNUNET_ATS_NET_WLAN);
 
 #if DEBUG_wlan
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
