@@ -538,6 +538,11 @@ struct GNUNET_FS_SearchResult
   char *serialization;
 
   /**
+   * Bitmap that specifies precisely which keywords have been matched already.
+   */
+  uint8_t *keyword_bitmap;
+
+  /**
    * Key for the search result
    */
   GNUNET_HashCode key;

@@ -387,6 +387,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   struct GNUNET_FS_SearchResult *sr;
   struct GetResultContext grc;
   int is_new;
+  unsigned int koff;
 
   /* check if new */
   GNUNET_assert (NULL != sc);
@@ -411,6 +412,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
     sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
     sr->mandatory_missing = sc->mandatory_count;
     sr->key = key;
+    sr->keyword_bitmap = GNUNET_malloc ((sc->uri->data.ksk.keywordCount + 7) / 8); /* round up, count bits */
     GNUNET_CONTAINER_multihashmap_put (sc->master_result_map, &key, sr,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   }
@@ -418,6 +420,9 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   {
     GNUNET_CONTAINER_meta_data_merge (sr->meta, meta);
   }
+  koff = ent - sc->requests;
+  GNUNET_assert ( (koff >= 0) && (koff < sc->uri->data.ksk.keywordCount));
+  sr->keyword_bitmap[koff / 8] |= (1 << (koff % 8));
   /* check if mandatory satisfied */
   if (ent->mandatory)
     sr->mandatory_missing--;
@@ -888,9 +893,9 @@ struct MessageBuilderContext
   struct GNUNET_FS_SearchContext *sc;
 
   /**
-   * URI the search result must match, NULL for any
+   * Keyword offset the search result must match (0 for SKS)
    */
-  struct GNUNET_FS_Uri *uri;
+  unsigned int keyword_offset;
 };
 
 
@@ -909,9 +914,9 @@ build_result_set (void *cls, const GNUNET_HashCode * key, void *value)
   struct MessageBuilderContext *mbc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
 
-  if ((mbc->uri != NULL) &&
-      (GNUNET_YES != GNUNET_FS_uri_test_equal (mbc->uri, sr->uri)))
-    return GNUNET_OK;
+  if ( (sr->keyword_bitmap != NULL) &&
+       (0 == (sr->keyword_bitmap[mbc->keyword_offset / 8] & (1 << (mbc->keyword_offset % 8)))) )
+    return GNUNET_OK; /* have no match for this keyword yet */
   if (mbc->skip_cnt > 0)
   {
     mbc->skip_cnt--;
@@ -941,9 +946,9 @@ find_result_set (void *cls, const GNUNET_HashCode * key, void *value)
   struct MessageBuilderContext *mbc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
 
-  if ((mbc->uri != NULL) &&
-      (GNUNET_YES != GNUNET_FS_uri_test_equal (mbc->uri, sr->uri)))
-    return GNUNET_OK;
+  if ( (sr->keyword_bitmap != NULL) &&
+       (0 == (sr->keyword_bitmap[mbc->keyword_offset / 8] & (1 << (mbc->keyword_offset % 8)))) )
+    return GNUNET_OK; /* have no match for this keyword yet */
   mbc->put_cnt++;
   return GNUNET_OK;
 }
@@ -988,7 +993,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
   {
     msize = sizeof (struct SearchMessage);
     GNUNET_assert (size >= msize);
-    mbc.uri = NULL;
+    mbc.keyword_offset = sc->keyword_offset;
     mbc.put_cnt = 0;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &find_result_set, &mbc);
@@ -1038,7 +1043,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     mbc.put_cnt = (size - msize) / sizeof (GNUNET_HashCode);
     sqms = GNUNET_CONTAINER_multihashmap_size (sc->master_result_map);
     mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
-    mbc.uri = NULL;
+    mbc.keyword_offset = 0;
     if (sc->search_request_map_offset < sqms)
       GNUNET_assert (mbc.put_cnt > 0);
     msize += sizeof (GNUNET_HashCode) * mbc.put_cnt;
@@ -1315,6 +1320,7 @@ search_result_suspend (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
   if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
+  GNUNET_free_non_null (sr->keyword_bitmap);
   GNUNET_free (sr);
   return GNUNET_OK;
 }
@@ -1480,6 +1486,7 @@ search_result_free (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
   if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
+  GNUNET_free_non_null (sr->keyword_bitmap);
   GNUNET_free (sr);
   return GNUNET_OK;
 }

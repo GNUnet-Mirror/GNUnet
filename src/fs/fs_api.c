@@ -1793,7 +1793,10 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
       || (GNUNET_OK != GNUNET_BIO_write_int32 (wh, sr->mandatory_missing)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, sr->optional_support)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, sr->availability_success)) ||
-      (GNUNET_OK != GNUNET_BIO_write_int32 (wh, sr->availability_trials)))
+      (GNUNET_OK != GNUNET_BIO_write_int32 (wh, sr->availability_trials)) ||
+      (GNUNET_OK != GNUNET_BIO_write (wh, sr->keyword_bitmap,
+				      (sr->uri->data.ksk.keywordCount + 7) / 8)) )
+
   {
     GNUNET_break (0);
     goto cleanup;
@@ -2091,6 +2094,14 @@ deserialize_search_result (void *cls, const char *filename)
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &sr->optional_support)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &sr->availability_success)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &sr->availability_trials)))
+  {
+    GNUNET_break (0);
+    goto cleanup;
+  }
+  sr->keyword_bitmap = GNUNET_malloc ((sr->uri->data.ksk.keywordCount + 7) / 8); /* round up, count bits */
+  if (GNUNET_OK != GNUNET_BIO_read (rh, "keyword-bitmap",
+				    sr->keyword_bitmap,
+				    (sr->uri->data.ksk.keywordCount + 7) / 8))
   {
     GNUNET_break (0);
     goto cleanup;
