@@ -36,6 +36,10 @@ do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 %.py: %.py.in Makefile
 	$(do_subst) < $(srcdir)/$< > $@
 	chmod +x $@
+	
+gnunet_testing.py: gnunet_testing.py.in Makefile
+	$(do_subst) < $(srcdir)/gnunet_testing.py.in > gnunet_testing.py
+	chmod +x gnunet_testing.py	
 
 test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect.py.in > test_integration_bootstrap_and_connect.py
@@ -44,6 +48,10 @@ test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connec
 test_integration_disconnect.py: test_integration_disconnect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_disconnect.py.in > test_integration_disconnect.py
 	chmod +x test_integration_disconnect.py
+
+test_integration_disconnect_nat.py: test_integration_disconnect_nat.py.in Makefile
+	$(do_subst) < $(srcdir)/test_integration_disconnect_nat.py.in > test_integration_disconnect_nat.py
+	chmod +x test_integration_disconnect_nat.py
 
 test_integration_restart.py: test_integration_restart.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_restart.py.in > test_integration_restart.py
@@ -62,6 +70,7 @@ EXTRA_DIST = \
    gnunet_testing.py.in \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_disconnect.py.in \
+   test_integration_disconnect_nat.py \
    test_integration_restart.py.in \ 
    test_integration_clique.py.in \
    test_integration_clique_nat.py.in
