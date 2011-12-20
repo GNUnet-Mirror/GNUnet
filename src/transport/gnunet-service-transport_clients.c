@@ -162,7 +162,6 @@ setup_client (struct GNUNET_SERVER_Client *client)
   GNUNET_assert (lookup_client (client) == NULL);
   tc = GNUNET_malloc (sizeof (struct TransportClient));
   tc->client = client;
-  GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, tc);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %X connected\n", tc);
@@ -412,6 +411,7 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   tc->send_payload = (0 != (2 & options));
   unicast (tc, GST_hello_get (), GNUNET_NO);
   GST_neighbours_iterate (&notify_client_about_neighbour, tc);
+  GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, tc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
