@@ -183,7 +183,7 @@ create_meter (unsigned int total, char *start_string, int print)
   ret = GNUNET_malloc (sizeof (struct ProgressMeter));
   ret->print = print;
   ret->total = total;
-  ret->modnum = total / 4;
+  ret->modnum = (total / 4 == 0) ? 1 : (total / 4);
   ret->dotnum = (total / 50) + 1;
   if (start_string != NULL)
     ret->startup_string = GNUNET_strdup (start_string);
