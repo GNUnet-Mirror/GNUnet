@@ -593,7 +593,6 @@ transmit_ready (void *cls, size_t size, void *buf)
                             GNUNET_NO);
   memcpy (buf, &size_estimate_messages[idx],
           sizeof (struct GNUNET_NSE_FloodMessage));
-  GNUNET_STATISTICS_update (stats, "# flood messages sent", 1, GNUNET_NO);
   return sizeof (struct GNUNET_NSE_FloodMessage);
 }
 
@@ -942,7 +941,7 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
   {
     /* still stuck in previous round, no point to update, check that
      * we are active here though... */
-    GNUNET_break ((peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK));
+    GNUNET_break (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK);
     return GNUNET_OK;
   }
   if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1080,7 +1079,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (idx != estimate_index)
     {
       /* do not transmit information for the previous round to this peer 
-	 anymore (but allow current round) */
+         anymore (but allow current round) */
       peer_entry->previous_round = GNUNET_YES;
       return GNUNET_OK;
     }
@@ -1296,8 +1295,8 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   current_timestamp.abs_value =
       (now.abs_value / gnunet_nse_interval.rel_value) *
       gnunet_nse_interval.rel_value;
-  next_timestamp.abs_value =
-      current_timestamp.abs_value + gnunet_nse_interval.rel_value;
+  next_timestamp =
+      GNUNET_TIME_absolute_add (current_timestamp, gnunet_nse_interval);
   estimate_index = HISTORY_SIZE - 1;
   estimate_count = 0;
   if (GNUNET_YES == check_proof_of_work (&my_public_key, my_proof))
