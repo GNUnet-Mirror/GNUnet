@@ -61,10 +61,12 @@ struct in6_ifreq
 };
 #endif
 
+
 /**
  * Creates a tun-interface called dev;
+ *
  * @param dev is asumed to point to a char[IFNAMSIZ]
- *        if *dev == '\\0', uses the name supplied by the kernel
+ *        if *dev == '\\0', uses the name supplied by the kernel;
  * @return the fd to the tun or -1 on error
  */
 static int
@@ -102,7 +104,7 @@ init_tun (char *dev)
   {
     fprintf (stderr, "Error with ioctl on `%s': %s\n", "/dev/net/tun",
              strerror (errno));
-    close (fd);
+    (void) close (fd);
     return -1;
   }
   strcpy (dev, ifr.ifr_name);
@@ -129,6 +131,7 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
    * parse the new address
    */
   memset (&sa6, 0, sizeof (struct sockaddr_in6));
+  sa6.sin6_family = AF_INET6;
   if (1 != inet_pton (AF_INET6, address, sa6.sin6_addr.s6_addr))
   {
     fprintf (stderr, "Failed to parse address `%s': %s\n", address,
@@ -142,10 +145,7 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
     exit (1);
   }
 
-  sa6.sin6_family = AF_INET6;
-  memcpy (&ifr6.ifr6_addr, &sa6.sin6_addr, sizeof (struct in6_addr));
-
-
+  memset (&ifr, 0, sizeof (struct ifreq));
   /*
    * Get the index of the if
    */
@@ -153,10 +153,13 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   if (-1 == ioctl (fd, SIOGIFINDEX, &ifr))
   {
     fprintf (stderr, "ioctl failed at %d: %s\n", __LINE__, strerror (errno));
+    (void) close (fd);
     exit (1);
   }
-  ifr6.ifr6_ifindex = ifr.ifr_ifindex;
 
+  memset (&ifr6, 0, sizeof (struct in6_ifreq));
+  ifr6.ifr6_addr = sa6.sin6_addr;
+  ifr6.ifr6_ifindex = ifr.ifr_ifindex;
   ifr6.ifr6_prefixlen = prefix_len;
 
   /*
@@ -166,6 +169,8 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   {
     fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
              strerror (errno));
+    (void) close (fd);
+    exit (1);
   }
 
   /*
@@ -175,6 +180,7 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   {
     fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
              strerror (errno));
+    (void) close (fd);
     exit (1);
   }
 
@@ -186,6 +192,7 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   {
     fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
              strerror (errno));
+    (void) close (fd);
     exit (1);
   }
 
@@ -213,9 +220,7 @@ set_address4 (const char *dev, const char *address, const char *mask)
 
   memset (&ifr, 0, sizeof (struct ifreq));
   addr = (struct sockaddr_in *) &(ifr.ifr_addr);
-  memset (addr, 0, sizeof (struct sockaddr_in));
   addr->sin_family = AF_INET;
-  addr->sin_addr.s_addr = inet_addr (address);
 
   /*
    * Parse the address
@@ -226,7 +231,6 @@ set_address4 (const char *dev, const char *address, const char *mask)
              strerror (errno));
     exit (1);
   }
-
 
   if (-1 == (fd = socket (PF_INET, SOCK_DGRAM, 0)))
   {
@@ -242,6 +246,7 @@ set_address4 (const char *dev, const char *address, const char *mask)
   if (-1 == ioctl (fd, SIOCSIFADDR, &ifr))
   {
     fprintf (stderr, "ioctl failed at %d: %s\n", __LINE__, strerror (errno));
+    (void) close (fd);
     exit (1);
   }
 
@@ -253,6 +258,7 @@ set_address4 (const char *dev, const char *address, const char *mask)
   {
     fprintf (stderr, "Failed to parse address `%s': %s\n", mask,
              strerror (errno));
+    (void) close (fd);
     exit (1);
   }
 
@@ -263,6 +269,7 @@ set_address4 (const char *dev, const char *address, const char *mask)
   {
     fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
              strerror (errno));
+    (void) close (fd);
     exit (1);
   }
 
@@ -273,6 +280,7 @@ set_address4 (const char *dev, const char *address, const char *mask)
   {
     fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
              strerror (errno));
+    (void) close (fd);
     exit (1);
   }
 
@@ -284,17 +292,24 @@ set_address4 (const char *dev, const char *address, const char *mask)
   {
     fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
              strerror (errno));
+    (void) close (fd);
     exit (1);
   }
 
   if (0 != close (fd))
   {
     fprintf (stderr, "close failed: %s\n", strerror (errno));
+    (void) close (fd);
     exit (1);
   }
 }
 
 
+/**
+ * Start forwarding to and from the tunnel.
+ *
+ * @param fd_tun tunnel FD
+ */
 static void
 run (int fd_tun)
 {
@@ -497,11 +512,23 @@ PROCESS_BUFFER:
 }
 
 
+/**
+ * Open VPN tunnel interface.
+ *
+ * @param argc must be 6
+ * @param argv 0: binary name (gnunet-helper-vpn)
+ *             1: tunnel interface name (gnunet-vpn)
+ *             2: IPv6 address (::1)
+ *             3: IPv6 netmask length in bits (64)
+ *             4: IPv4 address (1.2.3.4)
+ *             5: IPv4 netmask (255.255.0.0)
+ */
 int
 main (int argc, char **argv)
 {
   char dev[IFNAMSIZ];
   int fd_tun;
+  int global_ret;
 
   if (6 != argc)
   {
@@ -538,14 +565,32 @@ main (int argc, char **argv)
     set_address4 (dev, address, mask);
   }
 
+#ifdef HAVE_SETRESUID
   uid_t uid = getuid ();
-
   if (0 != setresuid (uid, uid, uid))
+  {
     fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
+    global_ret = 2;
+    goto cleanup;
+  }
+#else
+  if (0 != (setuid (uid) | seteuid (uid)))
+  {
+    fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
+    global_ret = 2;
+    goto cleanup;
+  }
+#endif
+
   if (SIG_ERR == signal (SIGPIPE, SIG_IGN))
+  {
     fprintf (stderr, "Failed to protect against SIGPIPE: %s\n",
              strerror (errno));
+    /* no exit, we might as well die with SIGPIPE should it ever happen */
+  }
   run (fd_tun);
+  global_ret = 0;
+ cleanup:
   close (fd_tun);
-  return 0;
+  return global_ret;
 }
