@@ -933,8 +933,6 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
   struct GNUNET_TRANSPORT_TransmitHandle *th;
 
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
-  /* Forget about all neighbours that we used to be connected to */
-  GNUNET_CONTAINER_multihashmap_iterate (h->neighbours, &neighbour_delete, h);
   if (NULL != h->cth)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
@@ -945,6 +943,8 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
     GNUNET_CLIENT_disconnect (h->client, GNUNET_YES);
     h->client = NULL;
   }
+  /* Forget about all neighbours that we used to be connected to */
+  GNUNET_CONTAINER_multihashmap_iterate (h->neighbours, &neighbour_delete, h);
   if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (h->quota_task);
