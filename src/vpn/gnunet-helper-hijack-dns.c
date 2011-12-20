@@ -27,7 +27,7 @@
 
 #include "gnunet_common.h"
 
-int
+static int
 fork_and_exec (char *file, char *cmd[])
 {
   pid_t pid = fork ();
