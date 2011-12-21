@@ -2442,7 +2442,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
     /* Join the multicast address */
     if (GNUNET_NETWORK_socket_setsockopt
         (plugin->sockv6, IPPROTO_IPV6, IPV6_LEAVE_GROUP,
-         (char *) &multicastRequest, sizeof (multicastRequest)) == 0)
+         (char *) &multicastRequest, sizeof (multicastRequest)) == GNUNET_OK)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 Broadcasting stopped\n");
     }
