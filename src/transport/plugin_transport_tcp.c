@@ -43,6 +43,8 @@
 
 #define DEBUG_TCP_NAT GNUNET_EXTRA_LOGGING
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Initial handshake message for a session.
  */
@@ -78,7 +80,7 @@ struct TCP_NAT_ProbeMessage
   struct GNUNET_PeerIdentity clientIdentity;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Context for sending a NAT probe via TCP.
@@ -118,6 +120,8 @@ struct TCPProbeContext
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Network format for IPv4 addresses.
  */
@@ -152,7 +156,7 @@ struct IPv6TcpAddress
   uint16_t t6_port GNUNET_PACKED;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Encapsulation of all of the state of the plugin.

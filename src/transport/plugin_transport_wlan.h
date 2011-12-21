@@ -43,6 +43,8 @@ struct MacAddress
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Format of a WLAN Control Message.
  */
@@ -58,7 +60,7 @@ struct GNUNET_TRANSPORT_WLAN_HelperControlMessage
    */
   struct MacAddress mac;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * GNUnet bssid

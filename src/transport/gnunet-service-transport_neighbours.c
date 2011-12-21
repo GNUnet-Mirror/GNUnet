@@ -69,6 +69,8 @@
  */
 struct NeighbourMapEntry;
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message a peer sends to another to indicate its
  * preference for communicating via a particular
@@ -133,7 +135,7 @@ struct SessionDisconnectMessage
   struct GNUNET_CRYPTO_RsaSignature signature;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * For each neighbour we keep a list of messages

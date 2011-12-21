@@ -64,6 +64,8 @@
  */
 #define UNIX_NAT_DEFAULT_PORT 22086
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * UNIX Message-Packet header.
  */
@@ -131,6 +133,7 @@ struct IPv6UdpAddress
    */
   uint16_t u6_port GNUNET_PACKED;
 };
+GNUNET_NETWORK_STRUCT_END
 
 /* Forward definition */
 struct Plugin;

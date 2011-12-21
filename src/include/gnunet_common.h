@@ -116,8 +116,36 @@
  */
 #define GNUNET_UNUSED __attribute__((unused))
 
+#if __GNUC__ > 3
+/**
+ * gcc 4.x-ism to pack structures even on W32 (to be used before structs)
+ */
+#define GNUNET_NETWORK_STRUCT_BEGIN \
+  _Pragma("pack(push)") \
+  _Pragma("pack(1)")
+
+/**
+ * gcc 4.x-ism to pack structures even on W32 (to be used after structs)
+ */
+#define GNUNET_NETWORK_STRUCT_END _Pragma("pack(pop)")
+#else
+#ifdef MINGW
+#error gcc 4.x or higher required on W32 systems
+#endif
+/**
+ * Good luck, GNUNET_PACKED should suffice, but this won't work on W32
+ */
+#define GNUNET_NETWORK_STRUCT_BEGIN 
+
+/**
+ * Good luck, GNUNET_PACKED should suffice, but this won't work on W32
+ */
+#define GNUNET_NETWORK_STRUCT_END
+#endif
 
 /* ************************ super-general types *********************** */
+
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Header for all communications.
@@ -137,7 +165,7 @@ struct GNUNET_MessageHeader
   uint16_t type GNUNET_PACKED;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * @brief 512-bit hashcode
@@ -149,6 +177,8 @@ typedef struct
 GNUNET_HashCode;
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * The identity of the host (basically the SHA-512 hashcode of
  * it's public key).
@@ -157,7 +187,7 @@ struct GNUNET_PeerIdentity
 {
   GNUNET_HashCode hashPubKey GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Function called with a filename.

@@ -90,6 +90,8 @@
 #define GET_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * P2P PUT message
  */
@@ -246,7 +248,7 @@ struct PeerGetMessage
   /* result bloomfilter */
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Linked list of messages to send to a particular other peer.

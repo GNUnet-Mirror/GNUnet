@@ -70,6 +70,8 @@
 #define UDP_MAX_SENDER_ADDRESSES_WITH_DEFRAG 128
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * UDP Message-Packet header (after defragmentation).
  */
@@ -91,7 +93,6 @@ struct UDPMessage
   struct GNUNET_PeerIdentity sender;
 
 };
-
 
 /**
  * UDP ACK Message-Packet header (after defragmentation).
@@ -162,7 +163,7 @@ struct IPv6UdpAddress
    */
   uint16_t u6_port GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /* Forward definition */
 struct Plugin;

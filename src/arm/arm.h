@@ -33,6 +33,7 @@
  */
 #define DEBUG_ARM GNUNET_EXTRA_LOGGING
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Reply from ARM to client.
@@ -50,6 +51,6 @@ struct GNUNET_ARM_ResultMessage
    */
   uint32_t status;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 #endif

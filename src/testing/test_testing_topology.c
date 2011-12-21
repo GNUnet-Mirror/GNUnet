@@ -115,6 +115,8 @@ static char *test_directory;
 
 #define MTYPE 12345
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 struct GNUNET_TestMessage
 {
   /**
@@ -127,6 +129,7 @@ struct GNUNET_TestMessage
    */
   uint32_t uid;
 };
+GNUNET_NETWORK_STRUCT_END
 
 struct TestMessageContext
 {

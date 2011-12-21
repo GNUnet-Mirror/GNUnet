@@ -29,6 +29,8 @@
 
 #define DEBUG_RESOLVER GNUNET_EXTRA_LOGGING
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Request for the resolver.  Followed by either
  * the "struct sockaddr" or the 0-terminated hostname.
@@ -59,5 +61,6 @@ struct GNUNET_RESOLVER_GetMessage
   int32_t domain GNUNET_PACKED;
 
 };
+GNUNET_NETWORK_STRUCT_END
 
 #endif

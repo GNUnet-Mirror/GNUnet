@@ -31,6 +31,8 @@
 
 #include "gnunet_util_lib.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message from datastore service informing client about
  * the current size of the datastore.
@@ -254,7 +256,7 @@ struct DataMessage
   GNUNET_HashCode key GNUNET_PACKED;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 
 

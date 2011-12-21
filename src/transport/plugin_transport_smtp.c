@@ -72,6 +72,8 @@ typedef struct
 
 } EmailAddress;
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Encapsulation of a GNUnet message in the SMTP mail body (before
  * base64 encoding).
@@ -86,6 +88,7 @@ typedef struct
   GNUNET_PeerIdentity sender;
 
 } SMTPMessage;
+GNUNET_NETWORK_STRUCT_END
 
 /* *********** globals ************* */
 

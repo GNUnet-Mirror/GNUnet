@@ -29,6 +29,8 @@
 
 #define DEBUG_PEERINFO GNUNET_EXTRA_LOGGING
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message requesting a listing of all known peers,
  * possibly restricted to the specified peer identity.
@@ -81,6 +83,6 @@ struct InfoMessage
   struct GNUNET_PeerIdentity peer;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /* end of peerinfo.h */

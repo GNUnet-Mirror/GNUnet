@@ -121,6 +121,8 @@ struct GNUNET_CRYPTO_RsaSignature
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * @brief header of what an RSA signature signs
  *        this must be followed by "size - 8" bytes of
@@ -197,7 +199,7 @@ struct GNUNET_CRYPTO_AesSessionKey
    */
   uint32_t crc32 GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * @brief IV for sym cipher

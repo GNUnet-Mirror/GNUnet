@@ -46,6 +46,7 @@
 #define IEEE80211_FC0_TYPE_CTL                  0x04
 #define IEEE80211_FC0_TYPE_DATA                 0x08
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /*
  * generic definitions for IEEE 802.11 frames
@@ -60,7 +61,7 @@ struct ieee80211_frame
   u_int8_t i_seq[2];
   u_int8_t llc[4];
 } GNUNET_PACKED;
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * function to fill the radiotap header

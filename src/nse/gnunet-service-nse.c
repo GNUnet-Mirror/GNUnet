@@ -128,6 +128,8 @@ struct NSEPeerEntry
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Network size estimate reply; sent when "this"
  * peer's timer has run out before receiving a
@@ -178,7 +180,7 @@ struct GNUNET_NSE_FloodMessage
    */
   struct GNUNET_CRYPTO_RsaSignature signature;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Handle to our current configuration.

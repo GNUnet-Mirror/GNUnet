@@ -104,11 +104,14 @@ static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
 #define MTYPE 12345
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 struct TestMessage
 {
   struct GNUNET_MessageHeader header;
   uint32_t num;
 };
+GNUNET_NETWORK_STRUCT_END
 
 static int msg_scheduled;
 static int msg_sent;

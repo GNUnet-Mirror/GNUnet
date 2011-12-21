@@ -92,6 +92,8 @@
 #define PONG_PRIORITY 4
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message used to ask a peer to validate receipt (to check an address
  * from a HELLO).  Followed by the address we are trying to validate,
@@ -166,7 +168,7 @@ struct TransportPongMessage
   uint32_t addrlen GNUNET_PACKED;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Information about an address under validation

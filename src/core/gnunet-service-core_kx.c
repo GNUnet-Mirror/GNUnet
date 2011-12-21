@@ -62,6 +62,8 @@
 #define MAX_SET_KEY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * We're sending an (encrypted) PING to the other peer to check if he
  * can decrypt.  The other peer should respond with a PONG with the
@@ -213,7 +215,7 @@ struct EncryptedMessage
   struct GNUNET_TIME_AbsoluteNBO timestamp;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 /**
  * Number of bytes (at the beginning) of "struct EncryptedMessage"
  * that are NOT encrypted.

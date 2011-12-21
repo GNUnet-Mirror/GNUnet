@@ -287,12 +287,15 @@ send_answer (void *cls, size_t size, void *buf)
   return len;
 }
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 struct tunnel_cls
 {
   struct GNUNET_MESH_Tunnel *tunnel GNUNET_PACKED;
   struct GNUNET_MessageHeader hdr;
   struct dns_pkt dns;
 };
+GNUNET_NETWORK_STRUCT_END
 
 struct tunnel_cls *remote_pending[UINT16_MAX];
 

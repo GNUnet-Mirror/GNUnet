@@ -41,6 +41,8 @@
  * Client-service messages
  */
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Notification sent by service to client indicating that we've received a chat
  * message.  After this struct, the remaining bytes are the actual text message.
@@ -476,6 +478,7 @@ struct P2PConfirmationReceiptMessage
   GNUNET_HashCode content;
 
 };
+GNUNET_NETWORK_STRUCT_END
 
 #endif
 

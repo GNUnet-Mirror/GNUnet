@@ -44,6 +44,8 @@ typedef void (*GNUNET_DV_MessageReceivedHandler) (void *cls,
                                                   char *sender_address,
                                                   size_t sender_address_len);
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * DV Message, contains a message that was received
  * via DV for this peer! Internal.
@@ -255,7 +257,7 @@ typedef struct
   uint32_t peer_id GNUNET_PACKED;
 
 } p2p_dv_MESSAGE_Disconnect;
-
+GNUNET_NETWORK_STRUCT_END
 
 struct GNUNET_DV_Handle *
 GNUNET_DV_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,

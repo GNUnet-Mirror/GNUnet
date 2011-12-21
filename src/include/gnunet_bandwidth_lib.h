@@ -38,6 +38,8 @@ extern "C"
 #include "gnunet_common.h"
 #include "gnunet_time_lib.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * 32-bit bandwidth used for network exchange by GNUnet, in bytes per second.
  */
@@ -48,7 +50,7 @@ struct GNUNET_BANDWIDTH_Value32NBO
    */
   uint32_t value__ GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Struct to track available bandwidth.  Combines a time stamp with a

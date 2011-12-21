@@ -328,6 +328,7 @@ struct SendBuffer
   char buf[MAXLINE * 2];
 };
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * generic definitions for IEEE 802.11 frames
@@ -343,7 +344,7 @@ struct ieee80211_frame
   /* possibly followed by addr4[IEEE80211_ADDR_LEN]; */
   /* see below */
 } GNUNET_PACKED;
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * struct for storing the information of the hardware

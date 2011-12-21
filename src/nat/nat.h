@@ -30,6 +30,8 @@
 
 #define DEBUG_NAT GNUNET_EXTRA_LOGGING
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Request to test NAT traversal.
  */
@@ -61,5 +63,6 @@ struct GNUNET_NAT_TestMessage
   int32_t is_tcp;
 
 };
+GNUNET_NETWORK_STRUCT_END
 
 #endif

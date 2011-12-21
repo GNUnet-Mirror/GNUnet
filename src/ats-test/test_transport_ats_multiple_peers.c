@@ -68,11 +68,14 @@ struct TEST_result
   uint64_t state;
 };
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 struct TestMessage
 {
   struct GNUNET_MessageHeader header;
   uint32_t num;
 };
+GNUNET_NETWORK_STRUCT_END
 
 
 static int count;

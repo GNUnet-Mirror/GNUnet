@@ -53,6 +53,8 @@ struct GNUNET_CRYPTO_RsaPrivateKey
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * GNUnet mandates a certain format for the encoding
  * of private RSA key information that is provided
@@ -75,7 +77,7 @@ struct RsaPrivateKeyBinaryEncoded
   uint16_t sizedmq1 GNUNET_PACKED;      /*  in big-endian! */
   /* followed by the actual values */
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 #define HOSTKEY_LEN 2048
 

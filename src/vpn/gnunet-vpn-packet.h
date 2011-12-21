@@ -4,6 +4,8 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 // Headers
 struct pkt_tun
 {
@@ -100,6 +102,7 @@ struct dns_static
   uint16_t nscount GNUNET_PACKED;       // number of authority-records
   uint16_t arcount GNUNET_PACKED;       // number of additional records
 };
+GNUNET_NETWORK_STRUCT_END
 
 struct dns_pkt
 {
@@ -155,6 +158,8 @@ struct udp_dns
   struct udp_pkt udp_hdr;
   struct dns_pkt data;
 };
+
+GNUNET_NETWORK_STRUCT_BEGIN
 
 // Complete Packets
 struct tun_pkt
@@ -246,5 +251,6 @@ struct ip_icmp
   struct ip_hdr ip_hdr;
   struct icmp_hdr icmp_hdr;
 };
+GNUNET_NETWORK_STRUCT_END
 
 #endif

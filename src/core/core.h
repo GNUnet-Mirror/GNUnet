@@ -50,6 +50,8 @@
 #define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND  64
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message transmitted core clients to gnunet-service-core
  * to start the interaction.  This header is followed by
@@ -373,6 +375,6 @@ struct ConnectMessage
   struct GNUNET_PeerIdentity peer;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 #endif
 /* end of core.h */

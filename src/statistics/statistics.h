@@ -29,6 +29,8 @@
 
 #define DEBUG_STATISTICS GNUNET_EXTRA_LOGGING
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Statistics message. Contains how long the system is up
  * and one value.
@@ -128,6 +130,6 @@ struct GNUNET_STATISTICS_WatchValueMessage
   uint64_t value GNUNET_PACKED;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 #endif

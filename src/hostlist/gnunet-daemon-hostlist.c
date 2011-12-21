@@ -99,6 +99,8 @@ static GNUNET_CORE_ConnectEventHandler client_ch;
  */
 static GNUNET_CORE_DisconnectEventHandler client_dh;
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * A HOSTLIST_ADV message is used to exchange information about
  * hostlist advertisements.  This struct is always
@@ -123,7 +125,7 @@ struct GNUNET_HOSTLIST_ADV_Message
    */
   uint32_t reserved GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 static struct GNUNET_PeerIdentity me;
 

@@ -139,6 +139,8 @@ struct NBlock
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * @brief index block (indexing a DBlock that
  *        can be obtained directly from reading
@@ -160,6 +162,6 @@ struct OnDemandBlock
   uint64_t offset GNUNET_PACKED;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 #endif

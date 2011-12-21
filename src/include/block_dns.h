@@ -13,6 +13,7 @@ enum GNUNET_DNS_ServiceTypes
   GNUNET_DNS_SERVICE_TYPE_TCP = 2
 };
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * This is the structure describing an dns-record such as www.gnunet.
@@ -57,5 +58,6 @@ struct GNUNET_DNS_Record
    */
   uint32_t service_type GNUNET_PACKED;
 };
+GNUNET_NETWORK_STRUCT_END
 
 #endif

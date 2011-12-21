@@ -35,6 +35,8 @@
  */
 #define DEBUG_NSE GNUNET_EXTRA_LOGGING
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Network size estimate sent from the service
  * to clients.  Contains the current size estimate
@@ -71,6 +73,6 @@ struct GNUNET_NSE_ClientMessage
    */
   double std_deviation GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 #endif

@@ -120,6 +120,8 @@
 #define IEEE80211_FC0_TYPE_CTL                  0x04
 #define IEEE80211_FC0_TYPE_DATA                 0x08
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /*
  * generic definitions for IEEE 802.11 frames
  */
@@ -133,6 +135,7 @@ struct ieee80211_frame
   u_int8_t i_seq[2];
   u_int8_t llc[4];
 } GNUNET_PACKED;
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -361,6 +364,8 @@ struct Plugin_Session_pair
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Header for messages which need fragmentation
  */
@@ -388,7 +393,7 @@ struct WlanHeader
 // followed by payload
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Information kept for each message that is yet to

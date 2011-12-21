@@ -3,6 +3,8 @@
 
 #include "gnunet_common.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 struct query_packet
 {
   struct GNUNET_MessageHeader hdr;
@@ -109,5 +111,6 @@ struct answer_packet_list
   struct GNUNET_SERVER_Client *client;
   struct answer_packet pkt;
 };
+GNUNET_NETWORK_STRUCT_END
 
 #endif

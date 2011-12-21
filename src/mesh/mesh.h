@@ -85,6 +85,8 @@
 /**************************        MESSAGES      ******************************/
 /******************************************************************************/
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message for a client to register to the service
  */
@@ -209,7 +211,7 @@ struct GNUNET_MESH_ConnectPeerByType
    */
   GNUNET_MESH_ApplicationType type GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /******************************************************************************/
 /************************        ENUMERATIONS      ****************************/

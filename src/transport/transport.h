@@ -61,6 +61,8 @@
  */
 #define CONNECTED_LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message from the transport service to the library
  * asking to check if both processes agree about this
@@ -430,7 +432,7 @@ struct BlacklistMessage
   struct GNUNET_PeerIdentity peer;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /* end of transport.h */
 #endif

@@ -403,6 +403,8 @@ enum GNUNET_ATS_Property
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * struct used to communicate the transport's properties like cost and
  * quality of service as well as high-level constraints on resource
@@ -433,7 +435,7 @@ struct GNUNET_ATS_Information
    */
   uint32_t value GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 
 /* ******************************** Scheduling API ***************************** */

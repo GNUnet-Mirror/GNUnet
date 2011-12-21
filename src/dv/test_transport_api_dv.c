@@ -108,6 +108,8 @@ struct GNUNET_CONTAINER_MultiHashMap *peer_daemon_hash;
 
 #define MTYPE 12345
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 struct GNUNET_TestMessage
 {
   /**
@@ -120,6 +122,7 @@ struct GNUNET_TestMessage
    */
   uint32_t uid;
 };
+GNUNET_NETWORK_STRUCT_END
 
 struct PeerContext
 {

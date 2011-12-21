@@ -82,6 +82,8 @@
 #define GET_MESSAGE_BIT_TRANSMIT_TO 4
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message sent between peers asking for FS-content.
  */
@@ -161,7 +163,7 @@ struct MigrationStopMessage
   struct GNUNET_TIME_RelativeNBO duration;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * A connected peer.

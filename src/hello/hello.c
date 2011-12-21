@@ -28,6 +28,8 @@
 #include "gnunet_protocols.h"
 #include "gnunet_util_lib.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * A HELLO message is used to exchange information about
  * transports with other peers.  This struct is always
@@ -59,7 +61,7 @@ struct GNUNET_HELLO_Message
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Copy the given address information into

@@ -27,6 +27,8 @@
 #include "platform.h"
 #include "gnunet_fragmentation_lib.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Header for a message fragment.  Followed by the
  * original message.
@@ -82,6 +84,6 @@ struct FragmentAcknowledgement
   uint64_t bits;
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 #endif

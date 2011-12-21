@@ -260,6 +260,8 @@ struct Plugin
 
 };
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * IPv4 addresses
  */
@@ -291,7 +293,7 @@ struct IPv6HttpAddress
    */
   uint16_t u6_port GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Session handle for connections.

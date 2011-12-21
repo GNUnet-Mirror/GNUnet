@@ -39,6 +39,8 @@ extern "C"
 /********************      MESH NETWORK MESSAGES     **************************/
 /******************************************************************************/
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message for mesh path management
  */
@@ -276,6 +278,7 @@ struct GNUNET_MESH_SpeedNotify
   uint32_t speed_min;
 
 };
+GNUNET_NETWORK_STRUCT_END
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

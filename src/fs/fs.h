@@ -64,6 +64,8 @@ struct ContentHashKey
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message sent from a GNUnet (fs) publishing activity to the
  * gnunet-fs-service to initiate indexing of a file.  The service is
@@ -288,7 +290,7 @@ struct PutMessage
   /* this is followed by the actual encrypted content */
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 
 #endif

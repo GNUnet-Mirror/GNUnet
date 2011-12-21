@@ -34,6 +34,8 @@
 #define DHT_BLOOM_SIZE 128
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message which indicates the DHT should cancel outstanding
  * requests and discard any state.
@@ -191,6 +193,6 @@ struct GNUNET_DHT_ClientPutMessage
   /* DATA copied to end of this message */
 
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 #endif

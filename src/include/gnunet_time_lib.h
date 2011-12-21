@@ -61,6 +61,7 @@ struct GNUNET_TIME_Relative
   uint64_t rel_value;
 };
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Time for relative time used by GNUnet, in milliseconds and in network byte order.
@@ -84,7 +85,7 @@ struct GNUNET_TIME_AbsoluteNBO
    */
   uint64_t abs_value__ GNUNET_PACKED;
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Relative time zero.

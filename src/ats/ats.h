@@ -39,6 +39,7 @@ enum StartFlag
   START_FLAG_PERFORMANCE_NO_PIC = 2
 };
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
 struct ClientStartMessage
 {
@@ -214,7 +215,6 @@ struct ReservationResultMessage
   struct GNUNET_TIME_RelativeNBO res_delay;
 };
 
-
 struct PreferenceInformation
 {
 
@@ -236,6 +236,7 @@ struct ChangePreferenceMessage
   /* followed by 'num_preferences'
    * struct PreferenceInformation values */
 };
+GNUNET_NETWORK_STRUCT_END
 
 
 

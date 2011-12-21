@@ -463,6 +463,7 @@ generate_kblock_key (KBlock_secret_key *sk, unsigned int nbits,
   gcry_mpi_release (g);
 }
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Internal representation of the private key.
@@ -482,7 +483,7 @@ struct KskRsaPrivateKeyBinaryEncoded
   uint16_t sizedmq1 GNUNET_PACKED;      /*  in big-endian! */
   /* followed by the actual values */
 };
-
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Deterministically (!) create a hostkey using only the
