@@ -71,7 +71,7 @@ EXTRA_DIST = \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_disconnect.py.in \
    test_integration_disconnect_nat.py \
-   test_integration_restart.py.in \ 
+   test_integration_restart.py.in \
    test_integration_clique.py.in \
    test_integration_clique_nat.py.in
 
