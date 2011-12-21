@@ -2351,16 +2351,20 @@ libgnunet_plugin_transport_udp_init (void *cls)
       /* Join the multicast group */
       if (GNUNET_NETWORK_socket_setsockopt
           (plugin->sockv6, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-           (char *) &multicastRequest, sizeof (multicastRequest)) == GNUNET_OK)
+           (char *) &multicastRequest, sizeof (multicastRequest)) != GNUNET_OK)
       {
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Failed to join IPv6 multicast group: IPv6 broadcasting not running\n");
+      }
+      else
+      {
+#if DEBUG_UDP
         LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 broadcasting running\n");
-
+#endif
         plugin->send_ipv6_broadcast_task =
             GNUNET_SCHEDULER_add_now (&udp_ipv6_broadcast_send, plugin);
         plugin->broadcast_ipv6 = GNUNET_YES;
       }
-      else
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 broadcasting not running\n");
     }
   }
 
@@ -2442,12 +2446,16 @@ libgnunet_plugin_transport_udp_done (void *cls)
     /* Join the multicast address */
     if (GNUNET_NETWORK_socket_setsockopt
         (plugin->sockv6, IPPROTO_IPV6, IPV6_LEAVE_GROUP,
-         (char *) &multicastRequest, sizeof (multicastRequest)) == GNUNET_OK)
+        (char *) &multicastRequest, sizeof (multicastRequest)) != GNUNET_OK)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 Broadcasting stopped\n");
+       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, setsockopt);
     }
     else
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, setsockopt);
+    {
+#if DEBUG_UDP
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 Broadcasting stopped\n");
+#endif
+    }
 
     if (plugin->send_ipv6_broadcast_task != GNUNET_SCHEDULER_NO_TASK)
     {
