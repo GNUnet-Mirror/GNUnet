@@ -564,9 +564,9 @@ main (int argc, char **argv)
 
     set_address4 (dev, address, mask);
   }
-
-#ifdef HAVE_SETRESUID
+  
   uid_t uid = getuid ();
+#ifdef HAVE_SETRESUID
   if (0 != setresuid (uid, uid, uid))
   {
     fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
