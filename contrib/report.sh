@@ -181,9 +181,20 @@ else
   echo "Qt             : Not found"
 fi
 
+echo -n "MHD            : "
+TMPFILE=`mktemp /tmp/mhd-version-testXXXXXX`
+cat - >$TMPFILE.c <<EOF
+#include <microhttpd.h>
+#include <stdio.h>
+int main()
+{
+  fprintf (stdout, "%X\n", MHD_VERSION);
+  return 0;
+}
+EOF
 
-
-
+gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
+rm -f $TMPFILE $TMPFILE.bin
 
 
 echo "--------------------------------------------------------------"
