@@ -94,6 +94,10 @@ struct PrettyPrinterContext
    * Port to add after the IP address.
    */
   uint16_t port;
+
+  uint32_t addrlen;
+
+  int numeric;
 };
 
 
@@ -114,7 +118,7 @@ static void
 append_port (void *cls, const char *hostname)
 {
   struct PrettyPrinterContext *ppc = cls;
-  char *ret;
+  static char rbuf[INET6_ADDRSTRLEN + 13];
 
   if (hostname == NULL)
   {
@@ -122,10 +126,28 @@ append_port (void *cls, const char *hostname)
     GNUNET_free (ppc);
     return;
   }
-  GNUNET_asprintf (&ret, "%s://%s:%d", ppc->plugin->protocol, hostname,
-                   ppc->plugin->port);
-  ppc->asc (ppc->asc_cls, ret);
-  GNUNET_free (ret);
+
+#if !BUILD_HTTPS
+  const char *protocol = "http";
+#else
+  const char *protocol = "https";
+#endif
+  GNUNET_assert ((strlen (hostname) + 7) < (INET6_ADDRSTRLEN + 13));
+  if (ppc->addrlen == sizeof (struct IPv6HttpAddress))
+  {
+    if (ppc->numeric == GNUNET_YES)
+      GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://[%s]:%u/", protocol, hostname, ppc->port);
+    else
+    {
+      if (strchr(hostname, ':') != NULL)
+        GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://[%s]:%u/", protocol, hostname, ppc->port);
+      else
+        GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://%s:%u/", protocol, hostname, ppc->port);
+    }
+  }
+  else if (ppc->addrlen == sizeof (struct IPv4HttpAddress))
+    GNUNET_snprintf (rbuf, sizeof (rbuf), "%s://%s:%u/", protocol, hostname, ppc->port);
+  ppc->asc (ppc->asc_cls, rbuf);
 }
 
 
@@ -154,23 +176,37 @@ http_plugin_address_pretty_printer (void *cls, const char *type,
   GNUNET_assert (cls != NULL);
   struct PrettyPrinterContext *ppc;
   const void *sb;
+  struct sockaddr_in s4;
+  struct sockaddr_in6 s6;
   size_t sbs;
   uint16_t port = 0;
 
   if (addrlen == sizeof (struct IPv6HttpAddress))
   {
     struct IPv6HttpAddress *a6 = (struct IPv6HttpAddress *) addr;
-
-    sb = &a6->ipv6_addr;
-    sbs = sizeof (struct in6_addr);
+    s6.sin6_family = AF_INET6;
+    s6.sin6_addr = a6->ipv6_addr;
+    s6.sin6_port = a6->u6_port;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s6.sin6_len = sizeof (struct sockaddr_in6);
+#endif
+    sb = &s6;
+    sbs = sizeof (struct sockaddr_in6);
     port = ntohs (a6->u6_port);
+
   }
   else if (addrlen == sizeof (struct IPv4HttpAddress))
   {
     struct IPv4HttpAddress *a4 = (struct IPv4HttpAddress *) addr;
 
-    sb = &a4->ipv4_addr;
-    sbs = sizeof (struct in_addr);
+    s4.sin_family = AF_INET;
+    s4.sin_addr.s_addr = a4->ipv4_addr;
+    s4.sin_port = a4->u4_port;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s4.sin_len = sizeof (struct sockaddr_in);
+#endif
+    sb = &s4;
+    sbs = sizeof (struct sockaddr_in);
     port = ntohs (a4->u4_port);
   }
   else
@@ -185,6 +221,8 @@ http_plugin_address_pretty_printer (void *cls, const char *type,
   ppc->asc_cls = asc_cls;
   ppc->port = port;
   ppc->plugin = cls;
+  ppc->addrlen = addrlen;
+  ppc->numeric = numeric;
   GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric, timeout, &append_port, ppc);
 }
 
