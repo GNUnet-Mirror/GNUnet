@@ -125,6 +125,26 @@ struct NSEPeerEntry
    * been taken care of.
    */
   int previous_round;
+
+#if ENABLE_HISTOGRAM
+
+  /**
+   * Amount of messages received from this peer on this round.
+   */
+  unsigned int received_messages;
+
+  /**
+   * Amount of messages transmitted to this peer on this round.
+   */
+  unsigned int transmitted_messages;
+
+  /**
+   * Which size did we tell the peer the network is?
+   */
+  unsigned int last_transmitted_size;
+
+#endif
+
 };
 
 
@@ -593,6 +613,11 @@ transmit_ready (void *cls, size_t size, void *buf)
     GNUNET_STATISTICS_update (stats, "# flood messages started", 1, GNUNET_NO);
   GNUNET_STATISTICS_update (stats, "# flood messages transmitted", 1,
                             GNUNET_NO);
+#if ENABLE_HISTOGRAM
+  peer_entry->transmitted_messages++;
+  peer_entry->last_transmitted_size = 
+      ntohl(size_estimate_messages[idx].matching_bits);
+#endif
   memcpy (buf, &size_estimate_messages[idx],
           sizeof (struct GNUNET_NSE_FloodMessage));
   return sizeof (struct GNUNET_NSE_FloodMessage);
@@ -699,6 +724,14 @@ schedule_current_round (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
     peer_entry->previous_round = GNUNET_NO;
   }
+#if ENABLE_HISTOGRAM
+  if (peer_entry->received_messages > 1)
+    GNUNET_STATISTICS_update(stats, "# extra messages",
+                             peer_entry->received_messages - 1, GNUNET_NO);
+  peer_entry->transmitted_messages = 0;
+  peer_entry->last_transmitted_size = 0;
+  peer_entry->received_messages = 0;
+#endif
   delay =
       get_transmit_delay ((peer_entry->previous_round == GNUNET_NO) ? -1 : 0);
   peer_entry->transmit_task =
@@ -1012,6 +1045,12 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return GNUNET_OK;
   }
+#if ENABLE_HISTOGRAM
+  peer_entry->received_messages++;
+  if (peer_entry->transmitted_messages > 0 && 
+      peer_entry->last_transmitted_size >= matching_bits)
+    GNUNET_STATISTICS_update(stats, "# cross messages", 1, GNUNET_NO);
+#endif
 
   ts = GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp);
 
@@ -1048,48 +1087,21 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
       update_network_size_estimate ();
     return GNUNET_OK;
   }
-  if (matching_bits >= ntohl (size_estimate_messages[idx].matching_bits))
-  {
-    /* cancel transmission from us to this peer for this round */
-    if (idx == estimate_index)
-    {
-      if (peer_entry->previous_round == GNUNET_YES)
-      {
-        /* cancel any activity for current round */
-        if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
-        {
-          GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
-          peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
-        }
-        if (peer_entry->th != NULL)
-        {
-          GNUNET_CORE_notify_transmit_ready_cancel (peer_entry->th);
-          peer_entry->th = NULL;
-        }
-      }
-    }
-    else
-    {
-      /* cancel previous round only */
-      peer_entry->previous_round = GNUNET_YES;
-    }
-  }
   if (matching_bits == ntohl (size_estimate_messages[idx].matching_bits))
   {
-    /* cancel transmission in the other direction, as this peer clearly has
-       up-to-date information already */
+    /* Cancel transmission in the other direction, as this peer clearly has
+       up-to-date information already. Even if we didn't talk to this peer in
+       the previous round, we should no longer send it stale information as it
+       told us about the current round! */
+    peer_entry->previous_round = GNUNET_YES;
     if (idx != estimate_index)
     {
       /* do not transmit information for the previous round to this peer 
          anymore (but allow current round) */
-      peer_entry->previous_round = GNUNET_YES;
       return GNUNET_OK;
     }
-    /* even if we didn't talk to this peer in the previous round, we should
-       no longer send it stale information as it told us about the current
-       round! */
-    peer_entry->previous_round = GNUNET_YES;
-    /* got up-to-date information for current round, cancel transmission altogether */
+    /* got up-to-date information for current round, cancel transmission to
+     * this peer altogether */
     if (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task)
     {
       GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
@@ -1102,7 +1114,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     return GNUNET_OK;
   }
-  if (matching_bits <= ntohl (size_estimate_messages[idx].matching_bits))
+  if (matching_bits < ntohl (size_estimate_messages[idx].matching_bits))
   {
     if ((idx < estimate_index) && (peer_entry->previous_round == GNUNET_YES))
       peer_entry->previous_round = GNUNET_NO;
@@ -1124,6 +1136,28 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
+  }
+  GNUNET_assert (matching_bits >
+                 ntohl (size_estimate_messages[idx].matching_bits));
+  /* cancel transmission from us to this peer for this round */
+  if (idx == estimate_index)
+  {
+      /* cancel any activity for current round */
+      if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
+      {
+        GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
+        peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+      }
+      if (peer_entry->th != NULL)
+      {
+        GNUNET_CORE_notify_transmit_ready_cancel (peer_entry->th);
+        peer_entry->th = NULL;
+      }
+  }
+  else
+  {
+    /* cancel previous round only */
+    peer_entry->previous_round = GNUNET_YES;
   }
   size_estimate_messages[idx] = *incoming_flood;
   size_estimate_messages[idx].hop_count =
@@ -1304,8 +1338,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   if (GNUNET_YES == check_proof_of_work (&my_public_key, my_proof))
   {
     prev_time.abs_value =
-        current_timestamp.abs_value - (estimate_index -
-                                       1) * gnunet_nse_interval.rel_value;
+        current_timestamp.abs_value - gnunet_nse_interval.rel_value;
     setup_flood_message (estimate_index, prev_time);
     estimate_count++;
   }

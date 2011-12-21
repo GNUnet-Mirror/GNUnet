@@ -58,10 +58,21 @@ struct StatsContext
    * How many messages have peers received during the test.
    */
   unsigned long long total_nse_received_messages;
+
   /**
    * How many messages have peers send during the test (should be == received).
    */
-  unsigned long long total_nse_sent_messages;
+  unsigned long long total_nse_transmitted_messages;
+
+  /**
+   * How many messages have travelled an edge in both directions.
+   */
+  unsigned long long total_nse_cross;
+
+  /**
+   * How many extra messages per edge (corrections) have been received.
+   */
+  unsigned long long total_nse_extra;
 };
 
 
@@ -410,16 +421,40 @@ stats_finished_callback (void *cls, int success)
       GNUNET_DISK_file_write (data_file, buf, buf_len);
     }
     GNUNET_free_non_null (buf);
+
     buf = NULL;
     buf_len =
-        GNUNET_asprintf (&buf, "TOTAL_NSE_SENT_MESSAGES_%d: %u\n",
+        GNUNET_asprintf (&buf, "TOTAL_NSE_TRANSMITTED_MESSAGES_%d: %u\n",
                          stats_context->shutdown, 
-                         stats_context->total_nse_received_messages);
+                         stats_context->total_nse_transmitted_messages);
     if (buf_len > 0)
     {
       GNUNET_DISK_file_write (data_file, buf, buf_len);
     }
     GNUNET_free_non_null (buf);
+
+    buf = NULL;
+    buf_len =
+        GNUNET_asprintf (&buf, "TOTAL_NSE_CROSS_%d: %u \n",
+                         stats_context->shutdown, 
+                         stats_context->total_nse_cross);
+    if (buf_len > 0)
+    {
+      GNUNET_DISK_file_write (data_file, buf, buf_len);
+    }
+    GNUNET_free_non_null (buf);
+
+    buf = NULL;
+    buf_len =
+        GNUNET_asprintf (&buf, "TOTAL_NSE_EXTRA_%d: %u \n",
+                         stats_context->shutdown, 
+                         stats_context->total_nse_extra);
+    if (buf_len > 0)
+    {
+      GNUNET_DISK_file_write (data_file, buf, buf_len);
+    }
+    GNUNET_free_non_null (buf);
+
   }
 
   if (GNUNET_YES == stats_context->shutdown)
@@ -476,9 +511,9 @@ statistics_iterator (void *cls, const struct GNUNET_PeerIdentity *peer,
       }
 #endif
     }
-    if (0 == strcmp (name, "# flood messages sent"))
+    if (0 == strcmp (name, "# flood messages transmitted"))
     {
-      stats_context->total_nse_sent_messages += value;
+      stats_context->total_nse_transmitted_messages += value;
 #if VERBOSE
       if (data_file != NULL)
       {
@@ -487,7 +522,8 @@ statistics_iterator (void *cls, const struct GNUNET_PeerIdentity *peer,
 
         buf = NULL;
         buf_len =
-            GNUNET_asprintf (&buf, "%s %u SENT\n", GNUNET_i2s(peer), value);
+            GNUNET_asprintf (&buf, "%s %u TRANSMITTED\n", 
+                             GNUNET_i2s(peer), value);
         if (buf_len > 0)
         {
           GNUNET_DISK_file_write (data_file, buf, buf_len);
@@ -495,6 +531,14 @@ statistics_iterator (void *cls, const struct GNUNET_PeerIdentity *peer,
         GNUNET_free_non_null (buf);
       }
 #endif
+    }
+    if (0 == strcmp (name, "# cross messages"))
+    {
+      stats_context->total_nse_cross += value;
+    }
+    if (0 == strcmp (name, "# extra messages"))
+    {
+      stats_context->total_nse_extra += value;
     }
   }
   return GNUNET_OK;
