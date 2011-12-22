@@ -440,16 +440,16 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 void
 process_string (void *cls, const char *address)
 {
-  struct GNUNET_PeerIdentity *peer = cls;
+  struct GNUNET_HELLO_Address *addrcp = cls;
 
   if ((address != NULL))
   {
-    fprintf (stdout, _("Peer `%s': %s\n"), GNUNET_i2s (peer), address);
+    fprintf (stdout, _("Peer `%s': %s %s\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name, address);
   }
   else
   {
     /* done */
-    GNUNET_free (peer);
+    GNUNET_free (addrcp);
   }
 }
 
@@ -467,7 +467,6 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_HELLO_Address *address)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_PeerIdentity *peercp;
 
   if ((address == NULL) || (peer == NULL))
   {
@@ -475,13 +474,10 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-  peercp = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-  *peercp = *peer;
-
   /* Resolve address to string */
   GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
                                       GNUNET_TIME_UNIT_MINUTES, &process_string,
-                                      peercp);
+                                      GNUNET_HELLO_address_copy(address));
 }
 
 
