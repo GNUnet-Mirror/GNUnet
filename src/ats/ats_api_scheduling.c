@@ -678,8 +678,8 @@ interface_proc (void *cls, const char *name,
     net->netmask = (struct sockaddr *) &tmp[1];
     net->length = addrlen;
 
+    memset (&network4, 0, sizeof (network4));
     network4.sin_family = AF_INET;
-    network4.sin_port = htons (0);
 #if HAVE_SOCKADDR_IN_SIN_LEN
     network4.sin_len = sizeof (network4);
 #endif
