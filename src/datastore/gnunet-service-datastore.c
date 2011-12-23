@@ -1557,7 +1557,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   if (fn != NULL)
   {
-    GNUNET_asprintf (&pfn, "%s.%s\n", fn, plugin_name);
+    GNUNET_asprintf (&pfn, "%s.%s", fn, plugin_name);
     if (GNUNET_YES == GNUNET_DISK_file_test (pfn))
     {
       filter = GNUNET_CONTAINER_bloomfilter_load (pfn, bf_size, 5);        /* approx. 3% false positives at max use */
