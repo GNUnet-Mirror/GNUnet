@@ -158,6 +158,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     return NULL;
   case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
     fprintf (stderr, _("Cleanup after abort complete.\n"));
+    return NULL;
   default:
     fprintf (stderr, _("Unexpected status: %d\n"), info->status);
     return NULL;
