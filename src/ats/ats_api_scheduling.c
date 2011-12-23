@@ -702,8 +702,8 @@ interface_proc (void *cls, const char *name,
     net->netmask = (struct sockaddr *) &tmp[1];
     net->length = addrlen;
 
+    memset (&network6, 0, sizeof (network6));
     network6.sin6_family = AF_INET6;
-    network6.sin6_port = htons (0);
 #if HAVE_SOCKADDR_IN_SIN_LEN
     network6.sin6_len = sizeof (network6);
 #endif
