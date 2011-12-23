@@ -125,6 +125,7 @@ gnunet_transport_SOURCES = \
 gnunet_transport_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/nat/libgnunetnat.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_transport_DEPENDENCIES = \
