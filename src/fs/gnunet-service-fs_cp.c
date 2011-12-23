@@ -1723,7 +1723,7 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
 #endif
     return;                     /* already blocked */
   }
-#if DEBUG_FS && 0
+#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking to stop migration for %llu ms\n",
               (unsigned long long) GNUNET_TIME_absolute_get_remaining (block_time).rel_value);
 #endif
