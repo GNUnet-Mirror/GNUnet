@@ -1579,6 +1579,162 @@ GNUNET_FS_uri_test_loc (const struct GNUNET_FS_Uri *uri)
 
 
 /**
+ * Add a keyword as non-mandatory (with ' '-prefix) to the
+ * given keyword list at offset 'index'.  The array is
+ * guaranteed to be long enough.
+ * 
+ * @param s keyword to add
+ * @param array array to add the keyword to
+ * @param index offset where to add the keyword
+ */
+static void
+insert_non_mandatory_keyword (const char *s, char **array, int index)
+{
+  char *nkword;
+  GNUNET_asprintf (&nkword, " %s", /* space to mark as 'non mandatory' */ s);
+  array[index] = nkword;
+}
+
+
+/**
+ * Test if the given keyword 's' is already present in the 
+ * given array, ignoring the '+'-mandatory prefix in the array.
+ *
+ * @param s keyword to test
+ * @param array keywords to test against, with ' ' or '+' prefix to ignore
+ * @param array_length length of the array
+ * @return GNUNET_YES if the keyword exists, GNUNET_NO if not
+ */ 
+static int
+find_duplicate (const char *s, const char **array, int array_length)
+{
+  int j;
+
+  for (j = array_length - 1; j >= 0; j--)
+    if (0 == strcmp (&array[j][1], s))
+      return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
+/**
+ * Break the filename up by matching [], () and {} pairs to make
+ * keywords. In case of nesting parentheses only the inner pair counts.
+ * You can't escape parentheses to scan something like "[blah\{foo]" to
+ * make a "blah{foo" keyword, this function is only a heuristic!
+ *
+ * @param s string to break down.
+ * @param array array to fill with enclosed tokens. If NULL, then tokens
+ *        are only counted.
+ * @param index index at which to start filling the array (entries prior
+ *        to it are used to check for duplicates). ignored if array == NULL.
+ * @return number of tokens counted (including duplicates), or number of
+ *         tokens extracted (excluding duplicates). 0 if there are no
+ *         matching parens in the string (when counting), or when all tokens 
+ *         were duplicates (when extracting).
+ */
+static int
+get_keywords_from_parens (const char *s, char **array, int index)
+{
+  int count = 0;
+  char *open_paren;
+  char *close_paren;
+  char *ss;
+  char tmp;
+
+  if (NULL == s)
+    return 0;
+  ss = GNUNET_strdup (s);
+  open_paren = ss - 1;
+  while (NULL != (open_paren = strpbrk (open_paren + 1, "[{(")))
+  {
+    int match = 0;
+
+    close_paren = strpbrk (open_paren + 1, "]})");
+    if (NULL == close_paren)
+      continue;
+    switch (open_paren[0])
+    {
+    case '[':
+      if (']' == close_paren[0])
+        match = 1;
+      break;
+    case '{':
+      if ('}' == close_paren[0])
+        match = 1;
+      break;
+    case '(':
+      if (')' == close_paren[0])
+        match = 1;
+      break;
+    default:
+      break;
+    }
+    if (match && (close_paren - open_paren > 1))
+    {
+      if (NULL != array)
+      {
+        tmp = close_paren[0];
+        close_paren[0] = '\0';
+        if (GNUNET_NO == find_duplicate ((const char *) &open_paren[1], (const char **) array, index + count))
+        {
+	  insert_non_mandatory_keyword ((const char *) &open_paren[1], array,
+					index + count);
+          count++;
+        }
+        close_paren[0] = tmp;
+      }
+      else
+	count++;
+    }   
+  }
+  GNUNET_free (ss);
+  return count;
+}
+
+
+/**
+ * Break the filename up by "_", " " and "." (any other separators?) to make
+ * keywords.
+ *
+ * @param s string to break down.
+ * @param array array to fill with tokens. If NULL, then tokens are only
+ *        counted.
+ * @param index index at which to start filling the array (entries prior
+ *        to it are used to check for duplicates). ignored if array == NULL.
+ * @return number of tokens (>1) counted (including duplicates), or number of
+ *         tokens extracted (excluding duplicates). 0 if there are no
+ *         separators in the string (when counting), or when all tokens were
+ *         duplicates (when extracting).
+ */
+static int
+get_keywords_from_tokens (const char *s, char **array, int index)
+{
+  char *p;
+  char *ss;
+  int seps = 0;
+
+  ss = GNUNET_strdup (s);
+  for (p = strtok (ss, "_. "); p != NULL; p = strtok (NULL, "_, "))
+  {
+    if (NULL != array)
+    {
+      if (GNUNET_NO == find_duplicate (p, (const char **) array, index + seps))
+      {
+        insert_non_mandatory_keyword (p, array,
+				      index + seps);
+	seps++;
+      }
+    }
+    else
+      seps++;
+  }
+  GNUNET_free (ss);
+  return seps;
+}
+
+
+/**
  * Function called on each value in the meta data.
  * Adds it to the URI.
  *
@@ -1601,18 +1757,15 @@ gather_uri_data (void *cls, const char *plugin_name,
                  const char *data_mime_type, const char *data, size_t data_len)
 {
   struct GNUNET_FS_Uri *uri = cls;
-  char *nkword;
-  int j;
 
   if ((format != EXTRACTOR_METAFORMAT_UTF8) &&
       (format != EXTRACTOR_METAFORMAT_C_STRING))
     return 0;
-  for (j = uri->data.ksk.keywordCount - 1; j >= 0; j--)
-    if (0 == strcmp (&uri->data.ksk.keywords[j][1], data))
-      return GNUNET_OK;
-  GNUNET_asprintf (&nkword, " %s",      /* space to mark as 'non mandatory' */
-                   data);
-  uri->data.ksk.keywords[uri->data.ksk.keywordCount++] = nkword;
+  if (find_duplicate (data, (const char **) uri->data.ksk.keywords, uri->data.ksk.keywordCount))
+    return GNUNET_OK;
+  insert_non_mandatory_keyword (data,
+				uri->data.ksk.keywords, uri->data.ksk.keywordCount);
+  uri->data.ksk.keywordCount++;
   return 0;
 }
 
@@ -1630,7 +1783,12 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
                                          *md)
 {
   struct GNUNET_FS_Uri *ret;
+  char *filename;
+  char *full_name;
+  char *ss;
   int ent;
+  int tok_keywords = 0;
+  int paren_keywords = 0;
 
   if (md == NULL)
     return NULL;
@@ -1639,9 +1797,30 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
   ent = GNUNET_CONTAINER_meta_data_iterate (md, NULL, NULL);
   if (ent > 0)
   {
-    ret->data.ksk.keywords = GNUNET_malloc (sizeof (char *) * ent);
+    full_name = GNUNET_CONTAINER_meta_data_get_first_by_types (md,
+        EXTRACTOR_METATYPE_FILENAME, -1);
+    if (NULL != full_name)
+    {
+      filename = full_name;
+      while (NULL != (ss = strstr (filename, DIR_SEPARATOR_STR)))
+        filename = ss + 1;
+      tok_keywords = get_keywords_from_tokens (filename, NULL, 0);
+      paren_keywords = get_keywords_from_parens (filename, NULL, 0);
+    }
+    ret->data.ksk.keywords = GNUNET_malloc (sizeof (char *) * (ent
+        + tok_keywords + paren_keywords));
     GNUNET_CONTAINER_meta_data_iterate (md, &gather_uri_data, ret);
   }
+  if (tok_keywords > 0)
+    ret->data.ksk.keywordCount += get_keywords_from_tokens (filename,
+        ret->data.ksk.keywords,
+        ret->data.ksk.keywordCount);
+  if (paren_keywords > 0)
+    ret->data.ksk.keywordCount += get_keywords_from_parens (filename,
+        ret->data.ksk.keywords,
+        ret->data.ksk.keywordCount);
+  if (ent > 0)
+    GNUNET_free (full_name);
   return ret;
 }
 
