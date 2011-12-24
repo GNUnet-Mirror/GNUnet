@@ -327,17 +327,16 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
   return GNUNET_OK;
 }
 
-
 /**
  * Convert the len characters long character sequence
- * given in input that is in the given charset
- * to UTF-8.
+ * given in input that is in the given input charset
+ * to a string in given output charset.
  * @return the converted string (0-terminated),
  *  if conversion fails, a copy of the orignal
  *  string is returned.
  */
 char *
-GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
+GNUNET_STRINGS_conv (const char *input, size_t len, const char *input_charset, const char *output_charset)
 {
   char *ret;
 
@@ -348,12 +347,12 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
   char *itmp;
   iconv_t cd;
 
-  cd = iconv_open ("UTF-8", charset);
+  cd = iconv_open (output_charset, input_charset);
   if (cd == (iconv_t) - 1)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "iconv_open");
-    LOG (GNUNET_ERROR_TYPE_WARNING, _("Character set requested was `%s'\n"),
-         charset);
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("Character sets requested were `%s'->`%s'\n"),
+         input_charset, output_charset);
     ret = GNUNET_malloc (len + 1);
     memcpy (ret, input, len);
     ret[len] = '\0';
@@ -393,6 +392,36 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
   return ret;
 #endif
 }
+
+
+/**
+ * Convert the len characters long character sequence
+ * given in input that is in the given charset
+ * to UTF-8.
+ * @return the converted string (0-terminated),
+ *  if conversion fails, a copy of the orignal
+ *  string is returned.
+ */
+char *
+GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
+{
+  return GNUNET_STRINGS_conv (input, len, charset, "UTF-8");
+}
+
+/**
+ * Convert the len bytes-long UTF-8 string
+ * given in input to the given charset.
+
+ * @return the converted string (0-terminated),
+ *  if conversion fails, a copy of the orignal
+ *  string is returned.
+ */
+char *
+GNUNET_STRINGS_from_utf8 (const char *input, size_t len, const char *charset)
+{
+  return GNUNET_STRINGS_conv (input, len, "UTF-8", charset);
+}
+
 
 
 /**

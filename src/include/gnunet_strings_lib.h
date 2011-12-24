@@ -87,6 +87,18 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
 
 /**
  * Convert the len characters long character sequence
+ * given in input that is in the given input charset
+ * to a string in given output charset.
+ * @return the converted string (0-terminated),
+ *  if conversion fails, a copy of the orignal
+ *  string is returned.
+ */
+char *
+GNUNET_STRINGS_conv (const char *input, size_t len,
+    const char *input_charset, const char *output_charset);
+
+/**
+ * Convert the len characters long character sequence
  * given in input that is in the given charset
  * to UTF-8.
  *
@@ -97,6 +109,17 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
  */
 char *
 GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset);
+
+/**
+ * Convert the len bytes-long UTF-8 string
+ * given in input to the given charset.
+
+ * @return the converted string (0-terminated),
+ *  if conversion fails, a copy of the orignal
+ *  string is returned.
+ */
+char *
+GNUNET_STRINGS_from_utf8 (const char *input, size_t len, const char *charset);
 
 
 /**
