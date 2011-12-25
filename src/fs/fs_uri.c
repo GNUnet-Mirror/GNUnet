@@ -1784,7 +1784,7 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
 {
   struct GNUNET_FS_Uri *ret;
   char *filename;
-  char *full_name;
+  char *full_name = NULL;
   char *ss;
   int ent;
   int tok_keywords = 0;
@@ -1820,7 +1820,7 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
         ret->data.ksk.keywords,
         ret->data.ksk.keywordCount);
   if (ent > 0)
-    GNUNET_free (full_name);
+    GNUNET_free_non_null (full_name);
   return ret;
 }
 
