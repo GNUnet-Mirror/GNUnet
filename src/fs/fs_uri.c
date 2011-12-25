@@ -1571,7 +1571,12 @@ get_keywords_from_parens (const char *s, char **array, int index)
 
 
 /**
- * Break the filename up by "_", " " and "." (any other separators?) to make
+ * Where to break up keywords
+ */
+#define TOKENS "_. /-!?#&+@\"\'\\;:"
+
+/**
+ * Break the filename up by TOKENS to make
  * keywords.
  *
  * @param s string to break down.
@@ -1592,7 +1597,7 @@ get_keywords_from_tokens (const char *s, char **array, int index)
   int seps = 0;
 
   ss = GNUNET_strdup (s);
-  for (p = strtok (ss, "_. "); p != NULL; p = strtok (NULL, "_, "))
+  for (p = strtok (ss, TOKENS); p != NULL; p = strtok (NULL, TOKENS))
   {
     if (NULL != array)
     {
@@ -1609,6 +1614,7 @@ get_keywords_from_tokens (const char *s, char **array, int index)
   GNUNET_free (ss);
   return seps;
 }
+#undef TOKENS
 
 
 /**
