@@ -358,9 +358,10 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
       GNUNET_assert (dpr != NULL);
       if (pr == dpr)
         break;                  /* let the request live briefly... */
-      dpr->rh (dpr->rh_cls, GNUNET_BLOCK_EVALUATION_REQUEST_VALID, dpr,
-               UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_BLOCK_TYPE_ANY,
-               NULL, 0);
+      if (NULL != dpr->rh)
+	dpr->rh (dpr->rh_cls, GNUNET_BLOCK_EVALUATION_REQUEST_VALID, dpr,
+		 UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_BLOCK_TYPE_ANY,
+		 NULL, 0);
       GSF_pending_request_cancel_ (dpr, GNUNET_YES);
     }
   }
