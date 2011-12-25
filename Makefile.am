@@ -10,6 +10,9 @@ EXTRA_DIST = \
 gnunetincludedir = $(includedir)/gnunet
 gnunetinclude_HEADERS = gnunet_config.h
 
+docdir = $(datadir)/doc/
+doc_DATA = COPYING
+
 ACLOCAL_AMFLAGS = -I m4
 
 ChangeLog:
