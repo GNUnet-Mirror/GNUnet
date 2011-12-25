@@ -401,9 +401,12 @@ quota_processor (void *cls, const GNUNET_HashCode * key, uint32_t size,
     return GNUNET_SYSERR;
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Deleting %llu bytes of low-priority content `%s' of type %u (still trying to free another %llu bytes)\n",
+              "Deleting %llu bytes of low-priority (%u) content `%s' of type %u at %llu ms prior to expiration (still trying to free another %llu bytes)\n",
               (unsigned long long) (size + GNUNET_DATASTORE_ENTRY_OVERHEAD),
-              GNUNET_h2s (key), type, *need);
+	      (unsigned int) priority,
+              GNUNET_h2s (key), type, 
+	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (expiration).rel_value,
+	      *need);
 #endif
   if (size + GNUNET_DATASTORE_ENTRY_OVERHEAD > *need)
     *need = 0;
