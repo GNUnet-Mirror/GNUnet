@@ -93,6 +93,13 @@ struct GSF_PeerPerformanceData
   struct GNUNET_TIME_Relative avg_reply_delay;
 
   /**
+   * If we get content we already have from this peer, for how
+   * long do we block him?  Adjusted based on the fraction of
+   * redundant data we receive, between 1s and 1h.
+   */
+  struct GNUNET_TIME_Relative migration_delay;
+
+  /**
    * Point in time until which this peer does not want us to migrate content
    * to it.
    */

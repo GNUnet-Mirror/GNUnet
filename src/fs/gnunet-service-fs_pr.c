@@ -901,18 +901,66 @@ put_migration_continuation (void *cls, int success,
 {
   struct PutMigrationContext *pmc = cls;
   struct GSF_ConnectedPeer *cp;
+  struct GNUNET_TIME_Relative mig_pause;
+  struct GSF_PeerPerformanceData *ppd;
 
-  cp = GSF_peer_get_ (&pmc->origin);
-  if ((GNUNET_OK != success) && (GNUNET_NO == pmc->requested) && (min_expiration.abs_value > 0)&&
-      (NULL != cp) )
-    GSF_block_peer_migration_ (cp, min_expiration);      
-  GNUNET_free (pmc);
-  /* on failure, increase the put load dramatically */
   if (NULL != datastore_put_load)
-    GNUNET_LOAD_update (datastore_put_load, 
-			GNUNET_TIME_UNIT_HOURS.rel_value);
+  {
+    if (GNUNET_SYSERR != success)
+    {
+      GNUNET_LOAD_update (datastore_put_load, 
+			  GNUNET_TIME_absolute_get_duration (pmc->start).rel_value);
+    }
+    else
+    {
+      /* on queue failure / timeout, increase the put load dramatically */
+      GNUNET_LOAD_update (datastore_put_load, 
+			  GNUNET_TIME_UNIT_MINUTES.rel_value);
+    }
+  }
+  cp = GSF_peer_get_ (&pmc->origin);
   if (GNUNET_OK == success)
+  {
+    if (NULL != cp)
+    {
+      ppd = GSF_get_peer_performance_data_ (cp);
+      ppd->migration_delay.rel_value /= 2;
+    }
+    GNUNET_free (pmc);
     return;
+  }
+  if ( (GNUNET_NO == success) && 
+       (GNUNET_NO == pmc->requested) && 
+       (NULL != cp) )
+  {
+    ppd = GSF_get_peer_performance_data_ (cp);
+    if (min_expiration.abs_value > 0)
+    {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Asking to stop migration for %llu ms because datastore is full\n",
+		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (min_expiration).rel_value);
+#endif
+      GSF_block_peer_migration_ (cp, min_expiration);      
+    }
+    else
+    {
+      ppd->migration_delay = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_SECONDS,
+						       ppd->migration_delay);
+      ppd->migration_delay = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_HOURS,
+						       ppd->migration_delay);
+      mig_pause.rel_value = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+						      ppd->migration_delay.rel_value);
+      ppd->migration_delay = GNUNET_TIME_relative_multiply (ppd->migration_delay, 2);
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Replicated content already exists locally, asking to stop migration for %llu ms\n",
+		  (unsigned long long) mig_pause.rel_value);
+#endif
+      GSF_block_peer_migration_ (cp, GNUNET_TIME_relative_to_absolute (mig_pause));
+    }
+  }
+  GNUNET_free (pmc);
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# Datastore `PUT' failures"), 1,
                             GNUNET_NO);
@@ -1006,7 +1054,7 @@ handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
                               GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &put_migration_continuation, pmc))
     {
-      put_migration_continuation (pmc, GNUNET_NO, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
+      put_migration_continuation (pmc, GNUNET_SYSERR, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
     }
   }
 }
@@ -1524,7 +1572,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                               GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &put_migration_continuation, pmc))
     {
-      put_migration_continuation (pmc, GNUNET_NO, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
+      put_migration_continuation (pmc, GNUNET_SYSERR, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
     }
   }
   else
@@ -1549,6 +1597,14 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                                        GNUNET_CRYPTO_random_u32
                                        (GNUNET_CRYPTO_QUALITY_WEAK,
                                         (unsigned int) (60000 * putl * putl)));
+#if DEBUG_FS
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Asking to stop migration for %llu ms because of load %f and events %d/%d\n",
+		(unsigned long long) block_time.rel_value,
+		putl,
+		active_to_migration,
+		(GNUNET_NO == prq.request_found));
+#endif
     GSF_block_peer_migration_ (cp, GNUNET_TIME_relative_to_absolute (block_time));
   }
   return GNUNET_OK;
