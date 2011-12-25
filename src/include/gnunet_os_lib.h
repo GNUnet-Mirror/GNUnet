@@ -66,12 +66,12 @@ enum GNUNET_OS_InstallationPathKind
   GNUNET_OS_IPK_BINDIR,
 
   /**
-   * Return the directory where libraries are installed. (lib/)
+   * Return the directory where libraries are installed. (lib/gnunet/)
    */
   GNUNET_OS_IPK_LIBDIR,
 
   /**
-   * Return the directory where data is installed (share/)
+   * Return the directory where data is installed (share/gnunet/)
    */
   GNUNET_OS_IPK_DATADIR,
 
@@ -88,9 +88,15 @@ enum GNUNET_OS_InstallationPathKind
   GNUNET_OS_IPK_SELF_PREFIX,
 
   /**
-   * Return the prefix of the path with application icons.
+   * Return the prefix of the path with application icons (share/icons/).
    */
-  GNUNET_OS_IPK_ICONDIR
+  GNUNET_OS_IPK_ICONDIR,
+
+  /**
+   * Return the prefix of the path with documentation files, including the
+   * license (share/doc/gnunet/).
+   */
+  GNUNET_OS_IPK_DOCDIR
 };
 
 

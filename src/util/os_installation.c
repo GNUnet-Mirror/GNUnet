@@ -421,6 +421,11 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
     dirname =
         DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "icons" DIR_SEPARATOR_STR;
     break;
+  case GNUNET_OS_IPK_DOCDIR:
+    dirname =
+        DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "doc" DIR_SEPARATOR_STR \
+        "gnunet" DIR_SEPARATOR_STR;
+    break;
   default:
     GNUNET_free (execpath);
     return NULL;
