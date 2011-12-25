@@ -903,19 +903,21 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	    {
 	      /* process terminated normally, allow restart at any time */
 	      pos->restart_at.abs_value = 0;
-	      continue;
 	    }
-	  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-	    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-			_
-			("Service `%s' terminated with status %s/%d, will restart in %llu ms\n"),
-			pos->name, statstr, statcode, pos->backoff.rel_value);
-	  /* schedule restart */
-	  pos->restart_at = GNUNET_TIME_relative_to_absolute (pos->backoff);
-	  pos->backoff =
-	    GNUNET_TIME_relative_min (EXPONENTIAL_BACKOFF_THRESHOLD,
-				      GNUNET_TIME_relative_multiply
-				      (pos->backoff, 2));
+          else
+            {
+	      if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+	        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			    _
+			    ("Service `%s' terminated with status %s/%d, will restart in %llu ms\n"),
+			    pos->name, statstr, statcode, pos->backoff.rel_value);
+	      /* schedule restart */
+	      pos->restart_at = GNUNET_TIME_relative_to_absolute (pos->backoff);
+	      pos->backoff =
+	        GNUNET_TIME_relative_min (EXPONENTIAL_BACKOFF_THRESHOLD,
+				          GNUNET_TIME_relative_multiply
+				          (pos->backoff, 2));
+            }
 	  if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
 	    GNUNET_SCHEDULER_cancel (child_restart_task);
 	  child_restart_task =
