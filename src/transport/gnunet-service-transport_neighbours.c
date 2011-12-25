@@ -539,7 +539,7 @@ change (struct NeighbourMapEntry *n, int state, int line)
     char *old = GNUNET_strdup (print_state (n->state));
     char *new = GNUNET_strdup (print_state (state));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "State for neighbour `%s' %X changed from `%s' to `%s' in line %u\n",
                 GNUNET_i2s (&n->id), n, old, new, line);
     GNUNET_free (old);
@@ -1119,7 +1119,7 @@ send_outbound_quota (const struct GNUNET_PeerIdentity *target,
   struct QuotaSetMessage q_msg;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
               ntohl (quota.value__), GNUNET_i2s (target));
 #endif
@@ -1403,7 +1403,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
 
   /* checks successful and neighbour != NULL */
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS tells us to switch to address '%s' session %p for peer `%s' in state `%s'\n",
               GST_plugins_a2s (address), session, GNUNET_i2s (peer),
               print_state (n->state));
@@ -2202,7 +2202,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
   GNUNET_HashCode hc;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received DISCONNECT message from peer `%s'\n",
               GNUNET_i2s (peer));
 #endif
@@ -2284,7 +2284,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   size_t ret;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CONNECT_ACK message from peer `%s'\n",
               GNUNET_i2s (peer));
 #endif
