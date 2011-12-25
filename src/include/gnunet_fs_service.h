@@ -53,7 +53,7 @@ extern "C"
  * 6.1.x: with simplified namespace support
  * 9.0.0: CPS-style integrated API
  */
-#define GNUNET_FS_VERSION 0x00090000
+#define GNUNET_FS_VERSION 0x00090001
 
 
 /* ******************** URI API *********************** */
@@ -228,21 +228,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
 
 
 /**
- * Canonicalize keyword URI.  Performs operations such
- * as decapitalization and removal of certain characters.
- * (useful for search).
- *
- * @param uri the URI to canonicalize
- * @return canonicalized version of the URI, NULL on error
- */
-struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_canonicalize (const struct GNUNET_FS_Uri *uri);
-
-
-/**
  * Merge the sets of keywords from two KSK URIs.
- * (useful for merging the canonicalized keywords with
- * the original keywords for sharing).
  *
  * @param u1 first uri
  * @param u2 second uri
@@ -1898,9 +1884,11 @@ typedef int (*GNUNET_FS_DirectoryScanner) (void *cls,
  * files (those starting with a ".").  Metadata will be extracted
  * using GNU libextractor; the specific list of plugins should be
  * specified in "cls", passing NULL will disable (!)  metadata
- * extraction.  Keywords will be derived from the metadata and be
- * subject to default canonicalization.  This is strictly a
- * convenience function.
+ * extraction.  Keywords will be derived from the metadata and
+ * associated with directories as appropriate.  This is strictly a
+ * convenience function (however, if all tools use it, there will
+ * be less of a chance of distinguishing users by the specific 
+ * user-interface they were using).
  *
  * @param cls must be of type "struct EXTRACTOR_Extractor*"
  * @param h handle to the file sharing subsystem

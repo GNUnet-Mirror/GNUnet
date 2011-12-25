@@ -341,7 +341,6 @@ dir_scan_cb (void *cls, const char *filename)
   struct DirScanCls *dsc = cls;
   struct stat sbuf;
   struct GNUNET_FS_FileInformation *fi;
-  struct GNUNET_FS_Uri *ksk_uri;
   struct GNUNET_FS_Uri *keywords;
   struct GNUNET_CONTAINER_MetaData *meta;
 
@@ -370,13 +369,11 @@ dir_scan_cb (void *cls, const char *filename)
     meta = GNUNET_CONTAINER_meta_data_create ();
     GNUNET_FS_meta_data_extract_from_file (meta, filename, dsc->extractors);
     keywords = GNUNET_FS_uri_ksk_create_from_meta_data (meta);
-    ksk_uri = GNUNET_FS_uri_ksk_canonicalize (keywords);
     fi = GNUNET_FS_file_information_create_from_file (dsc->h, NULL, filename,
-                                                      ksk_uri, meta,
+                                                      keywords, meta,
                                                       dsc->do_index, dsc->bo);
     GNUNET_CONTAINER_meta_data_destroy (meta);
     GNUNET_FS_uri_destroy (keywords);
-    GNUNET_FS_uri_destroy (ksk_uri);
   }
   dsc->proc (dsc->proc_cls, filename, fi);
   return GNUNET_OK;
@@ -723,7 +720,6 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
   struct EntryProcCls dc;
   const char *fn;
   const char *ss;
-  struct GNUNET_FS_Uri *cksk;
   char *dn;
   struct GNUNET_FS_FileInformation *epos;
   unsigned int i;
@@ -747,21 +743,20 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
                                          &compute_directory_keywords, &cdmc);
   GNUNET_CONTAINER_multihashmap_destroy (dc.metamap);
   GNUNET_CONTAINER_multihashmap_destroy (dc.keywordmap);
-  GNUNET_FS_uri_ksk_add_keyword (cdmc.ksk, GNUNET_FS_DIRECTORY_MIME, GNUNET_NO);
-  cksk = GNUNET_FS_uri_ksk_canonicalize (cdmc.ksk);
 
   /* remove keywords in children that are already in the
    * parent */
   for (epos = dc.entries; NULL != epos; epos = epos->next)
   {
-    for (i = 0; i < cksk->data.ksk.keywordCount; i++)
+    for (i = 0; i < cdmc.ksk->data.ksk.keywordCount; i++)
     {
-      kw = cksk->data.ksk.keywords[i];
+      kw = cdmc.ksk->data.ksk.keywords[i];
       GNUNET_FS_uri_ksk_remove_keyword (epos->keywords, &kw[1]);
     }
   }
+  GNUNET_FS_uri_ksk_add_keyword (cdmc.ksk, GNUNET_FS_DIRECTORY_MIME, GNUNET_NO);
   ret =
-      GNUNET_FS_file_information_create_empty_directory (h, client_info, cksk,
+      GNUNET_FS_file_information_create_empty_directory (h, client_info, cdmc.ksk,
                                                          cdmc.meta, bo);
   GNUNET_CONTAINER_meta_data_destroy (cdmc.meta);
   GNUNET_FS_uri_destroy (cdmc.ksk);
