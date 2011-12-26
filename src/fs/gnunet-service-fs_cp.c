@@ -747,6 +747,32 @@ copy_reply (void *cls, size_t buf_size, void *buf)
 
 
 /**
+ * Free resources associated with the given peer request.
+ *
+ * @param peerreq request to free
+ * @param query associated key for the request
+ */
+static void
+free_pending_request (struct PeerRequest *peerreq,
+		      const GNUNET_HashCode *query)
+{
+  struct GSF_ConnectedPeer *cp = peerreq->cp;
+
+  if (peerreq->kill_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (peerreq->kill_task);
+    peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# P2P searches active"),
+                            -1, GNUNET_NO);
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
+                                                      query, peerreq));
+  GNUNET_free (peerreq);
+}
+
+
+/**
  * Cancel all requests associated with the peer.
  *
  * @param cls unused
@@ -759,22 +785,11 @@ cancel_pending_request (void *cls, const GNUNET_HashCode * query, void *value)
 {
   struct PeerRequest *peerreq = value;
   struct GSF_PendingRequest *pr = peerreq->pr;
-  struct GSF_ConnectedPeer *cp = peerreq->cp;
   struct GSF_PendingRequestData *prd;
 
-  if (peerreq->kill_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (peerreq->kill_task);
-    peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# P2P searches active"),
-                            -1, GNUNET_NO);
   prd = GSF_pending_request_get_data_ (pr);
-  GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
-                                                      &prd->query, peerreq));
   GSF_pending_request_cancel_ (pr, GNUNET_NO);
-  GNUNET_free (peerreq);
+  free_pending_request (peerreq, &prd->query);
   return GNUNET_OK;
 }
 
@@ -883,12 +898,7 @@ handle_p2p_reply (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
   prd = GSF_pending_request_get_data_ (pr);
   if (NULL == data)
   {
-    GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# P2P searches active"),
-                              -1, GNUNET_NO);
-    GNUNET_break (GNUNET_YES ==
-                  GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
-                                                        &prd->query, peerreq));
-    GNUNET_free (peerreq);
+    free_pending_request (peerreq, &prd->query);
     return;
   }
   GNUNET_break (type != GNUNET_BLOCK_TYPE_ANY);
@@ -1292,21 +1302,9 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
         return NULL;
       }
       /* existing request has lower TTL, drop old one! */
-      GNUNET_STATISTICS_update (GSF_stats,
-                                gettext_noop ("# P2P searches active"), -1,
-                                GNUNET_NO);
       priority += prd->priority;
       GSF_pending_request_cancel_ (pr, GNUNET_YES);
-      GNUNET_assert (GNUNET_YES ==
-                     GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
-                                                           &gm->query,
-                                                           peerreq));
-      if (peerreq->kill_task != GNUNET_SCHEDULER_NO_TASK)
-      {
-        GNUNET_SCHEDULER_cancel (peerreq->kill_task);
-        peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
-      }
-      GNUNET_free (peerreq);
+      free_pending_request (peerreq, &gm->query);
     }
   }
 
