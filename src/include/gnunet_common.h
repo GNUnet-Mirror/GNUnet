@@ -49,7 +49,7 @@
 /**
  * Version of the API (for entire gnunetutil.so library).
  */
-#define GNUNET_UTIL_VERSION 0x00090000
+#define GNUNET_UTIL_VERSION 0x00090100
 
 /**
  * Named constants for return values.  The following

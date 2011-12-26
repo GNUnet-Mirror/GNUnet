@@ -23,7 +23,8 @@ libgnunetats_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 libgnunetats_la_LDFLAGS = \
- $(GN_LIB_LDFLAGS)
+ $(GN_LIB_LDFLAGS) \
+  -version-info 1:0:1
 
 
 bin_PROGRAMS = \

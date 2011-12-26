@@ -47,8 +47,9 @@ libgnunettesting_la_LIBADD = $(XLIB) \
  -lm \
  $(top_builddir)/src/util/libgnunetutil.la 
 libgnunettesting_la_LDFLAGS = \
- $(GN_LIB_LDFLAGS)
- 
+ $(GN_LIB_LDFLAGS) \
+ -version-info 0:1:0
+
 bin_PROGRAMS = \
  gnunet-testing
 
