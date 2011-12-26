@@ -742,6 +742,8 @@ test_transport_api_reliability_tcp_peer1.conf\
 test_transport_api_reliability_tcp_peer2.conf\
 test_transport_api_reliability_wlan_peer1.conf\
 test_transport_api_reliability_wlan_peer2.conf\
+test_transport_api_bidirectional_connect_peer1.conf\
+test_transport_api_bidirectional_connect_peer2.conf\
 test_transport_api_tcp_nat_peer1.conf\
 test_transport_api_tcp_nat_peer2.conf\
 test_transport_api_tcp_peer1.conf\
