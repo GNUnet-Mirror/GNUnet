@@ -105,6 +105,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
   const char *start;
   char ifc[12];
   char addrstr[128];
+  char bcstr[128];
   FILE *f;
   int have_ifc;
   struct sockaddr_in a4;
@@ -149,7 +150,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
     while (('\0' != *start) && (isspace (*start)))
       start++;
     if (                        /* Linux */
-         (1 == SSCANF (start, "inet addr:%127s", addrstr)) ||
+	(2 == SSCANF (start, "inet addr:%127s Bcast:%127s", addrstr, bcstr)) ||
          (1 == SSCANF (start, "inet6 addr:%127s", addrstr)) ||
          /* Solaris, OS X */
          (1 == SSCANF (start, "inet %127s", addrstr)) ||

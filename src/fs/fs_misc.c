@@ -207,6 +207,25 @@ GNUNET_FS_year_to_time (unsigned int year)
 }
 
 
+/**
+ * Convert an expiration time to the respective year (rounds)
+ *
+ * @param at absolute time 
+ * @return year a year (after 1970), 0 on error
+ */
+unsigned int 
+GNUNET_FS_time_to_year (struct GNUNET_TIME_Absolute at)
+{
+  struct tm *t;
+  time_t tp;
+
+  tp = at.abs_value / 1000;    /* ms to seconds */
+  t = gmtime (&tp);
+  if (t == NULL)
+    return 0;
+  return t->tm_year + 1900;
+
+}
 
 
 /* end of fs_misc.c */

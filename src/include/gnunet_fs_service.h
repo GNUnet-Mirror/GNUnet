@@ -1643,6 +1643,16 @@ GNUNET_FS_year_to_time (unsigned int year);
 
 
 /**
+ * Convert an expiration time to the respective year (rounds)
+ *
+ * @param at absolute time 
+ * @return year a year (after 1970), 0 on error
+ */
+unsigned int 
+GNUNET_FS_time_to_year (struct GNUNET_TIME_Absolute at);
+
+
+/**
  * Handle to the file-sharing service.
  */
 struct GNUNET_FS_Handle;
