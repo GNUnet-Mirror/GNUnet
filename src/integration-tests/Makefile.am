@@ -72,7 +72,23 @@ EXTRA_DIST = \
    test_integration_disconnect.py.in \
    test_integration_restart.py.in \
    test_integration_clique.py.in \
-   test_integration_clique_nat.py.in
+   test_integration_clique_nat.py.in \
+   confs/c_bootstrap_server.conf \
+   confs/c_nat_client.conf \
+   confs/c_no_nat_client_2.conf \
+   confs/c_no_nat_client.conf \
+   hostkeys/0000-hostkey \
+   hostkeys/0001-hostkey \
+   hostkeys/0002-hostkey \
+   hostkeys/0003-hostkey \
+   hostkeys/0004-hostkey \
+   hostkeys/0005-hostkey \
+   hostkeys/0006-hostkey \
+   hostkeys/0007-hostkey \
+   hostkeys/0008-hostkey \
+   hostkeys/0009-hostkey 
+
+
 
 #   test_integration_disconnect_nat.py 
 
