@@ -293,7 +293,6 @@ src/include/gnunet_hello_lib.h
 src/include/gnunet_directories.h
 src/include/gnunet_mesh_service.h
 src/include/gnunet_chat_service.h
-src/include/gnunet_upnp_service.h
 src/include/gnunet_client_lib.h
 src/include/gnunet_container_lib.h
 src/include/gnunet_signatures.h
