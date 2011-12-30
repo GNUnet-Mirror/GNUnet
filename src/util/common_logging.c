@@ -604,7 +604,7 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   }
   if (altlog_fd == -1)
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "fopen", fn);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
     if (dirwarn)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Failed to create or access directory for log file `%s'\n"),
