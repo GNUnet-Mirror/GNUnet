@@ -246,8 +246,9 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                              &plugins))
   {
     FPRINTF (stderr,
-             _
-             ("No transport plugins configured, peer will never communicate\n"), NULL);
+             "%s",
+	     _
+             ("No transport plugins configured, peer will never communicate\n"));
     ret = 4;
     return;
   }
