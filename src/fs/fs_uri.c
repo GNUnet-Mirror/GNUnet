@@ -1573,7 +1573,7 @@ get_keywords_from_parens (const char *s, char **array, int index)
 /**
  * Where to break up keywords
  */
-#define TOKENS "_. /-!?#&+@\"\'\\;:"
+#define TOKENS "_. /-!?#&+@\"\'\\;:,"
 
 /**
  * Break the filename up by TOKENS to make
