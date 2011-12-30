@@ -199,7 +199,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct NSEPeer *pos;
 
 #if VERBOSE
-  fprintf (stderr, "Ending test.\n");
+  FPRINTF (stderr, "%s",  "Ending test.\n");
 #endif
 
   if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
@@ -252,7 +252,7 @@ handle_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
     GNUNET_free (output_buffer);
   }
   else
-    fprintf (stderr,
+    FPRINTF (stderr,
              "Received network size estimate from peer %s. Size: %f std.dev. %f\n",
              GNUNET_i2s (&peer->daemon->id), estimate, std_dev);
 

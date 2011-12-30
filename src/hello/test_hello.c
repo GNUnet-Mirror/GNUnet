@@ -38,7 +38,7 @@ my_addr_gen (void *cls, size_t max, void *buf)
   struct GNUNET_HELLO_Address address;
 
 #if DEBUG
-  fprintf (stderr, "DEBUG: my_addr_gen called with i = %d\n", *i);
+  FPRINTF (stderr, "DEBUG: my_addr_gen called with i = %d\n", *i);
 #endif
   if (0 == *i)
     return 0;
@@ -61,7 +61,7 @@ check_addr (void *cls, const struct GNUNET_HELLO_Address *address,
   unsigned int *i = cls;
 
 #if DEBUG
-  fprintf (stderr, "DEBUG: check_addr called with i = %d and addrlen = %u\n",
+  FPRINTF (stderr, "DEBUG: check_addr called with i = %d and addrlen = %u\n",
            *i, address->address_length);
 #endif
   GNUNET_assert (address->address_length > 0);
@@ -82,7 +82,7 @@ remove_some (void *cls, const struct GNUNET_HELLO_Address *address,
   unsigned int *i = cls;
 
 #if DEBUG
-  fprintf (stderr, "DEBUG: remove_some called with i = %d and addrlen = %u\n",
+  FPRINTF (stderr, "DEBUG: remove_some called with i = %d and addrlen = %u\n",
            *i, address->address_length);
 #endif
   GNUNET_assert (address->address_length > 0);
@@ -110,7 +110,7 @@ main (int argc, char *argv[])
   startup_time = GNUNET_TIME_absolute_get ();
   memset (&publicKey, 42, sizeof (publicKey));
 #if VERBOSE
-  fprintf (stderr, "Testing HELLO creation (without addresses)...\n");
+  FPRINTF (stderr, "%s",  "Testing HELLO creation (without addresses)...\n");
 #endif
   i = 0;
   msg1 = GNUNET_HELLO_create (&publicKey, &my_addr_gen, &i);
@@ -118,14 +118,14 @@ main (int argc, char *argv[])
   GNUNET_assert (0 < GNUNET_HELLO_size (msg1));
 
 #if VERBOSE
-  fprintf (stderr, "Testing address iteration (empty set)...\n");
+  FPRINTF (stderr, "%s",  "Testing address iteration (empty set)...\n");
 #endif
   GNUNET_assert (NULL ==
                  GNUNET_HELLO_iterate_addresses (msg1, GNUNET_NO, &check_addr,
                                                  &i));
 
 #if VERBOSE
-  fprintf (stderr, "Testing HELLO creation (with one address)...\n");
+  FPRINTF (stderr, "%s",  "Testing HELLO creation (with one address)...\n");
 #endif
   i = 1;
   msg2 = GNUNET_HELLO_create (&publicKey, &my_addr_gen, &i);
@@ -133,7 +133,7 @@ main (int argc, char *argv[])
   GNUNET_assert (GNUNET_HELLO_size (msg1) < GNUNET_HELLO_size (msg2));
 
 #if VERBOSE
-  fprintf (stderr, "Testing address iteration (one address)...\n");
+  FPRINTF (stderr, "%s",  "Testing address iteration (one address)...\n");
 #endif
   i = 1;
   GNUNET_assert (NULL ==
@@ -142,14 +142,14 @@ main (int argc, char *argv[])
   GNUNET_assert (i == 0);
 
 #if VERBOSE
-  fprintf (stderr, "Testing get_key from HELLO...\n");
+  FPRINTF (stderr, "%s",  "Testing get_key from HELLO...\n");
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_HELLO_get_key (msg2, &pk));
   GNUNET_assert (0 == memcmp (&publicKey, &pk, sizeof (pk)));
   GNUNET_free (msg1);
 
 #if VERBOSE
-  fprintf (stderr, "Testing HELLO creation (with two addresses)...\n");
+  FPRINTF (stderr, "%s",  "Testing HELLO creation (with two addresses)...\n");
 #endif
   i = 2;
   msg3 = GNUNET_HELLO_create (&publicKey, &my_addr_gen, &i);
@@ -157,7 +157,7 @@ main (int argc, char *argv[])
   GNUNET_assert (GNUNET_HELLO_size (msg2) < GNUNET_HELLO_size (msg3));
 
 #if VERBOSE
-  fprintf (stderr, "Testing address iteration (two addresses)...\n");
+  FPRINTF (stderr, "%s",  "Testing address iteration (two addresses)...\n");
 #endif
   i = 3;
   GNUNET_assert (NULL ==
@@ -166,7 +166,7 @@ main (int argc, char *argv[])
   GNUNET_assert (i == 0);
 
 #if VERBOSE
-  fprintf (stderr, "Testing HELLO merge...\n");
+  FPRINTF (stderr, "%s",  "Testing HELLO merge...\n");
 #endif
   msg1 = GNUNET_HELLO_merge (msg2, msg3);
   GNUNET_assert (GNUNET_HELLO_size (msg1) == GNUNET_HELLO_size (msg3));
@@ -179,7 +179,7 @@ main (int argc, char *argv[])
   GNUNET_free (msg1);
 
 #if VERBOSE
-  fprintf (stderr, "Testing address iteration to copy HELLO...\n");
+  FPRINTF (stderr, "%s",  "Testing address iteration to copy HELLO...\n");
 #endif
   i = 2;
   msg1 = GNUNET_HELLO_iterate_addresses (msg3, GNUNET_YES, &remove_some, &i);
@@ -193,7 +193,7 @@ main (int argc, char *argv[])
   GNUNET_free (msg1);
 
 #if VERBOSE
-  fprintf (stderr, "Testing delta address iteration...\n");
+  FPRINTF (stderr, "%s",  "Testing delta address iteration...\n");
 #endif
   i = 2;
   GNUNET_HELLO_iterate_new_addresses (msg3, msg2, startup_time, &check_addr,

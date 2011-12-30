@@ -309,7 +309,7 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
   sec = cfg->sections;
   while (sec != NULL)
   {
-    if (0 > fprintf (fp, "[%s]\n", sec->name))
+    if (0 > FPRINTF (fp, "[%s]\n", sec->name))
     {
       error = 1;
       break;
@@ -327,7 +327,7 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
           pos[0] = '\\';
           pos[1] = 'n';
         }
-        if (0 > fprintf (fp, "%s = %s\n", ent->key, val))
+        if (0 > FPRINTF (fp, "%s = %s\n", ent->key, val))
         {
           error = 1;
           GNUNET_free (val);
@@ -339,7 +339,7 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     if (error != 0)
       break;
-    if (0 > fprintf (fp, "\n"))
+    if (0 > FPRINTF (fp, "%s\n", ""))
     {
       error = 1;
       break;

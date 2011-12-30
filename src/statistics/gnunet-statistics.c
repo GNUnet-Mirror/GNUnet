@@ -95,7 +95,7 @@ cleanup (void *cls, int success)
 
   if (success != GNUNET_OK)
   {
-    fprintf (stderr, _("Failed to obtain statistics.\n"));
+    FPRINTF (stderr, _("Failed to obtain statistics.\n"),NULL);
     ret = 1;
   }
   if (h != NULL)

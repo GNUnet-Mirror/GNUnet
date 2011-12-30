@@ -148,7 +148,7 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (peer == NULL)
   {
     if (err_msg != NULL)
-      fprintf (stderr, _("Error in communication with PEERINFO service\n"));
+      FPRINTF (stderr, "%s",  _("Error in communication with PEERINFO service\n"));
     GNUNET_PEERINFO_disconnect (peerinfo);
     return;
   }
@@ -191,7 +191,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   cfg = c;
   if (args[0] != NULL)
   {
-    fprintf (stderr, _("Invalid command line argument `%s'\n"), args[0]);
+    FPRINTF (stderr, _("Invalid command line argument `%s'\n"), args[0]);
     return;
   }
   if (get_self != GNUNET_YES)
@@ -199,7 +199,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     peerinfo = GNUNET_PEERINFO_connect (cfg);
     if (peerinfo == NULL)
     {
-      fprintf (stderr, _("Could not access PEERINFO service.  Exiting.\n"));
+      FPRINTF (stderr, "%s",  _("Could not access PEERINFO service.  Exiting.\n"));
       return;
     }
     GNUNET_PEERINFO_iterate (peerinfo, NULL,
@@ -213,14 +213,14 @@ run (void *cls, char *const *args, const char *cfgfile,
         GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
                                                  &fn))
     {
-      fprintf (stderr, _("Could not find option `%s:%s' in configuration.\n"),
+      FPRINTF (stderr, _("Could not find option `%s:%s' in configuration.\n"),
                "GNUNETD", "HOSTKEYFILE");
       return;
     }
     priv = GNUNET_CRYPTO_rsa_key_create_from_file (fn);
     if (priv == NULL)
     {
-      fprintf (stderr, _("Loading hostkey from `%s' failed.\n"), fn);
+      FPRINTF (stderr, _("Loading hostkey from `%s' failed.\n"), fn);
       GNUNET_free (fn);
       return;
     }

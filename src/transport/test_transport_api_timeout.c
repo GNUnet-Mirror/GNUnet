@@ -87,7 +87,7 @@ static int disconnects;
 
 
 #if VERBOSE
-#define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
+#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
 #define OKPP do { ok++; } while (0)
 #endif
@@ -210,13 +210,13 @@ timer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (time_running.rel_value ==
       GNUNET_TIME_relative_max (time_running, WAIT).rel_value)
   {
-    fprintf (stderr, "100%%\n");
+    FPRINTF (stderr, "%s",  "100%%\n");
     shutdown_flag = GNUNET_YES;
     GNUNET_SCHEDULER_add_now (&end, NULL);
   }
   else
   {
-    fprintf (stderr, "%u%%..", percentage);
+    FPRINTF (stderr, "%u%%..", percentage);
     timer_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (WAIT, 10),
                                       &timer, NULL);

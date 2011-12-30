@@ -270,7 +270,7 @@ main (int argc, char *argv[])
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
       return 1;
     }
-    fprintf (stderr,
+    FPRINTF (stderr,
              "IPv6 support seems to not be available (%s), not testing it!\n",
              strerror (errno));
   }

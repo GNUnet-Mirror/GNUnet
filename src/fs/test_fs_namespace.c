@@ -139,7 +139,7 @@ abort_sks_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  fprintf (stderr, "Operation timed out\n");
+  FPRINTF (stderr, "%s",  "Operation timed out\n");
   kill_task = GNUNET_SCHEDULER_NO_TASK;
   abort_sks_search_task (NULL, tc);
   abort_ksk_search_task (NULL, tc);
@@ -158,7 +158,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
       if (!GNUNET_FS_uri_test_equal
           (sks_expect_uri, event->value.search.specifics.result.uri))
       {
-        fprintf (stderr, "Wrong result for sks search!\n");
+        FPRINTF (stderr, "%s",  "Wrong result for sks search!\n");
         err = 1;
       }
       /* give system 1ms to initiate update search! */
@@ -170,7 +170,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
       if (!GNUNET_FS_uri_test_equal
           (ksk_expect_uri, event->value.search.specifics.result.uri))
       {
-        fprintf (stderr, "Wrong result for ksk search!\n");
+        FPRINTF (stderr, "%s",  "Wrong result for ksk search!\n");
         err = 1;
       }
       GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task, NULL,
@@ -178,12 +178,12 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     }
     else
     {
-      fprintf (stderr, "Unexpected search result received!\n");
+      FPRINTF (stderr, "%s",  "Unexpected search result received!\n");
       GNUNET_break (0);
     }
     break;
   case GNUNET_FS_STATUS_SEARCH_ERROR:
-    fprintf (stderr, "Error searching file: %s\n",
+    FPRINTF (stderr, "Error searching file: %s\n",
              event->value.search.specifics.error.message);
     if (sks_search == event->value.search.sc)
       GNUNET_SCHEDULER_add_continuation (&abort_sks_search_task, NULL,
@@ -210,7 +210,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
   case GNUNET_FS_STATUS_SEARCH_STOPPED:
     return NULL;
   default:
-    fprintf (stderr, "Unexpected event: %d\n", event->status);
+    FPRINTF (stderr, "Unexpected event: %d\n", event->status);
     break;
   }
   return event->value.search.cctx;
@@ -227,7 +227,7 @@ publish_cont (void *cls, const struct GNUNET_FS_Uri *ksk_uri, const char *emsg)
 
   if (NULL != emsg)
   {
-    fprintf (stderr, "Error publishing: %s\n", emsg);
+    FPRINTF (stderr, "Error publishing: %s\n", emsg);
     err = 1;
     GNUNET_FS_stop (fs);
     return;
@@ -237,7 +237,7 @@ publish_cont (void *cls, const struct GNUNET_FS_Uri *ksk_uri, const char *emsg)
   sks_uri = GNUNET_FS_uri_parse (sbuf, &msg);
   if (msg != NULL)
   {
-    fprintf (stderr, "failed to parse URI `%s': %s\n", sbuf, msg);
+    FPRINTF (stderr, "failed to parse URI `%s': %s\n", sbuf, msg);
     err = 1;
     GNUNET_FS_stop (fs);
     GNUNET_free (msg);
@@ -287,7 +287,7 @@ adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 
   if (NULL != emsg)
   {
-    fprintf (stderr, "Error publishing: %s\n", emsg);
+    FPRINTF (stderr, "Error publishing: %s\n", emsg);
     err = 1;
     GNUNET_FS_stop (fs);
     return;
@@ -336,7 +336,7 @@ testNamespace ()
   GNUNET_FS_namespace_list (fs, &ns_iterator, &ok);
   if (GNUNET_NO == ok)
   {
-    fprintf (stderr, "namespace_list failed to find namespace!\n");
+    FPRINTF (stderr, "%s",  "namespace_list failed to find namespace!\n");
     GNUNET_FS_namespace_delete (ns, GNUNET_YES);
     GNUNET_FS_stop (fs);
     err = 1;
@@ -399,7 +399,7 @@ main (int argc, char *argv[])
   stop_arm (&p1);
   if (GNUNET_YES != update_started)
   {
-    fprintf (stderr, "Update search never started!\n");
+    FPRINTF (stderr, "%s",  "Update search never started!\n");
     err = 1;
   }
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-namespace/");

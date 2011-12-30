@@ -189,7 +189,7 @@ main (int argc, char *argv[])
     prog++;
     if (prog == 10000)
     {
-      fprintf (stderr, "Upload failed to complete -- last event: %u\n",
+      FPRINTF (stderr, "Upload failed to complete -- last event: %u\n",
                lastEvent);
     }
     CHECK (prog < 10000);

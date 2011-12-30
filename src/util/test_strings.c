@@ -89,7 +89,7 @@ check ()
    * however, the "0:05 19" should always be there; hence: */
   if (NULL == strstr (r, "0:05 19"))
   {
-    fprintf (stderr, "Got %s\n", r);
+    FPRINTF (stderr, "Got %s\n", r);
     GNUNET_break (0);
     GNUNET_free (r);
     return 1;

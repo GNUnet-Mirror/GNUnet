@@ -213,14 +213,14 @@ eventCallback (void *cls, const GNUNET_FSUI_Event * event)
 #endif
     break;
   case GNUNET_FSUI_unindex_error:
-    fprintf (stderr, "Error unindexing: %s\n",
+    FPRINTF (stderr, "Error unindexing: %s\n",
              event->data.UnindexError.message);
     break;
   case GNUNET_FSUI_upload_error:
-    fprintf (stderr, "Error uploading: %s\n", event->data.UploadError.message);
+    FPRINTF (stderr, "Error uploading: %s\n", event->data.UploadError.message);
     break;
   case GNUNET_FSUI_download_error:
-    fprintf (stderr, "Error downloading: %s\n",
+    FPRINTF (stderr, "Error downloading: %s\n",
              event->data.DownloadError.message);
     break;
   case GNUNET_FSUI_download_aborted:
@@ -277,7 +277,7 @@ main (int argc, char *argv[])
     GNUNET_GC_free (cfg);
     return -1;
   }
-  fprintf (stderr, "Setup...\n");
+  FPRINTF (stderr, "%s",  "Setup...\n");
 #if START_DAEMON
   GNUNET_disk_directory_remove (NULL,
                                 "/tmp/gnunet-fsui-recursive_download_test/");
@@ -297,7 +297,7 @@ main (int argc, char *argv[])
   kuri =
       GNUNET_ECRS_keyword_command_line_to_uri (ectx, 2,
                                                (const char **) keywords);
-  fprintf (stderr, "Uploading...\n");
+  FPRINTF (stderr, "%s",  "Uploading...\n");
   waitForEvent = GNUNET_FSUI_upload_completed;
   upload =
       GNUNET_FSUI_upload_start (ctx, fn,
@@ -322,7 +322,7 @@ main (int argc, char *argv[])
   upload = NULL;
   CHECK (upURI != NULL);
 
-  fprintf (stderr, "Downloading...\n");
+  FPRINTF (stderr, "%s",  "Downloading...\n");
   waitForEvent = GNUNET_FSUI_download_completed;
   fn43 = makeName (43);
   download =
@@ -341,7 +341,7 @@ main (int argc, char *argv[])
       break;
   }
 FAILURE:
-  fprintf (stderr, "Cleanup...\n");
+  FPRINTF (stderr, "%s",  "Cleanup...\n");
   if (meta != NULL)
     GNUNET_meta_data_destroy (meta);
   if (ctx != NULL)

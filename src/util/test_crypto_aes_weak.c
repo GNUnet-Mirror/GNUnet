@@ -136,7 +136,7 @@ getWeakKeys ()
   {
 
     if (number_of_runs % 1000 == 0)
-      fprintf (stderr, ".");
+      FPRINTF (stderr, "%s",  ".");
     /*printf("Got to run number %d.\n", number_of_runs); */
     GNUNET_CRYPTO_aes_create_session_key (&sessionkey);
 

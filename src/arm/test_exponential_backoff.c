@@ -303,15 +303,15 @@ do_nothing_restarted_notify_task (void *cls,
 #if LOG_BACKOFF
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
-      fprintf (killLogFilePtr, "%d.Reason is shutdown!\n", trialCount);
+      FPRINTF (killLogFilePtr, "%d.Reason is shutdown!\n", trialCount);
     }
   else if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
     {
-      fprintf (killLogFilePtr, "%d.Reason is timeout!\n", trialCount);
+      FPRINTF (killLogFilePtr, "%d.Reason is timeout!\n", trialCount);
     }
   else if ((tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE) != 0)
     {
-      fprintf (killLogFilePtr, "%d.Service is running!\n", trialCount);
+      FPRINTF (killLogFilePtr, "%d.Service is running!\n", trialCount);
     }
 #endif
   GNUNET_SCHEDULER_add_now (&kill_task, &a);
@@ -345,7 +345,7 @@ kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
       waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
 
 #if LOG_BACKOFF
-      fprintf (killLogFilePtr, "Waited for: %llu ms\n",
+      FPRINTF (killLogFilePtr, "Waited for: %llu ms\n",
 	       (unsigned long long) waitedFor.rel_value);
 #endif
     }

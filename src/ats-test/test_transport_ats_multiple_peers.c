@@ -225,7 +225,7 @@ evaluate_measurements ()
   stddev[0] /= c_new;
   stddev[0] = sqrt (stddev[0]);
   if (!machine_parsable)
-    fprintf (stderr, "new, %i measurements, average: %f stddev: %f\n", c_new,
+    FPRINTF (stderr, "new, %i measurements, average: %f stddev: %f\n", c_new,
              average[0], stddev[0]);
 
   average[1] = 0.0;
@@ -245,7 +245,7 @@ evaluate_measurements ()
   stddev[1] /= c_modified;
   stddev[1] = sqrt (stddev[1]);
   if (!machine_parsable)
-    fprintf (stderr, "modified, %i measurements, average: %f stddev: %f\n",
+    FPRINTF (stderr, "modified, %i measurements, average: %f stddev: %f\n",
              c_modified, average[1], stddev[1]);
 
   average[2] = 0.0;
@@ -265,11 +265,11 @@ evaluate_measurements ()
   stddev[2] = sqrt (stddev[2]);
 
   if (!machine_parsable)
-    fprintf (stderr, "unmodified, %i measurements, average: %f stddev: %f\n",
+    FPRINTF (stderr, "unmodified, %i measurements, average: %f stddev: %f\n",
              c_unmodified, average[2], stddev[2]);
 
   if (machine_parsable)
-    fprintf (stderr,
+    FPRINTF (stderr,
              "peers,%i,mechs,%llu," "new,%i,%f,%f," "mod,%i,%f,%f,"
              "unmod,%i,%f,%f\n", peers - 1,
              (unsigned long long) results_unmodified[0].mechs, c_new,
@@ -337,7 +337,7 @@ stats_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All %llu peers connected\n", value);
 #if !VERBOSE
     if (!machine_parsable)
-      fprintf (stderr, "%i", count);
+      FPRINTF (stderr, "%i", count);
 #endif
   }
 
@@ -395,7 +395,7 @@ stats_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
         }
         count++;
 #if VERBOSE
-        fprintf (stderr, "(new: %i / modified: %i / unmodified: %i) of %i \n",
+        FPRINTF (stderr, "(new: %i / modified: %i / unmodified: %i) of %i \n",
                  c_new, c_modified, c_unmodified, MEASUREMENTS);
 #endif
         if ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) &&
@@ -403,7 +403,7 @@ stats_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
         {
 #if !VERBOSE
           if (!machine_parsable)
-            fprintf (stdout, "\n");
+            FPRINTF (stdout, "\n");
 #endif
           if (stats_task != GNUNET_SCHEDULER_NO_TASK)
           {
@@ -418,7 +418,7 @@ stats_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
         current.timestamp = value;
 #if !VERBOSE
         if (!machine_parsable)
-          fprintf (stderr, "..%i", count);
+          FPRINTF (stderr, "..%i", count);
 #endif
         return GNUNET_OK;
       }

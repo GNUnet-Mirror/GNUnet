@@ -153,7 +153,7 @@ print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
 {
   struct StatMaster *sm = cls;
 
-  fprintf (stderr, "Peer %2u: %12s/%50s = %12llu\n", sm->daemon, subsystem,
+  FPRINTF (stderr, "Peer %2u: %12s/%50s = %12llu\n", sm->daemon, subsystem,
            name, (unsigned long long) value);
   return GNUNET_OK;
 }
@@ -234,7 +234,7 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fancy =
         GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
                                         1000LL / del.rel_value);
-    fprintf (stderr, "Download speed of type `%s' was %s/s\n", type, fancy);
+    FPRINTF (stderr, "Download speed of type `%s' was %s/s\n", type, fancy);
     GNUNET_free (fancy);
     if (NUM_DAEMONS != ++download_counter)
       return;                   /* more downloads to come */

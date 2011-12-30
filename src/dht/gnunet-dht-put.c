@@ -97,7 +97,7 @@ void
 message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (verbose)
-    fprintf (stderr, _("PUT request sent!\n"));
+    FPRINTF (stderr, "%s",  _("PUT request sent!\n"));
   GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -121,7 +121,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if ((query_key == NULL) || (data == NULL))
   {
-    fprintf (stderr, _("Must provide KEY and DATA for DHT put!\n"));
+    FPRINTF (stderr, "%s",  _("Must provide KEY and DATA for DHT put!\n"));
     ret = 1;
     return;
   }
@@ -129,12 +129,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   dht_handle = GNUNET_DHT_connect (cfg, 1);
   if (dht_handle == NULL)
   {
-    fprintf (stderr, _("Could not connect to %s service!\n"), "DHT");
+    FPRINTF (stderr, _("Could not connect to %s service!\n"), "DHT");
     ret = 1;
     return;
   }
   else if (verbose)
-    fprintf (stderr, _("Connected to %s service!\n"), "DHT");
+    FPRINTF (stderr, _("Connected to %s service!\n"), "DHT");
 
   if (query_type == GNUNET_BLOCK_TYPE_ANY)      /* Type of data not set */
     query_type = GNUNET_BLOCK_TYPE_TEST;
@@ -149,7 +149,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                          expiration_seconds));
 
   if (verbose)
-    fprintf (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
+    FPRINTF (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
              query_key, data);
   GNUNET_DHT_put (dht_handle, &key, replication, GNUNET_DHT_RO_NONE, query_type,
                   strlen (data), data, expiration, timeout, &message_sent_cont,

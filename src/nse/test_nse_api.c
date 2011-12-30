@@ -93,7 +93,7 @@ check_nse_message (void *cls, struct GNUNET_TIME_Absolute timestamp,
 {
   int *ok = cls;
 
-  fprintf (stderr,
+  FPRINTF (stderr,
            "Received NSE message, estimate %f, standard deviation %f.\n",
            estimate, std_dev);
   /* Fantastic check below. Expect NaN, the only thing not equal to itself. */
@@ -162,7 +162,7 @@ check ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping arm.\n");
   stop_arm (&p1);
   if (0 != ok)
-    fprintf (stderr, "No information received from NSE service!\n");
+    FPRINTF (stderr, "%s",  "No information received from NSE service!\n");
   return ok;
 }
 

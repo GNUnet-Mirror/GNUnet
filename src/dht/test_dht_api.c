@@ -97,7 +97,7 @@ static int ok;
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 #if VERBOSE
-#define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
+#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
 #define OKPP do { ok++; } while (0)
 #endif
@@ -133,7 +133,7 @@ end_badly ()
 {
   /* do work here */
 #if VERBOSE
-  fprintf (stderr, "Ending on an unhappy note.\n");
+  FPRINTF (stderr, "%s",  "Ending on an unhappy note.\n");
 #endif
 
   if ((retry_context.peer_ctx != NULL) &&

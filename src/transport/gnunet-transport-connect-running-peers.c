@@ -73,7 +73,7 @@ char *cfg_file_p1;
 char *cfg_file_p2;
 
 #if VERBOSE
-#define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
+#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
 #define OKPP do { ok++; } while (0)
 #endif
@@ -368,7 +368,7 @@ main (int argc, char *argv[])
 
   if (argc < 3)
   {
-    fprintf (stderr,
+    FPRINTF (stderr,
              "usage gnunet-transport-connect-running-peers <cfg_peer1> <cfg_peer2>\n");
     return -1;
   }

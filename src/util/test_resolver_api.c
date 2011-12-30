@@ -264,8 +264,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                 _("gethostbyname() could not lookup IP address: %s\n"),
                 hstrerror (h_errno));
 #endif
-    fprintf (stderr,
-             "System seems to be off-line, will not run all DNS tests\n");
+    FPRINTF (stderr,
+             "System seems to be off-line, will not run all DNS tests\n", NULL);
     *ok = 0;                    /* mark test as passing anyway */
     return;
   }
@@ -422,7 +422,7 @@ check ()
   GNUNET_OS_process_close (proc);
   proc = NULL;
   if (ok != 0)
-    fprintf (stderr, "Missed some resolutions: %u\n", ok);
+    FPRINTF (stderr, "Missed some resolutions: %u\n", ok);
   return ok;
 }
 

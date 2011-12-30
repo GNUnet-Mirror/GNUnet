@@ -252,7 +252,7 @@ run_tests (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, c
 
   if (success != GNUNET_YES)
   {
-    fprintf (stderr,
+    FPRINTF (stderr,
              "Test 'put' operation failed with error `%s' database likely not setup, skipping test.",
              msg);
     GNUNET_free (crc);
@@ -282,7 +282,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                             (GNUNET_TIME_UNIT_SECONDS), 0, 1,
                             GNUNET_TIME_UNIT_MINUTES, &run_tests, crc))
   {
-    fprintf (stderr, "Test 'put' operation failed.\n");
+    FPRINTF (stderr, "%s",  "Test 'put' operation failed.\n");
     GNUNET_free (crc);
     ok = 1;
   }
@@ -331,7 +331,7 @@ check ()
   GNUNET_OS_process_close (proc);
   proc = NULL;
   if (ok != 0)
-    fprintf (stderr, "Missed some testcases: %u\n", ok);
+    FPRINTF (stderr, "Missed some testcases: %u\n", ok);
   return ok;
 }
 

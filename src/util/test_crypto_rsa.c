@@ -47,7 +47,7 @@ testEncryptDecrypt ()
   struct GNUNET_TIME_Absolute start;
   int ok;
 
-  fprintf (stderr, "W");
+  FPRINTF (stderr, "%s",  "W");
   hostkey = GNUNET_CRYPTO_rsa_key_create ();
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
 
@@ -55,12 +55,12 @@ testEncryptDecrypt ()
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     if (GNUNET_SYSERR ==
         GNUNET_CRYPTO_rsa_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &pkey,
                                    &target))
     {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
+      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
       ok++;
       continue;
     }
@@ -68,7 +68,7 @@ testEncryptDecrypt ()
         GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, result,
                                    strlen (TESTSTRING) + 1))
     {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
+      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
       ok++;
       continue;
 
@@ -102,7 +102,7 @@ testEncryptPerformance ()
   struct GNUNET_TIME_Absolute start;
   int ok;
 
-  fprintf (stderr, "W");
+  FPRINTF (stderr, "%s",  "W");
   hostkey = GNUNET_CRYPTO_rsa_key_create ();
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
 
@@ -110,12 +110,12 @@ testEncryptPerformance ()
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     if (GNUNET_SYSERR ==
         GNUNET_CRYPTO_rsa_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &pkey,
                                    &target))
     {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
+      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
       ok++;
       continue;
     }
@@ -142,7 +142,7 @@ testEncryptDecryptSK ()
   struct GNUNET_TIME_Absolute start;
   int ok;
 
-  fprintf (stderr, "W");
+  FPRINTF (stderr, "%s",  "W");
   hostkey = GNUNET_CRYPTO_rsa_key_create ();
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
 
@@ -150,14 +150,14 @@ testEncryptDecryptSK ()
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     GNUNET_CRYPTO_aes_create_session_key (&insk);
     if (GNUNET_SYSERR ==
         GNUNET_CRYPTO_rsa_encrypt (&insk,
                                    sizeof (struct GNUNET_CRYPTO_AesSessionKey),
                                    &pkey, &target))
     {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
+      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_encrypt returned SYSERR\n");
       ok++;
       continue;
     }
@@ -165,7 +165,7 @@ testEncryptDecryptSK ()
         GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, &outsk,
                                    sizeof (struct GNUNET_CRYPTO_AesSessionKey)))
     {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
+      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
       ok++;
       continue;
     }
@@ -198,7 +198,7 @@ testSignVerify ()
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
 
-  fprintf (stderr, "W");
+  FPRINTF (stderr, "%s",  "W");
   hostkey = GNUNET_CRYPTO_rsa_key_create ();
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
   start = GNUNET_TIME_absolute_get ();
@@ -207,10 +207,10 @@ testSignVerify ()
 
   for (i = 0; i < ITER; i++)
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
     {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
+      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
       continue;
     }
@@ -253,16 +253,16 @@ testSignPerformance ()
 
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
-  fprintf (stderr, "W");
+  FPRINTF (stderr, "%s",  "W");
   hostkey = GNUNET_CRYPTO_rsa_key_create ();
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
     {
-      fprintf (stderr, "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
+      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
       continue;
     }

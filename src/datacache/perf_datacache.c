@@ -71,8 +71,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (h == NULL)
   {
-    fprintf (stderr,
-             "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+    FPRINTF (stderr, "%s", "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
     return;
   }
   exp = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS);
@@ -81,15 +80,15 @@ run (void *cls, char *const *args, const char *cfgfile,
   for (i = 0; i < ITERATIONS; i++)
   {
     if (0 == i % (ITERATIONS / 80))
-      fprintf (stderr, ".");
+      FPRINTF (stderr, "%s",  ".");
     GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
     ASSERT (GNUNET_OK ==
             GNUNET_DATACACHE_put (h, &k, sizeof (GNUNET_HashCode),
                                   (const char *) &n, 1 + i % 16, exp));
     k = n;
   }
-  fprintf (stderr, "\n");
-  fprintf (stdout, "Stored %u items in %llums\n", ITERATIONS,
+  FPRINTF (stderr, "%s",  "\n");
+  FPRINTF (stdout, "Stored %u items in %llums\n", ITERATIONS,
            (unsigned long long)
            GNUNET_TIME_absolute_get_duration (start).rel_value);
   GNUNET_snprintf (gstr, sizeof (gstr), "DATACACHE-%s", plugin_name);
@@ -101,13 +100,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   for (i = 0; i < ITERATIONS; i++)
   {
     if (0 == i % (ITERATIONS / 80))
-      fprintf (stderr, ".");
+      FPRINTF (stderr, "%s",  ".");
     GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
     GNUNET_DATACACHE_get (h, &k, 1 + i % 16, &checkIt, &n);
     k = n;
   }
-  fprintf (stderr, "\n");
-  fprintf (stdout,
+  FPRINTF (stderr, "%s",  "\n");
+  FPRINTF (stdout,
            "Found %u/%u items in %llums (%u were deleted during storage processing)\n",
            found, ITERATIONS,
            (unsigned long long)
@@ -169,7 +168,7 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "perf-datacache", "nohelp", options, &run, NULL);
   if (ok != 0)
-    fprintf (stderr, "Missed some perfcases: %d\n", ok);
+    FPRINTF (stderr, "Missed some perfcases: %d\n", ok);
   return ok;
 }
 

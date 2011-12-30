@@ -59,10 +59,10 @@ test_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   target =
       GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
                                         (GNUNET_TIME_UNIT_MILLISECONDS, i));
-  fprintf (stderr, ".");
+  FPRINTF (stderr, "%s",  ".");
   if (i > MAXV)
   {
-    fprintf (stderr, "\n");
+    FPRINTF (stderr, "%s",  "\n");
     return;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -79,13 +79,13 @@ check ()
   FPRINTF (stdout, "Sleep precision: %llu ms. ",
            cumDelta / 1000 / (MAXV / INCR));
   if (cumDelta <= 10 * MAXV / INCR)
-    fprintf (stdout, "Timer precision is excellent.\n");
+    FPRINTF (stdout, "%s",  "Timer precision is excellent.\n");
   else if (cumDelta <= 50 * MAXV / INCR)        /* 50 ms average deviation */
-    fprintf (stdout, "Timer precision is good.\n");
+    FPRINTF (stdout, "%s",  "Timer precision is good.\n");
   else if (cumDelta > 250 * MAXV / INCR)
-    fprintf (stdout, "Timer precision is awful.\n");
+    FPRINTF (stdout, "%s",  "Timer precision is awful.\n");
   else
-    fprintf (stdout, "Timer precision is acceptable.\n");
+    FPRINTF (stdout, "%s",  "Timer precision is acceptable.\n");
   return 0;
 }
 

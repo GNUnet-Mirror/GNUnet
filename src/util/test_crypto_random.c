@@ -43,7 +43,7 @@ test (enum GNUNET_CRYPTO_Quality mode)
     b2 = GNUNET_CRYPTO_random_permute (mode, 1024);
     if (0 == memcmp (b2, buf, sizeof (buf)))
     {
-      fprintf (stderr, "!");
+      FPRINTF (stderr, "%s",  "!");
       GNUNET_free (b2);
       continue;
     }

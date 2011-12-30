@@ -129,7 +129,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == args[0])
   {
-    fprintf (stderr, _("You must specify a filename to inspect."));
+    FPRINTF (stderr, "%s",  _("You must specify a filename to inspect."));
     ret = 1;
     return;
   }

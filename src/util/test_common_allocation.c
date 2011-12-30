@@ -105,7 +105,7 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-common-allocation", "WARNING", NULL);
   ret = check ();
   if (ret != 0)
-    fprintf (stderr, "ERROR %d.\n", ret);
+    FPRINTF (stderr, "ERROR %d.\n", ret);
   return ret;
 }
 

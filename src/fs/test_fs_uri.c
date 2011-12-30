@@ -94,7 +94,7 @@ testLocation ()
   cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, "test_fs_uri_data.conf"))
   {
-    fprintf (stderr, "Failed to parse configuration file\n");
+    FPRINTF (stderr, "%s",  "Failed to parse configuration file\n");
     GNUNET_FS_uri_destroy (baseURI);
     GNUNET_CONFIGURATION_destroy (cfg);
     return 1;
@@ -316,11 +316,11 @@ main (int argc, char *argv[])
   failureCount += testLocation ();
   for (i = 0; i < 255; i++)
   {
-    /* fprintf (stderr, "."); */
+    /* FPRINTF (stderr, "%s",  "."); */
     failureCount += testNamespace (i);
     failureCount += testFile (i);
   }
-  /* fprintf (stderr, "\n"); */
+  /* FPRINTF (stderr, "%s",  "\n"); */
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-uri");
   if (failureCount != 0)
     return 1;

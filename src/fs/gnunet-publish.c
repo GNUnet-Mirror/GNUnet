@@ -115,7 +115,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     if (verbose)
     {
       s = GNUNET_STRINGS_relative_time_to_string (info->value.publish.eta);
-      fprintf (stdout, _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
+      FPRINTF (stdout, _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
                info->value.publish.filename,
                (unsigned long long) info->value.publish.completed,
                (unsigned long long) info->value.publish.size, s);
@@ -123,7 +123,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     }
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
-    fprintf (stderr, _("Error publishing: %s.\n"),
+    FPRINTF (stderr, _("Error publishing: %s.\n"),
              info->value.publish.specifics.error.message);
     if (kill_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -134,11 +134,11 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
-    fprintf (stdout, _("Publishing `%s' done.\n"),
+    FPRINTF (stdout, _("Publishing `%s' done.\n"),
              info->value.publish.filename);
     s = GNUNET_FS_uri_to_string (info->value.publish.specifics.
                                  completed.chk_uri);
-    fprintf (stdout, _("URI is `%s'.\n"), s);
+    FPRINTF (stdout, _("URI is `%s'.\n"), s);
     GNUNET_free (s);
     if (info->value.publish.pctx == NULL)
     {
@@ -157,10 +157,10 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   case GNUNET_FS_STATUS_UNINDEX_PROGRESS:
     return NULL;
   case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
-    fprintf (stderr, _("Cleanup after abort complete.\n"));
+    FPRINTF (stderr, "%s",  _("Cleanup after abort complete.\n"));
     return NULL;
   default:
-    fprintf (stderr, _("Unexpected status: %d\n"), info->status);
+    FPRINTF (stderr, _("Unexpected status: %d\n"), info->status);
     return NULL;
   }
   return "";                    /* non-null */
@@ -190,7 +190,7 @@ meta_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
     return 0;
   if (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME)
     return 0;
-  fprintf (stdout, "\t%s - %s\n", EXTRACTOR_metatype_to_string (type), data);
+  FPRINTF (stdout, "\t%s - %s\n", EXTRACTOR_metatype_to_string (type), data);
   return 0;
 }
 
@@ -206,7 +206,7 @@ meta_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
 static int
 keyword_printer (void *cls, const char *keyword, int is_mandatory)
 {
-  fprintf (stdout, "\t%s\n", keyword);
+  FPRINTF (stdout, "\t%s\n", keyword);
   return GNUNET_OK;
 }
 
@@ -269,14 +269,14 @@ publish_inspector (void *cls, struct GNUNET_FS_FileInformation *fi,
     fn = GNUNET_CONTAINER_meta_data_get_by_type (m,
                                                  EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
     fs = GNUNET_STRINGS_byte_size_fancy (length);
-    fprintf (stdout, _("Meta data for file `%s' (%s)\n"), fn, fs);
+    FPRINTF (stdout, _("Meta data for file `%s' (%s)\n"), fn, fs);
     GNUNET_CONTAINER_meta_data_iterate (m, &meta_printer, NULL);
-    fprintf (stdout, _("Keywords for file `%s' (%s)\n"), fn, fs);
+    FPRINTF (stdout, _("Keywords for file `%s' (%s)\n"), fn, fs);
     GNUNET_free (fn);
     GNUNET_free (fs);
     if (NULL != *uri)
       GNUNET_FS_uri_ksk_get_keywords (*uri, &keyword_printer, NULL);
-    fprintf (stdout, "\n");
+    FPRINTF (stdout, "%s",  "\n");
   }
   if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (m))
     GNUNET_FS_file_information_inspect (fi, &publish_inspector, fi);
@@ -293,7 +293,7 @@ uri_sks_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
 {
   if (emsg != NULL)
   {
-    fprintf (stderr, "%s\n", emsg);
+    FPRINTF (stderr, "%s\n", emsg);
     ret = 1;
   }
   GNUNET_FS_uri_destroy (uri);
@@ -314,7 +314,7 @@ uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
 
   if (emsg != NULL)
   {
-    fprintf (stderr, "%s\n", emsg);
+    FPRINTF (stderr, "%s\n", emsg);
     ret = 1;
   }
   if (pseudonym != NULL)
@@ -322,7 +322,7 @@ uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
     ns = GNUNET_FS_namespace_create (ctx, pseudonym);
     if (ns == NULL)
     {
-      fprintf (stderr, _("Failed to create namespace `%s'\n"), pseudonym);
+      FPRINTF (stderr, _("Failed to create namespace `%s'\n"), pseudonym);
       ret = 1;
     }
     else
@@ -385,7 +385,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     if (NULL == this_id)
     {
-      fprintf (stderr, _("Option `%s' is required when using option `%s'.\n"),
+      FPRINTF (stderr, _("Option `%s' is required when using option `%s'.\n"),
                "-t", "-P");
       ret = -1;
       return;
@@ -395,14 +395,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   {                             /* ordinary insertion checks */
     if (NULL != next_id)
     {
-      fprintf (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
                "-N", "-P");
       ret = -1;
       return;
     }
     if (NULL != this_id)
     {
-      fprintf (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
                "-t", "-P");
       ret = -1;
       return;
@@ -414,7 +414,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                        GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
   {
-    fprintf (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
+    FPRINTF (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
     ret = 1;
     return;
   }
@@ -424,7 +424,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     namespace = GNUNET_FS_namespace_create (ctx, pseudonym);
     if (NULL == namespace)
     {
-      fprintf (stderr, _("Could not create namespace `%s'\n"), pseudonym);
+      FPRINTF (stderr, _("Could not create namespace `%s'\n"), pseudonym);
       GNUNET_FS_stop (ctx);
       ret = 1;
       return;
@@ -436,7 +436,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     uri = GNUNET_FS_uri_parse (uri_string, &emsg);
     if (uri == NULL)
     {
-      fprintf (stderr, _("Failed to parse URI: %s\n"), emsg);
+      FPRINTF (stderr, _("Failed to parse URI: %s\n"), emsg);
       GNUNET_free (emsg);
       if (namespace != NULL)
         GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
@@ -494,7 +494,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   EXTRACTOR_plugin_remove_all (plugins);
   if (fi == NULL)
   {
-    fprintf (stderr, _("Could not publish `%s': %s\n"), args[0], emsg);
+    FPRINTF (stderr, _("Could not publish `%s': %s\n"), args[0], emsg);
     GNUNET_free (emsg);
     if (namespace != NULL)
       GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
@@ -517,7 +517,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                 GNUNET_FS_PUBLISH_OPTION_NONE);
   if (NULL == pc)
   {
-    fprintf (stderr, _("Could not start publishing.\n"));
+    FPRINTF (stderr, "%s",  _("Could not start publishing.\n"));
     GNUNET_FS_stop (ctx);
     ret = 1;
     return;

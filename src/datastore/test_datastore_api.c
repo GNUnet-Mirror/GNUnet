@@ -193,10 +193,10 @@ check_value (void *cls, const GNUNET_HashCode * key, size_t size,
     return;
   }
 #if 0
-  fprintf (stderr, "Check value got `%s' of size %u, type %d, expire %llu\n",
+  FPRINTF (stderr, "Check value got `%s' of size %u, type %d, expire %llu\n",
            GNUNET_h2s (key), (unsigned int) size, type,
            (unsigned long long) expiration.abs_value);
-  fprintf (stderr,
+  FPRINTF (stderr,
            "Check value iteration %d wants size %u, type %d, expire %llu\n", i,
            (unsigned int) get_size (i), get_type (i),
            (unsigned long long) get_expiration (i).abs_value);
@@ -461,11 +461,11 @@ run_tests (void *cls, int32_t success, struct GNUNET_TIME_Absolute min_expiratio
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     return;
   case GNUNET_NO:
-    fprintf (stderr, "Test 'put' operation failed, key already exists (!?)\n");
+    FPRINTF (stderr, "%s", "Test 'put' operation failed, key already exists (!?)\n");
     GNUNET_free (crc);
     return;
   case GNUNET_SYSERR:
-    fprintf (stderr,
+    FPRINTF (stderr,
              "Test 'put' operation failed with error `%s' database likely not setup, skipping test.\n",
              msg);
     GNUNET_free (crc);
@@ -495,7 +495,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                             (GNUNET_TIME_UNIT_SECONDS), 0, 1,
                             GNUNET_TIME_UNIT_MINUTES, &run_tests, crc))
   {
-    fprintf (stderr, "Test 'put' operation failed.\n");
+    FPRINTF (stderr, "%s",  "Test 'put' operation failed.\n");
     ok = 1;
     GNUNET_free (crc);
   }
@@ -548,7 +548,7 @@ check ()
   proc = NULL;
 #endif
   if (ok != 0)
-    fprintf (stderr, "Missed some testcases: %u\n", ok);
+    FPRINTF (stderr, "Missed some testcases: %u\n", ok);
   return ok;
 }
 

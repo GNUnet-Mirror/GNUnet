@@ -123,7 +123,7 @@ check_success (void *cls, int success, struct GNUNET_TIME_Absolute min_expiratio
     return;
   }
 #if REPORT_ID
-  fprintf (stderr, "I");
+  FPRINTF (stderr, "%s",  "I");
 #endif
   stored_bytes += crc->size;
   stored_ops++;
@@ -166,7 +166,7 @@ remove_next (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration,
     return;
   }
 #if REPORT_ID
-  fprintf (stderr, "D");
+  FPRINTF (stderr, "%s",  "D");
 #endif
   GNUNET_assert (GNUNET_OK == success);
   GNUNET_SCHEDULER_add_now (&run_continuation, crc);
@@ -284,7 +284,7 @@ run_tests (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, c
 
   if (success != GNUNET_YES)
   {
-    fprintf (stderr,
+    FPRINTF (stderr,
              "Test 'put' operation failed with error `%s' database likely not setup, skipping test.",
              msg);
     GNUNET_free (crc);
@@ -314,7 +314,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                             (GNUNET_TIME_UNIT_SECONDS), 0, 1,
                             GNUNET_TIME_UNIT_MINUTES, &run_tests, crc))
   {
-    fprintf (stderr, "Test 'put' operation failed.\n");
+    FPRINTF (stderr, "%s",  "Test 'put' operation failed.\n");
     ok = 1;
     GNUNET_free (crc);
   }
@@ -396,7 +396,7 @@ main (int argc, char *argv[])
   if (pos != plugin_name)
     pos[0] = '.';
 #if REPORT_ID
-  fprintf (stderr, "\n");
+  FPRINTF (stderr, "%s",  "\n");
 #endif
   GNUNET_DISK_directory_remove (dir_name);
   return ret;

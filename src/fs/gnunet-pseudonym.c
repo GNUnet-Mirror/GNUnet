@@ -100,7 +100,7 @@ ns_printer (void *cls, const char *name, const GNUNET_HashCode * id)
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
   GNUNET_CRYPTO_hash_to_enc (id, &enc);
-  fprintf (stdout, "%s (%s)\n", name, (const char *) &enc);
+  FPRINTF (stdout, "%s (%s)\n", name, (const char *) &enc);
 }
 
 
@@ -116,9 +116,9 @@ pseudo_printer (void *cls, const GNUNET_HashCode * pseudonym,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  fprintf (stdout, "%s (%d):\n", id, rating);
+  FPRINTF (stdout, "%s (%d):\n", id, rating);
   GNUNET_CONTAINER_meta_data_iterate (md, &EXTRACTOR_meta_data_print, stdout);
-  fprintf (stdout, "\n");
+  FPRINTF (stdout, "%s",  "\n");
   GNUNET_free (id);
   return GNUNET_OK;
 }
@@ -133,7 +133,7 @@ post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 
   if (emsg != NULL)
   {
-    fprintf (stderr, "%s", emsg);
+    FPRINTF (stderr, "%s", emsg);
     ret = 1;
   }
   if (ns != NULL)
@@ -237,16 +237,16 @@ run (void *cls, char *const *args, const char *cfgfile,
       else
       {
         if (ksk_uri != NULL)
-          fprintf (stderr, _("Option `%s' ignored\n"), "-k");
+          FPRINTF (stderr, _("Option `%s' ignored\n"), "-k");
       }
     }
   }
   else
   {
     if (root_identifier != NULL)
-      fprintf (stderr, _("Option `%s' ignored\n"), "-r");
+      FPRINTF (stderr, _("Option `%s' ignored\n"), "-r");
     if (ksk_uri != NULL)
-      fprintf (stderr, _("Option `%s' ignored\n"), "-k");
+      FPRINTF (stderr, _("Option `%s' ignored\n"), "-k");
   }
 
   post_advertising (NULL, NULL, NULL);

@@ -274,8 +274,8 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   if (dotOutFile != NULL)
   {
-    fprintf (dotOutFile, "}");
     fclose (dotOutFile);
+    FPRINTF (dotOutFile, "%s",  "}");
   }
 
   ok = 0;
@@ -382,7 +382,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (dotOutFile != NULL)
   {
-    fprintf (dotOutFile, "}");
+    FPRINTF (dotOutFile, "%s",  "}");
     fclose (dotOutFile);
   }
 }
@@ -896,18 +896,18 @@ all_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (dotOutFile != NULL)
   {
     if (distance == 1)
-      fprintf (dotOutFile, "\tn%s -- n%s;\n", d->shortname, second_shortname);
+      FPRINTF (dotOutFile, "\tn%s -- n%s;\n", d->shortname, second_shortname);
     else if (distance == 2)
-      fprintf (dotOutFile, "\tn%s -- n%s [color=blue];\n", d->shortname,
+      FPRINTF (dotOutFile, "\tn%s -- n%s [color=blue];\n", d->shortname,
                second_shortname);
     else if (distance == 3)
-      fprintf (dotOutFile, "\tn%s -- n%s [color=red];\n", d->shortname,
+      FPRINTF (dotOutFile, "\tn%s -- n%s [color=red];\n", d->shortname,
                second_shortname);
     else if (distance == 4)
-      fprintf (dotOutFile, "\tn%s -- n%s [color=green];\n", d->shortname,
+      FPRINTF (dotOutFile, "\tn%s -- n%s [color=green];\n", d->shortname,
                second_shortname);
     else
-      fprintf (dotOutFile, "\tn%s -- n%s [color=brown];\n", d->shortname,
+      FPRINTF (dotOutFile, "\tn%s -- n%s [color=brown];\n", d->shortname,
                second_shortname);
   }
   GNUNET_free (second_shortname);
@@ -1067,7 +1067,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   dotOutFile = fopen (dotOutFileName, "w");
   if (dotOutFile != NULL)
   {
-    fprintf (dotOutFile, "strict graph G {\n");
+    FPRINTF (dotOutFile, "%s",  "strict graph G {\n");
   }
 
 #if VERBOSE

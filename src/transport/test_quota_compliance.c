@@ -130,7 +130,7 @@ static struct GNUNET_TIME_Absolute start_time;
  */
 
 #if VERBOSE
-#define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
+#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
 #define OKPP do { ok++; } while (0)
 #endif
@@ -147,7 +147,7 @@ end ()
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   datarate = (total_bytes_sent * 1000) / delta;
 
-  fprintf (stderr, "Throughput was %llu b/s\n", datarate);
+  FPRINTF (stderr, "Throughput was %llu b/s\n", datarate);
 
   test_failed = GNUNET_NO;
   if (datarate > quota_in_p2)
@@ -365,7 +365,7 @@ notify_ready (void *cls, size_t size, void *buf)
   total_bytes_sent += ret;
   if (n == TOTAL_MSGS)
   {
-    fprintf (stderr, "\n");
+    FPRINTF (stderr, "%s",  "\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All messages sent\n");
   }
   return ret;
@@ -417,12 +417,12 @@ measure (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   counter++;
   if ((DURATION.rel_value / 1000) < counter)
   {
-    fprintf (stderr, ".\n");
+    FPRINTF (stderr, "%s",  ".\n");
     GNUNET_SCHEDULER_add_now (&end, NULL);
   }
   else
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     measure_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &measure, NULL);
   }

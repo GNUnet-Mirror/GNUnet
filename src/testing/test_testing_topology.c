@@ -253,8 +253,8 @@ finish_testing ()
 
   if (dotOutFile != NULL)
   {
-    fprintf (dotOutFile, "}");
-    fclose (dotOutFile);
+    FPRINTF (dotOutFile, "%s",  "}");
+    FCLOSE (dotOutFile);
   }
 
   ok = 0;
@@ -326,19 +326,19 @@ topology_cb (void *cls, const struct GNUNET_PeerIdentity *first,
   {
     if (outfile != NULL)
     {
-      fprintf (outfile, "\t\"%s\" -- ", GNUNET_i2s (first));
-      fprintf (outfile, "\"%s\";\n", GNUNET_i2s (second));
+      FPRINTF (outfile, "\t\"%s\" -- ", GNUNET_i2s (first));
+      FPRINTF (outfile, "\"%s\";\n", GNUNET_i2s (second));
     }
     topology_connections++;
   }
   else
   {
-    fprintf (stderr,
+    FPRINTF (stderr,
              "Finished iterating over topology, %d total connections!\n",
              topology_connections);
     if (outfile != NULL)
     {
-      fprintf (outfile, "}\n");
+      FPRINTF (outfile, "%s",  "}\n");
       fclose (outfile);
 #if DO_STATS
       GNUNET_TESTING_get_statistics (pg, &stats_finished, &stats_print, NULL);
@@ -366,16 +366,16 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
   if ((total_messages_received) % modnum == 0)
   {
     if (total_messages_received == 0)
-      fprintf (stdout, "0%%");
+      FPRINTF (stdout, "%s",  "0%%");
     else
-      fprintf (stdout, "%d%%",
+      FPRINTF (stdout, "%d%%",
                (int) (((float) total_messages_received / expected_messages) *
                       100));
 
   }
   else if (total_messages_received % dotnum == 0)
   {
-    fprintf (stdout, ".");
+    FPRINTF (stdout, "%s",  ".");
   }
   fflush (stdout);
 #endif
@@ -394,7 +394,7 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (total_messages_received == expected_messages)
   {
 #if PROGRESS_BARS
-    fprintf (stdout, "100%%]\n");
+    FPRINTF (stdout, "%s",  "100%%]\n");
 #endif
     GNUNET_SCHEDULER_cancel (die_task);
     GNUNET_asprintf (&dotOutFileNameFinished, "%s.dot", "final_topology");
@@ -402,7 +402,7 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_free (dotOutFileNameFinished);
     if (dotOutFileFinished != NULL)
     {
-      fprintf (dotOutFileFinished, "strict graph G {\n");
+      FPRINTF (dotOutFileFinished, "%s",  "strict graph G {\n");
     }
     topology_connections = 0;
     GNUNET_TESTING_get_topology (pg, &topology_cb, dotOutFileFinished);
@@ -464,7 +464,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (dotOutFile != NULL)
   {
-    fprintf (dotOutFile, "}");
+    FPRINTF (dotOutFile, "%s",  "}");
     fclose (dotOutFile);
   }
 }
@@ -680,16 +680,16 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     if ((total_connections) % modnum == 0)
     {
       if (total_connections == 0)
-        fprintf (stdout, "0%%");
+        FPRINTF (stdout, "%s",  "0%%");
       else
-        fprintf (stdout, "%d%%",
+        FPRINTF (stdout, "%d%%",
                  (int) (((float) total_connections / expected_connections) *
                         100));
 
     }
     else if (total_connections % dotnum == 0)
     {
-      fprintf (stdout, ".");
+      FPRINTF (stdout, "%s",  ".");
     }
     fflush (stdout);
 #endif
@@ -708,7 +708,7 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
 
     expected_messages++;
     if (dotOutFile != NULL)
-      fprintf (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
+      FPRINTF (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
                second_daemon->shortname);
   }
 #if VERBOSE
@@ -724,7 +724,7 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
   if (total_connections == expected_connections)
   {
 #if PROGRESS_BARS
-    fprintf (stdout, "100%%]\n");
+    FPRINTF (stdout, "%s",  "100%%]\n");
 #endif
 #if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -740,7 +740,7 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
 #if DELAY_FOR_LOGGING
-    fprintf (stdout, "Sending test messages in 10 seconds.\n");
+    FPRINTF (stdout, "%s",  "Sending test messages in 10 seconds.\n");
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 10),
                                   &send_test_messages, test_messages);
@@ -754,7 +754,7 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                                   test_messages);
 #endif
 #if PROGRESS_BARS
-    fprintf (stdout, "Test message progress: [");
+    FPRINTF (stdout, "%s",  "Test message progress: [");
 #endif
 
   }
@@ -837,7 +837,7 @@ connect_topology ()
   if (dotnum == 0)
     dotnum = 1;
 #if PROGRESS_BARS
-  fprintf (stdout, "Peer connection progress: [");
+  FPRINTF (stdout, "%s",  "Peer connection progress: [");
 #endif
 }
 
@@ -851,7 +851,7 @@ create_topology ()
 #if PROGRESS_BARS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Topology set up, now starting peers!\n");
-    fprintf (stdout, "Daemon start progress [");
+    FPRINTF (stdout, "%s",  "Daemon start progress [");
 #endif
     GNUNET_TESTING_daemons_continue_startup (pg);
   }
@@ -892,15 +892,15 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
   if ((num_peers - peers_left) % modnum == 0)
   {
     if (num_peers - peers_left == 0)
-      fprintf (stdout, "0%%");
+      FPRINTF (stdout, "%s",  "0%%");
     else
-      fprintf (stdout, "%d%%",
+      FPRINTF (stdout, "%d%%",
                (int) (((float) (num_peers - peers_left) / num_peers) * 100));
 
   }
   else if ((num_peers - peers_left) % dotnum == 0)
   {
-    fprintf (stdout, ".");
+    FPRINTF (stdout, "%s",  ".");
   }
   fflush (stdout);
 #endif
@@ -908,7 +908,7 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
   if (peers_left == 0)
   {
 #if PROGRESS_BARS
-    fprintf (stdout, "100%%]\n");
+    FPRINTF (stdout, "%s",  "100%%]\n");
 #endif
 #if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -922,7 +922,7 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
                                       (GNUNET_TIME_UNIT_MINUTES, 8), &end_badly,
                                       "from peers_started_callback");
 #if DELAY_FOR_LOGGING
-    fprintf (stdout, "Connecting topology in 10 seconds\n");
+    FPRINTF (stdout, "%s",  "Connecting topology in 10 seconds\n");
     gather_log_data ();
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 10),
@@ -962,15 +962,15 @@ hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
   if ((num_peers - peers_left) % modnum == 0)
   {
     if (num_peers - peers_left == 0)
-      fprintf (stdout, "0%%");
+      FPRINTF (stdout, "%s",  "0%%");
     else
-      fprintf (stdout, "%d%%",
+      FPRINTF (stdout, "%d%%",
                (int) (((float) (num_peers - peers_left) / num_peers) * 100));
 
   }
   else if ((num_peers - peers_left) % dotnum == 0)
   {
-    fprintf (stdout, ".");
+    FPRINTF (stdout, "%s",  ".");
   }
   fflush (stdout);
 #endif
@@ -978,7 +978,7 @@ hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
   if (peers_left == 0)
   {
 #if PROGRESS_BARS
-    fprintf (stdout, "100%%]\n");
+    FPRINTF (stdout, "%s",  "100%%]\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All %d hostkeys created, now creating topology!\n", num_peers);
 #endif
@@ -1009,7 +1009,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   dotOutFile = fopen (dotOutFileName, "w");
   if (dotOutFile != NULL)
   {
-    fprintf (dotOutFile, "strict graph G {\n");
+    FPRINTF (dotOutFile, "%s",  "strict graph G {\n");
   }
 
 #if VERBOSE
@@ -1156,7 +1156,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (dotnum == 0)
     dotnum = 1;
 #if PROGRESS_BARS
-  fprintf (stdout, "Hostkey generation progress: [");
+  FPRINTF (stdout, "%s",  "Hostkey generation progress: [");
 #endif
   /* Set up a task to end testing if peer start fails */
   die_task =

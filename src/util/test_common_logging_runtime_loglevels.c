@@ -171,7 +171,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     buf_ptr += rd;
     bytes += rd;
 #if VERBOSE
-    fprintf (stderr, "got %d bytes, reading more\n", rd);
+    FPRINTF (stderr, "got %d bytes, reading more\n", rd);
 #endif
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                     stdout_read_handle, &read_call,
@@ -180,7 +180,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
 #if VERBOSE
-  fprintf (stderr, "bytes is %d:%s\n", bytes, buf);
+  FPRINTF (stderr, "bytes is %d:%s\n", bytes, buf);
 #endif
 
   /* +------CHILD OUTPUT--
@@ -251,7 +251,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                           &delays[7], level)))
   {
     if (bytes == 20 * 16)
-      fprintf (stderr, "Ran out of buffer space!\n");
+      FPRINTF (stderr, "%s",  "Ran out of buffer space!\n");
     GNUNET_break (0);
     ok = 2;
     GNUNET_SCHEDULER_cancel (die_task);

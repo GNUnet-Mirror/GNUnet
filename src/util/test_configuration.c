@@ -240,14 +240,14 @@ checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfgDefault, int option)
   GNUNET_CONFIGURATION_iterate (cfg, diffsCallBack, &cbData);
   if (1 == (ret = cbData.status))
   {
-    fprintf (stderr,
+    FPRINTF (stderr, "%s", 
              "Incorrect Configuration Diffs: Diffs may contain data not actually edited\n");
     goto housekeeping;
   }
   cbData.cfgDiffs = cfg;
   GNUNET_CONFIGURATION_iterate (cfgDiffs, diffsCallBack, &cbData);
   if ((ret = cbData.status) == 1)
-    fprintf (stderr,
+    FPRINTF (stderr, "%s", 
              "Incorrect Configuration Diffs: Data may be missing in diffs\n");
 
 housekeeping:
@@ -277,7 +277,7 @@ testConfig ()
     return 1;
   if (0 != strcmp ("b", c))
   {
-    fprintf (stderr, "Got `%s'\n", c);
+    FPRINTF (stderr, "Got `%s'\n", c);
     GNUNET_free (c);
     return 2;
   }
@@ -470,7 +470,7 @@ main (int argc, char *argv[])
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_parse (cfg, "test_configuration_data.conf"))
   {
-    fprintf (stderr, "Failed to parse configuration file\n");
+    FPRINTF (stderr, "%s",  "Failed to parse configuration file\n");
     GNUNET_CONFIGURATION_destroy (cfg);
     return 1;
   }
@@ -484,7 +484,7 @@ main (int argc, char *argv[])
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, "/tmp/gnunet-test.conf"))
   {
-    fprintf (stderr, "Failed to write configuration file\n");
+    FPRINTF (stderr, "%s",  "Failed to write configuration file\n");
     GNUNET_CONFIGURATION_destroy (cfg);
     return 1;
   }
@@ -546,7 +546,7 @@ main (int argc, char *argv[])
 error:
   if (failureCount != 0)
   {
-    fprintf (stderr, "Test failed: %u\n", failureCount);
+    FPRINTF (stderr, "Test failed: %u\n", failureCount);
     return 1;
   }
   return 0;

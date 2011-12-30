@@ -138,7 +138,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   const char *emsg = cls;
 
-  fprintf (stderr, "Error: %s\n", emsg);
+  FPRINTF (stderr, "Error: %s\n", emsg);
   if (curr_get_ctx.retry_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (curr_get_ctx.retry_task);
@@ -183,7 +183,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   if (0 !=
       memcmp (&get_context->peer->hashPubKey, key, sizeof (GNUNET_HashCode)))
   {
-    fprintf (stderr, "??\n");
+    FPRINTF (stderr, "%s",  "??\n");
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Key returned is not the same key as was searched for!\n");
     GNUNET_SCHEDULER_cancel (die_task);
@@ -192,7 +192,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                                   "key mismatch in get response!\n");
     return;
   }
-  fprintf (stderr, "!\n");
+  FPRINTF (stderr, "%s",  "!\n");
   if (get_context->retry_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (get_context->retry_task);
@@ -234,7 +234,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 get_context->get_attempts);
   else
   {
-    fprintf (stderr, "?\n");
+    FPRINTF (stderr, "%s",  "?\n");
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Too many attempts failed, ending test!\n",
                 get_context->get_attempts);
@@ -244,7 +244,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   "GET attempt failed, ending test!\n");
     return;
   }
-  fprintf (stderr, ".");
+  FPRINTF (stderr, "%s",  ".");
   get_context->get_attempts++;
   get_context->retry_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -381,7 +381,7 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 {
   if (emsg != NULL)
   {
-    fprintf (stderr, "Failed to start daemon: `%s'\n", emsg);
+    FPRINTF (stderr, "Failed to start daemon: `%s'\n", emsg);
     return;
   }
   GNUNET_assert (id != NULL);

@@ -69,7 +69,7 @@ check ()
     pid = GNUNET_PEER_intern (&pidArr[i]);
     if (pid != (i + 1))
     {
-      fprintf (stderr, "Unexpected Peer ID returned by intern function\n");
+      FPRINTF (stderr, "%s",  "Unexpected Peer ID returned by intern function\n");
       return 1;
     }
   }
@@ -80,7 +80,7 @@ check ()
     pid = GNUNET_PEER_intern (&pidArr[i]);
     if (pid != (i + 1))
     {
-      fprintf (stderr, "Unexpected Peer ID returned by intern function\n");
+      FPRINTF (stderr, "%s",  "Unexpected Peer ID returned by intern function\n");
       return 1;
     }
   }

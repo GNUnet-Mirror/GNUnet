@@ -71,8 +71,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   h = GNUNET_DATACACHE_create (cfg, "testcache");
   if (h == NULL)
   {
-    fprintf (stderr,
-             "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+    FPRINTF (stderr,
+             "Failed to initialize datacache.  Database likely not setup, skipping test.\n", NULL);
     return;
   }
   exp = GNUNET_TIME_absolute_get ();
@@ -154,7 +154,7 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "test-datacache", "nohelp", options, &run, NULL);
   if (ok != 0)
-    fprintf (stderr, "Missed some testcases: %d\n", ok);
+    FPRINTF (stderr, "Missed some testcases: %d\n", ok);
   return ok;
 }
 

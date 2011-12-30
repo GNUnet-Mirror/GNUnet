@@ -56,7 +56,7 @@ check_it (void *cls, const struct GNUNET_HELLO_Address *address,
 #if DEBUG
   if (addrlen > 0)
   {
-    fprintf (stderr, "name: %s, addr: %s\n", tname, (const char *) addr);
+    FPRINTF (stderr, "name: %s, addr: %s\n", tname, (const char *) addr);
   }
 #endif
   return GNUNET_OK;
@@ -110,13 +110,13 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (peer == NULL)
   {
 #if DEBUG
-    fprintf (stderr, "Process received NULL response\n");
+    FPRINTF (stderr, "Process received NULL response\n");
 #endif
   }
   else
   {
 #if DEBUG
-    fprintf (stderr, "Processed a peer\n");
+    FPRINTF (stderr, "Processed a peer\n");
 #endif
     numpeers++;
     if (0 && (hello != NULL))
@@ -179,7 +179,7 @@ check ()
   GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
                       "perf-peerinfo-api", "nohelp", options, &run, &ok);
-  fprintf (stderr, "Received %u/%u calls before timeout\n", numpeers,
+  FPRINTF (stderr, "Received %u/%u calls before timeout\n", numpeers,
            NUM_REQUESTS * NUM_REQUESTS / 2);
   GAUGER ("PEERINFO", "Peerinfo lookups", numpeers / 30, "peers/s");
 #if START_SERVICE

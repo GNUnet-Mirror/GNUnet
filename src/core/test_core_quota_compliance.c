@@ -227,7 +227,7 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   enum GNUNET_ErrorType kind = GNUNET_ERROR_TYPE_DEBUG;
 
   measure_task = GNUNET_SCHEDULER_NO_TASK;
-  fprintf (stdout, "\n");
+  FPRINTF (stdout, "%s",  "\n");
   running = GNUNET_NO;
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
@@ -498,7 +498,7 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
   n++;
   if (0 == (n % 10))
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
 
 
   if (running == GNUNET_YES)

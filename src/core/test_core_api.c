@@ -112,7 +112,7 @@ static void
 terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 #if VERBOSE
-  fprintf (stderr, "ENDING ANGRILY %u\n", ok);
+  FPRINTF (stderr, "ENDING ANGRILY %u\n", ok);
 #endif
   GNUNET_break (0);
   if (NULL != p1.ch)

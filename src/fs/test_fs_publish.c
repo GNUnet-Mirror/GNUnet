@@ -118,12 +118,12 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
     ret = event->value.publish.cctx;
-    fprintf (stderr, "Error publishing file: %s\n",
+    FPRINTF (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     err = 1;
     if (0 == strcmp ("publish-context-dir", event->value.publish.cctx))
     {
-      fprintf (stderr, "Scheduling abort task for error on `%s'\n",
+      FPRINTF (stderr, "Scheduling abort task for error on `%s'\n",
                (const char *) event->value.publish.cctx);
       GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);

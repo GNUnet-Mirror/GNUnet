@@ -86,19 +86,19 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     if (verbose)
     {
       s = GNUNET_STRINGS_relative_time_to_string (info->value.unindex.eta);
-      fprintf (stdout, _("Unindexing at %llu/%llu (%s remaining)\n"),
+      FPRINTF (stdout, _("Unindexing at %llu/%llu (%s remaining)\n"),
                (unsigned long long) info->value.unindex.completed,
                (unsigned long long) info->value.unindex.size, s);
       GNUNET_free (s);
     }
     break;
   case GNUNET_FS_STATUS_UNINDEX_ERROR:
-    fprintf (stderr, _("Error unindexing: %s.\n"),
+    FPRINTF (stderr, _("Error unindexing: %s.\n"),
              info->value.unindex.specifics.error.message);
     GNUNET_SCHEDULER_shutdown ();
     break;
   case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
-    fprintf (stdout, _("Unindexing done.\n"));
+    FPRINTF (stdout, "%s",  _("Unindexing done.\n"));
     GNUNET_SCHEDULER_shutdown ();
     break;
   case GNUNET_FS_STATUS_UNINDEX_STOPPED:
@@ -106,7 +106,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   default:
-    fprintf (stderr, _("Unexpected status: %d\n"), info->status);
+    FPRINTF (stderr, _("Unexpected status: %d\n"), info->status);
     break;
   }
   return NULL;
@@ -138,14 +138,14 @@ run (void *cls, char *const *args, const char *cfgfile,
                        GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
   {
-    fprintf (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
+    FPRINTF (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
     ret = 1;
     return;
   }
   uc = GNUNET_FS_unindex_start (ctx, args[0], NULL);
   if (NULL == uc)
   {
-    fprintf (stderr, _("Could not start unindex operation.\n"));
+    FPRINTF (stderr, "%s",  _("Could not start unindex operation.\n"));
     GNUNET_FS_stop (ctx);
     return;
   }

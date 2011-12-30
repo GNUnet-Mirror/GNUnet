@@ -680,7 +680,7 @@ output_message (enum GNUNET_ErrorType kind, const char *comp,
 
   if (GNUNET_stderr != NULL)
   {
-    fprintf (GNUNET_stderr, "%s %s %s %s", datestr, comp,
+    FPRINTF (GNUNET_stderr, "%s %s %s %s", datestr, comp,
              GNUNET_error_type_to_string (kind), msg);
     fflush (GNUNET_stderr);
   }

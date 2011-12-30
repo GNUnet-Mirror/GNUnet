@@ -60,8 +60,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (h == NULL)
   {
-    fprintf (stderr,
-             "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+    FPRINTF (stderr, "%s", "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
     return;
   }
   exp = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS);
@@ -69,7 +68,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 10; i++)
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
     for (j = i; j < sizeof (buf); j += 10)
     {
@@ -80,11 +79,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     k = n;
   }
-  fprintf (stderr, "\n");
+  FPRINTF (stderr, "%s",  "\n");
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 10; i++)
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
     if (i < 2)
       ASSERT (0 == GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
@@ -92,7 +91,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       ASSERT (0 < GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
     k = n;
   }
-  fprintf (stderr, "\n");
+  FPRINTF (stderr, "%s",  "\n");
   GNUNET_DATACACHE_destroy (h);
   return;
 FAILURE:
@@ -145,7 +144,7 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "test-datacache-quota", "nohelp", options, &run, NULL);
   if (ok != 0)
-    fprintf (stderr, "Missed some testcases: %d\n", ok);
+    FPRINTF (stderr, "Missed some testcases: %d\n", ok);
   return ok;
 }
 

@@ -46,13 +46,13 @@ testReadWrite ()
   ret = GNUNET_DISK_fn_read (".testfile", tmp, sizeof (tmp) - 1);
   if (ret < 0)
   {
-    fprintf (stderr, "Error reading file `%s' in testReadWrite\n", ".testfile");
+    FPRINTF (stderr, "Error reading file `%s' in testReadWrite\n", ".testfile");
     return 1;
   }
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
   {
-    fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
+    FPRINTF (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
              TESTSTRING, ".testfile");
     return 1;
   }
@@ -61,14 +61,14 @@ testReadWrite ()
   ret = GNUNET_DISK_fn_read (".testfile2", tmp, sizeof (tmp) - 1);
   if (ret < 0)
   {
-    fprintf (stderr, "Error reading file `%s' in testReadWrite\n",
+    FPRINTF (stderr, "Error reading file `%s' in testReadWrite\n",
              ".testfile2");
     return 1;
   }
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
   {
-    fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
+    FPRINTF (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
              TESTSTRING, ".testfile2");
     return 1;
   }
@@ -276,7 +276,7 @@ main (int argc, char *argv[])
   failureCount += testDirMani ();
   if (failureCount != 0)
   {
-    fprintf (stderr, "\n%u TESTS FAILED!\n", failureCount);
+    FPRINTF (stderr, "\n%u TESTS FAILED!\n", failureCount);
     return -1;
   }
   return 0;

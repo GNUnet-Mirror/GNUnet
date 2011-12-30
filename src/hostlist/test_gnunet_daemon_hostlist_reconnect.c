@@ -113,7 +113,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (peer == NULL)
     return;
 #if VERBOSE
-  fprintf (stderr, "Peer %s connected\n", GNUNET_i2s (peer));
+  FPRINTF (stderr, "Peer %s connected\n", GNUNET_i2s (peer));
 #endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected, shutting down.\n");
   ok = 0;
@@ -252,10 +252,10 @@ main (int argc, char *argv[])
   ret = check ();
   if (ret == 0)
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     /* now do it again */
     ret = check ();
-    fprintf (stderr, ".\n");
+    FPRINTF (stderr, "%s",  ".\n");
   }
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");

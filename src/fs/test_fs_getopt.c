@@ -35,6 +35,6 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  fprintf (stderr, "WARNING: testcase not yet written.\n");
+  FPRINTF (stderr, "%s",  "WARNING: testcase not yet written.\n");
   return 0;                     /* testcase passed */
 }

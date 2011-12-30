@@ -115,7 +115,7 @@ process_resolved_address (void *cls, const struct GNUNET_PeerIdentity *peer,
   /*
    * new_address = GNUNET_malloc (sizeof (struct AddressStringList));
    * #if VERBOSE
-   * fprintf (stderr, "Received address %s\n", address);
+   * FPRINTF (stderr, "Received address %s\n", address);
    * #endif
    *
    * new_address->address_string = GNUNET_strdup ("FIXME");
@@ -138,7 +138,7 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (peer != NULL)             /* Not yet finished */
   {
 #if VERBOSE
-    fprintf (stderr, "Learned about peer %s\n", GNUNET_i2s (peer));
+    FPRINTF (stderr, "Learned about peer %s\n", GNUNET_i2s (peer));
     peer_count++;
 #endif
     pc = GNUNET_malloc (sizeof (struct PrintContext));
@@ -150,7 +150,7 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if VERBOSE
   else
   {
-    fprintf (stderr, "Counted %u total connected peers.\n", peer_count);
+    FPRINTF (stderr, "Counted %u total connected peers.\n", peer_count);
   }
 #endif
 }
@@ -172,7 +172,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   cfg = c;
   if (args[0] != NULL)
   {
-    fprintf (stderr, _("Invalid command line argument `%s'\n"), args[0]);
+    FPRINTF (stderr, _("Invalid command line argument `%s'\n"), args[0]);
     return;
   }
 

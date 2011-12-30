@@ -44,7 +44,7 @@ main (int argc, char *argv[])
   unsigned int logs = 0;
 
   if (0 != putenv ("GNUNET_FORCE_LOG="))
-    fprintf (stderr, "Failed to putenv: %s\n", strerror (errno));
+    FPRINTF (stderr, "Failed to putenv: %s\n", strerror (errno));
   GNUNET_log_setup ("test-common-logging", "DEBUG", "/dev/null");
   GNUNET_logger_add (&my_log, &logs);
   GNUNET_logger_add (&my_log, &logs);
@@ -60,7 +60,7 @@ main (int argc, char *argv[])
   GNUNET_logger_remove (&my_log, &logs);
   if (logs != 4)
   {
-    fprintf (stdout, "Expected 4 log calls, got %u\n", logs);
+    FPRINTF (stdout, "Expected 4 log calls, got %u\n", logs);
     failureCount++;
   }
   GNUNET_break (0 ==
@@ -84,13 +84,13 @@ main (int argc, char *argv[])
   GNUNET_logger_remove (&my_log, &logs);
   if (logs != 1)
   {
-    fprintf (stdout, "Expected 1 log call, got %u\n", logs);
+    FPRINTF (stdout, "Expected 1 log call, got %u\n", logs);
     failureCount++;
   }
 
   if (failureCount != 0)
   {
-    fprintf (stdout, "%u TESTS FAILED!\n", failureCount);
+    FPRINTF (stdout, "%u TESTS FAILED!\n", failureCount);
     return -1;
   }
   return 0;

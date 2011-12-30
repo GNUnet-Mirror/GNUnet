@@ -37,7 +37,7 @@ my_log (void *ctx, enum GNUNET_ErrorType kind, const char *component,
 {
   if (strncmp ("test-common-logging-dummy", component, 25) != 0)
     return;
-  fprintf (stdout, "%s", msg);
+  FPRINTF (stdout, "%s", msg);
   fflush (stdout);
 }
 

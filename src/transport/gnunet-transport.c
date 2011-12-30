@@ -167,11 +167,11 @@ display_test_result (struct TestContext *tc, int result)
 {
   if (GNUNET_YES != result)
   {
-    fprintf (stderr, "Configuration for plugin `%s' did not work!\n", tc->name);
+    FPRINTF (stderr, "Configuration for plugin `%s' did not work!\n", tc->name);
   }
   else
   {
-    fprintf (stderr, "Configuration for plugin `%s' is working!\n", tc->name);
+    FPRINTF (stderr, "Configuration for plugin `%s' is working!\n", tc->name);
   }
   if (GNUNET_SCHEDULER_NO_TASK != tc->tsk)
   {
@@ -245,9 +245,9 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
       GNUNET_CONFIGURATION_get_value_string (cfg, "transport", "plugins",
                                              &plugins))
   {
-    fprintf (stderr,
+    FPRINTF (stderr,
              _
-             ("No transport plugins configured, peer will never communicate\n"));
+             ("No transport plugins configured, peer will never communicate\n"), NULL);
     ret = 4;
     return;
   }
@@ -259,7 +259,7 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
     if (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_number (cfg, section, "PORT", &bnd_port))
     {
-      fprintf (stderr,
+      FPRINTF (stderr,
                _("No port configured for plugin `%s', cannot test it\n"), tok);
       continue;
     }
@@ -310,14 +310,14 @@ do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (benchmark_receive)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    fprintf (stdout, _("Received %llu bytes/s (%llu bytes in %llu ms)\n"),
+    FPRINTF (stdout, _("Received %llu bytes/s (%llu bytes in %llu ms)\n"),
              1000 * traffic_received / (1 + duration.rel_value),
              traffic_received, (unsigned long long) duration.rel_value);
   }
   if (benchmark_send)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    fprintf (stdout, _("Transmitted %llu bytes/s (%llu bytes in %llu ms)\n"),
+    FPRINTF (stdout, _("Transmitted %llu bytes/s (%llu bytes in %llu ms)\n"),
              1000 * traffic_sent / (1 + duration.rel_value), traffic_sent,
              (unsigned long long) duration.rel_value);
   }
@@ -350,7 +350,7 @@ transmit_data (void *cls, size_t size, void *buf)
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                &transmit_data, NULL);
   if (verbosity > 0)
-    fprintf (stdout, _("Transmitting %u bytes to %s\n"), (unsigned int) size,
+    FPRINTF (stdout, _("Transmitting %u bytes to %s\n"), (unsigned int) size,
              GNUNET_i2s (&pid));
   return size;
 }
@@ -370,7 +370,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   if (verbosity > 0)
-    fprintf (stdout, _("Connected to %s\n"), GNUNET_i2s (peer));
+    FPRINTF (stdout, _("Connected to %s\n"), GNUNET_i2s (peer));
   if (0 != memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   ret = 0;
@@ -401,7 +401,7 @@ static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (verbosity > 0)
-    fprintf (stdout, _("Disconnected from %s\n"), GNUNET_i2s (peer));
+    FPRINTF (stdout, _("Disconnected from %s\n"), GNUNET_i2s (peer));
   if ((0 == memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity))) &&
       (NULL != th))
   {
@@ -430,7 +430,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (!benchmark_receive)
     return;
   if (verbosity > 0)
-    fprintf (stdout, _("Received %u bytes from %s\n"),
+    FPRINTF (stdout, _("Received %u bytes from %s\n"),
              (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
   if (traffic_received == 0)
     start_time = GNUNET_TIME_absolute_get ();
@@ -444,7 +444,7 @@ process_string (void *cls, const char *address)
 
   if ((address != NULL))
   {
-    fprintf (stdout, _("Peer `%s': %s %s\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name, address);
+    FPRINTF (stdout, _("Peer `%s': %s %s\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name, address);
   }
   else
   {
@@ -499,7 +499,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (benchmark_send && (NULL == cpid))
   {
-    fprintf (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+    FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
              "-s", "-C");
     return;
   }
@@ -508,7 +508,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = 1;
     if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey))
     {
-      fprintf (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
+      FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
       return;
     }
     handle =

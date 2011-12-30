@@ -59,7 +59,7 @@ processor (void *cls, const char *filename, const struct GNUNET_FS_Uri *uri,
       return;
     }
   }
-  fprintf (stderr, "Error at %s:%d\n", __FILE__, __LINE__);
+  FPRINTF (stderr, "Error at %s:%d\n", __FILE__, __LINE__);
 }
 
 static int
@@ -131,7 +131,7 @@ testDirectory (unsigned int i)
   GNUNET_FS_directory_builder_finish (db, &dlen, (void **) &data);
   s = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration
                                               (start));
-  fprintf (stdout,
+  FPRINTF (stdout,
            "Creating directory with %u entires and total size %llu took %s\n",
            i, (unsigned long long) dlen, s);
   GNUNET_free (s);

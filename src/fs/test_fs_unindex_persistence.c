@@ -196,14 +196,14 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     unindex = event->value.unindex.uc;
     return "unindex";
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
-    fprintf (stderr, "Error publishing file: %s\n",
+    FPRINTF (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     GNUNET_break (0);
     GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_UNINDEX_ERROR:
-    fprintf (stderr, "Error unindexing file: %s\n",
+    FPRINTF (stderr, "Error unindexing file: %s\n",
              event->value.unindex.specifics.error.message);
     GNUNET_SCHEDULER_add_continuation (&abort_unindex_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);

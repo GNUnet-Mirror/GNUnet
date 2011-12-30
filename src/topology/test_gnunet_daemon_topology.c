@@ -110,7 +110,7 @@ notify_connect_complete (void *cls, const struct GNUNET_PeerIdentity *first,
   *cc = NULL;
   if (NULL != emsg)
   {
-    fprintf (stderr, "Failed to connect two peers: %s\n", emsg);
+    FPRINTF (stderr, "Failed to connect two peers: %s\n", emsg);
     for (i = 0; i < NUM_PEERS; i++)
       if (NULL != cc[i])
       {

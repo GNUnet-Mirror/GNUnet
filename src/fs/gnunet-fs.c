@@ -72,9 +72,9 @@ static int
 print_indexed (void *cls, const char *filename, const GNUNET_HashCode * file_id)
 {
   if (verbose)
-    fprintf (stdout, "%s: %s\n", GNUNET_h2s (file_id), filename);
+    FPRINTF (stdout, "%s: %s\n", GNUNET_h2s (file_id), filename);
   else
-    fprintf (stdout, "%s\n", filename);
+    FPRINTF (stdout, "%s\n", filename);
   return GNUNET_OK;
 }
 

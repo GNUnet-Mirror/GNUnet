@@ -344,25 +344,25 @@ tree_node_debug (struct MeshTunnelTreeNode *n, uint16_t level)
   uint16_t i;
 
   for (i = 0; i < level; i++)
-    fprintf (stderr, "  ");
+    FPRINTF (stderr, "%s",  "  ");
   if (n->status == MESH_PEER_READY)
-    fprintf (stderr, "#");
+    FPRINTF (stderr, "%s",  "#");
   if (n->status == MESH_PEER_SEARCHING)
-    fprintf (stderr, "+");
+    FPRINTF (stderr, "%s",  "+");
   if (n->status == MESH_PEER_RELAY)
-    fprintf (stderr, "-");
+    FPRINTF (stderr, "%s",  "-");
   if (n->status == MESH_PEER_RECONNECTING)
-    fprintf (stderr, "*");
+    FPRINTF (stderr, "%s",  "*");
 
   GNUNET_PEER_resolve (n->peer, &id);
-  fprintf (stderr, "%s, [%u, %p] ", GNUNET_i2s (&id), n->peer, n);
+  FPRINTF (stderr, "%s, [%u, %p] ", GNUNET_i2s (&id), n->peer, n);
   if (NULL != n->parent)
   {
     GNUNET_PEER_resolve (n->parent->peer, &id);
-    fprintf (stderr, "(-> %s [%u])\n", GNUNET_i2s (&id), n->parent->peer);
+    FPRINTF (stderr, "(-> %s [%u])\n", GNUNET_i2s (&id), n->parent->peer);
   }
   else
-    fprintf (stderr, "(root)\n");
+    FPRINTF (stderr, "%s",  "(root)\n");
   for (c = n->children_head; NULL != c; c = c->next)
     tree_node_debug (c, level + 1);
 }

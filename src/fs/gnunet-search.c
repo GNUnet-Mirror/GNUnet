@@ -107,7 +107,7 @@ clean_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             GNUNET_DISK_PERM_USER_READ |
                             GNUNET_DISK_PERM_USER_WRITE))
   {
-    fprintf (stderr,
+    FPRINTF (stderr,
              _("Failed to write directory with search results to `%s'\n"),
              output_filename);
   }
@@ -178,7 +178,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     /* ignore */
     break;
   case GNUNET_FS_STATUS_SEARCH_ERROR:
-    fprintf (stderr, _("Error searching: %s.\n"),
+    FPRINTF (stderr, _("Error searching: %s.\n"),
              info->value.search.specifics.error.message);
     GNUNET_SCHEDULER_shutdown ();
     break;
@@ -187,7 +187,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   default:
-    fprintf (stderr, _("Unexpected status: %d\n"), info->status);
+    FPRINTF (stderr, _("Unexpected status: %d\n"), info->status);
     break;
   }
   return NULL;
@@ -228,7 +228,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   uri = GNUNET_FS_uri_ksk_create_from_args (argc, (const char **) args);
   if (NULL == uri)
   {
-    fprintf (stderr, _("Could not create keyword URI from arguments.\n"));
+    FPRINTF (stderr, "%s",  _("Could not create keyword URI from arguments.\n"));
     ret = 1;
     return;
   }
@@ -238,7 +238,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                        GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
   {
-    fprintf (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
+    FPRINTF (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
     GNUNET_FS_uri_destroy (uri);
     ret = 1;
     return;
@@ -252,7 +252,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_FS_uri_destroy (uri);
   if (NULL == sc)
   {
-    fprintf (stderr, _("Could not start searching.\n"));
+    FPRINTF (stderr, "%s",  _("Could not start searching.\n"));
     GNUNET_FS_stop (ctx);
     ret = 1;
     return;

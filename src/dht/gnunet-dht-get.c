@@ -129,7 +129,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
                      size_t size, const void *data)
 {
-  fprintf (stdout, "Result %d, type %d:\n%.*s\n", result_count, type,
+  FPRINTF (stdout, "Result %d, type %d:\n%.*s\n", result_count, type,
            (unsigned int) size, (char *) data);
   result_count++;
 }
@@ -155,7 +155,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (query_key == NULL)
   {
     if (verbose)
-      fprintf (stderr, "Must provide key for DHT GET!\n");
+      FPRINTF (stderr, "%s",  "Must provide key for DHT GET!\n");
     ret = 1;
     return;
   }
@@ -165,12 +165,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (dht_handle == NULL)
   {
     if (verbose)
-      fprintf (stderr, "Couldn't connect to DHT service!\n");
+      FPRINTF (stderr, "%s",  "Couldn't connect to DHT service!\n");
     ret = 1;
     return;
   }
   else if (verbose)
-    fprintf (stderr, "Connected to DHT service!\n");
+    FPRINTF (stderr, "%s",  "Connected to DHT service!\n");
 
   if (query_type == GNUNET_BLOCK_TYPE_ANY)      /* Type of data not set */
     query_type = GNUNET_BLOCK_TYPE_TEST;
@@ -182,7 +182,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   absolute_timeout = GNUNET_TIME_relative_to_absolute (timeout);
 
   if (verbose)
-    fprintf (stderr, "Issuing GET request for %s!\n", query_key);
+    FPRINTF (stderr, "Issuing GET request for %s!\n", query_key);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                 (absolute_timeout), &cleanup_task, NULL);
   get_handle =

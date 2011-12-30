@@ -303,7 +303,7 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
   {
-    fprintf (stderr,
+    FPRINTF (stderr,
              _
              ("libgcrypt has not the expected version (version %s is required).\n"),
              GCRYPT_VERSION);

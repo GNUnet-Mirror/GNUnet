@@ -72,11 +72,11 @@ end2_cb (void *cls, const char *emsg)
   {
     if (phase < NUM_PHASES)
     {
-      fprintf (stderr, ".");
+      FPRINTF (stderr, "%s",  ".");
       run_phase ();
       return;
     }
-    fprintf (stderr, ".\n");
+    FPRINTF (stderr, "%s",  ".\n");
 #if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Both daemons terminated, will now exit.\n");
@@ -129,8 +129,8 @@ my_connect_complete (void *cls, const struct GNUNET_PeerIdentity *first,
 {
   cc = NULL;
 #if VERBOSE
-  fprintf (stderr, "Peer %s ", GNUNET_i2s (first));
-  fprintf (stderr, "connected to %s\n", GNUNET_i2s (second));
+  FPRINTF (stderr, "Peer %s ", GNUNET_i2s (first));
+  FPRINTF (stderr, "connected to %s\n", GNUNET_i2s (second));
 #endif
   GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
 }

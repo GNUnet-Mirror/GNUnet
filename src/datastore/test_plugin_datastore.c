@@ -118,7 +118,7 @@ put_value (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
   msg = NULL;
   prio = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
 #if VERBOSE
-  fprintf (stderr, "putting type %u, anon %u under key %s\n", i + 1, i,
+  FPRINTF (stderr, "putting type %u, anon %u under key %s\n", i + 1, i,
            GNUNET_h2s (&key));
 #endif
   if (GNUNET_OK != api->put (api->cls, &key, size, value, i + 1 /* type */ ,
@@ -131,7 +131,7 @@ put_value (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
                                GNUNET_CRYPTO_random_u32
                                (GNUNET_CRYPTO_QUALITY_WEAK, 1000))), &msg))
   {
-    fprintf (stderr, "ERROR: `%s'\n", msg);
+    FPRINTF (stderr, "ERROR: `%s'\n", msg);
     GNUNET_free_non_null (msg);
     return;
   }
@@ -160,7 +160,7 @@ iterate_one_shot (void *cls, const GNUNET_HashCode * key, uint32_t size,
   guid = uid;
   crc->phase++;
 #if VERBOSE
-  fprintf (stderr,
+  FPRINTF (stderr,
            "Found result type=%u, priority=%u, size=%u, expire=%llu, key %s\n",
            type, priority, size, (unsigned long long) expiration.abs_value,
            GNUNET_h2s (key));
@@ -230,7 +230,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     crc->phase = RP_ERROR;
   }
 #if VERBOSE
-  fprintf (stderr, "In phase %d, iteration %u\n", crc->phase, crc->cnt);
+  FPRINTF (stderr, "In phase %d, iteration %u\n", crc->phase, crc->cnt);
 #endif
   switch (crc->phase)
   {
@@ -324,7 +324,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
   if (NULL == (ret = GNUNET_PLUGIN_load (libname, &env)))
   {
-    fprintf (stderr, "Failed to load plugin `%s'!\n", name);
+    FPRINTF (stderr, "Failed to load plugin `%s'!\n", name);
     return NULL;
   }
   GNUNET_free (libname);
@@ -343,8 +343,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   api = load_plugin (c);
   if (api == NULL)
   {
-    fprintf (stderr,
-             "Could not initialize plugin, assuming database not configured. Test not run!\n");
+    FPRINTF (stderr,
+             "Could not initialize plugin, assuming database not configured. Test not run!\n", NULL);
     return;
   }
   crc = GNUNET_malloc (sizeof (struct CpsRunContext));
@@ -378,7 +378,7 @@ check ()
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
                       "test-plugin-datastore", "nohelp", options, &run, NULL);
   if (ok != 0)
-    fprintf (stderr, "Missed some testcases: %u\n", ok);
+    FPRINTF (stderr, "Missed some testcases: %u\n", ok);
   return ok;
 }
 

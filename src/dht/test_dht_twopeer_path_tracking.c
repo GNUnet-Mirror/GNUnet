@@ -219,17 +219,17 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 #if VERBOSE
   if (put_path != NULL)
   {
-    fprintf (stderr, "PUT Path: ");
+    FPRINTF (stderr, "%s",  "PUT Path: ");
     for (i = 0; i < put_path_length; i++)
-      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&put_path[i]));
-    fprintf (stderr, "\n");
+      FPRINTF (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&put_path[i]));
+    FPRINTF (stderr, "%s",  "\n");
   }
   if (get_path != NULL)
   {
-    fprintf (stderr, "GET Path: ");
+    FPRINTF (stderr, "%s",  "GET Path: ");
     for (i = 0; i < get_path_length; i++)
-      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&get_path[i]));
-    fprintf (stderr, "\n");
+      FPRINTF (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&get_path[i]));
+    FPRINTF (stderr, "%s",  "\n");
   }
 #endif
 

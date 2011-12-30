@@ -1115,17 +1115,17 @@ update_meter (struct ProgressMeter *meter)
     {
       if (meter->completed == 0)
       {
-        fprintf (stdout, "%sProgress: [0%%", meter->startup_string);
+        FPRINTF (stdout, "%sProgress: [0%%", meter->startup_string);
       }
       else
-        fprintf (stdout, "%d%%",
+        FPRINTF (stdout, "%d%%",
                  (int) (((float) meter->completed / meter->total) * 100));
     }
     else if (meter->completed % meter->dotnum == 0)
-      fprintf (stdout, ".");
+      FPRINTF (stdout, "%s",  ".");
 
     if (meter->completed + 1 == meter->total)
-      fprintf (stdout, "%d%%]\n", 100);
+      FPRINTF (stdout, "%d%%]\n", 100);
     fflush (stdout);
   }
   meter->completed++;
@@ -2810,7 +2810,7 @@ friend_file_iterator (void *cls, const GNUNET_HashCode * key, void *value)
 
   temppeer = &peer->id;
   GNUNET_CRYPTO_hash_to_enc (&temppeer->hashPubKey, &peer_enc);
-  fprintf (temp_friend_handle, "%s\n", (char *) &peer_enc);
+  FPRINTF (temp_friend_handle, "%s\n", (char *) &peer_enc);
 
   return GNUNET_YES;
 }
@@ -2849,7 +2849,7 @@ blacklist_file_iterator (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_CRYPTO_hash_to_enc (&temppeer->hashPubKey, &peer_enc);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Writing entry %s:%s to file\n",
               blacklist_ctx->transport, (char *) &peer_enc);
-  fprintf (blacklist_ctx->temp_file_handle, "%s:%s\n", blacklist_ctx->transport,
+  FPRINTF (blacklist_ctx->temp_file_handle, "%s:%s\n", blacklist_ctx->transport,
            (char *) &peer_enc);
 
   return GNUNET_YES;
@@ -2899,7 +2899,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
     {
       GNUNET_CRYPTO_hash_to_enc (&pg->peers[conn_iter->index].daemon->
                                  id.hashPubKey, &peer_enc);
-      fprintf (temp_friend_handle, "%s\n", (char *) &peer_enc);
+      FPRINTF (temp_friend_handle, "%s\n", (char *) &peer_enc);
       conn_iter = conn_iter->next;
     }
 #else
@@ -3086,7 +3086,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
         {
           GNUNET_CRYPTO_hash_to_enc (&pg->peers[conn_iter->index].daemon->
                                      id.hashPubKey, &peer_enc);
-          fprintf (temp_file_handle, "%s:%s\n", pos, (char *) &peer_enc);
+          FPRINTF (temp_file_handle, "%s:%s\n", pos, (char *) &peer_enc);
           conn_iter = conn_iter->next;
         }
 #else

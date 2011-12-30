@@ -161,13 +161,13 @@ main (int argc, char *argv[])
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 			   "gethostname");
-      fprintf (stderr,
-	       "Failed to determine my own hostname, testcase not run.\n");
+      FPRINTF (stderr,
+	       "Failed to determine my own hostname, testcase not run.\n", NULL);
       return 0;
     }
   if (NULL == gethostbyname (hostname))
     {
-      fprintf (stderr,
+      FPRINTF (stderr,
 	       "Failed to resolve my hostname `%s', testcase not run.\n",
 	       hostname);
       return 0;

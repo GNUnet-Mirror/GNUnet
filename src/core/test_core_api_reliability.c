@@ -134,7 +134,7 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TRANSPORT_disconnect (p2.th);
   p2.th = NULL;
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
-  fprintf (stderr, "\nThroughput was %llu kb/s\n",
+  FPRINTF (stderr, "\nThroughput was %llu kb/s\n",
            total_bytes * 1000 / 1024 / delta);
   GAUGER ("CORE", "Core throughput/s", total_bytes * 1000 / 1024 / delta,
           "kb/s");
@@ -353,7 +353,7 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
   n++;
   if (0 == (n % (TOTAL_MSGS / 100)))
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
   if (n == TOTAL_MSGS)
   {
     GNUNET_SCHEDULER_cancel (err_task);

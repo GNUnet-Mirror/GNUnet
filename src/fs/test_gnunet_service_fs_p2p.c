@@ -70,7 +70,7 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fancy =
         GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
                                         1000LL / del.rel_value);
-    fprintf (stdout, "Download speed was %s/s\n", fancy);
+    FPRINTF (stdout, "Download speed was %s/s\n", fancy);
     GNUNET_free (fancy);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished download, shutting down\n",
                 (unsigned long long) FILESIZE);

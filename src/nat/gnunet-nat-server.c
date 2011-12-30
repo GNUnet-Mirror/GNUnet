@@ -284,7 +284,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ((args[0] == NULL) || (1 != SSCANF (args[0], "%u", &port)) || (0 == port)
       || (65536 <= port))
   {
-    fprintf (stderr,
+    FPRINTF (stderr,
              _
              ("Please pass valid port number as the first argument! (got `%s')\n"),
              args[0]);

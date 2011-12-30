@@ -142,7 +142,7 @@ finish_testing ()
 #endif
   if (dotOutFile != NULL)
   {
-    fprintf (dotOutFile, "}");
+    FPRINTF (dotOutFile, "%s",  "}");
     fclose (dotOutFile);
   }
 
@@ -167,7 +167,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (dotOutFile != NULL)
   {
-    fprintf (dotOutFile, "}");
+    FPRINTF (dotOutFile, "%s",  "}");
     fclose (dotOutFile);
   }
 }
@@ -191,7 +191,7 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                 first_daemon->shortname, second_daemon->shortname);
 #endif
     if (dotOutFile != NULL)
-      fprintf (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
+      FPRINTF (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
                second_daemon->shortname);
   }
 
@@ -399,7 +399,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   dotOutFile = fopen (dotOutFileName, "w");
   if (dotOutFile != NULL)
   {
-    fprintf (dotOutFile, "strict graph G {\n");
+    FPRINTF (dotOutFile, "%s",  "strict graph G {\n");
   }
 
 #if VERBOSE

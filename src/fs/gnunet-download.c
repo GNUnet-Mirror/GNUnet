@@ -97,7 +97,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   {
   case GNUNET_FS_STATUS_DOWNLOAD_START:
     if (verbose > 1)
-      fprintf (stderr, _("Starting download `%s'.\n"),
+      FPRINTF (stderr, _("Starting download `%s'.\n"),
                info->value.download.filename);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
@@ -108,7 +108,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
                                           1000LL /
                                           (info->value.download.
                                            duration.rel_value + 1));
-      fprintf (stdout,
+      FPRINTF (stdout,
                _("Downloading `%s' at %llu/%llu (%s remaining, %s/s)\n"),
                info->value.download.filename,
                (unsigned long long) info->value.download.completed,
@@ -118,7 +118,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     }
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
-    fprintf (stderr, _("Error downloading: %s.\n"),
+    FPRINTF (stderr, _("Error downloading: %s.\n"),
              info->value.download.specifics.error.message);
     GNUNET_SCHEDULER_shutdown ();
     break;
@@ -126,7 +126,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     s = GNUNET_STRINGS_byte_size_fancy (info->value.download.completed * 1000 /
                                         (info->value.download.
                                          duration.rel_value + 1));
-    fprintf (stdout, _("Downloading `%s' done (%s/s).\n"),
+    FPRINTF (stdout, _("Downloading `%s' done (%s/s).\n"),
              info->value.download.filename, s);
     GNUNET_free (s);
     if (info->value.download.dc == dc)
@@ -141,7 +141,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
     break;
   default:
-    fprintf (stderr, _("Unexpected status: %d\n"), info->status);
+    FPRINTF (stderr, _("Unexpected status: %d\n"), info->status);
     break;
   }
   return NULL;
@@ -166,27 +166,27 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == args[0])
   {
-    fprintf (stderr, _("You need to specify a URI argument.\n"));
+    FPRINTF (stderr, "%s",  _("You need to specify a URI argument.\n"));
     return;
   }
   uri = GNUNET_FS_uri_parse (args[0], &emsg);
   if (NULL == uri)
   {
-    fprintf (stderr, _("Failed to parse URI: %s\n"), emsg);
+    FPRINTF (stderr, _("Failed to parse URI: %s\n"), emsg);
     GNUNET_free (emsg);
     ret = 1;
     return;
   }
   if ((!GNUNET_FS_uri_test_chk (uri)) && (!GNUNET_FS_uri_test_loc (uri)))
   {
-    fprintf (stderr, _("Only CHK or LOC URIs supported.\n"));
+    FPRINTF (stderr, "%s",  _("Only CHK or LOC URIs supported.\n"));
     ret = 1;
     GNUNET_FS_uri_destroy (uri);
     return;
   }
   if (NULL == filename)
   {
-    fprintf (stderr, _("Target filename must be specified.\n"));
+    FPRINTF (stderr, "%s",  _("Target filename must be specified.\n"));
     ret = 1;
     GNUNET_FS_uri_destroy (uri);
     return;
@@ -200,7 +200,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                        request_parallelism, GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
   {
-    fprintf (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
+    FPRINTF (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
     GNUNET_FS_uri_destroy (uri);
     ret = 1;
     return;

@@ -146,47 +146,47 @@ confirm_cb (void *cls,
   switch (result)
   {
   case GNUNET_ARM_PROCESS_UNKNOWN:
-    fprintf (stderr, _("Service `%s' is unknown to ARM.\n"), service);
+    FPRINTF (stderr, _("Service `%s' is unknown to ARM.\n"), service);
     ret = 1;
     break;
   case GNUNET_ARM_PROCESS_DOWN:
     if (quiet != GNUNET_YES)
-      fprintf (stdout, _("Service `%s' has been stopped.\n"), service);
+      FPRINTF (stdout, _("Service `%s' has been stopped.\n"), service);
     break;
   case GNUNET_ARM_PROCESS_ALREADY_RUNNING:
-    fprintf (stderr, _("Service `%s' was already running.\n"), service);
+    FPRINTF (stderr, _("Service `%s' was already running.\n"), service);
     ret = 1;
     break;
   case GNUNET_ARM_PROCESS_STARTING:
     if (quiet != GNUNET_YES)
-      fprintf (stdout, _("Service `%s' has been started.\n"), service);
+      FPRINTF (stdout, _("Service `%s' has been started.\n"), service);
     break;
   case GNUNET_ARM_PROCESS_ALREADY_STOPPING:
-    fprintf (stderr, _("Service `%s' was already being stopped.\n"), service);
+    FPRINTF (stderr, _("Service `%s' was already being stopped.\n"), service);
     ret = 1;
     break;
   case GNUNET_ARM_PROCESS_ALREADY_DOWN:
-    fprintf (stderr, _("Service `%s' was already not running.\n"), service);
+    FPRINTF (stderr, _("Service `%s' was already not running.\n"), service);
     ret = 1;
     break;
   case GNUNET_ARM_PROCESS_SHUTDOWN:
-    fprintf (stderr, _("Request ignored as ARM is shutting down.\n"));
+    FPRINTF (stderr, "%s", _("Request ignored as ARM is shutting down.\n"));
     ret = 1;
     break;
   case GNUNET_ARM_PROCESS_COMMUNICATION_ERROR:
-    fprintf (stderr, _("Error communicating with ARM service.\n"));
+    FPRINTF (stderr, "%s", _("Error communicating with ARM service.\n"));
     ret = 1;
     break;
   case GNUNET_ARM_PROCESS_COMMUNICATION_TIMEOUT:
-    fprintf (stderr, _("Timeout communicating with ARM service.\n"));
+    FPRINTF (stderr, "%s",  _("Timeout communicating with ARM service.\n"));
     ret = 1;
     break;
   case GNUNET_ARM_PROCESS_FAILURE:
-    fprintf (stderr, _("Operation failed.\n"));
+    FPRINTF (stderr, "%s",  _("Operation failed.\n"));
     ret = 1;
     break;
   default:
-    fprintf (stderr, _("Unknown response code from ARM.\n"));
+    FPRINTF (stderr, "%s",  _("Unknown response code from ARM.\n"));
     break;
   }
   GNUNET_SCHEDULER_add_continuation (&cps_loop, NULL,

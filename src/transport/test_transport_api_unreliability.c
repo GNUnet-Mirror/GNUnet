@@ -126,7 +126,7 @@ static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
  */
 
 #if VERBOSE
-#define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
+#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
 #define OKPP do { ok++; } while (0)
 #endif
@@ -144,7 +144,7 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
-  fprintf (stderr, "\nThroughput was %llu kb/s\n",
+  FPRINTF (stderr, "\nThroughput was %llu kb/s\n",
            total_bytes * 1000 / 1024 / delta);
   GNUNET_asprintf (&value_name, "unreliable_%s", test_plugin);
   GAUGER ("TRANSPORT", value_name, (int) (total_bytes * 1000 / 1024 / delta),
@@ -337,7 +337,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   test_sending = GNUNET_YES;
   if (0 == (n % (TOTAL_MSGS / 100)))
   {
-    fprintf (stderr, ".");
+    FPRINTF (stderr, "%s",  ".");
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
@@ -410,7 +410,7 @@ notify_ready (void *cls, size_t size, void *buf)
   }
   else
   {
-    fprintf (stderr, "\n");
+    FPRINTF (stderr, "%s",  "\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All messages scheduled to be sent\n");
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);

@@ -93,7 +93,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct NSEPeer *pos;
 
 #if VERBOSE
-  fprintf (stderr, "Ending test.\n");
+  FPRINTF (stderr, "%s",  "Ending test.\n");
 #endif
 
   while (NULL != (pos = peer_head))
@@ -122,7 +122,7 @@ handle_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
 {
   struct NSEPeer *peer = cls;
 
-  fprintf (stderr,
+  FPRINTF (stderr,
            "Received network size estimate from peer %s. logSize: %f std.dev. %f (%f/%u)\n",
            GNUNET_i2s (&peer->daemon->id), estimate, std_dev,
            GNUNET_NSE_log_estimate_to_n (estimate), num_peers);
@@ -136,7 +136,7 @@ connect_nse_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
 
 #if VERBOSE
-  fprintf (stderr, "TEST_NSE_MULTIPEER: connecting to nse service of peers\n");
+  FPRINTF (stderr, "%s",  "TEST_NSE_MULTIPEER: connecting to nse service of peers\n");
 #endif
   for (i = 0; i < num_peers; i++)
   {

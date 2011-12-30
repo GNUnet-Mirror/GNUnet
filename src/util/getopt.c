@@ -669,7 +669,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
     if (ambig && !exact)
     {
       if (GNopterr)
-        fprintf (stderr, _("%s: option `%s' is ambiguous\n"), argv[0],
+        FPRINTF (stderr, _("%s: option `%s' is ambiguous\n"), argv[0],
                  argv[GNoptind]);
       nextchar += strlen (nextchar);
       GNoptind++;
@@ -692,12 +692,12 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
           {
             if (argv[GNoptind - 1][1] == '-')
               /* --option */
-              fprintf (stderr,
+              FPRINTF (stderr,
                        _("%s: option `--%s' does not allow an argument\n"),
                        argv[0], pfound->name);
             else
               /* +option or -option */
-              fprintf (stderr,
+              FPRINTF (stderr,
                        _("%s: option `%c%s' does not allow an argument\n"),
                        argv[0], argv[GNoptind - 1][0], pfound->name);
           }
@@ -715,7 +715,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
         {
           if (GNopterr)
           {
-            fprintf (stderr, _("%s: option `%s' requires an argument\n"),
+            FPRINTF (stderr, _("%s: option `%s' requires an argument\n"),
                      argv[0], argv[GNoptind - 1]);
           }
           nextchar += strlen (nextchar);
@@ -744,11 +744,11 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
       {
         if (argv[GNoptind][1] == '-')
           /* --option */
-          fprintf (stderr, _("%s: unrecognized option `--%s'\n"), argv[0],
+          FPRINTF (stderr, _("%s: unrecognized option `--%s'\n"), argv[0],
                    nextchar);
         else
           /* +option or -option */
-          fprintf (stderr, _("%s: unrecognized option `%c%s'\n"), argv[0],
+          FPRINTF (stderr, _("%s: unrecognized option `%c%s'\n"), argv[0],
                    argv[GNoptind][0], nextchar);
       }
       nextchar = (char *) "";
@@ -773,9 +773,9 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
       {
         if (posixly_correct)
           /* 1003.2 specifies the format of this message.  */
-          fprintf (stderr, _("%s: illegal option -- %c\n"), argv[0], c);
+          FPRINTF (stderr, _("%s: illegal option -- %c\n"), argv[0], c);
         else
-          fprintf (stderr, _("%s: invalid option -- %c\n"), argv[0], c);
+          FPRINTF (stderr, _("%s: invalid option -- %c\n"), argv[0], c);
       }
       return '?';
     }
@@ -803,7 +803,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
         if (GNopterr)
         {
           /* 1003.2 specifies the format of this message.  */
-          fprintf (stderr, _("%s: option requires an argument -- %c\n"),
+          FPRINTF (stderr, _("%s: option requires an argument -- %c\n"),
                    argv[0], c);
         }
         if (optstring[0] == ':')
@@ -851,7 +851,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
       if (ambig && !exact)
       {
         if (GNopterr)
-          fprintf (stderr, _("%s: option `-W %s' is ambiguous\n"), argv[0],
+          FPRINTF (stderr, _("%s: option `-W %s' is ambiguous\n"), argv[0],
                    argv[GNoptind]);
         nextchar += strlen (nextchar);
         GNoptind++;
@@ -869,7 +869,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
           else
           {
             if (GNopterr)
-              fprintf (stderr, _("\
+              FPRINTF (stderr, _("\
 %s: option `-W %s' does not allow an argument\n"), argv[0], pfound->name);
 
             nextchar += strlen (nextchar);
@@ -883,7 +883,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
           else
           {
             if (GNopterr)
-              fprintf (stderr, _("%s: option `%s' requires an argument\n"),
+              FPRINTF (stderr, _("%s: option `%s' requires an argument\n"),
                        argv[0], argv[GNoptind - 1]);
             nextchar += strlen (nextchar);
             return optstring[0] == ':' ? ':' : '?';
@@ -931,7 +931,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
           if (GNopterr)
           {
             /* 1003.2 specifies the format of this message.  */
-            fprintf (stderr, _("%s: option requires an argument -- %c\n"),
+            FPRINTF (stderr, _("%s: option requires an argument -- %c\n"),
                      argv[0], c);
           }
           if (optstring[0] == ':')
@@ -1035,7 +1035,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
     }
     if (i == count)
     {
-      fprintf (stderr, _("Use --help to get a list of options.\n"));
+      FPRINTF (stderr, _("Use %s to get a list of options.\n"), "--help");
       cont = GNUNET_SYSERR;
     }
   }

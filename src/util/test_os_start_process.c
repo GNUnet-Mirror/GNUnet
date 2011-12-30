@@ -75,7 +75,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   bytes = GNUNET_DISK_file_read (stdout_read_handle, &buf, sizeof (buf));
 
 #if VERBOSE
-  fprintf (stderr, "bytes is %d\n", bytes);
+  FPRINTF (stderr, "bytes is %d\n", bytes);
 #endif
 
   if (bytes < 1)
@@ -89,7 +89,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   ok = strncmp (&buf[0], test_phrase, strlen (test_phrase));
 #if VERBOSE
-  fprintf (stderr, "read %s\n", &buf[0]);
+  FPRINTF (stderr, "read %s\n", &buf[0]);
 #endif
   if (ok == 0)
   {

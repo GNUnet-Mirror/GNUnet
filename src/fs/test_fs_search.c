@@ -122,14 +122,14 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
-    fprintf (stderr, "Error publishing file: %s\n",
+    FPRINTF (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     GNUNET_break (0);
     GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_SEARCH_ERROR:
-    fprintf (stderr, "Error searching file: %s\n",
+    FPRINTF (stderr, "Error searching file: %s\n",
              event->value.search.specifics.error.message);
     GNUNET_SCHEDULER_add_continuation (&abort_search_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -161,7 +161,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   default:
-    fprintf (stderr, "Unexpected event: %d\n", event->status);
+    FPRINTF (stderr, "Unexpected event: %d\n", event->status);
     break;
   }
   return NULL;

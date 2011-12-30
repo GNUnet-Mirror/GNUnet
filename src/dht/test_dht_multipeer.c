@@ -220,7 +220,7 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-    fprintf (stderr, "Failed to shutdown testing topology: %s\n", emsg);
+    FPRINTF (stderr, "Failed to shutdown testing topology: %s\n", emsg);
     if (ok == 0)
       ok = 2;
   }
@@ -311,7 +311,7 @@ print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
   struct StatMaster *sm = cls;
 
   stats[sm->value].total += value;
-  fprintf (stderr, "Peer %2u: %12s/%50s = %12llu\n", sm->daemon, subsystem,
+  FPRINTF (stderr, "Peer %2u: %12s/%50s = %12llu\n", sm->daemon, subsystem,
            name, (unsigned long long) value);
   return GNUNET_OK;
 }
@@ -369,7 +369,7 @@ stat_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     i = 0;
     while (stats[i].name != NULL)
     {
-      fprintf (stderr, "Total  : %12s/%50s = %12llu\n", stats[i].subsystem,
+      FPRINTF (stderr, "Total  : %12s/%50s = %12llu\n", stats[i].subsystem,
                stats[i].name, (unsigned long long) stats[i].total);
       i++;
     }
@@ -439,7 +439,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct TestGetContext *test_get;
 
   die_task = GNUNET_SCHEDULER_NO_TASK;
-  fprintf (stderr, "Failing test with error: `%s'!\n", emsg);
+  FPRINTF (stderr, "Failing test with error: `%s'!\n", emsg);
   while (NULL != (test_put = all_puts_head))
   {
     if (test_put->task != GNUNET_SCHEDULER_NO_TASK)
@@ -484,7 +484,7 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (test_get->succeeded != GNUNET_YES)
   {
     gets_failed++;
-    fprintf (stderr, "Get from peer %s for key %s failed!\n",
+    FPRINTF (stderr, "Get from peer %s for key %s failed!\n",
              GNUNET_i2s (&test_get->daemon->id), GNUNET_h2s (&search_key));
   }
   GNUNET_assert (test_get->get_handle != NULL);
@@ -500,7 +500,7 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((gets_failed > 10) && (outstanding_gets == 0))
   {
     /* Had more than 10% failures */
-    fprintf (stderr, "%llu gets succeeded, %llu gets failed!\n", gets_completed,
+    FPRINTF (stderr, "%llu gets succeeded, %llu gets failed!\n", gets_completed,
              gets_failed);
     GNUNET_SCHEDULER_cancel (die_task);
     ok = 1;
@@ -510,7 +510,7 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if ((gets_completed + gets_failed == num_peers * num_peers) && (outstanding_gets == 0))       /* All gets successful */
   {
-    fprintf (stderr, "%llu gets succeeded, %llu gets failed!\n", gets_completed,
+    FPRINTF (stderr, "%llu gets succeeded, %llu gets failed!\n", gets_completed,
              gets_failed);
     GNUNET_SCHEDULER_cancel (die_task);
     ok = 0;
@@ -552,19 +552,19 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   {
     unsigned int i;
 
-    fprintf (stderr, "PUT (%u) Path: ", test_get->uid);
+    FPRINTF (stderr, "PUT (%u) Path: ", test_get->uid);
     for (i = 0; i < put_path_length; i++)
-      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&put_path[i]));
-    fprintf (stderr, "\n");
+      FPRINTF (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&put_path[i]));
+    FPRINTF (stderr, "%s",  "\n");
   }
   if (get_path != NULL)
   {
     unsigned int i;
 
-    fprintf (stderr, "GET (%u) Path: ", test_get->uid);
+    FPRINTF (stderr, "GET (%u) Path: ", test_get->uid);
     for (i = 0; i < get_path_length; i++)
-      fprintf (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&get_path[i]));
-    fprintf (stderr, "%s%s\n", get_path_length > 0 ? "->" : "",
+      FPRINTF (stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s (&get_path[i]));
+    FPRINTF (stderr, "%s%s\n", get_path_length > 0 ? "->" : "",
              GNUNET_i2s (&test_get->daemon->id));
   }
 #endif
@@ -572,7 +572,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   if ((0 != memcmp (&search_key, key, sizeof (GNUNET_HashCode))) ||
       (0 != memcmp (original_data, data, sizeof (original_data))))
   {
-    fprintf (stderr, "Key or data is not the same as was inserted!\n");
+    FPRINTF (stderr, "%s",  "Key or data is not the same as was inserted!\n");
     return;
   }
   gets_completed++;
@@ -639,7 +639,7 @@ start_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct TestGetContext *test_get;
 
 #if VERBOSE
-  fprintf (stderr, "Issuing %llu GETs\n",
+  FPRINTF (stderr, "Issuing %llu GETs\n",
            (unsigned long long) (num_peers * num_peers));
 #endif
   for (i = 0; i < num_peers; i++)
@@ -697,7 +697,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (test_put->dht_handle != NULL);
   outstanding_puts++;
 #if VERBOSE > 2
-  fprintf (stderr, "PUT %u at `%s'\n", test_put->uid,
+  FPRINTF (stderr, "PUT %u at `%s'\n", test_put->uid,
            GNUNET_i2s (&test_put->daemon->id));
 #endif
   GNUNET_DHT_put (test_put->dht_handle, &key, 1, route_option,
@@ -725,7 +725,7 @@ run_dht_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   die_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
                                     "from setup puts/gets");
-  fprintf (stderr, "Issuing %llu PUTs (one per peer)\n",
+  FPRINTF (stderr, "Issuing %llu PUTs (one per peer)\n",
            (unsigned long long) (num_peers * num_peers));
   for (i = 0; i < num_peers * num_peers; i++)
   {
@@ -750,7 +750,7 @@ startup_done (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-    fprintf (stderr, "Failed to setup topology: %s\n", emsg);
+    FPRINTF (stderr, "Failed to setup topology: %s\n", emsg);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, "topology setup failed");
     return;
   }
