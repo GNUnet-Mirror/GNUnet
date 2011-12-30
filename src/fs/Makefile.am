@@ -43,7 +43,7 @@ libgnunetfs_la_LIBADD = \
   $(top_builddir)/src/datastore/libgnunetdatastore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lextractor \
-  $(GN_LIBINTL) $(XLIB)
+  $(GN_LIBINTL) $(XLIB) -lunistring
 
 libgnunetfs_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \

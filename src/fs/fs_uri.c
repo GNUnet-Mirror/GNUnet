@@ -82,6 +82,11 @@
 #include "gnunet_fs_service.h"
 #include "gnunet_signatures.h"
 #include "fs_api.h"
+#include <unicase.h>
+#include <unistr.h>
+#include <unistdio.h>
+#include <uniconv.h>
+
 
 
 /**
@@ -1493,6 +1498,48 @@ find_duplicate (const char *s, const char **array, int array_length)
   return GNUNET_NO;
 }
 
+static char *
+normalize_metadata (enum EXTRACTOR_MetaFormat format, const char *data,
+    size_t data_len)
+{
+  uint8_t *free_str = NULL;
+  uint8_t *str_to_normalize = (uint8_t *) data;
+  uint8_t *normalized;
+  size_t r_len;
+  if (str_to_normalize == NULL)
+    return NULL;
+  /* Don't trust libextractor */
+  if (format == EXTRACTOR_METAFORMAT_UTF8)
+  {
+    free_str = (uint8_t *) u8_check ((const uint8_t *) data, data_len);
+    if (free_str == NULL)
+      free_str = NULL;
+    else
+      format = EXTRACTOR_METAFORMAT_C_STRING;
+  }
+  if (format == EXTRACTOR_METAFORMAT_C_STRING)
+  {
+    free_str = u8_strconv_from_encoding (data, locale_charset (), iconveh_escape_sequence);
+    if (free_str == NULL)
+      return NULL;
+  }
+
+  normalized = u8_tolower (str_to_normalize, strlen ((char *) str_to_normalize), NULL, UNINORM_NFD, NULL, &r_len);
+  /* free_str is allocated by libunistring internally, use free() */
+  if (free_str != NULL)
+    free (free_str);
+  if (normalized != NULL)
+  {
+    /* u8_tolower allocates a non-NULL-terminated string! */
+    free_str = GNUNET_malloc (r_len + 1);
+    memcpy (free_str, normalized, r_len);
+    free_str[r_len] = '\0';
+    free (normalized);
+    normalized = free_str;
+  }
+  return (char *) normalized;
+}
+
 
 /**
  * Break the filename up by matching [], () and {} pairs to make
@@ -1551,13 +1598,28 @@ get_keywords_from_parens (const char *s, char **array, int index)
     {
       if (NULL != array)
       {
+        char *normalized;
         tmp = close_paren[0];
         close_paren[0] = '\0';
-        if (GNUNET_NO == find_duplicate ((const char *) &open_paren[1], (const char **) array, index + count))
+        if (GNUNET_NO == find_duplicate ((const char *) &open_paren[1],
+            (const char **) array, index + count))
         {
 	  insert_non_mandatory_keyword ((const char *) &open_paren[1], array,
 					index + count);
           count++;
+        }
+        normalized = normalize_metadata (EXTRACTOR_METAFORMAT_UTF8,
+            &open_paren[1], close_paren - &open_paren[1]);
+        if (normalized != NULL)
+        {
+          if (GNUNET_NO == find_duplicate ((const char *) normalized,
+              (const char **) array, index + count))
+          {
+	    insert_non_mandatory_keyword ((const char *) normalized, array,
+					  index + count);
+            count++;
+          }
+          GNUNET_free (normalized);
         }
         close_paren[0] = tmp;
       }
@@ -1601,11 +1663,25 @@ get_keywords_from_tokens (const char *s, char **array, int index)
   {
     if (NULL != array)
     {
+      char *normalized;
       if (GNUNET_NO == find_duplicate (p, (const char **) array, index + seps))
       {
         insert_non_mandatory_keyword (p, array,
 				      index + seps);
 	seps++;
+      }
+      normalized = normalize_metadata (EXTRACTOR_METAFORMAT_UTF8,
+          p, strlen (p));
+      if (normalized != NULL)
+      {
+        if (GNUNET_NO == find_duplicate ((const char *) normalized,
+            (const char **) array, index + seps))
+        {
+          insert_non_mandatory_keyword ((const char *) normalized, array,
+				  index + seps);
+          seps++;
+        }
+        GNUNET_free (normalized);
       }
     }
     else
@@ -1615,7 +1691,6 @@ get_keywords_from_tokens (const char *s, char **array, int index)
   return seps;
 }
 #undef TOKENS
-
 
 /**
  * Function called on each value in the meta data.
@@ -1640,15 +1715,28 @@ gather_uri_data (void *cls, const char *plugin_name,
                  const char *data_mime_type, const char *data, size_t data_len)
 {
   struct GNUNET_FS_Uri *uri = cls;
+  char *normalized_data;
 
   if ((format != EXTRACTOR_METAFORMAT_UTF8) &&
       (format != EXTRACTOR_METAFORMAT_C_STRING))
     return 0;
-  if (find_duplicate (data, (const char **) uri->data.ksk.keywords, uri->data.ksk.keywordCount))
-    return GNUNET_OK;
-  insert_non_mandatory_keyword (data,
-				uri->data.ksk.keywords, uri->data.ksk.keywordCount);
-  uri->data.ksk.keywordCount++;
+  normalized_data = normalize_metadata (format, data, data_len);
+  if (!find_duplicate (data, (const char **) uri->data.ksk.keywords, uri->data.ksk.keywordCount))
+  {
+    insert_non_mandatory_keyword (data,
+				  uri->data.ksk.keywords, uri->data.ksk.keywordCount);
+    uri->data.ksk.keywordCount++;
+  }
+  if (normalized_data != NULL)
+  {
+    if (!find_duplicate (normalized_data, (const char **) uri->data.ksk.keywords, uri->data.ksk.keywordCount))
+    {
+      insert_non_mandatory_keyword (normalized_data,
+				    uri->data.ksk.keywords, uri->data.ksk.keywordCount);
+      uri->data.ksk.keywordCount++;
+    }
+    GNUNET_free (normalized_data);
+  }
   return 0;
 }
 
@@ -1690,8 +1778,9 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
       tok_keywords = get_keywords_from_tokens (filename, NULL, 0);
       paren_keywords = get_keywords_from_parens (filename, NULL, 0);
     }
+    /* x2 because there might be a normalized variant of every keyword */
     ret->data.ksk.keywords = GNUNET_malloc (sizeof (char *) * (ent
-        + tok_keywords + paren_keywords));
+        + tok_keywords + paren_keywords) * 2);
     GNUNET_CONTAINER_meta_data_iterate (md, &gather_uri_data, ret);
   }
   if (tok_keywords > 0)
