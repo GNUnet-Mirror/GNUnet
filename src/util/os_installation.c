@@ -112,15 +112,19 @@ get_path_from_proc_exe ()
 static char *
 get_path_from_module_filename ()
 {
-  char path[4097];
-  char *idx;
+  wchar_t path[4097];
+  char upath[4097];
+  wchar_t *idx;
 
-  GetModuleFileName (NULL, path, sizeof (path) - 1);
-  idx = path + strlen (path);
-  while ((idx > path) && (*idx != '\\') && (*idx != '/'))
+  GetModuleFileNameW (NULL, path, sizeof (path) - 1);
+  idx = path + wcslen (path);
+  while ((idx > path) && (*idx != L'\\') && (*idx != L'/'))
     idx--;
-  *idx = '\0';
-  return GNUNET_strdup (path);
+  *idx = L'\0';
+  upath[0] = '\0';
+  WideCharToMultiByte (CP_UTF8, 0, path, -1, upath, 4097, NULL, NULL);
+
+  return GNUNET_strdup (upath);
 }
 #endif
 

@@ -69,7 +69,7 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-container-bloomfilter", "WARNING", NULL);
   GNUNET_CRYPTO_seed_weak_random (1);
-  if (0 == stat (TESTFILE, &sbuf))
+  if (0 == STAT (TESTFILE, &sbuf))
     if (0 != UNLINK (TESTFILE))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "unlink", TESTFILE);
   bf = GNUNET_CONTAINER_bloomfilter_load (TESTFILE, SIZE, K);

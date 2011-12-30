@@ -173,10 +173,17 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
 #endif
   while (NULL != (ss = strstr (fn, DIR_SEPARATOR_STR)))
     fn = ss + 1;
+#if !WINDOWS
   GNUNET_CONTAINER_meta_data_insert (ret->meta, "<gnunet>",
                                      EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
                                      EXTRACTOR_METAFORMAT_C_STRING,
                                      "text/plain", fn, strlen (fn) + 1);
+#else
+  GNUNET_CONTAINER_meta_data_insert (ret->meta, "<gnunet>",
+                                     EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
+                                     EXTRACTOR_METAFORMAT_UTF8,
+                                     "text/plain", fn, strlen (fn) + 1);
+#endif
   return ret;
 }
 
@@ -770,10 +777,17 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
   while ((NULL != (ss = strstr (fn, DIR_SEPARATOR_STR))) && (strlen (ss) > 1))
     fn = ss + 1;
   GNUNET_asprintf (&dn, "%s/", fn);
+#if !WINDOWS
   GNUNET_CONTAINER_meta_data_insert (ret->meta, "<gnunet>",
                                      EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
                                      EXTRACTOR_METAFORMAT_C_STRING,
                                      "text/plain", dn, strlen (dn) + 1);
+#else
+  GNUNET_CONTAINER_meta_data_insert (ret->meta, "<gnunet>",
+                                     EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
+                                     EXTRACTOR_METAFORMAT_UTF8,
+                                     "text/plain", dn, strlen (dn) + 1);
+#endif
   GNUNET_free (dn);
   ret->filename = GNUNET_strdup (filename);
   return ret;

@@ -28,6 +28,7 @@
 #include "gnunet_common.h"
 #include "gnunet_os_lib.h"
 #include "gnunet_scheduler_lib.h"
+#include "gnunet_strings_lib.h"
 #include "disk.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
@@ -653,7 +654,7 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   char *arg;
   unsigned int cmdlen;
   char *cmd, *idx;
-  STARTUPINFO start;
+  STARTUPINFOW start;
   PROCESS_INFORMATION proc;
 
   HANDLE stdin_handle;
@@ -670,6 +671,7 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   char *libdir;
   char *ptr;
   char *non_const_filename;
+  wchar_t wpath[MAX_PATH + 1], wcmd[32768];
 
   /* Search in prefix dir (hopefully - the directory from which
    * the current module was loaded), bindir and libdir, then in PATH
@@ -786,8 +788,10 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   GNUNET_free (our_env[0]);
   GNUNET_free (our_env[1]);
 
-  if (!CreateProcessA
-      (path, cmd, NULL, NULL, TRUE, DETACHED_PROCESS | CREATE_SUSPENDED,
+  if (ERROR_SUCCESS != plibc_conv_to_win_pathwconv(path, wpath)
+      || ERROR_SUCCESS != plibc_conv_to_win_pathwconv(cmd, wcmd)
+      || !CreateProcessW
+      (wpath, wcmd, NULL, NULL, TRUE, DETACHED_PROCESS | CREATE_SUSPENDED,
        env_block, NULL, &start, &proc))
   {
     SetErrnoFromWinError (GetLastError ());
@@ -973,7 +977,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   char **arg, **non_const_argv;
   unsigned int cmdlen;
   char *cmd, *idx;
-  STARTUPINFO start;
+  STARTUPINFOW start;
   PROCESS_INFORMATION proc;
   int argcount = 0;
   struct GNUNET_OS_Process *gnunet_proc = NULL;
@@ -993,6 +997,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   const struct GNUNET_DISK_FileHandle *lsocks_write_fd;
   HANDLE lsocks_read;
   HANDLE lsocks_write;
+  wchar_t wpath[MAX_PATH + 1], wcmd[32768];
 
   int fail;
 
@@ -1151,8 +1156,10 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   GNUNET_free_non_null (our_env[2]);
   GNUNET_free_non_null (our_env[3]);
 
-  if (!CreateProcessA
-      (path, cmd, NULL, NULL, TRUE, DETACHED_PROCESS | CREATE_SUSPENDED,
+  if (ERROR_SUCCESS != plibc_conv_to_win_pathwconv(path, wpath)
+      || ERROR_SUCCESS != plibc_conv_to_win_pathwconv(cmd, wcmd)
+      || !CreateProcessW
+      (wpath, wcmd, NULL, NULL, TRUE, DETACHED_PROCESS | CREATE_SUSPENDED,
        env_block, NULL, &start, &proc))
   {
     SetErrnoFromWinError (GetLastError ());

@@ -397,6 +397,7 @@ GNUNET_DISK_mktemp (const char *t)
 #endif
       )
   {
+    /* FIXME: This uses system codepage on W32, not UTF-8 */
     tmpdir = getenv ("TMPDIR");
     tmpdir = tmpdir ? tmpdir : "/tmp";
     GNUNET_asprintf (&tmpl, "%s/%s%s", tmpdir, t, "XXXXXX");
@@ -417,6 +418,9 @@ GNUNET_DISK_mktemp (const char *t)
 #else
   fn = tmpl;
 #endif
+  /* FIXME: why is this not MKSTEMP()? This function is implemented in plibc.
+   * It will assume that fn is UTF-8-encoded, if compiled with UTF-8 support.
+   */
   fd = mkstemp (fn);
   if (fd == -1)
   {
@@ -452,18 +456,26 @@ GNUNET_DISK_get_blocks_available (const char *part)
 #elif MINGW
   DWORD dwDummy;
   DWORD dwBlocks;
-  char szDrive[4];
+  wchar_t szDrive[4];
+  wchar_t wpath[MAX_PATH + 1];
   char *path;
 
   path = GNUNET_STRINGS_filename_expand (part);
   if (path == NULL)
     return -1;
-  memcpy (szDrive, path, 3);
-  GNUNET_free (path);
-  szDrive[3] = 0;
-  if (!GetDiskFreeSpace (szDrive, &dwDummy, &dwDummy, &dwBlocks, &dwDummy))
+  /* "part" was in UTF-8, and so is "path" */
+  if (ERROR_SUCCESS != plibc_conv_to_win_pathwconv(path, wpath))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, _("`%s' failed for drive `%s': %u\n"),
+    GNUNET_free (path);
+    return -1;
+  }
+  GNUNET_free (path);
+  wcsncpy (szDrive, wpath, 3);
+  GNUNET_free (wpath);
+  szDrive[3] = 0;
+  if (!GetDiskFreeSpaceW (szDrive, &dwDummy, &dwDummy, &dwBlocks, &dwDummy))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("`%s' failed for drive `%S': %u\n"),
          "GetDiskFreeSpace", szDrive, GetLastError ());
 
     return -1;
@@ -621,7 +633,11 @@ GNUNET_DISK_directory_create (const char *dir)
 #ifndef MINGW
         ret = mkdir (rdir, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);        /* 755 */
 #else
-        ret = mkdir (rdir);
+        wchar_t wrdir[MAX_PATH + 1];
+        if (ERROR_SUCCESS == plibc_conv_to_win_pathwconv(rdir, wrdir))
+          ret = !CreateDirectoryW (wrdir, NULL);
+        else
+          ret = 1;
 #endif
         if ((ret != 0) && (errno != EEXIST))
         {
@@ -874,14 +890,14 @@ GNUNET_DISK_directory_scan (const char *dirName,
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "opendir", dname);
     if (dinfo != NULL)
-      closedir (dinfo);
+      CLOSEDIR (dinfo);
     GNUNET_free (dname);
     return GNUNET_SYSERR;
   }
   name_len = 256;
   n_size = strlen (dname) + name_len + 2;
   name = GNUNET_malloc (n_size);
-  while ((finfo = readdir (dinfo)) != NULL)
+  while ((finfo = READDIR (dinfo)) != NULL)
   {
     if ((0 == strcmp (finfo->d_name, ".")) ||
         (0 == strcmp (finfo->d_name, "..")))
@@ -903,7 +919,7 @@ GNUNET_DISK_directory_scan (const char *dirName,
                         0) ? "" : DIR_SEPARATOR_STR, finfo->d_name);
       if (GNUNET_OK != callback (callback_cls, name))
       {
-        closedir (dinfo);
+        CLOSEDIR (dinfo);
         GNUNET_free (name);
         GNUNET_free (dname);
         return GNUNET_SYSERR;
@@ -911,7 +927,7 @@ GNUNET_DISK_directory_scan (const char *dirName,
     }
     count++;
   }
-  closedir (dinfo);
+  CLOSEDIR (dinfo);
   GNUNET_free (name);
   GNUNET_free (dname);
   return count;
@@ -995,12 +1011,12 @@ GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator *iter,
   GNUNET_assert (iter->next_name == NULL);
   if (can == GNUNET_YES)
   {
-    closedir (iter->directory);
+    CLOSEDIR (iter->directory);
     GNUNET_free (iter->dirname);
     GNUNET_free (iter);
     return GNUNET_SYSERR;
   }
-  while (NULL != (finfo = readdir (iter->directory)))
+  while (NULL != (finfo = READDIR (iter->directory)))
   {
     if ((0 == strcmp (finfo->d_name, ".")) ||
         (0 == strcmp (finfo->d_name, "..")))
@@ -1340,6 +1356,7 @@ GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
   DWORD access;
   DWORD disp;
   HANDLE h;
+  wchar_t wexpfn[MAX_PATH + 1];
 #else
   int oflags;
   int mode;
@@ -1418,10 +1435,12 @@ GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
     disp = OPEN_EXISTING;
   }
 
-  /* TODO: access priviledges? */
-  h = CreateFile (expfn, access,
-                  FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                  disp, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (ERROR_SUCCESS == plibc_conv_to_win_pathwconv(expfn, wexpfn))
+    h = CreateFileW (wexpfn, access,
+                    FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                    disp, FILE_ATTRIBUTE_NORMAL, NULL);
+  else
+    h = INVALID_HANDLE_VALUE;
   if (h == INVALID_HANDLE_VALUE)
   {
     SetErrnoFromWinError (GetLastError ());
@@ -2155,6 +2174,9 @@ GNUNET_DISK_npipe_create (char **fn, enum GNUNET_DISK_OpenFlags flags,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Trying to create an instance of named pipe `%s'\n", name);
 #endif
+      /* 1) This might work just fine with UTF-8 strings as it is.
+       * 2) This is only used by GNUnet itself, and only with latin names.
+       */
       h = CreateNamedPipe (name, openMode | FILE_FLAG_OVERLAPPED,
                            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 2, 1, 1, 0,
                            NULL);
