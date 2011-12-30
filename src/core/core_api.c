@@ -984,8 +984,8 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       if ((mh->expected_size != ntohs (em->size)) && (mh->expected_size != 0))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Unexpected message size for message of type %u\n",
-                    mh->type);
+                    "Unexpected message size %u for message of type %u from peer `%4s'\n",
+                    htons (em->size), mh->type, GNUNET_i2s (&ntm->peer));
         GNUNET_break_op (0);
         continue;
       }
