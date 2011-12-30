@@ -274,8 +274,8 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   if (dotOutFile != NULL)
   {
-    fclose (dotOutFile);
     FPRINTF (dotOutFile, "%s",  "}");
+    FCLOSE (dotOutFile);
   }
 
   ok = 0;
@@ -383,7 +383,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (dotOutFile != NULL)
   {
     FPRINTF (dotOutFile, "%s",  "}");
-    fclose (dotOutFile);
+    FCLOSE (dotOutFile);
   }
 }
 

@@ -248,7 +248,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
       break;
     }
   }
-  GNUNET_assert (0 == fclose (fp));
+  GNUNET_assert (0 == FCLOSE (fp));
   /* restore dirty flag - anything we set in the meantime
    * came from disk */
   cfg->dirty = dirty;
@@ -348,7 +348,7 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   if (error != 0)
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fprintf", filename);
-  GNUNET_assert (0 == fclose (fp));
+  GNUNET_assert (0 == FCLOSE (fp));
   if (error != 0)
   {
     cfg->dirty = GNUNET_SYSERR; /* last write failed */

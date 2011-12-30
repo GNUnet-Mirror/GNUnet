@@ -246,7 +246,7 @@ finish_testing ()
   if (dotOutFile != NULL)
   {
     FPRINTF (dotOutFile, "%s",  "}");
-    fclose (dotOutFile);
+    FCLOSE (dotOutFile);
   }
 
   ok = 0;
@@ -303,7 +303,7 @@ topology_cb (void *cls, const struct GNUNET_PeerIdentity *first,
     if (outfile != NULL)
     {
       FPRINTF (outfile, "%s",  "}\n");
-      fclose (outfile);
+      FCLOSE (outfile);
       GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
     }
   }
@@ -358,7 +358,7 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
     GNUNET_SCHEDULER_cancel (die_task);
     GNUNET_asprintf (&dotOutFileNameFinished, "%s.dot", "final_topology");
-    dotOutFileFinished = fopen (dotOutFileNameFinished, "w");
+    dotOutFileFinished = FOPEN (dotOutFileNameFinished, "w");
     GNUNET_free (dotOutFileNameFinished);
     if (dotOutFileFinished != NULL)
     {
@@ -425,7 +425,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (dotOutFile != NULL)
   {
     FPRINTF (dotOutFile, "%s",  "}");
-    fclose (dotOutFile);
+    FCLOSE (dotOutFile);
   }
 }
 
@@ -949,7 +949,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   ok = 1;
 
-  dotOutFile = fopen (dotOutFileName, "w");
+  dotOutFile = FOPEN (dotOutFileName, "w");
   if (dotOutFile != NULL)
   {
     FPRINTF (dotOutFile, "%s",  "strict graph G {\n");

@@ -2891,7 +2891,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   {
     mytemp = GNUNET_DISK_mktemp ("friends");
     GNUNET_assert (mytemp != NULL);
-    temp_friend_handle = fopen (mytemp, "wt");
+    temp_friend_handle = FOPEN (mytemp, "wt");
     GNUNET_assert (temp_friend_handle != NULL);
 #if OLD
     conn_iter = pg->peers[pg_iter].allowed_peers_head;
@@ -2907,7 +2907,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
                                            &friend_file_iterator,
                                            temp_friend_handle);
 #endif
-    fclose (temp_friend_handle);
+    FCLOSE (temp_friend_handle);
 
     if (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_string (pg->peers[pg_iter].daemon->cfg,
@@ -3064,7 +3064,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
   {
     mytemp = GNUNET_DISK_mktemp ("blacklist");
     GNUNET_assert (mytemp != NULL);
-    temp_file_handle = fopen (mytemp, "wt");
+    temp_file_handle = FOPEN (mytemp, "wt");
     GNUNET_assert (temp_file_handle != NULL);
     temp_transports = GNUNET_strdup (transports);
 #if !OLD
@@ -3106,7 +3106,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
     }
 
     GNUNET_free (temp_transports);
-    fclose (temp_file_handle);
+    FCLOSE (temp_file_handle);
 
     if (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_string (pg->peers[pg_iter].daemon->cfg,

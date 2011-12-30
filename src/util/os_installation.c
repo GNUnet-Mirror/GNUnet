@@ -56,7 +56,7 @@ get_path_from_proc_maps ()
   char *lgu;
 
   GNUNET_snprintf (fn, sizeof (fn), "/proc/%u/maps", getpid ());
-  f = fopen (fn, "r");
+  f = FOPEN (fn, "r");
   if (f == NULL)
     return NULL;
   while (NULL != fgets (line, sizeof (line), f))
@@ -66,11 +66,11 @@ get_path_from_proc_maps ()
         (NULL != (lgu = strstr (dir, "libgnunetutil"))))
     {
       lgu[0] = '\0';
-      fclose (f);
+      FCLOSE (f);
       return GNUNET_strdup (dir);
     }
   }
-  fclose (f);
+  FCLOSE (f);
   return NULL;
 }
 

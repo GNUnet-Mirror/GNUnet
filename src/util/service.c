@@ -1351,7 +1351,7 @@ write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
   }
   if (0 > FPRINTF (pidfd, "%u", pid))
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fprintf", pif);
-  GNUNET_break (0 == fclose (pidfd));
+  GNUNET_break (0 == FCLOSE (pidfd));
   if ((user != NULL) && (0 < strlen (user)))
     GNUNET_DISK_file_change_owner (pif, user);
   GNUNET_free_non_null (user);

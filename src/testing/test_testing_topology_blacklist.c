@@ -143,7 +143,7 @@ finish_testing ()
   if (dotOutFile != NULL)
   {
     FPRINTF (dotOutFile, "%s",  "}");
-    fclose (dotOutFile);
+    FCLOSE (dotOutFile);
   }
 
   ok = 0;
@@ -168,7 +168,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (dotOutFile != NULL)
   {
     FPRINTF (dotOutFile, "%s",  "}");
-    fclose (dotOutFile);
+    FCLOSE (dotOutFile);
   }
 }
 
@@ -396,7 +396,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   ok = 1;
 
-  dotOutFile = fopen (dotOutFileName, "w");
+  dotOutFile = FOPEN (dotOutFileName, "w");
   if (dotOutFile != NULL)
   {
     FPRINTF (dotOutFile, "%s",  "strict graph G {\n");
@@ -414,7 +414,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     ok = 404;
     if (dotOutFile != NULL)
     {
-      fclose (dotOutFile);
+      FCLOSE (dotOutFile);
     }
     return;
   }
@@ -453,7 +453,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       ok = 707;
       if (dotOutFile != NULL)
       {
-        fclose (dotOutFile);
+        FCLOSE (dotOutFile);
       }
       return;
     }
@@ -470,7 +470,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     ok = 808;
     if (dotOutFile != NULL)
     {
-      fclose (dotOutFile);
+      FCLOSE (dotOutFile);
     }
     return;
   }
