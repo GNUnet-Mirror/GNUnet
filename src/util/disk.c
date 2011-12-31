@@ -244,8 +244,8 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
  * @param whence specification to which position the offset parameter relates to
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
-uint64_t
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, uint64_t offset,
+OFF_T
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, OFF_T offset,
                        enum GNUNET_DISK_Seek whence)
 {
   if (h == NULL)
@@ -269,13 +269,13 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, uint64_t offset,
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
   }
-  return new_pos.QuadPart;
+  return (OFF_T) new_pos.QuadPart;
 #else
   static int t[] = {[GNUNET_DISK_SEEK_SET] = SEEK_SET,
     [GNUNET_DISK_SEEK_CUR] = SEEK_CUR,[GNUNET_DISK_SEEK_END] = SEEK_END
   };
 
-  return lseek64 (h->fd, offset, t[whence]);
+  return lseek (h->fd, offset, t[whence]);
 #endif
 }
 

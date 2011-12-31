@@ -183,7 +183,7 @@ static void
 incrementBit (char *bitArray, unsigned int bitIdx,
               const struct GNUNET_DISK_FileHandle *fh)
 {
-  uint64_t fileSlot;
+  OFF_T fileSlot;
   unsigned char value;
   unsigned int high;
   unsigned int low;
@@ -231,7 +231,7 @@ static void
 decrementBit (char *bitArray, unsigned int bitIdx,
               const struct GNUNET_DISK_FileHandle *fh)
 {
-  uint64_t fileSlot;
+  OFF_T fileSlot;
   unsigned char value;
   unsigned int high;
   unsigned int low;

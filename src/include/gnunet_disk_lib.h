@@ -301,8 +301,8 @@ GNUNET_DISK_file_test (const char *fil);
  * @param whence specification to which position the offset parameter relates to
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
-uint64_t
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, uint64_t offset,
+OFF_T
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, OFF_T offset,
                        enum GNUNET_DISK_Seek whence);
 
 
