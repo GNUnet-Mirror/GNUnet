@@ -362,7 +362,7 @@ GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
   if (succ)
   {
     *dev = info.dwVolumeSerialNumber;
-    *ino = ((info.nFileIndexHigh << sizeof (DWORD)) | info.nFileIndexLow);
+    *ino = ((((uint64_t) info.nFileIndexHigh) << (sizeof (DWORD) * 8)) | info.nFileIndexLow);
     return GNUNET_OK;
   }
   else
