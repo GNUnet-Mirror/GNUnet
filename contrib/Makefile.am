@@ -28,7 +28,7 @@ EXTRA_DIST = \
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
 %.py: %.py.in Makefile
-	$(do_subst) < $(srcdir)/$< > $@
+	$(do_subst) < $< > $@
 	chmod +x $@
 
 # init_gnunet_redhat \
