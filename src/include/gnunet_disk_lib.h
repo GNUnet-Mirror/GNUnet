@@ -25,6 +25,12 @@
 #ifndef GNUNET_DISK_LIB_H
 #define GNUNET_DISK_LIB_H
 
+#if WINDOWS
+#define OFF_T uint64_t
+#else
+#define OFF_T off_t
+#endif
+
 /**
  * Opaque handle used to access files.
  */
@@ -295,8 +301,8 @@ GNUNET_DISK_file_test (const char *fil);
  * @param whence specification to which position the offset parameter relates to
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
-off_t
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
+uint64_t
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, uint64_t offset,
                        enum GNUNET_DISK_Seek whence);
 
 
@@ -378,7 +384,7 @@ GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
  */
 int
 GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
-			      off_t *size);
+			      OFF_T *size);
 
 
 /**
@@ -624,8 +630,8 @@ GNUNET_DISK_directory_create (const char *dir);
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
-                       off_t lockEnd, int excl);
+GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lockStart,
+                       OFF_T lockEnd, int excl);
 
 
 /**
@@ -636,8 +642,8 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
-                         off_t unlockEnd);
+GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlockStart,
+                         OFF_T unlockEnd);
 
 
 /**

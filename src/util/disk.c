@@ -204,7 +204,6 @@ GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
 #endif
 }
 
-
 /**
  * Get the size of an open file.
  *
@@ -214,7 +213,7 @@ GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
  */
 int
 GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
-			      off_t *size)
+			      OFF_T *size)
 {
 #if WINDOWS
   BOOL b;
@@ -225,7 +224,7 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
   }
-  *size = (off_t) li.QuadPart;
+  *size = (OFF_T) li.QuadPart;
 #else
   struct stat sbuf;
 
@@ -245,8 +244,8 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
  * @param whence specification to which position the offset parameter relates to
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
-off_t
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, off_t offset,
+uint64_t
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, uint64_t offset,
                        enum GNUNET_DISK_Seek whence)
 {
   if (h == NULL)
@@ -256,25 +255,27 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, off_t offset,
   }
 
 #ifdef MINGW
-  DWORD ret;
+  LARGE_INTEGER li, new_pos;
+  BOOL b;
 
   static DWORD t[] = {[GNUNET_DISK_SEEK_SET] = FILE_BEGIN,
     [GNUNET_DISK_SEEK_CUR] = FILE_CURRENT,[GNUNET_DISK_SEEK_END] = FILE_END
   };
+  li.QuadPart = offset;
 
-  ret = SetFilePointer (h->h, offset, NULL, t[whence]);
-  if (ret == INVALID_SET_FILE_POINTER)
+  b = SetFilePointerEx (h->h, li, &new_pos, t[whence]);
+  if (b == 0)
   {
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
   }
-  return ret;
+  return new_pos.QuadPart;
 #else
   static int t[] = {[GNUNET_DISK_SEEK_SET] = SEEK_SET,
     [GNUNET_DISK_SEEK_CUR] = SEEK_CUR,[GNUNET_DISK_SEEK_END] = SEEK_END
   };
 
-  return lseek (h->fd, offset, t[whence]);
+  return lseek64 (h->fd, offset, t[whence]);
 #endif
 }
 
@@ -1251,8 +1252,8 @@ GNUNET_DISK_file_change_owner (const char *filename, const char *user)
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
-                       off_t lockEnd, int excl)
+GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lockStart,
+                       OFF_T lockEnd, int excl)
 {
   if (fh == NULL)
   {
@@ -1297,8 +1298,8 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
-                         off_t unlockEnd)
+GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlockStart,
+                         OFF_T unlockEnd)
 {
   if (fh == NULL)
   {
