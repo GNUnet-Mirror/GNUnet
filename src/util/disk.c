@@ -1273,13 +1273,18 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lockStart,
   return fcntl (fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   OVERLAPPED o;
+  OFF_T diff = lockEnd - lockStart;
+  DWORD diff_low, diff_high;
+  diff_low = (DWORD) (diff & 0xFFFFFFFF);
+  diff_high = (DWORD) ((diff >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
   memset (&o, 0, sizeof (OVERLAPPED));
-  o.Offset = lockStart;
+  o.Offset = (DWORD) (lockStart & 0xFFFFFFFF);;
+  o.OffsetHigh = (DWORD) (((lockStart & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
   if (!LockFileEx
       (fh->h, (excl ? LOCKFILE_EXCLUSIVE_LOCK : 0) | LOCKFILE_FAIL_IMMEDIATELY,
-       0, lockEnd - lockStart, 0, &o))
+       0, diff_low, diff_high, &o))
   {
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
@@ -1319,11 +1324,16 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlockStart,
   return fcntl (fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   OVERLAPPED o;
+  OFF_T diff = unlockEnd - unlockStart;
+  DWORD diff_low, diff_high;
+  diff_low = (DWORD) (diff & 0xFFFFFFFF);
+  diff_high = (DWORD) ((diff >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
   memset (&o, 0, sizeof (OVERLAPPED));
-  o.Offset = unlockStart;
+  o.Offset = (DWORD) (unlockStart & 0xFFFFFFFF);;
+  o.OffsetHigh = (DWORD) (((unlockStart & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
-  if (!UnlockFileEx (fh->h, 0, unlockEnd - unlockStart, 0, &o))
+  if (!UnlockFileEx (fh->h, 0, diff_low, diff_high, &o))
   {
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
