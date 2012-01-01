@@ -41,7 +41,7 @@ gnunet_service_dns_LDADD = \
 
 
 libgnunetdnsparser_la_SOURCES = \
- gnunet-dns-parser.c 
+ dnsparser.c 
 libgnunetdnsparser_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdnsparser_la_LDFLAGS = \
