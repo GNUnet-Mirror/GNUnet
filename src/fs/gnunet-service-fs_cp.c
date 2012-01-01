@@ -904,7 +904,10 @@ handle_p2p_reply (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
   GNUNET_break (type != GNUNET_BLOCK_TYPE_ANY);
   if ((prd->type != type) && (prd->type != GNUNET_BLOCK_TYPE_ANY))
   {
-    GNUNET_break (0);
+    GNUNET_STATISTICS_update (GSF_stats,
+			      gettext_noop
+			      ("# replies dropped due to type mismatch"),
+                                1, GNUNET_NO);
     return;
   }
 #if DEBUG_FS
