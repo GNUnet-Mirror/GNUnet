@@ -572,9 +572,10 @@ handle_command (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 next:
   handle_cmd_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MILLISECONDS, 100),
-                                    &handle_command, NULL);
+    GNUNET_SCHEDULER_add_delayed_with_priority (GNUNET_TIME_relative_multiply
+						(GNUNET_TIME_UNIT_MILLISECONDS, 100),
+						GNUNET_SCHEDULER_PRIORITY_UI,
+						&handle_command, NULL);
   return;
 
 out:

@@ -326,7 +326,9 @@ expired_processor (void *cls, const GNUNET_HashCode * key, uint32_t size,
   if (key == NULL)
   {
     expired_kill_task =
-        GNUNET_SCHEDULER_add_delayed (MAX_EXPIRE_DELAY, &delete_expired, NULL);
+        GNUNET_SCHEDULER_add_delayed_with_priority (MAX_EXPIRE_DELAY,
+						    GNUNET_SCHEDULER_PRIORITY_IDLE,
+						    &delete_expired, NULL);
     return GNUNET_SYSERR;
   }
   now = GNUNET_TIME_absolute_get ();
@@ -334,7 +336,9 @@ expired_processor (void *cls, const GNUNET_HashCode * key, uint32_t size,
   {
     /* finished processing */
     expired_kill_task =
-        GNUNET_SCHEDULER_add_delayed (MAX_EXPIRE_DELAY, &delete_expired, NULL);
+        GNUNET_SCHEDULER_add_delayed_with_priority (MAX_EXPIRE_DELAY,
+						    GNUNET_SCHEDULER_PRIORITY_IDLE,
+						    &delete_expired, NULL);
     return GNUNET_SYSERR;
   }
 #if DEBUG_DATASTORE
@@ -348,7 +352,9 @@ expired_processor (void *cls, const GNUNET_HashCode * key, uint32_t size,
                             GNUNET_YES);
   GNUNET_CONTAINER_bloomfilter_remove (filter, key);
   expired_kill_task =
-      GNUNET_SCHEDULER_add_delayed (MIN_EXPIRE_DELAY, &delete_expired, NULL);
+      GNUNET_SCHEDULER_add_delayed_with_priority (MIN_EXPIRE_DELAY,
+						  GNUNET_SCHEDULER_PRIORITY_IDLE,
+						  &delete_expired, NULL);
   return GNUNET_NO;
 }
 

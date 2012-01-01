@@ -805,8 +805,9 @@ delayed_restart_task (void *cls,
 		  (unsigned long long) lowestRestartDelay.rel_value);
 #endif
       child_restart_task =
-	GNUNET_SCHEDULER_add_delayed (lowestRestartDelay,
-				      &delayed_restart_task, NULL);
+	GNUNET_SCHEDULER_add_delayed_with_priority (lowestRestartDelay,
+						    GNUNET_SCHEDULER_PRIORITY_IDLE, 
+						    &delayed_restart_task, NULL);
     }
 }
 
@@ -922,7 +923,8 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	    GNUNET_SCHEDULER_cancel (child_restart_task);
 	  child_restart_task =
 	    GNUNET_SCHEDULER_add_with_priority
-	    (GNUNET_SCHEDULER_PRIORITY_IDLE, &delayed_restart_task, NULL);
+	    (GNUNET_SCHEDULER_PRIORITY_IDLE, 
+	     &delayed_restart_task, NULL);
 	}
       else
 	{

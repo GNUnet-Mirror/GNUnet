@@ -111,7 +111,9 @@ enum GNUNET_SCHEDULER_Priority
 
   /**
    * Run with the default priority (normal
-   * P2P operations).  Higher than BACKGROUND.
+   * P2P operations).  Any task that is scheduled
+   * without an explicit priority being specified
+   * will run with this priority.
    */
   GNUNET_SCHEDULER_PRIORITY_DEFAULT = 3,
 
@@ -262,7 +264,7 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p);
  * * @return reason(s) why the current task is run
  */
 enum GNUNET_SCHEDULER_Reason
-GNUNET_SCHEDULER_get_reason ();
+GNUNET_SCHEDULER_get_reason (void);
 
 
 /**
@@ -291,9 +293,24 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
 
 
 /**
+ * Continue the current execution with the given function.  This is
+ * similar to the other "add" functions except that there is no delay
+ * and the reason code can be specified.
+ *
+ * @param task main function of the task
+ * @param task_cls closure for 'main'
+ * @param reason reason for task invocation
+ * @param priority priority to use for the task
+ */
+void
+GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_Task task, void *task_cls,
+						 enum GNUNET_SCHEDULER_Reason reason,
+						 enum GNUNET_SCHEDULER_Priority priority);
+
+
+/**
  * Schedule a new task to be run after the specified prerequisite task
- * has completed. It will be run with the priority of the calling
- * task.
+ * has completed. It will be run with DEFAULT priority.
  *
  * * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
@@ -327,7 +344,7 @@ GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
 
 /**
  * Schedule a new task to be run as soon as possible. The task
- * will be run with the priority of the calling task.
+ * will be run with the DEFAULT priority.
  *
  * * @param task main function of the task
  * @param task_cls closure of task
@@ -361,7 +378,7 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
 /**
  * Schedule a new task to be run with a specified delay.  The task
  * will be scheduled for execution once the delay has expired. It
- * will be run with the priority of the calling task.
+ * will be run with the DEFAULT priority.
  *
  * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
@@ -376,12 +393,29 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
 
 
 /**
+ * Schedule a new task to be run with a specified delay.  The task
+ * will be scheduled for execution once the delay has expired.
+ *
+ * @param delay when should this operation time out? Use
+ *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param priority priority to use for the task
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
+					    enum GNUNET_SCHEDULER_Priority priority,
+					    GNUNET_SCHEDULER_Task task, void *task_cls);
+
+
+/**
  * Schedule a new task to be run with a specified delay or when the
  * specified file descriptor is ready for reading.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
- * socket operation is ready.  It will be run with the priority of
- * the calling task.
+ * socket operation is ready.  It will be run with the DEFAULT priority.
  *
  * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
@@ -402,8 +436,7 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
  * specified file descriptor is ready for writing.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
- * socket operation is ready.  It will be run with the priority of
- * the calling task.
+ * socket operation is ready.  It will be run with the DEFAULT priority.
  *
  * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
@@ -424,8 +457,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
  * specified file descriptor is ready for reading.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
- * socket operation is ready. It will be run with the priority of
- * the calling task.
+ * socket operation is ready. It will be run with the DEFAULT priority.
  *
  * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
@@ -446,8 +478,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
  * specified file descriptor is ready for writing.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
- * socket operation is ready. It will be run with the priority of
- * the calling task.
+ * socket operation is ready. It will be run with the DEFAULT priority.
  *
  * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"

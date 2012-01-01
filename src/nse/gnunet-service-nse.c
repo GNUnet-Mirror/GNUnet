@@ -911,7 +911,9 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     my_proof = counter;
   }
   proof_task =
-      GNUNET_SCHEDULER_add_delayed (proof_find_delay, &find_proof, NULL);
+      GNUNET_SCHEDULER_add_delayed_with_priority (proof_find_delay,
+						  GNUNET_SCHEDULER_PRIORITY_IDLE,
+						  &find_proof, NULL);
 }
 
 

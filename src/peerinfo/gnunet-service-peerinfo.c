@@ -293,8 +293,9 @@ cron_scan_directory_data_hosts (void *cls,
   count = 0;
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create (networkIdDirectory))
   {
-    GNUNET_SCHEDULER_add_delayed (DATA_HOST_FREQ,
-                                  &cron_scan_directory_data_hosts, NULL);
+    GNUNET_SCHEDULER_add_delayed_with_priority (DATA_HOST_FREQ,
+						GNUNET_SCHEDULER_PRIORITY_IDLE,
+						&cron_scan_directory_data_hosts, NULL);
     return;
   }
   GNUNET_DISK_directory_scan (networkIdDirectory,
@@ -302,8 +303,10 @@ cron_scan_directory_data_hosts (void *cls,
   if ((0 == count) && (0 == (++retries & 31)))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
                 _("Still no peers found in `%s'!\n"), networkIdDirectory);
-  GNUNET_SCHEDULER_add_delayed (DATA_HOST_FREQ, &cron_scan_directory_data_hosts,
-                                NULL);
+  GNUNET_SCHEDULER_add_delayed_with_priority (DATA_HOST_FREQ, 
+					      GNUNET_SCHEDULER_PRIORITY_IDLE,
+					      &cron_scan_directory_data_hosts,
+					      NULL);
 }
 
 

@@ -1816,7 +1816,9 @@ cron_flush_trust (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  GNUNET_SCHEDULER_add_delayed (TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
+  GNUNET_SCHEDULER_add_delayed_with_priority (TRUST_FLUSH_FREQ,
+					      GNUNET_SCHEDULER_PRIORITY_HIGH,
+					      &cron_flush_trust, NULL);
 }
 
 

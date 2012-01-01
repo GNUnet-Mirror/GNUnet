@@ -1054,10 +1054,12 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
  * @param task main function of the task
  * @param task_cls closure for 'main'
  * @param reason reason for task invocation
+ * @param priority priority to use for the task
  */
 void
-GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
-                                   enum GNUNET_SCHEDULER_Reason reason)
+GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_Task task, void *task_cls,
+						 enum GNUNET_SCHEDULER_Reason reason,
+						 enum GNUNET_SCHEDULER_Priority priority)
 {
   struct Task *t;
 
@@ -1083,7 +1085,7 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
   t->reason = reason;
-  t->priority = current_priority;
+  t->priority = priority;
   t->lifeness = current_lifeness;
 #if DEBUG_TASKS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding continuation task: %llu / %p\n", t->id,
@@ -1093,11 +1095,28 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
 }
 
 
+/**
+ * Continue the current execution with the given function.  This is
+ * similar to the other "add" functions except that there is no delay
+ * and the reason code can be specified.
+ *
+ * @param task main function of the task
+ * @param task_cls closure for 'main'
+ * @param reason reason for task invocation
+ */
+void
+GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
+                                   enum GNUNET_SCHEDULER_Reason reason)
+{
+  GNUNET_SCHEDULER_add_continuation_with_priority (task, task_cls,
+						   reason,
+						   GNUNET_SCHEDULER_PRIORITY_DEFAULT);
+}
+
 
 /**
  * Schedule a new task to be run after the specified prerequisite task
- * has completed. It will be run with the priority of the calling
- * task.
+ * has completed. It will be run with the DEFAULT priority.
  *
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
@@ -1114,7 +1133,7 @@ GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
                             GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  return GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
+  return GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                       prerequisite_task, GNUNET_TIME_UNIT_ZERO,
                                       NULL, NULL, task, task_cls);
 }
@@ -1142,22 +1161,21 @@ GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
 
 /**
  * Schedule a new task to be run with a specified delay.  The task
- * will be scheduled for execution once the delay has expired. It
- * will be run with the priority of the calling task.
+ * will be scheduled for execution once the delay has expired.
  *
  * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param priority priority to use for the task
  * @param task main function of the task
  * @param task_cls closure of task
  * @return unique task identifier for the job
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
-                              GNUNET_SCHEDULER_Task task, void *task_cls)
+GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
+					    enum GNUNET_SCHEDULER_Priority priority,
+					    GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-#if 1
-  /* new, optimized version */
   struct Task *t;
   struct Task *pos;
   struct Task *prev;
@@ -1183,7 +1201,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
-  t->priority = current_priority;
+  t->priority = priority;
   t->lifeness = current_lifeness;
   /* try tail first (optimization in case we are
    * appending to a long list of tasks with timeouts) */
@@ -1227,20 +1245,34 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
          t->backtrace_strings[i]);
 #endif
   return t->id;
-
-#else
-  /* unoptimized version */
-  return GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                      GNUNET_SCHEDULER_NO_TASK, delay, NULL,
-                                      NULL, task, task_cls);
-#endif
 }
 
+
+/**
+ * Schedule a new task to be run with a specified delay.  The task
+ * will be scheduled for execution once the delay has expired. It
+ * will be run with the DEFAULT priority.
+ *
+ * @param delay when should this operation time out? Use
+ *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
+                              GNUNET_SCHEDULER_Task task, void *task_cls)
+{
+  return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
+						     GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+						     task, task_cls);
+}
 
 
 /**
  * Schedule a new task to be run as soon as possible. The task
- * will be run with the priority of the calling task.
+ * will be run with the DEFAULT priority.
  *
  * @param task main function of the task
  * @param task_cls closure of task
@@ -1250,10 +1282,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  return GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
-                                      GNUNET_SCHEDULER_NO_TASK,
-                                      GNUNET_TIME_UNIT_ZERO, NULL, NULL, task,
-                                      task_cls);
+  return GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_ZERO, task, task_cls);
 }
 
 
@@ -1279,7 +1308,7 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
   ret =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_ZERO, NULL, NULL, task,
                                    task_cls);
@@ -1287,8 +1316,6 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
   pending->lifeness = lifeness;
   return ret;
 }
-
-
 
 
 /**
@@ -1310,6 +1337,7 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
  *
  * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever",
  *        which means that the task will only be run after we receive SIGTERM
+ * @param priority priority to use
  * @param rfd file descriptor we want to read (can be -1)
  * @param wfd file descriptors we want to write (can be -1)
  * @param task main function of the task
@@ -1319,7 +1347,9 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
  */
 #ifndef MINGW
 static GNUNET_SCHEDULER_TaskIdentifier
-add_without_sets (struct GNUNET_TIME_Relative delay, int rfd, int wfd,
+add_without_sets (struct GNUNET_TIME_Relative delay, 
+		  enum GNUNET_SCHEDULER_Priority priority,
+		  int rfd, int wfd,
                   GNUNET_SCHEDULER_Task task, void *task_cls)
 {
   struct Task *t;
@@ -1381,7 +1411,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay, int rfd, int wfd,
 #endif
   t->prereq_id = GNUNET_SCHEDULER_NO_TASK;
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
-  t->priority = check_priority (current_priority);
+  t->priority = check_priority ((priority == GNUNET_SCHEDULER_PRIORITY_KEEP) ? current_priority : priority);
   t->lifeness = current_lifeness;
   t->next = pending;
   pending = t;
@@ -1408,8 +1438,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay, int rfd, int wfd,
  * specified file descriptor is ready for reading.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
- * socket operation is ready.  It will be run with the priority of
- * the calling task.
+ * socket operation is ready.  It will be run with the DEFAULT priority.
  *
  * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
@@ -1432,13 +1461,15 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
   rs = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_set (rs, rfd);
   ret =
-      GNUNET_SCHEDULER_add_select (check_priority (current_priority),
-                                   GNUNET_SCHEDULER_NO_TASK, delay, rs, NULL,
-                                   task, task_cls);
+    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+				 GNUNET_SCHEDULER_NO_TASK, delay, rs, NULL,
+				 task, task_cls);
   GNUNET_NETWORK_fdset_destroy (rs);
   return ret;
 #else
-  return add_without_sets (delay, GNUNET_NETWORK_get_fd (rfd), -1, task,
+  return add_without_sets (delay, 
+			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+			   GNUNET_NETWORK_get_fd (rfd), -1, task,
                            task_cls);
 #endif
 }
@@ -1473,14 +1504,16 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
   ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_set (ws, wfd);
   ret =
-      GNUNET_SCHEDULER_add_select (check_priority (current_priority),
-                                   GNUNET_SCHEDULER_NO_TASK, delay, NULL, ws,
+    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+				 GNUNET_SCHEDULER_NO_TASK, delay, NULL, ws,
                                    task, task_cls);
   GNUNET_NETWORK_fdset_destroy (ws);
   return ret;
 #else
   GNUNET_assert (GNUNET_NETWORK_get_fd (wfd) >= 0);
-  return add_without_sets (delay, -1, GNUNET_NETWORK_get_fd (wfd), task,
+  return add_without_sets (delay, 
+			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+			   -1, GNUNET_NETWORK_get_fd (wfd), task,
                            task_cls);
 #endif
 }
@@ -1491,8 +1524,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
  * specified file descriptor is ready for reading.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
- * socket operation is ready. It will be run with the priority of
- * the calling task.
+ * socket operation is ready. It will be run with the DEFAULT priority.
  *
  * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
@@ -1515,7 +1547,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
   rs = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_handle_set (rs, rfd);
   ret =
-      GNUNET_SCHEDULER_add_select (check_priority (current_priority),
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK, delay, rs, NULL,
                                    task, task_cls);
   GNUNET_NETWORK_fdset_destroy (rs);
@@ -1524,7 +1556,9 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
   int fd;
 
   GNUNET_DISK_internal_file_handle_ (rfd, &fd, sizeof (int));
-  return add_without_sets (delay, fd, -1, task, task_cls);
+  return add_without_sets (delay, 
+			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+			   fd, -1, task, task_cls);
 
 #endif
 }
@@ -1535,8 +1569,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
  * specified file descriptor is ready for writing.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
- * socket operation is ready. It will be run with the priority of
- * the calling task.
+ * socket operation is ready. It will be run with the DEFAULT priority.
  *
  * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
@@ -1559,7 +1592,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
   ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_handle_set (ws, wfd);
   ret =
-      GNUNET_SCHEDULER_add_select (check_priority (current_priority),
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK, delay, NULL, ws,
                                    task, task_cls);
   GNUNET_NETWORK_fdset_destroy (ws);
@@ -1569,7 +1602,9 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
 
   GNUNET_DISK_internal_file_handle_ (wfd, &fd, sizeof (int));
   GNUNET_assert (fd >= 0);
-  return add_without_sets (delay, -1, fd, task, task_cls);
+  return add_without_sets (delay, 
+			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+			   -1, fd, task, task_cls);
 
 #endif
 }

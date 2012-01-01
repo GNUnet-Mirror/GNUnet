@@ -106,6 +106,11 @@ struct GNUNET_CRYPTO_FileHashContext
   GNUNET_SCHEDULER_TaskIdentifier task;
 
   /**
+   * Priority we use.
+   */
+  enum GNUNET_SCHEDULER_Priority priority;
+
+  /**
    * Blocksize.
    */
   size_t bsize;
@@ -162,7 +167,8 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     file_hash_finish (fhc, res);
     return;
   }
-  fhc->task = GNUNET_SCHEDULER_add_now (&file_hash_task, fhc);
+  fhc->task = GNUNET_SCHEDULER_add_with_priority (fhc->priority,
+						  &file_hash_task, fhc);
 }
 
 
@@ -213,6 +219,7 @@ GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
     GNUNET_free (fhc);
     return NULL;
   }
+  fhc->priority = priority;
   fhc->task =
       GNUNET_SCHEDULER_add_with_priority (priority, &file_hash_task, fhc);
   return fhc;
