@@ -373,6 +373,9 @@ gl_LIBUNISTRING
 if test $HAVE_LIBUNISTRING != yes; then
  AC_MSG_ERROR([GNUnet requires libunistring])
 fi
+if test $gl_libunistring_hexversion -le 2305; then
+ AC_MSG_ERROR([GNUnet requires libunistring >= 0.9.1.1])
+fi
 # restore LIBS
 LIBS=$SAVE_LIBS
 
