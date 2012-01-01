@@ -28,6 +28,12 @@
 
 #include "gnunet_dns_service.h"
 
+extern struct answer_packet_list *answer_proc_head;
+
+extern struct answer_packet_list *answer_proc_tail;
+
+extern struct GNUNET_DNS_Handle *dns_handle;
+
 /**
  * This gets scheduled with cls pointing to an answer_packet and does everything
  * needed in order to send it to the helper.

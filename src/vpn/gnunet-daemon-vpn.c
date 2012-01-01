@@ -36,7 +36,7 @@
 #include "gnunet_constants.h"
 #include <block_dns.h>
 #include "gnunet-daemon-vpn-helper.h"
-#include "gnunet-daemon-vpn-dns.h"
+#include "gnunet_dns_service.h"
 #include "gnunet-daemon-vpn.h"
 #include "gnunet-vpn-checksum.h"
 
@@ -44,6 +44,13 @@ const struct GNUNET_CONFIGURATION_Handle *cfg;
 struct GNUNET_MESH_Handle *mesh_handle;
 struct GNUNET_CONTAINER_MultiHashMap *hashmap;
 static struct GNUNET_CONTAINER_Heap *heap;
+
+struct GNUNET_DNS_Handle *dns_handle;
+
+struct answer_packet_list *answer_proc_head;
+
+struct answer_packet_list *answer_proc_tail;
+
 
 struct tunnel_notify_queue
 {
@@ -87,12 +94,7 @@ cleanup (void *cls GNUNET_UNUSED,
   cleanup_helper (helper_handle);
 
   /* close the connection to the service-dns */
-  if (dns_connection != NULL)
-  {
-    GNUNET_CLIENT_disconnect (dns_connection, GNUNET_NO);
-    dns_connection = NULL;
-  }
-
+  GNUNET_DNS_disconnect (dns_handle);
   if (mesh_handle != NULL)
   {
     GNUNET_MESH_disconnect (mesh_handle);
@@ -1258,13 +1260,14 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_MESH_connect (cfg_, 42, NULL, new_tunnel, cleaner, handlers,
                            types);
   cfg = cfg_;
-  restart_hijack = 0;
   hashmap = GNUNET_CONTAINER_multihashmap_create (65536);
   heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   GNUNET_CONFIGURATION_get_value_number (cfg, "vpn", "MAX_MAPPINGg",
                                          &max_mappings);
   udp_connections = GNUNET_CONTAINER_multihashmap_create (65536);
-  conn_task = GNUNET_SCHEDULER_add_now (connect_to_service_dns, NULL);
+  dns_handle = GNUNET_DNS_connect (cfg,
+				   &process_answer,
+				   NULL);
   shs_task =
       GNUNET_SCHEDULER_add_after (conn_task, start_helper_and_schedule, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);

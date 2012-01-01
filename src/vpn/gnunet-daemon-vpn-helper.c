@@ -34,8 +34,8 @@
 #include <block_dns.h>
 #include <gnunet_configuration_lib.h>
 #include <gnunet_applications.h>
+#include <gnunet_dns_service.h>
 
-#include "gnunet-daemon-vpn-dns.h"
 #include "gnunet-daemon-vpn.h"
 #include "gnunet-daemon-vpn-helper.h"
 #include "gnunet-vpn-packet.h"
@@ -137,15 +137,7 @@ start_helper_and_schedule (void *cls,
   /* Tell the dns-service to rehijack the dns-port
    * The routing-table gets flushed if an interface disappears.
    */
-  restart_hijack = 1;
-  if (NULL != dns_connection && dns_transmit_handle == NULL)
-    dns_transmit_handle =
-        GNUNET_CLIENT_notify_transmit_ready (dns_connection,
-                                             sizeof (struct
-                                                     GNUNET_MessageHeader),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_query, NULL);
-
+  GNUNET_DNS_restart_hijack (dns_handle);
   GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                    helper_handle->fh_to_helper, &helper_write,
                                    NULL);
@@ -361,17 +353,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
         query->pkt.src_port = pkt6_udp->udp_hdr.spt;
         memcpy (query->pkt.data, pkt6_udp->data,
                 ntohs (pkt6_udp->udp_hdr.len) - 8);
-
-        GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, query);
-
-        GNUNET_assert (head != NULL);
-
-        if (dns_connection != NULL && dns_transmit_handle == NULL)
-          dns_transmit_handle =
-              GNUNET_CLIENT_notify_transmit_ready (dns_connection, len,
-                                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                                   GNUNET_YES, &send_query,
-                                                   NULL);
+	GNUNET_DNS_queue_request (dns_handle, query);
         break;
       }
       /* fall through */
@@ -559,16 +541,8 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       query->pkt.addrlen = 4;
       query->pkt.src_port = udp->udp_hdr.spt;
       memcpy (query->pkt.data, udp->data, ntohs (udp->udp_hdr.len) - 8);
-
-      GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, query);
-
-      GNUNET_assert (head != NULL);
-
-      if (dns_connection != NULL && dns_transmit_handle == NULL)
-        dns_transmit_handle =
-            GNUNET_CLIENT_notify_transmit_ready (dns_connection, len,
-                                                 GNUNET_TIME_UNIT_FOREVER_REL,
-                                                 GNUNET_YES, &send_query, NULL);
+      
+      GNUNET_DNS_queue_request (dns_handle, query);
     }
     else
     {

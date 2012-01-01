@@ -29,6 +29,7 @@
 #define GNUNET_DNS_SERVICE_H
 
 #include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -139,5 +140,30 @@ struct answer_packet_list
   struct answer_packet pkt;
 };
 GNUNET_NETWORK_STRUCT_END
+
+struct GNUNET_DNS_Handle;
+
+/**
+ * Connect to the service-dns
+ */
+struct GNUNET_DNS_Handle *
+GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		    GNUNET_SCHEDULER_Task cb,
+		    void *cb_cls);
+
+void
+GNUNET_DNS_restart_hijack (struct GNUNET_DNS_Handle *h);
+
+
+/**
+ * FIXME: we should not expost our internal structures like this.
+ * Just a quick initial hack.
+ */
+void
+GNUNET_DNS_queue_request (struct GNUNET_DNS_Handle *h,
+			  struct query_packet_list *q);
+
+void
+GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *h);
 
 #endif

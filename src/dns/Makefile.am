@@ -21,7 +21,9 @@ else
 install-exec-hook:
 endif
 
-lib_LTLIBRARIES = libgnunetdnsparser.la
+lib_LTLIBRARIES = \
+  libgnunetdnsparser.la \
+  libgnunetdns.la
 
 bin_PROGRAMS = \
   gnunet-service-dns $(HIJACKBIN)
@@ -45,4 +47,12 @@ libgnunetdnsparser_la_SOURCES = \
 libgnunetdnsparser_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdnsparser_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)
+
+
+libgnunetdns_la_SOURCES = \
+ dns_api.c 
+libgnunetdns_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
+libgnunetdns_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
