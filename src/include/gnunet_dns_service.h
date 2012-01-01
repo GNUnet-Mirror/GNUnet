@@ -24,6 +24,11 @@
  *        currently only contains the structs for the IPC, which
  *        don't even belong here (legacy code in transition)
  * @author Philipp Toelke
+ * 
+ * TODO:
+ * - replace (most?) structs with nice function (prototypes) that take
+ *   the appropriate arguments to pass the data
+ * - clean up API implementation itself (nicer reconnect, etc.)
  */
 #ifndef GNUNET_DNS_SERVICE_H
 #define GNUNET_DNS_SERVICE_H
