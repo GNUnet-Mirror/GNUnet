@@ -30,6 +30,7 @@ SUBDIRS = \
   topology \
   fs \
   mesh \
+  dns \
   vpn \
   integration-tests \
   $(EXP_DIR) 

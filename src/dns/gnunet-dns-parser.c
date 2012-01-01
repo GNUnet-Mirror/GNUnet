@@ -1,6 +1,5 @@
 #include "platform.h"
-#include "gnunet-dns-parser.h"
-#include "gnunet-vpn-packet.h"
+#include "gnunet_dnsparser_lib.h"
 
 /**
  * Parse a name from DNS to a normal .-delimited, 0-terminated string.

@@ -3,7 +3,7 @@
 
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet-dns-parser.h"
+#include "gnunet_dnsparser_lib.h"
 
 GNUNET_NETWORK_STRUCT_BEGIN
 

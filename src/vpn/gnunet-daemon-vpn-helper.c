@@ -38,7 +38,6 @@
 #include "gnunet-daemon-vpn-dns.h"
 #include "gnunet-daemon-vpn.h"
 #include "gnunet-daemon-vpn-helper.h"
-#include "gnunet-service-dns-p.h"
 #include "gnunet-vpn-packet.h"
 #include "gnunet-vpn-checksum.h"
 #include "gnunet-helper-vpn-api.h"

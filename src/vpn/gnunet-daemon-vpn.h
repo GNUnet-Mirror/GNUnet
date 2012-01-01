@@ -26,7 +26,7 @@
 #ifndef GNUNET_DAEMON_VPN_H
 #define GNUNET_DAEMON_VPN_H
 
-#include "gnunet-service-dns-p.h"
+#include "gnunet_dns_service.h"
 
 /**
  * This gets scheduled with cls pointing to an answer_packet and does everything
