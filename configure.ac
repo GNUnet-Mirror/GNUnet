@@ -369,35 +369,8 @@ fi
 LIBS=$SAVE_LIBS
 
 # test for libunistring
-unistring=0
-AC_MSG_CHECKING(for libunistring)
-AC_ARG_WITH(unistring,
-   [  --with-unistring=PFX    base of libunistring installation],
-   [AC_MSG_RESULT([$with_unistring])
-    case $with_unistring in
-      no)
-        ;;
-      yes)
-        AC_CHECK_HEADERS(unistr.h,
-          AC_CHECK_LIB([unistring], [u8_check],
-            unistring=1))
-        ;;
-      *)
-        LDFLAGS="-L$with_unistring/lib $LDFLAGS"
-        CPPFLAGS="-I$with_unistring/include $CPPFLAGS"
-        AC_CHECK_HEADERS(unistr.h,
-          AC_CHECK_LIB([unistring], [u8_check],
-            EXT_LIB_PATH="-L$with_unistring/lib $EXT_LIB_PATH"
-            unistring=1))
-        ;;
-    esac
-   ],
-   [AC_MSG_RESULT([--with-unistring not specified])
-    AC_CHECK_HEADERS(unistr.h,
-     AC_CHECK_LIB([unistring], [u8_check],
-      unistring=1))])
-if test "$unistring" != 1
-then
+gl_LIBUNISTRING
+if test $HAVE_LIBUNISTRING != yes; then
  AC_MSG_ERROR([GNUnet requires libunistring])
 fi
 # restore LIBS
