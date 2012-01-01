@@ -1,5 +1,32 @@
-#ifndef GN_DNS_SERVICE_P_H
-#define GN_DNS_SERVICE_P_H
+/*
+      This file is part of GNUnet
+      (C) 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+
+      GNUnet is free software; you can redistribute it and/or modify
+      it under the terms of the GNU General Public License as published
+      by the Free Software Foundation; either version 2, or (at your
+      option) any later version.
+
+      GNUnet is distributed in the hope that it will be useful, but
+      WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+      General Public License for more details.
+
+      You should have received a copy of the GNU General Public License
+      along with GNUnet; see the file COPYING.  If not, write to the
+      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+      Boston, MA 02111-1307, USA.
+ */
+
+/**
+ * @file include/gnunet_dns_service.h
+ * @brief API to access the DNS service.  Not finished at all,
+ *        currently only contains the structs for the IPC, which
+ *        don't even belong here (legacy code in transition)
+ * @author Philipp Toelke
+ */
+#ifndef GNUNET_DNS_SERVICE_H
+#define GNUNET_DNS_SERVICE_H
 
 #include "gnunet_common.h"
 

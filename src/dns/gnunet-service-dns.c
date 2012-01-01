@@ -41,9 +41,13 @@
 #include "gnunet_mesh_service.h"
 #include "gnunet_signatures.h"
 
-struct GNUNET_MESH_Handle *mesh_handle;
 
-struct GNUNET_CONNECTION_TransmitHandle *server_notify;
+
+
+
+static struct GNUNET_MESH_Handle *mesh_handle;
+
+static struct GNUNET_CONNECTION_TransmitHandle *server_notify;
 
 /**
  * The UDP-Socket through which DNS-Resolves will be sent if they are not to be

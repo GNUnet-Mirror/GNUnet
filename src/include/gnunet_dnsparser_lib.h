@@ -1,5 +1,30 @@
-#ifndef _GNVPN_DNSP_H_
-#define _GNVPN_DNSP_H_
+/*
+      This file is part of GNUnet
+      (C) 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+
+      GNUnet is free software; you can redistribute it and/or modify
+      it under the terms of the GNU General Public License as published
+      by the Free Software Foundation; either version 2, or (at your
+      option) any later version.
+
+      GNUnet is distributed in the hope that it will be useful, but
+      WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+      General Public License for more details.
+
+      You should have received a copy of the GNU General Public License
+      along with GNUnet; see the file COPYING.  If not, write to the
+      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+      Boston, MA 02111-1307, USA.
+ */
+
+/**
+ * @file include/gnunet_dnsparse_lib.h
+ * @brief API for helper library to parse DNS packets. 
+ * @author Philipp Toelke
+ */
+#ifndef GNUNET_DNSPARSER_LIB_H
+#define GNUNET_DNSPARSER_LIB_H
 
 #include "platform.h"
 #include "gnunet_common.h"
@@ -50,24 +75,24 @@ struct dns_pkt_parsed
 
 struct dns_query_line
 {
-  unsigned short type;
-  unsigned short class;
+  uint16_t type;
+  uint16_t class;
 };
 
 struct dns_query
 {
   char *name;
   unsigned char namelen;
-  unsigned short qtype;
-  unsigned short qclass;
+  uint16_t qtype;
+  uint16_t qclass;
 };
 
 struct dns_record_line
 {
-  unsigned short type;
-  unsigned short class;
-  unsigned int ttl;
-  unsigned short data_len;
+  uint16_t type;
+  uint16_t class;
+  uint32_t ttl;
+  uint16_t data_len;
   unsigned char data;
 };
 
@@ -75,10 +100,10 @@ struct dns_record
 {
   char *name;
   unsigned char namelen;
-  unsigned short type;
-  unsigned short class;
-  unsigned int ttl;
-  unsigned short data_len;
+  uint16_t type;
+  uint16_t class;
+  uint32_t ttl;
+  uint16_t data_len;
   unsigned char *data;
 };
 

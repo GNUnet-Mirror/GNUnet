@@ -820,6 +820,7 @@ src/core/Makefile
 src/datacache/Makefile
 src/datastore/Makefile
 src/dht/Makefile
+src/dns/Makefile
 src/dv/Makefile
 src/fragmentation/Makefile
 src/fs/Makefile
