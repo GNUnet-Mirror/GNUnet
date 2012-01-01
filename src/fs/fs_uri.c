@@ -82,10 +82,11 @@
 #include "gnunet_fs_service.h"
 #include "gnunet_signatures.h"
 #include "fs_api.h"
+#include <unitypes.h>
 #include <unicase.h>
+#include <uniconv.h>
 #include <unistr.h>
 #include <unistdio.h>
-#include <uniconv.h>
 
 
 
