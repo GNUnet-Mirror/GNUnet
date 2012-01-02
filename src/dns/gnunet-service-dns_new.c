@@ -26,29 +26,91 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
-#include "gnunet_dnsparser_lib.h"
+//#include "gnunet_dnsparser_lib.h"
 #include "gnunet_signatures.h"
 #include "dns_new.h"
 
-
-/**
- * Entry we keep for each active request.
- */ 
-struct RequestRecord
+GNUNET_NETWORK_STRUCT_BEGIN
+struct ip4_hdr
 {
+  unsigned hdr_lngth:4 GNUNET_PACKED;
+  unsigned version:4 GNUNET_PACKED;
 
+  uint8_t diff_serv;
+  uint16_t tot_lngth GNUNET_PACKED;
 
-  /**
-   * Entry of this request record in the heap (for fast removal).
-   */
-  struct GNUNET_CONTAINER_HeapNode *hentry;
+  uint16_t ident GNUNET_PACKED;
+  unsigned flags:3 GNUNET_PACKED;
+  unsigned frag_off:13 GNUNET_PACKED;
 
-  /**
-   * Array of clients and their answers.
-   */ 
-  struct GNUNET_SERVER_Client *client;
+  uint8_t ttl;
+  uint8_t proto;
+  uint16_t chks GNUNET_PACKED;
 
+  struct in_addr sadr GNUNET_PACKED;
+  struct in_addr dadr GNUNET_PACKED;
 };
+
+struct ip6_hdr
+{
+  unsigned tclass_h:4 GNUNET_PACKED;
+  unsigned version:4 GNUNET_PACKED;
+  unsigned tclass_l:4 GNUNET_PACKED;
+  unsigned flowlbl:20 GNUNET_PACKED;
+  uint16_t paylgth GNUNET_PACKED;
+  uint8_t nxthdr;
+  uint8_t hoplmt;
+  struct in6_addr sadr GNUNET_PACKED;
+  struct in6_addr dadr GNUNET_PACKED;
+};
+
+struct udp_pkt
+{
+  uint16_t spt GNUNET_PACKED;
+  uint16_t dpt GNUNET_PACKED;
+  uint16_t len GNUNET_PACKED;
+  uint16_t crc GNUNET_PACKED;
+};
+
+struct dns_pkt
+{
+  uint16_t id GNUNET_PACKED;
+
+  unsigned rd:1 GNUNET_PACKED;  // recursion desired (client -> server)
+  unsigned tc:1 GNUNET_PACKED;  // message is truncated
+  unsigned aa:1 GNUNET_PACKED;  // authoritative answer
+  unsigned op:4 GNUNET_PACKED;  // query:0, inverse q.:1, status: 2
+  unsigned qr:1 GNUNET_PACKED;  // query:0, response:1
+
+  unsigned rcode:4 GNUNET_PACKED;       // 0 No error
+  // 1 Format error
+  // 2 Server failure
+  // 3 Name Error
+  // 4 Not Implemented
+  // 5 Refused
+  unsigned z:3 GNUNET_PACKED;   // reserved
+  unsigned ra:1 GNUNET_PACKED;  // recursion available (server -> client)
+
+  uint16_t qdcount GNUNET_PACKED;       // number of questions
+  uint16_t ancount GNUNET_PACKED;       // number of answers
+  uint16_t nscount GNUNET_PACKED;       // number of authority-records
+  uint16_t arcount GNUNET_PACKED;       // number of additional records
+};
+
+struct dns_query_line
+{
+  uint16_t type;
+  uint16_t class;
+};
+
+struct dns_record_line
+{
+  uint16_t type;
+  uint16_t class;
+  uint32_t ttl;
+  uint16_t data_len;
+};
+GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -70,6 +132,83 @@ struct ClientRecord
    * Handle to the client.
    */ 
   struct GNUNET_SERVER_Client *client;
+
+};
+
+
+/**
+ * Entry we keep for each active request.
+ */ 
+struct RequestRecord
+{
+
+  /**
+   * Name for the request.
+   */
+  char *name;
+
+  /**
+   * Response data, or NULL if not known.
+   */ 
+  char *rdata;
+
+  /**
+   * List of clients that still need to see this request (each entry
+   * is set to NULL when the client is done).
+   */
+  struct ClientRecord **client_wait_list;
+
+  /**
+   * Length of the client wait list.
+   */
+  unsigned int client_wait_list_length;
+
+  /**
+   * Source address of the original request (for sending response).
+   */
+  struct sockaddr_storage src_addr;
+
+  /**
+   * Destination address of the original request (for potential use as exit).
+   */
+  struct sockaddr_storage dst_addr;
+
+  /**
+   * ID of this request, also basis for hashing.  Lowest 16 bit will
+   * be our message ID when doing a global DNS request and our index
+   * into the 'requests' array.
+   */
+  uint64_t request_id;
+
+  /**
+   * TTL if we know it, or 0.
+   */
+  uint32_t dns_ttl;
+
+  /**
+   * Number of bytes in rdata.
+   */ 
+  uint16_t rdata_length;
+
+  /**
+   * Length of the 'name' string, including 0-terminator.
+   */
+  uint16_t name_length;
+
+  /**
+   * The DNS type (i.e. 1 == 'A').
+   */
+  uint16_t dns_type;
+
+  /**
+   * The DNS class (i.e. 1 == Internet)
+   */
+  uint16_t dns_class;
+
+  /**
+   * Original DNS Id we got from the client.
+   */
+  uint16_t original_dns_id;
 
 };
 
@@ -128,15 +267,14 @@ static struct ClientRecord *clients_head;
 static struct ClientRecord *clients_tail;
 
 /**
- * Hash map of open requests.
+ * Array of all open requests.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *request_map;
+static struct RequestRecord requests[UINT16_MAX];
 
 /**
- * Heap with open requests (sorted by time received, oldest on top).
+ * Generator for unique request IDs.
  */
-static struct GNUNET_CONTAINER_Heap *request_heap;
-
+static uint64_t request_id_gen;
 
 
 /**
@@ -176,21 +314,179 @@ cleanup_task (void *cls GNUNET_UNUSED,
     GNUNET_SCHEDULER_cancel (read6_task);
     read6_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (NULL != request_heap)
+  for (i=0;i<65536;i++)
   {
-    while (NULL != (rr = GNUNET_CONTAINER_heap_remove_root (request_heap)))
+    rr = &requests[i];
+    GNUNET_free (rr->name);
+    GNUNET_free_non_null (rr->rdata);
+    GNUNET_array_grow (rr->client_wait_list,
+		       rr->client_wait_list_length,
+		       0);
+  }
+}
+
+
+/**
+ * We're done with some request, finish processing.
+ */
+static void
+request_done (struct RequestRecord *rr)
+{
+  struct GNUNET_MessageHeader *hdr;
+  size_t reply_len;
+  uint16_t spt;
+  uint16_t dpt;
+
+  GNUNET_array_grow (rr->client_wait_list,
+		     rr->client_wait_list_length,
+		     0); 
+  if (NULL == rr->rdata)
+  {
+    /* no response, drop */
+    GNUNET_free (rr->name);
+    rr->name = NULL;
+    return;
+  }
+  
+  /* send response via hijacker */
+  reply_len = sizeof (struct GNUNET_MessageHeader);
+  switch (rr->src_addr.ss_family)
+  {
+  case AF_INET:
+    reply_len += sizeof (struct ip4_hdr);
+    break;
+  case AF_INET6:
+    reply_len += sizeof (struct ip6_hdr);
+    break;
+  default:
+    GNUNET_break (0);
+    GNUNET_free (rr->name);
+    rr->name = NULL;
+    return;   
+  }
+  reply_len += sizeof (struct udp_pkt);
+  reply_len += sizeof (struct dns_pkt);
+  reply_len += rr->name_length;
+  reply_len += sizeof (struct dns_record_line);
+  reply_len += rr->rdata_length;
+  if (reply_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    /* response too big, drop */
+    GNUNET_break (0); /* how can this be? */
+    GNUNET_free (rr->name);
+    rr->name = NULL;
+    return;    
+  }
+  {
+    char buf[reply_len];
+    size_t off;
+
+    /* first, GNUnet message header */
+    hdr = (struct GNUNET_MessageHeader*) buf;
+    hdr->type = htons (GNUNET_MESSAGE_TYPE_DNS_HELPER);
+    hdr->size = htons ((uint16_t) reply_len);
+    off = sizeof (struct GNUNET_MessageHeader);
+
+    /* now IP header */
+    switch (rr->src_addr.ss_family)
     {
-      // FIXME: free rest of 'rr'
-      GNUNET_free (rr);
+    case AF_INET:
+      {
+	struct sockaddr_in *src = (struct sockaddr_in *) &rr->src_addr;
+	struct sockaddr_in *dst = (struct sockaddr_in *) &rr->dst_addr;
+	struct ip4_hdr ip;
+	
+	spt = dst->sin_port;
+	dpt = src->sin_port;
+	// FIXME: fill in IP header!
+	memcpy (&buf[off], &ip, sizeof (ip));
+	off += sizeof (ip);
+	break;
+      }
+    case AF_INET6:
+      {
+	struct sockaddr_in6 *src = (struct sockaddr_in6 *) &rr->src_addr;
+	struct sockaddr_in6 *dst = (struct sockaddr_in6 *) &rr->dst_addr;
+	struct ip6_hdr ip;
+
+	spt = dst->sin6_port;
+	dpt = src->sin6_port;
+	// FIXME: fill in IP header!
+	memcpy (&buf[off], &ip, sizeof (ip));
+	off += sizeof (ip);
+      }
+      break;
+    default:
+      GNUNET_assert (0);
     }
-    GNUNET_CONTAINER_heap_destroy (request_heap);
-    request_heap = NULL;
+    /* now UDP header */
+    {
+      struct udp_pkt udp;
+
+      udp.spt = spt;
+      udp.dpt = dpt;
+      udp.len = htons (reply_len - off);
+      udp.crc = 0; /* checksum is optional */
+      memcpy (&buf[off], &udp, sizeof (udp));
+      off += sizeof (udp);
+    }
+
+    /* now DNS header */
+    {
+      struct dns_pkt dns;
+
+      dns.id = rr->original_dns_id;
+      dns.rd = 1; /* recursion desired / supported */
+      dns.tc = 0; /* not truncated */
+      dns.aa = 1; /* are we authoritative!? I say yes. */
+      dns.op = 0; /* standard query */
+      dns.qr = 1; /* this is a response */
+      dns.rcode = 0; /* no error */
+      dns.z = 0; /* reserved */
+      dns.ra = 1; /* recursion available */
+      dns.qdcount = htons (0); /* no queries */
+      dns.ancount = htons (1); /* one answer */
+      dns.nscount = htons (0); /* no authorities yet (fixme) */
+      dns.arcount = htons (0); /* no additinal records yet (fixme) */
+      memcpy (&buf[off], &dns, sizeof (dns));
+      off += sizeof (dns);
+    }
+
+    /* now DNS name */
+    {
+      // FIXME: fill in DNS name!
+      off += rr->name_length;
+    }
+
+
+    /* now DNS record line */
+    {
+      struct dns_record_line drl;
+      
+      drl.type = htons (rr->dns_type);
+      drl.class = htons (rr->dns_class);
+      drl.ttl = htonl (rr->dns_ttl);
+      drl.data_len = htons (rr->rdata_length);
+      memcpy (&buf[off], &drl, sizeof (drl));
+      off += sizeof (drl);
+    }
+
+    /* now DNS rdata */
+    {
+      memcpy (&buf[off], rr->rdata, rr->rdata_length);
+      off += rr->rdata_length;
+    }
+    
+    /* final checks & sending */
+    GNUNET_assert (off == reply_len);
+    GNUNET_HELPER_send (hijacker,
+			hdr,
+			GNUNET_YES,
+			NULL, NULL);
   }
-  if (NULL != request_map)
-  {
-    GNUNET_CONTAINER_multihashmap_destroy (request_map);
-    request_map = NULL;
-  }
+  /* clean up, we're done */
+  GNUNET_free (rr->name);
+  rr->name = NULL;
 }
 
 
@@ -204,8 +500,11 @@ static void
 client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct ClientRecord *cr;
+  struct RequestRecord *rr;
+  unsigned int i;
+  unsigned int j;
+  int az;
 
-  /* FIXME: clean up after client */
   for (cr = clients_head; NULL != cr; cr = cr->next)
   {
     if (cr->client == client)
@@ -214,6 +513,22 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       GNUNET_CONTAINER_DLL_remove (clients_head,
 				   clients_tail,
 				   cr);
+      for (i=0;i<UINT16_MAX;i++)
+      {
+	rr = &requests[i];
+	if (0 == rr->client_wait_list_length)
+	  continue; /* not in use */
+	az = 1;
+	for (j=0;j<rr->client_wait_list_length;j++)
+	{
+	  if (rr->client_wait_list[j] == cr)
+	    rr->client_wait_list[j] = NULL;
+	  if (rr->client_wait_list[j] != NULL)
+	    az = 0;
+	}
+	if (1 == az)
+	  request_done (rr); /* this was the last client... */
+      }
       GNUNET_free (cr);
       return;
     }
@@ -460,6 +775,7 @@ process_helper_messages (void *cls, void *client,
 {
   /* FIXME: parse message, create record, start processing! */
   /* FIXME: put request into queue for clients / system DNS */
+  request_id_gen++;
 }
 
 
@@ -486,8 +802,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   char *ipv6prefix;
 
   cfg = cfg_;
-  request_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  request_map = GNUNET_CONTAINER_multihashmap_create (1024 * 16);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 cls);
   if (GNUNET_YES ==
