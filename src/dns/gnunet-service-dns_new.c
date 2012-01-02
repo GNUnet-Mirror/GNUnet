@@ -158,7 +158,7 @@ cleanup_task (void *cls GNUNET_UNUSED,
     GNUNET_free_non_null (helper_argv[i]);
   if (NULL != dnsout4)
   {
-    GNUNET_NETWORK_socket_destroy (dnsout4);
+    GNUNET_NETWORK_socket_close (dnsout4);
     dnsout4 = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != read4_task)
@@ -168,7 +168,7 @@ cleanup_task (void *cls GNUNET_UNUSED,
   }
   if (NULL != dnsout6)
   {
-    GNUNET_NETWORK_socket_destroy (dnsout6);
+    GNUNET_NETWORK_socket_close (dnsout6);
     dnsout6 = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != read6_task)
@@ -315,7 +315,7 @@ open_port4 ()
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 		_("Could not bind to any port: %s\n"),
 		STRERROR (errno));
-    GNUNET_NETWORK_socket_destroy (dnsout4);
+    GNUNET_NETWORK_socket_close (dnsout4);
     dnsout4 = NULL;
     return GNUNET_SYSERR;
   }
@@ -329,7 +329,7 @@ open_port4 ()
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 		_("Could not determine port I got: %s\n"),
 		STRERROR (errno));
-    GNUNET_NETWORK_socket_destroy (dnsout4);
+    GNUNET_NETWORK_socket_close (dnsout4);
     dnsout4 = NULL;
     return GNUNET_SYSERR;
   }
@@ -339,7 +339,7 @@ open_port4 ()
 	      _("GNUnet DNS will exit on source port %u\n"),
 	      (unsigned int) dnsoutport);
   read4_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, 
-					      dnsout,
+					      dnsout4,
 					      &read_response, dnsout4);
   return GNUNET_OK;
 }
@@ -355,6 +355,7 @@ static int
 open_port6 ()
 {
   struct sockaddr_in6 addr;
+  socklen_t addrlen;
 
   dnsout6 = GNUNET_NETWORK_socket_create (AF_INET6, SOCK_DGRAM, 0);
   if (dnsout6 == NULL)
@@ -377,6 +378,8 @@ open_port6 ()
 		_("Could not bind to port %u: %s\n"),
 		(unsigned int) dnsoutport,
 		STRERROR (errno));
+    GNUNET_NETWORK_socket_close (dnsout6);
+    dnsout6 = NULL;
     return GNUNET_SYSERR;
   }
   if (0 == dnsoutport)
@@ -389,7 +392,7 @@ open_port6 ()
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 		  _("Could not determine port I got: %s\n"),
 		  STRERROR (errno));
-      GNUNET_NETWORK_socket_destroy (dnsout6);
+      GNUNET_NETWORK_socket_close (dnsout6);
       dnsout6 = NULL;
       return GNUNET_SYSERR;
     }
@@ -476,13 +479,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {NULL, NULL, 0, 0}
   };
   char port_s[6];
-  char *virt_dns;
-  struct GNUNET_OS_Process *proc;
   char *ifc_name;
-  char *ipv4_addr;
-  char *ipv4_mask;
-  char *ipv6_addr;
-  char *ipv6_mask;
+  char *ipv4addr;
+  char *ipv4mask;
+  char *ipv6addr;
+  char *ipv6prefix;
 
   cfg = cfg_;
   request_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
@@ -521,7 +522,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  helper_argv[2] = ipv6_addr;
+  helper_argv[2] = ipv6addr;
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
                                              &ipv6prefix))
@@ -531,7 +532,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  helper_argv[3] = ipv6_mask;
+  helper_argv[3] = ipv6prefix;
 
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
@@ -542,7 +543,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  helper_argv[4] = ipv4_addr;
+  helper_argv[4] = ipv4addr;
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
                                              &ipv4mask))
@@ -552,7 +553,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  helper_argv[5] = ipv4_mask;
+  helper_argv[5] = ipv4mask;
   GNUNET_snprintf (port_s, 
 		   sizeof (port_s), 
 		   "%u", 

@@ -32,7 +32,7 @@ lib_LTLIBRARIES = \
   libgnunetdns.la
 
 bin_PROGRAMS = \
-  gnunet-service-dns $(HIJACKBIN)
+  gnunet-service-dns gnunet-service-dns-new $(HIJACKBIN)
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_dns.la 
@@ -52,6 +52,14 @@ gnunet_service_dns_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/dns/libgnunetdnsparser.la \
+  $(GN_LIBINTL)
+
+gnunet_service_dns_new_SOURCES = \
+ gnunet-service-dns_new.c 
+gnunet_service_dns_new_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(GN_LIBINTL)
 
