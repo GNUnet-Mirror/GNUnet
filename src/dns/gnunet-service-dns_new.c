@@ -485,6 +485,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   char *ipv6_mask;
 
   cfg = cfg_;
+  request_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  request_map = GNUNET_CONTAINER_multihashmap_create (1024 * 16);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
+                                cls);
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg_, "dns", "PROVIDE_EXIT"))
   {
@@ -498,27 +502,61 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     }
   }
 
+  helper_argv[0] = GNUNET_strdup ("gnunet-dns");
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "VIRTIFC", &ifc_name))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IFNAME", &ifc_name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'VIRTDNS' in configuration!\n");
+                "No entry 'IFNAME' in configuration!\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  /* FIXME: get all config options we need here! */
-  request_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  request_map = GNUNET_CONTAINER_multihashmap_create (1024 * 16);
+  helper_argv[1] = ifc_name;
+  if ( (GNUNET_SYSERR ==
+	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
+					       &ipv6addr)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV6ADDR' in configuration!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  helper_argv[2] = ipv6_addr;
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
+                                             &ipv6prefix))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV6PREFIX' in configuration!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  helper_argv[3] = ipv6_mask;
+
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
+                                             &ipv4addr))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV4ADDR' in configuration!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  helper_argv[4] = ipv4_addr;
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
+                                             &ipv4mask))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV4MASK' in configuration!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  helper_argv[5] = ipv4_mask;
   GNUNET_snprintf (port_s, 
 		   sizeof (port_s), 
 		   "%u", 
 		   (unsigned int) dnsoutport);
-  helper_argv[0] = GNUNET_strdup ("gnunet-dns");
-  helper_argv[1] = ifc_name;
-  helper_argv[2] = ipv6_addr;
-  helper_argv[3] = ipv6_mask;
-  helper_argv[4] = ipv4_addr;
-  helper_argv[5] = ipv4_mask;
   helper_argv[6] = GNUNET_strdup (port_s);
   helper_argv[7] = NULL;
   hijacker = GNUNET_HELPER_start ("gnunet-helper-dns",
@@ -527,8 +565,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 				  NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
-                                cls);
 }
 
 
