@@ -43,54 +43,6 @@
 
 #include "dns.h"
 
-
-
-struct answer_packet_list
-{
-  struct answer_packet_list *next GNUNET_PACKED;
-  struct answer_packet_list *prev GNUNET_PACKED;
-  struct GNUNET_SERVER_Client *client;
-  struct answer_packet pkt;
-};
-
-
-
-static struct GNUNET_MESH_Handle *mesh_handle;
-
-static struct GNUNET_CONNECTION_TransmitHandle *server_notify;
-
-/**
- * The UDP-Socket through which DNS-Resolves will be sent if they are not to be
- * sent through gnunet. The port of this socket will not be hijacked.
- */
-static struct GNUNET_NETWORK_Handle *dnsout;
-static struct GNUNET_NETWORK_Handle *dnsout6;
-
-/**
- * The port bound to the socket dnsout
- */
-static unsigned short dnsoutport;
-
-/**
- * A handle to the DHT-Service
- */
-static struct GNUNET_DHT_Handle *dht;
-
-/**
- * The configuration to use
- */
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-/**
- * A list of DNS-Responses that have to be sent to the requesting client
- */
-static struct answer_packet_list *head;
-
-/**
- * The tail of the list of DNS-responses
- */
-static struct answer_packet_list *tail;
-
 /**
  * A structure containing a mapping from network-byte-ordered DNS-id (16 bit) to
  * some information needed to handle this query
@@ -138,6 +90,65 @@ struct tunnel_state
   struct tunnel_notify_queue *head, *tail;
   struct GNUNET_MESH_TransmitHandle *th;
 };
+
+
+struct answer_packet_list
+{
+  struct answer_packet_list *next;
+  struct answer_packet_list *prev;
+  struct GNUNET_SERVER_Client *client;
+  struct answer_packet pkt;
+};
+
+GNUNET_NETWORK_STRUCT_BEGIN
+struct tunnel_cls
+{
+  struct GNUNET_MESH_Tunnel *tunnel;
+  struct GNUNET_MessageHeader hdr;
+  struct dns_pkt dns;
+};
+GNUNET_NETWORK_STRUCT_END
+
+struct tunnel_cls *remote_pending[UINT16_MAX];
+
+
+static struct GNUNET_MESH_Handle *mesh_handle;
+
+static struct GNUNET_CONNECTION_TransmitHandle *server_notify;
+
+/**
+ * The UDP-Socket through which DNS-Resolves will be sent if they are not to be
+ * sent through gnunet. The port of this socket will not be hijacked.
+ */
+static struct GNUNET_NETWORK_Handle *dnsout;
+
+static struct GNUNET_NETWORK_Handle *dnsout6;
+
+/**
+ * The port bound to the socket dnsout
+ */
+static unsigned short dnsoutport;
+
+/**
+ * A handle to the DHT-Service
+ */
+static struct GNUNET_DHT_Handle *dht;
+
+/**
+ * The configuration to use
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * A list of DNS-Responses that have to be sent to the requesting client
+ */
+static struct answer_packet_list *head;
+
+/**
+ * The tail of the list of DNS-responses
+ */
+static struct answer_packet_list *tail;
+
 
 static size_t
 send_answer (void *cls, size_t size, void *buf);
@@ -300,17 +311,6 @@ send_answer (void *cls, size_t size, void *buf)
   return len;
 }
 
-GNUNET_NETWORK_STRUCT_BEGIN
-
-struct tunnel_cls
-{
-  struct GNUNET_MESH_Tunnel *tunnel GNUNET_PACKED;
-  struct GNUNET_MessageHeader hdr;
-  struct dns_pkt dns;
-};
-GNUNET_NETWORK_STRUCT_END
-
-struct tunnel_cls *remote_pending[UINT16_MAX];
 
 static size_t
 mesh_send_response (void *cls, size_t size, void *buf)
