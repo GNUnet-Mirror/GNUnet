@@ -38,11 +38,10 @@
 
 struct query_packet_list
 {
-  struct query_packet_list *next GNUNET_PACKED;
-  struct query_packet_list *prev GNUNET_PACKED;
+  struct query_packet_list *next;
+  struct query_packet_list *prev;
   struct query_packet pkt;
 };
-
 
 
 struct GNUNET_DNS_Handle
@@ -279,8 +278,8 @@ GNUNET_DNS_queue_request_v4 (struct GNUNET_DNS_Handle *h,
 {
   size_t len = sizeof (struct query_packet) + udp_packet_len - 1;
   struct query_packet_list *query =
-    GNUNET_malloc (len + sizeof (struct answer_packet_list) -
-		   sizeof (struct answer_packet));
+    GNUNET_malloc (len + sizeof (struct query_packet_list) -
+		   sizeof (struct query_packet));
   query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
   query->pkt.hdr.size = htons (len);
   memcpy (query->pkt.orig_to, dst_ip, 4);
@@ -314,7 +313,7 @@ GNUNET_DNS_queue_request_v6 (struct GNUNET_DNS_Handle *h,
   size_t len =
     sizeof (struct query_packet) + udp_packet_len - 1;
   struct query_packet_list *query =
-    GNUNET_malloc (len + sizeof (struct answer_packet_list) -
+    GNUNET_malloc (len + sizeof (struct query_packet_list) -
 		   sizeof (struct answer_packet));
   query->pkt.hdr.type =
     htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);

@@ -45,6 +45,16 @@
 
 
 
+struct answer_packet_list
+{
+  struct answer_packet_list *next GNUNET_PACKED;
+  struct answer_packet_list *prev GNUNET_PACKED;
+  struct GNUNET_SERVER_Client *client;
+  struct answer_packet pkt;
+};
+
+
+
 static struct GNUNET_MESH_Handle *mesh_handle;
 
 static struct GNUNET_CONNECTION_TransmitHandle *server_notify;
