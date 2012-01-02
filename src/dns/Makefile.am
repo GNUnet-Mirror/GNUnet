@@ -39,7 +39,8 @@ gnunet_service_dns_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(GN_LIBINTL) -lgnunetdnsparser
+  $(top_builddir)/src/dns/libgnunetdnsparser.la \
+  $(GN_LIBINTL)
 
 
 libgnunetdnsparser_la_SOURCES = \
