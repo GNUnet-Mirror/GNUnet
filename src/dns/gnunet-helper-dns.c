@@ -662,7 +662,7 @@ PROCESS_BUFFER:
  *         5 failed to initialize tunnel interface
  *         6 failed to initialize control pipe
  *         8 failed to change routing table, cleanup successful
- *         9-23 failed to undo some changes to routing table
+ *         9-23 failed to change routing table and failed to undo some changes to routing table
  *         24 failed to drop privs
  *         25-39 failed to drop privs and then failed to undo some changes to routing table
  *         40 failed to regain privs
@@ -760,7 +760,7 @@ main (int argc, char *const*argv)
       return 6;
     }
   }
-  if (SIG_ERR == signal (SIGINT, &signal_handler))
+  if (SIG_ERR == signal (SIGTERM, &signal_handler))
   { 
     fprintf (stderr, 
 	     "Fatal: could not initialize signal handler: %s\n",
@@ -820,18 +820,18 @@ main (int argc, char *const*argv)
 	"ACCEPT", NULL
       };
     if (0 != fork_and_exec (SBIN_IPTABLES, mangle_args))
-      goto cleanup_mangle_1;
+      goto cleanup_rest;
   }    
   /* Mark all of the other DNS traffic using our mark DNS_MARK */
   {
     char *const mark_args[] =
       {
-	"iptables", "-t", "mangle", "-I", "OUTPUT", DNS_TABLE, "-p",
+	"iptables", "-t", "mangle", "-I", "OUTPUT", "2", "-p",
 	"udp", "--dport", DNS_PORT, "-j", "MARK", "--set-mark", DNS_MARK,
 	NULL
       };
     if (0 != fork_and_exec (SBIN_IPTABLES, mark_args))
-      goto cleanup_mark_2;
+      goto cleanup_mangle_1;
   }
   /* Forward all marked DNS traffic to our DNS_TABLE */
   {
@@ -840,17 +840,17 @@ main (int argc, char *const*argv)
 	"ip", "rule", "add", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
       };
     if (0 != fork_and_exec (SBIN_IP, forward_args))
-      goto cleanup_forward_3;
+      goto cleanup_mark_2;
   }
   /* Finally, add rule in our forwarding table to pass to our virtual interface */
   {
     char *const route_args[] =
       {
-	"ip", "route", "add", "default", "via", dev,
+	"ip", "route", "add", "default", "dev", dev,
 	"table", DNS_TABLE, NULL
       };
     if (0 != fork_and_exec (SBIN_IP, route_args))
-      goto cleanup_route_4;
+      goto cleanup_forward_3;
   }
 
   /* drop privs *except* for the saved UID; this is not perfect, but better
@@ -877,7 +877,6 @@ main (int argc, char *const*argv)
 
   /* now forward until we hit a problem */
    run (fd_tun);
-  (void) close (fd_tun);
   
   /* now need to regain privs so we can remove the firewall rules we added! */
 #ifdef HAVE_SETRESUID
@@ -902,7 +901,7 @@ main (int argc, char *const*argv)
   {
     char *const route_clean_args[] = 			 
       {
-	"ip", "route", "del", "default", "via", dev,
+	"ip", "route", "del", "default", "dev", dev,
 	"table", DNS_TABLE, NULL
       };
     if (0 != fork_and_exec (SBIN_IP, route_clean_args))
@@ -939,6 +938,9 @@ main (int argc, char *const*argv)
       r += 8;
   }
 
+ cleanup_rest:
+  /* close virtual interface */
+  (void) close (fd_tun);
   /* remove SIGINT handler so we can close the pipes */
   (void) signal (SIGINT, SIG_IGN);
   (void) close (cpipe[0]);
