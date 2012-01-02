@@ -16,10 +16,12 @@ dist_pkgcfg_DATA = \
   dns.conf
 
 if LINUX
-HIJACKBIN = gnunet-helper-hijack-dns
+HIJACKBIN = gnunet-helper-hijack-dns gnunet-helper-dns
 install-exec-hook:
 	$(SUDO_BINARY) chown root:root $(bindir)/gnunet-helper-hijack-dns || true
 	$(SUDO_BINARY) chmod u+s $(bindir)/gnunet-helper-hijack-dns || true
+	$(SUDO_BINARY) chown root:root $(bindir)/gnunet-helper-dns || true
+	$(SUDO_BINARY) chmod u+s $(bindir)/gnunet-helper-dns || true
 else
 install-exec-hook:
 endif
@@ -37,6 +39,9 @@ plugin_LTLIBRARIES = \
 
 gnunet_helper_hijack_dns_SOURCES = \
  gnunet-helper-hijack-dns.c
+
+gnunet_helper_dns_SOURCES = \
+ gnunet-helper-dns.c
 
 gnunet_service_dns_SOURCES = \
  gnunet-service-dns.c gnunet-service-dns-p.h 
