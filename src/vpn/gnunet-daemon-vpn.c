@@ -36,7 +36,6 @@
 #include "gnunet_constants.h"
 #include <block_dns.h>
 #include "gnunet_dns_service.h"
-#include "gnunet-daemon-vpn.h"
 
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -59,6 +58,71 @@ struct GNUNET_DNS_Handle *dns_handle;
 struct answer_packet_list *answer_proc_head;
 
 struct answer_packet_list *answer_proc_tail;
+
+struct answer_packet_list
+{
+  struct answer_packet_list *next GNUNET_PACKED;
+  struct answer_packet_list *prev GNUNET_PACKED;
+  struct GNUNET_SERVER_Client *client;
+  struct answer_packet pkt;
+};
+
+
+void
+send_icmp6_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+void
+send_icmp4_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+size_t
+send_udp_service (void *cls, size_t size, void *buf);
+
+GNUNET_HashCode *
+address6_mapping_exists (struct in6_addr *v6addr);
+GNUNET_HashCode *
+address4_mapping_exists (uint32_t addr);
+
+unsigned int
+port_in_ports (uint64_t ports, uint16_t port);
+
+void
+send_pkt_to_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
+                  const struct GNUNET_ATS_Information *atsi);
+
+struct map_entry
+{
+    /** The description of the service (used for service) */
+  struct GNUNET_vpn_service_descriptor desc;
+
+    /** The real address of the service (used for remote) */
+  char addrlen;
+  char addr[16];
+
+  struct GNUNET_MESH_Tunnel *tunnel;
+  uint16_t namelen;
+  char additional_ports[8192];
+
+  struct GNUNET_CONTAINER_HeapNode *heap_node;
+  GNUNET_HashCode hash;
+    /**
+     * After this struct the name is located in DNS-Format!
+     */
+};
+
+
+struct remote_addr
+{
+  char addrlen;
+  unsigned char addr[16];
+  char proto;
+};
+
+struct tunnel_state
+{
+  struct GNUNET_MESH_TransmitHandle *th;
+  struct tunnel_notify_queue *head, *tail;
+
+  int addrlen;
+};
 
 
 struct tunnel_notify_queue
