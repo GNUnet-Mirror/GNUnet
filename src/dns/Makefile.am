@@ -31,6 +31,10 @@ lib_LTLIBRARIES = \
 bin_PROGRAMS = \
   gnunet-service-dns $(HIJACKBIN)
 
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_dns.la 
+
+
 gnunet_helper_hijack_dns_SOURCES = \
  gnunet-helper-hijack-dns.c
 
@@ -45,7 +49,6 @@ gnunet_service_dns_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(GN_LIBINTL)
 
-
 libgnunetdnsparser_la_SOURCES = \
  dnsparser.c 
 libgnunetdnsparser_la_LIBADD = \
@@ -53,10 +56,19 @@ libgnunetdnsparser_la_LIBADD = \
 libgnunetdnsparser_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
-
 libgnunetdns_la_SOURCES = \
  dns_api.c dns.h
 libgnunetdns_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdns_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
+
+libgnunet_plugin_block_dns_la_SOURCES = \
+  plugin_block_dns.c
+libgnunet_plugin_block_dns_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
+libgnunet_plugin_block_dns_la_LDFLAGS = \
+  $(top_builddir)/src/block/$(GN_PLUGIN_LDFLAGS)
+
+
+

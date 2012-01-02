@@ -19,7 +19,7 @@
 */
 
 /**
- * @file vpn/gnunet-service-dns.c
+ * @file dns/gnunet-service-dns.c
  * @author Philipp Toelke
  */
 #include "platform.h"
