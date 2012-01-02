@@ -17,14 +17,14 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 
-     For the actual CRC code:
+     For the actual CRC-32 code:
      Copyright abandoned; this code is in the public domain.
      Provided to GNUnet by peter@horizon.com
 */
 
 /**
  * @file util/crypto_crc.c
- * @brief implementation of CRC32
+ * @brief implementation of CRC16 and CRC32
  * @author Christian Grothoff
  */
 
@@ -112,5 +112,59 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
   crc = crc32 (crc, (char *) buf, len);
   return crc;
 }
+
+
+
+/**
+ * Perform an incremental step in a CRC16 (for TCP/IP) calculation.
+ *
+ * @param sum current sum, initially 0
+ * @param hdr buffer to calculate CRC over (must be 16-bit aligned)
+ * @param len number of bytes in hdr, must be multiple of 2
+ * @return updated crc sum (must be subjected to GNUNET_CRYPTO_crc16_finish to get actual crc16)
+ */
+uint32_t
+GNUNET_CRYPTO_crc16_step (uint32_t sum, uint16_t * hdr, size_t len)
+{
+  GNUNET_assert (0 == (len & 1));
+  for (; len >= 2; len -= 2)
+    sum += *(hdr++);
+  if (len == 1)
+    sum += *((unsigned char *) hdr);
+  return sum;
+}
+
+/**
+ * Convert results from GNUNET_CRYPTO_crc16_step to final crc16.
+ *
+ * @param sum cummulative sum
+ * @return crc16 value
+ */
+uint16_t
+GNUNET_CRYPTO_crc16_finish (uint32_t sum)
+{
+  sum = (sum >> 16) + (sum & 0xFFFF);
+  sum += (sum >> 16);
+
+  return ~sum;
+}
+
+
+/**
+ * Calculate the checksum of a buffer in one step.
+ *
+ * @param hdr buffer to  calculate CRC over (must be 16-bit aligned)
+ * @param len number of bytes in hdr, must be multiple of 2
+ * @return crc16 value
+ */
+uint16_t
+GNUNET_CRYPTO_crc16_n (uint16_t *hdr, size_t len)
+{
+  uint32_t sum = GNUNET_CRYPTO_crc16_step (0, hdr, len);
+
+  return GNUNET_CRYPTO_crc16_finish (sum);
+}
+
+
 
 /* end of crypto_crc.c */
