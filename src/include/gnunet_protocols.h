@@ -639,6 +639,25 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_VPN_REMOTE_ANSWER_DNS 209
 
+/**
+ * Initial message from client to DNS service for registration.
+ */
+#define GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT 211
+
+/**
+ * Type of messages between the gnunet-helper-dns and the service
+ */
+#define GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST 212
+
+/**
+ * Type of messages between the gnunet-helper-dns and the service
+ */
+#define GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE 213
+
+/**
+ * Type of messages between the gnunet-helper-dns and the service
+ */
+#define GNUNET_MESSAGE_TYPE_DNS_HELPER 214
 
 
 /*******************************************************************************

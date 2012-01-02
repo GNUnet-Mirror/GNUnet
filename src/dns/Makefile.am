@@ -28,6 +28,7 @@ endif
 
 lib_LTLIBRARIES = \
   libgnunetdnsparser.la \
+  libgnunetdnsnew.la \
   libgnunetdns.la
 
 bin_PROGRAMS = \
@@ -66,6 +67,13 @@ libgnunetdns_la_SOURCES = \
 libgnunetdns_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdns_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)
+
+libgnunetdnsnew_la_SOURCES = \
+ dns_api_new.c dns_new.h
+libgnunetdnsnew_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
+libgnunetdnsnew_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 libgnunet_plugin_block_dns_la_SOURCES = \
