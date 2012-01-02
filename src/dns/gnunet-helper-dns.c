@@ -946,4 +946,4 @@ main (int argc, char *const*argv)
   return r;
 }
 
-/* end of gnunet-helper-hijack-dns.c */
+/* end of gnunet-helper-dns.c */
