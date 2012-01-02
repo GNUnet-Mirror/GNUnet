@@ -241,6 +241,23 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
                                 enum GNUNET_SCHEDULER_Priority prio);
 
 
+
+/**
+ * Start a process.
+ *
+ * @param pipe_stdin pipe to use to send input to child process (or NULL)
+ * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param filename name of the binary
+ * @param argv NULL-terminated array of arguments to the process
+ * @return pointer to process structure of the new process, NULL on error
+ */
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
+			     const char *filename, 
+			     char *const argv[]);
+
+
 /**
  * Start a process.
  *

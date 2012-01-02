@@ -534,16 +534,15 @@ CreateCustomEnvTable (char **vars)
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
- * @param va NULL-terminated list of arguments to the process
+ * @param argv NULL-terminated array of arguments to the process
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
-                            struct GNUNET_DISK_PipeHandle *pipe_stdout,
-                            const char *filename, va_list va)
+GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
+			     const char *filename, 
+			     char *const argv[])
 {
-  va_list ap;
-
 #if ENABLE_WINDOWS_WORKAROUNDS
   char *childpipename = NULL;
   struct GNUNET_DISK_FileHandle *control_pipe = NULL;
@@ -552,8 +551,6 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 
 #ifndef MINGW
   pid_t ret;
-  char **argv;
-  int argc;
   int fd_stdout_write;
   int fd_stdout_read;
   int fd_stdin_read;
@@ -567,20 +564,6 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   if (control_pipe == NULL)
     return NULL;
 #endif
-
-  argc = 0;
-  va_copy (ap, va);
-  while (NULL != va_arg (ap, char *))
-         argc++;
-
-  va_end (ap);
-  argv = GNUNET_malloc (sizeof (char *) * (argc + 1));
-  argc = 0;
-  va_copy (ap, va);
-  while (NULL != (argv[argc] = va_arg (ap, char *)))
-         argc++;
-
-  va_end (ap);
   if (pipe_stdout != NULL)
   {
     GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
@@ -619,7 +602,6 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       gnunet_proc->control_pipe = control_pipe;
 #endif
     }
-    GNUNET_free (argv);
 #if ENABLE_WINDOWS_WORKAROUNDS
     GNUNET_free (childpipename);
 #endif
@@ -656,7 +638,7 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   char *cmd, *idx;
   STARTUPINFOW start;
   PROCESS_INFORMATION proc;
-
+  int argc;
   HANDLE stdin_handle;
   HANDLE stdout_handle;
 
@@ -721,26 +703,24 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   GNUNET_free (non_const_filename);
 
   cmdlen = 0;
-  va_copy (ap, va);
-  while (NULL != (arg = va_arg (ap, char *)))
+  argc = 0;
+  while (NULL != (arg = argv[argc++]))
   {
     if (cmdlen == 0)
       cmdlen = cmdlen + strlen (path) + 3;
     else
       cmdlen = cmdlen + strlen (arg) + 3;
   }
-  va_end (ap);
 
   cmd = idx = GNUNET_malloc (sizeof (char) * (cmdlen + 1));
-  va_copy (ap, va);
-  while (NULL != (arg = va_arg (ap, char *)))
+  argc = 0;
+  while (NULL != (arg = argv[argc++]))
   {
     if (idx == cmd)
       idx += sprintf (idx, "\"%s\" ", path);
     else
       idx += sprintf (idx, "\"%s\" ", arg);
   }
-  va_end (ap);
 
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
@@ -818,6 +798,46 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   return gnunet_proc;
 #endif
 }
+
+
+/**
+ * Start a process.
+ *
+ * @param pipe_stdin pipe to use to send input to child process (or NULL)
+ * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param filename name of the binary
+ * @param va NULL-terminated list of arguments to the process
+ * @return pointer to process structure of the new process, NULL on error
+ */
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+                            struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                            const char *filename, va_list va)
+{
+  struct GNUNET_OS_Process *ret;
+  va_list ap;
+  char **argv;
+  int argc;
+
+  argc = 0;
+  va_copy (ap, va);
+  while (NULL != va_arg (ap, char *))
+    argc++;
+  va_end (ap);
+  argv = GNUNET_malloc (sizeof (char *) * (argc + 1));
+  argc = 0;
+  va_copy (ap, va);
+  while (NULL != (argv[argc] = va_arg (ap, char *)))
+    argc++;
+  va_end (ap);
+  ret = GNUNET_OS_start_process_vap (pipe_stdin,
+				     pipe_stdout,
+				     filename,
+				     argv);
+  GNUNET_free (argv);
+  return ret;
+}
+
 
 
 /**
