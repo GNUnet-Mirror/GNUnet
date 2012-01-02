@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010 Christian Grothoff
+     (C) 2010, 2012 Christian Grothoff
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -33,10 +33,7 @@
 #include <string.h>
 
 #include "gnunet-vpn-packet.h"
-#include "gnunet-helper-vpn-api.h"
 #include "gnunet-vpn-checksum.h"
-
-GNUNET_SCHEDULER_TaskIdentifier shs_task;
 
 /**
  * The handle to the configuration used throughout the process
@@ -46,7 +43,12 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * The handle to the helper
  */
-struct GNUNET_VPN_HELPER_Handle *helper_handle;
+static struct GNUNET_HELPER_Handle *helper_handle;
+
+/**
+ * Arguments to the exit helper.
+ */
+static char *exit_argv[7];
 
 /**
  * Final status code.
@@ -63,8 +65,11 @@ static struct GNUNET_MESH_Handle *mesh_handle;
  * source-port and destination-port to a struct redirect_state
  */
 static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
+
 static struct GNUNET_CONTAINER_Heap *udp_connections_heap;
+
 static struct GNUNET_CONTAINER_MultiHashMap *tcp_connections;
+
 static struct GNUNET_CONTAINER_Heap *tcp_connections_heap;
 
 /**
@@ -136,8 +141,7 @@ struct redirect_state
   struct GNUNET_CONTAINER_MultiHashMap *hashmap;
   GNUNET_HashCode hash;
 
-  enum
-  { SERVICE, REMOTE } type;
+  enum { SERVICE, REMOTE } type;
 
   /**
    * The source-address and -port of this connection
@@ -146,9 +150,14 @@ struct redirect_state
 };
 
 /**
- * This hashmaps saves interesting things about the configured services
+ * This hashmaps saves interesting things about the configured UDP services
  */
 static struct GNUNET_CONTAINER_MultiHashMap *udp_services;
+
+/**
+ * This hashmaps saves interesting things about the configured TCP services
+ */
+
 static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
 
 struct tunnel_notify_queue
@@ -165,6 +174,7 @@ struct tunnel_state
   struct tunnel_notify_queue *tail;
   struct GNUNET_MESH_TransmitHandle *th;
 };
+
 
 /**
  * Function that frees everything from a hashmap
@@ -184,17 +194,23 @@ static void
 cleanup (void *cls GNUNET_UNUSED,
          const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 {
+  unsigned int i;
+
   GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
-
-  GNUNET_CONTAINER_multihashmap_iterate (udp_connections, free_iterate, NULL);
-
-  GNUNET_CONTAINER_multihashmap_iterate (tcp_connections, free_iterate, NULL);
-
   if (mesh_handle != NULL)
   {
     GNUNET_MESH_disconnect (mesh_handle);
     mesh_handle = NULL;
   }
+  if (helper_handle != NULL)
+  {
+    GNUNET_HELPER_stop (helper_handle);
+    helper_handle = NULL;
+  }
+  GNUNET_CONTAINER_multihashmap_iterate (udp_connections, &free_iterate, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (tcp_connections, &free_iterate, NULL);
+  for (i=0;i<5;i++)
+    GNUNET_free_non_null (exit_argv[i]);
 }
 
 static void *
@@ -750,89 +766,7 @@ next:
   while (proto != UDP);
 }
 
-/**
- * Start the helper-process
- *
- * If cls != NULL it is assumed that this function is called as a result of a dying
- * helper. cls is then taken as handle to the old helper and is cleaned up.
- */
-static void
-start_helper_and_schedule (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
 
-  if (cls != NULL)
-    cleanup_helper (cls);
-  cls = NULL;
-
-  char *ifname;
-  char *ipv6addr;
-  char *ipv6prefix;
-  char *ipv4addr;
-  char *ipv4mask;
-
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IFNAME", &ifname))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'IFNAME' in configuration!\n");
-    exit (1);
-  }
-
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
-                                             &ipv6addr))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'IPV6ADDR' in configuration!\n");
-    exit (1);
-  }
-
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
-                                             &ipv6prefix))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'IPV6PREFIX' in configuration!\n");
-    exit (1);
-  }
-
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
-                                             &ipv4addr))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'IPV4ADDR' in configuration!\n");
-    exit (1);
-  }
-
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
-                                             &ipv4mask))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'IPV4MASK' in configuration!\n");
-    exit (1);
-  }
-
-  /* Start the helper
-   * Messages get passed to the function message_token
-   * When the helper dies, this function will be called again with the
-   * helper_handle as cls.
-   */
-  helper_handle =
-      start_helper (ifname, ipv6addr, ipv6prefix, ipv4addr, ipv4mask,
-                    "exit-gnunet", start_helper_and_schedule, message_token,
-                    NULL);
-
-  GNUNET_free (ipv6addr);
-  GNUNET_free (ipv6prefix);
-  GNUNET_free (ipv4addr);
-  GNUNET_free (ipv4mask);
-  GNUNET_free (ifname);
-}
 
 static void
 prepare_ipv4_packet (size_t len, uint16_t pktlen, void *payload,
@@ -1068,7 +1002,6 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
    * At this point it would be possible to check against some kind of ACL.
    */
 
-  char *buf;
   size_t len;
 
   /* Prepare the state.
@@ -1086,49 +1019,55 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   len =
       sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
       sizeof (struct ip6_hdr) + pkt_len;
-  buf = alloca (len);
-
-  memset (buf, 0, len);
-
-  switch (serv->version)
   {
-  case 4:
-    prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP, &serv->v4.ip4address,
-                         tunnel, state, (struct ip_pkt *) buf);
-    break;
-  case 6:
-    prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP, &serv->v6.ip6address,
-                         tunnel, state, (struct ip6_pkt *) buf);
+    char buf[len];
 
-    break;
-  default:
-    GNUNET_assert (0);
-    break;
+    memset (buf, 0, len);
+    switch (serv->version)
+    {
+    case 4:
+      prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP, &serv->v4.ip4address,
+			   tunnel, state, (struct ip_pkt *) buf);
+      break;
+    case 6:
+      prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP, &serv->v6.ip6address,
+			   tunnel, state, (struct ip6_pkt *) buf);
+      
+      break;
+    default:
+      GNUNET_assert (0);
+      break;
+    }
+
+    hash_redirect_info (&state->hash, &state->redirect_info,
+			serv->version == 4 ? 4 : 16);
+    
+    if (GNUNET_NO ==
+	GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &state->hash))
+      {
+	GNUNET_CONTAINER_multihashmap_put (tcp_connections, &state->hash, state,
+					   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+	
+	state->heap_node =
+	  GNUNET_CONTAINER_heap_insert (tcp_connections_heap, state,
+					GNUNET_TIME_absolute_get ().abs_value);
+	
+	if (GNUNET_CONTAINER_heap_get_size (tcp_connections_heap) >
+	    max_tcp_connections)
+	  GNUNET_SCHEDULER_add_now (collect_connections, tcp_connections_heap);
+      }
+    else
+      GNUNET_free (state);
+
+    /* FIXME: here, flow-control with mesh would be nice to have... */
+    (void) GNUNET_HELPER_send (helper_handle,
+			       (const struct GNUNET_MessageHeader*) buf,
+			       GNUNET_YES,
+			       NULL, NULL);
   }
-
-  hash_redirect_info (&state->hash, &state->redirect_info,
-                      serv->version == 4 ? 4 : 16);
-
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &state->hash))
-  {
-    GNUNET_CONTAINER_multihashmap_put (tcp_connections, &state->hash, state,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-
-    state->heap_node =
-        GNUNET_CONTAINER_heap_insert (tcp_connections_heap, state,
-                                      GNUNET_TIME_absolute_get ().abs_value);
-
-    if (GNUNET_CONTAINER_heap_get_size (tcp_connections_heap) >
-        max_tcp_connections)
-      GNUNET_SCHEDULER_add_now (collect_connections, tcp_connections_heap);
-  }
-  else
-    GNUNET_free (state);
-
-  (void) GNUNET_DISK_file_write (helper_handle->fh_to_helper, buf, len);
   return GNUNET_YES;
 }
+
 
 static int
 receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -1197,7 +1136,11 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   else
     GNUNET_free (state);
 
-  (void) GNUNET_DISK_file_write (helper_handle->fh_to_helper, buf, len);
+  /* FIXME: here, flow-control with mesh would be nice to have... */
+  (void) GNUNET_HELPER_send (helper_handle,
+			     (const struct GNUNET_MessageHeader*) buf,
+			     GNUNET_YES,
+			     NULL, NULL);
   return GNUNET_YES;
 
 }
@@ -1271,7 +1214,10 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   else
     GNUNET_free (state);
 
-  (void) GNUNET_DISK_file_write (helper_handle->fh_to_helper, buf, len);
+  (void) GNUNET_HELPER_send (helper_handle,
+			     (const struct GNUNET_MessageHeader*) buf,
+			     GNUNET_YES,
+			     NULL, NULL);
   return GNUNET_YES;
 }
 
@@ -1374,7 +1320,10 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   else
     GNUNET_free (state);
 
-  (void) GNUNET_DISK_file_write (helper_handle->fh_to_helper, buf, len);
+  (void) GNUNET_HELPER_send (helper_handle,
+			     (const struct GNUNET_MessageHeader*) buf,
+			     GNUNET_YES,
+			     NULL, NULL);
   return GNUNET_YES;
 }
 
@@ -1430,6 +1379,7 @@ connect_to_mesh ()
 }
 
 
+
 /**
  * @brief Main function that will be run by the scheduler.
  *
@@ -1443,10 +1393,14 @@ run (void *cls, char *const *args GNUNET_UNUSED,
      const char *cfgfile GNUNET_UNUSED,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
+  char *ifname;
+  char *ipv6addr;
+  char *ipv6prefix;
+  char *ipv4addr;
+  char *ipv4mask;
+
   cfg = cfg_;
-
   connect_to_mesh ();
-
   udp_connections = GNUNET_CONTAINER_multihashmap_create (65536);
   udp_connections_heap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
@@ -1455,7 +1409,6 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   udp_services = GNUNET_CONTAINER_multihashmap_create (65536);
   tcp_services = GNUNET_CONTAINER_multihashmap_create (65536);
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_UDP_CONNECTIONS",
                                              &max_udp_connections))
@@ -1465,7 +1418,59 @@ run (void *cls, char *const *args GNUNET_UNUSED,
                                              &max_tcp_connections))
     max_tcp_connections = 256;
   GNUNET_CONFIGURATION_iterate_sections (cfg, read_service_conf, NULL);
-  GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
+
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IFNAME", &ifname))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IFNAME' in configuration!\n");
+    exit (1);
+  }
+
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
+                                             &ipv6addr))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV6ADDR' in configuration!\n");
+    exit (1);
+  }
+
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
+                                             &ipv6prefix))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV6PREFIX' in configuration!\n");
+    exit (1);
+  }
+
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
+                                             &ipv4addr))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV4ADDR' in configuration!\n");
+    exit (1);
+  }
+
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
+                                             &ipv4mask))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV4MASK' in configuration!\n");
+    exit (1);
+  }
+  exit_argv[0] = GNUNET_strdup ("exit-gnunet");
+  exit_argv[1] = ifname;
+  exit_argv[2] = ipv6addr;
+  exit_argv[3] = ipv6prefix;
+  exit_argv[4] = ipv4addr;
+  exit_argv[5] = ipv4mask;
+  exit_argv[6] = NULL;
+  helper_handle = GNUNET_HELPER_start ("gnunet-helper-vpn", exit_argv,
+				       &message_token, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 }
 
