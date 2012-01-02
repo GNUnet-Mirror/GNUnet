@@ -34,52 +34,6 @@
 
 #include "gnunet-vpn-packet.h"
 
-/**
- * The handle to the configuration used throughout the process
- */
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-/**
- * The handle to the helper
- */
-static struct GNUNET_HELPER_Handle *helper_handle;
-
-/**
- * Arguments to the exit helper.
- */
-static char *exit_argv[7];
-
-/**
- * Final status code.
- */
-static int ret;
-
-/**
- * The handle to mesh
- */
-static struct GNUNET_MESH_Handle *mesh_handle;
-
-/**
- * This hashmaps contains the mapping from peer, service-descriptor,
- * source-port and destination-port to a struct redirect_state
- */
-static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
-
-static struct GNUNET_CONTAINER_Heap *udp_connections_heap;
-
-static struct GNUNET_CONTAINER_MultiHashMap *tcp_connections;
-
-static struct GNUNET_CONTAINER_Heap *tcp_connections_heap;
-
-/**
- * If there are at least this many udp-Connections, old ones will be removed
- */
-static long long unsigned int max_udp_connections = 200;
-
-/**
- * If there are at least this many tcp-Connections, old ones will be removed
- */
-static long long unsigned int max_tcp_connections = 200;
 
 struct remote_addr
 {
@@ -148,17 +102,6 @@ struct redirect_state
   struct redirect_info redirect_info;
 };
 
-/**
- * This hashmaps saves interesting things about the configured UDP services
- */
-static struct GNUNET_CONTAINER_MultiHashMap *udp_services;
-
-/**
- * This hashmaps saves interesting things about the configured TCP services
- */
-
-static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
-
 struct tunnel_notify_queue
 {
   struct tunnel_notify_queue *next;
@@ -173,6 +116,65 @@ struct tunnel_state
   struct tunnel_notify_queue *tail;
   struct GNUNET_MESH_TransmitHandle *th;
 };
+
+
+/**
+ * The handle to the configuration used throughout the process
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * The handle to the helper
+ */
+static struct GNUNET_HELPER_Handle *helper_handle;
+
+/**
+ * Arguments to the exit helper.
+ */
+static char *exit_argv[7];
+
+/**
+ * Final status code.
+ */
+static int ret;
+
+/**
+ * The handle to mesh
+ */
+static struct GNUNET_MESH_Handle *mesh_handle;
+
+/**
+ * This hashmaps contains the mapping from peer, service-descriptor,
+ * source-port and destination-port to a struct redirect_state
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
+
+static struct GNUNET_CONTAINER_Heap *udp_connections_heap;
+
+static struct GNUNET_CONTAINER_MultiHashMap *tcp_connections;
+
+static struct GNUNET_CONTAINER_Heap *tcp_connections_heap;
+
+/**
+ * If there are at least this many udp-Connections, old ones will be removed
+ */
+static long long unsigned int max_udp_connections = 200;
+
+/**
+ * If there are at least this many tcp-Connections, old ones will be removed
+ */
+static long long unsigned int max_tcp_connections = 200;
+
+/**
+ * This hashmaps saves interesting things about the configured UDP services
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *udp_services;
+
+/**
+ * This hashmaps saves interesting things about the configured TCP services
+ */
+
+static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
 
 
 /**
