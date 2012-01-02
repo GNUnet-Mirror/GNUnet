@@ -36,35 +36,6 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 
-GNUNET_NETWORK_STRUCT_BEGIN
-
-struct query_packet
-{
-  struct GNUNET_MessageHeader hdr;
-
-        /**
-	 * The IP-Address this query was originally sent to
-	 */
-  char orig_to[16];
-        /**
-	 * The IP-Address this query was originally sent from
-	 */
-  char orig_from[16];
-        /**
-	 * The UDP-Portthis query was originally sent from
-	 */
-  char addrlen;
-  uint16_t src_port GNUNET_PACKED;
-
-  unsigned char data[1];        /* The DNS-Packet */
-};
-
-struct query_packet_list
-{
-  struct query_packet_list *next GNUNET_PACKED;
-  struct query_packet_list *prev GNUNET_PACKED;
-  struct query_packet pkt;
-};
 
 enum GNUNET_DNS_ANSWER_Subtype
 {
@@ -106,6 +77,7 @@ struct GNUNET_vpn_service_descriptor
   uint32_t service_type GNUNET_PACKED;
 };
 
+GNUNET_NETWORK_STRUCT_BEGIN
 struct answer_packet
 {
   /* General data */
@@ -161,12 +133,43 @@ GNUNET_DNS_restart_hijack (struct GNUNET_DNS_Handle *h);
 
 
 /**
- * FIXME: we should not expost our internal structures like this.
- * Just a quick initial hack.
+ * Process a DNS request sent to an IPv4 resolver.  Pass it
+ * to the DNS service for resolution.
+ *
+ * @param h DNS handle
+ * @param dst_ip destination IPv4 address
+ * @param src_ip source IPv4 address (usually local machine)
+ * @param src_port source port (to be used for reply)
+ * @param udp_packet_len length of the UDP payload in bytes
+ * @param udp_packet UDP payload
  */
 void
-GNUNET_DNS_queue_request (struct GNUNET_DNS_Handle *h,
-			  struct query_packet_list *q);
+GNUNET_DNS_queue_request_v4 (struct GNUNET_DNS_Handle *h,
+			     const struct in_addr *dst_ip,
+			     const struct in_addr *src_ip,
+			     uint16_t src_port,
+			     size_t udp_packet_len,
+			     const char *udp_packet);
+
+/**
+ * Process a DNS request sent to an IPv6 resolver.  Pass it
+ * to the DNS service for resolution.
+ *
+ * @param h DNS handle
+ * @param dst_ip destination IPv6 address
+ * @param src_ip source IPv6 address (usually local machine)
+ * @param src_port source port (to be used for reply)
+ * @param udp_packet_len length of the UDP payload in bytes
+ * @param udp_packet UDP payload
+ */
+void
+GNUNET_DNS_queue_request_v6 (struct GNUNET_DNS_Handle *h,
+			     const struct in6_addr *dst_ip,
+			     const struct in6_addr *src_ip,
+			     uint16_t src_port,
+			     size_t udp_packet_len,
+			     const char *udp_packet);
+
 
 void
 GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *h);

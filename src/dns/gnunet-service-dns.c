@@ -41,7 +41,7 @@
 #include "gnunet_mesh_service.h"
 #include "gnunet_signatures.h"
 
-
+#include "dns.h"
 
 
 

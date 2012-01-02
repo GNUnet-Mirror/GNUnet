@@ -34,6 +34,15 @@
 #include <block_dns.h>
 
 #include "gnunet_dns_service.h"
+#include "dns.h"
+
+struct query_packet_list
+{
+  struct query_packet_list *next GNUNET_PACKED;
+  struct query_packet_list *prev GNUNET_PACKED;
+  struct query_packet pkt;
+};
+
 
 
 struct GNUNET_DNS_Handle
@@ -237,9 +246,9 @@ GNUNET_DNS_restart_hijack (struct GNUNET_DNS_Handle *h)
  * FIXME: we should not expost our internal structures like this.
  * Just a quick initial hack.
  */
-void
-GNUNET_DNS_queue_request (struct GNUNET_DNS_Handle *h,
-			  struct query_packet_list *q)
+static void
+queue_request (struct GNUNET_DNS_Handle *h,
+	       struct query_packet_list *q)
 {
   GNUNET_CONTAINER_DLL_insert_tail (h->head, h->tail, q);
   if (h->dns_connection != NULL && h->dns_transmit_handle == NULL)
@@ -248,6 +257,78 @@ GNUNET_DNS_queue_request (struct GNUNET_DNS_Handle *h,
 					   GNUNET_TIME_UNIT_FOREVER_REL,
 					   GNUNET_YES, &send_query,
 					   h);
+}
+
+
+
+/**
+ * Process a DNS request sent to an IPv4 resolver.  Pass it
+ * to the DNS service for resolution.
+ *
+ * @param h DNS handle
+ * @param dst_ip destination IPv4 address
+ * @param src_ip source IPv4 address (usually local machine)
+ * @param src_port source port (to be used for reply)
+ * @param udp_packet_len length of the UDP payload in bytes
+ * @param udp_packet UDP payload
+ */
+void
+GNUNET_DNS_queue_request_v4 (struct GNUNET_DNS_Handle *h,
+			     const struct in_addr *dst_ip,
+			     const struct in_addr *src_ip,
+			     uint16_t src_port,
+			     size_t udp_packet_len,
+			     const char *udp_packet)
+{
+  size_t len = sizeof (struct query_packet) + udp_packet_len - 1;
+  struct query_packet_list *query =
+    GNUNET_malloc (len + sizeof (struct answer_packet_list) -
+		   sizeof (struct answer_packet));
+  query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
+  query->pkt.hdr.size = htons (len);
+  memcpy (query->pkt.orig_to, dst_ip, 4);
+  memcpy (query->pkt.orig_from, src_ip, 4);
+  query->pkt.addrlen = 4;
+  query->pkt.src_port = htons (src_port);
+  memcpy (query->pkt.data, udp_packet, udp_packet_len);  
+  queue_request (h, query);
+}
+
+
+/**
+ * Process a DNS request sent to an IPv6 resolver.  Pass it
+ * to the DNS service for resolution.
+ *
+ * @param h DNS handle
+ * @param dst_ip destination IPv6 address
+ * @param src_ip source IPv6 address (usually local machine)
+ * @param src_port source port (to be used for reply)
+ * @param udp_packet_len length of the UDP payload in bytes
+ * @param udp_packet UDP payload
+ */
+void
+GNUNET_DNS_queue_request_v6 (struct GNUNET_DNS_Handle *h,
+			     const struct in6_addr *dst_ip,
+			     const struct in6_addr *src_ip,
+			     uint16_t src_port,
+			     size_t udp_packet_len,
+			     const char *udp_packet)
+{
+  size_t len =
+    sizeof (struct query_packet) + udp_packet_len - 1;
+  struct query_packet_list *query =
+    GNUNET_malloc (len + sizeof (struct answer_packet_list) -
+		   sizeof (struct answer_packet));
+  query->pkt.hdr.type =
+    htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
+  query->pkt.hdr.size = htons (len);
+  memcpy (query->pkt.orig_to, dst_ip, 16);
+  memcpy (query->pkt.orig_from, src_ip, 16);
+  query->pkt.addrlen = 16;
+  query->pkt.src_port = htons (src_port);
+  memcpy (query->pkt.data, udp_packet,
+	  udp_packet_len);
+  queue_request (h, query);
 }
 
 
@@ -261,3 +342,5 @@ GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *h)
   }
   GNUNET_free (h);
 }
+
+/* end of dns_api.c */

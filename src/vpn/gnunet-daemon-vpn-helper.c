@@ -338,29 +338,20 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       if (ntohs (pkt6_udp->udp_hdr.dpt) == 53)
       {
         /* 9 = 8 for the udp-header + 1 for the unsigned char data[1]; */
-        size_t len =
-            sizeof (struct query_packet) + ntohs (pkt6_udp->udp_hdr.len) - 9;
+	GNUNET_DNS_queue_request_v6 (dns_handle,
+				     &pkt6->ip6_hdr.dadr,
+				     &pkt6->ip6_hdr.sadr,
+				     ntohs (pkt6_udp->udp_hdr.spt),
+				     ntohs (pkt6_udp->udp_hdr.len) - 8,
+				     (const void*) pkt6_udp->data);
 
-        struct query_packet_list *query =
-            GNUNET_malloc (len + sizeof (struct answer_packet_list) -
-                           sizeof (struct answer_packet));
-        query->pkt.hdr.type =
-            htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
-        query->pkt.hdr.size = htons (len);
-        memcpy (query->pkt.orig_to, &pkt6->ip6_hdr.dadr, 16);
-        memcpy (query->pkt.orig_from, &pkt6->ip6_hdr.sadr, 16);
-        query->pkt.addrlen = 16;
-        query->pkt.src_port = pkt6_udp->udp_hdr.spt;
-        memcpy (query->pkt.data, pkt6_udp->data,
-                ntohs (pkt6_udp->udp_hdr.len) - 8);
-	GNUNET_DNS_queue_request (dns_handle, query);
         break;
       }
       /* fall through */
     case IPPROTO_TCP:
       pkt6_tcp = (struct ip6_tcp *) pkt6;
 
-      if ((key = address6_mapping_exists (pkt6->ip6_hdr.dadr)) != NULL)
+      if ((key = address6_mapping_exists (&pkt6->ip6_hdr.dadr)) != NULL)
       {
         struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
 
@@ -487,16 +478,13 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       }
       else
       {
+	char pbuf[INET6_ADDRSTRLEN];
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Packet to %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x, which has no mapping\n",
-                    pkt6->ip6_hdr.dadr[0], pkt6->ip6_hdr.dadr[1],
-                    pkt6->ip6_hdr.dadr[2], pkt6->ip6_hdr.dadr[3],
-                    pkt6->ip6_hdr.dadr[4], pkt6->ip6_hdr.dadr[5],
-                    pkt6->ip6_hdr.dadr[6], pkt6->ip6_hdr.dadr[7],
-                    pkt6->ip6_hdr.dadr[8], pkt6->ip6_hdr.dadr[9],
-                    pkt6->ip6_hdr.dadr[10], pkt6->ip6_hdr.dadr[11],
-                    pkt6->ip6_hdr.dadr[12], pkt6->ip6_hdr.dadr[13],
-                    pkt6->ip6_hdr.dadr[14], pkt6->ip6_hdr.dadr[15]);
+                    "Packet to %s, which has no mapping\n",
+		    inet_ntop (AF_INET6,
+			       &pkt6->ip6_hdr.dadr,
+			       pbuf,
+			       sizeof (pbuf)));
       }
       break;
     case 0x3a:
@@ -504,7 +492,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       pkt6_icmp = (struct ip6_icmp *) pkt6;
       /* If this packet is an icmp-echo-request and a mapping exists, answer */
       if (pkt6_icmp->icmp_hdr.type == 0x80 &&
-          (key = address6_mapping_exists (pkt6->ip6_hdr.dadr)) != NULL)
+          (key = address6_mapping_exists (&pkt6->ip6_hdr.dadr)) != NULL)
       {
         GNUNET_free (key);
         pkt6_icmp = GNUNET_malloc (ntohs (pkt6->shdr.size));
@@ -528,25 +516,16 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
     /* Send dns-packets to the service-dns */
     if (pkt->ip_hdr.proto == IPPROTO_UDP && ntohs (udp->udp_hdr.dpt) == 53)
     {
-      /* 9 = 8 for the udp-header + 1 for the unsigned char data[1]; */
-      size_t len = sizeof (struct query_packet) + ntohs (udp->udp_hdr.len) - 9;
-
-      struct query_packet_list *query =
-          GNUNET_malloc (len + sizeof (struct answer_packet_list) -
-                         sizeof (struct answer_packet));
-      query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
-      query->pkt.hdr.size = htons (len);
-      memcpy (query->pkt.orig_to, &pkt->ip_hdr.dadr, 4);
-      memcpy (query->pkt.orig_from, &pkt->ip_hdr.sadr, 4);
-      query->pkt.addrlen = 4;
-      query->pkt.src_port = udp->udp_hdr.spt;
-      memcpy (query->pkt.data, udp->data, ntohs (udp->udp_hdr.len) - 8);
-      
-      GNUNET_DNS_queue_request (dns_handle, query);
+      GNUNET_DNS_queue_request_v4 (dns_handle,
+				   &pkt->ip_hdr.dadr,
+				   &pkt->ip_hdr.sadr,
+				   ntohs (udp->udp_hdr.spt),
+				   ntohs (udp->udp_hdr.len) - 8,
+				   (const void*) udp->data);
     }
     else
     {
-      uint32_t dadr = pkt->ip_hdr.dadr;
+      uint32_t dadr = pkt->ip_hdr.dadr.s_addr;
       unsigned char *c = (unsigned char *) &dadr;
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Packet to %d.%d.%d.%d, proto %x\n",

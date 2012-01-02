@@ -53,7 +53,7 @@ size_t
 send_udp_service (void *cls, size_t size, void *buf);
 
 GNUNET_HashCode *
-address6_mapping_exists (unsigned char addr[]);
+address6_mapping_exists (struct in6_addr *v6addr);
 GNUNET_HashCode *
 address4_mapping_exists (uint32_t addr);
 

@@ -23,8 +23,8 @@ struct ip6_hdr
   unsigned paylgth:16 GNUNET_PACKED;
   unsigned nxthdr:8 GNUNET_PACKED;
   unsigned hoplmt:8 GNUNET_PACKED;
-  unsigned char sadr[16];
-  unsigned char dadr[16];
+  struct in6_addr sadr;
+  struct in6_addr dadr;
 };
 
 struct ip_hdr
@@ -43,8 +43,8 @@ struct ip_hdr
   unsigned proto:8 GNUNET_PACKED;
   unsigned chks:16 GNUNET_PACKED;
 
-  uint32_t sadr GNUNET_PACKED;
-  uint32_t dadr GNUNET_PACKED;
+  struct in_addr sadr GNUNET_PACKED;
+  struct in_addr dadr GNUNET_PACKED;
 };
 
 #define TCP_FLAG_SYN 2

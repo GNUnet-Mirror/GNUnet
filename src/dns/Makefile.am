@@ -12,6 +12,9 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 plugindir = $(libdir)/gnunet
 
+dist_pkgcfg_DATA = \
+  dns.conf
+
 if LINUX
 HIJACKBIN = gnunet-helper-hijack-dns
 install-exec-hook:
@@ -52,7 +55,7 @@ libgnunetdnsparser_la_LDFLAGS = \
 
 
 libgnunetdns_la_SOURCES = \
- dns_api.c 
+ dns_api.c dns.h
 libgnunetdns_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdns_la_LDFLAGS = \

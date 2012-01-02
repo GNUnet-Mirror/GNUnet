@@ -550,11 +550,10 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
   else if (ntohs (pkt_tun->tun.type) == 0x0800)
   {
     struct ip_pkt *pkt4 = (struct ip_pkt *) pkt_tun;
-    uint32_t tmp = pkt4->ip_hdr.dadr;
 
     if (IPPROTO_UDP == pkt4->ip_hdr.proto)
       udp_from_helper (&((struct ip_udp *) pkt4)->udp_hdr,
-                       (unsigned char *) &tmp, 4);
+                       (unsigned char *) &pkt4->ip_hdr.dadr, 4);
     else if (IPPROTO_TCP == pkt4->ip_hdr.proto)
     {
       size_t pktlen = ntohs (pkt4->ip_hdr.tot_lngth);
@@ -563,7 +562,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       pktlen -= 4 * pkt4->ip_hdr.hdr_lngth;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-hdr: %d\n", pktlen);
       tcp_from_helper (&((struct ip_tcp *) pkt4)->tcp_hdr,
-                       (unsigned char *) &tmp, 4, pktlen);
+                       (unsigned char *) &pkt4->ip_hdr.dadr, 4, pktlen);
     }
   }
   else
@@ -860,8 +859,7 @@ prepare_ipv4_packet (size_t len, uint16_t pktlen, void *payload,
   pkt4->ip_hdr.proto = protocol;
   pkt4->ip_hdr.chks = 0;        /* Will be calculated later */
 
-  memcpy (&tmp, ipaddress, 4);
-  pkt4->ip_hdr.dadr = tmp;
+  memcpy (&pkt4->ip_hdr.dadr, ipaddress, sizeof (struct in_addr));
 
   /* Generate a new src-address */
   char *ipv4addr;
@@ -883,7 +881,7 @@ prepare_ipv4_packet (size_t len, uint16_t pktlen, void *payload,
 
   tmp |= ntohl (*((uint32_t *) tunnel)) & (~tmp2);
 
-  pkt4->ip_hdr.sadr = tmp;
+  pkt4->ip_hdr.sadr.s_addr = tmp;
 
   memcpy (&state->redirect_info.addr, &tmp, 4);
   if (IPPROTO_UDP == protocol)
@@ -903,10 +901,8 @@ prepare_ipv4_packet (size_t len, uint16_t pktlen, void *payload,
     pkt4_tcp->tcp_hdr.crc = 0;
     uint32_t sum = 0;
 
-    tmp = pkt4->ip_hdr.sadr;
-    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
-    tmp = pkt4->ip_hdr.dadr;
-    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    sum = calculate_checksum_update (sum, (uint16_t *) &pkt4->ip_hdr.sadr, sizeof (struct in_addr));
+    sum = calculate_checksum_update (sum, (uint16_t *) &pkt4->ip_hdr.dadr, sizeof (struct in_addr));
 
     tmp = (protocol << 16) | (0xffff & pktlen);
 
@@ -947,7 +943,7 @@ prepare_ipv6_packet (size_t len, uint16_t pktlen, void *payload,
   pkt6->ip6_hdr.paylgth = htons (pktlen);
   pkt6->ip6_hdr.hoplmt = 64;
 
-  memcpy (pkt6->ip6_hdr.dadr, ipaddress, 16);
+  memcpy (&pkt6->ip6_hdr.dadr, ipaddress, sizeof (struct in6_addr));
 
   /* Generate a new src-address
    * This takes as much from the address of the tunnel as fits into
