@@ -299,18 +299,18 @@ helper_write (void *cls GNUNET_UNUSED,
     pkt->udp_dns.udp_hdr.crc = 0;
     uint32_t sum = 0;
 
-    sum = calculate_checksum_update (sum, (uint16_t *) & pkt->ip6_hdr.sadr, 16);
-    sum = calculate_checksum_update (sum, (uint16_t *) & pkt->ip6_hdr.dadr, 16);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt->ip6_hdr.sadr, 16);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt->ip6_hdr.dadr, 16);
     uint32_t tmp = (pkt->udp_dns.udp_hdr.len & 0xffff);
 
-    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
     tmp = htons (((pkt->ip6_hdr.nxthdr & 0x00ff)));
-    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
 
     sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt->udp_dns.udp_hdr,
+        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt->udp_dns.udp_hdr,
                                    ntohs (net_len - sizeof (struct ip6_hdr)));
-    pkt->udp_dns.udp_hdr.crc = calculate_checksum_end (sum);
+    pkt->udp_dns.udp_hdr.crc = GNUNET_CRYPTO_crc16_finish (sum);
 
     pkt->ip6_hdr.version = 6;
     pkt->ip6_hdr.paylgth = net_len - sizeof (struct ip6_hdr);
@@ -360,7 +360,7 @@ helper_write (void *cls GNUNET_UNUSED,
     memcpy (&pkt->ip_hdr.dadr, ans->pkt.to, 4);
 
     pkt->ip_hdr.chks =
-        calculate_ip_checksum ((uint16_t *) & pkt->ip_hdr, 5 * 4);
+        GNUNET_CRYPTO_crc16_n ((uint16_t *) & pkt->ip_hdr, 5 * 4);
 
     /* set the udp-header */
     pkt->udp_dns.udp_hdr.spt = htons (53);
@@ -805,7 +805,7 @@ send_icmp4_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   response->ip_hdr.tot_lngth = request->ip_hdr.tot_lngth;
 
   response->ip_hdr.chks =
-      calculate_ip_checksum ((uint16_t *) & response->ip_hdr, 20);
+      GNUNET_CRYPTO_crc16_n ((uint16_t *) & response->ip_hdr, 20);
 
   response->icmp_hdr.code = 0;
   response->icmp_hdr.type = 0x0;
@@ -1475,19 +1475,19 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     uint32_t sum = 0;
 
     sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
+        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
     sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
+        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
     uint32_t tmp = (pkt6->udp_hdr.len & 0xffff);
 
-    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
     tmp = htons (((pkt6->ip6_hdr.nxthdr & 0x00ff)));
-    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
 
     sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt6->udp_hdr,
+        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->udp_hdr,
                                    ntohs (pkt->len));
-    pkt6->udp_hdr.crc = calculate_checksum_end (sum);
+    pkt6->udp_hdr.crc = GNUNET_CRYPTO_crc16_finish (sum);
     
     (void) GNUNET_HELPER_send (helper_handle,
 			       &pkt6->shdr,
@@ -1561,7 +1561,7 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     pkt4->udp_hdr.crc = 0;      /* Optional for IPv4 */
 
     pkt4->ip_hdr.chks =
-        calculate_ip_checksum ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
+        GNUNET_CRYPTO_crc16_n ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
 
     (void) GNUNET_HELPER_send (helper_handle,
 			       &pkt4->shdr,
@@ -1655,18 +1655,18 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     uint32_t tmp;
 
     sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
+        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
     sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
+        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
     tmp = htonl (pktlen);
-    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
     tmp = htonl (((pkt6->ip6_hdr.nxthdr & 0x000000ff)));
-    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
 
     sum =
-        calculate_checksum_update (sum, (uint16_t *) & pkt6->tcp_hdr,
+        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->tcp_hdr,
                                    ntohs (pkt6->ip6_hdr.paylgth));
-    pkt6->tcp_hdr.crc = calculate_checksum_end (sum);
+    pkt6->tcp_hdr.crc = GNUNET_CRYPTO_crc16_finish (sum);
 
     (void) GNUNET_HELPER_send (helper_handle,
 			       &pkt6->shdr,
@@ -1737,20 +1737,20 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     uint32_t sum = 0;
     uint32_t tmp;
 
-    sum = calculate_checksum_update (sum, (uint16_t *) &pkt4->ip_hdr.sadr, 4);
-    sum = calculate_checksum_update (sum, (uint16_t *) &pkt4->ip_hdr.dadr, 4);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) &pkt4->ip_hdr.sadr, 4);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) &pkt4->ip_hdr.dadr, 4);
 
     tmp = (0x06 << 16) | (0xffff & pktlen);     // 0x06 for TCP?
 
     tmp = htonl (tmp);
 
-    sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
 
-    sum = calculate_checksum_update (sum, (uint16_t *) & pkt4->tcp_hdr, pktlen);
-    pkt4->tcp_hdr.crc = calculate_checksum_end (sum);
+    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt4->tcp_hdr, pktlen);
+    pkt4->tcp_hdr.crc = GNUNET_CRYPTO_crc16_finish (sum);
 
     pkt4->ip_hdr.chks =
-        calculate_ip_checksum ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
+        GNUNET_CRYPTO_crc16_n ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
 
     (void) GNUNET_HELPER_send (helper_handle,
 			       &pkt4->shdr,

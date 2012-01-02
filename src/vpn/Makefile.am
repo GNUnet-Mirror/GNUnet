@@ -33,8 +33,7 @@ gnunet_helper_vpn_SOURCES = \
  gnunet-helper-vpn.c
 
 gnunet_daemon_vpn_SOURCES = \
- gnunet-daemon-vpn.c gnunet-daemon-vpn.h \
- gnunet-vpn-checksum.c gnunet-vpn-checksum.h
+ gnunet-daemon-vpn.c gnunet-daemon-vpn.h 
 gnunet_daemon_vpn_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -45,8 +44,7 @@ gnunet_daemon_vpn_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_daemon_exit_SOURCES = \
- gnunet-daemon-exit.c \
- gnunet-vpn-checksum.c gnunet-vpn-checksum.h
+ gnunet-daemon-exit.c 
 gnunet_daemon_exit_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
