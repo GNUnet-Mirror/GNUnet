@@ -22,6 +22,20 @@
  * @file dns/gnunet-service-dns_new.c
  * @author Christian Grothoff
  */
+// current thoughts:
+// - for full compatibility to DNS and to avoid going insane here parsing/generating DNS packets,
+//   how about literally attaching the "original" DNS packet (request/response) to the IPC traffic?
+//   that way, clients can literally do arbitrary modifications and we are done with that issue here.
+//   All we'd do in here is add the IP/UDP headers and be DONE with it.
+// => minor modifications to API and IPC protocol
+// => minor modifications to our data structures
+// => major gains in terms of simplicity here and what can (at least theoretically) be done with the service
+// => can test much more quickly
+// => but: need to really write a good libgnunetdnsparse to avoid making MANY clients really complicated
+//    (not the worst of worlds either, other than deferring this mess some...)
+//    -> also positive: can be tested independently of the rest of the mess
+
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
