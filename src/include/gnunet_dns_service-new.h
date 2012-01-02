@@ -29,28 +29,6 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 
-/**
- * A few common DNS types.
- */
-#define GNUNET_DNS_TYPE_A 1
-#define GNUNET_DNS_TYPE_NS 2
-#define GNUNET_DNS_TYPE_CNAME 5
-#define GNUNET_DNS_TYPE_SOA 6
-#define GNUNET_DNS_TYPE_PTR 12
-#define GNUNET_DNS_TYPE_MX 15
-#define GNUNET_DNS_TYPE_TXT 16
-#define GNUNET_DNS_TYPE_AAAA 28
-#define GNUNET_DNS_TYPE_IXFR 251
-#define GNUNET_DNS_TYPE_AXFR 252
-
-/**
- * A few common DNS classes (ok, only one is common, but I list a
- * couple more to make it clear what we're talking about here).
- */
-#define GNUNET_DNS_CLASS_INTERNET 1
-#define GNUNET_DNS_CLASS_CHAOS 3
-#define GNUNET_DNS_CLASS_HESIOD 4
-
 
 /**
  * Opaque DNS handle
@@ -82,21 +60,14 @@ struct GNUNET_DNS_RequestHandle;
  * functions call GNUNET_DNS_request_drop, the response is dropped.
  *
  * @param cls closure
- * @param name name of the node to which the record pertains
- * @param dns_type type of RR
- * @param dns_class class code
- * @param dns_ttl seconds that the RR stays valid, can be updated
- * @param rdata_length size of rdata, can be updated 
- * @param rdata record data, can be updated
+ * @param rh request handle to user for reply
+ * @param request_length number of bytes in request
+ * @param request udp payload of the DNS request
  */
 typedef void (*GNUNET_DNS_RequestHandler)(void *cls,
 					  struct GNUNET_DNS_RequestHandle *rh,
-					  const char *name,
-					  uint16_t dns_type,
-					  uint16_t dns_class,
-					  uint32_t dns_ttl,
-					  uint16_t rdata_length,
-					  const char *rdata);
+					  size_t request_length,
+					  const char *request);
 
 
 /**
@@ -124,19 +95,18 @@ GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh);
 
 
 /**
- * If a GNUNET_DNS_RequestHandler calls this function, the request is supposed to
- * be answered with the data provided to this call (with the modifications the function might have made).
+ * If a GNUNET_DNS_RequestHandler calls this function, the request is
+ * supposed to be answered with the data provided to this call (with
+ * the modifications the function might have made).
  *
  * @param rh request that should now be answered
- * @param dns_ttl seconds that the RR stays valid, can be updated
- * @param rdata_length size of rdata, can be updated 
- * @param rdata record data, can be updated
+ * @param reply_length size of reply (uint16_t to force sane size)
+ * @param reply reply data
  */
 void
 GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,		   
-			   uint32_t dns_ttl,
-			   uint16_t rdata_length,
-			   char *rdata);
+			   uint16_t reply_length,
+			   const char *reply);
 
 
 /**

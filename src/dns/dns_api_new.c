@@ -224,8 +224,7 @@ request_handler (void *cls,
   struct GNUNET_DNS_Handle *dh = cls;
   const struct GNUNET_DNS_Request *req;
   struct GNUNET_DNS_RequestHandle *rh;
-  const char *name;
-  uint16_t name_len;
+  size_t payload_length;
 
   /* the service disconnected, reconnect after short wait */
   if (msg == NULL)
@@ -236,20 +235,18 @@ request_handler (void *cls,
                                       &reconnect, dh);
     return;
   }
-  /* the service did something strange, reconnect immediately */
-  req = (const struct GNUNET_DNS_Request *) msg;
-  name = (const char*) &req[1];
-
   if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST) ||
-       (ntohs (msg->size) < sizeof (struct GNUNET_DNS_Request)) ||
-       (ntohs (msg->size) != sizeof (struct GNUNET_DNS_Request) + ntohs (req->rdata_length) + (name_len = ntohs (req->name_length))) ||
-       (name[name_len-1] != '\0') )
+       (ntohs (msg->size) < sizeof (struct GNUNET_DNS_Request)) )
   {
+    /* the service did something strange, reconnect immediately */
     GNUNET_break (0);
     disconnect (dh);
     dh->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, dh);
     return;
   }
+  req = (const struct GNUNET_DNS_Request *) msg;
+  GNUNET_break (ntohl (req->reserved) == 0);
+  payload_length = ntohs (req->header.size) - sizeof (struct GNUNET_DNS_Request);
   GNUNET_CLIENT_receive (dh->dns_connection, 
 			 &request_handler, dh,
                          GNUNET_TIME_UNIT_FOREVER_REL);
@@ -262,12 +259,8 @@ request_handler (void *cls,
   dh->pending_requests++;
   dh->rh (dh->rh_cls,
 	  rh,
-	  name,
-	  ntohs (req->dns_type),
-	  ntohs (req->dns_class),
-	  ntohl (req->dns_ttl),
-	  ntohs (req->rdata_length),
-	  &name[name_len]);
+	  payload_length,
+	  (const char*) &req[1]);
 }
 
 
@@ -393,10 +386,8 @@ GNUNET_DNS_request_forward (struct GNUNET_DNS_RequestHandle *rh)
   qe->msg = &resp->header;
   resp->header.size = htons (sizeof (struct GNUNET_DNS_Response));
   resp->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
-  resp->dns_ttl = htonl (0);
+  resp->drop_flag = htonl (1);
   resp->request_id = rh->request_id;
-  resp->drop_flag = htons (0);
-  resp->rdata_length = htons (0);
   queue_reply (rh->dh, qe);
   GNUNET_free (rh);
 }
@@ -426,29 +417,26 @@ GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh)
   qe->msg = &resp->header;
   resp->header.size = htons (sizeof (struct GNUNET_DNS_Response));
   resp->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
-  resp->dns_ttl = htonl (0);
   resp->request_id = rh->request_id;
-  resp->drop_flag = htons (1);
-  resp->rdata_length = htons (0);
+  resp->drop_flag = htonl (0);
   queue_reply (rh->dh, qe);
   GNUNET_free (rh);
 }
 
 
 /**
- * If a GNUNET_DNS_RequestHandler calls this function, the request is supposed to
- * be answered with the data provided to this call (with the modifications the function might have made).
+ * If a GNUNET_DNS_RequestHandler calls this function, the request is
+ * supposed to be answered with the data provided to this call (with
+ * the modifications the function might have made).
  *
  * @param rh request that should now be answered
- * @param dns_ttl seconds that the RR stays valid, can be updated
- * @param rdata_length size of rdata, can be updated 
- * @param rdata record data, can be updated
+ * @param reply_length size of reply (uint16_t to force sane size)
+ * @param reply reply data
  */
 void
-GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,		   
-			   uint32_t dns_ttl,
-			   uint16_t rdata_length,
-			   char *rdata)
+GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,	 
+			   uint16_t reply_length,
+			   const char *reply)
 {
   struct ReplyQueueEntry *qe;
   struct GNUNET_DNS_Response *resp;
@@ -459,23 +447,21 @@ GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
       GNUNET_free (rh);
       return;
   }
-  if (rdata_length + sizeof (struct GNUNET_DNS_Response) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (reply_length + sizeof (struct GNUNET_DNS_Response) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     GNUNET_free (rh);
     return;
   }
   qe = GNUNET_malloc (sizeof (struct ReplyQueueEntry) +
-		      sizeof (struct GNUNET_DNS_Response) + rdata_length);
+		      sizeof (struct GNUNET_DNS_Response) + reply_length);
   resp = (struct GNUNET_DNS_Response*) &qe[1];
   qe->msg = &resp->header;
-  resp->header.size = htons (sizeof (struct GNUNET_DNS_Response) + rdata_length);
+  resp->header.size = htons (sizeof (struct GNUNET_DNS_Response) + reply_length);
   resp->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
-  resp->dns_ttl = htonl (dns_ttl);
+  resp->drop_flag = htons (2);
   resp->request_id = rh->request_id;
-  resp->drop_flag = htons (0);
-  resp->rdata_length = htons (rdata_length);
-  memcpy (&resp[1], rdata, rdata_length);
+  memcpy (&resp[1], reply, reply_length);
   queue_reply (rh->dh, qe);
   GNUNET_free (rh);
 }

@@ -39,38 +39,16 @@ struct GNUNET_DNS_Request
   struct GNUNET_MessageHeader header;
 
   /**
-   * A DNS type (GNUNET_DNS_TYPE_*)
+   * Always zero.
    */
-  uint16_t dns_type GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
   
-  /**
-   * A DNS class (usually 1).
-   */
-  uint16_t dns_class GNUNET_PACKED;
-
   /**
    * Unique request ID.
    */
   uint64_t request_id GNUNET_PACKED;
 
-  /**
-   * TTL if rdata is present, otherwise 0.
-   */
-  uint32_t dns_ttl GNUNET_PACKED;
-
-  /**
-   * Number of bytes of rdata that follow at the end.
-   */
-  uint16_t rdata_length GNUNET_PACKED;
-
-  /**
-   * Number of bytes of the name that follow right now (including 0-termination).
-   */
-  uint16_t name_length GNUNET_PACKED;
-  
-  /* followed by char name[name_length] */
-
-  /* followed by char rdata[rdata_length] */
+  /* followed by original DNS request (without UDP header) */
 
 };
 
@@ -86,27 +64,16 @@ struct GNUNET_DNS_Response
   struct GNUNET_MessageHeader header;
 
   /**
-   * TTL if rdata is present, otherwise 0.
+   * Zero to drop, 1 for no change (no payload), 2 for update (message has payload).
    */
-  uint32_t dns_ttl GNUNET_PACKED;
-
+  uint32_t drop_flag GNUNET_PACKED;
+  
   /**
-   * Unique request ID, matches the original request.
+   * Unique request ID.
    */
   uint64_t request_id GNUNET_PACKED;
 
-  /**
-   * 1 to drop request, 0 to forward if there is no response
-   * or to answer if there is a response.
-   */
-  uint16_t drop_flag GNUNET_PACKED;
-
-  /**
-   * Number of bytes of rdata that follow at the end.
-   */
-  uint16_t rdata_length GNUNET_PACKED;
-
-  /* followed by char rdata[rdata_length] */
+  /* followed by original DNS request (without UDP header) */
 
 };
 

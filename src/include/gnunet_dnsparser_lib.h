@@ -29,6 +29,29 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
+/**
+ * A few common DNS types.
+ */
+#define GNUNET_DNS_TYPE_A 1
+#define GNUNET_DNS_TYPE_NS 2
+#define GNUNET_DNS_TYPE_CNAME 5
+#define GNUNET_DNS_TYPE_SOA 6
+#define GNUNET_DNS_TYPE_PTR 12
+#define GNUNET_DNS_TYPE_MX 15
+#define GNUNET_DNS_TYPE_TXT 16
+#define GNUNET_DNS_TYPE_AAAA 28
+#define GNUNET_DNS_TYPE_IXFR 251
+#define GNUNET_DNS_TYPE_AXFR 252
+
+/**
+ * A few common DNS classes (ok, only one is common, but I list a
+ * couple more to make it clear what we're talking about here).
+ */
+#define GNUNET_DNS_CLASS_INTERNET 1
+#define GNUNET_DNS_CLASS_CHAOS 3
+#define GNUNET_DNS_CLASS_HESIOD 4
+
+
 // DNS-Stuff
 GNUNET_NETWORK_STRUCT_BEGIN
 
