@@ -46,6 +46,7 @@ gnunetinclude_HEADERS = \
   gnunet_fs_service.h \
   gnunet_getopt_lib.h \
   gnunet_hello_lib.h \
+  gnunet_helper_lib.h \
   gnunet_load_lib.h \
   gnunet_mesh_service.h \
   gnunet_nat_lib.h \
