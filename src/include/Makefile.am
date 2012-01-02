@@ -39,9 +39,10 @@ gnunetinclude_HEADERS = \
   gnunet_datastore_service.h \
   gnunet_datastore_plugin.h \
   gnunet_dht_service.h \
-  gnunet_dht_service-new.h \
   gnunet_disk_lib.h \
   gnunet_dnsparser_lib.h \
+  gnunet_dns_service.h \
+  gnunet_dns_service-new.h \
   gnunet_dv_service.h \
   gnunet_fragmentation_lib.h \
   gnunet_fs_service.h \
