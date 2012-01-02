@@ -19,7 +19,7 @@
 */
 
 /**
- * @file vpn/gnunet-daemon-vpn-dns.c
+ * @file dns/dns_api.c
  * @brief
  * @author Philipp Toelke
  */
@@ -56,7 +56,7 @@ struct GNUNET_DNS_Handle
 
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  GNUNET_SCHEDULER_Task process_answer_cb;
+  GNUNET_DNS_ResponseCallback process_answer_cb;
   
   void *process_answer_cb_cls;
 };
@@ -177,11 +177,8 @@ dns_answer_handler (void *cls,
 #endif
     return;
   }
-  void *pkt = GNUNET_malloc (ntohs (msg->size));
-
-  memcpy (pkt, msg, ntohs (msg->size));
-
-  GNUNET_SCHEDULER_add_now (h->process_answer_cb, pkt);
+  h->process_answer_cb (h->process_answer_cb_cls,
+			(const struct answer_packet*) msg);
   GNUNET_CLIENT_receive (h->dns_connection, &dns_answer_handler, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 }
@@ -192,7 +189,7 @@ dns_answer_handler (void *cls,
  */
 struct GNUNET_DNS_Handle *
 GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		    GNUNET_SCHEDULER_Task cb,
+		    GNUNET_DNS_ResponseCallback cb,
 		    void *cb_cls)
 {
   struct GNUNET_DNS_Handle *h;

@@ -34,15 +34,6 @@ extern struct answer_packet_list *answer_proc_tail;
 
 extern struct GNUNET_DNS_Handle *dns_handle;
 
-/**
- * This gets scheduled with cls pointing to an answer_packet and does everything
- * needed in order to send it to the helper.
- *
- * At the moment this means "inventing" and IPv6-Address for .gnunet-services and
- * doing nothing for "real" services.
- */
-void
-process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 void
 send_icmp6_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -100,24 +91,6 @@ struct map_entry
 };
 
 /**
- * Sets a bit active in a bitArray.
- *
- * @param bitArray memory area to set the bit in
- * @param bitIdx which bit to set
- */
-void
-setBit (char *bitArray, unsigned int bitIdx);
-
-/**
- * Clears a bit from bitArray.
- *
- * @param bitArray memory area to set the bit in
- * @param bitIdx which bit to unset
- */
-void
-clearBit (char *bitArray, unsigned int bitIdx);
-
-/**
  * Checks if a bit is active in the bitArray
  *
  * @param bitArray memory area to set the bit in
@@ -126,6 +99,7 @@ clearBit (char *bitArray, unsigned int bitIdx);
  */
 int
 testBit (char *bitArray, unsigned int bitIdx);
+
 
 struct remote_addr
 {

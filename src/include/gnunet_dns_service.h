@@ -37,38 +37,44 @@
 #include "gnunet_util_lib.h"
 
 
+/**
+ * Subtypes of DNS answers.
+ */
 enum GNUNET_DNS_ANSWER_Subtype
 {
-    /**
-     * Answers of this type contain a dns-packet that just has to be transmitted
-     */
+  /**
+   * Answers of this type contain a dns-packet that just has to be transmitted
+   */
   GNUNET_DNS_ANSWER_TYPE_IP,
 
-    /**
-     * Answers of this type contain an incomplete dns-packet. The IP-Address
-     * is all 0s. The addroffset points to it.
-     */
+  /**
+   * Answers of this type contain an incomplete dns-packet. The IP-Address
+   * is all 0s. The addroffset points to it.
+   */
   GNUNET_DNS_ANSWER_TYPE_SERVICE,
 
-    /**
-     * Answers of this type contain an incomplete dns-packet as answer to a
-     * PTR-Query. The resolved name is not allocated. The addroffset points to it.
-     */
+  /**
+   * Answers of this type contain an incomplete dns-packet as answer to a
+   * PTR-Query. The resolved name is not allocated. The addroffset points to it.
+   */
   GNUNET_DNS_ANSWER_TYPE_REV,
-
-    /**
-     * Answers of this type contains an IP6-Address but traffic to this IP should
-     * be routed through the GNUNet.
-     */
+  
+  /**
+   * Answers of this type contains an IP6-Address but traffic to this IP should
+   * be routed through the GNUNet.
+   */
   GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA,
-
-    /**
-     * Answers of this type contains an IP4-Address but traffic to this IP should
-     * be routed through the GNUNet.
-     */
+  
+  /**
+   * Answers of this type contains an IP4-Address but traffic to this IP should
+   * be routed through the GNUNet.
+   */
   GNUNET_DNS_ANSWER_TYPE_REMOTE_A
+
 };
 
+
+GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_vpn_service_descriptor
 {
   GNUNET_HashCode peer GNUNET_PACKED;
@@ -77,7 +83,7 @@ struct GNUNET_vpn_service_descriptor
   uint32_t service_type GNUNET_PACKED;
 };
 
-GNUNET_NETWORK_STRUCT_BEGIN
+
 struct answer_packet
 {
   /* General data */
@@ -108,6 +114,8 @@ struct answer_packet
 
   unsigned char data[1];
 };
+GNUNET_NETWORK_STRUCT_END
+
 
 struct answer_packet_list
 {
@@ -116,18 +124,45 @@ struct answer_packet_list
   struct GNUNET_SERVER_Client *client;
   struct answer_packet pkt;
 };
-GNUNET_NETWORK_STRUCT_END
 
+
+/**
+ * Type of a function to be called by the DNS API whenever
+ * a DNS reply is obtained.
+ *
+ * @param cls closure
+ * @param pkt reply that we got
+ */
+typedef void (*GNUNET_DNS_ResponseCallback)(void *cls,
+					    const struct answer_packet *pkt);
+
+
+/**
+ * Opaque DNS handle
+ */
 struct GNUNET_DNS_Handle;
+
 
 /**
  * Connect to the service-dns
+ *
+ * @param cfg configuration to use
+ * @param cb function to call with DNS replies
+ * @param cb_cls closure to pass to cb
+ * @return DNS handle 
  */
 struct GNUNET_DNS_Handle *
 GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		    GNUNET_SCHEDULER_Task cb,
+		    GNUNET_DNS_ResponseCallback cb,
 		    void *cb_cls);
 
+
+/**
+ * Signal the DNS service that it needs to re-initialize the DNS
+ * hijacking (the network setup has changed significantly).
+ *
+ * @param h DNS handle
+ */
 void
 GNUNET_DNS_restart_hijack (struct GNUNET_DNS_Handle *h);
 
@@ -170,7 +205,11 @@ GNUNET_DNS_queue_request_v6 (struct GNUNET_DNS_Handle *h,
 			     size_t udp_packet_len,
 			     const char *udp_packet);
 
-
+/**
+ * Disconnect from the DNS service.
+ *
+ * @param h DNS handle
+ */
 void
 GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *h);
 

@@ -386,7 +386,7 @@ mesh_send (void *cls, size_t size, void *buf)
 }
 
 
-void
+static void
 mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
               const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
@@ -1212,7 +1212,7 @@ open_port ()
   return GNUNET_YES;
 }
 
-void
+static void
 handle_response (struct dns_pkt *dns, struct sockaddr *addr, socklen_t addrlen,
                  int r);
 
@@ -1320,7 +1320,7 @@ read_response (void *cls GNUNET_UNUSED,
                                  &read_response, NULL);
 }
 
-void
+static void
 handle_response (struct dns_pkt *dns, struct sockaddr *addr, socklen_t addrlen,
                  int r)
 {

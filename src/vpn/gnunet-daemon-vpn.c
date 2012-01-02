@@ -80,6 +80,47 @@ GNUNET_SCHEDULER_TaskIdentifier conn_task;
 
 GNUNET_SCHEDULER_TaskIdentifier shs_task;
 
+
+/**
+ * Sets a bit active in a bitArray.
+ *
+ * @param bitArray memory area to set the bit in
+ * @param bitIdx which bit to set
+ */
+static void
+setBit (char *bitArray, unsigned int bitIdx)
+{
+  size_t arraySlot;
+  unsigned int targetBit;
+
+  arraySlot = bitIdx / 8;
+  targetBit = (1L << (bitIdx % 8));
+  bitArray[arraySlot] |= targetBit;
+}
+
+
+/**
+ * Checks if a bit is active in the bitArray
+ *
+ * @param bitArray memory area to set the bit in
+ * @param bitIdx which bit to test
+ * @return GNUNET_YES if the bit is set, GNUNET_NO if not.
+ */
+int
+testBit (char *bitArray, unsigned int bitIdx)
+{
+  size_t slot;
+  unsigned int targetBit;
+
+  slot = bitIdx / 8;
+  targetBit = (1L << (bitIdx % 8));
+  if (bitArray[slot] & targetBit)
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
+}
+
+
 /**
  * Function scheduled as very last function, cleans up after us
  *{{{
@@ -510,12 +551,9 @@ new_ip4addr_remote (unsigned char *buf, unsigned char *addr, char addrlen)
  * doing nothing for "real" services.
  */
 void
-process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+process_answer (void *cls, 
+		const struct answer_packet *pkt)
 {
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-
-  struct answer_packet *pkt = cls;
   struct answer_packet_list *list;
 
   /* This answer is about a .gnunet-service
@@ -525,13 +563,18 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    */
   if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE)
   {
-    pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 
     GNUNET_HashCode key;
 
     memset (&key, 0, sizeof (GNUNET_HashCode));
 
-    unsigned char *c = ((unsigned char *) pkt) + ntohs (pkt->addroffset);
+    list =
+        GNUNET_malloc (htons (pkt->hdr.size) +
+                       sizeof (struct answer_packet_list) -
+                       sizeof (struct answer_packet));
+    memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
+
+    unsigned char *c = ((unsigned char *) &list->pkt) + ntohs (pkt->addroffset);
     unsigned char *k = (unsigned char *) &key;
 
     new_ip6addr ((struct in6_addr*) c, 
@@ -576,12 +619,8 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free (value);
 
 
-    list =
-        GNUNET_malloc (htons (pkt->hdr.size) +
-                       sizeof (struct answer_packet_list) -
-                       sizeof (struct answer_packet));
+    list->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 
-    memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
 
   }
   else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REV)
@@ -590,7 +629,7 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     memset (&key, 0, sizeof key);
     unsigned char *k = (unsigned char *) &key;
-    unsigned char *s = pkt->data + 12;
+    const unsigned char *s = pkt->data + 12;
     int i = 0;
 
     /* Whoever designed the reverse IPv6-lookup is batshit insane */
@@ -614,10 +653,7 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     uint16_t offset = ntohs (pkt->addroffset);
 
     if (map_entry == NULL)
-    {
-      GNUNET_free (pkt);
       return;
-    }
 
     GNUNET_CONTAINER_heap_update_cost (heap, map_entry->heap_node,
                                        GNUNET_TIME_absolute_get ().abs_value);
@@ -653,16 +689,23 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA)
   {
-    pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 
     GNUNET_HashCode key;
 
     memset (&key, 0, sizeof (GNUNET_HashCode));
 
-    unsigned char *c = ((unsigned char *) pkt) + ntohs (pkt->addroffset);
+    list =
+        GNUNET_malloc (htons (pkt->hdr.size) +
+                       sizeof (struct answer_packet_list) -
+                       sizeof (struct answer_packet));
+
+    memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
+    list->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
+
+    unsigned char *c = ((unsigned char *) &list->pkt) + ntohs (list->pkt.addroffset);
 
     new_ip6addr_remote ((struct in6_addr*) c,
-			pkt->addr, pkt->addrsize);
+			list->pkt.addr, list->pkt.addrsize);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "New mapping to %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
                 c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9],
@@ -707,24 +750,25 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     else
       GNUNET_free (value);
 
+
+  }
+  else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REMOTE_A)
+  {
     list =
         GNUNET_malloc (htons (pkt->hdr.size) +
                        sizeof (struct answer_packet_list) -
                        sizeof (struct answer_packet));
 
     memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
-  }
-  else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REMOTE_A)
-  {
-    pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
+    list->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 
     GNUNET_HashCode key;
 
     memset (&key, 0, sizeof (GNUNET_HashCode));
 
-    unsigned char *c = ((unsigned char *) pkt) + ntohs (pkt->addroffset);
+    unsigned char *c = ((unsigned char *) &list->pkt) + ntohs (pkt->addroffset);
 
-    new_ip4addr_remote (c, pkt->addr, pkt->addrsize);
+    new_ip4addr_remote (c, list->pkt.addr, pkt->addrsize);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New mapping to %d.%d.%d.%d\n", c[0],
                 c[1], c[2], c[3]);
     unsigned char *k = (unsigned char *) &key;
@@ -770,21 +814,12 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     else
       GNUNET_free (value);
 
-    list =
-        GNUNET_malloc (htons (pkt->hdr.size) +
-                       sizeof (struct answer_packet_list) -
-                       sizeof (struct answer_packet));
-
-    memcpy (&list->pkt, pkt, htons (pkt->hdr.size));
   }
   else
   {
     GNUNET_break (0);
-    GNUNET_free (pkt);
     return;
   }
-
-  GNUNET_free (pkt);
 
   GNUNET_CONTAINER_DLL_insert_after (answer_proc_head, answer_proc_tail,
                                      answer_proc_tail, list);
@@ -794,60 +829,6 @@ process_answer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   return;
 }
 
-/**
- * Sets a bit active in a bitArray.
- *
- * @param bitArray memory area to set the bit in
- * @param bitIdx which bit to set
- */
-void
-setBit (char *bitArray, unsigned int bitIdx)
-{
-  size_t arraySlot;
-  unsigned int targetBit;
-
-  arraySlot = bitIdx / 8;
-  targetBit = (1L << (bitIdx % 8));
-  bitArray[arraySlot] |= targetBit;
-}
-
-/**
- * Clears a bit from bitArray.
- *
- * @param bitArray memory area to set the bit in
- * @param bitIdx which bit to unset
- */
-void
-clearBit (char *bitArray, unsigned int bitIdx)
-{
-  size_t slot;
-  unsigned int targetBit;
-
-  slot = bitIdx / 8;
-  targetBit = (1L << (bitIdx % 8));
-  bitArray[slot] = bitArray[slot] & (~targetBit);
-}
-
-/**
- * Checks if a bit is active in the bitArray
- *
- * @param bitArray memory area to set the bit in
- * @param bitIdx which bit to test
- * @return GNUNET_YES if the bit is set, GNUNET_NO if not.
- */
-int
-testBit (char *bitArray, unsigned int bitIdx)
-{
-  size_t slot;
-  unsigned int targetBit;
-
-  slot = bitIdx / 8;
-  targetBit = (1L << (bitIdx % 8));
-  if (bitArray[slot] & targetBit)
-    return GNUNET_YES;
-  else
-    return GNUNET_NO;
-}
 
 /**
  * @brief Add the port to the list of additional ports in the map_entry
