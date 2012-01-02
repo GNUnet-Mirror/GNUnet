@@ -33,7 +33,6 @@
 #include <string.h>
 
 #include "gnunet-vpn-packet.h"
-#include "gnunet-vpn-checksum.h"
 
 /**
  * The handle to the configuration used throughout the process

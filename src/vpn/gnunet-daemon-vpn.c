@@ -37,7 +37,7 @@
 #include <block_dns.h>
 #include "gnunet_dns_service.h"
 #include "gnunet-daemon-vpn.h"
-#include "gnunet-vpn-checksum.h"
+
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 struct GNUNET_MESH_Handle *mesh_handle;
