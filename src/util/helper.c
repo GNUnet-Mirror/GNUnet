@@ -218,7 +218,7 @@ static void
 helper_read (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
 {
-  struct GNUNET_HELPER_Handle*h = cls;
+  struct GNUNET_HELPER_Handle *h = cls;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   ssize_t t;
 
@@ -231,7 +231,7 @@ helper_read (void *cls,
     return;
   }
   t = GNUNET_DISK_file_read (h->fh_from_helper, &buf, sizeof (buf));
-  if (t <= 0)
+  if (t < 0)
   {
     /* On read-error, restart the helper */
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -243,6 +243,20 @@ helper_read (void *cls,
     h->restart_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				    &restart_task, h);
+    return;
+  }
+  if (0 == t)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		_("Got 0 bytes from helper `%s' (EOF)\n"),
+		h->binary_name);
+#if 0
+    stop_helper (h);
+    /* Restart the helper */
+    h->restart_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				    &restart_task, h);
+#endif
     return;
   }
   if (GNUNET_SYSERR ==
@@ -285,10 +299,8 @@ start_helper (struct GNUNET_HELPER_Handle *h)
   }
   h->fh_from_helper =
       GNUNET_DISK_pipe_handle (h->helper_out, GNUNET_DISK_PIPE_END_READ);
-  GNUNET_DISK_pipe_close_end (h->helper_out, GNUNET_DISK_PIPE_END_WRITE);
   h->fh_to_helper =
       GNUNET_DISK_pipe_handle (h->helper_in, GNUNET_DISK_PIPE_END_WRITE);
-  GNUNET_DISK_pipe_close_end (h->helper_in, GNUNET_DISK_PIPE_END_READ);
   h->helper_proc =
       GNUNET_OS_start_process_vap (h->helper_in, h->helper_out,
 				   h->binary_name,
@@ -302,6 +314,8 @@ start_helper (struct GNUNET_HELPER_Handle *h)
 				    &restart_task, h);    
     return;
   }
+  GNUNET_DISK_pipe_close_end (h->helper_out, GNUNET_DISK_PIPE_END_WRITE);
+  GNUNET_DISK_pipe_close_end (h->helper_in, GNUNET_DISK_PIPE_END_READ);
   h->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 						 h->fh_from_helper, 
 						 &helper_read, 
