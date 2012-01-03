@@ -31,40 +31,36 @@
 #include "gnunet_dns_service-new.h"
 
 GNUNET_NETWORK_STRUCT_BEGIN
-struct ip4_hdr
+struct ip4_header
 {
-  unsigned hdr_lngth:4 GNUNET_PACKED;
+  unsigned header_length:4 GNUNET_PACKED;
   unsigned version:4 GNUNET_PACKED;
-
   uint8_t diff_serv;
-  uint16_t tot_lngth GNUNET_PACKED;
-
-  uint16_t ident GNUNET_PACKED;
+  uint16_t total_length GNUNET_PACKED;
+  uint16_t identification GNUNET_PACKED;
   unsigned flags:3 GNUNET_PACKED;
-  unsigned frag_off:13 GNUNET_PACKED;
-
+  unsigned fragmentation_offset:13 GNUNET_PACKED;
   uint8_t ttl;
-  uint8_t proto;
-  uint16_t chks GNUNET_PACKED;
-
-  struct in_addr sadr GNUNET_PACKED;
-  struct in_addr dadr GNUNET_PACKED;
+  uint8_t protocol;
+  uint16_t checksum GNUNET_PACKED;
+  struct in_addr source_address GNUNET_PACKED;
+  struct in_addr destination_address GNUNET_PACKED;
 };
 
-struct ip6_hdr
+struct ip6_header
 {
-  unsigned tclass_h:4 GNUNET_PACKED;
+  unsigned traffic_class_h:4 GNUNET_PACKED;
   unsigned version:4 GNUNET_PACKED;
-  unsigned tclass_l:4 GNUNET_PACKED;
-  unsigned flowlbl:20 GNUNET_PACKED;
-  uint16_t paylgth GNUNET_PACKED;
-  uint8_t nxthdr;
-  uint8_t hoplmt;
-  struct in6_addr sadr GNUNET_PACKED;
-  struct in6_addr dadr GNUNET_PACKED;
+  unsigned traffic_class_l:4 GNUNET_PACKED;
+  unsigned flow_label:20 GNUNET_PACKED;
+  uint16_t payload_length GNUNET_PACKED;
+  uint8_t next_header;
+  uint8_t hop_limit;
+  struct in6_addr source_address GNUNET_PACKED;
+  struct in6_addr destination_address GNUNET_PACKED;
 };
 
-struct udp_pkt
+struct udp_packet
 {
   uint16_t spt GNUNET_PACKED;
   uint16_t dpt GNUNET_PACKED;
@@ -72,8 +68,7 @@ struct udp_pkt
   uint16_t crc GNUNET_PACKED;
 };
 
-
-struct dns_hdr
+struct dns_header
 {
   uint16_t id GNUNET_PACKED;
   uint16_t flags GNUNET_PACKED;
@@ -364,17 +359,17 @@ request_done (struct RequestRecord *rr)
   switch (rr->src_addr.ss_family)
   {
   case AF_INET:
-    reply_len += sizeof (struct ip4_hdr);
+    reply_len += sizeof (struct ip4_header);
     break;
   case AF_INET6:
-    reply_len += sizeof (struct ip6_hdr);
+    reply_len += sizeof (struct ip6_header);
     break;
   default:
     GNUNET_break (0);
     cleanup_rr (rr);
     return;   
   }
-  reply_len += sizeof (struct udp_pkt);
+  reply_len += sizeof (struct udp_packet);
   reply_len += rr->payload_length;
   if (reply_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -400,11 +395,23 @@ request_done (struct RequestRecord *rr)
       {
 	struct sockaddr_in *src = (struct sockaddr_in *) &rr->src_addr;
 	struct sockaddr_in *dst = (struct sockaddr_in *) &rr->dst_addr;
-	struct ip4_hdr ip;
+	struct ip4_header ip;
 	
 	spt = dst->sin_port;
 	dpt = src->sin_port;
-	// FIXME: fill in IP header!
+	ip.header_length =  sizeof (struct ip4_header) / 4;
+	ip.version = IPVERSION; /* aka 4 */
+	ip.diff_serv = 0;
+	ip.total_length = htons ((uint16_t) reply_len);
+	ip.identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+							65536);
+	ip.flags = 0;
+	ip.fragmentation_offset = 0;
+	ip.ttl = 255; /* or lower? */
+	ip.protocol = IPPROTO_UDP;
+	ip.checksum = 0; /* checksum is optional */
+	ip.source_address = dst->sin_addr;
+	ip.destination_address = src->sin_addr;
 	memcpy (&buf[off], &ip, sizeof (ip));
 	off += sizeof (ip);
 	break;
@@ -413,11 +420,19 @@ request_done (struct RequestRecord *rr)
       {
 	struct sockaddr_in6 *src = (struct sockaddr_in6 *) &rr->src_addr;
 	struct sockaddr_in6 *dst = (struct sockaddr_in6 *) &rr->dst_addr;
-	struct ip6_hdr ip;
+	struct ip6_header ip;
 
 	spt = dst->sin6_port;
 	dpt = src->sin6_port;
-	// FIXME: fill in IP header!
+	ip.traffic_class_h = 0;
+	ip.version  = 6; /* is there a named constant? I couldn't find one */
+	ip.traffic_class_l = 0;
+	ip.flow_label = 0;
+	ip.payload_length = htons ((uint16_t) reply_len);
+	ip.next_header = IPPROTO_UDP;
+	ip.hop_limit = 255; /* or lower? */
+	ip.source_address = dst->sin6_addr;
+	ip.destination_address = src->sin6_addr;
 	memcpy (&buf[off], &ip, sizeof (ip));
 	off += sizeof (ip);
       }
@@ -428,7 +443,7 @@ request_done (struct RequestRecord *rr)
 
     /* now UDP header */
     {
-      struct udp_pkt udp;
+      struct udp_packet udp;
 
       udp.spt = spt;
       udp.dpt = dpt;
@@ -553,11 +568,11 @@ next_phase (struct RequestRecord *rr)
     {
     case AF_INET:
       dnsout = dnsout4;
-      salen = sizeof (struct ip4_hdr);
+      salen = sizeof (struct ip4_header);
       break;
     case AF_INET6:
       dnsout = dnsout6;
-      salen = sizeof (struct ip6_hdr);
+      salen = sizeof (struct ip6_header);
       break;
     default:
       GNUNET_break (0);
@@ -652,7 +667,7 @@ read_response (void *cls,
   struct sockaddr_in addr4;
   struct sockaddr_in6 addr6;
   struct sockaddr *addr;
-  struct dns_hdr *dns;
+  struct dns_header *dns;
   socklen_t addrlen;
   struct RequestRecord *rr;
   ssize_t r;
@@ -702,14 +717,14 @@ read_response (void *cls,
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "recvfrom");
       return;
     }
-    if (sizeof (struct dns_hdr) > r)
+    if (sizeof (struct dns_header) > r)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 		  _("Received DNS response that is too small (%u bytes)"),
 		  r);
       return;
     }
-    dns = (struct dns_hdr *) buf;
+    dns = (struct dns_header *) buf;
     rr = &requests[dns->id];
     if (rr->phase != RP_INTERNET_DNS) 
     {
@@ -918,7 +933,7 @@ handle_client_response (void *cls GNUNET_UNUSED,
       break;
     case 2: /* update */
       msize -= sizeof (struct GNUNET_DNS_Response);
-      if ( (sizeof (struct dns_hdr) > msize) ||
+      if ( (sizeof (struct dns_header) > msize) ||
 	   (RP_MONITOR == rr->phase) )
       {
 	GNUNET_break (0);
@@ -960,10 +975,99 @@ static void
 process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 			 const struct GNUNET_MessageHeader *message)
 {
-  struct RequestRecord *rr = NULL;
-  /* FIXME: parse message, create record, start processing! */
-  /* FIXME: put request into queue for clients / system DNS */
+  uint16_t msize;
+  const struct ip4_header *ip4;
+  const struct ip6_header *ip6;
+  const struct udp_packet *udp;
+  const struct dns_header *dns;
+  struct RequestRecord *rr;
+  struct sockaddr_in *srca4;
+  struct sockaddr_in6 *srca6;
+  struct sockaddr_in *dsta4;
+  struct sockaddr_in6 *dsta6;
+
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct GNUNET_MessageHeader) + sizeof (struct ip4_header))
+  {
+    /* non-IP packet received on TUN!? */
+    GNUNET_break (0);
+    return;
+  }
+  msize -= sizeof (struct GNUNET_MessageHeader);
+  ip4 = (const struct ip4_header *) &message[1];
+  ip6 = (const struct ip6_header *) &message[1];
+  if (ip4->version == IPVERSION)
+  {
+    udp = (const struct udp_packet*) &ip4[1];
+    msize -= sizeof (struct ip4_header);
+  }
+  else if ( (ip6->version == 6) &&
+	    (msize >= sizeof (struct ip6_header)) )
+  {
+    udp = (const struct udp_packet*) &ip6[1];
+    msize -= sizeof (struct ip6_header);
+  }
+  else
+  {
+    /* non-IP packet received on TUN!? */
+    GNUNET_break (0);
+    return;
+  }
+  if (msize <= sizeof (struct udp_packet) + sizeof (struct dns_header))
+  {    
+    /* non-DNS packet received on TUN, ignore */
+    /* FIXME: case for statistics... */
+    return;
+  }
+  msize -= sizeof (struct udp_packet);
+  dns = (const struct dns_header*) &udp[1];
+  rr = &requests[dns->id];
+
+  /* clean up from previous request */
+  GNUNET_free_non_null (rr->payload);
+  rr->payload = NULL;
+  GNUNET_array_grow (rr->client_wait_list,
+		     rr->client_wait_list_length,
+		     0);
+
+  /* setup new request */
+  rr->phase = RP_INIT;
+  if (ip4->version == IPVERSION)
+  {
+    srca4 = (struct sockaddr_in*) &rr->src_addr;
+    dsta4 = (struct sockaddr_in*) &rr->dst_addr;
+    memset (srca4, 0, sizeof (struct sockaddr_in));
+    memset (dsta4, 0, sizeof (struct sockaddr_in));
+    srca4->sin_family = AF_INET;
+    dsta4->sin_family = AF_INET;
+    srca4->sin_addr = ip4->source_address;
+    dsta4->sin_addr = ip4->destination_address;
+    srca4->sin_port = udp->spt;
+    dsta4->sin_port = udp->dpt;
+    /* FIXME: bother with FreeBSD sin_len crap? */
+  }
+  else /* ipv6 */
+  {
+    srca6 = (struct sockaddr_in6*) &rr->src_addr;
+    dsta6 = (struct sockaddr_in6*) &rr->dst_addr;
+    memset (srca6, 0, sizeof (struct sockaddr_in6));
+    memset (dsta6, 0, sizeof (struct sockaddr_in6));
+    srca6->sin6_family = AF_INET6;
+    dsta6->sin6_family = AF_INET6;
+    srca6->sin6_addr = ip6->source_address;
+    dsta6->sin6_addr = ip6->destination_address;
+    srca6->sin6_port = udp->spt;
+    dsta6->sin6_port = udp->dpt;
+    /* FIXME: bother with FreeBSD sin_len crap? */
+  }
+  rr->payload = GNUNET_malloc (msize);
+  rr->payload_length = msize;
+  memcpy (rr->payload, dns, msize);
+  rr->request_id = dns->id | (request_id_gen << 16);
   request_id_gen++;
+
+  /* FIXME: case for statistics... */
+  /* start request processing state machine */
   next_phase (rr);
 }
 
