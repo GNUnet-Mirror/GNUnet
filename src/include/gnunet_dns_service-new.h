@@ -40,6 +40,49 @@ struct GNUNET_DNS_Handle;
  */
 struct GNUNET_DNS_RequestHandle;
 
+/**
+ * Flags that specify when to call the client's handler.
+ */ 
+enum GNUNET_DNS_Flags
+{
+
+  /**
+   * Useless option: never call the client.
+   */
+  GNUNET_DNS_FLAG_NEVER = 0,
+
+  /**
+   * Set this flag to see all requests first prior to resolution
+   * (for monitoring).  Clients that set this flag must then
+   * call "GNUNET_DNS_request_forward" when they process a request
+   * for the first time.  Caling "GNUNET_DNS_request_answer" is
+   * not allowed for MONITOR peers.
+   */
+  GNUNET_DNS_FLAG_REQUEST_MONITOR = 1,
+
+  /**
+   * This client should be called on requests that have not
+   * yet been resolved as this client provides a resolution
+   * service.  Note that this does not guarantee that the
+   * client will see all requests as another client might be
+   * called first and that client might have already done the
+   * resolution, in which case other pre-resolution clients
+   * won't see the request anymore.
+   */
+  GNUNET_DNS_FLAG_PRE_RESOLUTION = 2,
+
+  /**
+   * This client wants to be called on the results of a DNS resolution
+   * (either resolved by PRE-RESOLUTION clients or the global DNS).
+   * The client then has a chance to modify the answer (or cause it to
+   * be dropped).  There is no guarantee that other POST-RESOLUTION
+   * client's won't modify (or drop) the answer afterwards.
+   */
+  GNUNET_DNS_FLAG_POST_RESOLUTION = 4
+
+};
+
+
 
 /**
  * Signature of a function that is called whenever the DNS service
@@ -71,12 +114,9 @@ typedef void (*GNUNET_DNS_RequestHandler)(void *cls,
 
 
 /**
- * If a GNUNET_DNS_RequestHandler calls this function, the request is
- * given to other clients or the global DNS for resolution.  Once a
- * global response has been obtained, the request handler is AGAIN
- * called to give it a chance to observe and modify the response after
- * the "normal" resolution.  It is not legal for the request handler
- * to call this function if a response is already present.
+ * If a GNUNET_DNS_RequestHandler calls this function, the client
+ * has no desire to interfer with the request and it should
+ * continue to be processed normally.
  *
  * @param rh request that should now be forwarded
  */
@@ -97,7 +137,8 @@ GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh);
 /**
  * If a GNUNET_DNS_RequestHandler calls this function, the request is
  * supposed to be answered with the data provided to this call (with
- * the modifications the function might have made).
+ * the modifications the function might have made).  The reply given
+ * must always be a valid DNS reply and not a mutated DNS request.
  *
  * @param rh request that should now be answered
  * @param reply_length size of reply (uint16_t to force sane size)
@@ -113,12 +154,14 @@ GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
  * Connect to the service-dns
  *
  * @param cfg configuration to use
+ * @param flags when to call rh
  * @param rh function to call with DNS requests
  * @param rh_cls closure to pass to rh
  * @return DNS handle 
  */
 struct GNUNET_DNS_Handle *
 GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		    enum GNUNET_DNS_Flags flags,
 		    GNUNET_DNS_RequestHandler rh,
 		    void *rh_cls);
 

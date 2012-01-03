@@ -28,6 +28,24 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+
+/**
+ * Message from client to DNS service to register itself.
+ */
+struct GNUNET_DNS_Register
+{
+  /**
+    * Header of type GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * NBO encoding of 'enum GNUNET_DNS_Flags' for the client.
+   */
+  uint32_t flags;
+};
+
+
 /**
  * Message from DNS service to client: please handle a request.
  */

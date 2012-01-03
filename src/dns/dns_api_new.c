@@ -125,6 +125,11 @@ struct GNUNET_DNS_Handle
    * Re-connect counter, to make sure we did not reconnect in the meantime.
    */
   uint32_t generation;
+  
+  /**
+   * Flags for events we care about.
+   */
+  enum GNUNET_DNS_Flags flags;
 
   /**
    * Did we start the receive loop yet?
@@ -162,7 +167,7 @@ reconnect (void *cls,
 {
   struct GNUNET_DNS_Handle *dh = cls;
   struct ReplyQueueEntry *qe;
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_DNS_Register *msg;
 
   dh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   dh->dns_connection = GNUNET_CLIENT_connect ("dns", dh->cfg);
@@ -170,11 +175,12 @@ reconnect (void *cls,
     return;
   dh->generation++;
   qe = GNUNET_malloc (sizeof (struct ReplyQueueEntry) +
-		      sizeof (struct GNUNET_MessageHeader));
-  msg = (struct GNUNET_MessageHeader*) &qe[1];
-  qe->msg = msg;
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  msg->type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT);
+		      sizeof (struct GNUNET_DNS_Register));
+  msg = (struct GNUNET_DNS_Register*) &qe[1];
+  qe->msg = &msg->header;
+  msg->header.size = htons (sizeof (struct GNUNET_DNS_Register));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT);
+  msg->flags = htonl (dh->flags);
   queue_reply (dh, qe);
 }
 
@@ -471,12 +477,14 @@ GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
  * Connect to the service-dns
  *
  * @param cfg configuration to use
+ * @param flags when to call rh
  * @param rh function to call with DNS requests
  * @param rh_cls closure to pass to rh
  * @return DNS handle 
  */
 struct GNUNET_DNS_Handle *
 GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		    enum GNUNET_DNS_Flags flags,
 		    GNUNET_DNS_RequestHandler rh,
 		    void *rh_cls)
 {
@@ -484,6 +492,7 @@ GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   
   dh = GNUNET_malloc (sizeof (struct GNUNET_DNS_Handle));
   dh->cfg = cfg;
+  dh->flags = flags;
   dh->rh = rh;
   dh->rh_cls = rh_cls;
   dh->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, dh);
