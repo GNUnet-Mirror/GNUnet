@@ -60,7 +60,6 @@ gnunet_service_dns_new_SOURCES = \
 gnunet_service_dns_new_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(GN_LIBINTL)
 
 libgnunetdnsparser_la_SOURCES = \

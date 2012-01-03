@@ -760,7 +760,9 @@ main (int argc, char *const*argv)
       return 6;
     }
   }
-  if (SIG_ERR == signal (SIGTERM, &signal_handler))
+  if ( (SIG_ERR == signal (SIGTERM, &signal_handler)) ||
+       (SIG_ERR == signal (SIGINT, &signal_handler)) ||
+       (SIG_ERR == signal (SIGHUP, &signal_handler)) )       
   { 
     fprintf (stderr, 
 	     "Fatal: could not initialize signal handler: %s\n",
@@ -779,7 +781,9 @@ main (int argc, char *const*argv)
   if (-1 == (fd_tun = init_tun (dev)))
   {
     fprintf (stderr, "Fatal: could not initialize tun-interface\n");
+    (void) signal (SIGTERM, SIG_IGN);
     (void) signal (SIGINT, SIG_IGN);
+    (void) signal (SIGHUP, SIG_IGN);
     (void) close (cpipe[0]);
     (void) close (cpipe[1]);
     return 5;
@@ -793,7 +797,9 @@ main (int argc, char *const*argv)
     if ((prefix_len < 1) || (prefix_len > 127))
     {
       fprintf (stderr, "Fatal: prefix_len out of range\n");
+      (void) signal (SIGTERM, SIG_IGN);
       (void) signal (SIGINT, SIG_IGN);
+      (void) signal (SIGHUP, SIG_IGN);
       (void) close (cpipe[0]);
       (void) close (cpipe[1]);
       return 2;
@@ -941,8 +947,10 @@ main (int argc, char *const*argv)
  cleanup_rest:
   /* close virtual interface */
   (void) close (fd_tun);
-  /* remove SIGINT handler so we can close the pipes */
+  /* remove signal handler so we can close the pipes */
+  (void) signal (SIGTERM, SIG_IGN);
   (void) signal (SIGINT, SIG_IGN);
+  (void) signal (SIGHUP, SIG_IGN);
   (void) close (cpipe[0]);
   (void) close (cpipe[1]);
   return r;

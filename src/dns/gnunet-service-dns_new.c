@@ -30,7 +30,35 @@
 #include "dns_new.h"
 #include "gnunet_dns_service-new.h"
 
+/* see http://www.iana.org/assignments/ethernet-numbers */
+#ifndef ETH_P_IPV4
+#define ETH_P_IPV4 0x0800
+#endif
+
+#ifndef ETH_P_IPV6
+#define ETH_P_IPV6 0x86DD
+#endif
+
 GNUNET_NETWORK_STRUCT_BEGIN
+/**
+ * Header from Linux TUN interface.
+ */ 
+struct tun_header
+{
+  /**
+   * Some flags (unused).
+   */ 
+  uint16_t flags;
+
+  /**
+   * Here we get an ETH_P_-number.
+   */
+  uint16_t proto;
+};
+
+/**
+ * Standard IPv4 header.
+ */
 struct ip4_header
 {
   unsigned header_length:4 GNUNET_PACKED;
@@ -47,6 +75,9 @@ struct ip4_header
   struct in_addr destination_address GNUNET_PACKED;
 };
 
+/**
+ * Standard IPv6 header.
+ */
 struct ip6_header
 {
   unsigned traffic_class_h:4 GNUNET_PACKED;
@@ -60,6 +91,9 @@ struct ip6_header
   struct in6_addr destination_address GNUNET_PACKED;
 };
 
+/**
+ * UDP packet header.
+ */
 struct udp_packet
 {
   uint16_t spt GNUNET_PACKED;
@@ -68,6 +102,9 @@ struct udp_packet
   uint16_t crc GNUNET_PACKED;
 };
 
+/**
+ * DNS header.
+ */
 struct dns_header
 {
   uint16_t id GNUNET_PACKED;
@@ -263,7 +300,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 /**
  * Array of all open requests.
  */
-static struct RequestRecord requests[UINT16_MAX];
+static struct RequestRecord requests[UINT16_MAX + 1];
 
 /**
  * Generator for unique request IDs.
@@ -279,7 +316,7 @@ static uint64_t request_id_gen;
 static void
 cleanup_rr (struct RequestRecord *rr)
 {
-  GNUNET_free (rr->payload);
+  GNUNET_free_non_null (rr->payload);
   rr->payload = NULL;
   rr->payload_length = 0;
   GNUNET_array_grow (rr->client_wait_list,
@@ -356,6 +393,7 @@ request_done (struct RequestRecord *rr)
   
   /* send response via hijacker */
   reply_len = sizeof (struct GNUNET_MessageHeader);
+  reply_len += sizeof (struct tun_header);
   switch (rr->src_addr.ss_family)
   {
   case AF_INET:
@@ -381,6 +419,9 @@ request_done (struct RequestRecord *rr)
   {
     char buf[reply_len];
     size_t off;
+    uint16_t *udp_crcp;
+    char *udp_crc_start;
+    uint16_t udp_crc_length;
 
     /* first, GNUnet message header */
     hdr = (struct GNUNET_MessageHeader*) buf;
@@ -388,7 +429,22 @@ request_done (struct RequestRecord *rr)
     hdr->size = htons ((uint16_t) reply_len);
     off = sizeof (struct GNUNET_MessageHeader);
 
+    /* first, TUN header */
+    {
+      struct tun_header tun;
+
+      tun.flags = htons (0);
+      if (rr->src_addr.ss_family == AF_INET)
+	tun.proto = htons (ETH_P_IPV4); 
+      else
+	tun.proto = htons (ETH_P_IPV6);
+      memcpy (&buf[off], &tun, sizeof (struct tun_header));
+      off += sizeof (struct tun_header);
+    }
+
     /* now IP header */
+    udp_crc_start = &buf[off];
+    udp_crc_length = reply_len - off;
     switch (rr->src_addr.ss_family)
     {
     case AF_INET:
@@ -412,6 +468,8 @@ request_done (struct RequestRecord *rr)
 	ip.checksum = 0; /* checksum is optional */
 	ip.source_address = dst->sin_addr;
 	ip.destination_address = src->sin_addr;
+
+	ip.checksum = GNUNET_CRYPTO_crc16_n ((uint16_t*) &ip, sizeof (ip));
 	memcpy (&buf[off], &ip, sizeof (ip));
 	off += sizeof (ip);
 	break;
@@ -448,16 +506,23 @@ request_done (struct RequestRecord *rr)
       udp.spt = spt;
       udp.dpt = dpt;
       udp.len = htons (reply_len - off);
-      udp.crc = 0; /* checksum is optional */
+      udp.crc = 0; /* checksum will be set later */
+
       memcpy (&buf[off], &udp, sizeof (udp));
+      udp_crcp = (uint16_t*) &buf[off + offsetof (struct udp_packet, crc)];
       off += sizeof (udp);
     }
         /* now DNS header */
     {
       memcpy (&buf[off], rr->payload, rr->payload_length);
       off += rr->payload_length;
+
+      fprintf (stderr,
+	       "Sending %u bytes UDP packet to TUN\n",
+	       (unsigned int) rr->payload_length);
     }
     
+    *udp_crcp = GNUNET_CRYPTO_crc16_n ((uint16_t *)udp_crc_start, udp_crc_length);
     /* final checks & sending */
     GNUNET_assert (off == reply_len);
     GNUNET_HELPER_send (hijacker,
@@ -578,6 +643,12 @@ next_phase (struct RequestRecord *rr)
       GNUNET_break (0);
       cleanup_rr (rr);
       return;   
+    }
+    if (NULL == dnsout)
+    {
+      /* fail, FIXME: case for statistics! */
+      cleanup_rr (rr);
+      return;
     }
     GNUNET_NETWORK_socket_sendto (dnsout,
 				  rr->payload,
@@ -735,6 +806,10 @@ read_response (void *cls,
     GNUNET_free_non_null (rr->payload);
     rr->payload = GNUNET_malloc (len);
     memcpy (rr->payload, buf, len);
+    rr->payload_length = len;
+    fprintf (stderr,
+	     "Received %u bytes UDP packet from DNS server\n",
+	     (unsigned int) len);
     next_phase (rr);
   }  
 }
@@ -976,6 +1051,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 			 const struct GNUNET_MessageHeader *message)
 {
   uint16_t msize;
+  const struct tun_header *tun;
   const struct ip4_header *ip4;
   const struct ip6_header *ip6;
   const struct udp_packet *udp;
@@ -987,29 +1063,52 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   struct sockaddr_in6 *dsta6;
 
   msize = ntohs (message->size);
-  if (msize < sizeof (struct GNUNET_MessageHeader) + sizeof (struct ip4_header))
+  if (msize < sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header) + sizeof (struct ip4_header))
   {
     /* non-IP packet received on TUN!? */
     GNUNET_break (0);
     return;
   }
   msize -= sizeof (struct GNUNET_MessageHeader);
-  ip4 = (const struct ip4_header *) &message[1];
-  ip6 = (const struct ip6_header *) &message[1];
-  if (ip4->version == IPVERSION)
+  tun = (const struct tun_header *) &message[1];
+  msize -= sizeof (struct tun_header);
+  switch (ntohs (tun->proto))
   {
+  case ETH_P_IPV4:
+    ip4 = (const struct ip4_header *) &tun[1];
+    if ( (msize < sizeof (struct ip4_header)) ||
+	 (ip4->version != IPVERSION) ||
+	 (ip4->header_length != sizeof (struct ip4_header) / 4) ||
+	 (ntohs(ip4->total_length) != msize) ||
+	 (ip4->protocol != IPPROTO_UDP) )
+    {
+      /* non-IP/UDP packet received on TUN (or with options) */
+      GNUNET_break (0);
+      return;
+    }
     udp = (const struct udp_packet*) &ip4[1];
     msize -= sizeof (struct ip4_header);
-  }
-  else if ( (ip6->version == 6) &&
-	    (msize >= sizeof (struct ip6_header)) )
-  {
+    break;
+  case ETH_P_IPV6:
+    ip6 = (const struct ip6_header *) &tun[1];
+    if ( (msize < sizeof (struct ip6_header)) ||
+	 (ip6->version != 6) ||
+	 (ntohs (ip6->payload_length) != msize) ||
+	 (ip6->next_header != IPPROTO_UDP) )
+    {
+      /* non-IP/UDP packet received on TUN (or with extensions) */
+      GNUNET_break (0);
+      return;
+    }
     udp = (const struct udp_packet*) &ip6[1];
     msize -= sizeof (struct ip6_header);
-  }
-  else
-  {
+    break;
+  default:
     /* non-IP packet received on TUN!? */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Got packet with %u bytes and protocol %u from TUN\n"),
+		(unsigned int) msize,
+		ntohs (tun->proto));
     GNUNET_break (0);
     return;
   }

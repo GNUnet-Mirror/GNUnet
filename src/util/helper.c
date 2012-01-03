@@ -152,7 +152,7 @@ stop_helper (struct GNUNET_HELPER_Handle *h)
 
   if (NULL != h->helper_proc)
   {
-    GNUNET_OS_process_kill (h->helper_proc, SIGKILL);
+    GNUNET_OS_process_kill (h->helper_proc, SIGTERM);
     GNUNET_OS_process_wait (h->helper_proc);
     GNUNET_OS_process_close (h->helper_proc);
     h->helper_proc = NULL;
@@ -247,16 +247,16 @@ helper_read (void *cls,
   }
   if (0 == t)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+    /* this happens if the helper is shut down via a 
+       signal, so it is not a "hard" error */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 		_("Got 0 bytes from helper `%s' (EOF)\n"),
 		h->binary_name);
-#if 0
     stop_helper (h);
     /* Restart the helper */
     h->restart_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				    &restart_task, h);
-#endif
     return;
   }
   if (GNUNET_SYSERR ==

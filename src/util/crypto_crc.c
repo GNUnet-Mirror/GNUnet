@@ -114,7 +114,6 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
 }
 
 
-
 /**
  * Perform an incremental step in a CRC16 (for TCP/IP) calculation.
  *
@@ -126,7 +125,6 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
 uint32_t
 GNUNET_CRYPTO_crc16_step (uint32_t sum, uint16_t * hdr, size_t len)
 {
-  GNUNET_assert (0 == (len & 1));
   for (; len >= 2; len -= 2)
     sum += *(hdr++);
   if (len == 1)
