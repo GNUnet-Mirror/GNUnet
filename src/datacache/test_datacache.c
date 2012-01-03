@@ -72,7 +72,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (h == NULL)
   {
     FPRINTF (stderr,
-             "Failed to initialize datacache.  Database likely not setup, skipping test.\n", NULL);
+             "%s", 
+	     "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
     return;
   }
   exp = GNUNET_TIME_absolute_get ();

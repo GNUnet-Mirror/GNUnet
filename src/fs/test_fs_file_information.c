@@ -152,7 +152,8 @@ testThumbnail ()
   if (ex == NULL)
   {
     FPRINTF (stderr,
-             "Test incomplete, have no GTK thumbnail extractor available.\n", NULL);
+             "%s",
+	     "Test incomplete, have no GTK thumbnail extractor available.\n");
     return 0;                   /* can not test, no thumbnailer */
   }
   ex = EXTRACTOR_plugin_add_config (ex, "mime",

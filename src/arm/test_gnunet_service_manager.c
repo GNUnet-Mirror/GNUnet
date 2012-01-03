@@ -162,7 +162,7 @@ main (int argc, char *argv[])
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 			   "gethostname");
       FPRINTF (stderr,
-	       "Failed to determine my own hostname, testcase not run.\n", NULL);
+	       "%s", "Failed to determine my own hostname, testcase not run.\n");
       return 0;
     }
   if (NULL == gethostbyname (hostname))

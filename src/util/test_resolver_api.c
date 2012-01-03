@@ -265,7 +265,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                 hstrerror (h_errno));
 #endif
     FPRINTF (stderr,
-             "System seems to be off-line, will not run all DNS tests\n", NULL);
+             "%s", "System seems to be off-line, will not run all DNS tests\n");
     *ok = 0;                    /* mark test as passing anyway */
     return;
   }
