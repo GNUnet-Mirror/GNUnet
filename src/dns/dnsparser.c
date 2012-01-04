@@ -40,7 +40,99 @@ struct dns_header
   uint16_t authority_rcount GNUNET_PACKED;       // number of authority-records
   uint16_t additional_rcount GNUNET_PACKED;       // number of additional records
 };
+
+struct query_line
+{
+  uint16_t type GNUNET_PACKED;
+  uint16_t class GNUNET_PACKED;
+};
+
+struct record_line
+{
+  uint16_t type GNUNET_PACKED;
+  uint16_t class GNUNET_PACKED;
+  uint32_t ttl GNUNET_PACKED;
+  uint16_t data_len GNUNET_PACKED;
+};
+
 GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Parse name inside of a DNS query or record.
+ *
+ * @param udp_payload entire UDP payload
+ * @param udp_payload_length length of udp_payload
+ * @param off pointer to the offset of the name to parse in the udp_payload (to be
+ *                    incremented by the size of the name)
+ * @return name as 0-terminated C string on success, NULL if the payload is malformed
+ */
+static char *
+parse_name (const char *udp_payload,
+	    size_t udp_payload_length,
+	    size_t *off)
+{
+  const uint8_t *input = (const uint8_t *) udp_payload;
+  char *ret;
+  char *tmp;
+  char *xstr;
+  uint8_t len;
+  size_t xoff;
+  
+  ret = GNUNET_strdup ("");
+  while (1)
+  {
+    if (*off == udp_payload_length)
+      goto error;
+    len = input[*off];
+    if (0 == len)
+      break;
+    if (len < 64)
+    {
+      if (*off + 1 + len > udp_payload_length)
+	goto error;
+      GNUNET_asprintf (&tmp,
+		       "%s%.*s.",
+		       ret,
+		       (int) len,
+		       &udp_payload[*off + 1]);
+      GNUNET_free (ret);
+      ret = tmp;
+      off += 1 + len;
+    }
+    else if ((64 | 128) == (len & (64 | 128)) )
+    {
+      /* pointer to string */
+      if (*off + 1 > udp_payload_length)
+	goto error;
+      xoff = ((len - (64 | 128)) << 8) + input[*off+1];
+      xstr = parse_name (udp_payload,
+			 udp_payload_length,
+			 &xoff);
+      GNUNET_asprintf (&tmp,
+		       "%s%s.",
+		       ret,
+		       xstr);
+      GNUNET_free (ret);
+      GNUNET_free (xstr);
+      ret = tmp;
+      off += 2;
+      /* pointers always terminate names */
+      break;
+    } 
+    else
+    {
+      /* neither pointer nor inline string, not supported... */
+      goto error;
+    }
+  }
+  if (0 < strlen(ret))
+    ret[strlen(ret)-1] = '\0'; /* eat tailing '.' */
+  return ret;
+ error:  
+  GNUNET_free (ret);
+  return NULL;
+}
 
 
 /**
@@ -59,7 +151,22 @@ parse_query (const char *udp_payload,
 	     size_t *off,
 	     struct GNUNET_DNSPARSER_Query *q)
 {
-  return GNUNET_SYSERR;
+  char *name;
+  struct query_line ql;
+
+  name = parse_name (udp_payload, 
+		     udp_payload_length,
+		     off);
+  if (NULL == name)
+    return GNUNET_SYSERR;
+  q->name = name;
+  if (*off + sizeof (struct query_line) > udp_payload_length)
+    return GNUNET_SYSERR;
+  memcpy (&ql, &udp_payload[*off], sizeof (ql));
+  *off += sizeof (ql);
+  q->type = ntohs (ql.type);
+  q->class = ntohs (ql.class);
+  return GNUNET_OK;
 }
 
 
@@ -79,9 +186,33 @@ parse_record (const char *udp_payload,
 	      size_t *off,
 	      struct GNUNET_DNSPARSER_Record *r)
 {
-  return GNUNET_SYSERR;
-}
+  char *name;
+  struct record_line rl;
 
+  name = parse_name (udp_payload, 
+		     udp_payload_length,
+		     off);
+  if (NULL == name)
+    return GNUNET_SYSERR;
+  r->name = name;
+  if (*off + sizeof (struct record_line) > udp_payload_length)
+    return GNUNET_SYSERR;
+  memcpy (&rl, &udp_payload[*off], sizeof (rl));
+  *off += sizeof (rl);
+  r->type = ntohs (rl.type);
+  r->class = ntohs (rl.class);
+  r->expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+											ntohl (rl.ttl)));
+  r->data_len = ntohs (rl.data_len);
+  if (*off + r->data_len > udp_payload_length)
+    return GNUNET_SYSERR;
+  if (0 == r->data_len)
+    return GNUNET_OK;
+  r->data = GNUNET_malloc (r->data_len);
+  memcpy (r->data, &udp_payload[*off], r->data_len);
+  *off += r->data_len;
+  return GNUNET_OK;  
+}
 
 
 /**
