@@ -41,8 +41,6 @@
 #define GNUNET_DNSPARSER_TYPE_MX 15
 #define GNUNET_DNSPARSER_TYPE_TXT 16
 #define GNUNET_DNSPARSER_TYPE_AAAA 28
-#define GNUNET_DNSPARSER_TYPE_IXFR 251
-#define GNUNET_DNSPARSER_TYPE_AXFR 252
 
 /**
  * A few common DNS classes (ok, only one is common, but I list a
@@ -158,6 +156,74 @@ struct GNUNET_DNSPARSER_Query
 
 
 /**
+ * Information from MX records (RFC 1035).
+ */
+struct GNUNET_DNSPARSER_MxRecord
+{
+  
+  /**
+   * Preference for this entry (lower value is higher preference).
+   */
+  uint16_t preference;
+
+  /**
+   * Name of the mail server.
+   */
+  char *mxhost;
+
+};
+
+  
+/**
+ * Information from SOA records (RFC 1035).
+ */
+struct GNUNET_DNSPARSER_SoaRecord
+{
+  
+  /**
+   *The domainname of the name server that was the
+   * original or primary source of data for this zone.
+   */
+  char *mname;
+
+  /**
+   * A domainname which specifies the mailbox of the
+   * person responsible for this zone.
+   */
+  char *rname;
+
+  /**
+   * The version number of the original copy of the zone.  
+   */
+  uint32_t serial;
+
+  /**
+   * Time interval before the zone should be refreshed.
+   */
+  uint32_t refresh;
+
+  /**
+   * Time interval that should elapse before a failed refresh should
+   * be retried.
+   */
+  uint32_t retry;
+
+  /**
+   * Time value that specifies the upper limit on the time interval
+   * that can elapse before the zone is no longer authoritative.
+   */
+  uint32_t expire;
+
+  /**
+   * The bit minimum TTL field that should be exported with any RR
+   * from this zone.
+   */
+  uint32_t minimum_ttl;
+  
+};
+
+
+/**
  * A DNS response record.
  */
 struct GNUNET_DNSPARSER_Record
@@ -168,10 +234,30 @@ struct GNUNET_DNSPARSER_Record
    */
   char *name;
 
-  /**
-   * Raw data, NOT a 0-terminated string (at least not always).
-   */
-  char *data;
+  union 
+  {
+
+    /**
+     * For NS, CNAME and PTR records, this is the uncompressed 0-terminated hostname.
+     */
+    char *hostname;
+    
+    /**
+     * SOA data for SOA records.
+     */
+    struct GNUNET_DNSPARSER_SoaRecord *soa;
+    
+    /**
+     * MX data for MX records.
+     */
+    struct GNUNET_DNSPARSER_MxRecord *mx;
+
+    /**
+     * Raw data for all other types.
+     */
+    char *raw;
+
+  } data;
 
   /**
    * Number of bytes in data.

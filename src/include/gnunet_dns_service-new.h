@@ -78,7 +78,16 @@ enum GNUNET_DNS_Flags
    * be dropped).  There is no guarantee that other POST-RESOLUTION
    * client's won't modify (or drop) the answer afterwards.
    */
-  GNUNET_DNS_FLAG_POST_RESOLUTION = 4
+  GNUNET_DNS_FLAG_POST_RESOLUTION = 4,
+
+  /**
+   * Set this flag to see all requests just before they are
+   * returned to the network.  Clients that set this flag must then
+   * call "GNUNET_DNS_request_forward" when they process a request
+   * for the last time.  Caling "GNUNET_DNS_request_answer" is
+   * not allowed for MONITOR peers.
+   */
+  GNUNET_DNS_FLAG_RESPONSE_MONITOR = 8
 
 };
 

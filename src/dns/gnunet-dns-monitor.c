@@ -70,8 +70,6 @@ get_type (uint16_t type)
   case GNUNET_DNSPARSER_TYPE_MX: return "MX";
   case GNUNET_DNSPARSER_TYPE_TXT: return "TXT";
   case GNUNET_DNSPARSER_TYPE_AAAA: return "AAAA";
-  case GNUNET_DNSPARSER_TYPE_IXFR: return "IXFR";
-  case GNUNET_DNSPARSER_TYPE_AXFR: return "AXFR";
   }
   GNUNET_snprintf (buf, sizeof (buf), "%u", (unsigned int) type);
   return buf;
@@ -134,16 +132,55 @@ display_record (const struct GNUNET_DNSPARSER_Record *record)
     if (record->data_len != sizeof (struct in_addr))
       format = "<invalid>";
     else
-      format = inet_ntop (AF_INET, record->data, buf, sizeof (buf));
+      format = inet_ntop (AF_INET, record->data.raw, buf, sizeof (buf));
     break;
   case GNUNET_DNSPARSER_TYPE_AAAA:
     if (record->data_len != sizeof (struct in6_addr))
       format = "<invalid>";
     else
-      format = inet_ntop (AF_INET6, record->data, buf, sizeof (buf));
+      format = inet_ntop (AF_INET6, record->data.raw, buf, sizeof (buf));
     break;
+  case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
-    tmp = GNUNET_strdup ("FIXME");
+  case GNUNET_DNSPARSER_TYPE_PTR:
+    format = record->data.hostname;
+    break;
+  case GNUNET_DNSPARSER_TYPE_SOA:
+    if (record->data.soa == NULL)
+      format = "<invalid>";
+    else
+    {
+      GNUNET_asprintf (&tmp,
+		       "origin: %s, mail: %s, serial = %u, refresh = %u s, retry = %u s, expire = %u s, minimum = %u s",
+		       record->data.soa->mname,
+		       record->data.soa->rname,
+		       (unsigned int) record->data.soa->serial,
+		       (unsigned int) record->data.soa->refresh,
+		       (unsigned int) record->data.soa->retry,
+		       (unsigned int) record->data.soa->expire,
+		       (unsigned int) record->data.soa->minimum_ttl);	       
+      format = tmp;
+    }
+    break;
+  case GNUNET_DNSPARSER_TYPE_MX:
+    if (record->data.mx == NULL)
+      format = "<invalid>";
+    else
+    {
+      GNUNET_asprintf (&tmp,
+		       "%u: %s",
+		       record->data.mx->preference,
+		       record->data.mx->mxhost);
+      format = tmp;
+    }
+    break;
+  case GNUNET_DNSPARSER_TYPE_TXT:
+    GNUNET_asprintf (&tmp,
+		     "%.*s",
+		     (unsigned int) record->data_len,
+		     record->data.raw);
+    format = tmp;
+    break;
   default:
     format = "<payload>";
     break;
@@ -215,7 +252,7 @@ display_request (void *cls,
     return;
   }
   fprintf (stdout,
-	   "%s with ID: %5u Flags: %s%s%s%s%s%s Return Code: %s Opcode: %s\n",
+	   "%s with ID: %5u Flags: %s%s%s%s%s%s, Return Code: %s, Opcode: %s\n",
 	   p->flags.query_or_response ? "Response" : "Query",
 	   p->id,
 	   p->flags.recursion_desired ? "RD " : "",

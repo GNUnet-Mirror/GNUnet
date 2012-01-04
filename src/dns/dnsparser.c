@@ -55,6 +55,15 @@ struct record_line
   uint16_t data_len GNUNET_PACKED;
 };
 
+struct soa_data
+{
+  uint32_t serial GNUNET_PACKED;
+  uint32_t refresh GNUNET_PACKED;
+  uint32_t retry GNUNET_PACKED;
+  uint32_t expire GNUNET_PACKED;
+  uint32_t minimum GNUNET_PACKED;
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 
@@ -191,6 +200,9 @@ parse_record (const char *udp_payload,
 {
   char *name;
   struct record_line rl;
+  size_t old_off;
+  struct soa_data soa;
+  uint16_t mxpref;
 
   name = parse_name (udp_payload, 
 		     udp_payload_length,
@@ -201,7 +213,7 @@ parse_record (const char *udp_payload,
   if (*off + sizeof (struct record_line) > udp_payload_length)
     return GNUNET_SYSERR;
   memcpy (&rl, &udp_payload[*off], sizeof (rl));
-  *off += sizeof (rl);
+  (*off) += sizeof (rl);
   r->type = ntohs (rl.type);
   r->class = ntohs (rl.class);
   r->expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
@@ -211,9 +223,62 @@ parse_record (const char *udp_payload,
     return GNUNET_SYSERR;
   if (0 == r->data_len)
     return GNUNET_OK;
-  r->data = GNUNET_malloc (r->data_len);
-  memcpy (r->data, &udp_payload[*off], r->data_len);
-  *off += r->data_len;
+  switch (r->type)
+  {
+  case GNUNET_DNSPARSER_TYPE_NS:
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+  case GNUNET_DNSPARSER_TYPE_PTR:
+    old_off = *off;
+    r->data.hostname = parse_name (udp_payload,
+				   udp_payload_length,
+				   off);    
+    if ( (NULL == r->data.hostname) ||
+	 (old_off + r->data_len != *off) )
+      return GNUNET_SYSERR;
+    return GNUNET_OK;
+  case GNUNET_DNSPARSER_TYPE_SOA:
+    old_off = *off;
+    r->data.soa = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_SoaRecord));
+    r->data.soa->mname = parse_name (udp_payload,
+				     udp_payload_length,
+				     off);
+    r->data.soa->rname = parse_name (udp_payload,
+				     udp_payload_length,
+				     off);
+    if ( (NULL == r->data.soa->mname) ||
+	 (NULL == r->data.soa->rname) ||
+	 (*off + sizeof (soa) > udp_payload_length) )
+      return GNUNET_SYSERR;
+    memcpy (&soa, &udp_payload[*off], sizeof (soa));
+    r->data.soa->serial = ntohl (soa.serial);
+    r->data.soa->refresh = ntohl (soa.refresh);
+    r->data.soa->retry = ntohl (soa.retry);
+    r->data.soa->expire = ntohl (soa.expire);
+    r->data.soa->minimum_ttl = ntohl (soa.minimum);
+    (*off) += sizeof (soa);
+    if (old_off + r->data_len != *off) 
+      return GNUNET_SYSERR;
+    return GNUNET_OK;
+  case GNUNET_DNSPARSER_TYPE_MX:
+    old_off = *off;
+    if (*off + sizeof (uint16_t) > udp_payload_length)
+      return GNUNET_SYSERR;
+    memcpy (&mxpref, &udp_payload[*off], sizeof (uint16_t));    
+    (*off) += sizeof (uint16_t);
+    r->data.mx = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_MxRecord));
+    r->data.mx->preference = ntohs (mxpref);
+    r->data.mx->mxhost = parse_name (udp_payload,
+				     udp_payload_length,
+				     off);
+    if (old_off + r->data_len != *off) 
+      return GNUNET_SYSERR;
+    return GNUNET_OK;
+  default:
+    r->data.raw = GNUNET_malloc (r->data_len);
+    memcpy (r->data.raw, &udp_payload[*off], r->data_len);
+    break;
+  }
+  (*off) += r->data_len;
   return GNUNET_OK;  
 }
 
@@ -303,6 +368,61 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
 
 
 /**
+ * Free SOA information record.
+ *
+ * @param soa record to free
+ */
+static void
+free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa)
+{
+  if (NULL == soa)
+    return;
+  GNUNET_free_non_null (soa->mname);
+  GNUNET_free_non_null (soa->rname);
+  GNUNET_free (soa);      
+}
+
+
+/**
+ * Free MX information record.
+ *
+ * @param mx record to free
+ */
+static void
+free_mx (struct GNUNET_DNSPARSER_MxRecord *mx)
+{
+  if (NULL == mx)
+    return;
+  GNUNET_free_non_null (mx->mxhost);
+  GNUNET_free (mx);      
+}
+
+
+static void
+free_record (struct GNUNET_DNSPARSER_Record *r)
+{
+  GNUNET_free_non_null (r->name);
+  switch (r->type)
+  {
+  case GNUNET_DNSPARSER_TYPE_MX:
+    free_mx (r->data.mx);
+    break;
+  case GNUNET_DNSPARSER_TYPE_SOA:
+    free_soa (r->data.soa);
+    break;
+  case GNUNET_DNSPARSER_TYPE_NS:
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+  case GNUNET_DNSPARSER_TYPE_PTR:
+    GNUNET_free_non_null (r->data.hostname);
+    break;
+  default:
+    GNUNET_free_non_null (r->data.raw);
+    break;
+  }
+}
+
+
+/**
  * Free memory taken by a packet.
  *
  * @param p packet to free
@@ -316,22 +436,13 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p)
     GNUNET_free_non_null (p->queries[i].name);
   GNUNET_free_non_null (p->queries);
   for (i=0;i<p->num_answers;i++)
-  {
-    GNUNET_free_non_null (p->answers[i].name);
-    GNUNET_free_non_null (p->answers[i].data);
-  }
+    free_record (&p->answers[i]);
   GNUNET_free_non_null (p->answers);
   for (i=0;i<p->num_authority_records;i++)
-  {
-    GNUNET_free_non_null (p->authority_records[i].name);
-    GNUNET_free_non_null (p->authority_records[i].data);
-  }
+    free_record (&p->authority_records[i]);
   GNUNET_free_non_null (p->authority_records);
   for (i=0;i<p->num_additional_records;i++)
-  {
-    GNUNET_free_non_null (p->additional_records[i].name);
-    GNUNET_free_non_null (p->additional_records[i].data);
-  }
+    free_record (&p->additional_records[i]);
   GNUNET_free_non_null (p->additional_records);
   GNUNET_free (p);
 }
