@@ -419,9 +419,7 @@ request_done (struct RequestRecord *rr)
   {
     char buf[reply_len];
     size_t off;
-    uint16_t *udp_crcp;
-    char *udp_crc_start;
-    uint16_t udp_crc_length;
+    uint32_t udp_crc_sum;
 
     /* first, GNUnet message header */
     hdr = (struct GNUNET_MessageHeader*) buf;
@@ -443,8 +441,7 @@ request_done (struct RequestRecord *rr)
     }
 
     /* now IP header */
-    udp_crc_start = &buf[off];
-    udp_crc_length = reply_len - off;
+    udp_crc_sum = 0;    
     switch (rr->src_addr.ss_family)
     {
     case AF_INET:
@@ -468,12 +465,31 @@ request_done (struct RequestRecord *rr)
 	ip.checksum = 0; /* checksum is optional */
 	ip.source_address = dst->sin_addr;
 	ip.destination_address = src->sin_addr;
+	
+        inet_pton (AF_INET, "10.5.0.2", &ip.source_address); 
+	//inet_pton (AF_INET, "10.5.0.1", &ip.destination_address);	
 
 	ip.checksum = GNUNET_CRYPTO_crc16_n ((uint16_t*) &ip, sizeof (ip));
+
+	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						(uint16_t *) &ip.source_address,
+						sizeof (struct in_addr) * 2);
+	{
+	  uint16_t tmp;
+	  
+	  tmp = htons (IPPROTO_UDP);
+	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						  (uint16_t *) &tmp,	
+						  sizeof (uint16_t));
+	  tmp = htons (rr->payload_length + sizeof (struct udp_packet));
+	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						  (uint16_t *) &tmp,	
+						  sizeof (uint16_t));
+	}
 	memcpy (&buf[off], &ip, sizeof (ip));
 	off += sizeof (ip);
-	break;
       }
+      break;
     case AF_INET6:
       {
 	struct sockaddr_in6 *src = (struct sockaddr_in6 *) &rr->src_addr;
@@ -491,6 +507,21 @@ request_done (struct RequestRecord *rr)
 	ip.hop_limit = 255; /* or lower? */
 	ip.source_address = dst->sin6_addr;
 	ip.destination_address = src->sin6_addr;
+	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum,
+						(uint16_t *) &ip.source_address, 
+						sizeof (struct in6_addr) * 2);
+	{
+	  uint32_t tmp;
+	  
+	  tmp = htons (rr->payload_length + sizeof (struct udp_packet));
+	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						  (uint16_t *) &tmp,	
+						  sizeof (uint32_t));
+	  tmp = htons (IPPROTO_UDP);
+	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						  (uint16_t *) &tmp,	
+						  sizeof (uint32_t));
+	}
 	memcpy (&buf[off], &ip, sizeof (ip));
 	off += sizeof (ip);
       }
@@ -506,13 +537,18 @@ request_done (struct RequestRecord *rr)
       udp.spt = spt;
       udp.dpt = dpt;
       udp.len = htons (reply_len - off);
-      udp.crc = 0; /* checksum will be set later */
-
+      udp.crc = 0; 
+      udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+					      (uint16_t *) &udp, 
+					      sizeof (udp));
+      udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+					      (uint16_t *) rr->payload,
+					      rr->payload_length);
+      udp.crc = GNUNET_CRYPTO_crc16_finish (udp_crc_sum);
       memcpy (&buf[off], &udp, sizeof (udp));
-      udp_crcp = (uint16_t*) &buf[off + offsetof (struct udp_packet, crc)];
       off += sizeof (udp);
     }
-        /* now DNS header */
+    /* now DNS payload */
     {
       memcpy (&buf[off], rr->payload, rr->payload_length);
       off += rr->payload_length;
@@ -521,8 +557,6 @@ request_done (struct RequestRecord *rr)
 	       "Sending %u bytes UDP packet to TUN\n",
 	       (unsigned int) rr->payload_length);
     }
-    
-    *udp_crcp = GNUNET_CRYPTO_crc16_n ((uint16_t *)udp_crc_start, udp_crc_length);
     /* final checks & sending */
     GNUNET_assert (off == reply_len);
     GNUNET_HELPER_send (hijacker,
@@ -634,6 +668,7 @@ next_phase (struct RequestRecord *rr)
     case AF_INET:
       dnsout = dnsout4;
       salen = sizeof (struct ip4_header);
+      inet_pton (AF_INET, "8.8.8.8", &((struct sockaddr_in*) &rr->dst_addr)->sin_addr); 
       break;
     case AF_INET6:
       dnsout = dnsout6;
@@ -1222,7 +1257,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   helper_argv[1] = ifc_name;
   if ( (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
+	GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV6ADDR",
 					       &ipv6addr)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1232,7 +1267,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   helper_argv[2] = ipv6addr;
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV6PREFIX",
                                              &ipv6prefix))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1243,7 +1278,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   helper_argv[3] = ipv6prefix;
 
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV4ADDR",
                                              &ipv4addr))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1253,7 +1288,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   helper_argv[4] = ipv4addr;
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV4MASK",
                                              &ipv4mask))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
