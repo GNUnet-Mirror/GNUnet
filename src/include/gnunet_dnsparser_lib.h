@@ -32,25 +32,268 @@
 /**
  * A few common DNS types.
  */
-#define GNUNET_DNS_TYPE_A 1
-#define GNUNET_DNS_TYPE_NS 2
-#define GNUNET_DNS_TYPE_CNAME 5
-#define GNUNET_DNS_TYPE_SOA 6
-#define GNUNET_DNS_TYPE_PTR 12
-#define GNUNET_DNS_TYPE_MX 15
-#define GNUNET_DNS_TYPE_TXT 16
-#define GNUNET_DNS_TYPE_AAAA 28
-#define GNUNET_DNS_TYPE_IXFR 251
-#define GNUNET_DNS_TYPE_AXFR 252
+#define GNUNET_DNSPARSER_TYPE_A 1
+#define GNUNET_DNSPARSER_TYPE_NS 2
+#define GNUNET_DNSPARSER_TYPE_CNAME 5
+#define GNUNET_DNSPARSER_TYPE_SOA 6
+#define GNUNET_DNSPARSER_TYPE_PTR 12
+#define GNUNET_DNSPARSER_TYPE_MX 15
+#define GNUNET_DNSPARSER_TYPE_TXT 16
+#define GNUNET_DNSPARSER_TYPE_AAAA 28
+#define GNUNET_DNSPARSER_TYPE_IXFR 251
+#define GNUNET_DNSPARSER_TYPE_AXFR 252
 
 /**
  * A few common DNS classes (ok, only one is common, but I list a
  * couple more to make it clear what we're talking about here).
  */
-#define GNUNET_DNS_CLASS_INTERNET 1
-#define GNUNET_DNS_CLASS_CHAOS 3
-#define GNUNET_DNS_CLASS_HESIOD 4
+#define GNUNET_DNSPARSER_CLASS_INTERNET 1
+#define GNUNET_DNSPARSER_CLASS_CHAOS 3
+#define GNUNET_DNSPARSER_CLASS_HESIOD 4
 
+#define GNUNET_DNSPARSER_OPCODE_QUERY 0
+#define GNUNET_DNSPARSER_OPCODE_INVERSE_QUERY 1
+#define GNUNET_DNSPARSER_OPCODE_STATUS 2
+
+/**
+ * RFC 1035 codes.
+ */
+#define GNUNET_DNSPARSER_RETURN_CODE_NO_ERROR 0
+#define GNUNET_DNSPARSER_RETURN_CODE_FORMAT_ERROR 1
+#define GNUNET_DNSPARSER_RETURN_CODE_SERVER_FAILURE 2
+#define GNUNET_DNSPARSER_RETURN_CODE_NAME_ERROR 3
+#define GNUNET_DNSPARSER_RETURN_CODE_NOT_IMPLEMENTED 4
+#define GNUNET_DNSPARSER_RETURN_CODE_REFUSED 5
+
+/**
+ * RFC 2136 codes
+ */
+#define GNUNET_DNSPARSER_RETURN_CODE_YXDOMAIN 6
+#define GNUNET_DNSPARSER_RETURN_CODE_YXRRSET 7
+#define GNUNET_DNSPARSER_RETURN_CODE_NXRRSET 8
+#define GNUNET_DNSPARSER_RETURN_CODE_NOT_AUTH 9
+#define GNUNET_DNSPARSER_RETURN_CODE_NOT_ZONE 10
+
+/**
+ * DNS flags (largely RFC 1035 / RFC 2136).
+ */
+struct GNUNET_DNSPARSER_Flags
+{
+  /**
+   * Set to 1 if recursion is desired (client -> server)
+   */
+  unsigned int recursion_desired    : 1 GNUNET_PACKED;  
+  
+  /**
+   * Set to 1 if message is truncated
+   */
+  unsigned int message_truncated    : 1 GNUNET_PACKED; 
+  
+  /**
+   * Set to 1 if this is an authoritative answer
+   */
+  unsigned int authoritative_answer : 1 GNUNET_PACKED;
+  
+  /**
+   * See GNUNET_DNSPARSER_OPCODE_ defines.
+   */
+  unsigned int opcode               : 4 GNUNET_PACKED;  
+  
+  /**
+   * query:0, response:1
+   */
+  unsigned int query_or_response    : 1 GNUNET_PACKED;  
+  
+  /**
+   * See GNUNET_DNSPARSER_RETURN_CODE_ defines.
+   */
+  unsigned int return_code          : 4 GNUNET_PACKED; 
+  
+  /**
+   * See RFC 4035.
+   */
+  unsigned int checking_disabled    : 1 GNUNET_PACKED; 
+  
+  /**
+   * Response has been cryptographically verified, RFC 4035.
+   */
+  unsigned int authenticated_data   : 1 GNUNET_PACKED;
+  
+  /**
+   * Always zero.
+   */
+  unsigned int zero                 : 1 GNUNET_PACKED;
+  
+  /**
+   * Set to 1 if recursion is available (server -> client)
+   */
+  unsigned int recursion_available  : 1 GNUNET_PACKED; 
+  
+};
+
+
+/**
+ * A DNS query.
+ */
+struct GNUNET_DNSPARSER_Query
+{
+
+  /**
+   * Name of the record that the query is for (0-terminated).
+   */
+  char *name;
+
+  /**
+   * See GNUNET_DNSPARSER_TYPE_*.
+   */
+  uint16_t type;
+
+  /**
+   * See GNUNET_DNSPARSER_CLASS_*.
+   */
+  uint16_t class;
+
+};
+
+
+/**
+ * A DNS response record.
+ */
+struct GNUNET_DNSPARSER_Record
+{
+
+  /**
+   * Name of the record that the query is for (0-terminated).
+   */
+  char *name;
+
+  /**
+   * Raw data, NOT a 0-terminated string (at least not always).
+   */
+  char *data;
+
+  /**
+   * Number of bytes in data.
+   */
+  size_t data_len;
+
+  /**
+   * When does the record expire?
+   */
+  struct GNUNET_TIME_Absolute expiration_time;
+
+  /**
+   * See GNUNET_DNSPARSER_TYPE_*.
+   */
+  uint16_t type;
+
+  /**
+   * See GNUNET_DNSPARSER_CLASS_*.
+   */
+  uint16_t class;
+
+};
+
+
+/**
+ * Easy-to-process, parsed version of a DNS packet.
+ */
+struct GNUNET_DNSPARSER_Packet
+{
+  /**
+   * Array of all queries in the packet, must contain "num_queries" entries.
+   */
+  struct GNUNET_DNSPARSER_Query *queries;
+
+  /**
+   * Array of all answers in the packet, must contain "num_answers" entries.
+   */
+  struct GNUNET_DNSPARSER_Record *answers;
+
+  /**
+   * Array of all authority records in the packet, must contain "num_authority_records" entries.
+   */
+  struct GNUNET_DNSPARSER_Record *authority_records;
+
+  /**
+   * Array of all additional answers in the packet, must contain "num_additional_records" entries.
+   */
+  struct GNUNET_DNSPARSER_Record *additional_records;
+
+  /**
+   * Number of queries in the packet.
+   */
+  unsigned int num_queries;
+
+  /**
+   * Number of answers in the packet, should be 0 for queries.
+   */
+  unsigned int num_answers;
+
+  /**
+   * Number of authoritative answers in the packet, should be 0 for queries.
+   */
+  unsigned int num_authority_records;
+
+  /**
+   * Number of additional records in the packet, should be 0 for queries.
+   */
+  unsigned int num_additional_records;
+
+  /**
+   * Bitfield of DNS flags.
+   */ 
+  struct GNUNET_DNSPARSER_Flags flags;
+
+  /**
+   * DNS ID (to match replies to requests).
+   */
+  uint16_t id;
+
+};
+
+
+/**
+ * Parse a UDP payload of a DNS packet in to a nice struct for further
+ * processing and manipulation.
+ *
+ * @param udp_payload wire-format of the DNS packet
+ * @param udp_payload_length number of bytes in udp_payload 
+ * @return NULL on error, otherwise the parsed packet
+ */
+struct GNUNET_DNSPARSER_Packet *
+GNUNET_DNSPARSER_parse (const char *udp_payload,
+			size_t udp_payload_length);
+
+
+/**
+ * Free memory taken by a packet.
+ *
+ * @param p packet to free
+ */
+void
+GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p);
+
+
+/**
+ * Given a DNS packet, generate the corresponding UDP payload.
+ *
+ * @param p packet to pack
+ * @param buf set to a buffer with the packed message
+ * @param buf_length set to the length of buf
+ * @return GNUNET_SYSERR if 'p' is invalid
+ *         GNUNET_NO if 'p' was truncated (but there is still a result in 'buf')
+ *         GNUNET_OK if 'p' was packed completely into '*buf'
+ */
+int
+GNUNET_DNSPARSER_pack (struct GNUNET_DNSPARSER_Packet *p,
+		       char **buf,
+		       size_t *buf_length);
+
+
+
+
+/* legacy API below */
 
 // DNS-Stuff
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -80,6 +323,7 @@ struct dns_static
   uint16_t arcount GNUNET_PACKED;       // number of additional records
 };
 GNUNET_NETWORK_STRUCT_END
+
 
 struct dns_pkt
 {
