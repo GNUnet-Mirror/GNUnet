@@ -1,4 +1,4 @@
-.TH GNUNET\-ARM 1 "Mar 7, 2009" "GNUnet"
+.TH GNUNET\-ARM 1 "Jan 4, 2012" "GNUnet"
 
 .SH NAME
 gnunet\-arm \- control GNUnet services
@@ -12,36 +12,28 @@ gnunet\-arm \- control GNUnet services
 \fBgnunet\-arm\fP can be used to start or stop GNUnet services, including the ARM service itself.  The ARM service is a supervisor for GNUnet's service processes.  ARM starts services on-demand or as configured and re-starts them if they crash.  
 
 .SH OPTIONS
-
-.TP
+.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
-
-.TP
+.B
 .IP "\-e, \-\-end"
 Shutdown all GNUnet services (including ARM itself).  Running "gnunet-arm -e" is the usual way to shutdown a GNUnet peer.
-
-.TP
+.B
 .IP "\-h, \-\-help"
 Print short help on options.
-
-.TP
+.B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-
-.TP
+.B
 .IP "\-i SERVICE,  \-\-init=SERVICE"
 Starts the specified SERVICE if it is not already running.  More specifically, this makes the service behave as if it were in the default services list.
-
-.TP
+.B
 .IP "\-k SERVICE,  \-\-kill=SERVICE"
 Stop the specified SERVICE if it is running.  While this will kill the service right now, the service may be restarted immediately if other services depend on it (service is then started 'on-demand').  If the service used to be a 'default' service, its default-service status will be revoked.  If the service was not a default service, it will just be (temporarily) stopped, but could be re-started on-demand at any time.
-
-.TP
+.B
 .IP "\-s, \-\-start"
 Start all GNUnet default services on this system (and also ARM).  Naturally, if a service is demanded by a default service, it will then also be started.  Running "gnunet-arm -s" is the usual way to start a GNUnet peer.
-
-.TP
+.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
 

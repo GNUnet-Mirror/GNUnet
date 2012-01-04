@@ -1,11 +1,12 @@
-.TH GNUNET\-STATISTICS 1 "Mar 6, 2009" "GNUnet"
+.TH GNUNET\-STATISTICS 1 "Jan 4, 2012" "GNUnet"
 
 .SH NAME
 gnunet\-statistics \- Display statistics about your GNUnet system
 
 .SH SYNOPSIS
 .B gnunet\-statistics
-.RI [ options ] [ VALUE ]
+.RI [ options ]
+.RI [ VALUE ]
 .br
 
 .SH DESCRIPTION
@@ -13,32 +14,25 @@ gnunet\-statistics \- Display statistics about your GNUnet system
 gnunet\-statistics can be used to set a value by giving the options \-n, \-s and also a VALUE.
 
 .SH OPTIONS
-
-.TP
+.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
-
-.TP
+.B
 .IP "\-h, \-\-help"
 Print short help on options.
-
-.TP
+.B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-
-.TP
+.B
 .IP "\-n NAME,  \-\-name=NAME"
 Each statistic has a name that is unique with in its subsystem.  With this option, the output can be restricted to statistics that have a particular name.
-
-.TP
+.B
 .IP "\-p,  \-\-persistent"
 When setting a value, make the value persistent.  If the value used to be persistent and this flag is not given, it will be marked as non\-persistent.
-
-.TP
+.B
 .IP "\-s SUBSYSTEM,  \-\-subsystem=SUBSYSTEM"
 Statistics are kept for various subsystems.  With this option, the output can be restricted to a particular subsystem only.
-
-.TP
+.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
 
