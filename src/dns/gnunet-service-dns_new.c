@@ -465,10 +465,6 @@ request_done (struct RequestRecord *rr)
 	ip.checksum = 0; /* checksum is optional */
 	ip.source_address = dst->sin_addr;
 	ip.destination_address = src->sin_addr;
-	
-        inet_pton (AF_INET, "10.5.0.2", &ip.source_address); 
-	//inet_pton (AF_INET, "10.5.0.1", &ip.destination_address);	
-
 	ip.checksum = GNUNET_CRYPTO_crc16_n ((uint16_t*) &ip, sizeof (ip));
 
 	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
@@ -552,10 +548,6 @@ request_done (struct RequestRecord *rr)
     {
       memcpy (&buf[off], rr->payload, rr->payload_length);
       off += rr->payload_length;
-
-      fprintf (stderr,
-	       "Sending %u bytes UDP packet to TUN\n",
-	       (unsigned int) rr->payload_length);
     }
     /* final checks & sending */
     GNUNET_assert (off == reply_len);
@@ -668,7 +660,6 @@ next_phase (struct RequestRecord *rr)
     case AF_INET:
       dnsout = dnsout4;
       salen = sizeof (struct ip4_header);
-      inet_pton (AF_INET, "8.8.8.8", &((struct sockaddr_in*) &rr->dst_addr)->sin_addr); 
       break;
     case AF_INET6:
       dnsout = dnsout6;
@@ -842,9 +833,6 @@ read_response (void *cls,
     rr->payload = GNUNET_malloc (len);
     memcpy (rr->payload, buf, len);
     rr->payload_length = len;
-    fprintf (stderr,
-	     "Received %u bytes UDP packet from DNS server\n",
-	     (unsigned int) len);
     next_phase (rr);
   }  
 }
@@ -1118,6 +1106,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 	 (ip4->protocol != IPPROTO_UDP) )
     {
       /* non-IP/UDP packet received on TUN (or with options) */
+      // FIXME: maybe just log with stats?
       GNUNET_break (0);
       return;
     }
@@ -1132,6 +1121,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 	 (ip6->next_header != IPPROTO_UDP) )
     {
       /* non-IP/UDP packet received on TUN (or with extensions) */
+      // FIXME: maybe just log with stats?
       GNUNET_break (0);
       return;
     }
