@@ -86,7 +86,10 @@ parse_name (const char *udp_payload,
       goto error;
     len = input[*off];
     if (0 == len)
+    {
+      (*off)++;
       break;
+    }
     if (len < 64)
     {
       if (*off + 1 + len > udp_payload_length)

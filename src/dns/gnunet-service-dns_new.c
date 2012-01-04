@@ -131,7 +131,7 @@ enum RequestPhase
    * Showing the request to all monitor clients.  If
    * client list is empty, will enter QUERY phase.
    */
-  RP_MONITOR,
+  RP_REQUEST_MONITOR,
 
   /**
    * Showing the request to PRE-RESOLUTION clients to find an answer.
@@ -147,9 +147,15 @@ enum RequestPhase
   /**
    * Client (or global DNS request) has resulted in a response.
    * Forward to all POST-RESOLUTION clients.  If client list is empty,
-   * give the result to the hijacker (and be done).
+   * will enter RESPONSE_MONITOR phase.
    */
   RP_MODIFY,
+
+  /**
+   * Showing the request to all monitor clients.  If
+   * client list is empty, give the result to the hijacker (and be done).
+   */
+  RP_RESPONSE_MONITOR,
 
   /**
    * Some client has told us to drop the request.
@@ -384,7 +390,7 @@ request_done (struct RequestRecord *rr)
   GNUNET_array_grow (rr->client_wait_list,
 		     rr->client_wait_list_length,
 		     0); 
-  if (RP_MODIFY != rr->phase)
+  if (RP_RESPONSE_MONITOR != rr->phase)
   {
     /* no response, drop */
     cleanup_rr (rr);
@@ -632,7 +638,7 @@ next_phase (struct RequestRecord *rr)
   switch (rr->phase)
   {
   case RP_INIT:
-    rr->phase = RP_MONITOR;
+    rr->phase = RP_REQUEST_MONITOR;
     for (cr = clients_head; NULL != cr; cr = cr->next)
     {
       if (0 != (cr->flags & GNUNET_DNS_FLAG_REQUEST_MONITOR))
@@ -642,7 +648,7 @@ next_phase (struct RequestRecord *rr)
     }
     next_phase (rr);
     return;
-  case RP_MONITOR:
+  case RP_REQUEST_MONITOR:
     rr->phase = RP_QUERY;
     for (cr = clients_head; NULL != cr; cr = cr->next)
     {
@@ -694,6 +700,17 @@ next_phase (struct RequestRecord *rr)
     next_phase (rr);
     return;
   case RP_MODIFY:
+    rr->phase = RP_RESPONSE_MONITOR;
+    for (cr = clients_head; NULL != cr; cr = cr->next)
+    {
+      if (0 != (cr->flags & GNUNET_DNS_FLAG_RESPONSE_MONITOR))
+	GNUNET_array_append (rr->client_wait_list,
+			     rr->client_wait_list_length,
+			     cr);
+    }
+    next_phase (rr);
+    return;
+ case RP_RESPONSE_MONITOR:
     request_done (rr);
     break;
   case RP_DROP:
@@ -1019,6 +1036,8 @@ handle_client_response (void *cls GNUNET_UNUSED,
   }
   for (i=0;i<rr->client_wait_list_length;i++)
   {
+    if (NULL == rr->client_wait_list[i])
+      continue;
     if (rr->client_wait_list[i]->client != client)
       continue;
     rr->client_wait_list[i] = NULL;
@@ -1032,7 +1051,8 @@ handle_client_response (void *cls GNUNET_UNUSED,
     case 2: /* update */
       msize -= sizeof (struct GNUNET_DNS_Response);
       if ( (sizeof (struct dns_header) > msize) ||
-	   (RP_MONITOR == rr->phase) )
+	   (RP_REQUEST_MONITOR == rr->phase) ||
+	   (RP_RESPONSE_MONITOR == rr->phase) )
       {
 	GNUNET_break (0);
 	GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
