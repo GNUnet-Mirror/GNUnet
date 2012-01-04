@@ -22,9 +22,10 @@
  * @file dns/dnsparser.c
  * @brief helper library to parse DNS packets. 
  * @author Philipp Toelke
+ * @author Christian Grothoff
  */
-
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_dnsparser_lib.h"
 
 
@@ -33,7 +34,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct dns_header
 {
   uint16_t id GNUNET_PACKED;
-  struct GNUNET_DNSPARSER_Flags flags GNUNET_PACKED; 
+  struct GNUNET_DNSPARSER_Flags flags; 
   uint16_t query_count GNUNET_PACKED;       // number of questions
   uint16_t answer_rcount GNUNET_PACKED;       // number of answers
   uint16_t authority_rcount GNUNET_PACKED;       // number of authority-records

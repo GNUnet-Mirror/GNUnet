@@ -22,6 +22,7 @@
  * @file include/gnunet_dnsparse_lib.h
  * @brief API for helper library to parse DNS packets. 
  * @author Philipp Toelke
+ * @author Christian Grothoff
  */
 #ifndef GNUNET_DNSPARSER_LIB_H
 #define GNUNET_DNSPARSER_LIB_H
