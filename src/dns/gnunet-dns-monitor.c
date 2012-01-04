@@ -35,9 +35,14 @@
 static struct GNUNET_DNS_Handle *handle;
 
 /**
- * Option -s.
+ * Option -i.
  */
-static int benchmark_send;
+static int inbound_only;
+
+/**
+ * Option -o.
+ */
+static int outbound_only;
 
 /**
  * Global return value (0 success).
@@ -306,9 +311,18 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  enum GNUNET_DNS_Flags flags;
+
+  flags = GNUNET_DNS_FLAG_REQUEST_MONITOR | GNUNET_DNS_FLAG_RESPONSE_MONITOR;
+  if (inbound_only | outbound_only)
+    flags = 0;
+  if (inbound_only)
+    flags |= GNUNET_DNS_FLAG_REQUEST_MONITOR;
+  if (outbound_only)
+    flags |= GNUNET_DNS_FLAG_RESPONSE_MONITOR;
   handle =
     GNUNET_DNS_connect (cfg, 
-			GNUNET_DNS_FLAG_REQUEST_MONITOR | GNUNET_DNS_FLAG_RESPONSE_MONITOR,
+			flags,
 			&display_request,
 			NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -320,9 +334,12 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'s', "testoption", NULL,
-     gettext_noop ("not useful"),
-     0, &GNUNET_GETOPT_set_one, &benchmark_send},
+    {'i', "inbound-only", NULL,
+     gettext_noop ("only monitor DNS queries"),
+     0, &GNUNET_GETOPT_set_one, &inbound_only},
+    {'o', "outbound-only", NULL,
+     gettext_noop ("only monitor DNS replies"),
+     0, &GNUNET_GETOPT_set_one, &outbound_only},
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
