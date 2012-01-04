@@ -1049,10 +1049,11 @@ handle_client_response (void *cls GNUNET_UNUSED,
 			   rr->client_wait_list_length,
 			   0);
       }
-      next_phase (rr); 
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }  
+      break;
+    }
+    next_phase (rr); 
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;      
   }
   /* odd, client was not on our list for the request, that ought
      to be an error */

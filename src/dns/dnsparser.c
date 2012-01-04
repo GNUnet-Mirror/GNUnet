@@ -82,7 +82,7 @@ parse_name (const char *udp_payload,
   ret = GNUNET_strdup ("");
   while (1)
   {
-    if (*off == udp_payload_length)
+    if (*off >= udp_payload_length)
       goto error;
     len = input[*off];
     if (0 == len)
@@ -98,7 +98,7 @@ parse_name (const char *udp_payload,
 		       &udp_payload[*off + 1]);
       GNUNET_free (ret);
       ret = tmp;
-      off += 1 + len;
+      *off += 1 + len;
     }
     else if ((64 | 128) == (len & (64 | 128)) )
     {
@@ -116,7 +116,7 @@ parse_name (const char *udp_payload,
       GNUNET_free (ret);
       GNUNET_free (xstr);
       ret = tmp;
-      off += 2;
+      *off += 2;
       /* pointers always terminate names */
       break;
     } 
