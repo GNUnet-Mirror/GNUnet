@@ -27,6 +27,206 @@
 #include "platform.h"
 #include "gnunet_dnsparser_lib.h"
 
+
+// DNS-Stuff
+GNUNET_NETWORK_STRUCT_BEGIN
+struct dns_header
+{
+  uint16_t id GNUNET_PACKED;
+  struct GNUNET_DNSPARSER_Flags flags GNUNET_PACKED; 
+  uint16_t query_count GNUNET_PACKED;       // number of questions
+  uint16_t answer_rcount GNUNET_PACKED;       // number of answers
+  uint16_t authority_rcount GNUNET_PACKED;       // number of authority-records
+  uint16_t additional_rcount GNUNET_PACKED;       // number of additional records
+};
+GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Parse a DNS query entry.
+ *
+ * @param udp_payload entire UDP payload
+ * @param udp_payload_length length of udp_payload
+ * @param off pointer to the offset of the query to parse in the udp_payload (to be
+ *                    incremented by the size of the query)
+ * @param q where to write the query information
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the query is malformed
+ */
+static int
+parse_query (const char *udp_payload,
+	     size_t udp_payload_length,
+	     size_t *off,
+	     struct GNUNET_DNSPARSER_Query *q)
+{
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Parse a DNS record entry.
+ *
+ * @param udp_payload entire UDP payload
+ * @param udp_payload_length length of udp_payload
+ * @param off pointer to the offset of the record to parse in the udp_payload (to be
+ *                    incremented by the size of the record)
+ * @param r where to write the record information
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the record is malformed
+ */
+static int
+parse_record (const char *udp_payload,
+	      size_t udp_payload_length,
+	      size_t *off,
+	      struct GNUNET_DNSPARSER_Record *r)
+{
+  return GNUNET_SYSERR;
+}
+
+
+
+/**
+ * Parse a UDP payload of a DNS packet in to a nice struct for further
+ * processing and manipulation.
+ *
+ * @param udp_payload wire-format of the DNS packet
+ * @param udp_payload_length number of bytes in udp_payload 
+ * @return NULL on error, otherwise the parsed packet
+ */
+struct GNUNET_DNSPARSER_Packet *
+GNUNET_DNSPARSER_parse (const char *udp_payload,
+			size_t udp_payload_length)
+{
+  struct GNUNET_DNSPARSER_Packet *p;
+  const struct dns_header *dns;
+  size_t off;
+  unsigned int n;  
+  unsigned int i;
+
+  if (udp_payload_length < sizeof (struct dns_header))
+    return NULL;
+  dns = (const struct dns_header *) udp_payload;
+  off = sizeof (struct dns_header);
+  p = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_Packet));
+  p->flags = dns->flags;
+  p->id = dns->id;
+  n = ntohs (dns->query_count);
+  if (n > 0)
+  {
+    p->queries = GNUNET_malloc (n * sizeof (struct GNUNET_DNSPARSER_Query));
+    p->num_queries = n;
+    for (i=0;i<n;i++)
+      if (GNUNET_OK !=
+	  parse_query (udp_payload,
+		       udp_payload_length,
+		       &off,
+		       &p->queries[i]))
+	goto error;
+  }
+  n = ntohs (dns->answer_rcount);
+  if (n > 0)
+  {
+    p->answers = GNUNET_malloc (n * sizeof (struct GNUNET_DNSPARSER_Record));
+    p->num_answers = n;
+    for (i=0;i<n;i++)
+      if (GNUNET_OK !=
+	  parse_record (udp_payload,
+			udp_payload_length,
+			&off,
+			&p->answers[i]))
+	goto error;
+  }
+  n = ntohs (dns->authority_rcount);
+  if (n > 0)
+  {
+    p->authority_records = GNUNET_malloc (n * sizeof (struct GNUNET_DNSPARSER_Record));
+    p->num_authority_records = n;
+    for (i=0;i<n;i++)
+      if (GNUNET_OK !=
+	  parse_record (udp_payload,
+			udp_payload_length,
+			&off,
+			&p->authority_records[i]))
+	goto error;  
+  }
+  n = ntohs (dns->additional_rcount);
+  if (n > 0)
+  {
+    p->additional_records = GNUNET_malloc (n * sizeof (struct GNUNET_DNSPARSER_Record));
+    p->num_additional_records = n;
+    for (i=0;i<n;i++)
+      if (GNUNET_OK !=
+	  parse_record (udp_payload,
+			udp_payload_length,
+			&off,
+			&p->additional_records[i]))
+	goto error;   
+  }
+  return p;
+ error:
+  GNUNET_DNSPARSER_free_packet (p);
+  return NULL;
+}
+
+
+/**
+ * Free memory taken by a packet.
+ *
+ * @param p packet to free
+ */
+void
+GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p)
+{
+  unsigned int i;
+
+  for (i=0;i<p->num_queries;i++)
+    GNUNET_free_non_null (p->queries[i].name);
+  GNUNET_free_non_null (p->queries);
+  for (i=0;i<p->num_answers;i++)
+  {
+    GNUNET_free_non_null (p->answers[i].name);
+    GNUNET_free_non_null (p->answers[i].data);
+  }
+  GNUNET_free_non_null (p->answers);
+  for (i=0;i<p->num_authority_records;i++)
+  {
+    GNUNET_free_non_null (p->authority_records[i].name);
+    GNUNET_free_non_null (p->authority_records[i].data);
+  }
+  GNUNET_free_non_null (p->authority_records);
+  for (i=0;i<p->num_additional_records;i++)
+  {
+    GNUNET_free_non_null (p->additional_records[i].name);
+    GNUNET_free_non_null (p->additional_records[i].data);
+  }
+  GNUNET_free_non_null (p->additional_records);
+  GNUNET_free (p);
+}
+
+
+/**
+ * Given a DNS packet, generate the corresponding UDP payload.
+ *
+ * @param p packet to pack
+ * @param buf set to a buffer with the packed message
+ * @param buf_length set to the length of buf
+ * @return GNUNET_SYSERR if 'p' is invalid
+ *         GNUNET_NO if 'p' was truncated (but there is still a result in 'buf')
+ *         GNUNET_OK if 'p' was packed completely into '*buf'
+ */
+int
+GNUNET_DNSPARSER_pack (struct GNUNET_DNSPARSER_Packet *p,
+		       char **buf,
+		       size_t *buf_length)
+{
+  // FIXME: not implemented
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
+
+
+
+
+/* legacy code follows */
+
 /**
  * Parse a name from DNS to a normal .-delimited, 0-terminated string.
  *
