@@ -455,7 +455,7 @@ request_done (struct RequestRecord *rr)
 	ip.header_length =  sizeof (struct ip4_header) / 4;
 	ip.version = IPVERSION; /* aka 4 */
 	ip.diff_serv = 0;
-	ip.total_length = htons ((uint16_t) reply_len);
+	ip.total_length = htons ((uint16_t) reply_len - off);
 	ip.identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
 							65536);
 	ip.flags = 0;
