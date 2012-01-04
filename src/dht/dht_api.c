@@ -33,6 +33,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_dht_service.h"
 #include "dht.h"
+#include <gnunet_dnsparser_lib.h>
 
 #define DEBUG_DHT_API GNUNET_EXTRA_LOGGING
 
@@ -143,6 +144,49 @@ struct GNUNET_DHT_GetHandle
 
 
 /**
+ * Handle to a monitoring request.
+ */
+struct GNUNET_DHT_MonitorHandle
+{
+  /**
+   * DLL.
+   */
+  struct GNUNET_DHT_MonitorHandle *next;
+
+  /**
+   * DLL.
+   */
+  struct GNUNET_DHT_MonitorHandle *prev;
+  
+  /**
+   * Main handle to this DHT api.
+   */
+  struct GNUNET_DHT_Handle *dht_handle;
+
+  /**
+   * Type of block looked for.
+   */
+  enum GNUNET_BLOCK_Type type;
+
+  /**
+   * Key being looked for, NULL == all.
+   */
+  GNUNET_HashCode *key;
+
+  /**
+   * Callback for each received message of interest.
+   */
+  GNUNET_DHT_MonitorCB cb;
+
+  /**
+   * Closure for cb.
+   */
+  void *cb_cls;
+  
+};
+
+
+/**
  * Connection to the DHT service.
  */
 struct GNUNET_DHT_Handle
@@ -172,6 +216,16 @@ struct GNUNET_DHT_Handle
    * Tail of linked list of messages we would like to transmit.
    */
   struct PendingMessage *pending_tail;
+
+  /**
+   * Head of linked list of messages we would like to monitor. 
+   */
+  struct GNUNET_DHT_MonitorHandle *monitor_head;
+
+  /**
+   * Tail of linked list of messages we would like to monitor.
+   */
+  struct GNUNET_DHT_MonitorHandle *monitor_tail;
 
   /**
    * Hash map containing the current outstanding unique requests
@@ -501,6 +555,62 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
 
 
 /**
+ * Process a monitoring message from the service.
+ *
+ * @param handle The DHT handle.
+ * @param msg Message from the service.
+ * 
+ * @return GNUNET_OK if everything went fine,
+ *         GNUNET_SYSERR if the message is malformed.
+ */
+static int
+process_monitor_message (struct GNUNET_DHT_Handle *handle,
+                         const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_DHT_MonitorMessage *m;
+  struct GNUNET_DHT_MonitorHandle *h;
+  size_t msize;
+
+  if (ntohs (msg->type) < GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET ||
+      ntohs (msg->type) > GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT)
+    return GNUNET_SYSERR;
+  msize = ntohs (msg->size);
+  if (msize < sizeof (struct GNUNET_DHT_MonitorMessage))
+    return GNUNET_SYSERR;
+
+  m = (struct GNUNET_DHT_MonitorMessage *) msg;
+  h = handle->monitor_head;
+  while (NULL != h)
+  {
+    if (h->type == ntohl(m->type) &&
+      (NULL == h->key ||
+       memcmp (h->key, &m->key, sizeof (GNUNET_HashCode)) == 0))
+    {
+      struct GNUNET_PeerIdentity *path;
+      uint32_t getl;
+      uint32_t putl;
+
+      path = (struct GNUNET_PeerIdentity *) &m[1];
+      getl = ntohl (m->get_path_length);
+      putl = ntohl (m->put_path_length);
+      h->cb (h->cb_cls, ntohs(msg->type),
+             GNUNET_TIME_absolute_ntoh(m->expiration),
+             &m->key,
+             &path[getl], putl, path, getl,
+             ntohl (m->desired_replication_level),
+             ntohl (m->options), ntohl (m->type),
+             (void *) &path[getl + putl],
+             ntohs (msg->size) -
+             sizeof (struct GNUNET_DHT_MonitorMessage) -
+             sizeof (struct GNUNET_PeerIdentity) * (putl + getl));
+    }
+    h = h->next;
+  }
+
+  return GNUNET_OK;
+}
+
+/**
  * Handler for messages received from the DHT service
  * a demultiplexer which handles numerous message types
  *
@@ -524,6 +634,8 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT)
   {
+    if (process_monitor_message (handle, msg) == GNUNET_OK)
+      return;
     GNUNET_break (0);
     do_disconnect (handle);
     return;
@@ -830,6 +942,75 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
 
   process_pending_messages (handle);
 }
+
+
+/**
+ * Start monitoring the local DHT service.
+ *
+ * @param handle Handle to the DHT service.
+ * @param type Type of blocks that are of interest.
+ * @param key Key of data of interest, NULL for all.
+ * @param cb Callback to process all monitored data.
+ * @param cb_cls Closure for cb.
+ *
+ * @return Handle to stop monitoring.
+ */
+struct GNUNET_DHT_MonitorHandle *
+GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
+                          enum GNUNET_BLOCK_Type type,
+                          const GNUNET_HashCode *key,
+                          GNUNET_DHT_MonitorCB cb,
+                          void *cb_cls)
+{
+  struct GNUNET_DHT_MonitorHandle *h;
+  struct GNUNET_DHT_MonitorMessage *m;
+  struct PendingMessage *pending;
+
+  h = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorHandle));
+  GNUNET_CONTAINER_DLL_insert(handle->monitor_head, handle->monitor_tail, h);
+
+  h->cb = cb;
+  h->cb_cls = cb_cls;
+  h->type = type;
+  h->dht_handle = handle;
+  if (NULL != key)
+  {
+    h->key = GNUNET_malloc (sizeof(GNUNET_HashCode));
+    memcpy (h->key, key, sizeof(GNUNET_HashCode));
+  }
+
+  pending = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorMessage) +
+                           sizeof (struct PendingMessage));
+  m = (struct GNUNET_DHT_MonitorMessage *) &pending[1];
+  pending->msg = &m->header;
+  pending->handle = handle;
+  pending->free_on_send = GNUNET_YES;
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                               pending);
+  pending->in_pending_queue = GNUNET_YES;
+  process_pending_messages (handle);
+
+  return h;
+}
+
+
+/**
+ * Stop monitoring.
+ *
+ * @param handle The handle to the monitor request returned by monitor_start.
+ *
+ * On return get_handle will no longer be valid, caller must not use again!!!
+ */
+void
+GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle)
+{
+  GNUNET_free_non_null (handle->key);
+  GNUNET_CONTAINER_DLL_remove (handle->dht_handle->monitor_head,
+                               handle->dht_handle->monitor_tail,
+                               handle);
+  GNUNET_free (handle);
+}
+
 
 
 /* end of dht_api.c */

@@ -214,6 +214,70 @@ void
 GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle);
 
 
+/* *************** Extended API: monitor ******************* */
+
+struct GNUNET_DHT_MonitorHandle;
+
+/**
+ * Callback called on each request going through the DHT.
+ *
+ * @param cls Closure.
+ * @param mtype Type of the DHT message monitored.
+ * @param exp When will this value expire.
+ * @param key Key of the result/request.
+ * @param get_path Peers on reply path (or NULL if not recorded).
+ * @param get_path_length number of entries in get_path.
+ * @param put_path peers on the PUT path (or NULL if not recorded).
+ * @param put_path_length number of entries in get_path.
+ * @param desired_replication_level Desired replication level.
+ * @param type Type of the result/request.
+ * @param data Pointer to the result data.
+ * @param size Number of bytes in data.
+ */
+typedef void (*GNUNET_DHT_MonitorCB) (void *cls,
+                                      uint16_t mtype,
+                                      struct GNUNET_TIME_Absolute exp,
+                                      const GNUNET_HashCode * key,
+                                      const struct GNUNET_PeerIdentity *
+                                      get_path, unsigned int get_path_length,
+                                      const struct GNUNET_PeerIdentity *
+                                      put_path, unsigned int put_path_length,
+                                      uint32_t desired_replication_level, 
+                                      enum GNUNET_DHT_RouteOption options,
+                                      enum GNUNET_BLOCK_Type type,
+                                      const void *data,
+                                      size_t size);
+
+/**
+ * Start monitoring the local DHT service.
+ *
+ * @param handle Handle to the DHT service.
+ * @param type Type of blocks that are of interest.
+ * @param key Key of data of interest, NULL for all.
+ * @param cb Callback to process all monitored data.
+ * @param cb_cls Closure for cb.
+ *
+ * @return Handle to stop monitoring.
+ */
+struct GNUNET_DHT_MonitorHandle *
+GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
+                          enum GNUNET_BLOCK_Type type,
+                          const GNUNET_HashCode *key,
+                          GNUNET_DHT_MonitorCB cb,
+                          void *cb_cls);
+
+
+/**
+ * Stop monitoring.
+ *
+ * @param handle The handle to the monitor request returned by monitor_start.
+ *
+ * On return get_handle will no longer be valid, caller must not use again!!!
+ */
+void
+GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

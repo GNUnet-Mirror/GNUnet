@@ -517,6 +517,26 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT 148
 
+/**
+ * Request / receive information about transiting GETs
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET             149
+
+/**
+ * Request / receive information about transiting GET responses
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET_RESP        150
+
+/**
+ * Request / receive information about transiting PUTs
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT             151
+
+/**
+ * Request / receive information about transiting PUT responses (TODO)
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT_RESP        152
+
 
 /*******************************************************************************
  * HOSTLIST message types

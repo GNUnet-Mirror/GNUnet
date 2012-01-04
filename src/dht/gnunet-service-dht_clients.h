@@ -57,6 +57,35 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
 
 
 /**
+ * Check if some client is monitoring messages of this type and notify
+ * him in that case.
+ *
+ * @param mtype Type of the DHT message.
+ * @param exp When will this value expire.
+ * @param key Key of the result/request.
+ * @param get_path Peers on reply path (or NULL if not recorded).
+ * @param get_path_length number of entries in get_path.
+ * @param put_path peers on the PUT path (or NULL if not recorded).
+ * @param put_path_length number of entries in get_path.
+ * @param desired_replication_level Desired replication level.
+ * @param type Type of the result/request.
+ * @param data Pointer to the result data.
+ * @param size Number of bytes in data.
+ */
+void
+GDS_CLIENTS_process_monitor (uint16_t mtype,
+                             const struct GNUNET_TIME_Absolute exp,
+                             const GNUNET_HashCode *key,
+                             uint32_t putl,
+                             const struct GNUNET_PeerIdentity *put_path,
+                             uint32_t getl,
+                             const struct GNUNET_PeerIdentity *get_path,
+                             uint32_t replevel,
+                             enum GNUNET_BLOCK_Type type,
+                             const struct GNUNET_MessageHeader *data,
+                             uint16_t size);
+
+/**
  * Initialize client subsystem.
  *
  * @param server the initialized server
