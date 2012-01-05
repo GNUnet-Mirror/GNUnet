@@ -1061,8 +1061,9 @@ handle_client_response (void *cls GNUNET_UNUSED,
       }
       GNUNET_free_non_null (rr->payload);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Changing DNS resply according to client specifications\n"));
+		  _("Changing DNS reply according to client specifications\n"));
       rr->payload = GNUNET_malloc (msize);
+      rr->payload_length = msize;
       memcpy (rr->payload, &resp[1], msize);
       if (rr->phase == RP_QUERY)
       {

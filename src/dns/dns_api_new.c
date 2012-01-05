@@ -465,7 +465,7 @@ GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
   qe->msg = &resp->header;
   resp->header.size = htons (sizeof (struct GNUNET_DNS_Response) + reply_length);
   resp->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
-  resp->drop_flag = htons (2);
+  resp->drop_flag = htonl (2);
   resp->request_id = rh->request_id;
   memcpy (&resp[1], reply, reply_length);
   queue_reply (rh->dh, qe);
