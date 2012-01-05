@@ -31,6 +31,7 @@ SUBDIRS = \
   fs \
   mesh \
   dns \
+  exit \
   vpn \
   integration-tests \
   $(EXP_DIR) 

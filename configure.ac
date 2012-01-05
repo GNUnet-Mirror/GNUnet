@@ -822,6 +822,7 @@ src/datastore/Makefile
 src/dht/Makefile
 src/dns/Makefile
 src/dv/Makefile
+src/exit/Makefile
 src/fragmentation/Makefile
 src/fs/Makefile
 src/hello/Makefile
