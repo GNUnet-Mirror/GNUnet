@@ -3358,6 +3358,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   p = path_build_from_dht (get_path, get_path_length, put_path,
                            put_path_length);
   path_add_to_peers (p, GNUNET_NO);
+  path_destroy(p);
   tunnel_add_peer (t, peer_info);
   peer_info_connect (peer_info, t);
 }
