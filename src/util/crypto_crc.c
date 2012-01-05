@@ -118,13 +118,14 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
  * Perform an incremental step in a CRC16 (for TCP/IP) calculation.
  *
  * @param sum current sum, initially 0
- * @param hdr buffer to calculate CRC over (must be 16-bit aligned)
+ * @param buf buffer to calculate CRC over (must be 16-bit aligned)
  * @param len number of bytes in hdr, must be multiple of 2
  * @return updated crc sum (must be subjected to GNUNET_CRYPTO_crc16_finish to get actual crc16)
  */
 uint32_t
-GNUNET_CRYPTO_crc16_step (uint32_t sum, uint16_t * hdr, size_t len)
+GNUNET_CRYPTO_crc16_step (uint32_t sum, const void *buf, size_t len)
 {
+  uint16_t *hdr = buf;
   for (; len >= 2; len -= 2)
     sum += *(hdr++);
   if (len == 1)
@@ -151,13 +152,14 @@ GNUNET_CRYPTO_crc16_finish (uint32_t sum)
 /**
  * Calculate the checksum of a buffer in one step.
  *
- * @param hdr buffer to  calculate CRC over (must be 16-bit aligned)
+ * @param buf buffer to  calculate CRC over (must be 16-bit aligned)
  * @param len number of bytes in hdr, must be multiple of 2
  * @return crc16 value
  */
 uint16_t
-GNUNET_CRYPTO_crc16_n (uint16_t *hdr, size_t len)
+GNUNET_CRYPTO_crc16_n (const void *buf, size_t len)
 {
+  uint16_t *hdr = buf;
   uint32_t sum = GNUNET_CRYPTO_crc16_step (0, hdr, len);
 
   return GNUNET_CRYPTO_crc16_finish (sum);
