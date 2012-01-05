@@ -138,9 +138,9 @@ struct dns_header
 GNUNET_NETWORK_STRUCT_END
 
 /**
- * Information about a remote address.
+ * Information about an address.
  */
-struct remote_addr
+struct SocketAddress
 {
   /**
    * AF_INET or AF_INET6.
@@ -162,64 +162,112 @@ struct remote_addr
      */
     struct in6_addr ipv6;
   } address;
-
-  /**
-   * Remote port, in host byte order!
-   */
-  uint16_t port;
   
   /**
    * IPPROTO_TCP or IPPROTO_UDP;
    */
   uint8_t proto;
 
+  /**
+   * Remote port, in host byte order!
+   */
+  uint16_t port;
+
 };
 
 /**
- * This struct is saved into the services-hashmap
+ * This struct is saved into the services-hashmap to represent
+ * a service this peer is specifically offering an exit for
+ * (for a specific domain name).
  */
-struct redirect_service
+struct LocalService
 {
 
   /**
    * Remote address to use for the service.
    */
-  struct remote_addr address;
+  struct SocketAddress address;
 
   /**
-   * Descriptor for this service (also key of this entry in the service hash map).
+   * DNS name of the service.
    */
-  GNUNET_HashCode desc;
+  char *name;
 
   /**
-   * Port I am listening on within GNUnet for this service, in host byte order.
+   * Port I am listening on within GNUnet for this service, in host
+   * byte order.  (as we may redirect ports).
    */
   uint16_t my_port;
 
 };
 
 /**
- * Information we use to track a connection.
+ * Information we use to track a connection (the classical 6-tuple of
+ * IP-version, protocol, source-IP, destination-IP, source-port and
+ * destinatin-port.
  */
-struct redirect_info 
+struct RedirectInformation 
 {
 
   /**
-   * Address information for the other party.
+   * Address information for the other party (equivalent of the
+   * arguments one would give to "connect").
    */
-  struct remote_addr remote_address;
+  struct SocketAddress remote_address;
 
   /**
-   * The source-port of this connection, in host byte order
+   * Address information we used locally (AF and proto must match
+   * "remote_address").  Equivalent of the arguments one would give to
+   * "bind".
    */
-  uint16_t source_port;
+  struct SocketAddress local_address;
 
+  /* 
+     Note 1: additional information might be added here in the
+     future to support protocols that require special handling,
+     such as ftp/tftp 
+
+     Note 2: we might also sometimes not match on all components
+     of the tuple, to support protocols where things do not always
+     fully map.
+  */
 };
 
+
 /**
- * This struct is saved into {tcp,udp}_connections;
+ * Queue of messages to a tunnel.
  */
-struct redirect_state
+struct TunnelMessageQueue
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct TunnelMessageQueue *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct TunnelMessageQueue *prev;
+
+  /**
+   * Payload to send via the tunnel.
+   */
+  const void *payload;
+
+  /**
+   * Number of bytes in 'payload'.
+   */
+  size_t len;
+};
+
+
+/**
+ * This struct is saved into connections_map to allow finding the
+ * right tunnel given an IP packet from TUN.  It is also associated
+ * with the tunnel's closure so we can find it again for the next
+ * message from the tunnel.
+ */
+struct TunnelState
 {
   /**
    * Mesh tunnel that is used for this connection.
@@ -239,51 +287,28 @@ struct redirect_state
   /**
    * Associated service record, or NULL for no service.
    */
-  struct redirect_service *serv;
+  struct LocalService *serv;
 
   /**
-   * Source port we use for this connection.  FIXME: needed? used?
+   * Head of DLL of messages for this tunnel.
    */
-  uint16_t source_port__;
-
-};
-
-/**
- * Queue of messages to a tunnel.
- */
-struct tunnel_notify_queue
-{
-  /**
-   * This is a doubly-linked list.
-   */
-  struct tunnel_notify_queue *next;
+  struct TunnelMessageQueue *head;
 
   /**
-   * This is a doubly-linked list.
+   * Tail of DLL of messages for this tunnel.
    */
-  struct tunnel_notify_queue *prev;
+  struct TunnelMessageQueue *tail;
 
   /**
-   * Payload to send via the tunnel.
+   * Active tunnel transmission request (or NULL).
    */
-  const void *payload;
-
-  /**
-   * Number of bytes in 'cls'.
-   */
-  size_t len;
-};
-
-
-/**
- * Information we track per mesh tunnel.
- */
-struct tunnel_state
-{
-  struct tunnel_notify_queue *head;
-  struct tunnel_notify_queue *tail;
   struct GNUNET_MESH_TransmitHandle *th;
-  struct GNUNET_MESH_Tunnel *tunnel;
+
+  /**
+   * Primary redirection information for this connection.
+   */
+  struct RedirectInformation ri;
+
 };
 
 
@@ -308,18 +333,13 @@ static char *exit_argv[7];
 static unsigned long long ipv6prefix;
 
 /**
- * Final status code.
- */
-static int ret;
-
-/**
  * The handle to mesh
  */
 static struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
  * This hashmaps contains the mapping from peer, service-descriptor,
- * source-port and destination-port to a struct redirect_state
+ * source-port and destination-port to a struct TunnelState
  */
 static struct GNUNET_CONTAINER_MultiHashMap *connections_map;
 
@@ -352,13 +372,14 @@ static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
  * @param ri information about the connection
  */
 static void
-hash_redirect_info (GNUNET_HashCode * hash, 
-		    const struct redirect_info *ri)
+hash_redirect_info (GNUNET_HashCode *hash, 
+		    const struct RedirectInformation *ri)
 {
   char *off;
 
   memset (hash, 0, sizeof (GNUNET_HashCode));
-  /* the GNUnet hashmap only uses the first sizeof(unsigned int) of the hash */
+  /* the GNUnet hashmap only uses the first sizeof(unsigned int) of the hash,
+     so we put the IP address in there (and hope for few collisions) */
   off = (char*) hash;
   switch (ri->remote_address.af)
   {
@@ -374,8 +395,78 @@ hash_redirect_info (GNUNET_HashCode * hash,
     GNUNET_assert (0);
   }
   memcpy (off, &ri->remote_address.port, sizeof (uint16_t));
+  off += sizeof (uint16_t);
+  switch (ri->local_address.af)
+  {
+  case AF_INET:
+    memcpy (off, &ri->local_address.address.ipv4, sizeof (struct in_addr));
+    off += sizeof (struct in_addr);
+    break;
+  case AF_INET6:
+    memcpy (off, &ri->local_address.address.ipv6, sizeof (struct in6_addr));
+    off += sizeof (struct in_addr);
+    break;
+  default:
+    GNUNET_assert (0);
+  }
+  memcpy (off, &ri->local_address.port, sizeof (uint16_t));
+  off += sizeof (uint16_t);
   memcpy (off, &ri->remote_address.proto, sizeof (uint8_t));
-  memcpy (off, &ri->source_port, sizeof (uint8_t));
+  off += sizeof (uint8_t);
+}
+
+
+/**
+ * Get our connection tracking state.  Warns if it does not exists,
+ * refreshes the timestamp if it does exist.
+ *
+ * @param af address family
+ * @param protocol IPPROTO_UDP or IPPROTO_TCP
+ * @param destination_ip target IP
+ * @param destination_port target port
+ * @param local_ip local IP
+ * @param local_port local port
+ * @param state_key set to hash's state if non-NULL
+ * @return NULL if we have no tracking information for this tuple
+ */
+static struct TunnelState *
+get_redirect_state (int af,
+		    int protocol,		    
+		    const void *destination_ip,
+		    uint16_t destination_port,
+		    const void *local_ip,
+		    uint16_t local_port,
+		    GNUNET_HashCode *state_key)
+{
+  struct RedirectInformation ri;
+  GNUNET_HashCode key;
+  struct TunnelState *state;
+
+  ri.remote_address.af = af;
+  if (af == AF_INET)
+    ri.remote_address.address.ipv4 = *((struct in_addr*) destination_ip);
+  else
+    ri.remote_address.address.ipv6 = * ((struct in6_addr*) destination_ip);
+  ri.remote_address.port = destination_port;
+  ri.remote_address.proto = protocol;
+  ri.local_address.af = af;
+  if (af == AF_INET)
+    ri.local_address.address.ipv4 = *((struct in_addr*) local_ip);
+  else
+    ri.local_address.address.ipv6 = * ((struct in6_addr*) local_ip);
+  ri.local_address.port = local_port;
+  ri.local_address.proto = protocol;
+  hash_redirect_info (&key, &ri);
+  if (NULL != state_key)
+    *state_key = key;
+  state = GNUNET_CONTAINER_multihashmap_get (connections_map, &key);
+  if (NULL == state)
+    return NULL;
+  /* Mark this connection as freshly used */
+  GNUNET_CONTAINER_heap_update_cost (connections_heap, 
+				     state->heap_node,
+                                     GNUNET_TIME_absolute_get ().abs_value);
+  return state;
 }
 
 
@@ -388,7 +479,7 @@ hash_redirect_info (GNUNET_HashCode * hash,
  * @param dpt destination port
  * @return NULL if we are not aware of such a service
  */
-struct redirect_service *
+struct LocalService *
 find_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 	      const GNUNET_HashCode *desc,
 	      uint16_t dpt)
@@ -415,8 +506,9 @@ free_service_record (void *cls,
 		     const GNUNET_HashCode *key,
 		     void *value)
 {
-  struct redirect_service *service = value;
+  struct LocalService *service = value;
 
+  GNUNET_free_non_null (service->name);
   GNUNET_free (service);
   return GNUNET_OK;
 }
@@ -429,19 +521,19 @@ free_service_record (void *cls,
  * @param service_map map of services (TCP or UDP)
  * @param name name of the service 
  * @param dpt destination port
- * @param service service information record to store (service->desc will be set).
+ * @param service service information record to store (service->name will be set).
  */
 static void
 store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 	       const char *name,
 	       uint16_t dpt,
-	       struct redirect_service *service)
+	       struct LocalService *service)
 {
   char key[sizeof (GNUNET_HashCode) + sizeof (uint16_t)];
   GNUNET_HashCode desc;
 
   GNUNET_CRYPTO_hash (name, strlen (name) + 1, &desc);
-  service->desc = desc;
+  service->name = GNUNET_strdup (name);
   memcpy (&key[0], &dpt, sizeof (uint16_t));
   memcpy (&key[sizeof(uint16_t)], &desc, sizeof (GNUNET_HashCode));
   if (GNUNET_OK !=
@@ -462,7 +554,7 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 /**
  * MESH is ready to receive a message for the tunnel.  Transmit it.
  *
- * @param cls the 'struct tunnel_state'.
+ * @param cls the 'struct TunnelState'.
  * @param size number of bytes available in buf
  * @param buf where to copy the message
  * @return number of bytes copied to buf
@@ -470,9 +562,9 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 static size_t
 send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
-  struct tunnel_state *s = cls;
+  struct TunnelState *s = cls;
   struct GNUNET_MESH_Tunnel *tunnel = s->tunnel;
-  struct tunnel_notify_queue *tnq;
+  struct TunnelMessageQueue *tnq;
 
   s->th = NULL;
   tnq = s->head;
@@ -502,7 +594,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
  * @param mesh_tunnel destination
  * @param payload message to transmit
  * @param payload_length number of bytes in payload
- * @param desc descriptor to add 
+ * @param desc descriptor to add before payload (optional)
  * @param mtype message type to use
  */
 static void
@@ -512,8 +604,8 @@ send_packet_to_mesh_tunnel (struct GNUNET_MESH_Tunnel *mesh_tunnel,
 			    const GNUNET_HashCode *desc,
 			    uint16_t mtype)
 {
-  struct tunnel_state *s;
-  struct tunnel_notify_queue *tnq;
+  struct TunnelState *s;
+  struct TunnelMessageQueue *tnq;
   struct GNUNET_MessageHeader *msg;
   size_t len;
   GNUNET_HashCode *dp;
@@ -524,15 +616,22 @@ send_packet_to_mesh_tunnel (struct GNUNET_MESH_Tunnel *mesh_tunnel,
     GNUNET_break (0);
     return;
   }
-  tnq = GNUNET_malloc (sizeof (struct tunnel_notify_queue) + len);
+  tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueue) + len);
   tnq->payload = &tnq[1];
   tnq->len = len;
   msg = (struct GNUNET_MessageHeader *) &tnq[1];
   msg->size = htons ((uint16_t) len);
   msg->type = htons (mtype);
-  dp = (GNUNET_HashCode *) &msg[1];
-  *dp = *desc;
-  memcpy (&dp[1], payload, payload_length);
+  if (NULL != desc)
+  {
+    dp = (GNUNET_HashCode *) &msg[1];
+    *dp = *desc;  
+    memcpy (&dp[1], payload, payload_length);
+  }
+  else
+  {
+    memcpy (&msg[1], payload, payload_length);
+  }
   s = GNUNET_MESH_tunnel_get_data (mesh_tunnel);
   GNUNET_assert (NULL != s);
   GNUNET_CONTAINER_DLL_insert_tail (s->head, s->tail, tnq);
@@ -546,68 +645,24 @@ send_packet_to_mesh_tunnel (struct GNUNET_MESH_Tunnel *mesh_tunnel,
 
 
 /**
- * Get our connection tracking state.  Warns if it does not exists,
- * refreshes the timestamp if it does exist.
- *
- * @param af address family
- * @param protocol IPPROTO_UDP or IPPROTO_TCP
- * @param destination_ip target IP
- * @param destination_port target port
- * @param source_port source port
- * @return NULL if we have no tracking information for this tuple
- */
-static struct redirect_state *
-get_redirect_state (int af,
-		    int protocol,
-		    const void *destination_ip,
-		    uint16_t destination_port,
-		    uint16_t source_port)
-{
-  struct redirect_info ri;
-  GNUNET_HashCode state_key;
-  struct redirect_state *state;
-
-  ri.remote_address.af = af;
-  if (af == AF_INET)
-    ri.remote_address.address.ipv4 = *((struct in_addr*) destination_ip);
-  else
-    ri.remote_address.address.ipv6 = * ((struct in6_addr*) destination_ip);
-  ri.remote_address.port = destination_port;
-  ri.remote_address.proto = IPPROTO_UDP;
-  ri.source_port = source_port;
-
-  hash_redirect_info (&state_key, &ri);
-  state = GNUNET_CONTAINER_multihashmap_get (connections_map, &state_key);
-  if (NULL == state)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Packet dropped, have no matching connection information\n"));
-    return NULL;
-  }
-  /* Mark this connection as freshly used */
-  GNUNET_CONTAINER_heap_update_cost (connections_heap, 
-				     state->heap_node,
-                                     GNUNET_TIME_absolute_get ().abs_value);
-  return state;
-}
-
-
-/**
  * @brief Handles an UDP packet received from the helper.
  *
  * @param udp A pointer to the Packet
  * @param pktlen number of bytes in 'udp'
- * @param destination_ip destination IP-address
  * @param af address family (AFINET or AF_INET6)
+ * @param destination_ip destination IP-address of the IP packet (should 
+ *                       be our local address)
+ * @param source_ip original source IP-address of the IP packet (should
+ *                       be the original destination address)
  */
 static void
 udp_from_helper (const struct udp_packet *udp, 
 		 size_t pktlen,
-		 const void *destination_ip, int af)
+		 int af,
+		 const void *destination_ip, 
+		 const void *source_ip)
 {
-  struct redirect_state *state;
-  struct GNUNET_MESH_Tunnel *tunnel;
-  GNUNET_HashCode desc;
+  struct TunnelState *state;
 
   if (pktlen < sizeof (struct udp_packet))
   {
@@ -622,60 +677,20 @@ udp_from_helper (const struct udp_packet *udp,
     return;
   }
   state = get_redirect_state (af, IPPROTO_UDP,
+			      source_ip,
+			      ntohs (udp->spt),
 			      destination_ip,
-			      ntohs (udp->dpt), 
-			      ntohs (udp->spt));
+			      ntohs (udp->dpt),
+			      NULL);
   if (NULL == state)
-    return;
-  tunnel = state->tunnel;
-
-  // FIXME...
-#if 0
-  if (state->type == SERVICE)
   {
-    /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
-    if (ntohs (udp->spt) == state->serv->remote_port)
-    {
-      udp->spt = htons (state->serv->my_port);
-    }
-    else
-    {
-      /* otherwise the answer came from a different port (tftp does this)
-       * add this new port to the list of all services, so that the packets
-       * coming back from the client to this new port will be routed correctly
-       */
-      struct redirect_service *serv =
-          GNUNET_malloc (sizeof (struct redirect_service));
-      memcpy (serv, state->serv, sizeof (struct redirect_service));
-      serv->my_port = ntohs (udp->spt);
-      serv->remote_port = ntohs (udp->spt);
-      uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
-
-      memcpy ((GNUNET_HashCode *) (desc + 1), &state->desc,
-              sizeof (GNUNET_HashCode));
-      *desc = ntohs (udp->spt);
-      GNUNET_assert (GNUNET_OK ==
-                     GNUNET_CONTAINER_multihashmap_put (udp_services,
-                                                        (GNUNET_HashCode *)
-                                                        desc, serv,
-                                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-
-      state->serv = serv;
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Packet dropped, have no matching connection information\n"));
+    return;
   }
-  
-  if (state->type == SERVICE)
-    memcpy (&desc, &state->desc, sizeof (GNUNET_HashCode));
-  else
-    memcpy (&desc, &state->remote, sizeof (struct remote_addr));
-#else
-  memset (&desc, 0, sizeof (desc));
-#endif
-
-  /* send udp-packet back */
-  send_packet_to_mesh_tunnel (tunnel,
-			      udp, pktlen,
-			      &desc,
+  send_packet_to_mesh_tunnel (state->tunnel,
+			      &udp[1], pktlen - sizeof (struct udp_packet),
+			      NULL,
 			      state->serv != NULL
 			      ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK 
 			      : GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK);
@@ -687,17 +702,22 @@ udp_from_helper (const struct udp_packet *udp,
  *
  * @param tcp A pointer to the Packet
  * @param pktlen the length of the packet, including its header
- * @param destination_ip destination IP-address
  * @param af address family (AFINET or AF_INET6)
+ * @param destination_ip destination IP-address of the IP packet (should 
+ *                       be our local address)
+ * @param source_ip original source IP-address of the IP packet (should
+ *                       be the original destination address)
  */
 static void
 tcp_from_helper (const struct tcp_packet *tcp, 
 		 size_t pktlen,
-		 const void *destination_ip, int af)
+		 int af,
+		 const void *destination_ip,
+		 const void *source_ip)
 {
-  struct redirect_state *state;
-  struct GNUNET_MESH_Tunnel *tunnel;
-  GNUNET_HashCode desc;
+  struct TunnelState *state;
+  char buf[pktlen];
+  struct tcp_packet *mtcp;
 
   if (pktlen < sizeof (struct tcp_packet))
   {
@@ -706,42 +726,28 @@ tcp_from_helper (const struct tcp_packet *tcp,
     return;
   }
   state = get_redirect_state (af, IPPROTO_TCP,
-			      destination_ip, 
+			      source_ip, 
+			      ntohs (tcp->spt),
+			      destination_ip,
 			      ntohs (tcp->dpt),
-			      ntohs (tcp->spt));
+			      NULL);
   if (NULL == state)
-    return;
-  tunnel = state->tunnel;
-
-  // FIXME...
-#if 0
-  if (state->type == SERVICE)
   {
-    /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
-    if (ntohs (tcp->spt) == state->serv->remote_port)
-    {
-      tcp->spt = htons (state->serv->my_port);
-    }
-    else
-    {
-      // This is an illegal packet.
-      return;
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Packet dropped, have no matching connection information\n"));
+    
+    return;
   }
-
-  /* send tcp-packet back */
-  if (state->type == SERVICE)
-    memcpy (&desc, &state->desc, sizeof (GNUNET_HashCode));
-  else
-    memcpy (&desc, &state->remote, sizeof (struct remote_addr));
-#else
-  memset (&desc, 0, sizeof (desc));
-#endif
-  
-
-  send_packet_to_mesh_tunnel (tunnel,
-			      tcp, pktlen,
-			      &desc,
+  /* mug port numbers and crc to avoid information leakage;
+     sender will need to lookup the correct values anyway */
+  memcpy (buf, tcp, pktlen);  
+  mtcp = (struct tcp_packet *) buf;
+  mtcp->spt = 0;
+  mtcp->dpt = 0;
+  mtcp->crc = 0;
+  send_packet_to_mesh_tunnel (state->tunnel,
+			      mtcp, pktlen,
+			      NULL,
 			      state->serv != NULL
 			      ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK 
 			      : GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK);
@@ -798,14 +804,16 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       switch (pkt6->next_header)
       {
       case IPPROTO_UDP:
-	udp_from_helper ( (const struct udp_packet *) &pkt6[1], size,
-			  &pkt6->destination_address, 
-			  AF_INET6);
+	udp_from_helper ((const struct udp_packet *) &pkt6[1], size,
+			 AF_INET6,
+			 &pkt6->destination_address, 
+			 &pkt6->source_address);
 	break;
       case IPPROTO_TCP:
 	tcp_from_helper ((const struct tcp_packet *) &pkt6[1], size,
+			 AF_INET6,
 			 &pkt6->destination_address, 
-			 AF_INET6);
+			 &pkt6->source_address);
 	break;
       default:
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -842,11 +850,14 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       {
       case IPPROTO_UDP:
 	udp_from_helper ((const struct udp_packet *) &pkt4[1], size,
-			 &pkt4->destination_address, AF_INET);
-	break;
+			 AF_INET,
+			 &pkt4->destination_address, 
+			 &pkt4->source_address);
       case IPPROTO_TCP:
 	tcp_from_helper ((const struct tcp_packet *) &pkt4[1], size,
-			 &pkt4->destination_address, AF_INET);
+			 AF_INET,
+			 &pkt4->destination_address, 
+			 &pkt4->source_address);
 	break;
       default:
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -866,10 +877,15 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 
 
 
+
+
 void
-prepare_ipv4_packet (size_t len, uint16_t pktlen, void *payload,
-                     uint8_t protocol, void *ipaddress, void *tunnel,
-                     struct redirect_info *state, struct ip4_header *pkt4)
+prepare_ipv4_packet (size_t len, 
+		     uint16_t pktlen, void *payload,
+                     uint8_t protocol, 
+		     void *ipaddress, void *tunnel,
+                     struct RedirectInformation *
+		     state, struct ip4_header *pkt4)
 {
   const char *ipv4addr = exit_argv[4];
   const char *ipv4mask = exit_argv[5];
@@ -938,7 +954,7 @@ prepare_ipv4_packet (size_t len, uint16_t pktlen, void *payload,
 void
 prepare_ipv6_packet (size_t len, uint16_t pktlen, void *payload,
                      uint16_t protocol, void *ipaddress, void *tunnel,
-                     struct redirect_info *state, struct ip6_header *pkt6)
+                     struct RedirectInformation *state, struct ip6_header *pkt6)
 {
   const char *ipv6addr = exit_argv[2];
   uint32_t tmp;
@@ -1032,12 +1048,12 @@ prepare_ipv6_packet (size_t len, uint16_t pktlen, void *payload,
  * @param serv service information
  */
 void
-update_state_map (const struct redirect_info *ri,
+update_state_map (const struct RedirectInformation *ri,
 		  struct GNUNET_MESH_Tunnel *tunnel,
 		  const GNUNET_HashCode *desc,
-		  struct redirect_service *serv)
+		  struct LocalService *serv)
 {
-  struct redirect_state *state;
+  struct TunnelState *state;
   GNUNET_HashCode state_key;
 
   hash_redirect_info (&state_key,
@@ -1045,7 +1061,7 @@ update_state_map (const struct redirect_info *ri,
   state = GNUNET_CONTAINER_multihashmap_get (connections_map, &state_key);
   if (NULL == state)
   {
-    state = GNUNET_malloc (sizeof (struct redirect_state));
+    state = GNUNET_malloc (sizeof (struct TunnelState));
     state->tunnel = tunnel;
     state->state_key = state_key;
     state->serv = serv;
@@ -1102,8 +1118,8 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
   const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
   const struct tcp_packet *pkt = (const struct tcp_packet *) &desc[1];
   uint16_t pkt_len = ntohs (message->size);
-  struct redirect_service *serv;
-  struct redirect_info u_i;
+  struct LocalService *serv;
+  struct RedirectInformation u_i;
   GNUNET_HashCode state_key;
 
   /* check that we got at least a valid header */
@@ -1209,7 +1225,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
       ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
       sizeof (GNUNET_HashCode);
 
-  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+  struct TunnelState *state = GNUNET_malloc (sizeof (struct TunnelState));
 
   state->tunnel = tunnel;
   state->type = REMOTE;
@@ -1292,7 +1308,7 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
    * This will be saved in the hashmap, so that the receiving procedure knows
    * through which tunnel this connection has to be routed.
    */
-  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+  struct TunnelState *state = GNUNET_malloc (sizeof (struct TunnelState));
 
   state->tunnel = tunnel;
   state->hashmap = udp_connections;
@@ -1349,6 +1365,7 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   return GNUNET_YES;
 }
 
+
 /**
  * The messages are one GNUNET_HashCode for the service, followed by a struct udp_packet
  */
@@ -1361,10 +1378,14 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 {
   // FIXME
 #if 0
-  GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
-  struct udp_packet *pkt = (struct udp_packet *) (desc + 1);
+  const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
+  const struct udp_packet *pkt = (const struct udp_packet *) &desc[1];
   uint16_t pkt_len = ntohs (message->size);
-  struct redirect_service *serv;
+  struct LocalService *serv;
+  struct TunnelState *state;
+  struct tunnel_state *s;
+  char *buf;
+  size_t len;
 
   /* check that we got at least a valid header */
   if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct udp_packet))
@@ -1388,18 +1409,17 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   pkt->dpt = htons (serv->remote_port);
 
-  /*
-   * At this point it would be possible to check against some kind of ACL.
-   */
-
-  char *buf;
-  size_t len;
+  /* At this point it would be possible to check against some kind of ACL. */
+  
+  s = GNUNET_MESH_tunnel_get_data (tunnel);
+  
 
   /* Prepare the state.
    * This will be saved in the hashmap, so that the receiving procedure knows
    * through which tunnel this connection has to be routed.
    */
-  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+
+  state = GNUNET_malloc (sizeof (struct TunnelState));
 
   state->tunnel = tunnel;
   state->serv = serv;
@@ -1480,7 +1500,7 @@ new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
             const struct GNUNET_PeerIdentity *initiator GNUNET_UNUSED,
             const struct GNUNET_ATS_Information *ats GNUNET_UNUSED)
 {
-  struct tunnel_state *s = GNUNET_malloc (sizeof (struct tunnel_state));
+  struct TunnelState *s = GNUNET_malloc (sizeof (struct TunnelState));
   
   s->tunnel = tunnel;
   return s;
@@ -1500,8 +1520,8 @@ static void
 clean_tunnel (void *cls GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
               void *tunnel_ctx)
 {
-  struct tunnel_state *s = tunnel_ctx;
-  struct tunnel_notify_queue *tnq;
+  struct TunnelState *s = tunnel_ctx;
+  struct TunnelMessageQueue *tnq;
 
   while (NULL != (tnq = s->head))
   {
@@ -1509,6 +1529,15 @@ clean_tunnel (void *cls GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
 				 s->tail,
 				 tnq);
     GNUNET_free (tnq);
+  }
+  if (s->heap_node != NULL)
+  {
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_remove (connections_map,
+							 &s->state_key,
+							 s));
+    GNUNET_CONTAINER_heap_remove_node (s->heap_node);
+    s->heap_node = NULL;
   }
   if (NULL != s->th)
   {
@@ -1597,7 +1626,7 @@ add_services (int proto,
   char *redirect;
   char *hostname;
   char *hostport;
-  struct redirect_service *serv;
+  struct LocalService *serv;
 
   for (redirect = strtok (cpy, " "); redirect != NULL;
        redirect = strtok (NULL, " "))
@@ -1641,7 +1670,7 @@ add_services (int proto,
       continue;
     }
 
-    serv = GNUNET_malloc (sizeof (struct redirect_service));
+    serv = GNUNET_malloc (sizeof (struct LocalService));
     serv->my_port = (uint16_t) local_port;
     serv->address.port = remote_port;
     if (0 == strcmp ("localhost4", hostname))
@@ -1905,7 +1934,7 @@ main (int argc, char *const *argv)
           GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-exit",
                               gettext_noop
                               ("Daemon to run to provide an IP exit node for the VPN"),
-                              options, &run, NULL)) ? ret : 1;
+                              options, &run, NULL)) ? 0 : 1;
 }
 
 
