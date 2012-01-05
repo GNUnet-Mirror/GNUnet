@@ -125,7 +125,7 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
 uint32_t
 GNUNET_CRYPTO_crc16_step (uint32_t sum, const void *buf, size_t len)
 {
-  uint16_t *hdr = buf;
+  const uint16_t *hdr = buf;
   for (; len >= 2; len -= 2)
     sum += *(hdr++);
   if (len == 1)
@@ -159,7 +159,7 @@ GNUNET_CRYPTO_crc16_finish (uint32_t sum)
 uint16_t
 GNUNET_CRYPTO_crc16_n (const void *buf, size_t len)
 {
-  uint16_t *hdr = buf;
+  const uint16_t *hdr = buf;
   uint32_t sum = GNUNET_CRYPTO_crc16_step (0, hdr, len);
 
   return GNUNET_CRYPTO_crc16_finish (sum);
