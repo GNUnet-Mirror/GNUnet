@@ -29,6 +29,7 @@
 #include "gnunet_signatures.h"
 #include "dns_new.h"
 #include "gnunet_dns_service-new.h"
+#include "gnunet_statistics_service.h"
 
 /* see http://www.iana.org/assignments/ethernet-numbers */
 #ifndef ETH_P_IPV4
@@ -279,6 +280,11 @@ static uint16_t dnsoutport;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
+ * Statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
+
+/**
  * Handle to DNS hijacker helper process ("gnunet-helper-dns").
  */
 static struct GNUNET_HELPER_Handle *hijacker;
@@ -371,6 +377,11 @@ cleanup_task (void *cls GNUNET_UNUSED,
     cleanup_rr (&requests[i]);
   GNUNET_SERVER_notification_context_destroy (nc);
   nc = NULL;
+  if (stats != NULL)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+    stats = NULL;
+  }
 }
 
 
@@ -561,6 +572,9 @@ request_done (struct RequestRecord *rr)
 			hdr,
 			GNUNET_YES,
 			NULL, NULL);
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# DNS requests answered via TUN interface"),
+			      1, GNUNET_NO);
   }
   /* clean up, we're done */
   cleanup_rr (rr);
@@ -678,7 +692,9 @@ next_phase (struct RequestRecord *rr)
     }
     if (NULL == dnsout)
     {
-      /* fail, FIXME: case for statistics! */
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# DNS exit failed (address family not supported)"),
+				1, GNUNET_NO);
       cleanup_rr (rr);
       return;
     }
@@ -842,8 +858,10 @@ read_response (void *cls,
     rr = &requests[dns->id];
     if (rr->phase != RP_INTERNET_DNS) 
     {
-      /* FIXME: case for statistics */
       /* unexpected / bogus reply */
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# External DNS response discarded (no matching request)"),
+				1, GNUNET_NO);
       return; 
     }
     GNUNET_free_non_null (rr->payload);
@@ -1028,9 +1046,9 @@ handle_client_response (void *cls GNUNET_UNUSED,
   rr = &requests[off];
   if (rr->request_id != resp->request_id)
   {
-    // FIXME: this is a case for calling statistics...
-    // (client is answering a request that we've lost
-    // track of -- more than 64k requests ago or so...)
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# Client response discarded (no matching request)"),
+			      1, GNUNET_NO);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1132,8 +1150,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 	 (ip4->protocol != IPPROTO_UDP) )
     {
       /* non-IP/UDP packet received on TUN (or with options) */
-      // FIXME: maybe just log with stats?
-      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Received malformed IPv4-UDP packet on TUN interface.\n"));
       return;
     }
     udp = (const struct udp_packet*) &ip4[1];
@@ -1147,8 +1165,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 	 (ip6->next_header != IPPROTO_UDP) )
     {
       /* non-IP/UDP packet received on TUN (or with extensions) */
-      // FIXME: maybe just log with stats?
-      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Received malformed IPv6-UDP packet on TUN interface.\n"));
       return;
     }
     udp = (const struct udp_packet*) &ip6[1];
@@ -1156,17 +1174,18 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
     break;
   default:
     /* non-IP packet received on TUN!? */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Got packet with %u bytes and protocol %u from TUN\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Got non-IP packet with %u bytes and protocol %u from TUN\n"),
 		(unsigned int) msize,
 		ntohs (tun->proto));
-    GNUNET_break (0);
     return;
   }
   if (msize <= sizeof (struct udp_packet) + sizeof (struct dns_header))
   {    
     /* non-DNS packet received on TUN, ignore */
-    /* FIXME: case for statistics... */
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# Non-DNS UDP packet received via TUN interface"),
+			      1, GNUNET_NO);
     return;
   }
   msize -= sizeof (struct udp_packet);
@@ -1194,7 +1213,10 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
     dsta4->sin_addr = ip4->destination_address;
     srca4->sin_port = udp->spt;
     dsta4->sin_port = udp->dpt;
-    /* FIXME: bother with FreeBSD sin_len crap? */
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    srca4->sin_len = sizeof (sizeof (struct sockaddr_in));
+    dsta4->sin_len = sizeof (sizeof (struct sockaddr_in));
+#endif
   }
   else /* ipv6 */
   {
@@ -1208,7 +1230,10 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
     dsta6->sin6_addr = ip6->destination_address;
     srca6->sin6_port = udp->spt;
     dsta6->sin6_port = udp->dpt;
-    /* FIXME: bother with FreeBSD sin_len crap? */
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    srca6->sin_len = sizeof (sizeof (struct sockaddr_in6));
+    dsta6->sin_len = sizeof (sizeof (struct sockaddr_in6));
+#endif
   }
   rr->payload = GNUNET_malloc (msize);
   rr->payload_length = msize;
@@ -1216,7 +1241,9 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   rr->request_id = dns->id | (request_id_gen << 16);
   request_id_gen++;
 
-  /* FIXME: case for statistics... */
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# DNS requests received via TUN interface"),
+			    1, GNUNET_NO);
   /* start request processing state machine */
   next_phase (rr);
 }
@@ -1246,6 +1273,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   char *ipv6prefix;
 
   cfg = cfg_;
+  stats = GNUNET_STATISTICS_create ("dns", cfg);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 cls);
