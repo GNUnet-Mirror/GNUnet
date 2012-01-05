@@ -787,7 +787,9 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   *buf = GNUNET_malloc (off);
   *buf_length = off;
   memcpy (*buf, tmp, off);
-  return trc;
+  if (GNUNET_YES == trc)
+    return GNUNET_NO;
+  return GNUNET_OK;
 }
 
 

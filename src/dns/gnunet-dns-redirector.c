@@ -63,19 +63,35 @@ static int verbosity;
 static void
 modify_record (const struct GNUNET_DNSPARSER_Record *record)
 {
+  char buf[INET6_ADDRSTRLEN];
+
   switch (record->type)
   {
   case GNUNET_DNSPARSER_TYPE_A:    
     if (record->data.raw.data_len != sizeof (struct in_addr))
       return;
     if (NULL != n4)
+    {
+      if (verbosity > 1)
+	fprintf (stderr, 
+		 "Changing A record from `%s' to `%s'\n",
+		 inet_ntop (AF_INET, record->data.raw.data, buf, sizeof (buf)),
+		 n4);
       inet_pton (AF_INET, n4, record->data.raw.data);
+    }
     break;
   case GNUNET_DNSPARSER_TYPE_AAAA:
     if (record->data.raw.data_len != sizeof (struct in6_addr))
       return;
     if (NULL != n6)
+    {
+      if (verbosity > 1)
+	fprintf (stderr, 
+		 "Changing AAAA record from `%s' to `%s'\n",
+		 inet_ntop (AF_INET6, record->data.raw.data, buf, sizeof (buf)),
+		 n4);
       inet_pton (AF_INET6, n6, record->data.raw.data);
+    }
     break;
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
@@ -128,8 +144,7 @@ modify_request (void *cls,
   p = GNUNET_DNSPARSER_parse (request, request_length);
   if (NULL == p)
   {
-    fprintf (stderr, "Received malformed DNS packet!\n");
-    // FIXME: drop instead?
+    fprintf (stderr, "Received malformed DNS packet, leaving it untouched\n");
     GNUNET_DNS_request_forward (rh);
     return;
   }
@@ -138,11 +153,22 @@ modify_request (void *cls,
   buf = NULL;
   ret = GNUNET_DNSPARSER_pack (p, 1024, &buf, &len);
   GNUNET_DNSPARSER_free_packet (p);
-  fprintf (stderr, "PACK: %d\n", ret);
   if (GNUNET_OK != ret)
+  {
+    if (GNUNET_NO == ret)
+      fprintf (stderr, 
+	       "Modified DNS response did not fit, keeping old response\n");
+    else
+      GNUNET_break (0); /* our modifications should have been sane! */
     GNUNET_DNS_request_forward (rh);
+  }
   else
+  {
+    if (verbosity > 0)
+      fprintf (stdout,
+	       "Injecting modified DNS response\n");
     GNUNET_DNS_request_answer (rh, len, buf);
+  }
   GNUNET_free_non_null (buf);      
 }
 
