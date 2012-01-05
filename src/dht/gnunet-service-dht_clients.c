@@ -1091,11 +1091,19 @@ GDS_CLIENTS_process_monitor (uint16_t mtype,
       mmsg->header.size = htons (msize - sizeof (struct PendingMessage));
       mmsg->header.type = htons (mtype);
       mmsg->expiration = GNUNET_TIME_absolute_hton(exp);
+      memcpy (&mmsg->key, key, sizeof (GNUNET_HashCode));
+      mmsg->put_path_length = htonl(putl);
+      mmsg->get_path_length = htonl(getl);
       path = (struct GNUNET_PeerIdentity *) &mmsg[1];
-      memcpy (path, put_path, putl * sizeof (struct GNUNET_PeerIdentity));
-      path = &path[putl];
-      memcpy (path, get_path, getl * sizeof (struct GNUNET_PeerIdentity));
-      memcpy (&path[getl], data, size);
+      if (putl > 0)
+      {
+        memcpy (path, put_path, putl * sizeof (struct GNUNET_PeerIdentity));
+        path = &path[putl];
+      }
+      if (getl > 0)
+        memcpy (path, get_path, getl * sizeof (struct GNUNET_PeerIdentity));
+      if (size > 0)
+        memcpy (&path[getl], data, size);
       add_pending_message (m->client, pm);
     }
   }

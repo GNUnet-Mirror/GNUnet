@@ -130,6 +130,8 @@ struct GNUNET_TESTING_Daemon *o;
 
 unsigned int monitor_counter;
 
+int in_test;
+
 /**
  * Check whether peers successfully shut down.
  */
@@ -241,6 +243,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  in_test = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: looking for %s\n",
               GNUNET_h2s_full (&d_far->id.hashPubKey));
@@ -308,11 +311,16 @@ monitor_dht_cb (void *cls,
                 const void *data,
                 size_t size)
 {
+  const char *s_key;
+
+  s_key = GNUNET_h2s(key);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "%u got a message of type %u for key %s\n",
-              cls, mtype, GNUNET_h2s (key));
-  if (mtype == GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET ||
-      mtype == GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT)
+              cls, mtype, s_key);
+
+  if ((mtype == GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET ||
+       mtype == GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT) &&
+      strncmp (s_key, id_far, 4) == 0 && in_test == GNUNET_YES)
     monitor_counter++;
 }
 
@@ -566,6 +574,7 @@ main (int xargc, char *xargv[])
     NULL
   };
 
+  in_test = GNUNET_NO;
   GNUNET_PROGRAM_run (sizeof (argv) / sizeof (char *) - 1, argv,
                       "test_dht_monitor",
                       gettext_noop ("Test dht monitoring in a small 2D torus."),
