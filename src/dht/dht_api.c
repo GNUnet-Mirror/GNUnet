@@ -33,7 +33,6 @@
 #include "gnunet_protocols.h"
 #include "gnunet_dht_service.h"
 #include "dht.h"
-#include <gnunet_dnsparser_lib.h>
 
 #define DEBUG_DHT_API GNUNET_EXTRA_LOGGING
 
