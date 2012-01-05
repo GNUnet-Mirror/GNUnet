@@ -244,7 +244,7 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &delete_incomplete},
     {'n', "no-network", NULL,
      gettext_noop ("only search the local peer (no P2P network search)"),
-     1, &GNUNET_GETOPT_set_uint, &local_only},
+     0, &GNUNET_GETOPT_set_uint, &local_only},
     {'o', "output", "FILENAME",
      gettext_noop ("write the file to FILENAME"),
      1, &GNUNET_GETOPT_set_string, &filename},
