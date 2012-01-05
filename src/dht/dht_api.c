@@ -968,6 +968,7 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
   h = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorHandle));
   GNUNET_CONTAINER_DLL_insert(handle->monitor_head, handle->monitor_tail, h);
 
+  GNUNET_assert (NULL != cb);
   h->cb = cb;
   h->cb_cls = cb_cls;
   h->type = type;
