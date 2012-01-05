@@ -388,7 +388,7 @@ hash_redirect_info (GNUNET_HashCode * hash,
  * @param dpt destination port
  * @return NULL if we are not aware of such a service
  */
-static struct redirect_service *
+struct redirect_service *
 find_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 	      const GNUNET_HashCode *desc,
 	      uint16_t dpt)
@@ -866,7 +866,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 
 
 
-static void
+void
 prepare_ipv4_packet (size_t len, uint16_t pktlen, void *payload,
                      uint8_t protocol, void *ipaddress, void *tunnel,
                      struct redirect_info *state, struct ip4_header *pkt4)
@@ -935,7 +935,7 @@ prepare_ipv4_packet (size_t len, uint16_t pktlen, void *payload,
 }
 
 
-static void
+void
 prepare_ipv6_packet (size_t len, uint16_t pktlen, void *payload,
                      uint16_t protocol, void *ipaddress, void *tunnel,
                      struct redirect_info *state, struct ip6_header *pkt6)
@@ -1031,7 +1031,7 @@ prepare_ipv6_packet (size_t len, uint16_t pktlen, void *payload,
  * @param desc service descriptor (or NULL)
  * @param serv service information
  */
-static void
+void
 update_state_map (const struct redirect_info *ri,
 		  struct GNUNET_MESH_Tunnel *tunnel,
 		  const GNUNET_HashCode *desc,
