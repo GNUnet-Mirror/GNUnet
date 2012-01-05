@@ -634,7 +634,11 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT)
   {
     if (process_monitor_message (handle, msg) == GNUNET_OK)
+    {
+      GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
+                             GNUNET_TIME_UNIT_FOREVER_REL);
       return;
+    }
     GNUNET_break (0);
     do_disconnect (handle);
     return;
@@ -965,6 +969,7 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
   struct GNUNET_DHT_MonitorMessage *m;
   struct PendingMessage *pending;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "monitor start\n");
   h = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorHandle));
   GNUNET_CONTAINER_DLL_insert(handle->monitor_head, handle->monitor_tail, h);
 
@@ -985,6 +990,11 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
   pending->msg = &m->header;
   pending->handle = handle;
   pending->free_on_send = GNUNET_YES;
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET);
+  m->header.size = htons (sizeof (struct GNUNET_DHT_MonitorMessage));
+  m->type = htonl(type);
+  if (NULL != key)
+    memcpy (&m->key, key, sizeof(GNUNET_HashCode));
   GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
                                pending);
   pending->in_pending_queue = GNUNET_YES;

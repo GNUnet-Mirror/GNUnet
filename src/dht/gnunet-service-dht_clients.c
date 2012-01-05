@@ -666,7 +666,9 @@ handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
     r->key = GNUNET_malloc (sizeof (GNUNET_HashCode));
     memcpy (r->key, &msg->key, sizeof (GNUNET_HashCode));
   }
-
+  GNUNET_CONTAINER_DLL_insert (monitor_head, monitor_tail, r);
+  // FIXME add remove somewhere
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -1061,7 +1063,7 @@ GDS_CLIENTS_process_monitor (uint16_t mtype,
   cl_size = 0;
   for (m = monitor_head; NULL != m; m = m->next)
   {
-    if (m->type == type &&
+    if ((GNUNET_BLOCK_TYPE_ANY == m->type || m->type == type) &&
         (NULL == m->key ||
          memcmp (key, m->key, sizeof(GNUNET_HashCode)) == 0))
     {
