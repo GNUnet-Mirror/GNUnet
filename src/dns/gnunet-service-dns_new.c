@@ -1060,8 +1060,10 @@ handle_client_response (void *cls GNUNET_UNUSED,
 	return;
       }
       GNUNET_free_non_null (rr->payload);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+#if DEBUG_DNS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  _("Changing DNS reply according to client specifications\n"));
+#endif
       rr->payload = GNUNET_malloc (msize);
       rr->payload_length = msize;
       memcpy (rr->payload, &resp[1], msize);

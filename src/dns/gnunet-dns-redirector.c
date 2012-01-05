@@ -89,7 +89,7 @@ modify_record (const struct GNUNET_DNSPARSER_Record *record)
 	fprintf (stderr, 
 		 "Changing AAAA record from `%s' to `%s'\n",
 		 inet_ntop (AF_INET6, record->data.raw.data, buf, sizeof (buf)),
-		 n4);
+		 n6);
       inet_pton (AF_INET6, n6, record->data.raw.data);
     }
     break;
