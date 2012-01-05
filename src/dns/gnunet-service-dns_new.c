@@ -482,21 +482,21 @@ request_done (struct RequestRecord *rr)
 	ip.checksum = 0; /* checksum is optional */
 	ip.source_address = dst->sin_addr;
 	ip.destination_address = src->sin_addr;
-	ip.checksum = GNUNET_CRYPTO_crc16_n ((uint16_t*) &ip, sizeof (ip));
+	ip.checksum = GNUNET_CRYPTO_crc16_n (&ip, sizeof (ip));
 
 	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						(uint16_t *) &ip.source_address,
+						&ip.source_address,
 						sizeof (struct in_addr) * 2);
 	{
 	  uint16_t tmp;
 	  
 	  tmp = htons (IPPROTO_UDP);
 	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						  (uint16_t *) &tmp,	
+						  &tmp,	
 						  sizeof (uint16_t));
 	  tmp = htons (rr->payload_length + sizeof (struct udp_packet));
 	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						  (uint16_t *) &tmp,	
+						  &tmp,	
 						  sizeof (uint16_t));
 	}
 	memcpy (&buf[off], &ip, sizeof (ip));
@@ -521,18 +521,18 @@ request_done (struct RequestRecord *rr)
 	ip.source_address = dst->sin6_addr;
 	ip.destination_address = src->sin6_addr;
 	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum,
-						(uint16_t *) &ip.source_address, 
+						&ip.source_address, 
 						sizeof (struct in6_addr) * 2);
 	{
 	  uint32_t tmp;
 	  
 	  tmp = htons (rr->payload_length + sizeof (struct udp_packet));
 	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						  (uint16_t *) &tmp,	
+						  &tmp,	
 						  sizeof (uint32_t));
 	  tmp = htons (IPPROTO_UDP);
 	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						  (uint16_t *) &tmp,	
+						  &tmp,	
 						  sizeof (uint32_t));
 	}
 	memcpy (&buf[off], &ip, sizeof (ip));
@@ -552,10 +552,10 @@ request_done (struct RequestRecord *rr)
       udp.len = htons (reply_len - off);
       udp.crc = 0; 
       udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-					      (uint16_t *) &udp, 
+					      &udp, 
 					      sizeof (udp));
       udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-					      (uint16_t *) rr->payload,
+					      rr->payload,
 					      rr->payload_length);
       udp.crc = GNUNET_CRYPTO_crc16_finish (udp_crc_sum);
       memcpy (&buf[off], &udp, sizeof (udp));
