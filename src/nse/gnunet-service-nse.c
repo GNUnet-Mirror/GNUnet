@@ -385,11 +385,12 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   em->header.type = htons (GNUNET_MESSAGE_TYPE_NSE_ESTIMATE);
   em->reserved = htonl (0);
   em->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-  em->size_estimate = mean - 0.332747;
+  double se = mean - 0.332747;
   nsize = log2 (GNUNET_CONTAINER_multihashmap_size (peers) + 1);
   if (em->size_estimate < nsize)
-    em->size_estimate = nsize;
-  em->std_deviation = std_dev;
+    se = nsize;
+  em->size_estimate = GNUNET_hton_double (se);
+  em->std_deviation = GNUNET_hton_double (std_dev);
   GNUNET_STATISTICS_set (stats, "# nodes in the network (estimate)",
                          (uint64_t) pow (2, mean - 1.0 / 3.0), GNUNET_NO);
 }

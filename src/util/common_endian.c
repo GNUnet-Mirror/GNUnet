@@ -50,5 +50,33 @@ GNUNET_htonll (uint64_t n)
 }
 
 
+double 
+GNUNET_hton_double (double d) 
+{
+  double res;
+  unsigned int *in = (unsigned int *) &d;
+  unsigned int *out = (unsigned int *) &res;
+
+  out[0] = htonl(in[0]);
+  out[1] = htonl(in[1]);
+ 
+  return res;
+}
+
+
+double 
+GNUNET_ntoh_double (double d) 
+{
+  double res;
+  unsigned int *in = (unsigned int *) &d;
+  unsigned int *out = (unsigned int *) &res;
+
+  out[0] = ntohl(in[0]);
+  out[1] = ntohl(in[1]);
+ 
+  return res;
+}
+
+
 
 /* end of common_endian.c */
