@@ -496,6 +496,21 @@ GNUNET_ntohll (uint64_t n);
 uint64_t
 GNUNET_htonll (uint64_t n);
 
+/**
+ * Convert double to network-byte-order.
+ * @param d the value in network byte order
+ * @return the same value in host byte order
+ */
+double 
+GNUNET_hton_double (double in);
+
+/**
+ * Convert double to host-byte-order
+ * @param d the value in network byte order
+ * @return the same value in host byte order
+ */
+double 
+GNUNET_ntoh_double (double in);
 
 /* ************************* allocation functions ****************** */
 

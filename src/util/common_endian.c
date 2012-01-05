@@ -50,6 +50,11 @@ GNUNET_htonll (uint64_t n)
 }
 
 
+/**
+ * Convert double to network-byte-order.
+ * @param n the value in network byte order
+ * @return the same value in host byte order
+ */
 double 
 GNUNET_hton_double (double d) 
 {
@@ -63,6 +68,11 @@ GNUNET_hton_double (double d)
 }
 
 
+/**
+ * Convert double to host-byte-order
+ * @param d the value in network byte order
+ * @return the same value in host byte order
+ */
 double 
 GNUNET_ntoh_double (double d) 
 {
