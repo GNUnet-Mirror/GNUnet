@@ -969,7 +969,6 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
   struct GNUNET_DHT_MonitorMessage *m;
   struct PendingMessage *pending;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "monitor start\n");
   h = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorHandle));
   GNUNET_CONTAINER_DLL_insert(handle->monitor_head, handle->monitor_tail, h);
 

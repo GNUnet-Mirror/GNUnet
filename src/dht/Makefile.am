@@ -99,7 +99,8 @@ check_PROGRAMS = \
  test_dht_twopeer_get_put \
  test_dht_twopeer_path_tracking \
  test_dht_multipeer \
- test_dht_2dtorus
+ test_dht_2dtorus \
+ test_dht_monitor
 
 if ENABLE_TEST_RUN
 TESTS = test_dht_api $(check_SCRIPTS) \
@@ -108,7 +109,8 @@ TESTS = test_dht_api $(check_SCRIPTS) \
  test_dht_twopeer_get_put \
  test_dht_twopeer_path_tracking \
  test_dht_multipeer  \
- test_dht_2dtorus
+ test_dht_2dtorus \
+ test_dht_monitor
 endif
 
 test_dht_api_SOURCES = \
@@ -167,6 +169,14 @@ test_dht_2dtorus_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la
 test_dht_2dtorus_DEPENDENCIES = \
+  libgnunetdht.la
+
+test_dht_monitor_SOURCES = test_dht_monitor.c
+test_dht_monitor_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/dht/libgnunetdht.la
+test_dht_monitor_DEPENDENCIES = \
   libgnunetdht.la
 
 EXTRA_DIST = \
