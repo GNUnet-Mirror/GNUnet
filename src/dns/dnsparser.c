@@ -74,12 +74,14 @@ GNUNET_NETWORK_STRUCT_END
  * @param udp_payload_length length of udp_payload
  * @param off pointer to the offset of the name to parse in the udp_payload (to be
  *                    incremented by the size of the name)
+ * @param depth current depth of our recursion (to prevent stack overflow)
  * @return name as 0-terminated C string on success, NULL if the payload is malformed
  */
 static char *
 parse_name (const char *udp_payload,
 	    size_t udp_payload_length,
-	    size_t *off)
+	    size_t *off,
+	    unsigned int depth)
 {
   const uint8_t *input = (const uint8_t *) udp_payload;
   char *ret;
@@ -114,13 +116,18 @@ parse_name (const char *udp_payload,
     }
     else if ((64 | 128) == (len & (64 | 128)) )
     {
+      if (depth > 32)
+	goto error; /* hard bound on stack to prevent "infinite" recursion, disallow! */
       /* pointer to string */
       if (*off + 1 > udp_payload_length)
 	goto error;
       xoff = ((len - (64 | 128)) << 8) + input[*off+1];
       xstr = parse_name (udp_payload,
 			 udp_payload_length,
-			 &xoff);
+			 &xoff,
+			 depth + 1);
+      if (NULL == xstr)
+	goto error;
       GNUNET_asprintf (&tmp,
 		       "%s%s.",
 		       ret,
@@ -128,6 +135,8 @@ parse_name (const char *udp_payload,
       GNUNET_free (ret);
       GNUNET_free (xstr);
       ret = tmp;
+      if (strlen (ret) > udp_payload_length)
+	goto error; /* we are looping (building an infinite string) */
       *off += 2;
       /* pointers always terminate names */
       break;
@@ -168,7 +177,7 @@ parse_query (const char *udp_payload,
 
   name = parse_name (udp_payload, 
 		     udp_payload_length,
-		     off);
+		     off, 0);
   if (NULL == name)
     return GNUNET_SYSERR;
   q->name = name;
@@ -206,7 +215,7 @@ parse_record (const char *udp_payload,
 
   name = parse_name (udp_payload, 
 		     udp_payload_length,
-		     off);
+		     off, 0);
   if (NULL == name)
     return GNUNET_SYSERR;
   r->name = name;
@@ -231,7 +240,7 @@ parse_record (const char *udp_payload,
     old_off = *off;
     r->data.hostname = parse_name (udp_payload,
 				   udp_payload_length,
-				   off);    
+				   off, 0);    
     if ( (NULL == r->data.hostname) ||
 	 (old_off + r->data_len != *off) )
       return GNUNET_SYSERR;
@@ -241,10 +250,10 @@ parse_record (const char *udp_payload,
     r->data.soa = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_SoaRecord));
     r->data.soa->mname = parse_name (udp_payload,
 				     udp_payload_length,
-				     off);
+				     off, 0);
     r->data.soa->rname = parse_name (udp_payload,
 				     udp_payload_length,
-				     off);
+				     off, 0);
     if ( (NULL == r->data.soa->mname) ||
 	 (NULL == r->data.soa->rname) ||
 	 (*off + sizeof (soa) > udp_payload_length) )
@@ -269,7 +278,7 @@ parse_record (const char *udp_payload,
     r->data.mx->preference = ntohs (mxpref);
     r->data.mx->mxhost = parse_name (udp_payload,
 				     udp_payload_length,
-				     off);
+				     off, 0);
     if (old_off + r->data_len != *off) 
       return GNUNET_SYSERR;
     return GNUNET_OK;
