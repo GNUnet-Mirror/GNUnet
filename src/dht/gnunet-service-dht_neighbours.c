@@ -1617,7 +1617,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                                pp, payload, payload_size);
   }
   GNUNET_CONTAINER_bloomfilter_free (bf);
-  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_P2P_PUT,
+  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT,
     GNUNET_TIME_absolute_ntoh (put->expiration_time), &put->key,
     putlen, put_path, 0, NULL, ntohl(put->desired_replication_level),
     ntohl (put->type), payload, payload_size);
@@ -1826,7 +1826,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
   }
 
-  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_P2P_GET,
+  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET,
     GNUNET_TIME_UNIT_FOREVER_ABS, &get->key, 0, NULL, 0, NULL,
     ntohl (get->desired_replication_level), type, NULL, 0);
 
@@ -1962,7 +1962,7 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
                          xget_path, data, data_size);
   }
 
-  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT,
+  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET_RESP,
     GNUNET_TIME_absolute_ntoh (prm->expiration_time), &prm->key,
     put_path_length, put_path, get_path_length, get_path,
     0, type, data, data_size);
