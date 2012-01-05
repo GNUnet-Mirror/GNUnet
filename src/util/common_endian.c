@@ -54,12 +54,11 @@ double
 GNUNET_hton_double (double d) 
 {
   double res;
-  unsigned int *in = (unsigned int *) &d;
-  unsigned int *out = (unsigned int *) &res;
+  uint64_t *in = (uint64_t *) &d;
+  uint64_t *out = (uint64_t *) &res;
 
-  out[0] = htonl(in[0]);
-  out[1] = htonl(in[1]);
- 
+  out[0] = GNUNET_htonll(in[0]);
+
   return res;
 }
 
@@ -68,11 +67,10 @@ double
 GNUNET_ntoh_double (double d) 
 {
   double res;
-  unsigned int *in = (unsigned int *) &d;
-  unsigned int *out = (unsigned int *) &res;
+  uint64_t *in = (uint64_t *) &d;
+  uint64_t *out = (uint64_t *) &res;
 
-  out[0] = ntohl(in[0]);
-  out[1] = ntohl(in[1]);
+  out[0] = GNUNET_ntohll(in[0]);
  
   return res;
 }
