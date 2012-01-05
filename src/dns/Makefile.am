@@ -35,7 +35,7 @@ bin_PROGRAMS = \
   gnunet-service-dns gnunet-service-dns-new $(HIJACKBIN)
 
 noinst_PROGRAMS = \
-  gnunet-dns-monitor
+  gnunet-dns-monitor gnunet-dns-redirector
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_dns.la 
@@ -61,6 +61,14 @@ gnunet_service_dns_LDADD = \
 gnunet_dns_monitor_SOURCES = \
  gnunet-dns-monitor.c
 gnunet_dns_monitor_LDADD = \
+  $(top_builddir)/src/dns/libgnunetdnsparser.la \
+  $(top_builddir)/src/dns/libgnunetdnsnew.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
+gnunet_dns_redirector_SOURCES = \
+ gnunet-dns-redirector.c
+gnunet_dns_redirector_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/dns/libgnunetdnsnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
