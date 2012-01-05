@@ -466,6 +466,7 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p)
  * @param dst where to write the name
  * @param dst_len number of bytes in dst
  * @param off pointer to offset where to write the name (increment by bytes used)
+ *            must not be changed if there is an error
  * @param name name to write
  * @return GNUNET_SYSERR if 'name' is invalid
  *         GNUNET_NO if 'name' did not fit
@@ -515,6 +516,7 @@ add_name (char *dst,
  * @param dst where to write the query
  * @param dst_len number of bytes in dst
  * @param off pointer to offset where to write the query (increment by bytes used)
+ *            must not be changed if there is an error
  * @param query query to write
  * @return GNUNET_SYSERR if 'query' is invalid
  *         GNUNET_NO if 'query' did not fit
@@ -545,7 +547,8 @@ add_query (char *dst,
  *
  * @param dst where to write the mx record
  * @param dst_len number of bytes in dst
- * @param off pointer to offset where to write the mx information (increment by bytes used)
+ * @param off pointer to offset where to write the mx information (increment by bytes used);
+ *            can also change if there was an error
  * @param mx mx information to write
  * @return GNUNET_SYSERR if 'mx' is invalid
  *         GNUNET_NO if 'mx' did not fit
@@ -557,7 +560,14 @@ add_mx (char *dst,
 	size_t *off,
 	const struct GNUNET_DNSPARSER_MxRecord *mx)
 {
-  return GNUNET_SYSERR; // not implemented
+  uint16_t mxpref;
+
+  if (*off + sizeof (uint16_t) > dst_len)
+    return GNUNET_NO;
+  mxpref = htons (mx->preference);
+  memcpy (&dst[*off], &mxpref, sizeof (mxpref));
+  (*off) += sizeof (mxpref);
+  return add_name (dst, dst_len, off, mx->mxhost);
 }
 
 
@@ -567,6 +577,7 @@ add_mx (char *dst,
  * @param dst where to write the SOA record
  * @param dst_len number of bytes in dst
  * @param off pointer to offset where to write the SOA information (increment by bytes used)
+ *            can also change if there was an error
  * @param soa SOA information to write
  * @return GNUNET_SYSERR if 'soa' is invalid
  *         GNUNET_NO if 'soa' did not fit
@@ -578,7 +589,28 @@ add_soa (char *dst,
 	 size_t *off,
 	 const struct GNUNET_DNSPARSER_SoaRecord *soa)
 {
-  return GNUNET_SYSERR; // not implemented
+  struct soa_data sd;
+  int ret;
+
+  if ( (GNUNET_OK != (ret = add_name (dst,
+				      dst_len,
+				      off,
+				      soa->mname))) ||
+       (GNUNET_OK != (ret = add_name (dst,
+				      dst_len,
+				      off,
+				      soa->rname)) ) )
+    return ret;
+  if (*off + sizeof (soa) > dst_len)
+    return GNUNET_NO;
+  sd.serial = htonl (soa->serial);
+  sd.refresh = htonl (soa->refresh);
+  sd.retry = htonl (soa->retry);
+  sd.expire = htonl (soa->expire);
+  sd.minimum = htonl (soa->minimum_ttl);
+  memcpy (&dst[*off], &sd, sizeof (sd));
+  (*off) += sizeof (sd);
+  return GNUNET_OK;
 }
 
 
@@ -588,6 +620,7 @@ add_soa (char *dst,
  * @param dst where to write the query
  * @param dst_len number of bytes in dst
  * @param off pointer to offset where to write the query (increment by bytes used)
+ *            must not be changed if there is an error
  * @param record record to write
  * @return GNUNET_SYSERR if 'record' is invalid
  *         GNUNET_NO if 'record' did not fit
@@ -632,8 +665,15 @@ add_record (char *dst,
     }
     memcpy (&dst[pos], record->data.raw.data, record->data.raw.data_len);
     pos += record->data.raw.data_len;
+    ret = GNUNET_OK;
     break;
   }
+  if (ret != GNUNET_OK)
+  {
+    *off = start;
+    return GNUNET_NO;
+  }
+
   if (pos - (*off + sizeof (struct record_line)) > UINT16_MAX)
   {
     /* record data too long */
@@ -648,7 +688,6 @@ add_record (char *dst,
   *off = pos;
   return GNUNET_OK;  
 }
-
 
 
 /**
@@ -689,6 +728,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   dns.answer_rcount = htons (p->num_answers);
   dns.authority_rcount = htons (p->num_authority_records);
   dns.additional_rcount = htons (p->num_additional_records);
+
   off = sizeof (struct dns_header);
   trc = GNUNET_NO;
   for (i=0;i<p->num_queries;i++)
@@ -739,11 +779,11 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
       break;
     }
   }
-  if (GNUNET_YES == trc)
-    dns.flags.message_truncated = 1;
-    
 
+  if (GNUNET_YES == trc)
+    dns.flags.message_truncated = 1;    
   memcpy (tmp, &dns, sizeof (struct dns_header));
+
   *buf = GNUNET_malloc (off);
   *buf_length = off;
   memcpy (*buf, tmp, off);
