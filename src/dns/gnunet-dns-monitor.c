@@ -134,16 +134,16 @@ display_record (const struct GNUNET_DNSPARSER_Record *record)
   switch (record->type)
   {
   case GNUNET_DNSPARSER_TYPE_A:
-    if (record->data_len != sizeof (struct in_addr))
+    if (record->data.raw.data_len != sizeof (struct in_addr))
       format = "<invalid>";
     else
-      format = inet_ntop (AF_INET, record->data.raw, buf, sizeof (buf));
+      format = inet_ntop (AF_INET, record->data.raw.data, buf, sizeof (buf));
     break;
   case GNUNET_DNSPARSER_TYPE_AAAA:
-    if (record->data_len != sizeof (struct in6_addr))
+    if (record->data.raw.data_len != sizeof (struct in6_addr))
       format = "<invalid>";
     else
-      format = inet_ntop (AF_INET6, record->data.raw, buf, sizeof (buf));
+      format = inet_ntop (AF_INET6, record->data.raw.data, buf, sizeof (buf));
     break;
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
@@ -182,8 +182,8 @@ display_record (const struct GNUNET_DNSPARSER_Record *record)
   case GNUNET_DNSPARSER_TYPE_TXT:
     GNUNET_asprintf (&tmp,
 		     "%.*s",
-		     (unsigned int) record->data_len,
-		     record->data.raw);
+		     (unsigned int) record->data.raw.data_len,
+		     record->data.raw.data);
     format = tmp;
     break;
   default:
@@ -191,12 +191,11 @@ display_record (const struct GNUNET_DNSPARSER_Record *record)
     break;
   }
   fprintf (stdout,
-	   "\t\t%s %s: %s = %s (%u bytes, %u s)\n",
+	   "\t\t%s %s: %s = %s (%u s)\n",
 	   get_class (record->class),
 	   get_type (record->type),
 	   record->name,
 	   format,
-	   (unsigned int) record->data_len,
 	   (unsigned int) (GNUNET_TIME_absolute_get_remaining (record->expiration_time).rel_value / 1000));
   GNUNET_free_non_null (tmp);
 }

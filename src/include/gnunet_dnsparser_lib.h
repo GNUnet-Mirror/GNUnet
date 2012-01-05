@@ -224,6 +224,24 @@ struct GNUNET_DNSPARSER_SoaRecord
 
 
 /**
+ * Binary record information (unparsed).
+ */
+struct GNUNET_DNSPARSER_RawRecord
+{
+
+  /**
+   * Binary record data.
+   */
+  void *data;
+
+  /**
+   * Number of bytes in data.
+   */
+  size_t data_len;
+};
+
+
+/**
  * A DNS response record.
  */
 struct GNUNET_DNSPARSER_Record
@@ -255,14 +273,10 @@ struct GNUNET_DNSPARSER_Record
     /**
      * Raw data for all other types.
      */
-    char *raw;
+    struct GNUNET_DNSPARSER_RawRecord raw;
 
   } data;
 
-  /**
-   * Number of bytes in data.
-   */
-  size_t data_len;
 
   /**
    * When does the record expire?
@@ -366,6 +380,7 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p);
  * Given a DNS packet, generate the corresponding UDP payload.
  *
  * @param p packet to pack
+ * @param max maximum allowed size for the resulting UDP payload
  * @param buf set to a buffer with the packed message
  * @param buf_length set to the length of buf
  * @return GNUNET_SYSERR if 'p' is invalid
@@ -373,7 +388,8 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p);
  *         GNUNET_OK if 'p' was packed completely into '*buf'
  */
 int
-GNUNET_DNSPARSER_pack (struct GNUNET_DNSPARSER_Packet *p,
+GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
+		       uint16_t max,
 		       char **buf,
 		       size_t *buf_length);
 
