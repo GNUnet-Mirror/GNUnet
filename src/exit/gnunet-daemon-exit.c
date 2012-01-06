@@ -463,9 +463,10 @@ get_redirect_state (int af,
   if (NULL == state)
     return NULL;
   /* Mark this connection as freshly used */
-  GNUNET_CONTAINER_heap_update_cost (connections_heap, 
-				     state->heap_node,
-                                     GNUNET_TIME_absolute_get ().abs_value);
+  if (NULL == state_key)
+    GNUNET_CONTAINER_heap_update_cost (connections_heap, 
+				       state->heap_node,
+				       GNUNET_TIME_absolute_get ().abs_value);
   return state;
 }
 
@@ -479,7 +480,7 @@ get_redirect_state (int af,
  * @param dpt destination port
  * @return NULL if we are not aware of such a service
  */
-struct LocalService *
+static struct LocalService *
 find_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 	      const GNUNET_HashCode *desc,
 	      uint16_t dpt)
@@ -875,73 +876,182 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 }
 
 
-
-
-
-
-void
-prepare_ipv4_packet (size_t len, 
-		     uint16_t pktlen, void *payload,
-                     uint8_t protocol, 
-		     void *ipaddress, void *tunnel,
-                     struct RedirectInformation *
-		     state, struct ip4_header *pkt4)
+/**
+ * We need to create a (unique) fresh local address (IP+port).
+ * Fill one in.
+ *
+ * @param af desired address family
+ * @param proto desired protocol (IPPROTO_UDP or IPPROTO_TCP)
+ * @param local_address address to initialize
+ */
+static void
+setup_fresh_address (int af,
+		     int proto,
+		     struct SocketAddress *local_address)
 {
-  const char *ipv4addr = exit_argv[4];
-  const char *ipv4mask = exit_argv[5];
-  uint32_t tmp;
-  uint32_t tmp2;
+  switch (af)
+  {
+  case AF_INET:
+    {
+      const char *ipv4addr = exit_argv[4];
+      const char *ipv4mask = exit_argv[5];
+      uint32_t tmp;
+      uint32_t tmp2;
+      
+      GNUNET_assert (1 == inet_pton (AF_INET, ipv4addr, &tmp));
+      GNUNET_assert (1 == inet_pton (AF_INET, ipv4mask, &tmp2));
+      // FIXME
+      /* This should be a noop */
+      tmp = tmp & tmp2;
+      tmp |= ntohl (*((uint32_t *) /*tunnel*/ 42)) & (~tmp2);
+      
+      // pkt4->source_address.s_addr = tmp;
+    }
+    break;
+  case AF_INET6:
+    {
+      const char *ipv6addr = exit_argv[2];
+      /* Generate a new src-address
+       * This takes as much from the address of the tunnel as fits into
+       * the host-mask*/
+      unsigned long long ipv6prefix_r = (ipv6prefix + 7) / 8;
+      inet_pton (AF_INET6, ipv6addr, &local_address->address.ipv6);
+      if (ipv6prefix_r < (16 - sizeof (void *)))
+	ipv6prefix_r = 16 - sizeof (void *);
+      
+      unsigned int offset = ipv6prefix_r - (16 - sizeof (void *));
+      // memcpy ((((char *) &pkt6->source_address)) + ipv6prefix_r, ((char *) &tunnel) + offset, 16 - ipv6prefix_r);
+      offset++;
+    }
+    break;
+  default:
+    GNUNET_assert (0);
+  }  
+}
 
-  GNUNET_assert (1 == inet_pton (AF_INET, ipv4addr, &tmp));
-  GNUNET_assert (1 == inet_pton (AF_INET, ipv4mask, &tmp2));
-  memcpy (&pkt4[1], payload, pktlen);
+
+/**
+ * FIXME: document!
+ */
+static void
+setup_state_record (struct TunnelState *state)
+{
+  GNUNET_HashCode key;
+  struct TunnelState *s;
+
+  /* generate fresh, unique address */
+  do
+  {
+    setup_fresh_address (state->serv->address.af,
+			 state->serv->address.proto,
+			 &state->ri.local_address);
+  } while (NULL != get_redirect_state (state->serv->address.af,
+				       IPPROTO_UDP,
+				       &state->ri.remote_address.address,
+				       state->ri.remote_address.port,
+				       &state->ri.local_address.address,
+				       state->ri.local_address.port,
+				       &key));
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_put (connections_map, 
+						    &key, state,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  state->heap_node = GNUNET_CONTAINER_heap_insert (connections_heap,
+						   state,
+						   GNUNET_TIME_absolute_get ().abs_value);   
+  while (GNUNET_CONTAINER_heap_get_size (connections_heap) > max_connections)
+  {
+    s = GNUNET_CONTAINER_heap_remove_root (connections_heap);
+    GNUNET_assert (state != s);
+    s->heap_node = NULL;
+    GNUNET_MESH_tunnel_destroy (s->tunnel);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CONTAINER_multihashmap_remove (connections_map,
+							 &s->state_key, 
+							 s));
+    GNUNET_free (s);
+  }
+}
+
+
+/**
+ * FIXME: document
+ */
+static void
+prepare_ipv4_packet (const void *payload, size_t payload_length,
+		     int protocol,
+		     const struct SocketAddress *src_address,
+		     const struct SocketAddress *dst_address,
+		     struct ip4_header *pkt4)
+{
+  size_t len;
+
+  len = payload_length;
+  switch (protocol)
+  {
+  case IPPROTO_UDP:
+    len += sizeof (struct udp_packet);
+    break;
+  case IPPROTO_TCP:
+    /* tcp_header (with port/crc not set) must be part of payload! */
+    if (len < sizeof (struct tcp_packet))
+    {
+      GNUNET_break (0);
+      return;
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    return;
+  }
+  if (len + sizeof (struct ip4_header) > UINT16_MAX)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   pkt4->version = 4;
   pkt4->header_length = sizeof (struct ip4_header) / 4;
   pkt4->diff_serv = 0;
-  pkt4->total_length = htons (sizeof (struct ip4_header) + pktlen);
-  pkt4->identification = 0; // FIXME!
+  pkt4->total_length = htons ((uint16_t) (sizeof (struct ip4_header) + len));
+  pkt4->identification = 0; // FIXME: pick at random!
   pkt4->flags = 0;
   pkt4->fragmentation_offset = 0;
   pkt4->ttl = 255;
   pkt4->protocol = protocol;
-  pkt4->checksum = 0;        /* Will be calculated later */
-
-  memcpy (&pkt4->destination_address, ipaddress, sizeof (struct in_addr));
-
-  /* Generate a new src-address  -- FIXME: not always, right!? */
-
-  /* This should be a noop */
-  tmp = tmp & tmp2;
-  tmp |= ntohl (*((uint32_t *) tunnel)) & (~tmp2);
-
-  pkt4->source_address.s_addr = tmp;
+  pkt4->checksum = 0;
+  pkt4->destination_address = dst_address->address.ipv4;
+  pkt4->source_address = src_address->address.ipv4;
   pkt4->checksum = GNUNET_CRYPTO_crc16_n (pkt4, sizeof (struct ip4_header));
-
-  // FIXME:  memcpy (&state->addr, &tmp, 4);
 
   switch (protocol)
   {
   case IPPROTO_UDP:
     {
       struct udp_packet *pkt4_udp = (struct udp_packet *) &pkt4[1];
-      // FIXME: state->pt = pkt4_udp->spt;
+
+      pkt4_udp->spt = htons (src_address->port);
+      pkt4_udp->dpt = htons (dst_address->port);
       pkt4_udp->crc = 0;  /* Optional for IPv4 */
+      pkt4_udp->len = htons ((uint16_t) payload_length);
+      memcpy (&pkt4_udp[1], payload, payload_length);
     }
     break;
   case IPPROTO_TCP:
     {
       struct tcp_packet *pkt4_tcp = (struct tcp_packet *) &pkt4[1];
       
-      // FIXME: state->pt = pkt4_tcp->spt;
+      memcpy (pkt4_tcp, payload, payload_length);
+      pkt4_tcp->spt = htons (src_address->port);
+      pkt4_tcp->dpt = htons (dst_address->port);
       pkt4_tcp->crc = 0;
       uint32_t sum = 0;
       sum = GNUNET_CRYPTO_crc16_step (sum, 
 				      &pkt4->source_address,
 				      sizeof (struct in_addr) * 2);
-      tmp = (protocol << 16) | (0xffff & pktlen);
-      tmp = htonl (tmp);
-      sum = GNUNET_CRYPTO_crc16_step (sum, & tmp, 4);
-      sum = GNUNET_CRYPTO_crc16_step (sum, & pkt4_tcp, pktlen);
+      uint32_t tmp = htonl ((protocol << 16) | (0xffff & len));
+      sum = GNUNET_CRYPTO_crc16_step (sum, & tmp, sizeof (uint32_t));
+      sum = GNUNET_CRYPTO_crc16_step (sum, & pkt4_tcp, len);
       pkt4_tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
     }
     break;
@@ -951,62 +1061,70 @@ prepare_ipv4_packet (size_t len,
 }
 
 
-void
-prepare_ipv6_packet (size_t len, uint16_t pktlen, void *payload,
-                     uint16_t protocol, void *ipaddress, void *tunnel,
-                     struct RedirectInformation *state, struct ip6_header *pkt6)
+/**
+ * FIXME: document
+ */
+static void
+prepare_ipv6_packet (const void *payload, size_t payload_length,
+		     int protocol,
+		     const struct SocketAddress *src_address,
+		     const struct SocketAddress *dst_address,
+		     struct ip6_header *pkt6)
 {
-  const char *ipv6addr = exit_argv[2];
-  uint32_t tmp;
+  size_t len;
 
-
-  memcpy (&pkt6[1], payload, pktlen);
+  len = payload_length;
+  switch (protocol)
+  {
+  case IPPROTO_UDP:
+    len += sizeof (struct udp_packet);
+    break;
+  case IPPROTO_TCP:
+    /* tcp_header (with port/crc not set) must be part of payload! */
+    if (len < sizeof (struct tcp_packet))
+    {
+      GNUNET_break (0);
+      return;
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    return;
+  }
+  if (len > UINT16_MAX)
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   pkt6->version = 6;
   pkt6->next_header = protocol;
-  pkt6->payload_length = htons (pktlen);
-  pkt6->hop_limit = 64;
-
-  memcpy (&pkt6->destination_address, ipaddress, sizeof (struct in6_addr));
-
-  /* Generate a new src-address
-   * This takes as much from the address of the tunnel as fits into
-   * the host-mask*/
-
-  unsigned long long ipv6prefix_r = (ipv6prefix + 7) / 8;
-
-  inet_pton (AF_INET6, ipv6addr, &pkt6->source_address);
-
-  if (ipv6prefix_r < (16 - sizeof (void *)))
-    ipv6prefix_r = 16 - sizeof (void *);
-
-  unsigned int offset = ipv6prefix_r - (16 - sizeof (void *));
-
-  memcpy ((((char *) &pkt6->source_address)) + ipv6prefix_r,
-          ((char *) &tunnel) + offset, 16 - ipv6prefix_r);
-
-  /* copy the needed information into the state */
-  // FIXME: memcpy (&state->addr, &pkt6->source_address, 16);
+  pkt6->payload_length = htons ((uint16_t) (len + sizeof (struct ip6_header)));
+  pkt6->hop_limit = 255;
+  pkt6->destination_address = dst_address->address.ipv6;
+  pkt6->source_address = src_address->address.ipv6;
 
   switch (protocol)
   {
   case IPPROTO_UDP:
     {
       struct udp_packet *pkt6_udp = (struct udp_packet *) &pkt6[1];
-      
-      // FIXME: state->pt = pkt6_udp->spt;      
+
+      memcpy (&pkt6[1], payload, payload_length);
       pkt6_udp->crc = 0;
+      pkt6_udp->spt = htons (src_address->port);
+      pkt6_udp->dpt = htons (dst_address->port);
+      pkt6_udp->len = htons ((uint16_t) payload_length);
+
       uint32_t sum = 0;
-      sum =
-        GNUNET_CRYPTO_crc16_step (sum, & pkt6->source_address,
-				  16 * 2);
-      tmp = (htons (pktlen) & 0xffff);
-      sum = GNUNET_CRYPTO_crc16_step (sum, & tmp, 4);
-      tmp = htons (pkt6->next_header & 0x00ff);
-      sum = GNUNET_CRYPTO_crc16_step (sum, & tmp, 4);
-      sum =
-        GNUNET_CRYPTO_crc16_step (sum, pkt6_udp,
-				  ntohs (pkt6_udp->len));
+      sum = GNUNET_CRYPTO_crc16_step (sum,
+				      &pkt6->source_address,
+				      sizeof (struct in6_addr) * 2);
+      uint32_t tmp = htons (len);
+      sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+      tmp = htonl (pkt6->next_header);
+      sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+      sum = GNUNET_CRYPTO_crc16_step (sum, pkt6_udp, len);
       pkt6_udp->crc = GNUNET_CRYPTO_crc16_finish (sum);
     }
     break;
@@ -1014,20 +1132,19 @@ prepare_ipv6_packet (size_t len, uint16_t pktlen, void *payload,
     {
       struct tcp_packet *pkt6_tcp = (struct tcp_packet *) pkt6;
       
-      // FIXME: state->pt = pkt6_tcp->spt;
+      memcpy (pkt6_tcp, payload, payload_length);
       pkt6_tcp->crc = 0;
+      pkt6_tcp->spt = htons (src_address->port);
+      pkt6_tcp->dpt = htons (dst_address->port);
+
       uint32_t sum = 0;
-      
-      sum =
-        GNUNET_CRYPTO_crc16_step (sum, & pkt6->source_address, 16 * 2);
-      tmp = htonl (pktlen);
-      sum = GNUNET_CRYPTO_crc16_step (sum, & tmp, 4);
-      tmp = htonl (((pkt6->next_header & 0x000000ff)));
-      sum = GNUNET_CRYPTO_crc16_step (sum, & tmp, 4);
-      
-      sum =
-        GNUNET_CRYPTO_crc16_step (sum,  pkt6_tcp,
-				  ntohs (pkt6->payload_length));
+      sum = GNUNET_CRYPTO_crc16_step (sum, &pkt6->source_address, 
+				      sizeof (struct in6_addr) * 2);
+      uint32_t tmp = htonl (len);
+      sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+      tmp = htonl (pkt6->next_header);
+      sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));      
+      sum = GNUNET_CRYPTO_crc16_step (sum,  pkt6_tcp, len);
       pkt6_tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
     }
     break;
@@ -1285,6 +1402,90 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   return GNUNET_YES;
 }
 
+
+
+
+/**
+ * FIXME: document!
+ */
+static void
+send_udp_packet_via_tun (const struct SocketAddress *destination_address,
+			 const struct SocketAddress *source_address,
+			 const void *payload, size_t payload_length)
+{
+  size_t len;
+
+  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header);
+  switch (source_address->af)
+  {
+  case AF_INET:
+    len += sizeof (struct ip4_header);
+    break;
+  case AF_INET6:
+    len += sizeof (struct ip6_header);
+    break;
+  default:
+    GNUNET_break (0);
+    return;
+  }
+  len += sizeof (struct udp_packet);
+  len += payload_length;
+  if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  {
+    char buf[len];
+    struct GNUNET_MessageHeader *hdr;
+    struct tun_header *tun;
+    
+    hdr= (struct GNUNET_MessageHeader *) buf;
+    hdr->type = htons (42);
+    hdr->size = htons (len);
+    tun = (struct tun_header*) &hdr[1];
+    tun->flags = htons (0);
+    switch (source_address->af)
+    {
+    case AF_INET:
+      {
+	struct ip4_header * ipv4 = (struct ip4_header*) &tun[1];
+	
+	tun->proto = htons (ETH_P_IPV4);
+	prepare_ipv4_packet (payload, payload_length, IPPROTO_UDP,
+			     source_address,
+			     destination_address,
+			     ipv4);
+      }
+      break;
+    case AF_INET6:
+      {
+	struct ip6_header * ipv6 = (struct ip6_header*) &tun[1];
+	
+	tun->proto = htons (ETH_P_IPV6);
+	prepare_ipv6_packet (payload, payload_length, IPPROTO_UDP,
+			     source_address,
+			     destination_address,
+			     ipv6);
+      }
+      break;	
+    default:
+      GNUNET_assert (0);
+      break;
+    }
+    (void) GNUNET_HELPER_send (helper_handle,
+			       (const struct GNUNET_MessageHeader*) buf,
+			       GNUNET_YES,
+			       NULL, NULL);
+  }
+}
+
+
+
+
+/**
+ * FIXME: document!
+ */
 static int
 receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                     void **tunnel_ctx GNUNET_UNUSED,
@@ -1292,82 +1493,36 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
-  // FIXME
-#if 0
-  GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
-  struct udp_packet *pkt = (struct udp_packet *) (desc + 1);
-  struct remote_addr *s = (struct remote_addr *) desc;
-  char *buf;
-  size_t len;
+  struct TunnelState *state = *tunnel_ctx;
+  // FIXME: write proper request struct (!)
+  const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
+  const struct udp_packet *pkt = (const struct udp_packet *) &desc[1];
+  const struct SocketAddress *s = (const struct SocketAddress *) desc;
+  uint16_t pkt_len = ntohs (message->size);
 
-  GNUNET_assert (ntohs (pkt->len) ==
-                 ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
-                 sizeof (GNUNET_HashCode));
-
-  /* Prepare the state.
-   * This will be saved in the hashmap, so that the receiving procedure knows
-   * through which tunnel this connection has to be routed.
-   */
-  struct TunnelState *state = GNUNET_malloc (sizeof (struct TunnelState));
-
-  state->tunnel = tunnel;
-  state->hashmap = udp_connections;
-  state->type = REMOTE;
-  memcpy (&state->remote, s, sizeof (struct remote_addr));
-
-  len =
-      sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
-      sizeof (struct ip6_hdr) + ntohs (pkt->len);
-  buf = alloca (len);
-
-  memset (buf, 0, len);
-
-  switch (s->addrlen)
+  if (pkt_len != ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) - sizeof (GNUNET_HashCode))
   {
-  case 4:
-    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP, &s->addr,
-                         tunnel, state, (struct ip4_header *) buf);
-    break;
-  case 16:
-    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP, &s->addr,
-                         tunnel, state, (struct ip6_header *) buf);
-    break;
-  default:
-    GNUNET_assert (0);
-    break;
+    GNUNET_break_op (0);
+    return GNUNET_YES;
+  }
+  pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
+
+  if (NULL == state->heap_node)
+  {
+    /* first packet, setup record */
+    state->ri.remote_address = *s;
+    setup_state_record (state);
   }
 
-  hash_redirect_info (&state->hash, &state->redirect_info, s->addrlen);
-
-  (void) GNUNET_HELPER_send (helper_handle,
-			     (const struct GNUNET_MessageHeader*) buf,
-			     GNUNET_YES,
-			     NULL, NULL);
-
-
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (udp_connections, &state->hash))
-  {
-    GNUNET_CONTAINER_multihashmap_put (udp_connections, &state->hash, state,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-
-    state->heap_node =
-        GNUNET_CONTAINER_heap_insert (udp_connections_heap, state,
-                                      GNUNET_TIME_absolute_get ().abs_value);
-
-    if (GNUNET_CONTAINER_heap_get_size (udp_connections_heap) >
-        max_udp_connections)
-      GNUNET_SCHEDULER_add_now (collect_connections, udp_connections_heap);
-  }
-  else
-    GNUNET_free (state);
-#endif
+  send_udp_packet_via_tun (&state->ri.remote_address,
+			   &state->ri.local_address,
+			   &pkt[1], pkt_len - sizeof (struct udp_packet));
   return GNUNET_YES;
 }
 
 
 /**
- * The messages are one GNUNET_HashCode for the service, followed by a struct udp_packet
+ * FIXME: document!
  */
 static int
 receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -1376,16 +1531,12 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
-  // FIXME
-#if 0
+  struct TunnelState *state = *tunnel_ctx;
+  // FIXME: write proper request struct (we don't need UDP except dpt either!)
   const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
   const struct udp_packet *pkt = (const struct udp_packet *) &desc[1];
   uint16_t pkt_len = ntohs (message->size);
-  struct LocalService *serv;
-  struct TunnelState *state;
-  struct tunnel_state *s;
-  char *buf;
-  size_t len;
+
 
   /* check that we got at least a valid header */
   if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct udp_packet))
@@ -1399,91 +1550,27 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                  ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
                  sizeof (GNUNET_HashCode));
 
-  if (NULL == (serv = find_service (udp_services, desc, ntohs (pkt->dpt))))
+  if (NULL == state->serv) 
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		_("No service found for %s on port %d!\n"),
-		"UDP",
-                ntohs (pkt->dpt));
-    return GNUNET_YES;
+    /* setup fresh connection */
+    GNUNET_assert (NULL == state->heap_node);
+    if (NULL == (state->serv = find_service (udp_services, desc, ntohs (pkt->dpt))))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		  _("No service found for %s on port %d!\n"),
+		  "UDP",
+		  ntohs (pkt->dpt));
+      GNUNET_MESH_tunnel_destroy (state->tunnel);
+      return GNUNET_YES;
+    }
+    state->ri.remote_address = state->serv->address;    
+    setup_state_record (state);
   }
-  pkt->dpt = htons (serv->remote_port);
-
-  /* At this point it would be possible to check against some kind of ACL. */
-  
-  s = GNUNET_MESH_tunnel_get_data (tunnel);
-  
-
-  /* Prepare the state.
-   * This will be saved in the hashmap, so that the receiving procedure knows
-   * through which tunnel this connection has to be routed.
-   */
-
-  state = GNUNET_malloc (sizeof (struct TunnelState));
-
-  state->tunnel = tunnel;
-  state->serv = serv;
-  state->type = SERVICE;
-  state->hashmap = udp_connections;
-  memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
-
-  len =
-      sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
-      sizeof (struct ip6_hdr) + ntohs (pkt->len);
-  buf = alloca (len);
-
-  memset (buf, 0, len);
-
-  switch (serv->version)
-  {
-  case 4:
-    prepare_ipv4_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP,
-                         &serv->v4.ip4address, tunnel, state,
-                         (struct ip4_header *) buf);
-    break;
-  case 6:
-    prepare_ipv6_packet (len, ntohs (pkt->len), pkt, IPPROTO_UDP,
-                         &serv->v6.ip6address, tunnel, state,
-                         (struct ip6_header *) buf);
-
-    break;
-  default:
-    GNUNET_assert (0);
-    break;
-  }
-
-  hash_redirect_info (&state->hash, &state->redirect_info,
-                      serv->version == 4 ? 4 : 16);
-
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (udp_connections, &state->hash))
-  {
-    GNUNET_CONTAINER_multihashmap_put (udp_connections, &state->hash, state,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-
-    state->heap_node =
-        GNUNET_CONTAINER_heap_insert (udp_connections_heap, state,
-                                      GNUNET_TIME_absolute_get ().abs_value);
-
-    if (GNUNET_CONTAINER_heap_get_size (udp_connections_heap) >
-        max_udp_connections)
-      GNUNET_SCHEDULER_add_now (collect_connections, udp_connections_heap);
-  }
-  else
-    GNUNET_free (state);
-
-  (void) GNUNET_HELPER_send (helper_handle,
-			     (const struct GNUNET_MessageHeader*) buf,
-			     GNUNET_YES,
-			     NULL, NULL);
-#endif
+  send_udp_packet_via_tun (&state->ri.remote_address,
+			   &state->ri.local_address,
+			   &pkt[1], pkt_len - sizeof (struct udp_packet));
   return GNUNET_YES;
 }
-
-
-
-
-
 
 
 /**
