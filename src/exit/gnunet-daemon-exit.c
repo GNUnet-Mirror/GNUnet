@@ -25,7 +25,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - setup_fresh_address is not implemented
  * - need proper message headers for mesh P2P messages
  * - factor out crc computations from DNS/EXIT into shared library?
  */
@@ -891,42 +890,87 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
  */
 static void
 setup_fresh_address (int af,
-		     int proto,
+		     uint8_t proto,
 		     struct SocketAddress *local_address)
 {
+  local_address->af = af;
+  local_address->proto = (uint8_t) proto;
+  /* default "local" port range is often 32768--61000,
+     so we pick a random value in that range */	 
+  local_address->port 
+    = (uint16_t) 32768 + GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+						   28232);      
   switch (af)
   {
   case AF_INET:
     {
       const char *ipv4addr = exit_argv[4];
       const char *ipv4mask = exit_argv[5];
-      uint32_t tmp;
-      uint32_t tmp2;
-      
-      GNUNET_assert (1 == inet_pton (AF_INET, ipv4addr, &tmp));
-      GNUNET_assert (1 == inet_pton (AF_INET, ipv4mask, &tmp2));
-      // FIXME
-      /* This should be a noop */
-      tmp = tmp & tmp2;
-      tmp |= ntohl (*((uint32_t *) /*tunnel*/ 42)) & (~tmp2);
-      
-      // pkt4->source_address.s_addr = tmp;
+      struct in_addr addr;
+      struct in_addr mask;
+      struct in_addr rnd;
+
+      GNUNET_assert (1 == inet_pton (AF_INET, ipv4addr, &addr));
+      GNUNET_assert (1 == inet_pton (AF_INET, ipv4mask, &mask));           
+      if (0 == ~mask.s_addr)
+      {
+	/* only one valid IP anyway */
+	local_address->address.ipv4 = addr;
+	return;
+      }
+      /* Given 192.168.0.1/255.255.0.0, we want a mask 
+	 of '192.168.255.255', thus:  */
+      mask.s_addr = addr.s_addr | ~mask.s_addr;
+      /* Pick random IPv4 address within the subnet, except 'addr' or 'mask' itself */
+      do
+	{
+	  rnd.s_addr = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+						 UINT32_MAX);	
+	  local_address->address.ipv4.s_addr = (addr.s_addr | rnd.s_addr) & mask.s_addr;
+	}
+      while ( (local_address->address.ipv4.s_addr == addr.s_addr) ||
+	      (local_address->address.ipv4.s_addr == mask.s_addr) );
     }
     break;
   case AF_INET6:
     {
       const char *ipv6addr = exit_argv[2];
-      /* Generate a new src-address
-       * This takes as much from the address of the tunnel as fits into
-       * the host-mask*/
-      unsigned long long ipv6prefix_r = (ipv6prefix + 7) / 8;
-      inet_pton (AF_INET6, ipv6addr, &local_address->address.ipv6);
-      if (ipv6prefix_r < (16 - sizeof (void *)))
-	ipv6prefix_r = 16 - sizeof (void *);
+      struct in6_addr addr;
+      struct in6_addr mask;
+      struct in6_addr rnd;
+      int i;
+
+      GNUNET_assert (1 == inet_pton (AF_INET6, ipv6addr, &addr));
+      GNUNET_assert (ipv6prefix < 128);
+      if (ipv6prefix == 127)
+      {
+	/* only one valid IP anyway */
+	local_address->address.ipv6 = addr;
+	return;
+      }
+      /* Given ABCD::/96, we want a mask of 'ABCD::FFFF:FFFF,
+	 thus: */
+      mask = addr;
+      for (i=127;i>=128-ipv6prefix;i--)
+	mask.s6_addr[i / 8] |= (1 << (i % 8));
       
-      unsigned int offset = ipv6prefix_r - (16 - sizeof (void *));
-      // memcpy ((((char *) &pkt6->source_address)) + ipv6prefix_r, ((char *) &tunnel) + offset, 16 - ipv6prefix_r);
-      offset++;
+      /* Pick random IPv6 address within the subnet, except 'addr' or 'mask' itself */
+      do
+	{
+	  for (i=0;i<16;i++)
+	  {
+	    rnd.s6_addr[i] = (unsigned char) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+								       256);
+	    local_address->address.ipv6.s6_addr[i]
+	      = (addr.s6_addr[i] | rnd.s6_addr[i]) & mask.s6_addr[i];
+	  }
+	}
+      while ( (0 == memcmp (&local_address->address.ipv6,
+			    &addr,
+			    sizeof (struct in6_addr))) ||
+	      (0 == memcmp (&local_address->address.ipv6,
+			    &mask,
+			    sizeof (struct in6_addr))) );
     }
     break;
   default:
@@ -1052,7 +1096,7 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
   pkt4->diff_serv = 0;
   pkt4->total_length = htons ((uint16_t) (sizeof (struct ip4_header) + len));
   pkt4->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
-							      65536);
+							      UINT16_MAX + 1);
   pkt4->flags = 0;
   pkt4->fragmentation_offset = 0;
   pkt4->ttl = 255;

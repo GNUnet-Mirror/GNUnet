@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010 Christian Grothoff
+     (C) 2010, 2011, 2012 Christian Grothoff
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,11 +19,16 @@
 */
 
 /**
- * @file vpn/gnunet-daemon-vpn.c
- * @brief the helper for various vpn-daemons. Opens a virtual network-interface,
+ * @file exit/gnunet-helper-exit.c
+ * @brief the helper for exit nodes. Opens a virtual network-interface,
  * sends data received on the if to stdout, sends data received on stdin to the
  * interface
  * @author Philipp Tölke
+ *
+ * TODO:
+ * - need to add code to setup ip_forwarding and NAT (for IPv4) so that
+ *   users don't need to ALSO do admin work; this is what will set
+ *   gnunet-helper-exit.c apart from gnunet-helper-vpn.c
  *
  * The following list of people have reviewed this code and considered
  * it safe since the last modification (if you reviewed it, please
