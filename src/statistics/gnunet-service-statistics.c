@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,11 +22,9 @@
  * @file statistics/gnunet-service-statistics.c
  * @brief program that tracks statistics
  * @author Christian Grothoff
- *
- * TODO:
- * - use BIO for IO operations
  */
 #include "platform.h"
+#include "gnunet_bio_lib.h"
 #include "gnunet_container_lib.h"
 #include "gnunet_disk_lib.h"
 #include "gnunet_getopt_lib.h"
@@ -175,11 +173,11 @@ static void
 load (struct GNUNET_SERVER_Handle *server)
 {
   char *fn;
-  struct GNUNET_DISK_FileHandle *fh;
-  struct GNUNET_DISK_MapHandle *mh;
+  struct GNUNET_BIO_ReadHandle *rh;
   struct stat sb;
   char *buf;
   struct GNUNET_SERVER_MessageStreamTokenizer *mst;
+  char *emsg;
 
   fn = GNUNET_DISK_get_home_filename (cfg, "statistics", "statistics.data",
                                       NULL);
@@ -190,17 +188,18 @@ load (struct GNUNET_SERVER_Handle *server)
     GNUNET_free (fn);
     return;
   }
-  fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ, GNUNET_DISK_PERM_NONE);
-  if (!fh)
+  buf = GNUNET_malloc (sb.st_size);
+  rh = GNUNET_BIO_read_open (fn);
+  if (!rh)
   {
     GNUNET_free (fn);
     return;
   }
-  buf = GNUNET_DISK_file_map (fh, &mh, GNUNET_DISK_MAP_TYPE_READ, sb.st_size);
-  if (NULL == buf)
+  if (GNUNET_OK != GNUNET_BIO_read (rh, fn, buf, sb.st_size))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "mmap", fn);
-    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "read", fn);
+    GNUNET_break (GNUNET_OK == GNUNET_BIO_read_close (rh, &emsg));
+    GNUNET_free_non_null (emsg);
     GNUNET_free (fn);
     return;
   }
@@ -212,8 +211,9 @@ load (struct GNUNET_SERVER_Handle *server)
                 GNUNET_SERVER_mst_receive (mst, NULL, buf, sb.st_size,
                                            GNUNET_YES, GNUNET_NO));
   GNUNET_SERVER_mst_destroy (mst);
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_unmap (mh));
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
+  GNUNET_free (buf);
+  GNUNET_break (GNUNET_OK == GNUNET_BIO_read_close (rh, &emsg));
+  GNUNET_free_non_null (emsg);
   GNUNET_free (fn);
 }
 
@@ -225,40 +225,37 @@ save ()
 {
   struct StatsEntry *pos;
   char *fn;
-  struct GNUNET_DISK_FileHandle *fh;
+  struct GNUNET_BIO_WriteHandle *wh;
+  
   uint16_t size;
   unsigned long long total;
 
-  fh = NULL;
+  wh = NULL;
   fn = GNUNET_DISK_get_home_filename (cfg, "statistics", "statistics.data",
                                       NULL);
   if (fn != NULL)
-    fh = GNUNET_DISK_file_open (fn,
-                                GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE
-                                | GNUNET_DISK_OPEN_TRUNCATE,
-                                GNUNET_DISK_PERM_USER_READ |
-                                GNUNET_DISK_PERM_USER_WRITE);
+    wh = GNUNET_BIO_write_open (fn);
   total = 0;
   while (NULL != (pos = start))
   {
     start = pos->next;
-    if ((pos->persistent) && (NULL != fh))
+    if ((pos->persistent) && (NULL != wh))
     {
       size = htons (pos->msg->header.size);
-      if (size != GNUNET_DISK_file_write (fh, pos->msg, size))
+      if (GNUNET_OK != GNUNET_BIO_write (wh, pos->msg, size))
       {
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
-        GNUNET_DISK_file_close (fh);
-        fh = NULL;
+        GNUNET_BIO_write_close (wh);
+        wh = NULL;
       }
       else
         total += size;
     }
     GNUNET_free (pos);
   }
-  if (NULL != fh)
+  if (NULL != wh)
   {
-    GNUNET_DISK_file_close (fh);
+    GNUNET_BIO_write_close (wh);
     if (total == 0)
       GNUNET_break (0 == UNLINK (fn));
     else
