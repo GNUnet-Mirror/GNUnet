@@ -23,6 +23,12 @@
  * @brief tool to allow IP traffic exit from the GNUnet mesh to the Internet
  * @author Philipp Toelke
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - setup_fresh_address is not implemented
+ * - various functions are not documented
+ * - update_state_map is dead, do we need something like it still?
+ * - need proper message headers for mesh P2P messages
  */
 #include <platform.h>
 #include <gnunet_common.h>
@@ -1014,7 +1020,8 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
   pkt4->header_length = sizeof (struct ip4_header) / 4;
   pkt4->diff_serv = 0;
   pkt4->total_length = htons ((uint16_t) (sizeof (struct ip4_header) + len));
-  pkt4->identification = 0; // FIXME: pick at random!
+  pkt4->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+							      65536);
   pkt4->flags = 0;
   pkt4->fragmentation_offset = 0;
   pkt4->ttl = 255;
