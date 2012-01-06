@@ -1218,11 +1218,87 @@ update_state_map (const struct RedirectInformation *ri,
   }
 }
 
-		  
+
+/**
+ * FIXME: document!
+ *
+ * @param payload payload of the IP header (includes TCP header)
+ */
+static void
+send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
+			 const struct SocketAddress *source_address,
+			 const void *payload, size_t payload_length)
+{
+  size_t len;
+
+  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header);
+  switch (source_address->af)
+  {
+  case AF_INET:
+    len += sizeof (struct ip4_header);
+    break;
+  case AF_INET6:
+    len += sizeof (struct ip6_header);
+    break;
+  default:
+    GNUNET_break (0);
+    return;
+  }
+  len += payload_length;
+  if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  {
+    char buf[len];
+    struct GNUNET_MessageHeader *hdr;
+    struct tun_header *tun;
+    
+    hdr= (struct GNUNET_MessageHeader *) buf;
+    hdr->type = htons (42);
+    hdr->size = htons (len);
+    tun = (struct tun_header*) &hdr[1];
+    tun->flags = htons (0);
+    switch (source_address->af)
+    {
+    case AF_INET:
+      {
+	struct ip4_header * ipv4 = (struct ip4_header*) &tun[1];
+	
+	tun->proto = htons (ETH_P_IPV4);
+	prepare_ipv4_packet (payload, payload_length, IPPROTO_TCP,
+			     source_address,
+			     destination_address,
+			     ipv4);
+      }
+      break;
+    case AF_INET6:
+      {
+	struct ip6_header * ipv6 = (struct ip6_header*) &tun[1];
+	
+	tun->proto = htons (ETH_P_IPV6);
+	prepare_ipv6_packet (payload, payload_length, IPPROTO_TCP,
+			     source_address,
+			     destination_address,
+			     ipv6);
+      }
+      break;	
+    default:
+      GNUNET_assert (0);
+      break;
+    }
+    (void) GNUNET_HELPER_send (helper_handle,
+			       (const struct GNUNET_MessageHeader*) buf,
+			       GNUNET_YES,
+			       NULL, NULL);
+  }
+}
 
 
 /**
  * The messages are one GNUNET_HashCode for the service followed by a struct tcp_packet
+ * FIXME: document!
  */
 static int
 receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -1231,13 +1307,12 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
-#if 0
+  struct TunnelState *state = *tunnel_ctx;
+  // FIXME: write proper request struct (we don't need the descriptor EACH time here!)
   const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
   const struct tcp_packet *pkt = (const struct tcp_packet *) &desc[1];
   uint16_t pkt_len = ntohs (message->size);
-  struct LocalService *serv;
-  struct RedirectInformation u_i;
-  GNUNET_HashCode state_key;
+
 
   /* check that we got at least a valid header */
   if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct tcp_packet))
@@ -1247,83 +1322,32 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
   }
   pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
 
-  if (NULL == (serv = find_service (tcp_services, desc, ntohs (pkt->dpt))))
+  if (NULL == state->serv) 
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		_("No service found for %s on port %d!\n"),
-		"TCP",
-                ntohs (pkt->dpt));
-    return GNUNET_YES;
-  }
-  pkt->dpt = htons (serv->remote_port);
-
-  /* At this point it would be possible to check against some kind of ACL. */
-
-  switch (serv->version)
+    /* setup fresh connection */
+    GNUNET_assert (NULL == state->heap_node);
+    if (NULL == (state->serv = find_service (tcp_services, desc, ntohs (pkt->dpt))))
     {
-    case 4:
-      {
-	size_t len =
-	  sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header) +
-	  sizeof (struct ip4_header) + pkt_len;       
-	char buf[len];
-	struct tun_header *hdr;
-	struct GNUNET_MessageHeader *mhdr;
-	
-	memset (buf, 0, len);
-	mhdr = (struct GNUNET_MessageHeader*) buf;
-	hdr = (struct tun_header *) &mhdr[1];
-	mhdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
-	mhdr->size = htons (len);
-	hdr->flags = 0;
-	hdr->proto = htons (0x0800);
-	prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP, &serv->v4.ip4address,
-			     tunnel, &u_i, (struct ip4_header *) &hdr[1]);
-	/* FIXME: here, flow-control with mesh would be nice to have... */
-	(void) GNUNET_HELPER_send (helper_handle,
-				   mhdr,
-				   GNUNET_YES,
-				   NULL, NULL);
-	break;
-      }
-    case 6:
-      {
-	size_t len =
-	  sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header) +
-	  sizeof (struct ip6_header) + pkt_len;
-	char buf[len];
-	struct tun_header *hdr;
-	struct GNUNET_MessageHeader *mhdr;
-	
-	memset (buf, 0, len);
-	mhdr = (struct GNUNET_MessageHeader*) buf;
-	hdr = (struct tun_header *) &mhdr[1];
-	mhdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
-	mhdr->size = htons (len);
-	hdr->flags = 0;
-	hdr->proto = htons (0x86dd);
-	prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP, &serv->v6.ip6address,
-			     tunnel, &u_i, (struct ip6_header *) buf);
-	    /* FIXME: here, flow-control with mesh would be nice to have... */
-	(void) GNUNET_HELPER_send (helper_handle,
-				   (const struct GNUNET_MessageHeader*) buf,
-				   GNUNET_YES,
-				   NULL, NULL);
-
-	break;
-      }
-    default:
-      GNUNET_assert (0);
-      break;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		  _("No service found for %s on port %d!\n"),
+		  "TCP",
+		  ntohs (pkt->dpt));
+      GNUNET_MESH_tunnel_destroy (state->tunnel);
+      return GNUNET_YES;
     }
-
-
-  update_state_map (&u_i, desc, tunnel, serv);
-#endif
+    state->ri.remote_address = state->serv->address;    
+    setup_state_record (state);
+  }
+  send_tcp_packet_via_tun (&state->ri.remote_address,
+			   &state->ri.local_address,
+			   pkt, pkt_len);
   return GNUNET_YES;
 }
 
 
+/**
+ * FIXME: document!
+ */
 static int
 receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                     void **tunnel_ctx GNUNET_UNUSED,
@@ -1331,82 +1355,37 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                     const struct GNUNET_MessageHeader *message,
                     const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
-  // FIXME
-#if 0
-  GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
-  struct tcp_packet *pkt = (struct tcp_packet *) (desc + 1);
-  struct remote_addr *s = (struct remote_addr *) desc;
-  char *buf;
-  size_t len;
-  uint16_t pkt_len =
-      ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
-      sizeof (GNUNET_HashCode);
+  struct TunnelState *state = *tunnel_ctx;
+  // FIXME: write proper request struct (!)
+  const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
+  const struct tcp_packet *pkt = (const struct tcp_packet *) &desc[1];
+  const struct SocketAddress *s = (const struct SocketAddress *) desc;
+  uint16_t pkt_len = ntohs (message->size);
 
-  struct TunnelState *state = GNUNET_malloc (sizeof (struct TunnelState));
-
-  state->tunnel = tunnel;
-  state->type = REMOTE;
-  state->hashmap = tcp_connections;
-  memcpy (&state->remote, s, sizeof (struct remote_addr));
-
-  hash_redirect_info (&state->hash, &state->redirect_info, s->addrlen);
-
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &state->hash))
+  if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct tcp_packet))
   {
-    GNUNET_CONTAINER_multihashmap_put (tcp_connections, &state->hash, state,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-
-    state->heap_node =
-        GNUNET_CONTAINER_heap_insert (tcp_connections_heap, state,
-                                      GNUNET_TIME_absolute_get ().abs_value);
-
-    if (GNUNET_CONTAINER_heap_get_size (tcp_connections_heap) >
-        max_tcp_connections)
-      GNUNET_SCHEDULER_add_now (collect_connections, tcp_connections_heap);
+    GNUNET_break_op (0);
+    return GNUNET_YES;
   }
-  else
-    GNUNET_free (state);
+  pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
 
-
-
-  len =
-      sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
-      sizeof (struct ip6_hdr) + pkt_len;
-  buf = alloca (len);
-
-  memset (buf, 0, len);
-
-  switch (s->addrlen)
+  if (NULL == state->heap_node)
   {
-  case 4:
-    prepare_ipv4_packet (len, pkt_len, pkt, IPPROTO_TCP, &s->addr, tunnel,
-                         state, (struct ip4_header *) buf);
-    break;
-  case 16:
-    prepare_ipv6_packet (len, pkt_len, pkt, IPPROTO_TCP, &s->addr, tunnel,
-                         state, (struct ip6_header *) buf);
-    break;
-  default:
-    GNUNET_free (state);
-    return GNUNET_SYSERR;
+    /* first packet, setup record */
+    state->ri.remote_address = *s;
+    setup_state_record (state);
   }
 
-  /* FIXME: here, flow-control with mesh would be nice to have... */
-  (void) GNUNET_HELPER_send (helper_handle,
-			     (const struct GNUNET_MessageHeader*) buf,
-			     GNUNET_YES,
-			     NULL, NULL);
-
-#endif
+  send_tcp_packet_via_tun (&state->ri.remote_address,
+			   &state->ri.local_address,
+			   pkt, pkt_len);
   return GNUNET_YES;
 }
 
 
-
-
 /**
  * FIXME: document!
+ * @param payload payload of the UDP packet (does NOT include UDP header)
  */
 static void
 send_udp_packet_via_tun (const struct SocketAddress *destination_address,
@@ -1481,8 +1460,6 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
 }
 
 
-
-
 /**
  * FIXME: document!
  */
@@ -1500,7 +1477,7 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct SocketAddress *s = (const struct SocketAddress *) desc;
   uint16_t pkt_len = ntohs (message->size);
 
-  if (pkt_len != ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) - sizeof (GNUNET_HashCode))
+  if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct udp_packet))
   {
     GNUNET_break_op (0);
     return GNUNET_YES;
