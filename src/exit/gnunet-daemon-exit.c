@@ -27,6 +27,11 @@
  * TODO:
  * - need proper message headers for mesh P2P messages
  * - factor out crc computations from DNS/EXIT into shared library?
+ * - which code should advertise services? the service model is right
+ *   now a bit odd, especially as this code DOES the exit and knows
+ *   the DNS "name", but OTOH this is clearly NOT the place to advertise
+ *   the service's existence; maybe the daemon should turn into a 
+ *   service with an API to add local-exit services dynamically?
  */
 #include <platform.h>
 #include <gnunet_common.h>
