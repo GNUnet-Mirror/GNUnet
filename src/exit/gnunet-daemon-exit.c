@@ -26,9 +26,8 @@
  *
  * TODO:
  * - setup_fresh_address is not implemented
- * - various functions are not documented
- * - update_state_map is dead, do we need something like it still?
  * - need proper message headers for mesh P2P messages
+ * - factor out crc computations from DNS/EXIT into shared library?
  */
 #include <platform.h>
 #include <gnunet_common.h>
@@ -937,7 +936,25 @@ setup_fresh_address (int af,
 
 
 /**
- * FIXME: document!
+ * We are starting a fresh connection (TCP or UDP) and need
+ * to pick a source port and IP address (within the correct
+ * range and address family) to associate replies with the
+ * connection / correct mesh tunnel.  This function generates
+ * a "fresh" source IP and source port number for a connection
+ * After picking a good source address, this function sets up
+ * the state in the 'connections_map' and 'connections_heap'
+ * to allow finding the state when needed later.  The function
+ * also makes sure that we remain within memory limits by
+ * cleaning up 'old' states.
+ *
+ * @param state skeleton state to setup a record for; should
+ *              'state->ri.remote_address' filled in so that
+ *              this code can determine which AF/protocol is
+ *              going to be used (the 'tunnel' should also
+ *              already be set); after calling this function,
+ *              heap_node and the local_address will be
+ *              also initialized (heap_node != NULL can be
+ *              used to test if a state has been fully setup).
  */
 static void
 setup_state_record (struct TunnelState *state)
@@ -951,7 +968,7 @@ setup_state_record (struct TunnelState *state)
     setup_fresh_address (state->serv->address.af,
 			 state->serv->address.proto,
 			 &state->ri.local_address);
-  } while (NULL != get_redirect_state (state->serv->address.af,
+  } while (NULL != get_redirect_state (state->ri.remote_address.af,
 				       IPPROTO_UDP,
 				       &state->ri.remote_address.address,
 				       state->ri.remote_address.port,
@@ -981,7 +998,21 @@ setup_state_record (struct TunnelState *state)
 
 
 /**
- * FIXME: document
+ * Prepare an IPv4 packet for transmission via the TUN interface.
+ * Initializes the IP header and calculates checksums (IP+UDP/TCP).
+ * For UDP, the UDP header will be fully created, whereas for TCP
+ * only the ports and checksum will be filled in.  So for TCP,
+ * a skeleton TCP header must be part of the provided payload.
+ *
+ * @param payload payload of the packet (starting with UDP payload or
+ *                TCP header, depending on protocol)
+ * @param payload_length number of bytes in 'payload'
+ * @param protocol IPPROTO_UDP or IPPROTO_TCP
+ * @param src_address source address to use (IP and port)
+ * @param dst_address destination address to use (IP and port)
+ * @param pkt6 where to write the assembled packet; must
+ *        contain enough space for the IP header, UDP/TCP header
+ *        AND the payload
  */
 static void
 prepare_ipv4_packet (const void *payload, size_t payload_length,
@@ -1069,7 +1100,21 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
 
 
 /**
- * FIXME: document
+ * Prepare an IPv6 packet for transmission via the TUN interface.
+ * Initializes the IP header and calculates checksums (IP+UDP/TCP).
+ * For UDP, the UDP header will be fully created, whereas for TCP
+ * only the ports and checksum will be filled in.  So for TCP,
+ * a skeleton TCP header must be part of the provided payload.
+ *
+ * @param payload payload of the packet (starting with UDP payload or
+ *                TCP header, depending on protocol)
+ * @param payload_length number of bytes in 'payload'
+ * @param protocol IPPROTO_UDP or IPPROTO_TCP
+ * @param src_address source address to use (IP and port)
+ * @param dst_address destination address to use (IP and port)
+ * @param pkt6 where to write the assembled packet; must
+ *        contain enough space for the IP header, UDP/TCP header
+ *        AND the payload
  */
 static void
 prepare_ipv6_packet (const void *payload, size_t payload_length,
@@ -1163,73 +1208,12 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
 
 
 /**
- * We've just experienced a connection in use.  Track it, or if it is
- * already tracked, update the tracking.
+ * Send a TCP packet via the TUN interface.
  *
- * @param u_i IP-level connection tracking state
- * @param tunnel associated mesh tunnel
- * @param desc service descriptor (or NULL)
- * @param serv service information
- */
-void
-update_state_map (const struct RedirectInformation *ri,
-		  struct GNUNET_MESH_Tunnel *tunnel,
-		  const GNUNET_HashCode *desc,
-		  struct LocalService *serv)
-{
-  struct TunnelState *state;
-  GNUNET_HashCode state_key;
-
-  hash_redirect_info (&state_key,
-		      ri);
-  state = GNUNET_CONTAINER_multihashmap_get (connections_map, &state_key);
-  if (NULL == state)
-  {
-    state = GNUNET_malloc (sizeof (struct TunnelState));
-    state->tunnel = tunnel;
-    state->state_key = state_key;
-    state->serv = serv;
-    // FIXME? if (NULL != desc) state->desc = *desc;
-    // FIXME? state->redirect_info = *ri;
-    GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multihashmap_put (connections_map, &state_key, state,
-						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    state->heap_node =
-      GNUNET_CONTAINER_heap_insert (connections_heap,
-				    state,
-				    GNUNET_TIME_absolute_get ().abs_value);
-  }
-  else
-  {
-    if (state->tunnel != tunnel) 
-    {
-      /* Stats / warning: two tunnels got exactly the same connection state!? */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Two different mesh tunnels got the same connection state. Oops.\n"));
-      return;
-    }
-    GNUNET_CONTAINER_heap_update_cost (connections_heap,
-				       state->heap_node,
-				       GNUNET_TIME_absolute_get ().abs_value);
-  }
-  while (GNUNET_CONTAINER_heap_get_size (connections_heap) > max_connections)
-  {
-    state = GNUNET_CONTAINER_heap_remove_root (connections_heap);
-    state->heap_node = NULL;
-    GNUNET_MESH_tunnel_destroy (state->tunnel);
-    GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multihashmap_remove (connections_map,
-							 &state->state_key, 
-							 state));
-    GNUNET_free (state);
-  }
-}
-
-
-/**
- * FIXME: document!
- *
+ * @param destination_address IP and port to use for the TCP packet's destination
+ * @param source_address IP and port to use for the TCP packet's source
  * @param payload payload of the IP header (includes TCP header)
+ * @param payload_length number of bytes in 'payload'
  */
 static void
 send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
@@ -1304,8 +1288,20 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 
 
 /**
+ * Process a request via mesh to send a request to a UDP service
+ * offered by this system.
+ *
  * The messages are one GNUNET_HashCode for the service followed by a struct tcp_packet
- * FIXME: document!
+ * (FIXME: this is not great).
+ *
+ * @param cls closure, NULL
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -1353,7 +1349,16 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
 
 
 /**
- * FIXME: document!
+ * Process a request to forward TCP data to the Internet via this peer.
+ *
+ * @param cls closure, NULL
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -1391,8 +1396,12 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
- * FIXME: document!
+ * Send a UDP packet via the TUN interface.
+ *
+ * @param destination_address IP and port to use for the UDP packet's destination
+ * @param source_address IP and port to use for the UDP packet's source
  * @param payload payload of the UDP packet (does NOT include UDP header)
+ * @param payload_length number of bytes of data in payload
  */
 static void
 send_udp_packet_via_tun (const struct SocketAddress *destination_address,
@@ -1468,7 +1477,16 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
 
 
 /**
- * FIXME: document!
+ * Process a request to forward UDP data to the Internet via this peer.
+ *
+ * @param cls closure, NULL
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -1506,7 +1524,17 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
- * FIXME: document!
+ * Process a request via mesh to send a request to a UDP service
+ * offered by this system.
+ *
+ * @param cls closure, NULL
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
