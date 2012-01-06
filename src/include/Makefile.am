@@ -73,4 +73,5 @@ gnunetinclude_HEADERS = \
   gnunet_time_lib.h \
   gnunet_transport_service.h \
   gnunet_transport_plugin.h \
-  gnunet_util_lib.h 
+  gnunet_util_lib.h \
+  gnunet_vpn_service.h 
