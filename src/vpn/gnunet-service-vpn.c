@@ -29,11 +29,11 @@
  * TODO:
  * - create tunnels
  * - implement service message handlers
+ * - define mesh message formats between VPN and EXIT!
  * - build mesh messages
  * - parse mesh replies 
  * - build IP messages from mesh replies
  * - fully implement shutdown code
- * - [implement VPN library]
  * - add back ICMP support (especially needed for IPv6)
  */
 #include "platform.h"
