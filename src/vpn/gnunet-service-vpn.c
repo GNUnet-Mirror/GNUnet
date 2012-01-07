@@ -71,37 +71,52 @@ struct DestinationEntry
    * GNUNET_YES if this tunnel is to a service.
    */
   int is_service;
-  
-  /**
-   * Address family used (AF_INET or AF_INET6).
-   */
-  int af;
 
   /**
    * Details about the connection (depending on is_service).
    */
   union
   {
-    /**
-     * The description of the service (only used for service tunnels).
-     */
-    GNUNET_HashCode desc;
 
-    /**
-     * IP address of the ultimate destination (only used for exit tunnels).
-     */
-    union
+    struct
     {
       /**
-       * Address if af is AF_INET.
+       * The description of the service (only used for service tunnels).
        */
-      struct in_addr v4;
+      GNUNET_HashCode service_descriptor;
 
       /**
-       * Address if af is AF_INET6.
+       * Peer offering the service.
        */
-      struct in6_addr v6;
-    } ip;
+      struct GNUNET_PeerIdentity target;
+
+    } service_destination;
+
+    struct 
+    {
+  
+      /**
+       * Address family used (AF_INET or AF_INET6).
+       */
+      int af;
+      
+      /**
+       * IP address of the ultimate destination (only used for exit tunnels).
+       */
+      union
+      {
+	/**
+	 * Address if af is AF_INET.
+	 */
+	struct in_addr v4;
+	
+	/**
+	 * Address if af is AF_INET6.
+	 */
+	struct in6_addr v6;
+      } ip;
+
+    } exit_destination;
 
   } details;
     
@@ -1335,8 +1350,8 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   /* setup destination record */
   de = GNUNET_malloc (sizeof (struct DestinationEntry));
   de->is_service = GNUNET_NO;
-  de->af = addr_af;
-  memcpy (&de->details.ip,
+  de->details.exit_destination.af = addr_af;
+  memcpy (&de->details.exit_destination.ip,
 	  &msg[1],
 	  alen);
   get_destination_key_from_ip (result_af,
@@ -1391,8 +1406,114 @@ static void
 service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
 			     const struct GNUNET_MessageHeader *message)
 {
-  // FIXME!
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  const struct RedirectToServiceRequestMessage *msg;
+  int result_af;
+  struct in_addr v4;
+  struct in6_addr v6;
+  void *addr;
+  struct DestinationEntry *de;
+  GNUNET_HashCode key;
+  struct TunnelState *ts;
+  
+  /*  parse request */
+  msg = (const struct RedirectToServiceRequestMessage *) message;
+
+  /* allocate response IP */
+  addr = NULL;
+  result_af = (int) htonl (msg->result_af);
+  switch (result_af)
+  {
+  case AF_INET:
+    if (GNUNET_OK !=
+	allocate_v4_address (&v4))
+      result_af = AF_UNSPEC;
+    else
+      addr = &v4;
+    break;
+  case AF_INET6:
+    if (GNUNET_OK !=
+	allocate_v6_address (&v6))
+      result_af = AF_UNSPEC;
+    else
+      addr = &v6;
+    break;
+  case AF_UNSPEC:
+    if (GNUNET_OK ==
+	allocate_v4_address (&v4))
+    {
+      addr = &v4;
+      result_af = AF_INET;
+    }
+    else if (GNUNET_OK ==
+	allocate_v6_address (&v6))
+    {
+      addr = &v6;
+      result_af = AF_INET6;
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;      
+  }
+  if ( (result_af == AF_UNSPEC) ||
+       (GNUNET_NO == ntohl (msg->nac)) )
+  {
+    /* send reply "instantly" */
+    send_client_reply (client,
+		       msg->request_id,
+		       result_af,
+		       addr);
+  }
+  if (result_af == AF_UNSPEC)
+  {
+    /* failure, we're done */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  
+  /* setup destination record */
+  de = GNUNET_malloc (sizeof (struct DestinationEntry));
+  de->is_service = GNUNET_YES;
+  de->details.service_destination.service_descriptor = msg->service_descriptor;
+  de->details.service_destination.target = msg->target;
+  get_destination_key_from_ip (result_af,
+			       addr,
+			       &key);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_put (destination_map,
+						    &key,
+						    de,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  de->heap_node = GNUNET_CONTAINER_heap_insert (destination_heap,
+						de,
+						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value);
+
+  /* setup tunnel to destination */
+  ts = GNUNET_malloc (sizeof (struct TunnelState));
+  if (GNUNET_NO != ntohl (msg->nac))
+  {
+    ts->request_id = msg->request_id;
+    ts->client = client;
+    GNUNET_SERVER_client_keep (client);
+  }
+  ts->destination = *de;
+  ts->destination.heap_node = NULL;
+  ts->is_service = GNUNET_YES;
+  ts->af = result_af;
+  if (result_af == AF_INET) 
+    ts->destination_ip.v4 = v4;
+  else
+    ts->destination_ip.v6 = v6;
+  de->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
+					  ts,
+					  &tunnel_peer_connect_handler,
+					  &tunnel_peer_disconnect_handler,
+					  ts);
+  GNUNET_MESH_peer_request_connect_add (de->tunnel,
+					&msg->target);  
+  /* we're done */
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
