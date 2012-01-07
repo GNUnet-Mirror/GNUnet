@@ -634,6 +634,25 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK 193
 
 
+/**
+ * Client asks VPN service to setup an IP to redirect traffic
+ * via an exit node to some global IP address.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP 202
+
+/**
+ * Client asks VPN service to setup an IP to redirect traffic
+ * to some peer offering a service.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE 203
+
+/**
+ * VPN service responds to client with an IP to use for the
+ * requested redirection.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP 204
+
+
 /*******************************************************************************
  * VPN-DNS message types
  ******************************************************************************/

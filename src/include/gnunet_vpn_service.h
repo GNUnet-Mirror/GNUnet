@@ -26,7 +26,6 @@
 #ifndef GNUNET_VPN_SERVICE_H
 #define GNUNET_VPN_SERVICE_H
 
-#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 
 
@@ -47,7 +46,8 @@ struct GNUNET_VPN_RedirectionRequest;
  * reach the requested destination.
  *
  * @param cls closure
- * @param af address family, AF_INET or AF_INET6; AF_UNSPEC on error
+ * @param af address family, AF_INET or AF_INET6; AF_UNSPEC on error;
+ *                will match 'result_af' from the request
  * @param address IP address (struct in_addr or struct in_addr6, depending on 'af')
  *                that the VPN allocated for the redirection;
  *                traffic to this IP will now be redirected to the 
@@ -76,13 +76,16 @@ GNUNET_VPN_cancel_request (struct GNUNET_VPN_RedirectionRequest *rr);
  * limitations, the longest inactive mappings will be destroyed.
  *
  * @param vh VPN handle
- * @param af address family, AF_INET or AF_INET6
+ * @param result_af desired address family for the returned allocation
+ *                  can also be AF_UNSPEC
  * @param protocol protocol, IPPROTO_UDP or IPPROTO_TCP
  * @param peer target peer for the redirection
  * @param serv service descriptor to give to the peer
  * @param nac GNUNET_YES to notify via callback only after completion of
  *            the MESH-level connection,
  *            GNUNET_NO to notify as soon as the IP has been reserved
+ * @param expiration_time at what time should the redirection expire?
+ *        (this should not impact connections that are active at that time)
  * @param cb function to call with the IP
  * @param cb_cls closure for cb
  * @return handle to cancel the request (means the callback won't be
@@ -90,12 +93,13 @@ GNUNET_VPN_cancel_request (struct GNUNET_VPN_RedirectionRequest *rr);
  *         anyway)
  */
 struct GNUNET_VPN_RedirectionRequest *
-GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_RequestHandle *rh,		   
-			     int af,
+GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *rh,		   
+			     int result_af,
 			     uint8_t protocol,
 			     const struct GNUNET_PeerIdentity *peer,
-			     const HashCode *serv,
+			     const GNUNET_HashCode *serv,
 			     int nac,
+			     struct GNUNET_TIME_Absolute expiration_time,
 			     GNUNET_VPN_AllocationCallback cb,
 			     void *cb_cls);
 
@@ -110,12 +114,16 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_RequestHandle *rh,
  * limitations, the longest inactive mappings will be destroyed.
  *
  * @param vh VPN handle
- * @param af address family, AF_INET or AF_INET6
+ * @param result_af desired address family for the returned allocation,
+ *                  can also be AF_UNSPEC
+ * @param addr_af address family for 'addr', AF_INET or AF_INET6
  * @param addr destination IP address on the Internet; destination
  *             port is to be taken from the VPN packet itself
  * @param nac GNUNET_YES to notify via callback only after completion of
  *            the MESH-level connection,
  *            GNUNET_NO to notify as soon as the IP has been reserved
+ * @param expiration_time at what time should the redirection expire?
+ *        (this should not impact connections that are active at that time)
  * @param cb function to call with the IP
  * @param cb_cls closure for cb
  * @return handle to cancel the request (means the callback won't be
@@ -123,10 +131,12 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_RequestHandle *rh,
  *         anyway)
  */
 struct GNUNET_VPN_RedirectionRequest *
-GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_RequestHandle *rh,		   
-			   int af,
+GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *rh,		   
+			   int result_af,
+			   int addr_af,
 			   const void *addr,
 			   int nac,
+			   struct GNUNET_TIME_Absolute expiration_time,
 			   GNUNET_VPN_AllocationCallback cb,
 			   void *cb_cls);
 
