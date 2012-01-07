@@ -27,13 +27,15 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - create tunnels
  * - implement service message handlers
  * - define mesh message formats between VPN and EXIT!
  * - build mesh messages
  * - parse mesh replies 
  * - build IP messages from mesh replies
+ * - create secondary mesh tunnels if needed
  * - fully implement shutdown code
+ * - better message queue management (bounded state, drop oldest/RED?)
+ * - imrpove support for deciding which tunnels to keep and which ones to destroy
  * - add back ICMP support (especially needed for IPv6)
  */
 #include "platform.h"
@@ -144,7 +146,8 @@ struct TunnelState
   struct GNUNET_MESH_TransmitHandle *th;
 
   /**
-   * Entry for this entry in the tunnel_heap.
+   * Entry for this entry in the tunnel_heap, NULL as long as this
+   * tunnel state is not fully bound.
    */
   struct GNUNET_CONTAINER_HeapNode *heap_node;
 
@@ -157,6 +160,17 @@ struct TunnelState
    * Tail of list of messages scheduled for transmission.
    */
   struct TunnelMessageQueueEntry *tail;
+
+  /**
+   * Client that needs to be notified about the tunnel being
+   * up as soon as a peer is connected; NULL for none.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * ID of the client request that caused us to setup this entry.
+   */ 
+  uint64_t request_id;
 
   /**
    * Destination to which this tunnel leads.  Note that
@@ -173,7 +187,12 @@ struct TunnelState
   int is_service;
 
   /**
-   * IP address of the source on our end.
+   * Addess family used for this tunnel on the local TUN interface.
+   */
+  int af;
+
+  /**
+   * IP address of the source on our end, initially uninitialized.
    */
   union
   {
@@ -190,7 +209,8 @@ struct TunnelState
   } source_ip;
 
   /**
-   * Destination IP address used by the source on our end.
+   * Destination IP address used by the source on our end (this is the IP
+   * that we pick freely within the VPN's tunnel IP range).
    */
   union
   {
@@ -207,12 +227,12 @@ struct TunnelState
   } destination_ip;
 
   /**
-   * Source port used by the sender on our end.
+   * Source port used by the sender on our end; 0 for uninitialized.
    */
   uint16_t source_port;
 
   /**
-   * Destination port used by the sender on our end.
+   * Destination port used by the sender on our end; 0 for uninitialized.
    */
   uint16_t destination_port;
 
@@ -260,6 +280,11 @@ static struct GNUNET_HELPER_Handle *helper_handle;
  * Arguments to the vpn helper.
  */
 static char *vpn_argv[7];
+
+/**
+ * Notification context for sending replies to clients.
+ */
+static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
  * If there are more than this number of address-mappings, old ones
@@ -1066,6 +1091,131 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
+ * Allocate an IPv4 address from the range of the tunnel
+ * for a new redirection.
+ *
+ * @param v4 where to store the address
+ * @return GNUNET_OK on success,
+ *         GNUNET_SYSERR on error
+ */
+static int
+allocate_v4_address (struct in_addr *v4)
+{
+  // FIXME: implement!
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Allocate an IPv6 address from the range of the tunnel
+ * for a new redirection.
+ *
+ * @param v6 where to store the address
+ * @return GNUNET_OK on success,
+ *         GNUNET_SYSERR on error
+ */
+static int
+allocate_v6_address (struct in6_addr *v4)
+{
+  // FIXME: implement!
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Notify the client about the result of its request.
+ *
+ * @param client client to notify
+ * @param request_id original request ID to include in response
+ * @param result_af resulting address family
+ * @param addr resulting IP address
+ */
+static void
+send_client_reply (struct GNUNET_SERVER_Client *client,
+		   uint64_t request_id,
+		   int result_af,
+		   const void *addr)
+{
+  char buf[sizeof (struct RedirectToIpResponseMessage) + sizeof (struct in6_addr)];
+  struct RedirectToIpResponseMessage *res;
+  size_t rlen;
+
+  switch (result_af)
+  {
+  case AF_INET:
+    rlen = sizeof (struct in_addr);    
+    break;
+  case AF_INET6:
+    rlen = sizeof (struct in6_addr);
+    break;
+  case AF_UNSPEC:
+    rlen = 0;
+    break;
+  default:
+    GNUNET_assert (0);
+    return;
+  }
+  res = (struct RedirectToIpResponseMessage *) buf;
+  res->header.size = htons (sizeof (struct RedirectToIpResponseMessage) + rlen);
+  res->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP);
+  res->result_af = htonl (result_af);
+  res->request_id = request_id;
+  memcpy (&res[1], addr, rlen);
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_notification_context_unicast (nc,
+					      client,
+					      &res->header,
+					      GNUNET_NO);
+}
+
+
+/**
+ * Method called whenever a peer has disconnected from the tunnel.
+ *
+ * @param cls closure
+ * @param peer peer identity the tunnel stopped working with
+ */
+static void
+tunnel_peer_disconnect_handler (void *cls,
+				const struct
+				GNUNET_PeerIdentity * peer)
+{
+  /* FIXME: should we do anything here? 
+   - stop transmitting to the tunnel (start queueing?)
+   - possibly destroy the tunnel entirely (unless service tunnel?) 
+  */
+}
+
+
+/**
+ * Method called whenever a peer has connected to the tunnel.  Notifies
+ * the waiting client that the tunnel is now up.
+ *
+ * @param cls closure
+ * @param peer peer identity the tunnel was created to, NULL on timeout
+ * @param atsi performance data for the connection
+ */
+static void
+tunnel_peer_connect_handler (void *cls,
+			     const struct GNUNET_PeerIdentity
+			     * peer,
+			     const struct
+			     GNUNET_ATS_Information * atsi)
+{
+  struct TunnelState *ts = cls;
+
+  if (NULL == ts->client)
+    return; /* nothing to do */
+  send_client_reply (ts->client,
+		     ts->request_id,
+		     ts->af,
+		     &ts->destination_ip);
+  GNUNET_SERVER_client_drop (ts->client);
+  ts->client = NULL;
+}
+
+
+/**
  * A client asks us to setup a redirection via some exit
  * node to a particular IP.  Setup the redirection and
  * give the client the allocated IP.
@@ -1078,7 +1228,153 @@ static void
 service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
 			const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  size_t mlen;
+  size_t alen;
+  const struct RedirectToIpRequestMessage *msg;
+  int addr_af;
+  int result_af;
+  struct in_addr v4;
+  struct in6_addr v6;
+  void *addr;
+  struct DestinationEntry *de;
+  GNUNET_HashCode key;
+  struct TunnelState *ts;
+  GNUNET_MESH_ApplicationType app_type;
+  
+  /* validate and parse request */
+  mlen = ntohs (message->size);
+  if (mlen < sizeof (struct RedirectToIpRequestMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  alen = mlen - sizeof (struct RedirectToIpRequestMessage);
+  msg = (const struct RedirectToIpRequestMessage *) message;
+  addr_af = (int) htonl (msg->addr_af);
+  switch (addr_af)
+  {
+  case AF_INET:
+    if (alen != sizeof (struct in_addr))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;      
+    }
+    app_type = GNUNET_APPLICATION_TYPE_IPV4_GATEWAY; 
+    break;
+  case AF_INET6:
+    if (alen != sizeof (struct in6_addr))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;      
+    }
+    app_type = GNUNET_APPLICATION_TYPE_IPV6_GATEWAY; 
+    break;
+  default:
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;      
+  }
+
+  /* allocate response IP */
+  addr = NULL;
+  result_af = (int) htonl (msg->result_af);
+  switch (result_af)
+  {
+  case AF_INET:
+    if (GNUNET_OK !=
+	allocate_v4_address (&v4))
+      result_af = AF_UNSPEC;
+    else
+      addr = &v4;
+    break;
+  case AF_INET6:
+    if (GNUNET_OK !=
+	allocate_v6_address (&v6))
+      result_af = AF_UNSPEC;
+    else
+      addr = &v6;
+    break;
+  case AF_UNSPEC:
+    if (GNUNET_OK ==
+	allocate_v4_address (&v4))
+    {
+      addr = &v4;
+      result_af = AF_INET;
+    }
+    else if (GNUNET_OK ==
+	allocate_v6_address (&v6))
+    {
+      addr = &v6;
+      result_af = AF_INET6;
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;      
+  }
+  if ( (result_af == AF_UNSPEC) ||
+       (GNUNET_NO == ntohl (msg->nac)) )
+  {
+    /* send reply "instantly" */
+    send_client_reply (client,
+		       msg->request_id,
+		       result_af,
+		       addr);
+  }
+  if (result_af == AF_UNSPEC)
+  {
+    /* failure, we're done */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  
+  /* setup destination record */
+  de = GNUNET_malloc (sizeof (struct DestinationEntry));
+  de->is_service = GNUNET_NO;
+  de->af = addr_af;
+  memcpy (&de->details.ip,
+	  &msg[1],
+	  alen);
+  get_destination_key_from_ip (result_af,
+			       addr,
+			       &key);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_put (destination_map,
+						    &key,
+						    de,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  de->heap_node = GNUNET_CONTAINER_heap_insert (destination_heap,
+						de,
+						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value);
+  /* setup tunnel to destination */
+  ts = GNUNET_malloc (sizeof (struct TunnelState));
+  if (GNUNET_NO != ntohl (msg->nac))
+  {
+    ts->request_id = msg->request_id;
+    ts->client = client;
+    GNUNET_SERVER_client_keep (client);
+  }
+  ts->destination = *de;
+  ts->destination.heap_node = NULL;
+  ts->is_service = GNUNET_NO;
+  ts->af = result_af;
+  if (result_af == AF_INET) 
+    ts->destination_ip.v4 = v4;
+  else
+    ts->destination_ip.v6 = v6;
+  de->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
+					  ts,
+					  &tunnel_peer_connect_handler,
+					  &tunnel_peer_disconnect_handler,
+					  ts);
+  GNUNET_MESH_peer_request_connect_by_type (de->tunnel,
+					    app_type);  
+  /* we're done */
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -1095,18 +1391,27 @@ static void
 service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
 			     const struct GNUNET_MessageHeader *message)
 {
+  // FIXME!
   GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 }
 
 
 
 /**
- * FIXME: document.
+ * Function called for inbound tunnels.  As we don't offer
+ * any mesh services, this function should never be called.
+ *
+ * @param cls closure
+ * @param tunnel new handle to the tunnel
+ * @param initiator peer that started the tunnel
+ * @param atsi performance information for the tunnel
+ * @return initial tunnel context for the tunnel
+ *         (can be NULL -- that's not an error)
  */ 
 static void *
-new_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
-            const struct GNUNET_PeerIdentity *initiator,
-            const struct GNUNET_ATS_Information *atsi)
+inbound_tunnel_cb (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
+		   const struct GNUNET_PeerIdentity *initiator,
+		   const struct GNUNET_ATS_Information *atsi)
 {
   /* Why should anyone open an inbound tunnel to vpn? */
   GNUNET_break (0);
@@ -1115,13 +1420,19 @@ new_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
- * FIXME: document.
+ * Function called whenever an inbound tunnel is destroyed.  Should clean up
+ * any associated state.
+ *
+ * @param cls closure (set from GNUNET_MESH_connect)
+ * @param tunnel connection to the other end (henceforth invalid)
+ * @param tunnel_ctx place where local state associated
+ *                   with the tunnel is stored
  */ 
 static void
 tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
 {
-  /* Why should anyone open an inbound tunnel to vpn? */
-  /* FIXME: is this not also called for outbound tunnels that go down!? */
+  /* FIXME: is this function called for outbound tunnels that go down?
+     Should we clean up something here? */
   GNUNET_break (0);
 }
 
@@ -1136,15 +1447,20 @@ cleanup (void *cls GNUNET_UNUSED,
   unsigned int i;
 
   // FIXME: clean up heaps and maps!
-  if (mesh_handle != NULL)
+  if (NULL != mesh_handle)
   {
     GNUNET_MESH_disconnect (mesh_handle);
     mesh_handle = NULL;
   }
-  if (helper_handle != NULL)
-  {
+  if (NULL != helper_handle)
+    {
     GNUNET_HELPER_stop (helper_handle);
     helper_handle = NULL;
+  }
+  if (NULL != nc)
+  {
+    GNUNET_SERVER_notification_context_destroy (nc);
+    nc = NULL;
   }
   for (i=0;i<5;i++)
     GNUNET_free_non_null (vpn_argv[i]);
@@ -1161,7 +1477,8 @@ cleanup (void *cls GNUNET_UNUSED,
 static void
 client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  // FIXME
+  // FIXME: find all TunnelState's and check if they point
+  // to the client and if so, clean the reference up!
 }
 
 
@@ -1287,12 +1604,13 @@ run (void *cls,
 
   mesh_handle =
     GNUNET_MESH_connect (cfg_, 42 /* queue length */, NULL, 
-			 &new_tunnel, 
+			 &inbound_tunnel_cb, 
 			 &tunnel_cleaner, 
 			 mesh_handlers,
 			 types);
   helper_handle = GNUNET_HELPER_start ("gnunet-helper-vpn", vpn_argv,
 				       &message_token, NULL);
+  nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, service_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);

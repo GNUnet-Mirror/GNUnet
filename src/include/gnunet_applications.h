@@ -75,6 +75,16 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_GNUNET_SEARCH 7
 
+/**
+ * Internet IPv4 gateway (any TCP/UDP/ICMP).
+ */
+#define GNUNET_APPLICATION_TYPE_IPV4_GATEWAY 16
+
+/**
+ * Internet IPv6 gateway (any TCP/UDP/ICMP).
+ */
+#define GNUNET_APPLICATION_TYPE_IPV6_GATEWAY 17
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

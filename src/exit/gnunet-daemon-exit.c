@@ -1916,6 +1916,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   app_idx = 0;
   handler_idx = 2;
+  // FIXME: new 'vpn' has other apptypes (IPv4/IPv6, no longer TCP vs. UDP)!
+  // The new 'exit' should reflect that!
   udp = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_UDP");
   tcp = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_TCP");
   if (GNUNET_YES == udp)
