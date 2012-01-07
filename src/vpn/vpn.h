@@ -113,7 +113,7 @@ struct RedirectToServiceRequestMessage
   /**
    * Service descriptor identifying the service.
    */
-  struct GNUNET_PeerIdentity desc;
+  GNUNET_HashCode service_descriptor;
 
   /**
    * Unique ID to match a future response to this request.
@@ -132,7 +132,7 @@ struct RedirectToIpResponseMessage
 {
   
   /**
-   * Type is  GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP
+   * Type is  GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP
    */
   struct GNUNET_MessageHeader header;
 
@@ -141,6 +141,11 @@ struct RedirectToIpResponseMessage
    * "result_af" from the request, of be "AF_UNSPEC" on errors.
    */
   int32_t result_af;
+
+  /**
+   * Unique ID to match the response to a request.
+   */
+  uint64_t request_id;
 
   /* followed by destination address ('struct in_addr' or 'struct in6_addr') */
   

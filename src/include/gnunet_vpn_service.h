@@ -93,7 +93,7 @@ GNUNET_VPN_cancel_request (struct GNUNET_VPN_RedirectionRequest *rr);
  *         anyway)
  */
 struct GNUNET_VPN_RedirectionRequest *
-GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *rh,		   
+GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
 			     int result_af,
 			     uint8_t protocol,
 			     const struct GNUNET_PeerIdentity *peer,
@@ -131,7 +131,7 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *rh,
  *         anyway)
  */
 struct GNUNET_VPN_RedirectionRequest *
-GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *rh,		   
+GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh, 
 			   int result_af,
 			   int addr_af,
 			   const void *addr,
