@@ -107,9 +107,14 @@ struct GNUNET_VPN_RedirectionRequest
   struct GNUNET_TIME_Absolute expiration_time;
 
   /**
-   * AF_INET or AF_INET6.
+   * Desired address family for the result.
    */
-  int af;
+  int result_af;
+
+  /**
+   * Address family of 'addr'.  AF_INET or AF_INET6.
+   */
+  int addr_af;
   
   /**
    * GNUNET_YES if we are to call the callback only after successful
@@ -192,7 +197,8 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *rh,
  * limitations, the longest inactive mappings will be destroyed.
  *
  * @param vh VPN handle
- * @param af address family, AF_INET or AF_INET6
+ * @param result_af desired address family for the returned allocation
+ * @param addr_af address family for 'addr', AF_INET or AF_INET6
  * @param addr destination IP address on the Internet; destination
  *             port is to be taken from the VPN packet itself
  * @param nac GNUNET_YES to notify via callback only after completion of
@@ -208,7 +214,8 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *rh,
  */
 struct GNUNET_VPN_RedirectionRequest *
 GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *rh,		   
-			   int af,
+			   int result_af,
+			   int addr_af,
 			   const void *addr,
 			   int nac,
 			   struct GNUNET_TIME_Absolute expiration_time,

@@ -44,13 +44,14 @@
 #include "gnunet_mesh_service.h"
 #include "gnunet_constants.h"
 #include "tcpip_tun.h"
+#include "vpn.h"
 
 
 /**
  * Information we track for each IP address to determine which tunnel
  * to send the traffic over to the destination.
  */
-struct destination_entry
+struct DestinationEntry
 {
   /**
    * Information about the tunnel to use, NULL if no tunnel
@@ -108,17 +109,17 @@ struct destination_entry
 /**
  * A messages we have in queue for a particular tunnel.
  */
-struct tunnel_notify_queue
+struct TunnelMessageQueueEntry
 {
   /**
    * This is a doubly-linked list.
    */
-  struct tunnel_notify_queue *next;
+  struct TunnelMessageQueueEntry *next;
 
   /**
    * This is a doubly-linked list.
    */
-  struct tunnel_notify_queue *prev;
+  struct TunnelMessageQueueEntry *prev;
   
   /**
    * Number of bytes in 'msg'.
@@ -135,7 +136,7 @@ struct tunnel_notify_queue
 /**
  * State we keep for each of our tunnels.
  */
-struct tunnel_state
+struct TunnelState
 {
   /**
    * Active transmission handle, NULL for none.
@@ -150,12 +151,12 @@ struct tunnel_state
   /**
    * Head of list of messages scheduled for transmission.
    */
-  struct tunnel_notify_queue *head;
+  struct TunnelMessageQueueEntry *head;
 
   /**
    * Tail of list of messages scheduled for transmission.
    */
-  struct tunnel_notify_queue *tail;
+  struct TunnelMessageQueueEntry *tail;
 
   /**
    * Destination to which this tunnel leads.  Note that
@@ -163,7 +164,7 @@ struct tunnel_state
    * local copy) and that the 'heap_node' should always
    * be NULL.
    */
-  struct destination_entry destination;
+  struct DestinationEntry destination;
 
   /**
    * GNUNET_NO if this is a tunnel to an Internet-exit,
@@ -362,7 +363,7 @@ get_tunnel_key_from_ips (int af,
 /**
  * Send a message from the message queue via mesh.
  *
- * @param cls the 'struct tunnel_state' with the message queue
+ * @param cls the 'struct TunnelState' with the message queue
  * @param size number of bytes available in buf
  * @param buf where to copy the message
  * @return number of bytes copied to buf
@@ -370,8 +371,8 @@ get_tunnel_key_from_ips (int af,
 static size_t
 send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
-  struct tunnel_state *ts = cls;
-  struct tunnel_notify_queue *tnq;
+  struct TunnelState *ts = cls;
+  struct TunnelMessageQueueEntry *tnq;
   size_t ret;
 
   ts->th = NULL;
@@ -407,8 +408,8 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
  * @param ts tunnel to queue the message for
  */
 static void
-send_to_tunnel (struct tunnel_notify_queue *tnq,
-		   struct tunnel_state *ts)
+send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
+		   struct TunnelState *ts)
 {
   GNUNET_CONTAINER_DLL_insert_tail (ts->head,
 				    ts->tail,
@@ -437,7 +438,7 @@ send_to_tunnel (struct tunnel_notify_queue *tnq,
  * @param payload_length number of bytes in payload
  */
 static void
-route_packet (struct destination_entry *destination,
+route_packet (struct DestinationEntry *destination,
 	      int af,
 	      uint8_t protocol,
 	      const void *source_ip,
@@ -446,8 +447,8 @@ route_packet (struct destination_entry *destination,
 	      size_t payload_length)
 {
   GNUNET_HashCode key;
-  struct tunnel_state *ts;
-  struct tunnel_notify_queue *tnq;
+  struct TunnelState *ts;
+  struct TunnelMessageQueueEntry *tnq;
 		   
   switch (protocol)
   {
@@ -524,24 +525,24 @@ route_packet (struct destination_entry *destination,
   case IPPROTO_UDP:
     if (destination->is_service)
     {
-      tnq = GNUNET_malloc (sizeof (struct tunnel_notify_queue) + 42);
+      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 42);
       // FIXME: build message!
     }
     else
     {
-      tnq = GNUNET_malloc (sizeof (struct tunnel_notify_queue) + 42);
+      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 42);
       // FIXME: build message!
     }
     break;
   case IPPROTO_TCP:
     if (destination->is_service)
     {
-      tnq = GNUNET_malloc (sizeof (struct tunnel_notify_queue) + 42);
+      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 42);
       // FIXME: build message!
     }
     else
     {
-      tnq = GNUNET_malloc (sizeof (struct tunnel_notify_queue) + 42);
+      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 42);
       // FIXME: build message!
     }
     break;
@@ -572,7 +573,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
   const struct tun_header *tun;
   size_t mlen;
   GNUNET_HashCode key;
-  struct destination_entry *de;
+  struct DestinationEntry *de;
 
   mlen = ntohs (message->size);
   if ( (ntohs (message->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER) ||
@@ -699,7 +700,7 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   struct remote_addr *s = (struct remote_addr *) desc;
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
   const struct GNUNET_PeerIdentity *other = sender;
-  struct tunnel_state *ts = *tunnel_ctx;
+  struct TunnelState *ts = *tunnel_ctx;
 
   if (16 == ts->addrlen)
   {
@@ -887,7 +888,7 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   struct remote_addr *s = (struct remote_addr *) desc;
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
   const struct GNUNET_PeerIdentity *other = sender;
-  struct tunnel_state *ts = *tunnel_ctx;
+  struct TunnelState *ts = *tunnel_ctx;
 
   size_t pktlen =
       ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
@@ -1065,6 +1066,41 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
+ * A client asks us to setup a redirection via some exit
+ * node to a particular IP.  Setup the redirection and
+ * give the client the allocated IP.
+ *
+ * @param cls unused
+ * @param client requesting client
+ * @param message redirection request (a 'struct RedirectToIpRequestMessage')
+ */
+static void
+service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
+			const struct GNUNET_MessageHeader *message)
+{
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+}
+
+
+/**
+ * A client asks us to setup a redirection to a particular peer
+ * offering a service.  Setup the redirection and give the client the
+ * allocated IP.
+ *
+ * @param cls unused
+ * @param client requesting client
+ * @param message redirection request (a 'struct RedirectToPeerRequestMessage')
+ */
+static void
+service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
+			     const struct GNUNET_MessageHeader *message)
+{
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+}
+
+
+
+/**
  * FIXME: document.
  */ 
 static void *
@@ -1116,6 +1152,20 @@ cleanup (void *cls GNUNET_UNUSED,
 
 
 /**
+ * A client has disconnected from us.  If we are currently building
+ * a tunnel for it, cancel the operation.
+ *
+ * @param cls unused
+ * @param client handle to the client that disconnected
+ */
+static void
+client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  // FIXME
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -1127,7 +1177,15 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
-  static const struct GNUNET_MESH_MessageHandler handlers[] = {
+  static const struct GNUNET_SERVER_MessageHandler service_handlers[] = {
+    /* callback, cls, type, size */
+    {&service_redirect_to_ip, NULL, GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP, 0},
+    {&service_redirect_to_service, NULL, 
+     GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE, 
+     sizeof (struct RedirectToServiceRequestMessage) },
+    {NULL, NULL, 0, 0}
+  };
+  static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
     {receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK, 0},
     {receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK, 0},
     {receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK, 0},
@@ -1231,13 +1289,12 @@ run (void *cls,
     GNUNET_MESH_connect (cfg_, 42 /* queue length */, NULL, 
 			 &new_tunnel, 
 			 &tunnel_cleaner, 
-			 handlers,
+			 mesh_handlers,
 			 types);
-  // FIXME: register service handlers to allow destination mappings to
-  // be created!
-
   helper_handle = GNUNET_HELPER_start ("gnunet-helper-vpn", vpn_argv,
 				       &message_token, NULL);
+  GNUNET_SERVER_add_handlers (server, service_handlers);
+  GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 }
 
