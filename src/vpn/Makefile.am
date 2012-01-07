@@ -25,6 +25,10 @@ install-exec-hook:
 endif
 
 
+lib_LTLIBRARIES = \
+  libgnunetvpn.la
+
+
 bin_PROGRAMS = \
   gnunet-daemon-exit gnunet-daemon-vpn $(VPNBIN) gnunet-service-vpn
 
@@ -59,6 +63,13 @@ gnunet_daemon_exit_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
+
+libgnunetvpn_la_SOURCES = \
+ vpn_api.c vpn.h
+libgnunetvpn_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
+libgnunetvpn_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)
 
 
 if ENABLE_TEST_RUN
