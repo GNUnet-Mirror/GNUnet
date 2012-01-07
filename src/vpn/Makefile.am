@@ -30,7 +30,7 @@ lib_LTLIBRARIES = \
 
 
 bin_PROGRAMS = \
-  gnunet-daemon-exit gnunet-daemon-vpn $(VPNBIN) gnunet-service-vpn
+  gnunet-daemon-exit gnunet-daemon-vpn $(VPNBIN) gnunet-service-vpn gnunet-vpn
 
 
 gnunet_helper_vpn_SOURCES = \
@@ -62,6 +62,13 @@ gnunet_daemon_exit_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(GN_LIBINTL)
+
+gnunet_vpn_SOURCES = \
+ gnunet-vpn.c
+gnunet_vpn_LDADD = \
+  $(top_builddir)/src/vpn/libgnunetvpn.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
 libgnunetvpn_la_SOURCES = \

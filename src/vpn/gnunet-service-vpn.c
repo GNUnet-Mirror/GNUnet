@@ -34,7 +34,7 @@
  * - build IP messages from mesh replies
  * - fully implement shutdown code
  * - [implement VPN library]
- * - add back ICMP support (especially needed for IPv6)o
+ * - add back ICMP support (especially needed for IPv6)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
