@@ -137,12 +137,13 @@ allocation_cb (void *cls,
 {
   char buf[INET6_ADDRSTRLEN];
 
+  request = NULL;
   switch (af)
   {
   case AF_INET6:
   case AF_INET:
     FPRINTF (stdout,
-	     "%s",
+	     "%s\n",
 	     inet_ntop (af, address, buf, sizeof (buf)));
     break;
   case AF_UNSPEC:
