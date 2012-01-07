@@ -1,0 +1,65 @@
+.TH GNUNET\-VPN 1 "Jan 7, 2012" "GNUnet"
+
+.SH NAME
+gnunet\-vpn \- manually setup a GNUnet VPN tunnel
+
+.SH SYNOPSIS
+.B gnunet\-vpn
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-vpn\fP can be used to manually setup a VPN tunnel via the GNUnet network.  There are two main types of tunnels.  Tunnels to an exit node which routes the traffic to the global Internet, and tunnels to a node that runs a service only within GNUnet.  Depending on the type of tunnel, gnunet\-vpn takes different options.  The "\-i" option is required for tunnels to an exit node, whereas the "\-p" and "\-s" options in conjuction with either "\-u" or "\-t" are required for tunnels to services.  For exit tunnels, both UDP and TCP traffic will be redirected.  For service tunnels, either UDP ("\-u") or TCP ("\-t") traffic will be redirected.
+
+The tool will display the IP address for this end of the tunnel.  The address can be displayed as soon as it has been allocated, or only after ("\-a") the tunnel has been created.
+
+.SH OPTIONS
+.B
+.IP "\-4, \-\-ipv4"
+Desired IP address on this end of the tunnel should be an IPv4 address.
+.B
+.IP "\-6, \-\-ipv6"
+Desired IP address on this end of the tunnel should be an IPv6 address.
+.B
+.IP "\-a, \-\-after\-connect"
+Display IP address only after the tunnel is fully connected.
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-d SEC, \-\-duration SEC"
+The mapping should be established for SEC seconds.  Default is 5 minutes.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-i IP, \-\-ip IP"
+Tunnel should be to an exit node and connect to the given IPv4 or IPv6 IP address.  Note that you can specify an IPv6 address as the target here, even in combination with "\-4" (4to6) and similarly you can specify an IPv4 address in combination with "\-6" (6to4).
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-p PEERID,  \-\-peer=PEERID"
+Name of the peer offering the service to connect to.  Cannot be used in conjunction with "\-i", requires "\-s".
+.B
+.IP "\-s NAME,  \-\-service=NAME"
+Name of the service running on the target peer.  Cannot be used in conjunction with "\-i", requires "\-p".
+.B
+.IP "\-t, \-\-tcp"
+Service runs TCP.  Either "\-t" or \"-u" must be specified when using "\-s".
+.B
+.IP "\-u, \-\-udp"
+Service runs UDP.  Either "\-t" or \"-u" must be specified when using "\-s".
+.B
+.IP "\-V, \-\-verbose"
+Be verbose.
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
+.SH SEE ALSO
+gnunet\-service\-arm(1)

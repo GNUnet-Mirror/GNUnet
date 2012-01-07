@@ -65,14 +65,34 @@ static int ipv4;
 static int ipv6;
 
 /**
+ * Option -t: TCP requested.
+ */
+static int tcp;
+
+/**
+ * Option -u: UDP requested.
+ */
+static int udp;
+
+/**
  * Selected level of verbosity.
  */
 static int verbosity;
 
 /**
+ * Option '-a':  Notify only once the tunnel is connected?
+ */
+static int nac;
+
+/**
  * Global return value.
  */
 static int ret;
+
+/**
+ * Option '-d': duration of the mapping
+ */
+static unsigned long long duration = 5 * 60;
 
 
 /**
@@ -98,6 +118,46 @@ do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Callback invoked from the VPN service once a redirection is
+ * available.  Provides the IP address that can now be used to
+ * reach the requested destination.
+ *
+ * @param cls closure
+ * @param af address family, AF_INET or AF_INET6; AF_UNSPEC on error;
+ *                will match 'result_af' from the request
+ * @param address IP address (struct in_addr or struct in_addr6, depending on 'af')
+ *                that the VPN allocated for the redirection;
+ *                traffic to this IP will now be redirected to the 
+ *                specified target peer; NULL on error
+ */
+static void
+allocation_cb (void *cls,
+	       int af,
+	       const void *address)
+{
+  char buf[INET6_ADDRSTRLEN];
+
+  switch (af)
+  {
+  case AF_INET6:
+  case AF_INET:
+    FPRINTF (stdout,
+	     "%s",
+	     inet_ntop (af, address, buf, sizeof (buf)));
+    break;
+  case AF_UNSPEC:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Error creating tunnel\n"));
+    ret = 1;
+    break;
+  default:
+    break;
+  }
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -109,10 +169,121 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  handle = GNUNET_VPN_connect (cfg);
-  
+  int dst_af;
+  int req_af;
+  struct GNUNET_PeerIdentity peer; 
+  GNUNET_HashCode sd;
+  const void *addr;
+  struct in_addr v4;
+  struct in6_addr v6;
+  uint8_t protocol;
+  struct GNUNET_TIME_Absolute etime;
+
+  etime = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+									   (unsigned int) duration));
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&do_disconnect, NULL);
+  handle = GNUNET_VPN_connect (cfg);
+  if (NULL == handle)
+    goto error;
+  req_af = AF_UNSPEC;
+  if (ipv4)
+  {
+    if (ipv6)
+    {
+      FPRINTF (stderr, _("Option `%s' makes no sense with option `%s'.\n"),
+               "-4", "-6");
+      goto error;
+    }
+    req_af = AF_INET;
+  }
+  if (ipv6)
+    req_af = AF_INET6;
+  
+  if (NULL == target_ip)
+  {
+    if (NULL == service_name)
+    {
+      FPRINTF (stderr, _("Option `%s' or `%s' is required.\n"),
+               "-i", "-s");
+      goto error;
+    }
+    if (NULL == peer_id)
+    {
+      FPRINTF (stderr, _("Option `%s' is required when using option `%s'.\n"),
+               "-p", "-s");
+      goto error;
+    }
+    if (! (tcp | udp) )
+    {
+      FPRINTF (stderr, _("Option `%s' or `%s' is required when using option `%s'.\n"),
+               "-t", "-u", "-s");
+      goto error;
+    }
+    if (tcp & udp)
+    {
+      FPRINTF (stderr, _("Option `%s' makes no sense with option `%s'.\n"),
+               "-t", "-u");
+      goto error;
+    }
+    if (tcp)
+      protocol = IPPROTO_TCP;
+    if (udp)
+      protocol = IPPROTO_UDP;
+    if (GNUNET_OK !=
+	GNUNET_CRYPTO_hash_from_string (peer_id,
+					&peer.hashPubKey))
+    {
+      FPRINTF (stderr, _("`%s' is not a valid peer identifier.\n"),
+               peer_id);
+      goto error;
+    }    
+    GNUNET_CRYPTO_hash (service_name,
+			strlen (service_name),
+			&sd);
+    request = GNUNET_VPN_redirect_to_peer (handle,
+					   req_af,
+					   protocol,
+					   &peer,
+					   &sd,
+					   nac,
+					   etime,
+					   &allocation_cb, NULL);
+  }
+  else
+  {
+    if (1 != inet_pton (AF_INET6, target_ip, &v6))
+    {
+      if (1 != inet_pton (AF_INET, target_ip, &v4))
+      {
+	FPRINTF (stderr, _("`%s' is not a valid IP address.\n"),
+		 target_ip);
+	goto error;
+      }
+      else
+      {
+	dst_af = AF_INET;
+	addr = &v4;
+      }
+    }
+    else
+    {
+      dst_af = AF_INET6;
+      addr = &v6;
+    }    
+    request = GNUNET_VPN_redirect_to_ip (handle,
+					 req_af,
+					 dst_af,
+					 addr,
+					 nac,
+					 etime,
+					 &allocation_cb, NULL);
+  }
+  return;
+
+ error:
+  GNUNET_SCHEDULER_shutdown ();
+  ret = 1;
 }
 
 
@@ -126,6 +297,12 @@ main (int argc, char *const *argv)
     {'6', "ipv6", NULL,
      gettext_noop ("request that result should be an IPv6 address"),
      0, &GNUNET_GETOPT_set_one, &ipv6},
+    {'a', "after-connect", NULL,
+     gettext_noop ("print IP address only after mesh tunnel has been created"),
+     0, &GNUNET_GETOPT_set_one, &ipv6},
+    {'d', "duration", "SECONDS",
+     gettext_noop ("how long should the mapping be valid for new tunnels?"),
+     1, &GNUNET_GETOPT_set_ulong, &duration},
     {'i', "ip", "IP",
      gettext_noop ("destination IP for the tunnel"),
      1, &GNUNET_GETOPT_set_string, &target_ip},
@@ -135,6 +312,13 @@ main (int argc, char *const *argv)
     {'s', "service", "NAME",
      gettext_noop ("name of the service we would like to access"),
      1, &GNUNET_GETOPT_set_string, &peer_id},
+    {'t', "tcp", NULL,
+     gettext_noop ("service is offered via TCP"),
+     0, &GNUNET_GETOPT_set_one, &tcp},
+    {'u', "udp", NULL,
+     gettext_noop ("service is offered via UDP"),
+     0, &GNUNET_GETOPT_set_one, &udp},
+
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };

@@ -30,7 +30,7 @@
 #include "gnunet_dnsparser_lib.h"
 
 /**
- * Handle to transport service.
+ * Handle to DNS service.
  */
 static struct GNUNET_DNS_Handle *handle;
 
