@@ -31,6 +31,7 @@
 
 // DNS-Stuff
 GNUNET_NETWORK_STRUCT_BEGIN
+/* FIXME: replace this one with the one from tcpip_tun.h! */
 struct dns_header
 {
   uint16_t id GNUNET_PACKED;

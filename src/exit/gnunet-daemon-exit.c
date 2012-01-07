@@ -33,118 +33,13 @@
  *   the service's existence; maybe the daemon should turn into a 
  *   service with an API to add local-exit services dynamically?
  */
-#include <platform.h>
-#include <gnunet_common.h>
-#include <gnunet_program_lib.h>
-#include <gnunet_protocols.h>
-#include <gnunet_applications.h>
-#include <gnunet_mesh_service.h>
-#include <gnunet_constants.h>
-#include <string.h>
-
-
-/* see http://www.iana.org/assignments/ethernet-numbers */
-#ifndef ETH_P_IPV4
-#define ETH_P_IPV4 0x0800
-#endif
-
-#ifndef ETH_P_IPV6
-#define ETH_P_IPV6 0x86DD
-#endif
-
-
-GNUNET_NETWORK_STRUCT_BEGIN
-/**
- * Header from Linux TUN interface.
- */ 
-struct tun_header
-{
-  /**
-   * Some flags (unused).
-   */ 
-  uint16_t flags;
-
-  /**
-   * Here we get an ETH_P_-number.
-   */
-  uint16_t proto;
-};
-
-/**
- * Standard IPv4 header.
- */
-struct ip4_header
-{
-  unsigned header_length:4 GNUNET_PACKED;
-  unsigned version:4 GNUNET_PACKED;
-  uint8_t diff_serv;
-  uint16_t total_length GNUNET_PACKED;
-  uint16_t identification GNUNET_PACKED;
-  unsigned flags:3 GNUNET_PACKED;
-  unsigned fragmentation_offset:13 GNUNET_PACKED;
-  uint8_t ttl;
-  uint8_t protocol;
-  uint16_t checksum GNUNET_PACKED;
-  struct in_addr source_address GNUNET_PACKED;
-  struct in_addr destination_address GNUNET_PACKED;
-};
-
-/**
- * Standard IPv6 header.
- */
-struct ip6_header
-{
-  unsigned traffic_class_h:4 GNUNET_PACKED;
-  unsigned version:4 GNUNET_PACKED;
-  unsigned traffic_class_l:4 GNUNET_PACKED;
-  unsigned flow_label:20 GNUNET_PACKED;
-  uint16_t payload_length GNUNET_PACKED;
-  uint8_t next_header;
-  uint8_t hop_limit;
-  struct in6_addr source_address GNUNET_PACKED;
-  struct in6_addr destination_address GNUNET_PACKED;
-};
-
-#define TCP_FLAG_SYN 2
-
-struct tcp_packet
-{
-  unsigned spt:16 GNUNET_PACKED;
-  unsigned dpt:16 GNUNET_PACKED;
-  unsigned seq:32 GNUNET_PACKED;
-  unsigned ack:32 GNUNET_PACKED;
-  unsigned off:4 GNUNET_PACKED;
-  unsigned rsv:4 GNUNET_PACKED;
-  unsigned flg:8 GNUNET_PACKED;
-  unsigned wsz:16 GNUNET_PACKED;
-  unsigned crc:16 GNUNET_PACKED;
-  unsigned urg:16 GNUNET_PACKED;
-};
-
-/**
- * UDP packet header.
- */
-struct udp_packet
-{
-  uint16_t spt GNUNET_PACKED;
-  uint16_t dpt GNUNET_PACKED;
-  uint16_t len GNUNET_PACKED;
-  uint16_t crc GNUNET_PACKED;
-};
-
-/**
- * DNS header.
- */
-struct dns_header
-{
-  uint16_t id GNUNET_PACKED;
-  uint16_t flags GNUNET_PACKED;
-  uint16_t qdcount GNUNET_PACKED;
-  uint16_t ancount GNUNET_PACKED;
-  uint16_t nscount GNUNET_PACKED;
-  uint16_t arcount GNUNET_PACKED;
-};
-GNUNET_NETWORK_STRUCT_END
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_protocols.h"
+#include "gnunet_applications.h"
+#include "gnunet_mesh_service.h"
+#include "gnunet_constants.h"
+#include "tcpip_tun.h"
 
 /**
  * Information about an address.
