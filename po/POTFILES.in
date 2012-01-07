@@ -13,7 +13,6 @@ src/core/core_api_iterate_peers.c
 src/core/gnunet-service-core_neighbours.c
 src/core/gnunet-service-core_kx.c
 src/core/core_api.c
-src/vpn/gnunet-helper-hijack-dns.c
 src/vpn/gnunet-dns-parser.c
 src/vpn/gnunet-daemon-exit.c
 src/vpn/gnunet-daemon-vpn-dns.c
