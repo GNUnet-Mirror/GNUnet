@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.8.0a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2011-12-26 22:22+0100\n"
+"POT-Creation-Date: 2012-01-07 20:53+0100\n"
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
@@ -239,167 +239,167 @@ msgstr "# các yêu cầu dht được định tuyến"
 msgid "Template database running\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:347
+#: src/datastore/gnunet-service-datastore.c:351
 #, fuzzy
 msgid "# bytes expired"
 msgstr "# các byte được nhận"
 
-#: src/datastore/gnunet-service-datastore.c:420
+#: src/datastore/gnunet-service-datastore.c:426
 msgid "# bytes purged (low-priority)"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:480
+#: src/datastore/gnunet-service-datastore.c:486
 msgid "Transmission to client failed!\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:634
+#: src/datastore/gnunet-service-datastore.c:640
 msgid "# results found"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:679
+#: src/datastore/gnunet-service-datastore.c:685
 #, c-format
 msgid ""
 "Insufficient space (%llu bytes are available) to satisfy `%s' request for "
 "%llu bytes\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:690
+#: src/datastore/gnunet-service-datastore.c:696
 #, c-format
 msgid ""
 "The requested amount (%llu bytes) is larger than the cache size (%llu "
 "bytes)\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:694
+#: src/datastore/gnunet-service-datastore.c:700
 msgid ""
 "Insufficient space to satisfy request and requested amount is larger than "
 "cache size"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:700
+#: src/datastore/gnunet-service-datastore.c:706
 msgid "Insufficient space to satisfy request"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:705
-#: src/datastore/gnunet-service-datastore.c:759
-#: src/datastore/gnunet-service-datastore.c:980
-#: src/datastore/gnunet-service-datastore.c:1459
+#: src/datastore/gnunet-service-datastore.c:711
+#: src/datastore/gnunet-service-datastore.c:765
+#: src/datastore/gnunet-service-datastore.c:986
+#: src/datastore/gnunet-service-datastore.c:1465
 msgid "# reserved"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:774
+#: src/datastore/gnunet-service-datastore.c:780
 msgid "Could not find matching reservation"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:848 src/datacache/datacache.c:118
+#: src/datastore/gnunet-service-datastore.c:854 src/datacache/datacache.c:118
 #: src/datacache/datacache.c:255
 #, fuzzy
 msgid "# bytes stored"
 msgstr "# các byte trong kho dữ liệu"
 
-#: src/datastore/gnunet-service-datastore.c:862
+#: src/datastore/gnunet-service-datastore.c:868
 #, c-format
 msgid "Need %llu bytes more space (%llu allowed, using %llu)\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1028
+#: src/datastore/gnunet-service-datastore.c:1034
 #, fuzzy
 msgid "# GET requests received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/datastore/gnunet-service-datastore.c:1042
+#: src/datastore/gnunet-service-datastore.c:1048
 #, fuzzy
 msgid "# requests filtered by bloomfilter"
 msgstr "# các yêu cầu được lọc theo bộ lọc bloom"
 
-#: src/datastore/gnunet-service-datastore.c:1070
+#: src/datastore/gnunet-service-datastore.c:1076
 #, fuzzy
 msgid "# UPDATE requests received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/datastore/gnunet-service-datastore.c:1104
+#: src/datastore/gnunet-service-datastore.c:1110
 #, fuzzy
 msgid "# GET REPLICATION requests received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/datastore/gnunet-service-datastore.c:1139
+#: src/datastore/gnunet-service-datastore.c:1145
 #, fuzzy
 msgid "# GET ZERO ANONYMITY requests received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/datastore/gnunet-service-datastore.c:1166
+#: src/datastore/gnunet-service-datastore.c:1172
 msgid "Content not found"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1176
+#: src/datastore/gnunet-service-datastore.c:1182
 msgid "# bytes removed (explicit request)"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1210
+#: src/datastore/gnunet-service-datastore.c:1216
 #, fuzzy
 msgid "# REMOVE requests received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/datastore/gnunet-service-datastore.c:1254
+#: src/datastore/gnunet-service-datastore.c:1260
 #, c-format
 msgid "Datastore payload inaccurate (%lld < %lld).  Trying to fix.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1317
+#: src/datastore/gnunet-service-datastore.c:1323
 #, c-format
 msgid "Loading `%s' datastore plugin\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1326
+#: src/datastore/gnunet-service-datastore.c:1332
 #, fuzzy, c-format
 msgid "Failed to load datastore plugin for `%s'\n"
 msgstr "Không thể nạp phần bổ sung truyền tải « %s »\n"
 
-#: src/datastore/gnunet-service-datastore.c:1525
-#: src/datastore/gnunet-service-datastore.c:1536 src/datacache/datacache.c:144
+#: src/datastore/gnunet-service-datastore.c:1531
+#: src/datastore/gnunet-service-datastore.c:1542 src/datacache/datacache.c:144
 #: src/datacache/datacache.c:151
 #, c-format
 msgid "No `%s' specified for `%s' in configuration!\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1530
+#: src/datastore/gnunet-service-datastore.c:1536
 #, fuzzy, c-format
 msgid "# bytes used in file-sharing datastore `%s'"
 msgstr "# các byte được phép trong kho dữ liệu"
 
-#: src/datastore/gnunet-service-datastore.c:1541
+#: src/datastore/gnunet-service-datastore.c:1547
 msgid "# quota"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1543
+#: src/datastore/gnunet-service-datastore.c:1549
 msgid "# cache size"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1556
+#: src/datastore/gnunet-service-datastore.c:1562
 #, c-format
 msgid "Could not use specified filename `%s' for bloomfilter.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1574
-#: src/datastore/gnunet-service-datastore.c:1590
+#: src/datastore/gnunet-service-datastore.c:1580
+#: src/datastore/gnunet-service-datastore.c:1596
 #, fuzzy, c-format
 msgid "Failed to remove bogus bloomfilter file `%s'\n"
 msgstr "Không thể lưu tập tin cấu hình « %s »:"
 
-#: src/datastore/gnunet-service-datastore.c:1620
+#: src/datastore/gnunet-service-datastore.c:1626
 #, fuzzy
 msgid "Failed to initialize bloomfilter.\n"
 msgstr "Lỗi sơ khởi dịch vụ « %s ».\n"
 
-#: src/datastore/gnunet-service-datastore.c:1649
+#: src/datastore/gnunet-service-datastore.c:1655
 msgid "Rebuilding bloomfilter.  Please be patient.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1654
+#: src/datastore/gnunet-service-datastore.c:1660
 msgid "Plugin does not support get_keys function. Please fix!\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1657
+#: src/datastore/gnunet-service-datastore.c:1663
 msgid "Bloomfilter construction complete.\n"
 msgstr ""
 
@@ -498,7 +498,7 @@ msgstr "# các byte đã giải mã"
 
 #: src/core/gnunet-service-core_kx.c:604 src/dv/gnunet-service-dv.c:3002
 #: src/hostlist/hostlist-server.c:436 src/peerinfo-tool/gnunet-peerinfo.c:151
-#, fuzzy, c-format
+#, fuzzy
 msgid "Error in communication with PEERINFO service\n"
 msgstr "Cổng để liên lạc với giao diện người dùng GNUnet"
 
@@ -620,7 +620,7 @@ msgstr ""
 #: src/core/gnunet-service-core_kx.c:1541
 #: src/transport/gnunet-service-transport.c:578
 #: src/hostlist/hostlist-server.c:555 src/peerinfo-tool/gnunet-peerinfo.c:202
-#, fuzzy, c-format
+#, fuzzy
 msgid "Could not access PEERINFO service.  Exiting.\n"
 msgstr "Không thể truy cập đến thông tin về không gian tên.\n"
 
@@ -628,11 +628,11 @@ msgstr "Không thể truy cập đến thông tin về không gian tên.\n"
 msgid "Client was disconnected from core service, trying to reconnect.\n"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-exit.c:1494
+#: src/vpn/gnunet-daemon-exit.c:1496
 msgid "Daemon to run to provide an IP exit node for the VPN"
 msgstr ""
 
-#: src/vpn/gnunet-daemon-vpn.c:1288
+#: src/vpn/gnunet-daemon-vpn.c:1804
 msgid "help text"
 msgstr ""
 
@@ -781,8 +781,8 @@ msgid "%s: option `-W %s' does not allow an argument\n"
 msgstr "%s: tùy chọn « -W %s » không cho phép đối số\n"
 
 #: src/util/getopt.c:1038
-#, c-format
-msgid "Use --help to get a list of options.\n"
+#, fuzzy, c-format
+msgid "Use %s to get a list of options.\n"
 msgstr ""
 "Hãy sử dụng câu lệnh trợ giúp « --help » để xem danh sách các tùy chọn.\n"
 
@@ -849,19 +849,19 @@ msgid ""
 "Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"
 msgstr ""
 
-#: src/util/os_installation.c:295
+#: src/util/os_installation.c:299
 #, c-format
 msgid ""
 "Could not determine installation path for %s.  Set `%s' environment "
 "variable.\n"
 msgstr ""
 
-#: src/util/os_installation.c:482
+#: src/util/os_installation.c:486
 #, fuzzy, c-format
 msgid "Could not find binary `%s' in PATH!\n"
 msgstr "Không thể đọc danh sách bạn bè « %s »\n"
 
-#: src/util/os_installation.c:488
+#: src/util/os_installation.c:492
 #, fuzzy, c-format
 msgid "stat (%s) failed: %s\n"
 msgstr "SMTP: « %s » bị lỗi: %s\n"
@@ -940,22 +940,22 @@ msgstr ""
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr "libgcrypt không có phiên bản mong đợi (yêu cầu phiên bản %s).\n"
 
-#: src/util/disk.c:466
-#, c-format
-msgid "`%s' failed for drive `%s': %u\n"
+#: src/util/disk.c:479
+#, fuzzy, c-format
+msgid "`%s' failed for drive `%S': %u\n"
 msgstr "« %s » thất bại cho ổ đĩa « %s »: %u\n"
 
-#: src/util/disk.c:866
+#: src/util/disk.c:883
 #, c-format
 msgid "Expected `%s' to be a directory!\n"
 msgstr "Mong đợi « %s » là một thư mục.\n"
 
-#: src/util/disk.c:1218 src/util/service.c:1541
+#: src/util/disk.c:1235 src/util/service.c:1541
 #, c-format
 msgid "Cannot obtain information about user `%s': %s\n"
 msgstr "Không thể lấy thông tin về người dùng « %s »: %s\n"
 
-#: src/util/disk.c:1523
+#: src/util/disk.c:1553
 #, c-format
 msgid "No `%s' specified for service `%s' in configuration.\n"
 msgstr ""
@@ -1109,7 +1109,7 @@ msgid ""
 "%llu)\n"
 msgstr ""
 
-#: src/util/os_priority.c:116
+#: src/util/os_priority.c:117
 #, c-format
 msgid "Not installing a handler because $%s=%s\n"
 msgstr ""
@@ -1302,21 +1302,21 @@ msgstr ""
 msgid "Measure quality and performance of the NSE service."
 msgstr "Không thể truy cập đến dịch vụ"
 
-#: src/nse/gnunet-service-nse.c:935
+#: src/nse/gnunet-service-nse.c:938
 #, c-format
 msgid "Proof of work invalid: %llu!\n"
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1390 src/nse/gnunet-service-nse.c:1409
-#: src/nse/gnunet-service-nse.c:1430
+#: src/nse/gnunet-service-nse.c:1393 src/nse/gnunet-service-nse.c:1412
+#: src/nse/gnunet-service-nse.c:1433
 msgid "NSE service is lacking key configuration settings.  Exiting.\n"
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1397
+#: src/nse/gnunet-service-nse.c:1400
 msgid "Invalid work requirement for NSE service. Exiting.\n"
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1418
+#: src/nse/gnunet-service-nse.c:1421
 #, fuzzy
 msgid "NSE service could not access hostkey.  Exiting.\n"
 msgstr "Không thể truy cập đến thông tin về không gian tên.\n"
@@ -1338,7 +1338,7 @@ msgstr ""
 "Tập tin « %s » trong thư mục « %s » không tùy theo quy ước đặt tên. Bị gỡ "
 "bỏ.\n"
 
-#: src/peerinfo/gnunet-service-peerinfo.c:304
+#: src/peerinfo/gnunet-service-peerinfo.c:305
 #, c-format
 msgid "Still no peers found in `%s'!\n"
 msgstr "Vẫn còn không tìm thấy đồng đẳng trong « %s ».\n"
@@ -1484,36 +1484,36 @@ msgstr "# các thông báo PING được tạo"
 msgid "# P2P PUT requests received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1664
+#: src/dht/gnunet-service-dht_neighbours.c:1668
 #, fuzzy
 msgid "# FIND PEER requests ignored due to Bloomfilter"
 msgstr "# các yêu cầu được lọc theo bộ lọc bloom"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1672
+#: src/dht/gnunet-service-dht_neighbours.c:1676
 msgid "# FIND PEER requests ignored due to lack of HELLO"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_neighbours.c:1763
+#: src/dht/gnunet-service-dht_neighbours.c:1767
 #, fuzzy
 msgid "# P2P GET requests received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1807
+#: src/dht/gnunet-service-dht_neighbours.c:1811
 #, fuzzy
 msgid "# P2P FIND PEER requests processed"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1821
+#: src/dht/gnunet-service-dht_neighbours.c:1825
 #, fuzzy
 msgid "# P2P GET requests ONLY routed"
 msgstr "# các yêu cầu dht được định tuyến"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1887
+#: src/dht/gnunet-service-dht_neighbours.c:1895
 #, fuzzy
 msgid "# P2P RESULTS received"
 msgstr "# Tín hiệu HTTP PUT được nhận"
 
-#: src/dht/dht_api.c:229
+#: src/dht/dht_api.c:282
 #, fuzzy
 msgid "Failed to connect to the DHT service!\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
@@ -1543,49 +1543,49 @@ msgstr ""
 msgid "Issue a GET request to the GNUnet DHT, prints results."
 msgstr ""
 
-#: src/dht/gnunet-service-dht_clients.c:311
+#: src/dht/gnunet-service-dht_clients.c:371
 #, fuzzy
 msgid "# GET requests from clients injected"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_clients.c:402
+#: src/dht/gnunet-service-dht_clients.c:462
 #, fuzzy
 msgid "# PUT requests received from clients"
 msgstr "# các đáp ứng lỗ hổng được gửi cho trình/máy khách"
 
-#: src/dht/gnunet-service-dht_clients.c:469
+#: src/dht/gnunet-service-dht_clients.c:529
 #, fuzzy
 msgid "# GET requests received from clients"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_clients.c:564
+#: src/dht/gnunet-service-dht_clients.c:624
 #, fuzzy
 msgid "# GET STOP requests received from clients"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_clients.c:757
+#: src/dht/gnunet-service-dht_clients.c:854
 msgid "# Key match, type mismatches in REPLY to CLIENT"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_clients.c:772
+#: src/dht/gnunet-service-dht_clients.c:869
 msgid "# Duplicate REPLIES to CLIENT request dropped"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_clients.c:809
+#: src/dht/gnunet-service-dht_clients.c:906
 #, c-format
 msgid "Unsupported block type (%u) in request!\n"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_clients.c:831
+#: src/dht/gnunet-service-dht_clients.c:928
 msgid "# RESULTS queued for clients"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_clients.c:882
-#: src/dht/gnunet-service-dht_clients.c:925
+#: src/dht/gnunet-service-dht_clients.c:979
+#: src/dht/gnunet-service-dht_clients.c:1022
 msgid "# REPLIES ignored for CLIENTS (no match)"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_clients.c:892
+#: src/dht/gnunet-service-dht_clients.c:989
 msgid "Could not pass reply to client, message too big!\n"
 msgstr ""
 
@@ -1595,12 +1595,11 @@ msgid "# Network size estimates received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
 #: src/dht/gnunet-dht-put.c:100
-#, fuzzy, c-format
+#, fuzzy
 msgid "PUT request sent!\n"
 msgstr "# độ tin cậy được tiêu phí"
 
 #: src/dht/gnunet-dht-put.c:124
-#, c-format
 msgid "Must provide KEY and DATA for DHT put!\n"
 msgstr ""
 
@@ -1735,27 +1734,26 @@ msgid "Service `%s' was already not running.\n"
 msgstr "« %s » không phải là một tập tin.\n"
 
 #: src/arm/gnunet-arm.c:173
-#, fuzzy, c-format
+#, fuzzy
 msgid "Request ignored as ARM is shutting down.\n"
 msgstr "« %s » đang tắt.\n"
 
 #: src/arm/gnunet-arm.c:177
-#, fuzzy, c-format
+#, fuzzy
 msgid "Error communicating with ARM service.\n"
 msgstr "Cổng để liên lạc với giao diện người dùng GNUnet"
 
 #: src/arm/gnunet-arm.c:181
-#, fuzzy, c-format
+#, fuzzy
 msgid "Timeout communicating with ARM service.\n"
 msgstr "Cổng để liên lạc với giao diện người dùng GNUnet"
 
 #: src/arm/gnunet-arm.c:185
-#, fuzzy, c-format
+#, fuzzy
 msgid "Operation failed.\n"
 msgstr "Lỗi nội bộ : khẳng định không thành công tại %s:%d.\n"
 
 #: src/arm/gnunet-arm.c:189
-#, c-format
 msgid "Unknown response code from ARM.\n"
 msgstr ""
 
@@ -1818,7 +1816,7 @@ msgstr "thời gian chờ sự hoàn thành của một lần lặp (theo miligi
 msgid "Control services and the Automated Restart Manager (ARM)"
 msgstr ""
 
-#: src/arm/mockup-service.c:41 src/arm/gnunet-service-arm.c:957
+#: src/arm/mockup-service.c:41 src/arm/gnunet-service-arm.c:959
 #, fuzzy
 msgid "Failed to transmit shutdown ACK.\n"
 msgstr "Lỗi bắt đầu thu thập.\n"
@@ -1870,44 +1868,44 @@ msgstr "Đang bắt đầu tài lên « %s ».\n"
 msgid "Restarting service `%s'.\n"
 msgstr "Đang nạp và khởi động dùng « %s ».\n"
 
-#: src/arm/gnunet-service-arm.c:868
+#: src/arm/gnunet-service-arm.c:869
 msgid "exit"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:873
+#: src/arm/gnunet-service-arm.c:874
 msgid "signal"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:878
+#: src/arm/gnunet-service-arm.c:879
 #, fuzzy
 msgid "unknown"
 msgstr "Lỗi không rõ"
 
-#: src/arm/gnunet-service-arm.c:912
+#: src/arm/gnunet-service-arm.c:913
 #, c-format
 msgid "Service `%s' terminated with status %s/%d, will restart in %llu ms\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1050
+#: src/arm/gnunet-service-arm.c:1052
 #, fuzzy, c-format
 msgid "Configuration file `%s' for service `%s' not valid: %s\n"
 msgstr "Tập tin cấu hình « %s » đã được ghi.\n"
 
-#: src/arm/gnunet-service-arm.c:1052
+#: src/arm/gnunet-service-arm.c:1054
 msgid "option missing"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1129
+#: src/arm/gnunet-service-arm.c:1131
 #, fuzzy, c-format
 msgid "Starting default services `%s'\n"
 msgstr "Đang bắt đầu tài về « %s »\n"
 
-#: src/arm/gnunet-service-arm.c:1140
+#: src/arm/gnunet-service-arm.c:1142
 #, c-format
 msgid "Default service `%s' not configured correctly!\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1154
+#: src/arm/gnunet-service-arm.c:1156
 msgid ""
 "No default services configured, GNUnet will not really start right now.\n"
 msgstr ""
@@ -2013,12 +2011,12 @@ msgstr ""
 msgid "# fragmentation transmissions completed"
 msgstr "# các sự truyền PONG bị lỗi"
 
-#: src/statistics/gnunet-service-statistics.c:208
+#: src/statistics/gnunet-service-statistics.c:207
 #, fuzzy, c-format
 msgid "Loading %llu bytes of statistics from `%s'\n"
 msgstr "Đã tải %llu byte xuống « %s ».\n"
 
-#: src/statistics/gnunet-service-statistics.c:266
+#: src/statistics/gnunet-service-statistics.c:263
 #, fuzzy, c-format
 msgid "Wrote %llu bytes of statistics to `%s'\n"
 msgstr "Đã tải %llu byte xuống « %s ».\n"
@@ -2029,7 +2027,7 @@ msgid "Failed to connect to statistics service!\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
 #: src/statistics/gnunet-statistics.c:98
-#, fuzzy, c-format
+#, fuzzy
 msgid "Failed to obtain statistics.\n"
 msgstr "Lỗi lấy thông kê về truyền tải.\n"
 
@@ -2071,7 +2069,7 @@ msgstr ""
 "Gặp lỗi khi bỏ chỉ mục tập tin: %s\n"
 
 #: src/fs/gnunet-unindex.c:101
-#, fuzzy, c-format
+#, fuzzy
 msgid "Unindexing done.\n"
 msgstr "Bỏ chỉ mục tập tin."
 
@@ -2093,7 +2091,7 @@ msgid "Could not initialize `%s' subsystem.\n"
 msgstr "Lỗi sơ khởi dịch vụ « %s ».\n"
 
 #: src/fs/gnunet-unindex.c:148
-#, fuzzy, c-format
+#, fuzzy
 msgid "Could not start unindex operation.\n"
 msgstr "Không thể truy cập đến thông tin về không gian tên.\n"
 
@@ -2229,12 +2227,12 @@ msgid "Error searching: %s.\n"
 msgstr "Gặp lỗi khi tải xuống: %s\n"
 
 #: src/fs/gnunet-search.c:231
-#, fuzzy, c-format
+#, fuzzy
 msgid "Could not create keyword URI from arguments.\n"
 msgstr "Không thể tạo miền tên.\n"
 
 #: src/fs/gnunet-search.c:255
-#, fuzzy, c-format
+#, fuzzy
 msgid "Could not start searching.\n"
 msgstr "Không thể tạo miền tên.\n"
 
@@ -2264,75 +2262,75 @@ msgstr ""
 msgid "Search GNUnet for files that were published on GNUnet"
 msgstr "Không hiển thị kết quả tìm kiếm cho tập tin được chúng ta tải lên"
 
-#: src/fs/fs_uri.c:214
+#: src/fs/fs_uri.c:220
 #, c-format
 msgid "`%' must be followed by HEX number"
 msgstr ""
 
-#: src/fs/fs_uri.c:273
+#: src/fs/fs_uri.c:279
 msgid "Malformed KSK URI (must not begin or end with `+')"
 msgstr ""
 
-#: src/fs/fs_uri.c:291
+#: src/fs/fs_uri.c:297
 msgid "`++' not allowed in KSK URI"
 msgstr ""
 
-#: src/fs/fs_uri.c:298
+#: src/fs/fs_uri.c:304
 msgid "Quotes not balanced in KSK URI"
 msgstr ""
 
-#: src/fs/fs_uri.c:366 src/fs/fs_uri.c:373
+#: src/fs/fs_uri.c:372 src/fs/fs_uri.c:379
 msgid "Malformed SKS URI"
 msgstr ""
 
-#: src/fs/fs_uri.c:417 src/fs/fs_uri.c:432
+#: src/fs/fs_uri.c:423 src/fs/fs_uri.c:438
 msgid "Malformed CHK URI"
 msgstr ""
 
-#: src/fs/fs_uri.c:562 src/fs/fs_uri.c:577 src/fs/fs_uri.c:587
-#: src/fs/fs_uri.c:615
+#: src/fs/fs_uri.c:568 src/fs/fs_uri.c:583 src/fs/fs_uri.c:593
+#: src/fs/fs_uri.c:621
 msgid "SKS URI malformed"
 msgstr ""
 
-#: src/fs/fs_uri.c:597
+#: src/fs/fs_uri.c:603
 msgid "SKS URI malformed (could not decode public key)"
 msgstr ""
 
-#: src/fs/fs_uri.c:603
+#: src/fs/fs_uri.c:609
 msgid "SKS URI malformed (could not find signature)"
 msgstr ""
 
-#: src/fs/fs_uri.c:609
+#: src/fs/fs_uri.c:615
 msgid "SKS URI malformed (could not decode signature)"
 msgstr ""
 
-#: src/fs/fs_uri.c:622
+#: src/fs/fs_uri.c:628
 msgid "SKS URI malformed (could not parse expiration time)"
 msgstr ""
 
-#: src/fs/fs_uri.c:634
+#: src/fs/fs_uri.c:640
 msgid "SKS URI malformed (signature failed validation)"
 msgstr ""
 
-#: src/fs/fs_uri.c:672
+#: src/fs/fs_uri.c:678
 msgid "Unrecognized URI type"
 msgstr ""
 
-#: src/fs/fs_uri.c:897
+#: src/fs/fs_uri.c:903
 #, fuzzy
 msgid "Lacking key configuration settings.\n"
 msgstr "Lưu cấu hình ngay bây giờ không?"
 
-#: src/fs/fs_uri.c:904
+#: src/fs/fs_uri.c:910
 #, fuzzy, c-format
 msgid "Could not access hostkey file `%s'.\n"
 msgstr "Không thể truy cập đến tập tin gnunet-directory « %s »\n"
 
-#: src/fs/fs_uri.c:1109 src/fs/fs_uri.c:1136
+#: src/fs/fs_uri.c:1115 src/fs/fs_uri.c:1142
 msgid "No keywords specified!\n"
 msgstr "Chưa ghi rõ từ khoá.\n"
 
-#: src/fs/fs_uri.c:1142
+#: src/fs/fs_uri.c:1148
 msgid "Number of double-quotes not balanced!\n"
 msgstr "Có dấu nháy kép thừa hay thiếu.\n"
 
@@ -2357,7 +2355,7 @@ msgid "URI is `%s'.\n"
 msgstr "Tôi là đồng đẳng « %s ».\n"
 
 #: src/fs/gnunet-publish.c:160
-#, fuzzy, c-format
+#, fuzzy
 msgid "Cleanup after abort complete.\n"
 msgstr "Hoàn thành khởi chạy « %s ».\n"
 
@@ -2397,7 +2395,7 @@ msgid "Option `%s' is required when using option `%s'.\n"
 msgstr "Tùy chọn « %s » cần thiết khi dùng tùy chọn « %s ».\n"
 
 #: src/fs/gnunet-publish.c:398 src/fs/gnunet-publish.c:405
-#: src/transport/gnunet-transport.c:502
+#: src/transport/gnunet-transport.c:503
 #, c-format
 msgid "Option `%s' makes no sense without option `%s'.\n"
 msgstr "Tùy chọn « %s » không có nghĩa khi không có tùy chọn « %s ».\n"
@@ -2423,7 +2421,7 @@ msgid "Could not publish `%s': %s\n"
 msgstr "Không thể truy cập đến « %s »: %s\n"
 
 #: src/fs/gnunet-publish.c:520
-#, fuzzy, c-format
+#, fuzzy
 msgid "Could not start publishing.\n"
 msgstr "Không thể nạp phần bổ sung truyền tải « %s »\n"
 
@@ -2553,7 +2551,7 @@ msgid "Directory `%s' contents:\n"
 msgstr "==> Thư mục « %s »:\n"
 
 #: src/fs/gnunet-directory.c:132
-#, fuzzy, c-format
+#, fuzzy
 msgid "You must specify a filename to inspect."
 msgstr "Phải ghi rõ chỉ một tên tập tin để chèn.\n"
 
@@ -2714,7 +2712,7 @@ msgstr "# các yêu cầu get (lấy) dht được nhận"
 msgid "# query plan entries"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:615 src/fs/gnunet-service-fs_cp.c:1541
+#: src/fs/gnunet-service-fs_cp.c:615 src/fs/gnunet-service-fs_cp.c:1544
 #: src/transport/gnunet-service-transport_neighbours.c:936
 #: src/transport/gnunet-service-transport_neighbours.c:1263
 #: src/transport/gnunet-service-transport_neighbours.c:1735
@@ -2746,7 +2744,7 @@ msgstr "# các byte kiểu %d được gửi "
 msgid "# replies dropped"
 msgstr "# các đáp ứng dht được định tuyến"
 
-#: src/fs/gnunet-service-fs_cp.c:766 src/fs/gnunet-service-fs_cp.c:1331
+#: src/fs/gnunet-service-fs_cp.c:766 src/fs/gnunet-service-fs_cp.c:1334
 msgid "# P2P searches active"
 msgstr ""
 
@@ -2754,63 +2752,68 @@ msgstr ""
 msgid "# artificial delays introduced (ms)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:916
+#: src/fs/gnunet-service-fs_cp.c:909
+#, fuzzy
+msgid "# replies dropped due to type mismatch"
+msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
+
+#: src/fs/gnunet-service-fs_cp.c:919
 #, fuzzy
 msgid "# replies received for other peers"
 msgstr "# các byte kiểu %d được nhận"
 
-#: src/fs/gnunet-service-fs_cp.c:930
+#: src/fs/gnunet-service-fs_cp.c:933
 msgid "# replies dropped due to insufficient cover traffic"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:968
+#: src/fs/gnunet-service-fs_cp.c:971
 msgid "# P2P searches destroyed due to ultimate reply"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1035
+#: src/fs/gnunet-service-fs_cp.c:1038
 #, fuzzy
 msgid "# requests done for free (low load)"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/fs/gnunet-service-fs_cp.c:1059
+#: src/fs/gnunet-service-fs_cp.c:1062
 msgid "# request dropped, priority insufficient"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1069
+#: src/fs/gnunet-service-fs_cp.c:1072
 #, fuzzy
 msgid "# requests done for a price (normal load)"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/fs/gnunet-service-fs_cp.c:1148
+#: src/fs/gnunet-service-fs_cp.c:1151
 msgid "# GET requests received (from other peers)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1182
+#: src/fs/gnunet-service-fs_cp.c:1185
 #, fuzzy
 msgid "# requests dropped due to initiator not being connected"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/fs/gnunet-service-fs_cp.c:1206
+#: src/fs/gnunet-service-fs_cp.c:1209
 #, fuzzy
 msgid "# requests dropped due to missing reverse route"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/fs/gnunet-service-fs_cp.c:1272
+#: src/fs/gnunet-service-fs_cp.c:1275
 #, fuzzy
 msgid "# requests dropped due TTL underflow"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/fs/gnunet-service-fs_cp.c:1300
+#: src/fs/gnunet-service-fs_cp.c:1303
 #, fuzzy
 msgid "# requests dropped due to higher-TTL request"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/fs/gnunet-service-fs_cp.c:1329
+#: src/fs/gnunet-service-fs_cp.c:1332
 #, fuzzy
 msgid "# P2P query messages received and processed"
 msgstr "# các thông báo phát hiện dht được nhận"
 
-#: src/fs/gnunet-service-fs_cp.c:1696
+#: src/fs/gnunet-service-fs_cp.c:1699
 #, fuzzy
 msgid "# migration stop messages sent"
 msgstr "# các thông báo phát hiện dht được nhận"
@@ -2952,17 +2955,15 @@ msgid "Downloading `%s' done (%s/s).\n"
 msgstr "Tiến trình tải lên « %s » đã tiếp tục lại.\n"
 
 #: src/fs/gnunet-download.c:169
-#, fuzzy, c-format
+#, fuzzy
 msgid "You need to specify a URI argument.\n"
 msgstr "KHÔNG cho phép ghi rõ cả hai địa chỉ URI và tên tập tin.\n"
 
 #: src/fs/gnunet-download.c:182
-#, c-format
 msgid "Only CHK or LOC URIs supported.\n"
 msgstr ""
 
 #: src/fs/gnunet-download.c:189
-#, c-format
 msgid "Target filename must be specified.\n"
 msgstr ""
 
@@ -3095,51 +3096,51 @@ msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 msgid "Failed to recover namespace `%s', cannot resume publishing operation.\n"
 msgstr ""
 
-#: src/fs/fs_api.c:1364
+#: src/fs/fs_api.c:1365
 #, c-format
 msgid "Failure while resuming publishing operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:1380
+#: src/fs/fs_api.c:1381
 #, fuzzy, c-format
 msgid "Failed to resume publishing operation `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/fs/fs_api.c:1992
+#: src/fs/fs_api.c:1993
 #, c-format
 msgid "Failure while resuming unindexing operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2002
+#: src/fs/fs_api.c:2003
 #, fuzzy, c-format
 msgid "Failed to resume unindexing operation `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/fs/fs_api.c:2128 src/fs/fs_api.c:2367
+#: src/fs/fs_api.c:2129 src/fs/fs_api.c:2368
 #, fuzzy, c-format
 msgid "Failed to resume sub-download `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/fs/fs_api.c:2145
+#: src/fs/fs_api.c:2146
 #, fuzzy, c-format
 msgid "Failed to resume sub-search `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/fs/fs_api.c:2157 src/fs/fs_api.c:2176 src/fs/fs_api.c:2652
+#: src/fs/fs_api.c:2158 src/fs/fs_api.c:2177 src/fs/fs_api.c:2653
 #, c-format
 msgid "Failure while resuming search operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2358
+#: src/fs/fs_api.c:2359
 #, c-format
 msgid "Failed to resume sub-download `%s': could not open file `%s'\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2604
+#: src/fs/fs_api.c:2605
 msgid "Could not resume running search, will resume as paused search\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2690
+#: src/fs/fs_api.c:2691
 #, c-format
 msgid "Failure while resuming download operation `%s': %s\n"
 msgstr ""
@@ -3211,7 +3212,7 @@ msgstr "# tổng số định tuyến lỗ hổng thành công"
 msgid "Failed to connect to `%s' service.\n"
 msgstr "Lỗi sơ khởi dịch vụ « %s ».\n"
 
-#: src/fs/fs_file_information.c:349
+#: src/fs/fs_file_information.c:356
 #, fuzzy, c-format
 msgid "`%s' failed on file `%s': %s"
 msgstr "« %s » thất bại cho ổ đĩa « %s »: %u\n"
@@ -3748,84 +3749,83 @@ msgstr "# các thông báo phát hiện dht được nhận"
 msgid "# wlan messages inside WLAN_HELPER_DATA received"
 msgstr "# các thông báo phát hiện dht được nhận"
 
-#: src/transport/gnunet-transport.c:250
-#, c-format
+#: src/transport/gnunet-transport.c:251
 msgid "No transport plugins configured, peer will never communicate\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:263
+#: src/transport/gnunet-transport.c:264
 #, c-format
 msgid "No port configured for plugin `%s', cannot test it\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:313
+#: src/transport/gnunet-transport.c:314
 #, c-format
 msgid "Received %llu bytes/s (%llu bytes in %llu ms)\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:320
+#: src/transport/gnunet-transport.c:321
 #, c-format
 msgid "Transmitted %llu bytes/s (%llu bytes in %llu ms)\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:353
+#: src/transport/gnunet-transport.c:354
 #, fuzzy, c-format
 msgid "Transmitting %u bytes to %s\n"
 msgstr "Đang thử tải danh sách các máy xuống « %s »\n"
 
-#: src/transport/gnunet-transport.c:373
+#: src/transport/gnunet-transport.c:374
 #, fuzzy, c-format
 msgid "Connected to %s\n"
 msgstr "« %s » được kết nối tới « %s ».\n"
 
-#: src/transport/gnunet-transport.c:404
+#: src/transport/gnunet-transport.c:405
 #, fuzzy, c-format
 msgid "Disconnected from %s\n"
 msgstr "« %.*s » được kết nối tới « %.*s ».\n"
 
-#: src/transport/gnunet-transport.c:433
+#: src/transport/gnunet-transport.c:434
 #, fuzzy, c-format
 msgid "Received %u bytes from %s\n"
 msgstr "Nhận yêu cầu định tuyến\n"
 
-#: src/transport/gnunet-transport.c:447
+#: src/transport/gnunet-transport.c:448
 #, fuzzy, c-format
 msgid "Peer `%s': %s %s\n"
 msgstr "Tôi là đồng đẳng « %s ».\n"
 
-#: src/transport/gnunet-transport.c:511
+#: src/transport/gnunet-transport.c:512
 #, fuzzy, c-format
 msgid "Failed to parse peer identity `%s'\n"
 msgstr "Lỗi đọc danh sách bạn bè từ « %s »\n"
 
-#: src/transport/gnunet-transport.c:548
+#: src/transport/gnunet-transport.c:549
 msgid "measure how fast we are receiving data (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:551
+#: src/transport/gnunet-transport.c:552
 #, fuzzy
 msgid "try to connect to the given peer"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/transport/gnunet-transport.c:554
+#: src/transport/gnunet-transport.c:555
 #, fuzzy
 msgid "provide information about all current connections (once)"
 msgstr "In ra thông tin về các đồng đẳng GNUnet."
 
-#: src/transport/gnunet-transport.c:558
+#: src/transport/gnunet-transport.c:559
 msgid "send data for benchmarking to the other peer (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:561
+#: src/transport/gnunet-transport.c:562
 msgid "test transport configuration (involves external server)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:564
+#: src/transport/gnunet-transport.c:565
 #, fuzzy
 msgid "do not resolve hostnames"
 msgstr "không quyết định các tên máy"
 
-#: src/transport/gnunet-transport.c:572
+#: src/transport/gnunet-transport.c:573
 #, fuzzy
 msgid "Direct access to transport service."
 msgstr "Lỗi kết nối đến gnunetd.\n"
@@ -4120,7 +4120,6 @@ msgid "Failed to queue a leave notification\n"
 msgstr "Lỗi lưu cấu hình."
 
 #: src/chat/gnunet-chat.c:92
-#, c-format
 msgid "Joined\n"
 msgstr ""
 
@@ -4195,11 +4194,11 @@ msgid "`%s' left the room\n"
 msgstr "« %s » rời phòng\n"
 
 #: src/chat/gnunet-chat.c:284 src/chat/gnunet-chat.c:316
-#, fuzzy, c-format
+#, fuzzy
 msgid "Could not change username\n"
 msgstr "Không thể tạo miền tên.\n"
 
-#: src/chat/gnunet-chat.c:288 src/chat/gnunet-chat.c:629
+#: src/chat/gnunet-chat.c:288 src/chat/gnunet-chat.c:630
 #, fuzzy, c-format
 msgid "Joining room `%s' as user `%s'...\n"
 msgstr "Đã vào phòng « %s » là người dùng « %s ».\n"
@@ -4215,7 +4214,6 @@ msgid "Users in room `%s': "
 msgstr "Người dùng trong phòng « %s »:"
 
 #: src/chat/gnunet-chat.c:371
-#, c-format
 msgid "Syntax: /msg USERNAME MESSAGE"
 msgstr "Cú pháp: /msg TÊN_NGƯỜI_DÙNG TIN_NHẲN"
 
@@ -4303,25 +4301,24 @@ msgstr ""
 msgid "Use `/help command' to get help for a specific command"
 msgstr "Gõ chuỗi « /help LỆNH » để xem trợ giúp về lệnh đó"
 
-#: src/chat/gnunet-chat.c:605
-#, c-format
+#: src/chat/gnunet-chat.c:606
 msgid "You must specify a nickname\n"
 msgstr "Phải ghi rõ tên hiệu\n"
 
-#: src/chat/gnunet-chat.c:621
+#: src/chat/gnunet-chat.c:622
 #, c-format
 msgid "Failed to join room `%s'\n"
 msgstr "Lỗi vào phòng « %s »\n"
 
-#: src/chat/gnunet-chat.c:654
+#: src/chat/gnunet-chat.c:655
 msgid "set the nickname to use (required)"
 msgstr "đặt tên hiệu cần dùng (cần thiết)"
 
-#: src/chat/gnunet-chat.c:657
+#: src/chat/gnunet-chat.c:658
 msgid "set the chat room to join"
 msgstr "đặt phòng trò chuyện cần vào"
 
-#: src/chat/gnunet-chat.c:669
+#: src/chat/gnunet-chat.c:670
 msgid "Join a chat on GNUnet."
 msgstr "Vào phòng trò chuyện trên GNUnet."
 
@@ -4398,16 +4395,16 @@ msgstr ""
 msgid "Loading block plugin `%s'\n"
 msgstr "Đang nạp các truyền tải « %s »\n"
 
-#: src/mesh/gnunet-service-mesh.c:4212
+#: src/mesh/gnunet-service-mesh.c:4214
 msgid "MESH: Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:4417
+#: src/mesh/gnunet-service-mesh.c:4419
 #, fuzzy
 msgid "Mesh service is lacking key configuration settings.  Exiting.\n"
 msgstr "Lưu cấu hình ngay bây giờ không?"
 
-#: src/mesh/gnunet-service-mesh.c:4426
+#: src/mesh/gnunet-service-mesh.c:4428
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "Không thể truy cập đến thông tin về không gian tên.\n"
