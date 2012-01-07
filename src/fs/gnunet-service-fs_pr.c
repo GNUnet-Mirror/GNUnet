@@ -1217,7 +1217,7 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
   if (NULL == key)
   {
 #if DEBUG_FS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "No further local responses available.\n");
 #endif
     if ((pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK) ||
