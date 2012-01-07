@@ -244,6 +244,12 @@ GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc)
 
 /* ***************** binary-ASCII encoding *************** */
 
+/**
+ * Get the numeric value corresponding to a character.
+ *
+ * @param a a character
+ * @return corresponding numeric value
+ */
 static unsigned int
 getValue__ (unsigned char a)
 {
@@ -253,6 +259,7 @@ getValue__ (unsigned char a)
     return (a - 'A' + 10);
   return -1;
 }
+
 
 /**
  * Convert GNUNET_CRYPTO_hash to ASCII encoding.  The ASCII encoding is rather
@@ -306,6 +313,7 @@ GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
   result->encoding[wpos] = '\0';
 }
 
+
 /**
  * Convert ASCII encoding back to GNUNET_CRYPTO_hash
  *
@@ -320,6 +328,7 @@ GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result)
   unsigned int wpos;
   unsigned int bits;
   unsigned int vbit;
+  int ret;
 
   if (strlen (enc) != sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1)
     return GNUNET_SYSERR;
@@ -327,11 +336,15 @@ GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result)
   vbit = 2;                     /* padding! */
   wpos = sizeof (GNUNET_HashCode);
   rpos = sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1;
-  bits = getValue__ (enc[--rpos]) >> 3;
+  bits = (ret = getValue__ (enc[--rpos])) >> 3;
+  if (-1 == ret)
+    return GNUNET_SYSERR;
   while (wpos > 0)
   {
     GNUNET_assert (rpos > 0);
-    bits = (getValue__ (enc[--rpos]) << vbit) | bits;
+    bits = ((ret = getValue__ (enc[--rpos])) << vbit) | bits;
+    if (-1 == ret)
+      return GNUNET_SYSERR;
     vbit += 5;
     if (vbit >= 8)
     {
@@ -344,6 +357,7 @@ GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result)
   GNUNET_assert (vbit == 0);
   return GNUNET_OK;
 }
+
 
 /**
  * Compute the distance between 2 hashcodes.  The computation must be
@@ -366,6 +380,13 @@ GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
   return (x1 * x2);
 }
 
+
+/**
+ * Create a random hash code.
+ *
+ * @param mode desired quality level
+ * @param result hash code that is randomized
+ */
 void
 GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
                                   GNUNET_HashCode * result)
@@ -376,6 +397,14 @@ GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
     result->bits[i] = GNUNET_CRYPTO_random_u32 (mode, UINT32_MAX);
 }
 
+
+/**
+ * compute result(delta) = b - a
+ *
+ * @param a some hash code
+ * @param b some hash code
+ * @param result set to b - a
+ */
 void
 GNUNET_CRYPTO_hash_difference (const GNUNET_HashCode * a,
                                const GNUNET_HashCode * b,
@@ -387,6 +416,14 @@ GNUNET_CRYPTO_hash_difference (const GNUNET_HashCode * a,
     result->bits[i] = b->bits[i] - a->bits[i];
 }
 
+
+/**
+ * compute result(b) = a + delta
+ *
+ * @param a some hash code
+ * @param delta some hash code
+ * @param result set to a + delta
+ */
 void
 GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
                         const GNUNET_HashCode * delta, GNUNET_HashCode * result)
@@ -398,6 +435,13 @@ GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
 }
 
 
+/**
+ * compute result = a ^ b
+ *
+ * @param a some hash code
+ * @param b some hash code
+ * @param result set to a ^ b
+ */
 void
 GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a, const GNUNET_HashCode * b,
                         GNUNET_HashCode * result)
@@ -411,6 +455,10 @@ GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a, const GNUNET_HashCode * b,
 
 /**
  * Convert a hashcode into a key.
+ *
+ * @param hc hash code that serves to generate the key
+ * @param skey set to a valid session key
+ * @param iv set to a valid initialization vector
  */
 void
 GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
@@ -441,6 +489,7 @@ GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code, unsigned int bit)
   return (((unsigned char *) code)[bit >> 3] & (1 << (bit & 7))) > 0;
 }
 
+
 /**
  * Determine how many low order bits match in two
  * GNUNET_HashCodes.  i.e. - 010011 and 011111 share
@@ -470,6 +519,9 @@ GNUNET_CRYPTO_hash_matching_bits (const GNUNET_HashCode * first,
 /**
  * Compare function for HashCodes, producing a total ordering
  * of all hashcodes.
+ *
+ * @param h1 some hash code
+ * @param h2 some hash code
  * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
  */
 int
@@ -495,6 +547,10 @@ GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1, const GNUNET_HashCode * h2)
 /**
  * Find out which of the two GNUNET_CRYPTO_hash codes is closer to target
  * in the XOR metric (Kademlia).
+ *
+ * @param h1 some hash code
+ * @param h2 some hash code
+ * @param target some hash code
  * @return -1 if h1 is closer, 1 if h2 is closer and 0 if h1==h2.
  */
 int
