@@ -32,6 +32,9 @@
 #include "gnunet_statistics_service.h"
 #include "tcpip_tun.h"
 
+#ifndef IPVERSION
+#define IPVERSION 4
+#endif
 
 /**
  * Phases each request goes through.
