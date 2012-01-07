@@ -27,7 +27,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - implement service message handlers
  * - define mesh message formats between VPN and EXIT!
  * - build mesh messages
  * - parse mesh replies 
@@ -295,6 +294,11 @@ static struct GNUNET_HELPER_Handle *helper_handle;
  * Arguments to the vpn helper.
  */
 static char *vpn_argv[7];
+
+/**
+ * Length of the prefix of the VPN's IPv6 network.
+ */
+static unsigned long long ipv6prefix;
 
 /**
  * Notification context for sending replies to clients.
@@ -1116,8 +1120,43 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 static int
 allocate_v4_address (struct in_addr *v4)
 {
-  // FIXME: implement!
-  return GNUNET_SYSERR;
+  const char *ipv4addr = vpn_argv[4];
+  const char *ipv4mask = vpn_argv[5];
+  struct in_addr addr;
+  struct in_addr mask;
+  struct in_addr rnd;
+  GNUNET_HashCode key;
+  unsigned int tries;
+
+  GNUNET_assert (1 == inet_pton (AF_INET, ipv4addr, &addr));
+  GNUNET_assert (1 == inet_pton (AF_INET, ipv4mask, &mask));           
+  /* Given 192.168.0.1/255.255.0.0, we want a mask 
+     of '192.168.255.255', thus:  */
+  mask.s_addr = addr.s_addr | ~mask.s_addr;  
+  tries = 0;
+  do
+    {
+      tries++;
+      if (tries > 16)
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Failed to find unallocated IPv4 address in VPN's range\n"));
+	return GNUNET_SYSERR;
+      }
+      /* Pick random IPv4 address within the subnet, except 'addr' or 'mask' itself */
+      rnd.s_addr = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+					     UINT32_MAX);	
+      v4->s_addr = (addr.s_addr | rnd.s_addr) & mask.s_addr;          
+      get_destination_key_from_ip (AF_INET,
+				   v4,
+				   &key);
+    }
+  while ( (GNUNET_YES ==
+	   GNUNET_CONTAINER_multihashmap_contains (destination_map,
+						   &key)) ||
+	  (v4->s_addr == addr.s_addr) ||
+	  (v4->s_addr == mask.s_addr) );
+  return GNUNET_OK;
 }
 
 
@@ -1130,10 +1169,57 @@ allocate_v4_address (struct in_addr *v4)
  *         GNUNET_SYSERR on error
  */
 static int
-allocate_v6_address (struct in6_addr *v4)
+allocate_v6_address (struct in6_addr *v6)
 {
-  // FIXME: implement!
-  return GNUNET_SYSERR;
+  const char *ipv6addr = vpn_argv[2];
+  struct in6_addr addr;
+  struct in6_addr mask;
+  struct in6_addr rnd;
+  int i;
+  GNUNET_HashCode key;
+  unsigned int tries;
+
+  GNUNET_assert (1 == inet_pton (AF_INET6, ipv6addr, &addr));
+  GNUNET_assert (ipv6prefix < 128);
+  /* Given ABCD::/96, we want a mask of 'ABCD::FFFF:FFFF,
+     thus: */
+  mask = addr;
+  for (i=127;i>=128-ipv6prefix;i--)
+    mask.s6_addr[i / 8] |= (1 << (i % 8));
+  
+  /* Pick random IPv6 address within the subnet, except 'addr' or 'mask' itself */
+  tries = 0;
+  do
+    {
+      tries++;
+      if (tries > 16)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Failed to find unallocated IPv6 address in VPN's range\n"));
+	  return GNUNET_SYSERR;
+
+	}
+      for (i=0;i<16;i++)
+	{
+	  rnd.s6_addr[i] = (unsigned char) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+								     256);
+	  v6->s6_addr[i]
+	    = (addr.s6_addr[i] | rnd.s6_addr[i]) & mask.s6_addr[i];
+	}
+      get_destination_key_from_ip (AF_INET6,
+				   v6,
+				   &key);
+    }
+  while ( (GNUNET_YES ==
+	   GNUNET_CONTAINER_multihashmap_contains (destination_map,
+						   &key)) ||
+	  (0 == memcmp (v6,
+			&addr,
+			sizeof (struct in6_addr))) ||
+	  (0 == memcmp (v6,
+			&mask,
+			sizeof (struct in6_addr))) );
+  return GNUNET_OK;
 }
 
 
@@ -1640,7 +1726,6 @@ run (void *cls,
   char *ipv4mask;
   struct in_addr v4;
   struct in6_addr v6;
-  unsigned long long ipv6prefix;
 
   cfg = cfg_;
   if (GNUNET_OK !=
