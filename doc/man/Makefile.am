@@ -10,6 +10,7 @@ man_MANS = \
   gnunet-search.1 \
   gnunet-statistics.1 \
   gnunet-transport.1 \
-  gnunet-unindex.1 
+  gnunet-unindex.1 \
+  gnunet-vpn.1
 
 EXTRA_DIST = ${man_MANS}
