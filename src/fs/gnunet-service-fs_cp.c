@@ -883,6 +883,7 @@ static void
 handle_p2p_reply (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
                   struct GSF_PendingRequest *pr, uint32_t reply_anonymity_level,
                   struct GNUNET_TIME_Absolute expiration,
+                  struct GNUNET_TIME_Absolute last_transmission,
                   enum GNUNET_BLOCK_Type type, const void *data,
                   size_t data_len)
 {

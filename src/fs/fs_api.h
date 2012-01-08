@@ -1906,7 +1906,6 @@ struct GNUNET_FS_Namespace
   unsigned int nug_gen;
 };
 
-
 #endif
 
 /* end of fs_api.h */

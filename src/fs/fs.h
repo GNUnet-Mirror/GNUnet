@@ -267,7 +267,7 @@ struct SearchMessage
  * Response from FS service with a result for a previous FS search.
  * Note that queries for DBLOCKS and IBLOCKS that have received a
  * single response are considered done.  This message is transmitted
- * between peers as well as between the service and a client.
+ * between peers.
  */
 struct PutMessage
 {
@@ -286,6 +286,40 @@ struct PutMessage
    * When does this result expire?
    */
   struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /* this is followed by the actual encrypted content */
+
+};
+
+/**
+ * Response from FS service with a result for a previous FS search.
+ * Note that queries for DBLOCKS and IBLOCKS that have received a
+ * single response are considered done.  This message is transmitted
+ * between the service and a client.
+ */
+struct ClientPutMessage
+{
+
+  /**
+   * Message type will be GNUNET_MESSAGE_TYPE_FS_PUT.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Type of the block (in big endian).  Should never be zero.
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * When does this result expire?
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /**
+   * When was the last time we've tried to download this block?
+   * (FOREVER if unknown/not relevant)
+   */
+  struct GNUNET_TIME_AbsoluteNBO last_transmission;
 
   /* this is followed by the actual encrypted content */
 

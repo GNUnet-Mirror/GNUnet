@@ -118,6 +118,7 @@ GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.download.uri = dc->uri;
   pi->value.download.filename = dc->filename;
   pi->value.download.size = dc->length;
+  /* FIXME: Fix duration calculation to account for pauses */
   pi->value.download.duration =
       GNUNET_TIME_absolute_get_duration (dc->start_time);
   pi->value.download.completed = dc->completed;
@@ -182,6 +183,8 @@ struct ProcessResultClosure
    * Flag to indicate if this block should be stored on disk.
    */
   int do_store;
+
+  struct GNUNET_TIME_Absolute last_transmission;
 
 };
 
@@ -251,6 +254,7 @@ encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
        dr->depth) ? GNUNET_BLOCK_TYPE_FS_DBLOCK : GNUNET_BLOCK_TYPE_FS_IBLOCK;
   prc.query = chk->query;
   prc.do_store = do_store;
+  prc.last_transmission = GNUNET_TIME_UNIT_FOREVER_ABS;
   process_result_with_request (&prc, &chk->key, dr);
   return GNUNET_OK;
 }
@@ -1072,6 +1076,12 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
   pi.value.download.specifics.progress.data_len = prc->size;
   pi.value.download.specifics.progress.depth = dr->depth;
   pi.value.download.specifics.progress.trust_offered = 0;
+  if (prc->last_transmission.abs_value != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
+    pi.value.download.specifics.progress.block_download_duration =
+        GNUNET_TIME_absolute_get_duration (prc->last_transmission);
+  else
+    pi.value.download.specifics.progress.block_download_duration.rel_value = 
+        GNUNET_TIME_UNIT_FOREVER_REL.rel_value;
   GNUNET_FS_download_make_status_ (&pi, dc);
   GNUNET_assert (dc->completed <= dc->length);
   if (dr->depth == 0)
@@ -1182,12 +1192,15 @@ signal_error:
  *
  * @param dc our download context
  * @param type type of the result
+ * @param last_transmission when was this block requested the last time? (FOREVER if unknown/not applicable)
  * @param data the (encrypted) response
  * @param size size of data
  */
 static void
 process_result (struct GNUNET_FS_DownloadContext *dc,
-                enum GNUNET_BLOCK_Type type, const void *data, size_t size)
+                enum GNUNET_BLOCK_Type type,
+                struct GNUNET_TIME_Absolute last_transmission,
+                const void *data, size_t size)
 {
   struct ProcessResultClosure prc;
 
@@ -1196,6 +1209,7 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
   prc.size = size;
   prc.type = type;
   prc.do_store = GNUNET_YES;
+  prc.last_transmission = last_transmission;
   GNUNET_CRYPTO_hash (data, size, &prc.query);
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1219,20 +1233,21 @@ static void
 receive_results (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
-  const struct PutMessage *cm;
+  const struct ClientPutMessage *cm;
   uint16_t msize;
 
   if ((NULL == msg) || (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_PUT) ||
-      (sizeof (struct PutMessage) > ntohs (msg->size)))
+      (sizeof (struct ClientPutMessage) > ntohs (msg->size)))
   {
     GNUNET_break (msg == NULL);
     try_reconnect (dc);
     return;
   }
   msize = ntohs (msg->size);
-  cm = (const struct PutMessage *) msg;
-  process_result (dc, ntohl (cm->type), &cm[1],
-                  msize - sizeof (struct PutMessage));
+  cm = (const struct ClientPutMessage *) msg;
+  process_result (dc, ntohl (cm->type),
+                  GNUNET_TIME_absolute_ntoh (cm->last_transmission), &cm[1],
+                  msize - sizeof (struct ClientPutMessage));
   if (dc->client == NULL)
     return;                     /* fatal error */
   /* continue receiving */

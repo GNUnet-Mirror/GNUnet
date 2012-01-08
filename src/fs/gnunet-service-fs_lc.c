@@ -218,6 +218,7 @@ client_request_destroy (void *cls,
  * @param pr handle to the original pending request
  * @param reply_anonymity_level anonymity level for the reply, UINT32_MAX for "unknown"
  * @param expiration when does 'data' expire?
+ * @param last_transmission when was the last time we've tried to download this block? (FOREVER if unknown)
  * @param type type of the block
  * @param data response data, NULL on request expiration
  * @param data_len number of bytes in data
@@ -227,12 +228,13 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
                          struct GSF_PendingRequest *pr,
                          uint32_t reply_anonymity_level,
                          struct GNUNET_TIME_Absolute expiration,
+                         struct GNUNET_TIME_Absolute last_transmission,
                          enum GNUNET_BLOCK_Type type, const void *data,
                          size_t data_len)
 {
   struct ClientRequest *cr = cls;
   struct GSF_LocalClient *lc;
-  struct PutMessage *pm;
+  struct ClientPutMessage *pm;
   const struct GSF_PendingRequestData *prd;
   size_t msize;
 
@@ -255,15 +257,16 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
                             GNUNET_NO);
   GNUNET_assert (pr == cr->pr);
   lc = cr->lc;
-  msize = sizeof (struct PutMessage) + data_len;
+  msize = sizeof (struct ClientPutMessage) + data_len;
   {
     char buf[msize];
 
-    pm = (struct PutMessage *) buf;
+    pm = (struct ClientPutMessage *) buf;
     pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
     pm->header.size = htons (msize);
     pm->type = htonl (type);
     pm->expiration = GNUNET_TIME_absolute_hton (expiration);
+    pm->last_transmission = GNUNET_TIME_absolute_hton (last_transmission);
     memcpy (&pm[1], data, data_len);
     GSF_local_client_transmit_ (lc, &pm->header);
   }

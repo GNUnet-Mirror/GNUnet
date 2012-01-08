@@ -90,7 +90,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void *
 progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 {
-  char *s;
+  char *s, *s2;
   char *t;
 
   switch (info->status)
@@ -104,16 +104,23 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     if (verbose)
     {
       s = GNUNET_STRINGS_relative_time_to_string (info->value.download.eta);
+      if (info->value.download.specifics.progress.block_download_duration.rel_value 
+          == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+        s2 = GNUNET_strdup (_("<unknown time>"));
+      else
+        s2 = GNUNET_STRINGS_relative_time_to_string (
+              info->value.download.specifics.progress.block_download_duration);
       t = GNUNET_STRINGS_byte_size_fancy (info->value.download.completed *
                                           1000LL /
                                           (info->value.download.
                                            duration.rel_value + 1));
       FPRINTF (stdout,
-               _("Downloading `%s' at %llu/%llu (%s remaining, %s/s)\n"),
+               _("Downloading `%s' at %llu/%llu (%s remaining, %s/s). Block took %s to download\n"),
                info->value.download.filename,
                (unsigned long long) info->value.download.completed,
-               (unsigned long long) info->value.download.size, s, t);
+               (unsigned long long) info->value.download.size, s, t, s2);
       GNUNET_free (s);
+      GNUNET_free (s2);
       GNUNET_free (t);
     }
     break;

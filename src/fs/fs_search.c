@@ -835,11 +835,11 @@ static void
 receive_results (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
-  const struct PutMessage *cm;
+  const struct ClientPutMessage *cm;
   uint16_t msize;
 
   if ((NULL == msg) || (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_FS_PUT) ||
-      (ntohs (msg->size) <= sizeof (struct PutMessage)))
+      (ntohs (msg->size) <= sizeof (struct ClientPutMessage)))
   {
     try_reconnect (sc);
     return;
@@ -847,10 +847,10 @@ receive_results (void *cls, const struct GNUNET_MessageHeader *msg)
   msize = ntohs (msg->size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Receiving %u bytes of result from fs service\n", msize);
-  cm = (const struct PutMessage *) msg;
+  cm = (const struct ClientPutMessage *) msg;
   process_result (sc, ntohl (cm->type),
                   GNUNET_TIME_absolute_ntoh (cm->expiration), &cm[1],
-                  msize - sizeof (struct PutMessage));
+                  msize - sizeof (struct ClientPutMessage));
   /* continue receiving */
   GNUNET_CLIENT_receive (sc->client, &receive_results, sc,
                          GNUNET_TIME_UNIT_FOREVER_REL);

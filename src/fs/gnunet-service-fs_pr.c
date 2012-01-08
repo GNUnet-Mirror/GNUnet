@@ -360,8 +360,8 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
         break;                  /* let the request live briefly... */
       if (NULL != dpr->rh)
 	dpr->rh (dpr->rh_cls, GNUNET_BLOCK_EVALUATION_REQUEST_VALID, dpr,
-		 UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_BLOCK_TYPE_ANY,
-		 NULL, 0);
+		 UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_ABS,
+                 GNUNET_BLOCK_TYPE_ANY, NULL, 0);
       GSF_pending_request_cancel_ (dpr, GNUNET_YES);
     }
   }
@@ -370,7 +370,6 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                             GNUNET_NO);
   return pr;
 }
-
 
 /**
  * Obtain the public data associated with a pending request
@@ -775,6 +774,7 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   struct ProcessReplyClosure *prq = cls;
   struct GSF_PendingRequest *pr = value;
   GNUNET_HashCode chash;
+  struct GNUNET_TIME_Absolute last_transmission;
 
   if (NULL == pr->rh)
     return GNUNET_YES;
@@ -804,9 +804,11 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_LOAD_update (GSF_rt_entry_lifetime,
                         GNUNET_TIME_absolute_get_duration (pr->
                                                            public_data.start_time).rel_value);
+    if (!GSF_request_plan_reference_get_last_transmission_ (pr->public_data.rpr_head, prq->sender, &last_transmission))
+      last_transmission.abs_value = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
     /* pass on to other peers / local clients */
     pr->rh (pr->rh_cls, prq->eval, pr, prq->anonymity_level, prq->expiration,
-            prq->type, prq->data, prq->size);
+            last_transmission, prq->type, prq->data, prq->size);
     return GNUNET_YES;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
     GNUNET_STATISTICS_update (GSF_stats,
@@ -855,8 +857,10 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   pr->public_data.results_found++;
   prq->request_found = GNUNET_YES;
   /* finally, pass on to other peer / local client */
+  if (!GSF_request_plan_reference_get_last_transmission_ (pr->public_data.rpr_head, prq->sender, &last_transmission))
+    last_transmission.abs_value = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
   pr->rh (pr->rh_cls, prq->eval, pr, prq->anonymity_level, prq->expiration,
-          prq->type, prq->data, prq->size);
+          last_transmission, prq->type, prq->data, prq->size);
   return GNUNET_YES;
 }
 

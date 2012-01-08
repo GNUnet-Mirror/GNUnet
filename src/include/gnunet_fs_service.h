@@ -1027,6 +1027,12 @@ struct GNUNET_FS_ProgressInfo
 	   */
           unsigned int trust_offered;
 
+          /**
+	   * How much time passed between us asking for this block and
+           * actually getting it? GNUNET_TIME_UNIT_FOREVER_REL if unknown.
+	   */
+          struct GNUNET_TIME_Relative block_download_duration;
+
         } progress;
 
         /**
