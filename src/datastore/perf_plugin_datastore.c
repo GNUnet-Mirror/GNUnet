@@ -442,7 +442,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (api == NULL)
   {
     FPRINTF (stderr,
-             "Could not initialize plugin, assuming database not configured. Test not run!\n", NULL);
+             "%s", "Could not initialize plugin, assuming database not configured. Test not run!\n");
     return;
   }
   crc = GNUNET_malloc (sizeof (struct CpsRunContext));
