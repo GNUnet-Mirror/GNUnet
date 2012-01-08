@@ -377,7 +377,7 @@ peergroup_ready (void *cls, const char *emsg)
     d = GNUNET_TESTING_daemon_get (pg, i);
     hs[i] = GNUNET_DHT_connect (d->cfg, 32);
     mhs[i] = GNUNET_DHT_monitor_start(hs[i], GNUNET_BLOCK_TYPE_ANY, NULL,
-                                      &monitor_dht_cb, (void *)(long long)i);
+                                      &monitor_dht_cb, (void *)(long)i);
     id_aux = GNUNET_i2s (&d->id);
     if (strcmp (id_aux, id_origin) == 0)
     {
