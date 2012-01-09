@@ -1047,8 +1047,10 @@ GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator *iter,
  * @param dirName the name of the directory
  * @param callback the method to call for each file
  * @param callback_cls closure for callback
+ * @return GNUNET_YES if directory is not empty and @callback
+ *         will be called later, GNUNET_NO otherwise, GNUNET_SYSERR on error.
  */
-void
+int
 GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority prio,
                                       const char *dirName,
                                       GNUNET_DISK_DirectoryIteratorCallback
@@ -1064,11 +1066,11 @@ GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority prio,
   {
     GNUNET_free (di);
     callback (callback_cls, NULL, NULL, NULL);
-    return;
+    return GNUNET_SYSERR;
   }
   di->dirname = GNUNET_strdup (dirName);
   di->priority = prio;
-  GNUNET_DISK_directory_iterator_next (di, GNUNET_NO);
+  return GNUNET_DISK_directory_iterator_next (di, GNUNET_NO);
 }
 
 
