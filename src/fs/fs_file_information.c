@@ -107,6 +107,37 @@ GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s)
   return s->serialization;
 }
 
+/**
+ * Obtain the filename from the file information structure.
+ *
+ * @param s structure to get the filename for
+ * @return "filename" field of the structure (can be NULL)
+ */
+const char *
+GNUNET_FS_file_information_get_filename (struct GNUNET_FS_FileInformation *s)
+{
+  return s->filename;
+}
+
+
+/**
+ * Set the filename in the file information structure.
+ * If filename was already set, frees it before setting the new one.
+ * Makes a copy of the argument.
+ *
+ * @param s structure to get the filename for
+ * @param filename filename to set
+ */
+void
+GNUNET_FS_file_information_set_filename (struct GNUNET_FS_FileInformation *s,
+                                         const char *filename)
+{
+  GNUNET_free_non_null (s->filename);
+  if (filename)
+    s->filename = GNUNET_strdup (filename);
+  else
+    s->filename = NULL;
+}
 
 /**
  * Create an entry for a file in a publish-structure.
@@ -764,7 +795,7 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
   GNUNET_FS_uri_ksk_add_keyword (cdmc.ksk, GNUNET_FS_DIRECTORY_MIME, GNUNET_NO);
   ret =
       GNUNET_FS_file_information_create_empty_directory (h, client_info, cdmc.ksk,
-                                                         cdmc.meta, bo);
+                                                         cdmc.meta, bo, filename);
   GNUNET_CONTAINER_meta_data_destroy (cdmc.meta);
   GNUNET_FS_uri_destroy (cdmc.ksk);
   ret->data.dir.entries = dc.entries;
@@ -789,8 +820,7 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
                                      "text/plain", dn, strlen (dn) + 1);
 #endif
   GNUNET_free (dn);
-  ret->filename = GNUNET_strdup (filename);
-  return ret;
+ return ret;
 }
 
 
@@ -820,6 +850,7 @@ GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation
  * @param keywords under which keywords should this directory be available
  *         directly; can be NULL
  * @param bo block options
+ * @param filename name of the directory; can be NULL
  * @return publish structure entry for the directory , NULL on error
  */
 struct GNUNET_FS_FileInformation *
@@ -831,7 +862,8 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
                                                    GNUNET_CONTAINER_MetaData
                                                    *meta,
                                                    const struct
-                                                   GNUNET_FS_BlockOptions *bo)
+                                                   GNUNET_FS_BlockOptions *bo,
+                                                   const char *filename)
 {
   struct GNUNET_FS_FileInformation *ret;
 
@@ -842,6 +874,8 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
   ret->keywords = GNUNET_FS_uri_dup (keywords);
   ret->bo = *bo;
   ret->is_directory = GNUNET_YES;
+  if (filename != NULL)
+    ret->filename = GNUNET_strdup (filename);
   return ret;
 }
 

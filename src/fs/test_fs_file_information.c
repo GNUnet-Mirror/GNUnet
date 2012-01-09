@@ -121,7 +121,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   fidir =
       GNUNET_FS_file_information_create_empty_directory (fs,
                                                          "file_information-context-dir",
-                                                         kuri, meta, &bo);
+                                                         kuri, meta, &bo, NULL);
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi1));
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi2));
   GNUNET_FS_uri_destroy (kuri);

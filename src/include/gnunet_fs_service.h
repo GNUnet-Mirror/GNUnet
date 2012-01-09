@@ -1749,6 +1749,26 @@ const char *
 GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s);
 
 
+/**
+ * Obtain the filename from the file information structure.
+ *
+ * @param s structure to get the filename for
+ * @return "filename" field of the structure (can be NULL)
+ */
+const char *
+GNUNET_FS_file_information_get_filename (struct GNUNET_FS_FileInformation *s);
+
+/**
+ * Set the filename in the file information structure.
+ * If filename was already set, frees it before setting the new one.
+ * Makes a copy of the argument.
+ *
+ * @param s structure to get the filename for
+ * @param filename filename to set
+ */
+void
+GNUNET_FS_file_information_set_filename (struct GNUNET_FS_FileInformation *s,
+                                         const char *filename);
 
 /**
  * Create an entry for a file in a publish-structure.
@@ -1968,6 +1988,7 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
  *         directly; can be NULL
  * @param meta metadata for the directory
  * @param bo block options
+ * @param filename name of the directory; can be NULL
  * @return publish structure entry for the directory , NULL on error
  */
 struct GNUNET_FS_FileInformation *
@@ -1979,7 +2000,8 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
                                                    GNUNET_CONTAINER_MetaData
                                                    *meta,
                                                    const struct
-                                                   GNUNET_FS_BlockOptions *bo);
+                                                   GNUNET_FS_BlockOptions *bo,
+                                                   const char *filename);
 
 
 /**
