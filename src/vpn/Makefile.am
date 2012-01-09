@@ -70,6 +70,8 @@ gnunet_vpn_LDADD = \
   $(top_builddir)/src/vpn/libgnunetvpn.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_vpn_DEPENDENCIES = \
+  libgnunetvpn.la
 
 libgnunetvpn_la_SOURCES = \
  vpn_api.c vpn.h

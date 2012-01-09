@@ -57,6 +57,8 @@ gnunet_service_dns_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(GN_LIBINTL)
+gnunet_service_dns_DEPENDENCIES = \
+  libgnunetdnsparser.la
 
 gnunet_dns_monitor_SOURCES = \
  gnunet-dns-monitor.c
@@ -65,6 +67,9 @@ gnunet_dns_monitor_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_dns_monitor_DEPENDENCIES = \
+  libgnunetdnsparser.la \
+  libgnunetdnsnew.la
 
 gnunet_dns_redirector_SOURCES = \
  gnunet-dns-redirector.c
@@ -73,6 +78,9 @@ gnunet_dns_redirector_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_dns_redirector_DEPENDENCIES = \
+  libgnunetdnsparser.la \
+  libgnunetdnsnew.la
 
 gnunet_service_dns_new_SOURCES = \
  gnunet-service-dns_new.c 
