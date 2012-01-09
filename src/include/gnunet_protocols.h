@@ -634,6 +634,38 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK 193
 
 
+
+/**
+ * Type of messages containing an TCP packet for a service.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START 196
+
+/**
+ * Type of messages containing an TCP packet for the Internet.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START 197
+
+/**
+ * Type of messages containing an TCP packet of an established connection.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_TCP_DATA 198
+
+/**
+ * Type of messages containing an UDP packet for a service.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE 199
+
+/**
+ * Type of messages containing an UDP packet for the Internet.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET 200
+
+/**
+ * Type of messages containing an UDP packet from a remote host
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY 201
+
+
 /**
  * Client asks VPN service to setup an IP to redirect traffic
  * via an exit node to some global IP address.

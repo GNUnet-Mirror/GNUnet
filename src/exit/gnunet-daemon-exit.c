@@ -25,8 +25,8 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - need proper message headers for mesh P2P messages
- * - factor out crc computations from DNS/EXIT into shared library?
+ * - use new proper message headers for mesh P2P messages
+ * - factor out crc computations from DNS/EXIT/VPN into shared library?
  * - which code should advertise services? the service model is right
  *   now a bit odd, especially as this code DOES the exit and knows
  *   the DNS "name", but OTOH this is clearly NOT the place to advertise
@@ -40,6 +40,7 @@
 #include "gnunet_mesh_service.h"
 #include "gnunet_constants.h"
 #include "tcpip_tun.h"
+#include "exit.h"
 
 /**
  * Information about an address.
@@ -267,6 +268,15 @@ static struct GNUNET_CONTAINER_MultiHashMap *udp_services;
  */
 static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
 
+/**
+ * Are we an IPv4-exit?
+ */
+static int ipv4_exit;
+
+/**
+ * Are we an IPv6-exit?
+ */
+static int ipv6_exit;
 
 /**
  * Given IP information about a connection, calculate the respective
@@ -1265,7 +1275,7 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
   if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct tcp_packet))
   {
     GNUNET_break_op (0);
-    return GNUNET_YES;
+    return GNUNET_SYSERR;
   }
   pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
 
@@ -1279,8 +1289,7 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
 		  _("No service found for %s on port %d!\n"),
 		  "TCP",
 		  ntohs (pkt->dpt));
-      GNUNET_MESH_tunnel_destroy (state->tunnel);
-      return GNUNET_YES;
+      return GNUNET_SYSERR;
     }
     state->ri.remote_address = state->serv->address;    
     setup_state_record (state);
@@ -1321,7 +1330,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct tcp_packet))
   {
     GNUNET_break_op (0);
-    return GNUNET_YES;
+    return GNUNET_SYSERR;
   }
   pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
 
@@ -1331,6 +1340,54 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     state->ri.remote_address = *s;
     setup_state_record (state);
   }
+
+  send_tcp_packet_via_tun (&state->ri.remote_address,
+			   &state->ri.local_address,
+			   pkt, pkt_len);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Process a request to forward TCP data on an established 
+ * connection via this peer.
+ *
+ * @param cls closure, NULL
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+		  void **tunnel_ctx GNUNET_UNUSED,
+		  const struct GNUNET_PeerIdentity *sender GNUNET_UNUSED,
+		  const struct GNUNET_MessageHeader *message,
+		  const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
+{
+  struct TunnelState *state = *tunnel_ctx;
+  // FIXME: write proper request struct (!)
+  const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
+  const struct tcp_packet *pkt = (const struct tcp_packet *) &desc[1];
+  uint16_t pkt_len = ntohs (message->size);
+
+  if (NULL == state)
+  {
+    /* connection should have been up! */
+    /* FIXME: call statistics */
+    return GNUNET_SYSERR;
+  }
+
+  if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct tcp_packet))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
+
 
   send_tcp_packet_via_tun (&state->ri.remote_address,
 			   &state->ri.local_address,
@@ -1449,7 +1506,7 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct udp_packet))
   {
     GNUNET_break_op (0);
-    return GNUNET_YES;
+    return GNUNET_SYSERR;
   }
   pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
 
@@ -1498,7 +1555,7 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct udp_packet))
   {
     GNUNET_break_op (0);
-    return GNUNET_YES;
+    return GNUNET_SYSERR;
   }
   pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
 
@@ -1517,7 +1574,7 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		  "UDP",
 		  ntohs (pkt->dpt));
       GNUNET_MESH_tunnel_destroy (state->tunnel);
-      return GNUNET_YES;
+      return GNUNET_SYSERR;
     }
     state->ri.remote_address = state->serv->address;    
     setup_state_record (state);
@@ -1819,10 +1876,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   static struct GNUNET_MESH_MessageHandler handlers[] = {
-    {&receive_udp_service, GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP, 0},
-    {&receive_tcp_service, GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP, 0},
-    {NULL, 0, 0},
-    {NULL, 0, 0},
+    {&receive_udp_service, GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE, 0},
+    {&receive_udp_remote, GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET, 0},
+    {&receive_tcp_service, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START, 0},
+    {&receive_tcp_remote, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START, 0},
+    {&receive_tcp_data, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA, 0},
     {NULL, 0, 0}
   };
 
@@ -1831,10 +1889,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_APPLICATION_TYPE_END,
     GNUNET_APPLICATION_TYPE_END
   };
-  unsigned int handler_idx;
   unsigned int app_idx;
-  int udp;
-  int tcp;
   char *ifname;
   char *ipv6addr;
   char *ipv6prefix_s;
@@ -1844,7 +1899,22 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   struct in6_addr v6;
 
   cfg = cfg_;
+  ipv4_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV4");
+  ipv6_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV6");
+  app_idx = 0;
+  if (GNUNET_YES == ipv4_exit)    
+  {
+    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_IPV4_GATEWAY;
+    app_idx++;
+  }
+  if (GNUNET_YES == ipv6_exit)    
+  {
+    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_IPV6_GATEWAY;
+    app_idx++;
+  }
+
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_CONNECTIONS",
                                              &max_connections))
@@ -1914,31 +1984,6 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   exit_argv[5] = ipv4mask;
   exit_argv[6] = NULL;
 
-  app_idx = 0;
-  handler_idx = 2;
-  // FIXME: new 'vpn' has other apptypes (IPv4/IPv6, no longer TCP vs. UDP)!
-  // The new 'exit' should reflect that!
-  udp = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_UDP");
-  tcp = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_TCP");
-  if (GNUNET_YES == udp)
-  {
-    handlers[handler_idx].callback = &receive_udp_remote;
-    handlers[handler_idx].expected_size = 0;
-    handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP;
-    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
-    handler_idx++;
-    app_idx++;
-  }
-
-  if (GNUNET_YES == tcp)
-  {
-    handlers[handler_idx].callback = &receive_tcp_remote;
-    handlers[handler_idx].expected_size = 0;
-    handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP;
-    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
-    handler_idx++;
-    app_idx++;
-  }
   udp_services = GNUNET_CONTAINER_multihashmap_create (65536);
   tcp_services = GNUNET_CONTAINER_multihashmap_create (65536);
   GNUNET_CONFIGURATION_iterate_sections (cfg, &read_service_conf, NULL);
@@ -1955,7 +2000,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  helper_handle = GNUNET_HELPER_start ("gnunet-helper-vpn", 
+  helper_handle = GNUNET_HELPER_start ("gnunet-helper-exit", 
 				       exit_argv,
 				       &message_token, NULL);
 }
