@@ -108,7 +108,7 @@ struct GNUNET_EXIT_TcpDataMessage
 
   /**
    * Skeleton of the TCP header to send.  Port numbers are to
-   * be replaced and the checksum may be updated as necessary.
+   * be replaced and the checksum may be updated as necessary.  (The destination port number should not be changed, as it contains the desired destination port.)
    */
   struct tcp_packet tcp_header;
 

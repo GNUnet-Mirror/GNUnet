@@ -971,6 +971,7 @@ setup_state_record (struct TunnelState *state)
 static void
 prepare_ipv4_packet (const void *payload, size_t payload_length,
 		     int protocol,
+		     const struct tcp_packet *tcp_header,
 		     const struct SocketAddress *src_address,
 		     const struct SocketAddress *dst_address,
 		     struct ip4_header *pkt4)
@@ -984,12 +985,8 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
     len += sizeof (struct udp_packet);
     break;
   case IPPROTO_TCP:
-    /* tcp_header (with port/crc not set) must be part of payload! */
-    if (len < sizeof (struct tcp_packet))
-    {
-      GNUNET_break (0);
-      return;
-    }
+    len += sizeof (struct tcp_packet);
+    GNUNET_assert (NULL != tcp_header);
     break;
   default:
     GNUNET_break (0);
@@ -1033,7 +1030,8 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
     {
       struct tcp_packet *pkt4_tcp = (struct tcp_packet *) &pkt4[1];
       
-      memcpy (pkt4_tcp, payload, payload_length);
+      memcpy (pkt4_tcp, tcp_header, sizeof (struct tcp_packet));
+      memcpy (&pkt4_tcp[1], payload, payload_length);
       pkt4_tcp->spt = htons (src_address->port);
       pkt4_tcp->dpt = htons (dst_address->port);
       pkt4_tcp->crc = 0;
@@ -1073,6 +1071,7 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
 static void
 prepare_ipv6_packet (const void *payload, size_t payload_length,
 		     int protocol,
+		     const struct tcp_packet *tcp_header,
 		     const struct SocketAddress *src_address,
 		     const struct SocketAddress *dst_address,
 		     struct ip6_header *pkt6)
@@ -1166,12 +1165,14 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
  *
  * @param destination_address IP and port to use for the TCP packet's destination
  * @param source_address IP and port to use for the TCP packet's source
- * @param payload payload of the IP header (includes TCP header)
+ * @param tcp header template to use
+ * @param payload payload of the TCP packet
  * @param payload_length number of bytes in 'payload'
  */
 static void
 send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 			 const struct SocketAddress *source_address,
+			 const struct tcp_packet *tcp_header,
 			 const void *payload, size_t payload_length)
 {
   size_t len;
@@ -1212,7 +1213,9 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 	struct ip4_header * ipv4 = (struct ip4_header*) &tun[1];
 	
 	tun->proto = htons (ETH_P_IPV4);
-	prepare_ipv4_packet (payload, payload_length, IPPROTO_TCP,
+	prepare_ipv4_packet (payload, payload_length,
+			     IPPROTO_TCP,
+			     tcp_header, 
 			     source_address,
 			     destination_address,
 			     ipv4);
@@ -1223,7 +1226,9 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 	struct ip6_header * ipv6 = (struct ip6_header*) &tun[1];
 	
 	tun->proto = htons (ETH_P_IPV6);
-	prepare_ipv6_packet (payload, payload_length, IPPROTO_TCP,
+	prepare_ipv6_packet (payload, payload_length, 
+			     IPPROTO_TCP,
+			     tcp_header, 
 			     source_address,
 			     destination_address,
 			     ipv6);
@@ -1242,11 +1247,8 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 
 
 /**
- * Process a request via mesh to send a request to a UDP service
+ * Process a request via mesh to send a request to a TCP service
  * offered by this system.
- *
- * The messages are one GNUNET_HashCode for the service followed by a struct tcp_packet
- * (FIXME: this is not great).
  *
  * @param cls closure, NULL
  * @param tunnel connection to the other end
@@ -1265,38 +1267,41 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
                      const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
   struct TunnelState *state = *tunnel_ctx;
-  // FIXME: write proper request struct (we don't need the descriptor EACH time here!)
-  const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
-  const struct tcp_packet *pkt = (const struct tcp_packet *) &desc[1];
+  const struct GNUNET_EXIT_TcpServiceStartMessage *start;
   uint16_t pkt_len = ntohs (message->size);
 
-
   /* check that we got at least a valid header */
-  if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct tcp_packet))
+  if (pkt_len < sizeof (struct GNUNET_EXIT_TcpServiceStartMessage))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
-
-  if (NULL == state->serv) 
+  start = (const struct GNUNET_EXIT_TcpServiceStartMessage*) message;
+  pkt_len -= sizeof (struct GNUNET_EXIT_TcpServiceStartMessage);
+  if ( (NULL == state) ||
+       (NULL != state->serv) ||
+       (NULL != state->heap_node) )
   {
-    /* setup fresh connection */
-    GNUNET_assert (NULL == state->heap_node);
-    if (NULL == (state->serv = find_service (tcp_services, desc, ntohs (pkt->dpt))))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		  _("No service found for %s on port %d!\n"),
-		  "TCP",
-		  ntohs (pkt->dpt));
-      return GNUNET_SYSERR;
-    }
-    state->ri.remote_address = state->serv->address;    
-    setup_state_record (state);
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
   }
+  GNUNET_break_op (ntohl (start->reserved) == 0);
+  /* setup fresh connection */
+  if (NULL == (state->serv = find_service (tcp_services, &start->service_descriptor, 
+					   ntohs (start->tcp_header.dpt))))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		_("No service found for %s on port %d!\n"),
+		"TCP",
+		ntohs (start->tcp_header.dpt));
+    return GNUNET_SYSERR;
+  }
+  state->ri.remote_address = state->serv->address;    
+  setup_state_record (state);
   send_tcp_packet_via_tun (&state->ri.remote_address,
 			   &state->ri.local_address,
-			   pkt, pkt_len);
+			   &start->tcp_header,
+			   &start[1], pkt_len);
   return GNUNET_YES;
 }
 
@@ -1321,29 +1326,64 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                     const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
   struct TunnelState *state = *tunnel_ctx;
-  // FIXME: write proper request struct (!)
-  const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
-  const struct tcp_packet *pkt = (const struct tcp_packet *) &desc[1];
-  const struct SocketAddress *s = (const struct SocketAddress *) desc;
+  const struct GNUNET_EXIT_TcpInternetStartMessage *start;
   uint16_t pkt_len = ntohs (message->size);
+  const struct in_addr *v4;
+  const struct in6_addr *v6;
+  const void *payload;
+  int af;
 
-  if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct tcp_packet))
+  if (pkt_len < sizeof (struct GNUNET_EXIT_TcpInternetStartMessage))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
-
-  if (NULL == state->heap_node)
+  start = (const struct GNUNET_EXIT_TcpInternetStartMessage*) message;
+  pkt_len -= sizeof (struct GNUNET_EXIT_TcpInternetStartMessage);  
+  if ( (NULL == state) ||
+       (NULL != state->serv) ||
+       (NULL != state->heap_node) )
   {
-    /* first packet, setup record */
-    state->ri.remote_address = *s;
-    setup_state_record (state);
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
   }
-
+  af = (int) ntohl (start->af);
+  state->ri.remote_address.af = af;
+  switch (af)
+  {
+  case AF_INET:
+    if (pkt_len < sizeof (struct in_addr))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+    v4 = (const struct in_addr*) &start[1];
+    payload = &v4[1];
+    pkt_len -= sizeof (struct in_addr);
+    state->ri.remote_address.address.ipv4 = *v4;
+    break;
+  case AF_INET6:
+    if (pkt_len < sizeof (struct in6_addr))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+    v6 = (const struct in6_addr*) &start[1];
+    payload = &v6[1];
+    pkt_len -= sizeof (struct in_addr);
+    state->ri.remote_address.address.ipv6 = *v6;
+    break;
+  default:
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  state->ri.remote_address.proto = IPPROTO_TCP;
+  state->ri.remote_address.port = ntohs (start->tcp_header.dpt);
+  setup_state_record (state);
   send_tcp_packet_via_tun (&state->ri.remote_address,
 			   &state->ri.local_address,
-			   pkt, pkt_len);
+			   &start->tcp_header,
+			   payload, pkt_len);
   return GNUNET_YES;
 }
 
@@ -1369,29 +1409,29 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		  const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
   struct TunnelState *state = *tunnel_ctx;
-  // FIXME: write proper request struct (!)
-  const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
-  const struct tcp_packet *pkt = (const struct tcp_packet *) &desc[1];
+  const struct GNUNET_EXIT_TcpDataMessage *data;
   uint16_t pkt_len = ntohs (message->size);
 
-  if (NULL == state)
-  {
-    /* connection should have been up! */
-    /* FIXME: call statistics */
-    return GNUNET_SYSERR;
-  }
-
-  if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct tcp_packet))
+  if (pkt_len < sizeof (struct GNUNET_EXIT_TcpDataMessage))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
-
-
+  data = (const struct GNUNET_EXIT_TcpDataMessage*) message;
+  pkt_len -= sizeof (struct GNUNET_EXIT_TcpDataMessage);  
+  if ( (NULL == state) ||
+       (NULL == state->heap_node) )
+  {
+    /* connection should have been up! */
+    GNUNET_break_op (0);
+    /* FIXME: call statistics */
+    return GNUNET_SYSERR;
+  }
+  GNUNET_break_op (ntohl (data->reserved) == 0);
   send_tcp_packet_via_tun (&state->ri.remote_address,
 			   &state->ri.local_address,
-			   pkt, pkt_len);
+			   &data->tcp_header,
+			   &data[1], pkt_len);
   return GNUNET_YES;
 }
 
@@ -1448,7 +1488,9 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
 	struct ip4_header * ipv4 = (struct ip4_header*) &tun[1];
 	
 	tun->proto = htons (ETH_P_IPV4);
-	prepare_ipv4_packet (payload, payload_length, IPPROTO_UDP,
+	prepare_ipv4_packet (payload, payload_length,
+			     IPPROTO_UDP,
+			     NULL,
 			     source_address,
 			     destination_address,
 			     ipv4);
@@ -1459,7 +1501,9 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
 	struct ip6_header * ipv6 = (struct ip6_header*) &tun[1];
 	
 	tun->proto = htons (ETH_P_IPV6);
-	prepare_ipv6_packet (payload, payload_length, IPPROTO_UDP,
+	prepare_ipv6_packet (payload, payload_length, 
+			     IPPROTO_UDP,
+			     NULL,
 			     source_address,
 			     destination_address,
 			     ipv6);
