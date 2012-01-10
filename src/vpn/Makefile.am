@@ -54,6 +54,8 @@ gnunet_service_vpn_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
+gnunet_service_vpn_CFLAGS = \
+  -I$(top_srcdir)/src/exit $(CFLAGS)
 
 gnunet_daemon_exit_SOURCES = \
  gnunet-daemon-exit.c 

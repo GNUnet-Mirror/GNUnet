@@ -27,7 +27,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - define mesh message formats between VPN and EXIT!
  * - build mesh messages
  * - parse mesh replies 
  * - build IP messages from mesh replies
@@ -46,7 +45,7 @@
 #include "gnunet_constants.h"
 #include "tcpip_tun.h"
 #include "vpn.h"
-
+#include "exit.h"
 
 /**
  * Information we track for each IP address to determine which tunnel
@@ -405,6 +404,99 @@ get_tunnel_key_from_ips (int af,
 
 
 /**
+ * Notify the client about the result of its request.
+ *
+ * @param client client to notify
+ * @param request_id original request ID to include in response
+ * @param result_af resulting address family
+ * @param addr resulting IP address
+ */
+static void
+send_client_reply (struct GNUNET_SERVER_Client *client,
+		   uint64_t request_id,
+		   int result_af,
+		   const void *addr)
+{
+  char buf[sizeof (struct RedirectToIpResponseMessage) + sizeof (struct in6_addr)];
+  struct RedirectToIpResponseMessage *res;
+  size_t rlen;
+
+  switch (result_af)
+  {
+  case AF_INET:
+    rlen = sizeof (struct in_addr);    
+    break;
+  case AF_INET6:
+    rlen = sizeof (struct in6_addr);
+    break;
+  case AF_UNSPEC:
+    rlen = 0;
+    break;
+  default:
+    GNUNET_assert (0);
+    return;
+  }
+  res = (struct RedirectToIpResponseMessage *) buf;
+  res->header.size = htons (sizeof (struct RedirectToIpResponseMessage) + rlen);
+  res->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP);
+  res->result_af = htonl (result_af);
+  res->request_id = request_id;
+  memcpy (&res[1], addr, rlen);
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_notification_context_unicast (nc,
+					      client,
+					      &res->header,
+					      GNUNET_NO);
+}
+
+
+/**
+ * Method called whenever a peer has disconnected from the tunnel.
+ *
+ * @param cls closure
+ * @param peer peer identity the tunnel stopped working with
+ */
+static void
+tunnel_peer_disconnect_handler (void *cls,
+				const struct
+				GNUNET_PeerIdentity * peer)
+{
+  /* FIXME: should we do anything here? 
+   - stop transmitting to the tunnel (start queueing?)
+   - possibly destroy the tunnel entirely (unless service tunnel?) 
+  */
+}
+
+
+/**
+ * Method called whenever a peer has connected to the tunnel.  Notifies
+ * the waiting client that the tunnel is now up.
+ *
+ * @param cls closure
+ * @param peer peer identity the tunnel was created to, NULL on timeout
+ * @param atsi performance data for the connection
+ */
+static void
+tunnel_peer_connect_handler (void *cls,
+			     const struct GNUNET_PeerIdentity
+			     * peer,
+			     const struct
+			     GNUNET_ATS_Information * atsi)
+{
+  struct TunnelState *ts = cls;
+
+  if (NULL == ts->client)
+    return; /* nothing to do */
+  send_client_reply (ts->client,
+		     ts->request_id,
+		     ts->af,
+		     &ts->destination_ip);
+  GNUNET_SERVER_client_drop (ts->client);
+  ts->client = NULL;
+}
+
+
+/**
  * Send a message from the message queue via mesh.
  *
  * @param cls the 'struct TunnelState' with the message queue
@@ -453,7 +545,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
  */
 static void
 send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
-		   struct TunnelState *ts)
+		struct TunnelState *ts)
 {
   GNUNET_CONTAINER_DLL_insert_tail (ts->head,
 				    ts->tail,
@@ -493,13 +585,17 @@ route_packet (struct DestinationEntry *destination,
   GNUNET_HashCode key;
   struct TunnelState *ts;
   struct TunnelMessageQueueEntry *tnq;
-		   
+  size_t alen;
+  size_t mlen;
+  GNUNET_MESH_ApplicationType app_type;
+  int is_new;
+  const struct udp_packet *udp;
+  const struct tcp_packet *tcp;
+    
   switch (protocol)
   {
   case IPPROTO_UDP:
     {
-      const struct udp_packet *udp;
-
       if (payload_length < sizeof (struct udp_packet))
       {
 	/* blame kernel? */
@@ -518,8 +614,6 @@ route_packet (struct DestinationEntry *destination,
     break;
   case IPPROTO_TCP:
     {
-      const struct tcp_packet *tcp;
-
       if (payload_length < sizeof (struct tcp_packet))
       {
 	/* blame kernel? */
@@ -543,24 +637,53 @@ route_packet (struct DestinationEntry *destination,
     return;
   }
 
+  if (! destination->is_service)
+  {  
+    switch (destination->details.exit_destination.af)
+    {
+    case AF_INET:
+      alen = sizeof (struct in_addr);
+      app_type = GNUNET_APPLICATION_TYPE_IPV4_GATEWAY; 
+     break;
+    case AF_INET6:
+      alen = sizeof (struct in6_addr);
+      app_type = GNUNET_APPLICATION_TYPE_IPV6_GATEWAY; 
+      break;
+    default:
+      alen = 0;
+      GNUNET_assert (0);
+    }
+  }
+  else
+  {
+    /* make compiler happy */
+    alen = 0;
+    app_type = 0;
+  }
+
+  // FIXME: something is horrifically wrong here about
+  // how we lookup 'ts', match it and how we decide about
+  // creating new tunnels!
   /* find tunnel */
+  is_new = GNUNET_NO;
   ts = GNUNET_CONTAINER_multihashmap_get (tunnel_map,
 					  &key);
   if (NULL == ts)
   {
     /* create new tunnel */
-    // FIXME: create tunnel!
-#if 0
-            *cls =
-                GNUNET_MESH_tunnel_create (mesh_handle,
-                                           initialize_tunnel_state (16, NULL),
-                                           &send_pkt_to_peer, NULL, cls);
-
-            GNUNET_MESH_peer_request_connect_add (*cls,
-                                                  (struct GNUNET_PeerIdentity *)
-                                                  &me->desc);
-            me->tunnel = *cls;
-#endif
+    is_new = GNUNET_YES;
+    ts = GNUNET_malloc (sizeof (struct TunnelState));
+    ts->destination.tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
+							ts,
+							&tunnel_peer_connect_handler,
+							&tunnel_peer_disconnect_handler, 
+							ts);
+    if (destination->is_service)
+      GNUNET_MESH_peer_request_connect_add (ts->destination.tunnel,
+					    &destination->details.service_destination.target);
+    else
+      GNUNET_MESH_peer_request_connect_by_type (ts->destination.tunnel,
+						app_type);
   }
   
   /* send via tunnel */
@@ -569,26 +692,93 @@ route_packet (struct DestinationEntry *destination,
   case IPPROTO_UDP:
     if (destination->is_service)
     {
-      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 42);
+      struct GNUNET_EXIT_UdpServiceMessage *usm;
+
+      mlen = sizeof (struct GNUNET_EXIT_UdpServiceMessage) + 
+	payload_length - sizeof (struct udp_packet);
+      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      {
+	GNUNET_break (0);
+	return;
+      }
+      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
+      usm = (struct GNUNET_EXIT_UdpServiceMessage *) &tnq[1];
+      usm->header.size = htons ((uint16_t) mlen);
+      usm->service_descriptor = destination->details.service_destination.service_descriptor;
       // FIXME: build message!
     }
     else
     {
-      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 42);
+      struct GNUNET_EXIT_UdpInternetMessage *uim;
+
+      mlen = sizeof (struct GNUNET_EXIT_UdpInternetMessage) + 
+	alen + payload_length - sizeof (struct udp_packet);
+      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      {
+	GNUNET_break (0);
+	return;
+      }
+      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 
+			   mlen);
+      uim = (struct GNUNET_EXIT_UdpInternetMessage *) &tnq[1];
+      uim->header.size = htons ((uint16_t) mlen);
+      uim->af = htonl (destination->details.exit_destination.af);
+   
       // FIXME: build message!
     }
     break;
   case IPPROTO_TCP:
-    if (destination->is_service)
+    if (is_new)
     {
-      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 42);
-      // FIXME: build message!
+      if (destination->is_service)
+      {
+	struct GNUNET_EXIT_TcpServiceStartMessage *tsm;
+
+	mlen = sizeof (struct GNUNET_EXIT_TcpServiceStartMessage) + 
+	  payload_length - sizeof (struct tcp_packet);
+	if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+	{
+	  GNUNET_break (0);
+	  return;
+	}
+ 	tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
+	tsm = (struct  GNUNET_EXIT_TcpServiceStartMessage *) &tnq[1];
+	tsm->header.size = htons ((uint16_t) mlen);
+	// FIXME: build message!
+      }
+      else
+      {
+	struct GNUNET_EXIT_TcpInternetStartMessage *tim;
+
+	mlen = sizeof (struct GNUNET_EXIT_TcpInternetStartMessage) + 
+	  alen + payload_length - sizeof (struct tcp_packet);
+	if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+	{
+	  GNUNET_break (0);
+	  return;
+	}
+ 	tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
+	tim = (struct  GNUNET_EXIT_TcpInternetStartMessage *) &tnq[1];
+	tim->header.size = htons ((uint16_t) mlen);
+	// FIXME: build message!
+      }
     }
     else
     {
-      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 42);
+      struct GNUNET_EXIT_TcpDataMessage *tdm;
+
+      mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) + 
+	alen + payload_length - sizeof (struct tcp_packet);
+      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      {
+	GNUNET_break (0);
+	return;
+      }
+      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
+      tdm = (struct  GNUNET_EXIT_TcpDataMessage *) &tnq[1];
+      tdm->header.size = htons ((uint16_t) mlen);
       // FIXME: build message!
-    }
+     }
     break;
   default:
     /* not supported above, how can we get here !? */
@@ -597,7 +787,6 @@ route_packet (struct DestinationEntry *destination,
   }
   send_to_tunnel (tnq, ts);
 }
-
 
 
 /**
@@ -1220,99 +1409,6 @@ allocate_v6_address (struct in6_addr *v6)
 			&mask,
 			sizeof (struct in6_addr))) );
   return GNUNET_OK;
-}
-
-
-/**
- * Notify the client about the result of its request.
- *
- * @param client client to notify
- * @param request_id original request ID to include in response
- * @param result_af resulting address family
- * @param addr resulting IP address
- */
-static void
-send_client_reply (struct GNUNET_SERVER_Client *client,
-		   uint64_t request_id,
-		   int result_af,
-		   const void *addr)
-{
-  char buf[sizeof (struct RedirectToIpResponseMessage) + sizeof (struct in6_addr)];
-  struct RedirectToIpResponseMessage *res;
-  size_t rlen;
-
-  switch (result_af)
-  {
-  case AF_INET:
-    rlen = sizeof (struct in_addr);    
-    break;
-  case AF_INET6:
-    rlen = sizeof (struct in6_addr);
-    break;
-  case AF_UNSPEC:
-    rlen = 0;
-    break;
-  default:
-    GNUNET_assert (0);
-    return;
-  }
-  res = (struct RedirectToIpResponseMessage *) buf;
-  res->header.size = htons (sizeof (struct RedirectToIpResponseMessage) + rlen);
-  res->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP);
-  res->result_af = htonl (result_af);
-  res->request_id = request_id;
-  memcpy (&res[1], addr, rlen);
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_notification_context_unicast (nc,
-					      client,
-					      &res->header,
-					      GNUNET_NO);
-}
-
-
-/**
- * Method called whenever a peer has disconnected from the tunnel.
- *
- * @param cls closure
- * @param peer peer identity the tunnel stopped working with
- */
-static void
-tunnel_peer_disconnect_handler (void *cls,
-				const struct
-				GNUNET_PeerIdentity * peer)
-{
-  /* FIXME: should we do anything here? 
-   - stop transmitting to the tunnel (start queueing?)
-   - possibly destroy the tunnel entirely (unless service tunnel?) 
-  */
-}
-
-
-/**
- * Method called whenever a peer has connected to the tunnel.  Notifies
- * the waiting client that the tunnel is now up.
- *
- * @param cls closure
- * @param peer peer identity the tunnel was created to, NULL on timeout
- * @param atsi performance data for the connection
- */
-static void
-tunnel_peer_connect_handler (void *cls,
-			     const struct GNUNET_PeerIdentity
-			     * peer,
-			     const struct
-			     GNUNET_ATS_Information * atsi)
-{
-  struct TunnelState *ts = cls;
-
-  if (NULL == ts->client)
-    return; /* nothing to do */
-  send_client_reply (ts->client,
-		     ts->request_id,
-		     ts->af,
-		     &ts->destination_ip);
-  GNUNET_SERVER_client_drop (ts->client);
-  ts->client = NULL;
 }
 
 
