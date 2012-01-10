@@ -128,9 +128,14 @@ struct GNUNET_EXIT_UdpServiceMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always 0.
+   * Source port to use for the UDP request (0 to use a random port).  In NBO.
    */
-  uint32_t reserved;
+  uint16_t source_port;
+
+  /**
+   * Destination port to use for the UDP request.  In NBO.
+   */   
+  uint16_t destination_port;
 
   /**
    * Identification for the desired service.
@@ -157,6 +162,15 @@ struct GNUNET_EXIT_UdpInternetMessage
    */
   int32_t af;
 
+  /**
+   * Source port to use for the UDP request (0 to use a random port).  In NBO.
+   */
+  uint16_t source_port;
+
+  /**
+   * Destination port to use for the UDP request.  In NBO.
+   */   
+  uint16_t destination_port;
 
   /* followed by IP address of the destination; either
      'struct in_addr' or 'struct in6_addr', depending on af */

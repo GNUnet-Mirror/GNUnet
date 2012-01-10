@@ -25,7 +25,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - use new proper message headers for mesh P2P messages
  * - factor out crc computations from DNS/EXIT/VPN into shared library?
  * - which code should advertise services? the service model is right
  *   now a bit odd, especially as this code DOES the exit and knows
@@ -1202,7 +1201,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
     struct tun_header *tun;
     
     hdr= (struct GNUNET_MessageHeader *) buf;
-    hdr->type = htons (42);
+    hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
     hdr->size = htons (len);
     tun = (struct tun_header*) &hdr[1];
     tun->flags = htons (0);
@@ -1477,7 +1476,7 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
     struct tun_header *tun;
     
     hdr= (struct GNUNET_MessageHeader *) buf;
-    hdr->type = htons (42);
+    hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
     hdr->size = htons (len);
     tun = (struct tun_header*) &hdr[1];
     tun->flags = htons (0);
@@ -1541,29 +1540,59 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                     const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
   struct TunnelState *state = *tunnel_ctx;
-  // FIXME: write proper request struct (!)
-  const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
-  const struct udp_packet *pkt = (const struct udp_packet *) &desc[1];
-  const struct SocketAddress *s = (const struct SocketAddress *) desc;
+  const struct GNUNET_EXIT_UdpInternetMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
+  const struct in_addr *v4;
+  const struct in6_addr *v6;
+  const void *payload;
+  int af;
 
-  if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct udp_packet))
+  if (pkt_len < sizeof (struct GNUNET_EXIT_UdpInternetMessage))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
-
-  if (NULL == state->heap_node)
+  msg = (const struct GNUNET_EXIT_UdpInternetMessage*) message;
+  pkt_len -= sizeof (struct GNUNET_EXIT_UdpInternetMessage);  
+  af = (int) ntohl (msg->af);
+  state->ri.remote_address.af = af;
+  switch (af)
   {
-    /* first packet, setup record */
-    state->ri.remote_address = *s;
-    setup_state_record (state);
+  case AF_INET:
+    if (pkt_len < sizeof (struct in_addr))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+    v4 = (const struct in_addr*) &msg[1];
+    payload = &v4[1];
+    pkt_len -= sizeof (struct in_addr);
+    state->ri.remote_address.address.ipv4 = *v4;
+    break;
+  case AF_INET6:
+    if (pkt_len < sizeof (struct in6_addr))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+    v6 = (const struct in6_addr*) &msg[1];
+    payload = &v6[1];
+    pkt_len -= sizeof (struct in_addr);
+    state->ri.remote_address.address.ipv6 = *v6;
+    break;
+  default:
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
   }
-
+  state->ri.remote_address.proto = IPPROTO_UDP;
+  state->ri.remote_address.port = msg->destination_port;
+  if (NULL == state->heap_node)
+    setup_state_record (state);
+  if (0 != ntohs (msg->source_port))
+    state->ri.local_address.port = msg->source_port;
   send_udp_packet_via_tun (&state->ri.remote_address,
 			   &state->ri.local_address,
-			   &pkt[1], pkt_len - sizeof (struct udp_packet));
+			   payload, pkt_len);
   return GNUNET_YES;
 }
 
@@ -1589,43 +1618,34 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                      const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
   struct TunnelState *state = *tunnel_ctx;
-  // FIXME: write proper request struct (we don't need UDP except dpt either!)
-  const GNUNET_HashCode *desc = (const GNUNET_HashCode *) &message[1];
-  const struct udp_packet *pkt = (const struct udp_packet *) &desc[1];
+  const struct GNUNET_EXIT_UdpServiceMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
 
-
   /* check that we got at least a valid header */
-  if (pkt_len < sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + sizeof (struct udp_packet))
+  if (pkt_len < sizeof (struct GNUNET_EXIT_UdpServiceMessage))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  pkt_len -= (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode));
-
-  GNUNET_assert (ntohs (pkt->len) ==
-                 ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
-                 sizeof (GNUNET_HashCode));
-
-  if (NULL == state->serv) 
+  msg = (const struct GNUNET_EXIT_UdpServiceMessage*) message;
+  pkt_len -= sizeof (struct GNUNET_EXIT_UdpServiceMessage);
+  
+  if (NULL == (state->serv = find_service (udp_services, &msg->service_descriptor, 
+					   ntohs (msg->destination_port))))
   {
-    /* setup fresh connection */
-    GNUNET_assert (NULL == state->heap_node);
-    if (NULL == (state->serv = find_service (udp_services, desc, ntohs (pkt->dpt))))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		  _("No service found for %s on port %d!\n"),
-		  "UDP",
-		  ntohs (pkt->dpt));
-      GNUNET_MESH_tunnel_destroy (state->tunnel);
-      return GNUNET_SYSERR;
-    }
-    state->ri.remote_address = state->serv->address;    
-    setup_state_record (state);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		_("No service found for %s on port %d!\n"),
+		"UDP",
+		ntohs (msg->destination_port));
+    return GNUNET_SYSERR;
   }
+  state->ri.remote_address = state->serv->address;    
+  setup_state_record (state);
+  if (0 != ntohs (msg->source_port))
+    state->ri.local_address.port = msg->source_port;
   send_udp_packet_via_tun (&state->ri.remote_address,
 			   &state->ri.local_address,
-			   &pkt[1], pkt_len - sizeof (struct udp_packet));
+			   &msg[1], pkt_len);
   return GNUNET_YES;
 }
 
