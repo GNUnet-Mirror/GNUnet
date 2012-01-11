@@ -990,47 +990,96 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                   const struct GNUNET_MessageHeader *message,
                   const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
+  struct TunnelState *ts = *tunnel_ctx;
+  const struct GNUNET_EXIT_UdpReplyMessage *reply;
+  size_t mlen;
+
+  mlen = ntohs (message->size);
+  if (mlen < sizeof (struct GNUNET_EXIT_UdpReplyMessage))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (NULL == ts->heap_node)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  reply = (const struct GNUNET_EXIT_UdpReplyMessage *) message;
+  mlen -= sizeof (struct GNUNET_EXIT_UdpReplyMessage);
+  switch (ts->af)
+  {
+  case AF_INET:
+    {
+      size_t size = sizeof (struct ip4_header) 
+	+ sizeof (struct udp_packet) 
+	+ sizeof (struct GNUNET_MessageHeader) +
+	sizeof (struct tun_header) +
+	mlen;
+      {
+	char buf[size];
+	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
+	struct tun_header *tun = (struct tun_header*) &msg[1];
+	struct ip4_header *ipv4 = (struct ip4_header *) &tun[1];
+	struct udp_packet *udp = (struct udp_packet *) &ipv4[1];
+	msg->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+	msg->size = htons (size);
+	tun->flags = htons (0);
+	tun->proto = htons (ETH_P_IPV4);
+	ipv4->version = 4;
+	ipv4->header_length = sizeof (struct ip4_header) / 4;
+	ipv4->diff_serv = 0;
+	ipv4->total_length = htons (sizeof (struct ip4_header) +
+				    sizeof (struct udp_packet) +
+				    mlen);
+	ipv4->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+								    UINT16_MAX + 1);
+	ipv4->flags = 0;
+	ipv4->fragmentation_offset = 0;
+	ipv4->ttl = 255;
+	ipv4->protocol = IPPROTO_UDP;
+	ipv4->checksum = 0; 
+	ipv4->source_address = ts->destination_ip.v4;
+	ipv4->destination_address = ts->source_ip.v4;
+	ipv4->checksum =
+	  GNUNET_CRYPTO_crc16_n (ipv4, sizeof (struct ip4_header));
+	if (0 == ntohs (reply->source_port))
+	  udp->spt = htons (ts->destination_port);
+	else
+	  udp->spt = reply->source_port;
+	if (0 == ntohs (reply->destination_port))
+	  udp->dpt = htons (ts->source_port);
+	else
+	  udp->dpt = reply->destination_port;
+	udp->len = htons (mlen + sizeof (struct udp_packet));
+	udp->crc = 0; // FIXME: optional, but we might want to calculate this one anyway
+	memcpy (&udp[1],
+		&reply[1],
+		mlen);
+	(void) GNUNET_HELPER_send (helper_handle,
+				   msg,
+				   GNUNET_YES,
+				   NULL, NULL);
+      }
+    }
+    break;
+  case AF_INET6:
   // FIXME: parse message, build IP packet, give to TUN!
 #if 0
-  GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
-  struct remote_addr *s = (struct remote_addr *) desc;
-  struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
-  const struct GNUNET_PeerIdentity *other = sender;
-  struct TunnelState *ts = *tunnel_ctx;
+  pkt6->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+  pkt6->shdr.size = htons (size);
 
-  if (16 == ts->addrlen)
-  {
-    size_t size =
-        sizeof (struct ip6_udp) + ntohs (pkt->len) - 1 -
-        sizeof (struct udp_pkt);
-
-    struct ip6_udp *pkt6 = alloca (size);
-
-    GNUNET_assert (pkt6 != NULL);
-
-    if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK)
-      new_ip6addr (&pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
-    else
-      new_ip6addr_remote (&pkt6->ip6_hdr.sadr, s->addr, s->addrlen);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Relaying calc:%d gnu:%d udp:%d bytes!\n", size,
-                ntohs (message->size), ntohs (pkt->len));
-
-    pkt6->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
-    pkt6->shdr.size = htons (size);
-
-    pkt6->tun.flags = 0;
-    pkt6->tun.type = htons (0x86dd);
-
-    pkt6->ip6_hdr.version = 6;
-    pkt6->ip6_hdr.tclass_h = 0;
-    pkt6->ip6_hdr.tclass_l = 0;
-    pkt6->ip6_hdr.flowlbl = 0;
-    pkt6->ip6_hdr.paylgth = pkt->len;
-    pkt6->ip6_hdr.nxthdr = IPPROTO_UDP;
-    pkt6->ip6_hdr.hoplmt = 0xff;
-
+  pkt6->tun.flags = 0;
+  pkt6->tun.type = htons (0x86dd);
+  
+  pkt6->ip6_hdr.version = 6;
+  pkt6->ip6_hdr.tclass_h = 0;
+  pkt6->ip6_hdr.tclass_l = 0;
+  pkt6->ip6_hdr.flowlbl = 0;
+  pkt6->ip6_hdr.paylgth = pkt->len;
+  pkt6->ip6_hdr.nxthdr = IPPROTO_UDP;
+  pkt6->ip6_hdr.hoplmt = 0xff;
+  
     {
       char *ipv6addr;
 
@@ -1078,81 +1127,17 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 			       &pkt6->shdr,
 			       GNUNET_YES,
 			       NULL, NULL);
+#endif
+    break;
+  default:
+    GNUNET_assert (0);
   }
-  else
-  {
-    size_t size =
-        sizeof (struct ip_udp) + ntohs (pkt->len) - 1 - sizeof (struct udp_pkt);
+#if 0
+      struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
 
-    struct ip_udp *pkt4 = alloca (size);
+      GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+					 GNUNET_TIME_absolute_get ().abs_value);
 
-    GNUNET_assert (pkt4 != NULL);
-
-    GNUNET_assert (ntohs (message->type) ==
-                   GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK);
-    uint32_t sadr;
-
-    new_ip4addr_remote ((unsigned char *) &sadr, s->addr, s->addrlen);
-    pkt4->ip_hdr.sadr.s_addr = sadr;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Relaying calc:%d gnu:%d udp:%d bytes!\n", size,
-                ntohs (message->size), ntohs (pkt->len));
-
-    pkt4->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
-    pkt4->shdr.size = htons (size);
-
-    pkt4->tun.flags = 0;
-    pkt4->tun.type = htons (0x0800);
-
-    pkt4->ip_hdr.version = 4;
-    pkt4->ip_hdr.hdr_lngth = 5;
-    pkt4->ip_hdr.diff_serv = 0;
-    pkt4->ip_hdr.tot_lngth = htons (20 + ntohs (pkt->len));
-    pkt4->ip_hdr.ident = 0;
-    pkt4->ip_hdr.flags = 0;
-    pkt4->ip_hdr.frag_off = 0;
-    pkt4->ip_hdr.ttl = 255;
-    pkt4->ip_hdr.proto = IPPROTO_UDP;
-    pkt4->ip_hdr.chks = 0;      /* Will be calculated later */
-
-    {
-      char *ipv4addr;
-      uint32_t dadr;
-
-      GNUNET_assert (GNUNET_OK ==
-                     GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
-                                                            "IPV4ADDR",
-                                                            &ipv4addr));
-      inet_pton (AF_INET, ipv4addr, &dadr);
-      GNUNET_free (ipv4addr);
-      pkt4->ip_hdr.dadr.s_addr = dadr;
-    }
-    memcpy (&pkt4->udp_hdr, pkt, ntohs (pkt->len));
-
-    GNUNET_HashCode *key = address4_mapping_exists (pkt4->ip_hdr.sadr.s_addr);
-
-    GNUNET_assert (key != NULL);
-
-    struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
-
-    GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
-                                       GNUNET_TIME_absolute_get ().abs_value);
-
-    GNUNET_free (key);
-
-    GNUNET_assert (me != NULL);
-
-    pkt4->udp_hdr.crc = 0;      /* Optional for IPv4 */
-
-    pkt4->ip_hdr.chks =
-        GNUNET_CRYPTO_crc16_n ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
-
-    (void) GNUNET_HELPER_send (helper_handle,
-			       &pkt4->shdr,
-			       GNUNET_YES,
-			       NULL, NULL);
-  }
 #endif
   return GNUNET_OK;
 }
