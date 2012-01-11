@@ -1203,6 +1203,13 @@ struct GNUNET_FS_PublishContext
    * Set to GNUNET_YES if all processing has completed.
    */
   int all_done;
+  
+  /**
+   * Flag set to GNUNET_YES if the next callback from
+   * GNUNET_FS_file_information_inspect should be skipped because it
+   * is for the directory which was already processed with the parent.
+   */
+  int skip_next_fi_callback;
 };
 
 

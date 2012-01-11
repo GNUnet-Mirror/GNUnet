@@ -954,6 +954,11 @@ fip_signal_start (void *cls, struct GNUNET_FS_FileInformation *fi,
   unsigned int kc;
   uint64_t left;
 
+  if (GNUNET_YES == pc->skip_next_fi_callback)
+  {
+    pc->skip_next_fi_callback = GNUNET_NO;
+    return GNUNET_OK;
+  }
 #if DEBUG_PUBLISH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting publish operation\n");
 #endif
@@ -991,6 +996,12 @@ fip_signal_start (void *cls, struct GNUNET_FS_FileInformation *fi,
   pi.status = GNUNET_FS_STATUS_PUBLISH_START;
   *client_info = GNUNET_FS_publish_make_status_ (&pi, pc, fi, 0);
   GNUNET_FS_file_information_sync_ (fi);
+  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta))
+  {
+    /* process entries in directory */
+    pc->skip_next_fi_callback = GNUNET_YES;
+    GNUNET_FS_file_information_inspect (fi, &fip_signal_start, pc);
+  }
   return GNUNET_OK;
 }
 
@@ -1020,6 +1031,17 @@ fip_signal_suspend (void *cls, struct GNUNET_FS_FileInformation *fi,
   struct GNUNET_FS_ProgressInfo pi;
   uint64_t off;
 
+  if (GNUNET_YES == pc->skip_next_fi_callback)
+  {
+    pc->skip_next_fi_callback = GNUNET_NO;
+    return GNUNET_OK;
+  }
+  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta))
+  {
+    /* process entries in directory */
+    pc->skip_next_fi_callback = GNUNET_YES;
+    GNUNET_FS_file_information_inspect (fi, &fip_signal_suspend, pc);
+  }
 #if DEBUG_PUBLISH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suspending publish operation\n");
 #endif
@@ -1204,6 +1226,17 @@ fip_signal_stop (void *cls, struct GNUNET_FS_FileInformation *fi,
   struct GNUNET_FS_ProgressInfo pi;
   uint64_t off;
 
+  if (GNUNET_YES == pc->skip_next_fi_callback)
+  {
+    pc->skip_next_fi_callback = GNUNET_NO;
+    return GNUNET_OK;
+  }
+  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta))
+  {
+    /* process entries in directory first */
+    pc->skip_next_fi_callback = GNUNET_YES;
+    GNUNET_FS_file_information_inspect (fi, &fip_signal_stop, pc);
+  }
   if (fi->serialization != NULL)
   {
     GNUNET_FS_remove_sync_file_ (pc->h, GNUNET_FS_SYNC_PATH_FILE_INFO,

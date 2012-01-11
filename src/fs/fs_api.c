@@ -1243,13 +1243,24 @@ fip_signal_resume (void *cls, struct GNUNET_FS_FileInformation *fi,
                    struct GNUNET_FS_BlockOptions *bo, int *do_index,
                    void **client_info)
 {
-  struct GNUNET_FS_PublishContext *sc = cls;
+  struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (GNUNET_YES == pc->skip_next_fi_callback)
+  {
+    pc->skip_next_fi_callback = GNUNET_NO;
+    return GNUNET_OK;
+  }
   pi.status = GNUNET_FS_STATUS_PUBLISH_RESUME;
-  pi.value.publish.specifics.resume.message = sc->fi->emsg;
-  pi.value.publish.specifics.resume.chk_uri = sc->fi->chk_uri;
-  *client_info = GNUNET_FS_publish_make_status_ (&pi, sc, fi, 0);
+  pi.value.publish.specifics.resume.message = pc->fi->emsg;
+  pi.value.publish.specifics.resume.chk_uri = pc->fi->chk_uri;
+  *client_info = GNUNET_FS_publish_make_status_ (&pi, pc, fi, 0);
+  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta))
+  {
+    /* process entries in directory */
+    pc->skip_next_fi_callback = GNUNET_YES;
+    GNUNET_FS_file_information_inspect (fi, &fip_signal_resume, pc);
+  }
   return GNUNET_OK;
 }
 
