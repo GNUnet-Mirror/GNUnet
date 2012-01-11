@@ -75,6 +75,12 @@ struct ATS_Address
 
 };
 
+enum ATS_Mode
+{
+	SIMPLE,
+	MLP
+};
+
 static struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
 static unsigned long long wan_quota_in;
@@ -82,6 +88,8 @@ static unsigned long long wan_quota_in;
 static unsigned long long wan_quota_out;
 
 static unsigned int active_addr_count;
+
+static int ats_mode;
 
 /**
  * Update a bandwidth assignment for a peer.  This trivial method currently
@@ -480,6 +488,33 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
                  GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
                                                       "WAN_QUOTA_OUT",
                                                       &wan_quota_out));
+
+
+
+  switch (GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats", "MLP"))
+  {
+	/* MLP = YES */
+	case GNUNET_YES:
+#if !HAVE_LIBGLPK
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode");
+		ats_mode = SIMPLE;
+		break;
+#else
+		ats_mode = MLP;
+#endif
+		break;
+	/* MLP = NO */
+	case GNUNET_NO:
+		ats_mode = SIMPLE;
+		break;
+	/* No configuration value */
+	case GNUNET_SYSERR:
+		ats_mode = SIMPLE;
+		break;
+	default:
+		break;
+  }
+
   addresses = GNUNET_CONTAINER_multihashmap_create (128);
 }
 
