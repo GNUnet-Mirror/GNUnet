@@ -13,6 +13,10 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
+if HAVE_LIBGLPK
+  GN_LIBGLPK = -lglpk
+endif
+
 lib_LTLIBRARIES = libgnunetats.la
 
 libgnunetats_la_SOURCES = \
@@ -39,6 +43,7 @@ gnunet_service_ats_SOURCES = \
 gnunet_service_ats_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBGLPK) \
   $(GN_LIBINTL)
 
 
