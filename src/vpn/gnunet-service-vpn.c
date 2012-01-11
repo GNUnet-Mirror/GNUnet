@@ -27,14 +27,14 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - build mesh messages
- * - parse mesh replies 
- * - build IP messages from mesh replies
- * - create secondary mesh tunnels if needed
  * - fully implement shutdown code
+ * - create secondary mesh tunnels if needed / check overall tunnel creation/management code!
+ * => test!
  * - better message queue management (bounded state, drop oldest/RED?)
- * - imrpove support for deciding which tunnels to keep and which ones to destroy
+ * - improve support for deciding which tunnels to keep and which ones to destroy
  * - add back ICMP support (especially needed for IPv6)
+ * - consider moving IP-header building / checksumming code into shared library
+ *   with dns/exit/vpn (libgnunettun_tcpip?)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
