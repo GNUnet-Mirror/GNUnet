@@ -1064,80 +1064,75 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     }
     break;
   case AF_INET6:
-  // FIXME: parse message, build IP packet, give to TUN!
-#if 0
-  pkt6->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
-  pkt6->shdr.size = htons (size);
-
-  pkt6->tun.flags = 0;
-  pkt6->tun.type = htons (0x86dd);
-  
-  pkt6->ip6_hdr.version = 6;
-  pkt6->ip6_hdr.tclass_h = 0;
-  pkt6->ip6_hdr.tclass_l = 0;
-  pkt6->ip6_hdr.flowlbl = 0;
-  pkt6->ip6_hdr.paylgth = pkt->len;
-  pkt6->ip6_hdr.nxthdr = IPPROTO_UDP;
-  pkt6->ip6_hdr.hoplmt = 0xff;
-  
     {
-      char *ipv6addr;
-
-      GNUNET_assert (GNUNET_OK ==
-                     GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
-                                                            "IPV6ADDR",
-                                                            &ipv6addr));
-      inet_pton (AF_INET6, ipv6addr, &pkt6->ip6_hdr.dadr);
-      GNUNET_free (ipv6addr);
+      size_t size = sizeof (struct ip6_header) 
+	+ sizeof (struct udp_packet) 
+	+ sizeof (struct GNUNET_MessageHeader) +
+	sizeof (struct tun_header) +
+	mlen;
+      {
+	char buf[size];
+	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
+	struct tun_header *tun = (struct tun_header*) &msg[1];
+	struct ip6_header *ipv6 = (struct ip6_header *) &tun[1];
+	struct udp_packet *udp = (struct udp_packet *) &ipv6[1];
+	msg->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+	msg->size = htons (size);
+	tun->flags = htons (0);
+	tun->proto = htons (ETH_P_IPV6);
+	ipv6->traffic_class_h = 0;
+	ipv6->version = 6;
+	ipv6->traffic_class_l = 0;
+	ipv6->flow_label = 0;
+	ipv6->payload_length = htons (sizeof (struct udp_packet) + sizeof (struct ip6_header) + mlen);
+	ipv6->next_header = IPPROTO_UDP;
+	ipv6->hop_limit = 255;
+	ipv6->source_address = ts->destination_ip.v6;
+	ipv6->destination_address = ts->source_ip.v6;
+	if (0 == ntohs (reply->source_port))
+	  udp->spt = htons (ts->destination_port);
+	else
+	  udp->spt = reply->source_port;
+	if (0 == ntohs (reply->destination_port))
+	  udp->dpt = htons (ts->source_port);
+	else
+	  udp->dpt = reply->destination_port;
+	udp->len = htons (mlen + sizeof (struct udp_packet));
+	udp->crc = 0;
+	memcpy (&udp[1],
+		&reply[1],
+		mlen);
+	{
+	  uint32_t sum = 0;
+	  sum =
+	    GNUNET_CRYPTO_crc16_step (sum, &ipv6->source_address, 
+				      sizeof (struct in6_addr) * 2);
+	  uint32_t tmp = udp->len;
+	  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+	  tmp = htons (IPPROTO_UDP);
+	  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+	  sum = GNUNET_CRYPTO_crc16_step (sum, 
+					  udp,
+					  ntohs (udp->len));
+	  udp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+	}
+	(void) GNUNET_HELPER_send (helper_handle,
+				   msg,
+				   GNUNET_YES,
+				   NULL, NULL);
+      }
     }
-    memcpy (&pkt6->udp_hdr, pkt, ntohs (pkt->len));
-
-    GNUNET_HashCode *key = address6_mapping_exists (&pkt6->ip6_hdr.sadr);
-
-    GNUNET_assert (key != NULL);
-
-    struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
-
-    GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
-                                       GNUNET_TIME_absolute_get ().abs_value);
-
-    GNUNET_free (key);
-
-    GNUNET_assert (me != NULL);
-
-    pkt6->udp_hdr.crc = 0;
-    uint32_t sum = 0;
-
-    sum =
-        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
-    sum =
-        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
-    uint32_t tmp = (pkt6->udp_hdr.len & 0xffff);
-
-    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
-    tmp = htons (((pkt6->ip6_hdr.nxthdr & 0x00ff)));
-    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
-
-    sum =
-        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->udp_hdr,
-                                   ntohs (pkt->len));
-    pkt6->udp_hdr.crc = GNUNET_CRYPTO_crc16_finish (sum);
-    
-    (void) GNUNET_HELPER_send (helper_handle,
-			       &pkt6->shdr,
-			       GNUNET_YES,
-			       NULL, NULL);
-#endif
     break;
   default:
     GNUNET_assert (0);
   }
 #if 0
-      struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
-
-      GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
-					 GNUNET_TIME_absolute_get ().abs_value);
-
+  // FIXME: refresh entry to avoid expiration...
+  struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
+  
+  GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+				     GNUNET_TIME_absolute_get ().abs_value);
+  
 #endif
   return GNUNET_OK;
 }
