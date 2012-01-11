@@ -27,7 +27,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - fully implement shutdown code
  * - create secondary mesh tunnels if needed / check overall tunnel creation/management code!
  * => test!
  * - better message queue management (bounded state, drop oldest/RED?)
@@ -1743,15 +1742,122 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel
 
 
 /**
+ * Free memory occupied by an entry in the destination map.
+ *
+ * @param cls unused
+ * @param key unused
+ * @param value a 'struct DestinationEntry *'
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+cleanup_destination (void *cls,
+		     const GNUNET_HashCode *key,
+		     void *value)
+{
+  struct DestinationEntry *de = value;
+ 
+  if (NULL != de->tunnel)
+  {
+    GNUNET_MESH_tunnel_destroy (de->tunnel);
+    de->tunnel = NULL;
+  }
+  if (NULL != ts->heap_node)
+  {
+    GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
+    ts->heap_node = NULL;
+  }
+  GNUNET_free (de);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Free memory occupied by an entry in the tunnel map.
+ *
+ * @param cls unused
+ * @param key unused
+ * @param value a 'struct TunnelState *'
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+cleanup_tunnel (void *cls,
+		const GNUNET_HashCode *key,
+		void *value)
+{
+  struct TunnelState *ts = value;
+  struct TunnelMessageQueueEntry *tnq;
+
+  while (NULL != (tnq = ts->head))
+  {
+    GNUNET_CONTAINER_DLL_remove (ts->head,
+				 ts->tail,
+				 tnq);
+    GNUNET_free (tnq);
+  }
+  if (NULL != ts->client)
+  {
+    GNUNET_SERVER_cliet_drop (ts->client);
+    ts->client = NULL;
+  }
+  if (NULL != ts->th)
+  {
+    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
+    ts->th = NULL;
+  }
+  if (NULL != ts->destination.tunnel)
+  {
+    GNUNET_MESH_tunnel_destroy (ts->destination.tunnel);
+    ts->destination.tunnel = NULL;
+  }
+  if (NULL != ts->heap_node)
+  {
+    GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
+    ts->heap_node = NULL;
+  }
+  // FIXME...
+  GNUNET_free (ts);
+  return GNUNET_OK;
+}
+
+
+/**
  * Function scheduled as very last function, cleans up after us
+ *
+ * @param cls unused
+ * @param tc unused
  */
 static void
 cleanup (void *cls GNUNET_UNUSED,
-         const struct GNUNET_SCHEDULER_TaskContext *tskctx)
+         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
-  // FIXME: clean up heaps and maps!
+  if (NULL != destination_map)
+  {  
+    GNUNET_CONTAINER_multihashmap_iterate (destination_map,
+					   &cleanup_destination,
+					   NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (destination_map);
+    destination_map = NULL;
+  }
+  if (NULL != destination_heap)
+  {
+    GNUNET_CONTAINER_heap_destroy (destination_heap);
+    destination_heap = NULL;
+  }
+  if (NULL != tunnel_map)
+  {  
+    GNUNET_CONTAINER_multihashmap_iterate (tunnel_map,
+					   &cleanup_tunnel,
+					   NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (tunnel_map);
+    tunnel_map = NULL;
+  }
+  if (NULL != tunnel_heap)
+  {
+    GNUNET_CONTAINER_heap_destroy (tunnel_heap);
+    tunnel_heap = NULL;
+  }
   if (NULL != mesh_handle)
   {
     GNUNET_MESH_disconnect (mesh_handle);
@@ -1773,6 +1879,31 @@ cleanup (void *cls GNUNET_UNUSED,
 
 
 /**
+ * A client disconnected, clean up all references to it.
+ *
+ * @param cls the client that disconnected
+ * @param key unused
+ * @param value a 'struct TunnelState *'
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+cleanup_tunnel_client (void *cls,
+		       const GNUNET_HashCode *key,
+		       void *value)
+{
+  struct GNUNET_SERVER_Client *client;
+  struct TunnelState *ts = value;
+
+  if (client == ts->client)
+  {
+    GNUNET_SERVER_cliet_drop (ts->client);
+    ts->client = NULL;
+  }
+  return GNUNET_OK;
+}
+
+  
+/**
  * A client has disconnected from us.  If we are currently building
  * a tunnel for it, cancel the operation.
  *
@@ -1782,8 +1913,11 @@ cleanup (void *cls GNUNET_UNUSED,
 static void
 client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  // FIXME: find all TunnelState's and check if they point
-  // to the client and if so, clean the reference up!
+  // FIXME: check that all truly all 'struct TunnelState's 
+  // with clients are always in the tunnel map!
+  GNUNET_CONTAINER_multihashmap_iterate (tunnel_map,
+					 &cleanup_tunnel_client,
+					 client);
 }
 
 
