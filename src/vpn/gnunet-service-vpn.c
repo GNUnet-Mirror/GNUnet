@@ -704,12 +704,22 @@ route_packet (struct DestinationEntry *destination,
       tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
       usm = (struct GNUNET_EXIT_UdpServiceMessage *) &tnq[1];
       usm->header.size = htons ((uint16_t) mlen);
+      usm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE);
+      /* if the source port is below 32000, we assume it has a special
+	 meaning; if not, we pick a random port (this is a heuristic) */
+      usm->source_port = (ntohs (udp->spt) < 32000) ? udp->spt : 0;
+      usm->destination_port = udp->dpt;
       usm->service_descriptor = destination->details.service_destination.service_descriptor;
-      // FIXME: build message!
+      memcpy (&usm[1],
+	      &udp[1],
+	      payload_length - sizeof (struct udp_packet));
     }
     else
     {
       struct GNUNET_EXIT_UdpInternetMessage *uim;
+      struct in_addr *ip4dst;
+      struct in6_addr *ip6dst;
+      void *payload;
 
       mlen = sizeof (struct GNUNET_EXIT_UdpInternetMessage) + 
 	alen + payload_length - sizeof (struct udp_packet);
@@ -722,9 +732,28 @@ route_packet (struct DestinationEntry *destination,
 			   mlen);
       uim = (struct GNUNET_EXIT_UdpInternetMessage *) &tnq[1];
       uim->header.size = htons ((uint16_t) mlen);
+      uim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET); 
       uim->af = htonl (destination->details.exit_destination.af);
-   
-      // FIXME: build message!
+      uim->source_port = (ntohs (udp->spt) < 32000) ? udp->spt : 0;
+      uim->destination_port = udp->dpt;
+      switch (destination->details.exit_destination.af)
+      {
+      case AF_INET:
+	ip4dst = (struct in_addr *) &uim[1];
+	*ip4dst = destination->details.exit_destination.ip.v4;
+	payload = &ip4dst[1];
+	break;
+      case AF_INET6:
+	ip6dst = (struct in6_addr *) &uim[1];
+	*ip6dst = destination->details.exit_destination.ip.v6;
+	payload = &ip6dst[1];
+	break;
+      default:
+	GNUNET_assert (0);
+      }
+      memcpy (payload,
+	      &udp[1],
+	      payload_length - sizeof (struct udp_packet));
     }
     break;
   case IPPROTO_TCP:
@@ -744,11 +773,20 @@ route_packet (struct DestinationEntry *destination,
  	tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
 	tsm = (struct  GNUNET_EXIT_TcpServiceStartMessage *) &tnq[1];
 	tsm->header.size = htons ((uint16_t) mlen);
-	// FIXME: build message!
+	tsm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START);
+	tsm->reserved = htonl (0);
+	tsm->service_descriptor = destination->details.service_destination.service_descriptor;
+	tsm->tcp_header = *tcp;
+	memcpy (&tsm[1],
+		&tcp[1],
+		payload_length - sizeof (struct tcp_packet));
       }
       else
       {
 	struct GNUNET_EXIT_TcpInternetStartMessage *tim;
+	struct in_addr *ip4dst;
+	struct in6_addr *ip6dst;
+	void *payload;
 
 	mlen = sizeof (struct GNUNET_EXIT_TcpInternetStartMessage) + 
 	  alen + payload_length - sizeof (struct tcp_packet);
@@ -760,7 +798,27 @@ route_packet (struct DestinationEntry *destination,
  	tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
 	tim = (struct  GNUNET_EXIT_TcpInternetStartMessage *) &tnq[1];
 	tim->header.size = htons ((uint16_t) mlen);
-	// FIXME: build message!
+	tim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START);
+	tim->af = htonl (destination->details.exit_destination.af);	
+	tim->tcp_header = *tcp;
+	switch (destination->details.exit_destination.af)
+	{
+	case AF_INET:
+	  ip4dst = (struct in_addr *) &tim[1];
+	  *ip4dst = destination->details.exit_destination.ip.v4;
+	  payload = &ip4dst[1];
+	  break;
+	case AF_INET6:
+	  ip6dst = (struct in6_addr *) &tim[1];
+	  *ip6dst = destination->details.exit_destination.ip.v6;
+	  payload = &ip6dst[1];
+	  break;
+	default:
+	  GNUNET_assert (0);
+	}
+	memcpy (payload,
+		&tcp[1],
+		payload_length - sizeof (struct tcp_packet));
       }
     }
     else
@@ -777,7 +835,12 @@ route_packet (struct DestinationEntry *destination,
       tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
       tdm = (struct  GNUNET_EXIT_TcpDataMessage *) &tnq[1];
       tdm->header.size = htons ((uint16_t) mlen);
-      // FIXME: build message!
+      tdm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_DATA);
+      tdm->reserved = htonl (0);
+      tdm->tcp_header = *tcp;
+      memcpy (&tdm[1],
+	      &tcp[1],
+	      payload_length - sizeof (struct tcp_packet));
      }
     break;
   default:
