@@ -1158,6 +1158,90 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                   const struct GNUNET_MessageHeader *message,
                   const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
+  struct TunnelState *ts = *tunnel_ctx;
+  const struct GNUNET_EXIT_TcpDataMessage *data;
+  size_t mlen;
+
+  mlen = ntohs (message->size);
+  if (mlen < sizeof (struct GNUNET_EXIT_TcpDataMessage))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (NULL == ts->heap_node)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  data = (const struct GNUNET_EXIT_TcpDataMessage *) message;
+  mlen -= sizeof (struct GNUNET_EXIT_TcpDataMessage);
+  switch (ts->af)
+  {
+  case AF_INET:
+    {
+      size_t size = sizeof (struct ip4_header) 
+	+ sizeof (struct tcp_packet) 
+	+ sizeof (struct GNUNET_MessageHeader) +
+	sizeof (struct tun_header) +
+	mlen;
+      {
+	char buf[size];
+	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
+	struct tun_header *tun = (struct tun_header*) &msg[1];
+	struct ip4_header *ipv4 = (struct ip4_header *) &tun[1];
+	struct tcp_packet *tcp = (struct tcp_packet *) &ipv4[1];
+	msg->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+	msg->size = htons (size);
+	tun->flags = htons (0);
+	tun->proto = htons (ETH_P_IPV4);
+	ipv4->version = 4;
+	ipv4->header_length = sizeof (struct ip4_header) / 4;
+	ipv4->diff_serv = 0;
+	ipv4->total_length = htons (sizeof (struct ip4_header) +
+				    sizeof (struct tcp_packet) +
+				    mlen);
+	ipv4->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+								    UINT16_MAX + 1);
+	ipv4->flags = 0;
+	ipv4->fragmentation_offset = 0;
+	ipv4->ttl = 255;
+	ipv4->protocol = IPPROTO_TCP;
+	ipv4->checksum = 0; 
+	ipv4->source_address = ts->destination_ip.v4;
+	ipv4->destination_address = ts->source_ip.v4;
+	ipv4->checksum =
+	  GNUNET_CRYPTO_crc16_n (ipv4, sizeof (struct ip4_header));
+	*tcp = data->tcp_header;
+	tcp->spt = htons (ts->destination_port);
+	tcp->dpt = htons (ts->source_port);
+	tcp->crc = 0;
+	memcpy (&tcp[1],
+		&data[1],
+		mlen);
+	{
+	  uint32_t sum = 0;
+	  uint32_t tmp;
+	  
+	  sum = GNUNET_CRYPTO_crc16_step (sum, 
+					  &ipv4->source_address,
+					  2 * sizeof (struct in_addr));	  
+	  tmp = htonl ((IPPROTO_TCP << 16) | (mlen + sizeof (struct tcp_packet)));
+	  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+	  sum = GNUNET_CRYPTO_crc16_step (sum, tcp, mlen + sizeof (struct tcp_packet));
+	  tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+	}
+	(void) GNUNET_HELPER_send (helper_handle,
+				   msg,
+				   GNUNET_YES,
+				   NULL, NULL);
+      }
+    }
+    break;
+  case AF_INET6:
+    break;
+  default:
+    GNUNET_assert (0);
+  }
   // FIXME: parse message, build IP packet, give to TUN!
 #if 0
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
@@ -1229,11 +1313,11 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     GNUNET_assert (me != NULL);
 
     pkt6->tcp_hdr.crc = 0;
-    uint32_t sum = 0;
-    uint32_t tmp;
 
-    sum =
-        GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
+	  uint32_t sum = 0;
+	  uint32_t tmp;
+
+	  sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
     sum =
         GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
     tmp = htonl (pktlen);
@@ -1245,6 +1329,7 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
         GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt6->tcp_hdr,
                                    ntohs (pkt6->ip6_hdr.paylgth));
     pkt6->tcp_hdr.crc = GNUNET_CRYPTO_crc16_finish (sum);
+
 
     (void) GNUNET_HELPER_send (helper_handle,
 			       &pkt6->shdr,
@@ -1312,23 +1397,6 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 
     GNUNET_assert (me != NULL);
     pkt4->tcp_hdr.crc = 0;
-    uint32_t sum = 0;
-    uint32_t tmp;
-
-    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) &pkt4->ip_hdr.sadr, 4);
-    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) &pkt4->ip_hdr.dadr, 4);
-
-    tmp = (0x06 << 16) | (0xffff & pktlen);     // 0x06 for TCP?
-
-    tmp = htonl (tmp);
-
-    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & tmp, 4);
-
-    sum = GNUNET_CRYPTO_crc16_step (sum, (uint16_t *) & pkt4->tcp_hdr, pktlen);
-    pkt4->tcp_hdr.crc = GNUNET_CRYPTO_crc16_finish (sum);
-
-    pkt4->ip_hdr.chks =
-        GNUNET_CRYPTO_crc16_n ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
 
     (void) GNUNET_HELPER_send (helper_handle,
 			       &pkt4->shdr,
@@ -1336,6 +1404,15 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 			       NULL, NULL);
 
   }
+#endif
+
+#if 0
+  // FIXME: refresh entry to avoid expiration...
+  struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
+  
+  GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+				     GNUNET_TIME_absolute_get ().abs_value);
+  
 #endif
   return GNUNET_OK;
 }
