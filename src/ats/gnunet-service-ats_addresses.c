@@ -28,6 +28,7 @@
 #include "gnunet_ats_service.h"
 #include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
+#include "gnunet-service-ats_addresses_mlp.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
@@ -506,6 +507,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 		break;
 #else
 		ats_mode = MLP;
+		GAS_mlp_init ();
 #endif
 		break;
 	/* MLP = NO */
@@ -560,6 +562,10 @@ GAS_addresses_done ()
   GAS_addresses_destroy_all ();
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
   addresses = NULL;
+  if (ats_mode == MLP)
+  {
+    GAS_mlp_done ();
+  }
 }
 
 

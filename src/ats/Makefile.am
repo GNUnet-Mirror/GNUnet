@@ -15,6 +15,7 @@ endif
 
 if HAVE_LIBGLPK
   GN_LIBGLPK = -lglpk
+  GN_MLP_SRC = gnunet-service-ats_addresses_mlp.c gnunet-service-ats_addresses_mlp.h
 endif
 
 lib_LTLIBRARIES = libgnunetats.la
@@ -37,6 +38,7 @@ bin_PROGRAMS = \
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h\
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+ $(GN_MLP_SRC) \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
