@@ -303,8 +303,11 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Update a bandwidth assignment for a peer.  This trivial method currently
- * simply assigns the same share to all active connections.
+ * Delete an address
+ *
+ * If session != 0, just the session is deleted, the address itself still exists
+ * If session == 0, remove full address
+ * If session == 0 and addrlen == 0, destroy inbound address
  *
  * @param cls unused
  * @param key unused
@@ -320,6 +323,7 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_assert (0 ==
                  memcmp (&aa->peer, &info->peer,
                          sizeof (struct GNUNET_PeerIdentity)));
+  /* session == 0, remove full address  */
   if ((info->session_id == 0) && (0 == strcmp (info->plugin, aa->plugin)) &&
       (aa->addr_len == info->addr_len) &&
       (0 == memcmp (info->addr, aa->addr, aa->addr_len)))
@@ -331,6 +335,7 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
       recalculate_assigned_bw ();
     return GNUNET_OK;
   }
+  /* session != 0, just remove session */
   if (aa->session_id != info->session_id)
     return GNUNET_OK;           /* irrelevant */
   if (aa->session_id != 0)
