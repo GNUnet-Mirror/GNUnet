@@ -19,7 +19,7 @@
 */
 
 /**
- * @file ats/gnunet-service-ats_addresses.c
+ * @file ats/gnunet-service-ats_addresses.h
  * @brief ats service address management
  * @author Matthias Wachs
  * @author Christian Grothoff
@@ -90,3 +90,5 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
 /* FIXME: add performance request API */
 
 #endif
+
+/* end of gnunet-service-ats_addresses.h */
