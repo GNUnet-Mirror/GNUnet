@@ -1755,17 +1755,19 @@ cleanup_destination (void *cls,
 		     void *value)
 {
   struct DestinationEntry *de = value;
- 
+
   if (NULL != de->tunnel)
   {
     GNUNET_MESH_tunnel_destroy (de->tunnel);
     de->tunnel = NULL;
   }
+  /*
   if (NULL != ts->heap_node)
   {
     GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
     ts->heap_node = NULL;
   }
+  */
   GNUNET_free (de);
   return GNUNET_OK;
 }
@@ -1796,7 +1798,7 @@ cleanup_tunnel (void *cls,
   }
   if (NULL != ts->client)
   {
-    GNUNET_SERVER_cliet_drop (ts->client);
+    GNUNET_SERVER_client_drop (ts->client);
     ts->client = NULL;
   }
   if (NULL != ts->th)
@@ -1891,12 +1893,12 @@ cleanup_tunnel_client (void *cls,
 		       const GNUNET_HashCode *key,
 		       void *value)
 {
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVER_Client *client = cls;
   struct TunnelState *ts = value;
 
   if (client == ts->client)
   {
-    GNUNET_SERVER_cliet_drop (ts->client);
+    GNUNET_SERVER_client_drop (ts->client);
     ts->client = NULL;
   }
   return GNUNET_OK;
