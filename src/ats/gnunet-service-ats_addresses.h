@@ -31,6 +31,49 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
+struct ATS_Address
+{
+  struct GNUNET_PeerIdentity peer;
+
+  size_t addr_len;
+
+  uint32_t session_id;
+
+  uint32_t ats_count;
+
+  const void *addr;
+
+  char *plugin;
+
+  struct GNUNET_ATS_Information *ats;
+
+  struct GNUNET_TIME_Relative atsp_latency;
+
+  struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_in;
+
+  struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_out;
+
+  uint32_t atsp_distance;
+
+  uint32_t atsp_cost_wan;
+
+  uint32_t atsp_cost_lan;
+
+  uint32_t atsp_cost_wlan;
+
+  uint32_t atsp_network_type;
+
+  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
+
+  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
+
+  /**
+   * Is this the active address for this peer?
+   */
+  int active;
+
+};
+
 /**
  * Initialize address subsystem.
  * @param cfg configuration to use

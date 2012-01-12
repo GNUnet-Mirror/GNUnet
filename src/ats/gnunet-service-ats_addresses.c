@@ -33,49 +33,6 @@
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
 
-struct ATS_Address
-{
-  struct GNUNET_PeerIdentity peer;
-
-  size_t addr_len;
-
-  uint32_t session_id;
-
-  uint32_t ats_count;
-
-  const void *addr;
-
-  char *plugin;
-
-  struct GNUNET_ATS_Information *ats;
-
-  struct GNUNET_TIME_Relative atsp_latency;
-
-  struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_in;
-
-  struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_out;
-
-  uint32_t atsp_distance;
-
-  uint32_t atsp_cost_wan;
-
-  uint32_t atsp_cost_lan;
-
-  uint32_t atsp_cost_wlan;
-
-  uint32_t atsp_network_type;
-
-  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
-
-  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
-
-  /**
-   * Is this the active address for this peer?
-   */
-  int active;
-
-};
-
 enum ATS_Mode
 {
 	SIMPLE,
@@ -501,15 +458,16 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   {
 	/* MLP = YES */
 	case GNUNET_YES:
-#if !HAVE_LIBGLPK
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode");
-		ats_mode = SIMPLE;
-		break;
+#if HAVE_LIBGLPK
+          ats_mode = MLP;
+          /* Init the MLP solver with default values */
+          GAS_mlp_init (MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+          break;
 #else
-		ats_mode = MLP;
-		GAS_mlp_init ();
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode");
+          ats_mode = SIMPLE;
+          break;
 #endif
-		break;
 	/* MLP = NO */
 	case GNUNET_NO:
 		ats_mode = SIMPLE;

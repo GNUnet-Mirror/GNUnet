@@ -16,6 +16,7 @@ endif
 if HAVE_LIBGLPK
   GN_LIBGLPK = -lglpk
   GN_MLP_SRC = gnunet-service-ats_addresses_mlp.c gnunet-service-ats_addresses_mlp.h
+  GN_MLP_TEST = test_ats_mlp
 endif
 
 lib_LTLIBRARIES = libgnunetats.la
@@ -50,12 +51,22 @@ gnunet_service_ats_LDADD = \
 
 
 check_PROGRAMS = \
- test_ats_api_scheduling
+ test_ats_api_scheduling \
+ $(GN_MLP_TEST)
 # test_ats_api_scheduling_get_type
 # test_ats_api_bandwidth_consumption
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
+
+if HAVE_LIBGLPK
+test_ats_mlp_SOURCES = \
+ $(GN_MLP_SRC) \
+ test_ats_mlp.c
+test_ats_mlp_LDADD = \
+  $(GN_LIBGLPK) \
+  $(top_builddir)/src/util/libgnunetutil.la
 endif
 
 test_ats_api_scheduling_SOURCES = \
