@@ -996,7 +996,8 @@ fip_signal_start (void *cls, struct GNUNET_FS_FileInformation *fi,
   pi.status = GNUNET_FS_STATUS_PUBLISH_START;
   *client_info = GNUNET_FS_publish_make_status_ (&pi, pc, fi, 0);
   GNUNET_FS_file_information_sync_ (fi);
-  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta))
+  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta)
+      && (fi->dir != NULL))
   {
     /* process entries in directory */
     pc->skip_next_fi_callback = GNUNET_YES;
