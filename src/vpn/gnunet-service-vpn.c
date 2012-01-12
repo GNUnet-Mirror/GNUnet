@@ -1761,13 +1761,11 @@ cleanup_destination (void *cls,
     GNUNET_MESH_tunnel_destroy (de->tunnel);
     de->tunnel = NULL;
   }
-  /*
-  if (NULL != ts->heap_node)
+  if (NULL != de->heap_node)
   {
-    GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
-    ts->heap_node = NULL;
+    GNUNET_CONTAINER_heap_remove_node (de->heap_node);
+    de->heap_node = NULL;
   }
-  */
   GNUNET_free (de);
   return GNUNET_OK;
 }
