@@ -562,10 +562,13 @@ GAS_addresses_done ()
   GAS_addresses_destroy_all ();
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
   addresses = NULL;
+#if HAVE_LIBGLPK
   if (ats_mode == MLP)
   {
     GAS_mlp_done ();
   }
+#endif
+
 }
 
 
