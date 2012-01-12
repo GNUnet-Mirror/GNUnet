@@ -33,6 +33,8 @@
 #ifndef GNUNET_SERVICE_ATS_ADDRESSES_MLP_H
 #define GNUNET_SERVICE_ATS_ADDRESSES_MLP_H
 
+#define VERBOSE GNUNET_EXTRA_LOGGING
+#define DEBUG_MLP GNUNET_EXTRA_LOGGING
 
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 #define MLP_MAX_ITERATIONS      INT_MAX
@@ -68,6 +70,20 @@ struct GAS_MLP_Handle
    */
   unsigned int max_iterations;
 
+
+  /* state information */
+
+  /**
+   * Do we need to use the LP presolver?
+   *
+   * If the problem addresses were added or removed and the last basis was we
+   * need to use the presolver.
+   * presolver_required == GNUNET_YES
+   *
+   * If values were modified, we can reuse a valid basis
+   * presolver_required == GNUNET_NO
+   */
+  int presolver_required;
 };
 
 /**

@@ -39,6 +39,85 @@ static struct GAS_MLP_Handle *GAS_mlp;
 
 
 /**
+ * Solves the MLP problem
+ * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ */
+int
+mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
+{
+  int res;
+
+  /* LP presolver?
+   * Presolver is required if the problem was modified and an existing
+   * valid basis is now invalid */
+  if (mlp->presolver_required == GNUNET_YES)
+    mlp->control_param_lp.presolve = GLP_ON;
+  else
+    mlp->control_param_lp.presolve = GLP_OFF;
+
+
+  /* Solve LP problem to have initial valid solution */
+lp_solv:
+  res = glp_simplex(mlp->prob, &mlp->control_param_lp);
+  if (res == 0)
+  {
+    /* The LP problem instance has been successfully solved. */
+  }
+  else if (res == GLP_EITLIM)
+  {
+    /* simplex iteration limit has been exceeded. */
+    // TODO Increase iteration limit?
+  }
+  else if (res == GLP_ETMLIM)
+  {
+    /* Time limit has been exceeded.  */
+    // TODO Increase time limit?
+  }
+  else
+  {
+    /* Problem was ill-defined, retry with presolver */
+    if (mlp->presolver_required == GNUNET_NO)
+    {
+      mlp->presolver_required = GNUNET_YES;
+      goto lp_solv;
+    }
+    else
+    {
+      /* Problem was ill-defined, no way to handle that */
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+          "ats-mlp",
+          "Solving LP problem failed: glp_simplex error 0x%X", res);
+      return GNUNET_SYSERR;
+    }
+  }
+
+  /* Analyze problem status  */
+  res = glp_get_status (mlp->prob);
+  switch (res) {
+    /* solution is optimal */
+    case GLP_OPT:
+    /* solution is feasible */
+    case GLP_FEAS:
+      break;
+
+    /* Problem was ill-defined, no way to handle that */
+    default:
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+          "ats-mlp",
+          "Solving LP problem failed, no solution: glp_get_status 0x%X", res);
+      return GNUNET_SYSERR;
+      break;
+  }
+
+  /* solved sucessfully, no presolver required next time */
+  mlp->presolver_required = GNUNET_NO;
+
+  return GNUNET_OK;
+}
+
+
+
+/**
  * Init the MLP problem solving component
  *
  * @param max_duration maximum numbers of iterations for the LP/MLP Solver
@@ -62,10 +141,21 @@ GAS_mlp_init (struct GNUNET_TIME_Relative max_duration, unsigned int max_iterati
 
   /* Init LP solving parameters */
   glp_init_smcp(&GAS_mlp->control_param_lp);
+#if DEBUG_MLP
+  GAS_mlp->control_param_lp.msg_lev = GLP_MSG_ALL;
+#else
+  GAS_mlp->control_param_lp.msg_lev = GLP_MSG_OFF;
+#endif
   GAS_mlp->control_param_lp.it_lim = max_iterations;
   GAS_mlp->control_param_lp.tm_lim = max_duration.rel_value;
+
   /* Init MLP solving parameters */
   glp_init_iocp(&GAS_mlp->control_param_mlp);
+#if DEBUG_MLP
+  GAS_mlp->control_param_mlp.msg_lev = GLP_MSG_ALL;
+#else
+  GAS_mlp->control_param_mlp.msg_lev = GLP_MSG_OFF;
+#endif
   GAS_mlp->control_param_mlp.tm_lim = max_duration.rel_value;
 
   return GNUNET_OK;
