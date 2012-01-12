@@ -25,7 +25,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet-service-ats_addresses.h"
+
 #if HAVE_LIBGLPK
 #include "glpk.h"
 #endif

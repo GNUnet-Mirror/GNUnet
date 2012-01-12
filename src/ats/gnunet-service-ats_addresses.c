@@ -28,10 +28,12 @@
 #include "gnunet_ats_service.h"
 #include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
-#include "gnunet-service-ats_addresses_mlp.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
+#if HAVE_LIBGLPK
+#include "gnunet-service-ats_addresses_mlp.h"
+#endif
 
 enum ATS_Mode
 {
