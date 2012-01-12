@@ -114,7 +114,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != GSA_stats)
   {
     GNUNET_STATISTICS_destroy (GSA_stats, GNUNET_NO);
-    GSA_stats = 0;
+    GSA_stats = NULL;
   }
 }
 
@@ -156,7 +156,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GAS_reservations_init ();
   GAS_performance_init (server);
   GAS_scheduling_init (server);
-  GAS_addresses_init (cfg);
+  GAS_addresses_init (cfg, GSA_stats);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_handler, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,

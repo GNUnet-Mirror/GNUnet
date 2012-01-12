@@ -28,6 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_addresses_mlp.h"
+#include "gnunet_statistics_service.h"
 #if HAVE_LIBGLPK
 #include "glpk.h"
 #endif
@@ -39,13 +40,16 @@ static struct GAS_MLP_Handle *GAS_mlp;
 
 
 /**
- * Solves the MLP problem
+ * Solves the LP problem
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
 mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
 {
   int res;
+  struct GNUNET_TIME_Relative duration;
+  struct GNUNET_TIME_Absolute end;
+  struct GNUNET_TIME_Absolute start = GNUNET_TIME_absolute_get();
 
   /* LP presolver?
    * Presolver is required if the problem was modified and an existing
@@ -54,7 +58,6 @@ mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
     mlp->control_param_lp.presolve = GLP_ON;
   else
     mlp->control_param_lp.presolve = GLP_OFF;
-
 
   /* Solve LP problem to have initial valid solution */
 lp_solv:
@@ -91,6 +94,17 @@ lp_solv:
     }
   }
 
+  end = GNUNET_TIME_absolute_get ();
+  duration = GNUNET_TIME_absolute_get_difference (start, end);
+  mlp->lp_solved++;
+  mlp->lp_total_duration =+ duration.rel_value;
+
+  GNUNET_STATISTICS_update (mlp->stats,"# LP problem solved", 1, GNUNET_NO);
+  GNUNET_STATISTICS_set (mlp->stats,"# LP execution time", duration.rel_value, GNUNET_NO);
+  GNUNET_STATISTICS_set (mlp->stats,"# LP execution time average",
+                         mlp->lp_total_duration / mlp->lp_solved,  GNUNET_NO);
+
+
   /* Analyze problem status  */
   res = glp_get_status (mlp->prob);
   switch (res) {
@@ -116,16 +130,86 @@ lp_solv:
 }
 
 
+/**
+ * Solves the MLP problem
+ * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ */
+int
+mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
+{
+  int res;
+  struct GNUNET_TIME_Relative duration;
+  struct GNUNET_TIME_Absolute end;
+  struct GNUNET_TIME_Absolute start = GNUNET_TIME_absolute_get();
+
+  /* solve MLP problem */
+  res = glp_intopt(mlp->prob, &mlp->control_param_mlp);
+  if (res == 0)
+  {
+    /* The MLP problem instance has been successfully solved. */
+  }
+  else if (res == GLP_EITLIM)
+  {
+    /* simplex iteration limit has been exceeded. */
+    // TODO Increase iteration limit?
+  }
+  else if (res == GLP_ETMLIM)
+  {
+    /* Time limit has been exceeded.  */
+    // TODO Increase time limit?
+  }
+  else
+  {
+    /* Problem was ill-defined, no way to handle that */
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+        "ats-mlp",
+        "Solving MLP problem failed: glp_intopt error 0x%X", res);
+    return GNUNET_SYSERR;
+  }
+
+  end = GNUNET_TIME_absolute_get ();
+  duration = GNUNET_TIME_absolute_get_difference (start, end);
+  mlp->mlp_solved++;
+  mlp->mlp_total_duration =+ duration.rel_value;
+
+  GNUNET_STATISTICS_update (mlp->stats,"# MLP problem solved", 1, GNUNET_NO);
+  GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time", duration.rel_value, GNUNET_NO);
+  GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time average",
+                         mlp->mlp_total_duration / mlp->mlp_solved,  GNUNET_NO);
+
+  /* Analyze problem status  */
+  res = glp_mip_status(mlp->prob);
+  switch (res) {
+    /* solution is optimal */
+    case GLP_OPT:
+    /* solution is feasible */
+    case GLP_FEAS:
+      break;
+
+    /* Problem was ill-defined, no way to handle that */
+    default:
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+          "ats-mlp",
+          "Solving MLP problem failed, no solution: glp_mip_status 0x%X", res);
+      return GNUNET_SYSERR;
+      break;
+  }
+
+  return GNUNET_OK;
+}
 
 /**
  * Init the MLP problem solving component
  *
+ * @param stats the GNUNET_STATISTICS handle
  * @param max_duration maximum numbers of iterations for the LP/MLP Solver
  * @param max_iterations maximum time limit for the LP/MLP Solver
  * @return GNUNET_OK on success, GNUNET_SYSERR on fail
  */
 int
-GAS_mlp_init (struct GNUNET_TIME_Relative max_duration, unsigned int max_iterations)
+GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
+              struct GNUNET_TIME_Relative max_duration,
+              unsigned int max_iterations)
 {
   GAS_mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
 
@@ -136,6 +220,7 @@ GAS_mlp_init (struct GNUNET_TIME_Relative max_duration, unsigned int max_iterati
   GAS_mlp->prob = glp_create_prob();
   GNUNET_assert (GAS_mlp->prob != NULL);
 
+  GAS_mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
   GAS_mlp->max_iterations = max_iterations;
   GAS_mlp->max_exec_duration = max_duration;
 

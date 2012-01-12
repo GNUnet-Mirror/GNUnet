@@ -29,6 +29,7 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_service.h"
+#include "gnunet_statistics_service.h"
 #include "ats.h"
 
 struct ATS_Address
@@ -76,10 +77,13 @@ struct ATS_Address
 
 /**
  * Initialize address subsystem.
+ *
  * @param cfg configuration to use
+ * @param stats the statistics handle to use
  */
 void
-GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    const struct GNUNET_STATISTICS_Handle *stats);
 
 
 /**

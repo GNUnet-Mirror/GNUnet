@@ -441,9 +441,11 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
  * Initialize address subsystem.
  *
  * @param cfg configuration to use
+ * @param stats the statistics handle to use
  */
 void
-GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    const struct GNUNET_STATISTICS_Handle *stats)
 {
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
@@ -463,7 +465,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 #if HAVE_LIBGLPK
           ats_mode = MLP;
           /* Init the MLP solver with default values */
-          GAS_mlp_init (MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+          GAS_mlp_init (stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
           break;
 #else
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode");
