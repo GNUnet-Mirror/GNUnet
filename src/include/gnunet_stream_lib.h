@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2011, Christian Grothoff (and other contributing authors)
+     (C) 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -24,8 +24,8 @@
  * @author Sree Harsha Totakura
  */
 
-#ifndef GNUNET_STREAM_LIB_H_
-#define GNUNET_STREAM_LIB_H_
+#ifndef GNUNET_STREAM_LIB_H
+#define GNUNET_STREAM_LIB_H
 
 #ifdef __cplusplus
 extern "C" 
@@ -60,7 +60,7 @@ enum GNUNET_STREAM_Status
     GNUNET_STREAM_SHUTDOWN = 2,
 
     /**
-     * A serious error occured while operating of this stream
+     * A serious error occured while operating on this stream
      */
     GNUNET_STREAM_SYSERR = 3
   };
@@ -239,9 +239,9 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
  *         given to the next time the read processor is called).
  */
 typedef size_t (*GNUNET_STREAM_DataProcessor) (void *cls,
-					     enum GNUNET_STREAM_Status status,
-					     const char *data,
-					     size_t size);
+                                               enum GNUNET_STREAM_Status status,
+                                               const void *data,
+                                               size_t size);
 
 
 /**
@@ -276,4 +276,4 @@ GNUNET_STREAM_io_cancel (struct GNUNET_STREAM_IOHandle *ioh);
 }
 #endif
 
-#endif
+#endif  /* STREAM_PROTOCOL_H */
