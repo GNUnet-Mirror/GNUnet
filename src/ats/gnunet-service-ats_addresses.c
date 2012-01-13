@@ -102,6 +102,46 @@ recalculate_assigned_bw ()
   GNUNET_CONTAINER_multihashmap_iterate (addresses, &update_bw_it, NULL);
 }
 
+/**
+ * Free the given address
+ * @param addr address to destroy
+ */
+static void
+free_address (struct ATS_Address *addr)
+{
+  GNUNET_free_non_null (addr->ats);
+  GNUNET_free (addr->plugin);
+  GNUNET_free (addr);
+}
+
+/**
+ * Create a ATS_address with the given information
+ * @param peer peer
+ * @param plugin_name plugin
+ * @param plugin_addr address
+ * @param plugin_addr_len address length
+ * @param session_id session
+ * @return the ATS_Address
+ */
+static struct ATS_Address *
+create_address (const struct GNUNET_PeerIdentity *peer,
+                const char *plugin_name,
+                const void *plugin_addr, size_t plugin_addr_len,
+                uint32_t session_id)
+{
+  struct ATS_Address *aa = NULL;
+
+  aa = GNUNET_malloc (sizeof (struct ATS_Address) + plugin_addr_len);
+  aa->peer = *peer;
+  aa->addr_len = plugin_addr_len;
+  aa->addr = &aa[1];
+  memcpy (&aa[1], plugin_addr, plugin_addr_len);
+  aa->plugin = GNUNET_strdup (plugin_name);
+  aa->session_id = session_id;
+
+  return aa;
+}
+
 
 /**
  * Destroy the given address.
@@ -125,9 +165,7 @@ destroy_address (struct ATS_Address *addr)
     addr->active = GNUNET_NO;
     ret = GNUNET_YES;
   }
-  GNUNET_free_non_null (addr->ats);
-  GNUNET_free (addr->plugin);
-  GNUNET_free (addr);
+  free_address (addr);
   return ret;
 }
 
@@ -190,16 +228,16 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *old;
   uint32_t i;
 
-  aa = GNUNET_malloc (sizeof (struct ATS_Address) + plugin_addr_len);
+  aa = create_address (peer,
+                       plugin_name,
+                       plugin_addr, plugin_addr_len,
+                       session_id);
+
+  aa->mlp_information = NULL;
   aa->ats = GNUNET_malloc (atsi_count * sizeof (struct GNUNET_ATS_Information));
-  aa->peer = *peer;
-  aa->addr_len = plugin_addr_len;
   aa->ats_count = atsi_count;
   memcpy (aa->ats, atsi, atsi_count * sizeof (struct GNUNET_ATS_Information));
-  aa->addr = &aa[1];
-  memcpy (&aa[1], plugin_addr, plugin_addr_len);
-  aa->plugin = GNUNET_strdup (plugin_name);
-  aa->session_id = session_id;
+
   old = find_address (peer, aa);
   if (old == NULL)
   {
@@ -259,6 +297,10 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (0);
       break;
     }
+#if HAVE_LIBGLPK
+  if (ats_mode == MLP)
+    GAS_mlp_address_update (addresses, old);
+#endif
 }
 
 
@@ -323,16 +365,15 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
                        const char *plugin_name, const void *plugin_addr,
                        size_t plugin_addr_len, uint32_t session_id)
 {
-  struct ATS_Address aa;
+  struct ATS_Address *aa;
 
   GNUNET_break (0 < strlen (plugin_name));
-  aa.peer = *peer;
-  aa.addr_len = plugin_addr_len;
-  aa.addr = plugin_addr;
-  aa.plugin = (char *) plugin_name;
-  aa.session_id = session_id;
+  aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
+
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
-                                              &destroy_by_session_id, &aa);
+                                              &destroy_by_session_id, aa);
+
+  free_address (aa);
 }
 
 
@@ -387,10 +428,27 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
                       const char *plugin_name, const void *plugin_addr,
                       size_t plugin_addr_len, uint32_t session_id, int in_use)
 {
-
+#if DEBUG_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' message for peer `%s': %i\n", "ADDRESS_IN_USE",
               GNUNET_i2s (peer), in_use);
+#endif
+
+  struct ATS_Address *aa;
+  struct ATS_Address *old;
+
+  aa = create_address(peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
+  old = find_address (peer, aa);
+  free_address (aa);
+
+  GNUNET_assert (old != NULL);
+  GNUNET_assert (in_use != old->used);
+  old->used = in_use;
+
+#if HAVE_LIBGLPK
+  if (ats_mode == MLP)
+     GAS_mlp_address_update (addresses, old);
+#endif
 }
 
 void
