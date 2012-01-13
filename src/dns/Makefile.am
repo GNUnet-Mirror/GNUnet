@@ -48,7 +48,7 @@ gnunet_helper_dns_SOURCES = \
  gnunet-helper-dns.c
 
 gnunet_service_dns_SOURCES = \
- gnunet-service-dns.c gnunet-service-dns-p.h 
+ gnunet-service-dns.c 
 gnunet_service_dns_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
