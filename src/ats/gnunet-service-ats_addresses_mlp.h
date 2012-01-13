@@ -96,6 +96,12 @@ struct GAS_MLP_Handle
   /* statistics */
 
   /**
+   * Time of last execution
+   */
+  struct GNUNET_TIME_Absolute last_execution;
+
+
+  /**
    * How often was the LP problem solved
    */
   unsigned int lp_solved;

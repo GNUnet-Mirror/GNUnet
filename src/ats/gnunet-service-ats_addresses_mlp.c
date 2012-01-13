@@ -144,6 +144,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
 
   /* solve MLP problem */
   res = glp_intopt(mlp->prob, &mlp->control_param_mlp);
+
   if (res == 0)
   {
     /* The MLP problem instance has been successfully solved. */
@@ -199,6 +200,21 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
 }
 
 /**
+ * Solves the MLP problem
+ * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ */
+int
+mlp_solve_problem (struct GAS_MLP_Handle *mlp)
+{
+  int res;
+  mlp->last_execution = GNUNET_TIME_absolute_get ();
+  res = mlp_solve_lp_problem (mlp);
+  if (res == GNUNET_OK)
+    res = mlp_solve_mlp_problem (mlp);
+  return res;
+}
+
+/**
  * Init the MLP problem solving component
  *
  * @param stats the GNUNET_STATISTICS handle
@@ -243,6 +259,7 @@ GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
 #endif
   GAS_mlp->control_param_mlp.tm_lim = max_duration.rel_value;
 
+  GAS_mlp->last_execution = GNUNET_TIME_absolute_get_forever();
   return GNUNET_OK;
 }
 
@@ -258,7 +275,25 @@ GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
 void
 GAS_mlp_address_update (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+  int new;
 
+  GNUNET_STATISTICS_update (GAS_mlp->stats,"# LP address updates", 1, GNUNET_NO);
+
+  /* We update a new address */
+  if (address->mlp_information == NULL)
+  {
+    new = GNUNET_YES;
+    address->mlp_information = GNUNET_malloc (sizeof (struct MLP_information));
+  }
+  else
+    new = GNUNET_NO;
+
+  /* Do the update */
+
+  /* Recalculate */
+  if (new == GNUNET_YES)
+    GAS_mlp->presolver_required = GNUNET_YES;
+  mlp_solve_problem (GAS_mlp);
 }
 
 /**
@@ -269,7 +304,20 @@ GAS_mlp_address_update (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct
 void
 GAS_mlp_address_delete (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+  GNUNET_STATISTICS_update (GAS_mlp->stats,"# LP address deletions", 1, GNUNET_NO);
 
+  /* Free resources */
+  if (address->mlp_information != NULL)
+  {
+    GNUNET_free (address->mlp_information);
+    address->mlp_information = NULL;
+  }
+
+  /* Update problem */
+
+  /* Recalculate */
+  GAS_mlp->presolver_required = GNUNET_YES;
+  mlp_solve_problem (GAS_mlp);
 }
 
 /**
@@ -278,6 +326,8 @@ GAS_mlp_address_delete (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct
 void
 GAS_mlp_address_change_preference (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+  GNUNET_STATISTICS_update (GAS_mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
+
 
 }
 
