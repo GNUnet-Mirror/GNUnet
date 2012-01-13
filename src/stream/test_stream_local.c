@@ -49,9 +49,14 @@ static GNUNET_STREAM_IOHandle *peer2_IOHandle;
 static char *data = "ABCD";
 static unsigned int data_pointer;
 static unsigned int read_pointer;
-static int result
+static int result;
 
-static int test1_success_counter;
+static int peer1_write_pass;
+static int peer2_read_pass;
+static int peer1_half_closed_write_pass;
+static int peer2_half_closed_read_pass;
+static int peer1_write_shutdown_pass;
+static int peer1_read_shutdown_pass;
 
 
 /**
@@ -112,12 +117,12 @@ void write_completion (void *cls,
                        size_t size)
 {
 
-  if (3 == test1_success_counter) /* Called for peer2's write operation */
+  if (peer1_write_shutdown_pass) /* Called for peer2's write operation */
     {
       /* peer1 has shutdown reading */
       GNUNET_assert (GNUNET_STREAM_SHUTDOWN == status);
       GNUNET_assert (0 == size);
-      test1_success_counter ++;
+      peer1_read_shutdown_pass = 1;
       
       GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     }
@@ -134,9 +139,28 @@ void write_completion (void *cls,
                                             NULL);
       GNUNET_assert (NULL != peer1_IOHandle);
     }
-  else{                         /* Close peer1 socket */
-    test1_success_counter++;
-    GNUNET_STREAM_shutdown (peer1_socket, SHUT_RDWR);
+  else{
+    peer1_write_pass = 1;
+    /* If we are here and peer2_read_pass == 1 => we have send the data twice */
+    if (peer2_read_pass) peer1_half_closed_write_pass = 1;
+
+    if (! peer1_half_closed_write_pass)
+      {
+        GNUNET_STREAM_shutdown (peer1_socket, SHUT_RD);
+        /* Half closed write */
+        data_pointer = 0;
+        peer1_IOHandle = GNUNET_STREAM_write (peer1_socket,
+                                              (void *) data,
+                                              strlen(data),
+                                              GNUNET_TIME_relative_multiply
+                                              (GNUNET_TIME_UNIT_SECONDS, 5),
+                                              &write_completion,
+                                              NULL);
+      }
+    else
+      {
+        GNUNET_STREAM_shutdown (peer1_socket, SHUT_WR);
+      }
   }
 }
 
@@ -183,11 +207,11 @@ input_processor (void *cls,
                  size_t size)
 {
 
-  if (2 == test1_success_counter)
+  if (peer2_half_closed_read_pass)
     {
       GNUNET_assert (GNUNET_STREAM_SHUTDOWN == status);
       GNUNET_assert (0 == size);
-      test1_success_counter ++;
+      peer1_write_shutdown_pass = 1;
       /* Now this should result in STREAM_SHUTDOWN */
       peer2_IOHandle = GNUNET_STREAM_write (peer2_socket,
                                             (void *) data,
@@ -217,8 +241,12 @@ input_processor (void *cls,
       GNUNET_assert (NULL != peer2_IOHandle);
     }
   else {
-    test1_success_counter ++;
-    /* This time should the read status should be STERAM_SHUTDOWN */
+    /* If we are here and peer2_read_pass => we have finished reading twice */
+    if (peer1_write_pass && peer2_read_pass) peer2_half_closed_read_pass = 1;
+    if (peer1_write_pass) peer2_read_pass = 1;
+
+    /* Half closed read */
+    read_pointer = 0;
     peer2_IOHandle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *) cls,
                                          GNUNET_TIME_relative_multiply
                                          (GNUNET_TIME_UNIT_SECONDS, 5),
@@ -283,7 +311,7 @@ static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   test_task = GNUNET_SCHEDULER_NO_TASK;
-  test1_success_counter = 0;
+
   /* Connect to stream library */
   peer1_socket = GNUNET_STREAM_open (NULL,         /* Null for local peer? */
                                      10,           /* App port */
