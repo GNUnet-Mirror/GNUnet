@@ -751,6 +751,28 @@ AC_ARG_WITH(sudo,
 AC_SUBST(SUDO_BINARY)
 
 
+# test for gnunetdns group name
+GNUNETDNS_GROUP=gnunetdns
+AC_MSG_CHECKING(for gnunetdns group name)
+AC_ARG_WITH(gnunetdns,
+  [  --with-gnunetdns=GRPNAME       name for gnunetdns group],
+  [AC_MSG_RESULT("$with_gnunetdns")
+   case $with_gnunetdns in
+   no)
+     GNUNETDNS_GROUP=gnunet
+     ;;
+   yes)
+     GNUNETDNS_GROUP=gnunetdns
+     ;;
+   *)
+     GNUNETDNS_GROUP=$with_gnunetdns
+    ;;
+   esac
+  ],
+  [AC_MSG_RESULT([gnunetdns])])
+AC_SUBST(GNUNETDNS_GROUP)
+
+
 # should 'make check' run tests?
 AC_MSG_CHECKING(whether to run tests)
 AC_ARG_ENABLE([testruns],

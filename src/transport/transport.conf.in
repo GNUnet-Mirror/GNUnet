@@ -12,6 +12,7 @@ ACCEPT_FROM6 = ::1;
 PLUGINS = tcp
 UNIXPATH = /tmp/gnunet-service-transport.sock
 BLACKLIST_FILE = $SERVICEHOME/blacklist
+# This could possibly be relaxed
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
 # DISABLE_SOCKET_FORWARDING = NO

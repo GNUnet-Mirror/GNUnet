@@ -20,8 +20,11 @@ HIJACKBIN = gnunet-helper-hijack-dns gnunet-helper-dns
 install-exec-hook:
 	$(SUDO_BINARY) chown root:root $(bindir)/gnunet-helper-hijack-dns || true
 	$(SUDO_BINARY) chmod u+s $(bindir)/gnunet-helper-hijack-dns || true
-	$(SUDO_BINARY) chown root:root $(bindir)/gnunet-helper-dns || true
-	$(SUDO_BINARY) chmod u+s $(bindir)/gnunet-helper-dns || true
+	$(SUDO_BINARY) chown root $(bindir)/gnunet-helper-dns || true
+	$(SUDO_BINARY) chgrp $(GNUNETDNS_GROUP) $(bindir)/gnunet-helper-dns || true
+	$(SUDO_BINARY) chmod 4750 $(bindir)/gnunet-helper-dns || true
+	$(SUDO_BINARY) chgrp $(GNUNETDNS_GROUP) $(bindir)/gnunet-service-dns-new || true
+	$(SUDO_BINARY) chmod 2755 $(bindir)/gnunet-helper-dns || true
 else
 install-exec-hook:
 endif

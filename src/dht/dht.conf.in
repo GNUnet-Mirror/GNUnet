@@ -9,6 +9,7 @@ ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 BUCKET_SIZE = 4
 UNIXPATH = /tmp/gnunet-service-dht.sock
+# This could be relaxed...
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
 # DISABLE_SOCKET_FORWARDING = NO

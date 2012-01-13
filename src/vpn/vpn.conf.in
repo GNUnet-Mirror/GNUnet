@@ -8,6 +8,8 @@ BINARY = gnunet-service-vpn
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 UNIXPATH = /tmp/gnunet-service-vpn.sock
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES
 
 IPV6ADDR = 1234::1
 IPV6PREFIX = 32

@@ -501,14 +501,18 @@ struct GNUNET_SERVICE_Context
   int require_found;
 
   /**
-   * Do we require a matching UID for UNIX domain socket
-   * connections?
+   * Do we require a matching UID for UNIX domain socket connections?
+   * GNUNET_NO means that the UID does not have to match (however,
+   * "match_gid" may still impose other access control checks).
    */
   int match_uid;
 
   /**
-   * Do we require a matching GID for UNIX domain socket
-   * connections?
+   * Do we require a matching GID for UNIX domain socket connections?
+   * Ignored if "match_uid" is GNUNET_YES.  Note that this is about
+   * checking that the client's UID is in our group OR that the
+   * client's GID is our GID.  If both "match_gid" and "match_uid" are
+   * "GNUNET_NO", all users on the local system have access.
    */
   int match_gid;
 
@@ -617,15 +621,50 @@ check_access (void *cls, const struct GNUNET_CONNECTION_Credentials *uc,
 #ifndef WINDOWS
   case AF_UNIX:
     ret = GNUNET_OK;            /* always OK for now */
-    if ((sctx->match_uid == GNUNET_YES) || (sctx->match_gid == GNUNET_YES))
-      ret = GNUNET_NO;
-    if ((uc != NULL) &&
-        ((sctx->match_uid != GNUNET_YES) || (uc->uid == geteuid ()) ||
-         (uc->uid == getuid ())) && ((sctx->match_gid != GNUNET_YES) ||
-                                     (uc->gid == getegid ()) ||
-                                     (uc->gid == getgid ())))
-      ret = GNUNET_YES;
-    else
+    if (sctx->match_uid == GNUNET_YES) 
+    {
+      /* UID match required */
+      ret = (uc != NULL) && (uc->uid == geteuid ());
+    }
+    else if (sctx->match_gid == GNUNET_YES) 
+    {
+      /* group match required */
+      if (uc == NULL) 
+      {
+	/* no credentials, group match not possible */
+	ret = GNUNET_NO;
+      }
+      else
+      {
+	struct group *grp;
+	unsigned int i;
+
+	if (uc->gid != getegid())
+	{
+	  /* default group did not match, but maybe the user is in our group, let's check */
+	  grp = getgrgid (getegid ());
+	  if (NULL == grp)
+	  {
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "getgrgid");
+	    return GNUNET_NO;
+	  }
+	  ret = GNUNET_NO;
+	  for (i=0; NULL != grp->gr_mem[i]; i++)
+	  {
+	    struct passwd *nam = getpwnam (grp->gr_mem[i]);
+	    if (NULL == nam)
+	      continue; /* name in group that is not in user DB !? */
+	    if (nam->pw_uid == uc->uid)
+	    {
+	      /* yes, uid is in our group, allow! */
+	      ret = GNUNET_YES;
+	      break;
+	    }
+	  }
+	}
+      }
+    }
+    if (GNUNET_NO == ret)
       LOG (GNUNET_ERROR_TYPE_WARNING, _("Access denied to UID %d / GID %d\n"),
            (uc == NULL) ? -1 : uc->uid, (uc == NULL) ? -1 : uc->gid);
     break;
