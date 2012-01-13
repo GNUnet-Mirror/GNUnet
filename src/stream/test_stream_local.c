@@ -25,6 +25,7 @@
  */
 
 #include <string.h>
+#include <sys/socket.h>         /* For SHUT_RD, SHUT_WR */
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -46,8 +47,8 @@ static GNUNET_STREAM_IOHandle *peer1_IOHandle;
 static GNUNET_STREAM_IOHandle *peer2_IOHandle;
 
 static char *data = "ABCD";
-static unsigned int *data_pointer;
-static unsigned int *read_pointer;
+static unsigned int data_pointer;
+static unsigned int read_pointer;
 static int result
 
 static int test1_success_counter;
@@ -59,6 +60,8 @@ static int test1_success_counter;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_STREAM_close (peer1_socket);
+  GNUNET_STREAM_close (peer2_socket);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: shutdown\n");
   if (0 != abort_task)
   {
@@ -108,12 +111,22 @@ void write_completion (void *cls,
                        enum GNUNET_STREAM_Status status,
                        size_t size)
 {
+
+  if (3 == test1_success_counter) /* Called for peer2's write operation */
+    {
+      /* peer1 has shutdown reading */
+      GNUNET_assert (GNUNET_STREAM_SHUTDOWN == status);
+      GNUNET_assert (0 == size);
+      test1_success_counter ++;
+      
+      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    }
   GNUNET_assert (GNUNET_STREAM_OK == status);
   if (data_pointer + size != strlen(data)) /* Have more data to send */
     {
       data_pointer += size;
       peer1_IOHandle = GNUNET_STREAM_write (peer1_socket,
-                                            (void *) data_pointer,
+                                            (void *) data,
                                             strlen(data) - data_pointer,
                                             GNUNET_TIME_relative_multiply
                                             (GNUNET_TIME_UNIT_SECONDS, 5),
@@ -122,12 +135,8 @@ void write_completion (void *cls,
       GNUNET_assert (NULL != peer1_IOHandle);
     }
   else{                         /* Close peer1 socket */
-    GNUNET_STREAM_close (peer1_socket);
     test1_success_counter++;
-    if (2 == test1_success_counter)
-      {
-        GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-      }
+    GNUNET_STREAM_shutdown (peer1_socket, SHUT_RDWR);
   }
 }
 
@@ -173,6 +182,25 @@ input_processor (void *cls,
                  const void *input_data,
                  size_t size)
 {
+
+  if (2 == test1_success_counter)
+    {
+      GNUNET_assert (GNUNET_STREAM_SHUTDOWN == status);
+      GNUNET_assert (0 == size);
+      test1_success_counter ++;
+      /* Now this should result in STREAM_SHUTDOWN */
+      peer2_IOHandle = GNUNET_STREAM_write (peer2_socket,
+                                            (void *) data,
+                                            strlen(data),
+                                            GNUNET_TIME_relative_multiply
+                                            (GNUNET_TIME_UNIT_SECONDS, 5),
+                                            &write_completion,
+                                            (void *) peer2_socket);
+                                            
+      return 0;
+    }
+
+  GNUNET_assert (GNUNET_STERAM_OK == status);
   GNUNET_assert (size < strlen (data));
   GNUNET_assert (strncmp ((const char *) data, 
                           (const char *) input_data,
@@ -181,20 +209,23 @@ input_processor (void *cls,
 
   if (read_pointer < strlen (data))
     {
-      peer2_IOHandle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket) cls,
+      peer2_IOHandle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *) cls,
                                        GNUNET_TIME_relative_multiply
                                        (GNUNET_TIME_UNIT_SECONDS, 5),
                                        &input_processor,
                                        NULL);
       GNUNET_assert (NULL != peer2_IOHandle);
     }
-  else {                        /* Close peer2 socket */
-    GNUNET_STREAM_close (peer2_socket);
+  else {
     test1_success_counter ++;
-    if (2 == test1_success_counter)
-      {
-        GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-      }
+    /* This time should the read status should be STERAM_SHUTDOWN */
+    peer2_IOHandle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *) cls,
+                                         GNUNET_TIME_relative_multiply
+                                         (GNUNET_TIME_UNIT_SECONDS, 5),
+                                         &input_processor,
+                                         NULL);
+
+
   }
         
   return size;
@@ -211,7 +242,7 @@ stream_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL != cls);
   read_pointer = 0;
   GNUNET_STREAM_listen_close (peer2_listen_socket); /* Close listen socket */
-  peer2_IOHandle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket) cls,
+  peer2_IOHandle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *) cls,
                                        GNUNET_TIME_relative_multiply
                                        (GNUNET_TIME_UNIT_SECONDS, 5),
                                        &input_processor,
