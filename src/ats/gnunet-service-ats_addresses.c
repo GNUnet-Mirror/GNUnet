@@ -37,8 +37,17 @@
 
 enum ATS_Mode
 {
-	SIMPLE,
-	MLP
+  /**
+   * Assign each peer an equal amount of bandwidth (bw)
+   *
+   * bw_per_peer = bw_total / #active addresses
+   */
+  SIMPLE,
+
+  /**
+   * Use MLP solver to assign bandwidth
+   */
+  MLP
 };
 
 static struct GNUNET_CONTAINER_MultiHashMap *addresses;
@@ -50,6 +59,7 @@ static unsigned long long wan_quota_out;
 static unsigned int active_addr_count;
 
 static int ats_mode;
+
 
 /**
  * Update a bandwidth assignment for a peer.  This trivial method currently
@@ -65,6 +75,8 @@ update_bw_it (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct ATS_Address *aa = value;
 
+
+  /* Simple method */
   if (GNUNET_YES != aa->active)
     return GNUNET_OK;
   GNUNET_assert (active_addr_count > 0);
@@ -159,6 +171,12 @@ destroy_address (struct ATS_Address *addr)
                  GNUNET_CONTAINER_multihashmap_remove (addresses,
                                                        &addr->peer.hashPubKey,
                                                        addr));
+
+#if HAVE_LIBGLPK
+  if (ats_mode == MLP)
+    GAS_mlp_address_delete (addresses, addr);
+#endif
+
   if (GNUNET_YES == addr->active)
   {
     active_addr_count--;
@@ -354,11 +372,20 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
 
   /* session == 0 and addrlen == 0 : destroy address */
   if (aa->addr_len == 0)
+  {
     (void) destroy_address (aa);
+  }
+  else
+  {
+    /* session was set to 0, update address */
+#if HAVE_LIBGLPK
+  if (ats_mode == MLP)
+    GAS_mlp_address_update (addresses, aa);
+#endif
+  }
 
   return GNUNET_OK;
 }
-
 
 void
 GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
