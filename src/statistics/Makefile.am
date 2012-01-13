@@ -11,7 +11,7 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
-dist_pkgcfg_DATA = \
+pkgcfg_DATA = \
   statistics.conf
 
 lib_LTLIBRARIES = libgnunetstatistics.la

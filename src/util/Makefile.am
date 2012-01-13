@@ -5,7 +5,10 @@ plugindir = $(libdir)/gnunet
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 dist_pkgcfg_DATA = \
-  util.conf resolver.conf
+  util.conf 
+
+pkgcfg_DATA = \
+  resolver.conf
 
 if MINGW
 noinst_LTLIBRARIES = \

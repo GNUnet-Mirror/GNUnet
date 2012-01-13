@@ -79,12 +79,14 @@ case "$host_os" in
      DEFAULT_INTERFACE="\"en0\""
      LIBPREFIX=
      DLLDIR=lib
+     UNIXONLY="#"
      ;;
 linux*)
      AC_DEFINE_UNQUOTED(LINUX,1,[This is a Linux system])
      build_target="linux"
      LIBPREFIX=
      DLLDIR=lib
+     UNIXONLY="#"
      AC_PATH_XTRA
      ;;
 freebsd*)
@@ -94,6 +96,7 @@ freebsd*)
      build_target="freebsd"
      LIBPREFIX=
      DLLDIR=lib
+     UNIXONLY="#"
      ;;
 openbsd*)
      AC_DEFINE_UNQUOTED(SOMEBSD,1,[This is a BSD system])
@@ -102,12 +105,14 @@ openbsd*)
      build_target="openbsd"
      LIBPREFIX=
      DLLDIR=lib
+     UNIXONLY="#"
      ;;
 netbsd*)
      AC_DEFINE_UNQUOTED(SOMEBSD,1,[This is a BSD system])
      AC_DEFINE_UNQUOTED(NETBSD,1,[This is a NetBSD system])
      LIBPREFIX=
      DLLDIR=lib
+     UNIXONLY="#"
      ;;
 *solaris*)
      AC_DEFINE_UNQUOTED(SOLARIS,1,[This is a Solaris system])
@@ -117,6 +122,7 @@ netbsd*)
      build_target="solaris"
      LIBPREFIX=
      DLLDIR=lib
+     UNIXONLY="#"
      ;;
 *arm-linux*)
      AC_DEFINE_UNQUOTED(LINUX,1,[This is a Linux system])
@@ -124,6 +130,7 @@ netbsd*)
      build_target="linux"
      LIBPREFIX=
      DLLDIR=lib
+     UNIXONLY="#"
      ;;
 *cygwin*)
      AC_DEFINE_UNQUOTED(CYGWIN,1,[This is a Cygwin system])
@@ -135,6 +142,7 @@ netbsd*)
      LIBPREFIX=lib
      DLLDIR=bin
      AC_PROG_CXX
+     UNIXONLY=""
      ;;
 *mingw*)
      AC_DEFINE_UNQUOTED(MINGW,1,[This is a MinGW system])
@@ -149,14 +157,20 @@ netbsd*)
      AC_PROG_CXX
      LIBPREFIX=lib
      DLLDIR=bin
+     UNIXONLY=""
      ;;
 *)
      AC_MSG_RESULT(Unrecognised OS $host_os)
      AC_DEFINE_UNQUOTED(OTHEROS,1,[Some strange OS])
+     UNIXONLY=""
 ;;
 esac
 AC_DEFINE_UNQUOTED([GNUNET_DEFAULT_INTERFACE], $DEFAULT_INTERFACE, [This should be the default choice for the name of the first network interface])
 AC_SUBST(DEFAULT_INTERFACE)
+
+# Disable TCP-based IPC on systems that support UNIX domain
+# sockets in default configuratin:
+AC_SUBST(UNIXONLY)
 
 AC_MSG_CHECKING([for build target])
 AM_CONDITIONAL(DARWIN,  test "$build_target" = "darwin")
@@ -814,34 +828,50 @@ m4/Makefile
 po/Makefile.in 
 src/Makefile
 src/arm/Makefile
+src/arm/arm.conf
 src/ats/Makefile
+src/ats/ats.conf
 src/block/Makefile
+src/chat/Makefile
+src/chat/chat.conf
 src/core/Makefile
+src/core/core.conf
 src/datacache/Makefile
 src/datastore/Makefile
+src/datastore/datastore.conf
 src/dht/Makefile
+src/dht/dht.conf
 src/dns/Makefile
+src/dns/dns.conf
 src/dv/Makefile
+src/dv/dv.conf
 src/exit/Makefile
 src/fragmentation/Makefile
 src/fs/Makefile
+src/fs/fs.conf
 src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
 src/hostlist/Makefile
 src/mesh/Makefile
+src/mesh/mesh.conf
 src/nat/Makefile
 src/nse/Makefile
+src/nse/nse.conf
 src/peerinfo/Makefile
+src/peerinfo/peerinfo.conf
 src/peerinfo-tool/Makefile
 src/statistics/Makefile
+src/statistics/statistics.conf
 src/template/Makefile
 src/testing/Makefile
 src/topology/Makefile
 src/transport/Makefile
+src/transport/transport.conf
 src/util/Makefile
+src/util/resolver.conf
 src/vpn/Makefile
-src/chat/Makefile
+src/vpn/vpn.conf
 src/integration-tests/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc

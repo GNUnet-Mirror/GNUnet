@@ -1,16 +1,17 @@
-[resolver]
+[core]
 AUTOSTART = YES
-PORT = 2089
+@UNIXONLY@ PORT = 2092
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 CONFIG = $DEFAULTCONFIG
-BINARY = gnunet-service-resolver
+BINARY = gnunet-service-core
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
-UNIXPATH = /tmp/gnunet-service-resolver.sock
-UNIX_MATCH_UID = NO
-UNIX_MATCH_GID = NO
+UNIXPATH = /tmp/gnunet-service-core.sock
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES
 # DISABLE_SOCKET_FORWARDING = NO
+# DEBUG = YES
 # USERNAME = 
 # MAXBUF =
 # TIMEOUT =
@@ -19,4 +20,3 @@ UNIX_MATCH_GID = NO
 # REJECT_FROM =
 # REJECT_FROM6 =
 # PREFIX =
-

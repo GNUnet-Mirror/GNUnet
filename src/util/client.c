@@ -289,25 +289,35 @@ do_connect (const char *service_name,
   }
 #endif
 
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "PORT", &port))
-      || (port > 65535) ||
-      (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "HOSTNAME",
-                                              &hostname)))
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_have_value (cfg, service_name, "PORT"))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _
-         ("Could not determine valid hostname and port for service `%s' from configuration.\n"),
-         service_name);
-    return NULL;
+    if ((GNUNET_OK !=
+	 GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "PORT", &port))
+	|| (port > 65535) ||
+	(GNUNET_OK !=
+	 GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "HOSTNAME",
+						&hostname)))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+	   _
+	   ("Could not determine valid hostname and port for service `%s' from configuration.\n"),
+	   service_name);
+      return NULL;
+    }
+    if (0 == strlen (hostname))
+    {
+      GNUNET_free (hostname);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+	   _("Need a non-empty hostname for service `%s'.\n"), service_name);
+      return NULL;
+    }
   }
-  if (0 == strlen (hostname))
+  else
   {
-    GNUNET_free (hostname);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _("Need a non-empty hostname for service `%s'.\n"), service_name);
-    return NULL;
+    /* unspecified means 0 (disabled) */
+    port = 0;
+    hostname = NULL;
   }
   if (port == 0)
   {
@@ -326,7 +336,7 @@ do_connect (const char *service_name,
         if (sock != NULL)
         {
           GNUNET_free (unixpath);
-          GNUNET_free (hostname);
+          GNUNET_free_non_null (hostname);
           return sock;
         }
       }
@@ -338,7 +348,7 @@ do_connect (const char *service_name,
          "Port is 0 for service `%s', UNIXPATH did not work, returning NULL!\n",
          service_name);
 #endif
-    GNUNET_free (hostname);
+    GNUNET_free_non_null (hostname);
     return NULL;
   }
 

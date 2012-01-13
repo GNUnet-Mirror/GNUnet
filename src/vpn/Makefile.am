@@ -12,7 +12,7 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 plugindir = $(libdir)/gnunet
 
-dist_pkgcfg_DATA = \
+pkgcfg_DATA = \
   vpn.conf
 
 if LINUX

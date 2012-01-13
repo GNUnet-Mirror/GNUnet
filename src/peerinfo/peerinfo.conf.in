@@ -1,13 +1,13 @@
-[statistics]
+[peerinfo]
 AUTOSTART = YES
-PORT = 2088
+@UNIXONLY@ PORT = 2090
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 CONFIG = $DEFAULTCONFIG
-BINARY = gnunet-service-statistics
+BINARY = gnunet-service-peerinfo
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
-UNIXPATH = /tmp/gnunet-service-statistics.sock
+UNIXPATH = /tmp/gnunet-service-peerinfo.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 # DISABLE_SOCKET_FORWARDING = NO
@@ -15,8 +15,10 @@ UNIX_MATCH_GID = YES
 # MAXBUF =
 # TIMEOUT =
 # DISABLEV6 =
-# BINDTO =
+# BINDTO = 
 # REJECT_FROM =
 # REJECT_FROM6 =
 # PREFIX =
+HOSTS = $SERVICEHOME/data/hosts/
+
 

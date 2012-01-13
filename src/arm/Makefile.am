@@ -2,7 +2,7 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
-dist_pkgcfg_DATA = \
+pkgcfg_DATA = \
   arm.conf
 
 if MINGW

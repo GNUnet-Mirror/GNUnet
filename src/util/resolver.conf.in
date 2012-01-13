@@ -1,21 +1,21 @@
-[chat]
+[resolver]
 AUTOSTART = YES
-PORT = 2090
+@UNIXONLY@ PORT = 2089
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 CONFIG = $DEFAULTCONFIG
-BINARY = gnunet-service-chat
+BINARY = gnunet-service-resolver
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
-UNIXPATH = /tmp/gnunet-service-chat.sock
+UNIXPATH = /tmp/gnunet-service-resolver.sock
 UNIX_MATCH_UID = NO
-UNIX_MATCH_GID = YES
+UNIX_MATCH_GID = NO
 # DISABLE_SOCKET_FORWARDING = NO
 # USERNAME = 
 # MAXBUF =
 # TIMEOUT =
 # DISABLEV6 =
-# BINDTO = 
+# BINDTO =
 # REJECT_FROM =
 # REJECT_FROM6 =
 # PREFIX =

@@ -1,13 +1,13 @@
-[peerinfo]
+[chat]
 AUTOSTART = YES
-PORT = 2090
+@UNIXONLY@ PORT = 2090
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 CONFIG = $DEFAULTCONFIG
-BINARY = gnunet-service-peerinfo
+BINARY = gnunet-service-chat
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
-UNIXPATH = /tmp/gnunet-service-peerinfo.sock
+UNIXPATH = /tmp/gnunet-service-chat.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 # DISABLE_SOCKET_FORWARDING = NO
@@ -19,6 +19,4 @@ UNIX_MATCH_GID = YES
 # REJECT_FROM =
 # REJECT_FROM6 =
 # PREFIX =
-HOSTS = $SERVICEHOME/data/hosts/
-
 

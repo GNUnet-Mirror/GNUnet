@@ -7,7 +7,7 @@ plugindir = $(libdir)/gnunet
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
-dist_pkgcfg_DATA = \
+pkgcfg_DATA = \
   dht.conf 
 
 if HAVE_ZLIB

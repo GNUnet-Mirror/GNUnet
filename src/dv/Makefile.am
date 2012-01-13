@@ -13,7 +13,7 @@ plugindir = $(libdir)/gnunet
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
-dist_pkgcfg_DATA = \
+pkgcfg_DATA = \
   dv.conf
 
 lib_LTLIBRARIES = libgnunetdv.la
