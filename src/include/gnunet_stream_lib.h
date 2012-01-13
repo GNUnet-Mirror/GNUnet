@@ -191,9 +191,9 @@ GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *socket);
  * Functions of this signature are called whenever writing operations
  * on a stream are executed
  *
- * @param cls the closure from GNUNET_STREAM_write/read
+ * @param cls the closure from GNUNET_STREAM_write
  * @param status the status of the stream at the time this function is called
- * @param size the number of bytes read or written
+ * @param size the number of bytes written
  */
 typedef void (*GNUNET_STREAM_CompletionContinuation) (void *cls,
 						      enum GNUNET_STREAM_Status
@@ -231,7 +231,7 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
  * Functions of this signature are called whenever data is available from the
  * stream.
  *
- * @param cls the closure from GNUNET_STREAM_write/read
+ * @param cls the closure from GNUNET_STREAM_read
  * @param status the status of the stream at the time this function is called
  * @param data traffic from the other side
  * @param size the number of bytes available in data read 
