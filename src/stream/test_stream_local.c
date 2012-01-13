@@ -1,0 +1,335 @@
+/*
+     This file is part of GNUnet.
+     (C) 2011, 2012 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 3, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+
+/**
+ * @file stream/test_stream_local.c
+ * @brief Stream API testing between local peers
+ * @author Sree Harsha Totakura
+ */
+
+#include <string.h>
+
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_mesh_service.h"
+#include "gnunet_stream_lib.h"
+
+#define VERBOSE 1
+
+static struct GNUNET_OS_Process *arm_pid;
+static struct GNUNET_STREAM_Socket *peer1_socket;
+static struct GNUNET_STREAM_ListenSocket *peer2_listen_socket;
+static struct GNUNET_STREAM_Socket *peer2_socket;
+
+static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static GNUNET_SCHEDULER_TaskIdentifier test_task;
+static GNUNET_SCHEDULER_TaskIdentifier read_task;
+
+static GNUNET_STREAM_IOHandle *peer1_IOHandle;
+static GNUNET_STREAM_IOHandle *peer2_IOHandle;
+
+static char *data = "ABCD";
+static unsigned int *data_pointer;
+static unsigned int *read_pointer;
+static int result
+
+static int test1_success_counter;
+
+
+/**
+ * Shutdown nicely
+ */
+static void
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: shutdown\n");
+  if (0 != abort_task)
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: arm\n");
+  if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Wait\n");
+  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
+  GNUNET_OS_process_close (arm_pid);
+}
+
+
+/**
+ * Something went wrong and timed out. Kill everything and set error flag
+ */
+static void
+do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: ABORT\n");
+  if (0 != test_task)
+  {
+    GNUNET_SCHEDULER_cancel (test_task);
+  }
+  if (0 != read_task)
+    {
+      GNUNET_SCHEDULER_cancel (read_task);
+    }
+  result = GNUNET_SYSERR;
+  abort_task = 0;
+  do_shutdown (cls, tc);
+}
+
+
+/**
+ * The write completion function; called upon writing some data to stream or
+ * upon error
+ *
+ * @param cls the closure from GNUNET_STREAM_write/read
+ * @param status the status of the stream at the time this function is called
+ * @param size the number of bytes read or written
+ */
+void write_completion (void *cls,
+                       enum GNUNET_STREAM_Status status,
+                       size_t size)
+{
+  GNUNET_assert (GNUNET_STREAM_OK == status);
+  if (data_pointer + size != strlen(data)) /* Have more data to send */
+    {
+      data_pointer += size;
+      peer1_IOHandle = GNUNET_STREAM_write (peer1_socket,
+                                            (void *) data_pointer,
+                                            strlen(data) - data_pointer,
+                                            GNUNET_TIME_relative_multiply
+                                            (GNUNET_TIME_UNIT_SECONDS, 5),
+                                            &write_completion,
+                                            NULL);
+      GNUNET_assert (NULL != peer1_IOHandle);
+    }
+  else{                         /* Close peer1 socket */
+    GNUNET_STREAM_close (peer1_socket);
+    test1_success_counter++;
+    if (2 == test1_success_counter)
+      {
+        GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+      }
+  }
+}
+
+
+/**
+ * Function executed after stream has been established
+ *
+ * @param cls the closure from GNUNET_STREAM_open
+ * @param socket socket to use to communicate with the other side (read/write)
+ */
+static void 
+stream_open_cb (void *cls,
+                struct GNUNET_STREAM_Socket
+                *socket)
+{
+  data_pointer = 0;
+  GNUNET_assert (socket == peer1_socket);
+  peer1_IOHandle = GNUNET_STREAM_write (socket, /* socket */
+                                        (void *) data, /* data */
+                                        strlen(data),
+                                        GNUNET_TIME_relative_multiply
+                                        (GNUNET_TIME_UNIT_SECONDS, 5),
+                                        &write_completion,
+                                        NULL);
+  GNUNET_assert (NULL != peer1_IOHandle);     
+  
+}
+
+
+/**
+ * Input processor
+ *
+ * @param cls the closure from GNUNET_STREAM_write/read
+ * @param status the status of the stream at the time this function is called
+ * @param data traffic from the other side
+ * @param size the number of bytes available in data read 
+ * @return number of bytes of processed from 'data' (any data remaining should be
+ *         given to the next time the read processor is called).
+ */
+static size_t
+input_processor (void *cls,
+                 enum GNUNET_STREAM_Status status,
+                 const void *input_data,
+                 size_t size)
+{
+  GNUNET_assert (size < strlen (data));
+  GNUNET_assert (strncmp ((const char *) data, 
+                          (const char *) input_data,
+                          size));
+  read_pointer += size;
+
+  if (read_pointer < strlen (data))
+    {
+      peer2_IOHandle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket) cls,
+                                       GNUNET_TIME_relative_multiply
+                                       (GNUNET_TIME_UNIT_SECONDS, 5),
+                                       &input_processor,
+                                       NULL);
+      GNUNET_assert (NULL != peer2_IOHandle);
+    }
+  else {                        /* Close peer2 socket */
+    GNUNET_STREAM_close (peer2_socket);
+    test1_success_counter ++;
+    if (2 == test1_success_counter)
+      {
+        GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+      }
+  }
+        
+  return size;
+}
+
+
+/**
+ * Scheduler call back; to be executed when a new stream is connected
+ */
+static void
+stream_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  read_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL != cls);
+  read_pointer = 0;
+  GNUNET_STREAM_listen_close (peer2_listen_socket); /* Close listen socket */
+  peer2_IOHandle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket) cls,
+                                       GNUNET_TIME_relative_multiply
+                                       (GNUNET_TIME_UNIT_SECONDS, 5),
+                                       &input_processor,
+                                       NULL);
+  GNUNET_assert (NULL != peer2_IOHandle);
+}
+
+
+/**
+ * Functions of this type are called upon new stream connection from other peers
+ *
+ * @param cls the closure from GNUNET_STREAM_listen
+ * @param socket the socket representing the stream
+ * @param initiator the identity of the peer who wants to establish a stream
+ *            with us
+ * @return GNUNET_OK to keep the socket open, GNUNET_SYSERR to close the
+ *             stream (the socket will be invalid after the call)
+ */
+static int
+stream_listen_cb (void *cls,
+           struct GNUNET_STREAM_Socket *socket,
+           const struct GNUNET_PeerIdentity *initiator)
+{
+  GNUNET_assert (NULL != socket);
+  GNUNET_assert (NULL == initiator);   /* Local peer=NULL? */
+  GNUNET_assert (socket != peer1_socket);
+
+  peer2_socket = socket;
+  read_task = GNUNET_SCHEDULER_add_now (&stream_read, (void *) socket);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Testing function
+ */
+static void
+test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  test_task = GNUNET_SCHEDULER_NO_TASK;
+  test1_success_counter = 0;
+  /* Connect to stream library */
+  peer1_socket = GNUNET_STREAM_open (NULL,         /* Null for local peer? */
+                                     10,           /* App port */
+                                     open_cb);
+  GNUNET_assert (NULL != peer1_socket);
+  peer2_listen_socket = GNUNET_STREAM_listen (10 /* App port */
+                                              &stream_listen_cb,
+                                              NULL);
+  GNUNET_assert (NULL != peer2_listen_socket);
+                  
+}
+
+/**
+ * Initialize framework and start test
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+   GNUNET_log_setup ("test_stream_local",
+#if VERBOSE
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
+   arm_pid =
+     GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                              "gnunet-service-arm",
+#if VERBOSE_ARM
+                              "-L", "DEBUG",
+#endif
+                              "-c", "test_stream_local.conf", NULL);
+
+   abort_task =
+     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                   (GNUNET_TIME_UNIT_SECONDS, 20), &do_abort,
+                                    NULL);
+
+   test_task = GNUNET_SCHEDULER_add_now (&test, (void *) cfg);
+
+}
+
+/**
+ * Main function
+ */
+int main (int argc, char **argv)
+{
+  int ret;
+
+  char *const argv2[] = { "test-stream-local",
+                          "-c", "test_stream.conf",
+#if VERBOSE
+                          "-L", "DEBUG",
+#endif
+                          NULL
+  };
+  
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+  
+  ret =
+      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+                          "test-stream-local", "nohelp", options, &run, NULL);
+
+  if (GNUNET_OK != ret)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "run failed with error code %d\n",
+                ret);
+    return 1;
+  }
+  if (GNUNET_SYSERR == result)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test failed\n");
+    return 1;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test ok\n");
+  return 0;
+}

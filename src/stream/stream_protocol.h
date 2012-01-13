@@ -67,6 +67,11 @@ enum GNUNET_STREAM_MessageType
     GNUNET_STREAM_MESSAGE_HELLO_ACK,
 
     /**
+     * Reset message
+     */
+    GNUNET_STREAM_MESSAGE_RESET,
+
+    /**
      * Transmit close message (data transmission no longer possible after this
      * message) 
      */
@@ -178,6 +183,28 @@ struct GNUNET_STREAM_AckMessage
    */
   GNUNET_STREAM_AckBitmap bitmap;
 };
+
+
+/**
+ * Various states in the Protocol
+ */
+enum GNUNET_STREAM_ProtocolState
+  {
+    GNUNET_STREAM_PROTOCOL_INIT,
+
+    GNUNET_STREAM_PROTOCOL_LISTEN,
+
+    GNUNET_STREAM_PROTOCOL_HANDSHAKE_WAIT,
+
+    GNUNET_STREAM_PROTOCOL_DATA_WAIT,
+
+    GNUNET_STREAM_PROTOCOL_READ_CLOSE_WAIT,
+
+    GNUNET_STREAM_PROTOCOL_WRITE_CLOSE_WAIT,
+
+    GNUNET_STREAM_PROTOCOL_CLOSE_WAIT
+    
+  }
 
 
 #if 0                           /** keep Emacsens' auto-indent happy */
