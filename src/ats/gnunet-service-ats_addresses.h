@@ -46,6 +46,8 @@ struct ATS_Address
 
   char *plugin;
 
+  void *mlp_information;
+
   struct GNUNET_ATS_Information *ats;
 
   struct GNUNET_TIME_Relative atsp_latency;
@@ -73,6 +75,10 @@ struct ATS_Address
    */
   int active;
 
+  /**
+   * Is this the address for this peer in use?
+   */
+  int used;
 };
 
 /**

@@ -118,6 +118,15 @@ struct GAS_MLP_Handle
 
 
 /**
+ * Address specific MLP information
+ */
+struct MLP_information
+{
+
+};
+
+
+/**
  * Init the MLP problem solving component
  *
  * @param stats the GNUNET_STATISTICS handle
@@ -131,10 +140,33 @@ GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
               unsigned int max_iterations);
 
 /**
- * Update address in the MLP problem
+ * Updates a single address in the MLP problem
+ *
+ * If the address did not exist before in the problem:
+ * The MLP problem has to be recreated and the problem has to be resolved
+ *
+ * Otherwise the addresses' values can be updated and the existing base can
+ * be reused
  */
 void
-GAS_mlp_update (struct ATS_Address *address);
+GAS_mlp_address_update (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+
+
+/**
+ * Deletes a single address in the MLP problem
+ *
+ * The MLP problem has to be recreated and the problem has to be resolved
+ */
+void
+GAS_mlp_address_delete (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+
+
+/**
+ * Deletes a single address in the MLP problem
+ */
+void
+GAS_mlp_address_change_preference (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+
 
 /**
  * Shutdown the MLP problem solving component
