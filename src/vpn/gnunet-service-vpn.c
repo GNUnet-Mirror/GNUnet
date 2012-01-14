@@ -27,11 +27,15 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - create secondary mesh tunnels if needed / check overall tunnel creation/management code!
- * => test!
+ * Basics:
+ * - test!
  * - better message queue management (bounded state, drop oldest/RED?)
- * - improve support for deciding which tunnels to keep and which ones to destroy
+ * - actually destroy "stale" tunnels once we have too many!
+ *
+ * Features:
  * - add back ICMP support (especially needed for IPv6)
+ *
+ * Code cleanup:
  * - consider moving IP-header building / checksumming code into shared library
  *   with dns/exit/vpn (libgnunettun_tcpip?)
  */
@@ -46,17 +50,30 @@
 #include "vpn.h"
 #include "exit.h"
 
+
+/**
+ * State we keep for each of our tunnels.
+ */
+struct TunnelState;
+
+
 /**
  * Information we track for each IP address to determine which tunnel
  * to send the traffic over to the destination.
  */
 struct DestinationEntry
 {
+
   /**
-   * Information about the tunnel to use, NULL if no tunnel
-   * is available right now.
+   * Key under which this entry is in the 'destination_map' (only valid
+   * if 'heap_node != NULL'.
    */
-  struct GNUNET_MESH_Tunnel *tunnel;
+  GNUNET_HashCode key;
+
+  /**
+   * Pre-allocated tunnel for this destination, or NULL for none.
+   */
+  struct TunnelState *ts;
 
   /**
    * Entry for this entry in the destination_heap.
@@ -153,6 +170,12 @@ struct TunnelMessageQueueEntry
 struct TunnelState
 {
   /**
+   * Information about the tunnel to use, NULL if no tunnel
+   * is available right now.
+   */
+  struct GNUNET_MESH_Tunnel *tunnel;
+
+  /**
    * Active transmission handle, NULL for none.
    */
   struct GNUNET_MESH_TransmitHandle *th;
@@ -193,15 +216,20 @@ struct TunnelState
   struct DestinationEntry destination;
 
   /**
-   * GNUNET_NO if this is a tunnel to an Internet-exit,
-   * GNUNET_YES if this tunnel is to a service.
+   * Destination entry that has a pointer to this tunnel state;
+   * NULL if this tunnel state is in the tunnel map.
    */
-  int is_service;
+  struct DestinationEntry *destination_container;
 
   /**
    * Addess family used for this tunnel on the local TUN interface.
    */
   int af;
+
+  /**
+   * IPPROTO_TCP or IPPROTO_UDP once bound.
+   */
+  uint8_t protocol;
 
   /**
    * IP address of the source on our end, initially uninitialized.
@@ -279,7 +307,8 @@ static struct GNUNET_CONTAINER_Heap *destination_heap;
 static struct GNUNET_CONTAINER_MultiHashMap *tunnel_map;
 
 /**
- * Min-Heap sorted by activity time to expire old mappings.
+ * Min-Heap sorted by activity time to expire old mappings; values are
+ * of type 'struct TunnelState'.
  */
 static struct GNUNET_CONTAINER_Heap *tunnel_heap;
 
@@ -460,10 +489,18 @@ tunnel_peer_disconnect_handler (void *cls,
 				const struct
 				GNUNET_PeerIdentity * peer)
 {
-  /* FIXME: should we do anything here? 
-   - stop transmitting to the tunnel (start queueing?)
-   - possibly destroy the tunnel entirely (unless service tunnel?) 
-  */
+  struct TunnelState *ts = cls;
+  
+  if (NULL != ts->th)
+  {
+    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
+    ts->th = NULL;
+  }
+  if (ts->destination.is_service)
+    return; /* hope for reconnect eventually */
+  /* as we are most likely going to change the exit node now,
+     we should just destroy the tunnel entirely... */
+  GNUNET_MESH_tunnel_destroy (ts->tunnel);
 }
 
 
@@ -523,7 +560,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   ret = tnq->len;
   GNUNET_free (tnq);
   if (NULL != (tnq = ts->head))
-    ts->th = GNUNET_MESH_notify_transmit_ready (ts->destination.tunnel, 
+    ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
 						GNUNET_NO /* cork */, 
 						42 /* priority */,
 						GNUNET_TIME_UNIT_FOREVER_REL,
@@ -536,8 +573,10 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 
 
 /**
- * Add the given message to the given tunnel and
- * trigger the transmission process.
+ * Add the given message to the given tunnel and trigger the
+ * transmission process.
+ *
+ * FIXME: bound queue length!
  *
  * @param tnq message to queue
  * @param ts tunnel to queue the message for
@@ -550,7 +589,7 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
 				    ts->tail,
 				    tnq);
   if (NULL == ts->th)
-    ts->th = GNUNET_MESH_notify_transmit_ready (ts->destination.tunnel, 
+    ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
 						GNUNET_NO /* cork */,
 						42 /* priority */,
 						GNUNET_TIME_UNIT_FOREVER_REL,
@@ -558,6 +597,65 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
 						tnq->len,
 						&send_to_peer_notify_callback,
 						ts);
+}
+
+
+/**
+ * Initialize the given destination entry's mesh tunnel.
+ *
+ * @param de destination entry for which we need to setup a tunnel
+ * @param client client to notify on successful tunnel setup, or NULL for none
+ * @param request_id request ID to send in client notification (unused if client is NULL)
+ * @return tunnel state of the tunnel that was created
+ */
+static struct TunnelState *
+create_tunnel_to_destination (struct DestinationEntry *de,
+			      struct GNUNET_SERVER_Client *client,
+			      uint64_t request_id)
+{
+  struct TunnelState *ts;
+
+  GNUNET_assert (NULL == de->ts);
+  ts = GNUNET_malloc (sizeof (struct TunnelState));
+  if (NULL != client)
+  {
+    ts->request_id = request_id;
+    ts->client = client;
+    GNUNET_SERVER_client_keep (client);
+  }
+  ts->destination = *de;
+  ts->destination.heap_node = NULL; /* copy is NOT in destination heap */
+  de->ts = ts;
+  ts->destination_container = de; /* we are referenced from de */
+  ts->af = AF_UNSPEC; /* so far, unknown */
+  ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
+					  ts,
+					  &tunnel_peer_connect_handler,
+					  &tunnel_peer_disconnect_handler,
+					  ts);
+  if (de->is_service)
+  {
+    GNUNET_MESH_peer_request_connect_add (ts->tunnel,
+					  &de->details.service_destination.target);  
+  }
+  else
+  {
+    switch (de->details.exit_destination.af)
+    {
+    case AF_INET:
+      GNUNET_MESH_peer_request_connect_by_type (ts->tunnel,
+						GNUNET_APPLICATION_TYPE_IPV4_GATEWAY);
+     break;
+    case AF_INET6:
+      GNUNET_MESH_peer_request_connect_by_type (ts->tunnel,
+						GNUNET_APPLICATION_TYPE_IPV6_GATEWAY);
+      break;
+    default:
+      GNUNET_assert (0);
+      break;
+    }
+  }  
+  return ts;
 }
 
 
@@ -590,7 +688,9 @@ route_packet (struct DestinationEntry *destination,
   int is_new;
   const struct udp_packet *udp;
   const struct tcp_packet *tcp;
-    
+  uint16_t spt;
+  uint16_t dpt;
+
   switch (protocol)
   {
   case IPPROTO_UDP:
@@ -602,12 +702,14 @@ route_packet (struct DestinationEntry *destination,
 	return;
       }
       udp = payload;
+      spt = ntohs (udp->spt);
+      dpt = ntohs (udp->dpt);
       get_tunnel_key_from_ips (af,
 			       IPPROTO_UDP,
 			       source_ip,
-			       ntohs (udp->spt),
+			       spt,
 			       destination_ip,
-			       ntohs (udp->dpt),
+			       dpt,
 			       &key);
     }
     break;
@@ -620,12 +722,14 @@ route_packet (struct DestinationEntry *destination,
 	return;
       }
       tcp = payload;
+      spt = ntohs (tcp->spt);
+      dpt = ntohs (tcp->dpt);
       get_tunnel_key_from_ips (af,
 			       IPPROTO_TCP,
 			       source_ip,
-			       ntohs (tcp->spt),
+			       spt,
 			       destination_ip,
-			       ntohs (tcp->dpt),
+			       dpt,
 			       &key);
     }
     break;
@@ -660,29 +764,51 @@ route_packet (struct DestinationEntry *destination,
     app_type = 0;
   }
 
-  // FIXME: something is horrifically wrong here about
-  // how we lookup 'ts', match it and how we decide about
-  // creating new tunnels!
-  /* find tunnel */
-  is_new = GNUNET_NO;
+  /* see if we have an existing tunnel for this destination */
   ts = GNUNET_CONTAINER_multihashmap_get (tunnel_map,
 					  &key);
   if (NULL == ts)
   {
-    /* create new tunnel */
+    /* need to either use the existing tunnel from the destination (if still
+       available) or create a fresh one */
     is_new = GNUNET_YES;
-    ts = GNUNET_malloc (sizeof (struct TunnelState));
-    ts->destination.tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
-							ts,
-							&tunnel_peer_connect_handler,
-							&tunnel_peer_disconnect_handler, 
-							ts);
-    if (destination->is_service)
-      GNUNET_MESH_peer_request_connect_add (ts->destination.tunnel,
-					    &destination->details.service_destination.target);
+    if (NULL == destination->ts)
+      ts = create_tunnel_to_destination (destination, NULL, 0);
     else
-      GNUNET_MESH_peer_request_connect_by_type (ts->destination.tunnel,
-						app_type);
+      ts = destination->ts;
+    destination->ts = NULL;
+    ts->destination_container = NULL; /* no longer 'contained' */
+    /* now bind existing "unbound" tunnel to our IP/port tuple */
+    ts->protocol = protocol;
+    ts->af = af; 
+    if (af == AF_INET)
+    {
+      ts->source_ip.v4 = * (const struct in_addr *) source_ip;
+      ts->destination_ip.v4 = * (const struct in_addr *) destination_ip;
+    }
+    else
+    {
+      ts->source_ip.v6 = * (const struct in6_addr *) source_ip;
+      ts->destination_ip.v6 = * (const struct in6_addr *) destination_ip;
+    }
+    ts->source_port = spt;
+    ts->destination_port = dpt;
+    ts->heap_node = GNUNET_CONTAINER_heap_insert (tunnel_heap,
+						  ts,
+						  GNUNET_TIME_absolute_get ().abs_value);
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_put (tunnel_map,
+						      &key,
+						      ts,
+						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)); 
+    /* FIXME: expire OLD tunnels if we have too many! */
+  }
+  else
+  {
+    is_new = GNUNET_NO;
+    GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
+				       ts->heap_node,
+				       GNUNET_TIME_absolute_get ().abs_value);
   }
   
   /* send via tunnel */
@@ -896,7 +1022,11 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 				   &pkt6->destination_address,
 				   &key);
       de = GNUNET_CONTAINER_multihashmap_get (destination_map, &key);
-      /* FIXME: do we need to guard against hash collision? */
+      /* FIXME: do we need to guard against hash collision? 
+	 (if so, we need to also store the local destination IP in the
+	 destination entry and then compare here; however, the risk
+	 of collision seems minimal AND the impact is unlikely to be
+	 super-problematic as well... */
       if (NULL == de)
       {
 	char buf[INET6_ADDRSTRLEN];
@@ -933,7 +1063,11 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 				   &pkt4->destination_address,
 				   &key);
       de = GNUNET_CONTAINER_multihashmap_get (destination_map, &key);
-      /* FIXME: do we need to guard against hash collision? */
+      /* FIXME: do we need to guard against hash collision? 
+	 (if so, we need to also store the local destination IP in the
+	 destination entry and then compare here; however, the risk
+	 of collision seems minimal AND the impact is unlikely to be
+	 super-problematic as well... */
       if (NULL == de)
       {
 	char buf[INET_ADDRSTRLEN];
@@ -1000,6 +1134,11 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     return GNUNET_SYSERR;
   }
   if (NULL == ts->heap_node)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (AF_UNSPEC == ts->af)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1125,14 +1264,9 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   default:
     GNUNET_assert (0);
   }
-#if 0
-  // FIXME: refresh entry to avoid expiration...
-  struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
-  
-  GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+  GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
+				     ts->heap_node,
 				     GNUNET_TIME_absolute_get ().abs_value);
-  
-#endif
   return GNUNET_OK;
 }
 
@@ -1286,15 +1420,9 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     }
     break;
   }
-
-#if 0
-  // FIXME: refresh entry to avoid expiration...
-  struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
-  
-  GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+  GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
+				     ts->heap_node,
 				     GNUNET_TIME_absolute_get ().abs_value);
-  
-#endif
   return GNUNET_OK;
 }
 
@@ -1436,7 +1564,6 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   void *addr;
   struct DestinationEntry *de;
   GNUNET_HashCode key;
-  struct TunnelState *ts;
   GNUNET_MESH_ApplicationType app_type;
   
   /* validate and parse request */
@@ -1540,6 +1667,7 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   get_destination_key_from_ip (result_af,
 			       addr,
 			       &key);
+  de->key = key;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (destination_map,
 						    &key,
@@ -1548,29 +1676,12 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   de->heap_node = GNUNET_CONTAINER_heap_insert (destination_heap,
 						de,
 						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value);
+  /* FIXME: expire OLD destinations if we have too many! */
   /* setup tunnel to destination */
-  ts = GNUNET_malloc (sizeof (struct TunnelState));
-  if (GNUNET_NO != ntohl (msg->nac))
-  {
-    ts->request_id = msg->request_id;
-    ts->client = client;
-    GNUNET_SERVER_client_keep (client);
-  }
-  ts->destination = *de;
-  ts->destination.heap_node = NULL;
-  ts->is_service = GNUNET_NO;
-  ts->af = result_af;
-  if (result_af == AF_INET) 
-    ts->destination_ip.v4 = v4;
-  else
-    ts->destination_ip.v6 = v6;
-  de->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
-					  ts,
-					  &tunnel_peer_connect_handler,
-					  &tunnel_peer_disconnect_handler,
-					  ts);
-  GNUNET_MESH_peer_request_connect_by_type (de->tunnel,
-					    app_type);  
+  (void) create_tunnel_to_destination (de, 
+				       (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
+				       msg->request_id);
+  GNUNET_assert (NULL != de->ts);
   /* we're done */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -1596,7 +1707,6 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
   void *addr;
   struct DestinationEntry *de;
   GNUNET_HashCode key;
-  struct TunnelState *ts;
   
   /*  parse request */
   msg = (const struct RedirectToServiceRequestMessage *) message;
@@ -1663,6 +1773,7 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
   get_destination_key_from_ip (result_af,
 			       addr,
 			       &key);
+  de->key = key;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (destination_map,
 						    &key,
@@ -1671,30 +1782,10 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
   de->heap_node = GNUNET_CONTAINER_heap_insert (destination_heap,
 						de,
 						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value);
-
-  /* setup tunnel to destination */
-  ts = GNUNET_malloc (sizeof (struct TunnelState));
-  if (GNUNET_NO != ntohl (msg->nac))
-  {
-    ts->request_id = msg->request_id;
-    ts->client = client;
-    GNUNET_SERVER_client_keep (client);
-  }
-  ts->destination = *de;
-  ts->destination.heap_node = NULL;
-  ts->is_service = GNUNET_YES;
-  ts->af = result_af;
-  if (result_af == AF_INET) 
-    ts->destination_ip.v4 = v4;
-  else
-    ts->destination_ip.v6 = v6;
-  de->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
-					  ts,
-					  &tunnel_peer_connect_handler,
-					  &tunnel_peer_disconnect_handler,
-					  ts);
-  GNUNET_MESH_peer_request_connect_add (de->tunnel,
-					&msg->target);  
+  /* FIXME: expire OLD destinations if we have too many! */
+  (void) create_tunnel_to_destination (de,
+				       (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
+				       msg->request_id);
   /* we're done */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -1717,74 +1808,21 @@ inbound_tunnel_cb (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 		   const struct GNUNET_PeerIdentity *initiator,
 		   const struct GNUNET_ATS_Information *atsi)
 {
-  /* Why should anyone open an inbound tunnel to vpn? */
+  /* How can and why should anyone open an inbound tunnel to vpn? */
   GNUNET_break (0);
   return NULL;
 }
 
 
 /**
- * Function called whenever an inbound tunnel is destroyed.  Should clean up
- * any associated state.
+ * Free resources associated with a tunnel state.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
- * @param tunnel connection to the other end (henceforth invalid)
- * @param tunnel_ctx place where local state associated
- *                   with the tunnel is stored
- */ 
+ * @param ts state to free
+ */
 static void
-tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
+free_tunnel_state (struct TunnelState *ts)
 {
-  /* FIXME: is this function called for outbound tunnels that go down?
-     Should we clean up something here? */
-  GNUNET_break (0);
-}
-
-
-/**
- * Free memory occupied by an entry in the destination map.
- *
- * @param cls unused
- * @param key unused
- * @param value a 'struct DestinationEntry *'
- * @return GNUNET_OK (continue to iterate)
- */
-static int
-cleanup_destination (void *cls,
-		     const GNUNET_HashCode *key,
-		     void *value)
-{
-  struct DestinationEntry *de = value;
-
-  if (NULL != de->tunnel)
-  {
-    GNUNET_MESH_tunnel_destroy (de->tunnel);
-    de->tunnel = NULL;
-  }
-  if (NULL != de->heap_node)
-  {
-    GNUNET_CONTAINER_heap_remove_node (de->heap_node);
-    de->heap_node = NULL;
-  }
-  GNUNET_free (de);
-  return GNUNET_OK;
-}
-
-
-/**
- * Free memory occupied by an entry in the tunnel map.
- *
- * @param cls unused
- * @param key unused
- * @param value a 'struct TunnelState *'
- * @return GNUNET_OK (continue to iterate)
- */
-static int
-cleanup_tunnel (void *cls,
-		const GNUNET_HashCode *key,
-		void *value)
-{
-  struct TunnelState *ts = value;
+  GNUNET_HashCode key;
   struct TunnelMessageQueueEntry *tnq;
 
   while (NULL != (tnq = ts->head))
@@ -1804,18 +1842,125 @@ cleanup_tunnel (void *cls,
     GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
     ts->th = NULL;
   }
-  if (NULL != ts->destination.tunnel)
+  GNUNET_assert (NULL == ts->destination.heap_node);
+  if (NULL != ts->tunnel)
   {
-    GNUNET_MESH_tunnel_destroy (ts->destination.tunnel);
-    ts->destination.tunnel = NULL;
+    GNUNET_MESH_tunnel_destroy (ts->tunnel);
+    ts->tunnel = NULL;
   }
   if (NULL != ts->heap_node)
   {
     GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
     ts->heap_node = NULL;
+    get_tunnel_key_from_ips (ts->af,
+			     ts->protocol,
+			     &ts->source_ip,
+			     ts->source_port,
+			     &ts->destination_ip,
+			     ts->destination_port,
+			     &key);
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_remove (tunnel_map,
+							 &key,
+							 ts));
   }
-  // FIXME...
+  if (NULL != ts->destination_container)
+  {
+    GNUNET_assert (ts == ts->destination_container->ts);
+    ts->destination_container->ts = NULL;
+    ts->destination_container = NULL;
+  }
   GNUNET_free (ts);
+}
+
+
+/**
+ * Free resources occupied by a destination entry.
+ *
+ * @param de entry to free
+ */
+static void
+free_destination_entry (struct DestinationEntry *de)
+{
+  if (NULL != de->ts)
+  {
+    free_tunnel_state (de->ts);
+    GNUNET_assert (NULL == de->ts);
+  }
+  if (NULL != de->heap_node)
+  {
+    GNUNET_CONTAINER_heap_remove_node (de->heap_node);
+    de->heap_node = NULL;  
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_remove (destination_map,
+							 &de->key,
+							 de));
+  }
+  GNUNET_free (de);
+}
+
+
+/**
+ * Function called whenever an inbound tunnel is destroyed.  Should clean up
+ * any associated state.
+ *
+ * @param cls closure (set from GNUNET_MESH_connect)
+ * @param tunnel connection to the other end (henceforth invalid)
+ * @param tunnel_ctx place where local state associated
+ *                   with the tunnel is stored (our 'struct TunnelState')
+ */ 
+static void
+tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
+{
+  struct TunnelState *ts = tunnel_ctx;
+
+  if (NULL == ts)
+  {
+    GNUNET_break (0);
+    return;     
+  }
+  GNUNET_assert (ts->tunnel == tunnel);
+  ts->tunnel = NULL;
+  free_tunnel_state (ts);
+}
+
+
+/**
+ * Free memory occupied by an entry in the destination map.
+ *
+ * @param cls unused
+ * @param key unused
+ * @param value a 'struct DestinationEntry *'
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+cleanup_destination (void *cls,
+		     const GNUNET_HashCode *key,
+		     void *value)
+{
+  struct DestinationEntry *de = value;
+
+  free_destination_entry (de);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Free memory occupied by an entry in the tunnel map.
+ *
+ * @param cls unused
+ * @param key unused
+ * @param value a 'struct TunnelState *'
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+cleanup_tunnel (void *cls,
+		const GNUNET_HashCode *key,
+		void *value)
+{
+  struct TunnelState *ts = value;
+
+  free_tunnel_state (ts);
   return GNUNET_OK;
 }
 
@@ -1902,6 +2047,34 @@ cleanup_tunnel_client (void *cls,
   return GNUNET_OK;
 }
 
+
+/**
+ * A client disconnected, clean up all references to it.
+ *
+ * @param cls the client that disconnected
+ * @param key unused
+ * @param value a 'struct DestinationEntry *'
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+cleanup_destination_client (void *cls,
+			    const GNUNET_HashCode *key,
+			    void *value)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct DestinationEntry *de = value;
+  struct TunnelState *ts;
+
+  if (NULL == (ts = de->ts))
+    return GNUNET_OK;
+  if (client == ts->client)
+  {
+    GNUNET_SERVER_client_drop (ts->client);
+    ts->client = NULL;
+  }
+  return GNUNET_OK;
+}
+
   
 /**
  * A client has disconnected from us.  If we are currently building
@@ -1913,10 +2086,11 @@ cleanup_tunnel_client (void *cls,
 static void
 client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  // FIXME: check that all truly all 'struct TunnelState's 
-  // with clients are always in the tunnel map!
   GNUNET_CONTAINER_multihashmap_iterate (tunnel_map,
 					 &cleanup_tunnel_client,
+					 client);
+  GNUNET_CONTAINER_multihashmap_iterate (destination_map,
+					 &cleanup_destination_client,
 					 client);
 }
 
