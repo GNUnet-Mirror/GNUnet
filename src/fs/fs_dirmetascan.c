@@ -346,61 +346,61 @@ write_progress (struct AddDirContext *adc, const char *filename,
     char is_directory, enum GNUNET_DirScannerProgressUpdateReason reason)
 {
   size_t filename_len;
-  size_t wr;
+  ssize_t wr;
   size_t total_write;
   if ((adc->do_stop || should_stop (adc)) && reason != GNUNET_DIR_SCANNER_ASKED_TO_STOP
       && reason != GNUNET_DIR_SCANNER_FINISHED)
     return 1;
-  total_write = wr = GNUNET_DISK_file_write (adc->progress_write,
-      &reason, sizeof (reason));
-  while (wr > 0 && total_write < sizeof (reason))
+  total_write = 0;
+  wr = 1;
+  while ((wr > 0 || errno == EAGAIN) && total_write < sizeof (reason))
   {
-    total_write = wr = GNUNET_DISK_file_write (adc->progress_write,
+    wr = GNUNET_DISK_file_write (adc->progress_write,
       &((char *)&reason)[total_write], sizeof (reason) - total_write);
     if (wr > 0)
       total_write += wr;
   }
-  if (sizeof (reason) != wr)
-    return 1;
+  if (sizeof (reason) != total_write)
+    return adc->do_stop = 1;
   if (filename)
     filename_len = strlen (filename) + 1;
   else
     filename_len = 0;
-  total_write = wr = GNUNET_DISK_file_write (adc->progress_write,
-      &filename_len, sizeof (size_t));
-  while (wr > 0 && total_write < sizeof (size_t))
+  total_write = 0;
+  wr = 1;
+  while ((wr > 0 || errno == EAGAIN) && total_write < sizeof (size_t))
   {
-    total_write = wr = GNUNET_DISK_file_write (adc->progress_write,
+    wr = GNUNET_DISK_file_write (adc->progress_write,
       &((char *)&filename_len)[total_write], sizeof (size_t) - total_write);
     if (wr > 0)
       total_write += wr;
   }
-  if (sizeof (size_t) != wr)
-    return 1;
+  if (sizeof (size_t) != total_write)
+    return adc->do_stop = 1;
   if (filename)
   {
-    total_write = wr = GNUNET_DISK_file_write (adc->progress_write,
-        filename, filename_len);
-    while (wr > 0 && total_write < filename_len)
+    total_write = 0;
+    wr = 1;
+    while ((wr > 0 || errno == EAGAIN) && total_write < filename_len)
     {
-      total_write = wr = GNUNET_DISK_file_write (adc->progress_write,
+      wr = GNUNET_DISK_file_write (adc->progress_write,
         &((char *)filename)[total_write], filename_len - total_write);
       if (wr > 0)
         total_write += wr;
     }
-    if (filename_len != wr)
-      return 1;
-    total_write = wr = GNUNET_DISK_file_write (adc->progress_write,
-      &is_directory, sizeof (char));
-    while (wr > 0 && total_write < sizeof (char))
+    if (filename_len != total_write)
+      return adc->do_stop = 1;
+    total_write = 0;
+    wr = 1;
+    while ((wr > 0 || errno == EAGAIN) && total_write < sizeof (char))
     {
-      total_write = wr = GNUNET_DISK_file_write (adc->progress_write,
+      wr = GNUNET_DISK_file_write (adc->progress_write,
         &((char *)&is_directory)[total_write], sizeof (char) - total_write);
       if (wr > 0)
         total_write += wr;
     }
-    if (sizeof (char) != wr)
-      return 1;
+    if (sizeof (char) != total_write)
+      return adc->do_stop = 1;
   }
   return 0;
 }

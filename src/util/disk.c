@@ -718,15 +718,27 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
   }
   else
   {
-    if (!ReadFile (h->h, result, len, NULL, h->oOverlapRead))
+#if DEBUG_PIPE
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to read\n");
+#endif
+    if (!ReadFile (h->h, result, len, &bytesRead, h->oOverlapRead))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
+#if DEBUG_PIPE
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Error reading from pipe: %u\n", GetLastError ());
+#endif
         SetErrnoFromWinError (GetLastError ());
         return GNUNET_SYSERR;
       }
+#if DEBUG_PIPE
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
+#endif
+      GetOverlappedResult (h->h, h->oOverlapRead, &bytesRead, TRUE);
     }
-    GetOverlappedResult (h->h, h->oOverlapRead, &bytesRead, TRUE);
+#if DEBUG_PIPE
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytesRead);
+#endif
   }
   return bytesRead;
 #else
@@ -790,23 +802,67 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
   else
   {
 #if DEBUG_PIPE
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to write\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to write %u bytes\n", n);
 #endif
-    if (!WriteFile (h->h, buffer, n, NULL, h->oOverlapWrite))
+    if (!WriteFile (h->h, buffer, n, &bytesWritten, h->oOverlapWrite))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
         SetErrnoFromWinError (GetLastError ());
 #if DEBUG_PIPE
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
+            GetLastError ());
+#endif
+        return GNUNET_SYSERR;
+      }
+#if DEBUG_PIPE
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
+#endif
+      if (!GetOverlappedResult (h->h, h->oOverlapWrite, &bytesWritten, TRUE))
+      {
+        SetErrnoFromWinError (GetLastError ());
+#if DEBUG_PIPE
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+            "Error getting overlapped result while writing to pipe: %u\n",
+            GetLastError ());
 #endif
         return GNUNET_SYSERR;
       }
     }
+    else
+    {
+      DWORD ovr;
+      if (!GetOverlappedResult (h->h, h->oOverlapWrite, &ovr, TRUE))
+      {
 #if DEBUG_PIPE
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+            "Error getting control overlapped result while writing to pipe: %u\n",
+            GetLastError ());
 #endif
-    GetOverlappedResult (h->h, h->oOverlapWrite, &bytesWritten, TRUE);
+      }
+      else
+      {
+#if DEBUG_PIPE
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+            "Wrote %u bytes (ovr says %u), picking the greatest\n",
+            bytesWritten, ovr);
+#endif
+      }
+    }
+    if (bytesWritten == 0)
+    {
+      if (n > 0)
+      {
+#if DEBUG_PIPE
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes, returning -1 with EAGAIN\n", bytesWritten);
+#endif
+        errno = EAGAIN;
+        return GNUNET_SYSERR;
+      }
+    }
+#if DEBUG_PIPE
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytesWritten);
+#endif
   }
   return bytesWritten;
 #else
