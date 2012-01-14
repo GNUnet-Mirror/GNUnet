@@ -2037,6 +2037,116 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
   return p;
 }
 
+/**
+ * Creates a pipe object from a couple of file descriptors.
+ * Useful for wrapping existing pipe FDs.
+ *
+ * @param blocking creates an asynchronous pipe if set to GNUNET_NO
+ * @param fd an array of two fd values. One of them may be -1 for read-only or write-only pipes
+ *
+ * @return handle to the new pipe, NULL on error
+ */
+struct GNUNET_DISK_PipeHandle *
+GNUNET_DISK_pipe_from_fd (int blocking, int fd[2])
+{
+  struct GNUNET_DISK_PipeHandle *p;
+  struct GNUNET_DISK_FileHandle *fds;
+
+  p = GNUNET_malloc (sizeof (struct GNUNET_DISK_PipeHandle) +
+                     2 * sizeof (struct GNUNET_DISK_FileHandle));
+  fds = (struct GNUNET_DISK_FileHandle *) &p[1];
+  p->fd[0] = &fds[0];
+  p->fd[1] = &fds[1];
+#ifndef MINGW
+  int ret;
+  int flags;
+  int eno;
+
+  p->fd[0]->fd = fd[0];
+  p->fd[1]->fd = fd[1];
+  ret = 0;
+  if (fd[0] >= 0)
+  {
+    flags = fcntl (fd[0], F_GETFL);
+    if (!blocking)
+      flags |= O_NONBLOCK;
+    if (0 > fcntl (fd[0], F_SETFL, flags))
+      ret = -1;
+    flags = fcntl (fd[0], F_GETFD);
+    flags |= FD_CLOEXEC;
+    if (0 > fcntl (fd[0], F_SETFD, flags))
+      ret = -1;
+  }
+
+  if (fd[1] >= 0)
+  {
+    flags = fcntl (fd[1], F_GETFL);
+    if (!blocking)
+      flags |= O_NONBLOCK;
+    if (0 > fcntl (fd[1], F_SETFL, flags))
+      ret = -1;
+    flags = fcntl (fd[1], F_GETFD);
+    flags |= FD_CLOEXEC;
+    if (0 > fcntl (fd[1], F_SETFD, flags))
+      ret = -1;
+  }
+  if (ret == -1)
+  {
+    eno = errno;
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fcntl");
+    if (p->fd[0]->fd >= 0)
+      GNUNET_break (0 == close (p->fd[0]->fd));
+    if (p->fd[1]->fd >= 0)
+      GNUNET_break (0 == close (p->fd[1]->fd));
+    GNUNET_free (p);
+    errno = eno;
+    return NULL;
+  }
+#else
+  BOOL ret;
+
+  if (fd[0] >= 0)
+    p->fd[0]->h = _get_osfhandle (fd[0]);
+  else
+    p->fd[0]->h = INVALID_HANDLE_VALUE;
+  if (fd[1] >= 0)
+    p->fd[1]->h = _get_osfhandle (fd[1]);
+  else
+    p->fd[1]->h = INVALID_HANDLE_VALUE;
+
+  if (!blocking)
+  {
+    DWORD mode;
+
+    mode = PIPE_NOWAIT;
+    if (p->fd[0]->h != INVALID_HANDLE_VALUE)
+      SetNamedPipeHandleState (p->fd[0]->h, &mode, NULL, NULL);
+    if (p->fd[1]->h != INVALID_HANDLE_VALUE)
+      SetNamedPipeHandleState (p->fd[1]->h, &mode, NULL, NULL);
+    /* this always fails on Windows 95, so we don't care about error handling */
+  }
+
+  if (p->fd[0]->h != INVALID_HANDLE_VALUE)
+  {
+    p->fd[0]->type = GNUNET_PIPE;
+    p->fd[0]->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+    p->fd[0]->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+    p->fd[0]->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+    p->fd[0]->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  }
+
+  if (p->fd[1]->h != INVALID_HANDLE_VALUE)
+  {
+    p->fd[1]->type = GNUNET_PIPE;
+    p->fd[1]->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+    p->fd[1]->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+    p->fd[1]->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+    p->fd[1]->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  }
+#endif
+  return p;
+}
+
 
 /**
  * Closes an interprocess channel
@@ -2055,21 +2165,31 @@ GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
 #ifdef MINGW
   if (end == GNUNET_DISK_PIPE_END_READ)
   {
-    if (!CloseHandle (p->fd[0]->h))
+    if (p->fd[0]->h != INVALID_HANDLE_VALUE)
     {
-      SetErrnoFromWinError (GetLastError ());
-      ret = GNUNET_SYSERR;
+      if (!CloseHandle (p->fd[0]->h))
+      {
+        SetErrnoFromWinError (GetLastError ());
+        ret = GNUNET_SYSERR;
+      }
+      GNUNET_free (p->fd[0]->oOverlapRead);
+      GNUNET_free (p->fd[0]->oOverlapWrite);
+      p->fd[0]->h = INVALID_HANDLE_VALUE;
     }
-    p->fd[0]->h = INVALID_HANDLE_VALUE;
   }
   else if (end == GNUNET_DISK_PIPE_END_WRITE)
   {
-    if (!CloseHandle (p->fd[1]->h))
+    if (p->fd[0]->h != INVALID_HANDLE_VALUE)
     {
-      SetErrnoFromWinError (GetLastError ());
-      ret = GNUNET_SYSERR;
+      if (!CloseHandle (p->fd[1]->h))
+      {
+        SetErrnoFromWinError (GetLastError ());
+        ret = GNUNET_SYSERR;
+      }
+      GNUNET_free (p->fd[1]->oOverlapRead);
+      GNUNET_free (p->fd[1]->oOverlapWrite);
+      p->fd[1]->h = INVALID_HANDLE_VALUE;
     }
-    p->fd[1]->h = INVALID_HANDLE_VALUE;
   }
   save = errno;
 #else
@@ -2110,15 +2230,25 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
   int save;
 
 #ifdef MINGW
-  if (!CloseHandle (p->fd[0]->h))
+  if (p->fd[0]->h != INVALID_HANDLE_VALUE)
   {
-    SetErrnoFromWinError (GetLastError ());
-    ret = GNUNET_SYSERR;
+    if (!CloseHandle (p->fd[0]->h))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      ret = GNUNET_SYSERR;
+    }
+    GNUNET_free (p->fd[0]->oOverlapRead);
+    GNUNET_free (p->fd[0]->oOverlapWrite);
   }
-  if (!CloseHandle (p->fd[1]->h))
+  if (p->fd[1]->h != INVALID_HANDLE_VALUE)
   {
-    SetErrnoFromWinError (GetLastError ());
-    ret = GNUNET_SYSERR;
+    if (!CloseHandle (p->fd[1]->h))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      ret = GNUNET_SYSERR;
+    }
+    GNUNET_free (p->fd[1]->oOverlapRead);
+    GNUNET_free (p->fd[1]->oOverlapWrite);
   }
   save = errno;
 #else

@@ -399,6 +399,18 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write);
 
 
 /**
+ * Creates a pipe object from a couple of file descriptors.
+ * Useful for wrapping existing pipe FDs.
+ *
+ * @param blocking creates an asynchronous pipe if set to GNUNET_NO
+ * @param fd an array of two fd values. One of them may be -1 for read-only or write-only pipes
+ *
+ * @return handle to the new pipe, NULL on error
+ */
+struct GNUNET_DISK_PipeHandle *
+GNUNET_DISK_pipe_from_fd (int blocking, int fd[2]);
+
+/**
  * Closes an interprocess channel
  * @param p pipe
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
