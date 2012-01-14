@@ -1541,6 +1541,23 @@ normalize_metadata (enum EXTRACTOR_MetaFormat format, const char *data,
   return (char *) normalized;
 }
 
+/**
+ * Counts the number of UTF-8 characters (not bytes) in the string,
+ * returns that count.
+ */
+static size_t
+u8_strcount (const uint8_t *s)
+{
+  size_t count;
+  ucs4_t c;
+  GNUNET_assert (s != NULL);
+  if (s[0] == 0)
+    return 0;
+  for (count = 0; s != NULL; count++)
+    s = u8_next (&c, s);
+  return count - 1;
+}
+
 
 /**
  * Break the filename up by matching [], () and {} pairs to make
@@ -1600,7 +1617,7 @@ get_keywords_from_parens (const char *s, char **array, int index)
       tmp = close_paren[0];
       close_paren[0] = '\0';
       /* Keywords must be at least 3 characters long */
-      if (u8_strlen ((const uint8_t *) &open_paren[1]) <= 2)
+      if (u8_strcount ((const uint8_t *) &open_paren[1]) <= 2)
       {
         close_paren[0] = tmp;
         continue;
@@ -1669,7 +1686,7 @@ get_keywords_from_tokens (const char *s, char **array, int index)
   for (p = strtok (ss, TOKENS); p != NULL; p = strtok (NULL, TOKENS))
   {
     /* Keywords must be at least 3 characters long */
-    if (u8_strlen ((const uint8_t *) p) <= 2)
+    if (u8_strcount ((const uint8_t *) p) <= 2)
       continue;
     if (NULL != array)
     {
@@ -1735,7 +1752,7 @@ gather_uri_data (void *cls, const char *plugin_name,
    * and will return the length of its valid part, skipping the keyword.
    * If it does - fix the extractor, not this check!
    */
-  if (u8_strlen ((const uint8_t *) data) <= 2)
+  if (u8_strcount ((const uint8_t *) data) <= 2)
   {
     return 0;
   }
