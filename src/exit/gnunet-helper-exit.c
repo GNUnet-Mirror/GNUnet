@@ -19,16 +19,21 @@
 */
 
 /**
- * @file exit/gnunet-helper-exit.c
- * @brief the helper for exit nodes. Opens a virtual network-interface,
- * sends data received on the if to stdout, sends data received on stdin to the
- * interface
- * @author Philipp Tölke
+ * @file exit/gnunet-helper-exit.c 
  *
- * TODO:
- * - need to add code to setup ip_forwarding and NAT (for IPv4) so that
- *   users don't need to ALSO do admin work; this is what will set
- *   gnunet-helper-exit.c apart from gnunet-helper-vpn.c
+ * @brief the helper for exit nodes. Opens a virtual
+ * network-interface, sends data received on the if to stdout, sends
+ * data received on stdin to the interface.  The code also enables
+ * IPv4/IPv6 forwarding and NAT on the current system (the latter on
+ * an interface specified on the command-line); these changes to the
+ * network configuration are NOT automatically undone when the program
+ * is stopped (this is because we cannot be sure that some other
+ * application didn't enable them before or after us; also, these
+ * changes should be mostly harmless as it simply turns the system
+ * into a router).
+ *
+ * @author Philipp Tölke
+ * @author Christian Grothoff
  *
  * The following list of people have reviewed this code and considered
  * it safe since the last modification (if you reviewed it, please
@@ -54,6 +59,17 @@
  */
 #define MAX_SIZE 65536
 
+/**
+ * Path to 'sysctl' binary.
+ */
+#define SBIN_SYSCTL "/sbin/sysctl"
+
+/**
+ * Path to 'iptables' binary.
+ */
+#define SBIN_IPTABLES "/sbin/iptables"
+
+
 #ifndef _LINUX_IN6_H
 /**
  * This is in linux/include/net/ipv6.h, but not always exported...
@@ -65,6 +81,58 @@ struct in6_ifreq
   unsigned int ifr6_ifindex;
 };
 #endif
+
+
+
+/**
+ * Run the given command and wait for it to complete.
+ * 
+ * @param file name of the binary to run
+ * @param cmd command line arguments (as given to 'execv')
+ * @return 0 on success, 1 on any error
+ */
+static int
+fork_and_exec (const char *file, 
+	       char *const cmd[])
+{
+  int status;
+  pid_t pid;
+  pid_t ret;
+
+  pid = fork ();
+  if (-1 == pid)
+  {
+    fprintf (stderr, 
+	     "fork failed: %s\n", 
+	     strerror (errno));
+    return 1;
+  }
+  if (0 == pid)
+  {
+    /* we are the child process */
+    (void) execv (file, cmd);
+    /* can only get here on error */
+    fprintf (stderr, 
+	     "exec `%s' failed: %s\n", 
+	     file,
+	     strerror (errno));
+    _exit (1);
+  }
+  /* keep running waitpid as long as the only error we get is 'EINTR' */
+  while ( (-1 == (ret = waitpid (pid, &status, 0))) &&
+	  (errno == EINTR) ); 
+  if (-1 == ret)
+  {
+    fprintf (stderr, 
+	     "waitpid failed: %s\n", 
+	     strerror (errno));
+    return 1;
+  }
+  if (! (WIFEXITED (status) && (0 == WEXITSTATUS (status))))
+    return 1;
+  /* child process completed and returned success, we're happy */
+  return 0;
+}
 
 
 /**
@@ -521,12 +589,13 @@ PROCESS_BUFFER:
  * Open VPN tunnel interface.
  *
  * @param argc must be 6
- * @param argv 0: binary name (gnunet-helper-vpn)
- *             1: tunnel interface name (gnunet-vpn)
- *             2: IPv6 address (::1)
- *             3: IPv6 netmask length in bits (64)
- *             4: IPv4 address (1.2.3.4)
- *             5: IPv4 netmask (255.255.0.0)
+ * @param argv 0: binary name ("gnunet-helper-vpn")
+ *             1: tunnel interface name ("gnunet-vpn")
+ *             2: IPv4 "physical" interface name ("eth0"), or "%" to not do IPv4 NAT
+ *             3: IPv6 address ("::1"), or "-" to skip IPv6
+ *             4: IPv6 netmask length in bits ("64") [ignored if #4 is "-"]
+ *             5: IPv4 address ("1.2.3.4"), or "-" to skip IPv4
+ *             6: IPv4 netmask ("255.255.0.0") [ignored if #4 is "-"]
  */
 int
 main (int argc, char **argv)
@@ -535,9 +604,15 @@ main (int argc, char **argv)
   int fd_tun;
   int global_ret;
 
-  if (6 != argc)
+  if (7 != argc)
   {
     fprintf (stderr, "Fatal: must supply 5 arguments!\n");
+    return 1;
+  }
+  if ( (0 == strcmp (argv[3], "-")) &&
+       (0 == strcmp (argv[5], "-")) )
+  {
+    fprintf (stderr, "Fatal: disabling both IPv4 and IPv6 makes no sense.\n");
     return 1;
   }
 
@@ -550,24 +625,66 @@ main (int argc, char **argv)
     return 1;
   }
 
+  if (0 != strcmp (argv[3], "-"))
   {
-    const char *address = argv[2];
-    long prefix_len = atol (argv[3]);
-
-    if ((prefix_len < 1) || (prefix_len > 127))
     {
-      fprintf (stderr, "Fatal: prefix_len out of range\n");
-      return 1;
+      const char *address = argv[3];
+      long prefix_len = atol (argv[4]);
+      
+      if ((prefix_len < 1) || (prefix_len > 127))
+      {
+	fprintf (stderr, "Fatal: prefix_len out of range\n");
+	return 1;
+      }      
+      set_address6 (dev, address, prefix_len);    
     }
-
-    set_address6 (dev, address, prefix_len);
+    {
+      char *const sysctl_args[] =
+	{
+	  "sysctl", "-w", "net.ipv6.conf.all.forwarding=1", NULL
+	};
+      if (0 != fork_and_exec (SBIN_SYSCTL,
+			      sysctl_args))
+      {
+	fprintf (stderr,
+		 "Failed to enable IPv6 forwarding.  Will continue anyway.\n");
+      }    
+    }
   }
 
+  if (0 != strcmp (argv[5], "-"))
   {
-    const char *address = argv[4];
-    const char *mask = argv[5];
-
-    set_address4 (dev, address, mask);
+    {
+      const char *address = argv[5];
+      const char *mask = argv[6];
+      
+      set_address4 (dev, address, mask);
+    }
+    {
+      char *const sysctl_args[] =
+	{
+	  "sysctl", "-w", "net.ipv4.ip_forward=1", NULL
+	};
+      if (0 != fork_and_exec (SBIN_SYSCTL,
+			      sysctl_args))
+      {
+	fprintf (stderr,
+		 "Failed to enable IPv4 forwarding.  Will continue anyway.\n");
+      }    
+    }
+    if (0 != strcmp (argv[2], "%"))
+    {
+      char *const iptables_args[] =
+	{
+	  "iptables", "-t", "nat", "-A", "POSTROUTING", "-o", argv[2], "-j", "MASQUERADE", NULL
+	};
+      if (0 != fork_and_exec (SBIN_IPTABLES,
+			      iptables_args))
+      {
+	fprintf (stderr,
+		 "Failed to enable IPv4 masquerading (NAT).  Will continue anyway.\n");
+      }    
+    }
   }
   
   uid_t uid = getuid ();
@@ -599,3 +716,5 @@ main (int argc, char **argv)
   close (fd_tun);
   return global_ret;
 }
+
+/* end of gnunet-helper-exit.c */

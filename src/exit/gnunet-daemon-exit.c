@@ -278,6 +278,17 @@ static int ipv4_exit;
 static int ipv6_exit;
 
 /**
+ * Do we support IPv4 at all on the TUN interface?
+ */
+static int ipv4_enabled;
+
+/**
+ * Do we support IPv6 at all on the TUN interface?
+ */
+static int ipv6_enabled;
+
+
+/**
  * Given IP information about a connection, calculate the respective
  * hash we would use for the 'connections_map'.
  *
@@ -1954,7 +1965,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_APPLICATION_TYPE_END
   };
   unsigned int app_idx;
-  char *ifname;
+  char *exit_ifname;
+  char *tun_ifname;
   char *ipv6addr;
   char *ipv6prefix_s;
   char *ipv4addr;
@@ -1963,8 +1975,29 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   struct in6_addr v6;
 
   cfg = cfg_;
-  ipv4_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV4");
-  ipv6_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV6");
+  ipv4_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV4");
+  ipv6_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV6"); 
+  ipv4_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV4");
+  ipv6_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV6"); 
+  if (ipv4_exit && (! ipv4_enabled))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Cannot enable IPv4 exit but disable IPv4 on TUN interface, will use ENABLE_IPv4=YES\n"));
+    ipv4_enabled = GNUNET_YES;
+  }
+  if (ipv6_exit && (! ipv6_enabled))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Cannot enable IPv6 exit but disable IPv6 on TUN interface, will use ENABLE_IPv6=YES\n"));
+    ipv6_enabled = GNUNET_YES;
+  }
+  if (! (ipv4_enabled || ipv6_enabled))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("No useful service enabled.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;    
+  }
   app_idx = 0;
   if (GNUNET_YES == ipv4_exit)    
   {
@@ -1985,68 +2018,101 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     max_connections = 1024;
   exit_argv[0] = GNUNET_strdup ("exit-gnunet");
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IFNAME", &ifname))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "TUN_IFNAME", &tun_ifname))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'IFNAME' in configuration!\n");
+                "No entry 'TUN_IFNAME' in configuration!\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  exit_argv[1] = ifname;
-  if ( (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
-					       &ipv6addr) ||
-	(1 != inet_pton (AF_INET6, ipv6addr, &v6))) )
+  exit_argv[1] = tun_ifname;
+  if (ipv4_exit)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No valid entry 'IPV6ADDR' in configuration!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    if (GNUNET_SYSERR ==
+	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "EXIT_IFNAME", &exit_ifname))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "No entry 'EXIT_IFNAME' in configuration!\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    exit_argv[2] = exit_ifname;
   }
-  exit_argv[2] = ipv6addr;
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
-                                             &ipv6prefix_s))
+  else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'IPV6PREFIX' in configuration!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    exit_argv[2] = GNUNET_strdup ("%");
   }
-  exit_argv[3] = ipv6prefix_s;
-  if ( (GNUNET_OK !=
-	GNUNET_CONFIGURATION_get_value_number (cfg, "exit",
-					       "IPV6PREFIX",
-					       &ipv6prefix)) ||
-       (ipv6prefix >= 127) )
+  if (GNUNET_YES == ipv6_enabled)
   {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  if ( (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
-					       &ipv4addr) ||
-	(1 != inet_pton (AF_INET, ipv4addr, &v4))) )
+    if ( (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
+						 &ipv6addr) ||
+	  (1 != inet_pton (AF_INET6, ipv6addr, &v6))) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "No valid entry 'IPV6ADDR' in configuration!\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    exit_argv[3] = ipv6addr;
+    if (GNUNET_SYSERR ==
+	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
+					       &ipv6prefix_s))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "No entry 'IPV6PREFIX' in configuration!\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    exit_argv[4] = ipv6prefix_s;
+    if ( (GNUNET_OK !=
+	  GNUNET_CONFIGURATION_get_value_number (cfg, "exit",
+						 "IPV6PREFIX",
+						 &ipv6prefix)) ||
+	 (ipv6prefix >= 127) )
+    {
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  } 
+  else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No valid entry for 'IPV4ADDR' in configuration!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    /* IPv6 explicitly disabled */
+    exit_argv[3] = GNUNET_strdup ("-");
+    exit_argv[4] = GNUNET_strdup ("-");
   }
-  exit_argv[4] = ipv4addr;
-  if ( (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
-					       &ipv4mask) ||
-	(1 != inet_pton (AF_INET, ipv4mask, &v4))) )
+  if (GNUNET_YES == ipv4_enabled)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No valid entry 'IPV4MASK' in configuration!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    if ( (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
+						 &ipv4addr) ||
+	  (1 != inet_pton (AF_INET, ipv4addr, &v4))) )
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    "No valid entry for 'IPV4ADDR' in configuration!\n");
+	GNUNET_SCHEDULER_shutdown ();
+	return;
+      }
+    exit_argv[5] = ipv4addr;
+    if ( (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
+						 &ipv4mask) ||
+	  (1 != inet_pton (AF_INET, ipv4mask, &v4))) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "No valid entry 'IPV4MASK' in configuration!\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    exit_argv[6] = ipv4mask;
   }
-  exit_argv[5] = ipv4mask;
-  exit_argv[6] = NULL;
+  else
+  {
+    /* IPv4 explicitly disabled */
+    exit_argv[5] = GNUNET_strdup ("-");
+    exit_argv[6] = GNUNET_strdup ("-");
+  }
+  exit_argv[7] = NULL;
 
   udp_services = GNUNET_CONTAINER_multihashmap_create (65536);
   tcp_services = GNUNET_CONTAINER_multihashmap_create (65536);
