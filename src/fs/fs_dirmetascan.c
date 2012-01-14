@@ -102,6 +102,26 @@ struct MetaCounter
   struct MetaCounter *next;
 };
 
+struct AddDirContext;
+
+/**
+ * A structure used to hold a pointer to the tree item that is being
+ * processed.
+ * Needed to avoid changing the context for every recursive call.
+ */
+struct AddDirStack
+{
+  /**
+   * Context pointer
+   */
+  struct AddDirContext *adc;
+
+  /**
+   * Parent directory
+   */
+  struct ShareTreeItem *parent;
+};
+
 /**
  * Execution context for 'add_dir'
  * Owned by the initiator thread.
@@ -109,13 +129,11 @@ struct MetaCounter
 struct AddDirContext
 {
   /**
-   * Parent directory (used to access keyword and metadata counters,
-   * and the like).
    * After the scan is finished, it will contain a pointer to the
    * top-level directory entry in the directory tree built by the
    * scanner.
    */
-  struct ShareTreeItem *parent;
+  struct ShareTreeItem *toplevel;
 
   /**
    * Expanded filename (as given by the scan initiator).
@@ -124,15 +142,10 @@ struct AddDirContext
   char *filename_expanded;
 
   /**
-   * A synchronization privitive. Whenever its state is altered,
-   * it means that the initiator wants the scanner to wrap up.
-   * It is owned by the initiator thread.
+   * A pipe end to read signals from.
+   * Owned by the initiator thread.
    */
-#if WINDOWS
-  HANDLE stop;
-#else
-  sem_t *stop;
-#endif
+  const struct GNUNET_DISK_FileHandle *stop_read;
 
   /**
    * 1 if the scanner should stop, 0 otherwise. Set in response
@@ -164,15 +177,17 @@ struct AddDirContext
  */
 struct GNUNET_FS_DirScanner
 {
- /**
-  * A synchronization privitive that is used to signal the scanner to stop.
-  * Owned by the initiator thread.
-  */
-#if WINDOWS
-  HANDLE stop;
-#else
-  sem_t *stop;
-#endif
+  /**
+   * A pipe end to read signals from.
+   * Owned by the initiator thread.
+   */
+  const struct GNUNET_DISK_FileHandle *stop_write;
+  
+  /**
+   * A pipe transfer signals to the scanner.
+   * Owned by the initiator thread.
+   */
+  struct GNUNET_DISK_PipeHandle *stop_pipe;
 
  /**
   * A thread object for the scanner thread.
@@ -312,21 +327,14 @@ struct ProcessMetadataContext
 static int
 should_stop (struct AddDirContext *adc)
 {
-#if WINDOWS
-  if (WaitForSingleObject (adc->stop, 0) == WAIT_TIMEOUT)
-    return 0;
-  adc->do_stop = 1;
-  return 1;
-#else
-  int value;
-  sem_getvalue(adc->stop, &value);  
-  if (value > 0)
+  errno = 0;
+  char c;
+  if (GNUNET_DISK_file_read_non_blocking (adc->stop_read, &c, 1) == 1
+      || errno != EAGAIN)
   {
     adc->do_stop = 1;
-    return 1;
   }
-  return 0;
-#endif
+  return adc->do_stop;
 }
 
 /**
@@ -535,19 +543,19 @@ make_item (struct ShareTreeItem *parent)
  * @param filename name of the file to process
  */
 static void
-extract_file (struct AddDirContext *adc, const char *filename)
+extract_file (struct AddDirStack *ads, const char *filename)
 {
   struct ShareTreeItem *item;
   const char *short_fn;
 
-  item = make_item (adc->parent);
+  item = make_item (ads->parent);
 
   GNUNET_DISK_file_size (filename, &item->file_size, GNUNET_YES);
   item->is_directory = GNUNET_NO;
 
   item->meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_FS_meta_data_extract_from_file (item->meta, filename,
-      adc->plugins);
+      ads->adc->plugins);
   GNUNET_CONTAINER_meta_data_delete (item->meta, EXTRACTOR_METATYPE_FILENAME,
       NULL, 0);
   short_fn = GNUNET_STRINGS_get_short_name (filename);
@@ -725,13 +733,14 @@ process_keywords_and_metadata (struct ProcessMetadataStackItem *stack,
  * scan.
  * TODO: find a way to make it non-recursive.
  *
- * @param cls the 'struct AddDirContext*' we're in
+ * @param cls the 'struct AddDirStack *' we're in
  * @param filename file or directory to scan
  */
 static int
 scan_directory (void *cls, const char *filename)
 {
-  struct AddDirContext *adc = cls, recurse_adc;
+  struct AddDirStack *ads = cls, recurse_ads;
+  struct AddDirContext *adc = ads->adc;
   struct stat sbuf;
   struct ShareTreeItem *item;
   const char *short_fn;
@@ -763,33 +772,31 @@ scan_directory (void *cls, const char *filename)
   }
 
   if (!S_ISDIR (sbuf.st_mode))
-    extract_file (adc, filename);
+    extract_file (ads, filename);
   else
   {
-    item = make_item (adc->parent);
+    item = make_item (ads->parent);
     item->meta = GNUNET_CONTAINER_meta_data_create ();
 
     item->is_directory = GNUNET_YES;
 
-    /* copy fields from adc */
-    recurse_adc = *adc;
-    /* replace recurse_adc contents with the ones for this directory */
-    recurse_adc.parent = item;
+    recurse_ads.adc = adc;
+    recurse_ads.parent = item;
 
     /* recurse into directory */
-    GNUNET_DISK_directory_scan (filename, &scan_directory, &recurse_adc);
+    GNUNET_DISK_directory_scan (filename, &scan_directory, &recurse_ads);
 
     short_fn = GNUNET_STRINGS_get_short_name (filename);
 
     item->filename = GNUNET_strdup (filename);
     item->short_filename = GNUNET_strdup (short_fn);
 
-    if (adc->parent == NULL)
+    if (ads->parent == NULL)
     {
       /* we're finished with the scan, make sure caller gets the top-level
        * directory pointer
        */
-      adc->parent = item;
+      adc->toplevel = item;
     }
   }
   return GNUNET_OK;
@@ -809,11 +816,9 @@ void
 GNUNET_FS_directory_scan_finish (struct GNUNET_FS_DirScanner *ds,
     int close_pipe)
 {
-#if WINDOWS
-  SetEvent (ds->stop);
-#else
-  sem_post (&ds->stop);
-#endif
+  char c = 1;
+  GNUNET_DISK_file_write (ds->stop_write, &c, 1);
+
   if (close_pipe)
   {
     if (ds->progress_read_task != GNUNET_SCHEDULER_NO_TASK)
@@ -845,16 +850,15 @@ GNUNET_FS_directory_scan_cleanup (struct GNUNET_FS_DirScanner *ds)
   GNUNET_FS_directory_scan_finish (ds, GNUNET_YES);
 #if WINDOWS
   WaitForSingleObject (ds->thread, INFINITE);
-  CloseHandle (ds->stop);
   CloseHandle (ds->thread);
 #else
   pthread_join (ds->thread, NULL);
-  sem_destroy (&ds->stop);
   pthread_detach (ds->thread);
 #endif
 
+  GNUNET_DISK_pipe_close (ds->stop_pipe);
   GNUNET_DISK_pipe_close (ds->progress_pipe);
-  result = ds->adc->parent;
+  result = ds->adc->toplevel;
   GNUNET_free (ds->adc);
   GNUNET_free (ds);
   return result;
@@ -870,7 +874,10 @@ static int
 #endif
 run_directory_scan_thread (struct AddDirContext *adc)
 {
-  scan_directory (adc, adc->filename_expanded);
+  struct AddDirStack ads;
+  ads.adc = adc;
+  ads.parent = NULL;
+  scan_directory (&ads, adc->filename_expanded);
   GNUNET_free (adc->filename_expanded);
   if (adc->plugins != NULL)
     EXTRACTOR_plugin_remove_all (adc->plugins);
@@ -1060,15 +1067,8 @@ GNUNET_FS_directory_scan_start (const char *filename,
 
   ds->adc = adc;
 
-#if WINDOWS
-  ds->stop = CreateEvent (NULL, TRUE, FALSE, NULL);
-  adc->stop = ds->stop;
-  ok = ds->stop != INVALID_HANDLE_VALUE;
-#else
-  ok = !sem_init (&ds->stop, 0, 0);
-  adc = &ds->stop;
-#endif
-  if (!ok)
+  ds->stop_pipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_NO);
+  if (ds->stop_pipe == NULL)
   {
     GNUNET_free (adc);
     GNUNET_free (ds);
@@ -1076,6 +1076,10 @@ GNUNET_FS_directory_scan_start (const char *filename,
     GNUNET_DISK_pipe_close (progress_pipe);
     return NULL;
   }
+  ds->stop_write = GNUNET_DISK_pipe_handle (ds->stop_pipe,
+      GNUNET_DISK_PIPE_END_WRITE);
+  adc->stop_read = GNUNET_DISK_pipe_handle (ds->stop_pipe,
+      GNUNET_DISK_PIPE_END_READ);
 
   adc->plugins = NULL;
   if (!disable_extractor)
