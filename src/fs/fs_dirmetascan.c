@@ -355,7 +355,7 @@ write_progress (struct AddDirContext *adc, const char *filename,
   wr = 1;
   while ((wr > 0 || errno == EAGAIN) && total_write < sizeof (reason))
   {
-    wr = GNUNET_DISK_file_write (adc->progress_write,
+    wr = GNUNET_DISK_file_write_blocking (adc->progress_write,
       &((char *)&reason)[total_write], sizeof (reason) - total_write);
     if (wr > 0)
       total_write += wr;
@@ -370,7 +370,7 @@ write_progress (struct AddDirContext *adc, const char *filename,
   wr = 1;
   while ((wr > 0 || errno == EAGAIN) && total_write < sizeof (size_t))
   {
-    wr = GNUNET_DISK_file_write (adc->progress_write,
+    wr = GNUNET_DISK_file_write_blocking (adc->progress_write,
       &((char *)&filename_len)[total_write], sizeof (size_t) - total_write);
     if (wr > 0)
       total_write += wr;
@@ -383,7 +383,7 @@ write_progress (struct AddDirContext *adc, const char *filename,
     wr = 1;
     while ((wr > 0 || errno == EAGAIN) && total_write < filename_len)
     {
-      wr = GNUNET_DISK_file_write (adc->progress_write,
+      wr = GNUNET_DISK_file_write_blocking (adc->progress_write,
         &((char *)filename)[total_write], filename_len - total_write);
       if (wr > 0)
         total_write += wr;
@@ -394,7 +394,7 @@ write_progress (struct AddDirContext *adc, const char *filename,
     wr = 1;
     while ((wr > 0 || errno == EAGAIN) && total_write < sizeof (char))
     {
-      wr = GNUNET_DISK_file_write (adc->progress_write,
+      wr = GNUNET_DISK_file_write_blocking (adc->progress_write,
         &((char *)&is_directory)[total_write], sizeof (char) - total_write);
       if (wr > 0)
         total_write += wr;
