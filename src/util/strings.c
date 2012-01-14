@@ -607,6 +607,26 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
   return ret;
 }
 
-
+/**
+ * "man basename"
+ * Returns a pointer to a part of filename (allocates nothing)!
+ *
+ * @param filename filename to extract basename from
+ * @return short (base) name of the file (that is, everything following the
+ *         last directory separator in filename. If filename ends with a
+ *         directory separator, the result will be a zero-length string.
+ *         If filename has no directory separators, the result is filename
+ *         itself.
+ */
+const char *
+GNUNET_STRINGS_get_short_name (const char *filename)
+{
+  const char *short_fn = filename;
+  const char *ss;
+  while (NULL != (ss = strstr (short_fn, DIR_SEPARATOR_STR))
+      && (ss[1] != '\0'))
+    short_fn = 1 + ss;
+  return short_fn;
+}
 
 /* end of strings.c */
