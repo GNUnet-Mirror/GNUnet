@@ -1597,11 +1597,17 @@ get_keywords_from_parens (const char *s, char **array, int index)
     }
     if (match && (close_paren - open_paren > 1))
     {
+      tmp = close_paren[0];
+      close_paren[0] = '\0';
+      /* Keywords must be at least 3 characters long */
+      if (u8_strlen ((const uint8_t *) &open_paren[1]) <= 2)
+      {
+        close_paren[0] = tmp;
+        continue;
+      }
       if (NULL != array)
       {
         char *normalized;
-        tmp = close_paren[0];
-        close_paren[0] = '\0';
         if (GNUNET_NO == find_duplicate ((const char *) &open_paren[1],
             (const char **) array, index + count))
         {
@@ -1622,10 +1628,10 @@ get_keywords_from_parens (const char *s, char **array, int index)
           }
           GNUNET_free (normalized);
         }
-        close_paren[0] = tmp;
       }
       else
 	count++;
+      close_paren[0] = tmp;
     }   
   }
   GNUNET_free (ss);
@@ -1662,6 +1668,9 @@ get_keywords_from_tokens (const char *s, char **array, int index)
   ss = GNUNET_strdup (s);
   for (p = strtok (ss, TOKENS); p != NULL; p = strtok (NULL, TOKENS))
   {
+    /* Keywords must be at least 3 characters long */
+    if (u8_strlen ((const uint8_t *) p) <= 2)
+      continue;
     if (NULL != array)
     {
       char *normalized;
@@ -1721,6 +1730,15 @@ gather_uri_data (void *cls, const char *plugin_name,
   if ((format != EXTRACTOR_METAFORMAT_UTF8) &&
       (format != EXTRACTOR_METAFORMAT_C_STRING))
     return 0;
+  /* Keywords must be at least 3 characters long
+   * If given non-utf8 string it will, most likely, find it to be invalid,
+   * and will return the length of its valid part, skipping the keyword.
+   * If it does - fix the extractor, not this check!
+   */
+  if (u8_strlen ((const uint8_t *) data) <= 2)
+  {
+    return 0;
+  }
   normalized_data = normalize_metadata (format, data, data_len);
   if (!find_duplicate (data, (const char **) uri->data.ksk.keywords, uri->data.ksk.keywordCount))
   {
