@@ -2026,7 +2026,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     return;
   }
   exit_argv[1] = tun_ifname;
-  if (ipv4_exit)
+  if (ipv4_enabled)
   {
     if (GNUNET_SYSERR ==
 	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "EXIT_IFNAME", &exit_ifname))
