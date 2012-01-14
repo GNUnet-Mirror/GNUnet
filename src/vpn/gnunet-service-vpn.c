@@ -28,6 +28,8 @@
  *
  * TODO:
  * Basics:
+ * - need some logging
+ * - need some statistics
  * - test!
  * - better message queue management (bounded state, drop oldest/RED?)
  * - actually destroy "stale" tunnels once we have too many!
@@ -2086,12 +2088,14 @@ cleanup_destination_client (void *cls,
 static void
 client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (tunnel_map,
-					 &cleanup_tunnel_client,
-					 client);
-  GNUNET_CONTAINER_multihashmap_iterate (destination_map,
-					 &cleanup_destination_client,
-					 client);
+  if (NULL != tunnel_map)
+    GNUNET_CONTAINER_multihashmap_iterate (tunnel_map,
+					   &cleanup_tunnel_client,
+					   client);
+  if (NULL != destination_map)
+    GNUNET_CONTAINER_multihashmap_iterate (destination_map,
+					   &cleanup_destination_client,
+					   client);
 }
 
 

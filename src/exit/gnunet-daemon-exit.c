@@ -25,7 +25,14 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - need some logging
+ * - need some statistics
+ * - test
+ *
+ * Code cleanup:
  * - factor out crc computations from DNS/EXIT/VPN into shared library?
+ *
+ * Design:
  * - which code should advertise services? the service model is right
  *   now a bit odd, especially as this code DOES the exit and knows
  *   the DNS "name", but OTOH this is clearly NOT the place to advertise
