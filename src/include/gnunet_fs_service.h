@@ -26,6 +26,7 @@
 #define GNUNET_FS_LIB_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_scheduler_lib.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -70,6 +71,7 @@ extern "C"
  */
 struct GNUNET_FS_Uri;
 
+struct GNUNET_FS_DirScanner;
 
 /**
  * Iterator over keywords
@@ -2686,6 +2688,152 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
 int
 GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
                                     size_t * rsize, void **rdata);
+
+
+/* ******************** DirScanner API *********************** */
+
+enum GNUNET_DirScannerProgressUpdateReason
+{
+  GNUNET_DIR_SCANNER_FIRST = 0,
+  GNUNET_DIR_SCANNER_NEW_FILE = 1,
+  GNUNET_DIR_SCANNER_DOES_NOT_EXIST = 2,
+  GNUNET_DIR_SCANNER_ASKED_TO_STOP = 3,
+  GNUNET_DIR_SCANNER_FINISHED = 4,
+  GNUNET_DIR_SCANNER_PROTOCOL_ERROR = 5,
+  GNUNET_DIR_SCANNER_SHUTDOWN = 6,
+  GNUNET_DIR_SCANNER_LAST = 7
+};
+
+
+typedef int (* GNUNET_FS_DirScannerProgressCallback) (
+    void *cls, struct GNUNET_FS_DirScanner *ds, const char *filename,
+    char is_directory, enum GNUNET_DirScannerProgressUpdateReason reason);
+
+/**
+ * A node of a directory tree (produced by dirscanner)
+ */
+struct ShareTreeItem
+{
+  /**
+   * This is a doubly-linked list
+   */
+  struct ShareTreeItem *prev;
+
+  /**
+   * This is a doubly-linked list
+   */
+  struct ShareTreeItem *next;
+
+  /**
+   * This is a doubly-linked tree
+   * NULL for top-level entries.
+   */
+  struct ShareTreeItem *parent;
+
+  /**
+   * This is a doubly-linked tree
+   * NULL for files and empty directories
+   */
+  struct ShareTreeItem *children_head;
+
+  /**
+   * This is a doubly-linked tree
+   * NULL for files and empty directories
+   */
+  struct ShareTreeItem *children_tail;
+
+  /**
+   * Metadata for this file or directory
+   */
+  struct GNUNET_CONTAINER_MetaData *meta;
+
+  /**
+   * Keywords for this file or directory (derived from metadata).
+   */
+  struct GNUNET_FS_Uri *ksk_uri;
+
+  /**
+   * Name of the file/directory
+   */
+  char *filename;
+
+  /**
+   * Base name of the file/directory
+   */
+  char *short_filename;
+
+  /**
+   * 1 if this is a directory
+   */
+  char is_directory;
+
+  /**
+   * Size of the file (if it's a file), in bytes
+   */
+  uint64_t file_size;
+};
+
+/* opaqe */
+struct GNUNET_FS_DirScanner;
+
+/**
+ * Signals the scanner to finish the scan as fast as possible.
+ * Does not block.
+ * Can close the pipe if asked to, but that is only used by the
+ * internal call to this function during cleanup. The client
+ * must understand the consequences of closing the pipe too early.
+ *
+ * @param ds directory scanner structure
+ * @param close_pipe GNUNET_YES to close
+ */
+void
+GNUNET_FS_directory_scan_finish (struct GNUNET_FS_DirScanner *ds,
+    int close_pipe);
+
+/**
+ * Signals the scanner thread to finish (in case it isn't finishing
+ * already) and joins the scanner thread. Closes the pipes, frees the
+ * scanner contexts (both of them), returns the results of the scan.
+ * Results are valid (and have to be freed) even if the scanner had
+ * an error or was rushed to finish prematurely.
+ * Blocks until the scanner is finished.
+ *
+ * @param ds directory scanner structure
+ * @return the results of the scan (a directory tree)
+ */
+struct ShareTreeItem *
+GNUNET_FS_directory_scan_cleanup (struct GNUNET_FS_DirScanner *ds);
+
+/**
+ * Start a directory scanner thread.
+ *
+ * @param filename name of the directory to scan
+ * @param GNUNET_YES to not to run libextractor on files (only build a tree)
+ * @param ex if not NULL, must be a list of extra plugins for extractor
+ * @param cb the callback to call when there are scanning progress messages
+ * @param cls closure for 'cb'
+ * @return directory scanner object to be used for controlling the scanner
+ */
+struct GNUNET_FS_DirScanner *
+GNUNET_FS_directory_scan_start (const char *filename,
+    int disable_extractor, const char *ex,
+    GNUNET_FS_DirScannerProgressCallback cb, void *cls);
+
+
+/* opaque */
+struct ProcessMetadataContext;
+
+/**
+ * Process a share item tree, moving frequent keywords up and
+ * copying frequent metadata up.
+ *
+ * @param toplevel toplevel directory in the tree, returned by the scanner
+ * @param cb called after processing is done
+ * @param cls closure for 'cb'
+ */
+struct ProcessMetadataContext *
+GNUNET_FS_trim_share_tree (struct ShareTreeItem *toplevel,
+    GNUNET_SCHEDULER_Task cb, void *cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
