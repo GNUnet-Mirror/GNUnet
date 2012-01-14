@@ -948,7 +948,7 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
         proc (proc_cls, pos,
               (pos->is_directory) ? pos->data.dir.dir_size : pos->data.
               file.file_size, pos->meta, &pos->keywords, &pos->bo,
-              (dir->is_directory) ? &no : &dir->data.file.do_index,
+              (pos->is_directory) ? &no : &pos->data.file.do_index,
               &pos->client_info))
       break;
     pos = pos->next;
