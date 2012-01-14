@@ -268,7 +268,7 @@ runone ()
 {
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;
 
-  pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
 
   if (pipe_stdout == NULL)
   {

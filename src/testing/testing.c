@@ -239,7 +239,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* Start create hostkey process if we don't already know the peer identity! */
     if (GNUNET_NO == d->have_hostkey)
     {
-      d->pipe_stdout = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES);
+      d->pipe_stdout = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_YES);
       if (d->pipe_stdout == NULL)
       {
         cb = d->cb;

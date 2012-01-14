@@ -114,8 +114,8 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_asprintf (&fn, "cat");
 
-  hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
-  hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
+  hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
 
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
   {

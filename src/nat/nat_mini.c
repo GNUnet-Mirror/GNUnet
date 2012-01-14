@@ -169,7 +169,7 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
   eh = GNUNET_malloc (sizeof (struct GNUNET_NAT_ExternalHandle));
   eh->cb = cb;
   eh->cb_cls = cb_cls;
-  eh->opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  eh->opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (NULL == eh->opipe)
   {
     GNUNET_free (eh);

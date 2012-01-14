@@ -1174,7 +1174,7 @@ main (int argc, char *const *argv)
   int ret;
   struct GNUNET_SIGNAL_Context *shc_chld;
 
-  sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO);
+  sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_NO);
   GNUNET_assert (sigpipe != NULL);
   shc_chld =
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);

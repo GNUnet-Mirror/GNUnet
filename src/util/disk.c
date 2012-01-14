@@ -746,6 +746,74 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
 #endif
 }
 
+/**
+ * Read the contents of a binary file into a buffer.
+ * Guarantees not to block (returns GNUNET_SYSERR and sets errno to EAGAIN
+ * when no data can be read).
+ *
+ * @param h handle to an open file
+ * @param result the buffer to write the result to
+ * @param len the maximum number of bytes to read
+ * @return the number of bytes read on success, GNUNET_SYSERR on failure
+ */
+ssize_t
+GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
+    void *result, size_t len)
+{
+  if (h == NULL)
+  {
+    errno = EINVAL;
+    return GNUNET_SYSERR;
+  }
+
+#ifdef MINGW
+  DWORD bytesRead;
+
+  if (h->type != GNUNET_PIPE)
+  {
+    if (!ReadFile (h->h, result, len, &bytesRead, NULL))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      return GNUNET_SYSERR;
+    }
+  }
+  else
+  {
+#if DEBUG_PIPE
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe, trying to read\n");
+#endif
+    if (!ReadFile (h->h, result, len, &bytesRead, h->oOverlapRead))
+    {
+      if (GetLastError () != ERROR_IO_PENDING)
+      {
+#if DEBUG_PIPE
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Error reading from pipe: %u\n", GetLastError ());
+#endif
+        SetErrnoFromWinError (GetLastError ());
+        return GNUNET_SYSERR;
+      }
+      else
+      {
+#if DEBUG_PIPE
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+            "ReadFile() queued a read, cancelling\n");
+#endif
+        CancelIo (h->h);
+        errno = EAGAIN;
+        return GNUNET_SYSERR;
+      }
+    }
+#if DEBUG_PIPE
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytesRead);
+#endif
+  }
+  return bytesRead;
+#else
+  /* FIXME: set to non-blocking (fcntl?), read, then set back? */
+  return read (h->fd, result, len);
+#endif
+}
+
 
 /**
  * Read the contents of a binary file into a buffer.
@@ -866,6 +934,64 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
   }
   return bytesWritten;
 #else
+  return write (h->fd, buffer, n);
+#endif
+}
+
+/**
+ * Write a buffer to a file, blocking, if necessary.
+ * @param h handle to open file
+ * @param buffer the data to write
+ * @param n number of bytes to write
+ * @return number of bytes written on success, GNUNET_SYSERR on error
+ */
+ssize_t
+GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
+    const void *buffer, size_t n)
+{
+  if (h == NULL)
+  {
+    errno = EINVAL;
+    return GNUNET_SYSERR;
+  }
+
+#ifdef MINGW
+  DWORD bytesWritten;
+  /* We do a non-overlapped write, which is as blocking as it gets */
+#if DEBUG_PIPE
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing %u bytes\n", n);
+#endif
+  if (!WriteFile (h->h, buffer, n, &bytesWritten, NULL))
+  {
+    SetErrnoFromWinError (GetLastError ());
+#if DEBUG_PIPE
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
+        GetLastError ());
+#endif
+    return GNUNET_SYSERR;
+  }
+  if (bytesWritten == 0 && n > 0)
+  {
+#if DEBUG_PIPE
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Waiting for pipe to clean\n");
+#endif
+    WaitForSingleObject (h->h, INFINITE);
+    if (!WriteFile (h->h, buffer, n, &bytesWritten, NULL))
+    {
+      SetErrnoFromWinError (GetLastError ());
+#if DEBUG_PIPE
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
+          GetLastError ());
+#endif
+      return GNUNET_SYSERR;
+    }
+  }
+#if DEBUG_PIPE
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytesWritten);
+#endif
+  return bytesWritten;
+#else
+  /* FIXME: switch to blocking mode (fcntl?), write, then switch back? */
   return write (h->fd, buffer, n);
 #endif
 }
@@ -1971,7 +2097,7 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *
-GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
+GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int inherit_write)
 {
   struct GNUNET_DISK_PipeHandle *p;
   struct GNUNET_DISK_FileHandle *fds;
@@ -2000,7 +2126,7 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
   p->fd[1]->fd = fd[1];
   ret = 0;
   flags = fcntl (fd[0], F_GETFL);
-  if (!blocking)
+  if (!blocking_read)
     flags |= O_NONBLOCK;
   if (0 > fcntl (fd[0], F_SETFL, flags))
     ret = -1;
@@ -2010,7 +2136,7 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
     ret = -1;
 
   flags = fcntl (fd[1], F_GETFL);
-  if (!blocking)
+  if (!blocking_write)
     flags |= O_NONBLOCK;
   if (0 > fcntl (fd[1], F_SETFL, flags))
     ret = -1;
@@ -2034,7 +2160,8 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
 
   ret =
       create_selectable_pipe (&p->fd[0]->h, &p->fd[1]->h, NULL, 0,
-                              FILE_FLAG_OVERLAPPED, FILE_FLAG_OVERLAPPED);
+                              blocking_read ? 0 : FILE_FLAG_OVERLAPPED,
+                              blocking_write ? 0 : FILE_FLAG_OVERLAPPED);
   if (!ret)
   {
     GNUNET_free (p);
@@ -2066,15 +2193,7 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
   }
   CloseHandle (p->fd[1]->h);
   p->fd[1]->h = tmp_handle;
-  if (!blocking)
-  {
-    DWORD mode;
 
-    mode = PIPE_NOWAIT;
-    SetNamedPipeHandleState (p->fd[0]->h, &mode, NULL, NULL);
-    SetNamedPipeHandleState (p->fd[1]->h, &mode, NULL, NULL);
-    /* this always fails on Windows 95, so we don't care about error handling */
-  }
   p->fd[0]->type = GNUNET_PIPE;
   p->fd[1]->type = GNUNET_PIPE;
 
@@ -2103,7 +2222,7 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *
-GNUNET_DISK_pipe_from_fd (int blocking, int fd[2])
+GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
 {
   struct GNUNET_DISK_PipeHandle *p;
   struct GNUNET_DISK_FileHandle *fds;
@@ -2124,7 +2243,7 @@ GNUNET_DISK_pipe_from_fd (int blocking, int fd[2])
   if (fd[0] >= 0)
   {
     flags = fcntl (fd[0], F_GETFL);
-    if (!blocking)
+    if (!blocking_read)
       flags |= O_NONBLOCK;
     if (0 > fcntl (fd[0], F_SETFL, flags))
       ret = -1;
@@ -2137,7 +2256,7 @@ GNUNET_DISK_pipe_from_fd (int blocking, int fd[2])
   if (fd[1] >= 0)
   {
     flags = fcntl (fd[1], F_GETFL);
-    if (!blocking)
+    if (!blocking_write)
       flags |= O_NONBLOCK;
     if (0 > fcntl (fd[1], F_SETFL, flags))
       ret = -1;
@@ -2169,18 +2288,6 @@ GNUNET_DISK_pipe_from_fd (int blocking, int fd[2])
     p->fd[1]->h = _get_osfhandle (fd[1]);
   else
     p->fd[1]->h = INVALID_HANDLE_VALUE;
-
-  if (!blocking)
-  {
-    DWORD mode;
-
-    mode = PIPE_NOWAIT;
-    if (p->fd[0]->h != INVALID_HANDLE_VALUE)
-      SetNamedPipeHandleState (p->fd[0]->h, &mode, NULL, NULL);
-    if (p->fd[1]->h != INVALID_HANDLE_VALUE)
-      SetNamedPipeHandleState (p->fd[1]->h, &mode, NULL, NULL);
-    /* this always fails on Windows 95, so we don't care about error handling */
-  }
 
   if (p->fd[0]->h != INVALID_HANDLE_VALUE)
   {

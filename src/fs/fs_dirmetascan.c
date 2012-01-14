@@ -1047,7 +1047,7 @@ GNUNET_FS_directory_scan_start (const char *filename,
   if (filename_expanded == NULL)
     return NULL;
 
-  progress_pipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO);
+  progress_pipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_NO);
   if (progress_pipe == NULL)
   {
     GNUNET_free (filename_expanded);

@@ -1135,7 +1135,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   }
   if (lsocks != NULL && lsocks[0] != INVALID_SOCKET)
   {
-    lsocks_pipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
+    lsocks_pipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
 
     if (lsocks_pipe == NULL)
     {
@@ -1582,7 +1582,7 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
   struct GNUNET_DISK_PipeHandle *opipe;
   va_list ap;
 
-  opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (NULL == opipe)
     return NULL;
   va_start (ap, binary);

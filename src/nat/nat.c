@@ -835,7 +835,7 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
       (h->internal_address != NULL) &&
       (NULL !=
        (h->server_stdout =
-        GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES))))
+        GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES))))
   {
 #if DEBUG_NAT
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting `%s' at `%s'\n",

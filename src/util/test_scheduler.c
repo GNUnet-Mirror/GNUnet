@@ -119,7 +119,7 @@ task5 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (5 == *ok);
   (*ok) = 6;
-  p = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO);
+  p = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_NO);
   GNUNET_assert (NULL != p);
   fds[0] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_READ);
   fds[1] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_WRITE);

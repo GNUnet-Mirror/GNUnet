@@ -803,7 +803,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_assert (shutdown_pipe_handle == NULL);
-  shutdown_pipe_handle = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO);
+  shutdown_pipe_handle = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_NO);
   GNUNET_assert (shutdown_pipe_handle != NULL);
   pr = GNUNET_DISK_pipe_handle (shutdown_pipe_handle,
                                 GNUNET_DISK_PIPE_END_READ);

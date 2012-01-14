@@ -395,7 +395,7 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *
-GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write);
+GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int inherit_write);
 
 
 /**
@@ -408,7 +408,7 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write);
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *
-GNUNET_DISK_pipe_from_fd (int blocking, int fd[2]);
+GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2]);
 
 /**
  * Closes an interprocess channel
@@ -461,6 +461,19 @@ ssize_t
 GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, void *result,
                        size_t len);
 
+/**
+ * Read the contents of a binary file into a buffer.
+ * Guarantees not to block (returns GNUNET_SYSERR and sets errno to EAGAIN
+ * when no data can be read).
+ *
+ * @param h handle to an open file
+ * @param result the buffer to write the result to
+ * @param len the maximum number of bytes to read
+ * @return the number of bytes read on success, GNUNET_SYSERR on failure
+ */
+ssize_t
+GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
+    void *result, size_t len);
 
 /**
  * Read the contents of a binary file into a buffer.
@@ -486,6 +499,17 @@ ssize_t
 GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h,
                         const void *buffer, size_t n);
 
+
+/**
+ * Write a buffer to a file, blocking, if necessary.
+ * @param h handle to open file
+ * @param buffer the data to write
+ * @param n number of bytes to write
+ * @return number of bytes written on success, GNUNET_SYSERR on error
+ */
+ssize_t
+GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
+    const void *buffer, size_t n);
 
 /**
  * Write a buffer to a file.  If the file is longer than

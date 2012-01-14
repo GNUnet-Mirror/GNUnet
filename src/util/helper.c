@@ -286,8 +286,8 @@ helper_read (void *cls,
 static void
 start_helper (struct GNUNET_HELPER_Handle *h)
 {
-  h->helper_in = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
-  h->helper_out = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  h->helper_in = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
+  h->helper_out = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if ( (h->helper_in == NULL) || (h->helper_out == NULL))
   {
     /* out of file descriptors? try again later... */

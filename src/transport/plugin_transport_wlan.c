@@ -1441,11 +1441,11 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
     return GNUNET_YES;
   }
 
-  plugin->server_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  plugin->server_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (plugin->server_stdout == NULL)
     return GNUNET_SYSERR;
 
-  plugin->server_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
+  plugin->server_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
   if (plugin->server_stdin == NULL)
     return GNUNET_SYSERR;
 
