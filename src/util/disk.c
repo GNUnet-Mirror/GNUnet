@@ -115,7 +115,7 @@ struct GetFileSizeData
 };
 
 
-int
+static int
 translate_unix_perms (enum GNUNET_DISK_AccessPermissions perm)
 {
   int mode;
@@ -420,6 +420,7 @@ GNUNET_DISK_mktemp (const char *t)
   fn = tmpl;
 #endif
   /* FIXME: why is this not MKSTEMP()? This function is implemented in plibc.
+   * CG: really? If I put MKSTEMP here, I get a compilation error...
    * It will assume that fn is UTF-8-encoded, if compiled with UTF-8 support.
    */
   fd = mkstemp (fn);
@@ -530,6 +531,7 @@ GNUNET_DISK_directory_test (const char *fil)
   }
   return GNUNET_YES;
 }
+
 
 /**
  * Check that fil corresponds to a filename
@@ -746,6 +748,7 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
 #endif
 }
 
+
 /**
  * Read the contents of a binary file into a buffer.
  * Guarantees not to block (returns GNUNET_SYSERR and sets errno to EAGAIN
@@ -809,8 +812,17 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
   }
   return bytesRead;
 #else
-  /* FIXME: set to non-blocking (fcntl?), read, then set back? */
-  return read (h->fd, result, len);
+  int flags;
+  ssize_t ret;
+
+  /* set to non-blocking, read, then set back */
+  flags = fcntl (h->fd, F_GETFL);
+  if (0 == (flags & O_NONBLOCK))
+    fcntl (h->fd, F_SETFL, flags | O_NONBLOCK);
+  ret = read (h->fd, result, len);
+  if (0 == (flags & O_NONBLOCK))
+    fcntl (h->fd, F_SETFL, flags);
+  return ret;
 #endif
 }
 
@@ -938,6 +950,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
 #endif
 }
 
+
 /**
  * Write a buffer to a file, blocking, if necessary.
  * @param h handle to open file
@@ -991,10 +1004,20 @@ GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
 #endif
   return bytesWritten;
 #else
-  /* FIXME: switch to blocking mode (fcntl?), write, then switch back? */
-  return write (h->fd, buffer, n);
+  int flags;
+  ssize_t ret;
+
+  /* set to blocking, write, then set back */
+  flags = fcntl (h->fd, F_GETFL);
+  if (0 != (flags & O_NONBLOCK))
+    fcntl (h->fd, F_SETFL, flags - O_NONBLOCK);
+  ret = write (h->fd, buffer, n);
+  if (0 == (flags & O_NONBLOCK))
+    fcntl (h->fd, F_SETFL, flags);
+  return ret;
 #endif
 }
+
 
 /**
  * Write a buffer to a file.  If the file is longer than the
