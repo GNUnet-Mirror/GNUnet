@@ -21,6 +21,7 @@
 #include "platform.h"
 #include "gnunet_fs_service.h"
 #include "gnunet_scheduler_lib.h"
+#include <pthread.h>
 
 /**
  * Entry for each unique keyword to track how often
@@ -119,7 +120,7 @@ struct AddDirStack
   /**
    * Parent directory
    */
-  struct ShareTreeItem *parent;
+  struct GNUNET_FS_ShareTreeItem *parent;
 };
 
 /**
@@ -133,7 +134,7 @@ struct AddDirContext
    * top-level directory entry in the directory tree built by the
    * scanner.
    */
-  struct ShareTreeItem *toplevel;
+  struct GNUNET_FS_ShareTreeItem *toplevel;
 
   /**
    * Expanded filename (as given by the scan initiator).
@@ -246,7 +247,7 @@ struct ProcessMetadataStackItem
   * A pointer to metadata-processing context.
   * The same in every stack item.
   */
-  struct ProcessMetadataContext *ctx;
+  struct GNUNET_FS_ProcessMetadataContext *ctx;
 
  /**
   * This is a singly-linked list. A pointer to its end is kept, and
@@ -282,7 +283,7 @@ struct ProcessMetadataStackItem
  /**
   * A share tree item that is being processed.
   */
-  struct ShareTreeItem *item;
+  struct GNUNET_FS_ShareTreeItem *item;
 
  /**
   * Set to GNUNET_YES to indicate that the directory pointer by 'item'
@@ -296,7 +297,7 @@ struct ProcessMetadataStackItem
 /**
  * The structure to keep the state of metadata processing
  */
-struct ProcessMetadataContext
+struct GNUNET_FS_ProcessMetadataContext
 {
  /**
   * The top of the stack.
@@ -316,7 +317,7 @@ struct ProcessMetadataContext
  /**
   * Toplevel directory item of the tree to process.
   */
-  struct ShareTreeItem *toplevel;
+  struct GNUNET_FS_ShareTreeItem *toplevel;
 };
 
 /**
@@ -351,7 +352,7 @@ should_stop (struct AddDirContext *adc)
  */
 static int
 write_progress (struct AddDirContext *adc, const char *filename,
-    char is_directory, enum GNUNET_DirScannerProgressUpdateReason reason)
+    char is_directory, enum GNUNET_FS_DirScannerProgressUpdateReason reason)
 {
   size_t filename_len;
   ssize_t wr;
@@ -521,13 +522,13 @@ add_to_meta_counter (void *cls, const char *plugin_name,
 }
 
 /**
- * Allocates a struct ShareTreeItem and adds it to its parent.
+ * Allocates a struct GNUNET_FS_ShareTreeItem and adds it to its parent.
  */
-static struct ShareTreeItem *
-make_item (struct ShareTreeItem *parent)
+static struct GNUNET_FS_ShareTreeItem *
+make_item (struct GNUNET_FS_ShareTreeItem *parent)
 {
-  struct ShareTreeItem *item;
-  item = GNUNET_malloc (sizeof (struct ShareTreeItem));
+  struct GNUNET_FS_ShareTreeItem *item;
+  item = GNUNET_malloc (sizeof (struct GNUNET_FS_ShareTreeItem));
 
   item->parent = parent;
   if (parent)
@@ -545,7 +546,7 @@ make_item (struct ShareTreeItem *parent)
 static void
 extract_file (struct AddDirStack *ads, const char *filename)
 {
-  struct ShareTreeItem *item;
+  struct GNUNET_FS_ShareTreeItem *item;
   const char *short_fn;
 
   item = make_item (ads->parent);
@@ -596,9 +597,9 @@ remove_keyword (void *cls, const char *keyword, int is_mandatory)
  * @return always GNUNET_OK
  */
 static int
-remove_keywords (struct ProcessMetadataStackItem *stack, struct ShareTreeItem *dir)
+remove_keywords (struct ProcessMetadataStackItem *stack, struct GNUNET_FS_ShareTreeItem *dir)
 {
-  struct ShareTreeItem *item;
+  struct GNUNET_FS_ShareTreeItem *item;
 
   for (item = dir->children_head; item; item = item->next)
   {
@@ -742,7 +743,7 @@ scan_directory (void *cls, const char *filename)
   struct AddDirStack *ads = cls, recurse_ads;
   struct AddDirContext *adc = ads->adc;
   struct stat sbuf;
-  struct ShareTreeItem *item;
+  struct GNUNET_FS_ShareTreeItem *item;
   const char *short_fn;
   int do_stop = 0;
 
@@ -842,10 +843,10 @@ GNUNET_FS_directory_scan_finish (struct GNUNET_FS_DirScanner *ds,
  * @param ds directory scanner structure
  * @return the results of the scan (a directory tree)
  */
-struct ShareTreeItem *
+struct GNUNET_FS_ShareTreeItem *
 GNUNET_FS_directory_scan_cleanup (struct GNUNET_FS_DirScanner *ds)
 {
-  struct ShareTreeItem *result;
+  struct GNUNET_FS_ShareTreeItem *result;
 
   GNUNET_FS_directory_scan_finish (ds, GNUNET_YES);
 #if WINDOWS
@@ -870,10 +871,11 @@ GNUNET_FS_directory_scan_cleanup (struct GNUNET_FS_DirScanner *ds)
 #if WINDOWS
 static DWORD
 #else
-static int
+static void *
 #endif
-run_directory_scan_thread (struct AddDirContext *adc)
+run_directory_scan_thread (void *cls)
 {
+  struct AddDirContext *adc = cls;
   struct AddDirStack ads;
   ads.adc = adc;
   ads.parent = NULL;
@@ -898,7 +900,7 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_DirScanner *ds;
   int end_it = 0;
-  enum GNUNET_DirScannerProgressUpdateReason reason;
+  enum GNUNET_FS_DirScannerProgressUpdateReason reason;
   ssize_t rd;
   ssize_t total_read;
 
@@ -956,7 +958,7 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if (filename_len == 0)
       end_it = 1;
-    else if (filename_len > MAX_PATH)
+    else if (filename_len > PATH_MAX)
     {
       end_it = 1;
       reason = GNUNET_DIR_SCANNER_PROTOCOL_ERROR;
@@ -1182,7 +1184,7 @@ trim_share_tree_task (void *cls,
     else
     {
       /* we've just finished processing the toplevel directory */
-      struct ProcessMetadataContext *ctx = stack->ctx;
+      struct GNUNET_FS_ProcessMetadataContext *ctx = stack->ctx;
       next = NULL;
       GNUNET_SCHEDULER_add_continuation (ctx->cb, ctx->cls,
           GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -1249,11 +1251,11 @@ trim_share_tree_task (void *cls,
  * @param cb called after processing is done
  * @param cls closure for 'cb'
  */
-struct ProcessMetadataContext *
-GNUNET_FS_trim_share_tree (struct ShareTreeItem *toplevel,
+struct GNUNET_FS_ProcessMetadataContext *
+GNUNET_FS_trim_share_tree (struct GNUNET_FS_ShareTreeItem *toplevel,
     GNUNET_SCHEDULER_Task cb, void *cls)
 {
-  struct ProcessMetadataContext *ret;
+  struct GNUNET_FS_ProcessMetadataContext *ret;
 
   if (toplevel == NULL)
   {
@@ -1263,7 +1265,7 @@ GNUNET_FS_trim_share_tree (struct ShareTreeItem *toplevel,
     return NULL;
   }
 
-  ret = GNUNET_malloc (sizeof (struct ProcessMetadataContext));
+  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_ProcessMetadataContext));
   ret->toplevel = toplevel;
   ret->stack = GNUNET_malloc (sizeof (struct ProcessMetadataStackItem));
   ret->stack->ctx = ret;

@@ -2692,7 +2692,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 
 /* ******************** DirScanner API *********************** */
 
-enum GNUNET_DirScannerProgressUpdateReason
+enum GNUNET_FS_DirScannerProgressUpdateReason
 {
   GNUNET_DIR_SCANNER_FIRST = 0,
   GNUNET_DIR_SCANNER_NEW_FILE = 1,
@@ -2707,40 +2707,40 @@ enum GNUNET_DirScannerProgressUpdateReason
 
 typedef int (* GNUNET_FS_DirScannerProgressCallback) (
     void *cls, struct GNUNET_FS_DirScanner *ds, const char *filename,
-    char is_directory, enum GNUNET_DirScannerProgressUpdateReason reason);
+    char is_directory, enum GNUNET_FS_DirScannerProgressUpdateReason reason);
 
 /**
  * A node of a directory tree (produced by dirscanner)
  */
-struct ShareTreeItem
+struct GNUNET_FS_ShareTreeItem
 {
   /**
    * This is a doubly-linked list
    */
-  struct ShareTreeItem *prev;
+  struct GNUNET_FS_ShareTreeItem *prev;
 
   /**
    * This is a doubly-linked list
    */
-  struct ShareTreeItem *next;
+  struct GNUNET_FS_ShareTreeItem *next;
 
   /**
    * This is a doubly-linked tree
    * NULL for top-level entries.
    */
-  struct ShareTreeItem *parent;
+  struct GNUNET_FS_ShareTreeItem *parent;
 
   /**
    * This is a doubly-linked tree
    * NULL for files and empty directories
    */
-  struct ShareTreeItem *children_head;
+  struct GNUNET_FS_ShareTreeItem *children_head;
 
   /**
    * This is a doubly-linked tree
    * NULL for files and empty directories
    */
-  struct ShareTreeItem *children_tail;
+  struct GNUNET_FS_ShareTreeItem *children_tail;
 
   /**
    * Metadata for this file or directory
@@ -2801,7 +2801,7 @@ GNUNET_FS_directory_scan_finish (struct GNUNET_FS_DirScanner *ds,
  * @param ds directory scanner structure
  * @return the results of the scan (a directory tree)
  */
-struct ShareTreeItem *
+struct GNUNET_FS_ShareTreeItem *
 GNUNET_FS_directory_scan_cleanup (struct GNUNET_FS_DirScanner *ds);
 
 /**
@@ -2821,7 +2821,7 @@ GNUNET_FS_directory_scan_start (const char *filename,
 
 
 /* opaque */
-struct ProcessMetadataContext;
+struct GNUNET_FS_ProcessMetadataContext;
 
 /**
  * Process a share item tree, moving frequent keywords up and
@@ -2831,8 +2831,8 @@ struct ProcessMetadataContext;
  * @param cb called after processing is done
  * @param cls closure for 'cb'
  */
-struct ProcessMetadataContext *
-GNUNET_FS_trim_share_tree (struct ShareTreeItem *toplevel,
+struct GNUNET_FS_ProcessMetadataContext *
+GNUNET_FS_trim_share_tree (struct GNUNET_FS_ShareTreeItem *toplevel,
     GNUNET_SCHEDULER_Task cb, void *cls);
 
 
