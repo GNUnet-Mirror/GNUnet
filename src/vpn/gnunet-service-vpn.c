@@ -46,6 +46,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet_mesh_service.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
 #include "tcpip_tun.h"
 #include "vpn.h"
@@ -312,6 +313,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *tunnel_map;
  * of type 'struct TunnelState'.
  */
 static struct GNUNET_CONTAINER_Heap *tunnel_heap;
+
+/**
+ * Statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * The handle to the VPN helper process "gnunet-helper-vpn".
@@ -2119,6 +2125,11 @@ cleanup (void *cls GNUNET_UNUSED,
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
   }
+  if (stats != NULL)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+    stats = NULL;
+  }
   for (i=0;i<5;i++)
     GNUNET_free_non_null (vpn_argv[i]);
 }
@@ -2237,6 +2248,7 @@ run (void *cls,
   struct in6_addr v6;
 
   cfg = cfg_;
+  stats = GNUNET_STATISTICS_create ("vpn", cfg);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "vpn", "MAX_MAPPING",
 					     &max_destination_mappings))

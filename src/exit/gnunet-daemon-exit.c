@@ -43,6 +43,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet_mesh_service.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
 #include "tcpip_tun.h"
 #include "exit.h"
@@ -241,6 +242,11 @@ static char *exit_argv[7];
  * IPv6 prefix (0..127) from configuration file.
  */
 static unsigned long long ipv6prefix;
+
+/**
+ * Statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * The handle to mesh
@@ -1878,6 +1884,11 @@ cleanup (void *cls GNUNET_UNUSED,
     GNUNET_CONTAINER_multihashmap_destroy (udp_services);
     udp_services = NULL;
   }
+  if (stats != NULL)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+    stats = NULL;
+  }
   for (i=0;i<5;i++)
     GNUNET_free_non_null (exit_argv[i]);
 }
@@ -2072,6 +2083,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   struct in6_addr v6;
 
   cfg = cfg_;
+  stats = GNUNET_STATISTICS_create ("exit", cfg);
   ipv4_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV4");
   ipv6_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV6"); 
   ipv4_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV4");
