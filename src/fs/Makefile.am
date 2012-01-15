@@ -67,6 +67,9 @@ bin_PROGRAMS = \
   gnunet-fs \
   gnunet-unindex 
 
+bin_SCRIPTS = \
+  gnunet-download-manager.scm
+
 gnunet_directory_SOURCES = \
  gnunet-directory.c
 gnunet_directory_LDADD = \
