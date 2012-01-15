@@ -312,7 +312,7 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_string, &peer_id},
     {'s', "service", "NAME",
      gettext_noop ("name of the service we would like to access"),
-     1, &GNUNET_GETOPT_set_string, &peer_id},
+     1, &GNUNET_GETOPT_set_string, &service_name},
     {'t', "tcp", NULL,
      gettext_noop ("service is offered via TCP"),
      0, &GNUNET_GETOPT_set_one, &tcp},
