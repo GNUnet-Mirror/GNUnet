@@ -28,7 +28,6 @@
  *
  * TODO:
  * Basics:
- * - need some statistics
  * - test!
  * - better message queue management (bounded state, drop oldest/RED?)
  * - actually destroy "stale" tunnels once we have too many!
@@ -501,6 +500,9 @@ tunnel_peer_disconnect_handler (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peer %s disconnected from tunnel.\n",
 	      GNUNET_i2s (peer));
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Peers connected to mesh tunnels"),
+			    -1, GNUNET_NO);
   if (NULL != ts->th)
   {
     GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
@@ -534,6 +536,9 @@ tunnel_peer_connect_handler (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peer %s connected to tunnel.\n",
 	      GNUNET_i2s (peer));
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Peers connected to mesh tunnels"),
+			    1, GNUNET_NO);
   if (NULL == ts->client)
     return; /* nothing to do */
   send_client_reply (ts->client,
@@ -584,6 +589,9 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 						tnq->len,
 						&send_to_peer_notify_callback,
 						ts);
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Bytes given to mesh for transmission"),
+			    ret, GNUNET_NO);
   return ret;
 }
 
@@ -634,6 +642,9 @@ create_tunnel_to_destination (struct DestinationEntry *de,
 {
   struct TunnelState *ts;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Mesh tunnels created"),
+			    1, GNUNET_NO);
   GNUNET_assert (NULL == de->ts);
   ts = GNUNET_malloc (sizeof (struct TunnelState));
   if (NULL != client)
@@ -857,6 +868,9 @@ route_packet (struct DestinationEntry *destination,
 						      &key,
 						      ts,
 						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)); 
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# Active tunnels"),
+			      1, GNUNET_NO);
     /* FIXME: expire OLD tunnels if we have too many! */
   }
   else
@@ -1052,6 +1066,9 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
   GNUNET_HashCode key;
   struct DestinationEntry *de;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Packets received from TUN interface"),
+			    1, GNUNET_NO);
   mlen = ntohs (message->size);
   if ( (ntohs (message->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER) ||
        (mlen < sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header)) )
@@ -1183,6 +1200,9 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_EXIT_UdpReplyMessage *reply;
   size_t mlen;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# UDP packets received from mesh"),
+			    1, GNUNET_NO);
   mlen = ntohs (message->size);
   if (mlen < sizeof (struct GNUNET_EXIT_UdpReplyMessage))
   {
@@ -1363,6 +1383,9 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_EXIT_TcpDataMessage *data;
   size_t mlen;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# TCP packets received from mesh"),
+			    1, GNUNET_NO);
   mlen = ntohs (message->size);
   if (mlen < sizeof (struct GNUNET_EXIT_TcpDataMessage))
   {
@@ -1764,6 +1787,10 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   de->heap_node = GNUNET_CONTAINER_heap_insert (destination_heap,
 						de,
 						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value);
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Active destinations"),
+			    1, GNUNET_NO);
+
   /* FIXME: expire OLD destinations if we have too many! */
   /* setup tunnel to destination */
   (void) create_tunnel_to_destination (de, 
@@ -1927,6 +1954,9 @@ free_tunnel_state (struct TunnelState *ts)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Cleaning up tunnel state\n");
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Active tunnels"),
+			    -1, GNUNET_NO);
   while (NULL != (tnq = ts->head))
   {
     GNUNET_CONTAINER_DLL_remove (ts->head,
@@ -1986,7 +2016,9 @@ free_destination_entry (struct DestinationEntry *de)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Cleaning up destination entry\n");
-
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Active destinations"),
+			    -1, GNUNET_NO);
   if (NULL != de->ts)
   {
     free_tunnel_state (de->ts);
