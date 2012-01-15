@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,119 +20,177 @@
 
 /**
  * @file dns/gnunet-service-dns.c
- * @author Philipp Toelke
+ * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_service_lib.h"
-#include <gnunet_constants.h>
-#include "gnunet_network_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_dns_service.h"
-#include "gnunet_connection_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_constants.h"
 #include "gnunet_protocols.h"
-#include "gnunet_applications.h"
-#include "gnunet_container_lib.h"
-#include "gnunet_dnsparser_lib.h"
-#include "gnunet_dht_service.h"
-#include "gnunet_block_lib.h"
-#include "block_dns.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_mesh_service.h"
 #include "gnunet_signatures.h"
-
 #include "dns.h"
+#include "gnunet_dns_service.h"
+#include "gnunet_statistics_service.h"
+#include "tcpip_tun.h"
+
+#ifndef IPVERSION
+#define IPVERSION 4
+#endif
 
 /**
- * A structure containing a mapping from network-byte-ordered DNS-id (16 bit) to
- * some information needed to handle this query
- *
- * It currently allocates at least
- * (1 + machine-width + machine-width + 32 + 32 + 16 + machine-width + 8) * 65536 bit
- * = 17 MiB on 64 bit.
- * = 11 MiB on 32 bit.
+ * Phases each request goes through.
  */
-static struct
+enum RequestPhase
 {
-  unsigned valid:1;
-  struct GNUNET_SERVER_Client *client;
-  struct GNUNET_MESH_Tunnel *tunnel;
-  char local_ip[16];
-  char remote_ip[16];
-  char addrlen;
-  uint16_t local_port;
-  char *name;
-  uint8_t namelen;
-  uint16_t qtype;
-} query_states[UINT16_MAX + 1];
+  /**
+   * Request has just been received.
+   */
+  RP_INIT,
+
+  /**
+   * Showing the request to all monitor clients.  If
+   * client list is empty, will enter QUERY phase.
+   */
+  RP_REQUEST_MONITOR,
+
+  /**
+   * Showing the request to PRE-RESOLUTION clients to find an answer.
+   * If client list is empty, will trigger global DNS request.
+   */
+  RP_QUERY,
+
+  /**
+   * Global Internet query is now pending.
+   */
+  RP_INTERNET_DNS,
+  
+  /**
+   * Client (or global DNS request) has resulted in a response.
+   * Forward to all POST-RESOLUTION clients.  If client list is empty,
+   * will enter RESPONSE_MONITOR phase.
+   */
+  RP_MODIFY,
+
+  /**
+   * Showing the request to all monitor clients.  If
+   * client list is empty, give the result to the hijacker (and be done).
+   */
+  RP_RESPONSE_MONITOR,
+
+  /**
+   * Some client has told us to drop the request.
+   */
+  RP_DROP
+};
+
 
 /**
- * A struct used to give more than one value as
- * closure to receive_dht
- */
-struct receive_dht_cls
+ * Entry we keep for each client.
+ */ 
+struct ClientRecord
 {
-  uint16_t id;
-  struct GNUNET_DHT_GetHandle *handle;
-};
+  /**
+   * Kept in doubly-linked list.
+   */ 
+  struct ClientRecord *next;
 
-struct tunnel_notify_queue
-{
-  struct tunnel_notify_queue *next;
-  struct tunnel_notify_queue *prev;
-  void *cls;
-  size_t len;
-  GNUNET_CONNECTION_TransmitReadyNotify cb;
-};
+  /**
+   * Kept in doubly-linked list.
+   */ 
+  struct ClientRecord *prev;
 
-struct tunnel_state
-{
-  struct tunnel_notify_queue *head, *tail;
-  struct GNUNET_MESH_TransmitHandle *th;
-};
-
-
-struct answer_packet_list
-{
-  struct answer_packet_list *next;
-  struct answer_packet_list *prev;
+  /**
+   * Handle to the client.
+   */ 
   struct GNUNET_SERVER_Client *client;
-  struct answer_packet pkt;
+
+  /**
+   * Flags for the client.
+   */
+  enum GNUNET_DNS_Flags flags;
+
 };
 
-GNUNET_NETWORK_STRUCT_BEGIN
-struct tunnel_cls
-{
-  struct GNUNET_MESH_Tunnel *tunnel;
-  struct GNUNET_MessageHeader hdr;
-  struct dns_pkt dns;
-};
-GNUNET_NETWORK_STRUCT_END
-
-struct tunnel_cls *remote_pending[UINT16_MAX];
-
-
-static struct GNUNET_MESH_Handle *mesh_handle;
-
-static struct GNUNET_CONNECTION_TransmitHandle *server_notify;
 
 /**
- * The UDP-Socket through which DNS-Resolves will be sent if they are not to be
+ * Entry we keep for each active request.
+ */ 
+struct RequestRecord
+{
+
+  /**
+   * List of clients that still need to see this request (each entry
+   * is set to NULL when the client is done).
+   */
+  struct ClientRecord **client_wait_list;
+
+  /**
+   * Payload of the UDP packet (the UDP payload), can be either query
+   * or already the response.
+   */
+  char *payload;
+
+  /**
+   * Source address of the original request (for sending response).
+   */
+  struct sockaddr_storage src_addr;
+
+  /**
+   * Destination address of the original request (for potential use as exit).
+   */
+  struct sockaddr_storage dst_addr;
+
+  /**
+   * ID of this request, also basis for hashing.  Lowest 16 bit will
+   * be our message ID when doing a global DNS request and our index
+   * into the 'requests' array.
+   */
+  uint64_t request_id;
+
+  /**
+   * Number of bytes in payload.
+   */ 
+  size_t payload_length;
+
+  /**
+   * Length of the client wait list.
+   */
+  unsigned int client_wait_list_length;
+
+  /**
+   * In which phase this this request?
+   */
+  enum RequestPhase phase;
+
+};
+
+
+/**
+ * The IPv4 UDP-Socket through which DNS-Resolves will be sent if they are not to be
  * sent through gnunet. The port of this socket will not be hijacked.
  */
-static struct GNUNET_NETWORK_Handle *dnsout;
+static struct GNUNET_NETWORK_Handle *dnsout4;
 
+/**
+ * The IPv6 UDP-Socket through which DNS-Resolves will be sent if they are not to be
+ * sent through gnunet. The port of this socket will not be hijacked.
+ */
 static struct GNUNET_NETWORK_Handle *dnsout6;
 
 /**
- * The port bound to the socket dnsout
+ * Task for reading from dnsout4.
  */
-static unsigned short dnsoutport;
+static GNUNET_SCHEDULER_TaskIdentifier read4_task;
 
 /**
- * A handle to the DHT-Service
+ * Task for reading from dnsout6.
  */
-static struct GNUNET_DHT_Handle *dht;
+static GNUNET_SCHEDULER_TaskIdentifier read6_task;
+
+/**
+ * The port bound to the socket dnsout (and/or dnsout6).  We always (try) to bind
+ * both sockets to the same port.
+ */
+static uint16_t dnsoutport;
 
 /**
  * The configuration to use
@@ -140,1291 +198,60 @@ static struct GNUNET_DHT_Handle *dht;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * A list of DNS-Responses that have to be sent to the requesting client
+ * Statistics.
  */
-static struct answer_packet_list *head;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
- * The tail of the list of DNS-responses
+ * Handle to DNS hijacker helper process ("gnunet-helper-dns").
  */
-static struct answer_packet_list *tail;
-
-
-static size_t
-send_answer (void *cls, size_t size, void *buf);
-
-static void
-client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
-{
-  if (NULL == head)
-    return;
-
-  if (head->client == client)
-  {
-    GNUNET_CONNECTION_notify_transmit_ready_cancel (server_notify);
-    server_notify =
-        GNUNET_SERVER_notify_transmit_ready (head->next->client,
-                                             ntohs (head->next->pkt.hdr.size),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &send_answer, NULL);
-  }
-
-  struct answer_packet_list *element = head;
-
-  while (element != NULL)
-  {
-    if (element->client == client)
-    {
-      GNUNET_SERVER_client_drop (client);
-      GNUNET_CONTAINER_DLL_remove (head, tail, element);
-      struct answer_packet_list *t = element;
-
-      element = element->next;
-      GNUNET_free (t);
-    }
-    else
-      element = element->next;
-  }
-}
+static struct GNUNET_HELPER_Handle *hijacker;
 
 /**
- * Hijack all outgoing DNS-Traffic but for traffic leaving "our" port.
+ * Command-line arguments we are giving to the hijacker process.
  */
-static void
-hijack (void *cls GNUNET_UNUSED, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  if (0 == dnsoutport)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Delaying the hijacking, port is still %d!\n", dnsoutport);
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &hijack, NULL);
-    return;
-  }
-
-  char port_s[6];
-  char *virt_dns;
-  struct GNUNET_OS_Process *proc;
-
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS", &virt_dns))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'VIRTDNS' in configuration!\n");
-    exit (1);
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", dnsoutport);
-  snprintf (port_s, 6, "%d", dnsoutport);
-  if (NULL !=
-      (proc =
-       GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-hijack-dns",
-                                "gnunet-hijack-dns", port_s, virt_dns, NULL)))
-  {
-    GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (proc));
-    GNUNET_OS_process_close (proc);
-  }
-  GNUNET_free (virt_dns);
-}
-
-static void *
-new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-            const struct GNUNET_PeerIdentity *initiator GNUNET_UNUSED,
-            const struct GNUNET_ATS_Information *ats GNUNET_UNUSED)
-{
-  struct tunnel_state *s = GNUNET_malloc (sizeof *s);
-
-  s->head = NULL;
-  s->tail = NULL;
-  s->th = NULL;
-  return s;
-}
-
-static void
-clean_tunnel (void *cls GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
-              void *tunnel_ctx)
-{
-  GNUNET_free (tunnel_ctx);
-}
+static char *helper_argv[8];
 
 /**
- * Delete the hijacking-routes
+ * Head of DLL of clients we consult.
  */
-static void
-unhijack (unsigned short port)
-{
-  char port_s[6];
-  char *virt_dns;
-  struct GNUNET_OS_Process *proc;
-
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS", &virt_dns))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'VIRTDNS' in configuration!\n");
-    exit (1);
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "unHijacking, port is %d\n", port);
-  snprintf (port_s, 6, "%d", port);
-  if (NULL !=
-      (proc =
-       GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-hijack-dns",
-                                "gnunet-hijack-dns", "-d", port_s, virt_dns,
-                                NULL)))
-  {
-    GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (proc));
-    GNUNET_OS_process_close (proc);
-  }
-  GNUNET_free (virt_dns);
-}
+static struct ClientRecord *clients_head;
 
 /**
- * Send the DNS-Response to the client. Gets called via the notify_transmit_ready-
- * system.
+ * Tail of DLL of clients we consult.
  */
-static size_t
-send_answer (void *cls, size_t size, void *buf)
-{
-  server_notify = NULL;
-  struct answer_packet_list *query = head;
-  size_t len = ntohs (query->pkt.hdr.size);
-
-  GNUNET_assert (len <= size);
-
-  memcpy (buf, &query->pkt.hdr, len);
-
-  GNUNET_CONTAINER_DLL_remove (head, tail, query);
-
-  /* When more data is to be sent, reschedule */
-  if (head != NULL)
-    server_notify =
-        GNUNET_SERVER_notify_transmit_ready (head->client,
-                                             ntohs (head->pkt.hdr.size),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &send_answer, NULL);
-
-  GNUNET_SERVER_client_drop (query->client);
-  GNUNET_free (query);
-  return len;
-}
-
-
-static size_t
-mesh_send_response (void *cls, size_t size, void *buf)
-{
-  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
-  struct GNUNET_MessageHeader *hdr = buf;
-  uint32_t *sz = cls;
-  struct GNUNET_MESH_Tunnel **tunnel = (struct GNUNET_MESH_Tunnel **) (sz + 1);
-  struct dns_pkt *dns = (struct dns_pkt *) (tunnel + 1);
-
-  GNUNET_MESH_tunnel_set_data (*tunnel, NULL);
-
-  hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_REMOTE_ANSWER_DNS);
-  hdr->size = htons (*sz + sizeof (struct GNUNET_MessageHeader));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending response, size=%d, sz=%d, sz+hdr=%d\n", size, *sz,
-              *sz + sizeof (struct GNUNET_MessageHeader));
-
-  GNUNET_assert (size >= (*sz + sizeof (struct GNUNET_MessageHeader)));
-
-  memcpy (hdr + 1, dns, *sz);
-  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data (*tunnel);
-
-  if (NULL != s->head)
-  {
-    struct tunnel_notify_queue *element = s->head;
-    struct tunnel_notify_queue *head = s->head;
-    struct tunnel_notify_queue *tail = s->tail;
-
-    GNUNET_CONTAINER_DLL_remove (head, tail, element);
-
-    s->th =
-        GNUNET_MESH_notify_transmit_ready (*tunnel, GNUNET_NO, 42,
-                                           GNUNET_TIME_relative_divide
-                                           (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-                                           (const struct GNUNET_PeerIdentity *)
-                                           NULL, element->len, element->cb,
-                                           element->cls);
-  }
-
-  GNUNET_free (cls);
-
-  return ntohs (hdr->size);
-}
-
-static size_t
-mesh_send (void *cls, size_t size, void *buf)
-{
-  struct tunnel_cls *cls_ = (struct tunnel_cls *) cls;
-
-  GNUNET_MESH_tunnel_set_data (cls_->tunnel, NULL);
-
-  GNUNET_assert (cls_->hdr.size <= size);
-
-  size = cls_->hdr.size;
-  cls_->hdr.size = htons (cls_->hdr.size);
-
-  memcpy (buf, &cls_->hdr, size);
-
-  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data (cls_->tunnel);
-
-  if (NULL != s->head)
-  {
-    struct tunnel_notify_queue *element = s->head;
-    struct tunnel_notify_queue *head = s->head;
-    struct tunnel_notify_queue *tail = s->tail;;
-
-    GNUNET_CONTAINER_DLL_remove (head, tail, element);
-
-    s->th =
-        GNUNET_MESH_notify_transmit_ready (cls_->tunnel, GNUNET_NO, 42,
-                                           GNUNET_TIME_relative_divide
-                                           (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-                                           (const struct GNUNET_PeerIdentity *)
-                                           NULL, element->len, element->cb,
-                                           element->cls);
-
-    GNUNET_free (element);
-  }
-
-  return size;
-}
-
-
-static void
-mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
-{
-  if (NULL == peer)
-    return;
-  struct tunnel_cls *cls_ = (struct tunnel_cls *) cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connected to peer %s, %x, sending query with id %d\n",
-              GNUNET_i2s (peer), peer, ntohs (cls_->dns.s.id));
-
-  struct tunnel_state *s = GNUNET_MESH_tunnel_get_data (cls_->tunnel);
-
-  if (NULL == s->head)
-  {
-    s->th =
-        GNUNET_MESH_notify_transmit_ready (cls_->tunnel, GNUNET_YES, 42,
-                                           GNUNET_TIME_UNIT_MINUTES, NULL,
-                                           cls_->hdr.size, mesh_send, cls);
-
-  }
-  else
-  {
-    struct tunnel_notify_queue *head = s->head;
-    struct tunnel_notify_queue *tail = s->tail;
-
-    struct tunnel_notify_queue *element =
-        GNUNET_malloc (sizeof (struct tunnel_notify_queue));
-    element->cls = cls;
-    element->len = cls_->hdr.size;
-    element->cb = mesh_send;
-
-    GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);
-  }
-}
-
-
-static void
-send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  struct tunnel_cls *cls_ = (struct tunnel_cls *) cls;
-
-  struct tunnel_state *s = GNUNET_malloc (sizeof *s);
-
-  s->head = NULL;
-  s->tail = NULL;
-  s->th = NULL;
-
-  cls_->tunnel =
-      GNUNET_MESH_tunnel_create (mesh_handle, s, mesh_connect, NULL, cls_);
-
-  GNUNET_MESH_peer_request_connect_by_type (cls_->tunnel,
-                                            GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER);
-
-  remote_pending[cls_->dns.s.id] = cls_;
-}
-
-static int
-receive_mesh_query (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-                    void **ctx GNUNET_UNUSED,
-                    const struct GNUNET_PeerIdentity *sender GNUNET_UNUSED,
-                    const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
-{
-  struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
-
-  struct sockaddr_in dest;
-
-  struct dns_pkt_parsed *pdns = parse_dns_packet (dns);
-
-  memset (&dest, 0, sizeof dest);
-  dest.sin_port = htons (53);
-  char *dns_resolver;
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "EXTERNAL_DNS",
-                                             &dns_resolver) ||
-      1 != inet_pton (AF_INET, dns_resolver, &dest.sin_addr))
-    inet_pton (AF_INET, "8.8.8.8", &dest.sin_addr);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Querying for remote, id=%d\n",
-              ntohs (dns->s.id));
-  query_states[dns->s.id].tunnel = tunnel;
-  query_states[dns->s.id].valid = GNUNET_YES;
-
-  int i;
-
-  for (i = 0; i < ntohs (pdns->s.qdcount); i++)
-  {
-    if (pdns->queries[i]->qtype == htons (28) ||
-        pdns->queries[i]->qtype == htons (1))
-    {
-      query_states[dns->s.id].qtype = pdns->queries[i]->qtype;
-      break;
-    }
-  }
-  free_parsed_dns_packet (pdns);
-
-  GNUNET_NETWORK_socket_sendto (dnsout, dns,
-                                ntohs (message->size) -
-                                sizeof (struct GNUNET_MessageHeader),
-                                (struct sockaddr *) &dest, sizeof dest);
-
-  return GNUNET_SYSERR;
-}
-
-static int
-receive_mesh_answer (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-                     void **ctx GNUNET_UNUSED,
-                     const struct GNUNET_PeerIdentity *sender,
-                     const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
-{
-  /* TODo: size check */
-  struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
-
-  /* They sent us a packet we were not waiting for */
-  if (remote_pending[dns->s.id] == NULL ||
-      remote_pending[dns->s.id]->tunnel != tunnel)
-    return GNUNET_OK;
-
-  GNUNET_free (remote_pending[dns->s.id]);
-  remote_pending[dns->s.id] = NULL;
-
-  if (query_states[dns->s.id].valid != GNUNET_YES)
-    return GNUNET_SYSERR;
-  query_states[dns->s.id].valid = GNUNET_NO;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received answer from peer %s, dns-id %d\n", GNUNET_i2s (sender),
-              ntohs (dns->s.id));
-
-  size_t len = sizeof (struct answer_packet) - 1 + sizeof (struct dns_static) + query_states[dns->s.id].namelen + sizeof (struct dns_query_line) + 2    /* To hold the pointer (as defined in RFC1035) to the name */
-      + sizeof (struct dns_record_line) - 1 + 16;       /* To hold the IPv6-Address */
-
-  struct answer_packet_list *answer =
-      GNUNET_malloc (len + sizeof (struct answer_packet_list) -
-                     sizeof (struct answer_packet));
-
-  answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
-  answer->pkt.hdr.size = htons (len);
-
-  struct dns_pkt_parsed *pdns = parse_dns_packet (dns);
-
-  if (ntohs (pdns->s.ancount) < 1)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Answer only contains %d answers.\n",
-                ntohs (pdns->s.ancount));
-    free_parsed_dns_packet (pdns);
-    GNUNET_free (answer);
-    return GNUNET_OK;
-  }
-
-  int i = 0;
-
-  while (i < ntohs (pdns->s.ancount) && ntohs (pdns->answers[i]->type) != 28 &&
-         ntohs (pdns->answers[i]->type) != 1)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Answer contains %d.\n",
-                ntohs (pdns->answers[i]->type));
-    i++;
-  }
-
-  if (i >= ntohs (pdns->s.ancount))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Answer does not contain any usable answers.\n");
-    free_parsed_dns_packet (pdns);
-    GNUNET_free (answer);
-    return GNUNET_OK;
-  }
-
-  answer->pkt.addrsize = ntohs (pdns->answers[i]->data_len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "The first answer has the addrlen %d\n",
-              answer->pkt.addrsize);
-  memcpy (answer->pkt.addr, pdns->answers[i]->data,
-          ntohs (pdns->answers[i]->data_len));
-
-  memcpy (answer->pkt.from, query_states[dns->s.id].remote_ip,
-          query_states[dns->s.id].addrlen);
-  memcpy (answer->pkt.to, query_states[dns->s.id].local_ip,
-          query_states[dns->s.id].addrlen);
-  answer->pkt.addrlen = query_states[dns->s.id].addrlen;
-  answer->pkt.dst_port = query_states[dns->s.id].local_port;
-
-  struct dns_pkt *dpkt = (struct dns_pkt *) answer->pkt.data;
-
-  dpkt->s.id = dns->s.id;
-  dpkt->s.aa = 1;
-  dpkt->s.qr = 1;
-  dpkt->s.ra = 1;
-  dpkt->s.qdcount = htons (1);
-  dpkt->s.ancount = htons (1);
-
-  memcpy (dpkt->data, query_states[dns->s.id].name,
-          query_states[dns->s.id].namelen);
-  GNUNET_free (query_states[dns->s.id].name);
-  query_states[dns->s.id].name = NULL;
-
-  struct dns_query_line *dque =
-      (struct dns_query_line *) (dpkt->data +
-                                 (query_states[dns->s.id].namelen));
-
-  struct dns_record_line *drec_data =
-      (struct dns_record_line *) (dpkt->data +
-                                  (query_states[dns->s.id].namelen) +
-                                  sizeof (struct dns_query_line) + 2);
-  if (htons (28) == query_states[dns->s.id].qtype)
-  {
-    answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA;
-    dque->type = htons (28);    /* AAAA */
-    drec_data->type = htons (28);       /* AAAA */
-    drec_data->data_len = htons (16);
-  }
-  else if (htons (1) == query_states[dns->s.id].qtype)
-  {
-    answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_A;
-    dque->type = htons (1);     /* A */
-    drec_data->type = htons (1);        /* A */
-    drec_data->data_len = htons (4);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "dns-answer with pending qtype = %d\n",
-                query_states[dns->s.id].qtype);
-    GNUNET_assert (0);
-  }
-  dque->class = htons (1);      /* IN */
-
-  char *anname =
-      (char *) (dpkt->data + (query_states[dns->s.id].namelen) +
-                sizeof (struct dns_query_line));
-  memcpy (anname, "\xc0\x0c", 2);
-  drec_data->class = htons (1); /* IN */
-
-  drec_data->ttl = pdns->answers[i]->ttl;
-
-  /* Calculate at which offset in the packet the IPv6-Address belongs, it is
-   * filled in by the daemon-vpn */
-  answer->pkt.addroffset =
-      htons ((unsigned short) ((unsigned long) (&drec_data->data) -
-                               (unsigned long) (&answer->pkt)));
-
-  GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
-  answer->client = query_states[dns->s.id].client;
-
-  if (server_notify == NULL)
-    server_notify =
-        GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
-                                             len, GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &send_answer, NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sent answer of length %d on to client, addroffset = %d\n", len,
-              answer->pkt.addroffset);
-
-  free_parsed_dns_packet (pdns);
-  return GNUNET_OK;
-}
-
-
-static void
-send_rev_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  struct dns_pkt_parsed *pdns = (struct dns_pkt_parsed *) cls;
-
-  unsigned short id = pdns->s.id;
-
-  free_parsed_dns_packet (pdns);
-
-  if (query_states[id].valid != GNUNET_YES)
-    return;
-  query_states[id].valid = GNUNET_NO;
-
-  GNUNET_assert (query_states[id].namelen == 74);
-
-  size_t len = sizeof (struct answer_packet) - 1 + sizeof (struct dns_static) + 74      /* this is the length of a reverse ipv6-lookup */
-      + sizeof (struct dns_query_line) + 2      /* To hold the pointer (as defined in RFC1035) to the name */
-      + sizeof (struct dns_record_line) - 1 -
-      2 /* We do not know the lenght of the answer yet */ ;
-
-  struct answer_packet_list *answer =
-      GNUNET_malloc (len + sizeof (struct answer_packet_list) -
-                     sizeof (struct answer_packet));
-
-  answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
-  answer->pkt.hdr.size = htons (len);
-  answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REV;
-
-  memcpy (answer->pkt.from, query_states[id].remote_ip,
-          query_states[id].addrlen);
-  memcpy (answer->pkt.to, query_states[id].local_ip, query_states[id].addrlen);
-
-  answer->pkt.dst_port = query_states[id].local_port;
-
-  struct dns_pkt *dpkt = (struct dns_pkt *) answer->pkt.data;
-
-  dpkt->s.id = id;
-  dpkt->s.aa = 1;
-  dpkt->s.qr = 1;
-  dpkt->s.ra = 1;
-  dpkt->s.qdcount = htons (1);
-  dpkt->s.ancount = htons (1);
-
-  memcpy (dpkt->data, query_states[id].name, query_states[id].namelen);
-  GNUNET_free (query_states[id].name);
-  query_states[id].name = NULL;
-
-  struct dns_query_line *dque =
-      (struct dns_query_line *) (dpkt->data + (query_states[id].namelen));
-  dque->type = htons (12);      /* PTR */
-  dque->class = htons (1);      /* IN */
-
-  char *anname =
-      (char *) (dpkt->data + (query_states[id].namelen) +
-                sizeof (struct dns_query_line));
-  memcpy (anname, "\xc0\x0c", 2);
-
-  struct dns_record_line *drec_data =
-      (struct dns_record_line *) (dpkt->data + (query_states[id].namelen) +
-                                  sizeof (struct dns_query_line) + 2);
-  drec_data->type = htons (12); /* AAAA */
-  drec_data->class = htons (1); /* IN */
-  /* FIXME: read the TTL from block:
-   * GNUNET_TIME_absolute_get_remaining(rec->expiration_time)
-   *
-   * But how to get the seconds out of this?
-   */
-  drec_data->ttl = htonl (3600);
-
-  /* Calculate at which offset in the packet the length of the name and the
-   * name, it is filled in by the daemon-vpn */
-  answer->pkt.addroffset =
-      htons ((unsigned short) ((unsigned long) (&drec_data->data_len) -
-                               (unsigned long) (&answer->pkt)));
-
-  GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
-  answer->client = query_states[id].client;
-
-  if (server_notify == NULL)
-    server_notify =
-        GNUNET_SERVER_notify_transmit_ready (query_states[id].client, len,
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &send_answer, NULL);
-}
+static struct ClientRecord *clients_tail;
 
 /**
- * Receive a block from the dht.
+ * Our notification context.
  */
-static void
-receive_dht (void *cls, struct GNUNET_TIME_Absolute exp GNUNET_UNUSED,
-             const GNUNET_HashCode * key GNUNET_UNUSED,
-             const struct GNUNET_PeerIdentity *get_path GNUNET_UNUSED,
-             unsigned int get_path_length GNUNET_UNUSED,
-             const struct GNUNET_PeerIdentity *put_path GNUNET_UNUSED,
-             unsigned int put_path_length GNUNET_UNUSED,
-             enum GNUNET_BLOCK_Type type, size_t size, const void *data)
-{
-
-  unsigned short id = ((struct receive_dht_cls *) cls)->id;
-  struct GNUNET_DHT_GetHandle *handle =
-      ((struct receive_dht_cls *) cls)->handle;
-  GNUNET_free (cls);
-
-  GNUNET_DHT_get_stop (handle);
-
-  GNUNET_assert (type == GNUNET_BLOCK_TYPE_DNS);
-
-  /* If no query with this id is pending, ignore the block */
-  if (query_states[id].valid != GNUNET_YES)
-    return;
-  query_states[id].valid = GNUNET_NO;
-
-  const struct GNUNET_DNS_Record *rec = data;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got block of size %d, peer: %08x, desc: %08x\n", size,
-              *((unsigned int *) &rec->peer),
-              *((unsigned int *) &rec->service_descriptor));
-
-  size_t len = sizeof (struct answer_packet) - 1 + sizeof (struct dns_static) + query_states[id].namelen + sizeof (struct dns_query_line) + 2   /* To hold the pointer (as defined in RFC1035) to the name */
-      + sizeof (struct dns_record_line) - 1 + 16;       /* To hold the IPv6-Address */
-
-  struct answer_packet_list *answer =
-      GNUNET_malloc (len + sizeof (struct answer_packet_list) -
-                     sizeof (struct answer_packet));
-
-  answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
-  answer->pkt.hdr.size = htons (len);
-  answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_SERVICE;
-  answer->client = query_states[id].client;
-
-  GNUNET_CRYPTO_hash (&rec->peer,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &answer->pkt.service_descr.peer);
-
-  memcpy (&answer->pkt.service_descr.service_descriptor,
-          &rec->service_descriptor, sizeof (GNUNET_HashCode));
-  memcpy (&answer->pkt.service_descr.service_type, &rec->service_type,
-          sizeof (answer->pkt.service_descr.service_type));
-  memcpy (&answer->pkt.service_descr.ports, &rec->ports,
-          sizeof (answer->pkt.service_descr.ports));
-
-  memcpy (answer->pkt.from, query_states[id].remote_ip,
-          query_states[id].addrlen);
-  memcpy (answer->pkt.to, query_states[id].local_ip, query_states[id].addrlen);
-  answer->pkt.addrlen = query_states[id].addrlen;
-
-  answer->pkt.dst_port = query_states[id].local_port;
-
-  struct dns_pkt *dpkt = (struct dns_pkt *) answer->pkt.data;
-
-  dpkt->s.id = id;
-  dpkt->s.aa = 1;
-  dpkt->s.qr = 1;
-  dpkt->s.ra = 1;
-  dpkt->s.qdcount = htons (1);
-  dpkt->s.ancount = htons (1);
-
-  memcpy (dpkt->data, query_states[id].name, query_states[id].namelen);
-  GNUNET_free (query_states[id].name);
-  query_states[id].name = NULL;
-
-  struct dns_query_line *dque =
-      (struct dns_query_line *) (dpkt->data + (query_states[id].namelen));
-  dque->type = htons (28);      /* AAAA */
-  dque->class = htons (1);      /* IN */
-
-  char *anname =
-      (char *) (dpkt->data + (query_states[id].namelen) +
-                sizeof (struct dns_query_line));
-  memcpy (anname, "\xc0\x0c", 2);
-
-  struct dns_record_line *drec_data =
-      (struct dns_record_line *) (dpkt->data + (query_states[id].namelen) +
-                                  sizeof (struct dns_query_line) + 2);
-  drec_data->type = htons (28); /* AAAA */
-  drec_data->class = htons (1); /* IN */
-
-  /* FIXME: read the TTL from block:
-   * GNUNET_TIME_absolute_get_remaining(rec->expiration_time)
-   *
-   * But how to get the seconds out of this?
-   */
-  drec_data->ttl = htonl (3600);
-  drec_data->data_len = htons (16);
-
-  /* Calculate at which offset in the packet the IPv6-Address belongs, it is
-   * filled in by the daemon-vpn */
-  answer->pkt.addroffset =
-      htons ((unsigned short) ((unsigned long) (&drec_data->data) -
-                               (unsigned long) (&answer->pkt)));
-
-  GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
-
-  if (server_notify == NULL)
-    server_notify =
-        GNUNET_SERVER_notify_transmit_ready (answer->client, len,
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &send_answer, NULL);
-}
+static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
- * This receives a GNUNET_MESSAGE_TYPE_REHIJACK and rehijacks the DNS
+ * Array of all open requests.
  */
-static void
-rehijack (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
-          const struct GNUNET_MessageHeader *message GNUNET_UNUSED)
-{
-  unhijack (dnsoutport);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &hijack, NULL);
-
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
+static struct RequestRecord requests[UINT16_MAX + 1];
 
 /**
- * This receives the dns-payload from the daemon-vpn and sends it on over the udp-socket
+ * Generator for unique request IDs.
  */
-static void
-receive_query (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
-               const struct GNUNET_MessageHeader *message)
-{
-  struct query_packet *pkt = (struct query_packet *) message;
-  struct dns_pkt *dns = (struct dns_pkt *) pkt->data;
-  struct dns_pkt_parsed *pdns = parse_dns_packet (dns);
+static uint64_t request_id_gen;
 
-  query_states[dns->s.id].valid = GNUNET_YES;
-  query_states[dns->s.id].client = client;
-  GNUNET_SERVER_client_keep (client);
-  memcpy (query_states[dns->s.id].local_ip, pkt->orig_from, pkt->addrlen);
-  query_states[dns->s.id].addrlen = pkt->addrlen;
-  query_states[dns->s.id].local_port = pkt->src_port;
-  memcpy (query_states[dns->s.id].remote_ip, pkt->orig_to, pkt->addrlen);
-  query_states[dns->s.id].namelen = strlen ((char *) dns->data) + 1;
-  if (query_states[dns->s.id].name != NULL)
-    GNUNET_free (query_states[dns->s.id].name);
-  query_states[dns->s.id].name =
-      GNUNET_malloc (query_states[dns->s.id].namelen);
-  memcpy (query_states[dns->s.id].name, dns->data,
-          query_states[dns->s.id].namelen);
-
-  int i;
-
-  for (i = 0; i < ntohs (pdns->s.qdcount); i++)
-  {
-    if (pdns->queries[i]->qtype == htons (28) ||
-        pdns->queries[i]->qtype == htons (1))
-    {
-      query_states[dns->s.id].qtype = pdns->queries[i]->qtype;
-      break;
-    }
-  }
-
-  /* The query is for a .gnunet-address */
-  if (pdns->queries[0]->namelen > 9 &&
-      0 == strncmp (pdns->queries[0]->name + (pdns->queries[0]->namelen - 9),
-                    ".gnunet.", 9))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Query for .gnunet!\n");
-    GNUNET_HashCode key;
-
-    GNUNET_CRYPTO_hash (pdns->queries[0]->name, pdns->queries[0]->namelen,
-                        &key);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting with key %08x, len is %d\n",
-                *((unsigned int *) &key), pdns->queries[0]->namelen);
-
-    struct receive_dht_cls *cls =
-        GNUNET_malloc (sizeof (struct receive_dht_cls));
-    cls->id = dns->s.id;
-
-    cls->handle =
-        GNUNET_DHT_get_start (dht, GNUNET_TIME_UNIT_MINUTES,
-                              GNUNET_BLOCK_TYPE_DNS, &key,
-                              5 /* DEFAULT_GET_REPLICATION */ ,
-                              GNUNET_DHT_RO_NONE, NULL, 0, &receive_dht, cls);
-
-    goto outfree;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Query for '%s'; namelen=%d\n",
-              pdns->queries[0]->name, pdns->queries[0]->namelen);
-
-  /* This is a PTR-Query. Check if it is for "our" network */
-  if (htons (pdns->queries[0]->qtype) == 12 && 74 == pdns->queries[0]->namelen)
-  {
-    char *ipv6addr;
-    char ipv6[16];
-    char ipv6rev[74] =
-        "X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.ip6.arpa.";
-    unsigned int i;
-    unsigned long long ipv6prefix;
-    unsigned int comparelen;
-
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
-                                                          "IPV6ADDR",
-                                                          &ipv6addr));
-    inet_pton (AF_INET6, ipv6addr, ipv6);
-    GNUNET_free (ipv6addr);
-
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_number (cfg, "vpn",
-                                                          "IPV6PREFIX",
-                                                          &ipv6prefix));
-    GNUNET_assert (ipv6prefix < 127);
-    ipv6prefix = (ipv6prefix + 7) / 8;
-
-    for (i = ipv6prefix; i < 16; i++)
-      ipv6[i] = 0;
-
-    for (i = 0; i < 16; i++)
-    {
-      unsigned char c1 = ipv6[i] >> 4;
-      unsigned char c2 = ipv6[i] & 0xf;
-
-      if (c1 <= 9)
-        ipv6rev[62 - (4 * i)] = c1 + '0';
-      else
-        ipv6rev[62 - (4 * i)] = c1 + 87;        /* 87 is the difference between 'a' and 10 */
-
-      if (c2 <= 9)
-        ipv6rev[62 - ((4 * i) + 2)] = c2 + '0';
-      else
-        ipv6rev[62 - ((4 * i) + 2)] = c2 + 87;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "My network is %s'.\n", ipv6rev);
-    comparelen = 10 + 4 * ipv6prefix;
-    if (0 ==
-        strncmp (pdns->queries[0]->name +
-                 (pdns->queries[0]->namelen - comparelen),
-                 ipv6rev + (74 - comparelen), comparelen))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reverse-Query for .gnunet!\n");
-
-      GNUNET_SCHEDULER_add_now (send_rev_query, pdns);
-
-      goto out;
-    }
-  }
-
-  unsigned char virt_dns_bytes[16];
-
-  if (pkt->addrlen == 4)
-  {
-    char *virt_dns;
-
-    if (GNUNET_SYSERR ==
-        GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS",
-                                               &virt_dns))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "No entry 'VIRTDNS' in configuration!\n");
-      exit (1);
-    }
-
-    if (1 != inet_pton (AF_INET, virt_dns, &virt_dns_bytes))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing 'VIRTDNS': %s; %m!\n",
-                  virt_dns);
-      exit (1);
-    }
-
-    GNUNET_free (virt_dns);
-  }
-  else if (pkt->addrlen == 16)
-  {
-    char *virt_dns;
-
-    if (GNUNET_SYSERR ==
-        GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS6",
-                                               &virt_dns))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "No entry 'VIRTDNS6' in configuration!\n");
-      exit (1);
-    }
-
-    if (1 != inet_pton (AF_INET6, virt_dns, &virt_dns_bytes))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Error parsing 'VIRTDNS6': %s; %m!\n", virt_dns);
-      exit (1);
-    }
-
-    GNUNET_free (virt_dns);
-  }
-  else
-  {
-    GNUNET_assert (0);
-  }
-
-  if (memcmp (virt_dns_bytes, pkt->orig_to, pkt->addrlen) == 0)
-  {
-    /* This is a packet that was sent directly to the virtual dns-server
-     *
-     * This means we have to send this query over gnunet
-     */
-
-    size_t size =
-        sizeof (struct GNUNET_MESH_Tunnel *) +
-        sizeof (struct GNUNET_MessageHeader) + (ntohs (message->size) -
-                                                sizeof (struct query_packet) +
-                                                1);
-    struct tunnel_cls *cls_ = GNUNET_malloc (size);
-
-    cls_->hdr.size = size - sizeof (struct GNUNET_MESH_Tunnel *);
-
-    cls_->hdr.type = ntohs (GNUNET_MESSAGE_TYPE_VPN_REMOTE_QUERY_DNS);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "size: %d\n", size);
-
-    memcpy (&cls_->dns, dns,
-            cls_->hdr.size - sizeof (struct GNUNET_MessageHeader));
-    GNUNET_SCHEDULER_add_now (send_mesh_query, cls_);
-
-    if (ntohs (pdns->s.qdcount) == 1)
-    {
-      if (ntohs (pdns->queries[0]->qtype) == 1)
-        pdns->queries[0]->qtype = htons (28);
-      else if (ntohs (pdns->queries[0]->qtype) == 28)
-        pdns->queries[0]->qtype = htons (1);
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "not sending second packet\n");
-        goto outfree;
-      }
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending second packet\n");
-      struct dns_pkt *rdns = unparse_dns_packet (pdns);
-      size_t size =
-          sizeof (struct GNUNET_MESH_Tunnel *) +
-          sizeof (struct GNUNET_MessageHeader) + (ntohs (message->size) -
-                                                  sizeof (struct query_packet) +
-                                                  1);
-      struct tunnel_cls *cls_ = GNUNET_malloc (size);
-
-      cls_->hdr.size = size - sizeof (struct GNUNET_MESH_Tunnel *);
-
-      cls_->hdr.type = ntohs (GNUNET_MESSAGE_TYPE_VPN_REMOTE_QUERY_DNS);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "size: %d\n", size);
-
-      memcpy (&cls_->dns, rdns,
-              cls_->hdr.size - sizeof (struct GNUNET_MessageHeader));
-      GNUNET_SCHEDULER_add_now (send_mesh_query, cls_);
-      GNUNET_free (rdns);
-    }
-
-    goto outfree;
-  }
-
-
-  /* The query should be sent to the network */
-  if (pkt->addrlen == 4)
-  {
-    struct sockaddr_in dest;
-
-    memset (&dest, 0, sizeof dest);
-    dest.sin_port = htons (53);
-    memcpy (&dest.sin_addr.s_addr, pkt->orig_to, pkt->addrlen);
-
-    GNUNET_NETWORK_socket_sendto (dnsout, dns,
-                                  ntohs (pkt->hdr.size) -
-                                  sizeof (struct query_packet) + 1,
-                                  (struct sockaddr *) &dest, sizeof dest);
-  }
-  else if (pkt->addrlen == 16)
-  {
-    struct sockaddr_in6 dest;
-
-    memset (&dest, 0, sizeof dest);
-    dest.sin6_port = htons (53);
-    memcpy (&dest.sin6_addr, pkt->orig_to, pkt->addrlen);
-
-    GNUNET_NETWORK_socket_sendto (dnsout6, dns,
-                                  ntohs (pkt->hdr.size) -
-                                  sizeof (struct query_packet) + 1,
-                                  (struct sockaddr *) &dest, sizeof dest);
-  }
-
-outfree:
-  free_parsed_dns_packet (pdns);
-  pdns = NULL;
-out:
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-static void
-read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-static void
-read_response6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-static int
-open_port6 ()
-{
-  struct sockaddr_in6 addr;
-
-  dnsout6 = GNUNET_NETWORK_socket_create (AF_INET6, SOCK_DGRAM, 0);
-  if (dnsout6 == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not create socket: %m\n");
-    return GNUNET_SYSERR;
-  }
-  memset (&addr, 0, sizeof (struct sockaddr_in6));
-
-  addr.sin6_family = AF_INET6;
-  int err = GNUNET_NETWORK_socket_bind (dnsout6,
-                                        (struct sockaddr *) &addr,
-                                        sizeof (struct sockaddr_in6));
-
-  if (err != GNUNET_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not bind a port: %m\n");
-    return GNUNET_SYSERR;
-  }
-
-  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout6,
-                                 &read_response6, NULL);
-
-  return GNUNET_YES;
-}
-
-static int
-open_port ()
-{
-  struct sockaddr_in addr;
-
-  dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
-  if (dnsout == NULL)
-    return GNUNET_SYSERR;
-  memset (&addr, 0, sizeof (struct sockaddr_in));
-
-  addr.sin_family = AF_INET;
-  int err = GNUNET_NETWORK_socket_bind (dnsout,
-                                        (struct sockaddr *) &addr,
-                                        sizeof (struct sockaddr_in));
-
-  if (err != GNUNET_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not bind a port: %m\n");
-    return GNUNET_SYSERR;
-  }
-
-  /* Read the port we bound to */
-  socklen_t addrlen = sizeof (struct sockaddr_in);
-
-  err =
-      getsockname (GNUNET_NETWORK_get_fd (dnsout), (struct sockaddr *) &addr,
-                   &addrlen);
-
-  dnsoutport = htons (addr.sin_port);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Bound to port %d.\n", dnsoutport);
-
-  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout,
-                                 &read_response, NULL);
-
-  return GNUNET_YES;
-}
-
-static void
-handle_response (struct dns_pkt *dns, struct sockaddr *addr, socklen_t addrlen,
-                 int r);
 
 /**
- * Read a response-packet of the UDP-Socket
+ * We're done processing a DNS request, free associated memory.
+ *
+ * @param rr request to clean up
  */
 static void
-read_response6 (void *cls GNUNET_UNUSED,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_rr (struct RequestRecord *rr)
 {
-  struct sockaddr_in6 addr;
-  socklen_t addrlen = sizeof (addr);
-  int r;
-  int len;
-
-  if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
-    return;
-
-  memset (&addr, 0, sizeof addr);
-
-#ifndef MINGW
-  if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout6), FIONREAD, &len))
-  {
-    (void) open_port6 ();
-    return;
-  }
-#else
-  /* port the code above? */
-  len = 65536;
-#endif
-
-  unsigned char buf[len];
-  struct dns_pkt *dns = (struct dns_pkt *) buf;
-
-  r = GNUNET_NETWORK_socket_recvfrom (dnsout, buf, sizeof (buf),
-                                      (struct sockaddr *) &addr, &addrlen);
-
-  if (r < 0)
-  {
-    (void) open_port6 ();
-    return;
-  }
-
-  struct sockaddr *addr_ = GNUNET_malloc (sizeof addr);
-
-  memcpy (addr_, &addr, sizeof addr);
-  handle_response (dns, addr_, 4, r);
-
-  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout6,
-                                 &read_response6, NULL);
-}
-
-/**
- * Read a response-packet of the UDP-Socket
- */
-static void
-read_response (void *cls GNUNET_UNUSED,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct sockaddr_in addr;
-  socklen_t addrlen = sizeof (addr);
-  int r;
-  int len;
-
-  if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
-    return;
-
-  memset (&addr, 0, sizeof addr);
-
-#ifndef MINGW
-  if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout), FIONREAD, &len))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "ioctl");
-    unhijack (dnsoutport);
-    if (GNUNET_YES == open_port ())
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &hijack, NULL);
-    return;
-  }
-#else
-  /* port the code above? */
-  len = 65536;
-#endif
-
-  unsigned char buf[len];
-  struct dns_pkt *dns = (struct dns_pkt *) buf;
-
-  r = GNUNET_NETWORK_socket_recvfrom (dnsout, buf, sizeof (buf),
-                                      (struct sockaddr *) &addr, &addrlen);
-
-  if (r < 0)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "recvfrom");
-    unhijack (dnsoutport);
-    if (GNUNET_YES == open_port ())
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &hijack, NULL);
-    return;
-  }
-
-  struct sockaddr *addr_ = GNUNET_malloc (sizeof addr);
-
-  memcpy (addr_, &addr, sizeof addr);
-  handle_response (dns, addr_, 4, r);
-
-  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout,
-                                 &read_response, NULL);
-}
-
-static void
-handle_response (struct dns_pkt *dns, struct sockaddr *addr, socklen_t addrlen,
-                 int r)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Answer to query %d\n",
-              ntohs (dns->s.id));
-
-
-  if (query_states[dns->s.id].valid == GNUNET_YES)
-  {
-    if (query_states[dns->s.id].tunnel != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Answer to query %d for a remote peer!\n", ntohs (dns->s.id));
-      /* This response should go through a tunnel */
-      uint32_t *c =
-          GNUNET_malloc (4 + sizeof (struct GNUNET_MESH_Tunnel *) + r);
-      *c = r;
-      struct GNUNET_MESH_Tunnel **t = (struct GNUNET_MESH_Tunnel **) (c + 1);
-
-      *t = query_states[dns->s.id].tunnel;
-      memcpy (t + 1, dns, r);
-      struct tunnel_state *s =
-          GNUNET_MESH_tunnel_get_data (query_states[dns->s.id].tunnel);
-      if (NULL == s->th)
-      {
-        s->th =
-            GNUNET_MESH_notify_transmit_ready (query_states[dns->s.id].tunnel,
-                                               GNUNET_YES, 32,
-                                               GNUNET_TIME_UNIT_MINUTES, NULL,
-                                               r +
-                                               sizeof (struct
-                                                       GNUNET_MessageHeader),
-                                               mesh_send_response, c);
-      }
-      else
-      {
-        struct tunnel_notify_queue *element =
-            GNUNET_malloc (sizeof (struct tunnel_notify_queue));
-        element->cls = c;
-        element->len = r + sizeof (struct GNUNET_MessageHeader);
-        element->cb = mesh_send_response;
-
-        GNUNET_CONTAINER_DLL_insert_tail (s->head, s->tail, element);
-      }
-    }
-    else
-    {
-      query_states[dns->s.id].valid = GNUNET_NO;
-
-      size_t len = sizeof (struct answer_packet) + r - 1;       /* 1 for the unsigned char data[1]; */
-      struct answer_packet_list *answer =
-          GNUNET_malloc (len + sizeof (struct answer_packet_list) -
-                         (sizeof (struct answer_packet)));
-      answer->pkt.hdr.type =
-          htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
-      answer->pkt.hdr.size = htons (len);
-      answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
-      answer->pkt.addrlen = addrlen;
-      if (addrlen == 16)
-      {
-        struct sockaddr_in6 *addr_ = (struct sockaddr_in6 *) addr;
-
-        memcpy (answer->pkt.from, &addr_->sin6_addr, addrlen);
-        memcpy (answer->pkt.to, query_states[dns->s.id].local_ip, addrlen);
-      }
-      else if (addrlen == 4)
-      {
-        struct sockaddr_in *addr_ = (struct sockaddr_in *) addr;
-
-        memcpy (answer->pkt.from, &addr_->sin_addr.s_addr, addrlen);
-        memcpy (answer->pkt.to, query_states[dns->s.id].local_ip, addrlen);
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "addrlen = %d\n", addrlen);
-        GNUNET_assert (0);
-      }
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending answer with addrlen = %d\n",
-                  addrlen);
-      answer->pkt.dst_port = query_states[dns->s.id].local_port;
-      memcpy (answer->pkt.data, dns, r);
-      answer->client = query_states[dns->s.id].client;
-
-      GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
-
-      if (server_notify == NULL)
-        server_notify =
-            GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
-                                                 len,
-                                                 GNUNET_TIME_UNIT_FOREVER_REL,
-                                                 &send_answer, NULL);
-    }
-  }
-  GNUNET_free (addr);
+  GNUNET_free_non_null (rr->payload);
+  rr->payload = NULL;
+  rr->payload_length = 0;
+  GNUNET_array_grow (rr->client_wait_list,
+		     rr->client_wait_list_length,
+		     0);
 }
 
 
@@ -1438,239 +265,907 @@ static void
 cleanup_task (void *cls GNUNET_UNUSED,
               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
+  unsigned int i;
 
-  unhijack (dnsoutport);
-  GNUNET_DHT_disconnect (dht);
-  GNUNET_MESH_disconnect (mesh_handle);
-}
-
-/**
- * @brief Create a port-map from udp and tcp redirects
- *
- * @param udp_redirects
- * @param tcp_redirects
- *
- * @return
- */
-static uint64_t
-get_port_from_redirects (const char *udp_redirects, const char *tcp_redirects)
-{
-  uint64_t ret = 0;
-  char *cpy, *hostname, *redirect;
-  int local_port;
-  unsigned int count = 0;
-
-  cpy = NULL;
-  if (NULL != udp_redirects)
+  GNUNET_HELPER_stop (hijacker);
+  hijacker = NULL;
+  for (i=0;i<8;i++)
+    GNUNET_free_non_null (helper_argv[i]);
+  if (NULL != dnsout4)
   {
-    cpy = GNUNET_strdup (udp_redirects);
-    for (redirect = strtok (cpy, " "); redirect != NULL;
-         redirect = strtok (NULL, " "))
-    {
-      if (NULL == (hostname = strstr (redirect, ":")))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Warning: option %s is not formatted correctly!\n",
-                    redirect);
-        continue;
-      }
-      hostname[0] = '\0';
-      local_port = atoi (redirect);
-      if (!((local_port > 0) && (local_port < 65536)))
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Warning: %s is not a correct port.", redirect);
-
-      ret |= (0xFFFF & htons (local_port));
-      ret <<= 16;
-      count++;
-
-      if (count > 4)
-      {
-        ret = 0;
-        goto out;
-      }
-    }
-    GNUNET_free (cpy);
-    cpy = NULL;
+    GNUNET_NETWORK_socket_close (dnsout4);
+    dnsout4 = NULL;
   }
-
-  if (NULL != tcp_redirects)
+  if (GNUNET_SCHEDULER_NO_TASK != read4_task)
   {
-    cpy = GNUNET_strdup (tcp_redirects);
-    for (redirect = strtok (cpy, " "); redirect != NULL;
-         redirect = strtok (NULL, " "))
-    {
-      if (NULL == (hostname = strstr (redirect, ":")))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Warning: option %s is not formatted correctly!\n",
-                    redirect);
-        continue;
-      }
-      hostname[0] = '\0';
-      local_port = atoi (redirect);
-      if (!((local_port > 0) && (local_port < 65536)))
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Warning: %s is not a correct port.", redirect);
-
-      ret |= (0xFFFF & htons (local_port));
-      ret <<= 16;
-      count++;
-
-      if (count > 4)
-      {
-        ret = 0;
-        goto out;
-      }
-    }
-    GNUNET_free (cpy);
-    cpy = NULL;
+    GNUNET_SCHEDULER_cancel (read4_task);
+    read4_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
-out:
-  GNUNET_free_non_null (cpy);
-  return ret;
-}
-
-static void
-publish_name (const char *name, uint64_t ports, uint32_t service_type,
-              struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key)
-{
-  size_t size = sizeof (struct GNUNET_DNS_Record);
-  struct GNUNET_DNS_Record data;
-
-  memset (&data, 0, size);
-
-  data.purpose.size = htonl (size - sizeof (struct GNUNET_CRYPTO_RsaSignature));
-  data.purpose.purpose = GNUNET_SIGNATURE_PURPOSE_DNS_RECORD;
-
-  GNUNET_CRYPTO_hash (name, strlen (name) + 1, &data.service_descriptor);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Store with key1 %x\n",
-              *((unsigned long long *) &data.service_descriptor));
-
-  data.service_type = service_type;
-  data.ports = ports;
-
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &data.peer);
-
-  data.expiration_time =
-      GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute
-                                 (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_HOURS, 2)));
-
-  /* Sign the block */
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_sign (my_private_key, &data.purpose, &data.signature))
+  if (NULL != dnsout6)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not sign DNS_Record\n");
-    return;
+    GNUNET_NETWORK_socket_close (dnsout6);
+    dnsout6 = NULL;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Putting with key %08x, size = %d\n",
-              *((unsigned int *) &data.service_descriptor), size);
-
-  GNUNET_DHT_put (dht, &data.service_descriptor,
-                  5 /* DEFAULT_PUT_REPLICATION */ ,
-                  GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_DNS, size,
-                  (char *) &data,
-                  GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS),
-                  GNUNET_TIME_UNIT_MINUTES, NULL, NULL);
+  if (GNUNET_SCHEDULER_NO_TASK != read6_task)
+  {
+    GNUNET_SCHEDULER_cancel (read6_task);
+    read6_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  for (i=0;i<65536;i++)
+    cleanup_rr (&requests[i]);
+  GNUNET_SERVER_notification_context_destroy (nc);
+  nc = NULL;
+  if (stats != NULL)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+    stats = NULL;
+  }
 }
 
 
 /**
- * @brief Publishes the record defined by the section section
+ * We're done with some request, finish processing.
  *
- * @param cls closure
- * @param section the current section
+ * @param rr request send to the network or just clean up.
  */
 static void
-publish_iterate (void *cls GNUNET_UNUSED, const char *section)
+request_done (struct RequestRecord *rr)
 {
-  char *udp_redirects;
-  char *tcp_redirects;
-  char *alternative_names;
-  char *alternative_name;
-  char *keyfile;
+  struct GNUNET_MessageHeader *hdr;
+  size_t reply_len;
+  uint16_t spt;
+  uint16_t dpt;
 
-  if ((strlen (section) < 8) ||
-      (0 != strcmp (".gnunet.", section + (strlen (section) - 8))))
-    return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing dns-name %s\n", section);
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, section, "UDP_REDIRECTS",
-                                             &udp_redirects))
-    udp_redirects = NULL;
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, section, "TCP_REDIRECTS",
-                                             &tcp_redirects))
-    tcp_redirects = NULL;
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
-                                               &keyfile))
+  GNUNET_array_grow (rr->client_wait_list,
+		     rr->client_wait_list_length,
+		     0); 
+  if (RP_RESPONSE_MONITOR != rr->phase)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not read keyfile-value\n");
-    if (keyfile != NULL)
-      GNUNET_free (keyfile);
+    /* no response, drop */
+    cleanup_rr (rr);
     return;
   }
-
-  struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key =
-      GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_free (keyfile);
-  GNUNET_assert (my_private_key != NULL);
-
-  uint64_t ports = get_port_from_redirects (udp_redirects, tcp_redirects);
-  uint32_t service_type = 0;
-
-  if (NULL != udp_redirects)
-    service_type = GNUNET_DNS_SERVICE_TYPE_UDP;
-
-  if (NULL != tcp_redirects)
-    service_type |= GNUNET_DNS_SERVICE_TYPE_TCP;
-
-  service_type = htonl (service_type);
-
-
-  publish_name (section, ports, service_type, my_private_key);
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, section, "ALTERNATIVE_NAMES",
-                                             &alternative_names))
+  
+  /* send response via hijacker */
+  reply_len = sizeof (struct GNUNET_MessageHeader);
+  reply_len += sizeof (struct tun_header);
+  switch (rr->src_addr.ss_family)
   {
-    for (alternative_name = strtok (alternative_names, " ");
-         alternative_name != NULL; alternative_name = strtok (NULL, " "))
+  case AF_INET:
+    reply_len += sizeof (struct ip4_header);
+    break;
+  case AF_INET6:
+    reply_len += sizeof (struct ip6_header);
+    break;
+  default:
+    GNUNET_break (0);
+    cleanup_rr (rr);
+    return;   
+  }
+  reply_len += sizeof (struct udp_packet);
+  reply_len += rr->payload_length;
+  if (reply_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    /* response too big, drop */
+    GNUNET_break (0); /* how can this be? */
+    cleanup_rr(rr);
+    return;    
+  }
+  {
+    char buf[reply_len];
+    size_t off;
+    uint32_t udp_crc_sum;
+
+    /* first, GNUnet message header */
+    hdr = (struct GNUNET_MessageHeader*) buf;
+    hdr->type = htons (GNUNET_MESSAGE_TYPE_DNS_HELPER);
+    hdr->size = htons ((uint16_t) reply_len);
+    off = sizeof (struct GNUNET_MessageHeader);
+
+    /* first, TUN header */
     {
-      char *altname =
-          alloca (strlen (alternative_name) + strlen (section) + 1 + 1);
-      strcpy (altname, alternative_name);
-      strcpy (altname + strlen (alternative_name) + 1, section);
-      altname[strlen (alternative_name)] = '.';
+      struct tun_header tun;
 
-      publish_name (altname, ports, service_type, my_private_key);
+      tun.flags = htons (0);
+      if (rr->src_addr.ss_family == AF_INET)
+	tun.proto = htons (ETH_P_IPV4); 
+      else
+	tun.proto = htons (ETH_P_IPV6);
+      memcpy (&buf[off], &tun, sizeof (struct tun_header));
+      off += sizeof (struct tun_header);
     }
-    GNUNET_free (alternative_names);
+
+    /* now IP header */
+    udp_crc_sum = 0;    
+    switch (rr->src_addr.ss_family)
+    {
+    case AF_INET:
+      {
+	struct sockaddr_in *src = (struct sockaddr_in *) &rr->src_addr;
+	struct sockaddr_in *dst = (struct sockaddr_in *) &rr->dst_addr;
+	struct ip4_header ip;
+	
+	spt = dst->sin_port;
+	dpt = src->sin_port;
+	ip.header_length =  sizeof (struct ip4_header) / 4;
+	ip.version = IPVERSION; /* aka 4 */
+	ip.diff_serv = 0;
+	ip.total_length = htons ((uint16_t) reply_len - off);
+	ip.identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+							65536);
+	ip.flags = 0;
+	ip.fragmentation_offset = 0;
+	ip.ttl = 255; /* or lower? */
+	ip.protocol = IPPROTO_UDP;
+	ip.checksum = 0; /* checksum is optional */
+	ip.source_address = dst->sin_addr;
+	ip.destination_address = src->sin_addr;
+	ip.checksum = GNUNET_CRYPTO_crc16_n (&ip, sizeof (ip));
+
+	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						&ip.source_address,
+						sizeof (struct in_addr) * 2);
+	{
+	  uint16_t tmp;
+	  
+	  tmp = htons (IPPROTO_UDP);
+	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						  &tmp,	
+						  sizeof (uint16_t));
+	  tmp = htons (rr->payload_length + sizeof (struct udp_packet));
+	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						  &tmp,	
+						  sizeof (uint16_t));
+	}
+	memcpy (&buf[off], &ip, sizeof (ip));
+	off += sizeof (ip);
+      }
+      break;
+    case AF_INET6:
+      {
+	struct sockaddr_in6 *src = (struct sockaddr_in6 *) &rr->src_addr;
+	struct sockaddr_in6 *dst = (struct sockaddr_in6 *) &rr->dst_addr;
+	struct ip6_header ip;
+
+	spt = dst->sin6_port;
+	dpt = src->sin6_port;
+	ip.traffic_class_h = 0;
+	ip.version  = 6; /* is there a named constant? I couldn't find one */
+	ip.traffic_class_l = 0;
+	ip.flow_label = 0;
+	ip.payload_length = htons ((uint16_t) reply_len);
+	ip.next_header = IPPROTO_UDP;
+	ip.hop_limit = 255; /* or lower? */
+	ip.source_address = dst->sin6_addr;
+	ip.destination_address = src->sin6_addr;
+	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum,
+						&ip.source_address, 
+						sizeof (struct in6_addr) * 2);
+	{
+	  uint32_t tmp;
+	  
+	  tmp = htons (rr->payload_length + sizeof (struct udp_packet));
+	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						  &tmp,	
+						  sizeof (uint32_t));
+	  tmp = htons (IPPROTO_UDP);
+	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+						  &tmp,	
+						  sizeof (uint32_t));
+	}
+	memcpy (&buf[off], &ip, sizeof (ip));
+	off += sizeof (ip);
+      }
+      break;
+    default:
+      GNUNET_assert (0);
+    }
+
+    /* now UDP header */
+    {
+      struct udp_packet udp;
+
+      udp.spt = spt;
+      udp.dpt = dpt;
+      udp.len = htons (reply_len - off);
+      udp.crc = 0; 
+      udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+					      &udp, 
+					      sizeof (udp));
+      udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
+					      rr->payload,
+					      rr->payload_length);
+      udp.crc = GNUNET_CRYPTO_crc16_finish (udp_crc_sum);
+      memcpy (&buf[off], &udp, sizeof (udp));
+      off += sizeof (udp);
+    }
+    /* now DNS payload */
+    {
+      memcpy (&buf[off], rr->payload, rr->payload_length);
+      off += rr->payload_length;
+    }
+    /* final checks & sending */
+    GNUNET_assert (off == reply_len);
+    GNUNET_HELPER_send (hijacker,
+			hdr,
+			GNUNET_YES,
+			NULL, NULL);
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# DNS requests answered via TUN interface"),
+			      1, GNUNET_NO);
   }
-  GNUNET_CRYPTO_rsa_key_free (my_private_key);
-  GNUNET_free_non_null (udp_redirects);
-  GNUNET_free_non_null (tcp_redirects);
+  /* clean up, we're done */
+  cleanup_rr (rr);
 }
 
+
 /**
- * Publish a DNS-record in the DHT.
+ * Show the payload of the given request record to the client
+ * (and wait for a response).
+ *
+ * @param rr request to send to client
+ * @param client client to send the response to
  */
 static void
-publish_names (void *cls GNUNET_UNUSED,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_request_to_client (struct RequestRecord *rr,
+			struct GNUNET_SERVER_Client *client)
 {
+  char buf[sizeof (struct GNUNET_DNS_Request) + rr->payload_length];
+  struct GNUNET_DNS_Request *req;
+
+  if (sizeof (buf) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    cleanup_rr (rr);
+    return;
+  }
+  req = (struct GNUNET_DNS_Request*) buf;
+  req->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST);
+  req->header.size = htons (sizeof (buf));
+  req->reserved = htonl (0);
+  req->request_id = rr->request_id;
+  memcpy (&req[1], rr->payload, rr->payload_length);
+  GNUNET_SERVER_notification_context_unicast (nc, 
+					      client,
+					      &req->header,
+					      GNUNET_NO);
+}
+
+
+/**
+ * A client has completed its processing for this
+ * request.  Move on.
+ *
+ * @param rr request to process further
+ */
+static void
+next_phase (struct RequestRecord *rr)
+{
+  struct ClientRecord *cr;
+  int nz;
+  unsigned int j;
+  struct GNUNET_NETWORK_Handle *dnsout;
+  socklen_t salen;
+
+  if (rr->phase == RP_DROP)
+  {
+    cleanup_rr (rr);
+    return;
+  }
+  nz = -1;
+  for (j=0;j<rr->client_wait_list_length;j++)
+  {
+    if (NULL != rr->client_wait_list[j])
+    {
+      nz = (int) j;
+      break;
+    }
+  }  
+  if (-1 != nz) 
+  {
+    send_request_to_client (rr, rr->client_wait_list[nz]->client);
+    return;
+  }
+  /* done with current phase, advance! */
+  switch (rr->phase)
+  {
+  case RP_INIT:
+    rr->phase = RP_REQUEST_MONITOR;
+    for (cr = clients_head; NULL != cr; cr = cr->next)
+    {
+      if (0 != (cr->flags & GNUNET_DNS_FLAG_REQUEST_MONITOR))
+	GNUNET_array_append (rr->client_wait_list,
+			     rr->client_wait_list_length,
+			     cr);
+    }
+    next_phase (rr);
+    return;
+  case RP_REQUEST_MONITOR:
+    rr->phase = RP_QUERY;
+    for (cr = clients_head; NULL != cr; cr = cr->next)
+    {
+      if (0 != (cr->flags & GNUNET_DNS_FLAG_PRE_RESOLUTION))
+	GNUNET_array_append (rr->client_wait_list,
+			     rr->client_wait_list_length,
+			     cr);
+    }
+    next_phase (rr);
+    return;
+  case RP_QUERY:
+    rr->phase = RP_INTERNET_DNS;
+    switch (rr->dst_addr.ss_family)
+    {
+    case AF_INET:
+      dnsout = dnsout4;
+      salen = sizeof (struct ip4_header);
+      break;
+    case AF_INET6:
+      dnsout = dnsout6;
+      salen = sizeof (struct ip6_header);
+      break;
+    default:
+      GNUNET_break (0);
+      cleanup_rr (rr);
+      return;   
+    }
+    if (NULL == dnsout)
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# DNS exit failed (address family not supported)"),
+				1, GNUNET_NO);
+      cleanup_rr (rr);
+      return;
+    }
+    GNUNET_NETWORK_socket_sendto (dnsout,
+				  rr->payload,
+				  rr->payload_length,
+				  (struct sockaddr*) &rr->dst_addr,
+				  salen);
+    return;
+  case RP_INTERNET_DNS:
+    rr->phase = RP_MODIFY;
+    for (cr = clients_head; NULL != cr; cr = cr->next)
+    {
+      if (0 != (cr->flags & GNUNET_DNS_FLAG_POST_RESOLUTION))
+	GNUNET_array_append (rr->client_wait_list,
+			     rr->client_wait_list_length,
+			     cr);
+    }
+    next_phase (rr);
+    return;
+  case RP_MODIFY:
+    rr->phase = RP_RESPONSE_MONITOR;
+    for (cr = clients_head; NULL != cr; cr = cr->next)
+    {
+      if (0 != (cr->flags & GNUNET_DNS_FLAG_RESPONSE_MONITOR))
+	GNUNET_array_append (rr->client_wait_list,
+			     rr->client_wait_list_length,
+			     cr);
+    }
+    next_phase (rr);
+    return;
+ case RP_RESPONSE_MONITOR:
+    request_done (rr);
+    break;
+  case RP_DROP:
+    cleanup_rr (rr);
+    break;
+  default:
+    GNUNET_break (0);
+    cleanup_rr (rr);
+    break;
+  }
+}
+
+
+/**
+ * A client disconnected, clean up after it.
+ *
+ * @param cls unused
+ * @param client handle of client that disconnected
+ */ 
+static void
+client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  struct ClientRecord *cr;
+  struct RequestRecord *rr;
+  unsigned int i;
+  unsigned int j;
+
+  for (cr = clients_head; NULL != cr; cr = cr->next)
+  {
+    if (cr->client == client)
+    {
+      GNUNET_SERVER_client_drop (client);
+      GNUNET_CONTAINER_DLL_remove (clients_head,
+				   clients_tail,
+				   cr);
+      for (i=0;i<UINT16_MAX;i++)
+      {
+	rr = &requests[i];
+	if (0 == rr->client_wait_list_length)
+	  continue; /* not in use */
+	for (j=0;j<rr->client_wait_list_length;j++)
+	{
+	  if (rr->client_wait_list[j] == cr)
+	  {
+	    rr->client_wait_list[j] = NULL;
+	    next_phase (rr); 
+	  }
+	}
+      }
+      GNUNET_free (cr);
+      return;
+    }
+  }
+}
+
+
+/**
+ * Read a DNS response from the (unhindered) UDP-Socket
+ *
+ * @param cls socket to read from
+ * @param tc scheduler context (must be shutdown or read ready)
+ */
+static void
+read_response (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_NETWORK_Handle *dnsout = cls;
+  struct sockaddr_in addr4;
+  struct sockaddr_in6 addr6;
+  struct sockaddr *addr;
+  struct dns_header *dns;
+  socklen_t addrlen;
+  struct RequestRecord *rr;
+  ssize_t r;
+  int len;
+
+  if (dnsout == dnsout4)
+  {
+    addrlen = sizeof (struct sockaddr_in);
+    addr = (struct sockaddr* ) &addr4;
+    read4_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, 
+						dnsout,
+						&read_response, 
+						dnsout);
+  }
+  else
+  {
+    addrlen = sizeof (struct sockaddr_in6);
+    addr = (struct sockaddr* ) &addr6;
+    read6_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, 
+						dnsout,
+						&read_response, 
+						dnsout);
+  }
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  GNUNET_CONFIGURATION_iterate_sections (cfg, &publish_iterate, NULL);
+#ifndef MINGW
+  if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout), FIONREAD, &len))
+  {
+    /* conservative choice: */
+    len = 65536;
+  }
+#else
+  /* port the code above? */
+  len = 65536;
+#endif
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_HOURS, &publish_names, NULL);
+  {
+    unsigned char buf[len];
+
+    memset (addr, 0, addrlen);  
+    r = GNUNET_NETWORK_socket_recvfrom (dnsout, 
+					buf, sizeof (buf),
+					addr, &addrlen);
+    if (-1 == r)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "recvfrom");
+      return;
+    }
+    if (sizeof (struct dns_header) > r)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  _("Received DNS response that is too small (%u bytes)"),
+		  r);
+      return;
+    }
+    dns = (struct dns_header *) buf;
+    rr = &requests[dns->id];
+    if (rr->phase != RP_INTERNET_DNS) 
+    {
+      /* unexpected / bogus reply */
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# External DNS response discarded (no matching request)"),
+				1, GNUNET_NO);
+      return; 
+    }
+    GNUNET_free_non_null (rr->payload);
+    rr->payload = GNUNET_malloc (len);
+    memcpy (rr->payload, buf, len);
+    rr->payload_length = len;
+    next_phase (rr);
+  }  
 }
+
+
+/**
+ * Open source port for sending DNS request on IPv4.
+ *
+ * @return GNUNET_OK on success
+ */ 
+static int
+open_port4 ()
+{
+  struct sockaddr_in addr;
+  socklen_t addrlen;
+
+  dnsout4 = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
+  if (dnsout4 == NULL)
+    return GNUNET_SYSERR;
+
+  memset (&addr, 0, sizeof (struct sockaddr_in));
+  addr.sin_family = AF_INET;
+  int err = GNUNET_NETWORK_socket_bind (dnsout4,
+                                        (struct sockaddr *) &addr,
+                                        sizeof (struct sockaddr_in));
+
+  if (err != GNUNET_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("Could not bind to any port: %s\n"),
+		STRERROR (errno));
+    GNUNET_NETWORK_socket_close (dnsout4);
+    dnsout4 = NULL;
+    return GNUNET_SYSERR;
+  }
+
+  /* Read the port we bound to */
+  addrlen = sizeof (struct sockaddr_in);
+  if (0 != getsockname (GNUNET_NETWORK_get_fd (dnsout4), 
+			(struct sockaddr *) &addr,
+			&addrlen))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("Could not determine port I got: %s\n"),
+		STRERROR (errno));
+    GNUNET_NETWORK_socket_close (dnsout4);
+    dnsout4 = NULL;
+    return GNUNET_SYSERR;
+  }
+  dnsoutport = htons (addr.sin_port);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      _("GNUnet DNS will exit on source port %u\n"),
+	      (unsigned int) dnsoutport);
+  read4_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, 
+					      dnsout4,
+					      &read_response, dnsout4);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Open source port for sending DNS request on IPv6.  Should be 
+ * called AFTER open_port4.
+ *
+ * @return GNUNET_OK on success
+ */ 
+static int
+open_port6 ()
+{
+  struct sockaddr_in6 addr;
+  socklen_t addrlen;
+
+  dnsout6 = GNUNET_NETWORK_socket_create (AF_INET6, SOCK_DGRAM, 0);
+  if (dnsout6 == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("Could not create IPv6 socket: %s\n"),
+		STRERROR (errno));
+    return GNUNET_SYSERR;
+  }
+  memset (&addr, 0, sizeof (struct sockaddr_in6));
+  addr.sin6_family = AF_INET6;
+  addr.sin6_port = htons (dnsoutport);
+  int err = GNUNET_NETWORK_socket_bind (dnsout6,
+                                        (struct sockaddr *) &addr,
+                                        sizeof (struct sockaddr_in6));
+
+  if (err != GNUNET_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Could not bind to port %u: %s\n"),
+		(unsigned int) dnsoutport,
+		STRERROR (errno));
+    GNUNET_NETWORK_socket_close (dnsout6);
+    dnsout6 = NULL;
+    return GNUNET_SYSERR;
+  }
+  if (0 == dnsoutport)
+  {
+    addrlen = sizeof (struct sockaddr_in6);
+    if (0 != getsockname (GNUNET_NETWORK_get_fd (dnsout6), 
+			  (struct sockaddr *) &addr,
+			  &addrlen))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  _("Could not determine port I got: %s\n"),
+		  STRERROR (errno));
+      GNUNET_NETWORK_socket_close (dnsout6);
+      dnsout6 = NULL;
+      return GNUNET_SYSERR;
+    }
+  }
+  dnsoutport = htons (addr.sin6_port);
+  read6_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					      dnsout6,
+					      &read_response, dnsout6);
+  return GNUNET_YES;
+}
+
+
+/**
+ * We got a new client.  Make sure all new DNS requests pass by its desk.
+ *
+ * @param cls unused
+ * @param client the new client
+ * @param message the init message (unused)
+ */
+static void
+handle_client_init (void *cls GNUNET_UNUSED, 
+		    struct GNUNET_SERVER_Client *client,
+		    const struct GNUNET_MessageHeader *message)
+{
+  struct ClientRecord *cr;
+  const struct GNUNET_DNS_Register *reg = (const struct GNUNET_DNS_Register*) message;
+
+  cr = GNUNET_malloc (sizeof (struct ClientRecord));
+  cr->client = client;
+  cr->flags = (enum GNUNET_DNS_Flags) ntohl (reg->flags);  
+  GNUNET_SERVER_client_keep (client);
+  GNUNET_CONTAINER_DLL_insert (clients_head,
+			       clients_tail,
+			       cr);
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * We got a response from a client.
+ *
+ * @param cls unused
+ * @param client the client
+ * @param message the response
+ */
+static void
+handle_client_response (void *cls GNUNET_UNUSED, 
+			struct GNUNET_SERVER_Client *client,
+			const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_DNS_Response *resp;
+  struct RequestRecord *rr;
+  unsigned int i;
+  uint16_t msize;
+  uint16_t off;
+
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct GNUNET_DNS_Response))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  resp = (const struct GNUNET_DNS_Response*) message;
+  off = (uint16_t) resp->request_id;
+  rr = &requests[off];
+  if (rr->request_id != resp->request_id)
+  {
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# Client response discarded (no matching request)"),
+			      1, GNUNET_NO);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  for (i=0;i<rr->client_wait_list_length;i++)
+  {
+    if (NULL == rr->client_wait_list[i])
+      continue;
+    if (rr->client_wait_list[i]->client != client)
+      continue;
+    rr->client_wait_list[i] = NULL;
+    switch (ntohl (resp->drop_flag))
+    {
+    case 0: /* drop */
+      rr->phase = RP_DROP;
+      break;
+    case 1: /* no change */
+      break;
+    case 2: /* update */
+      msize -= sizeof (struct GNUNET_DNS_Response);
+      if ( (sizeof (struct dns_header) > msize) ||
+	   (RP_REQUEST_MONITOR == rr->phase) ||
+	   (RP_RESPONSE_MONITOR == rr->phase) )
+      {
+	GNUNET_break (0);
+	GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+	next_phase (rr); 
+	return;
+      }
+      GNUNET_free_non_null (rr->payload);
+#if DEBUG_DNS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  _("Changing DNS reply according to client specifications\n"));
+#endif
+      rr->payload = GNUNET_malloc (msize);
+      rr->payload_length = msize;
+      memcpy (rr->payload, &resp[1], msize);
+      if (rr->phase == RP_QUERY)
+      {
+	/* clear wait list, we're moving to MODIFY phase next */
+	GNUNET_array_grow (rr->client_wait_list,
+			   rr->client_wait_list_length,
+			   0);
+      }
+      break;
+    }
+    next_phase (rr); 
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;      
+  }
+  /* odd, client was not on our list for the request, that ought
+     to be an error */
+  GNUNET_break (0);
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+}
+
+
+/**
+ * Functions with this signature are called whenever a complete
+ * message is received by the tokenizer from the DNS hijack process.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message, a DNS request we should handle
+ */
+static void
+process_helper_messages (void *cls GNUNET_UNUSED, void *client,
+			 const struct GNUNET_MessageHeader *message)
+{
+  uint16_t msize;
+  const struct tun_header *tun;
+  const struct ip4_header *ip4;
+  const struct ip6_header *ip6;
+  const struct udp_packet *udp;
+  const struct dns_header *dns;
+  struct RequestRecord *rr;
+  struct sockaddr_in *srca4;
+  struct sockaddr_in6 *srca6;
+  struct sockaddr_in *dsta4;
+  struct sockaddr_in6 *dsta6;
+
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header) + sizeof (struct ip4_header))
+  {
+    /* non-IP packet received on TUN!? */
+    GNUNET_break (0);
+    return;
+  }
+  msize -= sizeof (struct GNUNET_MessageHeader);
+  tun = (const struct tun_header *) &message[1];
+  msize -= sizeof (struct tun_header);
+  switch (ntohs (tun->proto))
+  {
+  case ETH_P_IPV4:
+    ip4 = (const struct ip4_header *) &tun[1];
+    if ( (msize < sizeof (struct ip4_header)) ||
+	 (ip4->version != IPVERSION) ||
+	 (ip4->header_length != sizeof (struct ip4_header) / 4) ||
+	 (ntohs(ip4->total_length) != msize) ||
+	 (ip4->protocol != IPPROTO_UDP) )
+    {
+      /* non-IP/UDP packet received on TUN (or with options) */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Received malformed IPv4-UDP packet on TUN interface.\n"));
+      return;
+    }
+    udp = (const struct udp_packet*) &ip4[1];
+    msize -= sizeof (struct ip4_header);
+    break;
+  case ETH_P_IPV6:
+    ip6 = (const struct ip6_header *) &tun[1];
+    if ( (msize < sizeof (struct ip6_header)) ||
+	 (ip6->version != 6) ||
+	 (ntohs (ip6->payload_length) != msize) ||
+	 (ip6->next_header != IPPROTO_UDP) )
+    {
+      /* non-IP/UDP packet received on TUN (or with extensions) */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Received malformed IPv6-UDP packet on TUN interface.\n"));
+      return;
+    }
+    udp = (const struct udp_packet*) &ip6[1];
+    msize -= sizeof (struct ip6_header);
+    break;
+  default:
+    /* non-IP packet received on TUN!? */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Got non-IP packet with %u bytes and protocol %u from TUN\n"),
+		(unsigned int) msize,
+		ntohs (tun->proto));
+    return;
+  }
+  if (msize <= sizeof (struct udp_packet) + sizeof (struct dns_header))
+  {    
+    /* non-DNS packet received on TUN, ignore */
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# Non-DNS UDP packet received via TUN interface"),
+			      1, GNUNET_NO);
+    return;
+  }
+  msize -= sizeof (struct udp_packet);
+  dns = (const struct dns_header*) &udp[1];
+  rr = &requests[dns->id];
+
+  /* clean up from previous request */
+  GNUNET_free_non_null (rr->payload);
+  rr->payload = NULL;
+  GNUNET_array_grow (rr->client_wait_list,
+		     rr->client_wait_list_length,
+		     0);
+
+  /* setup new request */
+  rr->phase = RP_INIT;
+  if (ip4->version == IPVERSION)
+  {
+    srca4 = (struct sockaddr_in*) &rr->src_addr;
+    dsta4 = (struct sockaddr_in*) &rr->dst_addr;
+    memset (srca4, 0, sizeof (struct sockaddr_in));
+    memset (dsta4, 0, sizeof (struct sockaddr_in));
+    srca4->sin_family = AF_INET;
+    dsta4->sin_family = AF_INET;
+    srca4->sin_addr = ip4->source_address;
+    dsta4->sin_addr = ip4->destination_address;
+    srca4->sin_port = udp->spt;
+    dsta4->sin_port = udp->dpt;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    srca4->sin_len = sizeof (sizeof (struct sockaddr_in));
+    dsta4->sin_len = sizeof (sizeof (struct sockaddr_in));
+#endif
+  }
+  else /* ipv6 */
+  {
+    srca6 = (struct sockaddr_in6*) &rr->src_addr;
+    dsta6 = (struct sockaddr_in6*) &rr->dst_addr;
+    memset (srca6, 0, sizeof (struct sockaddr_in6));
+    memset (dsta6, 0, sizeof (struct sockaddr_in6));
+    srca6->sin6_family = AF_INET6;
+    dsta6->sin6_family = AF_INET6;
+    srca6->sin6_addr = ip6->source_address;
+    dsta6->sin6_addr = ip6->destination_address;
+    srca6->sin6_port = udp->spt;
+    dsta6->sin6_port = udp->dpt;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    srca6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
+    dsta6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
+#endif
+  }
+  rr->payload = GNUNET_malloc (msize);
+  rr->payload_length = msize;
+  memcpy (rr->payload, dns, msize);
+  rr->request_id = dns->id | (request_id_gen << 16);
+  request_id_gen++;
+
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# DNS requests received via TUN interface"),
+			    1, GNUNET_NO);
+  /* start request processing state machine */
+  next_phase (rr);
+}
+
 
 /**
  * @param cls closure
@@ -1683,50 +1178,101 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     /* callback, cls, type, size */
-    {&receive_query, NULL, GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS, 0},
-    {&rehijack, NULL, GNUNET_MESSAGE_TYPE_REHIJACK,
-     sizeof (struct GNUNET_MessageHeader)},
+    {&handle_client_init, NULL, GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT, 
+     sizeof (struct GNUNET_DNS_Register)},
+    {&handle_client_response, NULL, GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE, 0},
     {NULL, NULL, 0, 0}
   };
-
-  static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
-    {receive_mesh_query, GNUNET_MESSAGE_TYPE_VPN_REMOTE_QUERY_DNS, 0},
-    {receive_mesh_answer, GNUNET_MESSAGE_TYPE_VPN_REMOTE_ANSWER_DNS, 0},
-    {NULL, 0, 0}
-  };
-
-  static GNUNET_MESH_ApplicationType apptypes[] = {
-    GNUNET_APPLICATION_TYPE_END,
-    GNUNET_APPLICATION_TYPE_END
-  };
-
-  if (GNUNET_YES != open_port6 ())
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  if (GNUNET_YES != open_port ())
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg_, "dns", "PROVIDE_EXIT"))
-    apptypes[0] = GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER;
-  mesh_handle =
-      GNUNET_MESH_connect (cfg_, 42, NULL, new_tunnel, clean_tunnel,
-                           mesh_handlers, apptypes);
+  char port_s[6];
+  char *ifc_name;
+  char *ipv4addr;
+  char *ipv4mask;
+  char *ipv6addr;
+  char *ipv6prefix;
 
   cfg = cfg_;
-  dht = GNUNET_DHT_connect (cfg, 1024);
-  GNUNET_SCHEDULER_add_now (publish_names, NULL);
-  GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
+  stats = GNUNET_STATISTICS_create ("dns", cfg);
+  nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 cls);
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg_, "dns", "PROVIDE_EXIT"))
+  {
+    if ( (GNUNET_OK != open_port4 ()) &&
+	 (GNUNET_OK != open_port6 ()) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to open any port to provide DNS exit\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  }
+
+  helper_argv[0] = GNUNET_strdup ("gnunet-dns");
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IFNAME", &ifc_name))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IFNAME' in configuration!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  helper_argv[1] = ifc_name;
+  if ( (GNUNET_SYSERR ==
+	GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV6ADDR",
+					       &ipv6addr)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV6ADDR' in configuration!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  helper_argv[2] = ipv6addr;
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV6PREFIX",
+                                             &ipv6prefix))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV6PREFIX' in configuration!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  helper_argv[3] = ipv6prefix;
+
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV4ADDR",
+                                             &ipv4addr))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV4ADDR' in configuration!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  helper_argv[4] = ipv4addr;
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV4MASK",
+                                             &ipv4mask))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No entry 'IPV4MASK' in configuration!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  helper_argv[5] = ipv4mask;
+  GNUNET_snprintf (port_s, 
+		   sizeof (port_s), 
+		   "%u", 
+		   (unsigned int) dnsoutport);
+  helper_argv[6] = GNUNET_strdup (port_s);
+  helper_argv[7] = NULL;
+  hijacker = GNUNET_HELPER_start ("gnunet-helper-dns",
+				  helper_argv,
+				  &process_helper_messages,
+				  NULL);
+  GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
 }
+
 
 /**
  * The main function for the dns service.
@@ -1742,3 +1288,6 @@ main (int argc, char *const *argv)
           GNUNET_SERVICE_run (argc, argv, "dns", GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? 0 : 1;
 }
+
+
+/* end of gnunet-service-dns_new.c */

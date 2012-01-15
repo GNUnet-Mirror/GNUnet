@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+      (C) 2012 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -19,114 +19,15 @@
  */
 
 /**
- * @file include/gnunet_dns_service.h
- * @brief API to access the DNS service.  Not finished at all,
- *        currently only contains the structs for the IPC, which
- *        don't even belong here (legacy code in transition)
- * @author Philipp Toelke
- * 
- * TODO:
- * - replace (most?) structs with nice function (prototypes) that take
- *   the appropriate arguments to pass the data
- * - clean up API implementation itself (nicer reconnect, etc.)
+ * @file include/gnunet_dns_service-new.h
+ * @brief API to access the DNS service. 
+ * @author Christian Grothoff
  */
-#ifndef GNUNET_DNS_SERVICE_H
-#define GNUNET_DNS_SERVICE_H
+#ifndef GNUNET_DNS_SERVICE_NEW_H
+#define GNUNET_DNS_SERVICE_NEW_H
 
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
-
-
-/**
- * Subtypes of DNS answers.
- */
-enum GNUNET_DNS_ANSWER_Subtype
-{
-  /**
-   * Answers of this type contain a dns-packet that just has to be transmitted
-   */
-  GNUNET_DNS_ANSWER_TYPE_IP,
-
-  /**
-   * Answers of this type contain an incomplete dns-packet. The IP-Address
-   * is all 0s. The addroffset points to it.
-   */
-  GNUNET_DNS_ANSWER_TYPE_SERVICE,
-
-  /**
-   * Answers of this type contain an incomplete dns-packet as answer to a
-   * PTR-Query. The resolved name is not allocated. The addroffset points to it.
-   */
-  GNUNET_DNS_ANSWER_TYPE_REV,
-  
-  /**
-   * Answers of this type contains an IP6-Address but traffic to this IP should
-   * be routed through the GNUNet.
-   */
-  GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA,
-  
-  /**
-   * Answers of this type contains an IP4-Address but traffic to this IP should
-   * be routed through the GNUNet.
-   */
-  GNUNET_DNS_ANSWER_TYPE_REMOTE_A
-
-};
-
-
-GNUNET_NETWORK_STRUCT_BEGIN
-struct GNUNET_vpn_service_descriptor
-{
-  GNUNET_HashCode peer GNUNET_PACKED;
-  GNUNET_HashCode service_descriptor GNUNET_PACKED;
-  uint64_t ports GNUNET_PACKED;
-  uint32_t service_type GNUNET_PACKED;
-};
-
-
-struct answer_packet
-{
-  /* General data */
-  struct GNUNET_MessageHeader hdr;
-  enum GNUNET_DNS_ANSWER_Subtype subtype GNUNET_PACKED;
-
-  char from[16];
-  char to[16];
-  char addrlen;
-  unsigned dst_port:16 GNUNET_PACKED;
-  /* -- */
-
-  /* Data for GNUNET_DNS_ANSWER_TYPE_SERVICE */
-  struct GNUNET_vpn_service_descriptor service_descr;
-  /* -- */
-
-  /* Data for GNUNET_DNS_ANSWER_TYPE_REV */
-  /* The offsett in octets from the beginning of the struct to the field
-   * in data where the IP-Address has to go. */
-  uint16_t addroffset GNUNET_PACKED;
-  /* -- */
-
-  /* Data for GNUNET_DNS_ANSWER_TYPE_REMOTE */
-  /* either 4 or 16 */
-  char addrsize;
-  unsigned char addr[16];
-  /* -- */
-
-  unsigned char data[1];
-};
-GNUNET_NETWORK_STRUCT_END
-
-
-
-/**
- * Type of a function to be called by the DNS API whenever
- * a DNS reply is obtained.
- *
- * @param cls closure
- * @param pkt reply that we got
- */
-typedef void (*GNUNET_DNS_ResponseCallback)(void *cls,
-					    const struct answer_packet *pkt);
 
 
 /**
@@ -134,75 +35,152 @@ typedef void (*GNUNET_DNS_ResponseCallback)(void *cls,
  */
 struct GNUNET_DNS_Handle;
 
+/**
+ * Handle to identify an individual DNS request.
+ */
+struct GNUNET_DNS_RequestHandle;
+
+/**
+ * Flags that specify when to call the client's handler.
+ */ 
+enum GNUNET_DNS_Flags
+{
+
+  /**
+   * Useless option: never call the client.
+   */
+  GNUNET_DNS_FLAG_NEVER = 0,
+
+  /**
+   * Set this flag to see all requests first prior to resolution
+   * (for monitoring).  Clients that set this flag must then
+   * call "GNUNET_DNS_request_forward" when they process a request
+   * for the first time.  Caling "GNUNET_DNS_request_answer" is
+   * not allowed for MONITOR peers.
+   */
+  GNUNET_DNS_FLAG_REQUEST_MONITOR = 1,
+
+  /**
+   * This client should be called on requests that have not
+   * yet been resolved as this client provides a resolution
+   * service.  Note that this does not guarantee that the
+   * client will see all requests as another client might be
+   * called first and that client might have already done the
+   * resolution, in which case other pre-resolution clients
+   * won't see the request anymore.
+   */
+  GNUNET_DNS_FLAG_PRE_RESOLUTION = 2,
+
+  /**
+   * This client wants to be called on the results of a DNS resolution
+   * (either resolved by PRE-RESOLUTION clients or the global DNS).
+   * The client then has a chance to modify the answer (or cause it to
+   * be dropped).  There is no guarantee that other POST-RESOLUTION
+   * client's won't modify (or drop) the answer afterwards.
+   */
+  GNUNET_DNS_FLAG_POST_RESOLUTION = 4,
+
+  /**
+   * Set this flag to see all requests just before they are
+   * returned to the network.  Clients that set this flag must then
+   * call "GNUNET_DNS_request_forward" when they process a request
+   * for the last time.  Caling "GNUNET_DNS_request_answer" is
+   * not allowed for MONITOR peers.
+   */
+  GNUNET_DNS_FLAG_RESPONSE_MONITOR = 8
+
+};
+
+
+
+/**
+ * Signature of a function that is called whenever the DNS service
+ * encounters a DNS request and needs to do something with it.  The
+ * function has then the chance to generate or modify the response by
+ * calling one of the three "GNUNET_DNS_request_*" continuations.
+ *
+ * When a request is intercepted, this function is called first to
+ * give the client a chance to do the complete address resolution;
+ * "rdata" will be NULL for this first call for a DNS request, unless
+ * some other client has already filled in a response.
+ *
+ * If multiple clients exist, all of them are called before the global
+ * DNS.  The global DNS is only called if all of the clients'
+ * functions call GNUNET_DNS_request_forward.  Functions that call
+ * GNUNET_DNS_request_forward will be called again before a final
+ * response is returned to the application.  If any of the clients'
+ * functions call GNUNET_DNS_request_drop, the response is dropped.
+ *
+ * @param cls closure
+ * @param rh request handle to user for reply
+ * @param request_length number of bytes in request
+ * @param request udp payload of the DNS request
+ */
+typedef void (*GNUNET_DNS_RequestHandler)(void *cls,
+					  struct GNUNET_DNS_RequestHandle *rh,
+					  size_t request_length,
+					  const char *request);
+
+
+/**
+ * If a GNUNET_DNS_RequestHandler calls this function, the client
+ * has no desire to interfer with the request and it should
+ * continue to be processed normally.
+ *
+ * @param rh request that should now be forwarded
+ */
+void
+GNUNET_DNS_request_forward (struct GNUNET_DNS_RequestHandle *rh);
+
+
+/**
+ * If a GNUNET_DNS_RequestHandler calls this function, the request is
+ * to be dropped and no response should be generated.
+ *
+ * @param rh request that should now be dropped
+ */
+void
+GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh);
+
+
+/**
+ * If a GNUNET_DNS_RequestHandler calls this function, the request is
+ * supposed to be answered with the data provided to this call (with
+ * the modifications the function might have made).  The reply given
+ * must always be a valid DNS reply and not a mutated DNS request.
+ *
+ * @param rh request that should now be answered
+ * @param reply_length size of reply (uint16_t to force sane size)
+ * @param reply reply data
+ */
+void
+GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,		   
+			   uint16_t reply_length,
+			   const char *reply);
+
 
 /**
  * Connect to the service-dns
  *
  * @param cfg configuration to use
- * @param cb function to call with DNS replies
- * @param cb_cls closure to pass to cb
+ * @param flags when to call rh
+ * @param rh function to call with DNS requests
+ * @param rh_cls closure to pass to rh
  * @return DNS handle 
  */
 struct GNUNET_DNS_Handle *
 GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		    GNUNET_DNS_ResponseCallback cb,
-		    void *cb_cls);
+		    enum GNUNET_DNS_Flags flags,
+		    GNUNET_DNS_RequestHandler rh,
+		    void *rh_cls);
 
-
-/**
- * Signal the DNS service that it needs to re-initialize the DNS
- * hijacking (the network setup has changed significantly).
- *
- * @param h DNS handle
- */
-void
-GNUNET_DNS_restart_hijack (struct GNUNET_DNS_Handle *h);
-
-
-/**
- * Process a DNS request sent to an IPv4 resolver.  Pass it
- * to the DNS service for resolution.
- *
- * @param h DNS handle
- * @param dst_ip destination IPv4 address
- * @param src_ip source IPv4 address (usually local machine)
- * @param src_port source port (to be used for reply)
- * @param udp_packet_len length of the UDP payload in bytes
- * @param udp_packet UDP payload
- */
-void
-GNUNET_DNS_queue_request_v4 (struct GNUNET_DNS_Handle *h,
-			     const struct in_addr *dst_ip,
-			     const struct in_addr *src_ip,
-			     uint16_t src_port,
-			     size_t udp_packet_len,
-			     const char *udp_packet);
-
-/**
- * Process a DNS request sent to an IPv6 resolver.  Pass it
- * to the DNS service for resolution.
- *
- * @param h DNS handle
- * @param dst_ip destination IPv6 address
- * @param src_ip source IPv6 address (usually local machine)
- * @param src_port source port (to be used for reply)
- * @param udp_packet_len length of the UDP payload in bytes
- * @param udp_packet UDP payload
- */
-void
-GNUNET_DNS_queue_request_v6 (struct GNUNET_DNS_Handle *h,
-			     const struct in6_addr *dst_ip,
-			     const struct in6_addr *src_ip,
-			     uint16_t src_port,
-			     size_t udp_packet_len,
-			     const char *udp_packet);
 
 /**
  * Disconnect from the DNS service.
  *
- * @param h DNS handle
+ * @param dh DNS handle
  */
 void
-GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *h);
+GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *dh);
 
 #endif

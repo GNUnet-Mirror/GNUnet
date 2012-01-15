@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+      (C) 2012 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -19,36 +19,83 @@
  */
 
 /**
- * @file dns/dns.h
+ * @file dns/dns_new.h
  * @brief IPC messages between DNS API and DNS service
- * @author Philipp Toelke
  * @author Christian Grothoff
  */
-#ifndef DNS_H
-#define DNS_H
+#ifndef DNS_NEW_H
+#define DNS_NEW_H
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-struct query_packet
+
+/**
+ * Message from client to DNS service to register itself.
+ */
+struct GNUNET_DNS_Register
 {
-  struct GNUNET_MessageHeader hdr;
+  /**
+    * Header of type GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT
+   */
+  struct GNUNET_MessageHeader header;
 
-        /**
-	 * The IP-Address this query was originally sent to
-	 */
-  char orig_to[16];
-        /**
-	 * The IP-Address this query was originally sent from
-	 */
-  char orig_from[16];
-  char addrlen;
-        /**
-	 * The UDP-Port this query was originally sent from
-	 */
-  uint16_t src_port GNUNET_PACKED;
-
-  unsigned char data[1];        /* The DNS-Packet */
+  /**
+   * NBO encoding of 'enum GNUNET_DNS_Flags' for the client.
+   */
+  uint32_t flags;
 };
+
+
+/**
+ * Message from DNS service to client: please handle a request.
+ */
+struct GNUNET_DNS_Request
+{
+  /**
+    * Header of type GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+  
+  /**
+   * Unique request ID.
+   */
+  uint64_t request_id GNUNET_PACKED;
+
+  /* followed by original DNS request (without UDP header) */
+
+};
+
+
+/**
+ * Message from client to DNS service: here is my reply.
+ */
+struct GNUNET_DNS_Response
+{
+  /**
+   * Header of type GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Zero to drop, 1 for no change (no payload), 2 for update (message has payload).
+   */
+  uint32_t drop_flag GNUNET_PACKED;
+  
+  /**
+   * Unique request ID.
+   */
+  uint64_t request_id GNUNET_PACKED;
+
+  /* followed by original DNS request (without UDP header) */
+
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

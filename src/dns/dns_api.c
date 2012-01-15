@@ -1,342 +1,522 @@
 /*
-     This file is part of GNUnet.
-     (C) 2010 Christian Grothoff
+      This file is part of GNUnet
+      (C) 2012 Christian Grothoff (and other contributing authors)
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+      GNUnet is free software; you can redistribute it and/or modify
+      it under the terms of the GNU General Public License as published
+      by the Free Software Foundation; either version 2, or (at your
+      option) any later version.
 
-     GNUnet is distributed in the hope that it will be useful, but
-     WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
+      GNUnet is distributed in the hope that it will be useful, but
+      WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+      General Public License for more details.
 
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-     Boston, MA 02111-1307, USA.
-*/
+      You should have received a copy of the GNU General Public License
+      along with GNUnet; see the file COPYING.  If not, write to the
+      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+      Boston, MA 02111-1307, USA.
+ */
 
 /**
- * @file dns/dns_api.c
- * @brief
- * @author Philipp Toelke
+ * @file dns/dns_api_new.c
+ * @brief API to access the DNS service. 
+ * @author Christian Grothoff
  */
-#include <platform.h>
-#include <gnunet_common.h>
-#include <gnunet_client_lib.h>
-#include <gnunet_os_lib.h>
-#include <gnunet_mesh_service.h>
-#include <gnunet_protocols.h>
-#include <gnunet_server_lib.h>
-#include <gnunet_container_lib.h>
-#include <block_dns.h>
-
+#include "platform.h"
 #include "gnunet_dns_service.h"
 #include "dns.h"
 
-struct query_packet_list
+
+/**
+ * Reply to send to service.
+ */
+struct ReplyQueueEntry
 {
-  struct query_packet_list *next;
-  struct query_packet_list *prev;
-  struct query_packet pkt;
+  /**
+   * Kept in DLL.
+   */
+  struct ReplyQueueEntry *next;
+
+  /**
+   * Kept in DLL.
+   */
+  struct ReplyQueueEntry *prev;
+
+  /**
+   * Message to transmit, allocated at the end of this struct.
+   */
+  const struct GNUNET_MessageHeader *msg;
+
 };
 
 
+/**
+ * Handle to identify an individual DNS request.
+ */
+struct GNUNET_DNS_RequestHandle
+{
+
+  /**
+   * Handle to DNS API.
+   */
+  struct GNUNET_DNS_Handle *dh;
+
+  /**
+   * Stored in network byte order (as for us, it is just a random number).
+   */
+  uint64_t request_id;
+
+  /**
+   * Re-connect counter, to make sure we did not reconnect in the meantime.
+   */
+  uint32_t generation;
+
+};
+
+
+/**
+ * DNS handle
+ */
 struct GNUNET_DNS_Handle
 {
-  struct query_packet_list *head;
-  struct query_packet_list *tail;
-  struct GNUNET_CLIENT_Connection *dns_connection;
-  unsigned char restart_hijack;
 
+  /**
+   * Connection to DNS service, or NULL.
+   */
+  struct GNUNET_CLIENT_Connection *dns_connection;
+
+  /**
+   * Handle to active transmission request, or NULL.
+   */
   struct GNUNET_CLIENT_TransmitHandle *dns_transmit_handle;
 
+  /**
+   * Configuration to use.
+   */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  GNUNET_DNS_ResponseCallback process_answer_cb;
+  /**
+   * Function to call to get replies.
+   */
+  GNUNET_DNS_RequestHandler rh;
   
-  void *process_answer_cb_cls;
+  /**
+   * Closure for 'rh'.
+   */
+  void *rh_cls;
+
+  /**
+   * Head of replies to transmit.
+   */
+  struct ReplyQueueEntry *rq_head;
+
+  /**
+   * Tail of replies to transmit.
+   */
+  struct ReplyQueueEntry *rq_tail;
+
+  /**
+   * Task to reconnect to the service.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+
+  /**
+   * Re-connect counter, to make sure we did not reconnect in the meantime.
+   */
+  uint32_t generation;
+  
+  /**
+   * Flags for events we care about.
+   */
+  enum GNUNET_DNS_Flags flags;
+
+  /**
+   * Did we start the receive loop yet?
+   */
+  int in_receive;
+
+  /**
+   * Number of GNUNET_DNS_RequestHandles we have outstanding. Must be 0 before
+   * we can be disconnected.
+   */
+  unsigned int pending_requests;
 };
 
 
 /**
- * Callback called by notify_transmit_ready; sends dns-queries or rehijack-messages
- * to the service-dns
- * {{{
+ * Add the given reply to our transmission queue and trigger sending if needed.
+ *
+ * @param dh handle with the connection
+ * @param qe reply to queue
  */
-size_t
-send_query (void *cls GNUNET_UNUSED, size_t size, void *buf)
-{
-  struct GNUNET_DNS_Handle *h = cls;
-
-  size_t len;
-
-  h->dns_transmit_handle = NULL;
-
-  /*
-   * Send the rehijack-message
-   */
-  if (h->restart_hijack == 1)
-  {
-    h->restart_hijack = 0;
-    /*
-     * The message is just a header
-     */
-    GNUNET_assert (sizeof (struct GNUNET_MessageHeader) <= size);
-    struct GNUNET_MessageHeader *hdr = buf;
-
-    len = sizeof (struct GNUNET_MessageHeader);
-    hdr->size = htons (len);
-    hdr->type = htons (GNUNET_MESSAGE_TYPE_REHIJACK);
-  }
-  else if (h->head != NULL)
-  {
-    struct query_packet_list *query = h->head;
-
-    len = ntohs (query->pkt.hdr.size);
-
-    GNUNET_assert (len <= size);
-
-    memcpy (buf, &query->pkt.hdr, len);
-
-    GNUNET_CONTAINER_DLL_remove (h->head, h->tail, query);
-
-    GNUNET_free (query);
-  }
-  else
-  {
-    GNUNET_break (0);
-    len = 0;
-  }
-
-  /*
-   * Check whether more data is to be sent
-   */
-  if (h->head != NULL)
-  {
-    h->dns_transmit_handle =
-      GNUNET_CLIENT_notify_transmit_ready (h->dns_connection,
-					   ntohs (h->head->pkt.hdr.size),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_query, h);
-  }
-  else if (h->restart_hijack == 1)
-  {
-    h->dns_transmit_handle =
-      GNUNET_CLIENT_notify_transmit_ready (h->dns_connection,
-					   sizeof (struct
-                                                     GNUNET_MessageHeader),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_query, h);
-  }
-
-  return len;
-}
-
-/* }}} */
-
+static void
+queue_reply (struct GNUNET_DNS_Handle *dh,
+	     struct ReplyQueueEntry *qe);
 
 
 /**
- * This receives packets from the service-dns and schedules process_answer to
- * handle it
+ * Reconnect to the DNS service.
+ *
+ * @param cls handle with the connection to connect
+ * @param tc scheduler context (unused)
  */
 static void
-dns_answer_handler (void *cls,
-                    const struct GNUNET_MessageHeader *msg)
+reconnect (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_DNS_Handle *h = cls;
+  struct GNUNET_DNS_Handle *dh = cls;
+  struct ReplyQueueEntry *qe;
+  struct GNUNET_DNS_Register *msg;
+
+  dh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  dh->dns_connection = GNUNET_CLIENT_connect ("dns", dh->cfg);
+  if (NULL == dh->dns_connection)
+    return;
+  dh->generation++;
+  qe = GNUNET_malloc (sizeof (struct ReplyQueueEntry) +
+		      sizeof (struct GNUNET_DNS_Register));
+  msg = (struct GNUNET_DNS_Register*) &qe[1];
+  qe->msg = &msg->header;
+  msg->header.size = htons (sizeof (struct GNUNET_DNS_Register));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT);
+  msg->flags = htonl (dh->flags);
+  queue_reply (dh, qe);
+}
+
+
+/**
+ * Disconnect from the DNS service.
+ *
+ * @param dh handle with the connection to disconnect
+ */
+static void
+disconnect (struct GNUNET_DNS_Handle *dh)
+{
+  struct ReplyQueueEntry *qe;
+
+  if (NULL != dh->dns_transmit_handle)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (dh->dns_transmit_handle);
+    dh->dns_transmit_handle = NULL;
+  }
+  if (NULL != dh->dns_connection)
+  {
+    GNUNET_CLIENT_disconnect (dh->dns_connection, GNUNET_NO);
+    dh->dns_connection = NULL;
+  }
+  while (NULL != (qe = dh->rq_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (dh->rq_head,
+				 dh->rq_tail,
+				 qe);
+    GNUNET_free (qe);
+  }
+  dh->in_receive = GNUNET_NO;
+}
+
+
+/**
+ * This receives packets from the DNS service and calls the application to
+ * handle it.
+ *
+ * @param cls the struct GNUNET_DNS_Handle
+ * @param msg message from the service (request)
+ */
+static void
+request_handler (void *cls,
+		 const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_DNS_Handle *dh = cls;
+  const struct GNUNET_DNS_Request *req;
+  struct GNUNET_DNS_RequestHandle *rh;
+  size_t payload_length;
 
   /* the service disconnected, reconnect after short wait */
   if (msg == NULL)
   {
-    if (h->dns_transmit_handle != NULL)
-      GNUNET_CLIENT_notify_transmit_ready_cancel (h->dns_transmit_handle);
-    h->dns_transmit_handle = NULL;
-    GNUNET_CLIENT_disconnect (h->dns_connection, GNUNET_NO);
-    h->dns_connection = NULL;
-#if 0
-    h->conn_task =
+    disconnect (dh);
+    dh->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                      &connect_to_service_dns, h);
-#endif
+                                      &reconnect, dh);
     return;
   }
+  if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST) ||
+       (ntohs (msg->size) < sizeof (struct GNUNET_DNS_Request)) )
+  {
+    /* the service did something strange, reconnect immediately */
+    GNUNET_break (0);
+    disconnect (dh);
+    dh->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, dh);
+    return;
+  }
+  req = (const struct GNUNET_DNS_Request *) msg;
+  GNUNET_break (ntohl (req->reserved) == 0);
+  payload_length = ntohs (req->header.size) - sizeof (struct GNUNET_DNS_Request);
+  GNUNET_CLIENT_receive (dh->dns_connection, 
+			 &request_handler, dh,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
 
-  /* the service did something strange, reconnect immediately */
-  if (msg->type != htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS))
+  /* finally, pass request to callback for answers */
+  rh = GNUNET_malloc (sizeof (struct GNUNET_DNS_RequestHandle));
+  rh->dh =dh;
+  rh->request_id = req->request_id;
+  rh->generation = dh->generation;  
+  dh->pending_requests++;
+  dh->rh (dh->rh_cls,
+	  rh,
+	  payload_length,
+	  (const char*) &req[1]);
+}
+
+
+/**
+ * Callback called by notify_transmit_ready; sends DNS replies
+ * to the DNS service.
+ *
+ * @param cls the struct GNUNET_DNS_Handle
+ * @param size number of bytes available in buf
+ * @param buf where to copy the message for transmission
+ * @return number of bytes copied to buf
+ */
+static size_t
+send_response (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_DNS_Handle *dh = cls;
+  struct ReplyQueueEntry *qe;
+  size_t len;
+ 
+  dh->dns_transmit_handle = NULL;
+  if (NULL == buf)
+  {
+    disconnect (dh);
+    dh->reconnect_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				    &reconnect, dh);
+    return 0;
+  }
+  qe = dh->rq_head;
+  if (NULL == qe)
+    return 0;
+  len = ntohs (qe->msg->size);
+  if (len > size)
+  {   
+    dh->dns_transmit_handle =
+      GNUNET_CLIENT_notify_transmit_ready (dh->dns_connection,
+					   len,
+					   GNUNET_TIME_UNIT_FOREVER_REL,
+					   GNUNET_NO, 
+					   &send_response, dh);
+    return 0;
+  }
+  memcpy (buf, qe->msg, len);
+  GNUNET_CONTAINER_DLL_remove (dh->rq_head,
+			       dh->rq_tail,
+			       qe);
+  GNUNET_free (qe);
+  if (GNUNET_NO == dh->in_receive)
+  {
+    dh->in_receive = GNUNET_YES;
+    GNUNET_CLIENT_receive (dh->dns_connection, 
+			   &request_handler, dh,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+  }
+  if (NULL != (qe = dh->rq_head))
+  {
+    dh->dns_transmit_handle =
+      GNUNET_CLIENT_notify_transmit_ready (dh->dns_connection,
+					   ntohs (qe->msg->size),
+					   GNUNET_TIME_UNIT_FOREVER_REL,
+					   GNUNET_NO, 
+					   &send_response, dh);
+  }
+  return len;
+} 
+
+
+/**
+ * Add the given reply to our transmission queue and trigger sending if needed.
+ *
+ * @param dh handle with the connection
+ * @param qe reply to queue
+ */
+static void
+queue_reply (struct GNUNET_DNS_Handle *dh,
+	     struct ReplyQueueEntry *qe)
+{
+  if (NULL == dh->dns_connection)        
+  {
+    GNUNET_free (qe);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_insert_tail (dh->rq_head,
+				    dh->rq_tail,
+				    qe);
+  if (NULL != dh->dns_transmit_handle)
+    return;
+  /* trigger sending */ 
+  dh->dns_transmit_handle =
+    GNUNET_CLIENT_notify_transmit_ready (dh->dns_connection,
+					 ntohs (dh->rq_head->msg->size),
+					 GNUNET_TIME_UNIT_FOREVER_REL,
+					 GNUNET_NO, 
+					 &send_response, dh);
+}
+
+
+/**
+ * If a GNUNET_DNS_RequestHandler calls this function, the request is
+ * given to other clients or the global DNS for resolution.  Once a
+ * global response has been obtained, the request handler is AGAIN
+ * called to give it a chance to observe and modify the response after
+ * the "normal" resolution.  It is not legal for the request handler
+ * to call this function if a response is already present.
+ *
+ * @param rh request that should now be forwarded
+ */
+void
+GNUNET_DNS_request_forward (struct GNUNET_DNS_RequestHandle *rh)
+{
+  struct ReplyQueueEntry *qe;
+  struct GNUNET_DNS_Response *resp;
+
+  GNUNET_assert (0 < rh->dh->pending_requests--);
+  if (rh->generation != rh->dh->generation)
+  {
+    GNUNET_free (rh);
+    return;
+  }
+  qe = GNUNET_malloc (sizeof (struct ReplyQueueEntry) +
+		      sizeof (struct GNUNET_DNS_Response));
+  resp = (struct GNUNET_DNS_Response*) &qe[1];
+  qe->msg = &resp->header;
+  resp->header.size = htons (sizeof (struct GNUNET_DNS_Response));
+  resp->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
+  resp->drop_flag = htonl (1);
+  resp->request_id = rh->request_id;
+  queue_reply (rh->dh, qe);
+  GNUNET_free (rh);
+}
+
+
+/**
+ * If a GNUNET_DNS_RequestHandler calls this function, the request is
+ * to be dropped and no response should be generated.
+ *
+ * @param rh request that should now be dropped
+ */
+void
+GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh)
+{
+  struct ReplyQueueEntry *qe;
+  struct GNUNET_DNS_Response *resp;
+
+  GNUNET_assert (0 < rh->dh->pending_requests--);
+  if (rh->generation != rh->dh->generation)
+  {
+      GNUNET_free (rh);
+      return;
+  }
+  qe = GNUNET_malloc (sizeof (struct ReplyQueueEntry) +
+		      sizeof (struct GNUNET_DNS_Response));
+  resp = (struct GNUNET_DNS_Response*) &qe[1];
+  qe->msg = &resp->header;
+  resp->header.size = htons (sizeof (struct GNUNET_DNS_Response));
+  resp->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
+  resp->request_id = rh->request_id;
+  resp->drop_flag = htonl (0);
+  queue_reply (rh->dh, qe);
+  GNUNET_free (rh);
+}
+
+
+/**
+ * If a GNUNET_DNS_RequestHandler calls this function, the request is
+ * supposed to be answered with the data provided to this call (with
+ * the modifications the function might have made).
+ *
+ * @param rh request that should now be answered
+ * @param reply_length size of reply (uint16_t to force sane size)
+ * @param reply reply data
+ */
+void
+GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,	 
+			   uint16_t reply_length,
+			   const char *reply)
+{
+  struct ReplyQueueEntry *qe;
+  struct GNUNET_DNS_Response *resp;
+
+  GNUNET_assert (0 < rh->dh->pending_requests--);
+  if (rh->generation != rh->dh->generation)
+  {
+      GNUNET_free (rh);
+      return;
+  }
+  if (reply_length + sizeof (struct GNUNET_DNS_Response) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
-    GNUNET_CLIENT_disconnect (h->dns_connection, GNUNET_NO);
-    h->dns_connection = NULL;
-#if 0
-    conn_task = GNUNET_SCHEDULER_add_now (&connect_to_service_dns, NULL);
-#endif
+    GNUNET_free (rh);
     return;
   }
-  h->process_answer_cb (h->process_answer_cb_cls,
-			(const struct answer_packet*) msg);
-  GNUNET_CLIENT_receive (h->dns_connection, &dns_answer_handler, h,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
+  qe = GNUNET_malloc (sizeof (struct ReplyQueueEntry) +
+		      sizeof (struct GNUNET_DNS_Response) + reply_length);
+  resp = (struct GNUNET_DNS_Response*) &qe[1];
+  qe->msg = &resp->header;
+  resp->header.size = htons (sizeof (struct GNUNET_DNS_Response) + reply_length);
+  resp->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
+  resp->drop_flag = htonl (2);
+  resp->request_id = rh->request_id;
+  memcpy (&resp[1], reply, reply_length);
+  queue_reply (rh->dh, qe);
+  GNUNET_free (rh);
 }
 
 
 /**
  * Connect to the service-dns
+ *
+ * @param cfg configuration to use
+ * @param flags when to call rh
+ * @param rh function to call with DNS requests
+ * @param rh_cls closure to pass to rh
+ * @return DNS handle 
  */
 struct GNUNET_DNS_Handle *
 GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		    GNUNET_DNS_ResponseCallback cb,
-		    void *cb_cls)
+		    enum GNUNET_DNS_Flags flags,
+		    GNUNET_DNS_RequestHandler rh,
+		    void *rh_cls)
 {
-  struct GNUNET_DNS_Handle *h;
-
-  h = GNUNET_malloc (sizeof (struct GNUNET_DNS_Handle));
-  h->cfg = cfg;
-  h->process_answer_cb = cb;
-  h->process_answer_cb_cls = cb_cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to service-dns\n");
-  h->dns_connection = GNUNET_CLIENT_connect ("dns", h->cfg);
-  /* This would most likely be a misconfiguration */
-  GNUNET_assert (NULL != h->dns_connection);
-  GNUNET_CLIENT_receive (h->dns_connection, 
-			 &dns_answer_handler, NULL,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-  /* If a packet is already in the list, schedule to send it */
-  if (h->dns_transmit_handle == NULL && h->head != NULL)
-    h->dns_transmit_handle =
-        GNUNET_CLIENT_notify_transmit_ready (h->dns_connection,
-                                             ntohs (h->head->pkt.hdr.size),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_query, h);
-  else if (h->dns_transmit_handle == NULL && h->restart_hijack == 1)
-  {
-    h->dns_transmit_handle =
-      GNUNET_CLIENT_notify_transmit_ready (h->dns_connection,
-					   sizeof (struct
-                                                     GNUNET_MessageHeader),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_query, NULL);
-  }
-  return h;
-}
-
-
-void
-GNUNET_DNS_restart_hijack (struct GNUNET_DNS_Handle *h)
-{
-  h->restart_hijack = 1;
-  if (NULL != h->dns_connection && h->dns_transmit_handle == NULL)
-    h->dns_transmit_handle =
-      GNUNET_CLIENT_notify_transmit_ready (h->dns_connection,
-                                             sizeof (struct
-                                                     GNUNET_MessageHeader),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_query, h);
+  struct GNUNET_DNS_Handle *dh;
+  
+  dh = GNUNET_malloc (sizeof (struct GNUNET_DNS_Handle));
+  dh->cfg = cfg;
+  dh->flags = flags;
+  dh->rh = rh;
+  dh->rh_cls = rh_cls;
+  dh->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, dh);
+  return dh;
 }
 
 
 /**
- * FIXME: we should not expost our internal structures like this.
- * Just a quick initial hack.
- */
-static void
-queue_request (struct GNUNET_DNS_Handle *h,
-	       struct query_packet_list *q)
-{
-  GNUNET_CONTAINER_DLL_insert_tail (h->head, h->tail, q);
-  if (h->dns_connection != NULL && h->dns_transmit_handle == NULL)
-    h->dns_transmit_handle =
-      GNUNET_CLIENT_notify_transmit_ready (h->dns_connection, ntohs(q->pkt.hdr.size),
-					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   GNUNET_YES, &send_query,
-					   h);
-}
-
-
-
-/**
- * Process a DNS request sent to an IPv4 resolver.  Pass it
- * to the DNS service for resolution.
+ * Disconnect from the DNS service.
  *
- * @param h DNS handle
- * @param dst_ip destination IPv4 address
- * @param src_ip source IPv4 address (usually local machine)
- * @param src_port source port (to be used for reply)
- * @param udp_packet_len length of the UDP payload in bytes
- * @param udp_packet UDP payload
+ * @param dh DNS handle
  */
 void
-GNUNET_DNS_queue_request_v4 (struct GNUNET_DNS_Handle *h,
-			     const struct in_addr *dst_ip,
-			     const struct in_addr *src_ip,
-			     uint16_t src_port,
-			     size_t udp_packet_len,
-			     const char *udp_packet)
+GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *dh)
 {
-  size_t len = sizeof (struct query_packet) + udp_packet_len - 1;
-  struct query_packet_list *query =
-    GNUNET_malloc (len + sizeof (struct query_packet_list) -
-		   sizeof (struct query_packet));
-  query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
-  query->pkt.hdr.size = htons (len);
-  memcpy (query->pkt.orig_to, dst_ip, 4);
-  memcpy (query->pkt.orig_from, src_ip, 4);
-  query->pkt.addrlen = 4;
-  query->pkt.src_port = htons (src_port);
-  memcpy (query->pkt.data, udp_packet, udp_packet_len);  
-  queue_request (h, query);
-}
-
-
-/**
- * Process a DNS request sent to an IPv6 resolver.  Pass it
- * to the DNS service for resolution.
- *
- * @param h DNS handle
- * @param dst_ip destination IPv6 address
- * @param src_ip source IPv6 address (usually local machine)
- * @param src_port source port (to be used for reply)
- * @param udp_packet_len length of the UDP payload in bytes
- * @param udp_packet UDP payload
- */
-void
-GNUNET_DNS_queue_request_v6 (struct GNUNET_DNS_Handle *h,
-			     const struct in6_addr *dst_ip,
-			     const struct in6_addr *src_ip,
-			     uint16_t src_port,
-			     size_t udp_packet_len,
-			     const char *udp_packet)
-{
-  size_t len =
-    sizeof (struct query_packet) + udp_packet_len - 1;
-  struct query_packet_list *query =
-    GNUNET_malloc (len + sizeof (struct query_packet_list) -
-		   sizeof (struct answer_packet));
-  query->pkt.hdr.type =
-    htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
-  query->pkt.hdr.size = htons (len);
-  memcpy (query->pkt.orig_to, dst_ip, 16);
-  memcpy (query->pkt.orig_from, src_ip, 16);
-  query->pkt.addrlen = 16;
-  query->pkt.src_port = htons (src_port);
-  memcpy (query->pkt.data, udp_packet,
-	  udp_packet_len);
-  queue_request (h, query);
-}
-
-
-void
-GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *h)
-{
-  if (h->dns_connection != NULL)
+  if (GNUNET_SCHEDULER_NO_TASK != dh->reconnect_task)
   {
-    GNUNET_CLIENT_disconnect (h->dns_connection, GNUNET_NO);
-    h->dns_connection = NULL;
+    GNUNET_SCHEDULER_cancel (dh->reconnect_task);
+    dh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_free (h);
+  disconnect (dh);
+  /* make sure client has no pending requests left over! */
+  GNUNET_assert (0 == dh->pending_requests);
+  GNUNET_free (dh);
 }
 
-/* end of dns_api.c */
+/* end of dns_api_new.c */

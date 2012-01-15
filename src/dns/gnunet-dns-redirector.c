@@ -26,7 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_dns_service-new.h"
+#include "gnunet_dns_service.h"
 #include "gnunet_dnsparser_lib.h"
 
 /**
