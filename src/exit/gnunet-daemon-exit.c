@@ -521,6 +521,9 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 					       tnq->len,
 					       &send_to_peer_notify_callback,
 					       s);
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Bytes transmitted via mesh tunnels"),
+			    size, GNUNET_NO);
   return size;
 }
 
@@ -733,6 +736,9 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
   const struct tun_header *pkt_tun;
   size_t size;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Packets received from TUN"),
+			    1, GNUNET_NO);
   if (ntohs (message->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER)
   {
     GNUNET_break (0);
@@ -1236,6 +1242,9 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 {
   size_t len;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# TCP packets sent via TUN"),
+			    1, GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending packet with %u bytes TCP payload via TUN\n",
 	      (unsigned int) payload_length);
@@ -1332,6 +1341,9 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
   const struct GNUNET_EXIT_TcpServiceStartMessage *start;
   uint16_t pkt_len = ntohs (message->size);
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# TCP service creation requests received via mesh"),
+			    1, GNUNET_NO);
   /* check that we got at least a valid header */
   if (pkt_len < sizeof (struct GNUNET_EXIT_TcpServiceStartMessage))
   {
@@ -1400,6 +1412,9 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const void *payload;
   int af;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# TCP IP-exit creation requests received via mesh"),
+			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_TcpInternetStartMessage))
   {
     GNUNET_break_op (0);
@@ -1490,6 +1505,9 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_EXIT_TcpDataMessage *data;
   uint16_t pkt_len = ntohs (message->size);
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# TCP data requests received via mesh"),
+			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_TcpDataMessage))
   {
     GNUNET_break_op (0);
@@ -1540,6 +1558,9 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
 {
   size_t len;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# UDP packets sent via TUN"),
+			    1, GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending packet with %u bytes UDP payload via TUN\n",
 	      (unsigned int) payload_length);
@@ -1640,6 +1661,9 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const void *payload;
   int af;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# UDP IP-exit requests received via mesh"),
+			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_UdpInternetMessage))
   {
     GNUNET_break_op (0);
@@ -1724,6 +1748,9 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_EXIT_UdpServiceMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# UDP service requests received via mesh"),
+			    1, GNUNET_NO);
   /* check that we got at least a valid header */
   if (pkt_len < sizeof (struct GNUNET_EXIT_UdpServiceMessage))
   {
@@ -1773,6 +1800,9 @@ new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 {
   struct TunnelState *s = GNUNET_malloc (sizeof (struct TunnelState));
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Inbound MESH tunnels created"),
+			    1, GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received inbound tunnel from `%s'\n",
 	      GNUNET_i2s (initiator));
