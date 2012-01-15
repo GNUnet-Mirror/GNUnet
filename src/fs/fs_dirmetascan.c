@@ -568,6 +568,13 @@ extract_file (struct AddDirStack *ads, const char *filename)
                                      EXTRACTOR_METATYPE_FILENAME,
                                      EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                      short_fn, strlen (short_fn) + 1);
+  if (ads->parent == NULL)
+  {
+    /* we're finished with the scan, make sure caller gets the top-level
+     * directory pointer
+     */
+    ads->adc->toplevel = item;
+  }
 }
 
 /**
@@ -869,7 +876,7 @@ GNUNET_FS_directory_scan_cleanup (struct GNUNET_FS_DirScanner *ds)
  * The function from which the scanner thread starts
  */
 #if WINDOWS
-static DWORD
+DWORD
 #else
 static void *
 #endif
@@ -1043,12 +1050,7 @@ GNUNET_FS_directory_scan_start (const char *filename,
 
   if (0 != STAT (filename, &sbuf))
     return NULL;
-  /* TODO: consider generalizing this for files too! */
-  if (!S_ISDIR (sbuf.st_mode))
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
+
   /* scan_directory() is guaranteed to be given expanded filenames,
    * so expand we will!
    */
@@ -1211,30 +1213,35 @@ trim_share_tree_task (void *cls,
     /* process a child entry (a file or a directory) and move to the next one*/
     if (stack->item->is_directory)
       stack->end_directory = GNUNET_NO;
-    stack->dir_entry_count++;
-    GNUNET_CONTAINER_meta_data_iterate (stack->item->meta, &add_to_meta_counter, stack->metacounter);
-
-    if (stack->item->is_directory)
+    if (stack->ctx->toplevel->is_directory)
     {
-      char *user = getenv ("USER");
-      if ((user == NULL) || (0 != strncasecmp (user, stack->item->short_filename, strlen(user))))
+      stack->dir_entry_count++;
+      GNUNET_CONTAINER_meta_data_iterate (stack->item->meta, &add_to_meta_counter, stack->metacounter);
+
+      if (stack->item->is_directory)
       {
-        /* only use filename if it doesn't match $USER */
-        GNUNET_CONTAINER_meta_data_insert (stack->item->meta, "<libgnunetfs>",
-					   EXTRACTOR_METATYPE_FILENAME,
-					   EXTRACTOR_METAFORMAT_UTF8,
-					   "text/plain", stack->item->short_filename,
-					   strlen (stack->item->short_filename) + 1);
-        GNUNET_CONTAINER_meta_data_insert (stack->item->meta, "<libgnunetfs>",
-					   EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
-					   EXTRACTOR_METAFORMAT_UTF8,
-					   "text/plain", stack->item->short_filename,
-					   strlen (stack->item->short_filename) + 1);
+        char *user = getenv ("USER");
+        if ((user == NULL) || (0 != strncasecmp (user, stack->item->short_filename, strlen(user))))
+        {
+          /* only use filename if it doesn't match $USER */
+          GNUNET_CONTAINER_meta_data_insert (stack->item->meta, "<libgnunetfs>",
+					     EXTRACTOR_METATYPE_FILENAME,
+					     EXTRACTOR_METAFORMAT_UTF8,
+					     "text/plain", stack->item->short_filename,
+					     strlen (stack->item->short_filename) + 1);
+          GNUNET_CONTAINER_meta_data_insert (stack->item->meta, "<libgnunetfs>",
+					     EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
+					     EXTRACTOR_METAFORMAT_UTF8,
+					     "text/plain", stack->item->short_filename,
+					     strlen (stack->item->short_filename) + 1);
+        }
       }
     }
-
     stack->item->ksk_uri = GNUNET_FS_uri_ksk_create_from_meta_data (stack->item->meta);
-    GNUNET_FS_uri_ksk_get_keywords (stack->item->ksk_uri, &add_to_keyword_counter, stack->keywordcounter);
+    if (stack->ctx->toplevel->is_directory)
+    {
+      GNUNET_FS_uri_ksk_get_keywords (stack->item->ksk_uri, &add_to_keyword_counter, stack->keywordcounter);
+    }
     stack->item = stack->item->next;
   }
   /* Call this task again later, if there are more entries to process */
@@ -1270,8 +1277,13 @@ GNUNET_FS_trim_share_tree (struct GNUNET_FS_ShareTreeItem *toplevel,
   ret->stack = GNUNET_malloc (sizeof (struct ProcessMetadataStackItem));
   ret->stack->ctx = ret;
   ret->stack->item = toplevel;
-  ret->stack->keywordcounter = GNUNET_CONTAINER_multihashmap_create (1024);
-  ret->stack->metacounter = GNUNET_CONTAINER_multihashmap_create (1024);
+
+  if (ret->stack->ctx->toplevel->is_directory)
+  {
+    ret->stack->keywordcounter = GNUNET_CONTAINER_multihashmap_create (1024);
+    ret->stack->metacounter = GNUNET_CONTAINER_multihashmap_create (1024);
+  }
+
   ret->stack->dir_entry_count = 0;
   ret->stack->end_directory = GNUNET_NO;
 

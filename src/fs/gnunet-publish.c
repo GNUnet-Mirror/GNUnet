@@ -66,6 +66,15 @@ static int do_disable_creation_time;
 
 static GNUNET_SCHEDULER_TaskIdentifier kill_task;
 
+static struct GNUNET_FS_DirScanner *ds;
+
+static struct GNUNET_FS_ShareTreeItem * directory_scan_intermediary_result;
+
+static struct GNUNET_FS_ShareTreeItem * directory_scan_result;
+
+static struct GNUNET_FS_ProcessMetadataContext *pmc;
+
+static struct GNUNET_FS_Namespace *namespace;
 
 /**
  * FIXME: docu
@@ -340,6 +349,150 @@ uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
   ctx = NULL;
 }
 
+static struct GNUNET_FS_FileInformation *
+get_file_information (struct GNUNET_FS_ShareTreeItem *item)
+{
+  struct GNUNET_FS_FileInformation *fi;
+  struct GNUNET_FS_FileInformation *fic;
+  struct GNUNET_FS_ShareTreeItem *child;
+
+  if (item->is_directory)
+  {
+    GNUNET_CONTAINER_meta_data_delete (item->meta,
+        EXTRACTOR_METATYPE_MIMETYPE, NULL, 0);
+    GNUNET_FS_meta_data_make_directory (item->meta);
+    GNUNET_FS_uri_ksk_add_keyword (item->ksk_uri, GNUNET_FS_DIRECTORY_MIME,
+        GNUNET_NO);
+    fi = GNUNET_FS_file_information_create_empty_directory (
+        ctx, NULL, item->ksk_uri,
+        item->meta, &bo, item->filename);
+    for (child = item->children_head; child; child = child->next)
+    {
+      fic = get_file_information (child);
+      GNUNET_break (GNUNET_OK == GNUNET_FS_file_information_add (fi, fic));
+    }
+  }
+  else
+  {
+    fi = GNUNET_FS_file_information_create_from_file (
+        ctx, NULL, item->filename,
+        item->ksk_uri, item->meta, !do_insert,
+        &bo);
+  }
+  GNUNET_CONTAINER_meta_data_destroy (item->meta);
+  GNUNET_FS_uri_destroy (item->ksk_uri);
+  GNUNET_free (item->short_filename);
+  GNUNET_free (item->filename);
+  GNUNET_free (item);
+  return fi;
+}
+
+static void
+directory_trim_complete (void *cls,
+    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_FileInformation *fi;
+  directory_scan_result = directory_scan_intermediary_result;
+  fi = get_file_information (directory_scan_result);
+  directory_scan_result = NULL;
+  if (fi == NULL)
+  {
+    FPRINTF (stderr, "%s", _("Could not publish\n"));
+    if (namespace != NULL)
+      GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
+    GNUNET_FS_stop (ctx);
+    ret = 1;
+    return;
+  }
+  GNUNET_FS_file_information_inspect (fi, &publish_inspector, NULL);
+  if (extract_only)
+  {
+    if (namespace != NULL)
+      GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
+    GNUNET_FS_file_information_destroy (fi, NULL, NULL);
+    GNUNET_FS_stop (ctx);
+    return;
+  }
+  pc = GNUNET_FS_publish_start (ctx, fi, namespace, this_id, next_id,
+                                (do_simulate) ?
+                                GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY :
+                                GNUNET_FS_PUBLISH_OPTION_NONE);
+  if (NULL == pc)
+  {
+    FPRINTF (stderr, "%s",  _("Could not start publishing.\n"));
+    GNUNET_FS_stop (ctx);
+    ret = 1;
+    return;
+  }
+}
+
+static int
+directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
+    const char *filename, char is_directory,
+    enum GNUNET_FS_DirScannerProgressUpdateReason reason)
+{
+  switch (reason)
+  {
+    case GNUNET_DIR_SCANNER_NEW_FILE:
+      if (filename != NULL)
+      {
+        if (is_directory)
+          FPRINTF (stdout, _("Scanning directory `%s'.\n"), filename);
+        else
+          FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);
+      }
+      break;
+    case GNUNET_DIR_SCANNER_DOES_NOT_EXIST:
+      if (filename != NULL)
+      {
+        FPRINTF (stdout, 
+            _("Failed to scan `%s', because it does not exist.\n"),
+            filename);
+      }
+      break;
+    case GNUNET_DIR_SCANNER_ASKED_TO_STOP:
+      if (filename != NULL)
+      {
+        FPRINTF (stdout, 
+            _("Scanner was about to scan `%s', but is now stopping.\n"),
+            filename);
+      }
+      else
+        FPRINTF (stdout, "%s", _("Scanner is stopping.\n"));
+      break;
+    case GNUNET_DIR_SCANNER_SHUTDOWN:
+      FPRINTF (stdout, "%s", _("Client is shutting down.\n"));
+      break;
+    case GNUNET_DIR_SCANNER_FINISHED:
+      FPRINTF (stdout, "%s", _("Scanner has finished.\n"));
+      break;
+    case GNUNET_DIR_SCANNER_PROTOCOL_ERROR:
+      FPRINTF (stdout, "%s", 
+          _("There was a failure communicating with the scanner.\n"));
+      break;
+    default:
+      FPRINTF (stdout, _("Got unknown scanner update with filename `%s'.\n"),
+          filename);
+      break;
+  }
+  if ((filename == NULL && GNUNET_DIR_SCANNER_FINISHED)
+      || reason == GNUNET_DIR_SCANNER_PROTOCOL_ERROR
+      || reason == GNUNET_DIR_SCANNER_SHUTDOWN)
+  {
+    /* Any of this causes us to try to clean up the scanner */
+    directory_scan_intermediary_result = GNUNET_FS_directory_scan_cleanup (ds);
+    pmc = GNUNET_FS_trim_share_tree (directory_scan_intermediary_result,
+      &directory_trim_complete, NULL);
+
+    ds = NULL;
+    /* FIXME: change the tree processor to be able to free untrimmed trees
+     * right here instead of waiting for trimming to complete, if we need to
+     * cancel everything.
+     */
+  }
+  return 0;
+}
+
 
 /**
  * Main function that will be run by the scheduler.
@@ -353,11 +506,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_FS_FileInformation *fi;
-  struct GNUNET_FS_Namespace *namespace;
   struct EXTRACTOR_PluginList *plugins;
-  struct GNUNET_FS_Uri *keywords;
-  struct stat sbuf;
   char *ex;
   char *emsg;
 
@@ -451,6 +600,9 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     return;
   }
+  ds = GNUNET_FS_directory_scan_start (args[0],
+      GNUNET_NO, NULL, directory_scan_cb, NULL);
+ 
   plugins = NULL;
   if (!disable_extractor)
   {
@@ -464,63 +616,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                          EXTRACTOR_OPTION_DEFAULT_POLICY);
       GNUNET_free (ex);
     }
-  }
-  emsg = NULL;
-  GNUNET_assert (NULL != args[0]);
-  if (0 != STAT (args[0], &sbuf))
-  {
-    GNUNET_asprintf (&emsg, _("Could not access file: %s\n"), STRERROR (errno));
-    fi = NULL;
-  }
-  else if (S_ISDIR (sbuf.st_mode))
-  {
-    fi = GNUNET_FS_file_information_create_from_directory (ctx, NULL, args[0],
-                                                           &GNUNET_FS_directory_scanner_default,
-                                                           plugins, !do_insert,
-                                                           &bo, &emsg);
-  }
-  else
-  {
-    if (meta == NULL)
-      meta = GNUNET_CONTAINER_meta_data_create ();
-    GNUNET_FS_meta_data_extract_from_file (meta, args[0], plugins);
-    keywords = GNUNET_FS_uri_ksk_create_from_meta_data (meta);
-    fi = GNUNET_FS_file_information_create_from_file (ctx, NULL, args[0],
-                                                      keywords, NULL,
-                                                      !do_insert, &bo);
-    GNUNET_break (fi != NULL);
-    GNUNET_FS_uri_destroy (keywords);
-  }
-  EXTRACTOR_plugin_remove_all (plugins);
-  if (fi == NULL)
-  {
-    FPRINTF (stderr, _("Could not publish `%s': %s\n"), args[0], emsg);
-    GNUNET_free (emsg);
-    if (namespace != NULL)
-      GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
-    GNUNET_FS_stop (ctx);
-    ret = 1;
-    return;
-  }
-  GNUNET_FS_file_information_inspect (fi, &publish_inspector, NULL);
-  if (extract_only)
-  {
-    if (namespace != NULL)
-      GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
-    GNUNET_FS_file_information_destroy (fi, NULL, NULL);
-    GNUNET_FS_stop (ctx);
-    return;
-  }
-  pc = GNUNET_FS_publish_start (ctx, fi, namespace, this_id, next_id,
-                                (do_simulate) ?
-                                GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY :
-                                GNUNET_FS_PUBLISH_OPTION_NONE);
-  if (NULL == pc)
-  {
-    FPRINTF (stderr, "%s",  _("Could not start publishing.\n"));
-    GNUNET_FS_stop (ctx);
-    ret = 1;
-    return;
   }
   kill_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
