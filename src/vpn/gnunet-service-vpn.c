@@ -898,6 +898,7 @@ route_packet (struct DestinationEntry *destination,
       }
       tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
       tnq->len = mlen;
+      tnq->msg = &tnq[1];
       usm = (struct GNUNET_EXIT_UdpServiceMessage *) &tnq[1];
       usm->header.size = htons ((uint16_t) mlen);
       usm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE);
@@ -927,6 +928,7 @@ route_packet (struct DestinationEntry *destination,
       tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 
 			   mlen);
       tnq->len = mlen;
+      tnq->msg = &tnq[1];
       uim = (struct GNUNET_EXIT_UdpInternetMessage *) &tnq[1];
       uim->header.size = htons ((uint16_t) mlen);
       uim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET); 
@@ -969,6 +971,7 @@ route_packet (struct DestinationEntry *destination,
 	}
  	tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
 	tnq->len = mlen;
+	tnq->msg = &tnq[1];
 	tsm = (struct  GNUNET_EXIT_TcpServiceStartMessage *) &tnq[1];
 	tsm->header.size = htons ((uint16_t) mlen);
 	tsm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START);
@@ -995,6 +998,7 @@ route_packet (struct DestinationEntry *destination,
 	}
  	tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
 	tnq->len = mlen;
+	tnq->msg = &tnq[1];
 	tim = (struct  GNUNET_EXIT_TcpInternetStartMessage *) &tnq[1];
 	tim->header.size = htons ((uint16_t) mlen);
 	tim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START);
@@ -1033,6 +1037,7 @@ route_packet (struct DestinationEntry *destination,
       }
       tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
       tnq->len = mlen;
+      tnq->msg = &tnq[1];
       tdm = (struct  GNUNET_EXIT_TcpDataMessage *) &tnq[1];
       tdm->header.size = htons ((uint16_t) mlen);
       tdm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_DATA);
