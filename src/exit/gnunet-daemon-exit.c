@@ -25,7 +25,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - need some logging
  * - need some statistics
  * - test
  *
@@ -596,6 +595,20 @@ udp_from_helper (const struct udp_packet *udp,
 {
   struct TunnelState *state;
 
+  {
+    char sbuf[INET6_ADDRSTRLEN];
+    char dbuf[INET6_ADDRSTRLEN];
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received UDP packet going from %s:%u to %s:%u\n",
+		inet_ntop (af,
+			   source_ip,
+			   sbuf, sizeof (sbuf)),
+		(unsigned int) ntohs (udp->spt),
+		inet_ntop (af,
+			   source_ip,
+			   dbuf, sizeof (dbuf)),
+		(unsigned int) ntohs (udp->dpt));
+  }
   if (pktlen < sizeof (struct udp_packet))
   {
     /* blame kernel */
@@ -651,6 +664,20 @@ tcp_from_helper (const struct tcp_packet *tcp,
   char buf[pktlen];
   struct tcp_packet *mtcp;
 
+  {
+    char sbuf[INET6_ADDRSTRLEN];
+    char dbuf[INET6_ADDRSTRLEN];
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received TCP packet going from %s:%u to %s:%u\n",
+		inet_ntop (af,
+			   source_ip,
+			   sbuf, sizeof (sbuf)),
+		(unsigned int) ntohs (tcp->spt),
+		inet_ntop (af,
+			   source_ip,
+			   dbuf, sizeof (dbuf)),
+		(unsigned int) ntohs (tcp->dpt));
+  }
   if (pktlen < sizeof (struct tcp_packet))
   {
     /* blame kernel */
@@ -940,12 +967,21 @@ setup_state_record (struct TunnelState *state)
 			 state->serv->address.proto,
 			 &state->ri.local_address);
   } while (NULL != get_redirect_state (state->ri.remote_address.af,
-				       IPPROTO_UDP,
+				       state->ri.remote_address.proto,
 				       &state->ri.remote_address.address,
 				       state->ri.remote_address.port,
 				       &state->ri.local_address.address,
 				       state->ri.local_address.port,
 				       &key));
+  {
+    char buf[INET6_ADDRSTRLEN];
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Picked local address %s:%u for new connection\n",
+		inet_ntop (state->ri.local_address.af, 
+			   &state->ri.local_address.address,
+			   buf, sizeof (buf)),
+		(unsigned int) state->ri.local_address.port);  
+  }
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (connections_map, 
 						    &key, state,
@@ -1194,6 +1230,9 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 {
   size_t len;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending packet with %u bytes TCP payload via TUN\n",
+	      (unsigned int) payload_length);
   len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header);
   switch (source_address->af)
   {
@@ -1304,6 +1343,11 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
   }
   GNUNET_break_op (ntohl (start->reserved) == 0);
   /* setup fresh connection */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received data from %s for forwarding to TCP service %s on port %u\n",
+	      GNUNET_i2s (sender),
+	      GNUNET_h2s (&start->service_descriptor),
+	      (unsigned int) ntohs (start->tcp_header.dpt));  
   if (NULL == (state->serv = find_service (tcp_services, &start->service_descriptor, 
 					   ntohs (start->tcp_header.dpt))))
   {
@@ -1394,6 +1438,17 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+  {
+    char buf[INET6_ADDRSTRLEN];
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received data from %s for starting TCP stream to %s:%u\n",
+		GNUNET_i2s (sender),
+		inet_ntop (af, 
+			   &state->ri.remote_address.address,
+			   buf, sizeof (buf)),
+		(unsigned int) ntohs (start->tcp_header.dpt));  
+  }
+
   state->ri.remote_address.proto = IPPROTO_TCP;
   state->ri.remote_address.port = ntohs (start->tcp_header.dpt);
   setup_state_record (state);
@@ -1445,6 +1500,17 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     return GNUNET_SYSERR;
   }
   GNUNET_break_op (ntohl (data->reserved) == 0);
+  {
+    char buf[INET6_ADDRSTRLEN];
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received additional data from %s for TCP stream to %s:%u\n",
+		GNUNET_i2s (sender),
+		inet_ntop (state->ri.remote_address.af, 
+			   &state->ri.remote_address.address,
+			   buf, sizeof (buf)),
+		(unsigned int) state->ri.remote_address.port);
+  }
+
   send_tcp_packet_via_tun (&state->ri.remote_address,
 			   &state->ri.local_address,
 			   &data->tcp_header,
@@ -1468,6 +1534,9 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
 {
   size_t len;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending packet with %u bytes UDP payload via TUN\n",
+	      (unsigned int) payload_length);
   len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header);
   switch (source_address->af)
   {
@@ -1602,6 +1671,16 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+  {
+    char buf[INET6_ADDRSTRLEN];
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received data from %s for forwarding to UDP %s:%u\n",
+		GNUNET_i2s (sender),
+		inet_ntop (af, 
+			   &state->ri.remote_address.address,
+			   buf, sizeof (buf)),
+		(unsigned int) ntohs (msg->destination_port));  
+  }
   state->ri.remote_address.proto = IPPROTO_UDP;
   state->ri.remote_address.port = msg->destination_port;
   if (NULL == state->heap_node)
@@ -1647,7 +1726,11 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   msg = (const struct GNUNET_EXIT_UdpServiceMessage*) message;
   pkt_len -= sizeof (struct GNUNET_EXIT_UdpServiceMessage);
-  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received data from %s for forwarding to UDP service %s on port %u\n",
+	      GNUNET_i2s (sender),
+	      GNUNET_h2s (&msg->service_descriptor),
+	      (unsigned int) ntohs (msg->destination_port));  
   if (NULL == (state->serv = find_service (udp_services, &msg->service_descriptor, 
 					   ntohs (msg->destination_port))))
   {
@@ -1683,7 +1766,10 @@ new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
             const struct GNUNET_ATS_Information *ats GNUNET_UNUSED)
 {
   struct TunnelState *s = GNUNET_malloc (sizeof (struct TunnelState));
-  
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received inbound tunnel from `%s'\n",
+	      GNUNET_i2s (initiator));
   s->tunnel = tunnel;
   return s;
 }
@@ -1705,6 +1791,8 @@ clean_tunnel (void *cls GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
   struct TunnelState *s = tunnel_ctx;
   struct TunnelMessageQueue *tnq;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Tunnel destroyed\n");
   while (NULL != (tnq = s->head))
   {
     GNUNET_CONTAINER_DLL_remove (s->head,
@@ -1755,6 +1843,8 @@ cleanup (void *cls GNUNET_UNUSED,
 {
   unsigned int i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Exit service is shutting down now\n");
   if (helper_handle != NULL)
   {
     GNUNET_HELPER_stop (helper_handle);
