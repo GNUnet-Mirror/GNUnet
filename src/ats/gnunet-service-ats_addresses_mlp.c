@@ -63,7 +63,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   mlp->c_d = col;
   /* Column name */
   glp_set_col_name (mlp->prob, col, "d");
-  /* Column coffiecient */
+  /* Column objective function coefficient */
   glp_set_obj_coef (mlp->prob, col, mlp->co_D);
   /* Column lower bound = 0.0 */
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
@@ -74,7 +74,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   mlp->c_u = col;
   /* Column name */
   glp_set_col_name (mlp->prob, col, "u");
-  /* Column coffiecient */
+  /* Column objective function coefficient */
   glp_set_obj_coef (mlp->prob, col, mlp->co_U);
   /* Column lower bound = 0.0 */
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
@@ -85,17 +85,16 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   mlp->c_r = col;
   /* Column name */
   glp_set_col_name (mlp->prob, col, "r");
-  /* Column coffiecient */
+  /* Column objective function coefficient */
   glp_set_obj_coef (mlp->prob, col, mlp->co_R);
   /* Column lower bound = 0.0 */
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
 
   /* Quality metric columns */
   col = glp_add_cols(mlp->prob, mlp->m);
-  mlp->c_q_start = col;
-  mlp->c_q_end = col + mlp->m;
   for (c = 0; c < mlp->m; c++)
   {
+    mlp->c_q[c] = col + c;
     GNUNET_asprintf (&name, "q_%u", mlp->q[c]);
     glp_set_col_name (mlp->prob, col + c, name);
     glp_set_col_bnds (mlp->prob, col + c, GLP_LO, 0.0, 0.0);

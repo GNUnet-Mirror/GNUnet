@@ -141,11 +141,8 @@ struct GAS_MLP_Handle
    * contains mapping to GNUNET_ATS_Property*/
   int q[GNUNET_ATS_QualityPropertiesCount];
 
-  /* column index first quality metric (q_1) column */
-  int c_q_start;
-
-  /* column index last quality metric (q_n) column */
-  int c_q_end;
+  /* column index quality metrics  */
+  int c_q[GNUNET_ATS_QualityPropertiesCount];
 
   /* quality metric coefficients*/
   double co_Q[GNUNET_ATS_QualityPropertiesCount];
