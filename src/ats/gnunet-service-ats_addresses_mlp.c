@@ -285,12 +285,21 @@ mlp_solve_problem (struct GAS_MLP_Handle *mlp)
  * @param stats the GNUNET_STATISTICS handle
  * @param max_duration maximum numbers of iterations for the LP/MLP Solver
  * @param max_iterations maximum time limit for the LP/MLP Solver
+ * @param D Diversity coefficient
+ * @param U Utilization coefficient
+ * @param R Proportionality coefficient
+ * @param b_min minimum bandwidth assigned to an address
+ * @param n_min minimum number of addresses with bandwidth assigned
+ *
  * @return struct GAS_MLP_Handle * on success, NULL on fail
  */
 struct GAS_MLP_Handle *
 GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
               struct GNUNET_TIME_Relative max_duration,
-              unsigned int max_iterations)
+              unsigned int max_iterations,
+              double D, double U, double R,
+              unsigned int b_min,
+              unsigned int n_min)
 {
   struct GAS_MLP_Handle * mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
 
@@ -326,6 +335,11 @@ GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
 
   mlp->last_execution = GNUNET_TIME_absolute_get_forever();
 
+  mlp->co_D = D;
+  mlp->co_R = R;
+  mlp->co_U = U;
+  mlp->b_min = b_min;
+  mlp->n_min = n_min;
 
   mlp_create_problem (mlp);
   return mlp;

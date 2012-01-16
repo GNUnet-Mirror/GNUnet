@@ -148,6 +148,11 @@ struct GAS_MLP_Handle
   /* number of quality metrics */
   int m;
 
+  /* minimum bandwidth assigned to an address */
+  unsigned int b_min;
+
+  /* minimum number of addresses with bandwidth assigned */
+  unsigned int n_min;
 };
 
 
@@ -170,12 +175,21 @@ struct MLP_information
  * @param stats the GNUNET_STATISTICS handle
  * @param max_duration maximum numbers of iterations for the LP/MLP Solver
  * @param max_iterations maximum time limit for the LP/MLP Solver
+ * @param D Diversity coefficient
+ * @param U Utilization coefficient
+ * @param R Proportionality coefficient
+ * @param b_min minimum bandwidth assigned to an address
+ * @param n_min minimum number of addresses with bandwidth assigned
+ *
  * @return struct GAS_MLP_Handle * on success, NULL on fail
  */
 struct GAS_MLP_Handle *
 GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
               struct GNUNET_TIME_Relative max_duration,
-              unsigned int max_iterations);
+              unsigned int max_iterations,
+              double D, double U, double R,
+              unsigned int b_min,
+              unsigned int n_min);
 
 
 /**
