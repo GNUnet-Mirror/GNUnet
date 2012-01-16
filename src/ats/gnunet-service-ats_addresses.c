@@ -52,7 +52,9 @@ enum ATS_Mode
 
 static struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
+#if HAVE_LIBGLPK
 static struct GAS_MLP_Handle *mlp;
+#endif
 
 static unsigned long long wan_quota_in;
 
