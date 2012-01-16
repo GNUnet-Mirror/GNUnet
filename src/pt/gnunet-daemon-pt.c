@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_dns_service.h"
+#include "gnunet_dnsparser_lib.h"
 #include "gnunet_vpn_service.h"
 #include "gnunet_statistics_service.h"
 
@@ -62,6 +63,36 @@ static int ipv4_pt;
 static int ipv6_pt;
 
 
+/**
+ * Test if any of the given records need protocol-translation work.
+ *
+ * @param ra array of records
+ * @param ra_len number of entries in ra
+ * @return GNUNET_YES if any of the given records require protocol-translation
+ */
+static int
+work_test (const struct GNUNET_DNSPARSER_Record *ra,
+	   unsigned int ra_len)
+{
+  unsigned int i;
+
+  for (i=0;i<ra_len;i++)
+  {
+    switch (ra[i].type)
+    {
+    case GNUNET_DNSPARSER_TYPE_A:
+      if (ipv4_pt)
+	return GNUNET_YES;
+      break;
+    case GNUNET_DNSPARSER_TYPE_AAAA:
+      if (ipv6_pt)
+	return GNUNET_YES;
+      break;
+    }
+  }
+  return GNUNET_NO;
+}
+
 
 /**
  * Signature of a function that is called whenever the DNS service
@@ -92,6 +123,27 @@ dns_request_handler (void *cls,
 		     size_t request_length,
 		     const char *request)
 {
+  struct GNUNET_DNSPARSER_Packet *dns;
+  int work;
+
+  dns = GNUNET_DNSPARSER_parse (request, request_length);
+  if (NULL == dns)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to parse DNS request.  Dropping.\n"));
+    GNUNET_DNS_request_drop (rh);
+    return;
+  }
+  work = GNUNET_NO;
+  work |= work_test (dns->answers, dns->num_answers);
+  work |= work_test (dns->authority_records, dns->num_authority_records);
+  work |= work_test (dns->additional_records, dns->num_additional_records);
+  if (! work)
+  {
+    GNUNET_DNS_request_forward (rh);
+    return;
+  }
+  /* FIXME: translate A/AAAA records using VPN! */
 }
 
 
