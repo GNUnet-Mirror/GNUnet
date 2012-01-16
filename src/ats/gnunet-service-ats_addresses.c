@@ -536,55 +536,6 @@ void
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     const struct GNUNET_STATISTICS_Handle *stats)
 {
-#if HAVE_LIBGLPK
-  double D;
-  double R;
-  double U;
-  long long unsigned int tmp;
-  unsigned int b_min;
-  unsigned int n_min;
-
-  /* Get diversity coefficient from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "COEFFICIENT_D",
-                                                      &tmp))
-    D = (double) tmp / 100;
-  else
-    D = 1.0;
-
-  /* Get proportionality coefficient from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "COEFFICIENT_R",
-                                                      &tmp))
-    R = (double) tmp / 100;
-  else
-    R = 1.0;
-
-  /* Get utilization coefficient from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "COEFFICIENT_U",
-                                                      &tmp))
-    U = (double) tmp / 100;
-  else
-    U = 1.0;
-
-  /* Get minimum bandwidth per used address from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "MIN_BANDWIDTH",
-                                                      &tmp))
-    b_min = tmp;
-  else
-    b_min = 64000;
-
-  /* Get minimum number of connections from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "MIN_CONNECTIONS",
-                                                      &tmp))
-    n_min = tmp;
-  else
-    n_min = 4;
-#endif
-
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
                                                       "WAN_QUOTA_IN",
@@ -601,7 +552,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #if HAVE_LIBGLPK
           ats_mode = MLP;
           /* Init the MLP solver with default values */
-          mlp = GAS_mlp_init (stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS, D, U, R, b_min, n_min);
+          mlp = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
           break;
 #else
 

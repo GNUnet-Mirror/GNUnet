@@ -46,6 +46,8 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
 {
   int res = GNUNET_OK;
   int col;
+  int c;
+  char *name;
 
   /* Set a problem name */
   glp_set_prob_name (mlp->prob, "gnunet ats bandwidth distribution");
@@ -92,8 +94,14 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   col = glp_add_cols(mlp->prob, mlp->m);
   mlp->c_q_start = col;
   mlp->c_q_end = col + mlp->m;
-
-  mlp->co_Q = GNUNET_malloc (mlp->m * sizeof (double));
+  for (c = 0; c < mlp->m; c++)
+  {
+    GNUNET_asprintf (&name, "q_%u", mlp->q[c]);
+    glp_set_col_name (mlp->prob, col + c, name);
+    glp_set_col_bnds (mlp->prob, col + c, GLP_LO, 0.0, 0.0);
+    GNUNET_free (name);
+    glp_set_obj_coef (mlp->prob, col + c, mlp->co_Q[c]);
+  }
 
   return res;
 }
@@ -285,23 +293,22 @@ mlp_solve_problem (struct GAS_MLP_Handle *mlp)
  * @param stats the GNUNET_STATISTICS handle
  * @param max_duration maximum numbers of iterations for the LP/MLP Solver
  * @param max_iterations maximum time limit for the LP/MLP Solver
- * @param D Diversity coefficient
- * @param U Utilization coefficient
- * @param R Proportionality coefficient
- * @param b_min minimum bandwidth assigned to an address
- * @param n_min minimum number of addresses with bandwidth assigned
- *
  * @return struct GAS_MLP_Handle * on success, NULL on fail
  */
 struct GAS_MLP_Handle *
-GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
+GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+              const struct GNUNET_STATISTICS_Handle *stats,
               struct GNUNET_TIME_Relative max_duration,
-              unsigned int max_iterations,
-              double D, double U, double R,
-              unsigned int b_min,
-              unsigned int n_min)
+              unsigned int max_iterations)
 {
   struct GAS_MLP_Handle * mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
+
+  double D;
+  double R;
+  double U;
+  long long unsigned int tmp;
+  unsigned int b_min;
+  unsigned int n_min;
 
   /* Init GLPK environment */
   GNUNET_assert (glp_init_env() == 0);
@@ -309,6 +316,78 @@ GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
   /* Create initial MLP problem */
   mlp->prob = glp_create_prob();
   GNUNET_assert (mlp->prob != NULL);
+
+  /* Get diversity coefficient from configuration */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+                                                      "COEFFICIENT_D",
+                                                      &tmp))
+    D = (double) tmp / 100;
+  else
+    D = 1.0;
+
+  /* Get proportionality coefficient from configuration */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+                                                      "COEFFICIENT_R",
+                                                      &tmp))
+    R = (double) tmp / 100;
+  else
+    R = 1.0;
+
+  /* Get utilization coefficient from configuration */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+                                                      "COEFFICIENT_U",
+                                                      &tmp))
+    U = (double) tmp / 100;
+  else
+    U = 1.0;
+
+  /* Get quality metric coefficients from configuration */
+  int i_delay = -1;
+  int i_distance = -1;
+  int q[GNUNET_ATS_QualityPropertiesCount] = GNUNET_ATS_QualityProperties;
+  int c;
+  for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+  {
+    /* initialize quality coefficients with default value 1.0 */
+    mlp->co_Q[c] = 1.0;
+
+    mlp->q[c] = q[c];
+    if (q[c] == GNUNET_ATS_QUALITY_NET_DELAY)
+      i_delay = c;
+    if (q[c] == GNUNET_ATS_QUALITY_NET_DISTANCE)
+      i_distance = c;
+  }
+
+  if ((i_delay != -1) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+                                                      "COEFFICIENT_QUALITY_DELAY",
+                                                      &tmp)))
+
+    mlp->co_Q[i_delay] = (double) tmp / 100;
+  else
+    mlp->co_Q[i_delay] = 1.0;
+
+  if ((i_distance != -1) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+                                                      "COEFFICIENT_QUALITY_DISTANCE",
+                                                      &tmp)))
+    mlp->co_Q[i_distance] = (double) tmp / 100;
+  else
+    mlp->co_Q[i_distance] = 1.0;
+
+  /* Get minimum bandwidth per used address from configuration */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+                                                      "MIN_BANDWIDTH",
+                                                      &tmp))
+    b_min = tmp;
+  else
+    b_min = 64000;
+
+  /* Get minimum number of connections from configuration */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+                                                      "MIN_CONNECTIONS",
+                                                      &tmp))
+    n_min = tmp;
+  else
+    n_min = 4;
 
   mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
   mlp->max_iterations = max_iterations;
@@ -340,6 +419,7 @@ GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
   mlp->co_U = U;
   mlp->b_min = b_min;
   mlp->n_min = n_min;
+  mlp->m = GNUNET_ATS_QualityPropertiesCount;
 
   mlp_create_problem (mlp);
   return mlp;
@@ -437,9 +517,6 @@ GAS_mlp_done (struct GAS_MLP_Handle *mlp)
 {
   if (mlp != NULL)
     glp_delete_prob(mlp->prob);
-
-  if (mlp->co_Q != NULL)
-    GNUNET_free (mlp->co_Q);
 
   /* Clean up GLPK environment */
   glp_free_env();

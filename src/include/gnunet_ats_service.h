@@ -402,6 +402,16 @@ enum GNUNET_ATS_Property
       // GNUNET_ATS_AVAILABILITY_CONNECTED = 2049
 };
 
+/**
+ * Number of ATS quality properties
+ */
+#define GNUNET_ATS_QualityPropertiesCount 2
+
+/**
+ * ATS quality properties as array initializer
+ */
+#define GNUNET_ATS_QualityProperties {GNUNET_ATS_QUALITY_NET_DELAY, GNUNET_ATS_QUALITY_NET_DISTANCE}
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 

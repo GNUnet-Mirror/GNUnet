@@ -136,14 +136,19 @@ struct GAS_MLP_Handle
   int c_r;
   double co_R;
 
+  /* ATS Quality metrics
+   * array with GNUNET_ATS_QualityPropertiesCount elements
+   * contains mapping to GNUNET_ATS_Property*/
+  int q[GNUNET_ATS_QualityPropertiesCount];
+
   /* column index first quality metric (q_1) column */
   int c_q_start;
 
   /* column index last quality metric (q_n) column */
   int c_q_end;
 
-  /* Array of quality metric coefficients (m elements) */
-  double *co_Q;
+  /* quality metric coefficients*/
+  double co_Q[GNUNET_ATS_QualityPropertiesCount];
 
   /* number of quality metrics */
   int m;
@@ -172,24 +177,17 @@ struct MLP_information
 /**
  * Init the MLP problem solving component
  *
+ * @param cfg configuration handle
  * @param stats the GNUNET_STATISTICS handle
  * @param max_duration maximum numbers of iterations for the LP/MLP Solver
  * @param max_iterations maximum time limit for the LP/MLP Solver
- * @param D Diversity coefficient
- * @param U Utilization coefficient
- * @param R Proportionality coefficient
- * @param b_min minimum bandwidth assigned to an address
- * @param n_min minimum number of addresses with bandwidth assigned
- *
  * @return struct GAS_MLP_Handle * on success, NULL on fail
  */
 struct GAS_MLP_Handle *
-GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
+GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+              const struct GNUNET_STATISTICS_Handle *stats,
               struct GNUNET_TIME_Relative max_duration,
-              unsigned int max_iterations,
-              double D, double U, double R,
-              unsigned int b_min,
-              unsigned int n_min);
+              unsigned int max_iterations);
 
 
 /**

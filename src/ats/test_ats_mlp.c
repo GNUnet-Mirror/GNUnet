@@ -53,7 +53,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 #endif
   stats = GNUNET_STATISTICS_create("ats", cfg);
 
-  mlp = GAS_mlp_init(NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+  mlp = GAS_mlp_init (cfg, NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
   GNUNET_assert (mlp != NULL);
 
   GAS_mlp_done (mlp);
