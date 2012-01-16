@@ -33,17 +33,78 @@
 #include "glpk.h"
 #endif
 
-/*
- * The MLP handle
- */
-static struct GAS_MLP_Handle *GAS_mlp;
 
+/**
+ * Create the MLP problem
+ *
+ * @param mlp the MLP handle
+ * @return GNUNET_OK or GNUNET_SYSERR
+ */
+
+static int
+mlp_create_problem (struct GAS_MLP_Handle *mlp)
+{
+  int res = GNUNET_OK;
+  int col;
+
+  /* Set a problem name */
+  glp_set_prob_name (mlp->prob, "gnunet ats bandwidth distribution");
+
+  /* Set optimization direction to maximize */
+  glp_set_obj_dir (mlp->prob, GLP_MAX);
+
+  /* Adding invariant columns */
+
+  /* Diversity d column  */
+
+  col = glp_add_cols (mlp->prob, 1);
+  mlp->c_d = col;
+  /* Column name */
+  glp_set_col_name (mlp->prob, col, "d");
+  /* Column coffiecient */
+  glp_set_obj_coef (mlp->prob, col, mlp->co_D);
+  /* Column lower bound = 0.0 */
+  glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
+
+  /* Utilization u column  */
+
+  col = glp_add_cols (mlp->prob, 1);
+  mlp->c_u = col;
+  /* Column name */
+  glp_set_col_name (mlp->prob, col, "u");
+  /* Column coffiecient */
+  glp_set_obj_coef (mlp->prob, col, mlp->co_U);
+  /* Column lower bound = 0.0 */
+  glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
+
+  /* Relitivity r column  */
+
+  col = glp_add_cols (mlp->prob, 1);
+  mlp->c_r = col;
+  /* Column name */
+  glp_set_col_name (mlp->prob, col, "r");
+  /* Column coffiecient */
+  glp_set_obj_coef (mlp->prob, col, mlp->co_R);
+  /* Column lower bound = 0.0 */
+  glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
+
+  /* Quality metric columns */
+  col = glp_add_cols(mlp->prob, mlp->m);
+  mlp->c_q_start = col;
+  mlp->c_q_end = col + mlp->m;
+
+  mlp->co_Q = GNUNET_malloc (mlp->m * sizeof (double));
+
+  return res;
+}
 
 /**
  * Solves the LP problem
+ *
+ * @param mlp the MLP Handle
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
-int
+static int
 mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
 {
   int res;
@@ -132,6 +193,8 @@ lp_solv:
 
 /**
  * Solves the MLP problem
+ *
+ * @param mlp the MLP Handle
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
@@ -201,6 +264,8 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
 
 /**
  * Solves the MLP problem
+ *
+ * @param mlp the MLP Handle
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
@@ -220,47 +285,50 @@ mlp_solve_problem (struct GAS_MLP_Handle *mlp)
  * @param stats the GNUNET_STATISTICS handle
  * @param max_duration maximum numbers of iterations for the LP/MLP Solver
  * @param max_iterations maximum time limit for the LP/MLP Solver
- * @return GNUNET_OK on success, GNUNET_SYSERR on fail
+ * @return struct GAS_MLP_Handle * on success, NULL on fail
  */
-int
+struct GAS_MLP_Handle *
 GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
               struct GNUNET_TIME_Relative max_duration,
               unsigned int max_iterations)
 {
-  GAS_mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
+  struct GAS_MLP_Handle * mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
 
   /* Init GLPK environment */
   GNUNET_assert (glp_init_env() == 0);
 
   /* Create initial MLP problem */
-  GAS_mlp->prob = glp_create_prob();
-  GNUNET_assert (GAS_mlp->prob != NULL);
+  mlp->prob = glp_create_prob();
+  GNUNET_assert (mlp->prob != NULL);
 
-  GAS_mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
-  GAS_mlp->max_iterations = max_iterations;
-  GAS_mlp->max_exec_duration = max_duration;
+  mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
+  mlp->max_iterations = max_iterations;
+  mlp->max_exec_duration = max_duration;
 
   /* Init LP solving parameters */
-  glp_init_smcp(&GAS_mlp->control_param_lp);
+  glp_init_smcp(&mlp->control_param_lp);
 #if DEBUG_MLP
-  GAS_mlp->control_param_lp.msg_lev = GLP_MSG_ALL;
+  mlp->control_param_lp.msg_lev = GLP_MSG_ALL;
 #else
-  GAS_mlp->control_param_lp.msg_lev = GLP_MSG_OFF;
+  mlp->control_param_lp.msg_lev = GLP_MSG_OFF;
 #endif
-  GAS_mlp->control_param_lp.it_lim = max_iterations;
-  GAS_mlp->control_param_lp.tm_lim = max_duration.rel_value;
+  mlp->control_param_lp.it_lim = max_iterations;
+  mlp->control_param_lp.tm_lim = max_duration.rel_value;
 
   /* Init MLP solving parameters */
-  glp_init_iocp(&GAS_mlp->control_param_mlp);
+  glp_init_iocp(&mlp->control_param_mlp);
 #if DEBUG_MLP
-  GAS_mlp->control_param_mlp.msg_lev = GLP_MSG_ALL;
+  mlp->control_param_mlp.msg_lev = GLP_MSG_ALL;
 #else
-  GAS_mlp->control_param_mlp.msg_lev = GLP_MSG_OFF;
+  mlp->control_param_mlp.msg_lev = GLP_MSG_OFF;
 #endif
-  GAS_mlp->control_param_mlp.tm_lim = max_duration.rel_value;
+  mlp->control_param_mlp.tm_lim = max_duration.rel_value;
 
-  GAS_mlp->last_execution = GNUNET_TIME_absolute_get_forever();
-  return GNUNET_OK;
+  mlp->last_execution = GNUNET_TIME_absolute_get_forever();
+
+
+  mlp_create_problem (mlp);
+  return mlp;
 }
 
 /**
@@ -271,19 +339,28 @@ GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
  *
  * Otherwise the addresses' values can be updated and the existing base can
  * be reused
+ *
+ * @param mlp the MLP Handle
+ * @param addresses the address hashmap
+ * @param address the address to update
  */
 void
-GAS_mlp_address_update (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
   int new;
 
-  GNUNET_STATISTICS_update (GAS_mlp->stats,"# LP address updates", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (mlp->stats,"# LP address updates", 1, GNUNET_NO);
 
-  /* We update a new address */
+  /* We add a new address */
   if (address->mlp_information == NULL)
   {
     new = GNUNET_YES;
     address->mlp_information = GNUNET_malloc (sizeof (struct MLP_information));
+
+    /* Add bandwidth columns */
+
+
+    /* Add */
   }
   else
     new = GNUNET_NO;
@@ -292,19 +369,23 @@ GAS_mlp_address_update (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct
 
   /* Recalculate */
   if (new == GNUNET_YES)
-    GAS_mlp->presolver_required = GNUNET_YES;
-  mlp_solve_problem (GAS_mlp);
+    mlp->presolver_required = GNUNET_YES;
+  mlp_solve_problem (mlp);
 }
 
 /**
  * Deletes a single address in the MLP problem
  *
  * The MLP problem has to be recreated and the problem has to be resolved
+ *
+ * @param mlp the MLP Handle
+ * @param addresses the address hashmap
+ * @param address the address to delete
  */
 void
-GAS_mlp_address_delete (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
-  GNUNET_STATISTICS_update (GAS_mlp->stats,"# LP address deletions", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (mlp->stats,"# LP address deletions", 1, GNUNET_NO);
 
   /* Free resources */
   if (address->mlp_information != NULL)
@@ -316,34 +397,40 @@ GAS_mlp_address_delete (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct
   /* Update problem */
 
   /* Recalculate */
-  GAS_mlp->presolver_required = GNUNET_YES;
-  mlp_solve_problem (GAS_mlp);
+  mlp->presolver_required = GNUNET_YES;
+  mlp_solve_problem (mlp);
 }
 
 /**
  * Deletes a single address in the MLP problem
+ *
+ * @param mlp the MLP Handle
+ * @param addresses the address hashmap
+ * @param address the address to change the preference
  */
 void
-GAS_mlp_address_change_preference (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
-  GNUNET_STATISTICS_update (GAS_mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
-
-
+  GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
 }
 
 /**
  * Shutdown the MLP problem solving component
+ * @param mlp the MLP handle
  */
 void
-GAS_mlp_done ()
+GAS_mlp_done (struct GAS_MLP_Handle *mlp)
 {
-  if (GAS_mlp != NULL)
-    glp_delete_prob(GAS_mlp->prob);
+  if (mlp != NULL)
+    glp_delete_prob(mlp->prob);
+
+  if (mlp->co_Q != NULL)
+    GNUNET_free (mlp->co_Q);
 
   /* Clean up GLPK environment */
   glp_free_env();
 
-  GNUNET_free (GAS_mlp);
+  GNUNET_free (mlp);
 }
 
 

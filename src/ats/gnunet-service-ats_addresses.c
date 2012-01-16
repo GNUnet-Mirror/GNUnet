@@ -52,6 +52,8 @@ enum ATS_Mode
 
 static struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
+static struct GAS_MLP_Handle *mlp;
+
 static unsigned long long wan_quota_in;
 
 static unsigned long long wan_quota_out;
@@ -174,7 +176,7 @@ destroy_address (struct ATS_Address *addr)
 
 #if HAVE_LIBGLPK
   if (ats_mode == MLP)
-    GAS_mlp_address_delete (addresses, addr);
+    GAS_mlp_address_delete (mlp, addresses, addr);
 #endif
 
   if (GNUNET_YES == addr->active)
@@ -317,7 +319,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
     }
 #if HAVE_LIBGLPK
   if (ats_mode == MLP)
-    GAS_mlp_address_update (addresses, old);
+    GAS_mlp_address_update (mlp, addresses, old);
 #endif
 }
 
@@ -380,7 +382,7 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
     /* session was set to 0, update address */
 #if HAVE_LIBGLPK
   if (ats_mode == MLP)
-    GAS_mlp_address_update (addresses, aa);
+    GAS_mlp_address_update (mlp, addresses, aa);
 #endif
   }
 
@@ -474,7 +476,7 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
 
 #if HAVE_LIBGLPK
   if (ats_mode == MLP)
-     GAS_mlp_address_update (addresses, old);
+     GAS_mlp_address_update (mlp, addresses, old);
 #endif
 }
 
@@ -550,7 +552,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #if HAVE_LIBGLPK
           ats_mode = MLP;
           /* Init the MLP solver with default values */
-          GAS_mlp_init (stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+          mlp = GAS_mlp_init (stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
           break;
 #else
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode");
@@ -612,7 +614,7 @@ GAS_addresses_done ()
 #if HAVE_LIBGLPK
   if (ats_mode == MLP)
   {
-    GAS_mlp_done ();
+    GAS_mlp_done (mlp);
   }
 #endif
 

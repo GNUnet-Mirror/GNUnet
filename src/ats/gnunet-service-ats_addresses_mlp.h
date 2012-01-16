@@ -120,6 +120,34 @@ struct GAS_MLP_Handle
    * total duration of all mlp solver executions
    */
   uint64_t mlp_total_duration;
+
+  /* Information about the problem */
+
+
+  /* column index Diversity (D) column */
+  int c_d;
+  double co_D;
+
+  /* column index Utilization (U) column */
+  int c_u;
+  double co_U;
+
+  /* column index Proportionality (R) column */
+  int c_r;
+  double co_R;
+
+  /* column index first quality metric (q_1) column */
+  int c_q_start;
+
+  /* column index last quality metric (q_n) column */
+  int c_q_end;
+
+  /* Array of quality metric coefficients (m elements) */
+  double *co_Q;
+
+  /* number of quality metrics */
+  int m;
+
 };
 
 
@@ -128,7 +156,11 @@ struct GAS_MLP_Handle
  */
 struct MLP_information
 {
+  /* bandwidth column index */
+  signed int c_b;
 
+  /* address usage column */
+  signed int c_n;
 };
 
 
@@ -138,12 +170,13 @@ struct MLP_information
  * @param stats the GNUNET_STATISTICS handle
  * @param max_duration maximum numbers of iterations for the LP/MLP Solver
  * @param max_iterations maximum time limit for the LP/MLP Solver
- * @return GNUNET_OK on success, GNUNET_SYSERR on fail
+ * @return struct GAS_MLP_Handle * on success, NULL on fail
  */
-int
+struct GAS_MLP_Handle *
 GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
               struct GNUNET_TIME_Relative max_duration,
               unsigned int max_iterations);
+
 
 /**
  * Updates a single address in the MLP problem
@@ -153,25 +186,37 @@ GAS_mlp_init (const struct GNUNET_STATISTICS_Handle *stats,
  *
  * Otherwise the addresses' values can be updated and the existing base can
  * be reused
+ *
+ * @param mlp the MLP Handle
+ * @param addresses the address hashmap
+ * @param address the address to update
  */
 void
-GAS_mlp_address_update (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
 
 
 /**
  * Deletes a single address in the MLP problem
  *
  * The MLP problem has to be recreated and the problem has to be resolved
+ *
+ * @param mlp the MLP Handle
+ * @param addresses the address hashmap
+ * @param address the address to delete
  */
 void
-GAS_mlp_address_delete (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
 
 
 /**
  * Deletes a single address in the MLP problem
+ *
+ * @param mlp the MLP Handle
+ * @param addresses the address hashmap
+ * @param address the address to change the preference
  */
 void
-GAS_mlp_address_change_preference (struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
 
 
 /**
