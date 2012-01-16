@@ -22,11 +22,6 @@
  * @file pt/gnunet-daemon-pt.c
  * @brief tool to manipulate DNS and VPN services to perform protocol translation (IPvX over GNUnet)
  * @author Christian Grothoff
- *
- * TODO:
- * - add statistics
- * - add logging?
- * - figure out how/where/when/who tunnels DNS over mesh when necessary!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -40,6 +35,16 @@
  * After how long do we time out if we could not get an IP from VPN?
  */
 #define TIMEOUT GNUNET_TIME_UNIT_MINUTES
+
+
+/**
+ * How many bytes of payload do we allow at most for a DNS reply?
+ * Given that this is pretty much limited to loopback, we can be
+ * pretty high (Linux loopback defaults to 16k, most local UDP packets
+ * should survive up to 9k (NFS), so 8k should be pretty safe in
+ * general).
+ */
+#define MAX_DNS_SIZE (8 * 1024)
 
 
 /**
@@ -61,6 +66,7 @@ enum RequestGroup
      * DNS additional records
      */
     ADDITIONAL_RECORDS = 2,
+
     /**
      * We're done processing.
      */
@@ -151,7 +157,7 @@ finish_request (struct RequestContext *rc)
 
   if (GNUNET_SYSERR ==
       GNUNET_DNSPARSER_pack (rc->dns,
-			     16 * 1024,
+			     MAX_DNS_SIZE,
 			     &buf,
 			     &buf_len))
   {
@@ -161,6 +167,9 @@ finish_request (struct RequestContext *rc)
   }
   else
   {
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# DNS requests mapped to VPN"),
+			      1, GNUNET_NO);
     GNUNET_DNS_request_answer (rc->rh,
 			       buf_len, buf);
     GNUNET_free (buf);
@@ -211,8 +220,11 @@ vpn_allocation_callback (void *cls,
     GNUNET_free (rc);
     return;
   }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# DNS records modified"),
+			    1, GNUNET_NO);
   switch (rc->rec->type)
-    {
+  {
   case GNUNET_DNSPARSER_TYPE_A:
     GNUNET_assert (AF_INET == af);
     memcpy (rc->rec->data.raw.data, address, sizeof (struct in_addr));
@@ -397,6 +409,9 @@ dns_request_handler (void *cls,
   struct RequestContext *rc;
   int work;
 
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# DNS requests intercepted"),
+			    1, GNUNET_NO);
   dns = GNUNET_DNSPARSER_parse (request, request_length);
   if (NULL == dns)
   {
@@ -431,7 +446,7 @@ cleanup (void *cls GNUNET_UNUSED,
          const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Pt service is shutting down now\n");
+	      "Protocol translation daemon is shutting down now\n");
   if (vpn_handle != NULL)
   {
     GNUNET_VPN_disconnect (vpn_handle);
