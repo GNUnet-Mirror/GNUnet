@@ -40,6 +40,8 @@ static int ret;
 
 struct GNUNET_STATISTICS_Handle * stats;
 
+struct GAS_MLP_Handle *mlp;
+
 static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -51,9 +53,10 @@ check (void *cls, char *const *args, const char *cfgfile,
 #endif
   stats = GNUNET_STATISTICS_create("ats", cfg);
 
-  GNUNET_assert (GNUNET_OK == GAS_mlp_init(NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS));
+  mlp = GAS_mlp_init(NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+  GNUNET_assert (mlp != NULL);
 
-  GAS_mlp_done();
+  GAS_mlp_done (mlp);
 
   GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
 
