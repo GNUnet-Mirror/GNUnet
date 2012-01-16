@@ -33,5 +33,6 @@ SUBDIRS = \
   dns \
   exit \
   vpn \
+  pt \
   integration-tests \
   $(EXP_DIR) 
