@@ -190,12 +190,12 @@ struct TunnelState
   /**
    * Head of list of messages scheduled for transmission.
    */
-  struct TunnelMessageQueueEntry *head;
+  struct TunnelMessageQueueEntry *tmq_head;
 
   /**
    * Tail of list of messages scheduled for transmission.
    */
-  struct TunnelMessageQueueEntry *tail;
+  struct TunnelMessageQueueEntry *tmq_tail;
 
   /**
    * Client that needs to be notified about the tunnel being
@@ -568,19 +568,19 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   ts->th = NULL;
   if (NULL == buf)
     return 0;
-  tnq = ts->head;
+  tnq = ts->tmq_head;
   GNUNET_assert (NULL != tnq);
   GNUNET_assert (size >= tnq->len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending %u bytes via mesh tunnel\n",
 	      tnq->len);
-  GNUNET_CONTAINER_DLL_remove (ts->head,
-			       ts->tail,
+  GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
+			       ts->tmq_tail,
 			       tnq);
   memcpy (buf, tnq->msg, tnq->len);
   ret = tnq->len;
   GNUNET_free (tnq);
-  if (NULL != (tnq = ts->head))
+  if (NULL != (tnq = ts->tmq_head))
     ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
 						GNUNET_NO /* cork */, 
 						42 /* priority */,
@@ -612,8 +612,8 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queueing %u bytes for transmission via mesh tunnel\n",
 	      tnq->len);
-  GNUNET_CONTAINER_DLL_insert_tail (ts->head,
-				    ts->tail,
+  GNUNET_CONTAINER_DLL_insert_tail (ts->tmq_head,
+				    ts->tmq_tail,
 				    tnq);
   if (NULL == ts->th)
     ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
@@ -1967,10 +1967,10 @@ free_tunnel_state (struct TunnelState *ts)
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Active tunnels"),
 			    -1, GNUNET_NO);
-  while (NULL != (tnq = ts->head))
+  while (NULL != (tnq = ts->tmq_head))
   {
-    GNUNET_CONTAINER_DLL_remove (ts->head,
-				 ts->tail,
+    GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
+				 ts->tmq_tail,
 				 tnq);
     GNUNET_free (tnq);
   }
