@@ -733,7 +733,7 @@ client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               (info->copies != NULL) ? *(info->copies) : 0);
 #endif
 //   *(info->timeout_task) = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_SERVER_receive_done (c, GNUNET_OK);
+  GNUNET_SERVER_receive_done (c->handle, GNUNET_OK);
 }
 
 
