@@ -40,6 +40,8 @@ static int ret;
 
 struct GNUNET_STATISTICS_Handle * stats;
 
+struct GNUNET_CONTAINER_MultiHashMap * addresses;
+
 struct GAS_MLP_Handle *mlp;
 
 static void
@@ -51,13 +53,25 @@ check (void *cls, char *const *args, const char *cfgfile,
   ret = 1;
   return;
 #endif
+  struct ATS_Address addr;
+
   stats = GNUNET_STATISTICS_create("ats", cfg);
 
+  addresses = GNUNET_CONTAINER_multihashmap_create (10);
+
+  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &addr.peer.hashPubKey);
+  addr.plugin = strdup ("dummy");
+  GNUNET_CONTAINER_multihashmap_put(addresses, &addr.peer.hashPubKey, &addr, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+
   mlp = GAS_mlp_init (cfg, NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+
+  GAS_mlp_address_update(mlp, addresses, &addr);
+
   GNUNET_assert (mlp != NULL);
 
   GAS_mlp_done (mlp);
 
+  GNUNET_CONTAINER_multihashmap_destroy (addresses);
   GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
 
   ret = 0;

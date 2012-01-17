@@ -33,6 +33,19 @@
 #include "glpk.h"
 #endif
 
+/**
+ * Intercept GLPK terminal output
+ *
+ */
+
+static int
+mlp_term_hook (void *info, const char *s)
+{
+  /* Not needed atm struct MLP_information *mlp = info; */
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", s);
+  /* 0: glpk prints output on terminal, != surpress output */
+  return 1;
+}
 
 /**
  * Create the MLP problem
@@ -79,8 +92,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   /* Column lower bound = 0.0 */
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
 
-  /* Relitivity r column  */
-
+  /* Relativity r column  */
   col = glp_add_cols (mlp->prob, 1);
   mlp->c_r = col;
   /* Column name */
@@ -97,8 +109,10 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
     mlp->c_q[c] = col + c;
     GNUNET_asprintf (&name, "q_%u", mlp->q[c]);
     glp_set_col_name (mlp->prob, col + c, name);
+    /* Column lower bound = 0.0 */
     glp_set_col_bnds (mlp->prob, col + c, GLP_LO, 0.0, 0.0);
     GNUNET_free (name);
+    /* Coefficient == Qm */
     glp_set_obj_coef (mlp->prob, col + c, mlp->co_Q[c]);
   }
 
@@ -157,7 +171,7 @@ lp_solv:
       /* Problem was ill-defined, no way to handle that */
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
           "ats-mlp",
-          "Solving LP problem failed: glp_simplex error 0x%X", res);
+          "Solving LP problem failed: glp_simplex error 0x%X\n", res);
       return GNUNET_SYSERR;
     }
   }
@@ -186,7 +200,7 @@ lp_solv:
     default:
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
           "ats-mlp",
-          "Solving LP problem failed, no solution: glp_get_status 0x%X", res);
+          "Solving LP problem failed, no solution: glp_get_status 0x%X\n", res);
       return GNUNET_SYSERR;
       break;
   }
@@ -234,7 +248,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
     /* Problem was ill-defined, no way to handle that */
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
         "ats-mlp",
-        "Solving MLP problem failed: glp_intopt error 0x%X", res);
+        "Solving MLP problem failed: glp_intopt error 0x%X\n", res);
     return GNUNET_SYSERR;
   }
 
@@ -261,7 +275,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
     default:
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
           "ats-mlp",
-          "Solving MLP problem failed, no solution: glp_mip_status 0x%X", res);
+          "Solving MLP problem failed, no solution: glp_mip_status 0x%X\n", res);
       return GNUNET_SYSERR;
       break;
   }
@@ -392,6 +406,9 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->max_iterations = max_iterations;
   mlp->max_exec_duration = max_duration;
 
+  /* Redirect GLPK output to GNUnet logging */
+  glp_error_hook((void *) mlp, &mlp_term_hook);
+
   /* Init LP solving parameters */
   glp_init_smcp(&mlp->control_param_lp);
 #if DEBUG_MLP
@@ -441,6 +458,9 @@ void
 GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
   int new;
+  int col;
+  struct MLP_information *mlpi;
+  char * name;
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP address updates", 1, GNUNET_NO);
 
@@ -448,10 +468,34 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
   if (address->mlp_information == NULL)
   {
     new = GNUNET_YES;
-    address->mlp_information = GNUNET_malloc (sizeof (struct MLP_information));
+    mlpi = GNUNET_malloc (sizeof (struct MLP_information));
+    address->mlp_information = mlpi;
 
-    /* Add bandwidth columns */
+    /* Add bandwidth column */
+    col = glp_add_cols (mlp->prob, 2);
+    mlpi->c_b = col;
+    mlpi->c_n = col + 1;
 
+    GNUNET_asprintf (&name, "b_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
+    glp_set_col_name (mlp->prob, mlpi->c_b , name);
+    GNUNET_free (name);
+    /* Lower bound == 0 */
+    glp_set_col_bnds (mlp->prob, mlpi->c_b , GLP_LO, 0.0, 0.0);
+    /* Continuous value*/
+    glp_set_col_kind (mlp->prob, mlpi->c_b , GLP_CV);
+    /* Objective function coefficient == 0 */
+    glp_set_obj_coef (mlp->prob, mlpi->c_b , 0);
+
+    /* Add usage column */
+    GNUNET_asprintf (&name, "n_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
+    glp_set_col_name (mlp->prob, mlpi->c_n, name);
+    GNUNET_free (name);
+    /* Limit value : 0 <= value <= 1 */
+    glp_set_col_bnds (mlp->prob, mlpi->c_n, GLP_DB, 0.0, 1.0);
+    /* Integer value*/
+    glp_set_col_kind (mlp->prob, mlpi->c_n, GLP_IV);
+    /* Objective function coefficient == 0 */
+    glp_set_obj_coef (mlp->prob, mlpi->c_n, 0);
 
     /* Add */
   }
