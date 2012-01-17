@@ -648,6 +648,7 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queueing %u bytes for transmission via mesh tunnel\n",
 	      tnq->len);
+  GNUNET_assert (NULL != ts->tunnel);
   GNUNET_CONTAINER_DLL_insert_tail (ts->tmq_head,
 				    ts->tmq_tail,
 				    tnq);
@@ -717,6 +718,15 @@ create_tunnel_to_destination (struct DestinationEntry *de,
 					  &tunnel_peer_connect_handler,
 					  &tunnel_peer_disconnect_handler,
 					  ts);
+  if (NULL == ts->tunnel)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to setup mesh tunnel!\n"));
+    if (NULL != client)
+      GNUNET_SERVER_client_drop (client);
+    GNUNET_free (ts);
+    return NULL;
+  }
   if (de->is_service)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -988,6 +998,8 @@ route_packet (struct DestinationEntry *destination,
       ts = create_tunnel_to_destination (destination, NULL, 0);
     else
       ts = destination->ts;
+    if (NULL == ts)
+      return;
     destination->ts = NULL;
     ts->destination_container = NULL; /* no longer 'contained' */
     /* now bind existing "unbound" tunnel to our IP/port tuple */
@@ -1026,6 +1038,7 @@ route_packet (struct DestinationEntry *destination,
 				       ts->heap_node,
 				       GNUNET_TIME_absolute_get ().abs_value);
   }
+  GNUNET_assert (NULL != ts->tunnel);
   
   /* send via tunnel */
   switch (protocol)
@@ -2001,7 +2014,6 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   (void) create_tunnel_to_destination (de, 
 				       (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
 				       msg->request_id);
-  GNUNET_assert (NULL != de->ts);
   /* we're done */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
