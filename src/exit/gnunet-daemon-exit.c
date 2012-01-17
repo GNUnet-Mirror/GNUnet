@@ -1091,6 +1091,7 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
       memcpy (&pkt4_tcp[1], payload, payload_length);
       pkt4_tcp->spt = htons (src_address->port);
       pkt4_tcp->dpt = htons (dst_address->port);
+      
       pkt4_tcp->crc = 0;
       uint32_t sum = 0;
       sum = GNUNET_CRYPTO_crc16_step (sum, 
@@ -1194,19 +1195,12 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
       struct GNUNET_TUN_TcpHeader *pkt6_tcp = (struct GNUNET_TUN_TcpHeader *) pkt6;
       
       memcpy (pkt6_tcp, payload, payload_length);
-      pkt6_tcp->crc = 0;
       pkt6_tcp->spt = htons (src_address->port);
       pkt6_tcp->dpt = htons (dst_address->port);
-
-      uint32_t sum = 0;
-      sum = GNUNET_CRYPTO_crc16_step (sum, &pkt6->source_address, 
-				      sizeof (struct in6_addr) * 2);
-      uint32_t tmp = htonl (len);
-      sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
-      tmp = htonl (pkt6->next_header);
-      sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));      
-      sum = GNUNET_CRYPTO_crc16_step (sum,  pkt6_tcp, len);
-      pkt6_tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+      GNUNET_TUN_calculate_tcp6_checksum (pkt6,
+					  pkt6_tcp,
+					  payload,
+					  payload_length);
     }
     break;
   default:

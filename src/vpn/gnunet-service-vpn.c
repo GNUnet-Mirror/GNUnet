@@ -1643,20 +1643,10 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 					   &ts->source_ip.v6);
 	tcp->spt = htons (ts->destination_port);
 	tcp->dpt = htons (ts->source_port);
-	tcp->crc = 0;
-	{
-	  uint32_t sum = 0;
-	  uint32_t tmp;
-
-	  sum = GNUNET_CRYPTO_crc16_step (sum, &ipv6->source_address, 2 * sizeof (struct in6_addr));
-	  tmp = htonl (sizeof (struct GNUNET_TUN_TcpHeader) + mlen);
-	  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
-	  tmp = htonl (IPPROTO_TCP);
-	  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
-	  sum = GNUNET_CRYPTO_crc16_step (sum, tcp,
-					  sizeof (struct GNUNET_TUN_TcpHeader) + mlen);
-	  tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
-	}
+	GNUNET_TUN_calculate_tcp6_checksum (ipv6,
+					    tcp,
+					    &tcp[1],
+					    mlen);
 	(void) GNUNET_HELPER_send (helper_handle,
 				   msg,
 				   GNUNET_YES,

@@ -95,5 +95,37 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
 }
 
 
+/**
+ * Calculate IPv6 TCP checksum.
+ *
+ * @param ipv6 header fully initialized
+ * @param tcp header (initialized except for CRC)
+ * @param payload the TCP payload
+ * @param payload_length number of bytes of TCP payload
+ */
+void
+GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
+				    struct GNUNET_TUN_TcpHeader *tcp,
+				    const void *payload,
+				    uint16_t payload_length)
+{
+  uint32_t sum;
+  uint32_t tmp;
+
+  GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv6Header) + sizeof (struct GNUNET_TUN_TcpHeader) ==
+		 ntohs (ip->payload_length));
+  tcp->crc = 0;
+  sum = GNUNET_CRYPTO_crc16_step (0, &ip->source_address, 2 * sizeof (struct in6_addr));
+  tmp = htonl (sizeof (struct GNUNET_TUN_TcpHeader) + payload_length);
+  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+  tmp = htonl (IPPROTO_TCP);
+  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+  sum = GNUNET_CRYPTO_crc16_step (sum, tcp,
+				  sizeof (struct GNUNET_TUN_TcpHeader));
+  sum = GNUNET_CRYPTO_crc16_step (sum, payload, payload_length);
+  tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+}
+
+
 
 /* end of tun.c */

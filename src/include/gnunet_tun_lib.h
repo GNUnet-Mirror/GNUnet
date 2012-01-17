@@ -181,5 +181,19 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
 				   const struct in6_addr *src,
 				   const struct in6_addr *dst);
 
+/**
+ * Calculate IPv6 TCP checksum.
+ *
+ * @param ipv6 header fully initialized
+ * @param tcp header (initialized except for CRC)
+ * @param payload the TCP payload
+ * @param payload_length number of bytes of TCP payload
+ */
+void
+GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
+				    struct GNUNET_TUN_TcpHeader *tcp,
+				    const void *payload,
+				    uint16_t payload_length);
+
 
 #endif
