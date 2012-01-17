@@ -1065,21 +1065,11 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
     return;
   }
 
-  pkt4->version = 4;
-  pkt4->header_length = sizeof (struct GNUNET_TUN_IPv4Header) / 4;
-  pkt4->diff_serv = 0;
-  pkt4->total_length = htons ((uint16_t) (sizeof (struct GNUNET_TUN_IPv4Header) + len));
-  pkt4->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
-							      UINT16_MAX + 1);
-  pkt4->flags = 0;
-  pkt4->fragmentation_offset = 0;
-  pkt4->ttl = 255;
-  pkt4->protocol = protocol;
-  pkt4->checksum = 0;
-  pkt4->destination_address = dst_address->address.ipv4;
-  pkt4->source_address = src_address->address.ipv4;
-  pkt4->checksum = GNUNET_CRYPTO_crc16_n (pkt4, sizeof (struct GNUNET_TUN_IPv4Header));
-
+  GNUNET_TUN_initialize_ipv4_header (pkt4,
+				     protocol,
+				     len,
+				     &src_address->address.ipv4,
+				     &dst_address->address.ipv4);
   switch (protocol)
   {
   case IPPROTO_UDP:

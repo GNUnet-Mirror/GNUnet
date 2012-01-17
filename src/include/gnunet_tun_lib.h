@@ -148,4 +148,21 @@ struct GNUNET_TUN_DnsHeader
 GNUNET_NETWORK_STRUCT_END
 
 
+/**
+ * Initialize an IPv4 header.
+ *
+ * @param ip header to initialize
+ * @param protocol protocol to use (i.e. IPPROTO_UDP)
+ * @param payload_length number of bytes of payload that follow (excluding IPv4 header)
+ * @param src source IP address to use
+ * @param dst destination IP address to use
+ */
+void
+GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
+				   uint8_t protocol,
+				   uint16_t payload_length,
+				   const struct in_addr *src,
+				   const struct in_addr *dst);
+
+
 #endif

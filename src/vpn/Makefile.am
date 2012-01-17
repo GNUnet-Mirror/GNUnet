@@ -40,6 +40,7 @@ gnunet_service_vpn_SOURCES = \
  gnunet-service-vpn.c 
 gnunet_service_vpn_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)

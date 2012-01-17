@@ -32,9 +32,6 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_tun_lib.h"
 
-#ifndef IPVERSION
-#define IPVERSION 4
-#endif
 
 /**
  * Phases each request goes through.
@@ -387,20 +384,13 @@ request_done (struct RequestRecord *rr)
 	
 	spt = dst->sin_port;
 	dpt = src->sin_port;
-	ip.header_length =  sizeof (struct GNUNET_TUN_IPv4Header) / 4;
-	ip.version = IPVERSION; /* aka 4 */
-	ip.diff_serv = 0;
-	ip.total_length = htons ((uint16_t) reply_len - off);
-	ip.identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
-							65536);
-	ip.flags = 0;
-	ip.fragmentation_offset = 0;
-	ip.ttl = 255; /* or lower? */
-	ip.protocol = IPPROTO_UDP;
-	ip.checksum = 0; /* checksum is optional */
-	ip.source_address = dst->sin_addr;
-	ip.destination_address = src->sin_addr;
-	ip.checksum = GNUNET_CRYPTO_crc16_n (&ip, sizeof (ip));
+	GNUNET_TUN_initialize_ipv4_header (&ip,
+					   IPPROTO_UDP,
+					   reply_len - off - sizeof (struct GNUNET_TUN_IPv4Header),
+					   &dst->sin_addr,
+					   &src->sin_addr);
+
+
 
 	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
 						&ip.source_address,
@@ -1062,7 +1052,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   case ETH_P_IPV4:
     ip4 = (const struct GNUNET_TUN_IPv4Header *) &tun[1];
     if ( (msize < sizeof (struct GNUNET_TUN_IPv4Header)) ||
-	 (ip4->version != IPVERSION) ||
+	 (ip4->version != 4) ||
 	 (ip4->header_length != sizeof (struct GNUNET_TUN_IPv4Header) / 4) ||
 	 (ntohs(ip4->total_length) != msize) ||
 	 (ip4->protocol != IPPROTO_UDP) )
@@ -1119,7 +1109,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 
   /* setup new request */
   rr->phase = RP_INIT;
-  if (ip4->version == IPVERSION)
+  if (ip4->version == 4)
   {
     srca4 = (struct sockaddr_in*) &rr->src_addr;
     dsta4 = (struct sockaddr_in*) &rr->dst_addr;

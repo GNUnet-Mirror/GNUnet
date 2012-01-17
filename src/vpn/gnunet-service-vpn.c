@@ -1422,23 +1422,11 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	msg->size = htons (size);
 	tun->flags = htons (0);
 	tun->proto = htons (ETH_P_IPV4);
-	ipv4->version = 4;
-	ipv4->header_length = sizeof (struct GNUNET_TUN_IPv4Header) / 4;
-	ipv4->diff_serv = 0;
-	ipv4->total_length = htons (sizeof (struct GNUNET_TUN_IPv4Header) +
-				    sizeof (struct GNUNET_TUN_UdpHeader) +
-				    mlen);
-	ipv4->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
-								    UINT16_MAX + 1);
-	ipv4->flags = 0;
-	ipv4->fragmentation_offset = 0;
-	ipv4->ttl = 255;
-	ipv4->protocol = IPPROTO_UDP;
-	ipv4->checksum = 0; 
-	ipv4->source_address = ts->destination_ip.v4;
-	ipv4->destination_address = ts->source_ip.v4;
-	ipv4->checksum =
-	  GNUNET_CRYPTO_crc16_n (ipv4, sizeof (struct GNUNET_TUN_IPv4Header));
+	GNUNET_TUN_initialize_ipv4_header (ipv4,
+					   IPPROTO_UDP,
+					   sizeof (struct GNUNET_TUN_UdpHeader) + mlen,
+					   &ts->destination_ip.v4,
+					   &ts->source_ip.v4);
 	if (0 == ntohs (reply->source_port))
 	  udp->spt = htons (ts->destination_port);
 	else
@@ -1600,23 +1588,11 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	msg->size = htons (size);
 	tun->flags = htons (0);
 	tun->proto = htons (ETH_P_IPV4);
-	ipv4->version = 4;
-	ipv4->header_length = sizeof (struct GNUNET_TUN_IPv4Header) / 4;
-	ipv4->diff_serv = 0;
-	ipv4->total_length = htons (sizeof (struct GNUNET_TUN_IPv4Header) +
-				    sizeof (struct GNUNET_TUN_TcpHeader) +
-				    mlen);
-	ipv4->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
-								    UINT16_MAX + 1);
-	ipv4->flags = 0;
-	ipv4->fragmentation_offset = 0;
-	ipv4->ttl = 255;
-	ipv4->protocol = IPPROTO_TCP;
-	ipv4->checksum = 0; 
-	ipv4->source_address = ts->destination_ip.v4;
-	ipv4->destination_address = ts->source_ip.v4;
-	ipv4->checksum =
-	  GNUNET_CRYPTO_crc16_n (ipv4, sizeof (struct GNUNET_TUN_IPv4Header));
+	GNUNET_TUN_initialize_ipv4_header (ipv4,
+					   IPPROTO_TCP,
+					   sizeof (struct GNUNET_TUN_TcpHeader) + mlen,
+					   &ts->destination_ip.v4,
+					   &ts->source_ip.v4);
 	*tcp = data->tcp_header;
 	tcp->spt = htons (ts->destination_port);
 	tcp->dpt = htons (ts->source_port);

@@ -10,6 +10,7 @@ SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
   hello \
+  tun \
   block \
   statistics \
   arm \
