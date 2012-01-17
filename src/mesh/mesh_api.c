@@ -759,7 +759,6 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
                         const struct GNUNET_MESH_TunnelNotification *msg)
 {
   struct GNUNET_MESH_Tunnel *t;
-  struct GNUNET_ATS_Information atsi;
   MESH_TunnelNumber tid;
 
   tid = ntohl (msg->tunnel_id);
@@ -780,10 +779,16 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
   t->tid = tid;
   if (NULL != h->new_tunnel)
   {
+    struct GNUNET_ATS_Information atsi;
+
     atsi.type = 0;
     atsi.value = 0;
     t->ctx = h->new_tunnel (h->cls, t, &msg->peer, &atsi);
   }
+#if MESH_API_DEBUG
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: new incoming tunnel %u\n",
+              t->tid);
+#endif
   return;
 }
 
@@ -812,7 +817,9 @@ process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
   {
     GNUNET_break (0);
   }
-
+#if MESH_API_DEBUG
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: tunnel %u destroyed\n", t->tid);
+#endif
   destroy_tunnel (t);
   return;
 }
@@ -911,6 +918,13 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
     mcast = (struct GNUNET_MESH_Multicast *) message;
     t = retrieve_tunnel (h, ntohl (mcast->tid));
+#if MESH_API_DEBUG // FIXME debug for #2071
+    if (NULL == t)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "mesh: tunnel %u unknown\n",
+                  ntohl (mcast->tid));
+    }
+#endif
     payload = (struct GNUNET_MessageHeader *) &mcast[1];
     peer = &mcast->oid;
     break;
