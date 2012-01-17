@@ -723,17 +723,17 @@ client_is_subscribed (uint16_t message_type, struct MeshClient *c)
 static void
 client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshDataDescriptor *info = cls;
+  struct MeshClient *c = cls;
 
   if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
     return;
-#if MESH_DEBUG
+#if 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH: CLIENT ALLOW SEND DESPITE %u COPIES PENDING\n",
               (info->copies != NULL) ? *(info->copies) : 0);
 #endif
-  *(info->timeout_task) = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_SERVER_receive_done (info->client, GNUNET_OK);
+//   *(info->timeout_task) = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_SERVER_receive_done (c, GNUNET_OK);
 }
 
 
@@ -1994,6 +1994,9 @@ struct MeshMulticastData
 
 /**
  * Send a multicast packet to a neighbor.
+ *
+ * @param cls Closure (Info about the multicast packet)
+ * @param neighbor_id Short ID of the neighbor to send the packet to.
  */
 static void
 tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
@@ -2085,10 +2088,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
   {
     GNUNET_free (mdata->data);
     GNUNET_free (mdata->reference_counter);
-    if (NULL != mdata->task)
-    {
-      GNUNET_free (mdata->task);
-    }
+    GNUNET_free_non_null (mdata->task);
   }
   GNUNET_free (mdata);
 #if MESH_DEBUG
