@@ -266,7 +266,7 @@ static struct GNUNET_CONTAINER_Heap *connections_heap;
 /**
  * If there are at least this many connections, old ones will be removed
  */
-static long long unsigned int max_connections = 200;
+static long long unsigned int max_connections;
 
 /**
  * This hashmaps saves interesting things about the configured UDP services
