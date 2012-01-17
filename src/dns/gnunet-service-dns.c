@@ -328,21 +328,21 @@ request_done (struct RequestRecord *rr)
   
   /* send response via hijacker */
   reply_len = sizeof (struct GNUNET_MessageHeader);
-  reply_len += sizeof (struct tun_header);
+  reply_len += sizeof (struct GNUNET_TUN_Layer2PacketHeader);
   switch (rr->src_addr.ss_family)
   {
   case AF_INET:
-    reply_len += sizeof (struct ip4_header);
+    reply_len += sizeof (struct GNUNET_TUN_IPv4Header);
     break;
   case AF_INET6:
-    reply_len += sizeof (struct ip6_header);
+    reply_len += sizeof (struct GNUNET_TUN_IPv6Header);
     break;
   default:
     GNUNET_break (0);
     cleanup_rr (rr);
     return;   
   }
-  reply_len += sizeof (struct udp_packet);
+  reply_len += sizeof (struct GNUNET_TUN_UdpHeader);
   reply_len += rr->payload_length;
   if (reply_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -364,15 +364,15 @@ request_done (struct RequestRecord *rr)
 
     /* first, TUN header */
     {
-      struct tun_header tun;
+      struct GNUNET_TUN_Layer2PacketHeader tun;
 
       tun.flags = htons (0);
       if (rr->src_addr.ss_family == AF_INET)
 	tun.proto = htons (ETH_P_IPV4); 
       else
 	tun.proto = htons (ETH_P_IPV6);
-      memcpy (&buf[off], &tun, sizeof (struct tun_header));
-      off += sizeof (struct tun_header);
+      memcpy (&buf[off], &tun, sizeof (struct GNUNET_TUN_Layer2PacketHeader));
+      off += sizeof (struct GNUNET_TUN_Layer2PacketHeader);
     }
 
     /* now IP header */
@@ -383,11 +383,11 @@ request_done (struct RequestRecord *rr)
       {
 	struct sockaddr_in *src = (struct sockaddr_in *) &rr->src_addr;
 	struct sockaddr_in *dst = (struct sockaddr_in *) &rr->dst_addr;
-	struct ip4_header ip;
+	struct GNUNET_TUN_IPv4Header ip;
 	
 	spt = dst->sin_port;
 	dpt = src->sin_port;
-	ip.header_length =  sizeof (struct ip4_header) / 4;
+	ip.header_length =  sizeof (struct GNUNET_TUN_IPv4Header) / 4;
 	ip.version = IPVERSION; /* aka 4 */
 	ip.diff_serv = 0;
 	ip.total_length = htons ((uint16_t) reply_len - off);
@@ -412,7 +412,7 @@ request_done (struct RequestRecord *rr)
 	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
 						  &tmp,	
 						  sizeof (uint16_t));
-	  tmp = htons (rr->payload_length + sizeof (struct udp_packet));
+	  tmp = htons (rr->payload_length + sizeof (struct GNUNET_TUN_UdpHeader));
 	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
 						  &tmp,	
 						  sizeof (uint16_t));
@@ -425,7 +425,7 @@ request_done (struct RequestRecord *rr)
       {
 	struct sockaddr_in6 *src = (struct sockaddr_in6 *) &rr->src_addr;
 	struct sockaddr_in6 *dst = (struct sockaddr_in6 *) &rr->dst_addr;
-	struct ip6_header ip;
+	struct GNUNET_TUN_IPv6Header ip;
 
 	spt = dst->sin6_port;
 	dpt = src->sin6_port;
@@ -444,7 +444,7 @@ request_done (struct RequestRecord *rr)
 	{
 	  uint32_t tmp;
 	  
-	  tmp = htons (rr->payload_length + sizeof (struct udp_packet));
+	  tmp = htons (rr->payload_length + sizeof (struct GNUNET_TUN_UdpHeader));
 	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
 						  &tmp,	
 						  sizeof (uint32_t));
@@ -463,7 +463,7 @@ request_done (struct RequestRecord *rr)
 
     /* now UDP header */
     {
-      struct udp_packet udp;
+      struct GNUNET_TUN_UdpHeader udp;
 
       udp.spt = spt;
       udp.dpt = dpt;
@@ -597,11 +597,11 @@ next_phase (struct RequestRecord *rr)
     {
     case AF_INET:
       dnsout = dnsout4;
-      salen = sizeof (struct ip4_header);
+      salen = sizeof (struct GNUNET_TUN_IPv4Header);
       break;
     case AF_INET6:
       dnsout = dnsout6;
-      salen = sizeof (struct ip6_header);
+      salen = sizeof (struct GNUNET_TUN_IPv6Header);
       break;
     default:
       GNUNET_break (0);
@@ -715,7 +715,7 @@ read_response (void *cls,
   struct sockaddr_in addr4;
   struct sockaddr_in6 addr6;
   struct sockaddr *addr;
-  struct dns_header *dns;
+  struct GNUNET_TUN_DnsHeader *dns;
   socklen_t addrlen;
   struct RequestRecord *rr;
   ssize_t r;
@@ -765,14 +765,14 @@ read_response (void *cls,
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "recvfrom");
       return;
     }
-    if (sizeof (struct dns_header) > r)
+    if (sizeof (struct GNUNET_TUN_DnsHeader) > r)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 		  _("Received DNS response that is too small (%u bytes)"),
 		  r);
       return;
     }
-    dns = (struct dns_header *) buf;
+    dns = (struct GNUNET_TUN_DnsHeader *) buf;
     rr = &requests[dns->id];
     if (rr->phase != RP_INTERNET_DNS) 
     {
@@ -986,7 +986,7 @@ handle_client_response (void *cls GNUNET_UNUSED,
       break;
     case 2: /* update */
       msize -= sizeof (struct GNUNET_DNS_Response);
-      if ( (sizeof (struct dns_header) > msize) ||
+      if ( (sizeof (struct GNUNET_TUN_DnsHeader) > msize) ||
 	   (RP_REQUEST_MONITOR == rr->phase) ||
 	   (RP_RESPONSE_MONITOR == rr->phase) )
       {
@@ -1036,11 +1036,11 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 			 const struct GNUNET_MessageHeader *message)
 {
   uint16_t msize;
-  const struct tun_header *tun;
-  const struct ip4_header *ip4;
-  const struct ip6_header *ip6;
-  const struct udp_packet *udp;
-  const struct dns_header *dns;
+  const struct GNUNET_TUN_Layer2PacketHeader *tun;
+  const struct GNUNET_TUN_IPv4Header *ip4;
+  const struct GNUNET_TUN_IPv6Header *ip6;
+  const struct GNUNET_TUN_UdpHeader *udp;
+  const struct GNUNET_TUN_DnsHeader *dns;
   struct RequestRecord *rr;
   struct sockaddr_in *srca4;
   struct sockaddr_in6 *srca6;
@@ -1048,22 +1048,22 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   struct sockaddr_in6 *dsta6;
 
   msize = ntohs (message->size);
-  if (msize < sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header) + sizeof (struct ip4_header))
+  if (msize < sizeof (struct GNUNET_MessageHeader) + sizeof (struct GNUNET_TUN_Layer2PacketHeader) + sizeof (struct GNUNET_TUN_IPv4Header))
   {
     /* non-IP packet received on TUN!? */
     GNUNET_break (0);
     return;
   }
   msize -= sizeof (struct GNUNET_MessageHeader);
-  tun = (const struct tun_header *) &message[1];
-  msize -= sizeof (struct tun_header);
+  tun = (const struct GNUNET_TUN_Layer2PacketHeader *) &message[1];
+  msize -= sizeof (struct GNUNET_TUN_Layer2PacketHeader);
   switch (ntohs (tun->proto))
   {
   case ETH_P_IPV4:
-    ip4 = (const struct ip4_header *) &tun[1];
-    if ( (msize < sizeof (struct ip4_header)) ||
+    ip4 = (const struct GNUNET_TUN_IPv4Header *) &tun[1];
+    if ( (msize < sizeof (struct GNUNET_TUN_IPv4Header)) ||
 	 (ip4->version != IPVERSION) ||
-	 (ip4->header_length != sizeof (struct ip4_header) / 4) ||
+	 (ip4->header_length != sizeof (struct GNUNET_TUN_IPv4Header) / 4) ||
 	 (ntohs(ip4->total_length) != msize) ||
 	 (ip4->protocol != IPPROTO_UDP) )
     {
@@ -1072,12 +1072,12 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 		  _("Received malformed IPv4-UDP packet on TUN interface.\n"));
       return;
     }
-    udp = (const struct udp_packet*) &ip4[1];
-    msize -= sizeof (struct ip4_header);
+    udp = (const struct GNUNET_TUN_UdpHeader*) &ip4[1];
+    msize -= sizeof (struct GNUNET_TUN_IPv4Header);
     break;
   case ETH_P_IPV6:
-    ip6 = (const struct ip6_header *) &tun[1];
-    if ( (msize < sizeof (struct ip6_header)) ||
+    ip6 = (const struct GNUNET_TUN_IPv6Header *) &tun[1];
+    if ( (msize < sizeof (struct GNUNET_TUN_IPv6Header)) ||
 	 (ip6->version != 6) ||
 	 (ntohs (ip6->payload_length) != msize) ||
 	 (ip6->next_header != IPPROTO_UDP) )
@@ -1087,8 +1087,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 		  _("Received malformed IPv6-UDP packet on TUN interface.\n"));
       return;
     }
-    udp = (const struct udp_packet*) &ip6[1];
-    msize -= sizeof (struct ip6_header);
+    udp = (const struct GNUNET_TUN_UdpHeader*) &ip6[1];
+    msize -= sizeof (struct GNUNET_TUN_IPv6Header);
     break;
   default:
     /* non-IP packet received on TUN!? */
@@ -1098,7 +1098,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 		ntohs (tun->proto));
     return;
   }
-  if (msize <= sizeof (struct udp_packet) + sizeof (struct dns_header))
+  if (msize <= sizeof (struct GNUNET_TUN_UdpHeader) + sizeof (struct GNUNET_TUN_DnsHeader))
   {    
     /* non-DNS packet received on TUN, ignore */
     GNUNET_STATISTICS_update (stats,
@@ -1106,8 +1106,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 			      1, GNUNET_NO);
     return;
   }
-  msize -= sizeof (struct udp_packet);
-  dns = (const struct dns_header*) &udp[1];
+  msize -= sizeof (struct GNUNET_TUN_UdpHeader);
+  dns = (const struct GNUNET_TUN_DnsHeader*) &udp[1];
   rr = &requests[dns->id];
 
   /* clean up from previous request */

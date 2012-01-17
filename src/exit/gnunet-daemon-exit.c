@@ -595,7 +595,7 @@ send_packet_to_mesh_tunnel (struct GNUNET_MESH_Tunnel *mesh_tunnel,
  *                       be the original destination address)
  */
 static void
-udp_from_helper (const struct udp_packet *udp, 
+udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp, 
 		 size_t pktlen,
 		 int af,
 		 const void *destination_ip, 
@@ -617,7 +617,7 @@ udp_from_helper (const struct udp_packet *udp,
 			   dbuf, sizeof (dbuf)),
 		(unsigned int) ntohs (udp->dpt));
   }
-  if (pktlen < sizeof (struct udp_packet))
+  if (pktlen < sizeof (struct GNUNET_TUN_UdpHeader))
   {
     /* blame kernel */
     GNUNET_break (0);
@@ -642,7 +642,7 @@ udp_from_helper (const struct udp_packet *udp,
     return;
   }
   send_packet_to_mesh_tunnel (state->tunnel,
-			      &udp[1], pktlen - sizeof (struct udp_packet),
+			      &udp[1], pktlen - sizeof (struct GNUNET_TUN_UdpHeader),
 			      NULL,
 			      state->serv != NULL
 			      ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK 
@@ -662,7 +662,7 @@ udp_from_helper (const struct udp_packet *udp,
  *                       be the original destination address)
  */
 static void
-tcp_from_helper (const struct tcp_packet *tcp, 
+tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp, 
 		 size_t pktlen,
 		 int af,
 		 const void *destination_ip,
@@ -670,7 +670,7 @@ tcp_from_helper (const struct tcp_packet *tcp,
 {
   struct TunnelState *state;
   char buf[pktlen];
-  struct tcp_packet *mtcp;
+  struct GNUNET_TUN_TcpHeader *mtcp;
 
   {
     char sbuf[INET6_ADDRSTRLEN];
@@ -686,7 +686,7 @@ tcp_from_helper (const struct tcp_packet *tcp,
 			   dbuf, sizeof (dbuf)),
 		(unsigned int) ntohs (tcp->dpt));
   }
-  if (pktlen < sizeof (struct tcp_packet))
+  if (pktlen < sizeof (struct GNUNET_TUN_TcpHeader))
   {
     /* blame kernel */
     GNUNET_break (0);
@@ -708,7 +708,7 @@ tcp_from_helper (const struct tcp_packet *tcp,
   /* mug port numbers and crc to avoid information leakage;
      sender will need to lookup the correct values anyway */
   memcpy (buf, tcp, pktlen);  
-  mtcp = (struct tcp_packet *) buf;
+  mtcp = (struct GNUNET_TUN_TcpHeader *) buf;
   mtcp->spt = 0;
   mtcp->dpt = 0;
   mtcp->crc = 0;
@@ -732,7 +732,7 @@ static void
 message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
-  const struct tun_header *pkt_tun;
+  const struct GNUNET_TUN_Layer2PacketHeader *pkt_tun;
   size_t size;
 
   GNUNET_STATISTICS_update (stats,
@@ -744,7 +744,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
     return;
   }
   size = ntohs (message->size);
-  if (size < sizeof (struct tun_header) + sizeof (struct GNUNET_MessageHeader))
+  if (size < sizeof (struct GNUNET_TUN_Layer2PacketHeader) + sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
     return;
@@ -752,38 +752,38 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from TUN"),
 			    size, GNUNET_NO);
-  pkt_tun = (const struct tun_header *) &message[1];
-  size -= sizeof (struct tun_header) + sizeof (struct GNUNET_MessageHeader);
+  pkt_tun = (const struct GNUNET_TUN_Layer2PacketHeader *) &message[1];
+  size -= sizeof (struct GNUNET_TUN_Layer2PacketHeader) + sizeof (struct GNUNET_MessageHeader);
   switch (ntohs (pkt_tun->proto))
   {
   case ETH_P_IPV6:
     {
-      const struct ip6_header *pkt6;
+      const struct GNUNET_TUN_IPv6Header *pkt6;
 
-      if (size < sizeof (struct ip6_header))
+      if (size < sizeof (struct GNUNET_TUN_IPv6Header))
       {
 	/* Kernel to blame? */
 	GNUNET_break (0);
 	return;
       }
-      pkt6 = (struct ip6_header *) &pkt_tun[1];
+      pkt6 = (struct GNUNET_TUN_IPv6Header *) &pkt_tun[1];
       if (size != ntohs (pkt6->payload_length))
       {
 	/* Kernel to blame? */
 	GNUNET_break (0);
 	return;
       }
-      size -= sizeof (struct ip6_header);
+      size -= sizeof (struct GNUNET_TUN_IPv6Header);
       switch (pkt6->next_header)
       {
       case IPPROTO_UDP:
-	udp_from_helper ((const struct udp_packet *) &pkt6[1], size,
+	udp_from_helper ((const struct GNUNET_TUN_UdpHeader *) &pkt6[1], size,
 			 AF_INET6,
 			 &pkt6->destination_address, 
 			 &pkt6->source_address);
 	break;
       case IPPROTO_TCP:
-	tcp_from_helper ((const struct tcp_packet *) &pkt6[1], size,
+	tcp_from_helper ((const struct GNUNET_TUN_TcpHeader *) &pkt6[1], size,
 			 AF_INET6,
 			 &pkt6->destination_address, 
 			 &pkt6->source_address);
@@ -797,37 +797,37 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
     break;
   case ETH_P_IPV4:
     {
-      const struct ip4_header *pkt4;
+      const struct GNUNET_TUN_IPv4Header *pkt4;
 
-      if (size < sizeof (struct ip4_header))
+      if (size < sizeof (struct GNUNET_TUN_IPv4Header))
       {
 	/* Kernel to blame? */
 	GNUNET_break (0);
 	return;
       }
-      pkt4 = (const struct ip4_header *) &pkt_tun[1];
+      pkt4 = (const struct GNUNET_TUN_IPv4Header *) &pkt_tun[1];
       if (size != ntohs (pkt4->total_length))
       {
 	/* Kernel to blame? */
 	GNUNET_break (0);
 	return;
       }
-      if (pkt4->header_length * 4 != sizeof (struct ip4_header))
+      if (pkt4->header_length * 4 != sizeof (struct GNUNET_TUN_IPv4Header))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("IPv4 packet options received.  Ignored.\n"));
 	return;
       }
-      size -= sizeof (struct ip4_header);
+      size -= sizeof (struct GNUNET_TUN_IPv4Header);
       switch (pkt4->protocol)
       {
       case IPPROTO_UDP:
-	udp_from_helper ((const struct udp_packet *) &pkt4[1], size,
+	udp_from_helper ((const struct GNUNET_TUN_UdpHeader *) &pkt4[1], size,
 			 AF_INET,
 			 &pkt4->destination_address, 
 			 &pkt4->source_address);
       case IPPROTO_TCP:
-	tcp_from_helper ((const struct tcp_packet *) &pkt4[1], size,
+	tcp_from_helper ((const struct GNUNET_TUN_TcpHeader *) &pkt4[1], size,
 			 AF_INET,
 			 &pkt4->destination_address, 
 			 &pkt4->source_address);
@@ -1038,10 +1038,10 @@ setup_state_record (struct TunnelState *state)
 static void
 prepare_ipv4_packet (const void *payload, size_t payload_length,
 		     int protocol,
-		     const struct tcp_packet *tcp_header,
+		     const struct GNUNET_TUN_TcpHeader *tcp_header,
 		     const struct SocketAddress *src_address,
 		     const struct SocketAddress *dst_address,
-		     struct ip4_header *pkt4)
+		     struct GNUNET_TUN_IPv4Header *pkt4)
 {
   size_t len;
 
@@ -1049,26 +1049,26 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
   switch (protocol)
   {
   case IPPROTO_UDP:
-    len += sizeof (struct udp_packet);
+    len += sizeof (struct GNUNET_TUN_UdpHeader);
     break;
   case IPPROTO_TCP:
-    len += sizeof (struct tcp_packet);
+    len += sizeof (struct GNUNET_TUN_TcpHeader);
     GNUNET_assert (NULL != tcp_header);
     break;
   default:
     GNUNET_break (0);
     return;
   }
-  if (len + sizeof (struct ip4_header) > UINT16_MAX)
+  if (len + sizeof (struct GNUNET_TUN_IPv4Header) > UINT16_MAX)
   {
     GNUNET_break (0);
     return;
   }
 
   pkt4->version = 4;
-  pkt4->header_length = sizeof (struct ip4_header) / 4;
+  pkt4->header_length = sizeof (struct GNUNET_TUN_IPv4Header) / 4;
   pkt4->diff_serv = 0;
-  pkt4->total_length = htons ((uint16_t) (sizeof (struct ip4_header) + len));
+  pkt4->total_length = htons ((uint16_t) (sizeof (struct GNUNET_TUN_IPv4Header) + len));
   pkt4->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
 							      UINT16_MAX + 1);
   pkt4->flags = 0;
@@ -1078,13 +1078,13 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
   pkt4->checksum = 0;
   pkt4->destination_address = dst_address->address.ipv4;
   pkt4->source_address = src_address->address.ipv4;
-  pkt4->checksum = GNUNET_CRYPTO_crc16_n (pkt4, sizeof (struct ip4_header));
+  pkt4->checksum = GNUNET_CRYPTO_crc16_n (pkt4, sizeof (struct GNUNET_TUN_IPv4Header));
 
   switch (protocol)
   {
   case IPPROTO_UDP:
     {
-      struct udp_packet *pkt4_udp = (struct udp_packet *) &pkt4[1];
+      struct GNUNET_TUN_UdpHeader *pkt4_udp = (struct GNUNET_TUN_UdpHeader *) &pkt4[1];
 
       pkt4_udp->spt = htons (src_address->port);
       pkt4_udp->dpt = htons (dst_address->port);
@@ -1095,9 +1095,9 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
     break;
   case IPPROTO_TCP:
     {
-      struct tcp_packet *pkt4_tcp = (struct tcp_packet *) &pkt4[1];
+      struct GNUNET_TUN_TcpHeader *pkt4_tcp = (struct GNUNET_TUN_TcpHeader *) &pkt4[1];
       
-      memcpy (pkt4_tcp, tcp_header, sizeof (struct tcp_packet));
+      memcpy (pkt4_tcp, tcp_header, sizeof (struct GNUNET_TUN_TcpHeader));
       memcpy (&pkt4_tcp[1], payload, payload_length);
       pkt4_tcp->spt = htons (src_address->port);
       pkt4_tcp->dpt = htons (dst_address->port);
@@ -1138,10 +1138,10 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
 static void
 prepare_ipv6_packet (const void *payload, size_t payload_length,
 		     int protocol,
-		     const struct tcp_packet *tcp_header,
+		     const struct GNUNET_TUN_TcpHeader *tcp_header,
 		     const struct SocketAddress *src_address,
 		     const struct SocketAddress *dst_address,
-		     struct ip6_header *pkt6)
+		     struct GNUNET_TUN_IPv6Header *pkt6)
 {
   size_t len;
 
@@ -1149,11 +1149,11 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
   switch (protocol)
   {
   case IPPROTO_UDP:
-    len += sizeof (struct udp_packet);
+    len += sizeof (struct GNUNET_TUN_UdpHeader);
     break;
   case IPPROTO_TCP:
     /* tcp_header (with port/crc not set) must be part of payload! */
-    if (len < sizeof (struct tcp_packet))
+    if (len < sizeof (struct GNUNET_TUN_TcpHeader))
     {
       GNUNET_break (0);
       return;
@@ -1171,7 +1171,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
 
   pkt6->version = 6;
   pkt6->next_header = protocol;
-  pkt6->payload_length = htons ((uint16_t) (len + sizeof (struct ip6_header)));
+  pkt6->payload_length = htons ((uint16_t) (len + sizeof (struct GNUNET_TUN_IPv6Header)));
   pkt6->hop_limit = 255;
   pkt6->destination_address = dst_address->address.ipv6;
   pkt6->source_address = src_address->address.ipv6;
@@ -1180,7 +1180,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
   {
   case IPPROTO_UDP:
     {
-      struct udp_packet *pkt6_udp = (struct udp_packet *) &pkt6[1];
+      struct GNUNET_TUN_UdpHeader *pkt6_udp = (struct GNUNET_TUN_UdpHeader *) &pkt6[1];
 
       memcpy (&pkt6[1], payload, payload_length);
       pkt6_udp->crc = 0;
@@ -1202,7 +1202,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
     break;
   case IPPROTO_TCP:
     {
-      struct tcp_packet *pkt6_tcp = (struct tcp_packet *) pkt6;
+      struct GNUNET_TUN_TcpHeader *pkt6_tcp = (struct GNUNET_TUN_TcpHeader *) pkt6;
       
       memcpy (pkt6_tcp, payload, payload_length);
       pkt6_tcp->crc = 0;
@@ -1239,7 +1239,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
 static void
 send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 			 const struct SocketAddress *source_address,
-			 const struct tcp_packet *tcp_header,
+			 const struct GNUNET_TUN_TcpHeader *tcp_header,
 			 const void *payload, size_t payload_length)
 {
   size_t len;
@@ -1250,14 +1250,14 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending packet with %u bytes TCP payload via TUN\n",
 	      (unsigned int) payload_length);
-  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header);
+  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct GNUNET_TUN_Layer2PacketHeader);
   switch (source_address->af)
   {
   case AF_INET:
-    len += sizeof (struct ip4_header);
+    len += sizeof (struct GNUNET_TUN_IPv4Header);
     break;
   case AF_INET6:
-    len += sizeof (struct ip6_header);
+    len += sizeof (struct GNUNET_TUN_IPv6Header);
     break;
   default:
     GNUNET_break (0);
@@ -1272,18 +1272,18 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
   {
     char buf[len];
     struct GNUNET_MessageHeader *hdr;
-    struct tun_header *tun;
+    struct GNUNET_TUN_Layer2PacketHeader *tun;
     
     hdr= (struct GNUNET_MessageHeader *) buf;
     hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
     hdr->size = htons (len);
-    tun = (struct tun_header*) &hdr[1];
+    tun = (struct GNUNET_TUN_Layer2PacketHeader*) &hdr[1];
     tun->flags = htons (0);
     switch (source_address->af)
     {
     case AF_INET:
       {
-	struct ip4_header * ipv4 = (struct ip4_header*) &tun[1];
+	struct GNUNET_TUN_IPv4Header * ipv4 = (struct GNUNET_TUN_IPv4Header*) &tun[1];
 	
 	tun->proto = htons (ETH_P_IPV4);
 	prepare_ipv4_packet (payload, payload_length,
@@ -1296,7 +1296,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
       break;
     case AF_INET6:
       {
-	struct ip6_header * ipv6 = (struct ip6_header*) &tun[1];
+	struct GNUNET_TUN_IPv6Header * ipv6 = (struct GNUNET_TUN_IPv6Header*) &tun[1];
 	
 	tun->proto = htons (ETH_P_IPV6);
 	prepare_ipv6_packet (payload, payload_length, 
@@ -1589,20 +1589,20 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending packet with %u bytes UDP payload via TUN\n",
 	      (unsigned int) payload_length);
-  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct tun_header);
+  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct GNUNET_TUN_Layer2PacketHeader);
   switch (source_address->af)
   {
   case AF_INET:
-    len += sizeof (struct ip4_header);
+    len += sizeof (struct GNUNET_TUN_IPv4Header);
     break;
   case AF_INET6:
-    len += sizeof (struct ip6_header);
+    len += sizeof (struct GNUNET_TUN_IPv6Header);
     break;
   default:
     GNUNET_break (0);
     return;
   }
-  len += sizeof (struct udp_packet);
+  len += sizeof (struct GNUNET_TUN_UdpHeader);
   len += payload_length;
   if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -1612,18 +1612,18 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
   {
     char buf[len];
     struct GNUNET_MessageHeader *hdr;
-    struct tun_header *tun;
+    struct GNUNET_TUN_Layer2PacketHeader *tun;
     
     hdr= (struct GNUNET_MessageHeader *) buf;
     hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
     hdr->size = htons (len);
-    tun = (struct tun_header*) &hdr[1];
+    tun = (struct GNUNET_TUN_Layer2PacketHeader*) &hdr[1];
     tun->flags = htons (0);
     switch (source_address->af)
     {
     case AF_INET:
       {
-	struct ip4_header * ipv4 = (struct ip4_header*) &tun[1];
+	struct GNUNET_TUN_IPv4Header * ipv4 = (struct GNUNET_TUN_IPv4Header*) &tun[1];
 	
 	tun->proto = htons (ETH_P_IPV4);
 	prepare_ipv4_packet (payload, payload_length,
@@ -1636,7 +1636,7 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
       break;
     case AF_INET6:
       {
-	struct ip6_header * ipv6 = (struct ip6_header*) &tun[1];
+	struct GNUNET_TUN_IPv6Header * ipv6 = (struct GNUNET_TUN_IPv6Header*) &tun[1];
 	
 	tun->proto = htons (ETH_P_IPV6);
 	prepare_ipv6_packet (payload, payload_length, 

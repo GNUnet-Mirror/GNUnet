@@ -23,32 +23,35 @@
  * @brief standard TCP/IP network structs and IP checksum calculations for TUN interaction
  * @author Philipp Toelke
  * @author Christian Grothoff
- *
- * TODO:
- * - currently does not follow our naming conventions
  */
-#ifndef TCPIP_TUN_H
-#define TCPIP_TUN_H
+#ifndef GNUNET_TUN_LIB_H
+#define GNUNET_TUN_LIB_H
 
-#include "platform.h"
 #include "gnunet_util_lib.h"
 
 
 /* see http://www.iana.org/assignments/ethernet-numbers */
 #ifndef ETH_P_IPV4
+/**
+ * Number for IPv4
+ */
 #define ETH_P_IPV4 0x0800
 #endif
 
 #ifndef ETH_P_IPV6
+/**
+ * Number for IPv6
+ */
 #define ETH_P_IPV6 0x86DD
 #endif
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Header from Linux TUN interface.
  */ 
-struct tun_header
+struct GNUNET_TUN_Layer2PacketHeader
 {
   /**
    * Some flags (unused).
@@ -65,7 +68,7 @@ struct tun_header
 /**
  * Standard IPv4 header.
  */
-struct ip4_header
+struct GNUNET_TUN_IPv4Header
 {
   unsigned header_length:4 GNUNET_PACKED;
   unsigned version:4 GNUNET_PACKED;
@@ -81,10 +84,11 @@ struct ip4_header
   struct in_addr destination_address GNUNET_PACKED;
 };
 
+
 /**
  * Standard IPv6 header.
  */
-struct ip6_header
+struct GNUNET_TUN_IPv6Header
 {
   unsigned traffic_class_h:4 GNUNET_PACKED;
   unsigned version:4 GNUNET_PACKED;
@@ -97,12 +101,11 @@ struct ip6_header
   struct in6_addr destination_address GNUNET_PACKED;
 };
 
-#define TCP_FLAG_SYN 2
 
 /**
  * TCP packet header (FIXME: rename!)
  */
-struct tcp_packet
+struct GNUNET_TUN_TcpHeader
 {
   unsigned spt:16 GNUNET_PACKED;
   unsigned dpt:16 GNUNET_PACKED;
@@ -116,10 +119,11 @@ struct tcp_packet
   unsigned urg:16 GNUNET_PACKED;
 };
 
+
 /**
  * UDP packet header  (FIXME: rename!)
  */
-struct udp_packet
+struct GNUNET_TUN_UdpHeader
 {
   uint16_t spt GNUNET_PACKED;
   uint16_t dpt GNUNET_PACKED;
@@ -127,10 +131,11 @@ struct udp_packet
   uint16_t crc GNUNET_PACKED;
 };
 
+
 /**
  * DNS header.
  */
-struct dns_header
+struct GNUNET_TUN_DnsHeader
 {
   uint16_t id GNUNET_PACKED;
   uint16_t flags GNUNET_PACKED;
@@ -139,13 +144,8 @@ struct dns_header
   uint16_t nscount GNUNET_PACKED;
   uint16_t arcount GNUNET_PACKED;
 };
+
 GNUNET_NETWORK_STRUCT_END
-
-
-
-
-
-
 
 
 #endif

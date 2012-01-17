@@ -53,7 +53,7 @@ struct GNUNET_EXIT_TcpServiceStartMessage
    * Skeleton of the TCP header to send.  Port numbers are to
    * be replaced and the checksum may be updated as necessary.
    */
-  struct tcp_packet tcp_header;
+  struct GNUNET_TUN_TcpHeader tcp_header;
 
   /* followed by TCP payload */
 };
@@ -79,7 +79,7 @@ struct GNUNET_EXIT_TcpInternetStartMessage
    * Skeleton of the TCP header to send.  Port numbers are to
    * be replaced and the checksum may be updated as necessary.
    */
-  struct tcp_packet tcp_header;
+  struct GNUNET_TUN_TcpHeader tcp_header;
 
   /* followed by IP address of the destination; either
      'struct in_addr' or 'struct in6_addr', depending on af */
@@ -110,7 +110,7 @@ struct GNUNET_EXIT_TcpDataMessage
    * Skeleton of the TCP header to send.  Port numbers are to
    * be replaced and the checksum may be updated as necessary.  (The destination port number should not be changed, as it contains the desired destination port.)
    */
-  struct tcp_packet tcp_header;
+  struct GNUNET_TUN_TcpHeader tcp_header;
 
   /* followed by TCP payload */
 };

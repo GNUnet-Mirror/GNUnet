@@ -32,7 +32,7 @@
 // DNS-Stuff
 GNUNET_NETWORK_STRUCT_BEGIN
 /* FIXME: replace this one with the one from tcpip_tun.h! */
-struct dns_header
+struct GNUNET_TUN_DnsHeader
 {
   uint16_t id GNUNET_PACKED;
   struct GNUNET_DNSPARSER_Flags flags; 
@@ -306,15 +306,15 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
 			size_t udp_payload_length)
 {
   struct GNUNET_DNSPARSER_Packet *p;
-  const struct dns_header *dns;
+  const struct GNUNET_TUN_DnsHeader *dns;
   size_t off;
   unsigned int n;  
   unsigned int i;
 
-  if (udp_payload_length < sizeof (struct dns_header))
+  if (udp_payload_length < sizeof (struct GNUNET_TUN_DnsHeader))
     return NULL;
-  dns = (const struct dns_header *) udp_payload;
-  off = sizeof (struct dns_header);
+  dns = (const struct GNUNET_TUN_DnsHeader *) udp_payload;
+  off = sizeof (struct GNUNET_TUN_DnsHeader);
   p = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_Packet));
   p->flags = dns->flags;
   p->id = dns->id;
@@ -711,7 +711,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
 		       char **buf,
 		       size_t *buf_length)
 {  
-  struct dns_header dns;
+  struct GNUNET_TUN_DnsHeader dns;
   size_t off;
   char tmp[max];
   unsigned int i;
@@ -730,7 +730,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   dns.authority_rcount = htons (p->num_authority_records);
   dns.additional_rcount = htons (p->num_additional_records);
 
-  off = sizeof (struct dns_header);
+  off = sizeof (struct GNUNET_TUN_DnsHeader);
   trc = GNUNET_NO;
   for (i=0;i<p->num_queries;i++)
   {
@@ -783,7 +783,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
 
   if (GNUNET_YES == trc)
     dns.flags.message_truncated = 1;    
-  memcpy (tmp, &dns, sizeof (struct dns_header));
+  memcpy (tmp, &dns, sizeof (struct GNUNET_TUN_DnsHeader));
 
   *buf = GNUNET_malloc (off);
   *buf_length = off;

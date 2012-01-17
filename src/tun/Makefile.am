@@ -15,6 +15,6 @@ libgnunettun_la_SOURCES = \
   tun.c
 libgnunettun_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
-libgnunethello_la_LDFLAGS = \
+libgnunettun_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
