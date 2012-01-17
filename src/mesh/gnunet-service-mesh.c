@@ -730,7 +730,7 @@ client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if MESH_DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH: CLIENT ALLOW SEND DESPITE %u COPIES PENDING\n",
-              *(info->copies));
+              (info->copies != NULL) ? *(info->copies) : 0);
 #endif
   *(info->timeout_task) = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SERVER_receive_done (info->client, GNUNET_OK);
