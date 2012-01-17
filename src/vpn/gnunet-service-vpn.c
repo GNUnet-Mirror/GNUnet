@@ -29,8 +29,6 @@
  * TODO:
  * Basics:
  * - test!
- * - better message queue management (bounded state, drop oldest/RED?)
- * - actually destroy "stale" tunnels once we have too many!
  *
  * Features:
  * - add back ICMP support (especially needed for IPv6)
@@ -53,6 +51,12 @@
 
 
 /**
+ * Maximum number of messages we allow in the queue for mesh.
+ */
+#define MAX_MESSAGE_QUEUE_SIZE 4
+
+
+/**
  * State we keep for each of our tunnels.
  */
 struct TunnelState;
@@ -67,7 +71,7 @@ struct DestinationEntry
 
   /**
    * Key under which this entry is in the 'destination_map' (only valid
-   * if 'heap_node != NULL'.
+   * if 'heap_node != NULL').
    */
   GNUNET_HashCode key;
 
@@ -170,6 +174,7 @@ struct TunnelMessageQueueEntry
  */
 struct TunnelState
 {
+
   /**
    * Information about the tunnel to use, NULL if no tunnel
    * is available right now.
@@ -606,8 +611,6 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
  * Add the given message to the given tunnel and trigger the
  * transmission process.
  *
- * FIXME: bound queue length!
- *
  * @param tnq message to queue
  * @param ts tunnel to queue the message for
  */
@@ -622,6 +625,23 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
 				    ts->tmq_tail,
 				    tnq);
   ts->tmq_length++;
+  if (ts->tmq_length > MAX_MESSAGE_QUEUE_SIZE)
+  {
+    struct TunnelMessageQueueEntry *dq;
+
+    dq = ts->tmq_head;
+    GNUNET_assert (dq != tnq);
+    GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
+				 ts->tmq_tail,
+				 dq);
+    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
+    ts->th = NULL;
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# Bytes dropped in mesh queue (overflow)"),
+			      dq->len, 
+			      GNUNET_NO);
+    GNUNET_free (dq);
+  }
   if (NULL == ts->th)
     ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
 						GNUNET_NO /* cork */,
@@ -703,6 +723,90 @@ create_tunnel_to_destination (struct DestinationEntry *de,
     }
   }  
   return ts;
+}
+
+
+/**
+ * Free resources associated with a tunnel state.
+ *
+ * @param ts state to free
+ */
+static void
+free_tunnel_state (struct TunnelState *ts)
+{
+  GNUNET_HashCode key;
+  struct TunnelMessageQueueEntry *tnq;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Cleaning up tunnel state\n");
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Active tunnels"),
+			    -1, GNUNET_NO);
+  while (NULL != (tnq = ts->tmq_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
+				 ts->tmq_tail,
+				 tnq);
+    ts->tmq_length--;
+    GNUNET_free (tnq);
+  }
+  GNUNET_assert (0 == ts->tmq_length);
+  if (NULL != ts->client)
+  {
+    GNUNET_SERVER_client_drop (ts->client);
+    ts->client = NULL;
+  }
+  if (NULL != ts->th)
+  {
+    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
+    ts->th = NULL;
+  }
+  GNUNET_assert (NULL == ts->destination.heap_node);
+  if (NULL != ts->tunnel)
+  {
+    GNUNET_MESH_tunnel_destroy (ts->tunnel);
+    ts->tunnel = NULL;
+  }
+  if (NULL != ts->heap_node)
+  {
+    GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
+    ts->heap_node = NULL;
+    get_tunnel_key_from_ips (ts->af,
+			     ts->protocol,
+			     &ts->source_ip,
+			     ts->source_port,
+			     &ts->destination_ip,
+			     ts->destination_port,
+			     &key);
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_remove (tunnel_map,
+							 &key,
+							 ts));
+  }
+  if (NULL != ts->destination_container)
+  {
+    GNUNET_assert (ts == ts->destination_container->ts);
+    ts->destination_container->ts = NULL;
+    ts->destination_container = NULL;
+  }
+  GNUNET_free (ts);
+}
+
+
+/**
+ * We have too many active tunnels.  Clean up the oldest tunnel.
+ *
+ * @param except tunnel that must NOT be cleaned up, even if it is the oldest
+ */
+static void
+expire_tunnel (struct TunnelState *except)
+{
+  struct TunnelState *ts;
+
+  ts = GNUNET_CONTAINER_heap_peek (tunnel_heap);
+  if (except == ts)
+    return; /* can't do this */
+  free_tunnel_state (ts);
 }
 
 
@@ -878,7 +982,8 @@ route_packet (struct DestinationEntry *destination,
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# Active tunnels"),
 			      1, GNUNET_NO);
-    /* FIXME: expire OLD tunnels if we have too many! */
+    while (GNUNET_CONTAINER_multihashmap_size (tunnel_map) > max_tunnel_mappings)
+      expire_tunnel (ts);
   }
   else
   {
@@ -1662,6 +1767,54 @@ allocate_v6_address (struct in6_addr *v6)
 
 
 /**
+ * Free resources occupied by a destination entry.
+ *
+ * @param de entry to free
+ */
+static void
+free_destination_entry (struct DestinationEntry *de)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Cleaning up destination entry\n");
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Active destinations"),
+			    -1, GNUNET_NO);
+  if (NULL != de->ts)
+  {
+    free_tunnel_state (de->ts);
+    GNUNET_assert (NULL == de->ts);
+  }
+  if (NULL != de->heap_node)
+  {
+    GNUNET_CONTAINER_heap_remove_node (de->heap_node);
+    de->heap_node = NULL;  
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_remove (destination_map,
+							 &de->key,
+							 de));
+  }
+  GNUNET_free (de);
+}
+
+
+/**
+ * We have too many active destinations.  Clean up the oldest destination.
+ *
+ * @param except destination that must NOT be cleaned up, even if it is the oldest
+ */
+static void 
+expire_destination (struct DestinationEntry *except)
+{
+  struct DestinationEntry *de;
+
+  de = GNUNET_CONTAINER_heap_peek (destination_heap);
+  if (except == de)
+    return; /* can't do this */
+  free_destination_entry (de);
+}
+
+
+/**
  * A client asks us to setup a redirection via some exit
  * node to a particular IP.  Setup the redirection and
  * give the client the allocated IP.
@@ -1807,8 +1960,9 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Active destinations"),
 			    1, GNUNET_NO);
+  while (GNUNET_CONTAINER_multihashmap_size (destination_map) > max_destination_mappings)
+    expire_destination (de);
 
-  /* FIXME: expire OLD destinations if we have too many! */
   /* setup tunnel to destination */
   (void) create_tunnel_to_destination (de, 
 				       (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
@@ -1926,7 +2080,8 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
   de->heap_node = GNUNET_CONTAINER_heap_insert (destination_heap,
 						de,
 						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value);
-  /* FIXME: expire OLD destinations if we have too many! */
+  while (GNUNET_CONTAINER_multihashmap_size (destination_map) > max_destination_mappings)
+    expire_destination (de);
   (void) create_tunnel_to_destination (de,
 				       (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
 				       msg->request_id);
@@ -1955,104 +2110,6 @@ inbound_tunnel_cb (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   /* How can and why should anyone open an inbound tunnel to vpn? */
   GNUNET_break (0);
   return NULL;
-}
-
-
-/**
- * Free resources associated with a tunnel state.
- *
- * @param ts state to free
- */
-static void
-free_tunnel_state (struct TunnelState *ts)
-{
-  GNUNET_HashCode key;
-  struct TunnelMessageQueueEntry *tnq;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Cleaning up tunnel state\n");
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Active tunnels"),
-			    -1, GNUNET_NO);
-  while (NULL != (tnq = ts->tmq_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
-				 ts->tmq_tail,
-				 tnq);
-    ts->tmq_length--;
-    GNUNET_free (tnq);
-  }
-  GNUNET_assert (0 == ts->tmq_length);
-  if (NULL != ts->client)
-  {
-    GNUNET_SERVER_client_drop (ts->client);
-    ts->client = NULL;
-  }
-  if (NULL != ts->th)
-  {
-    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
-    ts->th = NULL;
-  }
-  GNUNET_assert (NULL == ts->destination.heap_node);
-  if (NULL != ts->tunnel)
-  {
-    GNUNET_MESH_tunnel_destroy (ts->tunnel);
-    ts->tunnel = NULL;
-  }
-  if (NULL != ts->heap_node)
-  {
-    GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
-    ts->heap_node = NULL;
-    get_tunnel_key_from_ips (ts->af,
-			     ts->protocol,
-			     &ts->source_ip,
-			     ts->source_port,
-			     &ts->destination_ip,
-			     ts->destination_port,
-			     &key);
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_remove (tunnel_map,
-							 &key,
-							 ts));
-  }
-  if (NULL != ts->destination_container)
-  {
-    GNUNET_assert (ts == ts->destination_container->ts);
-    ts->destination_container->ts = NULL;
-    ts->destination_container = NULL;
-  }
-  GNUNET_free (ts);
-}
-
-
-/**
- * Free resources occupied by a destination entry.
- *
- * @param de entry to free
- */
-static void
-free_destination_entry (struct DestinationEntry *de)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Cleaning up destination entry\n");
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Active destinations"),
-			    -1, GNUNET_NO);
-  if (NULL != de->ts)
-  {
-    free_tunnel_state (de->ts);
-    GNUNET_assert (NULL == de->ts);
-  }
-  if (NULL != de->heap_node)
-  {
-    GNUNET_CONTAINER_heap_remove_node (de->heap_node);
-    de->heap_node = NULL;  
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_remove (destination_map,
-							 &de->key,
-							 de));
-  }
-  GNUNET_free (de);
 }
 
 
