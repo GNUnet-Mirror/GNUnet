@@ -1479,6 +1479,7 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   uint32_t least_priority;
   size_t overhead;
 
+  GNUNET_assert (NULL != tunnel);
 #if MESH_API_DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "mesh: mesh notify transmit ready called\n");
