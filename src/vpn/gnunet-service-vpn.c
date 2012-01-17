@@ -951,7 +951,8 @@ route_packet (struct DestinationEntry *destination,
 		  dpt,
 		  inet_ntop (destination->details.exit_destination.af,
 			     &destination->details.exit_destination.ip,
-			     xbuf, sizeof (xbuf)));
+			     xbuf, sizeof (xbuf)),
+		  dpt);
     }
   }
   else
