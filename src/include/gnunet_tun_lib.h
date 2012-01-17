@@ -19,8 +19,8 @@
 */
 
 /**
- * @file include/tcpip_tun.h
- * @brief standard TCP/IP network structs for TUN interaction
+ * @file include/gnunet_tun_lib.h
+ * @brief standard TCP/IP network structs and IP checksum calculations for TUN interaction
  * @author Philipp Toelke
  * @author Christian Grothoff
  *

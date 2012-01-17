@@ -44,7 +44,7 @@
 #include "gnunet_mesh_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
-#include "tcpip_tun.h"
+#include "gnunet_tun_lib.h"
 #include "exit.h"
 
 /**

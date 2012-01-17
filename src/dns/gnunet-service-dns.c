@@ -30,7 +30,7 @@
 #include "dns.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_statistics_service.h"
-#include "tcpip_tun.h"
+#include "gnunet_tun_lib.h"
 
 #ifndef IPVERSION
 #define IPVERSION 4

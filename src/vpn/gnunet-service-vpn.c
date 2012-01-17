@@ -45,7 +45,7 @@
 #include "gnunet_mesh_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
-#include "tcpip_tun.h"
+#include "gnunet_tun_lib.h"
 #include "vpn.h"
 #include "exit.h"
 
@@ -500,6 +500,79 @@ send_client_reply (struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Free resources associated with a tunnel state.
+ *
+ * @param ts state to free
+ */
+static void
+free_tunnel_state (struct TunnelState *ts)
+{
+  GNUNET_HashCode key;
+  struct TunnelMessageQueueEntry *tnq;
+  struct GNUNET_MESH_Tunnel *tunnel;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Cleaning up tunnel state\n");
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Active tunnels"),
+			    -1, GNUNET_NO);
+  if (GNUNET_SCHEDULER_NO_TASK != ts->destroy_task)
+  {
+    GNUNET_SCHEDULER_cancel (ts->destroy_task);
+    ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  while (NULL != (tnq = ts->tmq_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
+				 ts->tmq_tail,
+				 tnq);
+    ts->tmq_length--;
+    GNUNET_free (tnq);
+  }
+  GNUNET_assert (0 == ts->tmq_length);
+  if (NULL != ts->client)
+  {
+    GNUNET_SERVER_client_drop (ts->client);
+    ts->client = NULL;
+  }
+  if (NULL != ts->th)
+  {
+    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
+    ts->th = NULL;
+  }
+  GNUNET_assert (NULL == ts->destination.heap_node);
+  if (NULL != (tunnel = ts->tunnel))
+  {
+    ts->tunnel = NULL;
+    GNUNET_MESH_tunnel_destroy (tunnel);
+  }
+  if (NULL != ts->heap_node)
+  {
+    GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
+    ts->heap_node = NULL;
+    get_tunnel_key_from_ips (ts->af,
+			     ts->protocol,
+			     &ts->source_ip,
+			     ts->source_port,
+			     &ts->destination_ip,
+			     ts->destination_port,
+			     &key);
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_remove (tunnel_map,
+							 &key,
+							 ts));
+  }
+  if (NULL != ts->destination_container)
+  {
+    GNUNET_assert (ts == ts->destination_container->ts);
+    ts->destination_container->ts = NULL;
+    ts->destination_container = NULL;
+  }
+  GNUNET_free (ts);
+}
+
+
+/**
  * Destroy the mesh tunnel.
  *
  * @param cls the 'struct TunnelState' with the tunnel to destroy
@@ -513,10 +586,11 @@ destroy_tunnel_task (void *cls,
   struct GNUNET_MESH_Tunnel *tunnel;
 
   ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  if (NULL == (tunnel = ts->tunnel))
-    return;
+  GNUNET_assert (NULL != ts->tunnel);
+  tunnel = ts->tunnel;
   ts->tunnel = NULL;
   GNUNET_MESH_tunnel_destroy (tunnel);
+  free_tunnel_state (ts);
 }
 
 
@@ -760,79 +834,6 @@ create_tunnel_to_destination (struct DestinationEntry *de,
     }
   }  
   return ts;
-}
-
-
-/**
- * Free resources associated with a tunnel state.
- *
- * @param ts state to free
- */
-static void
-free_tunnel_state (struct TunnelState *ts)
-{
-  GNUNET_HashCode key;
-  struct TunnelMessageQueueEntry *tnq;
-  struct GNUNET_MESH_Tunnel *tunnel;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Cleaning up tunnel state\n");
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Active tunnels"),
-			    -1, GNUNET_NO);
-  if (GNUNET_SCHEDULER_NO_TASK != ts->destroy_task)
-  {
-    GNUNET_SCHEDULER_cancel (ts->destroy_task);
-    ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  while (NULL != (tnq = ts->tmq_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
-				 ts->tmq_tail,
-				 tnq);
-    ts->tmq_length--;
-    GNUNET_free (tnq);
-  }
-  GNUNET_assert (0 == ts->tmq_length);
-  if (NULL != ts->client)
-  {
-    GNUNET_SERVER_client_drop (ts->client);
-    ts->client = NULL;
-  }
-  if (NULL != ts->th)
-  {
-    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
-    ts->th = NULL;
-  }
-  GNUNET_assert (NULL == ts->destination.heap_node);
-  if (NULL != (tunnel = ts->tunnel))
-  {
-    ts->tunnel = NULL;
-    GNUNET_MESH_tunnel_destroy (tunnel);
-  }
-  if (NULL != ts->heap_node)
-  {
-    GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
-    ts->heap_node = NULL;
-    get_tunnel_key_from_ips (ts->af,
-			     ts->protocol,
-			     &ts->source_ip,
-			     ts->source_port,
-			     &ts->destination_ip,
-			     ts->destination_port,
-			     &key);
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_remove (tunnel_map,
-							 &key,
-							 ts));
-  }
-  if (NULL != ts->destination_container)
-  {
-    GNUNET_assert (ts == ts->destination_container->ts);
-    ts->destination_container->ts = NULL;
-    ts->destination_container = NULL;
-  }
-  GNUNET_free (ts);
 }
 
 
