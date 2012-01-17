@@ -1123,6 +1123,11 @@ send_callback (void *cls, size_t size, void *buf)
     }
     if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (th->timeout_task);
+    if (NULL != th->tunnel)
+    {
+      th->tunnel->mesh->npackets--;
+      th->tunnel->npackets--;
+    }
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
     GNUNET_free (th);
     cbuf += psize;
