@@ -29,7 +29,7 @@ packages.  Hence please make sure to use  the versions listed below.
 These are the direct dependencies for running GNUnet:
 
 - libextractor  >= 0.6.1
-- libmicrohttpd >= 0.9.21
+- libmicrohttpd >= 0.9.17
 - libgcrypt     >= 1.2
 - libcurl       >= 7.21.0
 - libunistring  >= 0.9.2
