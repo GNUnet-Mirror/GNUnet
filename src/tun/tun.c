@@ -19,7 +19,7 @@
 */
 
 /**
- * @file tun/tun.
+ * @file tun/tun.c
  * @brief standard IP calculations for TUN interaction
  * @author Philipp Toelke
  * @author Christian Grothoff
@@ -31,6 +31,7 @@
  * IP TTL we use for packets that we assemble (8 bit unsigned integer)
  */
 #define FRESH_TTL 255
+
 
 /**
  * Initialize an IPv4 header.
@@ -96,6 +97,39 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
 
 
 /**
+ * Calculate IPv4 TCP checksum.
+ *
+ * @param ipv4 header fully initialized
+ * @param tcp TCP header (initialized except for CRC)
+ * @param payload the TCP payload
+ * @param payload_length number of bytes of TCP payload
+ */
+void
+GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
+				    struct GNUNET_TUN_TcpHeader *tcp,
+				    const void *payload,
+				    uint16_t payload_length)
+{
+  uint32_t sum;
+  uint32_t tmp;
+
+  GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv4Header) + sizeof (struct GNUNET_TUN_TcpHeader) ==
+		 ntohs (ip->total_length));
+  GNUNET_assert (IPPROTO_TCP == ip->protocol);
+
+  tcp->crc = 0;
+  sum = GNUNET_CRYPTO_crc16_step (0, 
+				  &ip->source_address,
+				  sizeof (struct in_addr) * 2);
+  tmp = htonl ((IPPROTO_TCP << 16) | (payload_length + sizeof (struct GNUNET_TUN_TcpHeader)));
+  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+  sum = GNUNET_CRYPTO_crc16_step (sum, tcp, sizeof (struct GNUNET_TUN_TcpHeader));
+  sum = GNUNET_CRYPTO_crc16_step (sum, payload, payload_length);
+  tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+}
+
+
+/**
  * Calculate IPv6 TCP checksum.
  *
  * @param ipv6 header fully initialized
@@ -114,6 +148,7 @@ GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
 
   GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv6Header) + sizeof (struct GNUNET_TUN_TcpHeader) ==
 		 ntohs (ip->payload_length));
+  GNUNET_assert (IPPROTO_TCP == ip->next_header);
   tcp->crc = 0;
   sum = GNUNET_CRYPTO_crc16_step (0, &ip->source_address, 2 * sizeof (struct in6_addr));
   tmp = htonl (sizeof (struct GNUNET_TUN_TcpHeader) + payload_length);
@@ -126,6 +161,85 @@ GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
   tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
 }
 
+
+/**
+ * Calculate IPv4 UDP checksum.
+ *
+ * @param ipv4 header fully initialized
+ * @param udp UDP header (initialized except for CRC)
+ * @param payload the UDP payload
+ * @param payload_length number of bytes of UDP payload
+ */
+void
+GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
+				    struct GNUNET_TUN_UdpHeader *udp,
+				    const void *payload,
+				    uint16_t payload_length)
+{
+  uint32_t sum;
+  uint16_t tmp;
+
+  GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv4Header) + sizeof (struct GNUNET_TUN_UdpHeader) ==
+		 ntohs (ip->total_length));
+  GNUNET_assert (IPPROTO_UDP == ip->protocol);
+
+  udp->crc = 0; /* technically optional, but we calculate it anyway, just to be sure */
+  sum = GNUNET_CRYPTO_crc16_step (0, 
+				  &ip->source_address,
+				  sizeof (struct in_addr) * 2);
+  tmp = htons (IPPROTO_UDP);
+  sum = GNUNET_CRYPTO_crc16_step (sum, 
+				  &tmp, 
+				  sizeof (uint16_t));
+  tmp = htons (sizeof (struct GNUNET_TUN_UdpHeader) + payload_length);
+  sum = GNUNET_CRYPTO_crc16_step (sum, 
+				  &tmp, 
+				  sizeof (uint16_t));
+  sum = GNUNET_CRYPTO_crc16_step (sum, 
+				  udp, 
+				  sizeof (struct GNUNET_TUN_UdpHeader));
+  sum = GNUNET_CRYPTO_crc16_step (sum, 
+				  payload,
+				  payload_length);
+  udp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+}
+
+
+/**
+ * Calculate IPv6 UDP checksum.
+ *
+ * @param ipv6 header fully initialized
+ * @param udp UDP header (initialized except for CRC)
+ * @param payload the UDP payload
+ * @param payload_length number of bytes of UDP payload
+ */
+void
+GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
+				    struct GNUNET_TUN_UdpHeader *udp,
+				    const void *payload,
+				    uint16_t payload_length)
+{
+  uint32_t sum;
+  uint32_t tmp;
+
+  GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv6Header) + sizeof (struct GNUNET_TUN_UdpHeader) ==
+		 ntohs (ip->payload_length));
+  GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_UdpHeader) ==
+		 ntohs (udp->len));
+  GNUNET_assert (IPPROTO_UDP == ip->next_header);
+
+  udp->crc = 0;
+  sum = GNUNET_CRYPTO_crc16_step (0,
+				  &ip->source_address,
+				  sizeof (struct in6_addr) * 2);
+  tmp = htons (sizeof (struct GNUNET_TUN_UdpHeader) + payload_length); /* aka udp->len */
+  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+  tmp = htons (ip->next_header);
+  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+  sum = GNUNET_CRYPTO_crc16_step (sum, udp, sizeof (struct GNUNET_TUN_UdpHeader));
+  sum = GNUNET_CRYPTO_crc16_step (sum, payload, payload_length);
+  udp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+}
 
 
 /* end of tun.c */

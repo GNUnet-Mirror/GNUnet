@@ -20,6 +20,7 @@
 
 /**
  * @file dns/gnunet-service-dns.c
+ * @brief service to intercept and modify DNS queries (and replies) of this system
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -351,7 +352,8 @@ request_done (struct RequestRecord *rr)
   {
     char buf[reply_len];
     size_t off;
-    uint32_t udp_crc_sum;
+    struct GNUNET_TUN_IPv4Header ip4;
+    struct GNUNET_TUN_IPv6Header ip6;
 
     /* first, GNUnet message header */
     hdr = (struct GNUNET_MessageHeader*) buf;
@@ -373,71 +375,38 @@ request_done (struct RequestRecord *rr)
     }
 
     /* now IP header */
-    udp_crc_sum = 0;    
     switch (rr->src_addr.ss_family)
     {
     case AF_INET:
       {
 	struct sockaddr_in *src = (struct sockaddr_in *) &rr->src_addr;
 	struct sockaddr_in *dst = (struct sockaddr_in *) &rr->dst_addr;
-	struct GNUNET_TUN_IPv4Header ip;
 	
 	spt = dst->sin_port;
 	dpt = src->sin_port;
-	GNUNET_TUN_initialize_ipv4_header (&ip,
+	GNUNET_TUN_initialize_ipv4_header (&ip4,
 					   IPPROTO_UDP,
 					   reply_len - off - sizeof (struct GNUNET_TUN_IPv4Header),
 					   &dst->sin_addr,
 					   &src->sin_addr);
-
-
-
-	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						&ip.source_address,
-						sizeof (struct in_addr) * 2);
-	{
-	  uint16_t tmp;
-	  
-	  tmp = htons (IPPROTO_UDP);
-	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						  &tmp,	
-						  sizeof (uint16_t));
-	  tmp = htons (rr->payload_length + sizeof (struct GNUNET_TUN_UdpHeader));
-	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						  &tmp,	
-						  sizeof (uint16_t));
-	}
-	memcpy (&buf[off], &ip, sizeof (ip));
-	off += sizeof (ip);
+	memcpy (&buf[off], &ip4, sizeof (ip4));
+	off += sizeof (ip4);
       }
       break;
     case AF_INET6:
       {
 	struct sockaddr_in6 *src = (struct sockaddr_in6 *) &rr->src_addr;
 	struct sockaddr_in6 *dst = (struct sockaddr_in6 *) &rr->dst_addr;
-	struct GNUNET_TUN_IPv6Header ip;
 
 	spt = dst->sin6_port;
 	dpt = src->sin6_port;
-	GNUNET_TUN_initialize_ipv6_header (&ip,
+	GNUNET_TUN_initialize_ipv6_header (&ip6,
 					   IPPROTO_UDP,
 					   reply_len - sizeof (struct GNUNET_TUN_IPv6Header),
 					   &dst->sin6_addr,
 					   &src->sin6_addr);
-	{
-	  uint32_t tmp;
-	  
-	  tmp = htons (rr->payload_length + sizeof (struct GNUNET_TUN_UdpHeader));
-	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						  &tmp,	
-						  sizeof (uint32_t));
-	  tmp = htons (IPPROTO_UDP);
-	  udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-						  &tmp,	
-						  sizeof (uint32_t));
-	}
-	memcpy (&buf[off], &ip, sizeof (ip));
-	off += sizeof (ip);
+	memcpy (&buf[off], &ip6, sizeof (ip6));
+	off += sizeof (ip6);
       }
       break;
     default:
@@ -451,17 +420,20 @@ request_done (struct RequestRecord *rr)
       udp.spt = spt;
       udp.dpt = dpt;
       udp.len = htons (reply_len - off);
-      udp.crc = 0; 
-      udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-					      &udp, 
-					      sizeof (udp));
-      udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum, 
-					      rr->payload,
-					      rr->payload_length);
-      udp.crc = GNUNET_CRYPTO_crc16_finish (udp_crc_sum);
+      if (AF_INET == rr->src_addr.ss_family)
+	GNUNET_TUN_calculate_udp4_checksum (&ip4,
+					    &udp,
+					    rr->payload,
+					    rr->payload_length);
+      else
+	GNUNET_TUN_calculate_udp6_checksum (&ip6,
+					    &udp,
+					    rr->payload,
+					    rr->payload_length);
       memcpy (&buf[off], &udp, sizeof (udp));
       off += sizeof (udp);
     }
+
     /* now DNS payload */
     {
       memcpy (&buf[off], rr->payload, rr->payload_length);
@@ -1273,4 +1245,4 @@ main (int argc, char *const *argv)
 }
 
 
-/* end of gnunet-service-dns_new.c */
+/* end of gnunet-service-dns.c */

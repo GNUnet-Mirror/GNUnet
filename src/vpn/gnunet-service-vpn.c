@@ -32,10 +32,6 @@
  *
  * Features:
  * - add back ICMP support (especially needed for IPv6)
- *
- * Code cleanup:
- * - consider moving IP-header building / checksumming code into shared library
- *   with dns/exit/vpn (libgnunettun_tcpip?)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -1436,7 +1432,10 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	else
 	  udp->dpt = reply->destination_port;
 	udp->len = htons (mlen + sizeof (struct GNUNET_TUN_UdpHeader));
-	udp->crc = 0; // FIXME: optional, but we might want to calculate this one anyway
+	GNUNET_TUN_calculate_udp4_checksum (ipv4,
+					    udp,
+					    &reply[1],
+					    mlen);
 	memcpy (&udp[1],
 		&reply[1],
 		mlen);
@@ -1464,15 +1463,11 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	msg->size = htons (size);
 	tun->flags = htons (0);
 	tun->proto = htons (ETH_P_IPV6);
-	ipv6->traffic_class_h = 0;
-	ipv6->version = 6;
-	ipv6->traffic_class_l = 0;
-	ipv6->flow_label = 0;
-	ipv6->payload_length = htons (sizeof (struct GNUNET_TUN_UdpHeader) + sizeof (struct GNUNET_TUN_IPv6Header) + mlen);
-	ipv6->next_header = IPPROTO_UDP;
-	ipv6->hop_limit = 255;
-	ipv6->source_address = ts->destination_ip.v6;
-	ipv6->destination_address = ts->source_ip.v6;
+	GNUNET_TUN_initialize_ipv6_header (ipv6,
+					   IPPROTO_UDP,
+					   sizeof (struct GNUNET_TUN_UdpHeader) + mlen,
+					   &ts->destination_ip.v6,
+					   &ts->source_ip.v6);
 	if (0 == ntohs (reply->source_port))
 	  udp->spt = htons (ts->destination_port);
 	else
@@ -1482,24 +1477,12 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	else
 	  udp->dpt = reply->destination_port;
 	udp->len = htons (mlen + sizeof (struct GNUNET_TUN_UdpHeader));
-	udp->crc = 0;
+	GNUNET_TUN_calculate_udp6_checksum (ipv6,
+					    udp,
+					    &reply[1], mlen);
 	memcpy (&udp[1],
 		&reply[1],
 		mlen);
-	{
-	  uint32_t sum = 0;
-	  sum =
-	    GNUNET_CRYPTO_crc16_step (sum, &ipv6->source_address, 
-				      sizeof (struct in6_addr) * 2);
-	  uint32_t tmp = udp->len;
-	  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
-	  tmp = htons (IPPROTO_UDP);
-	  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
-	  sum = GNUNET_CRYPTO_crc16_step (sum, 
-					  udp,
-					  ntohs (udp->len));
-	  udp->crc = GNUNET_CRYPTO_crc16_finish (sum);
-	}
 	(void) GNUNET_HELPER_send (helper_handle,
 				   msg,
 				   GNUNET_YES,
@@ -1596,22 +1579,13 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	*tcp = data->tcp_header;
 	tcp->spt = htons (ts->destination_port);
 	tcp->dpt = htons (ts->source_port);
-	tcp->crc = 0;
+	GNUNET_TUN_calculate_tcp4_checksum (ipv4,
+					    tcp,
+					    &data[1],
+					    mlen);
 	memcpy (&tcp[1],
 		&data[1],
 		mlen);
-	{
-	  uint32_t sum = 0;
-	  uint32_t tmp;
-	  
-	  sum = GNUNET_CRYPTO_crc16_step (sum, 
-					  &ipv4->source_address,
-					  2 * sizeof (struct in_addr));	  
-	  tmp = htonl ((IPPROTO_TCP << 16) | (mlen + sizeof (struct GNUNET_TUN_TcpHeader)));
-	  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
-	  sum = GNUNET_CRYPTO_crc16_step (sum, tcp, mlen + sizeof (struct GNUNET_TUN_TcpHeader));
-	  tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
-	}
 	(void) GNUNET_HELPER_send (helper_handle,
 				   msg,
 				   GNUNET_YES,

@@ -27,9 +27,6 @@
  * TODO:
  * - test
  *
- * Code cleanup:
- * - factor out crc computations from DNS/EXIT/VPN into shared library?
- *
  * Design:
  * - which code should advertise services? the service model is right
  *   now a bit odd, especially as this code DOES the exit and knows
@@ -1078,8 +1075,10 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
 
       pkt4_udp->spt = htons (src_address->port);
       pkt4_udp->dpt = htons (dst_address->port);
-      pkt4_udp->crc = 0;  /* Optional for IPv4 */
       pkt4_udp->len = htons ((uint16_t) payload_length);
+      GNUNET_TUN_calculate_udp4_checksum (pkt4,
+					  pkt4_udp,
+					  payload, payload_length);
       memcpy (&pkt4_udp[1], payload, payload_length);
     }
     break;
@@ -1088,19 +1087,13 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
       struct GNUNET_TUN_TcpHeader *pkt4_tcp = (struct GNUNET_TUN_TcpHeader *) &pkt4[1];
       
       memcpy (pkt4_tcp, tcp_header, sizeof (struct GNUNET_TUN_TcpHeader));
-      memcpy (&pkt4_tcp[1], payload, payload_length);
       pkt4_tcp->spt = htons (src_address->port);
       pkt4_tcp->dpt = htons (dst_address->port);
-      
-      pkt4_tcp->crc = 0;
-      uint32_t sum = 0;
-      sum = GNUNET_CRYPTO_crc16_step (sum, 
-				      &pkt4->source_address,
-				      sizeof (struct in_addr) * 2);
-      uint32_t tmp = htonl ((protocol << 16) | (0xffff & len));
-      sum = GNUNET_CRYPTO_crc16_step (sum, & tmp, sizeof (uint32_t));
-      sum = GNUNET_CRYPTO_crc16_step (sum, & pkt4_tcp, len);
-      pkt4_tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+      GNUNET_TUN_calculate_tcp4_checksum (pkt4,
+					  pkt4_tcp,
+					  payload,
+					  payload_length);
+      memcpy (&pkt4_tcp[1], payload, payload_length);
     }
     break;
   default:
@@ -1172,28 +1165,22 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
     {
       struct GNUNET_TUN_UdpHeader *pkt6_udp = (struct GNUNET_TUN_UdpHeader *) &pkt6[1];
 
-      memcpy (&pkt6[1], payload, payload_length);
-      pkt6_udp->crc = 0;
       pkt6_udp->spt = htons (src_address->port);
       pkt6_udp->dpt = htons (dst_address->port);
       pkt6_udp->len = htons ((uint16_t) payload_length);
-
-      uint32_t sum = 0;
-      sum = GNUNET_CRYPTO_crc16_step (sum,
-				      &pkt6->source_address,
-				      sizeof (struct in6_addr) * 2);
-      uint32_t tmp = htons (len);
-      sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
-      tmp = htonl (pkt6->next_header);
-      sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
-      sum = GNUNET_CRYPTO_crc16_step (sum, pkt6_udp, len);
-      pkt6_udp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+      pkt6_udp->crc = 0;
+      GNUNET_TUN_calculate_udp6_checksum (pkt6,
+					  pkt6_udp,
+					  payload,
+					  payload_length);
+      memcpy (&pkt6[1], payload, payload_length);
     }
     break;
   case IPPROTO_TCP:
     {
       struct GNUNET_TUN_TcpHeader *pkt6_tcp = (struct GNUNET_TUN_TcpHeader *) pkt6;
-      
+
+      /* memcpy first here as some TCP header fields are initialized this way! */
       memcpy (pkt6_tcp, payload, payload_length);
       pkt6_tcp->spt = htons (src_address->port);
       pkt6_tcp->dpt = htons (dst_address->port);
