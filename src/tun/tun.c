@@ -48,6 +48,7 @@ GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
 				   const struct in_addr *src,
 				   const struct in_addr *dst)
 {
+  GNUNET_assert (payload_length <= UINT16_MAX - sizeof (struct GNUNET_TUN_IPv4Header));
   ip->header_length =  sizeof (struct GNUNET_TUN_IPv4Header) / 4;
   ip->version = 4;
   ip->diff_serv = 0;
@@ -62,6 +63,35 @@ GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
   ip->source_address = *src;
   ip->destination_address = *dst;
   ip->checksum = GNUNET_CRYPTO_crc16_n (ip, sizeof (struct GNUNET_TUN_IPv4Header));
+}
+
+
+/**
+ * Initialize an IPv6 header.
+ *
+ * @param ip header to initialize
+ * @param protocol protocol to use (i.e. IPPROTO_UDP), technically "next_header" for IPv6
+ * @param payload_length number of bytes of payload that follow (excluding IPv4 header)
+ * @param src source IP address to use
+ * @param dst destination IP address to use
+ */
+void
+GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
+				   uint8_t protocol,
+				   uint16_t payload_length,
+				   const struct in6_addr *src,
+				   const struct in6_addr *dst)
+{
+  GNUNET_assert (payload_length <= UINT16_MAX - sizeof (struct GNUNET_TUN_IPv6Header));
+  ip->traffic_class_h = 0;
+  ip->version = 6;
+  ip->traffic_class_l = 0;
+  ip->flow_label = 0;
+  ip->next_header = protocol;
+  ip->payload_length = htons ((uint16_t) (payload_length + sizeof (struct GNUNET_TUN_IPv6Header)));
+  ip->hop_limit = FRESH_TTL;
+  ip->destination_address = *dst;
+  ip->source_address = *src;  
 }
 
 

@@ -1159,12 +1159,11 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
     return;
   }
 
-  pkt6->version = 6;
-  pkt6->next_header = protocol;
-  pkt6->payload_length = htons ((uint16_t) (len + sizeof (struct GNUNET_TUN_IPv6Header)));
-  pkt6->hop_limit = 255;
-  pkt6->destination_address = dst_address->address.ipv6;
-  pkt6->source_address = src_address->address.ipv6;
+  GNUNET_TUN_initialize_ipv6_header (pkt6,
+				     protocol,
+				     len,
+				     &dst_address->address.ipv6,
+				     &src_address->address.ipv6);
 
   switch (protocol)
   {

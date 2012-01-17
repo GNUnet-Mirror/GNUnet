@@ -419,18 +419,11 @@ request_done (struct RequestRecord *rr)
 
 	spt = dst->sin6_port;
 	dpt = src->sin6_port;
-	ip.traffic_class_h = 0;
-	ip.version  = 6; /* is there a named constant? I couldn't find one */
-	ip.traffic_class_l = 0;
-	ip.flow_label = 0;
-	ip.payload_length = htons ((uint16_t) reply_len);
-	ip.next_header = IPPROTO_UDP;
-	ip.hop_limit = 255; /* or lower? */
-	ip.source_address = dst->sin6_addr;
-	ip.destination_address = src->sin6_addr;
-	udp_crc_sum = GNUNET_CRYPTO_crc16_step (udp_crc_sum,
-						&ip.source_address, 
-						sizeof (struct in6_addr) * 2);
+	GNUNET_TUN_initialize_ipv6_header (&ip,
+					   IPPROTO_UDP,
+					   reply_len - sizeof (struct GNUNET_TUN_IPv6Header),
+					   &dst->sin6_addr,
+					   &src->sin6_addr);
 	{
 	  uint32_t tmp;
 	  

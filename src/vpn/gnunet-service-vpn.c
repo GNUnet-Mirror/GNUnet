@@ -1636,15 +1636,11 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	msg->size = htons (size);
 	tun->flags = htons (0);
 	tun->proto = htons (ETH_P_IPV6);
-	ipv6->traffic_class_h = 0;
-	ipv6->version = 6;
-	ipv6->traffic_class_l = 0;
-	ipv6->flow_label = 0;
-	ipv6->payload_length = htons (sizeof (struct GNUNET_TUN_TcpHeader) + sizeof (struct GNUNET_TUN_IPv6Header) + mlen);
-	ipv6->next_header = IPPROTO_TCP;
-	ipv6->hop_limit = 255;
-	ipv6->source_address = ts->destination_ip.v6;
-	ipv6->destination_address = ts->source_ip.v6;
+	GNUNET_TUN_initialize_ipv6_header (ipv6,
+					   IPPROTO_TCP,
+					   sizeof (struct GNUNET_TUN_TcpHeader) + mlen,
+					   &ts->destination_ip.v6,
+					   &ts->source_ip.v6);
 	tcp->spt = htons (ts->destination_port);
 	tcp->dpt = htons (ts->source_port);
 	tcp->crc = 0;
