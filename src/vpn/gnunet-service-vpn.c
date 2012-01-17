@@ -510,9 +510,13 @@ destroy_tunnel_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TunnelState *ts = cls;
+  struct GNUNET_MESH_Tunnel *tunnel;
 
   ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_MESH_tunnel_destroy (ts->tunnel);
+  if (NULL == (tunnel = ts->tunnel))
+    return;
+  ts->tunnel = NULL;
+  GNUNET_MESH_tunnel_destroy (tunnel);
 }
 
 
@@ -759,6 +763,7 @@ free_tunnel_state (struct TunnelState *ts)
 {
   GNUNET_HashCode key;
   struct TunnelMessageQueueEntry *tnq;
+  struct GNUNET_MESH_Tunnel *tunnel;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Cleaning up tunnel state\n");
@@ -790,10 +795,10 @@ free_tunnel_state (struct TunnelState *ts)
     ts->th = NULL;
   }
   GNUNET_assert (NULL == ts->destination.heap_node);
-  if (NULL != ts->tunnel)
+  if (NULL != (tunnel = ts->tunnel))
   {
-    GNUNET_MESH_tunnel_destroy (ts->tunnel);
     ts->tunnel = NULL;
+    GNUNET_MESH_tunnel_destroy (tunnel);
   }
   if (NULL != ts->heap_node)
   {
