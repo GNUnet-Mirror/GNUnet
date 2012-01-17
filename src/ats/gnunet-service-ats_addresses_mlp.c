@@ -34,16 +34,128 @@
 #endif
 
 /**
- * Intercept GLPK terminal output
- *
+ * Translate glpk solver error codes to text
+ * @param retcode return code
+ * @return string with result
  */
+const char *
+mlp_solve_to_string (int retcode)
+{
+  switch (retcode) {
+    case 0:
+      return "ok";
+      break;
+    case GLP_EBADB:
+      return "invalid basis";
+      break;
+    case GLP_ESING:
+      return "singular matrix";
+      break;
+    case GLP_ECOND:
+      return "ill-conditioned matrix";
+      break;
+    case GLP_EBOUND:
+      return "invalid bounds";
+      break;
+    case GLP_EFAIL:
+      return "solver failed";
+      break;
+    case GLP_EOBJLL:
+      return "objective lower limit reached";
+      break;
+    case GLP_EOBJUL:
+      return "objective upper limit reached";
+      break;
+    case GLP_EITLIM:
+      return "iteration limit exceeded";
+      break;
+    case GLP_ETMLIM:
+      return "time limit exceeded";
+      break;
+    case GLP_ENOPFS:
+      return "no primal feasible solution";
+      break;
+    case GLP_EROOT:
+      return "root LP optimum not provided";
+      break;
+    case GLP_ESTOP:
+      return "search terminated by application";
+      break;
+    case GLP_EMIPGAP:
+      return "relative mip gap tolerance reached";
+      break;
+    case GLP_ENOFEAS:
+      return "no dual feasible solution";
+      break;
+    case GLP_ENOCVG:
+      return "no convergence";
+      break;
+    case GLP_EINSTAB:
+      return "numerical instability";
+      break;
+    case GLP_EDATA:
+      return "invalid data";
+      break;
+    case GLP_ERANGE:
+      return "result out of range";
+      break;
+    default:
+      GNUNET_break (0);
+      return "unknown error";
+      break;
+  }
+  GNUNET_break (0);
+  return "unknown error";
+}
 
+
+/**
+ * Translate glpk status error codes to text
+ * @param retcode return code
+ * @return string with result
+ */
+const char *
+mlp_status_to_string (int retcode)
+{
+  switch (retcode) {
+    case GLP_UNDEF:
+      return "solution is undefined";
+      break;
+    case GLP_FEAS:
+      return "solution is feasible";
+      break;
+    case GLP_INFEAS:
+      return "solution is infeasible";
+      break;
+    case GLP_NOFEAS:
+      return "no feasible solution exists";
+      break;
+    case GLP_OPT:
+      return "solution is optimal";
+      break;
+    case GLP_UNBND:
+      return "solution is unbounded";
+      break;
+    default:
+      GNUNET_break (0);
+      return "unknown error";
+      break;
+  }
+  GNUNET_break (0);
+  return "unknown error";
+}
+
+/**
+ * Intercept GLPK terminal output
+ * @param info the mlp handle
+ * @param s the string to print
+ * @return 0: glpk prints output on terminal, 0 != surpress output
+ */
 static int
 mlp_term_hook (void *info, const char *s)
 {
   /* Not needed atm struct MLP_information *mlp = info; */
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", s);
-  /* 0: glpk prints output on terminal, != surpress output */
   return 1;
 }
 
@@ -171,7 +283,7 @@ lp_solv:
       /* Problem was ill-defined, no way to handle that */
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
           "ats-mlp",
-          "Solving LP problem failed: glp_simplex error 0x%X\n", res);
+          "Solving LP problem failed:  %s\n", mlp_solve_to_string(res));
       return GNUNET_SYSERR;
     }
   }
@@ -200,7 +312,7 @@ lp_solv:
     default:
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
           "ats-mlp",
-          "Solving LP problem failed, no solution: glp_get_status 0x%X\n", res);
+          "Solving LP problem failed, no solution: %s\n", mlp_status_to_string(res));
       return GNUNET_SYSERR;
       break;
   }
@@ -248,7 +360,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
     /* Problem was ill-defined, no way to handle that */
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
         "ats-mlp",
-        "Solving MLP problem failed: glp_intopt error 0x%X\n", res);
+        "Solving MLP problem failed:  %s\n", mlp_solve_to_string(res));
     return GNUNET_SYSERR;
   }
 
@@ -275,7 +387,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
     default:
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
           "ats-mlp",
-          "Solving MLP problem failed, no solution: glp_mip_status 0x%X\n", res);
+          "Solving MLP problem failed, %s\n\n", mlp_status_to_string(res));
       return GNUNET_SYSERR;
       break;
   }
