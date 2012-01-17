@@ -70,6 +70,16 @@ struct GAS_MLP_Handle
   glp_iocp control_param_mlp;
 
   /**
+   * Solves the task in an regular interval
+   */
+  GNUNET_SCHEDULER_TaskIdentifier mlp_task;
+
+  /**
+   * Interval between scheduled problem solving
+   */
+  struct GNUNET_TIME_Relative exec_interval;
+
+  /**
    * Maximum execution time per problem solving
    */
   struct GNUNET_TIME_Relative max_exec_duration;
@@ -120,6 +130,8 @@ struct GAS_MLP_Handle
    * total duration of all mlp solver executions
    */
   uint64_t mlp_total_duration;
+
+  unsigned int addr_in_problem;
 
   /* Information about the problem */
 

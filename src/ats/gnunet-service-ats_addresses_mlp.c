@@ -33,6 +33,8 @@
 #include "glpk.h"
 #endif
 
+#define DEBUG_ATS GNUNET_YES
+
 /**
  * Translate glpk solver error codes to text
  * @param retcode return code
@@ -165,7 +167,6 @@ mlp_term_hook (void *info, const char *s)
  * @param mlp the MLP handle
  * @return GNUNET_OK or GNUNET_SYSERR
  */
-
 static int
 mlp_create_problem (struct GAS_MLP_Handle *mlp)
 {
@@ -395,6 +396,26 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
   return GNUNET_OK;
 }
 
+int mlp_solve_problem (struct GAS_MLP_Handle *mlp);
+
+static void
+mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GAS_MLP_Handle *mlp = cls;
+
+  mlp->mlp_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scheduled problem solving\n");
+#endif
+  if (mlp->addr_in_problem != 0)
+    mlp_solve_problem(mlp);
+}
+
+
 /**
  * Solves the MLP problem
  *
@@ -409,6 +430,12 @@ mlp_solve_problem (struct GAS_MLP_Handle *mlp)
   res = mlp_solve_lp_problem (mlp);
   if (res == GNUNET_OK)
     res = mlp_solve_mlp_problem (mlp);
+  if (mlp->mlp_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(mlp->mlp_task);
+    mlp->mlp_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  mlp->mlp_task = GNUNET_SCHEDULER_add_delayed (mlp->exec_interval, &mlp_scheduler, mlp);
   return res;
 }
 
@@ -434,6 +461,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   long long unsigned int tmp;
   unsigned int b_min;
   unsigned int n_min;
+  struct GNUNET_TIME_Relative i_exec;
 
   /* Init GLPK environment */
   GNUNET_assert (glp_init_env() == 0);
@@ -513,6 +541,14 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     n_min = tmp;
   else
     n_min = 4;
+
+  /* Get minimum number of connections from configuration */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (cfg, "ats",
+                                                        "ATS_EXEC_INTERVAL",
+                                                        &i_exec))
+    mlp->exec_interval = i_exec;
+  else
+    mlp->exec_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30);
 
   mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
   mlp->max_iterations = max_iterations;
@@ -610,6 +646,9 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     glp_set_obj_coef (mlp->prob, mlpi->c_n, 0);
 
     /* Add */
+
+
+    mlp->addr_in_problem ++;
   }
   else
     new = GNUNET_NO;
@@ -641,6 +680,8 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
   {
     GNUNET_free (address->mlp_information);
     address->mlp_information = NULL;
+
+    mlp->addr_in_problem --;
   }
 
   /* Update problem */
@@ -670,6 +711,12 @@ GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
 void
 GAS_mlp_done (struct GAS_MLP_Handle *mlp)
 {
+  if (mlp->mlp_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(mlp->mlp_task);
+    mlp->mlp_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   if (mlp != NULL)
     glp_delete_prob(mlp->prob);
 
