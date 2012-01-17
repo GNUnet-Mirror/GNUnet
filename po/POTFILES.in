@@ -13,9 +13,8 @@ src/core/core_api_iterate_peers.c
 src/core/gnunet-service-core_neighbours.c
 src/core/gnunet-service-core_kx.c
 src/core/core_api.c
-src/vpn/gnunet-daemon-exit.c
 src/vpn/gnunet-helper-vpn.c
-src/vpn/gnunet-daemon-vpn.c
+src/vpn/gnunet-service-vpn.c
 src/util/getopt_helpers.c
 src/util/common_logging.c
 src/util/gnunet-config-diff.c
@@ -189,7 +188,6 @@ src/core/gnunet-service-core.h
 src/core/core.h
 src/core/gnunet-service-core_sessions.h
 src/core/gnunet-service-core_neighbours.h
-src/vpn/gnunet-vpn-packet.h
 src/util/resolver.h
 src/util/disk.h
 src/nse/nse.h
