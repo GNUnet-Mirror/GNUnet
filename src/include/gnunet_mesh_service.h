@@ -129,7 +129,9 @@ typedef void *(GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
 
 /**
  * Function called whenever an inbound tunnel is destroyed.  Should clean up
- * any associated state.
+ * any associated state.  This function is NOT called if the client has
+ * explicitly asked for the tunnel to be destroyed using
+ * GNUNET_MESH_tunnel_destroy.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
