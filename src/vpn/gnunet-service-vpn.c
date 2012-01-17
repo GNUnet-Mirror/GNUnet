@@ -195,13 +195,19 @@ struct TunnelState
   /**
    * Tail of list of messages scheduled for transmission.
    */
-  struct TunnelMessageQueueEntry *tmq_tail;
+  struct TunnelMessageQueueEntry *tmq_tail;  
 
   /**
    * Client that needs to be notified about the tunnel being
    * up as soon as a peer is connected; NULL for none.
    */
   struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Destination entry that has a pointer to this tunnel state;
+   * NULL if this tunnel state is in the tunnel map.
+   */
+  struct DestinationEntry *destination_container;
 
   /**
    * ID of the client request that caused us to setup this entry.
@@ -217,15 +223,14 @@ struct TunnelState
   struct DestinationEntry destination;
 
   /**
-   * Destination entry that has a pointer to this tunnel state;
-   * NULL if this tunnel state is in the tunnel map.
-   */
-  struct DestinationEntry *destination_container;
-
-  /**
    * Addess family used for this tunnel on the local TUN interface.
    */
   int af;
+
+  /**
+   * Length of the doubly linked 'tmq_head/tmq_tail' list.
+   */
+  unsigned int tmq_length;
 
   /**
    * IPPROTO_TCP or IPPROTO_UDP once bound.
@@ -577,6 +582,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
 			       ts->tmq_tail,
 			       tnq);
+  ts->tmq_length--;
   memcpy (buf, tnq->msg, tnq->len);
   ret = tnq->len;
   GNUNET_free (tnq);
@@ -615,6 +621,7 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
   GNUNET_CONTAINER_DLL_insert_tail (ts->tmq_head,
 				    ts->tmq_tail,
 				    tnq);
+  ts->tmq_length++;
   if (NULL == ts->th)
     ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
 						GNUNET_NO /* cork */,
@@ -1972,8 +1979,10 @@ free_tunnel_state (struct TunnelState *ts)
     GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
 				 ts->tmq_tail,
 				 tnq);
+    ts->tmq_length--;
     GNUNET_free (tnq);
   }
+  GNUNET_assert (0 == ts->tmq_length);
   if (NULL != ts->client)
   {
     GNUNET_SERVER_client_drop (ts->client);
