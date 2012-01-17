@@ -228,6 +228,11 @@ struct TunnelState
   struct DestinationEntry destination;
 
   /**
+   * Task scheduled to destroy the tunnel (or NO_TASK).
+   */
+  GNUNET_SCHEDULER_TaskIdentifier destroy_task;
+
+  /**
    * Addess family used for this tunnel on the local TUN interface.
    */
   int af;
@@ -495,6 +500,23 @@ send_client_reply (struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Destroy the mesh tunnel.
+ *
+ * @param cls the 'struct TunnelState' with the tunnel to destroy
+ * @param ts schedule context
+ */
+static void
+destroy_tunnel_task (void *cls,
+		     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct TunnelState *ts = cls;
+
+  ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_MESH_tunnel_destroy (ts->tunnel);
+}
+
+
+/**
  * Method called whenever a peer has disconnected from the tunnel.
  *
  * @param cls closure
@@ -522,7 +544,8 @@ tunnel_peer_disconnect_handler (void *cls,
     return; /* hope for reconnect eventually */
   /* as we are most likely going to change the exit node now,
      we should just destroy the tunnel entirely... */
-  GNUNET_MESH_tunnel_destroy (ts->tunnel);
+  if (GNUNET_SCHEDULER_NO_TASK == ts->destroy_task)
+    ts->destroy_task = GNUNET_SCHEDULER_add_now (&destroy_tunnel_task, ts);
 }
 
 
@@ -742,6 +765,11 @@ free_tunnel_state (struct TunnelState *ts)
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Active tunnels"),
 			    -1, GNUNET_NO);
+  if (GNUNET_SCHEDULER_NO_TASK != ts->destroy_task)
+  {
+    GNUNET_SCHEDULER_cancel (ts->destroy_task);
+    ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   while (NULL != (tnq = ts->tmq_head))
   {
     GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
