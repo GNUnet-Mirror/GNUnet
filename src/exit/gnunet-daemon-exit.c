@@ -25,7 +25,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - need some statistics
  * - test
  *
  * Code cleanup:
@@ -750,6 +749,9 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
     GNUNET_break (0);
     return;
   }
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Bytes received from TUN"),
+			    size, GNUNET_NO);
   pkt_tun = (const struct tun_header *) &message[1];
   size -= sizeof (struct tun_header) + sizeof (struct GNUNET_MessageHeader);
   switch (ntohs (pkt_tun->proto))
@@ -1344,6 +1346,9 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# TCP service creation requests received via mesh"),
 			    1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Bytes received from MESH"),
+			    pkt_len, GNUNET_NO);
   /* check that we got at least a valid header */
   if (pkt_len < sizeof (struct GNUNET_EXIT_TcpServiceStartMessage))
   {
@@ -1373,6 +1378,9 @@ receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunn
 		_("No service found for %s on port %d!\n"),
 		"TCP",
 		ntohs (start->tcp_header.dpt));
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# TCP requests dropped (no such service)"),
+			      1, GNUNET_NO);
     return GNUNET_SYSERR;
   }
   state->ri.remote_address = state->serv->address;    
@@ -1413,6 +1421,9 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   int af;
 
   GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Bytes received from MESH"),
+			    pkt_len, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# TCP IP-exit creation requests received via mesh"),
 			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_TcpInternetStartMessage))
@@ -1439,6 +1450,11 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
+    if (! ipv4_exit)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
     v4 = (const struct in_addr*) &start[1];
     payload = &v4[1];
     pkt_len -= sizeof (struct in_addr);
@@ -1446,6 +1462,11 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     break;
   case AF_INET6:
     if (pkt_len < sizeof (struct in6_addr))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+    if (! ipv6_exit)
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -1506,6 +1527,9 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   uint16_t pkt_len = ntohs (message->size);
 
   GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Bytes received from MESH"),
+			    pkt_len, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# TCP data requests received via mesh"),
 			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_TcpDataMessage))
@@ -1519,8 +1543,9 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
        (NULL == state->heap_node) )
   {
     /* connection should have been up! */
-    GNUNET_break_op (0);
-    /* FIXME: call statistics */
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# TCP DATA requests dropped (no session)"),
+			      1, GNUNET_NO);
     return GNUNET_SYSERR;
   }
   GNUNET_break_op (ntohl (data->reserved) == 0);
@@ -1662,6 +1687,9 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   int af;
 
   GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Bytes received from MESH"),
+			    pkt_len, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# UDP IP-exit requests received via mesh"),
 			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_UdpInternetMessage))
@@ -1681,6 +1709,11 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
+    if (! ipv4_exit)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
     v4 = (const struct in_addr*) &msg[1];
     payload = &v4[1];
     pkt_len -= sizeof (struct in_addr);
@@ -1688,6 +1721,11 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     break;
   case AF_INET6:
     if (pkt_len < sizeof (struct in6_addr))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+    if (! ipv6_exit)
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -1749,6 +1787,9 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   uint16_t pkt_len = ntohs (message->size);
 
   GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Bytes received from MESH"),
+			    pkt_len, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# UDP service requests received via mesh"),
 			    1, GNUNET_NO);
   /* check that we got at least a valid header */
@@ -1771,6 +1812,9 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		_("No service found for %s on port %d!\n"),
 		"UDP",
 		ntohs (msg->destination_port));
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# UDP requests dropped (no such service)"),
+			      1, GNUNET_NO);
     return GNUNET_SYSERR;
   }
   state->ri.remote_address = state->serv->address;    
@@ -2019,12 +2063,30 @@ add_services (int proto,
       serv->address.af = res->ai_family;
       switch (res->ai_family)
       {
-	case AF_INET:
-	  serv->address.address.ipv4 = ((struct sockaddr_in *) res->ai_addr)->sin_addr;
-	  break;
-	case AF_INET6:
-	  serv->address.address.ipv6 = ((struct sockaddr_in6 *) res->ai_addr)->sin6_addr;
-	  break;
+      case AF_INET:
+	if (! ipv4_enabled)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Service `%s' configured for IPv4, but IPv4 is disabled!\n"),
+		      name);
+	  freeaddrinfo (res);
+	  GNUNET_free (serv);
+	  continue;
+	}
+	serv->address.address.ipv4 = ((struct sockaddr_in *) res->ai_addr)->sin_addr;
+	break;
+      case AF_INET6:
+	if (! ipv6_enabled)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Service `%s' configured for IPv4, but IPv4 is disabled!\n"),
+		      name);
+	  freeaddrinfo (res);
+	  GNUNET_free (serv);
+	  continue;
+	}	
+	serv->address.address.ipv6 = ((struct sockaddr_in6 *) res->ai_addr)->sin6_addr;
+	break;
       default:
 	freeaddrinfo (res);
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
