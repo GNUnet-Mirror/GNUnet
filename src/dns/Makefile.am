@@ -40,6 +40,9 @@ noinst_PROGRAMS = \
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_dns.la 
 
+check_SCRIPTS = \
+ test_gnunet_dns.sh
+
 
 gnunet_helper_dns_SOURCES = \
  gnunet-helper-dns.c
@@ -97,4 +100,9 @@ libgnunet_plugin_block_dns_la_LDFLAGS = \
   $(top_builddir)/src/block/$(GN_PLUGIN_LDFLAGS)
 
 
+if ENABLE_TEST_RUN
+TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
+endif
 
+EXTRA_DIST = \
+  $(check_SCRIPTS) 
