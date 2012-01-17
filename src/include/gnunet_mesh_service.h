@@ -186,6 +186,10 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
 
 /**
  * Method called whenever a peer has disconnected from the tunnel.
+ * Implementations of this callback must NOT call
+ * GNUNET_MESH_tunnel_destroy immediately, but instead schedule those
+ * to run in some other task later.  However, calling 
+ * "GNUNET_MESH_notify_transmit_ready_cancel" is allowed.
  *
  * @param cls closure
  * @param peer peer identity the tunnel stopped working with
@@ -197,11 +201,12 @@ typedef void (*GNUNET_MESH_PeerDisconnectHandler) (void *cls,
 
 /**
  * Method called whenever a peer has connected to the tunnel.
- * TODO: change to typedef int? to let client allow the new peer or not
  *
  * @param cls closure
  * @param peer peer identity the tunnel was created to, NULL on timeout
  * @param atsi performance data for the connection
+ *
+ * TODO: change to return int to let client allow the new peer or not?
  */
 typedef void (*GNUNET_MESH_PeerConnectHandler) (void *cls,
                                                 const struct GNUNET_PeerIdentity
