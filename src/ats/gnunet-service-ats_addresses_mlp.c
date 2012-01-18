@@ -34,8 +34,7 @@
 #endif
 #include "float.h"
 
-#define DEBUG_ATS GNUNET_NO
-
+#define DEBUG_ATS GNUNET_YES
 /* A very big value */
 #define M DBL_MAX
 
@@ -175,19 +174,31 @@ mlp_delete_problem (struct GAS_MLP_Handle *mlp)
 {
   if (mlp != NULL)
   {
-    glp_delete_prob(mlp->prob);
+    if (mlp->prob != NULL)
+      glp_delete_prob(mlp->prob);
 
     /* delete row index */
     if (mlp->ia != NULL)
+    {
       GNUNET_free (mlp->ia);
+      mlp->ja = NULL;
+    }
 
     /* delete column index */
     if (mlp->ja != NULL)
+    {
       GNUNET_free (mlp->ja);
+      mlp->ja = NULL;
+    }
 
     /* delete coefficients */
     if (mlp->ar != NULL)
+    {
       GNUNET_free (mlp->ar);
+      mlp->ar = NULL;
+    }
+    mlp->ci = 0;
+    mlp->prob = NULL;
   }
 }
 
@@ -372,6 +383,59 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
   }
 }
 
+
+/**
+ * Add columns for all addresses
+ *
+ * @param cls GAS_MLP_Handle
+ * @param key Hashcode
+ * @param value ATS_Address
+ *
+ * @return GNUNET_OK to continue
+ */
+static int
+create_columns_it (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct GAS_MLP_Handle *mlp = cls;
+  struct ATS_Address *address = value;
+  struct MLP_information *mlpi;
+  unsigned int col;
+  char *name;
+
+  GNUNET_assert (address->mlp_information != NULL);
+  mlpi = address->mlp_information;
+
+  /* Add bandwidth column */
+  col = glp_add_cols (mlp->prob, 2);
+  mlpi->c_b = col;
+  mlpi->c_n = col + 1;
+
+  GNUNET_asprintf (&name, "b_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
+  glp_set_col_name (mlp->prob, mlpi->c_b , name);
+  GNUNET_free (name);
+  /* Lower bound == 0 */
+  glp_set_col_bnds (mlp->prob, mlpi->c_b , GLP_LO, 0.0, 0.0);
+  /* Continuous value*/
+  glp_set_col_kind (mlp->prob, mlpi->c_b , GLP_CV);
+  /* Objective function coefficient == 0 */
+  glp_set_obj_coef (mlp->prob, mlpi->c_b , 0);
+
+  /* Add usage column */
+  GNUNET_asprintf (&name, "n_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
+  glp_set_col_name (mlp->prob, mlpi->c_n, name);
+  GNUNET_free (name);
+  /* Limit value : 0 <= value <= 1 */
+  glp_set_col_bnds (mlp->prob, mlpi->c_n, GLP_DB, 0.0, 1.0);
+  /* Integer value*/
+  glp_set_col_kind (mlp->prob, mlpi->c_n, GLP_IV);
+  /* Objective function coefficient == 0 */
+  glp_set_obj_coef (mlp->prob, mlpi->c_n, 0);
+
+  return GNUNET_OK;
+}
+
+
+
 /**
  * Create the MLP problem
  *
@@ -441,7 +505,11 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
     glp_set_obj_coef (mlp->prob, col + c, mlp->co_Q[c]);
   }
 
-  /* Add columns for existing addresses */
+  /* Add columns for addresses */
+  GNUNET_CONTAINER_multihashmap_iterate (addresses, create_columns_it, mlp);
+
+  /* Add constraints */
+  mlp_add_constraints_all_addresses (mlp, addresses);
 
   return res;
 }
@@ -644,6 +712,10 @@ mlp_solve_problem (struct GAS_MLP_Handle *mlp)
   res = mlp_solve_lp_problem (mlp);
   if (res == GNUNET_OK)
     res = mlp_solve_mlp_problem (mlp);
+
+
+  /* Process result */
+
   if (mlp->mlp_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(mlp->mlp_task);
@@ -813,15 +885,14 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param mlp the MLP Handle
  * @param addresses the address hashmap
+ *        the address has to be already removed from the hashmap
  * @param address the address to update
  */
 void
 GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
   int new;
-  int col;
   struct MLP_information *mlpi;
-  char * name;
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP address updates", 1, GNUNET_NO);
 
@@ -830,12 +901,6 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     new = GNUNET_YES;
   else
     new = GNUNET_NO;
-
-  if (mlp->prob == NULL)
-  {
-    mlp_create_problem(mlp, addresses);
-    mlp_add_constraints_all_addresses (mlp, addresses);
-  }
 
   /* Do the update */
   if (new == GNUNET_YES)
@@ -874,33 +939,6 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 #endif
       GNUNET_CONTAINER_DLL_insert (peer->head, peer->tail, address);
     }
-
-
-    /* Add bandwidth column */
-    col = glp_add_cols (mlp->prob, 2);
-    mlpi->c_b = col;
-    mlpi->c_n = col + 1;
-
-    GNUNET_asprintf (&name, "b_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
-    glp_set_col_name (mlp->prob, mlpi->c_b , name);
-    GNUNET_free (name);
-    /* Lower bound == 0 */
-    glp_set_col_bnds (mlp->prob, mlpi->c_b , GLP_LO, 0.0, 0.0);
-    /* Continuous value*/
-    glp_set_col_kind (mlp->prob, mlpi->c_b , GLP_CV);
-    /* Objective function coefficient == 0 */
-    glp_set_obj_coef (mlp->prob, mlpi->c_b , 0);
-
-    /* Add usage column */
-    GNUNET_asprintf (&name, "n_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
-    glp_set_col_name (mlp->prob, mlpi->c_n, name);
-    GNUNET_free (name);
-    /* Limit value : 0 <= value <= 1 */
-    glp_set_col_bnds (mlp->prob, mlpi->c_n, GLP_DB, 0.0, 1.0);
-    /* Integer value*/
-    glp_set_col_kind (mlp->prob, mlpi->c_n, GLP_IV);
-    /* Objective function coefficient == 0 */
-    glp_set_obj_coef (mlp->prob, mlpi->c_n, 0);
   }
   else
   {
@@ -922,6 +960,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
  *
  * @param mlp the MLP Handle
  * @param addresses the address hashmap
+ *        the address has to be already removed from the hashmap
  * @param address the address to delete
  */
 void
@@ -951,7 +990,6 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting address for `%s'\n", GNUNET_i2s (&address->peer));
 #endif
   GNUNET_CONTAINER_DLL_remove (head->head, head->tail, address);
-  mlp->c_p --;
   if ((head->head == NULL) && (head->tail == NULL))
   {
     /* No address for peer left, remove peer */
@@ -960,13 +998,22 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 #endif
     GNUNET_CONTAINER_DLL_remove (mlp->peer_head, mlp->peer_tail, head);
     GNUNET_free (head);
+    mlp->c_p --;
   }
 
   /* Update problem */
+  mlp_delete_problem (mlp);
+  if ((GNUNET_CONTAINER_multihashmap_size (addresses) > 0) && (mlp->c_p > 0))
+  {
+#if DEBUG_ATS
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "mlp_create_problem %i\n",__LINE__);
+#endif
+    mlp_create_problem (mlp, addresses);
 
-  /* Recalculate */
-  mlp->presolver_required = GNUNET_YES;
-  mlp_solve_problem (mlp);
+    /* Recalculate */
+    mlp->presolver_required = GNUNET_YES;
+    mlp_solve_problem (mlp);
+  }
 }
 
 /**

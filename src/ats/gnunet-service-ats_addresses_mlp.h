@@ -248,6 +248,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param mlp the MLP Handle
  * @param addresses the address hashmap
+ *        the address has to be already added from the hashmap
  * @param address the address to update
  */
 void
@@ -261,6 +262,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
  *
  * @param mlp the MLP Handle
  * @param addresses the address hashmap
+ *        the address has to be already removed from the hashmap
  * @param address the address to delete
  */
 void

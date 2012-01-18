@@ -79,6 +79,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (mlp->addr_in_problem == 1);
 
   /* Delete an address */
+  GNUNET_CONTAINER_multihashmap_remove (addresses, &addr.peer.hashPubKey, &addr);
   GAS_mlp_address_delete (mlp, addresses, &addr);
 
   GAS_mlp_done (mlp);
