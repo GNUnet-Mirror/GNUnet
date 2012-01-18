@@ -154,7 +154,9 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   memcpy (&aa[1], plugin_addr, plugin_addr_len);
   aa->plugin = GNUNET_strdup (plugin_name);
   aa->session_id = session_id;
-
+  aa->mlp_information = NULL;
+  aa->next = NULL;
+  aa->prev = NULL;
   return aa;
 }
 

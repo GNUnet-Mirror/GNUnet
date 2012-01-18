@@ -34,6 +34,10 @@
 
 struct ATS_Address
 {
+  struct ATS_Address *next;
+
+  struct ATS_Address *prev;
+
   struct GNUNET_PeerIdentity peer;
 
   size_t addr_len;

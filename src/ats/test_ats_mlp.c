@@ -60,14 +60,26 @@ check (void *cls, char *const *args, const char *cfgfile,
   addresses = GNUNET_CONTAINER_multihashmap_create (10);
 
   GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &addr.peer.hashPubKey);
+  addr.mlp_information = NULL;
+  addr.next = NULL;
+  addr.prev = NULL;
   addr.plugin = strdup ("dummy");
   GNUNET_CONTAINER_multihashmap_put(addresses, &addr.peer.hashPubKey, &addr, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
   mlp = GAS_mlp_init (cfg, NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
 
-  GAS_mlp_address_update(mlp, addresses, &addr);
+  /* Add a new address */
+  GAS_mlp_address_update (mlp, addresses, &addr);
 
   GNUNET_assert (mlp != NULL);
+  GNUNET_assert (mlp->addr_in_problem == 1);
+
+  /* Update an new address */
+  GAS_mlp_address_update (mlp, addresses, &addr);
+  GNUNET_assert (mlp->addr_in_problem == 1);
+
+  /* Delete an address */
+  GAS_mlp_address_delete (mlp, addresses, &addr);
 
   GAS_mlp_done (mlp);
 

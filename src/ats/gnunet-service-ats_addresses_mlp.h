@@ -40,6 +40,17 @@
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 #define MLP_MAX_ITERATIONS      INT_MAX
 
+struct ATS_Peer
+{
+  struct ATS_Peer *next;
+  struct ATS_Peer *prev;
+
+  struct GNUNET_PeerIdentity id;
+
+  struct ATS_Address *head;
+  struct ATS_Address *tail;
+};
+
 /**
  * MLP Handle
  */
@@ -134,6 +145,9 @@ struct GAS_MLP_Handle
   unsigned int addr_in_problem;
 
   /* Information about the problem */
+
+  struct ATS_Peer *peer_head;
+  struct ATS_Peer *peer_tail;
 
   /* current problem matrix */
   /* row index array */

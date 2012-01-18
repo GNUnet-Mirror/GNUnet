@@ -34,7 +34,7 @@
 #endif
 #include "float.h"
 
-#define DEBUG_ATS GNUNET_YES
+#define DEBUG_ATS GNUNET_NO
 
 /* A very big value */
 #define M DBL_MAX
@@ -325,12 +325,14 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
   double *ar= GNUNET_malloc (pi * sizeof (double));
   mlp->ar = ar;
 
-  /* Adding constraint rows */
-  /* Feasibility constraints */
-
-  /* c 1) bandwidth capping */
-  /* c 3) minimum bandwidth */
-  /* c 4) minimum number of connections */
+  /* Adding constraint rows
+   * This constraints are kind of "for all addresses"
+   * Feasibility constraints:
+   *
+   * c 1) bandwidth capping
+   * c 3) minimum bandwidth
+   * c 4) minimum number of connections
+   */
   mlp->r_c4 = glp_add_rows (mlp->prob, 1);
   glp_set_row_bnds (mlp->prob, mlp->r_c4, GLP_LO, mlp->n_min, 0.0);
 
@@ -811,6 +813,37 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     address->mlp_information = mlpi;
     mlp->addr_in_problem ++;
 
+    /* Check for and add peer */
+    struct ATS_Peer *peer = mlp->peer_head;
+    while (peer != NULL)
+    {
+      if (0 == memcmp (&address->peer, &peer->id, sizeof (struct GNUNET_PeerIdentity)))
+        break;
+      peer = peer->next;
+    }
+    if (peer == NULL)
+    {
+#if DEBUG_ATS
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding new peer `%s'\n", GNUNET_i2s (&address->peer));
+#endif
+      peer = GNUNET_malloc (sizeof (struct ATS_Peer));
+      peer->head = NULL;
+      peer->tail = NULL;
+      memcpy (&peer->id, &address->peer, sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_assert(address->prev == NULL);
+      GNUNET_assert(address->next == NULL);
+      GNUNET_CONTAINER_DLL_insert (peer->head, peer->tail, address);
+      GNUNET_CONTAINER_DLL_insert (mlp->peer_head, mlp->peer_tail, peer);
+    }
+    else
+    {
+#if DEBUG_ATS
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding address to peer `%s'\n", GNUNET_i2s (&address->peer));
+#endif
+      GNUNET_CONTAINER_DLL_insert (peer->head, peer->tail, address);
+    }
+
+
     /* Add bandwidth column */
     col = glp_add_cols (mlp->prob, 2);
     mlpi->c_b = col;
@@ -836,8 +869,12 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     glp_set_col_kind (mlp->prob, mlpi->c_n, GLP_IV);
     /* Objective function coefficient == 0 */
     glp_set_obj_coef (mlp->prob, mlpi->c_n, 0);
-
-    /* Add */
+  }
+  else
+  {
+#if DEBUG_ATS
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating existing address to peer `%s'\n", GNUNET_i2s (&address->peer));
+#endif
   }
 
   /* Recalculate */
@@ -867,6 +904,30 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     address->mlp_information = NULL;
 
     mlp->addr_in_problem --;
+  }
+
+  /* Remove from peer list */
+  struct ATS_Peer *head = mlp->peer_head;
+  while (head != NULL)
+  {
+    if (0 == memcmp (&address->peer, &head->id, sizeof (struct GNUNET_PeerIdentity)))
+      break;
+    head = head->next;
+  }
+  GNUNET_assert (head != NULL);
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting address for `%s'\n", GNUNET_i2s (&address->peer));
+#endif
+  GNUNET_CONTAINER_DLL_remove (head->head, head->tail, address);
+
+  if ((head->head == NULL) && (head->tail == NULL))
+  {
+    /* No address for peer left, remove peer */
+#if DEBUG_ATS
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting peer `%s'\n", GNUNET_i2s (&address->peer));
+#endif
+    GNUNET_CONTAINER_DLL_remove (mlp->peer_head, mlp->peer_tail, head);
+    GNUNET_free (head);
   }
 
   /* Update problem */
