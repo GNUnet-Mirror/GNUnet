@@ -144,6 +144,7 @@ struct GAS_MLP_Handle
   double *ar;
   /* current size of the constraint matrix |indices| */
   unsigned int cm_size;
+  unsigned int ci;
 
   /* column index Diversity (D) column */
   int c_d;
@@ -189,6 +190,14 @@ struct MLP_information
 
   /* address usage column */
   signed int c_n;
+
+  /* row indexes */
+
+  /* constraint 1: bandwidth capping */
+  unsigned int r_c1;
+
+  /* constraint 3: minimum bandwidth */
+  unsigned int r_c3;
 };
 
 

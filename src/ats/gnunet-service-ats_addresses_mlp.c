@@ -32,9 +32,12 @@
 #if HAVE_LIBGLPK
 #include "glpk.h"
 #endif
+#include "float.h"
 
 #define DEBUG_ATS GNUNET_YES
-#define VERY_BIG_DOUBLE_VALUE DBL_MAX
+
+/* A very big value */
+#define M DBL_MAX
 
 /**
  * Translate glpk solver error codes to text
@@ -189,6 +192,68 @@ mlp_delete_problem (struct GAS_MLP_Handle *mlp)
 }
 
 /**
+ * Add constraints that are iterating over "forall addresses"
+ * and collects all existing peers for "forall peers" constraints
+ *
+ * @param cls GAS_MLP_Handle
+ * @param key Hashcode
+ * @param value ATS_Address
+ *
+ * @return GNUNET_OK to continue
+ */
+static int
+create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct GAS_MLP_Handle *mlp = cls;
+  struct ATS_Address *address = value;
+  struct MLP_information *mlpi;
+  unsigned int row_index;
+
+  GNUNET_assert (address->mlp_information != NULL);
+  mlpi = (struct MLP_information *) address->mlp_information;
+
+  /* c 1) bandwidth capping
+   * b_t  + (-M) * n_t <= 0
+   */
+  row_index = glp_add_rows (mlp->prob, 1);
+  mlpi->r_c1 = row_index;
+  /* set row bounds: <= 0 */
+  glp_set_row_bnds (mlp->prob, row_index, GLP_UP, 0.0, 0.0);
+
+  mlp->ia[mlp->ci] = row_index;
+  mlp->ja[mlp->ci] = mlpi->c_b;
+  mlp->ar[mlp->ci] = 1;
+  mlp->ci++;
+
+  mlp->ia[mlp->ci] = row_index;
+  mlp->ja[mlp->ci] = mlpi->c_b;
+  mlp->ar[mlp->ci] = -M;
+  mlp->ci++;
+
+  /* c 3) minimum bandwidth
+   *    b_t + (-n_t * b_min) >= 0
+   */
+
+  row_index = glp_add_rows (mlp->prob, 1);
+  mlpi->r_c3 = row_index;
+  /* set row bounds: >= 0 */
+  glp_set_row_bnds (mlp->prob, row_index, GLP_LO, 0.0, 0.0);
+
+  mlp->ia[mlp->ci] = row_index;
+  mlp->ja[mlp->ci] = mlpi->c_b;
+  mlp->ar[mlp->ci] = 1;
+  mlp->ci++;
+
+  mlp->ia[mlp->ci] = row_index;
+  mlp->ja[mlp->ci] = mlpi->c_b;
+  mlp->ar[mlp->ci] = -mlp->b_min;
+  mlp->ci++;
+
+  return GNUNET_OK;
+}
+
+
+/**
  * Adds the problem constraints for all addresses
  * Required for problem recreation after address deletion
  *
@@ -238,6 +303,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
 
   int pi = (7 * n_addresses);
   mlp->cm_size = pi;
+  mlp->ci = 0;
 
   /* row index */
   int *ia = GNUNET_malloc (pi * sizeof (int));
@@ -251,11 +317,12 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
   double *ar= GNUNET_malloc (pi * sizeof (double));
   mlp->ar = ar;
 
-
   /* Adding constraint rows */
   /* Feasibility constraints */
 
   /* c 1) bandwidth capping */
+  /* c 3) minimum bandwidth */
+  GNUNET_CONTAINER_multihashmap_iterate (addresses, create_constraint_it, mlp);
 
 }
 
