@@ -2093,6 +2093,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
     {
       GNUNET_SCHEDULER_cancel(*(mdata->task));
       GNUNET_free (mdata->task);
+      GNUNET_SERVER_receive_done(t->client->handle, GNUNET_OK);
     }
     // FIXME change order?
     GNUNET_free (mdata);
