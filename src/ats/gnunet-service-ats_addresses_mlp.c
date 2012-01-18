@@ -34,6 +34,7 @@
 #endif
 
 #define DEBUG_ATS GNUNET_YES
+#define VERY_BIG_DOUBLE_VALUE DBL_MAX
 
 /**
  * Translate glpk solver error codes to text
@@ -162,18 +163,116 @@ mlp_term_hook (void *info, const char *s)
 }
 
 /**
+ * Delete the MLP problem and free the constrain matrix
+ *
+ * @param mlp the MLP handle
+ */
+static void
+mlp_delete_problem (struct GAS_MLP_Handle *mlp)
+{
+  if (mlp != NULL)
+  {
+    glp_delete_prob(mlp->prob);
+
+    /* delete row index */
+    if (mlp->ia != NULL)
+      GNUNET_free (mlp->ia);
+
+    /* delete column index */
+    if (mlp->ja != NULL)
+      GNUNET_free (mlp->ja);
+
+    /* delete coefficients */
+    if (mlp->ar != NULL)
+      GNUNET_free (mlp->ar);
+  }
+}
+
+/**
+ * Adds the problem constraints for all addresses
+ * Required for problem recreation after address deletion
+ *
+ * @param addresses all addresses
+ */
+
+static void
+mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses)
+{
+  //double M = VERY_BIG_DOUBLE_VALUE;
+  unsigned int n_addresses;
+
+  /* Problem matrix*/
+  n_addresses = GNUNET_CONTAINER_multihashmap_size(addresses);
+
+  /* Required indices in the constrain matrix
+   *
+   * feasibility constraints:
+   *
+   * c 1) bandwidth capping
+   * #rows: |n_addresses|
+   * #indices: 2 * |n_addresses|
+   *
+   * c 2) one active address per peer
+   * #rows: |peers|
+   * #indices: |n_addresses|
+   *
+   * c 3) minium bandwidth assigned
+   * #rows: |n_addresses|
+   * #indices: 2 * |n_addresses|
+   *
+   * c 4) minimum number of active connections
+   * #rows: 1
+   * #indices: |n_addresses|
+   *
+   * c 5) maximum ressource consumption
+   * #rows: |ressources|
+   * #indices: |n_addresses|
+   *
+   * Sum for feasibility constraints:
+   * #rows: 3 * |n_addresses| +  |ressources| + |peers| + 1
+   * #indices: 7 * |n_addresses|
+   *
+   * optimality constraints:
+   * tbc
+   * */
+
+  int pi = (7 * n_addresses);
+  mlp->cm_size = pi;
+
+  /* row index */
+  int *ia = GNUNET_malloc (pi * sizeof (int));
+  mlp->ia = ia;
+
+  /* column index */
+  int *ja = GNUNET_malloc (pi * sizeof (int));
+  mlp->ja = ja;
+
+  /* coefficient */
+  double *ar= GNUNET_malloc (pi * sizeof (double));
+  mlp->ar = ar;
+
+
+  /* Adding constraint rows */
+  /* Feasibility constraints */
+
+  /* c 1) bandwidth capping */
+
+}
+
+/**
  * Create the MLP problem
  *
  * @param mlp the MLP handle
  * @return GNUNET_OK or GNUNET_SYSERR
  */
 static int
-mlp_create_problem (struct GAS_MLP_Handle *mlp)
+mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses)
 {
   int res = GNUNET_OK;
   int col;
   int c;
   char *name;
+
 
   /* Set a problem name */
   glp_set_prob_name (mlp->prob, "gnunet ats bandwidth distribution");
@@ -228,6 +327,8 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
     /* Coefficient == Qm */
     glp_set_obj_coef (mlp->prob, col + c, mlp->co_Q[c]);
   }
+
+  /* Add columns for existing addresses */
 
   return res;
 }
@@ -585,7 +686,6 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->n_min = n_min;
   mlp->m = GNUNET_ATS_QualityPropertiesCount;
 
-  mlp_create_problem (mlp);
   return mlp;
 }
 
@@ -614,10 +714,22 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 
   /* We add a new address */
   if (address->mlp_information == NULL)
-  {
     new = GNUNET_YES;
+  else
+    new = GNUNET_NO;
+
+  if (mlp->prob == NULL)
+  {
+    mlp_create_problem(mlp, addresses);
+    mlp_add_constraints_all_addresses (mlp, addresses);
+  }
+
+  /* Do the update */
+  if (new == GNUNET_YES)
+  {
     mlpi = GNUNET_malloc (sizeof (struct MLP_information));
     address->mlp_information = mlpi;
+    mlp->addr_in_problem ++;
 
     /* Add bandwidth column */
     col = glp_add_cols (mlp->prob, 2);
@@ -646,14 +758,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     glp_set_obj_coef (mlp->prob, mlpi->c_n, 0);
 
     /* Add */
-
-
-    mlp->addr_in_problem ++;
   }
-  else
-    new = GNUNET_NO;
-
-  /* Do the update */
 
   /* Recalculate */
   if (new == GNUNET_YES)
@@ -717,8 +822,7 @@ GAS_mlp_done (struct GAS_MLP_Handle *mlp)
     mlp->mlp_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if (mlp != NULL)
-    glp_delete_prob(mlp->prob);
+  mlp_delete_problem (mlp);
 
   /* Clean up GLPK environment */
   glp_free_env();

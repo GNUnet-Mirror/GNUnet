@@ -135,6 +135,15 @@ struct GAS_MLP_Handle
 
   /* Information about the problem */
 
+  /* current problem matrix */
+  /* row index array */
+  int *ia;
+  /* column index array */
+  int *ja;
+  /* column index array */
+  double *ar;
+  /* current size of the constraint matrix |indices| */
+  unsigned int cm_size;
 
   /* column index Diversity (D) column */
   int c_d;
