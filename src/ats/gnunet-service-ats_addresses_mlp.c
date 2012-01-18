@@ -249,6 +249,14 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   mlp->ar[mlp->ci] = -mlp->b_min;
   mlp->ci++;
 
+  /* c 4) minimum connections
+   *      (1)*n_1 + ... + (1)*n_m >= n_min
+   */
+  mlp->ia[mlp->ci] = mlp->r_c4;
+  mlp->ja[mlp->ci] = mlpi->c_n;
+  mlp->ar[mlp->ci] = 1;
+  mlp->ci++;
+
   return GNUNET_OK;
 }
 
@@ -322,7 +330,12 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
 
   /* c 1) bandwidth capping */
   /* c 3) minimum bandwidth */
+  /* c 4) minimum number of connections */
+  mlp->r_c4 = glp_add_rows (mlp->prob, 1);
+  glp_set_row_bnds (mlp->prob, mlp->r_c4, GLP_LO, mlp->n_min, 0.0);
+
   GNUNET_CONTAINER_multihashmap_iterate (addresses, create_constraint_it, mlp);
+
 
 }
 

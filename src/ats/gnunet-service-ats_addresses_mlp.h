@@ -146,6 +146,9 @@ struct GAS_MLP_Handle
   unsigned int cm_size;
   unsigned int ci;
 
+  /* Row index constraint 4: minimum connections */
+  unsigned int r_c4;
+
   /* column index Diversity (D) column */
   int c_d;
   double co_D;
