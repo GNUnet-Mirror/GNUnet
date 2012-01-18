@@ -35,10 +35,7 @@ extern "C"
 #endif
 #endif
 
-#include <sys/types.h>
-
-#include "gnunet_stream_lib.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_util_lib.h"
 
 
 /**
@@ -113,20 +110,14 @@ enum GNUNET_STREAM_MessageType
 struct GNUNET_STREAM_MessageHeader
 {
   /**
-   * The GNUNET message header
+   * The GNUNET message header, types are from GNUNET_MESSAGE_TYPE_STREAM_*-range.
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * A number which identifies a session
+   * A number which identifies a session between the two peers.
    */
-  uint16_t session_id;
-
-  /**
-   * The message type
-   * ? Should we rather use the type field in GNUNET_MessageHeader ?
-   */
-  enum GNUNET_STREAM_MessageType type;
+  uint32_t session_id;
 
 };
 
@@ -137,19 +128,32 @@ struct GNUNET_STREAM_MessageHeader
  */
 struct GNUNET_STREAM_DataMessage
 {
+
   /**
-   * Sequence number; Always starts with 0 and should wrap around. 
-   * Immune to Sequence Prediction Attack as we take cover under GNUNET's secure
-   * messaging
+   * Type is  GNUNET_MESSAGE_TYPE_STREAM_DATA 
    */
-  uint32_t seq;
+  struct GNUNET_STREAM_MessageHeader header;
 
   /**
    * number of milliseconds to the soft deadline for sending acknowledgement
    * measured from the time this message is received. It is optimal for the
    * communication to send the ack within the soft deadline
    */
-  uint16_t ack_deadline;
+  struct GNUNET_TIME_RelativeNBO ack_deadline;
+
+  /**
+   * Sequence number; starts with a random value.  (Just in case
+   * someone breaks mesh and is able to try to do a Sequence
+   * Prediction Attack on us.)
+   */
+  uint32_t sequence_number;
+
+  /**
+   * Offset of the packet in the overall stream, modulo 2^32; allows
+   * the receiver to calculate where in the destination buffer the
+   * message should be placed.
+   */
+  uint32_t offset;
 
   /**
    * The data should be appended here
@@ -158,30 +162,38 @@ struct GNUNET_STREAM_DataMessage
 
 /**
  * The Selective Acknowledgement Bitmap
- * 
- * ? WARNING ? Possibility for Denial of Service ??
- * ? Receiver may force the sender to mantain a buffer of ~ 64*64k !??
  */
 typedef uint64_t GNUNET_STREAM_AckBitmap;
 
 
 /**
- * The Acknowledgment Message, should be prefixed with Stream Message header
- * with its type set to GNUNET_STREAM_MESSAGE_ACK
+ * The Acknowledgment Message to confirm receipt of DATA.
  */
 struct GNUNET_STREAM_AckMessage
 {
+
   /**
-   * The sequence number of the Data Message upto which the receiver has filled
-   * its buffer without any missing packets
+   * Type is  GNUNET_MESSAGE_TYPE_STREAM_ACK
    */
-  uint32_t base_seq;
+  struct GNUNET_STREAM_MessageHeader header;
 
   /**
    * The Selective Acknowledgement Bitmap. Computed relative to the base_seq
    * (bit n corresponds to the Data message with sequence number base_seq+n)
    */
   GNUNET_STREAM_AckBitmap bitmap;
+
+  /**
+   * The sequence number of the Data Message upto which the receiver has filled
+   * its buffer without any missing packets
+   */
+  uint32_t base_sequence_number;
+
+  /**
+   * Available buffer space past the last acknowledged buffer (for flow control),
+   * in bytes.
+   */
+  uint32_t receive_window_remaining;
 };
 
 

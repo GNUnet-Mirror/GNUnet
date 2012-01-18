@@ -1186,8 +1186,15 @@ extern "C"
 
 
 /**
- *  Next available: 400
+ * Message containing data exchanged between stream end-points over mesh.
  */
+#define GNUNET_MESSAGE_TYPE_STREAM_DATA 400
+
+
+/**
+ *  Next available: 416
+ */
+
 
 /*******************************************************************************
  * TODO: we need a way to register message types centrally (via some webpage).
