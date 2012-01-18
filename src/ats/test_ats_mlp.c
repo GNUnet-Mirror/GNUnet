@@ -71,6 +71,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   GAS_mlp_done (mlp);
 
+  GNUNET_free (addr.plugin);
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
   GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
 
