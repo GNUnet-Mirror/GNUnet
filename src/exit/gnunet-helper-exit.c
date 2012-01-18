@@ -62,12 +62,12 @@
 /**
  * Path to 'sysctl' binary.
  */
-#define SBIN_SYSCTL "/sbin/sysctl"
+static const char *sbin_sysctl;
 
 /**
  * Path to 'iptables' binary.
  */
-#define SBIN_IPTABLES "/sbin/iptables"
+static const char *sbin_iptables;
 
 
 #ifndef _LINUX_IN6_H
@@ -615,6 +615,28 @@ main (int argc, char **argv)
     fprintf (stderr, "Fatal: disabling both IPv4 and IPv6 makes no sense.\n");
     return 1;
   }
+  if (0 == access ("/sbin/iptables", X_OK))
+    sbin_iptables = "/sbin/iptables";
+  else if (0 == access ("/usr/sbin/iptables", X_OK))
+    sbin_iptables = "/usr/sbin/iptables";
+  else
+  {
+    fprintf (stderr, 
+	     "Fatal: executable iptables not found in approved directories: %s\n",
+	     strerror (errno));
+    return 1;
+  }
+  if (0 == access ("/sbin/sysctl", X_OK))
+    sbin_sysctl = "/sbin/sysctl";
+  else if (0 == access ("/usr/sbin/sysctl", X_OK))
+    sbin_sysctl = "/usr/sbin/sysctl";
+  else
+  {
+    fprintf (stderr,
+	     "Fatal: executable sysctl not found in approved directories: %s\n",
+	     strerror (errno));
+    return 1;
+  }
 
   strncpy (dev, argv[1], IFNAMSIZ);
   dev[IFNAMSIZ - 1] = '\0';
@@ -643,7 +665,7 @@ main (int argc, char **argv)
 	{
 	  "sysctl", "-w", "net.ipv6.conf.all.forwarding=1", NULL
 	};
-      if (0 != fork_and_exec (SBIN_SYSCTL,
+      if (0 != fork_and_exec (sbin_sysctl,
 			      sysctl_args))
       {
 	fprintf (stderr,
@@ -665,7 +687,7 @@ main (int argc, char **argv)
 	{
 	  "sysctl", "-w", "net.ipv4.ip_forward=1", NULL
 	};
-      if (0 != fork_and_exec (SBIN_SYSCTL,
+      if (0 != fork_and_exec (sbin_sysctl,
 			      sysctl_args))
       {
 	fprintf (stderr,
@@ -678,7 +700,7 @@ main (int argc, char **argv)
 	{
 	  "iptables", "-t", "nat", "-A", "POSTROUTING", "-o", argv[2], "-j", "MASQUERADE", NULL
 	};
-      if (0 != fork_and_exec (SBIN_IPTABLES,
+      if (0 != fork_and_exec (sbin_iptables,
 			      iptables_args))
       {
 	fprintf (stderr,

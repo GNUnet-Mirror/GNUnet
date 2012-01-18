@@ -95,12 +95,12 @@ struct in6_ifreq
 /**
  * Name and full path of IPTABLES binary.
  */
-#define SBIN_IPTABLES "/sbin/iptables"
+static const char *sbin_iptables;
 
 /**
  * Name and full path of IPTABLES binary.
  */
-#define SBIN_IP "/sbin/ip"
+static const char *sbin_ip;
 
 /**
  * Port for DNS traffic.
@@ -685,19 +685,25 @@ main (int argc, char *const*argv)
   }
 
   /* verify that the binaries were care about are executable */
-  if (0 != access (SBIN_IPTABLES, X_OK))
+  if (0 == access ("/sbin/iptables", X_OK))
+    sbin_iptables = "/sbin/iptables";
+  else if (0 == access ("/usr/sbin/iptables", X_OK))
+    sbin_iptables = "/usr/sbin/iptables";
+  else
   {
     fprintf (stderr, 
-	     "`%s' is not executable: %s\n", 
-	     SBIN_IPTABLES,
+	     "Fatal: executable iptables not found in approved directories: %s\n",
 	     strerror (errno));
     return 3;
   }
-  if (0 != access (SBIN_IP, X_OK))
+  if (0 == access ("/sbin/ip", X_OK))
+    sbin_ip = "/sbin/ip";
+  else if (0 == access ("/usr/sbin/ip", X_OK))
+    sbin_ip = "/usr/sbin/ip";
+  else
   {
-    fprintf (stderr, 
-	     "`%s' is not executable: %s\n", 
-	     SBIN_IP,
+    fprintf (stderr,
+	     "Fatal: executable ip not found in approved directories: %s\n",
 	     strerror (errno));
     return 4;
   }
@@ -825,7 +831,7 @@ main (int argc, char *const*argv)
 	"udp", "--sport", localport, "--dport", DNS_PORT, "-j",
 	"ACCEPT", NULL
       };
-    if (0 != fork_and_exec (SBIN_IPTABLES, mangle_args))
+    if (0 != fork_and_exec (sbin_iptables, mangle_args))
       goto cleanup_rest;
   }    
   /* Mark all of the other DNS traffic using our mark DNS_MARK */
@@ -836,7 +842,7 @@ main (int argc, char *const*argv)
 	"udp", "--dport", DNS_PORT, "-j", "MARK", "--set-mark", DNS_MARK,
 	NULL
       };
-    if (0 != fork_and_exec (SBIN_IPTABLES, mark_args))
+    if (0 != fork_and_exec (sbin_iptables, mark_args))
       goto cleanup_mangle_1;
   }
   /* Forward all marked DNS traffic to our DNS_TABLE */
@@ -845,7 +851,7 @@ main (int argc, char *const*argv)
       {
 	"ip", "rule", "add", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
       };
-    if (0 != fork_and_exec (SBIN_IP, forward_args))
+    if (0 != fork_and_exec (sbin_ip, forward_args))
       goto cleanup_mark_2;
   }
   /* Finally, add rule in our forwarding table to pass to our virtual interface */
@@ -855,7 +861,7 @@ main (int argc, char *const*argv)
 	"ip", "route", "add", "default", "dev", dev,
 	"table", DNS_TABLE, NULL
       };
-    if (0 != fork_and_exec (SBIN_IP, route_args))
+    if (0 != fork_and_exec (sbin_ip, route_args))
       goto cleanup_forward_3;
   }
 
@@ -910,7 +916,7 @@ main (int argc, char *const*argv)
 	"ip", "route", "del", "default", "dev", dev,
 	"table", DNS_TABLE, NULL
       };
-    if (0 != fork_and_exec (SBIN_IP, route_clean_args))
+    if (0 != fork_and_exec (sbin_ip, route_clean_args))
       r += 1;
   }
  cleanup_forward_3:
@@ -919,7 +925,7 @@ main (int argc, char *const*argv)
       {
 	"ip", "rule", "del", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
       };
-    if (0 != fork_and_exec (SBIN_IP, forward_clean_args))
+    if (0 != fork_and_exec (sbin_ip, forward_clean_args))
       r += 2;	
   }
  cleanup_mark_2:
@@ -929,7 +935,7 @@ main (int argc, char *const*argv)
 	"iptables", "-t", "mangle", "-D", "OUTPUT", "-p", "udp",
 	"--dport", DNS_PORT, "-j", "MARK", "--set-mark", DNS_MARK, NULL
       };
-    if (0 != fork_and_exec (SBIN_IPTABLES, mark_clean_args))
+    if (0 != fork_and_exec (sbin_iptables, mark_clean_args))
       r += 4;
   }	
  cleanup_mangle_1:
@@ -940,7 +946,7 @@ main (int argc, char *const*argv)
 	"--sport", localport, "--dport", DNS_PORT, "-j", "ACCEPT",
 	NULL
       };
-    if (0 != fork_and_exec (SBIN_IPTABLES, mangle_clean_args))
+    if (0 != fork_and_exec (sbin_iptables, mangle_clean_args))
       r += 8;
   }
 
