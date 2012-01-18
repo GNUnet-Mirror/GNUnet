@@ -231,7 +231,7 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   mlp->ci++;
 
   /* c 3) minimum bandwidth
-   *    b_t + (-n_t * b_min) >= 0
+   * b_t + (-n_t * b_min) >= 0
    */
 
   row_index = glp_add_rows (mlp->prob, 1);
@@ -250,7 +250,7 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   mlp->ci++;
 
   /* c 4) minimum connections
-   *      (1)*n_1 + ... + (1)*n_m >= n_min
+   * (1)*n_1 + ... + (1)*n_m >= n_min
    */
   mlp->ia[mlp->ci] = mlp->r_c4;
   mlp->ja[mlp->ci] = mlpi->c_n;
@@ -271,8 +271,8 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
 static void
 mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses)
 {
-  //double M = VERY_BIG_DOUBLE_VALUE;
   unsigned int n_addresses;
+  int row_index;
 
   /* Problem matrix*/
   n_addresses = GNUNET_CONTAINER_multihashmap_size(addresses);
@@ -338,7 +338,38 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
 
   GNUNET_CONTAINER_multihashmap_iterate (addresses, create_constraint_it, mlp);
 
+  /* Adding constraint rows
+   * This constraints are kind of "for all peers"
+   * Feasibility constraints:
+   *
+   * c 2) 1 address per peer
+   * sum (n_p1_1 + ... + n_p1_n) = 1
+   */
 
+  /* Adding rows for c 2) */
+  row_index = glp_add_rows (mlp->prob, mlp->c_p);
+
+  struct ATS_Peer * peer = mlp->peer_head;
+  while (peer != NULL)
+  {
+    struct ATS_Address *addr = peer->head;
+    struct MLP_information *mlpi = (struct MLP_information *) addr->mlp_information;
+    /* Adding row for c 2) */
+    /* Set row bound == 1 */
+    glp_set_row_bnds (mlp->prob, row_index, GLP_FX, 1.0, 1.0);
+
+    while (addr != NULL)
+    {
+      ia[mlp->ci] = row_index;
+      ja[mlp->ci] = mlpi->c_n;
+      ar[mlp->ci] = 1;
+      mlp->ci++;
+
+      addr = addr->next;
+    }
+
+    peer = peer->next;
+  }
 }
 
 /**
@@ -834,6 +865,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
       GNUNET_assert(address->next == NULL);
       GNUNET_CONTAINER_DLL_insert (peer->head, peer->tail, address);
       GNUNET_CONTAINER_DLL_insert (mlp->peer_head, mlp->peer_tail, peer);
+      mlp->c_p ++;
     }
     else
     {
@@ -919,7 +951,7 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting address for `%s'\n", GNUNET_i2s (&address->peer));
 #endif
   GNUNET_CONTAINER_DLL_remove (head->head, head->tail, address);
-
+  mlp->c_p --;
   if ((head->head == NULL) && (head->tail == NULL))
   {
     /* No address for peer left, remove peer */
@@ -957,12 +989,27 @@ GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
 void
 GAS_mlp_done (struct GAS_MLP_Handle *mlp)
 {
+  struct ATS_Peer * peer;
+  struct ATS_Peer * tmp;
+
   if (mlp->mlp_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(mlp->mlp_task);
     mlp->mlp_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  /* clean up peer list */
+  if (mlp != NULL)
+  {
+    peer = mlp->peer_head;
+    while (peer != NULL)
+    {
+      GNUNET_CONTAINER_DLL_remove(mlp->peer_head, mlp->peer_tail, peer);
+      tmp = peer->next;
+      GNUNET_free (peer);
+      peer = tmp;
+    }
+  }
   mlp_delete_problem (mlp);
 
   /* Clean up GLPK environment */

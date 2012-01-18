@@ -149,6 +149,9 @@ struct GAS_MLP_Handle
   struct ATS_Peer *peer_head;
   struct ATS_Peer *peer_tail;
 
+  /* Number of peers */
+  unsigned int c_p;
+
   /* current problem matrix */
   /* row index array */
   int *ia;
