@@ -796,9 +796,11 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
   uint16_t type;
   char cbuf[htons (msg->size)];
 
+#if MESH_DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: Sending to clients...\n");
   type = ntohs (payload->type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: message of type %u\n", type);
+#endif
 
   memcpy (cbuf, msg, sizeof (cbuf));
   switch (htons (msg->type))
@@ -2087,7 +2089,12 @@ tunnel_send_multicast (struct MeshTunnel *t,
   {
     GNUNET_free (mdata->data);
     GNUNET_free (mdata->reference_counter);
-    GNUNET_free_non_null (mdata->task);
+    if (NULL != mdata->task)
+    {
+      GNUNET_SCHEDULER_cancel(*(mdata->task));
+      GNUNET_free (mdata->task);
+    }
+    // FIXME change order?
     GNUNET_free (mdata);
   }
 #if MESH_DEBUG
@@ -4347,7 +4354,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: shutting down\n");
-  /* TODO: destroy tunnels? */
+
   if (core_handle != NULL)
   {
     GNUNET_CORE_disconnect (core_handle);
