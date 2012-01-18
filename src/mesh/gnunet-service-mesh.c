@@ -313,6 +313,11 @@ struct MeshTunnel
   struct MeshClient *client;
 
     /**
+     * Client destination of the tunnel, if any
+     */
+  struct MeshClient *client_dest;
+
+    /**
      * Messages ready to transmit
      */
   struct MeshQueue *queue_head;
@@ -898,6 +903,41 @@ send_clients_tunnel_destroy (struct MeshTunnel *t)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.tunnel_id = htonl (t->local_tid);
   GNUNET_SERVER_notification_context_broadcast (nc, &msg.header, GNUNET_NO);
+}
+
+
+/**
+ * Notify a client that the other local client disconnected, if needed.
+ * In case the origin disconnects, the destination get a tunnel destroy
+ * notification. Otherwise, the origin gets a (local ID) peer disconnected.
+ *
+ * @param t Tunnel that was destroyed.
+ * @param c Client that disconnected
+ */
+static void
+send_client_tunnel_disconnect (struct MeshTunnel *t, struct MeshClient *c)
+{
+  if (c == t->client_dest)
+  {
+    struct GNUNET_MESH_PeerControl msg;
+
+    msg.header.size = htons (sizeof (msg));
+    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL);
+    msg.tunnel_id = htonl (t->local_tid);
+    msg.peer = my_full_id;
+    GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
+                                                &msg.header, GNUNET_NO);
+  }
+  else if (NULL != t->client_dest && c == t->client)
+  {
+    struct GNUNET_MESH_TunnelMessage msg;
+
+    msg.header.size = htons (sizeof (msg));
+    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
+    msg.tunnel_id = htonl (t->local_tid_dest);
+    GNUNET_SERVER_notification_context_unicast (nc, t->client_dest->handle,
+                                                &msg.header, GNUNET_NO);
+  }
 }
 
 
@@ -2244,8 +2284,17 @@ static int
 tunnel_destroy_iterator (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct MeshTunnel *t = value;
+  struct MeshClient *c = cls;
   int r;
 
+  send_client_tunnel_disconnect(t, c);
+  if (c == t->client_dest)
+  {
+    t->client_dest = NULL;
+    t->local_tid_dest = 0;
+    return GNUNET_OK;
+  }
+  tunnel_send_destroy(t);
   r = tunnel_destroy (t);
   return r;
 }
@@ -3407,13 +3456,16 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   c = clients;
   while (NULL != c)
   {
-    if (c->handle != client && NULL != client)
+    if (c->handle != client)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    ... searching\n");
       c = c->next;
       continue;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: matching client found\n");
+#if MESH_DEBUG
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: matching client found (%u)\n",
+                c->id);
+#endif
     GNUNET_SERVER_client_drop (c->handle);
     if (NULL != c->tunnels)
     {
@@ -3687,6 +3739,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   /* Remove from local id hashmap */
   GNUNET_CRYPTO_hash (&tid, sizeof (MESH_TunnelNumber), &hash);
   t = GNUNET_CONTAINER_multihashmap_get (c->tunnels, &hash);
+  send_client_tunnel_disconnect(t, c);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (c->tunnels, &hash, t));
 
@@ -3925,6 +3978,10 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
     cmsg.tunnel_id = htonl (t->local_tid_dest);
     c = (struct MeshClient *) GNUNET_CONTAINER_multihashmap_get(applications,
                                                                 &hash);
+    t->client_dest = c;
+    GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
+    GNUNET_CONTAINER_multihashmap_put (c->tunnels, &hash, t,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     GNUNET_SERVER_notification_context_unicast (nc, c->handle, &cmsg.header,
                                                 GNUNET_NO);
     
