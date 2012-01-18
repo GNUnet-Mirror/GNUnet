@@ -276,6 +276,11 @@ struct MeshTunnel
      */
   MESH_TunnelNumber local_tid;
 
+      /**
+     * Local tunnel number for local destination clients
+     */
+  MESH_TunnelNumber local_tid_dest;
+
     /**
      * ID of the last multicast packet seen/sent.
      */
@@ -834,7 +839,11 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
     GNUNET_break (0);
     return 0;
   }
-  *tid = htonl (t->local_tid);
+  // FIXME proper client differentiation mechanism required
+  if (htons (msg->type) == GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN)
+    *tid = htonl (t->local_tid);
+  else
+    *tid = htonl (t->local_tid_dest != 0 ? t->local_tid_dest : t->local_tid);
   for (count = 0, c = clients; c != NULL; c = c->next)
   {
 #if MESH_DEBUG
@@ -2529,9 +2538,9 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   tid = ntohl (msg->tid);
   pi = (struct GNUNET_PeerIdentity *) &msg[1];
-  t = tunnel_get (pi, tid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH:     path is for tunnel %s [%X].\n", GNUNET_i2s (pi), tid);
+  t = tunnel_get (pi, tid);
   if (NULL == t)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   Creating tunnel\n");
@@ -3891,8 +3900,12 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_YES)
   {
     /* Yes! Fast forward, add ourselves to the tunnel and send the
-     * good news to the client
+     * good news to the client, and alert the destination client of
+     * an incoming tunnel.
      */
+    struct GNUNET_MESH_TunnelNotification cmsg;
+    struct MeshClient *c;
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  available locally\n");
     GNUNET_CONTAINER_multihashmap_put (t->peers, &my_full_id.hashPubKey,
                                        peer_info_get (&my_full_id),
@@ -3902,6 +3915,20 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
     send_client_peer_connected (t, myid);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:  Done\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
+
+    /* FIXME implement a proper handling of this case,
+       a client differentiation mechanism */
+    cmsg.header.size = htons (sizeof (cmsg));
+    cmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
+    cmsg.peer = my_full_id;
+    t->local_tid_dest = next_local_tid++;
+    cmsg.tunnel_id = htonl (t->local_tid_dest);
+    c = (struct MeshClient *) GNUNET_CONTAINER_multihashmap_get(applications,
+                                                                &hash);
+    GNUNET_SERVER_notification_context_unicast (nc, c->handle, &cmsg.header,
+                                                GNUNET_NO);
+    
+
     return;
   }
   /* Ok, lets find a peer offering the service */
