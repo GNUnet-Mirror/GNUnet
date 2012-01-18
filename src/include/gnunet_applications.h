@@ -50,30 +50,6 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER 2
 
-/**
- * Internet HTTP gateway (port 80).
- */
-#define GNUNET_APPLICATION_TYPE_INTERNET_HTTP_GATEWAY 3
-
-/**
- * Internet HTTPS gateway (port 443).
- */
-#define GNUNET_APPLICATION_TYPE_INTERNET_HTTPS_GATEWAY 4
-
-/**
- * Internet TCP gateway (any port).
- */
-#define GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY 5
-
-/**
- * Internet UDP gateway (any port).
- */
-#define GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY 6
-
-/**
- * GNUnet VPN Search Engine (searches HTTP sites hosted within GNUnet) [example]
- */
-#define GNUNET_APPLICATION_TYPE_GNUNET_SEARCH 7
 
 /**
  * Internet IPv4 gateway (any TCP/UDP/ICMP).

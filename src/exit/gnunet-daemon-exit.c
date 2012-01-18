@@ -641,9 +641,7 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
   send_packet_to_mesh_tunnel (state->tunnel,
 			      &udp[1], pktlen - sizeof (struct GNUNET_TUN_UdpHeader),
 			      NULL,
-			      state->serv != NULL
-			      ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK 
-			      : GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK);
+			      GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY);
 }
 
 
@@ -712,9 +710,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   send_packet_to_mesh_tunnel (state->tunnel,
 			      mtcp, pktlen,
 			      NULL,
-			      state->serv != NULL
-			      ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK 
-			      : GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK);
+			      GNUNET_MESSAGE_TYPE_VPN_TCP_DATA);
 }
 
 

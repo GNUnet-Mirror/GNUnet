@@ -593,47 +593,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_VPN_HELPER 185
 
-/**
- * Type of messages containing an UDP packet for a service
- */
-#define GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP 186
 
 /**
- * Type of messages containing an UDP packet from a service
+ * Type of messages containing an DNS request for a DNS exit service.
  */
-#define GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK 187
+#define GNUNET_MESSAGE_TYPE_VPN_DNS_TO_INTERNET 194
 
 /**
- * Type of messages containing an TCP packet for a service
+ * Type of messages containing an DNS reply from a DNS exit service.
  */
-#define GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP 188
-
-/**
- * Type of messages containing an TCP packet from a service
- */
-#define GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK 189
-
-/**
- * Type of messages containing an UDP packet for a remote host
- */
-#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP 190
-
-/**
- * Type of messages containing an UDP packet from a remote host
- */
-#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK 191
-
-/**
- * Type of messages containing an TCP packet for a remote host
- */
-#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP 192
-
-/**
- * Type of messages containing an TCP packet from a remote host
- */
-#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK 193
-
-
+#define GNUNET_MESSAGE_TYPE_VPN_DNS_FROM_INTERNET 195
 
 /**
  * Type of messages containing an TCP packet for a service.
@@ -689,26 +658,6 @@ extern "C"
  * VPN-DNS message types
  ******************************************************************************/
 
-/**
- * Type of messages to query the local service-dns
- */
-#define GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS 205
-/**
- * Type of messages the local service-dns responds with
- */
-#define GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS 206
-/**
- * Type of messages to instruct the local service-dns to rehijack the dns
- */
-#define GNUNET_MESSAGE_TYPE_REHIJACK 207
-/**
- * Type of messages to send a DNS-query to another peer
- */
-#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_QUERY_DNS 208
-/**
- * Type of messages to send a DNS-answer to another peer
- */
-#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_ANSWER_DNS 209
 
 /**
  * Initial message from client to DNS service for registration.
@@ -745,7 +694,6 @@ extern "C"
  * through a mesh-tunnel (LEGACY)
  */
 #define GNUNET_MESSAGE_TYPE_MESH_HELLO 216
-
 
 /**
  * Request the creation of a path

@@ -2314,17 +2314,15 @@ run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler service_handlers[] = {
     /* callback, cls, type, size */
-    {&service_redirect_to_ip, NULL, GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP, 0},
-    {&service_redirect_to_service, NULL, 
+    { &service_redirect_to_ip, NULL, GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP, 0},
+    { &service_redirect_to_service, NULL, 
      GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE, 
      sizeof (struct RedirectToServiceRequestMessage) },
     {NULL, NULL, 0, 0}
   };
   static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
-    {receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK, 0},
-    {receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK, 0},
-    {receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK, 0},
-    {receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK, 0},
+    { &receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY, 0},
+    { &receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA, 0},
     {NULL, 0, 0}
   };
   static const GNUNET_MESH_ApplicationType types[] = {

@@ -19,7 +19,7 @@
  */
 
 /**
- * @file dns/dns_new.h
+ * @file dns/dns.h
  * @brief IPC messages between DNS API and DNS service
  * @author Christian Grothoff
  */

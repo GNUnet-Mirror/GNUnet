@@ -25,11 +25,13 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_applications.h"
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "dns.h"
 #include "gnunet_dns_service.h"
+#include "gnunet_mesh_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_tun_lib.h"
 
@@ -162,6 +164,55 @@ struct RequestRecord
 };
 
 
+
+/**
+ * State we keep for each DNS tunnel that terminates at this node.
+ */
+struct TunnelState
+{
+
+  /**
+   * Associated MESH tunnel.
+   */
+  struct GNUNET_MESH_Tunnel *tunnel;
+
+  /**
+   * Active request for sending a reply.
+   */
+  struct GNUNET_MESH_TransmitHandle *th;
+
+  /**
+   * DNS reply ready for transmission.
+   */
+  char *reply;
+
+  /**
+   * Address we sent the DNS request to.
+   */
+  struct sockaddr_storage addr;
+
+  /**
+   * Number of bytes in 'addr'.
+   */
+  socklen_t addrlen;
+
+  /**
+   * Number of bytes in 'reply'.
+   */
+  size_t reply_length;
+
+  /**
+   * Original DNS request ID as used by the client.
+   */
+  uint16_t original_id;
+
+  /**
+   * DNS request ID that we used for forwarding.
+   */
+  uint16_t my_id;
+};
+
+
 /**
  * The IPv4 UDP-Socket through which DNS-Resolves will be sent if they are not to be
  * sent through gnunet. The port of this socket will not be hijacked.
@@ -231,9 +282,26 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 static struct RequestRecord requests[UINT16_MAX + 1];
 
 /**
+ * Array of all open requests from tunnels.
+ */
+static struct TunnelState *tunnels[UINT16_MAX + 1];
+
+/**
  * Generator for unique request IDs.
  */
 static uint64_t request_id_gen;
+
+/**
+ * IP address to use for the DNS server if we are a DNS exit service
+ * (for VPN via mesh); otherwise NULL.
+ */
+static char *dns_exit;
+
+/**
+ * Handle to the MESH service (for receiving DNS queries), or NULL 
+ * if we are not a DNS exit.
+ */
+static struct GNUNET_MESH_Handle *mesh;
 
 
 /**
@@ -297,6 +365,11 @@ cleanup_task (void *cls GNUNET_UNUSED,
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
     stats = NULL;
+  }
+  if (NULL != dns_exit)
+  {
+    GNUNET_free (dns_exit);
+    dns_exit = NULL;
   }
 }
 
@@ -657,6 +730,52 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * We got a reply from DNS for a request of a MESH tunnel.  Send it
+ * via the tunnel (after changing the request ID back).
+ *
+ * @param cls the 'struct TunnelState'
+ * @param size number of bytes available in buf
+ * @param buf where to copy the reply
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_reply_to_mesh (void *cls,
+			size_t size,
+			void *buf)
+{
+  struct TunnelState *ts = cls;
+  size_t off;
+  size_t ret;
+  char *cbuf = buf;
+  struct GNUNET_MessageHeader hdr;
+  struct GNUNET_TUN_DnsHeader dns;
+
+  ts->th = NULL;
+  GNUNET_assert (ts->reply != NULL);
+  if (size == 0)
+    return 0;
+  ret = sizeof (struct GNUNET_MessageHeader) + ts->reply_length; 
+  GNUNET_assert (ret <= size);
+  hdr.size = htons (ret);
+  hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_FROM_INTERNET);
+  memcpy (&dns, ts->reply, sizeof (dns));
+  dns.id = ts->original_id;
+  off = 0;
+  memcpy (&cbuf[off], &hdr, sizeof (hdr));
+  off += sizeof (hdr);
+  memcpy (&cbuf[off], &dns, sizeof (dns));
+  off += sizeof (dns);
+  memcpy (&cbuf[off], &ts->reply[sizeof (dns)], ts->reply_length - sizeof (dns));
+  off += ts->reply_length - sizeof (dns);
+  GNUNET_free (ts->reply);
+  ts->reply = NULL;
+  ts->reply_length = 0;  
+  GNUNET_assert (ret == off);
+  return ret;
+}
+
+
+/**
  * Read a DNS response from the (unhindered) UDP-Socket
  *
  * @param cls socket to read from
@@ -673,6 +792,7 @@ read_response (void *cls,
   struct GNUNET_TUN_DnsHeader *dns;
   socklen_t addrlen;
   struct RequestRecord *rr;
+  struct TunnelState *ts;
   ssize_t r;
   int len;
 
@@ -728,19 +848,48 @@ read_response (void *cls,
       return;
     }
     dns = (struct GNUNET_TUN_DnsHeader *) buf;
+    /* Handle case that this is a reply to a request from a MESH DNS tunnel */
+    ts = tunnels[dns->id];
+    if ( (NULL == ts) ||
+	 (addrlen != ts->addrlen) ||
+	 (0 != memcmp (&ts->addr,
+		       addr,
+		       addrlen)) )
+      ts = NULL; /* DNS responder address missmatch */
+    if (NULL != ts)
+    {
+      tunnels[dns->id] = NULL;
+      GNUNET_free_non_null (ts->reply);
+      ts->reply = GNUNET_malloc (r);
+      ts->reply_length = r;
+      memcpy (ts->reply, dns, r);
+      if (ts->th != NULL)
+	GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
+      ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel,
+						  GNUNET_NO, 0,
+						  GNUNET_TIME_UNIT_FOREVER_REL,
+						  NULL,
+						  sizeof (struct GNUNET_MessageHeader) + r,
+						  &transmit_reply_to_mesh,
+						  ts);
+    }
+    /* Handle case that this is a reply to a local request (intercepted from TUN interface) */
     rr = &requests[dns->id];
     if (rr->phase != RP_INTERNET_DNS) 
     {
-      /* unexpected / bogus reply */
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# External DNS response discarded (no matching request)"),
-				1, GNUNET_NO);
+      if (NULL == ts)
+      {
+	/* unexpected / bogus reply */
+	GNUNET_STATISTICS_update (stats,
+				  gettext_noop ("# External DNS response discarded (no matching request)"),
+				  1, GNUNET_NO);
+      }
       return; 
     }
     GNUNET_free_non_null (rr->payload);
-    rr->payload = GNUNET_malloc (len);
-    memcpy (rr->payload, buf, len);
-    rr->payload_length = len;
+    rr->payload = GNUNET_malloc (r);
+    memcpy (rr->payload, buf, r);
+    rr->payload_length = r;
     next_phase (rr);
   }  
 }
@@ -1123,6 +1272,147 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 
 
 /**
+ * Process a request via mesh to perform a DNS query.
+ *
+ * @param cls closure, NULL
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+                     void **tunnel_ctx,
+                     const struct GNUNET_PeerIdentity *sender GNUNET_UNUSED,
+                     const struct GNUNET_MessageHeader *message,
+                     const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
+{
+  struct TunnelState *ts = *tunnel_ctx;
+  const struct GNUNET_TUN_DnsHeader *dns;
+  size_t mlen = ntohs (message->size);
+  size_t dlen = mlen - sizeof (struct GNUNET_MessageHeader);
+  char buf[dlen];
+  struct GNUNET_TUN_DnsHeader *dout;
+  struct sockaddr_in v4;
+  struct sockaddr_in6 v6;
+  struct sockaddr *so;
+  socklen_t salen;
+  struct GNUNET_NETWORK_Handle *dnsout;
+
+  if (dlen < sizeof (struct GNUNET_TUN_DnsHeader))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  dns = (const struct GNUNET_TUN_DnsHeader *) &message[1];
+  ts->original_id = dns->id;
+  if (tunnels[ts->my_id] == ts)
+    tunnels[ts->my_id] = NULL;
+  ts->my_id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+						   65536);
+  tunnels[ts->my_id] = ts;
+  memcpy (buf, dns, dlen);
+  dout = (struct GNUNET_TUN_DnsHeader*) buf;
+  dout->id = ts->my_id;
+  
+  memset (&v4, 0, sizeof (v4));
+  memset (&v6, 0, sizeof (v6));
+  dnsout = NULL;
+  if (1 == inet_pton (AF_INET, dns_exit, &v4.sin_addr))
+  {
+    salen = sizeof (v4);
+    v4.sin_family = AF_INET;
+    v4.sin_port = htons (53);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    v4.sin_len = (u_char) salen;
+#endif
+    so = (struct sockaddr *) &v4;
+    dnsout = dnsout4;
+  } 
+  if (1 == inet_pton (AF_INET6, dns_exit, &v6.sin6_addr))
+  {
+    salen = sizeof (v6);
+    v6.sin6_family = AF_INET6;
+    v6.sin6_port = htons (53);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    v6.sin6_len = (u_char) salen;
+#endif
+    so = (struct sockaddr *) &v6;
+    dnsout = dnsout6;
+  }
+  if (NULL == dnsout)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Configured DNS exit `%s' is not working / valid.\n"),
+		dns_exit);
+    return GNUNET_SYSERR;
+  }
+  memcpy (&ts->addr,
+	  so,
+	  salen);
+  ts->addrlen = salen;
+  GNUNET_NETWORK_socket_sendto (dnsout,
+				buf, dlen, so, salen); 
+  return GNUNET_OK;
+}
+
+
+/**
+ * Callback from GNUNET_MESH for new tunnels.
+ *
+ * @param cls closure
+ * @param tunnel new handle to the tunnel
+ * @param initiator peer that started the tunnel
+ * @param atsi performance information for the tunnel
+ * @return initial tunnel context for the tunnel
+ */
+static void *
+accept_dns_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+		   const struct GNUNET_PeerIdentity *initiator GNUNET_UNUSED,
+		   const struct GNUNET_ATS_Information *ats GNUNET_UNUSED)
+{
+  struct TunnelState *ts = GNUNET_malloc (sizeof (struct TunnelState));
+
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# Inbound MESH tunnels created"),
+			    1, GNUNET_NO);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received inbound tunnel from `%s'\n",
+	      GNUNET_i2s (initiator));
+  ts->tunnel = tunnel;
+  return ts;
+}
+
+
+/**
+ * Function called by mesh whenever an inbound tunnel is destroyed.
+ * Should clean up any associated state.
+ *
+ * @param cls closure (set from GNUNET_MESH_connect)
+ * @param tunnel connection to the other end (henceforth invalid)
+ * @param tunnel_ctx place where local state associated
+ *                   with the tunnel is stored
+ */
+static void
+destroy_dns_tunnel (void *cls GNUNET_UNUSED, 
+		    const struct GNUNET_MESH_Tunnel *tunnel,
+		    void *tunnel_ctx)
+{
+  struct TunnelState *ts = tunnel_ctx;
+
+  if (tunnels[ts->my_id] == ts)
+    tunnels[ts->my_id] = NULL;
+  if (NULL != ts->th)
+    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
+  GNUNET_free_non_null (ts->reply);
+  GNUNET_free (ts);
+}
+
+
+/**
  * @param cls closure
  * @param server the initialized server
  * @param cfg_ configuration to use
@@ -1150,6 +1440,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 cls);
+  (void) GNUNET_CONFIGURATION_get_value_string (cfg, "dns", 
+						"DNS_EXIT",
+						&dns_exit);  
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg_, "dns", "PROVIDE_EXIT"))
   {
@@ -1220,6 +1513,24 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 		   (unsigned int) dnsoutport);
   helper_argv[6] = GNUNET_strdup (port_s);
   helper_argv[7] = NULL;
+
+  if (NULL != dns_exit)
+  {
+    static struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
+      {&receive_dns_request, GNUNET_MESSAGE_TYPE_VPN_DNS_TO_INTERNET, 0},
+      {NULL, 0, 0}
+    };
+    static GNUNET_MESH_ApplicationType mesh_types[] = {
+      GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
+      GNUNET_APPLICATION_TYPE_END
+    };
+    mesh = GNUNET_MESH_connect (cfg,
+				1, NULL,
+				&accept_dns_tunnel, 
+				&destroy_dns_tunnel,
+				mesh_handlers,
+				mesh_types);
+  }
   hijacker = GNUNET_HELPER_start ("gnunet-helper-dns",
 				  helper_argv,
 				  &process_helper_messages,
