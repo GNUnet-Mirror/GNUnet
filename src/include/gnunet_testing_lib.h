@@ -506,6 +506,20 @@ GNUNET_TESTING_test_daemon_running (struct GNUNET_TESTING_Daemon *daemon);
 
 
 /**
+ * Obtain the peer identity of the peer with the given configuration
+ * handle.  This function reads the private key of the peer, obtains
+ * the public key and hashes it.
+ *
+ * @param cfg configuration of the peer
+ * @param pid where to store the peer identity
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+GNUNET_TESTING_get_peer_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				  struct GNUNET_PeerIdentity *pid);
+
+
+/**
  * Restart (stop and start) a GNUnet daemon.
  *
  * @param d the daemon that should be restarted

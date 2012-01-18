@@ -36,6 +36,7 @@ endif
 lib_LTLIBRARIES = libgnunettesting.la
 
 libgnunettesting_la_SOURCES = \
+  helper.c \
   testing.c  \
   testing_group.c \
   testing_peergroup.c
