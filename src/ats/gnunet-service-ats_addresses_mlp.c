@@ -32,7 +32,7 @@
 #include "glpk.h"
 #include "float.h"
 
-#define WRITE_MLP GNUNET_NO
+#define WRITE_MLP GNUNET_YES
 #define DEBUG_ATS GNUNET_YES
 /* A very big value */
 #define M DBL_MAX
@@ -257,7 +257,7 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   mlp->ja[mlp->ci] = mlpi->c_n;
   mlp->ar[mlp->ci] = -M;
   mlp->ci++;
-#if 0
+
   /* c 3) minimum bandwidth
    * b_t + (-n_t * b_min) >= 0
    */
@@ -276,7 +276,7 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   mlp->ja[mlp->ci] = mlpi->c_n;
   mlp->ar[mlp->ci] = -mlp->b_min;
   mlp->ci++;
-
+#if 0
   /* c 4) minimum connections
    * (1)*n_1 + ... + (1)*n_m >= n_min
    */
@@ -490,7 +490,7 @@ create_columns_it (void *cls, const GNUNET_HashCode * key, void *value)
   /* Continuous value*/
   glp_set_col_kind (mlp->prob, mlpi->c_b , GLP_CV);
   /* Objective function coefficient == 0 */
-  glp_set_obj_coef (mlp->prob, mlpi->c_b , 0);
+  glp_set_obj_coef (mlp->prob, mlpi->c_b , 1);
 
 
   /* Add usage column */
@@ -535,6 +535,10 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   /* Set optimization direction to maximize */
   glp_set_obj_dir (mlp->prob, GLP_MAX);
 
+  /* Setting initial index == 1
+   * glpk matrix is from 1 .. number_elements*/
+
+  mlp->ci = 1;
   /* Adding invariant columns */
 
   /* Diversity d column  */
@@ -590,7 +594,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   mlp_add_constraints_all_addresses (mlp, addresses);
 
   /* Load the matrix */
-  glp_load_matrix(mlp->prob, (mlp->ci - 1), mlp->ia, mlp->ja, mlp->ar);
+  glp_load_matrix(mlp->prob, (mlp->ci-1), mlp->ia, mlp->ja, mlp->ar);
 
   return res;
 }
