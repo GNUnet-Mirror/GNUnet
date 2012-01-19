@@ -775,6 +775,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
   t->peers[0]->t = t;
   t->peers[0]->connected = 1;
   t->peers[0]->id = t->owner;
+  GNUNET_PEER_change_rc (t->owner, 1);
   t->mesh = h;
   t->tid = tid;
   if (NULL != h->new_tunnel)
@@ -918,13 +919,6 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
     mcast = (struct GNUNET_MESH_Multicast *) message;
     t = retrieve_tunnel (h, ntohl (mcast->tid));
-#if MESH_API_DEBUG // FIXME debug for #2071
-    if (NULL == t)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "mesh: tunnel %u unknown\n",
-                  ntohl (mcast->tid));
-    }
-#endif
     payload = (struct GNUNET_MessageHeader *) &mcast[1];
     peer = &mcast->oid;
     break;
