@@ -2200,6 +2200,7 @@ tunnel_destroy (struct MeshTunnel *t)
   if (NULL == t)
     return GNUNET_OK;
 
+  r = GNUNET_OK;
   c = t->client;
 #if MESH_DEBUG
   {
@@ -2218,8 +2219,15 @@ tunnel_destroy (struct MeshTunnel *t)
   {
     r = GNUNET_SYSERR;
   }
-
+  
   GNUNET_CRYPTO_hash (&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
+  if (NULL != c &&
+      GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (c->tunnels, &hash, t))
+  {
+    r = GNUNET_SYSERR;
+  }
+  c = t->client_dest;
+  GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
   if (NULL != c &&
       GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (c->tunnels, &hash, t))
   {
@@ -2296,6 +2304,10 @@ tunnel_destroy_iterator (void *cls, const GNUNET_HashCode * key, void *value)
   send_client_tunnel_disconnect(t, c);
   if (c == t->client_dest)
   {
+#if MESH_DEBUG
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client %u is destination, keeping the tunnel alive.\n", c->id);
+#endif
     t->client_dest = NULL;
     t->local_tid_dest = 0;
     return GNUNET_OK;
@@ -3453,7 +3465,9 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   struct MeshClient *c;
   struct MeshClient *next;
 
+#if MESH_DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: client disconnected\n");
+#endif
   if (client == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    (SERVER DOWN)\n");
@@ -3464,7 +3478,9 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   {
     if (c->handle != client)
     {
+#if MESH_DEBUG
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    ... searching\n");
+#endif
       c = c->next;
       continue;
     }
@@ -3497,12 +3513,16 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
+#if MESH_DEBUG
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   CLIENT FREE at %p\n", c);
+#endif
     GNUNET_free (c);
     c = next;
   }
 
+#if MESH_DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:    done!\n");
+#endif
   return;
 }
 
