@@ -2104,11 +2104,13 @@ tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
  * down the local one in the tunnel tree.
  *
  * @param t Tunnel in which to send the data.
- * @param msg Message to be sent
+ * @param msg Message to be sent.
+ * @param internal Has the service generated this message?
  */
 static void
 tunnel_send_multicast (struct MeshTunnel *t,
-                       const struct GNUNET_MessageHeader *msg)
+                       const struct GNUNET_MessageHeader *msg,
+                       int internal)
 {
   struct MeshData *mdata;
 
@@ -2137,7 +2139,8 @@ tunnel_send_multicast (struct MeshTunnel *t,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   not a data packet, no ttl\n");
 #endif
   }
-  if (NULL != t->client && GNUNET_YES != t->client->shutting_down)
+  if (NULL != t->client && GNUNET_YES != t->client->shutting_down
+      && GNUNET_NO == internal)
   {
     mdata->task = GNUNET_malloc (sizeof (GNUNET_SCHEDULER_TaskIdentifier));
     (*(mdata->task)) =
@@ -2184,7 +2187,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
   msg.tid = htonl (t->id.tid);
-  tunnel_send_multicast (t, &msg.header);
+  tunnel_send_multicast (t, &msg.header, GNUNET_NO);
 }
 
 
@@ -3056,7 +3059,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "MESH:  TTL is 0, DROPPING!\n");
     return GNUNET_OK;
   }
-  tunnel_send_multicast (t, message);
+  tunnel_send_multicast (t, message, GNUNET_NO);
   return GNUNET_OK;
 }
 
@@ -3347,7 +3350,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   payload = (struct GNUNET_MessageHeader *) &msg[1];
   payload->size = htons (sizeof (struct GNUNET_MessageHeader));
   payload->type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
-  tunnel_send_multicast (t, &msg->header);
+  tunnel_send_multicast (t, &msg->header, GNUNET_YES);
 
   t->path_refresh_task =
       GNUNET_SCHEDULER_add_delayed (REFRESH_PATH_TIME, &path_refresh, t);
@@ -3573,8 +3576,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   c = GNUNET_malloc (sizeof (struct MeshClient));
 #if MESH_DEBUG
   c->id = next_client_id++;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   CLIENT NEW %u at %p\n", c->id,
-              c);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   CLIENT NEW %u\n", c->id);
 #endif
   c->handle = client;
   GNUNET_SERVER_client_keep (client);
@@ -3588,7 +3590,9 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     for (i = 0; i < napps; i++)
     {
       at = ntohl (a[i]);
+#if MESH_DEBUG
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   app type: %u\n", at);
+#endif
       GNUNET_CRYPTO_hash (&at, sizeof (at), &hc);
       /* store in clients hashmap */
       GNUNET_CONTAINER_multihashmap_put (c->apps, &hc, c,
@@ -3612,6 +3616,9 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     for (i = 0; i < ntypes; i++)
     {
       u16 = ntohs (t[i]);
+#if MESH_DEBUG
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   msg type: %u\n", u16);
+#endif
       GNUNET_CRYPTO_hash (&u16, sizeof (u16), &hc);
 
       /* store in clients hashmap */
