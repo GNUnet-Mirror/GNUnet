@@ -523,7 +523,10 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score)
 {
-  // do nothing for now...
+#if HAVE_LIBGLPK
+  if (ats_mode == MLP)
+    GAS_mlp_address_change_preference (mlp, peer, kind, score);
+#endif
 }
 
 

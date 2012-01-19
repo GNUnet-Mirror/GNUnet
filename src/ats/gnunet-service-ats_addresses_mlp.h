@@ -47,6 +47,9 @@ struct ATS_Peer
 
   struct GNUNET_PeerIdentity id;
 
+  /* Array of quality preferences */
+  double f_q[GNUNET_ATS_QualityPropertiesCount];
+
   struct ATS_Address *head;
   struct ATS_Address *tail;
 };
@@ -179,6 +182,7 @@ struct GAS_MLP_Handle
   double co_R;
 
   /* ATS Quality metrics
+   *
    * array with GNUNET_ATS_QualityPropertiesCount elements
    * contains mapping to GNUNET_ATS_Property*/
   int q[GNUNET_ATS_QualityPropertiesCount];
@@ -190,7 +194,22 @@ struct GAS_MLP_Handle
   double co_Q[GNUNET_ATS_QualityPropertiesCount];
 
   /* number of quality metrics */
-  int m;
+  int m_q;
+
+  /* ATS ressource costs
+   *
+   * array with GNUNET_ATS_QualityPropertiesCount elements
+   * contains mapping to GNUNET_ATS_Property*/
+  int rc[GNUNET_ATS_QualityPropertiesCount];
+
+  /* column index ressource costs  */
+  int c_rc[GNUNET_ATS_QualityPropertiesCount];
+
+  /* ressource costs coefficients*/
+  double co_RC[GNUNET_ATS_QualityPropertiesCount];
+
+  /* number of quality metrics */
+  int m_rc;
 
   /* minimum bandwidth assigned to an address */
   unsigned int b_min;
@@ -270,14 +289,18 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 
 
 /**
- * Deletes a single address in the MLP problem
+ * Changes the preferences for a peer in the MLP problem
  *
  * @param mlp the MLP Handle
- * @param addresses the address hashmap
- * @param address the address to change the preference
+ * @param peer the peer
+ * @param kind the kind to change the preference
+ * @param float the score
  */
 void
-GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   enum GNUNET_ATS_PreferenceKind kind,
+                                   float score);
 
 
 /**

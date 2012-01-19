@@ -151,6 +151,24 @@ mlp_status_to_string (int retcode)
 }
 
 /**
+ * Find a peer in the DLL
+ * @param the peer to find
+ * @return the peer struct
+ */
+static struct ATS_Peer *
+mlp_find_peer (struct GAS_MLP_Handle *mlp, const struct GNUNET_PeerIdentity *peer)
+{
+  struct ATS_Peer *res = mlp->peer_head;
+  while (res != NULL)
+  {
+    if (0 == memcmp (peer, &res->id, sizeof (struct GNUNET_PeerIdentity)))
+      break;
+    res = res->next;
+  }
+  return res;
+}
+
+/**
  * Intercept GLPK terminal output
  * @param info the mlp handle
  * @param s the string to print
@@ -492,8 +510,8 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
 
   /* Quality metric columns */
-  col = glp_add_cols(mlp->prob, mlp->m);
-  for (c = 0; c < mlp->m; c++)
+  col = glp_add_cols(mlp->prob, mlp->m_q);
+  for (c = 0; c < mlp->m_q; c++)
   {
     mlp->c_q[c] = col + c;
     GNUNET_asprintf (&name, "q_%u", mlp->q[c]);
@@ -869,7 +887,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->co_U = U;
   mlp->b_min = b_min;
   mlp->n_min = n_min;
-  mlp->m = GNUNET_ATS_QualityPropertiesCount;
+  mlp->m_q = GNUNET_ATS_QualityPropertiesCount;
 
   return mlp;
 }
@@ -893,6 +911,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 {
   int new;
   struct MLP_information *mlpi;
+  int c;
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP address updates", 1, GNUNET_NO);
 
@@ -910,13 +929,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     mlp->addr_in_problem ++;
 
     /* Check for and add peer */
-    struct ATS_Peer *peer = mlp->peer_head;
-    while (peer != NULL)
-    {
-      if (0 == memcmp (&address->peer, &peer->id, sizeof (struct GNUNET_PeerIdentity)))
-        break;
-      peer = peer->next;
-    }
+    struct ATS_Peer *peer = mlp_find_peer (mlp, &address->peer);
     if (peer == NULL)
     {
 #if DEBUG_ATS
@@ -925,6 +938,12 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
       peer = GNUNET_malloc (sizeof (struct ATS_Peer));
       peer->head = NULL;
       peer->tail = NULL;
+
+      for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+      {
+        peer->f_q[c] = 1.0;
+      }
+
       memcpy (&peer->id, &address->peer, sizeof (struct GNUNET_PeerIdentity));
       GNUNET_assert(address->prev == NULL);
       GNUNET_assert(address->next == NULL);
@@ -978,13 +997,7 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
   }
 
   /* Remove from peer list */
-  struct ATS_Peer *head = mlp->peer_head;
-  while (head != NULL)
-  {
-    if (0 == memcmp (&address->peer, &head->id, sizeof (struct GNUNET_PeerIdentity)))
-      break;
-    head = head->next;
-  }
+  struct ATS_Peer *head = mlp_find_peer (mlp, &address->peer);
   GNUNET_assert (head != NULL);
 #if DEBUG_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting address for `%s'\n", GNUNET_i2s (&address->peer));
@@ -1017,16 +1030,24 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 }
 
 /**
- * Deletes a single address in the MLP problem
+ * Changes the preferences for a peer in the MLP problem
  *
  * @param mlp the MLP Handle
- * @param addresses the address hashmap
- * @param address the address to change the preference
+ * @param peer the peer
+ * @param kind the kind to change the preference
+ * @param float the score
  */
 void
-GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   enum GNUNET_ATS_PreferenceKind kind,
+                                   float score)
 {
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
+
+  struct ATS_Peer *p = mlp_find_peer (mlp, peer);
+  p = p;
+  /* Here we have to do the matching */
 }
 
 /**
