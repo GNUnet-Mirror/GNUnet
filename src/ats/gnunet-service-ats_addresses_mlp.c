@@ -32,7 +32,8 @@
 #include "glpk.h"
 
 #define WRITE_MLP GNUNET_NO
-#define DEBUG_ATS GNUNET_EXTRA_LOGGING
+#define DEBUG_ATS GNUNET_YES
+#define VERBOSE_GLPK GNUNET_NO
 
 /**
  * Translate glpk solver error codes to text
@@ -313,7 +314,6 @@ static void
 mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses)
 {
   unsigned int n_addresses;
-  int row_index;
   //int c;
   char *name;
 
@@ -357,9 +357,17 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    * c 7) quality
    * #rows: |quality properties|
    * #indices:|quality properties| + |n_addresses|
+   *
+   * c 8) utilization
+   * #rows: 1
+   * #indices: |n_addresses| + 1
+   *
+   * c 9) relativity
+   * #rows: |peers|
+   * #indices: |n_addresses| + |peers|
    * */
 
-  int pi = ((7 * n_addresses) + (2 * n_addresses +  mlp->m_q + 1));
+  int pi = ((7 * n_addresses) + (3 * n_addresses +  mlp->m_q + 2));
   mlp->cm_size = pi;
   mlp->ci = 1;
 
@@ -412,30 +420,73 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    *
    * c 2) 1 address per peer
    * sum (n_p1_1 + ... + n_p1_n) = 1
-   */
+   *
+   * c 8) utilization
+   * sum (f_p * b_p1_1 + ... + f_p * b_p1_n) - u = 0
+   *
+   * c 9) relativity
+   * V p : sum (bt_1 + ... +bt_n) - f_p * r = 0
+   * */
 
-  /* Adding rows for c 2) */
-  row_index = glp_add_rows (mlp->prob, mlp->c_p);
+  /* Adding rows for c 8) */
+  mlp->r_c8 = glp_add_rows (mlp->prob, mlp->c_p);
+  glp_set_row_name (mlp->prob, mlp->r_c8, "c8");
+  /* Set row bound == 0 */
+  glp_set_row_bnds (mlp->prob, mlp->r_c8, GLP_FX, 0.0, 0.0);
+  /* -u */
+  ia[mlp->ci] = mlp->r_c8;
+  ja[mlp->ci] = mlp->c_u;
+  ar[mlp->ci] = -1;
+  mlp->ci++;
 
   struct ATS_Peer * peer = mlp->peer_head;
   while (peer != NULL)
   {
     struct ATS_Address *addr = peer->head;
     struct MLP_information *mlpi = NULL;
-    /* Adding row for c 2) */
+
+    /* Adding rows for c 2) */
+    peer->r_c2 = glp_add_rows (mlp->prob, 1);
     GNUNET_asprintf(&name, "c2_%s", GNUNET_i2s(&peer->id));
-    glp_set_row_name (mlp->prob, row_index, name);
+    glp_set_row_name (mlp->prob, peer->r_c2, name);
     GNUNET_free (name);
     /* Set row bound == 1 */
-    glp_set_row_bnds (mlp->prob, row_index, GLP_FX, 1.0, 1.0);
+    glp_set_row_bnds (mlp->prob, peer->r_c2, GLP_FX, 1.0, 1.0);
+
+
+    /* Adding rows for c 9) */
+    peer->r_c9 = glp_add_rows (mlp->prob, 1);
+    GNUNET_asprintf(&name, "c9_%s", GNUNET_i2s(&peer->id));
+    glp_set_row_name (mlp->prob, peer->r_c9, name);
+    GNUNET_free (name);
+    /* Set row bound == 0 */
+    glp_set_row_bnds (mlp->prob, peer->r_c9, GLP_LO, 0.0, 0.0);
+
+    /* Set -r */
+    ia[mlp->ci] = peer->r_c9;
+    ja[mlp->ci] = mlp->c_r;
+    ar[mlp->ci] = -1;
+    mlp->ci++;
 
     while (addr != NULL)
     {
       mlpi = (struct MLP_information *) addr->mlp_information;
-      ia[mlp->ci] = row_index;
+
+      ia[mlp->ci] = peer->r_c2;
       ja[mlp->ci] = mlpi->c_n;
       ar[mlp->ci] = 1;
       mlp->ci++;
+
+      ia[mlp->ci] = mlp->r_c8;
+      ja[mlp->ci] = mlpi->c_b;
+      ar[mlp->ci] = peer->f;
+      mlp->ci++;
+
+      ia[mlp->ci] = peer->r_c9;
+      ja[mlp->ci] = mlpi->c_b;
+      ar[mlp->ci] = 1;
+      mlp->ci++;
+
       addr = addr->next;
     }
     peer = peer->next;
@@ -553,7 +604,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   glp_set_obj_coef (mlp->prob, col, mlp->co_D);
   /* Column lower bound = 0.0 */
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
-#if 0
+
   /* Utilization u column  */
 
   col = glp_add_cols (mlp->prob, 1);
@@ -574,7 +625,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   glp_set_obj_coef (mlp->prob, col, mlp->co_R);
   /* Column lower bound = 0.0 */
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
-
+#if 0
   /* Quality metric columns */
   col = glp_add_cols(mlp->prob, mlp->m_q);
   for (c = 0; c < mlp->m_q; c++)
@@ -841,7 +892,7 @@ mlp_solve_problem (struct GAS_MLP_Handle *mlp)
   }
 
 #if DEBUG_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved: %i %s\n", res, mlp_status_to_string(res));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved\n");
 #endif
 
   /* Process result */
@@ -975,7 +1026,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   /* Init LP solving parameters */
   glp_init_smcp(&mlp->control_param_lp);
-#if DEBUG_ATS
+#if VERBOSE_GLPK
   mlp->control_param_lp.msg_lev = GLP_MSG_ALL;
 #else
   mlp->control_param_lp.msg_lev = GLP_MSG_OFF;
@@ -985,7 +1036,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   /* Init MLP solving parameters */
   glp_init_iocp(&mlp->control_param_mlp);
-#if DEBUG_ATS
+#if VERBOSE_GLPK
   mlp->control_param_mlp.msg_lev = GLP_MSG_ALL;
 #else
   mlp->control_param_mlp.msg_lev = GLP_MSG_OFF;
@@ -1057,6 +1108,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
       {
         peer->f_q[c] = 1.0;
       }
+      peer->f = 1.0;
 
       memcpy (&peer->id, &address->peer, sizeof (struct GNUNET_PeerIdentity));
       GNUNET_assert(address->prev == NULL);

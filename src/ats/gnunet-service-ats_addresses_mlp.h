@@ -48,6 +48,14 @@ struct ATS_Peer
 
   /* Array of quality preferences */
   double f_q[GNUNET_ATS_QualityPropertiesCount];
+  /* Legacy preference value */
+  double f;
+
+  /* constraint 2: 1 address per peer*/
+  unsigned int r_c2;
+
+  /* constraint 9: relativity */
+  unsigned int r_c9;
 
   struct ATS_Address *head;
   struct ATS_Address *tail;
@@ -167,10 +175,16 @@ struct GAS_MLP_Handle
   unsigned int cm_size;
   unsigned int ci;
 
+  /* Row index constraint 2: */
+  unsigned int r_c2;
   /* Row index constraint 4: minimum connections */
   unsigned int r_c4;
   /* Row index constraint 6: maximize diversity */
   unsigned int r_c6;
+  /* Row index constraint 8: utilization*/
+  unsigned int r_c8;
+  /* Row index constraint 9: relativity*/
+  unsigned int r_c9;
 
   /* column index Diversity (D) column */
   int c_d;
