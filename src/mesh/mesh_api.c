@@ -267,7 +267,7 @@ struct GNUNET_MESH_Tunnel
   MESH_TunnelNumber tid;
 
     /**
-     * Owner of the tunnel
+     * Owner of the tunnel. 0 if the tunnel is the local client.
      */
   GNUNET_PEER_Id owner;
 
@@ -666,7 +666,7 @@ reconnect (struct GNUNET_MESH_Handle *h)
   {
     GNUNET_SCHEDULER_add_delayed (h->reconnect_time, &reconnect_cbk, h);
     h->reconnect_time =
-        GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_HOURS,
+        GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
                                   GNUNET_TIME_relative_multiply
                                   (h->reconnect_time, 2));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   Next retry in %sms\n",
@@ -1264,6 +1264,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_Tunnel *aux;
+  struct GNUNET_MESH_TransmitHandle *th;
 
   t = handle->tunnels_head;
   while (NULL != t)
@@ -1271,6 +1272,20 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     aux = t->next;
     destroy_tunnel (t);
     t = aux;
+  }
+  while ( (th = handle->th_head) != NULL)
+  {
+    struct GNUNET_MessageHeader *msg;
+
+    /* Make sure it is a connect packet (everything else should have been
+     * already canceled).
+     */
+    GNUNET_break (UINT32_MAX == th->priority);
+    GNUNET_break (NULL == th->notify);
+    msg = (struct GNUNET_MessageHeader *) &th[1];
+    GNUNET_break (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT == ntohs(msg->type));
+    GNUNET_CONTAINER_DLL_remove (handle->th_head, handle->th_tail, th);
+    GNUNET_free (th);
   }
   if (NULL != handle->th)
   {
@@ -1330,9 +1345,6 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: Destroying tunnel\n");
   h = tunnel->mesh;
-
-  if (0 != tunnel->owner)
-    GNUNET_PEER_change_rc (tunnel->owner, -1);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
