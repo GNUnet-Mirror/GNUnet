@@ -850,11 +850,7 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
     GNUNET_break (0);
     return 0;
   }
-  // FIXME proper client differentiation mechanism required
-  if (htons (msg->type) == GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN)
-    *tid = htonl (t->local_tid);
-  else
-    *tid = htonl (t->local_tid_dest != 0 ? t->local_tid_dest : t->local_tid);
+
   for (count = 0, c = clients; c != NULL; c = c->next)
   {
 #if MESH_DEBUG
@@ -862,6 +858,18 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
 #endif
     if (client_is_subscribed (type, c))
     {
+      // FIXME proper client differentiation mechanism required
+      if (htons (msg->type) == GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN)
+        *tid = htonl (t->local_tid);
+      else if(c == t->client)
+        *tid = htonl (t->local_tid);
+      else if(c == t->client_dest)
+        *tid = htonl (t->local_tid_dest);
+      else
+      {
+        GNUNET_break (0);
+        continue;
+      }
       count++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      sending\n");
       GNUNET_SERVER_notification_context_unicast (nc, c->handle,
