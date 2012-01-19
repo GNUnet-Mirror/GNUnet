@@ -3347,6 +3347,9 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
   msg->oid = my_full_id;
   msg->tid = htonl (t->id.tid);
+  msg->ttl = htonl (DEFAULT_TTL);
+  msg->mid = htonl (t->mid + 1);
+  t->mid++;
   payload = (struct GNUNET_MessageHeader *) &msg[1];
   payload->size = htons (sizeof (struct GNUNET_MessageHeader));
   payload->type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
