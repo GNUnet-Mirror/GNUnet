@@ -34,7 +34,6 @@
 #ifndef GNUNET_SERVICE_ATS_ADDRESSES_MLP_H
 #define GNUNET_SERVICE_ATS_ADDRESSES_MLP_H
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
 #define DEBUG_MLP GNUNET_EXTRA_LOGGING
 
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
@@ -168,6 +167,8 @@ struct GAS_MLP_Handle
 
   /* Row index constraint 4: minimum connections */
   unsigned int r_c4;
+  /* Row index constraint 6: maximize diversity */
+  unsigned int r_c6;
 
   /* column index Diversity (D) column */
   int c_d;
