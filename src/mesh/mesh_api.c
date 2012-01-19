@@ -786,7 +786,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     t->ctx = h->new_tunnel (h->cls, t, &msg->peer, &atsi);
   }
 #if MESH_API_DEBUG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: new incoming tunnel %u\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: new incoming tunnel %X\n",
               t->tid);
 #endif
   return;
