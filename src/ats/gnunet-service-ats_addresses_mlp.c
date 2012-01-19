@@ -33,8 +33,6 @@
 
 #define WRITE_MLP GNUNET_YES
 #define DEBUG_ATS GNUNET_YES
-/* A very big value  (~1 TB/s)*/
-#define M 1100000000000
 
 /**
  * Translate glpk solver error codes to text
@@ -253,7 +251,7 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
 
   mlp->ia[mlp->ci] = row_index;
   mlp->ja[mlp->ci] = mlpi->c_n;
-  mlp->ar[mlp->ci] = -M;
+  mlp->ar[mlp->ci] = -mlp->BIG_M;
   mlp->ci++;
 
   /* c 3) minimum bandwidth
@@ -264,9 +262,7 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   mlpi->r_c3 = row_index;
   /* set row bounds: >= 0 */
   glp_set_row_bnds (mlp->prob, row_index, GLP_LO, 0.0, 0.0);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-      "ats-mlp",
-      "!!!!! bmin %i\n", mlp->b_min);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "ats-mlp", "bmin %i %f\n", mlp->b_min, mlp->BIG_M);
 
   mlp->ia[mlp->ci] = row_index;
   mlp->ja[mlp->ci] = mlpi->c_b;
@@ -275,8 +271,7 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
 
   mlp->ia[mlp->ci] = row_index;
   mlp->ja[mlp->ci] = mlpi->c_n;
-  mlp->ar[mlp->ci] = -64000;
-  //mlp->ar[mlp->ci] = -mlp->b_min;
+  mlp->ar[mlp->ci] = - (double) mlp->b_min;
   mlp->ci++;
 #if 0
   /* c 4) minimum connections
@@ -479,10 +474,6 @@ create_columns_it (void *cls, const GNUNET_HashCode * key, void *value)
   col = glp_add_cols (mlp->prob, 2);
   mlpi->c_b = col;
   mlpi->c_n = col + 1;
-
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-      "ats-mlp",
-      "Culoumn %i %i\n", mlpi->c_b, mlpi->c_n);
 
   GNUNET_asprintf (&name, "b_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
   glp_set_col_name (mlp->prob, mlpi->c_b , name);
@@ -1002,6 +993,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   mlp->last_execution = GNUNET_TIME_absolute_get_forever();
 
+
+  mlp->BIG_M = (double) UINT32_MAX;
   mlp->co_D = D;
   mlp->co_R = R;
   mlp->co_U = U;

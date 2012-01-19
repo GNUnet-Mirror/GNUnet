@@ -72,6 +72,8 @@ struct GAS_MLP_Handle
   void *prob;
 #endif
 
+  double BIG_M;
+
   /**
    * GLPK LP control parameter
    */
