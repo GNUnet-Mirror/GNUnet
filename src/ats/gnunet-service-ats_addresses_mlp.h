@@ -207,6 +207,9 @@ struct GAS_MLP_Handle
   /* column index quality metrics  */
   int c_q[GNUNET_ATS_QualityPropertiesCount];
 
+  /* column index quality metrics  */
+  int r_q[GNUNET_ATS_QualityPropertiesCount];
+
   /* quality metric coefficients*/
   double co_Q[GNUNET_ATS_QualityPropertiesCount];
 

@@ -32,7 +32,7 @@
 #include "glpk.h"
 
 #define WRITE_MLP GNUNET_NO
-#define DEBUG_ATS GNUNET_YES
+#define DEBUG_ATS GNUNET_NO
 #define VERBOSE_GLPK GNUNET_NO
 
 /**
@@ -314,7 +314,7 @@ static void
 mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses)
 {
   unsigned int n_addresses;
-  //int c;
+  int c;
   char *name;
 
   /* Problem matrix*/
@@ -356,7 +356,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    *
    * c 7) quality
    * #rows: |quality properties|
-   * #indices:|quality properties| + |n_addresses|
+   * #indices: |n_addresses| + |quality properties|
    *
    * c 8) utilization
    * #rows: 1
@@ -367,7 +367,8 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    * #indices: |n_addresses| + |peers|
    * */
 
-  int pi = ((7 * n_addresses) + (3 * n_addresses +  mlp->m_q + 2));
+  /* last +1 caused by glpk index starting with one */
+  int pi = ((7 * n_addresses) + (4 * n_addresses +  mlp->m_q + mlp->c_p + 2) + 1);
   mlp->cm_size = pi;
   mlp->ci = 1;
 
@@ -453,7 +454,6 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     /* Set row bound == 1 */
     glp_set_row_bnds (mlp->prob, peer->r_c2, GLP_FX, 1.0, 1.0);
 
-
     /* Adding rows for c 9) */
     peer->r_c9 = glp_add_rows (mlp->prob, 1);
     GNUNET_asprintf(&name, "c9_%s", GNUNET_i2s(&peer->id));
@@ -492,23 +492,44 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     peer = peer->next;
   }
 
+  /* c 7) For all quality metrics */
 
-  /* For all quality metrics */
-/*
   for (c = 0; c < mlp->m_q; c++)
   {
     struct ATS_Peer *p = mlp->peer_head;
+    struct ATS_Address *addr = p->head;
+    struct MLP_information * mlpi;
+    double value = 1.0;
+
     while (p != NULL)
     {
-      ia[mlp->ci] = row_index;
+      /* Adding rows for c 7) */
+      mlp->r_q[c] = glp_add_rows (mlp->prob, 1);
+      GNUNET_asprintf(&name, "c7_q%i_atsi_%i", c, mlp->q[c]);
+      glp_set_row_name (mlp->prob, mlp->r_q[c], name);
+      GNUNET_free (name);
+      /* Set row bound == 0 */
+      glp_set_row_bnds (mlp->prob, mlp->r_q[c], GLP_LO, 0.0, 0.0);
+
+      /* Set -q_m */
+      ia[mlp->ci] = mlp->r_q[c];
       ja[mlp->ci] = mlp->c_q[c];
-      ar[mlp->ci] = mlp->;
+      ar[mlp->ci] = -1;
       mlp->ci++;
 
+      while (addr != NULL)
+      {
+        mlpi = addr->mlp_information;
+        ia[mlp->ci] = mlp->r_q[c];
+        ja[mlp->ci] = mlpi->c_b;
+        ar[mlp->ci] = p->f * value;
+        mlp->ci++;
+
+        addr = addr->next;
+      }
       p = p->next;
     }
   }
-*/
 }
 
 
@@ -575,12 +596,10 @@ static int
 mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses)
 {
   int res = GNUNET_OK;
-
   int col;
-/*
   int c;
   char *name;
-*/
+
   GNUNET_assert (mlp->prob == NULL);
 
   /* create the glpk problem */
@@ -625,7 +644,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   glp_set_obj_coef (mlp->prob, col, mlp->co_R);
   /* Column lower bound = 0.0 */
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
-#if 0
+
   /* Quality metric columns */
   col = glp_add_cols(mlp->prob, mlp->m_q);
   for (c = 0; c < mlp->m_q; c++)
@@ -639,7 +658,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
     /* Coefficient == Qm */
     glp_set_obj_coef (mlp->prob, col + c, mlp->co_Q[c]);
   }
-#endif
+
   /* Add columns for addresses */
   GNUNET_CONTAINER_multihashmap_iterate (addresses, create_columns_it, mlp);
 
@@ -1130,6 +1149,8 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 #if DEBUG_ATS
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating existing address to peer `%s'\n", GNUNET_i2s (&address->peer));
 #endif
+    mlpi = address->mlp_information;
+
   }
 
   /* Recalculate */
