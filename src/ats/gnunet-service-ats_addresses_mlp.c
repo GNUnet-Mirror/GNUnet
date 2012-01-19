@@ -30,12 +30,11 @@
 #include "gnunet-service-ats_addresses_mlp.h"
 #include "gnunet_statistics_service.h"
 #include "glpk.h"
-#include "float.h"
 
 #define WRITE_MLP GNUNET_YES
 #define DEBUG_ATS GNUNET_YES
-/* A very big value */
-#define M DBL_MAX
+/* A very big value  (~1 TB/s)*/
+#define M 1100000000000
 
 /**
  * Translate glpk solver error codes to text
@@ -247,7 +246,6 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   mlpi->r_c1 = row_index;
   /* set row bounds: <= 0 */
   glp_set_row_bnds (mlp->prob, row_index, GLP_UP, 0.0, 0.0);
-
   mlp->ia[mlp->ci] = row_index;
   mlp->ja[mlp->ci] = mlpi->c_b;
   mlp->ar[mlp->ci] = 1;
@@ -266,6 +264,9 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   mlpi->r_c3 = row_index;
   /* set row bounds: >= 0 */
   glp_set_row_bnds (mlp->prob, row_index, GLP_LO, 0.0, 0.0);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+      "ats-mlp",
+      "!!!!! bmin %i\n", mlp->b_min);
 
   mlp->ia[mlp->ci] = row_index;
   mlp->ja[mlp->ci] = mlpi->c_b;
@@ -274,7 +275,8 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
 
   mlp->ia[mlp->ci] = row_index;
   mlp->ja[mlp->ci] = mlpi->c_n;
-  mlp->ar[mlp->ci] = -mlp->b_min;
+  mlp->ar[mlp->ci] = -64000;
+  //mlp->ar[mlp->ci] = -mlp->b_min;
   mlp->ci++;
 #if 0
   /* c 4) minimum connections
@@ -356,7 +358,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
 
   int pi = ((7 * n_addresses) /*+ (2 * n_addresses +  mlp->m_q + 1)*/);
   mlp->cm_size = pi;
-  mlp->ci = 0;
+  mlp->ci = 1;
 
   /* row index */
   int *ia = GNUNET_malloc (pi * sizeof (int));
@@ -535,10 +537,6 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   /* Set optimization direction to maximize */
   glp_set_obj_dir (mlp->prob, GLP_MAX);
 
-  /* Setting initial index == 1
-   * glpk matrix is from 1 .. number_elements*/
-
-  mlp->ci = 1;
   /* Adding invariant columns */
 
   /* Diversity d column  */
