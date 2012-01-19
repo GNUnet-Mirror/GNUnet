@@ -970,9 +970,14 @@ setup_state_record (struct TunnelState *state)
   /* generate fresh, unique address */
   do
   {
-    setup_fresh_address (state->serv->address.af,
-			 state->serv->address.proto,
-			 &state->ri.local_address);
+    if (NULL == state->serv)
+      setup_fresh_address (state->ri.remote_address.af,
+			   state->ri.remote_address.proto,
+			   &state->ri.local_address);
+    else
+      setup_fresh_address (state->serv->address.af,
+			   state->serv->address.proto,
+			   &state->ri.local_address);
   } while (NULL != get_redirect_state (state->ri.remote_address.af,
 				       state->ri.remote_address.proto,
 				       &state->ri.remote_address.address,
