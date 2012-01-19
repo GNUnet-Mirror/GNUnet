@@ -235,9 +235,25 @@ static struct GNUNET_HELPER_Handle *helper_handle;
 static char *exit_argv[7];
 
 /**
+ * IPv6 address of our TUN interface.
+ */
+static struct in6_addr exit_ipv6addr;
+
+/**
  * IPv6 prefix (0..127) from configuration file.
  */
 static unsigned long long ipv6prefix;
+
+/**
+ * IPv4 address of our TUN interface.
+ */
+static struct in_addr exit_ipv4addr;
+
+/**
+ * IPv4 netmask of our TUN interface.
+ */
+static struct in_addr exit_ipv4mask;
+
 
 /**
  * Statistics.
@@ -865,14 +881,12 @@ setup_fresh_address (int af,
   {
   case AF_INET:
     {
-      const char *ipv4addr = exit_argv[4];
-      const char *ipv4mask = exit_argv[5];
       struct in_addr addr;
       struct in_addr mask;
       struct in_addr rnd;
 
-      GNUNET_assert (1 == inet_pton (AF_INET, ipv4addr, &addr));
-      GNUNET_assert (1 == inet_pton (AF_INET, ipv4mask, &mask));           
+      addr = exit_ipv4addr;
+      mask = exit_ipv4mask;
       if (0 == ~mask.s_addr)
       {
 	/* only one valid IP anyway */
@@ -895,13 +909,12 @@ setup_fresh_address (int af,
     break;
   case AF_INET6:
     {
-      const char *ipv6addr = exit_argv[2];
       struct in6_addr addr;
       struct in6_addr mask;
       struct in6_addr rnd;
       int i;
-
-      GNUNET_assert (1 == inet_pton (AF_INET6, ipv6addr, &addr));
+      
+      addr = exit_ipv6addr;
       GNUNET_assert (ipv6prefix < 128);
       if (ipv6prefix == 127)
       {
@@ -2142,8 +2155,6 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   char *ipv6prefix_s;
   char *ipv4addr;
   char *ipv4mask;
-  struct in_addr v4;
-  struct in6_addr v6;
 
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("exit", cfg);
@@ -2219,7 +2230,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     if ( (GNUNET_SYSERR ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
 						 &ipv6addr) ||
-	  (1 != inet_pton (AF_INET6, ipv6addr, &v6))) )
+	  (1 != inet_pton (AF_INET6, ipv6addr, &exit_ipv6addr))) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "No valid entry 'IPV6ADDR' in configuration!\n");
@@ -2258,7 +2269,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     if ( (GNUNET_SYSERR ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
 						 &ipv4addr) ||
-	  (1 != inet_pton (AF_INET, ipv4addr, &v4))) )
+	  (1 != inet_pton (AF_INET, ipv4addr, &exit_ipv4addr))) )
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    "No valid entry for 'IPV4ADDR' in configuration!\n");
@@ -2269,7 +2280,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     if ( (GNUNET_SYSERR ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
 						 &ipv4mask) ||
-	  (1 != inet_pton (AF_INET, ipv4mask, &v4))) )
+	  (1 != inet_pton (AF_INET, ipv4mask, &exit_ipv4mask))) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "No valid entry 'IPV4MASK' in configuration!\n");
