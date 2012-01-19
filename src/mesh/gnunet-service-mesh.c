@@ -411,6 +411,12 @@ struct MeshClient
      */
   struct GNUNET_CONTAINER_MultiHashMap *types;
 
+    /**
+     * Whether the client is active or shutting down (don't send confirmations
+     * to a client that is shutting down.
+     */
+  int shutting_down;
+
 #if MESH_DEBUG
     /**
      * ID of the client, for debug messages
@@ -912,7 +918,7 @@ send_clients_tunnel_destroy (struct MeshTunnel *t)
  * notification. Otherwise, the origin gets a (local ID) peer disconnected.
  *
  * @param t Tunnel that was destroyed.
- * @param c Client that disconnected
+ * @param c Client that disconnected.
  */
 static void
 send_client_tunnel_disconnect (struct MeshTunnel *t, struct MeshClient *c)
@@ -2123,7 +2129,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:   not a data packet, no ttl\n");
 #endif
   }
-  if (NULL != t->client)
+  if (NULL != t->client && GNUNET_YES != t->client->shutting_down)
   {
     mdata->task = GNUNET_malloc (sizeof (GNUNET_SCHEDULER_TaskIdentifier));
     (*(mdata->task)) =
@@ -3467,6 +3473,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
                 c->id);
 #endif
     GNUNET_SERVER_client_drop (c->handle);
+    c->shutting_down = GNUNET_YES;
     if (NULL != c->tunnels)
     {
       GNUNET_CONTAINER_multihashmap_iterate (c->tunnels,
