@@ -242,4 +242,27 @@ GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
 }
 
 
+/**
+ * Calculate ICMP checksum.
+ *
+ * @param icmp IMCP header (initialized except for CRC)
+ * @param payload the ICMP payload
+ * @param payload_length number of bytes of ICMP payload
+ */
+void
+GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
+				    const void *payload,
+				    uint16_t payload_length)
+{
+  uint32_t sum;
+
+  icmp->crc = 0;
+  sum = GNUNET_CRYPTO_crc16_step (0,
+				  icmp,
+				  sizeof (struct GNUNET_TUN_IcmpHeader));
+  sum = GNUNET_CRYPTO_crc16_step (sum, payload, payload_length);
+  icmp->crc = GNUNET_CRYPTO_crc16_finish (sum);
+}
+
+
 /* end of tun.c */

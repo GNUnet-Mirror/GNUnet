@@ -145,6 +145,63 @@ struct GNUNET_TUN_DnsHeader
   uint16_t arcount GNUNET_PACKED;
 };
 
+#define	GNUNET_TUN_ICMPTYPE_ECHO_REPLY 0
+#define	GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE 3
+#define	GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH 4
+#define	GNUNET_TUN_ICMPTYPE_REDIRECT_MESSAGE 5
+#define	GNUNET_TUN_ICMPTYPE_ECHO_REQUEST 8
+#define	GNUNET_TUN_ICMPTYPE_ROUTER_ADVERTISEMENT 9
+#define	GNUNET_TUN_ICMPTYPE_ROUTER_SOLICITATION 10
+#define	GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED 11
+
+#define	GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE 1
+#define	GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG 2
+#define	GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED 3
+#define	GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM 4
+#define	GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST 128
+#define	GNUNET_TUN_ICMPTYPE6_ECHO_REPLY 129
+
+/**
+ * ICMP header.
+ */
+struct GNUNET_TUN_IcmpHeader {
+  uint8_t type;		
+  uint8_t code;		 
+  uint16_t crc;
+
+  union {
+    /**
+     * ICMP Echo (request/reply) 
+     */
+    struct {
+      uint16_t	identifier;
+      uint16_t	sequence_number;
+    } echo;
+
+    /**
+     * ICMP Destination Unreachable (RFC 1191) 
+     */
+    struct ih_pmtu {
+      uint16_t empty;
+      uint16_t next_hop_mtu;
+      /* followed by original IP header + first 8 bytes of original IP datagram */
+    } destination_unreachable;
+
+    /**
+     * ICMP Redirect 
+     */	
+    struct in_addr redirect_gateway_address;	
+
+    /**
+     * Placeholder.
+     */
+    int32_t present;
+
+  } quench;
+
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 
@@ -235,6 +292,19 @@ GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
 void
 GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
 				    struct GNUNET_TUN_UdpHeader *udp,
+				    const void *payload,
+				    uint16_t payload_length);
+
+
+/**
+ * Calculate ICMP checksum.
+ *
+ * @param icmp IMCP header (initialized except for CRC)
+ * @param payload the ICMP payload
+ * @param payload_length number of bytes of ICMP payload
+ */
+void
+GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
 				    const void *payload,
 				    uint16_t payload_length);
 
