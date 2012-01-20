@@ -861,15 +861,10 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
       // FIXME proper client differentiation mechanism required
       if (htons (msg->type) == GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN)
         *tid = htonl (t->local_tid);
-      else if(c == t->client)
-        *tid = htonl (t->local_tid);
       else if(c == t->client_dest)
         *tid = htonl (t->local_tid_dest);
       else
-      {
-        GNUNET_break (0);
-        continue;
-      }
+        *tid = htonl (t->local_tid);
       count++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      sending\n");
       GNUNET_SERVER_notification_context_unicast (nc, c->handle,
