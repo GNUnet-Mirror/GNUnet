@@ -131,7 +131,8 @@ typedef void *(GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
  * Function called whenever an inbound tunnel is destroyed.  Should clean up
  * any associated state.  This function is NOT called if the client has
  * explicitly asked for the tunnel to be destroyed using
- * GNUNET_MESH_tunnel_destroy.
+ * GNUNET_MESH_tunnel_destroy. It must NOT call GNUNET_MESH_tunnel_destroy on
+ * the tunnel.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
@@ -159,7 +160,9 @@ typedef uint32_t GNUNET_MESH_ApplicationType;
  * @param cls closure for the various callbacks that follow
  *            (including handlers in the handlers array)
  * @param new_tunnel function called when an *inbound* tunnel is created
- * @param cleaner function called when an *inbound* tunnel is destroyed
+ * @param cleaner function called when an *inbound* tunnel is destroyed by the
+ *                remote peer, it is *not* called if GNUNET_MESH_tunnel_destroy
+ *                is called on the tunnel
  * @param handlers callbacks for messages we care about, NULL-terminated
  *                note that the mesh is allowed to drop notifications about
  *                inbound messages if the client does not process them fast
@@ -178,7 +181,10 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Disconnect from the mesh service.
+ * Disconnect from the mesh service. All tunnels will be destroyed. All tunnel
+ * disconnect callbacks will be called on any still connected peers, notifying
+ * about their disconnection. The registered inbound tunnel cleaner will be
+ * called should any inbound tunnels still exist.
  *
  * @param handle connection to mesh to disconnect
  */
@@ -235,7 +241,8 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
                            void *handler_cls);
 
 /**
- * Destroy an existing tunnel.
+ * Destroy an existing tunnel. The existing callback for the tunnel will NOT
+ * be called.
  *
  * @param tunnel tunnel handle
  */
