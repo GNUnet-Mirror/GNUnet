@@ -473,6 +473,8 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
   struct HelperMessageQueueEntry *qe;
   uint16_t mlen;
 
+  if (NULL == h->fh_to_helper)
+    return GNUNET_NO;
   if ( (GNUNET_YES == can_drop) &&
        (h->mq_head != NULL) )
     return GNUNET_NO;
