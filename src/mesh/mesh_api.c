@@ -370,11 +370,12 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
  * - Frees all memory used
  *
  * @param t Pointer to the tunnel.
+ * @param call_handler Whether to call the cleaner handler.
  *
  * @return Handle to the required tunnel or NULL if not found.
  */
 static void
-destroy_tunnel (struct GNUNET_MESH_Tunnel *t)
+destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
 {
   struct GNUNET_MESH_Handle *h;
   struct GNUNET_PeerIdentity pi;
@@ -425,7 +426,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t)
   }
   if (t->npeers > 0)
     GNUNET_free (t->peers);
-  if (NULL != h->cleaner && 0 != t->owner)
+  if (NULL != h->cleaner && 0 != t->owner && GNUNET_YES == call_cleaner)
     h->cleaner (h->cls, t, t->ctx);
   if (0 != t->owner)
     GNUNET_PEER_change_rc (t->owner, -1);
@@ -821,7 +822,7 @@ process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
 #if MESH_API_DEBUG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: tunnel %u destroyed\n", t->tid);
 #endif
-  destroy_tunnel (t);
+  destroy_tunnel (t, GNUNET_YES);
   return;
 }
 
@@ -929,7 +930,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     t = retrieve_tunnel (h, ntohl (to_orig->tid));
     payload = (struct GNUNET_MessageHeader *) &to_orig[1];
     peer = &to_orig->sender;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   reply on tunnel %s [%x]\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   torig on tunnel %s [%x]\n",
                 GNUNET_i2s (peer), ntohl (to_orig->tid));
     break;
   default:
@@ -1210,7 +1211,9 @@ send_packet (struct GNUNET_MESH_Handle *h,
  * @param cls closure for the various callbacks that follow
  *            (including handlers in the handlers array)
  * @param new_tunnel function called when an *inbound* tunnel is created
- * @param cleaner function called when an *inbound* tunnel is destroyed
+ * @param cleaner function called when an *inbound* tunnel is destroyed by the
+ *                remote peer, it is *not* called if GNUNET_MESH_tunnel_destroy
+ *                is called on the tunnel
  * @param handlers callbacks for messages we care about, NULL-terminated
  *                note that the mesh is allowed to drop notifications about
  *                inbound messages if the client does not process them fast
@@ -1259,7 +1262,10 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Disconnect from the mesh service.
+ * Disconnect from the mesh service. All tunnels will be destroyed. All tunnel
+ * disconnect callbacks will be called on any still connected peers, notifying
+ * about their disconnection. The registered inbound tunnel cleaner will be
+ * called should any inbound tunnels still exist.
  *
  * @param handle connection to mesh to disconnect
  */
@@ -1268,13 +1274,12 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_Tunnel *aux;
-  struct GNUNET_MESH_TransmitHandle *th;
 
   t = handle->tunnels_head;
   while (NULL != t)
   {
     aux = t->next;
-    destroy_tunnel (t);
+    destroy_tunnel (t, GNUNET_YES);
     t = aux;
   }
   while ( (th = handle->th_head) != NULL)
@@ -1291,6 +1296,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     GNUNET_CONTAINER_DLL_remove (handle->th_head, handle->th_tail, th);
     GNUNET_free (th);
   }
+
   if (NULL != handle->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
@@ -1337,7 +1343,8 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
 
 
 /**
- * Destroy an existing tunnel.
+ * Destroy an existing tunnel. The existing callback for the tunnel will NOT
+ * be called.
  *
  * @param tunnel tunnel handle
  */
@@ -1353,7 +1360,7 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
   msg.tunnel_id = htonl (tunnel->tid);
-  destroy_tunnel (tunnel);
+  destroy_tunnel (tunnel, GNUNET_NO);
   send_packet (h, &msg.header);
 }
 
