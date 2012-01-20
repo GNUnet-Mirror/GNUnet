@@ -1274,6 +1274,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_Tunnel *aux;
+  struct GNUNET_MESH_TransmitHandle *th;
 
   t = handle->tunnels_head;
   while (NULL != t)
