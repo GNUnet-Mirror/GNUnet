@@ -1249,7 +1249,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
     GNUNET_break (0);
     return;
   }
-  len += sizeof (struct GNUNT_TUN_TcpHeader);
+  len += sizeof (struct GNUNET_TUN_TcpHeader);
   len += payload_length;
   if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
