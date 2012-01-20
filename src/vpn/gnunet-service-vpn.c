@@ -1185,7 +1185,7 @@ route_packet (struct DestinationEntry *destination,
       struct GNUNET_EXIT_TcpDataMessage *tdm;
 
       mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) + 
-	alen + payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
+	payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
       if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
