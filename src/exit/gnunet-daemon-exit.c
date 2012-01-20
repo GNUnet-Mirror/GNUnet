@@ -671,7 +671,8 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
     char sbuf[INET6_ADDRSTRLEN];
     char dbuf[INET6_ADDRSTRLEN];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Received TCP packet going from %s:%u to %s:%u\n",
+		"Received TCP packet with %u bytes going from %s:%u to %s:%u\n",
+		pktlen - sizeof (struct GNUNET_TUN_TcpHeader),
 		inet_ntop (af,
 			   source_ip,
 			   sbuf, sizeof (sbuf)),
@@ -765,45 +766,6 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
   size -= sizeof (struct GNUNET_TUN_Layer2PacketHeader) + sizeof (struct GNUNET_MessageHeader);
   switch (ntohs (pkt_tun->proto))
   {
-  case ETH_P_IPV6:
-    {
-      const struct GNUNET_TUN_IPv6Header *pkt6;
-
-      if (size < sizeof (struct GNUNET_TUN_IPv6Header))
-      {
-	/* Kernel to blame? */
-	GNUNET_break (0);
-	return;
-      }
-      pkt6 = (struct GNUNET_TUN_IPv6Header *) &pkt_tun[1];
-      if (size != ntohs (pkt6->payload_length))
-      {
-	/* Kernel to blame? */
-	GNUNET_break (0);
-	return;
-      }
-      size -= sizeof (struct GNUNET_TUN_IPv6Header);
-      switch (pkt6->next_header)
-      {
-      case IPPROTO_UDP:
-	udp_from_helper ((const struct GNUNET_TUN_UdpHeader *) &pkt6[1], size,
-			 AF_INET6,
-			 &pkt6->destination_address, 
-			 &pkt6->source_address);
-	break;
-      case IPPROTO_TCP:
-	tcp_from_helper ((const struct GNUNET_TUN_TcpHeader *) &pkt6[1], size,
-			 AF_INET6,
-			 &pkt6->destination_address, 
-			 &pkt6->source_address);
-	break;
-      default:
-	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _("IPv6 packet with unsupported next header received.  Ignored.\n"));
-	return;
-      }
-    }
-    break;
   case ETH_P_IPV4:
     {
       const struct GNUNET_TUN_IPv4Header *pkt4;
@@ -844,6 +806,45 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       default:
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("IPv4 packet with unsupported next header received.  Ignored.\n"));
+	return;
+      }
+    }
+    break;
+  case ETH_P_IPV6:
+    {
+      const struct GNUNET_TUN_IPv6Header *pkt6;
+
+      if (size < sizeof (struct GNUNET_TUN_IPv6Header))
+      {
+	/* Kernel to blame? */
+	GNUNET_break (0);
+	return;
+      }
+      pkt6 = (struct GNUNET_TUN_IPv6Header *) &pkt_tun[1];
+      if (size != ntohs (pkt6->payload_length))
+      {
+	/* Kernel to blame? */
+	GNUNET_break (0);
+	return;
+      }
+      size -= sizeof (struct GNUNET_TUN_IPv6Header);
+      switch (pkt6->next_header)
+      {
+      case IPPROTO_UDP:
+	udp_from_helper ((const struct GNUNET_TUN_UdpHeader *) &pkt6[1], size,
+			 AF_INET6,
+			 &pkt6->destination_address, 
+			 &pkt6->source_address);
+	break;
+      case IPPROTO_TCP:
+	tcp_from_helper ((const struct GNUNET_TUN_TcpHeader *) &pkt6[1], size,
+			 AF_INET6,
+			 &pkt6->destination_address, 
+			 &pkt6->source_address);
+	break;
+      default:
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("IPv6 packet with unsupported next header received.  Ignored.\n"));
 	return;
       }
     }
@@ -1248,6 +1249,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
     GNUNET_break (0);
     return;
   }
+  len += sizeof (struct GNUNT_TUN_TcpHeader);
   len += payload_length;
   if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -1259,7 +1261,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
     struct GNUNET_MessageHeader *hdr;
     struct GNUNET_TUN_Layer2PacketHeader *tun;
     
-    hdr= (struct GNUNET_MessageHeader *) buf;
+    hdr = (struct GNUNET_MessageHeader *) buf;
     hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
     hdr->size = htons (len);
     tun = (struct GNUNET_TUN_Layer2PacketHeader*) &hdr[1];
@@ -1537,7 +1539,8 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   {
     char buf[INET6_ADDRSTRLEN];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Received additional data from %s for TCP stream to %s:%u\n",
+		"Received additional %u bytes of data from %s for TCP stream to %s:%u\n",
+		pkt_len,
 		GNUNET_i2s (sender),
 		inet_ntop (state->ri.remote_address.af, 
 			   &state->ri.remote_address.address,
