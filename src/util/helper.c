@@ -259,6 +259,10 @@ helper_read (void *cls,
 				    &restart_task, h);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      _("Got %u bytes from helper `%s'\n"),
+	      (unsigned int) t,
+	      h->binary_name);
   if (GNUNET_SYSERR ==
       GNUNET_SERVER_mst_receive (h->mst, NULL, buf, t, GNUNET_NO, GNUNET_NO))
   {
