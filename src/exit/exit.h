@@ -206,4 +206,87 @@ struct GNUNET_EXIT_UdpReplyMessage
 };
 
 
+/**
+ * Message send via mesh to an exit daemon to send
+ * ICMP data to a local service.
+ */
+struct GNUNET_EXIT_IcmpServiceMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Address family, AF_INET or AF_INET6, in network byte order.
+   */
+  int32_t af;
+
+  /**
+   * Identification for the desired service.
+   */
+  GNUNET_HashCode service_descriptor;
+
+  /**
+   * ICMP header to use.
+   */
+  struct GNUNET_TUN_IcmpHeader icmp_header;
+
+  /* followed by ICMP payload */
+};
+
+
+/**
+ * Message send via mesh to an exit daemon to forward
+ * ICMP data to the Internet.
+ */
+struct GNUNET_EXIT_IcmpInternetMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Address family, AF_INET or AF_INET6, in network byte order.
+   */
+  int32_t af;
+
+  /**
+   * ICMP header to use.
+   */
+  struct GNUNET_TUN_IcmpHeader icmp_header;
+
+  /* followed by IP address of the destination; either
+     'struct in_addr' or 'struct in6_addr', depending on af */
+
+  /* followed by ICMP payload */
+};
+
+
+/**
+ * Message send via mesh to the vpn service to send
+ * ICMP data to the VPN's TUN interface.
+ */
+struct GNUNET_EXIT_IcmpToVPNMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_VPN
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Address family, AF_INET or AF_INET6, in network byte order.
+   */
+  int32_t af;
+
+  /**
+   * ICMP header to use.
+   */
+  struct GNUNET_TUN_IcmpHeader icmp_header;
+
+  /* followed by ICMP payload */
+};
+
+
 #endif

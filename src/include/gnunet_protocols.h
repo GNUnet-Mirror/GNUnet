@@ -593,6 +593,22 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_VPN_HELPER 185
 
+/**
+ * Type of messages containing an ICMP packet for a service.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE 190
+
+/**
+ * Type of messages containing an ICMP packet for the Internet.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET 191
+
+/**
+ * Type of messages containing an ICMP packet for the VPN
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_VPN 192
+
+
 
 /**
  * Type of messages containing an DNS request for a DNS exit service.

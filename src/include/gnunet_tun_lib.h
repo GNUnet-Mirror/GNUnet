@@ -193,9 +193,9 @@ struct GNUNET_TUN_IcmpHeader {
     struct in_addr redirect_gateway_address;	
 
     /**
-     * Placeholder.
+     * MTU for packets that are too big (IPv6).
      */
-    int32_t present;
+    uint32_t packet_too_big_mtu;
 
   } quench;
 
