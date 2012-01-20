@@ -721,7 +721,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   tnq->len = mlen;
   tdm = (struct GNUNET_EXIT_TcpDataMessage *) &tnq[1];
   tdm->header.size = htons ((uint16_t) mlen);
-  tdm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_DATA);
+  tdm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_VPN);
   tdm->reserved = htonl (0);
   memcpy (&tdm->tcp_header,
 	  buf, 
@@ -789,6 +789,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 		    _("IPv4 packet options received.  Ignored.\n"));
 	return;
       }
+      
       size -= sizeof (struct GNUNET_TUN_IPv4Header);
       switch (pkt4->protocol)
       {
@@ -2143,7 +2144,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     {&receive_udp_remote, GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET, 0},
     {&receive_tcp_service, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START, 0},
     {&receive_tcp_remote, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START, 0},
-    {&receive_tcp_data, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA, 0},
+    {&receive_tcp_data, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_EXIT, 0},
     {NULL, 0, 0}
   };
 

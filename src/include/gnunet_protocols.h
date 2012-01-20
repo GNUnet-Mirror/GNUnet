@@ -597,27 +597,32 @@ extern "C"
 /**
  * Type of messages containing an DNS request for a DNS exit service.
  */
-#define GNUNET_MESSAGE_TYPE_VPN_DNS_TO_INTERNET 194
+#define GNUNET_MESSAGE_TYPE_VPN_DNS_TO_INTERNET 193
 
 /**
  * Type of messages containing an DNS reply from a DNS exit service.
  */
-#define GNUNET_MESSAGE_TYPE_VPN_DNS_FROM_INTERNET 195
+#define GNUNET_MESSAGE_TYPE_VPN_DNS_FROM_INTERNET 194
 
 /**
  * Type of messages containing an TCP packet for a service.
  */
-#define GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START 196
+#define GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START 195
 
 /**
  * Type of messages containing an TCP packet for the Internet.
  */
-#define GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START 197
+#define GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START 196
 
 /**
  * Type of messages containing an TCP packet of an established connection.
  */
-#define GNUNET_MESSAGE_TYPE_VPN_TCP_DATA 198
+#define GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_EXIT 197
+
+/**
+ * Type of messages containing an TCP packet of an established connection.
+ */
+#define GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_VPN 198
 
 /**
  * Type of messages containing an UDP packet for a service.

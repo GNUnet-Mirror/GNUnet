@@ -1196,7 +1196,7 @@ route_packet (struct DestinationEntry *destination,
       tnq->msg = &tnq[1];
       tdm = (struct  GNUNET_EXIT_TcpDataMessage *) &tnq[1];
       tdm->header.size = htons ((uint16_t) mlen);
-      tdm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_DATA);
+      tdm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_EXIT);
       tdm->reserved = htonl (0);
       tdm->tcp_header = *tcp;
       memcpy (&tdm[1],
@@ -2322,7 +2322,7 @@ run (void *cls,
   };
   static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
     { &receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY, 0},
-    { &receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA, 0},
+    { &receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_VPN, 0},
     {NULL, 0, 0}
   };
   static const GNUNET_MESH_ApplicationType types[] = {
