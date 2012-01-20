@@ -2108,16 +2108,8 @@ inbound_tunnel_cb (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 static void
 tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
 {
-  struct TunnelState *ts = tunnel_ctx;
-
-  if (NULL == ts)
-  {
-    GNUNET_break (0);
-    return;     
-  }
-  GNUNET_assert (ts->tunnel == tunnel);
-  ts->tunnel = NULL;
-  free_tunnel_state (ts);
+  /* we don't have inbound tunnels, so this function should never be called */
+  GNUNET_break (0);
 }
 
 
