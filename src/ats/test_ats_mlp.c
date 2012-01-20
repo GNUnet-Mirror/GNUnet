@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_ats_service.h"
 #include "gnunet-service-ats_addresses_mlp.h"
 
 #define VERBOSE GNUNET_YES
@@ -45,6 +46,24 @@ struct GNUNET_CONTAINER_MultiHashMap * addresses;
 struct GAS_MLP_Handle *mlp;
 
 static void
+create_address (struct ATS_Address *addr, char * plugin, int ats_count, struct GNUNET_ATS_Information *ats)
+{
+  addr->mlp_information = NULL;
+  addr->next = NULL;
+  addr->prev = NULL;
+  addr->plugin = strdup (plugin);
+  addr->ats_count = ats_count;
+  addr->ats = ats;
+}
+
+static void
+set_ats (struct GNUNET_ATS_Information *ats, uint32_t type, uint32_t value)
+{
+  ats->type = type;
+  ats->value = value;
+}
+
+static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -59,17 +78,20 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   addresses = GNUNET_CONTAINER_multihashmap_create (10);
 
+  /* Creating address 1 */
   GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &addr[0].peer.hashPubKey);
-  addr[0].mlp_information = NULL;
-  addr[0].next = NULL;
-  addr[0].prev = NULL;
-  addr[0].plugin = strdup ("dummy");
+  struct GNUNET_ATS_Information a1_ats[3];
+  set_ats (&a1_ats[0], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
+  set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 32);
+  set_ats (&a1_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
+  create_address (&addr[0], "dummy", 3, &a1_ats[0]);
 
   GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &addr[1].peer.hashPubKey);
-  addr[1].mlp_information = NULL;
-  addr[1].next = NULL;
-  addr[1].prev = NULL;
-  addr[1].plugin = strdup ("dummy2");
+  struct GNUNET_ATS_Information a2_ats[3];
+  set_ats (&a2_ats[0], GNUNET_ATS_QUALITY_NET_DELAY, 32);
+  set_ats (&a2_ats[1], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
+  set_ats (&a2_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
+  create_address (&addr[1], "dummy2", 3, &a2_ats[0]);
 
   GNUNET_CONTAINER_multihashmap_put(addresses, &addr[0].peer.hashPubKey, &addr[0], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 

@@ -148,6 +148,52 @@ mlp_status_to_string (int retcode)
 }
 
 /**
+ * Translate ATS properties to text
+ * Just intended for debugging
+ *
+ * @param retcode return code
+ * @return string with result
+ */
+const char *
+mlp_ats_to_string (int ats_index)
+{
+  switch (ats_index) {
+    case GNUNET_ATS_ARRAY_TERMINATOR:
+      return "GNUNET_ATS_ARRAY_TERMINATOR";
+      break;
+    case GNUNET_ATS_UTILIZATION_UP:
+      return "GNUNET_ATS_UTILIZATION_UP";
+      break;
+    case GNUNET_ATS_UTILIZATION_DOWN:
+      return "GNUNET_ATS_UTILIZATION_DOWN";
+      break;
+    case GNUNET_ATS_COST_LAN:
+      return "GNUNET_ATS_COST_LAN";
+      break;
+    case GNUNET_ATS_COST_WAN:
+      return "GNUNET_ATS_COST_LAN";
+      break;
+    case GNUNET_ATS_COST_WLAN:
+      return "GNUNET_ATS_COST_WLAN";
+      break;
+    case GNUNET_ATS_NETWORK_TYPE:
+      return "GNUNET_ATS_NETWORK_TYPE";
+      break;
+    case GNUNET_ATS_QUALITY_NET_DELAY:
+      return "GNUNET_ATS_QUALITY_NET_DELAY";
+      break;
+    case GNUNET_ATS_QUALITY_NET_DISTANCE:
+      return "GNUNET_ATS_QUALITY_NET_DISTANCE";
+      break;
+    default:
+      return "unknown";
+      break;
+  }
+  GNUNET_break (0);
+  return "unknown error";
+}
+
+/**
  * Find a peer in the DLL
  * @param the peer to find
  * @return the peer struct
@@ -302,6 +348,34 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   return GNUNET_OK;
 }
 
+/**
+ * Find the required ATS information for an address
+ *
+ * @param addr the address
+ * @param ats_index the desired ATS index
+ *
+ * @return the index on success, otherwise GNUNET_SYSERR
+ */
+
+static int
+mlp_lookup_ats (struct ATS_Address *addr, int ats_index)
+{
+  struct GNUNET_ATS_Information * ats = addr->ats;
+  int c;
+  int found = GNUNET_NO;
+  for (c = 0; c < addr->ats_count; c++)
+  {
+    if (ats[c].type == ats_index)
+    {
+      found = GNUNET_YES;
+      break;
+    }
+  }
+  if (found == GNUNET_YES)
+    return c;
+  else
+    return GNUNET_SYSERR;
+}
 
 /**
  * Adds the problem constraints for all addresses
@@ -519,6 +593,21 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
 
       while (addr != NULL)
       {
+        /* lookup ATS information */
+        int index = mlp_lookup_ats(addr, mlp->q[c]);
+
+        if (index != GNUNET_SYSERR)
+        {
+          value = (double) addr->ats[index].value;
+#if DEBUG_ATS
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Quality %i with ATS property `%s' has index %i in addresses ats information has value %f\n", c,  mlp_ats_to_string(mlp->q[c]), index, (double) addr->ats[index].value);
+#endif
+        }
+#if DEBUG_ATS
+        else
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Quality %i with ATS property `%s' not existing\n", c,  mlp_ats_to_string(mlp->q[c]), index);
+#endif
+
         mlpi = addr->mlp_information;
         ia[mlp->ci] = mlp->r_q[c];
         ja[mlp->ci] = mlpi->c_b;
