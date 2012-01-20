@@ -261,7 +261,8 @@ transmit_request (void *cls,
   while ( (NULL != rr) &&
 	  (0 != rr->request_id) )
     rr = rr->next;
-  if (NULL == rr)
+  if ( (NULL == rr) ||
+       (0 == size) )
     return 0;
 
   /* if first request, start receive loop */
@@ -272,6 +273,7 @@ transmit_request (void *cls,
   if (NULL == rr->addr)
   {
     ret = sizeof (struct RedirectToServiceRequestMessage);
+    GNUNET_assert (ret <= size);
     rs.header.size = htons ((uint16_t) ret);
     rs.header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE);
     rs.nac = htonl (rr->nac);
@@ -298,6 +300,7 @@ transmit_request (void *cls,
       return 0;
     }
     ret = alen + sizeof (struct RedirectToIpRequestMessage);
+    GNUNET_assert (ret <= size);
     rip.header.size = htons ((uint16_t) ret);
     rip.header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP);
     rip.nac = htonl (rr->nac);
