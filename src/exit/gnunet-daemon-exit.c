@@ -1007,6 +1007,7 @@ setup_state_record (struct TunnelState *state)
 			   buf, sizeof (buf)),
 		(unsigned int) state->ri.local_address.port);  
   }
+  state->state_key = key;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (connections_map, 
 						    &key, state,
