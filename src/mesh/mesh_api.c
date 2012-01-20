@@ -913,7 +913,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     t = retrieve_tunnel (h, ntohl (ucast->tid));
     payload = (struct GNUNET_MessageHeader *) &ucast[1];
     peer = &ucast->oid;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   on tunnel %s [%x]\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   ucast on tunnel %s [%x]\n",
                 GNUNET_i2s (peer), ntohl (ucast->tid));
     break;
   case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
@@ -921,12 +921,16 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     t = retrieve_tunnel (h, ntohl (mcast->tid));
     payload = (struct GNUNET_MessageHeader *) &mcast[1];
     peer = &mcast->oid;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   mcast on tunnel %s [%x]\n",
+                GNUNET_i2s (peer), ntohl (mcast->tid));
     break;
   case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
     to_orig = (struct GNUNET_MESH_ToOrigin *) message;
     t = retrieve_tunnel (h, ntohl (to_orig->tid));
     payload = (struct GNUNET_MessageHeader *) &to_orig[1];
     peer = &to_orig->sender;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   reply on tunnel %s [%x]\n",
+                GNUNET_i2s (peer), ntohl (to_orig->tid));
     break;
   default:
     GNUNET_break (0);
