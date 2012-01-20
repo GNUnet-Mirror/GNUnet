@@ -593,6 +593,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
 
       while (addr != NULL)
       {
+        mlpi = addr->mlp_information;
         /* lookup ATS information */
         int index = mlp_lookup_ats(addr, mlp->q[c]);
 
@@ -607,8 +608,12 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
         else
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Quality %i with ATS property `%s' not existing\n", c,  mlp_ats_to_string(mlp->q[c]), index);
 #endif
-
         mlpi = addr->mlp_information;
+
+        mlpi->r_q[c] = mlp->r_q[c];
+        mlpi->c_q[c] = mlpi->c_b;
+        mlpi->q[c] = value;
+
         ia[mlp->ci] = mlp->r_q[c];
         ja[mlp->ci] = mlpi->c_b;
         ar[mlp->ci] = p->f * value;
@@ -924,7 +929,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
   return GNUNET_OK;
 }
 
-int mlp_solve_problem (struct GAS_MLP_Handle *mlp);
+int GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp);
 
 static void
 mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -940,7 +945,7 @@ mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scheduled problem solving\n");
 #endif
   if (mlp->addr_in_problem != 0)
-    mlp_solve_problem(mlp);
+    GAS_mlp_solve_problem(mlp);
 }
 
 
@@ -951,7 +956,7 @@ mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
-mlp_solve_problem (struct GAS_MLP_Handle *mlp)
+GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp)
 {
   int res;
   mlp->last_execution = GNUNET_TIME_absolute_get ();
@@ -1128,6 +1133,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
   mlp->max_iterations = max_iterations;
   mlp->max_exec_duration = max_duration;
+  mlp->auto_solve = GNUNET_YES;
 
   /* Redirect GLPK output to GNUnet logging */
   glp_error_hook((void *) mlp, &mlp_term_hook);
@@ -1165,6 +1171,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return mlp;
 }
 
+
 /**
  * Updates a single address in the MLP problem
  *
@@ -1184,7 +1191,6 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 {
   int new;
   struct MLP_information *mlpi;
-  int c;
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP address updates", 1, GNUNET_NO);
 
@@ -1198,6 +1204,15 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
   if (new == GNUNET_YES)
   {
     mlpi = GNUNET_malloc (sizeof (struct MLP_information));
+
+    int c;
+    for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+    {
+      mlpi->c_q[c] = 0;
+      mlpi->r_q[c] = 0;
+      mlpi->q[c] = 0.0;
+    }
+
     address->mlp_information = mlpi;
     mlp->addr_in_problem ++;
 
@@ -1206,12 +1221,14 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     if (peer == NULL)
     {
 #if DEBUG_ATS
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding new peer `%s'\n", GNUNET_i2s (&address->peer));
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding new peer `%s'\n",
+          GNUNET_i2s (&address->peer));
 #endif
       peer = GNUNET_malloc (sizeof (struct ATS_Peer));
       peer->head = NULL;
       peer->tail = NULL;
 
+      int c;
       for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
       {
         peer->f_q[c] = 1.0;
@@ -1228,7 +1245,8 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     else
     {
 #if DEBUG_ATS
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding address to peer `%s'\n", GNUNET_i2s (&address->peer));
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding address to peer `%s'\n",
+          GNUNET_i2s (&address->peer));
 #endif
       GNUNET_CONTAINER_DLL_insert (peer->head, peer->tail, address);
     }
@@ -1236,10 +1254,71 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
   else
   {
 #if DEBUG_ATS
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating existing address to peer `%s'\n", GNUNET_i2s (&address->peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating existing address to peer `%s'\n",
+        GNUNET_i2s (&address->peer));
 #endif
     mlpi = address->mlp_information;
+    int c;
+    for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+    {
+      int index = mlp_lookup_ats(address, mlp->q[c]);
+      if ((index != GNUNET_SYSERR) && (mlpi->c_q[c] != 0) && (mlpi->r_q[c] != 0))
+      {
+        if (mlpi->q[c] == (double) address->ats[index].value)
+          break;
+#if DEBUG_ATS
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating address for peer `%s' value `%s'from %f to %f\n",
+            GNUNET_i2s (&address->peer),
+            mlp_ats_to_string(mlp->q[c]),
+            mlpi->q[c],
+            (double) address->ats[index].value);
+#endif
+        switch (mlp->q[c])
+        {
+          case GNUNET_ATS_QUALITY_NET_DELAY:
+            mlpi->q[c] = (double) address->ats[index].value;
+            break;
+          case GNUNET_ATS_QUALITY_NET_DISTANCE:
+            mlpi->q[c] = (double) address->ats[index].value;
+            break;
+          default:
+            break;
+        }
 
+        /* Get current number of columns */
+        int cols = glp_get_num_cols(mlp->prob);
+        int *ind = GNUNET_malloc (cols * sizeof (int));
+        double *val = GNUNET_malloc (cols * sizeof (double));
+
+        /* Get the matrix row of quality */
+        cols = glp_get_mat_row(mlp->prob, mlp->r_q[c], ind, val);
+
+        int c2;
+        /* Get the index if matrix row of quality */
+        for (c2 = 1; c2 <= cols; c2++ )
+        {
+#if DEBUG_ATS
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Existing element column %i : %f\n",
+            ind[c2], val[c2]);
+#endif
+          if ((mlpi->c_b == ind[c2]) && (val[c2] != mlpi->q[c]))
+          {
+            /* Update the value */
+            val[c2] = mlpi->q[c];
+#if DEBUG_ATS
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "New element column %i : %f\n",
+                ind[c2], val[c2]);
+#endif
+        }
+      }
+
+      /* Get the index if matrix row of quality */
+      glp_set_mat_row (mlp->prob, mlpi->r_q[c], cols, ind, val);
+
+      GNUNET_free (ind);
+      GNUNET_free (val);
+      }
+    }
   }
 
   /* Recalculate */
@@ -1249,7 +1328,8 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     mlp_create_problem (mlp, addresses);
     mlp->presolver_required = GNUNET_YES;
   }
-  mlp_solve_problem (mlp);
+  if (mlp->auto_solve == GNUNET_YES)
+    GAS_mlp_solve_problem (mlp);
 }
 
 /**
@@ -1302,7 +1382,8 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 
     /* Recalculate */
     mlp->presolver_required = GNUNET_YES;
-    mlp_solve_problem (mlp);
+    if (mlp->auto_solve == GNUNET_YES)
+      GAS_mlp_solve_problem (mlp);
   }
 }
 

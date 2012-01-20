@@ -112,6 +112,13 @@ struct GAS_MLP_Handle
    */
   unsigned int max_iterations;
 
+  /**
+   * Solve the problem automatically when updates occur?
+   * Default: GNUNET_YES
+   * Can be disabled for test and measurements
+   */
+  int auto_solve;
+
   /* state information */
 
   /**
@@ -257,6 +264,15 @@ struct MLP_information
 
   /* constraint 3: minimum bandwidth */
   unsigned int r_c3;
+
+  /* Quality information row indices */
+  unsigned int r_q[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Quality information column indices */
+  unsigned int c_q[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Quality information */
+  double q[GNUNET_ATS_QualityPropertiesCount];
 };
 
 
@@ -274,6 +290,15 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
               const struct GNUNET_STATISTICS_Handle *stats,
               struct GNUNET_TIME_Relative max_duration,
               unsigned int max_iterations);
+
+/**
+ * Solves the MLP problem on demand
+ *
+ * @param mlp the MLP Handle
+ * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ */
+int
+GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp);
 
 
 /**
