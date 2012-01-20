@@ -678,7 +678,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
 			   sbuf, sizeof (sbuf)),
 		(unsigned int) ntohs (tcp->spt),
 		inet_ntop (af,
-			   source_ip,
+			   destination_ip,
 			   dbuf, sizeof (dbuf)),
 		(unsigned int) ntohs (tcp->dpt));
   }
@@ -745,6 +745,10 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
   const struct GNUNET_TUN_Layer2PacketHeader *pkt_tun;
   size_t size;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got %u-byte message of type %u from gnunet-helper-exit\n",
+	      ntohs (message->size),
+	      ntohs (message->type));
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Packets received from TUN"),
 			    1, GNUNET_NO);

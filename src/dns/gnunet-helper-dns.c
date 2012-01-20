@@ -173,6 +173,10 @@ fork_and_exec (const char *file,
   if (0 == pid)
   {
     /* we are the child process */
+    /* close stdin/stdout to not cause interference
+       with the helper's main protocol! */
+    (void) close (0); 
+    (void) close (1); 
     (void) execv (file, cmd);
     /* can only get here on error */
     fprintf (stderr, 
