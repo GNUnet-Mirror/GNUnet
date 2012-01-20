@@ -512,11 +512,6 @@ free_tunnel_state (struct TunnelState *ts)
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Active tunnels"),
 			    -1, GNUNET_NO);
-  if (GNUNET_SCHEDULER_NO_TASK != ts->destroy_task)
-  {
-    GNUNET_SCHEDULER_cancel (ts->destroy_task);
-    ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  }
   while (NULL != (tnq = ts->tmq_head))
   {
     GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
@@ -541,6 +536,11 @@ free_tunnel_state (struct TunnelState *ts)
   {
     ts->tunnel = NULL;
     GNUNET_MESH_tunnel_destroy (tunnel);
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != ts->destroy_task)
+  {
+    GNUNET_SCHEDULER_cancel (ts->destroy_task);
+    ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
   }
   if (NULL != ts->heap_node)
   {
