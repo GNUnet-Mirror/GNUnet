@@ -544,53 +544,21 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
  * Send the given packet via the mesh tunnel.
  *
  * @param mesh_tunnel destination
- * @param payload message to transmit
- * @param payload_length number of bytes in payload
- * @param desc descriptor to add before payload (optional)
- * @param mtype message type to use
+ * @param tnq message to queue
  */
 static void
 send_packet_to_mesh_tunnel (struct GNUNET_MESH_Tunnel *mesh_tunnel,
-			    const void *payload,
-			    size_t payload_length,
-			    const GNUNET_HashCode *desc,
-			    uint16_t mtype)
+			    struct TunnelMessageQueue *tnq)
 {
   struct TunnelState *s;
-  struct TunnelMessageQueue *tnq;
-  struct GNUNET_MessageHeader *msg;
-  size_t len;
-  GNUNET_HashCode *dp;
 
-  len = sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + payload_length;
-  if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueue) + len);
-  tnq->payload = &tnq[1];
-  tnq->len = len;
-  msg = (struct GNUNET_MessageHeader *) &tnq[1];
-  msg->size = htons ((uint16_t) len);
-  msg->type = htons (mtype);
-  if (NULL != desc)
-  {
-    dp = (GNUNET_HashCode *) &msg[1];
-    *dp = *desc;  
-    memcpy (&dp[1], payload, payload_length);
-  }
-  else
-  {
-    memcpy (&msg[1], payload, payload_length);
-  }
   s = GNUNET_MESH_tunnel_get_data (mesh_tunnel);
   GNUNET_assert (NULL != s);
   GNUNET_CONTAINER_DLL_insert_tail (s->head, s->tail, tnq);
   if (NULL == s->th)
     s->th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel, GNUNET_NO /* cork */, 0 /* priority */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
-					       NULL, len,
+					       NULL, tnq->len,
 					       &send_to_peer_notify_callback,
 					       s);
 }
@@ -615,6 +583,9 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
 		 const void *source_ip)
 {
   struct TunnelState *state;
+  struct TunnelMessageQueue *tnq;
+  struct GNUNET_EXIT_UdpReplyMessage *urm;
+  size_t mlen;
 
   {
     char sbuf[INET6_ADDRSTRLEN];
@@ -654,10 +625,20 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
 		_("Packet dropped, have no matching connection information\n"));
     return;
   }
+  mlen = sizeof (struct GNUNET_EXIT_UdpReplyMessage) + pktlen - sizeof (struct GNUNET_TUN_UdpHeader);
+  tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueue) + mlen);  
+  tnq->payload = &tnq[1];
+  tnq->len = mlen;
+  urm = (struct GNUNET_EXIT_UdpReplyMessage *) &tnq[1];
+  urm->header.size = htons ((uint16_t) mlen);
+  urm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY);
+  urm->source_port = htons (0);
+  urm->destination_port = htons (0);
+  memcpy (&urm[1],
+	  &udp[1],
+	  pktlen - sizeof (struct GNUNET_TUN_UdpHeader));
   send_packet_to_mesh_tunnel (state->tunnel,
-			      &udp[1], pktlen - sizeof (struct GNUNET_TUN_UdpHeader),
-			      NULL,
-			      GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY);
+			      tnq);
 }
 
 
@@ -665,7 +646,7 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
  * @brief Handles a TCP packet received from the helper.
  *
  * @param tcp A pointer to the Packet
- * @param pktlen the length of the packet, including its header
+ * @param pktlen the length of the packet, including its TCP header
  * @param af address family (AFINET or AF_INET6)
  * @param destination_ip destination IP-address of the IP packet (should 
  *                       be our local address)
@@ -682,6 +663,9 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   struct TunnelState *state;
   char buf[pktlen];
   struct GNUNET_TUN_TcpHeader *mtcp;
+  struct GNUNET_EXIT_TcpDataMessage *tdm;
+  struct TunnelMessageQueue *tnq;
+  size_t mlen;
 
   {
     char sbuf[INET6_ADDRSTRLEN];
@@ -723,10 +707,26 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   mtcp->spt = 0;
   mtcp->dpt = 0;
   mtcp->crc = 0;
+
+  mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) + (pktlen - sizeof (struct GNUNET_TUN_TcpHeader));
+  if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueue) + mlen);
+  tnq->payload = &tnq[1];
+  tnq->len = mlen;
+  tdm = (struct GNUNET_EXIT_TcpDataMessage *) &tnq[1];
+  tdm->header.size = htons ((uint16_t) mlen);
+  tdm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_DATA);
+  tdm->reserved = htonl (0);
+  memcpy (&tdm->tcp_header,
+	  buf, 
+	  pktlen);
   send_packet_to_mesh_tunnel (state->tunnel,
-			      mtcp, pktlen,
-			      NULL,
-			      GNUNET_MESSAGE_TYPE_VPN_TCP_DATA);
+			      tnq);
 }
 
 
