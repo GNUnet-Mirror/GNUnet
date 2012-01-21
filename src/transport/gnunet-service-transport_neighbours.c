@@ -1683,7 +1683,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   }
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Session %X to peer `%s' ended \n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
 #endif
 
