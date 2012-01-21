@@ -1613,8 +1613,15 @@ make_up_icmpv4_payload (struct TunnelState *ts,
 			struct GNUNET_TUN_IPv4Header *ipp,
 			struct GNUNET_TUN_UdpHeader *udp)
 {
-  /* FIXME */
-  GNUNET_break (0);
+  GNUNET_TUN_initialize_ipv4_header (ipp,
+				     ts->protocol,
+				     sizeof (struct GNUNET_TUN_TcpHeader),
+				     &ts->source_ip.v4,
+				     &ts->destination_ip.v4);
+  udp->spt = htons (ts->source_port);
+  udp->dpt = htons (ts->destination_port);
+  udp->len = htons (0);
+  udp->crc = htons (0);
 }
 
 
@@ -1632,8 +1639,15 @@ make_up_icmpv6_payload (struct TunnelState *ts,
 			struct GNUNET_TUN_IPv6Header *ipp,
 			struct GNUNET_TUN_UdpHeader *udp)
 {
-  /* FIXME */
-  GNUNET_break (0);
+  GNUNET_TUN_initialize_ipv6_header (ipp,
+				     ts->protocol,
+				     sizeof (struct GNUNET_TUN_TcpHeader),
+				     &ts->source_ip.v6,
+				     &ts->destination_ip.v6);
+  udp->spt = htons (ts->source_port);
+  udp->dpt = htons (ts->destination_port);
+  udp->len = htons (0);
+  udp->crc = htons (0);
 }
 
 
