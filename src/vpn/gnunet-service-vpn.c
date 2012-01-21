@@ -1344,6 +1344,145 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 
 
 /**
+ * We got an ICMP packet back from the MESH tunnel.  Pass it on to the
+ * local virtual interface via the helper.
+ *
+ * @param cls closure, NULL
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */ 
+static int
+receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+		   void **tunnel_ctx, const struct GNUNET_PeerIdentity *sender,
+		   const struct GNUNET_MessageHeader *message,
+		   const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
+{
+  struct TunnelState *ts = *tunnel_ctx;
+  const struct GNUNET_EXIT_IcmpToVPNMessage *i2v;
+  size_t mlen;
+
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# ICMP packets received from mesh"),
+			    1, GNUNET_NO);
+  mlen = ntohs (message->size);
+  if (mlen < sizeof (struct GNUNET_EXIT_IcmpToVPNMessage))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (NULL == ts->heap_node)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (AF_UNSPEC == ts->af)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  i2v = (const struct GNUNET_EXIT_IcmpToVPNMessage *) message;
+  mlen -= sizeof (struct GNUNET_EXIT_IcmpToVPNMessage);
+  {
+    char sbuf[INET6_ADDRSTRLEN];
+    char dbuf[INET6_ADDRSTRLEN];
+    
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received ICMP packet from mesh, sending %u bytes from %s -> %s via TUN\n",
+		(unsigned int) mlen,
+		inet_ntop (ts->af, &ts->destination_ip, sbuf, sizeof (sbuf)),
+		inet_ntop (ts->af, &ts->source_ip, dbuf, sizeof (dbuf)));
+  }
+  switch (ts->af)
+  {
+  case AF_INET:
+    {
+      size_t size = sizeof (struct GNUNET_TUN_IPv4Header) 
+	+ sizeof (struct GNUNET_TUN_IcmpHeader) 
+	+ sizeof (struct GNUNET_MessageHeader) +
+	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
+	mlen;
+      {
+	char buf[size];
+	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
+	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
+	struct GNUNET_TUN_IPv4Header *ipv4 = (struct GNUNET_TUN_IPv4Header *) &tun[1];
+	struct GNUNET_TUN_IcmpHeader *icmp = (struct GNUNET_TUN_IcmpHeader *) &ipv4[1];
+	msg->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+	msg->size = htons (size);
+	tun->flags = htons (0);
+	tun->proto = htons (ETH_P_IPV4);
+	GNUNET_TUN_initialize_ipv4_header (ipv4,
+					   IPPROTO_ICMP,
+					   sizeof (struct GNUNET_TUN_IcmpHeader) + mlen,
+					   &ts->destination_ip.v4,
+					   &ts->source_ip.v4);
+	*icmp = i2v->icmp_header;
+	memcpy (&icmp[1],
+		&i2v[1],
+		mlen);
+	/* FIXME: for some ICMP types, we need to adjust the payload here... */
+	GNUNET_TUN_calculate_icmp_checksum (icmp,
+					    &i2v[1],
+					    mlen);
+	(void) GNUNET_HELPER_send (helper_handle,
+				   msg,
+				   GNUNET_YES,
+				   NULL, NULL);
+      }
+    }
+    break;
+  case AF_INET6:
+    {
+      size_t size = sizeof (struct GNUNET_TUN_IPv6Header) 
+	+ sizeof (struct GNUNET_TUN_IcmpHeader) 
+	+ sizeof (struct GNUNET_MessageHeader) +
+	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
+	mlen;
+      {
+	char buf[size];
+	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
+	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
+	struct GNUNET_TUN_IPv6Header *ipv6 = (struct GNUNET_TUN_IPv6Header *) &tun[1];
+	struct GNUNET_TUN_IcmpHeader *icmp = (struct GNUNET_TUN_IcmpHeader *) &ipv6[1];
+	msg->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+	msg->size = htons (size);
+	tun->flags = htons (0);
+	tun->proto = htons (ETH_P_IPV6);
+	GNUNET_TUN_initialize_ipv6_header (ipv6,
+					   IPPROTO_ICMP,
+					   sizeof (struct GNUNET_TUN_IcmpHeader) + mlen,
+					   &ts->destination_ip.v6,
+					   &ts->source_ip.v6);
+	*icmp = i2v->icmp_header;
+	memcpy (&icmp[1],
+		&i2v[1],
+		mlen);
+	/* FIXME: for some ICMP types, we need to adjust the payload here... */
+	GNUNET_TUN_calculate_icmp_checksum (icmp,
+					    &i2v[1], mlen);
+	(void) GNUNET_HELPER_send (helper_handle,
+				   msg,
+				   GNUNET_YES,
+				   NULL, NULL);
+      }
+    }
+    break;
+  default:
+    GNUNET_assert (0);
+  }
+  GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
+				     ts->heap_node,
+				     GNUNET_TIME_absolute_get ().abs_value);
+  return GNUNET_OK;
+}
+
+
+/**
  * We got a UDP packet back from the MESH tunnel.  Pass it on to the
  * local virtual interface via the helper.
  *
@@ -2315,6 +2454,7 @@ run (void *cls,
   static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
     { &receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY, 0},
     { &receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_VPN, 0},
+    { &receive_icmp_back, GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_VPN, 0},
     {NULL, 0, 0}
   };
   static const GNUNET_MESH_ApplicationType types[] = {
