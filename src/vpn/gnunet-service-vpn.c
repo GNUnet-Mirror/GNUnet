@@ -25,13 +25,6 @@
  *        IP traffic received on those IPs via the GNUnet mesh 
  * @author Philipp Toelke
  * @author Christian Grothoff
- *
- * TODO:
- * Basics:
- * - test!
- *
- * Features:
- * - add back ICMP support (especially needed for IPv6)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

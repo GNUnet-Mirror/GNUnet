@@ -390,6 +390,12 @@ get_redirect_state (int af,
   GNUNET_HashCode key;
   struct TunnelState *state;
 
+  if (protocol == IPPROTO_ICMP)
+  {
+    /* ignore ports */
+    destination_port = 0;
+    local_port = 0;
+  }
   ri.remote_address.af = af;
   if (af == AF_INET)
     ri.remote_address.address.ipv4 = *((struct in_addr*) destination_ip);
@@ -1858,6 +1864,58 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
 
 
 /**
+ * Synthesize a plausible ICMP payload for an ICMPv4 error
+ * response on the given tunnel.
+ *
+ * @param state tunnel information
+ * @param ipp IPv6 header to fill in (ICMP payload)
+ * @param udp "UDP" header to fill in (ICMP payload); might actually
+ *            also be the first 8 bytes of the TCP header
+ */
+static void
+make_up_icmpv4_payload (struct TunnelState *state,
+			struct GNUNET_TUN_IPv4Header *ipp,
+			struct GNUNET_TUN_UdpHeader *udp)
+{
+  GNUNET_TUN_initialize_ipv4_header (ipp,
+				     state->ri.remote_address.proto,
+				     sizeof (struct GNUNET_TUN_TcpHeader),
+				     &state->ri.remote_address.address.ipv4,
+				     &state->ri.local_address.address.ipv4);
+  udp->spt = htons (state->ri.remote_address.port);
+  udp->dpt = htons (state->ri.local_address.port);
+  udp->len = htons (0);
+  udp->crc = htons (0);
+}
+
+
+/**
+ * Synthesize a plausible ICMP payload for an ICMPv6 error
+ * response on the given tunnel.
+ *
+ * @param state tunnel information
+ * @param ipp IPv6 header to fill in (ICMP payload)
+ * @param udp "UDP" header to fill in (ICMP payload); might actually
+ *            also be the first 8 bytes of the TCP header
+ */
+static void
+make_up_icmpv6_payload (struct TunnelState *state,
+			struct GNUNET_TUN_IPv6Header *ipp,
+			struct GNUNET_TUN_UdpHeader *udp)
+{
+  GNUNET_TUN_initialize_ipv6_header (ipp,
+				     state->ri.remote_address.proto,
+				     sizeof (struct GNUNET_TUN_TcpHeader),
+				     &state->ri.remote_address.address.ipv6,
+				     &state->ri.local_address.address.ipv6);
+  udp->spt = htons (state->ri.remote_address.port);
+  udp->dpt = htons (state->ri.local_address.port);
+  udp->len = htons (0);
+  udp->crc = htons (0);
+}
+
+
+/**
  * Process a request to forward ICMP data to the Internet via this peer.
  *
  * @param cls closure, NULL
@@ -1882,6 +1940,7 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct in_addr *v4;
   const struct in6_addr *v6;  
   const void *payload;
+  char buf[sizeof (struct GNUNET_TUN_IPv6Header) + 8];
   int af;
 
   GNUNET_STATISTICS_update (stats,
@@ -1899,7 +1958,14 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   pkt_len -= sizeof (struct GNUNET_EXIT_IcmpInternetMessage);  
 
   af = (int) ntohl (msg->af);
-  state->ri.remote_address.af = af;
+  if ( (NULL != state->heap_node) &&
+       (af != state->ri.remote_address.af) )
+  {
+    /* other peer switched AF on this tunnel; not allowed */
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+
   switch (af)
   {
   case AF_INET:
@@ -1917,6 +1983,48 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     payload = &v4[1];
     pkt_len -= sizeof (struct in_addr);
     state->ri.remote_address.address.ipv4 = *v4;
+    if (NULL == state->heap_node)
+    {
+      state->ri.remote_address.af = af;
+      state->ri.remote_address.proto = IPPROTO_ICMP;
+      setup_state_record (state);
+    }
+    /* check that ICMP type is something we want to support 
+       and possibly make up payload! */
+    switch (msg->icmp_header.type)
+    {
+    case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:
+    case GNUNET_TUN_ICMPTYPE_ECHO_REQUEST:
+      break;
+    case GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE:
+    case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
+    case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:
+      if (0 != pkt_len)
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
+      /* make up payload */
+      {
+	struct GNUNET_TUN_IPv4Header *ipp = (struct GNUNET_TUN_IPv4Header *) buf;
+	struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
+
+	GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+	pkt_len = sizeof (struct GNUNET_TUN_IPv4Header) + 8;
+	make_up_icmpv4_payload (state, 
+				ipp,
+				udp);
+	payload = ipp;
+      }
+      break;
+    default:
+      GNUNET_break_op (0);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# ICMPv4 packets dropped (type not allowed)"),
+				1, GNUNET_NO);
+      return GNUNET_SYSERR;      
+    }
+    /* end AF_INET */
     break;
   case AF_INET6:
     if (pkt_len < sizeof (struct in6_addr))
@@ -1933,8 +2041,52 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     payload = &v6[1];
     pkt_len -= sizeof (struct in6_addr);
     state->ri.remote_address.address.ipv6 = *v6;
-    break;
+    if (NULL == state->heap_node)
+    {
+      state->ri.remote_address.af = af;
+      state->ri.remote_address.proto = IPPROTO_ICMP;
+      setup_state_record (state);
+    }
+    /* check that ICMP type is something we want to support 
+       and possibly make up payload! */
+    switch (msg->icmp_header.type)
+    {
+    case GNUNET_TUN_ICMPTYPE6_ECHO_REPLY:
+    case GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST:
+      break;
+    case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
+    case GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG:
+    case GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED:
+    case GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM:
+      if (0 != pkt_len)
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
+      /* make up payload */
+      {
+	struct GNUNET_TUN_IPv6Header *ipp = (struct GNUNET_TUN_IPv6Header *) buf;
+	struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
+
+	GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+	pkt_len = sizeof (struct GNUNET_TUN_IPv6Header) + 8;
+	make_up_icmpv6_payload (state, 
+				ipp,
+				udp);
+	payload = ipp;
+      }
+      break;
+    default:
+      GNUNET_break_op (0);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# ICMPv6 packets dropped (type not allowed)"),
+				1, GNUNET_NO);
+      return GNUNET_SYSERR;      
+    }
+    /* end AF_INET6 */
+    break;    
   default:
+    /* bad AF */
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
@@ -1948,20 +2100,61 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 			   &state->ri.remote_address.address,
 			   buf, sizeof (buf)));
   }
-
-  /* FIXME: check that ICMP type is something we want to support */
-
-  state->ri.remote_address.proto = IPPROTO_ICMP;
-  state->ri.remote_address.port = 0;
-  state->ri.local_address.port = 0;
-  if (NULL == state->heap_node)
-    setup_state_record (state);
-
   send_icmp_packet_via_tun (&state->ri.remote_address,
 			    &state->ri.local_address,
 			    &msg->icmp_header,
 			    payload, pkt_len);
   return GNUNET_YES;
+}
+
+
+/**
+ * Setup ICMP payload for ICMP error messages. Called
+ * for both IPv4 and IPv6 addresses.
+ *
+ * @param state context for creating the IP Packet
+ * @param buf where to create the payload, has at least
+ *       sizeof (struct GNUNET_TUN_IPv6Header) + 8 bytes
+ * @return number of bytes of payload we created in buf
+ */
+static uint16_t
+make_up_icmp_service_payload (struct TunnelState *state,
+			      char *buf)
+{
+  switch (state->serv->address.af)
+  {
+  case AF_INET:
+    {
+      struct GNUNET_TUN_IPv4Header *ipv4;
+      struct GNUNET_TUN_UdpHeader *udp;
+      
+      ipv4 = (struct GNUNET_TUN_IPv4Header *)buf;
+      udp = (struct GNUNET_TUN_UdpHeader *) &ipv4[1];
+      make_up_icmpv4_payload (state,
+			      ipv4,
+			      udp);
+      GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+      return sizeof (struct GNUNET_TUN_IPv4Header) + 8;
+    }
+    break;
+  case AF_INET6:
+    {
+      struct GNUNET_TUN_IPv6Header *ipv6;
+      struct GNUNET_TUN_UdpHeader *udp;
+
+      ipv6 = (struct GNUNET_TUN_IPv6Header *)buf;
+      udp = (struct GNUNET_TUN_UdpHeader *) &ipv6[1];
+      make_up_icmpv6_payload (state,
+			      ipv6,
+			      udp);
+      GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+      return sizeof (struct GNUNET_TUN_IPv6Header) + 8;      
+    }
+    break;
+  default:
+    GNUNET_break (0);
+  }
+  return 0;
 }
 
 
@@ -1988,6 +2181,9 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
   struct TunnelState *state = *tunnel_ctx;
   const struct GNUNET_EXIT_IcmpServiceMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
+  struct GNUNET_TUN_IcmpHeader icmp;
+  char buf[sizeof (struct GNUNET_TUN_IPv6Header) + 8];
+  const void *payload;
 
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from MESH"),
@@ -2013,23 +2209,141 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (state->serv->address.af != ntohl (msg->af))
-  {
-    GNUNET_STATISTICS_update (stats,
-			      gettext_noop ("# ICMP service requests discarded (incompatible af)"),
-			      1, GNUNET_NO);
-    return GNUNET_SYSERR;
-  }
-
-  /* FIXME: check that ICMP type is something we want to support */
-
+  icmp = msg->icmp_header;
+  payload = &msg[1];
   state->ri.remote_address = state->serv->address;    
   setup_state_record (state);
 
+  /* check that ICMP type is something we want to support,
+     perform ICMP PT if needed ans possibly make up payload */
+  switch (msg->af)
+  {
+  case AF_INET:
+    switch (msg->icmp_header.type)
+    {
+    case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:
+      if (state->serv->address.af == AF_INET6)
+	icmp.type = GNUNET_TUN_ICMPTYPE6_ECHO_REPLY;
+      break;
+    case GNUNET_TUN_ICMPTYPE_ECHO_REQUEST:
+      if (state->serv->address.af == AF_INET6)
+	icmp.type = GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST;
+      break;
+    case GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE:
+      if (state->serv->address.af == AF_INET6)
+	icmp.type = GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE;
+      if (0 != pkt_len)
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
+      payload = buf;
+      pkt_len = make_up_icmp_service_payload (state, buf);
+      break;
+    case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:
+      if (state->serv->address.af == AF_INET6)
+	icmp.type = GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED;
+      if (0 != pkt_len)
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
+      payload = buf;
+      pkt_len = make_up_icmp_service_payload (state, buf);
+      break;
+    case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
+      if (state->serv->address.af == AF_INET6)
+      {
+	GNUNET_STATISTICS_update (stats,
+				  gettext_noop ("# ICMPv4 packets dropped (impossible PT to v6)"),
+				  1, GNUNET_NO);
+	return GNUNET_OK;
+      }
+      if (0 != pkt_len)
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
+      payload = buf;
+      pkt_len = make_up_icmp_service_payload (state, buf);
+      break;
+    default:
+      GNUNET_break_op (0);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# ICMPv4 packets dropped (type not allowed)"),
+				1, GNUNET_NO);
+      return GNUNET_SYSERR;
+    }
+    /* end of AF_INET */
+    break;
+  case AF_INET6:
+    switch (msg->icmp_header.type)
+    {
+    case GNUNET_TUN_ICMPTYPE6_ECHO_REPLY:
+      if (state->serv->address.af == AF_INET)
+	icmp.type = GNUNET_TUN_ICMPTYPE_ECHO_REPLY;
+      break;
+    case GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST:
+      if (state->serv->address.af == AF_INET)
+	icmp.type = GNUNET_TUN_ICMPTYPE_ECHO_REQUEST;
+      break;
+    case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
+      if (state->serv->address.af == AF_INET)
+	icmp.type = GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE;
+      if (0 != pkt_len)
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
+      payload = buf;
+      pkt_len = make_up_icmp_service_payload (state, buf);
+      break;
+    case GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED:
+      if (state->serv->address.af == AF_INET)
+	icmp.type = GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED;
+      if (0 != pkt_len)
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
+      payload = buf;
+      pkt_len = make_up_icmp_service_payload (state, buf);
+      break;
+    case GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG:
+    case GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM:
+      if (state->serv->address.af == AF_INET)
+      {
+	GNUNET_STATISTICS_update (stats,
+				  gettext_noop ("# ICMPv6 packets dropped (impossible PT to v4)"),
+				  1, GNUNET_NO);
+	return GNUNET_OK;
+      }
+      if (0 != pkt_len)
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
+      payload = buf;
+      pkt_len = make_up_icmp_service_payload (state, buf);
+      break;
+    default:
+      GNUNET_break_op (0);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# ICMPv6 packets dropped (type not allowed)"),
+				1, GNUNET_NO);
+      return GNUNET_SYSERR;
+    }
+    /* end of AF_INET6 */
+    break;
+  default:
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+
   send_icmp_packet_via_tun (&state->ri.remote_address,
 			    &state->ri.local_address,
-			    &msg->icmp_header,
-			    &msg[1], pkt_len);
+			    &icmp,
+			    payload, pkt_len);
   return GNUNET_YES;
 }
 
