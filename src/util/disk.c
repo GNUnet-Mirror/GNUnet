@@ -2181,10 +2181,13 @@ GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int i
   BOOL ret;
   HANDLE tmp_handle;
 
+  /* All pipes are overlapped. If you want them to block - just
+   * call WriteFile() and ReadFile() with NULL overlapped pointer.
+   */
   ret =
       create_selectable_pipe (&p->fd[0]->h, &p->fd[1]->h, NULL, 0,
-                              blocking_read ? 0 : FILE_FLAG_OVERLAPPED,
-                              blocking_write ? 0 : FILE_FLAG_OVERLAPPED);
+                              FILE_FLAG_OVERLAPPED,
+                              FILE_FLAG_OVERLAPPED);
   if (!ret)
   {
     GNUNET_free (p);
