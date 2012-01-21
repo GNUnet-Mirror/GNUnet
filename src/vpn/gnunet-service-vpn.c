@@ -1238,14 +1238,69 @@ route_packet (struct DestinationEntry *destination,
 	return;
       }
       tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
-      tnq->len = mlen;
       tnq->msg = &tnq[1];
       ism = (struct GNUNET_EXIT_IcmpServiceMessage *) &tnq[1];
-      ism->header.size = htons ((uint16_t) mlen);
       ism->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE);
       ism->af = htonl (af); /* need to tell destination ICMP protocol family! */
       ism->service_descriptor = destination->details.service_destination.service_descriptor;
       ism->icmp_header = *icmp;
+      /* ICMP protocol translation will be done by the receiver (as we don't know
+	 the target AF); however, we still need to possibly discard the payload
+	 depending on the ICMP type */
+      switch (af)
+      {
+      case AF_INET:
+	switch (icmp->type)
+	{
+	case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:
+	case GNUNET_TUN_ICMPTYPE_ECHO_REQUEST:
+	  break;
+	case GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE:
+	case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
+	case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:
+	  /* throw away ICMP payload, won't be useful for the other side anyway */
+	  payload_length = sizeof (struct GNUNET_TUN_IcmpHeader); 
+	  break;
+	default:
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# ICMPv4 packets dropped (not allowed)"),
+				    1, GNUNET_NO);
+	  return;
+	}
+	/* end of AF_INET */
+	break;
+      case AF_INET6:
+	switch (icmp->type)
+	{
+	case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
+	case GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG:
+	case GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED:
+	case GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM:
+	  /* throw away ICMP payload, won't be useful for the other side anyway */
+	  payload_length = sizeof (struct GNUNET_TUN_IcmpHeader); 
+	  break;
+	case GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST:
+	case GNUNET_TUN_ICMPTYPE6_ECHO_REPLY:
+	  break;
+	default:
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# ICMPv6 packets dropped (not allowed)"),
+				    1, GNUNET_NO);
+	  return;
+  	}	
+	/* end of AF_INET6 */
+	break;
+      default:
+	GNUNET_assert (0);
+	break;
+      }
+
+      /* update length calculations, as payload_length may have changed */
+      mlen = sizeof (struct GNUNET_EXIT_IcmpServiceMessage) + 
+	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);      
+      tnq->len = mlen;
+      ism->header.size = htons ((uint16_t) mlen);
+      /* finally, copy payload (if there is any left...) */
       memcpy (&ism[1],
 	      &icmp[1],
 	      payload_length - sizeof (struct GNUNET_TUN_IcmpHeader));
@@ -1266,19 +1321,125 @@ route_packet (struct DestinationEntry *destination,
       }
       tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 
 			   mlen);
-      tnq->len = mlen;
       tnq->msg = &tnq[1];
       iim = (struct GNUNET_EXIT_IcmpInternetMessage *) &tnq[1];
-      iim->header.size = htons ((uint16_t) mlen);
       iim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET); 
-      iim->af = htonl (af); /* need to tell destination ICMP protocol family! */
       iim->icmp_header = *icmp;
-      if (af != destination->details.exit_destination.af)
+      /* Perform ICMP protocol-translation (depending on destination AF and source AF)
+	 and throw away ICMP payload depending on ICMP message type */
+      switch (af)
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("AF-translation for ICMP not implemented\n"));
-	return;
-      }
+      case AF_INET:
+	switch (icmp->type)
+	{
+	case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:	  
+	  if (destination->details.exit_destination.af == AF_INET6)
+	    iim->icmp_header.type = GNUNET_TUN_ICMPTYPE6_ECHO_REPLY;
+	  break;
+	case GNUNET_TUN_ICMPTYPE_ECHO_REQUEST:	  
+	  if (destination->details.exit_destination.af == AF_INET6)
+	    iim->icmp_header.type = GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST;
+	  break;
+	case GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE:
+	  if (destination->details.exit_destination.af == AF_INET6)
+	    iim->icmp_header.type = GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE;
+	  /* throw away IP-payload, exit will have to make it up anyway */
+	  payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
+	  break;
+	case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:	
+	  if (destination->details.exit_destination.af == AF_INET6)
+	    iim->icmp_header.type = GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED;
+	  /* throw away IP-payload, exit will have to make it up anyway */
+	  payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
+	  break;
+	case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
+	  if (destination->details.exit_destination.af == AF_INET6)
+	    {
+	      GNUNET_STATISTICS_update (stats,
+					gettext_noop ("# ICMPv4 packets dropped (impossible PT to v6)"),
+					1, GNUNET_NO);
+	      GNUNET_free (tnq);
+	      return;
+	    }
+	  /* throw away IP-payload, exit will have to make it up anyway */
+	  payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
+	  break;
+	default:
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# ICMPv4 packets dropped (type not allowed)"),
+				    1, GNUNET_NO);
+	  GNUNET_free (tnq);	    
+	  return;
+	}
+	/* end of AF_INET */
+	break;
+      case AF_INET6:
+	switch (icmp->type)
+	  {
+	  case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
+	    if (destination->details.exit_destination.af == AF_INET6)
+	      iim->icmp_header.type = GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE;
+	    /* throw away IP-payload, exit will have to make it up anyway */
+	    payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
+	    break;
+	  case GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED:
+	    if (destination->details.exit_destination.af == AF_INET)
+	      iim->icmp_header.type = GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED;
+	    /* throw away IP-payload, exit will have to make it up anyway */
+	    payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
+	    break;
+	  case GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG:
+	    if (destination->details.exit_destination.af == AF_INET)
+	    {
+	      GNUNET_STATISTICS_update (stats,
+					gettext_noop ("# ICMPv6 packets dropped (impossible PT to v4)"),
+					1, GNUNET_NO);
+	      GNUNET_free (tnq);
+	      return;
+	    }
+	    /* throw away IP-payload, exit will have to make it up anyway */
+	    payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
+	    break;
+	  case GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM:
+	    if (destination->details.exit_destination.af == AF_INET)
+	    {
+	      GNUNET_STATISTICS_update (stats,
+					gettext_noop ("# ICMPv6 packets dropped (impossible PT to v4)"),
+					1, GNUNET_NO);
+	      GNUNET_free (tnq);
+	      return;
+	    }
+	    /* throw away IP-payload, exit will have to make it up anyway */
+	    payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
+	    break;
+	  case GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST:
+	    if (destination->details.exit_destination.af == AF_INET)
+	      iim->icmp_header.type = GNUNET_TUN_ICMPTYPE_ECHO_REQUEST;
+	    break;
+	  case GNUNET_TUN_ICMPTYPE6_ECHO_REPLY:
+	    if (destination->details.exit_destination.af == AF_INET)
+	      iim->icmp_header.type = GNUNET_TUN_ICMPTYPE_ECHO_REPLY;
+	    break;
+	  default:
+	    GNUNET_STATISTICS_update (stats,
+				      gettext_noop ("# ICMPv6 packets dropped (type not allowed)"),
+				      1, GNUNET_NO);
+	    GNUNET_free (tnq);	    
+	    return;
+	  }
+	/* end of AF_INET6 */
+	break;
+      default:
+	GNUNET_assert (0);
+      } 
+      /* update length calculations, as payload_length may have changed */
+      mlen = sizeof (struct GNUNET_EXIT_IcmpInternetMessage) + 
+	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);      
+      tnq->len = mlen;
+      iim->header.size = htons ((uint16_t) mlen);
+
+      /* need to tell destination ICMP protocol family! */
+      iim->af = htonl (destination->details.exit_destination.af);
       switch (destination->details.exit_destination.af)
       {
       case AF_INET:

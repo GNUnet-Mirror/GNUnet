@@ -649,7 +649,7 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 	break;
       default:
 	GNUNET_STATISTICS_update (stats,
-				  gettext_noop ("# ICMP packets dropped (not allowed)"),
+				  gettext_noop ("# ICMPv4 packets dropped (not allowed)"),
 				  1, GNUNET_NO);
 	return;
       }
@@ -684,7 +684,7 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 	break;
       default:
 	GNUNET_STATISTICS_update (stats,
-				  gettext_noop ("# ICMP packets dropped (not allowed)"),
+				  gettext_noop ("# ICMPv6 packets dropped (not allowed)"),
 				  1, GNUNET_NO);
 	return;
       }
