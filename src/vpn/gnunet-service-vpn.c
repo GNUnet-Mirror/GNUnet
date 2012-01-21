@@ -878,6 +878,7 @@ route_packet (struct DestinationEntry *destination,
   int is_new;
   const struct GNUNET_TUN_UdpHeader *udp;
   const struct GNUNET_TUN_TcpHeader *tcp;
+  const struct GNUNET_TUN_IcmpHeader *icmp;
   uint16_t spt;
   uint16_t dpt;
 
@@ -920,6 +921,26 @@ route_packet (struct DestinationEntry *destination,
 			       spt,
 			       destination_ip,
 			       dpt,
+			       &key);
+    }
+    break;
+  case IPPROTO_ICMP:
+    {
+      if (payload_length < sizeof (struct GNUNET_TUN_IcmpHeader))
+      {
+	/* blame kernel? */
+	GNUNET_break (0);
+	return;
+      }
+      icmp = payload;
+      spt = 0;
+      dpt = 0;
+      get_tunnel_key_from_ips (af,
+			       IPPROTO_ICMP,
+			       source_ip,
+			       0,
+			       destination_ip,
+			       0,
 			       &key);
     }
     break;
@@ -1203,6 +1224,80 @@ route_packet (struct DestinationEntry *destination,
 	      &tcp[1],
 	      payload_length - sizeof (struct GNUNET_TUN_TcpHeader));
      }
+    break;
+  case IPPROTO_ICMP:
+    if (destination->is_service)
+    {
+      struct GNUNET_EXIT_IcmpServiceMessage *ism;
+
+      mlen = sizeof (struct GNUNET_EXIT_IcmpServiceMessage) + 
+	payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
+      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      {
+	GNUNET_break (0);
+	return;
+      }
+      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
+      tnq->len = mlen;
+      tnq->msg = &tnq[1];
+      ism = (struct GNUNET_EXIT_IcmpServiceMessage *) &tnq[1];
+      ism->header.size = htons ((uint16_t) mlen);
+      ism->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE);
+      ism->af = htonl (af); /* need to tell destination ICMP protocol family! */
+      ism->service_descriptor = destination->details.service_destination.service_descriptor;
+      ism->icmp_header = *icmp;
+      memcpy (&ism[1],
+	      &icmp[1],
+	      payload_length - sizeof (struct GNUNET_TUN_IcmpHeader));
+    }
+    else
+    {
+      struct GNUNET_EXIT_IcmpInternetMessage *iim;
+      struct in_addr *ip4dst;
+      struct in6_addr *ip6dst;
+      void *payload;
+
+      mlen = sizeof (struct GNUNET_EXIT_IcmpInternetMessage) + 
+	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
+      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      {
+	GNUNET_break (0);
+	return;
+      }
+      tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + 
+			   mlen);
+      tnq->len = mlen;
+      tnq->msg = &tnq[1];
+      iim = (struct GNUNET_EXIT_IcmpInternetMessage *) &tnq[1];
+      iim->header.size = htons ((uint16_t) mlen);
+      iim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET); 
+      iim->af = htonl (af); /* need to tell destination ICMP protocol family! */
+      iim->icmp_header = *icmp;
+      if (af != destination->details.exit_destination.af)
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("AF-translation for ICMP not implemented\n"));
+	return;
+      }
+      switch (destination->details.exit_destination.af)
+      {
+      case AF_INET:
+	ip4dst = (struct in_addr *) &iim[1];
+	*ip4dst = destination->details.exit_destination.ip.v4;
+	payload = &ip4dst[1];
+	break;
+      case AF_INET6:
+	ip6dst = (struct in6_addr *) &iim[1];
+	*ip6dst = destination->details.exit_destination.ip.v6;
+	payload = &ip6dst[1];
+	break;
+      default:
+	GNUNET_assert (0);
+      }
+      memcpy (payload,
+	      &icmp[1],
+	      payload_length - sizeof (struct GNUNET_TUN_IcmpHeader));
+    }
     break;
   default:
     /* not supported above, how can we get here !? */
