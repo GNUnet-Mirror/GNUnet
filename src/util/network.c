@@ -1319,12 +1319,15 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
             handle_array[nhandles++] = fh->oOverlapRead->hEvent;
             readArray[readPipes++] = fh;
           }
-          /*
-           * else
-           * {
-           * SetErrnoFromWinError (error_code);
-           * }
-           */
+          else
+          {
+#if DEBUG_NETWORK
+            LOG (GNUNET_ERROR_TYPE_DEBUG,
+                 "Read failed, adding the read ready event to the array as %d\n", nhandles);
+#endif
+            handle_array[nhandles++] = hEventReadReady;
+            readArray[readPipes++] = fh;
+          }
         }
         else
         {
