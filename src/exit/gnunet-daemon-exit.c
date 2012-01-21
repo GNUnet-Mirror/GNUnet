@@ -644,6 +644,8 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 	udp = (const struct GNUNET_TUN_UdpHeader *) &ipv4[1];
 	spt = ntohs (udp->spt);
 	dpt = ntohs (udp->dpt);
+	/* throw away ICMP payload, won't be useful for the other side anyway */
+	pktlen = sizeof (struct GNUNET_TUN_IcmpHeader);
 	break;
       default:
 	GNUNET_STATISTICS_update (stats,
@@ -674,6 +676,8 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 	udp = (const struct GNUNET_TUN_UdpHeader *) &ipv6[1];
 	spt = ntohs (udp->spt);
 	dpt = ntohs (udp->dpt);
+	/* throw away ICMP payload, won't be useful for the other side anyway */
+	pktlen = sizeof (struct GNUNET_TUN_IcmpHeader);
 	break;
       case GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST:
       case GNUNET_TUN_ICMPTYPE6_ECHO_REPLY:
@@ -735,12 +739,6 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   memcpy (&i2v->icmp_header,
 	  icmp,
 	  pktlen);
-  /* FIXME: should we sanitize the host-specific payload here?  On the
-     one hand, quite a bit of what we send is meaningless on the other
-     side (our IPs, ports, etc.); on the other hand, trying to compact
-     the packet would be very messy, and blanking fields out is also
-     hardly productive as they seem to contain nothing remotely
-     sensitive. */  
   send_packet_to_mesh_tunnel (state->tunnel,
 			      tnq);
 }

@@ -218,7 +218,10 @@ struct GNUNET_EXIT_IcmpServiceMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Address family, AF_INET or AF_INET6, in network byte order.
+   * Address family, AF_INET or AF_INET6, in network byte order.  This
+   * AF value determines if the 'icmp_header' is ICMPv4 or ICMPv6.
+   * The receiver (exit) may still have to translate (PT) to the services'
+   * ICMP version (if possible).
    */
   int32_t af;
 
@@ -232,7 +235,10 @@ struct GNUNET_EXIT_IcmpServiceMessage
    */
   struct GNUNET_TUN_IcmpHeader icmp_header;
 
-  /* followed by ICMP payload */
+  /* followed by ICMP payload; however, for certain ICMP message
+     types where the payload is the original IP packet, the payload
+     is omitted as it is useless for the receiver (who will need
+     to create some fake payload manually)  */
 };
 
 
@@ -249,18 +255,25 @@ struct GNUNET_EXIT_IcmpInternetMessage
 
   /**
    * Address family, AF_INET or AF_INET6, in network byte order.
+   * Determines both the ICMP version used in the 'icmp_header' and
+   * the IP address format that is used for the target IP.  If
+   * PT is necessary, the sender has already done it.
    */
   int32_t af;
 
   /**
-   * ICMP header to use.
+   * ICMP header to use.  Must match the target 'af' given
+   * above.
    */
   struct GNUNET_TUN_IcmpHeader icmp_header;
 
   /* followed by IP address of the destination; either
      'struct in_addr' or 'struct in6_addr', depending on af */
 
-  /* followed by ICMP payload */
+  /* followed by ICMP payload; however, for certain ICMP message
+     types where the payload is the original IP packet, the payload
+     is omitted as it is useless for the receiver (who will need
+     to create some fake payload manually)   */
 };
 
 
@@ -277,15 +290,19 @@ struct GNUNET_EXIT_IcmpToVPNMessage
 
   /**
    * Address family, AF_INET or AF_INET6, in network byte order.
+   * Useful to determine if this is an ICMPv4 or ICMPv6 header.
    */
   int32_t af;
 
   /**
-   * ICMP header to use.
+   * ICMP header to use.  ICMPv4 or ICMPv6, depending on 'af'.
    */
   struct GNUNET_TUN_IcmpHeader icmp_header;
 
-  /* followed by ICMP payload */
+  /* followed by ICMP payload; however, for certain ICMP message
+     types where the payload is the original IP packet, the payload
+     is omitted as it is useless for the receiver (who will need
+     to create some fake payload manually) */
 };
 
 
