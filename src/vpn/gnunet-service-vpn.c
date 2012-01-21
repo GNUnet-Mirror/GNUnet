@@ -1600,6 +1600,44 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 
 
 /**
+ * Synthesize a plausible ICMP payload for an ICMP error
+ * response on the given tunnel.
+ *
+ * @param ts tunnel information
+ * @param ipp IPv4 header to fill in (ICMP payload)
+ * @param udp "UDP" header to fill in (ICMP payload); might actually
+ *            also be the first 8 bytes of the TCP header
+ */
+static void
+make_up_icmpv4_payload (struct TunnelState *ts,
+			struct GNUNET_TUN_IPv4Header *ipp,
+			struct GNUNET_TUN_UdpHeader *udp)
+{
+  /* FIXME */
+  GNUNET_break (0);
+}
+
+
+/**
+ * Synthesize a plausible ICMP payload for an ICMP error
+ * response on the given tunnel.
+ *
+ * @param ts tunnel information
+ * @param ipp IPv6 header to fill in (ICMP payload)
+ * @param udp "UDP" header to fill in (ICMP payload); might actually
+ *            also be the first 8 bytes of the TCP header
+ */
+static void
+make_up_icmpv6_payload (struct TunnelState *ts,
+			struct GNUNET_TUN_IPv6Header *ipp,
+			struct GNUNET_TUN_UdpHeader *udp)
+{
+  /* FIXME */
+  GNUNET_break (0);
+}
+
+
+/**
  * We got an ICMP packet back from the MESH tunnel.  Pass it on to the
  * local virtual interface via the helper.
  *
@@ -1663,13 +1701,14 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
       {
-	char buf[size];
+	/* reserve some extra space in case we have an ICMP type here where
+	   we will need to make up the payload ourselves */
+	char buf[size + sizeof (struct GNUNET_TUN_IPv4Header) + 8];
 	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
 	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
 	struct GNUNET_TUN_IPv4Header *ipv4 = (struct GNUNET_TUN_IPv4Header *) &tun[1];
 	struct GNUNET_TUN_IcmpHeader *icmp = (struct GNUNET_TUN_IcmpHeader *) &ipv4[1];
 	msg->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
-	msg->size = htons (size);
 	tun->flags = htons (0);
 	tun->proto = htons (ETH_P_IPV4);
 	GNUNET_TUN_initialize_ipv4_header (ipv4,
@@ -1681,7 +1720,108 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	memcpy (&icmp[1],
 		&i2v[1],
 		mlen);
-	/* FIXME: for some ICMP types, we need to adjust the payload here... */
+	/* For some ICMP types, we need to adjust (make up) the payload here. 
+	   Also, depending on the AF used on the other side, we have to 
+	   do ICMP PT (translate ICMP types) */
+	switch (ntohl (i2v->af))
+	{
+	case AF_INET:	  
+	  switch (icmp->type)
+	  {
+	  case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:
+	  case GNUNET_TUN_ICMPTYPE_ECHO_REQUEST:
+	    break;
+	  case GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE:
+	  case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
+	  case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:	  
+	    {
+	      struct GNUNET_TUN_IPv4Header *ipp = (struct GNUNET_TUN_IPv4Header *) &icmp[1];
+	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
+	      
+	      if (mlen != 0)
+		{
+		  /* sender did not strip ICMP payload? */
+		  GNUNET_break_op (0);
+		  return GNUNET_SYSERR;
+		}
+	      size += sizeof (struct GNUNET_TUN_IPv4Header) + 8;
+	      GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+	      make_up_icmpv4_payload (ts, ipp, udp);
+	    }
+	    break;
+	  default:
+	    GNUNET_break_op (0);
+	    GNUNET_STATISTICS_update (stats,
+				      gettext_noop ("# ICMPv4 packets dropped (type not allowed)"),
+				      1, GNUNET_NO);
+	    return GNUNET_SYSERR;
+	  }
+	  /* end AF_INET */
+	  break;
+	case AF_INET6:
+	  /* ICMP PT 6-to-4 and possibly making up payloads */
+	  switch (icmp->type)
+	  {
+	  case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
+	    icmp->type = GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE;
+	    {
+	      struct GNUNET_TUN_IPv4Header *ipp = (struct GNUNET_TUN_IPv4Header *) &icmp[1];
+	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
+	      
+	      if (mlen != 0)
+		{
+		  /* sender did not strip ICMP payload? */
+		  GNUNET_break_op (0);
+		  return GNUNET_SYSERR;
+		}
+	      size += sizeof (struct GNUNET_TUN_IPv4Header) + 8;
+	      GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+	      make_up_icmpv4_payload (ts, ipp, udp);
+	    }
+	    break;
+	  case GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED:
+	    icmp->type = GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED;
+	    {
+	      struct GNUNET_TUN_IPv4Header *ipp = (struct GNUNET_TUN_IPv4Header *) &icmp[1];
+	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
+	      
+	      if (mlen != 0)
+		{
+		  /* sender did not strip ICMP payload? */
+		  GNUNET_break_op (0);
+		  return GNUNET_SYSERR;
+		}
+	      size += sizeof (struct GNUNET_TUN_IPv4Header) + 8;
+	      GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+	      make_up_icmpv4_payload (ts, ipp, udp);
+	    }
+	    break;
+	  case GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG:
+	  case GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM:
+	    GNUNET_STATISTICS_update (stats,
+				      gettext_noop ("# ICMPv6 packets dropped (impossible PT to v4)"),
+				      1, GNUNET_NO);
+	    return GNUNET_OK;
+	  case GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST:
+	    icmp->type = GNUNET_TUN_ICMPTYPE_ECHO_REQUEST;
+	    break;
+	  case GNUNET_TUN_ICMPTYPE6_ECHO_REPLY:
+	    icmp->type = GNUNET_TUN_ICMPTYPE_ECHO_REPLY;
+	    break;
+	  default:
+	    GNUNET_break_op (0);
+	    GNUNET_STATISTICS_update (stats,
+				      gettext_noop ("# ICMPv6 packets dropped (type not allowed)"),
+				      1, GNUNET_NO);
+	    return GNUNET_SYSERR;
+	  }
+	  /* end AF_INET6 */
+	  break;
+	default:
+	  GNUNET_break_op (0);
+	  return GNUNET_SYSERR;
+	}	
+	msg->size = htons (size);
 	GNUNET_TUN_calculate_icmp_checksum (icmp,
 					    &i2v[1],
 					    mlen);
@@ -1700,13 +1840,12 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
       {
-	char buf[size];
+	char buf[size + sizeof (struct GNUNET_TUN_IPv6Header) + 8];
 	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
 	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
 	struct GNUNET_TUN_IPv6Header *ipv6 = (struct GNUNET_TUN_IPv6Header *) &tun[1];
 	struct GNUNET_TUN_IcmpHeader *icmp = (struct GNUNET_TUN_IcmpHeader *) &ipv6[1];
 	msg->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
-	msg->size = htons (size);
 	tun->flags = htons (0);
 	tun->proto = htons (ETH_P_IPV6);
 	GNUNET_TUN_initialize_ipv6_header (ipv6,
@@ -1718,7 +1857,108 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	memcpy (&icmp[1],
 		&i2v[1],
 		mlen);
-	/* FIXME: for some ICMP types, we need to adjust the payload here... */
+
+	/* For some ICMP types, we need to adjust (make up) the payload here. 
+	   Also, depending on the AF used on the other side, we have to 
+	   do ICMP PT (translate ICMP types) */
+	switch (ntohl (i2v->af))
+	{
+	case AF_INET:	  
+	  /* ICMP PT 4-to-6 and possibly making up payloads */
+	  switch (icmp->type)
+	  {
+	  case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:
+	    icmp->type = GNUNET_TUN_ICMPTYPE6_ECHO_REPLY;
+	    break;
+	  case GNUNET_TUN_ICMPTYPE_ECHO_REQUEST:
+	    icmp->type = GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST;
+	    break;
+	  case GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE:
+	    icmp->type = GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE;
+	    {
+	      struct GNUNET_TUN_IPv6Header *ipp = (struct GNUNET_TUN_IPv6Header *) &icmp[1];
+	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
+	      
+	      if (mlen != 0)
+		{
+		  /* sender did not strip ICMP payload? */
+		  GNUNET_break_op (0);
+		  return GNUNET_SYSERR;
+		}
+	      size += sizeof (struct GNUNET_TUN_IPv6Header) + 8;
+	      GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+	      make_up_icmpv6_payload (ts, ipp, udp);
+	    }
+	    break;
+	  case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:	  
+	    icmp->type = GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED;
+	    {
+	      struct GNUNET_TUN_IPv6Header *ipp = (struct GNUNET_TUN_IPv6Header *) &icmp[1];
+	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
+	      
+	      if (mlen != 0)
+		{
+		  /* sender did not strip ICMP payload? */
+		  GNUNET_break_op (0);
+		  return GNUNET_SYSERR;
+		}
+	      size += sizeof (struct GNUNET_TUN_IPv6Header) + 8;
+	      GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+	      make_up_icmpv6_payload (ts, ipp, udp);
+	    }
+	    break;
+	  case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
+	    GNUNET_STATISTICS_update (stats,
+				      gettext_noop ("# ICMPv4 packets dropped (impossible PT to v6)"),
+				      1, GNUNET_NO);	    
+	    return GNUNET_OK;
+	  default:
+	    GNUNET_break_op (0);
+	    GNUNET_STATISTICS_update (stats,
+				      gettext_noop ("# ICMPv4 packets dropped (type not allowed)"),
+				      1, GNUNET_NO);
+	    return GNUNET_SYSERR;
+	  }
+	  /* end AF_INET */
+	  break;
+	case AF_INET6:
+	  switch (icmp->type)
+	  {
+	  case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
+	  case GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED:
+	  case GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG:
+	  case GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM:
+	    {
+	      struct GNUNET_TUN_IPv6Header *ipp = (struct GNUNET_TUN_IPv6Header *) &icmp[1];
+	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
+	      
+	      if (mlen != 0)
+		{
+		  /* sender did not strip ICMP payload? */
+		  GNUNET_break_op (0);
+		  return GNUNET_SYSERR;
+		}
+	      size += sizeof (struct GNUNET_TUN_IPv6Header) + 8;
+	      GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
+	      make_up_icmpv6_payload (ts, ipp, udp);
+	    }
+	    break;
+	  case GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST:
+	    break;
+	  default:
+	    GNUNET_break_op (0);
+	    GNUNET_STATISTICS_update (stats,
+				      gettext_noop ("# ICMPv6 packets dropped (type not allowed)"),
+				      1, GNUNET_NO);
+	    return GNUNET_SYSERR;
+	  }
+	  /* end AF_INET6 */
+	  break;
+	default:
+	  GNUNET_break_op (0);
+	  return GNUNET_SYSERR;
+	}
+	msg->size = htons (size);
 	GNUNET_TUN_calculate_icmp_checksum (icmp,
 					    &i2v[1], mlen);
 	(void) GNUNET_HELPER_send (helper_handle,
