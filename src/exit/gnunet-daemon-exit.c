@@ -602,7 +602,7 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 			   source_ip,
 			   sbuf, sizeof (sbuf)),
 		inet_ntop (af,
-			   source_ip,
+			   destination_ip,
 			   dbuf, sizeof (dbuf)));    
   }
   if (pktlen < sizeof (struct GNUNET_TUN_IcmpHeader))
@@ -721,7 +721,7 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   if (NULL == state)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Packet dropped, have no matching connection information\n"));
+		_("ICMP Packet dropped, have no matching connection information\n"));
     return;
   }
   mlen = sizeof (struct GNUNET_EXIT_IcmpToVPNMessage) + pktlen - sizeof (struct GNUNET_TUN_IcmpHeader);
@@ -779,7 +779,7 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
 			   sbuf, sizeof (sbuf)),
 		(unsigned int) ntohs (udp->spt),
 		inet_ntop (af,
-			   source_ip,
+			   destination_ip,
 			   dbuf, sizeof (dbuf)),
 		(unsigned int) ntohs (udp->dpt));
   }
@@ -804,7 +804,7 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
   if (NULL == state)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Packet dropped, have no matching connection information\n"));
+		_("UDP Packet dropped, have no matching connection information\n"));
     return;
   }
   mlen = sizeof (struct GNUNET_EXIT_UdpReplyMessage) + pktlen - sizeof (struct GNUNET_TUN_UdpHeader);
@@ -879,7 +879,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   if (NULL == state)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Packet dropped, have no matching connection information\n"));
+		_("TCP Packet dropped, have no matching connection information\n"));
     
     return;
   }
@@ -1074,9 +1074,12 @@ setup_fresh_address (int af,
   local_address->proto = (uint8_t) proto;
   /* default "local" port range is often 32768--61000,
      so we pick a random value in that range */	 
-  local_address->port 
-    = (uint16_t) 32768 + GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
-						   28232);      
+  if (proto == IPPROTO_ICMP)
+    local_address->port = 0;
+  else
+    local_address->port 
+      = (uint16_t) 32768 + GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+						     28232);      
   switch (af)
   {
   case AF_INET:
@@ -1205,7 +1208,7 @@ setup_state_record (struct TunnelState *state)
 		inet_ntop (state->ri.local_address.af, 
 			   &state->ri.local_address.address,
 			   buf, sizeof (buf)),
-		(unsigned int) state->ri.local_address.port);  
+		(unsigned int) state->ri.local_address.port);
   }
   state->state_key = key;
   GNUNET_assert (GNUNET_OK ==
