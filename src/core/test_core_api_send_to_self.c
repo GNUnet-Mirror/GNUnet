@@ -113,7 +113,7 @@ send_message (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *hdr = buf;
 
   hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
-  hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE);
+  hdr->type = htons (GNUNET_MESSAGE_TYPE_DUMMY);
   return ntohs (hdr->size);
 }
 
@@ -163,7 +163,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const static struct GNUNET_CORE_MessageHandler handlers[] = {
-    {&receive, GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE, 0},
+    {&receive, GNUNET_MESSAGE_TYPE_DUMMY, 0},
     {NULL, 0, 0}
   };
 
