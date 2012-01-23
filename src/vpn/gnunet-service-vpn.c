@@ -527,6 +527,7 @@ free_tunnel_state (struct TunnelState *ts)
   GNUNET_assert (NULL == ts->destination.heap_node);
   if (NULL != (tunnel = ts->tunnel))
   {
+    fprintf (stderr, "Destroying tunnel %p\n", tunnel);
     ts->tunnel = NULL;
     GNUNET_MESH_tunnel_destroy (tunnel);
   }
@@ -725,6 +726,7 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
     GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
 				 ts->tmq_tail,
 				 dq);
+    ts->tmq_length--;
     GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
     ts->th = NULL;
     GNUNET_STATISTICS_update (stats,
@@ -781,6 +783,7 @@ create_tunnel_to_destination (struct DestinationEntry *de,
 					  &tunnel_peer_connect_handler,
 					  &tunnel_peer_disconnect_handler,
 					  ts);
+  fprintf (stderr, "Created tunnel %p\n", ts->tunnel);
   if (NULL == ts->tunnel)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
