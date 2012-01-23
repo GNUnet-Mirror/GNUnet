@@ -4212,7 +4212,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /*  It shouldn't be a local tunnel.  */
-  if (NULL != t->client)
+  if (NULL != t->client && NULL == t->client_dest)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
