@@ -1293,7 +1293,15 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     GNUNET_break (UINT32_MAX == th->priority);
     GNUNET_break (NULL == th->notify);
     msg = (struct GNUNET_MessageHeader *) &th[1];
-    GNUNET_break (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT == ntohs(msg->type));
+    if (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT != ntohs(msg->type))
+    {
+      GNUNET_break (0);
+#if MESH_API_DEBUG
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: expected %u, got %u\n",
+                  GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, ntohs(msg->type));
+#endif
+    }
+
     GNUNET_CONTAINER_DLL_remove (handle->th_head, handle->th_tail, th);
     GNUNET_free (th);
   }
