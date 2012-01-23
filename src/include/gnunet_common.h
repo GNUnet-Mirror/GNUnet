@@ -116,6 +116,11 @@
  */
 #define GNUNET_UNUSED __attribute__((unused))
 
+/**
+ * gcc-ism to document functions that don't return
+ */
+#define GNUNET_NORETURN __attribute__((noreturn))
+
 #if __GNUC__ > 3
 /**
  * gcc 4.x-ism to pack structures even on W32 (to be used before structs)
@@ -319,7 +324,7 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
  * Abort the process, generate a core dump if possible.
  */
 void
-GNUNET_abort (void);
+GNUNET_abort (void) GNUNET_NORETURN;
 
 /**
  * Ignore the next n calls to the log function.
