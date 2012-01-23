@@ -620,7 +620,7 @@ EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
 void
 EnumNICs3_free (struct EnumNICs3_results *r)
 {
-  GNUNET_free (r);
+  GNUNET_free_non_null (r);
 }
 
 
