@@ -35,6 +35,8 @@
 #include "gnunet-service-ats_addresses_mlp.h"
 #endif
 
+#define VERBOSE GNUNET_EXTRA_LOGGING
+
 enum ATS_Mode
 {
   /**
@@ -197,7 +199,11 @@ destroy_address (struct ATS_Address *addr)
 struct CompareAddressContext
 {
   const struct ATS_Address *search;
-  struct ATS_Address *result;
+
+  /* exact_address != NULL if address and session is equal */
+  struct ATS_Address *exact_address;
+  /* exact_address != NULL if address and session is 0 */
+  struct ATS_Address *base_address;
 };
 
 
@@ -206,15 +212,35 @@ compare_address_it (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct CompareAddressContext *cac = cls;
   struct ATS_Address *aa = value;
+/*
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Comparing to: %s %s %u session %u\n",
+              GNUNET_i2s (&aa->peer), aa->plugin, aa->addr_len, aa->session_id);
 
-  if (((aa->addr_len != cac->search->addr_len) ||
-       (0 != strcmp (aa->plugin, cac->search->plugin)) ||
-       (0 != memcmp (aa->addr, cac->search->addr, aa->addr_len))) &&
-      ((aa->session_id != cac->search->session_id) ||
-       (cac->search->session_id == 0)))
+*/
+  /* find an exact matching address: aa->addr == cac->search->addr && aa->session == cac->search->session */
+  if ((aa->addr_len == cac->search->addr_len) && (0 == strcmp (aa->plugin, cac->search->plugin)))
+  {
+      if ((0 == memcmp (aa->addr, cac->search->addr, aa->addr_len)) && (aa->session_id == cac->search->session_id))
+      {
+        cac->exact_address = aa;
+      }
+  }
+
+  /* find an matching address: aa->addr == cac->search->addr && aa->session == 0 */
+  /* this address can be used to be updated */
+  if ((aa->addr_len == cac->search->addr_len) && (0 == strcmp (aa->plugin, cac->search->plugin)))
+  {
+      if ((0 == memcmp (aa->addr, cac->search->addr, aa->addr_len)) && (aa->session_id == 0))
+      {
+        cac->base_address = aa;
+      }
+  }
+
+  if (cac->exact_address == NULL)
     return GNUNET_YES;
-  cac->result = aa;
-  return GNUNET_NO;
+  else
+    return GNUNET_NO;
 }
 
 
@@ -233,11 +259,62 @@ find_address (const struct GNUNET_PeerIdentity *peer,
 {
   struct CompareAddressContext cac;
 
-  cac.result = NULL;
+  cac.exact_address = NULL;
+  cac.base_address = NULL;
   cac.search = addr;
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
                                               &compare_address_it, &cac);
-  return cac.result;
+
+/*
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "exact address: %s           base address: %s\n",
+              (cac.exact_address != NULL) ? "YES" : "NO",
+              (cac.base_address != NULL) ? "YES" : "NO");
+*/
+  if (cac.exact_address == NULL)
+    return cac.base_address;
+  return cac.exact_address;
+}
+
+
+static int
+compare_address_session_it (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct CompareAddressContext *cac = cls;
+  struct ATS_Address *aa = value;
+
+  if ((aa->addr_len == cac->search->addr_len) && (0 == strcmp (aa->plugin, cac->search->plugin)))
+  {
+      if ((0 == memcmp (aa->addr, cac->search->addr, aa->addr_len)) && (aa->session_id == cac->search->session_id))
+      {
+        cac->exact_address = aa;
+        return GNUNET_NO;
+      }
+  }
+  return GNUNET_YES;
+}
+
+
+/**
+ * Find an existing equivalent address record.
+ * Compares by peer identity and network address AND by session ID
+ * (one of the two must match).
+ *
+ * @param peer peer to lookup addresses for
+ * @param addr existing address record
+ * @return existing address record, NULL for none
+ */
+struct ATS_Address *
+find_exact_address (const struct GNUNET_PeerIdentity *peer,
+              const struct ATS_Address *addr)
+{
+  struct CompareAddressContext cac;
+
+  cac.exact_address = NULL;
+  cac.search = addr;
+  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
+                                              &compare_address_session_it, &cac);
+  return cac.exact_address;
 }
 
 
@@ -262,6 +339,12 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
   aa->ats_count = atsi_count;
   memcpy (aa->ats, atsi, atsi_count * sizeof (struct GNUNET_ATS_Information));
 
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s' %u\n",
+              GNUNET_i2s (peer),
+              session_id);
+#endif
+  /* Get existing address or address with session == 0 */
   old = find_address (peer, aa);
   if (old == NULL)
   {
@@ -269,15 +352,20 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
                    GNUNET_CONTAINER_multihashmap_put (addresses,
                                                       &peer->hashPubKey, aa,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+#if DEBUG_ATS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' %X\n",
                 GNUNET_i2s (peer), aa);
+#endif
     old = aa;
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Updated existing address for peer `%s' %X \n",
-                GNUNET_i2s (peer), old);
+#if DEBUG_ATS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Updated existing address for peer `%s' %p old session %u new session %u\n",
+                GNUNET_i2s (peer), old,
+                old->session_id, session_id);
+#endif
     GNUNET_free_non_null (old->ats);
     old->session_id = session_id;
     old->ats = NULL;
@@ -354,9 +442,11 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
       (aa->addr_len == info->addr_len) &&
       (0 == memcmp (info->addr, aa->addr, aa->addr_len)))
   {
+#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Deleting address for peer `%s': `%s'\n",
-                GNUNET_i2s (&aa->peer), aa->plugin);
+                "Deleting address for peer `%s': `%s' %u\n",
+                GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
+#endif
     if (GNUNET_YES == destroy_address (aa))
       recalculate_assigned_bw ();
     return GNUNET_OK;
@@ -367,6 +457,11 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
   if (aa->session_id != 0)
     GNUNET_break (0 == strcmp (info->plugin, aa->plugin));
   /* session died */
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deleting session for peer `%s': `%s' %u\n",
+              GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
+#endif
   aa->session_id = 0;
 
   if (GNUNET_YES == aa->active)
@@ -379,6 +474,11 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
   /* session == 0 and addrlen == 0 : destroy address */
   if (aa->addr_len == 0)
   {
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Deleting session and address for peer `%s': `%s' %u\n",
+                GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
+#endif
     (void) destroy_address (aa);
   }
   else
@@ -470,12 +570,13 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *aa;
   struct ATS_Address *old;
 
+
   aa = create_address(peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
-  old = find_address (peer, aa);
+  old = find_exact_address (peer, aa);
   free_address (aa);
 
   GNUNET_assert (old != NULL);
-  GNUNET_assert (in_use != old->used);
+  GNUNET_assert (old->used != in_use);
   old->used = in_use;
 
 #if HAVE_LIBGLPK
