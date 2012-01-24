@@ -33,7 +33,7 @@
 
 #define START_ARM GNUNET_YES
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 struct PeerContext
 {

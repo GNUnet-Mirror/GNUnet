@@ -757,6 +757,7 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
 static struct TunnelState *
 create_tunnel_to_destination (struct DestinationEntry *de,
 			      struct GNUNET_SERVER_Client *client,
+			      int client_af,
 			      uint64_t request_id)
 {
   struct TunnelState *ts;
@@ -766,6 +767,7 @@ create_tunnel_to_destination (struct DestinationEntry *de,
 			    1, GNUNET_NO);
   GNUNET_assert (NULL == de->ts);
   ts = GNUNET_malloc (sizeof (struct TunnelState));
+  ts->af = client_af;
   if (NULL != client)
   {
     ts->request_id = request_id;
@@ -776,7 +778,6 @@ create_tunnel_to_destination (struct DestinationEntry *de,
   ts->destination.heap_node = NULL; /* copy is NOT in destination heap */
   de->ts = ts;
   ts->destination_container = de; /* we are referenced from de */
-  ts->af = AF_UNSPEC; /* so far, unknown */
   ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
 					  ts,
 					  &tunnel_peer_connect_handler,
@@ -1007,7 +1008,7 @@ route_packet (struct DestinationEntry *destination,
        available) or create a fresh one */
     is_new = GNUNET_YES;
     if (NULL == destination->ts)
-      ts = create_tunnel_to_destination (destination, NULL, 0);
+      ts = create_tunnel_to_destination (destination, NULL, af, 0);
     else
       ts = destination->ts;
     if (NULL == ts)
@@ -2464,6 +2465,7 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   void *addr;
   struct DestinationEntry *de;
   GNUNET_HashCode key;
+  struct TunnelState *ts;
   
   /* validate and parse request */
   mlen = ntohs (message->size);
@@ -2589,11 +2591,23 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
 			    1, GNUNET_NO);
   while (GNUNET_CONTAINER_multihashmap_size (destination_map) > max_destination_mappings)
     expire_destination (de);
-
+  
   /* setup tunnel to destination */
-  (void) create_tunnel_to_destination (de, 
-				       (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
-				       msg->request_id);
+  ts = create_tunnel_to_destination (de, 
+				     (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
+				     result_af,
+				     msg->request_id);
+  switch (result_af)
+  {
+  case AF_INET:
+    ts->destination_ip.v4 = v4;
+    break;
+  case AF_INET6:
+    ts->destination_ip.v6 = v6;
+    break;
+  default:
+    GNUNET_assert (0);
+  }
   /* we're done */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -2619,6 +2633,7 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
   void *addr;
   struct DestinationEntry *de;
   GNUNET_HashCode key;
+  struct TunnelState *ts;
   
   /*  parse request */
   msg = (const struct RedirectToServiceRequestMessage *) message;
@@ -2708,9 +2723,21 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
 						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value);
   while (GNUNET_CONTAINER_multihashmap_size (destination_map) > max_destination_mappings)
     expire_destination (de);
-  (void) create_tunnel_to_destination (de,
-				       (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
-				       msg->request_id);
+  ts = create_tunnel_to_destination (de,
+				     (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
+				     result_af,
+				     msg->request_id);
+  switch (result_af)
+  {
+  case AF_INET:
+    ts->destination_ip.v4 = v4;
+    break;
+  case AF_INET6:
+    ts->destination_ip.v6 = v6;
+    break;
+  default:
+    GNUNET_assert (0);
+  }
   /* we're done */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
