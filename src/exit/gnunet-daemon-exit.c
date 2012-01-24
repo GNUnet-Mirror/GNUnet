@@ -523,6 +523,20 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 
   s->th = NULL;
   tnq = s->head;
+  if (NULL == tnq)
+    return 0;
+  if (0 == size)
+  {
+    s->th = GNUNET_MESH_notify_transmit_ready (tunnel, 
+					       GNUNET_NO /* corking */, 
+					       0 /* priority */,
+					       GNUNET_TIME_UNIT_FOREVER_REL,
+					       NULL,
+					       tnq->len,
+					       &send_to_peer_notify_callback,
+					       s);
+    return 0;
+  }
   GNUNET_assert (size >= tnq->len);
   memcpy (buf, tnq->payload, tnq->len);
   size = tnq->len;
