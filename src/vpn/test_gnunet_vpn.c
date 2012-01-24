@@ -204,11 +204,13 @@ curl_main ()
     if (msg->msg == CURLMSG_DONE)
     {
       if (msg->data.result != CURLE_OK)
+      {
 	printf ("%s failed at %s:%d: `%s'\n",
 		"curl_multi_perform",
 		__FILE__,
 		__LINE__, curl_easy_strerror (msg->data.result));
-      global_ret = 1;
+	global_ret = 1;
+      }
     }
     curl_multi_remove_handle (multi, curl);
     curl_multi_cleanup (multi);
