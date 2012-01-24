@@ -413,6 +413,11 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
       th = th->next;
     }
   }
+  if (NULL == h->th_head && NULL != h->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel(h->th);
+    h->th = NULL;
+  }
   GNUNET_CONTAINER_DLL_remove (h->tunnels_head, h->tunnels_tail, t);
   for (i = 0; i < t->npeers; i++)
   {
