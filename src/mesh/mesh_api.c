@@ -1139,7 +1139,7 @@ send_callback (void *cls, size_t size, void *buf)
     }
     if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (th->timeout_task);
-    if (NULL != th->tunnel)
+    if (NULL != th->notify)
     {
       th->tunnel->mesh->npackets--;
       th->tunnel->npackets--;
