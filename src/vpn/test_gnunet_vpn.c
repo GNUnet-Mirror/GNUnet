@@ -124,16 +124,26 @@ mhd_ahc (void *cls,
 static void
 do_shutdown ()
 {
-  GNUNET_SCHEDULER_cancel (mhd_task_id);
-  mhd_task_id = GNUNET_SCHEDULER_NO_TASK;
-  MHD_stop_daemon (mhd);
+  if (mhd_task_id != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (mhd_task_id);
+    mhd_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != mhd)
+  {
+    MHD_stop_daemon (mhd);
+    mhd = NULL;
+  }
   if (NULL != rr)
   {
     GNUNET_VPN_cancel_request (rr);
     rr = NULL;
   }
-  GNUNET_VPN_disconnect (vpn);
-  vpn = NULL;
+  if (NULL != vpn)
+  {
+    GNUNET_VPN_disconnect (vpn);
+    vpn = NULL;
+  }
   GNUNET_free_non_null (url);
   url = NULL;
 }
@@ -297,6 +307,7 @@ mhd_main ()
   struct GNUNET_NETWORK_FDSet nws;
   fd_set rs;
   fd_set ws;
+  fd_set es;
   int max_fd;
   unsigned MHD_LONG_LONG timeout;
   struct GNUNET_TIME_Relative delay;
@@ -304,9 +315,10 @@ mhd_main ()
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == mhd_task_id);
   FD_ZERO (&rs);
   FD_ZERO (&ws);
+  FD_ZERO (&es);
   max_fd = -1;
   GNUNET_assert (MHD_YES ==
-		 MHD_get_fdset (mhd, &rs, &ws, NULL, &max_fd));
+		 MHD_get_fdset (mhd, &rs, &ws, &es, &max_fd));
   if (MHD_YES == MHD_get_timeout (mhd, &timeout))
     delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
 					   (unsigned int) timeout);
@@ -348,6 +360,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 			  &mhd_ahc, NULL,
 			  MHD_OPTION_SOCK_ADDR, &v4,
 			  MHD_OPTION_END);
+  GNUNET_assert (NULL != mhd);
   mhd_main ();
   rr = GNUNET_VPN_redirect_to_ip (vpn,
 				  AF_INET,
