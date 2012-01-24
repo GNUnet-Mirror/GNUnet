@@ -254,7 +254,13 @@ allocation_cb (void *cls,
   char ips[INET_ADDRSTRLEN];
 
   rr = NULL;
-  GNUNET_assert (AF_INET == af);
+  if (AF_INET != af)
+  {
+    fprintf (stderr, 
+z	     "VPN failed to allocate appropriate address\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   GNUNET_asprintf (&url, 
 		   "http://%s:%u/hello_world",	
 		   inet_ntop (af, address, ips, sizeof (ips)),
@@ -341,9 +347,6 @@ mhd_main ()
 					     &nws,
 					     &mhd_task,
 					     NULL);  
-  ctrl_c_task_id = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-						 &ctrl_c_shutdown,
-						 NULL);
 }
 
 
@@ -373,6 +376,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 				  GNUNET_YES,
 				  GNUNET_TIME_UNIT_FOREVER_ABS,
 				  &allocation_cb, NULL);
+  ctrl_c_task_id = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+						 &ctrl_c_shutdown,
+						 NULL);
 }
 
 
@@ -430,15 +436,6 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
-  /* not technically true -- proper SUID and a chdir here would
-     likely do -- but this will avoid getting (useless) reports
-     from users where the test fails due to insufficient
-     permissions */
-  if (0 != getuid ())
-  {
-    fprintf (stderr, "This testcase can only be run as root\n");
-    return 0;
-  }
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
     return 2;
   setup_peer (&p1, "test_gnunet_vpn.conf");
@@ -452,5 +449,6 @@ main (int argc, char *const *argv)
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "test_gnunet_vpn", "nohelp", options, &run, NULL);
   stop_peer (&p1);
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");
   return global_ret;
 }

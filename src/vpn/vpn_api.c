@@ -261,9 +261,13 @@ transmit_request (void *cls,
   while ( (NULL != rr) &&
 	  (0 != rr->request_id) )
     rr = rr->next;
-  if ( (NULL == rr) ||
-       (0 == size) )
+  if (NULL == rr) 
     return 0;
+  if (0 == size) 
+  {
+    reconnect (vh);
+    return 0;
+  }
 
   /* if first request, start receive loop */
   if (0 == vh->request_id_gen)
@@ -364,9 +368,10 @@ connect_task (void *cls,
 {
   struct GNUNET_VPN_Handle *vh = cls;
   
+  vh->rt = GNUNET_SCHEDULER_NO_TASK;
   vh->client = GNUNET_CLIENT_connect ("vpn", vh->cfg);
   GNUNET_assert (NULL != vh->client);
-  GNUNET_assert (NULL != vh->th);
+  GNUNET_assert (NULL == vh->th);
   if (NULL != vh->rr_head) 
     vh->th = GNUNET_CLIENT_notify_transmit_ready (vh->client,
 						  sizeof (struct RedirectToServiceRequestMessage),
