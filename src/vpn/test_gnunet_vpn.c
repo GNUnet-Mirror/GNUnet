@@ -260,7 +260,7 @@ allocation_cb (void *cls,
 		   inet_ntop (af, address, ips, sizeof (ips)),
 		   (unsigned int) PORT);
   curl = curl_easy_init ();
-  curl_easy_setopt (curl, CURLOPT_URL, "http://127.0.0.1:1082/hello_world");
+  curl_easy_setopt (curl, CURLOPT_URL, url);
   curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, &copyBuffer);
   curl_easy_setopt (curl, CURLOPT_WRITEDATA, &cbc);
   curl_easy_setopt (curl, CURLOPT_FAILONERROR, 1);
@@ -271,6 +271,8 @@ allocation_cb (void *cls,
   multi = curl_multi_init ();
   GNUNET_assert (multi != NULL);
   GNUNET_assert (CURLM_OK == curl_multi_add_handle (multi, curl));
+
+  fprintf (stderr, "Beginning HTTP download from `%s'\n", url);
   curl_main ();
 }
 
