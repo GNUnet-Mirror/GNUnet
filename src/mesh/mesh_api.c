@@ -380,48 +380,21 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
   struct GNUNET_MESH_Handle *h;
   struct GNUNET_PeerIdentity pi;
   struct GNUNET_MESH_TransmitHandle *th;
-  struct GNUNET_MESH_TransmitHandle *aux;
+  struct GNUNET_MESH_TransmitHandle *next;
   unsigned int i;
 
   if (NULL == t)
   {
     GNUNET_break (0);
     return;
-  }
+  }  
   h = t->mesh;
-  th = h->th_head;
-  while (NULL != th)
-  {
-    if (th->tunnel == t)
-    {
-      aux = th->next;
-      GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
-      if (NULL == h->th_head && NULL != h->th)
-      {
-        GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
-        h->th = NULL;
-      }
-      if (NULL != th->notify)
-        th->notify (th->notify_cls, 0, NULL);
-      if (GNUNET_SCHEDULER_NO_TASK != th->timeout_task)
-        GNUNET_SCHEDULER_cancel (th->timeout_task);
-      GNUNET_free (th);
-      th = aux;
-    }
-    else
-    {
-      th = th->next;
-    }
-  }
-  if (NULL == h->th_head && NULL != h->th)
-  {
-    GNUNET_CLIENT_notify_transmit_ready_cancel(h->th);
-    h->th = NULL;
-  }
+
+  /* disconnect all peers */
   GNUNET_CONTAINER_DLL_remove (h->tunnels_head, h->tunnels_tail, t);
   for (i = 0; i < t->npeers; i++)
   {
-    if (NULL != t->disconnect_handler && t->peers[i]->connected)
+    if ( (NULL != t->disconnect_handler) && t->peers[i]->connected)
     {
       GNUNET_PEER_resolve (t->peers[i]->id, &pi);
       t->disconnect_handler (t->cls, &pi);
@@ -429,10 +402,39 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
     GNUNET_PEER_change_rc (t->peers[i]->id, -1);
     GNUNET_free (t->peers[i]);
   }
+
+  /* signal tunnel destruction */
+  if ( (NULL != h->cleaner) && (0 != t->owner) && (GNUNET_YES == call_cleaner) )
+    h->cleaner (h->cls, t, t->ctx);
+
+  /* check that clients did not leave messages behind in the queue */
+  for (th = h->th_head; NULL != th; th = next)
+  {
+    next = th->next;
+    if (th->tunnel != t)
+      continue;
+    /* we should not really get here, as clients should have
+       aborted there requests already */
+    GNUNET_break (0);
+    GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
+
+    /* clean up request */
+    if (GNUNET_SCHEDULER_NO_TASK != th->timeout_task)
+      GNUNET_SCHEDULER_cancel (th->timeout_task);
+    GNUNET_free (th);    
+  }
+
+  /* if there are no more pending requests with mesh service, cancel active request */
+  /* Note: this should be unnecessary... */
+  if ( (NULL == h->th_head) && (NULL != h->th))
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
+  }
+
+
   if (t->npeers > 0)
     GNUNET_free (t->peers);
-  if (NULL != h->cleaner && 0 != t->owner && GNUNET_YES == call_cleaner)
-    h->cleaner (h->cls, t, t->ctx);
   if (0 != t->owner)
     GNUNET_PEER_change_rc (t->owner, -1);
   if (0 != t->napps && t->apps)
