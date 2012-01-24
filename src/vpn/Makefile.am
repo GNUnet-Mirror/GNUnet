@@ -33,6 +33,17 @@ bin_PROGRAMS = \
   $(VPNBIN) gnunet-service-vpn gnunet-vpn
 
 
+if HAVE_MHD
+ VPN_TEST = test_gnunet_vpn
+endif
+
+check_PROGRAMS = $(VPN_TEST)
+
+if ENABLE_TEST_RUN
+TESTS = $(check_PROGRAMS)
+endif
+
+
 gnunet_helper_vpn_SOURCES = \
  gnunet-helper-vpn.c
 
@@ -64,14 +75,9 @@ libgnunetvpn_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 
-if ENABLE_TEST_RUN
-#TESTS = \
-# test_transport_api_tcp 
-endif
-
-#test_transport_api_tcp_SOURCES = \
-# test_transport_api.c
-#test_transport_api_tcp_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
-# $(top_builddir)/src/util/libgnunetutil.la  
-
+test_gnunet_vpn_SOURCES = \
+ test_gnunet_vpn.c
+test_gnunet_vpn_LDADD = -lmicrohttpd @LIBCURL@ \
+ $(top_builddir)/src/vpn/libgnunetvpn.la \
+ $(top_builddir)/src/arm/libgnunetarm.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
