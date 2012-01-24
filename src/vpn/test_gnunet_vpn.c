@@ -71,9 +71,8 @@ static char *url;
 
 struct CBC
 {
-  char *buf;
+  char buf[1024];
   size_t pos;
-  size_t size;
 };
 
 static struct CBC cbc;
@@ -85,7 +84,7 @@ copyBuffer (void *ptr, size_t size, size_t nmemb, void *ctx)
 {
   struct CBC *cbc = ctx;
 
-  if (cbc->pos + size * nmemb > cbc->size)
+  if (cbc->pos + size * nmemb > sizeof(cbc->buf))
     return 0;                   /* overflow */
   memcpy (&cbc->buf[cbc->pos], ptr, size * nmemb);
   cbc->pos += size * nmemb;
@@ -106,7 +105,6 @@ mhd_ahc (void *cls,
   struct MHD_Response *response;
   int ret;
 
-  fprintf (stderr, "MHD got request for URL `%s'\n", url);
   if (0 != strcmp ("GET", method))
     return MHD_NO;              /* unexpected method */
   if (&ptr != *unused)
@@ -134,6 +132,16 @@ do_shutdown ()
   {
     GNUNET_SCHEDULER_cancel (mhd_task_id);
     mhd_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (curl_task_id != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (curl_task_id);
+    curl_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (ctrl_c_task_id != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (ctrl_c_task_id);
+    ctrl_c_task_id = GNUNET_SCHEDULER_NO_TASK;
   }
   if (NULL != mhd)
   {
@@ -167,7 +175,7 @@ curl_task (void *cls,
 	  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   curl_task_id = GNUNET_SCHEDULER_NO_TASK;
-
+  curl_main ();
 }
 
 
@@ -211,14 +219,14 @@ curl_main ()
       global_ret = 2;
     if (0 != strncmp ("/hello_world", cbc.buf, strlen ("/hello_world")))
       global_ret = 3;
+    fprintf (stderr, "Download complete, shutting down!\n");
     do_shutdown ();
     return;    
   }
-  GNUNET_assert (CURLM_OK == curl_multi_fdset (multi, &rs, &ws, &es, &max));
- 
+  GNUNET_assert (CURLM_OK == curl_multi_fdset (multi, &rs, &ws, &es, &max)); 
   if ( (CURLM_OK != curl_multi_timeout (multi, &timeout)) ||
        (-1 == timeout) )
-    delay = GNUNET_TIME_UNIT_FOREVER_REL;
+    delay = GNUNET_TIME_UNIT_SECONDS;
   else
     delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, (unsigned int) timeout);
   GNUNET_NETWORK_fdset_copy_native (&nrs,
