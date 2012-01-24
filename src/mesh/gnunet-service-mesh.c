@@ -3884,6 +3884,12 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   /* Remove from local id hashmap */
   GNUNET_CRYPTO_hash (&tid, sizeof (MESH_TunnelNumber), &hash);
   t = GNUNET_CONTAINER_multihashmap_get (c->own_tunnels, &hash);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   send_client_tunnel_disconnect(t, c);
   if (c != t->owner)
   {
