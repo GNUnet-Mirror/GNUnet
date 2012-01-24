@@ -106,6 +106,7 @@ mhd_ahc (void *cls,
   struct MHD_Response *response;
   int ret;
 
+  fprintf (stderr, "MHD got request for URL `%s'\n", url);
   if (0 != strcmp ("GET", method))
     return MHD_NO;              /* unexpected method */
   if (&ptr != *unused)
@@ -114,6 +115,7 @@ mhd_ahc (void *cls,
       return MHD_YES;
     }
   *unused = NULL;
+  fprintf (stderr, "MHD sends respose for request to URL `%s'\n", url);
   response = MHD_create_response_from_buffer (strlen (url),
 					      (void *) url,
 					      MHD_RESPMEM_MUST_COPY);
@@ -221,10 +223,10 @@ curl_main ()
     delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, (unsigned int) timeout);
   GNUNET_NETWORK_fdset_copy_native (&nrs,
 				    &rs,
-				    max);
+				    max + 1);
   GNUNET_NETWORK_fdset_copy_native (&nws,
 				    &ws,
-				    max);
+				    max + 1);
   curl_task_id = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 					      GNUNET_SCHEDULER_NO_TASK,
 					      delay,
@@ -338,10 +340,10 @@ mhd_main ()
     delay = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_NETWORK_fdset_copy_native (&nrs,
 				    &rs,
-				    max_fd);
+				    max_fd + 1);
   GNUNET_NETWORK_fdset_copy_native (&nws,
 				    &ws,
-				    max_fd);
+				    max_fd + 1);
   mhd_task_id = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 					     GNUNET_SCHEDULER_NO_TASK,
 					     delay,
@@ -356,25 +358,22 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct sockaddr_in v4;
+  struct in_addr v4;
 
   vpn = GNUNET_VPN_connect (cfg);
-  GNUNET_assert (NULL != vpn);
-  v4.sin_family = AF_INET;
-  v4.sin_port = htons (PORT);
-  GNUNET_assert (1 == inet_pton (AF_INET, "127.0.0.1", &v4.sin_addr));
+  GNUNET_assert (NULL != vpn); 
   mhd = MHD_start_daemon (MHD_USE_DEBUG,
 			  PORT,
 			  NULL, NULL,
 			  &mhd_ahc, NULL,
-			  MHD_OPTION_SOCK_ADDR, &v4,
 			  MHD_OPTION_END);
   GNUNET_assert (NULL != mhd);
   mhd_main ();
+  GNUNET_assert (1 == inet_pton (AF_INET, "10.10.1.1", &v4));
   rr = GNUNET_VPN_redirect_to_ip (vpn,
 				  AF_INET,
 				  AF_INET,
-				  &v4.sin_addr,
+				  &v4,
 				  GNUNET_YES,
 				  GNUNET_TIME_UNIT_FOREVER_ABS,
 				  &allocation_cb, NULL);
