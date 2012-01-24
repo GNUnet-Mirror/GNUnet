@@ -374,7 +374,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   rr = GNUNET_VPN_redirect_to_ip (vpn,
 				  AF_INET,
 				  AF_INET,
-				  &v4,
+				  &v4.sin_addr,
 				  GNUNET_YES,
 				  GNUNET_TIME_UNIT_FOREVER_ABS,
 				  &allocation_cb, NULL);
