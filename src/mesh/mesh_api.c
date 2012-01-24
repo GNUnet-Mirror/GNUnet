@@ -663,6 +663,7 @@ reconnect (struct GNUNET_MESH_Handle *h)
   if (NULL != h->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
   }
   if (NULL != h->client)
   {
@@ -1333,10 +1334,12 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
   if (NULL != handle->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
+    handle->th = NULL;
   }
   if (NULL != handle->client)
   {
     GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
+    handle->client = NULL;
   }
   GNUNET_free (handle);
 }
