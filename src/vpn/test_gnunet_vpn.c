@@ -33,6 +33,8 @@
 
 #define START_ARM GNUNET_YES
 
+#define VERBOSE GNUNET_YES
+
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -257,7 +259,7 @@ allocation_cb (void *cls,
   if (AF_INET != af)
   {
     fprintf (stderr, 
-z	     "VPN failed to allocate appropriate address\n");
+	     "VPN failed to allocate appropriate address\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
