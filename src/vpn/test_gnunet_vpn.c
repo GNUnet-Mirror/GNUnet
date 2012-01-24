@@ -31,6 +31,8 @@
 
 #define PORT 48080
 
+#define START_ARM GNUNET_YES
+
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -385,6 +387,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 #endif
                                "-c", cfgname, NULL);
 #endif
+  GNUNET_assert (NULL != p->arm_proc);
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
 
