@@ -50,7 +50,9 @@ check_PROGRAMS = \
  test_mesh_local_2 \
  test_mesh_2dtorus \
  test_mesh_small_unicast \
- test_mesh_small_multicast
+ test_mesh_small_multicast \
+ test_mesh_small_speed \
+ test_mesh_small_speed_ack
 
 test_mesh_api_SOURCES = \
  test_mesh_api.c
@@ -110,9 +112,27 @@ test_mesh_small_multicast_LDADD = \
 test_mesh_small_multicast_DEPENDENCIES = \
   libgnunetmesh.la
 
+test_mesh_small_speed_SOURCES = \
+ test_mesh_small.c
+test_mesh_small_speed_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
+test_mesh_small_speed_DEPENDENCIES = \
+  libgnunetmesh.la
+
+test_mesh_small_speed_ack_SOURCES = \
+ test_mesh_small.c
+test_mesh_small_speed_ack_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
+test_mesh_small_speed_ack_DEPENDENCIES = \
+  libgnunetmesh.la
 
 if ENABLE_TEST_RUN
-TESTS = test_mesh_api test_mesh_tree_api test_mesh_local_1 test_mesh_local_2 test_mesh_2dtorus test_mesh_small_unicast test_mesh_small_multicast
+TESTS = test_mesh_api test_mesh_tree_api test_mesh_local_1 test_mesh_local_2 \
+ test_mesh_2dtorus test_mesh_small_unicast test_mesh_small_multicast
 endif
 
 EXTRA_DIST = \
