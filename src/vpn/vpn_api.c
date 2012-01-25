@@ -219,6 +219,9 @@ receive_response (void *cls,
     reconnect (vh);
     return;
   }  
+  GNUNET_CLIENT_receive (vh->client,
+			 &receive_response, vh,
+			 GNUNET_TIME_UNIT_FOREVER_REL);      
   for (rr = vh->rr_head; NULL != rr; rr = rr->next)
   {
     if (rr->request_id == rm->request_id)
@@ -233,9 +236,6 @@ receive_response (void *cls,
       break;
     }
   }
-  GNUNET_CLIENT_receive (vh->client,
-			 &receive_response, vh,
-			 GNUNET_TIME_UNIT_FOREVER_REL);      
 }
 
 
