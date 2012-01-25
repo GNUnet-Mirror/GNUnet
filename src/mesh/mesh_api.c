@@ -901,8 +901,11 @@ process_peer_event (struct GNUNET_MESH_Handle *h,
  *
  * @param h         The mesh handle
  * @param message   A message encapsulating the data
+ * 
+ * @return GNUNET_YES if everything went fine
+ *         GNUNET_NO if client closed connection (h no longer valid)
  */
-static void
+static int
 process_incoming_data (struct GNUNET_MESH_Handle *h,
                        const struct GNUNET_MessageHeader *message)
 {
@@ -947,12 +950,12 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     break;
   default:
     GNUNET_break (0);
-    return;
+    return GNUNET_YES;
   }
   if (NULL == t)
   {
     GNUNET_break (0);
-    return;
+    return GNUNET_YES;
   }
   type = ntohs (payload->type);
   for (i = 0; i < h->n_handlers; i++)
@@ -969,7 +972,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG, "MESH: callback caused disconnection\n");
         GNUNET_MESH_disconnect (h);
-        return;
+        return GNUNET_NO;
       }
 #if MESH_API_DEBUG
       else
@@ -981,6 +984,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
 #endif
     }
   }
+  return GNUNET_YES;
 }
 
 
@@ -1021,7 +1025,8 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
   case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
   case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-    process_incoming_data (h, msg);
+    if (GNUNET_NO == process_incoming_data (h, msg))
+      return;
     break;
     /* We shouldn't get any other packages, log and ignore */
   default:
