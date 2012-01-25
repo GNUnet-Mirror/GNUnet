@@ -506,7 +506,6 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct EXTRACTOR_PluginList *plugins;
   char *ex;
   char *emsg;
 
@@ -600,23 +599,14 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     return;
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "FS", "EXTRACTORS", &ex))
+    ex = NULL;
+
   ds = GNUNET_FS_directory_scan_start (args[0],
-      GNUNET_NO, NULL, directory_scan_cb, NULL);
- 
-  plugins = NULL;
-  if (!disable_extractor)
-  {
-    plugins = EXTRACTOR_plugin_add_defaults (EXTRACTOR_OPTION_DEFAULT_POLICY);
-    if (GNUNET_OK ==
-        GNUNET_CONFIGURATION_get_value_string (cfg, "FS", "EXTRACTORS", &ex))
-    {
-      if (strlen (ex) > 0)
-        plugins =
-            EXTRACTOR_plugin_add_config (plugins, ex,
-                                         EXTRACTOR_OPTION_DEFAULT_POLICY);
-      GNUNET_free (ex);
-    }
-  }
+				       disable_extractor, 
+				       ex, 
+				       &directory_scan_cb, NULL);
   kill_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
                                     NULL);
