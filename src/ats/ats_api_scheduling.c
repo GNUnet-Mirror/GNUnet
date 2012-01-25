@@ -1020,6 +1020,11 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   size_t namelen;
   size_t msize;
 
+  if (address == NULL)
+  {
+    GNUNET_break (0);
+    return;
+  }
   if ((address == NULL) && (session == NULL))
   {
     GNUNET_break (0);
