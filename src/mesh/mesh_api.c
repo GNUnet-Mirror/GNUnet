@@ -387,7 +387,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
   {
     GNUNET_break (0);
     return;
-  }  
+  }
   h = t->mesh;
 
   /* disconnect all peers */
@@ -414,8 +414,9 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
     if (th->tunnel != t)
       continue;
     /* we should not really get here, as clients should have
-       aborted there requests already */
-    GNUNET_break (0);
+       aborted their requests already.
+       Management traffic should be ok, as clients can't cancel that */
+    GNUNET_break (NULL == th->notify);
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
 
     /* clean up request */
