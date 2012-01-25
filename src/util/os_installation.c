@@ -494,6 +494,12 @@ GNUNET_OS_check_helper_binary (const char *binary)
     GNUNET_free (p);
     return GNUNET_SYSERR;
   }
+  if (0 == getuid ())
+  {
+    /* as we run as root, we don't insist on SUID */
+    GNUNET_free (p);
+    return GNUNET_OK;
+  }
   if (0 != STAT (p, &statbuf))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, _("stat (%s) failed: %s\n"), p,
@@ -507,8 +513,9 @@ GNUNET_OS_check_helper_binary (const char *binary)
     GNUNET_free (p);
     return GNUNET_YES;
   }
+  /* binary exists, but not SUID */
   GNUNET_free (p);
-  return GNUNET_SYSERR;
+  return GNUNET_NO;
 #else
   GNUNET_free (p);
   rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
