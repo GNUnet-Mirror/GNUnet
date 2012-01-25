@@ -256,15 +256,15 @@ parse_record (const char *udp_payload,
 				     off, 0);
     if ( (NULL == r->data.soa->mname) ||
 	 (NULL == r->data.soa->rname) ||
-	 (*off + sizeof (soa) > udp_payload_length) )
+	 (*off + sizeof (struct soa_data) > udp_payload_length) )
       return GNUNET_SYSERR;
-    memcpy (&soa, &udp_payload[*off], sizeof (soa));
+    memcpy (&soa, &udp_payload[*off], sizeof (struct soa_data));
     r->data.soa->serial = ntohl (soa.serial);
     r->data.soa->refresh = ntohl (soa.refresh);
     r->data.soa->retry = ntohl (soa.retry);
     r->data.soa->expire = ntohl (soa.expire);
     r->data.soa->minimum_ttl = ntohl (soa.minimum);
-    (*off) += sizeof (soa);
+    (*off) += sizeof (struct soa_data);
     if (old_off + data_len != *off) 
       return GNUNET_SYSERR;
     return GNUNET_OK;
@@ -602,7 +602,7 @@ add_soa (char *dst,
 				      off,
 				      soa->rname)) ) )
     return ret;
-  if (*off + sizeof (soa) > dst_len)
+  if (*off + sizeof (struct soa_data) > dst_len)
     return GNUNET_NO;
   sd.serial = htonl (soa->serial);
   sd.refresh = htonl (soa->refresh);
