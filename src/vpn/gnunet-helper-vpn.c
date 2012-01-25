@@ -91,6 +91,7 @@ init_tun (char *dev)
   if (fd >= FD_SETSIZE)
   {
     fprintf (stderr, "File descriptor to large: %d", fd);
+    (void) close (fd);
     return -1;
   }
 
