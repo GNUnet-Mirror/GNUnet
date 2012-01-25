@@ -192,6 +192,7 @@ load (struct GNUNET_SERVER_Handle *server)
   rh = GNUNET_BIO_read_open (fn);
   if (!rh)
   {
+    GNUNET_free (buf);
     GNUNET_free (fn);
     return;
   }
@@ -199,6 +200,7 @@ load (struct GNUNET_SERVER_Handle *server)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "read", fn);
     GNUNET_break (GNUNET_OK == GNUNET_BIO_read_close (rh, &emsg));
+    GNUNET_free (buf);
     GNUNET_free_non_null (emsg);
     GNUNET_free (fn);
     return;
