@@ -240,12 +240,13 @@ GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
     plugin_name = &address[address_length];
   else
     plugin_name = "";
+
   if ((address_length + plugin_name_length +
        ats_count * sizeof (struct GNUNET_ATS_Information) +
        sizeof (struct AddressUpdateMessage) != ntohs (message->size)) ||
       (ats_count >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information))
-      || (plugin_name[plugin_name_length - 1] != '\0'))
+       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)) ||
+       ((plugin_name_length > 0) && (plugin_name[plugin_name_length - 1] != '\0')))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
