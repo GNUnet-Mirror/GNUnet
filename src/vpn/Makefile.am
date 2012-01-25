@@ -34,7 +34,11 @@ bin_PROGRAMS = \
 
 
 if HAVE_MHD
- VPN_TEST = test_gnunet_vpn
+ VPN_TEST = \
+ test_gnunet_vpn-4_to_6 \
+ test_gnunet_vpn-6_to_4 \
+ test_gnunet_vpn-6_over \
+ test_gnunet_vpn-4_over
 endif
 
 check_PROGRAMS = $(VPN_TEST)
@@ -75,9 +79,30 @@ libgnunetvpn_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 
-test_gnunet_vpn_SOURCES = \
+test_gnunet_vpn_4_over_SOURCES = \
  test_gnunet_vpn.c
-test_gnunet_vpn_LDADD = -lmicrohttpd @LIBCURL@ \
+test_gnunet_vpn_4_over_LDADD = -lmicrohttpd @LIBCURL@ \
+ $(top_builddir)/src/vpn/libgnunetvpn.la \
+ $(top_builddir)/src/arm/libgnunetarm.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
+
+test_gnunet_vpn_6_over_SOURCES = \
+ test_gnunet_vpn.c
+test_gnunet_vpn_6_over_LDADD = -lmicrohttpd @LIBCURL@ \
+ $(top_builddir)/src/vpn/libgnunetvpn.la \
+ $(top_builddir)/src/arm/libgnunetarm.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
+
+test_gnunet_vpn_4_to_6_SOURCES = \
+ test_gnunet_vpn.c
+test_gnunet_vpn_4_to_6_LDADD = -lmicrohttpd @LIBCURL@ \
+ $(top_builddir)/src/vpn/libgnunetvpn.la \
+ $(top_builddir)/src/arm/libgnunetarm.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
+
+test_gnunet_vpn_6_to_4_SOURCES = \
+ test_gnunet_vpn.c
+test_gnunet_vpn_6_to_4_LDADD = -lmicrohttpd @LIBCURL@ \
  $(top_builddir)/src/vpn/libgnunetvpn.la \
  $(top_builddir)/src/arm/libgnunetarm.la \
  $(top_builddir)/src/util/libgnunetutil.la 

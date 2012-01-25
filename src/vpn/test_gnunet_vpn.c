@@ -71,6 +71,22 @@ static CURLM *multi;
 
 static char *url;
 
+/**
+ * IP address of the ultimate destination.
+ */
+static const char *dest_ip;
+
+/**
+ * Address family of the dest_ip.
+ */
+static int dest_af;
+
+/**
+ * Address family to use by the curl client.
+ */
+static int src_af;
+
+
 struct CBC
 {
   char buf[1024];
@@ -267,10 +283,10 @@ allocation_cb (void *cls,
 	       int af,
 	       const void *address)
 {
-  char ips[INET_ADDRSTRLEN];
+  char ips[INET6_ADDRSTRLEN];
 
   rr = NULL;
-  if (AF_INET != af)
+  if (src_af != af)
   {
     fprintf (stderr, 
 	     "VPN failed to allocate appropriate address\n");
@@ -371,20 +387,24 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct in_addr v4;
+  enum MHD_FLAG flags;
 
   vpn = GNUNET_VPN_connect (cfg);
   GNUNET_assert (NULL != vpn); 
-  mhd = MHD_start_daemon (MHD_USE_DEBUG,
+  flags = MHD_USE_DEBUG;
+  if (AF_INET6 == dest_af)
+    flags |= MHD_USE_IPv6;
+  mhd = MHD_start_daemon (flags,
 			  PORT,
 			  NULL, NULL,
 			  &mhd_ahc, NULL,
 			  MHD_OPTION_END);
   GNUNET_assert (NULL != mhd);
   mhd_main ();
-  GNUNET_assert (1 == inet_pton (AF_INET, "169.254.86.1", &v4));
+  GNUNET_assert (1 == inet_pton (dest_af, dest_ip, &v4));
   rr = GNUNET_VPN_redirect_to_ip (vpn,
-				  AF_INET,
-				  AF_INET,
+				  src_af,
+				  dest_af,
 				  &v4,
 				  GNUNET_YES,
 				  GNUNET_TIME_UNIT_FOREVER_ABS,
@@ -436,6 +456,8 @@ stop_peer (struct PeerContext *p)
 int
 main (int argc, char *const *argv)
 {
+  const char *type;
+  const char *bin;
   char *const argvx[] = {
     "test_gnunet_vpn",
     "-c",
@@ -448,6 +470,45 @@ main (int argc, char *const *argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  bin = argv[0];
+  if (NULL != strstr (bin, "lt-"))
+    bin = strstr (bin, "lt-") + 4;
+  type = strstr (bin, "-");
+  if (NULL == type)
+  {
+    fprintf (stderr, "invalid binary name\n");
+    return 1;
+  }
+  type++;
+  if (0 == strcmp (type, "4_to_6"))
+  {
+    dest_ip = "FC5A:04E1:C2BA::1";
+    dest_af = AF_INET6;
+    src_af = AF_INET;
+  } 
+  else if (0 == strcmp (type, "6_to_4"))
+  {
+    dest_ip = "169.254.86.1";
+    dest_af = AF_INET;
+    src_af = AF_INET6;
+  } 
+  else if (0 == strcmp (type, "4_over"))
+  {
+    dest_ip = "169.254.86.1";
+    dest_af = AF_INET;
+    src_af = AF_INET;
+  } 
+  else if (0 == strcmp (type, "6_over"))
+  {
+    dest_ip = "FC5A:04E1:C2BA::1";
+    dest_af = AF_INET6;
+    src_af = AF_INET6;
+  }
+  else
+  {
+    fprintf (stderr, "invalid binary suffix `%s'\n", type);
+    return 1;
+  }
 
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
     return 2;
