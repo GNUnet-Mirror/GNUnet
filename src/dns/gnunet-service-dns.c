@@ -1223,7 +1223,9 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 
   /* setup new request */
   rr->phase = RP_INIT;
-  if (ip4->version == 4)
+  switch (ntohs (tun->proto))
+  {
+  case ETH_P_IPV4:
   {
     srca4 = (struct sockaddr_in*) &rr->src_addr;
     dsta4 = (struct sockaddr_in*) &rr->dst_addr;
@@ -1240,7 +1242,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
     dsta4->sin_len = sizeof (sizeof (struct sockaddr_in));
 #endif
   }
-  else /* ipv6 */
+  break;
+  case ETH_P_IPV6:
   {
     srca6 = (struct sockaddr_in6*) &rr->src_addr;
     dsta6 = (struct sockaddr_in6*) &rr->dst_addr;
@@ -1256,6 +1259,9 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
     srca6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
     dsta6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
 #endif
+    break;
+  default:
+    GNUNET_assert (0);
   }
   rr->payload = GNUNET_malloc (msize);
   rr->payload_length = msize;
