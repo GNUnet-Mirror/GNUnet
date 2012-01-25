@@ -180,7 +180,8 @@ init_tun (char *dev)
 
   if (-1 == ioctl (fd, TUNSETIFF, (void *) &ifr))
   {
-    fprintf (stderr, "Error with ioctl on `%s': %s\n", "/dev/net/tun",
+    fprintf (stderr, 
+	     "Error with ioctl on `%s': %s\n", "/dev/net/tun",
              strerror (errno));
     (void) close (fd);
     return -1;

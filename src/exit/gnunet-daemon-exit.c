@@ -220,6 +220,11 @@ struct TunnelState
 
 
 /**
+ * Return value from 'main'.
+ */
+static int global_ret;
+
+/**
  * The handle to the configuration used throughout the process
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -2970,6 +2975,15 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   char *ipv4addr;
   char *ipv4mask;
 
+  if (GNUNET_YES !=
+      GNUNET_OS_check_helper_binary ("gnunet-helper-exit"))
+  {
+    fprintf (stderr,
+	     "`%s' is not SUID, refusing to run.\n",
+	     "gnunet-helper-exit");
+    global_ret = 1;
+    return;
+  }
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("exit", cfg);
   ipv4_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV4");
@@ -3151,7 +3165,7 @@ main (int argc, char *const *argv)
           GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-exit",
                               gettext_noop
                               ("Daemon to run to provide an IP exit node for the VPN"),
-                              options, &run, NULL)) ? 0 : 1;
+                              options, &run, NULL)) ? global_ret : 1;
 }
 
 
