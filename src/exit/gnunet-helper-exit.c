@@ -594,8 +594,8 @@ PROCESS_BUFFER:
  * Open VPN tunnel interface.
  *
  * @param argc must be 6
- * @param argv 0: binary name ("gnunet-helper-vpn")
- *             1: tunnel interface name ("gnunet-vpn")
+ * @param argv 0: binary name ("gnunet-helper-exit")
+ *             1: tunnel interface name ("gnunet-exit")
  *             2: IPv4 "physical" interface name ("eth0"), or "%" to not do IPv4 NAT
  *             3: IPv6 address ("::1"), or "-" to skip IPv6
  *             4: IPv6 netmask length in bits ("64") [ignored if #4 is "-"]
@@ -611,7 +611,7 @@ main (int argc, char **argv)
 
   if (7 != argc)
   {
-    fprintf (stderr, "Fatal: must supply 5 arguments!\n");
+    fprintf (stderr, "Fatal: must supply 6 arguments!\n");
     return 1;
   }
   if ( (0 == strcmp (argv[3], "-")) &&
