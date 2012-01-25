@@ -144,9 +144,10 @@ client_schedule (struct Plugin *plugin, int now)
 int
 client_send (struct Session *s, struct HTTP_Message *msg)
 {
+  GNUNET_assert (s != NULL);
   GNUNET_CONTAINER_DLL_insert (s->msg_head, s->msg_tail, msg);
 
-  if ((s != NULL) && (s->client_put_paused == GNUNET_YES))
+  if (s->client_put_paused == GNUNET_YES)
   {
 #if VERBOSE_CLIENT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
