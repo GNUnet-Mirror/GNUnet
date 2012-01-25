@@ -83,8 +83,8 @@ static const char *sbin_iptables;
 struct in6_ifreq
 {
   struct in6_addr ifr6_addr;
-  uint32_t ifr6_prefixlen;
-  unsigned int ifr6_ifindex;
+  __u32 ifr6_prefixlen;
+  int ifr6_ifindex;
 };
 #endif
 
@@ -208,16 +208,16 @@ static void
 set_address6 (const char *dev, const char *address, unsigned long prefix_len)
 {
   struct ifreq ifr;
-  struct in6_ifreq ifr6;
   struct sockaddr_in6 sa6;
   int fd;
+  struct in6_ifreq ifr6;
 
   /*
    * parse the new address
    */
   memset (&sa6, 0, sizeof (struct sockaddr_in6));
   sa6.sin6_family = AF_INET6;
-  if (1 != inet_pton (AF_INET6, address, sa6.sin6_addr.s6_addr))
+  if (1 != inet_pton (AF_INET6, address, &sa6.sin6_addr))
   {
     fprintf (stderr, "Failed to parse address `%s': %s\n", address,
              strerror (errno));
