@@ -232,7 +232,7 @@ static struct GNUNET_HELPER_Handle *helper_handle;
 /**
  * Arguments to the exit helper.
  */
-static char *exit_argv[7];
+static char *exit_argv[8];
 
 /**
  * IPv6 address of our TUN interface.
@@ -2758,7 +2758,7 @@ cleanup (void *cls GNUNET_UNUSED,
     GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
     stats = NULL;
   }
-  for (i=0;i<5;i++)
+  for (i=0;i<8;i++)
     GNUNET_free_non_null (exit_argv[i]);
 }
 
