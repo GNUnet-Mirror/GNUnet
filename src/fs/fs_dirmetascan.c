@@ -763,10 +763,8 @@ scan_directory (void *cls, const char *filename)
    */
   if (0 != STAT (filename, &sbuf))
   {
-    do_stop = write_progress (adc, filename, S_ISDIR (sbuf.st_mode),
-      GNUNET_DIR_SCANNER_DOES_NOT_EXIST);
-    if (do_stop)
-      return GNUNET_SYSERR;
+    (void) write_progress (adc, filename, S_ISDIR (sbuf.st_mode),
+			   GNUNET_DIR_SCANNER_DOES_NOT_EXIST);
     return GNUNET_OK;
   }
 
