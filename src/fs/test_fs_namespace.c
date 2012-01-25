@@ -235,12 +235,12 @@ publish_cont (void *cls, const struct GNUNET_FS_Uri *ksk_uri, const char *emsg)
   GNUNET_CRYPTO_hash_to_enc (&nsid, &enc);
   GNUNET_snprintf (sbuf, sizeof (sbuf), "gnunet://fs/sks/%s/this", &enc);
   sks_uri = GNUNET_FS_uri_parse (sbuf, &msg);
-  if (msg != NULL)
+  if (NULL == sks_uri)
   {
     FPRINTF (stderr, "failed to parse URI `%s': %s\n", sbuf, msg);
     err = 1;
     GNUNET_FS_stop (fs);
-    GNUNET_free (msg);
+    GNUNET_free_non_null (msg);
     return;
   }
   ksk_search =
