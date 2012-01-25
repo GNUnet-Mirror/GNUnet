@@ -554,7 +554,6 @@ disconnect_nse_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnecting nse service of peers\n");
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  pos = peer_head;
   while (NULL != (pos = peer_head))
   {
     if (pos->nse_handle != NULL)
