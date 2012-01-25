@@ -514,6 +514,7 @@ dns_post_request_handler (void *cls,
   if (! work)
   {
     GNUNET_DNS_request_forward (rh);
+    GNUNET_DNSPARSER_free_packet (dns);
     return;
   }
   rc = GNUNET_malloc (sizeof (struct ReplyContext));
