@@ -82,7 +82,7 @@ static struct CBC cbc;
 
 
 static size_t
-copyBuffer (void *ptr, size_t size, size_t nmemb, void *ctx)
+copy_buffer (void *ptr, size_t size, size_t nmemb, void *ctx)
 {
   struct CBC *cbc = ctx;
 
@@ -110,10 +110,10 @@ mhd_ahc (void *cls,
   if (0 != strcmp ("GET", method))
     return MHD_NO;              /* unexpected method */
   if (&ptr != *unused)
-    {
-      *unused = &ptr;
-      return MHD_YES;
-    }
+  {
+    *unused = &ptr;
+    return MHD_YES;
+  }
   *unused = NULL;
   fprintf (stderr, "MHD sends respose for request to URL `%s'\n", url);
   response = MHD_create_response_from_buffer (strlen (url),
@@ -283,7 +283,7 @@ allocation_cb (void *cls,
 		   (unsigned int) PORT);
   curl = curl_easy_init ();
   curl_easy_setopt (curl, CURLOPT_URL, url);
-  curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, &copyBuffer);
+  curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, &copy_buffer);
   curl_easy_setopt (curl, CURLOPT_WRITEDATA, &cbc);
   curl_easy_setopt (curl, CURLOPT_FAILONERROR, 1);
   curl_easy_setopt (curl, CURLOPT_TIMEOUT, 150L);
@@ -461,9 +461,10 @@ main (int argc, char *const *argv)
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "test_gnunet_vpn", "nohelp", options, &run, NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stopping Peer\n");
   stop_peer (&p1);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DONE\n");
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");
   return global_ret;
 }
+
+/* end of test_gnunet_vpn.c */
+
