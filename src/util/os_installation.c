@@ -487,6 +487,13 @@ GNUNET_OS_check_helper_binary (const char *binary)
          binary);
     return GNUNET_SYSERR;
   }
+  if (0 != ACCESS (p, X_OK))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("access (%s, X_OK) failed: %s\n"), p,
+         STRERROR (errno));
+    GNUNET_free (p);
+    return GNUNET_SYSERR;
+  }
   if (0 != STAT (p, &statbuf))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, _("stat (%s) failed: %s\n"), p,
@@ -499,11 +506,6 @@ GNUNET_OS_check_helper_binary (const char *binary)
   {
     GNUNET_free (p);
     return GNUNET_YES;
-  }
-  if (0 == ACCESS (p, X_OK))
-  {
-    GNUNET_free (p);
-    return GNUNET_NO;
   }
   GNUNET_free (p);
   return GNUNET_SYSERR;
