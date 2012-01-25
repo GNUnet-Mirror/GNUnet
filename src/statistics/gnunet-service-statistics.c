@@ -245,7 +245,8 @@ save ()
       if (GNUNET_OK != GNUNET_BIO_write (wh, pos->msg, size))
       {
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
-        GNUNET_BIO_write_close (wh);
+        if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "close", fn);
         wh = NULL;
       }
       else
@@ -255,7 +256,8 @@ save ()
   }
   if (NULL != wh)
   {
-    GNUNET_BIO_write_close (wh);
+    if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "close", fn);
     if (total == 0)
       GNUNET_break (0 == UNLINK (fn));
     else
