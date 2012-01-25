@@ -77,7 +77,7 @@ modify_record (const struct GNUNET_DNSPARSER_Record *record)
 		 "Changing A record from `%s' to `%s'\n",
 		 inet_ntop (AF_INET, record->data.raw.data, buf, sizeof (buf)),
 		 n4);
-      inet_pton (AF_INET, n4, record->data.raw.data);
+      GNUNET_assert (1 == inet_pton (AF_INET, n4, record->data.raw.data));
     }
     break;
   case GNUNET_DNSPARSER_TYPE_AAAA:
@@ -90,7 +90,7 @@ modify_record (const struct GNUNET_DNSPARSER_Record *record)
 		 "Changing AAAA record from `%s' to `%s'\n",
 		 inet_ntop (AF_INET6, record->data.raw.data, buf, sizeof (buf)),
 		 n6);
-      inet_pton (AF_INET6, n6, record->data.raw.data);
+      GNUNET_assert (1 == inet_pton (AF_INET6, n6, record->data.raw.data));
     }
     break;
   case GNUNET_DNSPARSER_TYPE_NS:
@@ -199,6 +199,25 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  struct in_addr i4;
+  struct in6_addr i6;
+  if ( (n4 != NULL) &&
+       (1 != inet_pton (AF_INET, n4, &i4)) )
+  {
+    fprintf (stderr,
+	     "`%s' is nto a valid IPv4 address!\n",
+	     n4);
+    return;
+  }
+  if ( (n6 != NULL) &&
+       (1 != inet_pton (AF_INET6, n6, &i6)) )
+  {
+    fprintf (stderr,
+	     "`%s' is nto a valid IPv6 address!\n",
+	     n6);
+    return;
+  }
+
   handle =
     GNUNET_DNS_connect (cfg, 
 			GNUNET_DNS_FLAG_POST_RESOLUTION,
